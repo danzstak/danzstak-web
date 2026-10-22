@@ -99,8 +99,9 @@
         music professionals, and everyone who loves music.
       </p>
       <a class="button" href="#features">Explore DANZSTAK</a>
-<a class="button" href="https://us-east-1qa4b46ilc.auth.us-east-1.amazoncognito.com/signup?client_id=1f22nlfulv5j29pvttt0lt7squ&amp;redirect_uri=https%3A%2F%2Fdanzstak.com%2F&amp;response_type=code&amp;scope=email+openid">Sign Up</a>
-<a class="button" href="https://us-east-1qa4b46ilc.auth.us-east-1.amazoncognito.com/login?client_id=1f22nlfulv5j29pvttt0lt7squ&amp;redirect_uri=https%3A%2F%2Fdanzstak.com%2F&amp;response_type=code&amp;scope=email+openid">Log In</a>
+<a class="button" href="#" id="signupBtn">Sign Up</a>
+<a class="button" href="#" id="loginBtn">Log In</a>
+
     </section>
 
     <section class="features" id="features">
@@ -126,6 +127,123 @@
   <footer>
     &copy; 2026 DANZSTAK. All rights reserved.
   </footer>
+
+
+<script type="module">
+const cognito = {
+  domain: "https://us-east-1qa4b46ilc.auth.us-east-1.amazoncognito.com",
+  clientId: "1f22nlfulv5j29pvttt0lt7squ",
+  redirectUri: "https://danzstak.com/",
+  scopes: "openid email"
+};
+function base64url(bytes) {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function createVerifier() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return base64url(bytes);
+}
+
+async function createChallenge(verifier) {
+  const data = new TextEncoder().encode(verifier);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return base64url(new Uint8Array(hash));
+}
+async function startAuth(mode) {
+  const verifier = createVerifier();
+  const challenge = await createChallenge(verifier);
+
+  const state = base64url(crypto.getRandomValues(new Uint8Array(16)));
+
+  sessionStorage.setItem("danzstak_pkce_verifier", verifier);
+  sessionStorage.setItem("danzstak_oauth_state", state);
+
+  const params = new URLSearchParams({
+    client_id: cognito.clientId,
+    redirect_uri: cognito.redirectUri,
+    response_type: "code",
+    scope: cognito.scopes,
+    code_challenge_method: "S256",
+    code_challenge: challenge,
+    state
+  });
+
+  const page = mode === "signup" ? "signup" : "login";
+  window.location.assign(`${cognito.domain}/${page}?${params}`);
+}
+document.getElementById("signupBtn").addEventListener("click", (event) => {
+  event.preventDefault();
+  startAuth("signup");
+});
+
+document.getElementById("loginBtn").addEventListener("click", (event) => {
+  event.preventDefault();
+  startAuth("login");
+});
+async function handleLoginCallback() {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get("code");
+  const returnedState = url.searchParams.get("state");
+
+  if (!code) return;
+
+  const expectedState = sessionStorage.getItem("danzstak_oauth_state");
+  const verifier = sessionStorage.getItem("danzstak_pkce_verifier");
+
+  if (!expectedState || !verifier || returnedState !== expectedState) {
+    console.error("Login security validation failed.");
+    return;
+  }
+
+  const response = await fetch(`${cognito.domain}/oauth2/token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: cognito.clientId,
+      code,
+      redirect_uri: cognito.redirectUri,
+      code_verifier: verifier
+    })
+  });
+
+  if (!response.ok) {
+    console.error("Login token exchange failed.");
+    return;
+  }
+
+  const tokens = await response.json();
+
+  sessionStorage.setItem("danzstak_id_token", tokens.id_token);
+  sessionStorage.setItem("danzstak_access_token", tokens.access_token);
+
+  sessionStorage.removeItem("danzstak_pkce_verifier");
+  sessionStorage.removeItem("danzstak_oauth_state");
+
+  window.history.replaceState({}, "", window.location.pathname);
+
+  alert("Welcome to DANZSTAK! You are now logged in.");
+}
+
+const loginError = new URLSearchParams(window.location.search).get("error");
+
+if (loginError) {
+  alert("DANZSTAK login was unsuccessful. Please try again.");
+  window.history.replaceState({}, "", window.location.pathname);
+}
+ if (!loginError) {
+  handleLoginCallback().catch(console.error);
+}
+</script>
+
 </body>
 </html>
+
 
