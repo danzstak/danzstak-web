@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DANZSTAK | Home Feed</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; background: #f1f2f6; color: #20212a; }
+button, textarea, input { font: inherit; }
+button { cursor: pointer; }
+.topbar { background: white; display: flex; align-items: center; justify-content: space-between; padding: 12px 25px; gap: 15px; box-shadow: 0 2px 8px #0001; position: sticky; top: 0; z-index: 10; }
+.logo { font-size: 25px; font-weight: 900; color: #8c52e5; }
+.search { border: 0; border-radius: 25px; padding: 12px 18px; background: #f1f2f6; width: 260px; }
+.topnav { display: flex; gap: 10px; }
+.topnav button { border: 0; background: transparent; padding: 12px; border-radius: 8px; font-weight: bold; }
+.topnav button:hover, .menu a:hover { background: #f1e9ff; }
+.layout { display: grid; grid-template-columns: 230px minmax(0, 650px) 230px; justify-content: center; gap: 22px; max-width: 1250px; margin: 25px auto; padding: 0 16px; }
+.panel, .post { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 7px #0001; margin-bottom: 18px; }
+.menu a { display: block; text-decoration: none; color: #333; padding: 14px; border-radius: 8px; font-weight: 600; }
+.menu a.active { color: #8c52e5; background: #f1e9ff; }
+h3 { margin: 0 0 15px; }
+textarea { width: 100%; border: 0; background: #f1f2f6; border-radius: 10px; padding: 15px; resize: vertical; min-height: 90px; }
+.primary { background: #8c52e5; color: white; border: 0; border-radius: 8px; padding: 11px 22px; font-weight: bold; }
+.composer-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; gap: 10px; }
+.post-header { font-weight: bold; margin-bottom: 12px; }
+.post-time { font-size: 12px; color: #777; font-weight: normal; margin-top: 5px; }
+.post-content { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.post-actions { display: flex; gap: 12px; border-top: 1px solid #eee; padding-top: 12px; margin-top: 15px; }
+.post-actions button { flex: 1; background: #f6f6f9; border: 0; border-radius: 7px; padding: 10px; }
+.comments { margin-top: 12px; }
+.comments input { width: 100%; border: 1px solid #ddd; border-radius: 20px; padding: 10px; }
+.comment { background: #f1f2f6; padding: 10px; border-radius: 10px; margin-top: 8px; overflow-wrap: anywhere; }
+.friend { padding: 12px 0; border-bottom: 1px solid #eee; }
+.muted { color: #777; font-size: 13px; }
+@media(max-width: 1050px) { .layout { grid-template-columns: 190px minmax(0, 650px); } .right { display: none; } }
+@media(max-width: 700px) { .layout { display: block; } .left { display: none; } .topbar { flex-wrap: wrap; } .search { width: 100%; } .topnav { width: 100%; justify-content: space-around; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo">DANZSTAK</div>
+  <input class="search" placeholder="Search DANZSTAK" aria-label="Search DANZSTAK">
+  <nav class="topnav">
+    <button type="button">Home</button>
+    <button type="button">Friends</button>
+    <button type="button">Messages</button>
+    <button type="button">Notifications</button>
+  </nav>
+</header>
+
+<div class="layout">
+  <aside class="left">
+    <div class="panel menu">
+      <a href="#" class="active">🏠 News Feed</a>
+      <a href="#">👤 My Profile</a>
+      <a href="#">👥 Friends</a>
+      <a href="#">📷 Photos</a>
+      <a href="#">🎬 Videos</a>
+      <a href="#">🎵 Music</a>
+      <a href="#">🎤 Events</a>
+      <a href="#">⚙️ Settings</a>
+    </div>
+  </aside>
+
+  <main>
+    <section class="panel">
+      <h3>Create a Post</h3>
+      <textarea id="postText" placeholder="What's on your mind?"></textarea>
+      <div class="composer-actions">
+        <span class="muted">Photo and video uploads coming next</span>
+        <button class="primary" id="publishBtn">Post</button>
+      </div>
+    </section>
+    <section id="feed" aria-label="News Feed">
+      <article class="post">
+        <div class="post-header">DANZSTAK Team
+          <div class="post-time">Welcome post</div>
+        </div>
+        <p class="post-content">Welcome to DANZSTAK! 🎸
+
+A social network for everyone. Connect with friends, share your world, and discover music.</p>
+        <div class="post-actions">
+          <button type="button" class="likeBtn">♡ Like</button>
+          <button type="button" class="commentBtn">💬 Comment</button>
+        </div>
+        <div class="comments" hidden>
+          <input aria-label="Write a comment" placeholder="Write a comment and press Enter">
+          <div class="commentList"></div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <aside class="right">
+    <div class="panel">
+      <h3>Friends</h3>
+      <p class="muted">Your friends will appear here.</p>
+    </div>
+    <div class="panel">
+      <h3>What's Happening</h3>
+      <p class="muted">Events and music updates coming soon.</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+const feed = document.getElementById("feed");
+const publishBtn = document.getElementById("publishBtn");
+const postText = document.getElementById("postText");
+
+publishBtn.addEventListener("click", () => {
+  const content = postText.value.trim();
+  if (!content) return;
+
+  const article = document.createElement("article");
+  article.className = "post";
+
+  const header = document.createElement("div");
+  header.className = "post-header";
+  header.textContent = "You";
+
+  const time = document.createElement("div");
+  time.className = "post-time";
+  time.textContent = "Just now";
+  header.appendChild(time);
+
+  const body = document.createElement("p");
+  body.className = "post-content";
+  body.textContent = content;
+
+  const actions = document.createElement("div");
+  actions.className = "post-actions";
+  actions.innerHTML = '<button type="button" class="likeBtn">♡ Like</button><button type="button" class="commentBtn">💬 Comment</button>';
+
+  const comments = document.createElement("div");
+  comments.className = "comments";
+  comments.hidden = true;
+  comments.innerHTML = '<input aria-label="Write a comment" placeholder="Write a comment and press Enter"><div class="commentList"></div>';
+
+  article.append(header, body, actions, comments);
+  feed.prepend(article);
+  postText.value = "";
+});
+
+feed.addEventListener("click", (event) => {
+  const post = event.target.closest(".post");
+  if (!post) return;
+
+  if (event.target.classList.contains("likeBtn")) {
+    const button = event.target;
+    const liked = button.dataset.liked === "true";
+    button.dataset.liked = String(!liked);
+    button.textContent = liked ? "♡ Like" : "♥ Liked";
+  }
+
+  if (event.target.classList.contains("commentBtn")) {
+    const comments = post.querySelector(".comments");
+    comments.hidden = !comments.hidden;
+    if (!comments.hidden) comments.querySelector("input").focus();
+  }
+});
+
+feed.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || !event.target.matches(".comments input")) return;
+  const value = event.target.value.trim();
+  if (!value) return;
+
+  const comment = document.createElement("div");
+  comment.className = "comment";
+  comment.textContent = "You: " + value;
+  event.target.parentElement.querySelector(".commentList").appendChild(comment);
+  event.target.value = "";
+});
+</script>
+</body>
+</html>
