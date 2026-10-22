@@ -273,6 +273,24 @@ document.getElementById("logoutBtn").addEventListener("click", (event) => {
 updateLoginButtons();
 </script>
 
+<section id="feed" hidden style="max-width:800px;margin:40px auto;padding:20px;">
+  <h2>DANZSTAK Social Feed</h2>
+  <p>Share what's happening with the DANZSTAK community.</p>
+
+  <textarea
+    id="postContent"
+    placeholder="What's happening?"
+    maxlength="2000"
+    style="width:100%;min-height:120px;padding:12px;"
+  ></textarea>
+
+  <button class="button" id="createPostBtn" type="button">
+    Create Post
+  </button>
+
+  <p id="postStatus" role="status"></p>
+  <div id="postsList"></div>
+</section>
 </body>
 </html>
 
