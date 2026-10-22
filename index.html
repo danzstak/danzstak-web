@@ -234,7 +234,7 @@ async function handleLoginCallback() {
 
   window.history.replaceState({}, "", window.location.pathname);
 updateLoginButtons();
-  alert("Welcome to DANZSTAK! You are now logged in.");
+  window.location.replace("/feed.html");
 }
 
 const loginError = new URLSearchParams(window.location.search).get("error");
