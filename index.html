@@ -262,7 +262,12 @@ document.getElementById("logoutBtn").addEventListener("click", (event) => {
   sessionStorage.removeItem("danzstak_access_token");
   sessionStorage.removeItem("danzstak_id_token");
 
-  updateLoginButtons();
+  const params = new URLSearchParams({
+    client_id: cognito.clientId,
+    logout_uri: cognito.redirectUri
+  });
+
+  window.location.assign(`${cognito.domain}/logout?${params}`);
 });
 
 updateLoginButtons();
