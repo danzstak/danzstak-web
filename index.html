@@ -101,7 +101,7 @@
       <a class="button" href="#features">Explore DANZSTAK</a>
 <a class="button" href="#" id="signupBtn">Sign Up</a>
 <a class="button" href="#" id="loginBtn">Log In</a>
-
+<a class="button" href="#" id="logoutBtn" hidden>Log Out</a>
     </section>
 
     <section class="features" id="features">
@@ -228,7 +228,7 @@ async function handleLoginCallback() {
   sessionStorage.removeItem("danzstak_oauth_state");
 
   window.history.replaceState({}, "", window.location.pathname);
-
+updateLoginButtons();
   alert("Welcome to DANZSTAK! You are now logged in.");
 }
 
@@ -241,6 +241,26 @@ if (loginError) {
  if (!loginError) {
   handleLoginCallback().catch(console.error);
 }
+function updateLoginButtons() {
+  const loggedIn = Boolean(
+    sessionStorage.getItem("danzstak_access_token")
+  );
+
+  document.getElementById("signupBtn").hidden = loggedIn;
+  document.getElementById("loginBtn").hidden = loggedIn;
+  document.getElementById("logoutBtn").hidden = !loggedIn;
+}
+
+document.getElementById("logoutBtn").addEventListener("click", (event) => {
+  event.preventDefault();
+
+  sessionStorage.removeItem("danzstak_access_token");
+  sessionStorage.removeItem("danzstak_id_token");
+
+  updateLoginButtons();
+});
+
+updateLoginButtons();
 </script>
 
 </body>
