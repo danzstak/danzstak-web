@@ -1,0 +1,70 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DANZSTAK Logout Test</title>
+</head>
+<body>
+  <h2>DANZSTAK Secure Logout Test</h2>
+
+  <p>This page tests the new authentication system.</p>
+  <p>It does not delete your account or saved posts.</p>
+
+  <button id="check">Check Session</button>
+  <button id="logout">Test Logout</button>
+
+  <pre id="result">Ready to test.</pre>
+
+  <script>
+    const api = "https://api.danzstak.com";
+    const result = document.getElementById("result");
+
+    document.getElementById("check").onclick = async () => {
+      result.textContent = "Checking session...";
+
+      try {
+        const response = await fetch(api + "/auth/session", {
+          credentials: "include"
+        });
+
+        const data = await response.json();
+
+        result.textContent =
+          "HTTP status: " + response.status + "\n" +
+          JSON.stringify(data, null, 2);
+      } catch (error) {
+        result.textContent = "Request failed: " + error.message;
+      }
+    };
+
+    document.getElementById("logout").onclick = async () => {
+      if (!confirm("Log out of the new DANZSTAK session?")) {
+        return;
+      }
+
+      result.textContent = "Logging out...";
+
+      try {
+        const response = await fetch(api + "/auth/logout", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({})
+        });
+
+        const data = await response.json();
+
+        result.textContent =
+          "HTTP status: " + response.status + "\n" +
+          JSON.stringify(data, null, 2);
+      } catch (error) {
+        result.textContent = "Request failed: " + error.message;
+      }
+    };
+  </script>
+</body>
+</html>
