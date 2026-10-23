@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,58 +26,135 @@ footer{text-align:center;color:#999;padding:35px;border-top:1px solid #292936}
 </style>
 </head>
 <body>
-<header><div class="logo">DANZSTAK</div><nav><a href="#about">About</a><a href="#features">Features</a></nav></header>
+<header>
+<div class="logo">DANZSTAK</div>
+<nav><a href="#about">About</a><a href="#features">Features</a></nav>
+</header>
+
 <main>
 <section class="hero" id="about">
 <h1>Lets Rock Together</h1>
 <p>A new social network for artists, DJs, producers,<br>music professionals, and everyone who loves music.</p>
+
 <a class="button" href="#features">Explore DANZSTAK</a>
-<button class="button" id="signupBtn" type="button" disabled title="Signup will be tested separately">Sign Up</button>
-<a class="button" href="https://api.danzstak.com/auth/login" id="loginBtn" hidden>Log In</a>
-<button class="button" id="logoutBtn" type="button" hidden>Log Out</button>
-<a class="button" id="feedBtn" href="/feed-secure-test.html" hidden>Open Secure Feed</a>
-<div id="sessionStatus" class="status" role="status">Checking secure login session...</div>
-<p class="note">TEST PAGE ONLY — original DANZSTAK homepage is unchanged. Sign Up is disabled until its secure callback is implemented and tested.</p>
+
+<a class="button" id="signupBtn"
+href="https://api.danzstak.com/auth/signup">Sign Up</a>
+
+<a class="button"
+href="https://api.danzstak.com/auth/login"
+id="loginBtn" hidden>Log In</a>
+
+<button class="button" id="logoutBtn"
+type="button" hidden>Log Out</button>
+
+<a class="button" id="feedBtn"
+href="/feed-secure-test.html"
+hidden>Open Secure Feed</a>
+
+<div id="sessionStatus" class="status" role="status">
+Checking secure login session...
+</div>
+
+<p class="note">
+TEST PAGE ONLY — original DANZSTAK homepage is unchanged.
+Signup is being tested with Amazon Cognito.
+</p>
 </section>
+
 <section class="features" id="features">
-<div class="feature"><h2>Social Networking</h2><p>Connect with people, share updates, and build your community.</p></div>
-<div class="feature"><h2>Music Discovery</h2><p>Discover artists, new releases, and exciting music.</p></div>
-<div class="feature"><h2>Industry Connections</h2><p>Bring artists, venues, promoters, and music professionals together.</p></div>
-<div class="feature"><h2>Events &amp; Bookings</h2><p>Explore upcoming events and new opportunities.</p></div>
+<div class="feature">
+<h2>Social Networking</h2>
+<p>Connect with people, share updates, and build your community.</p>
+</div>
+<div class="feature">
+<h2>Music Discovery</h2>
+<p>Discover artists, new releases, and exciting music.</p>
+</div>
+<div class="feature">
+<h2>Industry Connections</h2>
+<p>Bring artists, venues, promoters, and music professionals together.</p>
+</div>
+<div class="feature">
+<h2>Events &amp; Bookings</h2>
+<p>Explore upcoming events and new opportunities.</p>
+</div>
 </section>
 </main>
+
 <footer>&copy; 2026 DANZSTAK. All rights reserved.</footer>
+
 <script>
 "use strict";
+
 const api="https://api.danzstak.com";
 const loginBtn=document.getElementById("loginBtn");
 const logoutBtn=document.getElementById("logoutBtn");
 const feedBtn=document.getElementById("feedBtn");
 const status=document.getElementById("sessionStatus");
+
 function showSession(loggedIn,message){
  loginBtn.hidden=loggedIn;
  logoutBtn.hidden=!loggedIn;
  feedBtn.hidden=!loggedIn;
  status.textContent=message;
 }
+
 async function checkSession(){
  try{
-  const response=await fetch(api+"/auth/session",{method:"GET",credentials:"include",cache:"no-store"});
-  if(response.status===200){const data=await response.json();if(data.authenticated===true){showSession(true,"Secure session active. You can open the secure feed or log out.");return;}}
-  if(response.status===401){showSession(false,"Not signed in with a secure session. Click Log In.");return;}
-  showSession(false,"Session check returned HTTP "+response.status+". Please try again.");
- }catch(error){showSession(false,"Unable to check login: "+error.message);}
+  const response=await fetch(api+"/auth/session",{
+   method:"GET",
+   credentials:"include",
+   cache:"no-store"
+  });
+
+  if(response.status===200){
+   const data=await response.json();
+   if(data.authenticated===true){
+    showSession(true,
+     "Secure session active. You can open the secure feed or log out.");
+    return;
+   }
+  }
+
+  if(response.status===401){
+   showSession(false,
+    "Not signed in with a secure session. Click Log In or Sign Up.");
+   return;
+  }
+
+  showSession(false,
+   "Session check returned HTTP "+response.status+". Please try again.");
+
+ }catch(error){
+  showSession(false,"Unable to check login: "+error.message);
+ }
 }
+
 logoutBtn.addEventListener("click",async()=>{
  if(!confirm("Log out of your secure DANZSTAK session?"))return;
+
  logoutBtn.disabled=true;
+
  try{
-  const response=await fetch(api+"/auth/logout",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:"{}"});
+  const response=await fetch(api+"/auth/logout",{
+   method:"POST",
+   credentials:"include",
+   headers:{"Content-Type":"application/json"},
+   body:"{}"
+  });
+
   if(!response.ok)throw new Error("HTTP "+response.status);
+
   showSession(false,"Logged out of your secure session.");
- }catch(error){status.textContent="Logout failed: "+error.message;}
- finally{logoutBtn.disabled=false;}
+
+ }catch(error){
+  status.textContent="Logout failed: "+error.message;
+ }finally{
+  logoutBtn.disabled=false;
+ }
 });
+
 checkSession();
 </script>
 </body>
