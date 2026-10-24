@@ -32,6 +32,7 @@ h1{font-size:clamp(36px,7vw,70px);margin:0 0 20px}
 .feature h2{color:#c09aff}.feature p{color:#bcbcc9;line-height:1.6}
 footer{text-align:center;color:#999;padding:35px;border-top:1px solid #292936}
 .status{max-width:680px;margin:20px auto;padding:16px;border:1px solid #4c3a66;border-radius:8px;color:#e8dafa}
+.legal-consent{max-width:680px;margin:24px auto 0;padding:16px;text-align:left;border:1px solid #4c3a66;border-radius:10px;background:#151520;color:#ddd}.legal-consent label{display:flex;align-items:flex-start;gap:11px;line-height:1.5}.legal-consent input{width:20px;height:20px;margin-top:2px;accent-color:#9d65f5}.legal-consent a{color:#c9a8ff}.legal-consent .hint{margin:8px 0 0 31px;color:#aaa;font-size:13px}.button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:600px){header{flex-direction:column;gap:18px}nav a{margin:0 8px}.hero{padding-top:24px}}
 </style>
 </head>
@@ -52,8 +53,8 @@ footer{text-align:center;color:#999;padding:35px;border-top:1px solid #292936}
 
 <a class="button" href="#features">Explore DANZSTAK</a>
 
-<a class="button" id="signupBtn"
-href="https://api.danzstak.com/auth/signup">Sign Up</a>
+<button class="button" id="signupBtn" type="button"
+data-signup-url="https://api.danzstak.com/auth/signup" disabled>Sign Up</button>
 
 <a class="button"
 href="https://api.danzstak.com/auth/login"
@@ -65,6 +66,11 @@ type="button" hidden>Log Out</button>
 <a class="button" id="feedBtn"
 href="feed-secure-test.html"
 hidden>Open Secure Feed</a>
+
+<div id="legalConsent" class="legal-consent">
+<label><input id="legalAgreement" type="checkbox"><span>I have read and agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
+<p class="hint">Required to create a DANZSTAK account.</p>
+</div>
 
 <div id="sessionStatus" class="status" role="status" hidden></div>
 </section>
@@ -89,7 +95,7 @@ hidden>Open Secure Feed</a>
 </section>
 </main>
 
-<footer>&copy; 2026 DANZSTAK. All rights reserved.</footer>
+<footer>&copy; 2026 DANZSTAK. All rights reserved. &nbsp; <a href="privacy.html">Privacy Policy</a> &nbsp; <a href="terms.html">Terms of Service</a></footer>
 
 <script src="assets/home.js" defer></script>
 </body>
