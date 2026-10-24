@@ -1,0 +1,20 @@
+{
+  "name": "DANZSTAK",
+  "short_name": "DANZSTAK",
+  "description": "A social network for music culture, creators, and fans.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0b12",
+  "theme_color": "#1769e0",
+  "orientation": "any",
+  "categories": ["social", "entertainment"],
+  "icons": [
+    {
+      "src": "/assets/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
