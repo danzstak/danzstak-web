@@ -1,9 +1,11 @@
 "use strict";
 
 for (const button of document.querySelectorAll("[data-logout]")) {
-  button.addEventListener("click", async () => {
+  button.addEventListener("click", async event => {
+    event.preventDefault();
     if (!confirm("Log out of your DANZSTAK account?")) return;
     button.disabled = true;
+    button.setAttribute("aria-disabled", "true");
     const original = button.textContent;
     button.textContent = "Logging out…";
     try {
@@ -18,6 +20,7 @@ for (const button of document.querySelectorAll("[data-logout]")) {
       location.replace("./");
     } catch {
       button.disabled = false;
+      button.removeAttribute("aria-disabled");
       button.textContent = original;
       alert("Logout failed. Please try again.");
     }
