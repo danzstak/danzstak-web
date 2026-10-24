@@ -247,7 +247,7 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-14">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-15">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261024-5">
 </head>
 
@@ -339,9 +339,7 @@ textarea {
 
     <div class="panel">
       <h3>Friends</h3>
-      <p class="muted">
-        Your friends will appear here.
-      </p>
+      <div id="feedFriends"><p class="muted">Loading friends…</p></div>
     </div>
 
     <div class="panel">
@@ -403,7 +401,35 @@ async function loadOnlineUsers() {
 
 async function updateFeedFriend(path, body) {
   const response = await fetch("https://api.danzstak.com" + path, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
-  if (response.ok) loadOnlineUsers();
+  if (response.ok) { loadOnlineUsers(); loadFriends(); }
+}
+
+async function loadFriends() {
+  const container = document.getElementById("feedFriends");
+  try {
+    const [friendsResponse, directoryResponse] = await Promise.all([
+      fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store" }),
+      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" })
+    ]);
+    if (!friendsResponse.ok) return;
+    const friends = (await friendsResponse.json()).friends || [];
+    const online = new Set(directoryResponse.ok ? ((await directoryResponse.json()).users || []).map(user => user.email) : []);
+    container.replaceChildren();
+    if (!friends.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No friends yet."; container.appendChild(empty); return; }
+    for (const friend of friends) {
+      const link = document.createElement("a"); link.className = "friend-card"; link.href = "messages.html?contact=" + encodeURIComponent(friend.email);
+      const avatar = friend.picture ? document.createElement("img") : document.createElement("span");
+      avatar.className = "friend-avatar";
+      if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+      else { avatar.textContent = (friend.name || friend.email).charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+      const details = document.createElement("span"); details.className = "friend-details";
+      const name = document.createElement("strong"); name.textContent = friend.name || friend.email;
+      const email = document.createElement("small"); email.textContent = friend.email;
+      details.append(name, email);
+      const state = document.createElement("span"); state.className = online.has(friend.email) ? "friend-presence online" : "friend-presence"; state.title = online.has(friend.email) ? "Online" : "Offline"; state.setAttribute("aria-label", state.title);
+      link.append(avatar, details, state); container.appendChild(link);
+    }
+  } catch { /* Refresh again on the next interval. */ }
 }
 
 const featureCopy = {
@@ -739,11 +765,13 @@ document.querySelectorAll("[data-feature]").forEach(control => {
 loadPosts();
 loadStories();
 loadOnlineUsers();
+loadFriends();
 setInterval(loadOnlineUsers, 30000);
+setInterval(loadFriends, 30000);
 
 </script>
 
-<script src="assets/feed-enhancements.js?v=20261024-27" defer></script>
+<script src="assets/feed-enhancements.js?v=20261024-28" defer></script>
 <script src="assets/session-activity.js?v=1" defer></script>
 <script src="assets/logout.js?v=1" defer></script>
 <script src="assets/pwa.js" defer></script>

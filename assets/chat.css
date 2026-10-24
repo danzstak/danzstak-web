@@ -4,3 +4,5 @@
 .hangup-button{min-width:122px;font-weight:850;box-shadow:0 7px 18px rgba(219,47,73,.3)!important}
 .receiver-hangup{width:100%;margin-top:9px;font-weight:850;box-shadow:0 7px 18px rgba(219,47,73,.3)!important}
 @media(max-width:760px){.receiver-hangup{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:1000;width:auto;min-width:132px;margin:0;padding:12px 18px!important;border:2px solid #fff!important;border-radius:999px!important}}
+.conversation-user{width:100%;display:grid!important;grid-template-columns:minmax(0,1fr);gap:2px;margin:5px 0;padding:8px 10px!important;text-align:left}.conversation-user strong,.conversation-user small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conversation-user small{font-size:11px;opacity:.72}.delete-chat{width:100%;margin-top:8px;color:#b42318!important}
+.chat-brand span{font-size:1.28rem;line-height:1;letter-spacing:.01em;transform:translateY(1px)}@media(max-width:600px){.chat-brand span{font-size:1.12rem}.chat-brand{gap:8px}}

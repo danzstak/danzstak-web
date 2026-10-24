@@ -10,7 +10,7 @@
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261024-5">
-<link rel="stylesheet" href="assets/chat.css?v=3">
+<link rel="stylesheet" href="assets/chat.css?v=4">
 <title>Messages | DanzStak</title>
 </head>
 <body>
@@ -18,8 +18,9 @@
 <main class="chat-shell">
   <section class="chat-sidebar" aria-labelledby="messagesTitle">
     <h1 id="messagesTitle">Messages</h1>
-    <p class="chat-note">Private peer-to-peer chat and video. Share call codes only with the person you intend to call.</p>
-    <label>Contact email<input id="contactEmail" type="email" autocomplete="email" placeholder="Select an online user" readonly></label>
+    <p class="chat-note">Saved direct messages plus private peer-to-peer phone and video calls.</p>
+    <section class="online-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle">Chats</h2><div id="conversationUsers"><p class="chat-note">Loading saved chats…</p></div></section>
+    <input id="contactEmail" type="hidden">
     <section class="online-panel" aria-labelledby="onlineTitle"><h2 id="onlineTitle">Users online</h2><div id="onlineUsers"><p class="chat-note">Checking who is online…</p></div></section>
     <p class="choice-label">Start a conversation</p>
     <div class="call-actions conversation-choices">
@@ -31,6 +32,7 @@
     <section id="incomingCall" class="incoming-call" hidden><strong id="incomingLabel">Incoming call</strong><div class="call-actions"><button id="acceptCall" type="button" class="primary">Accept</button><button id="declineCall" type="button" class="danger">Decline</button></div></section>
     <button id="receiverHangUp" type="button" class="danger receiver-hangup">📞 Hang Up</button>
     <p id="callStatus" class="call-status" role="status">Ready to start a secure call.</p>
+    <button id="deleteChat" type="button" class="secondary delete-chat">Delete Chat</button>
   </section>
   <section class="conversation" aria-label="Conversation">
     <div class="video-grid">
@@ -50,7 +52,8 @@
     </form>
   </section>
 </main>
-<script src="assets/chat.js?v=6" defer></script>
+<script src="assets/chat.js?v=7" defer></script>
+<script src="assets/direct-messages.js?v=3" defer></script>
 <script src="assets/session-activity.js?v=1" defer></script>
 <script src="assets/logout.js?v=1" defer></script>
 <script src="assets/pwa.js" defer></script>

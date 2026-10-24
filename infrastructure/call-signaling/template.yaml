@@ -97,6 +97,53 @@ Resources:
           KeyType: RANGE
       SSESpecification:
         SSEEnabled: true
+  MessagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: DanzStak-Messages
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: conversationId
+          AttributeType: S
+        - AttributeName: messageId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: conversationId
+          KeyType: HASH
+        - AttributeName: messageId
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+  ConversationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: DanzStak-Conversations
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userEmail
+          AttributeType: S
+        - AttributeName: contactEmail
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userEmail
+          KeyType: HASH
+        - AttributeName: contactEmail
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+  UserSettingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: DanzStak-UserSettings
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userEmail
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userEmail
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
   SignalingRole:
     Type: AWS::IAM::Role
     Properties:
@@ -120,7 +167,7 @@ Resources:
                 Action: [dynamodb:PutItem, dynamodb:Query, dynamodb:DeleteItem]
                 Resource: !GetAtt CallSignalsTable.Arn
               - Effect: Allow
-                Action: [dynamodb:PutItem, dynamodb:Scan]
+                Action: [dynamodb:PutItem, dynamodb:Scan, dynamodb:DeleteItem]
                 Resource: !GetAtt PresenceTable.Arn
               - Effect: Allow
                 Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:DeleteItem]
@@ -128,6 +175,15 @@ Resources:
               - Effect: Allow
                 Action: [dynamodb:PutItem, dynamodb:Query, dynamodb:DeleteItem]
                 Resource: !GetAtt GroupMembersTable.Arn
+              - Effect: Allow
+                Action: [dynamodb:PutItem, dynamodb:Query, dynamodb:DeleteItem]
+                Resource: !GetAtt MessagesTable.Arn
+              - Effect: Allow
+                Action: [dynamodb:PutItem, dynamodb:Query, dynamodb:DeleteItem]
+                Resource: !GetAtt ConversationsTable.Arn
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem]
+                Resource: !GetAtt UserSettingsTable.Arn
               - Effect: Allow
                 Action: [dynamodb:PutItem, dynamodb:Scan]
                 Resource: !GetAtt StoriesTable.Arn
@@ -149,6 +205,9 @@ Resources:
           PRESENCE_TABLE: !Ref PresenceTable
           FRIENDS_TABLE: !Ref FriendsTable
           GROUPS_TABLE: !Ref GroupMembersTable
+          MESSAGES_TABLE: !Ref MessagesTable
+          CONVERSATIONS_TABLE: !Ref ConversationsTable
+          SETTINGS_TABLE: !Ref UserSettingsTable
           STORIES_TABLE: !Ref StoriesTable
           SESSIONS_TABLE: !Ref SessionsTable
           USER_POOL_ID: !Ref UserPoolId
@@ -170,16 +229,24 @@ Resources:
           async function send(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const recipientEmail=String(body.recipientEmail||'').trim().toLowerCase();const mode=String(body.mode||'');const signalType=String(body.signalType||'');const callId=String(body.callId||'');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)||recipientEmail.length>254)return json(400,{error:'Valid recipient required'});if(recipientEmail===user.email)return json(400,{error:'Choose another account'});if(!['text','phone','video'].includes(mode)||!['offer','answer','hangup'].includes(signalType)||!/^[a-f0-9-]{36}$/.test(callId))return json(400,{error:'Invalid call signal'});if(!(await canContact(user.email,recipientEmail)))return json(403,{error:'Only friends or members of the same group can message or call'});const payload=body.payload??null;const serialized=JSON.stringify(payload);if(serialized.length>110000)return json(413,{error:'Signal too large'});if(!(await registered(recipientEmail)))return json(404,{error:'DanzStak user not found'});const eventId=`${String(Date.now()).padStart(13,'0')}#${randomUUID()}`;await db.send(new PutItemCommand({TableName:process.env.CALLS_TABLE,Item:{recipientEmail:{S:recipientEmail},eventId:{S:eventId},senderEmail:{S:user.email},callId:{S:callId},mode:{S:mode},signalType:{S:signalType},payload:{S:serialized},createdAt:{S:new Date().toISOString()},expiresAt:{N:String(now()+120)}}}));return json(202,{accepted:true,eventId});}
           async function inbox(user){const out=await db.send(new QueryCommand({TableName:process.env.CALLS_TABLE,KeyConditionExpression:'recipientEmail = :r',ExpressionAttributeValues:{':r':{S:user.email}},Limit:20,ScanIndexForward:true,ConsistentRead:true}));return json(200,{events:(out.Items||[]).map(x=>({eventId:x.eventId.S,senderEmail:x.senderEmail.S,callId:x.callId.S,mode:x.mode.S,signalType:x.signalType.S,payload:JSON.parse(x.payload.S),createdAt:x.createdAt.S}))});}
           async function ack(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const ids=Array.isArray(body.eventIds)?body.eventIds.slice(0,20):[];for(const eventId of ids){if(typeof eventId==='string'&&eventId.length<100)await db.send(new DeleteItemCommand({TableName:process.env.CALLS_TABLE,Key:{recipientEmail:{S:user.email},eventId:{S:eventId}}}));}return json(200,{acknowledged:ids.length});}
-          async function presence(user){await db.send(new PutItemCommand({TableName:process.env.PRESENCE_TABLE,Item:{email:{S:user.email},updatedAt:{N:String(now())},expiresAt:{N:String(now()+75)}}}));return json(200,{online:true});}
+          async function presence(user){const setting=await db.send(new GetItemCommand({TableName:process.env.SETTINGS_TABLE,Key:{userEmail:{S:user.email}},ConsistentRead:true}));if(setting.Item?.onlineVisible?.BOOL===false){await db.send(new DeleteItemCommand({TableName:process.env.PRESENCE_TABLE,Key:{email:{S:user.email}}}));return json(200,{online:false,visible:false});}await db.send(new PutItemCommand({TableName:process.env.PRESENCE_TABLE,Item:{email:{S:user.email},updatedAt:{N:String(now())},expiresAt:{N:String(now()+75)}}}));return json(200,{online:true,visible:true});}
+          async function getPresenceSetting(user){const setting=await db.send(new GetItemCommand({TableName:process.env.SETTINGS_TABLE,Key:{userEmail:{S:user.email}},ConsistentRead:true}));return json(200,{onlineVisible:setting.Item?.onlineVisible?.BOOL!==false});}
+          async function setPresenceSetting(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}if(typeof body.onlineVisible!=='boolean')return json(400,{error:'Online visibility required'});await db.send(new PutItemCommand({TableName:process.env.SETTINGS_TABLE,Item:{userEmail:{S:user.email},onlineVisible:{BOOL:body.onlineVisible},updatedAt:{S:new Date().toISOString()}}}));if(!body.onlineVisible)await db.send(new DeleteItemCommand({TableName:process.env.PRESENCE_TABLE,Key:{email:{S:user.email}}}));return json(200,{onlineVisible:body.onlineVisible});}
           async function directory(user){const [online,links,myGroups]=await Promise.all([db.send(new ScanCommand({TableName:process.env.PRESENCE_TABLE,FilterExpression:'expiresAt > :n',ExpressionAttributeValues:{':n':{N:String(now())}},Limit:50})),db.send(new QueryCommand({TableName:process.env.FRIENDS_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:user.email}},Limit:100})),groupIds(user.email)]);const states=Object.fromEntries((links.Items||[]).map(x=>[x.friendEmail.S,x.status.S]));const emails=(online.Items||[]).map(x=>x.email.S).filter(email=>email!==user.email).sort();const users=await Promise.all(emails.map(async email=>{const theirs=await groupIds(email);return {email,friendStatus:states[email]||'none',sharedGroup:[...myGroups].some(id=>theirs.has(id))};}));return json(200,{users});}
           async function groupMembership(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const groupId=String(body.groupId||'').trim();if(!/^[a-zA-Z0-9_-]{1,80}$/.test(groupId))return json(400,{error:'Valid group required'});if(body.joined===true){await db.send(new PutItemCommand({TableName:process.env.GROUPS_TABLE,Item:{userEmail:{S:user.email},groupId:{S:groupId},joinedAt:{S:new Date().toISOString()}}}));return json(200,{joined:true});}await db.send(new DeleteItemCommand({TableName:process.env.GROUPS_TABLE,Key:{userEmail:{S:user.email},groupId:{S:groupId}}}));return json(200,{joined:false});}
           async function friendRequest(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const target=String(body.email||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target)||target===user.email)return json(400,{error:'Choose another user'});if(!(await registered(target)))return json(404,{error:'DanzStak user not found'});const createdAt=new Date().toISOString();await Promise.all([db.send(new PutItemCommand({TableName:process.env.FRIENDS_TABLE,Item:{userEmail:{S:user.email},friendEmail:{S:target},status:{S:'outgoing'},createdAt:{S:createdAt}}})),db.send(new PutItemCommand({TableName:process.env.FRIENDS_TABLE,Item:{userEmail:{S:target},friendEmail:{S:user.email},status:{S:'incoming'},createdAt:{S:createdAt}}}))]);return json(202,{requested:true});}
           async function friendRespond(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const requester=String(body.email||'').trim().toLowerCase();const accept=body.accept===true;if(!requester)return json(400,{error:'Requester required'});if(accept){const createdAt=new Date().toISOString();await Promise.all([db.send(new PutItemCommand({TableName:process.env.FRIENDS_TABLE,Item:{userEmail:{S:user.email},friendEmail:{S:requester},status:{S:'friends'},createdAt:{S:createdAt}}})),db.send(new PutItemCommand({TableName:process.env.FRIENDS_TABLE,Item:{userEmail:{S:requester},friendEmail:{S:user.email},status:{S:'friends'},createdAt:{S:createdAt}}}))]);}else{await Promise.all([db.send(new DeleteItemCommand({TableName:process.env.FRIENDS_TABLE,Key:{userEmail:{S:user.email},friendEmail:{S:requester}}})),db.send(new DeleteItemCommand({TableName:process.env.FRIENDS_TABLE,Key:{userEmail:{S:requester},friendEmail:{S:user.email}}}))]);}return json(200,{accepted:accept});}
+          async function getFriends(user){const out=await db.send(new QueryCommand({TableName:process.env.FRIENDS_TABLE,KeyConditionExpression:'userEmail = :u',FilterExpression:'#s = :friends',ExpressionAttributeNames:{'#s':'status'},ExpressionAttributeValues:{':u':{S:user.email},':friends':{S:'friends'}},Limit:100,ConsistentRead:true}));const friends=await Promise.all((out.Items||[]).map(async x=>{const email=x.friendEmail.S,users=await cognito.send(new ListUsersCommand({UserPoolId:process.env.USER_POOL_ID,Filter:`email = "${email.replace(/["\\]/g,'')}"`,Limit:1})),account=users.Users?.[0];return {email,name:attr(account,'name')||attr(account,'preferred_username')||email.split('@')[0],picture:attr(account,'picture'),connectedAt:x.createdAt?.S||''};}));return json(200,{friends:friends.sort((a,b)=>a.name.localeCompare(b.name))});}
           async function notifications(user){const out=await db.send(new QueryCommand({TableName:process.env.FRIENDS_TABLE,KeyConditionExpression:'userEmail = :u',FilterExpression:'#s = :incoming',ExpressionAttributeNames:{'#s':'status'},ExpressionAttributeValues:{':u':{S:user.email},':incoming':{S:'incoming'}},Limit:100,ConsistentRead:true}));return json(200,{notifications:(out.Items||[]).map(x=>({type:'friend_request',email:x.friendEmail.S,createdAt:x.createdAt?.S||''})).sort((a,b)=>b.createdAt.localeCompare(a.createdAt))});}
+          const conversationId=(a,b)=>createHash('sha256').update([a,b].sort().join('|')).digest('hex');
+          async function sendMessage(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const recipient=String(body.recipientEmail||'').trim().toLowerCase(),content=String(body.content||'').trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)||recipient===user.email)return json(400,{error:'Choose another user'});if(!content||content.length>2000)return json(400,{error:'Message must be between 1 and 2000 characters'});if(!(await canContact(user.email,recipient)))return json(403,{error:'Only friends or members of the same group can message'});const createdAt=new Date().toISOString(),messageId=`${String(Date.now()).padStart(13,'0')}#${randomUUID()}`,preview=content.slice(0,120);await Promise.all([db.send(new PutItemCommand({TableName:process.env.MESSAGES_TABLE,Item:{conversationId:{S:conversationId(user.email,recipient)},messageId:{S:messageId},senderEmail:{S:user.email},recipientEmail:{S:recipient},content:{S:content},createdAt:{S:createdAt}}})),db.send(new PutItemCommand({TableName:process.env.CONVERSATIONS_TABLE,Item:{userEmail:{S:user.email},contactEmail:{S:recipient},preview:{S:preview},updatedAt:{S:createdAt}}})),db.send(new PutItemCommand({TableName:process.env.CONVERSATIONS_TABLE,Item:{userEmail:{S:recipient},contactEmail:{S:user.email},preview:{S:preview},updatedAt:{S:createdAt}}}))]);return json(201,{message:{messageId,senderEmail:user.email,recipientEmail:recipient,content,createdAt}});}
+          async function getMessages(event,user){const contact=String(event.queryStringParameters?.contact||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)||contact===user.email)return json(400,{error:'Valid contact required'});if(!(await canContact(user.email,contact)))return json(403,{error:'Only friends or members of the same group can message'});const out=await db.send(new QueryCommand({TableName:process.env.MESSAGES_TABLE,KeyConditionExpression:'conversationId = :c',ExpressionAttributeValues:{':c':{S:conversationId(user.email,contact)}},Limit:50,ScanIndexForward:false,ConsistentRead:true}));const messages=(out.Items||[]).map(x=>({messageId:x.messageId.S,senderEmail:x.senderEmail.S,recipientEmail:x.recipientEmail.S,content:x.content.S,createdAt:x.createdAt.S})).reverse();return json(200,{messages});}
+          async function getConversations(user){const out=await db.send(new QueryCommand({TableName:process.env.CONVERSATIONS_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:user.email}},Limit:100,ConsistentRead:true}));return json(200,{conversations:(out.Items||[]).map(x=>({contactEmail:x.contactEmail.S,preview:x.preview?.S||'',updatedAt:x.updatedAt?.S||''})).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt))});}
+          async function deleteConversation(event,user){const contact=String(event.queryStringParameters?.contact||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)||contact===user.email)return json(400,{error:'Valid contact required'});const id=conversationId(user.email,contact),out=await db.send(new QueryCommand({TableName:process.env.MESSAGES_TABLE,KeyConditionExpression:'conversationId = :c',ExpressionAttributeValues:{':c':{S:id}},ProjectionExpression:'conversationId,messageId',Limit:100,ConsistentRead:true}));await Promise.all([...(out.Items||[]).map(x=>db.send(new DeleteItemCommand({TableName:process.env.MESSAGES_TABLE,Key:{conversationId:x.conversationId,messageId:x.messageId}}))),db.send(new DeleteItemCommand({TableName:process.env.CONVERSATIONS_TABLE,Key:{userEmail:{S:user.email},contactEmail:{S:contact}}})),db.send(new DeleteItemCommand({TableName:process.env.CONVERSATIONS_TABLE,Key:{userEmail:{S:contact},contactEmail:{S:user.email}}}))]);return json(200,{deleted:true});}
           async function createStory(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const content=String(body.content||'').trim();if(!content||content.length>5000)return json(400,{error:'Story content required'});const createdAt=new Date().toISOString(),storyId=randomUUID();await db.send(new PutItemCommand({TableName:process.env.STORIES_TABLE,Item:{storyId:{S:storyId},userEmail:{S:user.email},content:{S:content},createdAt:{S:createdAt},expiresAt:{N:String(now()+86400)}}}));return json(201,{storyId,content,createdAt,expiresAt:now()+86400});}
           async function getStories(){const out=await db.send(new ScanCommand({TableName:process.env.STORIES_TABLE,FilterExpression:'expiresAt > :n',ExpressionAttributeValues:{':n':{N:String(now())}},Limit:50}));const stories=(out.Items||[]).map(x=>({storyId:x.storyId.S,userEmail:x.userEmail.S,content:x.content.S,createdAt:x.createdAt.S})).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));return json(200,{stories});}
           async function refreshSession(event){const raw=cookie(event,'__Host-danzstak_session');if(!/^[a-f0-9]{64}$/.test(raw))return json(401,{error:'Authentication required'});const sessionId=createHash('sha256').update(raw).digest('hex'),expiresAt=now()+7200;try{await db.send(new UpdateItemCommand({TableName:process.env.SESSIONS_TABLE,Key:{sessionId:{S:sessionId}},UpdateExpression:'SET expiresAt = :e',ConditionExpression:'#t = :user AND expiresAt > :n',ExpressionAttributeNames:{'#t':'type'},ExpressionAttributeValues:{':e':{N:String(expiresAt)},':n':{N:String(now())},':user':{S:'user_session'}}}));}catch{return json(401,{error:'Authentication required'});}return {statusCode:200,headers:{'content-type':'application/json','cache-control':'no-store'},cookies:[`__Host-danzstak_session=${raw}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=7200`],body:JSON.stringify({authenticated:true,idleTimeoutSeconds:7200})};}
-          exports.handler=async event=>{try{const key=event.requestContext?.http?.method+' '+event.rawPath;if(key==='POST /auth/refresh')return await refreshSession(event);const user=await identity(event);if(!user)return json(401,{error:'Authentication required'});if(key==='POST /calls/signal')return await send(event,user);if(key==='GET /calls/inbox')return await inbox(user);if(key==='POST /calls/ack')return await ack(event,user);if(key==='POST /calls/presence')return await presence(user);if(key==='GET /calls/directory')return await directory(user);if(key==='POST /friends/request')return await friendRequest(event,user);if(key==='POST /friends/respond')return await friendRespond(event,user);if(key==='GET /notifications')return await notifications(user);if(key==='POST /groups/membership')return await groupMembership(event,user);if(key==='POST /stories')return await createStory(event,user);if(key==='GET /stories')return await getStories();return json(404,{error:'Not found'});}catch(error){console.error(error);return json(500,{error:'Service unavailable'});}};
+          exports.handler=async event=>{try{const key=event.requestContext?.http?.method+' '+event.rawPath;if(key==='POST /auth/refresh')return await refreshSession(event);const user=await identity(event);if(!user)return json(401,{error:'Authentication required'});if(key==='POST /calls/signal')return await send(event,user);if(key==='GET /calls/inbox')return await inbox(user);if(key==='POST /calls/ack')return await ack(event,user);if(key==='POST /calls/presence')return await presence(user);if(key==='GET /calls/directory')return await directory(user);if(key==='GET /settings/presence')return await getPresenceSetting(user);if(key==='POST /settings/presence')return await setPresenceSetting(event,user);if(key==='POST /friends/request')return await friendRequest(event,user);if(key==='POST /friends/respond')return await friendRespond(event,user);if(key==='GET /friends')return await getFriends(user);if(key==='GET /notifications')return await notifications(user);if(key==='POST /messages')return await sendMessage(event,user);if(key==='GET /messages')return await getMessages(event,user);if(key==='POST /messages/delete')return await deleteConversation(event,user);if(key==='GET /conversations')return await getConversations(user);if(key==='POST /groups/membership')return await groupMembership(event,user);if(key==='POST /stories')return await createStory(event,user);if(key==='GET /stories')return await getStories();return json(404,{error:'Not found'});}catch(error){console.error(error);return json(500,{error:'Service unavailable'});}};
   SignalingIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
@@ -218,6 +285,18 @@ Resources:
       ApiId: !Ref ApiId
       RouteKey: GET /calls/directory
       Target: !Sub integrations/${SignalingIntegration}
+  GetPresenceSettingRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: GET /settings/presence
+      Target: !Sub integrations/${SignalingIntegration}
+  SetPresenceSettingRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: POST /settings/presence
+      Target: !Sub integrations/${SignalingIntegration}
   FriendRequestRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -230,11 +309,41 @@ Resources:
       ApiId: !Ref ApiId
       RouteKey: POST /friends/respond
       Target: !Sub integrations/${SignalingIntegration}
+  GetFriendsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: GET /friends
+      Target: !Sub integrations/${SignalingIntegration}
   NotificationsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref ApiId
       RouteKey: GET /notifications
+      Target: !Sub integrations/${SignalingIntegration}
+  SendMessageRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: POST /messages
+      Target: !Sub integrations/${SignalingIntegration}
+  GetMessagesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: GET /messages
+      Target: !Sub integrations/${SignalingIntegration}
+  DeleteMessagesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: POST /messages/delete
+      Target: !Sub integrations/${SignalingIntegration}
+  GetConversationsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: GET /conversations
       Target: !Sub integrations/${SignalingIntegration}
   GroupMembershipRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -267,6 +376,13 @@ Resources:
       FunctionName: !Ref SignalingFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/calls/*
+  SettingsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SignalingFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/settings/*
   FriendInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -274,6 +390,13 @@ Resources:
       FunctionName: !Ref SignalingFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/friends/*
+  GetFriendsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SignalingFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/friends
   GroupInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -288,6 +411,27 @@ Resources:
       FunctionName: !Ref SignalingFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/notifications
+  MessagesInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SignalingFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/messages
+  DeleteMessagesInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SignalingFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/POST/messages/delete
+  ConversationsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SignalingFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/conversations
   StoriesInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:

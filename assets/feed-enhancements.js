@@ -211,7 +211,7 @@ function renderWorkspace(name) {
             button.addEventListener("click", async () => {
               button.disabled = true;
               const response = await fetch("https://api.danzstak.com/friends/respond", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ email: notice.email, accept }) });
-              if (response.ok) { row.remove(); if (typeof loadOnlineUsers === "function") loadOnlineUsers(); }
+              if (response.ok) { row.remove(); if (typeof loadOnlineUsers === "function") loadOnlineUsers(); if (typeof loadFriends === "function") loadFriends(); }
               else button.disabled = false;
             });
             actions.appendChild(button);
@@ -279,16 +279,29 @@ function renderWorkspace(name) {
     checkbox.type = "checkbox";
     checkbox.checked = saved.Settings?.notifications !== false;
     notifications.append(checkbox, document.createTextNode("Email notifications"));
+    const presence = document.createElement("label");
+    presence.style.display = "flex";
+    presence.style.gap = "10px";
+    presence.style.marginTop = "12px";
+    const presenceCheckbox = document.createElement("input");
+    presenceCheckbox.type = "checkbox";
+    presenceCheckbox.checked = true;
+    presence.append(presenceCheckbox, document.createTextNode("Show me online to other users"));
+    fetch("https://api.danzstak.com/settings/presence", { credentials: "include", cache: "no-store" })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => { if (data) presenceCheckbox.checked = data.onlineVisible !== false; });
     const button = document.createElement("button");
     button.className = "primary";
     button.type = "button";
     button.textContent = "Save Settings";
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       saved.Settings = { notifications: checkbox.checked };
       writeSections(saved);
-      featureText.textContent = "Settings saved in this browser until account synchronization is deployed.";
+      const response = await fetch("https://api.danzstak.com/settings/presence", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ onlineVisible: presenceCheckbox.checked }) });
+      featureText.textContent = response.ok ? "Settings saved." : "Online visibility could not be saved.";
+      if (typeof loadOnlineUsers === "function") loadOnlineUsers();
     });
-    workspace.append(notifications, document.createElement("br"), button);
+    workspace.append(notifications, presence, document.createElement("br"), button);
   }
 }
 
