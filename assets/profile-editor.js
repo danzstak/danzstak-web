@@ -85,7 +85,14 @@ function applyProfileMedia(saved) {
   const avatar = document.getElementById("profileInitial");
   const cover = document.querySelector(".cover");
   if (saved.avatar) { avatar.style.backgroundImage = `url("${saved.avatar}")`; avatar.classList.add("has-photo"); }
-  if (saved.cover) { cover.style.backgroundImage = `url("${saved.cover}")`; cover.classList.add("has-photo"); }
+  if (saved.cover) {
+    cover.style.backgroundImage = `url("${saved.cover}")`;
+    cover.style.backgroundPosition = `${saved.coverX ?? 50}% ${saved.coverY ?? 50}%`;
+    cover.style.backgroundSize = saved.coverFit ? "contain" : "cover";
+    cover.style.backgroundRepeat = "no-repeat";
+    cover.style.backgroundColor = "#0b0b12";
+    cover.classList.add("has-photo");
+  }
 }
 
 function addRemoveImageButton(label, field, target) {
@@ -107,6 +114,62 @@ addProfileImageButton("Change Profile Photo", document.getElementById("profileIn
 addProfileImageButton("Change Cover Photo", document.querySelector(".cover"), "cover");
 addRemoveImageButton("Remove Profile Photo", "avatar", document.getElementById("profileInitial"));
 addRemoveImageButton("Remove Cover Photo", "cover", document.querySelector(".cover"));
+const coverElement = document.querySelector(".cover");
+const repositionButton = document.createElement("button");
+repositionButton.type = "button";
+repositionButton.textContent = "Reposition Cover";
+let repositioning = false;
+let dragStart = null;
+repositionButton.addEventListener("click", () => {
+  if (!coverElement.classList.contains("has-photo")) return alert("Add a cover photo first.");
+  repositioning = !repositioning;
+  repositionButton.classList.toggle("active", repositioning);
+  repositionButton.textContent = repositioning ? "Done Repositioning" : "Reposition Cover";
+  coverElement.classList.toggle("repositioning", repositioning);
+});
+coverElement.addEventListener("pointerdown", event => {
+  if (!repositioning) return;
+  const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
+  dragStart = { x: event.clientX, y: event.clientY, coverX: saved.coverX ?? 50, coverY: saved.coverY ?? 50 };
+  coverElement.setPointerCapture(event.pointerId);
+});
+coverElement.addEventListener("pointermove", event => {
+  if (!repositioning || !dragStart) return;
+  const rect = coverElement.getBoundingClientRect();
+  const x = Math.max(0, Math.min(100, dragStart.coverX + ((event.clientX - dragStart.x) / rect.width) * 100));
+  const y = Math.max(0, Math.min(100, dragStart.coverY + ((event.clientY - dragStart.y) / rect.height) * 100));
+  coverElement.style.backgroundPosition = `${x}% ${y}%`;
+  coverElement.dataset.coverX = String(x);
+  coverElement.dataset.coverY = String(y);
+});
+coverElement.addEventListener("pointerup", () => {
+  if (!dragStart) return;
+  const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
+  saved.coverX = Number(coverElement.dataset.coverX || dragStart.coverX);
+  saved.coverY = Number(coverElement.dataset.coverY || dragStart.coverY);
+  localStorage.setItem(profileMediaKey, JSON.stringify(saved));
+  dragStart = null;
+});
+mediaTools.appendChild(repositionButton);
+const fitCoverButton = document.createElement("button");
+fitCoverButton.type = "button";
+fitCoverButton.textContent = "Fit Entire Cover";
+fitCoverButton.addEventListener("click", () => {
+  if (!coverElement.classList.contains("has-photo")) return alert("Add a cover photo first.");
+  const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
+  saved.coverFit = !saved.coverFit;
+  localStorage.setItem(profileMediaKey, JSON.stringify(saved));
+  coverElement.style.backgroundSize = saved.coverFit ? "contain" : "cover";
+  coverElement.style.backgroundRepeat = "no-repeat";
+  fitCoverButton.classList.toggle("active", saved.coverFit);
+  fitCoverButton.textContent = saved.coverFit ? "Fill Cover Box" : "Fit Entire Cover";
+});
+try {
+  const savedCover = JSON.parse(localStorage.getItem(profileMediaKey) || "{}");
+  fitCoverButton.classList.toggle("active", Boolean(savedCover.coverFit));
+  fitCoverButton.textContent = savedCover.coverFit ? "Fill Cover Box" : "Fit Entire Cover";
+} catch { /* Ignore corrupt local drafts. */ }
+mediaTools.appendChild(fitCoverButton);
 const videoButton = document.createElement("button");
 videoButton.type = "button";
 videoButton.textContent = "Add Profile Video";
