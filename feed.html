@@ -417,7 +417,7 @@ async function loadFriends() {
     container.replaceChildren();
     if (!friends.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No friends yet."; container.appendChild(empty); return; }
     for (const friend of friends) {
-      const link = document.createElement("a"); link.className = "friend-card"; link.href = "messages.html?contact=" + encodeURIComponent(friend.email);
+      const link = document.createElement("a"); link.className = "friend-card"; link.href = "profile.html?user=" + encodeURIComponent(friend.email);
       const avatar = friend.picture ? document.createElement("img") : document.createElement("span");
       avatar.className = "friend-avatar";
       if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }

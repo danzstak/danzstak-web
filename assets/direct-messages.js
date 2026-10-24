@@ -58,14 +58,19 @@ async function loadConversations() {
     conversationUsers.replaceChildren();
     if (!(data.conversations || []).length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = "No saved chats yet."; conversationUsers.appendChild(empty); return; }
     for (const conversation of data.conversations) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "conversation-user";
+      const row = document.createElement("div"); row.className = "conversation-row";
+      const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
       const name = document.createElement("strong"); name.textContent = conversation.contactEmail;
       const preview = document.createElement("small"); preview.textContent = conversation.preview || "Open chat";
       button.append(name, preview);
       button.addEventListener("click", () => { contactInput.value = conversation.contactEmail; directContact = ""; loadDirectMessages(true); });
-      conversationUsers.appendChild(button);
+      const calls = document.createElement("div"); calls.className = "conversation-call-actions";
+      for (const [label, targetId] of [["☎", "startPhone"], ["▣", "startVideo"]]) {
+        const call = document.createElement("button"); call.type = "button"; call.className = "conversation-call"; call.textContent = label; call.title = targetId === "startPhone" ? "Phone call" : "Video call";
+        call.addEventListener("click", () => { contactInput.value = conversation.contactEmail; document.getElementById(targetId)?.click(); });
+        calls.appendChild(call);
+      }
+      row.append(button, calls); conversationUsers.appendChild(row);
     }
   } catch { /* Retry on the next refresh. */ }
 }

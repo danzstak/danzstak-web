@@ -2,6 +2,7 @@
 
 const status = document.getElementById("profileStatus");
 const content = document.getElementById("profileContent");
+const requestedUser = new URLSearchParams(location.search).get("user")?.trim().toLowerCase() || "";
 
 function firstString(source, keys) {
   for (const key of keys) {
@@ -12,7 +13,7 @@ function firstString(source, keys) {
 
 async function loadProfile() {
   try {
-    const response = await fetch("https://api.danzstak.com/auth/session", {
+    const response = await fetch(requestedUser ? "https://api.danzstak.com/profiles?email=" + encodeURIComponent(requestedUser) : "https://api.danzstak.com/auth/session", {
       credentials: "include",
       cache: "no-store"
     });
@@ -25,7 +26,7 @@ async function loadProfile() {
     if (!response.ok) throw new Error("Session unavailable");
 
     const data = await response.json();
-    const profile = data.user || data.claims || data.profile || data;
+    const profile = data.profile || data.user || data.claims || data;
     const email = firstString(profile, ["email", "username"]);
     const name = firstString(profile, ["name", "displayName", "given_name", "preferred_username"]) || (email ? email.split("@")[0] : "DanzStak Member");
     const handle = firstString(profile, ["preferred_username", "username"]) || name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "member";
@@ -34,6 +35,8 @@ async function loadProfile() {
     document.getElementById("profileHandle").textContent = "@" + handle;
     document.getElementById("profileEmail").textContent = email || "Not available";
     document.getElementById("profileInitial").textContent = name.charAt(0).toUpperCase() || "D";
+    const message = document.getElementById("profileMessage");
+    if (requestedUser) { message.href = "messages.html?contact=" + encodeURIComponent(email); message.hidden = false; }
     status.hidden = true;
     content.hidden = false;
     window.dispatchEvent(new CustomEvent("danzstak:profile-loaded"));
