@@ -890,19 +890,30 @@ feed.addEventListener("keydown", (event) => {
 document.querySelector('[data-route="home"]').addEventListener("click", () => {
   window.location.assign("./");
 });
-document.getElementById("messagesNav").addEventListener("click", () => {
+function openMessageDrawer(contact = "") {
   let drawer = document.getElementById("messageDrawer");
   if (!drawer) {
     drawer = document.createElement("section");
     drawer.id = "messageDrawer";
     drawer.className = "message-drawer";
     drawer.setAttribute("aria-label", "Messages");
-    drawer.innerHTML = '<div class="message-drawer-bar"><span>Chats</span><button type="button" class="message-drawer-close" aria-label="Close messages">×</button></div><iframe title="DanzStak messages" src="messages.html?embedded=1"></iframe>';
+    drawer.innerHTML = '<div class="message-drawer-bar"><span>Chats</span><button type="button" class="message-drawer-close" aria-label="Close messages">×</button></div><iframe title="DanzStak messages"></iframe>';
     drawer.querySelector(".message-drawer-close").addEventListener("click", () => { drawer.hidden = true; });
     document.body.appendChild(drawer);
   }
+  const frame = drawer.querySelector("iframe");
+  const target = new URL("messages.html", location.href);
+  target.searchParams.set("embedded", "1");
+  if (contact) target.searchParams.set("contact", contact);
+  if (!frame.src || contact) frame.src = target.href;
   drawer.hidden = false;
-});
+}
+document.getElementById("messagesNav").addEventListener("click", () => openMessageDrawer());
+const requestedMessageContact = new URLSearchParams(location.search).get("message")?.trim().toLowerCase();
+if (requestedMessageContact) {
+  openMessageDrawer(requestedMessageContact);
+  history.replaceState(null, "", location.pathname + location.hash);
+}
 window.addEventListener("message", event => {
   if (event.origin !== location.origin) return;
   if (event.data?.type === "danzstak-chat-view") document.getElementById("messageDrawer")?.classList.toggle("is-conversation", event.data.open === true);

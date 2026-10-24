@@ -46,7 +46,7 @@ async function loadProfile() {
       cover.classList.add("has-photo");
     }
     const message = document.getElementById("profileMessage");
-    if (requestedUser) { message.href = "messages.html?contact=" + encodeURIComponent(email); message.hidden = false; }
+    if (requestedUser) { message.href = "feed.html?message=" + encodeURIComponent(email); message.hidden = false; }
     status.hidden = true;
     content.hidden = false;
     window.danzstakCurrentProfile = profile;
