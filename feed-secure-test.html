@@ -224,10 +224,10 @@ textarea {
   >
 
   <nav class="topnav">
-    <button type="button">Home</button>
-    <button type="button">Friends</button>
-    <button type="button">Messages</button>
-    <button type="button">Notifications</button>
+    <button type="button" data-route="home">Home</button>
+    <button type="button" data-feature="Friends">Friends</button>
+    <button type="button" data-feature="Messages">Messages</button>
+    <button type="button" data-feature="Notifications">Notifications</button>
   </nav>
 </header>
 
@@ -235,14 +235,14 @@ textarea {
 
   <aside class="left">
     <div class="panel menu">
-      <a href="#" class="active">🏠 News Feed</a>
-      <a href="#">👤 My Profile</a>
-      <a href="#">👥 Friends</a>
-      <a href="#">📷 Photos</a>
-      <a href="#">🎬 Videos</a>
-      <a href="#">🎵 Music</a>
-      <a href="#">🎤 Events</a>
-      <a href="#">⚙️ Settings</a>
+      <a href="feed-secure-test.html" class="active">🏠 News Feed</a>
+      <a href="profile.html">👤 My Profile</a>
+      <a href="#" data-feature="Friends">👥 Friends</a>
+      <a href="#" data-feature="Photos">📷 Photos</a>
+      <a href="#" data-feature="Videos">🎬 Videos</a>
+      <a href="#" data-feature="Music">🎵 Music</a>
+      <a href="#" data-feature="Events">🎤 Events</a>
+      <a href="#" data-feature="Settings">⚙️ Settings</a>
     </div>
   </aside>
 
@@ -556,6 +556,18 @@ feed.addEventListener("keydown", (event) => {
 });
 
 // LOAD POSTS AUTOMATICALLY ON PAGE OPEN OR REFRESH
+document.querySelector('[data-route="home"]').addEventListener("click", () => {
+  window.location.assign("./");
+});
+
+document.querySelectorAll("[data-feature]").forEach(control => {
+  control.addEventListener("click", event => {
+    event.preventDefault();
+    feedStatus.textContent = control.dataset.feature + " is coming soon.";
+    feedStatus.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+});
+
 loadPosts();
 
 </script>
