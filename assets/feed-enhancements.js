@@ -151,3 +151,32 @@ if (composerActions && publishButton) {
     checkbox.focus();
   }, true);
 }
+
+function addShareButton(post) {
+  const actions = post.querySelector(".post-actions");
+  if (!actions || actions.querySelector(".shareBtn")) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "shareBtn";
+  button.textContent = "Share";
+  button.addEventListener("click", async () => {
+    const content = post.querySelector(".post-content")?.textContent.trim() || "DANZSTAK post";
+    const shareData = { title: "DANZSTAK", text: content.slice(0, 200), url: location.href };
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch (error) { if (error.name !== "AbortError") alert("Unable to share this post."); }
+      return;
+    }
+    const facebook = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(location.href);
+    window.open(facebook, "_blank", "noopener,noreferrer,width=720,height=620");
+  });
+  actions.appendChild(button);
+}
+
+document.querySelectorAll("#feed .post").forEach(addShareButton);
+new MutationObserver(records => {
+  for (const record of records) {
+    record.addedNodes.forEach(node => {
+      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post")) addShareButton(node);
+    });
+  }
+}).observe(document.getElementById("feed"), { childList: true });
