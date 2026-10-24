@@ -19,18 +19,16 @@
   <section class="chat-sidebar" aria-labelledby="messagesTitle">
     <h1 id="messagesTitle">Messages</h1>
     <p class="chat-note">Private peer-to-peer chat and video. Share call codes only with the person you intend to call.</p>
-    <label>Contact email<input id="contactEmail" type="email" autocomplete="email" placeholder="friend@example.com"></label>
+    <label>Contact email<input id="contactEmail" type="email" autocomplete="email" placeholder="Select an online user" readonly></label>
+    <section class="online-panel" aria-labelledby="onlineTitle"><h2 id="onlineTitle">Users online</h2><div id="onlineUsers"><p class="chat-note">Checking who is online…</p></div></section>
     <p class="choice-label">Start a conversation</p>
     <div class="call-actions conversation-choices">
       <button id="startText" type="button" class="primary">Text</button>
       <button id="startPhone" type="button" class="primary">Phone</button>
       <button id="startVideo" type="button" class="primary">Video</button>
     </div>
-    <button id="answerCall" type="button" class="secondary answer-button">Answer invite</button>
-    <label>Your call code<textarea id="localSignal" readonly aria-label="Your call code"></textarea></label>
-    <button id="copySignal" type="button" class="secondary">Copy code</button>
-    <label>Their call code<textarea id="remoteSignal" aria-label="Their call code" placeholder="Paste the other person's code"></textarea></label>
-    <button id="applySignal" type="button" class="primary">Connect</button>
+    <button id="enableRinging" type="button" class="secondary answer-button">Enable ringing</button>
+    <section id="incomingCall" class="incoming-call" hidden><strong id="incomingLabel">Incoming call</strong><div class="call-actions"><button id="acceptCall" type="button" class="primary">Accept</button><button id="declineCall" type="button" class="danger">Decline</button></div></section>
     <p id="callStatus" class="call-status" role="status">Ready to start a secure call.</p>
   </section>
   <section class="conversation" aria-label="Conversation">
@@ -51,7 +49,7 @@
     </form>
   </section>
 </main>
-<script src="assets/chat.js?v=2" defer></script>
+<script src="assets/chat.js?v=3" defer></script>
 <script src="assets/pwa.js" defer></script>
 </body>
 </html>
