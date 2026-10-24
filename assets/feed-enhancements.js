@@ -42,7 +42,7 @@ function renderWorkspace(name) {
 
   if (name === "Groups") {
     featureText.textContent = "Find communities by category, create a group, and connect with people who share your interests.";
-    const categories = ["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking"];
+    const categories = ["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"];
     const createBox = document.createElement("div");
     createBox.className = "group-create-box";
     const groupName = field("Group name", "text", "Name your group");
@@ -69,8 +69,9 @@ function renderWorkspace(name) {
       const defaults = categories.map((category, index) => ({ id: `default-${index}`, name: category, category, description: `Connect in ${category.toLowerCase()}.`, custom: false }));
       const groups = [...(saved.CustomGroups || []), ...defaults];
       for (const group of groups) {
+        const isSensitiveDiscussion = ["Politics", "Religion"].includes(group.category);
         const card = document.createElement("article");
-        card.className = "group-card";
+        card.className = "group-card" + (isSensitiveDiscussion ? " group-card--moderated" : "");
         const title = document.createElement("h4");
         title.textContent = group.name;
         const category = document.createElement("span");
@@ -89,7 +90,27 @@ function renderWorkspace(name) {
           writeSections(saved);
           join.textContent = saved.GroupsJoined[group.id] ? "Joined" : "Join Group";
         });
-        card.append(category, title, description, join);
+        card.append(category, title, description);
+        if (isSensitiveDiscussion) {
+          const moderation = document.createElement("div");
+          moderation.className = "group-moderation-notice";
+          moderation.innerHTML = "<strong>Moderated discussion</strong><span>Debate ideas freely. Threats, harassment, hate speech, and targeting people are not allowed.</span>";
+          const report = document.createElement("button");
+          report.type = "button";
+          report.className = "group-report";
+          report.textContent = "Report a problem";
+          report.addEventListener("click", () => {
+            const details = prompt("What should the moderators review?");
+            if (!details?.trim()) return;
+            saved.GroupReports = [...(saved.GroupReports || []), { groupId: group.id, details: details.trim(), reportedAt: new Date().toISOString() }];
+            writeSections(saved);
+            report.textContent = "Report sent";
+            report.disabled = true;
+          });
+          moderation.appendChild(report);
+          card.appendChild(moderation);
+        }
+        card.appendChild(join);
         if (group.custom) {
           const remove = document.createElement("button");
           remove.type = "button";

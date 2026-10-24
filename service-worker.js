@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v4";
+const CACHE = "danzstak-shell-v6";
 const SHELL = [
   "/", "/index.html", "/feed.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/danzstak-logo.png",
