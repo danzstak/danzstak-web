@@ -40,6 +40,86 @@ function renderWorkspace(name) {
   workspace.replaceChildren();
   const saved = readSections();
 
+  if (name === "Groups") {
+    featureText.textContent = "Find communities by category, create a group, and connect with people who share your interests.";
+    const categories = ["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking"];
+    const createBox = document.createElement("div");
+    createBox.className = "group-create-box";
+    const groupName = field("Group name", "text", "Name your group");
+    const categoryLabel = document.createElement("label");
+    categoryLabel.textContent = "Category";
+    const categorySelect = document.createElement("select");
+    for (const category of categories) {
+      const option = document.createElement("option");
+      option.value = category;
+      option.textContent = category;
+      categorySelect.appendChild(option);
+    }
+    categoryLabel.appendChild(categorySelect);
+    const createButton = document.createElement("button");
+    createButton.type = "button";
+    createButton.className = "primary";
+    createButton.textContent = "Create Group";
+    createBox.append(groupName.wrap, categoryLabel, createButton);
+    const grid = document.createElement("div");
+    grid.className = "groups-grid";
+
+    function renderGroups() {
+      grid.replaceChildren();
+      const defaults = categories.map((category, index) => ({ id: `default-${index}`, name: category, category, description: `Connect in ${category.toLowerCase()}.`, custom: false }));
+      const groups = [...(saved.CustomGroups || []), ...defaults];
+      for (const group of groups) {
+        const card = document.createElement("article");
+        card.className = "group-card";
+        const title = document.createElement("h4");
+        title.textContent = group.name;
+        const category = document.createElement("span");
+        category.className = "group-category";
+        category.textContent = group.category;
+        const description = document.createElement("p");
+        description.textContent = group.description;
+        const join = document.createElement("button");
+        join.type = "button";
+        join.className = "primary";
+        const joined = Boolean(saved.GroupsJoined?.[group.id]);
+        join.textContent = joined ? "Joined" : "Join Group";
+        join.addEventListener("click", () => {
+          saved.GroupsJoined = saved.GroupsJoined || {};
+          saved.GroupsJoined[group.id] = !saved.GroupsJoined[group.id];
+          writeSections(saved);
+          join.textContent = saved.GroupsJoined[group.id] ? "Joined" : "Join Group";
+        });
+        card.append(category, title, description, join);
+        if (group.custom) {
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.className = "group-delete";
+          remove.textContent = "Delete Group";
+          remove.addEventListener("click", () => {
+            if (!confirm("Delete this group?")) return;
+            saved.CustomGroups = saved.CustomGroups.filter(item => item.id !== group.id);
+            writeSections(saved);
+            renderGroups();
+          });
+          card.appendChild(remove);
+        }
+        grid.appendChild(card);
+      }
+    }
+
+    createButton.addEventListener("click", () => {
+      const value = groupName.input.value.trim();
+      if (!value) return groupName.input.focus();
+      saved.CustomGroups = [...(saved.CustomGroups || []), { id: crypto.randomUUID(), name: value, category: categorySelect.value, description: "A new DANZSTAK community group.", custom: true }];
+      writeSections(saved);
+      groupName.input.value = "";
+      renderGroups();
+    });
+    workspace.append(createBox, grid);
+    renderGroups();
+    return;
+  }
+
   if (["Friends", "Notifications", "Photos", "Videos"].includes(name)) {
     const message = document.createElement("p");
     message.className = "muted";
@@ -106,6 +186,15 @@ function renderWorkspace(name) {
     });
     workspace.append(notifications, document.createElement("br"), button);
   }
+}
+
+const friendsLink = document.querySelector('.menu [data-feature="Friends"]');
+if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
+  const groupsLink = document.createElement("a");
+  groupsLink.href = "#groups";
+  groupsLink.dataset.feature = "Groups";
+  groupsLink.textContent = "Groups";
+  friendsLink.insertAdjacentElement("afterend", groupsLink);
 }
 
 document.querySelectorAll("[data-feature]").forEach(control => {
