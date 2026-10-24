@@ -239,7 +239,11 @@ function renderWorkspace(name) {
     ]).then(async ([friendsResponse, directoryResponse]) => {
       if (!friendsResponse.ok) throw new Error("Friends could not be loaded");
       const friends = (await friendsResponse.json()).friends || [];
-      const online = new Set(directoryResponse.ok ? ((await directoryResponse.json()).users || []).map(user => user.email) : []);
+      const online = new Set(directoryResponse.ok
+        ? ((await directoryResponse.json()).users || [])
+          .filter(user => user.online === true)
+          .map(user => String(user.email || "").toLowerCase())
+        : []);
       list.replaceChildren();
       if (!friends.length) {
         const empty = document.createElement("p");
@@ -260,10 +264,11 @@ function renderWorkspace(name) {
         const displayName = document.createElement("strong");
         displayName.textContent = friend.name || friend.email;
         const status = document.createElement("small");
-        status.textContent = online.has(friend.email) ? "Online" : "Offline";
+        const friendIsOnline = online.has(String(friend.email || "").toLowerCase());
+        status.textContent = friendIsOnline ? "Online" : "Offline";
         details.append(displayName, status);
         const presence = document.createElement("span");
-        presence.className = online.has(friend.email) ? "friend-presence online" : "friend-presence";
+        presence.className = friendIsOnline ? "friend-presence online" : "friend-presence";
         presence.setAttribute("aria-label", status.textContent);
         link.append(avatar, details, presence);
         list.appendChild(link);
