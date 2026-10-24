@@ -1,0 +1,7 @@
+{
+  "AllowCredentials": true,
+  "AllowHeaders": ["content-type"],
+  "AllowMethods": ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  "AllowOrigins": ["https://danzstak.com", "https://www.danzstak.com"],
+  "MaxAge": 300
+}

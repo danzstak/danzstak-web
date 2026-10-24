@@ -20,8 +20,10 @@
 
 .post-audience-control select {
   width: 7.5rem;
+  height: 36px;
   min-height: 36px;
-  padding: .42rem 1.55rem .42rem .68rem;
+  box-sizing: border-box;
+  padding: 0 1.45rem 0 .68rem;
   border: 1px solid rgba(255,255,255,.8);
   border-radius: 999px;
   color: #fff;
