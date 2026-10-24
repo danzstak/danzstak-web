@@ -88,14 +88,34 @@ async function loadDirectMessages(reset = false) {
 
 async function loadConversations() {
   try {
-    const response = await fetch(directApi + "/conversations", { credentials: "include", cache: "no-store" });
-    if (!response.ok) return;
-    const data = await response.json();
-    cachedConversations = data.conversations || [];
+    const [conversationResponse, friendsResponse] = await Promise.all([
+      fetch(directApi + "/conversations", { credentials: "include", cache: "no-store" }),
+      fetch(directApi + "/friends", { credentials: "include", cache: "no-store" })
+    ]);
+    if (!conversationResponse.ok) return;
+    const data = await conversationResponse.json();
+    const friendsData = friendsResponse.ok ? await friendsResponse.json() : { friends: [] };
+    const contacts = new Map();
+    for (const conversation of data.conversations || []) {
+      if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), conversation);
+    }
+    for (const friend of friendsData.friends || []) {
+      const email = String(friend.email || "").toLowerCase();
+      if (!email || contacts.has(email)) continue;
+      contacts.set(email, {
+        contactEmail: email,
+        name: friend.name || email,
+        picture: friend.picture || "",
+        preview: "Start a conversation",
+        updatedAt: "",
+        isFriend: true
+      });
+    }
+    cachedConversations = [...contacts.values()];
     conversationUsers.replaceChildren();
     const query = chatSearch?.value.trim().toLowerCase() || "";
     const visible = cachedConversations.filter(item => activeFilter === "all" && (!query || (item.name + " " + item.contactEmail + " " + item.preview).toLowerCase().includes(query)));
-    if (!visible.length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = query ? "No chats match your search." : "No saved chats yet."; conversationUsers.appendChild(empty); return; }
+    if (!visible.length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = query ? "No friends or chats match your search." : "No friends or saved chats yet."; conversationUsers.appendChild(empty); return; }
     for (const conversation of visible) {
       const row = document.createElement("div"); row.className = "conversation-row";
       const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
