@@ -178,7 +178,7 @@ videoInput.type = "file";
 videoInput.accept = "video/mp4,video/webm,video/quicktime";
 videoInput.hidden = true;
 videoButton.addEventListener("click", () => {
-  if (confirm("Do you certify that you created this video and it contains no music or third-party copyrighted material?")) videoInput.click();
+  if (confirm("Do you certify that you created this video and that any music in it is your original material? Standalone audio uploads are not allowed.")) videoInput.click();
 });
 videoInput.addEventListener("change", () => {
   const file = videoInput.files[0];

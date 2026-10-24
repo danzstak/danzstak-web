@@ -128,7 +128,7 @@ document.querySelectorAll(".story span").forEach(label => {
   if (label.textContent.trim() === "Music Spotlight") label.textContent = "Creator Spotlight";
 });
 const uploadNotice = document.querySelector(".composer-actions .muted");
-if (uploadNotice) uploadNotice.textContent = "Original content only — no music or third-party copyrighted material";
+if (uploadNotice) uploadNotice.textContent = "Original content only — videos may contain your original music; standalone audio uploads are blocked";
 
 const composerActions = document.querySelector(".composer-actions");
 const publishButton = document.getElementById("publishBtn");
@@ -141,7 +141,7 @@ if (composerActions && publishButton) {
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.id = "originalContentCertification";
-  certification.append(checkbox, document.createTextNode("I certify this is entirely my original content and authorize DANZSTAK and its users to share it within the platform."));
+  certification.append(checkbox, document.createTextNode("I certify this is entirely my original content, including any music inside a video, and authorize sharing through DANZSTAK."));
   composerActions.parentElement.insertBefore(certification, composerActions);
   publishButton.addEventListener("click", event => {
     if (checkbox.checked) return;
@@ -195,6 +195,12 @@ if (composerActions && publishButton) {
       media.style.borderRadius = "10px";
       if (kind === "video") media.controls = true;
       preview.replaceChildren(media);
+      if (kind === "video") {
+        const scanStatus = document.createElement("p");
+        scanStatus.className = "copyright-scan-status";
+        scanStatus.textContent = isLocalHost() ? "Copyright check: not scanned — local preview only" : "Copyright check: required before publishing";
+        preview.appendChild(scanStatus);
+      }
     });
     mediaTools.append(button, input);
   }
@@ -245,8 +251,15 @@ if (composerActions && publishButton) {
       element.style.maxHeight = "560px";
       element.style.objectFit = "contain";
       element.style.borderRadius = "10px";
-      if (media.kind === "video") element.controls = true;
+      let badge = null;
+      if (media.kind === "video") {
+        element.controls = true;
+        badge = document.createElement("p");
+        badge.className = "copyright-scan-status";
+        badge.textContent = "Copyright check: not scanned — local preview only";
+      }
       post.querySelector(".post-content").insertAdjacentElement("afterend", element);
+      if (badge) element.insertAdjacentElement("afterend", badge);
       preview.replaceChildren();
       selectedMedia = null;
       observer.disconnect();
@@ -255,7 +268,11 @@ if (composerActions && publishButton) {
     setTimeout(() => observer.disconnect(), 10000);
   }, true);
 
-  if (location.hostname === "127.0.0.1" || location.hostname === "localhost") {
+  function isLocalHost() {
+    return location.hostname === "127.0.0.1" || location.hostname === "localhost";
+  }
+
+  if (isLocalHost()) {
     publishButton.addEventListener("click", event => {
       if (!checkbox.checked) return;
       const composer = document.getElementById("postText");
