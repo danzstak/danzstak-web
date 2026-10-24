@@ -28,6 +28,19 @@ const shownMessages = new Set();
 let cachedConversations = [];
 let reactionTimer = null;
 let activeFilter = "all";
+const chatReadKey = "danzstak_chat_read";
+
+function readChatTimes() {
+  try { return JSON.parse(localStorage.getItem(chatReadKey) || "{}"); }
+  catch { return {}; }
+}
+
+function markChatRead(email, timestamp = new Date().toISOString()) {
+  const times = readChatTimes();
+  times[email] = timestamp;
+  try { localStorage.setItem(chatReadKey, JSON.stringify(times)); }
+  catch { /* Messaging remains usable when browser storage is unavailable. */ }
+}
 
 function openMessageReactions(item, x, y) {
   document.querySelector(".message-reaction-palette")?.remove();
@@ -79,6 +92,9 @@ async function loadDirectMessages(reset = false) {
       shownMessages.add(message.messageId);
       messageList.appendChild(directMessageItem(message));
     }
+    const receivedMessages = data.messages || [];
+    const newest = receivedMessages.length ? receivedMessages[receivedMessages.length - 1].createdAt : "";
+    markChatRead(contact, newest || new Date().toISOString());
     messageList.scrollTop = messageList.scrollHeight;
     messageInput.disabled = false;
     sendButton.disabled = false;
@@ -88,13 +104,15 @@ async function loadDirectMessages(reset = false) {
 
 async function loadConversations() {
   try {
-    const [conversationResponse, friendsResponse] = await Promise.all([
+    const [conversationResponse, friendsResponse, directoryResponse] = await Promise.all([
       fetch(directApi + "/conversations", { credentials: "include", cache: "no-store" }),
-      fetch(directApi + "/friends", { credentials: "include", cache: "no-store" })
+      fetch(directApi + "/friends", { credentials: "include", cache: "no-store" }),
+      fetch(directApi + "/calls/directory", { credentials: "include", cache: "no-store" })
     ]);
     if (!conversationResponse.ok) return;
     const data = await conversationResponse.json();
     const friendsData = friendsResponse.ok ? await friendsResponse.json() : { friends: [] };
+    const directoryData = directoryResponse.ok ? await directoryResponse.json() : { users: [] };
     const contacts = new Map();
     for (const conversation of data.conversations || []) {
       if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), conversation);
@@ -111,10 +129,31 @@ async function loadConversations() {
         isFriend: true
       });
     }
+    for (const member of directoryData.users || []) {
+      const email = String(member.email || "").toLowerCase();
+      if (!email || !member.sharedGroup) continue;
+      const existing = contacts.get(email);
+      contacts.set(email, {
+        ...(existing || {}),
+        contactEmail: email,
+        name: existing?.name || member.name || email.split("@")[0],
+        picture: existing?.picture || member.picture || "",
+        preview: existing?.preview || "Shared group member",
+        updatedAt: existing?.updatedAt || "",
+        sharedGroup: true,
+        online: member.online === true
+      });
+    }
     cachedConversations = [...contacts.values()];
     conversationUsers.replaceChildren();
     const query = chatSearch?.value.trim().toLowerCase() || "";
-    const visible = cachedConversations.filter(item => activeFilter === "all" && (!query || (item.name + " " + item.contactEmail + " " + item.preview).toLowerCase().includes(query)));
+    const readTimes = readChatTimes();
+    const visible = cachedConversations.filter(item => {
+      const matchesSearch = !query || (item.name + " " + item.contactEmail + " " + item.preview).toLowerCase().includes(query);
+      const unread = item.updatedAt && item.updatedAt > (readTimes[item.contactEmail] || "");
+      const matchesFilter = activeFilter === "all" || (activeFilter === "unread" && unread) || (["groups", "communities"].includes(activeFilter) && item.sharedGroup);
+      return matchesSearch && matchesFilter;
+    });
     if (!visible.length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = query ? "No friends or chats match your search." : "No friends or saved chats yet."; conversationUsers.appendChild(empty); return; }
     for (const conversation of visible) {
       const row = document.createElement("div"); row.className = "conversation-row";
@@ -124,9 +163,11 @@ async function loadConversations() {
       const copy = document.createElement("span"); copy.className = "conversation-copy";
       const name = document.createElement("strong"); name.textContent = conversation.name || conversation.contactEmail;
       const preview = document.createElement("small"); preview.textContent = conversation.preview || "Open chat";
+      const unread = conversation.updatedAt && conversation.updatedAt > (readTimes[conversation.contactEmail] || "");
+      button.classList.toggle("is-unread", Boolean(unread));
       const time = document.createElement("time"); time.textContent = conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
       copy.append(name, preview); button.append(avatar, copy, time);
-      button.addEventListener("click", () => openConversation(conversation));
+      button.addEventListener("click", () => { markChatRead(conversation.contactEmail, conversation.updatedAt || new Date().toISOString()); openConversation(conversation); });
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [label, targetId] of [["☎", "startPhone"], ["▣", "startVideo"]]) {
         const call = document.createElement("button"); call.type = "button"; call.className = "conversation-call"; call.textContent = label; call.title = targetId === "startPhone" ? "Phone call" : "Video call";
