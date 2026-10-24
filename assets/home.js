@@ -49,7 +49,7 @@ async function checkSession() {
       const data = await response.json();
 
       if (data.authenticated === true) {
-        window.location.replace("feed-secure-test.html");
+        window.location.replace("feed.html");
         return;
       }
     }

@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DANZSTAK | Home Feed</title>
+<title>DANZSTAK | Social Feed</title>
 
 <style>
 * { box-sizing: border-box; }
@@ -12,37 +12,41 @@
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: #f1f2f6;
-  color: #20212a;
+  background: #f0f2f5;
+  color: #1c1e21;
 }
 
 button, textarea, input { font: inherit; }
 button { cursor: pointer; }
 
 .topbar {
-  background: white;
+  background: #1769e0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 25px;
   gap: 15px;
-  box-shadow: 0 2px 8px #0001;
+  box-shadow: 0 2px 8px #0003;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 .logo {
-  font-size: 25px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 24px;
   font-weight: 900;
-  color: #8c52e5;
+  color: white;
 }
+.logo img { width: 48px; height: 48px; object-fit: cover; border-radius: 50%; border: 2px solid white; }
 
 .search {
   border: 0;
   border-radius: 25px;
   padding: 12px 18px;
-  background: #f1f2f6;
+  background: white;
   width: 260px;
 }
 
@@ -54,12 +58,14 @@ button { cursor: pointer; }
   padding: 12px;
   border-radius: 8px;
   font-weight: bold;
+  color: white;
 }
 
 .topnav button:hover,
 .menu a:hover {
-  background: #f1e9ff;
+  background: #ffffff24;
 }
+.menu a:hover { background: #e7f3ff; }
 
 .layout {
   display: grid;
@@ -73,9 +79,9 @@ button { cursor: pointer; }
 
 .panel, .post {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 20px;
-  box-shadow: 0 2px 7px #0001;
+  box-shadow: 0 1px 2px #0002;
   margin-bottom: 18px;
 }
 
@@ -89,8 +95,8 @@ button { cursor: pointer; }
 }
 
 .menu a.active {
-  color: #8c52e5;
-  background: #f1e9ff;
+  color: #1769e0;
+  background: #e7f3ff;
 }
 
 h3 { margin: 0 0 15px; }
@@ -106,7 +112,7 @@ textarea {
 }
 
 .primary {
-  background: #8c52e5;
+  background: #1769e0;
   color: white;
   border: 0;
   border-radius: 8px;
@@ -192,6 +198,15 @@ textarea {
   margin-bottom: 15px;
 }
 
+.stories { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-bottom: 18px; }
+.story { position: relative; min-height: 170px; overflow: hidden; border-radius: 12px; background: linear-gradient(160deg,#1769e0,#8c52e5); box-shadow: 0 1px 2px #0003; color: white; padding: 16px; display: flex; align-items: flex-end; font-weight: 800; }
+.story:nth-child(2) { background: linear-gradient(160deg,#ff7a00,#ef3054); }
+.story:nth-child(3) { background: linear-gradient(160deg,#111827,#1769e0); }
+.story::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent,#0008); }
+.story span { position: relative; z-index: 1; }
+.composer-title { display: flex; align-items: center; gap: 12px; }
+.composer-avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #1769e0; color: white; font-weight: 900; }
+
 @media(max-width: 1050px) {
   .layout {
     grid-template-columns: 190px minmax(0, 650px);
@@ -201,13 +216,26 @@ textarea {
 
 @media(max-width: 700px) {
   .layout { display: block; }
-  .left { display: none; }
-  .topbar { flex-wrap: wrap; }
+  .left { display: block; }
+  .topbar { position: static; flex-wrap: wrap; padding: 14px 16px; }
   .search { width: 100%; }
   .topnav {
     width: 100%;
-    justify-content: space-around;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .topnav button { padding: 10px 6px; }
+  .menu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .menu a {
+    padding: 11px 8px;
+    font-size: 14px;
+  }
+  .stories { grid-template-columns: repeat(3,78%); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+  .story { scroll-snap-align: start; }
 }
 </style>
 </head>
@@ -215,7 +243,7 @@ textarea {
 <body>
 
 <header class="topbar">
-  <div class="logo">DANZSTAK</div>
+  <div class="logo"><img src="assets/danzstak-logo.png" alt=""><span>DANZSTAK</span></div>
 
   <input
     class="search"
@@ -224,10 +252,10 @@ textarea {
   >
 
   <nav class="topnav">
-    <button type="button">Home</button>
-    <button type="button">Friends</button>
-    <button type="button">Messages</button>
-    <button type="button">Notifications</button>
+    <button type="button" data-route="home">Home</button>
+    <button type="button" data-feature="Friends">Friends</button>
+    <button type="button" data-feature="Messages">Messages</button>
+    <button type="button" data-feature="Notifications">Notifications</button>
   </nav>
 </header>
 
@@ -235,14 +263,14 @@ textarea {
 
   <aside class="left">
     <div class="panel menu">
-      <a href="#" class="active">🏠 News Feed</a>
-      <a href="#">👤 My Profile</a>
-      <a href="#">👥 Friends</a>
-      <a href="#">📷 Photos</a>
-      <a href="#">🎬 Videos</a>
-      <a href="#">🎵 Music</a>
-      <a href="#">🎤 Events</a>
-      <a href="#">⚙️ Settings</a>
+      <a href="feed.html" class="active">🏠 News Feed</a>
+      <a href="profile.html">👤 My Profile</a>
+      <a href="#" data-feature="Friends">👥 Friends</a>
+      <a href="#" data-feature="Photos">📷 Photos</a>
+      <a href="#" data-feature="Videos">🎬 Videos</a>
+      <a href="#" data-feature="Music">🎵 Music</a>
+      <a href="#" data-feature="Events">🎤 Events</a>
+      <a href="#" data-feature="Settings">⚙️ Settings</a>
       <a href="privacy.html">🔒 Privacy Policy</a>
       <a href="terms.html">📄 Terms of Service</a>
     </div>
@@ -250,11 +278,23 @@ textarea {
 
   <main>
 
+    <section id="featureView" class="panel" hidden>
+      <h3 id="featureTitle"></h3>
+      <p id="featureDescription" class="muted"></p>
+    </section>
+
+    <div id="newsFeedView">
+    <section class="stories" aria-label="Stories">
+      <div class="story"><span>Your Story</span></div>
+      <div class="story"><span>Music Spotlight</span></div>
+      <div class="story"><span>Live Events</span></div>
+    </section>
     <section class="panel">
-      <h3>Create a Post</h3>
+      <h3 class="composer-title"><span class="composer-avatar" aria-hidden="true">D</span><span>Create a Post</span></h3>
 
       <textarea
         id="postText"
+        maxlength="5000"
         placeholder="What's on your mind?"
       ></textarea>
 
@@ -274,6 +314,7 @@ textarea {
     </p>
 
     <section id="feed" aria-label="News Feed"></section>
+    </div>
 
   </main>
 
@@ -300,12 +341,27 @@ textarea {
 <script>
 
 const API_URL =
-  "https://82ggwex9i6.execute-api.us-west-1.amazonaws.com/posts";
+  "https://api.danzstak.com/secure-posts";
 
 const feed = document.getElementById("feed");
 const feedStatus = document.getElementById("feedStatus");
 const publishBtn = document.getElementById("publishBtn");
 const postText = document.getElementById("postText");
+const newsFeedView = document.getElementById("newsFeedView");
+const featureView = document.getElementById("featureView");
+const featureTitle = document.getElementById("featureTitle");
+const featureDescription = document.getElementById("featureDescription");
+
+const featureCopy = {
+  Friends: "Find and connect with artists, DJs, producers, and music fans.",
+  Messages: "Your private DANZSTAK conversations will appear here.",
+  Notifications: "Your latest reactions, comments, and connection updates will appear here.",
+  Photos: "Share and explore photos from the DANZSTAK community.",
+  Videos: "Discover performances, music videos, and creator clips.",
+  Music: "Explore tracks, releases, playlists, and featured artists.",
+  Events: "Find live shows, DJ sets, festivals, and booking opportunities.",
+  Settings: "Manage your DANZSTAK account, privacy, and notification preferences."
+};
 
 // CREATE THE VISUAL DISPLAY OF A POST
 function createPostElement(content, author = "DANZSTAK Member", createdAt = null) {
@@ -356,30 +412,22 @@ function createPostElement(content, author = "DANZSTAK Member", createdAt = null
 // LOAD SAVED POSTS FROM AWS DYNAMODB
 async function loadPosts() {
 
-  const token = sessionStorage.getItem("danzstak_access_token");
-
-  if (!token) {
-    feedStatus.textContent =
-      "Please log in to load your saved posts.";
-    return;
-  }
-
   feedStatus.textContent = "Loading saved posts...";
 
   try {
 
     const response = await fetch(API_URL, {
       method: "GET",
-      headers: {
-        "Authorization": `Bearer ${token}`
-      },
+      credentials: "include",
       cache: "no-store"
     });
 
+    if (response.status === 401) {
+      feedStatus.textContent = "Your secure session has expired. Please log in again at https://api.danzstak.com/auth/login";
+      return;
+    }
     if (!response.ok) {
-      throw new Error(
-        "AWS API returned " + response.status
-      );
+      throw new Error("AWS API returned " + response.status);
     }
 
     const data = await response.json();
@@ -438,16 +486,13 @@ async function loadPosts() {
 // SAVE NEW POST TO DYNAMODB
 publishBtn.addEventListener("click", async () => {
 
-  const token = sessionStorage.getItem("danzstak_access_token");
-
-  if (!token) {
-    alert("Please log in before posting.");
-    return;
-  }
-
   const content = postText.value.trim();
 
   if (!content) return;
+  if (content.length > 5000) {
+    alert("Posts must be 5000 characters or fewer.");
+    return;
+  }
 
   publishBtn.disabled = true;
 
@@ -458,19 +503,17 @@ publishBtn.addEventListener("click", async () => {
     const response = await fetch(API_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        action: "createPost",
-        content: content
-      })
+      credentials: "include",
+      body: JSON.stringify({ content })
     });
 
+    if (response.status === 401) {
+      throw new Error("Session expired. Log in again at https://api.danzstak.com/auth/login");
+    }
     if (!response.ok) {
-      throw new Error(
-        "AWS API returned " + response.status
-      );
+      throw new Error("AWS API returned " + response.status);
     }
 
     savedPost = await response.json();
@@ -570,6 +613,24 @@ feed.addEventListener("keydown", (event) => {
 });
 
 // LOAD POSTS AUTOMATICALLY ON PAGE OPEN OR REFRESH
+document.querySelector('[data-route="home"]').addEventListener("click", () => {
+  window.location.assign("./");
+});
+
+document.querySelectorAll("[data-feature]").forEach(control => {
+  control.addEventListener("click", event => {
+    event.preventDefault();
+    const feature = control.dataset.feature;
+    newsFeedView.hidden = true;
+    featureView.hidden = false;
+    featureTitle.textContent = feature;
+    featureDescription.textContent = featureCopy[feature] || "This DANZSTAK section is being prepared.";
+    document.querySelectorAll(".menu a").forEach(link => link.classList.remove("active"));
+    if (control.matches(".menu a")) control.classList.add("active");
+    featureView.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+
 loadPosts();
 
 </script>
