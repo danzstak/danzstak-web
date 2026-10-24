@@ -18,4 +18,6 @@ Run `./aws-configure-production.ps1` from an authenticated AWS shell to reapply 
 
 Run `./aws-harden-cloudfront.ps1` from the same authenticated shell to attach AWS's managed `SecurityHeadersPolicy` to the `danzstak.com` distribution. The script discovers the distribution by alias, preserves its current configuration, and adds HSTS, `nosniff`, frame protection, and a strict referrer policy.
 
+Run `./aws-deploy-production.ps1` for the complete production workflow. It verifies the active AWS identity, validates and deploys the `danzstak-call-signaling` stack in `us-west-1`, reapplies API CORS/throttling/MFA settings, and invokes the CloudFront hardening step.
+
 The browser receives only the opaque `__Host-danzstak_session` cookie. Cognito tokens remain server-side and must not be added to local storage, session storage, URLs, or browser-readable cookies.
