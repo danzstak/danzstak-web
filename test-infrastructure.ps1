@@ -59,4 +59,8 @@ foreach ($permission in $requiredDataPermissions) {
   }
 }
 
+if (-not $template.Contains("body.action==='list')return json(200,{groupIds:[...await groupIds(user.email)]})")) {
+  throw 'Cross-device group membership loading is missing.'
+}
+
 Write-Host "Infrastructure checks passed ($templateBytes-byte template; embedded Lambda syntax valid)."

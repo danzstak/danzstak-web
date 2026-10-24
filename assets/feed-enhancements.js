@@ -191,6 +191,15 @@ function renderWorkspace(name) {
     });
     workspace.append(createBox, grid);
     renderGroups();
+    fetch("https://api.danzstak.com/groups/membership", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ action: "list" }) })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => {
+        if (!Array.isArray(data?.groupIds)) return;
+        saved.GroupsJoined = Object.fromEntries(data.groupIds.map(groupId => [groupId, true]));
+        writeSections(saved);
+        renderGroups();
+      })
+      .catch(() => {});
     return;
   }
 
