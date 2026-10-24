@@ -49,6 +49,7 @@ async function checkSession() {
       const data = await response.json();
 
       if (data.authenticated === true) {
+        sessionStorage.removeItem("danzstak_install_prompt_shown");
         window.location.replace("feed.html");
         return;
       }
@@ -80,6 +81,7 @@ logoutBtn.addEventListener("click", async () => {
 
     if (!response.ok) throw new Error("Logout failed");
 
+    sessionStorage.removeItem("danzstak_install_prompt_shown");
     showSession(false, "Logged out of your secure session.");
   } catch (error) {
     status.textContent = "Logout failed. Please try again.";

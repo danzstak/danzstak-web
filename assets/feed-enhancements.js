@@ -231,12 +231,23 @@ if (composerActions && publishButton) {
   checkbox.type = "checkbox";
   checkbox.id = "originalContentCertification";
   certification.append(checkbox, document.createTextNode("I certify this is entirely my original content, including any music inside a video, and authorize sharing through DANZSTAK."));
+  const certificationError = document.createElement("p");
+  certificationError.className = "certification-error";
+  certificationError.textContent = "Required: confirm that you own this content before posting.";
+  certificationError.hidden = true;
   composerActions.parentElement.insertBefore(certification, composerActions);
+  composerActions.parentElement.insertBefore(certificationError, composerActions);
+  checkbox.addEventListener("change", () => {
+    certificationError.hidden = checkbox.checked;
+    certification.classList.toggle("certification-required", !checkbox.checked);
+  });
   publishButton.addEventListener("click", event => {
     if (checkbox.checked) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    alert("You must certify that the post is entirely your original content.");
+    certificationError.hidden = false;
+    certification.classList.add("certification-required");
+    certification.scrollIntoView({ behavior: "smooth", block: "center" });
     checkbox.focus();
   }, true);
 
@@ -498,10 +509,61 @@ function addPostDeleteButton(post) {
   });
   option("Edit post", "Change your post text.", () => {
     const body = post.querySelector(".post-content");
-    const updated = prompt("Edit post", body.textContent);
-    if (updated === null || !updated.trim() || updated.trim() === body.textContent) return;
-    history.push(body.textContent);
-    body.textContent = updated.trim();
+    if (!body) return;
+    let editor = post.querySelector(".post-inline-editor");
+    if (!editor) {
+      editor = document.createElement("div");
+      editor.className = "post-inline-editor";
+      const textarea = document.createElement("textarea");
+      textarea.setAttribute("aria-label", "Edit post text");
+      const controls = document.createElement("div");
+      controls.className = "post-inline-editor-actions";
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.textContent = "Cancel";
+      const save = document.createElement("button");
+      save.type = "button";
+      save.className = "primary";
+      save.textContent = "Save changes";
+      cancel.addEventListener("click", () => { editor.hidden = true; });
+      save.addEventListener("click", async () => {
+        const updated = textarea.value.trim();
+        if (!updated) {
+          textarea.setCustomValidity("Post text cannot be empty.");
+          textarea.reportValidity();
+          return;
+        }
+        textarea.setCustomValidity("");
+        if (updated === body.textContent.trim()) { editor.hidden = true; return; }
+        save.disabled = true;
+        const postId = post.dataset.postId;
+        if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
+          try {
+            const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), {
+              method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content: updated })
+            });
+            if (!response.ok) throw new Error();
+          } catch {
+            alert("The edited post could not be saved. Please try again.");
+            save.disabled = false;
+            return;
+          }
+        }
+        history.push(body.textContent.trim());
+        body.textContent = updated;
+        post.dataset.edited = "true";
+        editor.hidden = true;
+        save.disabled = false;
+      });
+      controls.append(cancel, save);
+      editor.append(textarea, controls);
+      body.insertAdjacentElement("afterend", editor);
+    }
+    const textarea = editor.querySelector("textarea");
+    textarea.value = body.textContent.trim();
+    editor.hidden = false;
+    requestAnimationFrame(() => { textarea.focus(); textarea.setSelectionRange(textarea.value.length, textarea.value.length); });
   });
   option("Who can comment?", "Everyone", button => {
     const values = ["Everyone", "Friends", "Comments off"];

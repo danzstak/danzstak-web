@@ -1,12 +1,12 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v1";
+const CACHE = "danzstak-shell-v4";
 const SHELL = [
   "/", "/index.html", "/feed.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/danzstak-logo.png",
-  "/assets/home.js", "/assets/profile.js", "/assets/profile-editor.js",
+  "/assets/home.js", "/assets/pwa.js", "/assets/profile.js", "/assets/profile-editor.js",
   "/assets/profile-editor.css", "/assets/feed-enhancements.js",
-  "/assets/feed-enhancements.css", "/assets/legal.css", "/assets/soft-ui.css", "/assets/pwa.js"
+  "/assets/feed-enhancements.css", "/assets/legal.css", "/assets/soft-ui.css"
 ];
 
 self.addEventListener("install", event => {
@@ -29,6 +29,14 @@ self.addEventListener("fetch", event => {
       caches.open(CACHE).then(cache => cache.put(request, copy));
       return response;
     }).catch(() => caches.match(request).then(hit => hit || caches.match("/index.html"))));
+    return;
+  }
+  const isCodeOrStyle = /\.(?:css|js)$/.test(url.pathname);
+  if (isCodeOrStyle) {
+    event.respondWith(fetch(request).then(response => {
+      if (response.ok) caches.open(CACHE).then(cache => cache.put(request, response.clone()));
+      return response;
+    }).catch(() => caches.match(request)));
     return;
   }
   event.respondWith(caches.match(request).then(hit => hit || fetch(request).then(response => {
