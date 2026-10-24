@@ -43,5 +43,7 @@ button:active,.button:active{background:#d8dade;border-color:#c9cdd3;box-shadow:
 .primary,.secondary,.profile-actions button,.profile-media-tools button,.profile-tabs button,.post-actions button,.group-card button,.reel-delete,.group-report,.deleteCommentBtn{min-height:32px;padding:5px 10px;border-radius:8px}
 #publishBtn{height:32px;min-height:32px;padding:0 12px;border-radius:8px}
 .topbar .topnav button{min-height:32px;padding:5px 10px}
-.post-actions button{min-height:32px;padding:5px 9px}
-@media(max-width:480px){button,.button,.primary,.secondary{min-height:34px;padding:6px 10px}#publishBtn{height:34px;min-height:34px}.post-actions button{min-height:34px}}
+.post-actions{justify-content:center;gap:6px!important}
+.post-actions button{flex:0 0 auto!important;min-width:78px;min-height:32px;padding:5px 9px}
+.post-menu-toggle{width:32px;height:32px;min-height:32px;font-size:16px}
+@media(max-width:480px){button,.button,.primary,.secondary{min-height:34px;padding:6px 10px}#publishBtn{height:34px;min-height:34px}.post-actions button{min-width:76px;min-height:34px}}
