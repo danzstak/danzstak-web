@@ -752,7 +752,7 @@ const reelForm = document.createElement("div");
 reelForm.className = "reel-import-form";
 const reelUrl = document.createElement("input");
 reelUrl.type = "url";
-reelUrl.placeholder = "Paste a TikTok, Facebook, Instagram, YouTube, Vimeo, or HTTPS video link";
+reelUrl.placeholder = "Paste a supported autoplay video link";
 reelUrl.setAttribute("aria-label", "External video URL");
 const reelPermission = document.createElement("label");
 const reelPermissionCheck = document.createElement("input");
@@ -836,9 +836,8 @@ function reelPlayer(url) {
   else if (host.endsWith("youtube.com")) match = [null, url.searchParams.get("v") || path.match(/^\/(?:shorts|embed)\/([^/?#]+)/)?.[1]];
   if (match?.[1]) return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(match[1]) + "?autoplay=1&mute=1&playsinline=1" };
   if (host.endsWith("vimeo.com") && (match = path.match(/\/(\d+)/))) return { kind: "iframe", src: "https://player.vimeo.com/video/" + match[1] + "?autoplay=1&muted=1&playsinline=1" };
-  if (host.endsWith("tiktok.com") && (match = path.match(/\/video\/(\d+)/))) return { kind: "iframe", src: "https://www.tiktok.com/player/v1/" + match[1] + "?autoplay=1&loop=1" };
+  if (host.endsWith("tiktok.com") && (match = path.match(/\/video\/(\d+)/))) return { kind: "iframe", src: "https://www.tiktok.com/player/v1/" + match[1] + "?autoplay=1&loop=1&muted=1" };
   if (host.endsWith("facebook.com") || host === "fb.watch") return { kind: "iframe", src: "https://www.facebook.com/plugins/video.php?show_text=false&autoplay=true&href=" + encodeURIComponent(url.href) };
-  if (host.endsWith("instagram.com") && (match = path.match(/^\/(?:p|reel|tv)\/([^/?#]+)/))) return { kind: "iframe", src: "https://www.instagram.com/p/" + encodeURIComponent(match[1]) + "/embed/" };
   if ((host.endsWith("dailymotion.com") && (match = path.match(/\/video\/([^/?#]+)/))) || (host === "dai.ly" && (match = path.match(/^\/([^/?#]+)/)))) return { kind: "iframe", src: "https://www.dailymotion.com/embed/video/" + encodeURIComponent(match[1]) + "?autoplay=1&mute=1" };
   if (host.endsWith("streamable.com") && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", src: "https://streamable.com/e/" + encodeURIComponent(match[1]) + "?autoplay=1" };
   if (host === "clips.twitch.tv" && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", src: "https://clips.twitch.tv/embed?autoplay=true&muted=true&clip=" + encodeURIComponent(match[1]) + "&parent=" + encodeURIComponent(location.hostname) };
@@ -926,6 +925,7 @@ addReel.addEventListener("click", () => {
   try { parsed = new URL(reelUrl.value.trim()); }
   catch { reelStatus.textContent = "Enter a valid video link."; reelUrl.focus(); return; }
   if (!isApprovedVideoUrl(parsed)) { reelStatus.textContent = "Use a recognized video platform or a direct HTTPS video-file link."; reelUrl.focus(); return; }
+  if (!reelPlayer(parsed)) { reelStatus.textContent = "This link cannot autoplay inside DANZSTAK. Use a supported public video or direct HTTPS video-file link."; reelUrl.focus(); return; }
   if (!reelPermissionCheck.checked) { reelStatus.textContent = "Confirm ownership or permission before sharing."; reelPermissionCheck.focus(); return; }
   const reels = getReels();
   reels.unshift({ id: crypto.randomUUID(), url: parsed.href, platform: reelPlatform(parsed.hostname), sharedAt: new Date().toISOString() });
