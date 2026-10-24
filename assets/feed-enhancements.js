@@ -94,11 +94,13 @@ function renderWorkspace(name) {
         join.className = "primary";
         const joined = Boolean(saved.GroupsJoined?.[group.id]);
         join.textContent = joined ? "Joined" : "Join Group";
+        join.classList.toggle("is-selected", joined);
         join.addEventListener("click", () => {
           saved.GroupsJoined = saved.GroupsJoined || {};
           saved.GroupsJoined[group.id] = !saved.GroupsJoined[group.id];
           writeSections(saved);
           join.textContent = saved.GroupsJoined[group.id] ? "Joined" : "Join Group";
+          join.classList.toggle("is-selected", saved.GroupsJoined[group.id]);
         });
         card.append(category, title, description);
         const moderation = document.createElement("div");
@@ -353,6 +355,7 @@ if (composerActions && publishButton) {
   emojiButton.className = "secondary";
   emojiButton.textContent = "Add Emoji";
   const emojiPicker = document.createElement("div");
+  emojiPicker.className = "emoji-picker";
   emojiPicker.hidden = true;
   emojiPicker.style.width = "100%";
   emojiPicker.style.padding = "10px";
@@ -674,6 +677,10 @@ function addReactionButton(post) {
   const like = post.querySelector(".likeBtn");
   if (!like || like.dataset.reactionsReady === "true") return;
   like.dataset.reactionsReady = "true";
+  const initialHeart = document.createElement("span");
+  initialHeart.className = "like-heart";
+  initialHeart.textContent = "\u2661";
+  like.replaceChildren(initialHeart, document.createTextNode(" Like"));
   const palette = document.createElement("div");
   palette.className = "reaction-palette";
   palette.hidden = true;
@@ -688,7 +695,14 @@ function addReactionButton(post) {
       event.stopPropagation();
       like.dataset.liked = "true";
       like.dataset.reaction = label;
-      like.textContent = `${emoji} ${label}`;
+      if (label === "Love") {
+        const heart = document.createElement("span");
+        heart.className = "like-heart";
+        heart.textContent = "\u2665";
+        like.replaceChildren(heart, document.createTextNode(" Love"));
+      } else {
+        like.textContent = `${emoji} ${label}`;
+      }
       palette.hidden = true;
     });
     palette.appendChild(choice);
@@ -705,9 +719,18 @@ function addReactionButton(post) {
   like.addEventListener("pointerleave", cancelHold);
   like.addEventListener("pointercancel", cancelHold);
   like.addEventListener("click", event => {
-    if (!held) return;
     event.preventDefault();
     event.stopImmediatePropagation();
+    if (!held) {
+      const liked = like.dataset.liked === "true";
+      like.dataset.liked = String(!liked);
+      like.dataset.reaction = liked ? "" : "Like";
+      const heart = document.createElement("span");
+      heart.className = "like-heart";
+      heart.textContent = liked ? "\u2661" : "\u2665";
+      like.replaceChildren(heart, document.createTextNode(liked ? " Like" : " Liked"));
+      return;
+    }
     held = false;
   }, true);
 }
