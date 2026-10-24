@@ -180,12 +180,6 @@ if (composerActions && publishButton) {
           : `${label} must be a supported ${kind} file.`);
         return;
       }
-      if (!checkbox.checked) {
-        input.value = "";
-        checkbox.focus();
-        alert("Certify that you created this media before selecting it.");
-        return;
-      }
       if (selectedMedia?.url) URL.revokeObjectURL(selectedMedia.url);
       selectedMedia = { file, kind, url: URL.createObjectURL(file) };
       const media = document.createElement(kind === "image" ? "img" : "video");
@@ -240,6 +234,7 @@ if (composerActions && publishButton) {
   composerActions.parentElement.insertBefore(preview, certification);
 
   publishButton.addEventListener("click", () => {
+    if (isLocalHost()) return;
     if (!selectedMedia) return;
     const media = selectedMedia;
     const observer = new MutationObserver(records => {
@@ -298,6 +293,23 @@ if (composerActions && publishButton) {
       const body = document.createElement("p");
       body.className = "post-content";
       body.textContent = text;
+      const mediaForPost = selectedMedia;
+      let mediaElement = null;
+      let mediaBadge = null;
+      if (mediaForPost) {
+        mediaElement = document.createElement(mediaForPost.kind === "image" ? "img" : "video");
+        mediaElement.src = mediaForPost.url;
+        mediaElement.style.width = "100%";
+        mediaElement.style.maxHeight = "560px";
+        mediaElement.style.objectFit = "contain";
+        mediaElement.style.borderRadius = "10px";
+        if (mediaForPost.kind === "video") {
+          mediaElement.controls = true;
+          mediaBadge = document.createElement("p");
+          mediaBadge.className = "copyright-scan-status";
+          mediaBadge.textContent = "Copyright check: not scanned — local preview only";
+        }
+      }
       const actions = document.createElement("div");
       actions.className = "post-actions";
       const like = document.createElement("button");
@@ -318,8 +330,13 @@ if (composerActions && publishButton) {
       const commentList = document.createElement("div");
       commentList.className = "commentList";
       comments.append(commentInput, commentList);
-      post.append(header, body, actions, comments);
+      post.append(header, body);
+      if (mediaElement) post.appendChild(mediaElement);
+      if (mediaBadge) post.appendChild(mediaBadge);
+      post.append(actions, comments);
       document.getElementById("feed").prepend(post);
+      preview.replaceChildren();
+      selectedMedia = null;
       composer.value = "";
       checkbox.checked = false;
       document.getElementById("feedStatus").textContent = "Saved in local development mode.";
@@ -385,20 +402,45 @@ function addCommentDelete(comment) {
 }
 
 function addReactionButton(post) {
-  const actions = post.querySelector(".post-actions");
-  if (!actions || actions.querySelector(".reactionBtn")) return;
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "reactionBtn";
-  button.textContent = "React";
-  button.addEventListener("click", () => {
-    const reactions = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
-    const current = reactions.indexOf(button.dataset.reaction || "");
-    const next = reactions[(current + 1) % reactions.length];
-    button.dataset.reaction = next;
-    button.textContent = next + " Reacted";
+  const like = post.querySelector(".likeBtn");
+  if (!like || like.dataset.reactionsReady === "true") return;
+  like.dataset.reactionsReady = "true";
+  const palette = document.createElement("div");
+  palette.className = "reaction-palette";
+  palette.hidden = true;
+  const reactions = [["👍", "Like"], ["❤️", "Love"], ["😂", "Laugh"], ["😮", "Wow"], ["😢", "Sad"], ["🔥", "Fire"]];
+  for (const [emoji, label] of reactions) {
+    const choice = document.createElement("button");
+    choice.type = "button";
+    choice.textContent = emoji;
+    choice.title = label;
+    choice.setAttribute("aria-label", label);
+    choice.addEventListener("click", event => {
+      event.stopPropagation();
+      like.dataset.liked = "true";
+      like.dataset.reaction = label;
+      like.textContent = `${emoji} ${label}`;
+      palette.hidden = true;
+    });
+    palette.appendChild(choice);
+  }
+  post.appendChild(palette);
+  let holdTimer = null;
+  let held = false;
+  like.addEventListener("pointerdown", () => {
+    held = false;
+    holdTimer = setTimeout(() => { held = true; palette.hidden = false; }, 500);
   });
-  actions.appendChild(button);
+  const cancelHold = () => { if (holdTimer) clearTimeout(holdTimer); holdTimer = null; };
+  like.addEventListener("pointerup", cancelHold);
+  like.addEventListener("pointerleave", cancelHold);
+  like.addEventListener("pointercancel", cancelHold);
+  like.addEventListener("click", event => {
+    if (!held) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    held = false;
+  }, true);
 }
 
 document.querySelectorAll("#feed .post").forEach(post => { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); });
