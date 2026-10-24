@@ -20,10 +20,13 @@
     <h1 id="messagesTitle">Messages</h1>
     <p class="chat-note">Private peer-to-peer chat and video. Share call codes only with the person you intend to call.</p>
     <label>Contact email<input id="contactEmail" type="email" autocomplete="email" placeholder="friend@example.com"></label>
-    <div class="call-actions">
-      <button id="startCall" type="button" class="primary">Start call</button>
-      <button id="answerCall" type="button" class="secondary">Answer call</button>
+    <p class="choice-label">Start a conversation</p>
+    <div class="call-actions conversation-choices">
+      <button id="startText" type="button" class="primary">Text</button>
+      <button id="startPhone" type="button" class="primary">Phone</button>
+      <button id="startVideo" type="button" class="primary">Video</button>
     </div>
+    <button id="answerCall" type="button" class="secondary answer-button">Answer invite</button>
     <label>Your call code<textarea id="localSignal" readonly aria-label="Your call code"></textarea></label>
     <button id="copySignal" type="button" class="secondary">Copy code</button>
     <label>Their call code<textarea id="remoteSignal" aria-label="Their call code" placeholder="Paste the other person's code"></textarea></label>
@@ -48,7 +51,7 @@
     </form>
   </section>
 </main>
-<script src="assets/chat.js?v=1" defer></script>
+<script src="assets/chat.js?v=2" defer></script>
 <script src="assets/pwa.js" defer></script>
 </body>
 </html>
