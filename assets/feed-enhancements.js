@@ -233,6 +233,14 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
   groupsLink.dataset.feature = "Groups";
   groupsLink.textContent = "\uD83D\uDC65 Groups";
   groupsLink.setAttribute("aria-label", "Groups");
+  groupsLink.addEventListener("click", event => {
+    event.preventDefault();
+    history.replaceState(null, "", "#groups");
+    document.getElementById("newsFeedView").hidden = true;
+    featurePanel.hidden = false;
+    featureHeading.textContent = "Groups";
+    renderWorkspace("Groups");
+  });
   friendsLink.insertAdjacentElement("afterend", groupsLink);
 }
 
@@ -704,11 +712,127 @@ function addReactionButton(post) {
   }, true);
 }
 
-document.querySelectorAll("#feed .post").forEach(post => { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); });
+const reelsStorageKey = "danzstak_external_reels";
+const reelsRail = document.createElement("section");
+reelsRail.className = "reels-rail post";
+reelsRail.setAttribute("aria-label", "External video reels");
+const reelsHeading = document.createElement("div");
+reelsHeading.className = "reels-heading";
+const reelsTitle = document.createElement("h3");
+reelsTitle.textContent = "Reels";
+const reelsSourceNote = document.createElement("span");
+reelsSourceNote.textContent = "Externally hosted videos";
+reelsHeading.append(reelsTitle, reelsSourceNote);
+const reelsList = document.createElement("div");
+reelsList.className = "reels-list";
+const reelForm = document.createElement("div");
+reelForm.className = "reel-import-form";
+const reelUrl = document.createElement("input");
+reelUrl.type = "url";
+reelUrl.placeholder = "Paste a TikTok, Facebook, Instagram, YouTube, Vimeo, or HTTPS video link";
+reelUrl.setAttribute("aria-label", "External video URL");
+const reelPermission = document.createElement("label");
+const reelPermissionCheck = document.createElement("input");
+reelPermissionCheck.type = "checkbox";
+reelPermission.append(reelPermissionCheck, document.createTextNode("I own this video or have permission to share its external link."));
+const addReel = document.createElement("button");
+addReel.type = "button";
+addReel.className = "primary";
+addReel.textContent = "Add Reel";
+const reelStatus = document.createElement("p");
+reelStatus.className = "muted reel-status";
+reelForm.append(reelUrl, reelPermission, addReel, reelStatus);
+reelsRail.append(reelsHeading, reelsList, reelForm);
+
+function getReels() {
+  try { return JSON.parse(localStorage.getItem(reelsStorageKey) || "[]"); }
+  catch { return []; }
+}
+
+function reelPlatform(hostname) {
+  const host = hostname.replace(/^www\./, "");
+  if (host.includes("tiktok.com")) return "TikTok";
+  if (host.includes("facebook.com") || host === "fb.watch") return "Facebook";
+  if (host.includes("instagram.com")) return "Instagram";
+  if (host.includes("youtube.com") || host === "youtu.be") return "YouTube";
+  if (host.includes("vimeo.com")) return "Vimeo";
+  return "External Video";
+}
+
+function isApprovedVideoUrl(url) {
+  if (url.protocol !== "https:" || url.username || url.password) return false;
+  const host = url.hostname.replace(/^www\./, "").toLowerCase();
+  const videoHosts = ["tiktok.com", "facebook.com", "fb.watch", "instagram.com", "youtube.com", "youtu.be", "vimeo.com", "twitch.tv", "dailymotion.com", "dai.ly", "rumble.com", "streamable.com", "kick.com", "snapchat.com", "x.com", "twitter.com"];
+  const trustedHost = videoHosts.some(allowed => host === allowed || host.endsWith("." + allowed));
+  const directVideo = /\.(?:mp4|webm|mov|m4v)(?:$|[?#])/i.test(url.pathname + url.search + url.hash);
+  return trustedHost || directVideo;
+}
+
+function renderReels() {
+  reelsList.replaceChildren();
+  const reels = getReels();
+  if (!reels.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted reels-empty";
+    empty.textContent = "External reels shared by the community will appear here.";
+    reelsList.appendChild(empty);
+    return;
+  }
+  for (const reel of reels) {
+    const card = document.createElement("article");
+    card.className = "reel-card";
+    const platform = document.createElement("strong");
+    platform.textContent = reel.platform;
+    const open = document.createElement("a");
+    open.href = reel.url;
+    open.target = "_blank";
+    open.rel = "noopener noreferrer nofollow";
+    open.textContent = "▶ Open Reel";
+    const source = document.createElement("small");
+    source.textContent = new URL(reel.url).hostname;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "reel-delete";
+    remove.textContent = "Delete Reel";
+    remove.addEventListener("click", () => {
+      const updated = getReels().filter(item => item.id !== reel.id);
+      localStorage.setItem(reelsStorageKey, JSON.stringify(updated));
+      renderReels();
+    });
+    card.append(platform, open, source, remove);
+    reelsList.appendChild(card);
+  }
+}
+
+function placeReelsRail() {
+  const feedElement = document.getElementById("feed");
+  const posts = [...feedElement.children].filter(child => child.classList.contains("post") && child !== reelsRail);
+  if (posts.length >= 3) posts[2].insertAdjacentElement("afterend", reelsRail);
+  else feedElement.appendChild(reelsRail);
+}
+
+addReel.addEventListener("click", () => {
+  let parsed;
+  try { parsed = new URL(reelUrl.value.trim()); }
+  catch { reelStatus.textContent = "Enter a valid video link."; reelUrl.focus(); return; }
+  if (!isApprovedVideoUrl(parsed)) { reelStatus.textContent = "Use a recognized video platform or a direct HTTPS video-file link."; reelUrl.focus(); return; }
+  if (!reelPermissionCheck.checked) { reelStatus.textContent = "Confirm ownership or permission before sharing."; reelPermissionCheck.focus(); return; }
+  const reels = getReels();
+  reels.unshift({ id: crypto.randomUUID(), url: parsed.href, platform: reelPlatform(parsed.hostname), sharedAt: new Date().toISOString() });
+  localStorage.setItem(reelsStorageKey, JSON.stringify(reels.slice(0, 20)));
+  reelUrl.value = "";
+  reelPermissionCheck.checked = false;
+  reelStatus.textContent = "External reel added.";
+  renderReels();
+});
+
+renderReels();
+placeReelsRail();
+document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } });
 new MutationObserver(records => {
   for (const record of records) {
     record.addedNodes.forEach(node => {
-      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post")) { addReactionButton(node); addShareButton(node); addPostDeleteButton(node); }
+      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { addReactionButton(node); addShareButton(node); addPostDeleteButton(node); placeReelsRail(); }
       if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".comment")) addCommentDelete(node);
       if (node.nodeType === Node.ELEMENT_NODE) node.querySelectorAll?.(".comment").forEach(addCommentDelete);
     });

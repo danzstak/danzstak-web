@@ -5,8 +5,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="assets/app-icon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/app-icon.svg?v=2" type="image/svg+xml">
+<link rel="shortcut icon" href="assets/app-icon.svg?v=2">
+<link rel="apple-touch-icon" href="assets/app-icon.svg?v=2">
 <title>DANZSTAK | Social Feed</title>
 
 <style>
@@ -640,7 +644,7 @@ loadPosts();
 
 </script>
 
-<script src="assets/feed-enhancements.js?v=20261024-14" defer></script>
+<script src="assets/feed-enhancements.js?v=20261024-18" defer></script>
 <script src="assets/pwa.js" defer></script>
 </body>
 </html>
