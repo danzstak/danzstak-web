@@ -395,6 +395,21 @@ function renderWorkspace(name) {
       document.documentElement.classList.toggle("dark-mode", darkCheckbox.checked);
       localStorage.setItem("danzstak_dark_mode", darkCheckbox.checked ? "1" : "0");
     });
+    const language = document.createElement("select");
+    language.setAttribute("aria-label", "DanzStak language");
+    for (const [value, label] of [["en", "English"]]) {
+      const option = document.createElement("option"); option.value = value; option.textContent = label; language.appendChild(option);
+    }
+    language.value = localStorage.getItem("danzstak_language") || "en";
+    language.addEventListener("change", () => { localStorage.setItem("danzstak_language", language.value); document.documentElement.lang = language.value; });
+    const appSettings = document.createElement("button");
+    appSettings.type = "button";
+    appSettings.className = "secondary";
+    appSettings.textContent = "Manage";
+    appSettings.addEventListener("click", () => {
+      window.dispatchEvent(new CustomEvent("danzstak:show-install"));
+      featureText.textContent = "Install DanzStak from the prompt. Notification and camera permissions remain under your browser or device settings.";
+    });
     fetch("https://api.danzstak.com/settings/presence", { credentials: "include", cache: "no-store" })
       .then(response => response.ok ? response.json() : null)
       .then(data => { if (data) presenceCheckbox.checked = data.onlineVisible !== false; });
@@ -414,8 +429,8 @@ function renderWorkspace(name) {
       settingRow("👤", "Account settings", notifications),
       settingRow("🔒", "Privacy center", presence),
       settingRow("🌙", "Dark mode", darkCheckbox),
-      settingRow("🌐", "Language", Object.assign(document.createElement("button"), { type: "button", className: "secondary", textContent: "English · Edit" })),
-      settingRow("📱", "App and device settings", Object.assign(document.createElement("button"), { type: "button", className: "secondary", textContent: "Edit" })),
+      settingRow("🌐", "Language", language),
+      settingRow("📱", "App and device settings", appSettings),
       button
     );
   }

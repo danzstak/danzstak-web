@@ -57,5 +57,12 @@ window.addEventListener("appinstalled", () => {
   installButton.hidden = true;
 });
 
+window.addEventListener("danzstak:show-install", () => {
+  if (standalone) return;
+  installButton.hidden = false;
+  installButton.classList.remove("install-app-button--leaving");
+  clearTimeout(installDismissTimer);
+});
+
 const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 if (!standalone && signedInPage) setTimeout(showInstallButtonTemporarily, 0);
