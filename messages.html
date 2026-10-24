@@ -10,7 +10,7 @@
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261024-5">
-<link rel="stylesheet" href="assets/chat.css?v=6">
+<link rel="stylesheet" href="assets/chat.css?v=7">
 <title>Messages | DanzStak</title>
 </head>
 <body>
@@ -37,11 +37,11 @@
   </section>
   <section class="conversation" aria-label="Conversation">
     <header id="conversationHeader" class="conversation-header" hidden><span id="conversationAvatar" class="conversation-avatar" aria-hidden="true">D</span><strong id="conversationName">Select a chat</strong><div class="conversation-header-actions"><button id="headerPhone" type="button" title="Phone call" aria-label="Phone call">☎</button><button id="headerVideo" type="button" title="Video call" aria-label="Video call">▣</button><button id="closeConversation" type="button" title="Close chat" aria-label="Close chat">×</button></div></header>
-    <div class="video-grid">
+    <div id="videoGrid" class="video-grid" hidden>
       <figure><video id="remoteVideo" autoplay playsinline></video><figcaption id="remoteLabel">Waiting for contact</figcaption></figure>
       <figure class="local-video"><video id="localVideo" autoplay muted playsinline></video><figcaption>You</figcaption></figure>
     </div>
-    <div class="media-controls" aria-label="Call controls">
+    <div id="mediaControls" class="media-controls" aria-label="Call controls" hidden>
       <button id="toggleMic" type="button">Mute</button>
       <button id="toggleCamera" type="button">Camera off</button>
       <button id="hangUp" type="button" class="danger hangup-button" aria-label="Hang up the current call">📞 Hang Up</button>
@@ -55,7 +55,7 @@
     </form>
   </section>
 </main>
-<script src="assets/chat.js?v=7" defer></script>
+<script src="assets/chat.js?v=8" defer></script>
 <script src="assets/direct-messages.js?v=5" defer></script>
 <script src="assets/session-activity.js?v=1" defer></script>
 <script src="assets/logout.js?v=1" defer></script>
