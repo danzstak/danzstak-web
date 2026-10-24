@@ -11,10 +11,37 @@ const textButton = document.getElementById("startText");
 const callStatus = document.getElementById("callStatus");
 const conversationUsers = document.getElementById("conversationUsers");
 const deleteChat = document.getElementById("deleteChat");
+const chatSearch = document.getElementById("chatSearch");
+const conversationHeader = document.getElementById("conversationHeader");
+const conversationName = document.getElementById("conversationName");
+const conversationAvatar = document.getElementById("conversationAvatar");
+const emojiButton = document.getElementById("emojiButton");
+const emojiPalette = document.getElementById("emojiPalette");
 let directContact = "";
 let currentEmail = "";
 let loadingMessages = false;
 const shownMessages = new Set();
+let cachedConversations = [];
+let reactionTimer = null;
+let activeFilter = "all";
+
+function openMessageReactions(item, x, y) {
+  document.querySelector(".message-reaction-palette")?.remove();
+  const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
+  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.addEventListener("click", () => { let badge = item.querySelector(".message-reaction"); if (!badge) { badge = document.createElement("span"); badge.className = "message-reaction"; item.appendChild(badge); } badge.textContent = emoji; palette.remove(); }); palette.appendChild(button); }
+  document.body.appendChild(palette);
+}
+
+function openConversation(conversation) {
+  contactInput.value = conversation.contactEmail;
+  directContact = "";
+  conversationHeader.hidden = false;
+  conversationName.textContent = conversation.name || conversation.contactEmail;
+  conversationAvatar.textContent = (conversation.name || conversation.contactEmail).charAt(0).toUpperCase();
+  if (conversation.picture) { conversationAvatar.style.backgroundImage = `url("${conversation.picture}")`; conversationAvatar.textContent = ""; }
+  else conversationAvatar.style.backgroundImage = "";
+  loadDirectMessages(true);
+}
 
 function directMessageItem(message) {
   const mine = message.senderEmail === currentEmail;
@@ -25,6 +52,9 @@ function directMessageItem(message) {
   meta.className = "message-meta";
   meta.textContent = (mine ? "You" : message.senderEmail) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   item.appendChild(meta);
+  item.addEventListener("pointerdown", event => { reactionTimer = setTimeout(() => openMessageReactions(item, event.clientX, event.clientY), 550); });
+  for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
+  item.addEventListener("contextmenu", event => { event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, event.clientX, event.clientY); });
   return item;
 }
 
@@ -55,15 +85,22 @@ async function loadConversations() {
     const response = await fetch(directApi + "/conversations", { credentials: "include", cache: "no-store" });
     if (!response.ok) return;
     const data = await response.json();
+    cachedConversations = data.conversations || [];
     conversationUsers.replaceChildren();
-    if (!(data.conversations || []).length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = "No saved chats yet."; conversationUsers.appendChild(empty); return; }
-    for (const conversation of data.conversations) {
+    const query = chatSearch?.value.trim().toLowerCase() || "";
+    const visible = cachedConversations.filter(item => activeFilter === "all" && (!query || (item.name + " " + item.contactEmail + " " + item.preview).toLowerCase().includes(query)));
+    if (!visible.length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = query ? "No chats match your search." : "No saved chats yet."; conversationUsers.appendChild(empty); return; }
+    for (const conversation of visible) {
       const row = document.createElement("div"); row.className = "conversation-row";
       const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
-      const name = document.createElement("strong"); name.textContent = conversation.contactEmail;
+      const avatar = conversation.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "conversation-list-avatar";
+      if (conversation.picture) { avatar.src = conversation.picture; avatar.alt = ""; } else { avatar.textContent = (conversation.name || conversation.contactEmail).charAt(0).toUpperCase(); }
+      const copy = document.createElement("span"); copy.className = "conversation-copy";
+      const name = document.createElement("strong"); name.textContent = conversation.name || conversation.contactEmail;
       const preview = document.createElement("small"); preview.textContent = conversation.preview || "Open chat";
-      button.append(name, preview);
-      button.addEventListener("click", () => { contactInput.value = conversation.contactEmail; directContact = ""; loadDirectMessages(true); });
+      const time = document.createElement("time"); time.textContent = conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
+      copy.append(name, preview); button.append(avatar, copy, time);
+      button.addEventListener("click", () => openConversation(conversation));
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [label, targetId] of [["☎", "startPhone"], ["▣", "startVideo"]]) {
         const call = document.createElement("button"); call.type = "button"; call.className = "conversation-call"; call.textContent = label; call.title = targetId === "startPhone" ? "Phone call" : "Video call";
@@ -72,8 +109,18 @@ async function loadConversations() {
       }
       row.append(button, calls); conversationUsers.appendChild(row);
     }
+    const requested = contactInput.value.trim().toLowerCase();
+    if (requested && conversationHeader.hidden) openConversation(cachedConversations.find(item => item.contactEmail === requested) || { contactEmail: requested, name: requested.split("@")[0], picture: "" });
   } catch { /* Retry on the next refresh. */ }
 }
+
+chatSearch?.addEventListener("input", loadConversations);
+document.querySelectorAll("[data-chat-filter]").forEach(button => button.addEventListener("click", () => { document.querySelectorAll("[data-chat-filter]").forEach(item => item.classList.toggle("active", item === button)); activeFilter = button.dataset.chatFilter; loadConversations(); }));
+document.getElementById("headerPhone")?.addEventListener("click", () => document.getElementById("startPhone")?.click());
+document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
+document.getElementById("closeConversation")?.addEventListener("click", () => { conversationHeader.hidden = true; contactInput.value = ""; directContact = ""; messageInput.disabled = true; sendButton.disabled = true; });
+for (const emoji of ["😀","😂","😍","❤️","👍","🔥","🎉","😢","😮","🙏","👏","🎵"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.addEventListener("click", () => { messageInput.value += emoji; emojiPalette.hidden = true; messageInput.focus(); }); emojiPalette.appendChild(button); }
+emojiButton?.addEventListener("click", () => { emojiPalette.hidden = !emojiPalette.hidden; });
 
 onlineUsers?.addEventListener("click", event => {
   if (!event.target.closest("button")) return;

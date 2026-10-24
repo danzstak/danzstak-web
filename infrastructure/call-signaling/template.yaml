@@ -1,5 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Authenticated DanzStak WebRTC call signaling
+Description: Authenticated DanzStak messaging and WebRTC signaling — encrypted persistent chats with friend or shared-group authorization
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@3
 Parameters:
   ApiId:
     Type: String
@@ -99,6 +102,15 @@ Resources:
         SSEEnabled: true
   MessagesTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: encrypted durable message history; DynamoDB supports ordered conversation reads without managing servers
+        must:
+          - conversation access requires accepted friendship or shared group
+          - retain stored messages across stack replacement or deletion
+        mutable: change-with-constraints
     Properties:
       TableName: DanzStak-Messages
       BillingMode: PAY_PER_REQUEST
@@ -116,6 +128,14 @@ Resources:
         SSEEnabled: true
   ConversationsTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: per-user inbox index for fast chat-list rendering with latest preview and timestamp
+        must:
+          - retain inbox index across stack replacement or deletion
+        mutable: change-with-constraints
     Properties:
       TableName: DanzStak-Conversations
       BillingMode: PAY_PER_REQUEST
@@ -242,7 +262,7 @@ Resources:
           const conversationId=(a,b)=>createHash('sha256').update([a,b].sort().join('|')).digest('hex');
           async function sendMessage(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const recipient=String(body.recipientEmail||'').trim().toLowerCase(),content=String(body.content||'').trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)||recipient===user.email)return json(400,{error:'Choose another user'});if(!content||content.length>2000)return json(400,{error:'Message must be between 1 and 2000 characters'});if(!(await canContact(user.email,recipient)))return json(403,{error:'Only friends or members of the same group can message'});const createdAt=new Date().toISOString(),messageId=`${String(Date.now()).padStart(13,'0')}#${randomUUID()}`,preview=content.slice(0,120);await Promise.all([db.send(new PutItemCommand({TableName:process.env.MESSAGES_TABLE,Item:{conversationId:{S:conversationId(user.email,recipient)},messageId:{S:messageId},senderEmail:{S:user.email},recipientEmail:{S:recipient},content:{S:content},createdAt:{S:createdAt}}})),db.send(new PutItemCommand({TableName:process.env.CONVERSATIONS_TABLE,Item:{userEmail:{S:user.email},contactEmail:{S:recipient},preview:{S:preview},updatedAt:{S:createdAt}}})),db.send(new PutItemCommand({TableName:process.env.CONVERSATIONS_TABLE,Item:{userEmail:{S:recipient},contactEmail:{S:user.email},preview:{S:preview},updatedAt:{S:createdAt}}}))]);return json(201,{message:{messageId,senderEmail:user.email,recipientEmail:recipient,content,createdAt}});}
           async function getMessages(event,user){const contact=String(event.queryStringParameters?.contact||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)||contact===user.email)return json(400,{error:'Valid contact required'});if(!(await canContact(user.email,contact)))return json(403,{error:'Only friends or members of the same group can message'});const out=await db.send(new QueryCommand({TableName:process.env.MESSAGES_TABLE,KeyConditionExpression:'conversationId = :c',ExpressionAttributeValues:{':c':{S:conversationId(user.email,contact)}},Limit:50,ScanIndexForward:false,ConsistentRead:true}));const messages=(out.Items||[]).map(x=>({messageId:x.messageId.S,senderEmail:x.senderEmail.S,recipientEmail:x.recipientEmail.S,content:x.content.S,createdAt:x.createdAt.S})).reverse();return json(200,{messages});}
-          async function getConversations(user){const out=await db.send(new QueryCommand({TableName:process.env.CONVERSATIONS_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:user.email}},Limit:100,ConsistentRead:true}));return json(200,{conversations:(out.Items||[]).map(x=>({contactEmail:x.contactEmail.S,preview:x.preview?.S||'',updatedAt:x.updatedAt?.S||''})).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt))});}
+          async function getConversations(user){const out=await db.send(new QueryCommand({TableName:process.env.CONVERSATIONS_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:user.email}},Limit:100,ConsistentRead:true}));const conversations=await Promise.all((out.Items||[]).map(async x=>{const contactEmail=x.contactEmail.S,users=await cognito.send(new ListUsersCommand({UserPoolId:process.env.USER_POOL_ID,Filter:`email = "${contactEmail.replace(/["\\]/g,'')}"`,Limit:1})),account=users.Users?.[0];return {contactEmail,name:attr(account,'name')||attr(account,'preferred_username')||contactEmail.split('@')[0],picture:attr(account,'picture'),preview:x.preview?.S||'',updatedAt:x.updatedAt?.S||''};}));return json(200,{conversations:conversations.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt))});}
           async function deleteConversation(event,user){const contact=String(event.queryStringParameters?.contact||'').trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)||contact===user.email)return json(400,{error:'Valid contact required'});const id=conversationId(user.email,contact),out=await db.send(new QueryCommand({TableName:process.env.MESSAGES_TABLE,KeyConditionExpression:'conversationId = :c',ExpressionAttributeValues:{':c':{S:id}},ProjectionExpression:'conversationId,messageId',Limit:100,ConsistentRead:true}));await Promise.all([...(out.Items||[]).map(x=>db.send(new DeleteItemCommand({TableName:process.env.MESSAGES_TABLE,Key:{conversationId:x.conversationId,messageId:x.messageId}}))),db.send(new DeleteItemCommand({TableName:process.env.CONVERSATIONS_TABLE,Key:{userEmail:{S:user.email},contactEmail:{S:contact}}})),db.send(new DeleteItemCommand({TableName:process.env.CONVERSATIONS_TABLE,Key:{userEmail:{S:contact},contactEmail:{S:user.email}}}))]);return json(200,{deleted:true});}
           async function createStory(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const content=String(body.content||'').trim();if(!content||content.length>5000)return json(400,{error:'Story content required'});const createdAt=new Date().toISOString(),storyId=randomUUID();await db.send(new PutItemCommand({TableName:process.env.STORIES_TABLE,Item:{storyId:{S:storyId},userEmail:{S:user.email},content:{S:content},createdAt:{S:createdAt},expiresAt:{N:String(now()+86400)}}}));return json(201,{storyId,content,createdAt,expiresAt:now()+86400});}
           async function getStories(){const out=await db.send(new ScanCommand({TableName:process.env.STORIES_TABLE,FilterExpression:'expiresAt > :n',ExpressionAttributeValues:{':n':{N:String(now())}},Limit:50}));const stories=(out.Items||[]).map(x=>({storyId:x.storyId.S,userEmail:x.userEmail.S,content:x.content.S,createdAt:x.createdAt.S})).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));return json(200,{stories});}

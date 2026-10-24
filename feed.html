@@ -247,7 +247,7 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-15">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-16">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261024-5">
 </head>
 
@@ -318,7 +318,7 @@ textarea {
             <option value="private">🔒 Only me</option>
           </select>
         </label>
-        <label class="story-share-control"><input id="shareToStory" type="checkbox" checked><span>Share to Story (24h)</span></label>
+        <label class="story-share-control" title="Add a photo or video to share this post to Story"><input id="shareToStory" type="checkbox" disabled><span>Story (photo or video only, 24h)</span></label>
 
         <button class="primary" id="publishBtn">
           Post
@@ -336,11 +336,6 @@ textarea {
   </main>
 
   <aside class="right">
-
-    <div class="panel">
-      <h3>Friends</h3>
-      <div id="feedFriends"><p class="muted">Loading friends…</p></div>
-    </div>
 
     <div class="panel">
       <h3>What's Happening</h3>
@@ -634,7 +629,7 @@ publishBtn.addEventListener("click", async () => {
 
     savedPost = await response.json();
 
-    if (shareToStory.checked) {
+    if (shareToStory.checked && shareToStory.dataset.hasMedia === "true") {
       const storyResponse = await fetch("https://api.danzstak.com/stories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -765,13 +760,11 @@ document.querySelectorAll("[data-feature]").forEach(control => {
 loadPosts();
 loadStories();
 loadOnlineUsers();
-loadFriends();
 setInterval(loadOnlineUsers, 30000);
-setInterval(loadFriends, 30000);
 
 </script>
 
-<script src="assets/feed-enhancements.js?v=20261024-28" defer></script>
+<script src="assets/feed-enhancements.js?v=20261024-29" defer></script>
 <script src="assets/session-activity.js?v=1" defer></script>
 <script src="assets/logout.js?v=1" defer></script>
 <script src="assets/pwa.js" defer></script>

@@ -224,7 +224,55 @@ function renderWorkspace(name) {
     return;
   }
 
-  if (["Friends", "Photos", "Videos"].includes(name)) {
+  if (name === "Friends") {
+    featureText.textContent = "All accepted friends appear here, including friends who are offline.";
+    const list = document.createElement("div");
+    list.className = "friends-workspace-list";
+    const loading = document.createElement("p");
+    loading.className = "muted";
+    loading.textContent = "Loading friends…";
+    list.appendChild(loading);
+    workspace.appendChild(list);
+    Promise.all([
+      fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store" }),
+      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" })
+    ]).then(async ([friendsResponse, directoryResponse]) => {
+      if (!friendsResponse.ok) throw new Error("Friends could not be loaded");
+      const friends = (await friendsResponse.json()).friends || [];
+      const online = new Set(directoryResponse.ok ? ((await directoryResponse.json()).users || []).map(user => user.email) : []);
+      list.replaceChildren();
+      if (!friends.length) {
+        const empty = document.createElement("p");
+        empty.className = "muted";
+        empty.textContent = "No accepted friends yet.";
+        list.appendChild(empty);
+      }
+      for (const friend of friends) {
+        const link = document.createElement("a");
+        link.className = "friend-card friend-card-large";
+        link.href = "profile.html?user=" + encodeURIComponent(friend.email);
+        const avatar = friend.picture ? document.createElement("img") : document.createElement("span");
+        avatar.className = "friend-avatar";
+        if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+        else { avatar.textContent = (friend.name || friend.email).charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+        const details = document.createElement("span");
+        details.className = "friend-details";
+        const displayName = document.createElement("strong");
+        displayName.textContent = friend.name || friend.email;
+        const status = document.createElement("small");
+        status.textContent = online.has(friend.email) ? "Online" : "Offline";
+        details.append(displayName, status);
+        const presence = document.createElement("span");
+        presence.className = online.has(friend.email) ? "friend-presence online" : "friend-presence";
+        presence.setAttribute("aria-label", status.textContent);
+        link.append(avatar, details, presence);
+        list.appendChild(link);
+      }
+    }).catch(error => { loading.textContent = error.message; });
+    return;
+  }
+
+  if (["Photos", "Videos"].includes(name)) {
     const message = document.createElement("p");
     message.className = "muted";
     message.textContent = saved[name]?.length
@@ -408,6 +456,13 @@ if (composerActions && publishButton) {
       }
       if (selectedMedia?.url) URL.revokeObjectURL(selectedMedia.url);
       selectedMedia = { file, kind, url: URL.createObjectURL(file) };
+      const storyToggle = document.getElementById("shareToStory");
+      if (storyToggle) {
+        storyToggle.disabled = false;
+        storyToggle.checked = true;
+        storyToggle.dataset.hasMedia = "true";
+        storyToggle.closest("label")?.removeAttribute("title");
+      }
       const media = document.createElement(kind === "image" ? "img" : "video");
       media.src = selectedMedia.url;
       media.style.maxWidth = "100%";
@@ -484,6 +539,12 @@ if (composerActions && publishButton) {
       if (badge) element.insertAdjacentElement("afterend", badge);
       preview.replaceChildren();
       selectedMedia = null;
+      const storyToggle = document.getElementById("shareToStory");
+      if (storyToggle) {
+        storyToggle.checked = false;
+        storyToggle.disabled = true;
+        storyToggle.dataset.hasMedia = "false";
+      }
       observer.disconnect();
     });
     observer.observe(document.getElementById("feed"), { childList: true });
@@ -564,6 +625,12 @@ if (composerActions && publishButton) {
       document.getElementById("feed").prepend(post);
       preview.replaceChildren();
       selectedMedia = null;
+      const storyToggle = document.getElementById("shareToStory");
+      if (storyToggle) {
+        storyToggle.checked = false;
+        storyToggle.disabled = true;
+        storyToggle.dataset.hasMedia = "false";
+      }
       composer.value = "";
       checkbox.checked = false;
       document.getElementById("feedStatus").textContent = "Saved in local development mode.";
@@ -603,19 +670,38 @@ function addPostDeleteButton(post) {
   const menu = document.createElement("div");
   menu.className = "post-options-menu";
   menu.hidden = true;
+  const handle = document.createElement("div");
+  handle.className = "post-options-handle";
+  handle.setAttribute("aria-hidden", "true");
+  menu.appendChild(handle);
   const history = [];
+
+  const optionIcons = {
+    "Pin post": "⌖", "Save post": "♡", "View edit history": "↶", "Edit post": "✎",
+    "Who can comment?": "◯", "Edit privacy": "◉", "Move to archive": "▰",
+    "Move to trash": "♜", "Turn off notifications": "♧", "Copy link": "⧉"
+  };
 
   function option(title, description, handler) {
     const button = document.createElement("button");
     button.type = "button";
+    button.className = "post-option-row";
+    if (title === "Move to trash") button.classList.add("post-option-danger");
+    const icon = document.createElement("span");
+    icon.className = "post-option-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = optionIcons[title] || "•";
+    const copy = document.createElement("span");
+    copy.className = "post-option-copy";
     const strong = document.createElement("strong");
     strong.textContent = title;
-    button.appendChild(strong);
+    copy.appendChild(strong);
     if (description) {
       const small = document.createElement("small");
       small.textContent = description;
-      button.appendChild(small);
+      copy.appendChild(small);
     }
+    button.append(icon, copy);
     button.addEventListener("click", async () => { await handler(button); menu.hidden = true; toggle.setAttribute("aria-expanded", "false"); });
     menu.appendChild(button);
   }
