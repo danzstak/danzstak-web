@@ -228,13 +228,13 @@ messageForm?.addEventListener("submit", async event => {
 
 deleteChat?.addEventListener("click", async () => {
   const contact = contactInput.value.trim().toLowerCase();
-  if (!contact || !confirm("Delete this saved chat? This removes the message history for both users.")) return;
+  if (!contact || !confirm("Delete this chat from your account? The other person will keep their message history.")) return;
   deleteChat.disabled = true;
   try {
     const response = await fetch(directApi + "/messages/delete?contact=" + encodeURIComponent(contact), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
     if (!response.ok) throw new Error("Chat could not be deleted");
     shownMessages.clear(); messageList.replaceChildren(); contactInput.value = ""; directContact = ""; messageInput.disabled = true; sendButton.disabled = true;
-    callStatus.textContent = "Chat deleted.";
+    callStatus.textContent = "Chat deleted from your account.";
     await loadConversations();
   } catch (error) { callStatus.textContent = error.message; }
   finally { deleteChat.disabled = false; }
