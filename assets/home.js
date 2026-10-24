@@ -50,7 +50,7 @@ async function checkSession() {
 
       if (data.authenticated === true) {
         sessionStorage.removeItem("danzstak_install_prompt_shown");
-        window.location.replace("feed.html");
+        showSession(true, "Signed in. Open Feed when ready.");
         return;
       }
     }

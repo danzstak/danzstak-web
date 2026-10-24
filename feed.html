@@ -213,6 +213,10 @@ textarea {
 .story:nth-child(3) { background: linear-gradient(160deg,#111827,#1769e0); }
 .story::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent,#0008); }
 .story span { position: relative; z-index: 1; }
+.story video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.story-create { min-height: 104px; align-self: start; }
+.post-media { display:block; width:100%; max-height:560px; object-fit:contain; border-radius:10px; background:#0c111b; }
+.message-drawer{position:fixed;right:18px;bottom:18px;width:min(430px,calc(100vw - 24px));height:min(690px,calc(100vh - 84px));z-index:10000;background:#fff;border:1px solid #dce3ec;border-radius:18px;box-shadow:0 18px 60px #10182840;overflow:hidden}.message-drawer[hidden]{display:none}.message-drawer-bar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid #e5e9ef;font-weight:850}.message-drawer-close{min-width:34px;min-height:34px;padding:4px;border:0;background:transparent;font-size:1.35rem}.message-drawer iframe{display:block;width:100%;height:calc(100% - 46px);border:0;background:#f3f5f8}@media(max-width:560px){.message-drawer{right:6px;bottom:6px;width:calc(100vw - 12px);height:min(72vh,700px);border-radius:16px}}
 .composer-title { display: flex; align-items: center; gap: 12px; }
 .composer-avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #1769e0; color: white; font-weight: 900; }
 
@@ -298,7 +302,7 @@ textarea {
 
     <div id="newsFeedView">
     <section id="storiesRail" class="stories" aria-label="Stories">
-      <div class="story"><span>Your Story</span></div>
+      <button type="button" class="story story-create"><span>Your Story</span></button>
       <div id="storiesLoading" class="story"><span>Loading Stories</span></div>
     </section>
     <section class="panel">
@@ -474,7 +478,7 @@ const featureCopy = {
 };
 
 // CREATE THE VISUAL DISPLAY OF A POST
-function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public") {
+function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "") {
 
   const article = document.createElement("article");
   article.className = "post";
@@ -524,7 +528,16 @@ function createPostElement(content, author = "DanzStak Member", createdAt = null
     '<input aria-label="Write a comment" placeholder="Write a comment and press Enter">' +
     '<div class="commentList"></div>';
 
-  article.append(header, body, actions, comments);
+  article.append(header, body);
+  if (mediaUrl && ["image", "video"].includes(mediaType)) {
+    const media = document.createElement(mediaType === "image" ? "img" : "video");
+    media.src = mediaUrl;
+    media.className = "post-media";
+    media.loading = "lazy";
+    if (mediaType === "video") { media.controls = true; media.playsInline = true; }
+    article.appendChild(media);
+  }
+  article.append(actions, comments);
 
   return article;
 }
@@ -542,6 +555,18 @@ async function loadStories() {
       item.className = "story";
       item.dataset.storyId = story.storyId;
       item.title = story.content;
+      if (story.mediaType === "image" && story.mediaUrl) {
+        item.style.backgroundImage = `linear-gradient(transparent,#0009),url("${story.mediaUrl}")`;
+        item.style.backgroundSize = "cover";
+        item.style.backgroundPosition = "center";
+      } else if (story.mediaType === "video" && story.mediaUrl) {
+        const video = document.createElement("video");
+        video.src = story.mediaUrl;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = "metadata";
+        item.appendChild(video);
+      }
       const label = document.createElement("span");
       label.textContent = story.userEmail.split("@")[0] + ": " + story.content.slice(0, 55);
       item.appendChild(label);
@@ -549,6 +574,7 @@ async function loadStories() {
       storiesRail.appendChild(item);
     }
   } catch { /* Feed still works if stories are temporarily unavailable. */ }
+  finally { document.getElementById("storiesLoading")?.remove(); }
 }
 
 // LOAD SAVED POSTS FROM AWS DYNAMODB
@@ -598,8 +624,25 @@ async function loadPosts() {
         post.content,
         "DanzStak Member",
         post.createdAt,
-        post.audience
+        post.audience,
+        post.mediaUrl,
+        post.mediaType
       );
+
+      if (!post.mediaUrl && post.mediaKey && post.mediaType) {
+        fetch("https://api.danzstak.com/stories", {
+          method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+          body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: post.mediaType })
+        }).then(response => response.ok ? response.json() : null).then(ticket => {
+          if (!ticket?.mediaUrl || !article.isConnected) return;
+          const media = document.createElement(post.mediaType === "image" ? "img" : "video");
+          media.src = ticket.mediaUrl;
+          media.className = "post-media";
+          media.loading = "lazy";
+          if (post.mediaType === "video") { media.controls = true; media.playsInline = true; }
+          article.querySelector(".post-content")?.insertAdjacentElement("afterend", media);
+        });
+      }
 
       feed.appendChild(article);
 
@@ -634,7 +677,8 @@ publishBtn.addEventListener("click", async () => {
     ? postAudience.value
     : "public";
 
-  if (!content) return;
+  const selectedMedia = window.danzstakSelectedMedia;
+  if (!content && !selectedMedia) return;
   if (content.length > 5000) {
     alert("Posts must be 5000 characters or fewer.");
     return;
@@ -646,13 +690,29 @@ publishBtn.addEventListener("click", async () => {
 
   try {
 
+    let mediaKey = "";
+    let mediaType = "";
+    let mediaUrl = "";
+    if (selectedMedia) {
+      const ticketResponse = await fetch("https://api.danzstak.com/stories", {
+        method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+        body: JSON.stringify({ contentType: selectedMedia.file.type })
+      });
+      if (!ticketResponse.ok) throw new Error("Media upload could not start");
+      const ticket = await ticketResponse.json();
+      const uploadResponse = await fetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": selectedMedia.file.type }, body: selectedMedia.file });
+      if (!uploadResponse.ok) throw new Error("Media upload failed");
+      ({ mediaKey, mediaType } = ticket);
+      mediaUrl = selectedMedia.url;
+    }
+
     const response = await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       credentials: "include",
-      body: JSON.stringify({ content, audience })
+      body: JSON.stringify({ content: content || "Shared media", audience, mediaKey, mediaType })
     });
 
     if (response.status === 401) {
@@ -669,7 +729,7 @@ publishBtn.addEventListener("click", async () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content, mediaKey, mediaType })
       });
       if (!storyResponse.ok) alert("Your post was saved, but the story could not be published.");
       else await loadStories();
@@ -683,7 +743,9 @@ publishBtn.addEventListener("click", async () => {
         savedPost.content,
         "You",
         savedPost.createdAt,
-        savedPost.audience || audience
+        savedPost.audience || audience,
+        mediaUrl,
+        mediaType
       )
     );
 
@@ -775,7 +837,17 @@ document.querySelector('[data-route="home"]').addEventListener("click", () => {
   window.location.assign("./");
 });
 document.getElementById("messagesNav").addEventListener("click", () => {
-  window.location.assign("messages.html");
+  let drawer = document.getElementById("messageDrawer");
+  if (!drawer) {
+    drawer = document.createElement("section");
+    drawer.id = "messageDrawer";
+    drawer.className = "message-drawer";
+    drawer.setAttribute("aria-label", "Messages");
+    drawer.innerHTML = '<div class="message-drawer-bar"><span>Chats</span><button type="button" class="message-drawer-close" aria-label="Close messages">×</button></div><iframe title="DanzStak messages" src="messages.html?embedded=1"></iframe>';
+    drawer.querySelector(".message-drawer-close").addEventListener("click", () => { drawer.hidden = true; });
+    document.body.appendChild(drawer);
+  }
+  drawer.hidden = false;
 });
 
 document.querySelectorAll("[data-feature]").forEach(control => {
@@ -800,7 +872,7 @@ setInterval(loadOnlineUsers, 30000);
 
 </script>
 
-<script src="assets/feed-enhancements.js?v=20261024-30" defer></script>
+<script src="assets/feed-enhancements.js?v=20261024-31" defer></script>
 <script src="assets/session-activity.js?v=1" defer></script>
 <script src="assets/incoming-calls.js?v=1" defer></script>
 <script src="assets/logout.js?v=1" defer></script>

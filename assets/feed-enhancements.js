@@ -320,6 +320,16 @@ function renderWorkspace(name) {
   }
 
   if (name === "Settings") {
+    workspace.classList.add("settings-workspace");
+    const heading = document.createElement("h3");
+    heading.className = "settings-heading";
+    heading.textContent = "⚙ Settings and privacy";
+    const settingRow = (icon, title, control) => {
+      const row = document.createElement("div"); row.className = "settings-row";
+      const symbol = document.createElement("span"); symbol.className = "settings-icon"; symbol.textContent = icon;
+      const label = document.createElement("strong"); label.textContent = title;
+      row.append(symbol, label, control); return row;
+    };
     const notifications = document.createElement("label");
     notifications.style.display = "flex";
     notifications.style.gap = "10px";
@@ -335,6 +345,13 @@ function renderWorkspace(name) {
     presenceCheckbox.type = "checkbox";
     presenceCheckbox.checked = true;
     presence.append(presenceCheckbox, document.createTextNode("Show me online to other users"));
+    const darkCheckbox = document.createElement("input");
+    darkCheckbox.type = "checkbox";
+    darkCheckbox.checked = document.documentElement.classList.contains("dark-mode");
+    darkCheckbox.addEventListener("change", () => {
+      document.documentElement.classList.toggle("dark-mode", darkCheckbox.checked);
+      localStorage.setItem("danzstak_dark_mode", darkCheckbox.checked ? "1" : "0");
+    });
     fetch("https://api.danzstak.com/settings/presence", { credentials: "include", cache: "no-store" })
       .then(response => response.ok ? response.json() : null)
       .then(data => { if (data) presenceCheckbox.checked = data.onlineVisible !== false; });
@@ -349,7 +366,15 @@ function renderWorkspace(name) {
       featureText.textContent = response.ok ? "Settings saved." : "Online visibility could not be saved.";
       if (typeof loadOnlineUsers === "function") loadOnlineUsers();
     });
-    workspace.append(notifications, presence, document.createElement("br"), button);
+    workspace.append(
+      heading,
+      settingRow("👤", "Account settings", notifications),
+      settingRow("🔒", "Privacy center", presence),
+      settingRow("🌙", "Dark mode", darkCheckbox),
+      settingRow("🌐", "Language", Object.assign(document.createElement("button"), { type: "button", className: "secondary", textContent: "English · Edit" })),
+      settingRow("📱", "App and device settings", Object.assign(document.createElement("button"), { type: "button", className: "secondary", textContent: "Edit" })),
+      button
+    );
   }
 }
 
@@ -456,6 +481,7 @@ if (composerActions && publishButton) {
       }
       if (selectedMedia?.url) URL.revokeObjectURL(selectedMedia.url);
       selectedMedia = { file, kind, url: URL.createObjectURL(file) };
+      window.danzstakSelectedMedia = selectedMedia;
       const storyToggle = document.getElementById("shareToStory");
       if (storyToggle) {
         storyToggle.disabled = false;
@@ -522,6 +548,13 @@ if (composerActions && publishButton) {
     const observer = new MutationObserver(records => {
       const post = records.flatMap(record => [...record.addedNodes]).find(node => node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post"));
       if (!post) return;
+      if (post.querySelector(".post-media")) {
+        preview.replaceChildren();
+        selectedMedia = null;
+        window.danzstakSelectedMedia = null;
+        observer.disconnect();
+        return;
+      }
       const element = document.createElement(media.kind === "image" ? "img" : "video");
       element.src = media.url;
       element.style.width = "100%";
@@ -539,6 +572,7 @@ if (composerActions && publishButton) {
       if (badge) element.insertAdjacentElement("afterend", badge);
       preview.replaceChildren();
       selectedMedia = null;
+      window.danzstakSelectedMedia = null;
       const storyToggle = document.getElementById("shareToStory");
       if (storyToggle) {
         storyToggle.checked = false;
@@ -625,6 +659,7 @@ if (composerActions && publishButton) {
       document.getElementById("feed").prepend(post);
       preview.replaceChildren();
       selectedMedia = null;
+      window.danzstakSelectedMedia = null;
       const storyToggle = document.getElementById("shareToStory");
       if (storyToggle) {
         storyToggle.checked = false;
