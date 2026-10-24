@@ -46,4 +46,6 @@ button:active,.button:active{background:#d8dade;border-color:#c9cdd3;box-shadow:
 .post-actions{justify-content:center;gap:6px!important}
 .post-actions button{flex:0 0 auto!important;min-width:78px;min-height:32px;padding:5px 9px}
 .post-menu-toggle{width:32px;height:32px;min-height:32px;font-size:16px}
+.reel-delete{border-color:#d7dce2!important;background:#f0f2f5!important;box-shadow:none!important;color:#b42318!important;text-shadow:none!important}
+.reel-import-form .primary{border-color:#0866ff!important;background:#0866ff!important;box-shadow:0 1px 2px rgba(0,0,0,.18)!important;color:#fff!important}
 @media(max-width:480px){button,.button,.primary,.secondary{min-height:34px;padding:6px 10px}#publishBtn{height:34px;min-height:34px}.post-actions button{min-width:76px;min-height:34px}}
