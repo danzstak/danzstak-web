@@ -4,6 +4,25 @@ const featurePanel = document.getElementById("featureView");
 const featureHeading = document.getElementById("featureTitle");
 const featureText = document.getElementById("featureDescription");
 const localKey = "danzstak_dev_sections";
+const notificationControls = [...document.querySelectorAll('[data-feature="Notifications"]')];
+
+function updateNotificationCount(count) {
+  const safeCount = Math.max(0, Number(count) || 0);
+  for (const control of notificationControls) {
+    if (!control.dataset.baseLabel) control.dataset.baseLabel = control.textContent.trim();
+    control.textContent = safeCount ? `${control.dataset.baseLabel} (${safeCount})` : control.dataset.baseLabel;
+    control.setAttribute("aria-label", safeCount ? `${control.dataset.baseLabel}, ${safeCount} new` : control.dataset.baseLabel);
+  }
+}
+
+async function refreshNotificationCount() {
+  try {
+    const response = await fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    updateNotificationCount((data.notifications || []).length);
+  } catch { /* The next scheduled refresh will retry. */ }
+}
 
 function readSections() {
   try { return JSON.parse(localStorage.getItem(localKey) || "{}"); }
@@ -188,6 +207,7 @@ function renderWorkspace(name) {
       .then(async response => {
         if (!response.ok) throw new Error("Notifications could not be loaded");
         const data = await response.json();
+        updateNotificationCount((data.notifications || []).length);
         list.replaceChildren();
         if (!(data.notifications || []).length) {
           const empty = document.createElement("p");
@@ -211,7 +231,7 @@ function renderWorkspace(name) {
             button.addEventListener("click", async () => {
               button.disabled = true;
               const response = await fetch("https://api.danzstak.com/friends/respond", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ email: notice.email, accept }) });
-              if (response.ok) { row.remove(); if (typeof loadOnlineUsers === "function") loadOnlineUsers(); if (typeof loadFriends === "function") loadFriends(); }
+              if (response.ok) { row.remove(); updateNotificationCount(list.querySelectorAll(".notification-row").length); if (typeof loadOnlineUsers === "function") loadOnlineUsers(); if (typeof loadFriends === "function") loadFriends(); }
               else button.disabled = false;
             });
             actions.appendChild(button);
@@ -407,6 +427,10 @@ document.querySelectorAll("[data-feature]").forEach(control => {
     setTimeout(() => renderWorkspace(name), 0);
   });
 });
+
+refreshNotificationCount();
+setInterval(refreshNotificationCount, 30000);
+window.addEventListener("focus", refreshNotificationCount);
 
 const search = document.querySelector(".search");
 search.addEventListener("input", () => {
