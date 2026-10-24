@@ -348,12 +348,12 @@ if (composerActions && publishButton) {
     mediaTools.append(button, input);
   }
 
-  mediaPicker("Add Photo", "image/jpeg,image/png,image/webp,image/gif", "image", null);
-  mediaPicker("Add Video", "video/mp4,video/webm,video/quicktime", "video", 100 * 1024 * 1024);
+  mediaPicker("Photo", "image/jpeg,image/png,image/webp,image/gif", "image", null);
+  mediaPicker("Video", "video/mp4,video/webm,video/quicktime", "video", 100 * 1024 * 1024);
   const emojiButton = document.createElement("button");
   emojiButton.type = "button";
   emojiButton.className = "secondary";
-  emojiButton.textContent = "Add Emoji";
+  emojiButton.textContent = "Emoji";
   const emojiPicker = document.createElement("div");
   emojiPicker.className = "emoji-picker";
   emojiPicker.hidden = true;
