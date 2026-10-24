@@ -145,5 +145,8 @@ vite.config.ts.timestamp-*
 # Astro generated types
 .astro/
 
+# Private deployment configuration (contains the Cognito email allowlist)
+infrastructure/cognito-email-allowlist/
+
 # Turbo Repo
 .turbo
