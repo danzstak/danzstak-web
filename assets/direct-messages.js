@@ -1,5 +1,9 @@
 "use strict";
 
+if (new URLSearchParams(location.search).get("embedded") === "1") {
+  document.body.classList.add("embedded-messages");
+}
+
 const directApi = "https://api.danzstak.com";
 const contactInput = document.getElementById("contactEmail");
 const onlineUsers = document.getElementById("onlineUsers");
