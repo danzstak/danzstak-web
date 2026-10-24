@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v101";
+const CACHE = "danzstak-shell-v102";
 const SHELL = [
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-fb-v2.jpg",
@@ -43,4 +43,39 @@ self.addEventListener("fetch", event => {
     if (response.ok) caches.open(CACHE).then(cache => cache.put(request, response.clone()));
     return response;
   })));
+});
+
+self.addEventListener("push", event => {
+  let payload = {};
+  try { payload = event.data?.json() || {}; }
+  catch { payload = { body: event.data?.text() || "You have a new DanzStak notification." }; }
+  const title = String(payload.title || "DanzStak").slice(0, 80);
+  const body = String(payload.body || "You have a new notification.").slice(0, 240);
+  let url = "/feed.html";
+  try {
+    const candidate = new URL(String(payload.url || url), self.location.origin);
+    if (candidate.origin === self.location.origin && /^\/(?:feed|messages|profile)\.html$/.test(candidate.pathname)) url = candidate.pathname + candidate.search;
+  } catch { /* Keep the safe feed destination. */ }
+  event.waitUntil(self.registration.showNotification(title, {
+    body,
+    icon: "/assets/favicon-192.png",
+    badge: "/assets/favicon-192.png",
+    tag: String(payload.tag || "danzstak-alert").slice(0, 80),
+    renotify: true,
+    requireInteraction: payload.type === "call",
+    data: { url }
+  }));
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const destination = new URL(event.notification.data?.url || "/feed.html", self.location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async clients => {
+    for (const client of clients) {
+      if (new URL(client.url).origin !== self.location.origin) continue;
+      await client.navigate(destination);
+      return client.focus();
+    }
+    return self.clients.openWindow(destination);
+  }));
 });

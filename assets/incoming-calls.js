@@ -36,8 +36,12 @@
     popup.hidden = false;
     navigator.vibrate?.([400, 180, 400, 180, 400]);
     if (document.hidden && "Notification" in window && Notification.permission === "granted") {
-      const notice = new Notification("Incoming DanzStak call", { body: label.textContent, icon: "assets/favicon-192.png", tag: "danzstak-call" });
-      notice.onclick = () => { window.focus(); answer.click(); notice.close(); };
+      const options = { body: label.textContent, icon: "/assets/favicon-192.png", badge: "/assets/favicon-192.png", tag: "danzstak-call", renotify: true, requireInteraction: true, data: { url: `/messages.html?contact=${encodeURIComponent(event.senderEmail)}&answer=1` } };
+      if (navigator.serviceWorker) navigator.serviceWorker.ready.then(registration => registration.showNotification("Incoming DanzStak call", options)).catch(() => {});
+      else {
+        const notice = new Notification("Incoming DanzStak call", options);
+        notice.onclick = () => { window.focus(); answer.click(); notice.close(); };
+      }
     }
   }
 

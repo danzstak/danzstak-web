@@ -410,6 +410,17 @@ function renderWorkspace(name) {
       window.dispatchEvent(new CustomEvent("danzstak:show-install"));
       featureText.textContent = "Install DanzStak from the prompt. Notification and camera permissions remain under your browser or device settings.";
     });
+    const alertSettings = document.createElement("button");
+    alertSettings.type = "button";
+    alertSettings.className = "secondary";
+    const updateAlertLabel = () => { alertSettings.textContent = !("Notification" in window) ? "Unavailable" : Notification.permission === "granted" ? "Enabled" : Notification.permission === "denied" ? "Blocked" : "Enable"; };
+    updateAlertLabel();
+    alertSettings.addEventListener("click", async () => {
+      if (!("Notification" in window)) { featureText.textContent = "This browser does not support system notifications."; return; }
+      if (Notification.permission === "default") await Notification.requestPermission();
+      updateAlertLabel();
+      featureText.textContent = Notification.permission === "granted" ? "Call and message alerts are enabled while DanzStak can receive them." : "Notifications are blocked. Enable them in your browser or device settings.";
+    });
     fetch("https://api.danzstak.com/settings/presence", { credentials: "include", cache: "no-store" })
       .then(response => response.ok ? response.json() : null)
       .then(data => { if (data) presenceCheckbox.checked = data.onlineVisible !== false; });
@@ -430,6 +441,7 @@ function renderWorkspace(name) {
       settingRow("🔒", "Privacy center", presence),
       settingRow("🌙", "Dark mode", darkCheckbox),
       settingRow("🌐", "Language", language),
+      settingRow("🔔", "Call and message alerts", alertSettings),
       settingRow("📱", "App and device settings", appSettings),
       button
     );
