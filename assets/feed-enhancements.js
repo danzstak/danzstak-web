@@ -175,7 +175,56 @@ function renderWorkspace(name) {
     return;
   }
 
-  if (["Friends", "Notifications", "Photos", "Videos"].includes(name)) {
+  if (name === "Notifications") {
+    featureText.textContent = "Friend requests and account activity appear here.";
+    const list = document.createElement("div");
+    list.className = "notification-list";
+    const loading = document.createElement("p");
+    loading.className = "muted";
+    loading.textContent = "Loading notifications…";
+    list.appendChild(loading);
+    workspace.appendChild(list);
+    fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" })
+      .then(async response => {
+        if (!response.ok) throw new Error("Notifications could not be loaded");
+        const data = await response.json();
+        list.replaceChildren();
+        if (!(data.notifications || []).length) {
+          const empty = document.createElement("p");
+          empty.className = "muted";
+          empty.textContent = "No new notifications.";
+          list.appendChild(empty);
+          return;
+        }
+        for (const notice of data.notifications) {
+          const row = document.createElement("article");
+          row.className = "notification-row";
+          const message = document.createElement("p");
+          message.textContent = `${notice.email} sent you a friend request.`;
+          const actions = document.createElement("div");
+          actions.className = "notification-actions";
+          for (const [label, accept] of [["Accept", true], ["Decline", false]]) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = label;
+            button.className = accept ? "primary" : "secondary";
+            button.addEventListener("click", async () => {
+              button.disabled = true;
+              const response = await fetch("https://api.danzstak.com/friends/respond", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ email: notice.email, accept }) });
+              if (response.ok) { row.remove(); if (typeof loadOnlineUsers === "function") loadOnlineUsers(); }
+              else button.disabled = false;
+            });
+            actions.appendChild(button);
+          }
+          row.append(message, actions);
+          list.appendChild(row);
+        }
+      })
+      .catch(error => { loading.textContent = error.message; });
+    return;
+  }
+
+  if (["Friends", "Photos", "Videos"].includes(name)) {
     const message = document.createElement("p");
     message.className = "muted";
     message.textContent = saved[name]?.length
