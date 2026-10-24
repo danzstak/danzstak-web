@@ -60,7 +60,17 @@ function renderWorkspace(name) {
     createButton.type = "button";
     createButton.className = "primary";
     createButton.textContent = "Create Group";
-    createBox.append(groupName.wrap, categoryLabel, createButton);
+    const standardsLabel = document.createElement("label");
+    standardsLabel.className = "group-standards-agreement";
+    const standardsCheckbox = document.createElement("input");
+    standardsCheckbox.type = "checkbox";
+    standardsLabel.append(standardsCheckbox, document.createTextNode("I agree to enforce DANZSTAK Community Standards: no hate speech, harassment, threats, or targeted abuse."));
+    const standardsError = document.createElement("p");
+    standardsError.className = "group-standards-error";
+    standardsError.textContent = "You must agree to the Community Standards before creating a group.";
+    standardsError.hidden = true;
+    standardsCheckbox.addEventListener("change", () => { standardsError.hidden = standardsCheckbox.checked; });
+    createBox.append(groupName.wrap, categoryLabel, standardsLabel, standardsError, createButton);
     const grid = document.createElement("div");
     grid.className = "groups-grid";
 
@@ -91,25 +101,26 @@ function renderWorkspace(name) {
           join.textContent = saved.GroupsJoined[group.id] ? "Joined" : "Join Group";
         });
         card.append(category, title, description);
-        if (isSensitiveDiscussion) {
-          const moderation = document.createElement("div");
-          moderation.className = "group-moderation-notice";
-          moderation.innerHTML = "<strong>Moderated discussion</strong><span>Debate ideas freely. Threats, harassment, hate speech, and targeting people are not allowed.</span>";
-          const report = document.createElement("button");
-          report.type = "button";
-          report.className = "group-report";
-          report.textContent = "Report a problem";
-          report.addEventListener("click", () => {
-            const details = prompt("What should the moderators review?");
-            if (!details?.trim()) return;
-            saved.GroupReports = [...(saved.GroupReports || []), { groupId: group.id, details: details.trim(), reportedAt: new Date().toISOString() }];
-            writeSections(saved);
-            report.textContent = "Report sent";
-            report.disabled = true;
-          });
-          moderation.appendChild(report);
-          card.appendChild(moderation);
-        }
+        const moderation = document.createElement("div");
+        moderation.className = "group-moderation-notice";
+        const moderationTitle = document.createElement("strong");
+        moderationTitle.textContent = isSensitiveDiscussion ? "Moderated discussion" : "Community Standards apply";
+        const moderationText = document.createElement("span");
+        moderationText.textContent = (isSensitiveDiscussion ? "Debate ideas freely. " : "") + "Hate speech, harassment, threats, and targeted abuse are not allowed.";
+        const report = document.createElement("button");
+        report.type = "button";
+        report.className = "group-report";
+        report.textContent = "Report a problem";
+        report.addEventListener("click", () => {
+          const details = prompt("What should the moderators review?");
+          if (!details?.trim()) return;
+          saved.GroupReports = [...(saved.GroupReports || []), { groupId: group.id, details: details.trim(), reportedAt: new Date().toISOString() }];
+          writeSections(saved);
+          report.textContent = "Report sent";
+          report.disabled = true;
+        });
+        moderation.append(moderationTitle, moderationText, report);
+        card.appendChild(moderation);
         card.appendChild(join);
         if (group.custom) {
           const remove = document.createElement("button");
@@ -131,9 +142,15 @@ function renderWorkspace(name) {
     createButton.addEventListener("click", () => {
       const value = groupName.input.value.trim();
       if (!value) return groupName.input.focus();
+      if (!standardsCheckbox.checked) {
+        standardsError.hidden = false;
+        standardsCheckbox.focus();
+        return;
+      }
       saved.CustomGroups = [...(saved.CustomGroups || []), { id: crypto.randomUUID(), name: value, category: categorySelect.value, description: "A new DANZSTAK community group.", custom: true }];
       writeSections(saved);
       groupName.input.value = "";
+      standardsCheckbox.checked = false;
       renderGroups();
     });
     workspace.append(createBox, grid);
@@ -214,7 +231,8 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
   const groupsLink = document.createElement("a");
   groupsLink.href = "#groups";
   groupsLink.dataset.feature = "Groups";
-  groupsLink.textContent = "Groups";
+  groupsLink.textContent = "\uD83D\uDC65 Groups";
+  groupsLink.setAttribute("aria-label", "Groups");
   friendsLink.insertAdjacentElement("afterend", groupsLink);
 }
 
