@@ -39,3 +39,4 @@
   font-size: .76rem;
   font-weight: 700;
 }
+.story-share-control{display:inline-flex!important;align-items:center!important;gap:7px!important;color:#566274;font-size:.86rem;font-weight:700}.story-share-control input{width:18px;height:18px;accent-color:#237edf}.stories button.story{border:0;text-align:left;font:inherit}

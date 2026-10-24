@@ -247,7 +247,7 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-5">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-6">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261024-5">
 </head>
 
@@ -295,10 +295,9 @@ textarea {
     </section>
 
     <div id="newsFeedView">
-    <section class="stories" aria-label="Stories">
+    <section id="storiesRail" class="stories" aria-label="Stories">
       <div class="story"><span>Your Story</span></div>
-      <div class="story"><span>Music Spotlight</span></div>
-      <div class="story"><span>Live Events</span></div>
+      <div id="storiesLoading" class="story"><span>Loading Stories</span></div>
     </section>
     <section class="panel">
       <h3 class="composer-title"><span class="composer-avatar" aria-hidden="true">D</span><span>Create a Post</span></h3>
@@ -318,6 +317,7 @@ textarea {
             <option value="private">🔒 Only me</option>
           </select>
         </label>
+        <label class="story-share-control"><input id="shareToStory" type="checkbox" checked><span>Share to story (24 hours)</span></label>
 
         <button class="primary" id="publishBtn">
           Post
@@ -364,6 +364,8 @@ const feedStatus = document.getElementById("feedStatus");
 const publishBtn = document.getElementById("publishBtn");
 const postText = document.getElementById("postText");
 const postAudience = document.getElementById("postAudience");
+const shareToStory = document.getElementById("shareToStory");
+const storiesRail = document.getElementById("storiesRail");
 const newsFeedView = document.getElementById("newsFeedView");
 const featureView = document.getElementById("featureView");
 const featureTitle = document.getElementById("featureTitle");
@@ -434,6 +436,28 @@ function createPostElement(content, author = "DANZSTAK Member", createdAt = null
   article.append(header, body, actions, comments);
 
   return article;
+}
+
+async function loadStories() {
+  try {
+    const response = await fetch("https://api.danzstak.com/stories", { credentials: "include", cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    document.getElementById("storiesLoading")?.remove();
+    storiesRail.querySelectorAll(".story[data-story-id]").forEach(item => item.remove());
+    for (const story of (data.stories || []).slice(0, 12)) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "story";
+      item.dataset.storyId = story.storyId;
+      item.title = story.content;
+      const label = document.createElement("span");
+      label.textContent = story.userEmail.split("@")[0] + ": " + story.content.slice(0, 55);
+      item.appendChild(label);
+      item.addEventListener("click", () => alert(story.content));
+      storiesRail.appendChild(item);
+    }
+  } catch { /* Feed still works if stories are temporarily unavailable. */ }
 }
 
 // LOAD SAVED POSTS FROM AWS DYNAMODB
@@ -548,6 +572,17 @@ publishBtn.addEventListener("click", async () => {
     }
 
     savedPost = await response.json();
+
+    if (shareToStory.checked) {
+      const storyResponse = await fetch("https://api.danzstak.com/stories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content })
+      });
+      if (!storyResponse.ok) alert("Your post was saved, but the story could not be published.");
+      else await loadStories();
+    }
 
     postText.value = "";
 
@@ -667,6 +702,7 @@ document.querySelectorAll("[data-feature]").forEach(control => {
 });
 
 loadPosts();
+loadStories();
 
 </script>
 
