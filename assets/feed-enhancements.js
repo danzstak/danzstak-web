@@ -252,6 +252,60 @@ if (composerActions && publishButton) {
     observer.observe(document.getElementById("feed"), { childList: true });
     setTimeout(() => observer.disconnect(), 10000);
   }, true);
+
+  if (location.hostname === "127.0.0.1" || location.hostname === "localhost") {
+    publishButton.addEventListener("click", event => {
+      if (!checkbox.checked) return;
+      const composer = document.getElementById("postText");
+      const text = composer.value.trim();
+      if (!text && !selectedMedia) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        composer.focus();
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const post = document.createElement("article");
+      post.className = "post";
+      post.dataset.postId = crypto.randomUUID();
+      const header = document.createElement("div");
+      header.className = "post-header";
+      header.textContent = "You";
+      const time = document.createElement("div");
+      time.className = "post-time";
+      time.textContent = "Just now";
+      header.appendChild(time);
+      const body = document.createElement("p");
+      body.className = "post-content";
+      body.textContent = text;
+      const actions = document.createElement("div");
+      actions.className = "post-actions";
+      const like = document.createElement("button");
+      like.type = "button";
+      like.className = "likeBtn";
+      like.textContent = "Like";
+      const comment = document.createElement("button");
+      comment.type = "button";
+      comment.className = "commentBtn";
+      comment.textContent = "Comment";
+      actions.append(like, comment);
+      const comments = document.createElement("div");
+      comments.className = "comments";
+      comments.hidden = true;
+      const commentInput = document.createElement("input");
+      commentInput.setAttribute("aria-label", "Write a comment");
+      commentInput.placeholder = "Write a comment and press Enter";
+      const commentList = document.createElement("div");
+      commentList.className = "commentList";
+      comments.append(commentInput, commentList);
+      post.append(header, body, actions, comments);
+      document.getElementById("feed").prepend(post);
+      composer.value = "";
+      checkbox.checked = false;
+      document.getElementById("feedStatus").textContent = "Saved in local development mode.";
+    }, true);
+  }
 }
 
 function addShareButton(post) {
