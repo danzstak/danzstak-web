@@ -255,7 +255,7 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-21">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-22">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=1">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261024-5">
 </head>
@@ -319,14 +319,14 @@ textarea {
       ></textarea>
 
       <div class="composer-actions">
-        <label class="post-audience-control" for="postAudience">
-          <span>Audience</span>
+        <div class="post-audience-control">
+          <label for="postAudience">Audience</label>
           <select id="postAudience" aria-label="Who can see this post">
-            <option value="public">🌎 Public</option>
-            <option value="friends">👥 Friends</option>
-            <option value="private">🔒 Only me</option>
+            <option value="public">Public</option>
+            <option value="friends">Friends</option>
+            <option value="private">Only me</option>
           </select>
-        </label>
+        </div>
         <label class="story-share-control" title="Add a photo or video to share this post to Story"><input id="shareToStory" type="checkbox" disabled><span>Story · 24h</span></label>
 
         <button class="primary" id="publishBtn">
@@ -884,6 +884,9 @@ loadStories();
 loadOnlineUsers();
 loadInterestNews();
 setInterval(loadOnlineUsers, 30000);
+window.addEventListener("focus", loadOnlineUsers);
+window.addEventListener("pageshow", loadOnlineUsers);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") loadOnlineUsers(); });
 
 </script>
 
