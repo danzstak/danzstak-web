@@ -416,17 +416,33 @@ document.getElementById("addNewsInterest")?.addEventListener("click", () => {
 async function loadOnlineUsers() {
   const container = document.getElementById("feedOnlineUsers");
   try {
-    await fetch("https://api.danzstak.com/calls/presence", { method: "POST", credentials: "include" });
-    const response = await fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" });
-    if (!response.ok) return;
-    const data = await response.json();
-    container.replaceChildren();
-    if (!(data.users || []).length) {
-      const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No other users online."; container.appendChild(empty); return;
+    await fetch("https://api.danzstak.com/calls/presence", { method: "POST", credentials: "include" }).catch(() => null);
+    const [directoryResult, friendsResult] = await Promise.allSettled([
+      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" }),
+      fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store" })
+    ]);
+    const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
+    const friendsResponse = friendsResult.status === "fulfilled" ? friendsResult.value : null;
+    const directoryData = directoryResponse?.ok ? await directoryResponse.json() : { users: [] };
+    const friendsData = friendsResponse?.ok ? await friendsResponse.json() : { friends: [] };
+    const merged = new Map();
+    for (const friend of friendsData.friends || []) {
+      const email = String(friend.email || "").toLowerCase();
+      if (email) merged.set(email, { ...friend, email, online: false, friendStatus: "friends" });
     }
-    for (const user of data.users) {
+    for (const user of directoryData.users || []) {
+      const email = String(user.email || "").toLowerCase();
+      if (email) merged.set(email, { ...(merged.get(email) || {}), ...user, email });
+    }
+    const users = [...merged.values()];
+    container.replaceChildren();
+    if (!users.length) {
+      const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No friends or group members available."; container.appendChild(empty); return;
+    }
+    for (const user of users) {
       const row = document.createElement("div"); row.className = "feed-online-row";
       const name = document.createElement("span"); name.textContent = "● " + user.email;
+      name.textContent = (user.online ? "Online: " : "Offline: ") + (user.name || user.email);
       const action = document.createElement(user.friendStatus === "friends" ? "a" : "button");
       if (user.friendStatus === "friends" || user.sharedGroup) { action.href = "messages.html?contact=" + encodeURIComponent(user.email); action.textContent = user.friendStatus === "friends" ? "Message" : "Group Message"; }
       else if (user.friendStatus === "incoming") { action.type = "button"; action.textContent = "Accept"; action.addEventListener("click", async () => { await updateFeedFriend("/friends/respond", { email: user.email, accept: true }); }); }
@@ -434,7 +450,10 @@ async function loadOnlineUsers() {
       else { action.type = "button"; action.textContent = "Add Friend"; action.addEventListener("click", async () => { await updateFeedFriend("/friends/request", { email: user.email }); }); }
       row.append(name, action); container.appendChild(row);
     }
-  } catch { /* Retry on the next refresh. */ }
+  } catch {
+    container.replaceChildren();
+    const error = document.createElement("p"); error.className = "muted"; error.textContent = "Users are temporarily unavailable. Retryingâ€¦"; container.appendChild(error);
+  }
 }
 
 async function updateFeedFriend(path, body) {
