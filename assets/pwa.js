@@ -25,7 +25,19 @@ function showInstallButtonTemporarily() {
 }
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js"));
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register("/service-worker.js", { updateViaCache: "none" });
+      const checkForUpdate = () => registration.update().catch(() => {});
+      checkForUpdate();
+      setInterval(checkForUpdate, 60 * 60 * 1000);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") checkForUpdate();
+      });
+    } catch (error) {
+      console.warn("DanzStak app updates are temporarily unavailable.", error);
+    }
+  });
   let refreshingForUpdate = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (refreshingForUpdate) return;
