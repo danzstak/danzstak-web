@@ -64,7 +64,7 @@ function renderWorkspace(name) {
     standardsLabel.className = "group-standards-agreement";
     const standardsCheckbox = document.createElement("input");
     standardsCheckbox.type = "checkbox";
-    standardsLabel.append(standardsCheckbox, document.createTextNode("I agree to enforce DANZSTAK Community Standards: no hate speech, harassment, threats, or targeted abuse."));
+    standardsLabel.append(standardsCheckbox, document.createTextNode("I agree to enforce DanzStak Community Standards: no hate speech, harassment, threats, or targeted abuse."));
     const standardsError = document.createElement("p");
     standardsError.className = "group-standards-error";
     standardsError.textContent = "You must agree to the Community Standards before creating a group.";
@@ -164,7 +164,7 @@ function renderWorkspace(name) {
         standardsCheckbox.focus();
         return;
       }
-      saved.CustomGroups = [...(saved.CustomGroups || []), { id: crypto.randomUUID(), name: value, category: categorySelect.value, description: "A new DANZSTAK community group.", custom: true }];
+      saved.CustomGroups = [...(saved.CustomGroups || []), { id: crypto.randomUUID(), name: value, category: categorySelect.value, description: "A new DanzStak community group.", custom: true }];
       writeSections(saved);
       groupName.input.value = "";
       standardsCheckbox.checked = false;
@@ -343,7 +343,7 @@ if (composerActions && publishButton) {
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.id = "originalContentCertification";
-  certification.append(checkbox, document.createTextNode("I certify this is entirely my original content, including any music inside a video, and authorize sharing through DANZSTAK."));
+  certification.append(checkbox, document.createTextNode("I certify this is entirely my original content, including any music inside a video, and authorize sharing through DanzStak."));
   const certificationError = document.createElement("p");
   certificationError.className = "certification-error";
   certificationError.textContent = "Required: confirm that you own this content before posting.";
@@ -566,8 +566,8 @@ function addShareButton(post) {
   button.className = "shareBtn";
   button.textContent = "Share";
   button.addEventListener("click", async () => {
-    const content = post.querySelector(".post-content")?.textContent.trim() || "DANZSTAK post";
-    const shareData = { title: "DANZSTAK", text: content.slice(0, 200), url: location.href };
+    const content = post.querySelector(".post-content")?.textContent.trim() || "DanzStak post";
+    const shareData = { title: "DanzStak", text: content.slice(0, 200), url: location.href };
     if (navigator.share) {
       try { await navigator.share(shareData); } catch (error) { if (error.name !== "AbortError") alert("Unable to share this post."); }
       return;
@@ -989,7 +989,7 @@ addReel.addEventListener("click", () => {
   try { parsed = new URL(reelUrl.value.trim()); }
   catch { reelStatus.textContent = "Enter a valid video link."; reelUrl.focus(); return; }
   if (!isApprovedVideoUrl(parsed)) { reelStatus.textContent = "Use a recognized video platform or a direct HTTPS video-file link."; reelUrl.focus(); return; }
-  if (!reelPlayer(parsed)) { reelStatus.textContent = "This link cannot autoplay inside DANZSTAK. Use a supported public video or direct HTTPS video-file link."; reelUrl.focus(); return; }
+  if (!reelPlayer(parsed)) { reelStatus.textContent = "This link cannot autoplay inside DanzStak. Use a supported public video or direct HTTPS video-file link."; reelUrl.focus(); return; }
   if (!reelPermissionCheck.checked) { reelStatus.textContent = "Confirm ownership or permission before sharing."; reelPermissionCheck.focus(); return; }
   const reels = getReels();
   reels.unshift({ id: crypto.randomUUID(), url: parsed.href, platform: reelPlatform(parsed.hostname), sharedAt: new Date().toISOString() });

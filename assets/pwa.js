@@ -7,7 +7,7 @@ const signedInPage = /(?:feed|profile)\.html$/i.test(window.location.pathname);
 const installButton = document.createElement("button");
 installButton.type = "button";
 installButton.className = "install-app-button";
-installButton.textContent = "Install DANZSTAK";
+installButton.textContent = "Install DanzStak";
 installButton.hidden = true;
 document.body.appendChild(installButton);
 

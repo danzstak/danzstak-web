@@ -3,7 +3,7 @@
 for (const button of document.querySelectorAll("[data-logout]")) {
   button.addEventListener("click", async event => {
     event.preventDefault();
-    if (!confirm("Log out of your DANZSTAK account?")) return;
+    if (!confirm("Log out of your DanzStak account?")) return;
     button.disabled = true;
     button.setAttribute("aria-disabled", "true");
     const original = button.textContent;

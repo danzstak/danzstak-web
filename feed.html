@@ -13,7 +13,7 @@
 <link rel="icon" href="assets/app-icon.svg?v=2" type="image/svg+xml">
 <link rel="shortcut icon" href="assets/favicon-32.png?v=1" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1" sizes="180x180">
-<title>DANZSTAK | Social Feed</title>
+<title>DanzStak | Social Feed</title>
 
 <style>
 * { box-sizing: border-box; }
@@ -49,7 +49,7 @@ button { cursor: pointer; }
   font-weight: 900;
   color: white;
 }
-.logo img { width: 48px; height: 48px; object-fit: cover; border-radius: 50%; border: 2px solid white; }
+.logo img { width: 104px; height: 48px; object-fit: contain; object-position: center; border-radius: 8px; }
 
 .search {
   border: 0;
@@ -254,12 +254,12 @@ textarea {
 <body>
 
 <header class="topbar">
-  <div class="logo"><img src="assets/danzstak-logo.png" alt=""><span>DANZSTAK</span></div>
+  <div class="logo"><img src="assets/danzstak-logo.png" alt=""><span>DanzStak</span></div>
 
   <input
     class="search"
-    placeholder="Search DANZSTAK"
-    aria-label="Search DANZSTAK"
+    placeholder="Search DanzStak"
+    aria-label="Search DanzStak"
   >
 
   <nav class="topnav">
@@ -408,17 +408,17 @@ async function updateFeedFriend(path, body) {
 
 const featureCopy = {
   Friends: "Find and connect with artists, DJs, producers, and music fans.",
-  Messages: "Your private DANZSTAK conversations will appear here.",
+  Messages: "Your private DanzStak conversations will appear here.",
   Notifications: "Your latest reactions, comments, and connection updates will appear here.",
-  Photos: "Share and explore photos from the DANZSTAK community.",
+  Photos: "Share and explore photos from the DanzStak community.",
   Videos: "Discover performances, music videos, and creator clips.",
   Music: "Explore tracks, releases, playlists, and featured artists.",
   Events: "Find live shows, DJ sets, festivals, and booking opportunities.",
-  Settings: "Manage your DANZSTAK account, privacy, and notification preferences."
+  Settings: "Manage your DanzStak account, privacy, and notification preferences."
 };
 
 // CREATE THE VISUAL DISPLAY OF A POST
-function createPostElement(content, author = "DANZSTAK Member", createdAt = null, audience = "public") {
+function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public") {
 
   const article = document.createElement("article");
   article.className = "post";
@@ -540,7 +540,7 @@ async function loadPosts() {
 
       const article = createPostElement(
         post.content,
-        "DANZSTAK Member",
+        "DanzStak Member",
         post.createdAt,
         post.audience
       );
@@ -552,7 +552,7 @@ async function loadPosts() {
     feedStatus.textContent = "";
 
     console.log(
-      "DANZSTAK: Loaded",
+      "DanzStak: Loaded",
       data.posts.length,
       "saved posts."
     );
@@ -560,7 +560,7 @@ async function loadPosts() {
   } catch (error) {
 
     console.error(
-      "DANZSTAK feed error:",
+      "DanzStak feed error:",
       error
     );
 
@@ -634,14 +634,14 @@ publishBtn.addEventListener("click", async () => {
     feedStatus.textContent = "";
 
     console.log(
-      "DANZSTAK: Post saved",
+      "DanzStak: Post saved",
       savedPost.postId
     );
 
   } catch (error) {
 
     console.error(
-      "DANZSTAK posting error:",
+      "DanzStak posting error:",
       error
     );
 
@@ -729,7 +729,7 @@ document.querySelectorAll("[data-feature]").forEach(control => {
     newsFeedView.hidden = true;
     featureView.hidden = false;
     featureTitle.textContent = feature;
-    featureDescription.textContent = featureCopy[feature] || "This DANZSTAK section is being prepared.";
+    featureDescription.textContent = featureCopy[feature] || "This DanzStak section is being prepared.";
     document.querySelectorAll(".menu a").forEach(link => link.classList.remove("active"));
     if (control.matches(".menu a")) control.classList.add("active");
     featureView.scrollIntoView({ behavior: "smooth", block: "start" });

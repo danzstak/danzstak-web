@@ -27,7 +27,7 @@ async function loadProfile() {
     const data = await response.json();
     const profile = data.user || data.claims || data.profile || data;
     const email = firstString(profile, ["email", "username"]);
-    const name = firstString(profile, ["name", "displayName", "given_name", "preferred_username"]) || (email ? email.split("@")[0] : "DANZSTAK Member");
+    const name = firstString(profile, ["name", "displayName", "given_name", "preferred_username"]) || (email ? email.split("@")[0] : "DanzStak Member");
     const handle = firstString(profile, ["preferred_username", "username"]) || name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "member";
 
     document.getElementById("profileName").textContent = name;
