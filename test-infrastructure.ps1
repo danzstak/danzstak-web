@@ -36,4 +36,16 @@ foreach ($protection in $requiredMessagingProtections) {
   }
 }
 
+$requiredReelProtections = @(
+  "body.action==='reel'",
+  "url.protocol!=='https:'",
+  "x.kind?.S==='reel'",
+  "isOwner:x.userEmail.S===user.email"
+)
+foreach ($protection in $requiredReelProtections) {
+  if (-not $template.Contains($protection)) {
+    throw "Reel persistence protection is missing: $protection"
+  }
+}
+
 Write-Host "Infrastructure checks passed ($templateBytes-byte template; embedded Lambda syntax valid)."

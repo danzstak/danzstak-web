@@ -1062,6 +1062,7 @@ function addReactionButton(post) {
 }
 
 const reelsStorageKey = "danzstak_external_reels";
+let cloudReels = null;
 const reelsRail = document.createElement("section");
 reelsRail.className = "reels-rail post";
 reelsRail.setAttribute("aria-label", "External video reels");
@@ -1093,9 +1094,13 @@ reelStatus.className = "muted reel-status";
 reelForm.append(reelUrl, reelPermission, addReel, reelStatus);
 reelsRail.append(reelsHeading, reelsList, reelForm);
 
-function getReels() {
+function getLocalReels() {
   try { return JSON.parse(localStorage.getItem(reelsStorageKey) || "[]"); }
   catch { return []; }
+}
+
+function getReels() {
+  return Array.isArray(cloudReels) ? cloudReels : getLocalReels();
 }
 
 function reelPlatform(hostname) {
@@ -1115,42 +1120,6 @@ function isApprovedVideoUrl(url) {
   const trustedHost = videoHosts.some(allowed => host === allowed || host.endsWith("." + allowed));
   const directVideo = /\.(?:mp4|webm|mov|m4v)(?:$|[?#])/i.test(url.pathname + url.search + url.hash);
   return trustedHost || directVideo;
-}
-
-function renderReels() {
-  reelsList.replaceChildren();
-  const reels = getReels();
-  if (!reels.length) {
-    const empty = document.createElement("p");
-    empty.className = "muted reels-empty";
-    empty.textContent = "External reels shared by the community will appear here.";
-    reelsList.appendChild(empty);
-    return;
-  }
-  for (const reel of reels) {
-    const card = document.createElement("article");
-    card.className = "reel-card";
-    const platform = document.createElement("strong");
-    platform.textContent = reel.platform;
-    const open = document.createElement("a");
-    open.href = reel.url;
-    open.target = "_blank";
-    open.rel = "noopener noreferrer nofollow";
-    open.textContent = "▶ Open Reel";
-    const source = document.createElement("small");
-    source.textContent = new URL(reel.url).hostname;
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "reel-delete";
-    remove.textContent = "Delete Reel";
-    remove.addEventListener("click", () => {
-      const updated = getReels().filter(item => item.id !== reel.id);
-      localStorage.setItem(reelsStorageKey, JSON.stringify(updated));
-      renderReels();
-    });
-    card.append(platform, open, source, remove);
-    reelsList.appendChild(card);
-  }
 }
 
 function reelPlayer(url) {
@@ -1225,15 +1194,23 @@ function renderPlayableReels() {
     open.textContent = playerInfo ? "Open on source" : "Play on source";
     const source = document.createElement("small");
     source.textContent = reelUrlValue.hostname;
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "reel-delete";
-    remove.textContent = "Delete Reel";
-    remove.addEventListener("click", () => {
-      localStorage.setItem(reelsStorageKey, JSON.stringify(getReels().filter(item => item.id !== reel.id)));
-      renderPlayableReels();
-    });
-    details.append(platform, open, source, remove);
+    details.append(platform, open, source);
+    if (!Array.isArray(cloudReels) || reel.isOwner === true) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "reel-delete";
+      remove.textContent = "Delete Reel";
+      remove.addEventListener("click", async () => {
+        remove.disabled = true;
+        if (Array.isArray(cloudReels)) {
+          const response = await fetch("https://api.danzstak.com/stories/" + encodeURIComponent(reel.id), { method: "DELETE", credentials: "include" }).catch(() => null);
+          if (!response?.ok) { remove.disabled = false; reelStatus.textContent = "Reel could not be deleted."; return; }
+          cloudReels = cloudReels.filter(item => item.id !== reel.id);
+        } else localStorage.setItem(reelsStorageKey, JSON.stringify(getLocalReels().filter(item => item.id !== reel.id)));
+        renderPlayableReels();
+      });
+      details.appendChild(remove);
+    }
     card.appendChild(details);
     reelsList.appendChild(card);
   }
@@ -1246,23 +1223,59 @@ function placeReelsRail() {
   else feedElement.appendChild(reelsRail);
 }
 
-addReel.addEventListener("click", () => {
+addReel.addEventListener("click", async () => {
   let parsed;
   try { parsed = new URL(reelUrl.value.trim()); }
   catch { reelStatus.textContent = "Enter a valid video link."; reelUrl.focus(); return; }
   if (!isApprovedVideoUrl(parsed)) { reelStatus.textContent = "Use a recognized video platform or a direct HTTPS video-file link."; reelUrl.focus(); return; }
   if (!reelPlayer(parsed)) { reelStatus.textContent = "This link cannot autoplay inside DanzStak. Use a supported public video or direct HTTPS video-file link."; reelUrl.focus(); return; }
   if (!reelPermissionCheck.checked) { reelStatus.textContent = "Confirm ownership or permission before sharing."; reelPermissionCheck.focus(); return; }
-  const reels = getReels();
-  reels.unshift({ id: crypto.randomUUID(), url: parsed.href, platform: reelPlatform(parsed.hostname), sharedAt: new Date().toISOString() });
-  localStorage.setItem(reelsStorageKey, JSON.stringify(reels.slice(0, 20)));
+  addReel.disabled = true;
+  let reel = null;
+  try {
+    const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: parsed.href }) });
+    if (response.ok) reel = (await response.json()).reel;
+  } catch { /* Preserve a local copy until the cloud service is available. */ }
+  if (reel) {
+    cloudReels = Array.isArray(cloudReels) ? cloudReels : [];
+    cloudReels.unshift({ ...reel, platform: reelPlatform(new URL(reel.url).hostname) });
+  } else {
+    const local = getLocalReels();
+    local.unshift({ id: crypto.randomUUID(), url: parsed.href, platform: reelPlatform(parsed.hostname), sharedAt: new Date().toISOString(), isOwner: true });
+    localStorage.setItem(reelsStorageKey, JSON.stringify(local.slice(0, 20)));
+  }
   reelUrl.value = "";
   reelPermissionCheck.checked = false;
-  reelStatus.textContent = "External reel added.";
+  reelStatus.textContent = reel ? "Reel saved to DanzStak." : "Reel saved on this device until cloud sync is available.";
   renderPlayableReels();
+  addReel.disabled = false;
 });
 
+async function loadCloudReels() {
+  try {
+    const response = await fetch("https://api.danzstak.com/stories", { credentials: "include", cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!Array.isArray(data.reels)) return;
+    cloudReels = data.reels.map(reel => ({ ...reel, platform: reelPlatform(new URL(reel.url).hostname) }));
+    const pending = getLocalReels();
+    const remaining = [];
+    const existingUrls = new Set(cloudReels.map(reel => reel.url));
+    for (const local of pending) {
+      if (existingUrls.has(local.url)) continue;
+      const saved = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: local.url }) }).catch(() => null);
+      if (!saved?.ok) { remaining.push(local); continue; }
+      const result = await saved.json();
+      if (result.reel) { cloudReels.push({ ...result.reel, platform: reelPlatform(new URL(result.reel.url).hostname) }); existingUrls.add(result.reel.url); }
+    }
+    localStorage.setItem(reelsStorageKey, JSON.stringify(remaining));
+    cloudReels.sort((a, b) => String(b.sharedAt).localeCompare(String(a.sharedAt)));
+    renderPlayableReels();
+  } catch { /* Local reels remain available while cloud sync retries next load. */ }
+}
+
 renderPlayableReels();
+loadCloudReels();
 placeReelsRail();
 document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } });
 new MutationObserver(records => {
