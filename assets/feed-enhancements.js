@@ -298,12 +298,30 @@ function renderWorkspace(name) {
   }
 
   if (["Photos", "Videos"].includes(name)) {
-    const message = document.createElement("p");
-    message.className = "muted";
-    message.textContent = saved[name]?.length
-      ? saved[name].join(" · ")
-      : "No items yet. This area is ready for live account data.";
-    workspace.appendChild(message);
+    featureText.textContent = name === "Photos" ? "Photos shared in your DanzStak feed." : "Videos shared in your DanzStak feed.";
+    const wantedTag = name === "Photos" ? "IMG" : "VIDEO";
+    const media = [...document.querySelectorAll("#feed .post .post-media")].filter(item => item.tagName === wantedTag);
+    if (!media.length) {
+      const message = document.createElement("p");
+      message.className = "muted";
+      message.textContent = `No ${name.toLowerCase()} are available in your feed yet.`;
+      workspace.appendChild(message);
+      return;
+    }
+    const gallery = document.createElement("div");
+    gallery.className = "feed-media-gallery";
+    for (const source of media) {
+      const card = document.createElement("article");
+      card.className = "feed-media-card";
+      const copy = source.cloneNode();
+      copy.removeAttribute("loading");
+      if (copy.tagName === "VIDEO") { copy.controls = true; copy.autoplay = false; copy.muted = false; }
+      const caption = document.createElement("p");
+      caption.textContent = source.closest(".post")?.querySelector(".post-content")?.textContent || "Shared on DanzStak";
+      card.append(copy, caption);
+      gallery.appendChild(card);
+    }
+    workspace.appendChild(gallery);
     return;
   }
 
