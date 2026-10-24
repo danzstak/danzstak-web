@@ -16,4 +16,6 @@ Run `./aws-configure-production.ps1` from an authenticated AWS shell to reapply 
 - GET, POST, PATCH, DELETE, and OPTIONS support;
 - API throttling and detailed CloudWatch metrics.
 
+Run `./aws-harden-cloudfront.ps1` from the same authenticated shell to attach AWS's managed `SecurityHeadersPolicy` to the `danzstak.com` distribution. The script discovers the distribution by alias, preserves its current configuration, and adds HSTS, `nosniff`, frame protection, and a strict referrer policy.
+
 The browser receives only the opaque `__Host-danzstak_session` cookie. Cognito tokens remain server-side and must not be added to local storage, session storage, URLs, or browser-readable cookies.
