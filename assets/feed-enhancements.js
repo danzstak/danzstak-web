@@ -711,6 +711,16 @@ function addPostDeleteButton(post) {
   menu.appendChild(handle);
   const history = [];
 
+  function removePostFromThisFeed() {
+    const postId = post.dataset.postId;
+    if (postId) {
+      let hidden = [];
+      try { hidden = JSON.parse(localStorage.getItem("danzstak-hidden-posts") || "[]"); } catch { hidden = []; }
+      localStorage.setItem("danzstak-hidden-posts", JSON.stringify([...new Set([...hidden, String(postId)])]));
+    }
+    post.remove();
+  }
+
   const optionIcons = {
     "Pin post": "⌖", "Save post": "♡", "View edit history": "↶", "Edit post": "✎",
     "Who can comment?": "◯", "Edit privacy": "◉", "Move to archive": "▰",
@@ -829,16 +839,25 @@ function addPostDeleteButton(post) {
     button.querySelector("small").textContent = values[next];
   });
   option("Move to archive", "Hide this post without deleting it.", () => { post.hidden = true; });
-  option("Delete post", "Permanently remove this post and its uploaded media.", async () => {
-    if (!confirm("Permanently delete this post?")) return;
+  option("Delete post", "Delete your post or remove another user's post from your feed.", async () => {
     const postId = post.dataset.postId;
+    if (post.dataset.isOwner === "false") {
+      if (confirm("You did not post this. Do you want to delete it from your feed?")) removePostFromThisFeed();
+      return;
+    }
     if (!postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
       alert("This post is missing its server ID. Refresh the page and try again.");
       return;
     }
+    if (post.dataset.isOwner === "true" && !confirm("Permanently delete this post and its uploaded media?")) return;
     if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
       try {
         const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
+        if (response.status === 403) {
+          post.dataset.isOwner = "false";
+          if (confirm("You did not post this. Do you want to delete it from your feed?")) removePostFromThisFeed();
+          return;
+        }
         if (!response.ok) throw new Error();
       } catch { alert("The post could not be deleted from the server."); return; }
     }

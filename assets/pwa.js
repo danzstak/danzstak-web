@@ -2,8 +2,7 @@
 
 let installPrompt = null;
 let installDismissTimer = null;
-const installShownKey = "danzstak_install_prompt_shown";
-const signedInPage = /(?:feed|profile)\.html$/i.test(window.location.pathname);
+const signedInPage = /(?:feed|profile|messages)\.html$/i.test(window.location.pathname);
 const installButton = document.createElement("button");
 installButton.type = "button";
 installButton.className = "install-app-button";
@@ -12,8 +11,7 @@ installButton.hidden = true;
 document.body.appendChild(installButton);
 
 function showInstallButtonTemporarily() {
-  if (!signedInPage || sessionStorage.getItem(installShownKey) === "1") return;
-  sessionStorage.setItem(installShownKey, "1");
+  if (!signedInPage || standalone) return;
   installButton.hidden = false;
   installButton.classList.remove("install-app-button--leaving");
   clearTimeout(installDismissTimer);
@@ -53,6 +51,5 @@ window.addEventListener("appinstalled", () => {
   installButton.hidden = true;
 });
 
-const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-if (isiOS && !standalone) showInstallButtonTemporarily();
+if (!standalone && signedInPage) setTimeout(showInstallButtonTemporarily, 0);

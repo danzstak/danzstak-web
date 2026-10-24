@@ -255,7 +255,7 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-23">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-24">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=1">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261024-6">
 </head>
@@ -482,7 +482,7 @@ const featureCopy = {
 };
 
 // CREATE THE VISUAL DISPLAY OF A POST
-function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "") {
+function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null) {
 
   const article = document.createElement("article");
   article.className = "post";
@@ -490,6 +490,7 @@ function createPostElement(content, author = "DanzStak Member", createdAt = null
     article.dataset.postId = postId;
     article.id = "post-" + postId;
   }
+  if (typeof isOwner === "boolean") article.dataset.isOwner = String(isOwner);
 
   const header = document.createElement("div");
   header.className = "post-header";
@@ -624,9 +625,12 @@ async function loadPosts() {
       return;
     }
 
+    const hiddenPostIds = new Set(JSON.parse(localStorage.getItem("danzstak-hidden-posts") || "[]"));
+
     data.posts.forEach(post => {
 
       if (typeof post.content !== "string") return;
+      if (post.postId && hiddenPostIds.has(String(post.postId))) return;
 
       const article = createPostElement(
         post.content,
@@ -635,7 +639,8 @@ async function loadPosts() {
         post.audience,
         post.mediaUrl,
         post.mediaType,
-        post.postId
+        post.postId,
+        typeof post.isOwner === "boolean" ? post.isOwner : null
       );
 
       if (!post.mediaUrl && post.mediaKey && post.mediaType) {
@@ -755,7 +760,8 @@ publishBtn.addEventListener("click", async () => {
         savedPost.audience || audience,
         mediaUrl,
         mediaType,
-        savedPost.postId
+        savedPost.postId,
+        true
       )
     );
 
@@ -890,10 +896,10 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 </script>
 
-<script src="assets/feed-enhancements.js?v=20261024-31" defer></script>
+<script src="assets/feed-enhancements.js?v=20261024-32" defer></script>
 <script src="assets/session-activity.js?v=1" defer></script>
 <script src="assets/incoming-calls.js?v=1" defer></script>
 <script src="assets/logout.js?v=1" defer></script>
-<script src="assets/pwa.js" defer></script>
+<script src="assets/pwa.js?v=20261024-3" defer></script>
 </body>
 </html>
