@@ -6,6 +6,8 @@ const logoutBtn = document.getElementById("logoutBtn");
 const feedBtn = document.getElementById("feedBtn");
 const status = document.getElementById("sessionStatus");
 const signupBtn = document.getElementById("signupBtn");
+const publicExploreBtn = document.getElementById("publicExploreBtn");
+const legalConsent = document.getElementById("legalConsent");
 const legalAgreement = document.getElementById("legalAgreement");
 const legalVersion = "2026-10-24";
 
@@ -33,6 +35,9 @@ function showSession(loggedIn, message) {
   loginBtn.hidden = loggedIn;
   logoutBtn.hidden = !loggedIn;
   feedBtn.hidden = !loggedIn;
+  signupBtn.hidden = loggedIn;
+  publicExploreBtn.hidden = loggedIn;
+  legalConsent.hidden = loggedIn;
   status.textContent = message;
   status.hidden = !message;
 }
@@ -50,7 +55,8 @@ async function checkSession() {
 
       if (data.authenticated === true) {
         sessionStorage.removeItem("danzstak_install_prompt_shown");
-        showSession(true, "Signed in. Open Feed when ready.");
+        showSession(true, "");
+        window.location.replace("feed.html");
         return;
       }
     }
