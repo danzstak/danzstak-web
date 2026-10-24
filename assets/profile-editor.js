@@ -82,8 +82,25 @@ function applyProfileMedia(saved) {
   if (saved.cover) { cover.style.backgroundImage = `url("${saved.cover}")`; cover.classList.add("has-photo"); }
 }
 
+function addRemoveImageButton(label, field, target) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.addEventListener("click", () => {
+    if (!confirm(`${label}?`)) return;
+    const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
+    delete saved[field];
+    localStorage.setItem(profileMediaKey, JSON.stringify(saved));
+    target.style.backgroundImage = "";
+    target.classList.remove("has-photo");
+  });
+  mediaTools.appendChild(button);
+}
+
 addProfileImageButton("Change Profile Photo", document.getElementById("profileInitial"), "avatar");
 addProfileImageButton("Change Cover Photo", document.querySelector(".cover"), "cover");
+addRemoveImageButton("Remove Profile Photo", "avatar", document.getElementById("profileInitial"));
+addRemoveImageButton("Remove Cover Photo", "cover", document.querySelector(".cover"));
 const videoButton = document.createElement("button");
 videoButton.type = "button";
 videoButton.textContent = "Add Profile Video";
@@ -135,14 +152,29 @@ tabs.addEventListener("click", event => {
   if (name !== "About") {
     tabMessage.replaceChildren();
     if (name === "Media" && profileGallery.length) {
-      for (const item of profileGallery) {
+      for (const item of [...profileGallery]) {
+        const wrap = document.createElement("div");
+        wrap.style.marginBottom = "14px";
         const video = document.createElement("video");
         video.src = item.url;
         video.controls = true;
         video.style.width = "100%";
         video.style.maxHeight = "480px";
         video.style.borderRadius = "10px";
-        tabMessage.appendChild(video);
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "secondary";
+        remove.textContent = "Delete Video";
+        remove.addEventListener("click", () => {
+          if (!confirm("Delete this profile video?")) return;
+          const index = profileGallery.indexOf(item);
+          if (index >= 0) profileGallery.splice(index, 1);
+          URL.revokeObjectURL(item.url);
+          wrap.remove();
+          if (!profileGallery.length) tabMessage.textContent = "No media to show yet.";
+        });
+        wrap.append(video, remove);
+        tabMessage.appendChild(wrap);
       }
     } else {
       tabMessage.textContent = name === "Posts" ? "Your posts will appear here." : `No ${name.toLowerCase()} to show yet.`;

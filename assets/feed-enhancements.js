@@ -274,6 +274,43 @@ function addShareButton(post) {
   actions.appendChild(button);
 }
 
+function addPostDeleteButton(post) {
+  const actions = post.querySelector(".post-actions");
+  if (!actions || actions.querySelector(".deletePostBtn")) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "deletePostBtn";
+  button.textContent = "Delete";
+  button.addEventListener("click", async () => {
+    if (!confirm("Permanently delete this post?")) return;
+    const postId = post.dataset.postId;
+    if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
+      try {
+        const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
+        if (!response.ok) throw new Error();
+      } catch {
+        alert("The post could not be deleted from the server.");
+        return;
+      }
+    }
+    post.remove();
+  });
+  actions.appendChild(button);
+}
+
+function addCommentDelete(comment) {
+  if (comment.querySelector(".deleteCommentBtn")) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "deleteCommentBtn";
+  button.textContent = "Delete";
+  button.style.marginLeft = "10px";
+  button.addEventListener("click", () => {
+    if (confirm("Delete this comment?")) comment.remove();
+  });
+  comment.appendChild(button);
+}
+
 function addReactionButton(post) {
   const actions = post.querySelector(".post-actions");
   if (!actions || actions.querySelector(".reactionBtn")) return;
@@ -291,11 +328,13 @@ function addReactionButton(post) {
   actions.appendChild(button);
 }
 
-document.querySelectorAll("#feed .post").forEach(post => { addReactionButton(post); addShareButton(post); });
+document.querySelectorAll("#feed .post").forEach(post => { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); });
 new MutationObserver(records => {
   for (const record of records) {
     record.addedNodes.forEach(node => {
-      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post")) { addReactionButton(node); addShareButton(node); }
+      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post")) { addReactionButton(node); addShareButton(node); addPostDeleteButton(node); }
+      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".comment")) addCommentDelete(node);
+      if (node.nodeType === Node.ELEMENT_NODE) node.querySelectorAll?.(".comment").forEach(addCommentDelete);
     });
   }
-}).observe(document.getElementById("feed"), { childList: true });
+}).observe(document.getElementById("feed"), { childList: true, subtree: true });
