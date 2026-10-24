@@ -156,8 +156,16 @@ onlineUsers?.addEventListener("click", event => {
 
 textButton?.addEventListener("click", event => {
   event.stopImmediatePropagation();
-  loadDirectMessages(true);
+  const email = contactInput.value.trim().toLowerCase();
+  if (!email) { callStatus.textContent = "Select a friend or group member first."; return; }
+  openConversation(cachedConversations.find(item => item.contactEmail === email) || { contactEmail: email, name: email.split("@")[0], picture: "" });
 }, true);
+
+window.addEventListener("danzstak-contact-selected", event => {
+  const selected = event.detail;
+  if (!selected?.contactEmail) return;
+  openConversation(selected);
+});
 
 messageForm?.addEventListener("submit", async event => {
   event.preventDefault();
