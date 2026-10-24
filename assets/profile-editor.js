@@ -57,9 +57,15 @@ function addProfileImageButton(label, target, field) {
   input.addEventListener("change", () => {
     const file = input.files[0];
     if (!file) return;
-    if (!file.type.startsWith("image/") || file.size > 1024 * 1024) {
-      alert("Profile images must be JPG, PNG, or WebP and no larger than 1 MB.");
+    if (!file.type.startsWith("image/")) {
+      alert("Profile images must be JPG, PNG, or WebP.");
       input.value = "";
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      const sessionUrl = URL.createObjectURL(file);
+      target.style.backgroundImage = `url("${sessionUrl}")`;
+      target.classList.add("has-photo");
       return;
     }
     const reader = new FileReader();

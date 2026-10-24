@@ -173,9 +173,11 @@ if (composerActions && publishButton) {
     input.addEventListener("change", () => {
       const file = input.files[0];
       if (!file) return;
-      if (!file.type.startsWith(kind + "/") || file.size > maxBytes) {
+      if (!file.type.startsWith(kind + "/") || (maxBytes && file.size > maxBytes)) {
         input.value = "";
-        alert(`${label} must be a supported ${kind} file smaller than ${Math.round(maxBytes / 1048576)} MB.`);
+        alert(maxBytes
+          ? `${label} must be a supported ${kind} file smaller than ${Math.round(maxBytes / 1048576)} MB.`
+          : `${label} must be a supported ${kind} file.`);
         return;
       }
       if (!checkbox.checked) {
@@ -197,7 +199,7 @@ if (composerActions && publishButton) {
     mediaTools.append(button, input);
   }
 
-  mediaPicker("Add Photo", "image/jpeg,image/png,image/webp,image/gif", "image", 10 * 1024 * 1024);
+  mediaPicker("Add Photo", "image/jpeg,image/png,image/webp,image/gif", "image", null);
   mediaPicker("Add Video", "video/mp4,video/webm,video/quicktime", "video", 100 * 1024 * 1024);
   const emojiButton = document.createElement("button");
   emojiButton.type = "button";
