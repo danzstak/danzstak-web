@@ -7,6 +7,36 @@ const details = profileContent.querySelector(".details");
 const handleElement = document.getElementById("profileHandle");
 const profileMediaKey = "danzstak_profile_media";
 const profileGallery = [];
+const profileApi = "https://api.danzstak.com";
+const viewingOtherProfile = Boolean(new URLSearchParams(location.search).get("user"));
+
+async function saveCloudProfile(changes) {
+  const response = await fetch(profileApi + "/profiles", {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(changes)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "Profile could not be saved");
+  window.danzstakCurrentProfile = data.profile || window.danzstakCurrentProfile;
+  return data.profile;
+}
+
+async function uploadCloudProfileMedia(file, field) {
+  const ticketResponse = await fetch(profileApi + "/stories", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contentType: file.type })
+  });
+  if (!ticketResponse.ok) throw new Error("Image upload could not start");
+  const ticket = await ticketResponse.json();
+  const uploadResponse = await fetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+  if (!uploadResponse.ok) throw new Error("Image upload failed");
+  return saveCloudProfile({ [field]: ticket.mediaKey });
+}
 
 const bioElement = document.createElement("p");
 bioElement.className = "profile-bio";
@@ -54,12 +84,23 @@ function addProfileImageButton(label, target, field) {
   button.addEventListener("click", () => {
     if (confirm("Do you certify that you created this image and it contains no third-party copyrighted material?")) input.click();
   });
-  input.addEventListener("change", () => {
+  input.addEventListener("change", async () => {
     const file = input.files[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       alert("Profile images must be JPG, PNG, or WebP.");
       input.value = "";
+      return;
+    }
+    if (window.danzstakCurrentProfile?.cloudProfile) {
+      button.disabled = true;
+      try {
+        const profile = await uploadCloudProfileMedia(file, field === "avatar" ? "avatarKey" : "coverKey");
+        if (field === "avatar" && profile?.picture) { target.style.backgroundImage = `url("${profile.picture}")`; target.textContent = ""; }
+        if (field === "cover" && profile?.cover) target.style.backgroundImage = `url("${profile.cover}")`;
+        target.classList.add("has-photo");
+      } catch (error) { alert(error.message); }
+      finally { button.disabled = false; input.value = ""; }
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
@@ -99,8 +140,14 @@ function addRemoveImageButton(label, field, target) {
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = label;
-  button.addEventListener("click", () => {
+  button.addEventListener("click", async () => {
     if (!confirm(`${label}?`)) return;
+    if (window.danzstakCurrentProfile?.cloudProfile) {
+      button.disabled = true;
+      try { await saveCloudProfile({ [field === "avatar" ? "avatarKey" : "coverKey"]: "" }); }
+      catch (error) { alert(error.message); button.disabled = false; return; }
+      button.disabled = false;
+    }
     const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
     delete saved[field];
     localStorage.setItem(profileMediaKey, JSON.stringify(saved));
@@ -130,7 +177,8 @@ repositionButton.addEventListener("click", () => {
 coverElement.addEventListener("pointerdown", event => {
   if (!repositioning) return;
   const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
-  dragStart = { x: event.clientX, y: event.clientY, coverX: saved.coverX ?? 50, coverY: saved.coverY ?? 50 };
+  const cloud = window.danzstakCurrentProfile;
+  dragStart = { x: event.clientX, y: event.clientY, coverX: cloud?.cloudProfile ? (cloud.coverX ?? 50) : (saved.coverX ?? 50), coverY: cloud?.cloudProfile ? (cloud.coverY ?? 50) : (saved.coverY ?? 50) };
   coverElement.setPointerCapture(event.pointerId);
 });
 coverElement.addEventListener("pointermove", event => {
@@ -142,19 +190,23 @@ coverElement.addEventListener("pointermove", event => {
   coverElement.dataset.coverX = String(x);
   coverElement.dataset.coverY = String(y);
 });
-coverElement.addEventListener("pointerup", () => {
+coverElement.addEventListener("pointerup", async () => {
   if (!dragStart) return;
   const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
   saved.coverX = Number(coverElement.dataset.coverX || dragStart.coverX);
   saved.coverY = Number(coverElement.dataset.coverY || dragStart.coverY);
   localStorage.setItem(profileMediaKey, JSON.stringify(saved));
+  if (window.danzstakCurrentProfile?.cloudProfile) {
+    try { await saveCloudProfile({ coverX: saved.coverX, coverY: saved.coverY }); }
+    catch (error) { alert(error.message); }
+  }
   dragStart = null;
 });
 mediaTools.appendChild(repositionButton);
 const fitCoverButton = document.createElement("button");
 fitCoverButton.type = "button";
 fitCoverButton.textContent = "Fit Entire Cover";
-fitCoverButton.addEventListener("click", () => {
+fitCoverButton.addEventListener("click", async () => {
   if (!coverElement.classList.contains("has-photo")) return alert("Add a cover photo first.");
   const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
   saved.coverFit = !saved.coverFit;
@@ -163,6 +215,10 @@ fitCoverButton.addEventListener("click", () => {
   coverElement.style.backgroundRepeat = "no-repeat";
   fitCoverButton.classList.toggle("active", saved.coverFit);
   fitCoverButton.textContent = saved.coverFit ? "Fill Cover Box" : "Fit Entire Cover";
+  if (window.danzstakCurrentProfile?.cloudProfile) {
+    try { await saveCloudProfile({ coverFit: saved.coverFit }); }
+    catch (error) { alert(error.message); }
+  }
 });
 try {
   const savedCover = JSON.parse(localStorage.getItem(profileMediaKey) || "{}");
@@ -193,6 +249,10 @@ videoInput.addEventListener("change", () => {
 });
 mediaTools.append(videoButton, videoInput);
 actions.insertAdjacentElement("afterend", mediaTools);
+if (viewingOtherProfile) {
+  editButton.hidden = true;
+  mediaTools.hidden = true;
+}
 
 const tabs = document.createElement("nav");
 tabs.className = "profile-tabs";
@@ -278,11 +338,13 @@ function applyProfile(profile) {
   document.getElementById("profileWork").textContent = profile.work || "Not added";
   document.getElementById("profileWebsite").textContent = profile.website || "Not added";
   const name = document.getElementById("profileName").textContent.trim();
-  document.getElementById("profileInitial").textContent = name.charAt(0).toUpperCase() || "D";
+  const avatar = document.getElementById("profileInitial");
+  if (profile.picture) { avatar.style.backgroundImage = `url("${profile.picture}")`; avatar.classList.add("has-photo"); avatar.textContent = ""; }
+  else avatar.textContent = name.charAt(0).toUpperCase() || "D";
 }
 
 editButton.addEventListener("click", () => {
-  const profile = savedProfile();
+  const profile = window.danzstakCurrentProfile?.cloudProfile ? window.danzstakCurrentProfile : savedProfile();
   panel.elements.name.value = profile.name || document.getElementById("profileName").textContent;
   panel.elements.handle.value = profile.handle || handleElement.textContent.replace(/^@/, "");
   panel.elements.bio.value = profile.bio || "";
@@ -294,19 +356,38 @@ editButton.addEventListener("click", () => {
 });
 
 panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; });
-panel.addEventListener("submit", event => {
+panel.addEventListener("submit", async event => {
   event.preventDefault();
   if (!panel.reportValidity()) return;
   const profile = Object.fromEntries(new FormData(panel).entries());
   profile.handle = profile.handle.replace(/^@/, "");
-  localStorage.setItem(profileKey, JSON.stringify(profile));
-  applyProfile(profile);
-  panel.hidden = true;
   const status = document.getElementById("profileStatus");
-  status.textContent = "Profile saved in this browser. Cloud sync will activate with the backend deployment.";
+  const submit = panel.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  try {
+    if (window.danzstakCurrentProfile?.cloudProfile) {
+      const saved = await saveCloudProfile(profile);
+      applyProfile(saved || profile);
+      status.textContent = "Profile saved to your DanzStak account.";
+    } else {
+      localStorage.setItem(profileKey, JSON.stringify(profile));
+      applyProfile(profile);
+      status.textContent = "Profile saved in this browser. Cloud sync is temporarily unavailable.";
+    }
+    panel.hidden = true;
+  } catch (error) {
+    status.textContent = error.message;
+  } finally { submit.disabled = false; }
   status.hidden = false;
 });
 
 applyProfile(savedProfile());
 try { applyProfileMedia(JSON.parse(localStorage.getItem(profileMediaKey) || "{}")); } catch { /* Ignore corrupt local drafts. */ }
-window.addEventListener("danzstak:profile-loaded", () => applyProfile(savedProfile()));
+window.addEventListener("danzstak:profile-loaded", event => {
+  const profile = event.detail || {};
+  applyProfile(profile.cloudProfile ? profile : savedProfile());
+  if (profile.cloudProfile) {
+    fitCoverButton.classList.toggle("active", Boolean(profile.coverFit));
+    fitCoverButton.textContent = profile.coverFit ? "Fill Cover Box" : "Fit Entire Cover";
+  }
+});
