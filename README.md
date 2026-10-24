@@ -25,3 +25,5 @@ The browser receives only the opaque `__Host-danzstak_session` cookie. Cognito t
 ## Local verification
 
 Run `powershell -ExecutionPolicy Bypass -File ./test-site.ps1` before publishing. It checks local page references, duplicate IDs, JavaScript syntax, removal of the retired test feed, and that the feed's inline application script is covered by its exact Content Security Policy hash.
+
+Run `powershell -ExecutionPolicy Bypass -File ./test-infrastructure.ps1` before deploying the backend. It enforces the inline CloudFormation template size limit, validates the embedded Lambda's JavaScript syntax, and checks the per-user message-deletion safeguards.
