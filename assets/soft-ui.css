@@ -1,0 +1,11 @@
+:root{--gel-blue:#1769e0;--gel-purple:#8c52e5;--gel-shadow:0 8px 20px rgba(26,34,56,.16),inset 0 1px 0 rgba(255,255,255,.7)}
+button,.button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease;border-radius:14px;-webkit-tap-highlight-color:transparent}
+button:hover,.button:hover{filter:brightness(1.04);transform:translateY(-1px)}
+button:active,.button:active{transform:translateY(1px) scale(.985);box-shadow:inset 0 2px 6px rgba(0,0,0,.18)}
+.primary,.button{background:linear-gradient(145deg,var(--gel-purple),#7146cc);border:1px solid rgba(255,255,255,.22);box-shadow:var(--gel-shadow);color:#fff}
+.topbar .topnav button{background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.08));border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 5px 14px rgba(0,0,0,.12);backdrop-filter:blur(12px)}
+.post-actions button,.secondary,.profile-media-tools button,.profile-tabs button{border:1px solid rgba(154,164,178,.35);background:linear-gradient(145deg,#fff,#e9edf3);box-shadow:0 5px 13px rgba(30,42,65,.12),inset 0 1px 0 #fff;color:#253047;font-weight:750}
+.post-menu-toggle{background:linear-gradient(145deg,#fff,#e7ebf1)!important;box-shadow:0 4px 12px rgba(30,42,65,.14),inset 0 1px 0 #fff}
+.group-card .primary,.group-create-box .primary{background:linear-gradient(145deg,#3385ef,#1769e0)}
+.reaction-palette{backdrop-filter:blur(18px);background:rgba(255,255,255,.9)!important}
+@media(prefers-reduced-motion:reduce){button,.button{transition:none}button:hover,.button:hover{transform:none}}
