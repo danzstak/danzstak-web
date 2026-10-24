@@ -247,7 +247,7 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-5">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261024-4">
 </head>
 
@@ -310,9 +310,14 @@ textarea {
       ></textarea>
 
       <div class="composer-actions">
-        <span class="muted">
-          Photo and video uploads coming next
-        </span>
+        <label class="post-audience-control" for="postAudience">
+          <span>Audience</span>
+          <select id="postAudience" aria-label="Who can see this post">
+            <option value="public">🌎 Public</option>
+            <option value="friends">👥 Friends</option>
+            <option value="private">🔒 Only me</option>
+          </select>
+        </label>
 
         <button class="primary" id="publishBtn">
           Post
@@ -358,6 +363,7 @@ const feed = document.getElementById("feed");
 const feedStatus = document.getElementById("feedStatus");
 const publishBtn = document.getElementById("publishBtn");
 const postText = document.getElementById("postText");
+const postAudience = document.getElementById("postAudience");
 const newsFeedView = document.getElementById("newsFeedView");
 const featureView = document.getElementById("featureView");
 const featureTitle = document.getElementById("featureTitle");
@@ -375,7 +381,7 @@ const featureCopy = {
 };
 
 // CREATE THE VISUAL DISPLAY OF A POST
-function createPostElement(content, author = "DANZSTAK Member", createdAt = null) {
+function createPostElement(content, author = "DANZSTAK Member", createdAt = null, audience = "public") {
 
   const article = document.createElement("article");
   article.className = "post";
@@ -394,7 +400,17 @@ function createPostElement(content, author = "DANZSTAK Member", createdAt = null
       ? parsedDate.toLocaleString()
       : "Just now";
 
-  header.appendChild(time);
+  const audienceLabels = {
+    public: "🌎 Public",
+    friends: "👥 Friends",
+    private: "🔒 Only me"
+  };
+  const audienceBadge = document.createElement("span");
+  audienceBadge.className = "post-audience";
+  audienceBadge.textContent = audienceLabels[audience] || audienceLabels.public;
+  audienceBadge.setAttribute("aria-label", "Post audience: " + audienceBadge.textContent.replace(/^[^ ]+ /, ""));
+
+  header.append(time, audienceBadge);
 
   const body = document.createElement("p");
   body.className = "post-content";
@@ -466,7 +482,8 @@ async function loadPosts() {
       const article = createPostElement(
         post.content,
         "DANZSTAK Member",
-        post.createdAt
+        post.createdAt,
+        post.audience
       );
 
       feed.appendChild(article);
@@ -498,6 +515,9 @@ async function loadPosts() {
 publishBtn.addEventListener("click", async () => {
 
   const content = postText.value.trim();
+  const audience = ["public", "friends", "private"].includes(postAudience.value)
+    ? postAudience.value
+    : "public";
 
   if (!content) return;
   if (content.length > 5000) {
@@ -517,7 +537,7 @@ publishBtn.addEventListener("click", async () => {
         "Content-Type": "application/json"
       },
       credentials: "include",
-      body: JSON.stringify({ content })
+      body: JSON.stringify({ content, audience })
     });
 
     if (response.status === 401) {
@@ -536,7 +556,8 @@ publishBtn.addEventListener("click", async () => {
       createPostElement(
         savedPost.content,
         "You",
-        savedPost.createdAt
+        savedPost.createdAt,
+        savedPost.audience || audience
       )
     );
 
@@ -646,7 +667,7 @@ loadPosts();
 
 </script>
 
-<script src="assets/feed-enhancements.js?v=20261024-23" defer></script>
+<script src="assets/feed-enhancements.js?v=20261024-24" defer></script>
 <script src="assets/pwa.js" defer></script>
 </body>
 </html>
