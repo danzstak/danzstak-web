@@ -48,4 +48,15 @@ foreach ($protection in $requiredReelProtections) {
   }
 }
 
+$requiredDataPermissions = @(
+  'Action: [dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]',
+  'Action: [dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem]',
+  'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem]'
+)
+foreach ($permission in $requiredDataPermissions) {
+  if (-not $template.Contains($permission)) {
+    throw "Required DynamoDB permission is missing: $permission"
+  }
+}
+
 Write-Host "Infrastructure checks passed ($templateBytes-byte template; embedded Lambda syntax valid)."
