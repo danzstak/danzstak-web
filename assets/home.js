@@ -11,6 +11,7 @@ function showSession(loggedIn, message) {
   logoutBtn.hidden = !loggedIn;
   feedBtn.hidden = !loggedIn;
   status.textContent = message;
+  status.hidden = !message;
 }
 
 async function checkSession() {
@@ -25,7 +26,6 @@ async function checkSession() {
       const data = await response.json();
 
       if (data.authenticated === true) {
-        showSession(true, "Secure session active. Opening your feed...");
         window.location.replace("feed-secure-test.html");
         return;
       }
