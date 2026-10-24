@@ -239,7 +239,8 @@ Resources:
           const {CognitoIdentityProviderClient,ListUsersCommand}=require('@aws-sdk/client-cognito-identity-provider');
           const db=new DynamoDBClient({});
           const cognito=new CognitoIdentityProviderClient({region:'us-east-1'});
-          const json=(status,body)=>({statusCode:status,headers:{'content-type':'application/json','cache-control':'no-store'},body:JSON.stringify(body)});
+          const securityHeaders={'strict-transport-security':'max-age=63072000; includeSubDomains; preload','x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'no-referrer'};
+          const json=(status,body)=>({statusCode:status,headers:{...securityHeaders,'content-type':'application/json','cache-control':'no-store'},body:JSON.stringify(body)});
           const now=()=>Math.floor(Date.now()/1000);
           const attr=(user,name)=>user?.Attributes?.find(x=>x.Name===name)?.Value||'';
           function cookie(event,name){const all=[...(event.cookies||[])];if(event.headers?.cookie)all.push(...event.headers.cookie.split(';'));for(const part of all){const [key,...rest]=part.trim().split('=');if(key===name)return decodeURIComponent(rest.join('='));}return '';}
