@@ -247,7 +247,7 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-6">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-9">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261024-5">
 </head>
 
@@ -350,6 +350,11 @@ textarea {
       </p>
     </div>
 
+    <div class="panel" aria-labelledby="onlineUsersTitle">
+      <h3 id="onlineUsersTitle">Online Users</h3>
+      <div id="feedOnlineUsers"><p class="muted">Checking who is online…</p></div>
+    </div>
+
   </aside>
 
 </div>
@@ -370,6 +375,35 @@ const newsFeedView = document.getElementById("newsFeedView");
 const featureView = document.getElementById("featureView");
 const featureTitle = document.getElementById("featureTitle");
 const featureDescription = document.getElementById("featureDescription");
+
+async function loadOnlineUsers() {
+  const container = document.getElementById("feedOnlineUsers");
+  try {
+    await fetch("https://api.danzstak.com/calls/presence", { method: "POST", credentials: "include" });
+    const response = await fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    container.replaceChildren();
+    if (!(data.users || []).length) {
+      const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No other users online."; container.appendChild(empty); return;
+    }
+    for (const user of data.users) {
+      const row = document.createElement("div"); row.className = "feed-online-row";
+      const name = document.createElement("span"); name.textContent = "● " + user.email;
+      const action = document.createElement(user.friendStatus === "friends" ? "a" : "button");
+      if (user.friendStatus === "friends" || user.sharedGroup) { action.href = "messages.html?contact=" + encodeURIComponent(user.email); action.textContent = user.friendStatus === "friends" ? "Message" : "Group Message"; }
+      else if (user.friendStatus === "incoming") { action.type = "button"; action.textContent = "Accept"; action.addEventListener("click", async () => { await updateFeedFriend("/friends/respond", { email: user.email, accept: true }); }); }
+      else if (user.friendStatus === "outgoing") { action.type = "button"; action.textContent = "Requested"; action.disabled = true; }
+      else { action.type = "button"; action.textContent = "Add Friend"; action.addEventListener("click", async () => { await updateFeedFriend("/friends/request", { email: user.email }); }); }
+      row.append(name, action); container.appendChild(row);
+    }
+  } catch { /* Retry on the next refresh. */ }
+}
+
+async function updateFeedFriend(path, body) {
+  const response = await fetch("https://api.danzstak.com" + path, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
+  if (response.ok) loadOnlineUsers();
+}
 
 const featureCopy = {
   Friends: "Find and connect with artists, DJs, producers, and music fans.",
@@ -703,10 +737,13 @@ document.querySelectorAll("[data-feature]").forEach(control => {
 
 loadPosts();
 loadStories();
+loadOnlineUsers();
+setInterval(loadOnlineUsers, 30000);
 
 </script>
 
-<script src="assets/feed-enhancements.js?v=20261024-25" defer></script>
+<script src="assets/feed-enhancements.js?v=20261024-26" defer></script>
+<script src="assets/session-activity.js?v=1" defer></script>
 <script src="assets/pwa.js" defer></script>
 </body>
 </html>

@@ -95,12 +95,27 @@ function renderWorkspace(name) {
         const joined = Boolean(saved.GroupsJoined?.[group.id]);
         join.textContent = joined ? "Joined" : "Join Group";
         join.classList.toggle("is-selected", joined);
-        join.addEventListener("click", () => {
-          saved.GroupsJoined = saved.GroupsJoined || {};
-          saved.GroupsJoined[group.id] = !saved.GroupsJoined[group.id];
-          writeSections(saved);
-          join.textContent = saved.GroupsJoined[group.id] ? "Joined" : "Join Group";
-          join.classList.toggle("is-selected", saved.GroupsJoined[group.id]);
+        join.addEventListener("click", async () => {
+          const nextJoined = !saved.GroupsJoined?.[group.id];
+          join.disabled = true;
+          try {
+            const response = await fetch("https://api.danzstak.com/groups/membership", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ groupId: group.id, joined: nextJoined })
+            });
+            if (!response.ok) throw new Error("Membership could not be saved");
+            saved.GroupsJoined = saved.GroupsJoined || {};
+            saved.GroupsJoined[group.id] = nextJoined;
+            writeSections(saved);
+            join.textContent = nextJoined ? "Joined" : "Join Group";
+            join.classList.toggle("is-selected", nextJoined);
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            join.disabled = false;
+          }
         });
         card.append(category, title, description);
         const moderation = document.createElement("div");
