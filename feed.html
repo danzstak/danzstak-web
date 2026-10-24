@@ -265,7 +265,7 @@ textarea {
   <nav class="topnav">
     <button type="button" data-route="home">Home</button>
     <button type="button" data-feature="Friends">Friends</button>
-    <button type="button" data-feature="Messages">Messages</button>
+    <button type="button" id="messagesNav">Messages</button>
     <button type="button" data-feature="Notifications">Notifications</button>
   </nav>
 </header>
@@ -647,6 +647,9 @@ feed.addEventListener("keydown", (event) => {
 // LOAD POSTS AUTOMATICALLY ON PAGE OPEN OR REFRESH
 document.querySelector('[data-route="home"]').addEventListener("click", () => {
   window.location.assign("./");
+});
+document.getElementById("messagesNav").addEventListener("click", () => {
+  window.location.assign("messages.html");
 });
 
 document.querySelectorAll("[data-feature]").forEach(control => {

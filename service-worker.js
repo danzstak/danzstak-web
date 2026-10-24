@@ -1,12 +1,12 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v27";
+const CACHE = "danzstak-shell-v28";
 const SHELL = [
-  "/", "/index.html", "/feed.html", "/profile.html", "/privacy.html", "/terms.html",
+  "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-fb-v2.jpg",
   "/assets/home.js", "/assets/pwa.js", "/assets/profile.js", "/assets/profile-editor.js",
   "/assets/profile-editor.css", "/assets/feed-enhancements.js",
-  "/assets/feed-enhancements.css", "/assets/legal.css", "/assets/soft-ui.css"
+  "/assets/feed-enhancements.css", "/assets/chat.js", "/assets/chat.css", "/assets/legal.css", "/assets/soft-ui.css"
 ];
 
 self.addEventListener("install", event => {

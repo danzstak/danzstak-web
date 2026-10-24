@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1769e0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta name="referrer" content="no-referrer">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1">
+<link rel="stylesheet" href="assets/soft-ui.css?v=20261024-5">
+<link rel="stylesheet" href="assets/chat.css?v=1">
+<title>Messages | DANZSTAK</title>
+</head>
+<body>
+<header class="chat-header"><a href="feed.html" class="chat-brand"><img src="assets/danzstak-logo.png" alt=""><span>DANZSTAK</span></a><a class="button" href="feed.html">Back to Feed</a></header>
+<main class="chat-shell">
+  <section class="chat-sidebar" aria-labelledby="messagesTitle">
+    <h1 id="messagesTitle">Messages</h1>
+    <p class="chat-note">Private peer-to-peer chat and video. Share call codes only with the person you intend to call.</p>
+    <label>Contact email<input id="contactEmail" type="email" autocomplete="email" placeholder="friend@example.com"></label>
+    <div class="call-actions">
+      <button id="startCall" type="button" class="primary">Start call</button>
+      <button id="answerCall" type="button" class="secondary">Answer call</button>
+    </div>
+    <label>Your call code<textarea id="localSignal" readonly aria-label="Your call code"></textarea></label>
+    <button id="copySignal" type="button" class="secondary">Copy code</button>
+    <label>Their call code<textarea id="remoteSignal" aria-label="Their call code" placeholder="Paste the other person's code"></textarea></label>
+    <button id="applySignal" type="button" class="primary">Connect</button>
+    <p id="callStatus" class="call-status" role="status">Ready to start a secure call.</p>
+  </section>
+  <section class="conversation" aria-label="Conversation">
+    <div class="video-grid">
+      <figure><video id="remoteVideo" autoplay playsinline></video><figcaption id="remoteLabel">Waiting for contact</figcaption></figure>
+      <figure class="local-video"><video id="localVideo" autoplay muted playsinline></video><figcaption>You</figcaption></figure>
+    </div>
+    <div class="media-controls" aria-label="Call controls">
+      <button id="toggleMic" type="button">Mute</button>
+      <button id="toggleCamera" type="button">Camera off</button>
+      <button id="hangUp" type="button" class="danger">End call</button>
+    </div>
+    <div id="messageList" class="message-list" aria-live="polite"><p class="system-message">Messages are encrypted in transit through the WebRTC connection and are not saved by this page.</p></div>
+    <form id="messageForm" class="message-form">
+      <label class="sr-only" for="messageInput">Message</label>
+      <input id="messageInput" maxlength="2000" autocomplete="off" placeholder="Write a message" disabled>
+      <button type="submit" class="primary" disabled>Send</button>
+    </form>
+  </section>
+</main>
+<script src="assets/chat.js?v=1" defer></script>
+<script src="assets/pwa.js" defer></script>
+</body>
+</html>
