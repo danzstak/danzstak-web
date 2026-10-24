@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self' 'sha256-lHHWjLLhDacHvDwK8WEDl2ro6f2kBfZoEAqVYrRfUuc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self' 'sha256-fToniU3BbJam0bTDXXEZ7u3UjaaNi9xagO5qkI72njU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -148,6 +148,16 @@ textarea {
 .post-header {
   font-weight: bold;
   margin-bottom: 12px;
+}
+
+.post-author {
+  color: inherit;
+  text-decoration: none;
+}
+
+.post-author:hover,
+.post-author:focus-visible {
+  text-decoration: underline;
 }
 
 .post-time {
@@ -509,7 +519,7 @@ const featureCopy = {
 };
 
 // CREATE THE VISUAL DISPLAY OF A POST
-function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null) {
+function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorEmail = "") {
 
   const article = document.createElement("article");
   article.className = "post";
@@ -521,7 +531,10 @@ function createPostElement(content, author = "DanzStak Member", createdAt = null
 
   const header = document.createElement("div");
   header.className = "post-header";
-  header.textContent = author;
+  const authorLabel = authorEmail ? document.createElement("a") : document.createElement("span");
+  authorLabel.className = "post-author";
+  authorLabel.textContent = author;
+  if (authorEmail) authorLabel.href = "profile.html?user=" + encodeURIComponent(authorEmail);
 
   const time = document.createElement("div");
   time.className = "post-time";
@@ -543,7 +556,7 @@ function createPostElement(content, author = "DanzStak Member", createdAt = null
   audienceBadge.textContent = audienceLabels[audience] || audienceLabels.public;
   audienceBadge.setAttribute("aria-label", "Post audience: " + audienceBadge.textContent.replace(/^[^ ]+ /, ""));
 
-  header.append(time, audienceBadge);
+  header.append(authorLabel, time, audienceBadge);
 
   const body = document.createElement("p");
   body.className = "post-content";
@@ -570,6 +583,7 @@ function createPostElement(content, author = "DanzStak Member", createdAt = null
     media.src = mediaUrl;
     media.className = "post-media";
     media.loading = "lazy";
+    if (mediaType === "image") media.alt = "Photo shared by " + author;
     if (mediaType === "video") { media.controls = true; media.playsInline = true; }
     article.appendChild(media);
   }
@@ -592,6 +606,7 @@ async function loadStories() {
       item.setAttribute("role", "button");
       item.dataset.storyId = story.storyId;
       item.title = story.content;
+      item.setAttribute("aria-label", "Story from " + story.userEmail.split("@")[0] + ": " + story.content);
       if (story.mediaType === "image" && story.mediaUrl) {
         item.style.backgroundImage = `linear-gradient(transparent,#0009),url("${story.mediaUrl}")`;
         item.style.backgroundSize = "cover";
@@ -678,15 +693,18 @@ async function loadPosts() {
       if (typeof post.content !== "string") return;
       if (post.postId && hiddenPostIds.has(String(post.postId))) return;
 
+      const authorEmail = String(post.authorEmail || post.userEmail || post.email || "").toLowerCase();
+      const authorName = post.authorName || post.name || (authorEmail ? authorEmail.split("@")[0] : "DanzStak Member");
       const article = createPostElement(
         post.content,
-        "DanzStak Member",
+        authorName,
         post.createdAt,
         post.audience,
         post.mediaUrl,
         post.mediaType,
         post.postId,
-        typeof post.isOwner === "boolean" ? post.isOwner : null
+        typeof post.isOwner === "boolean" ? post.isOwner : null,
+        authorEmail
       );
 
       if (!post.mediaUrl && post.mediaKey && post.mediaType) {
@@ -699,6 +717,7 @@ async function loadPosts() {
           media.src = ticket.mediaUrl;
           media.className = "post-media";
           media.loading = "lazy";
+          if (post.mediaType === "image") media.alt = "Photo shared by " + authorName;
           if (post.mediaType === "video") { media.controls = true; media.playsInline = true; }
           article.querySelector(".post-content")?.insertAdjacentElement("afterend", media);
         });
