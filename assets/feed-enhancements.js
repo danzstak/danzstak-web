@@ -829,14 +829,18 @@ function addPostDeleteButton(post) {
     button.querySelector("small").textContent = values[next];
   });
   option("Move to archive", "Hide this post without deleting it.", () => { post.hidden = true; });
-  option("Move to trash", "Items in trash are scheduled for deletion after 30 days.", async () => {
-    if (!confirm("Move this post to trash?")) return;
+  option("Delete post", "Permanently remove this post and its uploaded media.", async () => {
+    if (!confirm("Permanently delete this post?")) return;
     const postId = post.dataset.postId;
+    if (!postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
+      alert("This post is missing its server ID. Refresh the page and try again.");
+      return;
+    }
     if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
       try {
         const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
         if (!response.ok) throw new Error();
-      } catch { alert("The post could not be moved to trash on the server."); return; }
+      } catch { alert("The post could not be deleted from the server."); return; }
     }
     post.remove();
   });

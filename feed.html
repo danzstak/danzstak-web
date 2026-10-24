@@ -481,10 +481,14 @@ const featureCopy = {
 };
 
 // CREATE THE VISUAL DISPLAY OF A POST
-function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "") {
+function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "") {
 
   const article = document.createElement("article");
   article.className = "post";
+  if (postId) {
+    article.dataset.postId = postId;
+    article.id = "post-" + postId;
+  }
 
   const header = document.createElement("div");
   header.className = "post-header";
@@ -629,7 +633,8 @@ async function loadPosts() {
         post.createdAt,
         post.audience,
         post.mediaUrl,
-        post.mediaType
+        post.mediaType,
+        post.postId
       );
 
       if (!post.mediaUrl && post.mediaKey && post.mediaType) {
@@ -748,7 +753,8 @@ publishBtn.addEventListener("click", async () => {
         savedPost.createdAt,
         savedPost.audience || audience,
         mediaUrl,
-        mediaType
+        mediaType,
+        savedPost.postId
       )
     );
 
