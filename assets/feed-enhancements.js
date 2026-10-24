@@ -366,26 +366,97 @@ function addShareButton(post) {
 
 function addPostDeleteButton(post) {
   const actions = post.querySelector(".post-actions");
-  if (!actions || actions.querySelector(".deletePostBtn")) return;
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "deletePostBtn";
-  button.textContent = "Delete";
-  button.addEventListener("click", async () => {
-    if (!confirm("Permanently delete this post?")) return;
+  if (!actions || post.querySelector(".post-menu-toggle")) return;
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "post-menu-toggle";
+  toggle.textContent = "•••";
+  toggle.setAttribute("aria-label", "Post options");
+  toggle.setAttribute("aria-expanded", "false");
+  const menu = document.createElement("div");
+  menu.className = "post-options-menu";
+  menu.hidden = true;
+  const history = [];
+
+  function option(title, description, handler) {
+    const button = document.createElement("button");
+    button.type = "button";
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+    button.appendChild(strong);
+    if (description) {
+      const small = document.createElement("small");
+      small.textContent = description;
+      button.appendChild(small);
+    }
+    button.addEventListener("click", async () => { await handler(button); menu.hidden = true; toggle.setAttribute("aria-expanded", "false"); });
+    menu.appendChild(button);
+  }
+
+  option("Pin post", "Keep this post at the top of your feed.", button => {
+    const pinned = post.dataset.pinned === "true";
+    post.dataset.pinned = String(!pinned);
+    button.querySelector("strong").textContent = pinned ? "Pin post" : "Unpin post";
+    if (!pinned) post.parentElement.prepend(post);
+  });
+  option("Save post", "Add this to your saved items.", button => {
+    const saved = post.dataset.saved === "true";
+    post.dataset.saved = String(!saved);
+    button.querySelector("strong").textContent = saved ? "Save post" : "Unsave post";
+  });
+  option("View edit history", "See changes made to this post.", () => {
+    alert(history.length ? history.map((item, index) => `${index + 1}. ${item}`).join("\n") : "This post has not been edited.");
+  });
+  option("Edit post", "Change your post text.", () => {
+    const body = post.querySelector(".post-content");
+    const updated = prompt("Edit post", body.textContent);
+    if (updated === null || !updated.trim() || updated.trim() === body.textContent) return;
+    history.push(body.textContent);
+    body.textContent = updated.trim();
+  });
+  option("Who can comment?", "Everyone", button => {
+    const values = ["Everyone", "Friends", "Comments off"];
+    const current = Number(post.dataset.commentSetting || 0);
+    const next = (current + 1) % values.length;
+    post.dataset.commentSetting = String(next);
+    button.querySelector("small").textContent = values[next];
+    post.querySelector(".commentBtn").disabled = next === 2;
+  });
+  option("Edit privacy", "Public", button => {
+    const values = ["Public", "Friends", "Only me"];
+    const current = Number(post.dataset.privacySetting || 0);
+    const next = (current + 1) % values.length;
+    post.dataset.privacySetting = String(next);
+    button.querySelector("small").textContent = values[next];
+  });
+  option("Move to archive", "Hide this post without deleting it.", () => { post.hidden = true; });
+  option("Move to trash", "Items in trash are scheduled for deletion after 30 days.", async () => {
+    if (!confirm("Move this post to trash?")) return;
     const postId = post.dataset.postId;
     if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
       try {
         const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
         if (!response.ok) throw new Error();
-      } catch {
-        alert("The post could not be deleted from the server.");
-        return;
-      }
+      } catch { alert("The post could not be moved to trash on the server."); return; }
     }
     post.remove();
   });
-  actions.appendChild(button);
+  option("Turn off notifications", "Stop updates for this post.", button => {
+    const off = post.dataset.notificationsOff === "true";
+    post.dataset.notificationsOff = String(!off);
+    button.querySelector("strong").textContent = off ? "Turn off notifications" : "Turn on notifications";
+  });
+  option("Copy link", "Copy a shareable link to this post.", async () => {
+    try { await navigator.clipboard.writeText(location.href + (post.dataset.postId ? `#post-${post.dataset.postId}` : "")); }
+    catch { alert("Copying is unavailable in this browser."); }
+  });
+
+  toggle.addEventListener("click", () => {
+    document.querySelectorAll(".post-options-menu").forEach(other => { if (other !== menu) other.hidden = true; });
+    menu.hidden = !menu.hidden;
+    toggle.setAttribute("aria-expanded", String(!menu.hidden));
+  });
+  post.append(toggle, menu);
 }
 
 function addCommentDelete(comment) {
