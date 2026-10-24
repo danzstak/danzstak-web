@@ -247,7 +247,7 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-16">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261024-17">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261024-5">
 </head>
 
@@ -274,7 +274,7 @@ textarea {
 
   <aside class="left">
     <div class="panel menu">
-      <a href="feed.html" class="active">🏠 News Feed</a>
+      <a href="feed.html" class="active">🏠 Feed</a>
       <a href="profile.html">👤 My Profile</a>
       <a href="#" data-feature="Friends">👥 Friends</a>
       <a href="#" data-feature="Photos">📷 Photos</a>
@@ -330,18 +330,24 @@ textarea {
       Loading saved posts...
     </p>
 
-    <section id="feed" aria-label="News Feed"></section>
+    <section id="feed" aria-label="Feed"></section>
     </div>
 
   </main>
 
   <aside class="right">
 
-    <div class="panel">
-      <h3>What's Happening</h3>
-      <p class="muted">
-        Events and music updates coming soon.
-      </p>
+    <div class="panel news-panel" aria-labelledby="newsPanelTitle">
+      <div class="news-panel-heading">
+        <h3 id="newsPanelTitle">News for You</h3>
+        <button id="addNewsInterest" class="news-interest-button" type="button">+ Interest</button>
+        <select id="newsInterest" aria-label="Choose your news interest">
+          <option value="music">Music</option><option value="top">Top News</option>
+          <option value="entertainment">Entertainment</option><option value="technology">Technology</option>
+          <option value="sports">Sports</option><option value="business">Business</option>
+        </select>
+      </div>
+      <div id="interestNews" class="interest-news"><p class="muted">Loading news…</p></div>
     </div>
 
     <div class="panel" aria-labelledby="onlineUsersTitle">
@@ -369,6 +375,34 @@ const newsFeedView = document.getElementById("newsFeedView");
 const featureView = document.getElementById("featureView");
 const featureTitle = document.getElementById("featureTitle");
 const featureDescription = document.getElementById("featureDescription");
+
+async function loadInterestNews() {
+  const select = document.getElementById("newsInterest"), container = document.getElementById("interestNews");
+  if (!select || !container) return;
+  const allowed = ["music", "top", "entertainment", "technology", "sports", "business"];
+  const saved = localStorage.getItem("danzstak-news-interest");
+  if (allowed.includes(saved)) select.value = saved;
+  container.innerHTML = '<p class="muted">Loading news…</p>';
+  try {
+    const response = await fetch("https://api.danzstak.com/news?interest=" + encodeURIComponent(select.value), { credentials: "include", cache: "no-store" });
+    if (!response.ok) throw new Error();
+    const data = await response.json();
+    container.replaceChildren();
+    for (const item of (data.items || []).slice(0, 6)) {
+      const link = document.createElement("a"); link.className = "news-card"; link.href = item.url; link.target = "_blank"; link.rel = "noopener noreferrer";
+      const title = document.createElement("strong"); title.textContent = item.title;
+      const source = document.createElement("small"); source.textContent = item.source || "News";
+      link.append(title, source); container.appendChild(link);
+    }
+    if (!container.children.length) container.innerHTML = '<p class="muted">No headlines available right now.</p>';
+  } catch { container.innerHTML = '<p class="muted">News is temporarily unavailable.</p>'; }
+}
+document.getElementById("newsInterest")?.addEventListener("change", event => { localStorage.setItem("danzstak-news-interest", event.target.value); loadInterestNews(); });
+document.getElementById("addNewsInterest")?.addEventListener("click", () => {
+  const select = document.getElementById("newsInterest");
+  select?.focus();
+  if (typeof select?.showPicker === "function") select.showPicker();
+});
 
 async function loadOnlineUsers() {
   const container = document.getElementById("feedOnlineUsers");
@@ -760,11 +794,12 @@ document.querySelectorAll("[data-feature]").forEach(control => {
 loadPosts();
 loadStories();
 loadOnlineUsers();
+loadInterestNews();
 setInterval(loadOnlineUsers, 30000);
 
 </script>
 
-<script src="assets/feed-enhancements.js?v=20261024-29" defer></script>
+<script src="assets/feed-enhancements.js?v=20261024-30" defer></script>
 <script src="assets/session-activity.js?v=1" defer></script>
 <script src="assets/logout.js?v=1" defer></script>
 <script src="assets/pwa.js" defer></script>
