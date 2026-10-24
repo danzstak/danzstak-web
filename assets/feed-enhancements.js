@@ -150,6 +150,79 @@ if (composerActions && publishButton) {
     alert("You must certify that the post is entirely your original content.");
     checkbox.focus();
   }, true);
+
+  const mediaTools = document.createElement("div");
+  mediaTools.style.display = "flex";
+  mediaTools.style.gap = "10px";
+  mediaTools.style.flexWrap = "wrap";
+  mediaTools.style.marginTop = "12px";
+  const preview = document.createElement("div");
+  preview.style.marginTop = "12px";
+  let selectedMedia = null;
+
+  function mediaPicker(label, accept, kind, maxBytes) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "secondary";
+    button.textContent = label;
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.hidden = true;
+    button.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      const file = input.files[0];
+      if (!file) return;
+      if (!file.type.startsWith(kind + "/") || file.size > maxBytes) {
+        input.value = "";
+        alert(`${label} must be a supported ${kind} file smaller than ${Math.round(maxBytes / 1048576)} MB.`);
+        return;
+      }
+      if (!checkbox.checked) {
+        input.value = "";
+        checkbox.focus();
+        alert("Certify that you created this media before selecting it.");
+        return;
+      }
+      if (selectedMedia?.url) URL.revokeObjectURL(selectedMedia.url);
+      selectedMedia = { file, kind, url: URL.createObjectURL(file) };
+      const media = document.createElement(kind === "image" ? "img" : "video");
+      media.src = selectedMedia.url;
+      media.style.maxWidth = "100%";
+      media.style.maxHeight = "420px";
+      media.style.borderRadius = "10px";
+      if (kind === "video") media.controls = true;
+      preview.replaceChildren(media);
+    });
+    mediaTools.append(button, input);
+  }
+
+  mediaPicker("Add Photo", "image/jpeg,image/png,image/webp,image/gif", "image", 10 * 1024 * 1024);
+  mediaPicker("Add Video", "video/mp4,video/webm,video/quicktime", "video", 100 * 1024 * 1024);
+  composerActions.parentElement.insertBefore(mediaTools, certification);
+  composerActions.parentElement.insertBefore(preview, certification);
+
+  publishButton.addEventListener("click", () => {
+    if (!selectedMedia) return;
+    const media = selectedMedia;
+    const observer = new MutationObserver(records => {
+      const post = records.flatMap(record => [...record.addedNodes]).find(node => node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post"));
+      if (!post) return;
+      const element = document.createElement(media.kind === "image" ? "img" : "video");
+      element.src = media.url;
+      element.style.width = "100%";
+      element.style.maxHeight = "560px";
+      element.style.objectFit = "contain";
+      element.style.borderRadius = "10px";
+      if (media.kind === "video") element.controls = true;
+      post.querySelector(".post-content").insertAdjacentElement("afterend", element);
+      preview.replaceChildren();
+      selectedMedia = null;
+      observer.disconnect();
+    });
+    observer.observe(document.getElementById("feed"), { childList: true });
+    setTimeout(() => observer.disconnect(), 10000);
+  }, true);
 }
 
 function addShareButton(post) {
