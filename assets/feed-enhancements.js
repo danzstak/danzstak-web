@@ -199,6 +199,35 @@ if (composerActions && publishButton) {
 
   mediaPicker("Add Photo", "image/jpeg,image/png,image/webp,image/gif", "image", 10 * 1024 * 1024);
   mediaPicker("Add Video", "video/mp4,video/webm,video/quicktime", "video", 100 * 1024 * 1024);
+  const emojiButton = document.createElement("button");
+  emojiButton.type = "button";
+  emojiButton.className = "secondary";
+  emojiButton.textContent = "Add Emoji";
+  const emojiPicker = document.createElement("div");
+  emojiPicker.hidden = true;
+  emojiPicker.style.width = "100%";
+  emojiPicker.style.padding = "10px";
+  emojiPicker.style.background = "#f0f2f5";
+  emojiPicker.style.borderRadius = "10px";
+  for (const emoji of ["😀", "😂", "😍", "🔥", "🎉", "👏", "❤️", "🤘", "🎤", "🎧", "💯", "🙏"]) {
+    const choice = document.createElement("button");
+    choice.type = "button";
+    choice.textContent = emoji;
+    choice.setAttribute("aria-label", "Insert " + emoji);
+    choice.style.fontSize = "24px";
+    choice.style.border = "0";
+    choice.style.background = "transparent";
+    choice.style.padding = "7px";
+    choice.addEventListener("click", () => {
+      const composer = document.getElementById("postText");
+      const start = composer.selectionStart;
+      composer.setRangeText(emoji, start, composer.selectionEnd, "end");
+      composer.focus();
+    });
+    emojiPicker.appendChild(choice);
+  }
+  emojiButton.addEventListener("click", () => { emojiPicker.hidden = !emojiPicker.hidden; });
+  mediaTools.append(emojiButton, emojiPicker);
   composerActions.parentElement.insertBefore(mediaTools, certification);
   composerActions.parentElement.insertBefore(preview, certification);
 
@@ -245,11 +274,28 @@ function addShareButton(post) {
   actions.appendChild(button);
 }
 
-document.querySelectorAll("#feed .post").forEach(addShareButton);
+function addReactionButton(post) {
+  const actions = post.querySelector(".post-actions");
+  if (!actions || actions.querySelector(".reactionBtn")) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "reactionBtn";
+  button.textContent = "React";
+  button.addEventListener("click", () => {
+    const reactions = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+    const current = reactions.indexOf(button.dataset.reaction || "");
+    const next = reactions[(current + 1) % reactions.length];
+    button.dataset.reaction = next;
+    button.textContent = next + " Reacted";
+  });
+  actions.appendChild(button);
+}
+
+document.querySelectorAll("#feed .post").forEach(post => { addReactionButton(post); addShareButton(post); });
 new MutationObserver(records => {
   for (const record of records) {
     record.addedNodes.forEach(node => {
-      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post")) addShareButton(node);
+      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post")) { addReactionButton(node); addShareButton(node); }
     });
   }
 }).observe(document.getElementById("feed"), { childList: true });
