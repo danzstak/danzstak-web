@@ -37,6 +37,8 @@ function openMessageReactions(item, x, y) {
 }
 
 function openConversation(conversation) {
+  document.body.classList.add("is-conversation-open");
+  if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: true }, location.origin);
   contactInput.value = conversation.contactEmail;
   directContact = "";
   conversationHeader.hidden = false;
@@ -122,7 +124,8 @@ chatSearch?.addEventListener("input", loadConversations);
 document.querySelectorAll("[data-chat-filter]").forEach(button => button.addEventListener("click", () => { document.querySelectorAll("[data-chat-filter]").forEach(item => item.classList.toggle("active", item === button)); activeFilter = button.dataset.chatFilter; loadConversations(); }));
 document.getElementById("headerPhone")?.addEventListener("click", () => document.getElementById("startPhone")?.click());
 document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
-document.getElementById("closeConversation")?.addEventListener("click", () => { conversationHeader.hidden = true; contactInput.value = ""; directContact = ""; messageInput.disabled = true; sendButton.disabled = true; });
+document.getElementById("minimizeConversation")?.addEventListener("click", () => { if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-minimize" }, location.origin); });
+document.getElementById("closeConversation")?.addEventListener("click", () => { conversationHeader.hidden = true; contactInput.value = ""; directContact = ""; messageInput.disabled = true; sendButton.disabled = true; document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: false }, location.origin); });
 for (const emoji of ["😀","😂","😍","❤️","👍","🔥","🎉","😢","😮","🙏","👏","🎵"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.addEventListener("click", () => { messageInput.value += emoji; emojiPalette.hidden = true; messageInput.focus(); }); emojiPalette.appendChild(button); }
 emojiButton?.addEventListener("click", () => { emojiPalette.hidden = !emojiPalette.hidden; });
 

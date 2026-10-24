@@ -220,6 +220,7 @@ textarea {
 .story-create { min-height: 104px; align-self: start; }
 .post-media { display:block; width:100%; max-height:560px; object-fit:contain; border-radius:10px; background:#0c111b; }
 .message-drawer{position:fixed;right:18px;bottom:18px;width:min(430px,calc(100vw - 24px));height:min(690px,calc(100vh - 84px));z-index:10000;background:#fff;border:1px solid #dce3ec;border-radius:18px;box-shadow:0 18px 60px #10182840;overflow:hidden}.message-drawer[hidden]{display:none}.message-drawer-bar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid #e5e9ef;font-weight:850}.message-drawer-close{min-width:34px;min-height:34px;padding:4px;border:0;background:transparent;font-size:1.35rem}.message-drawer iframe{display:block;width:100%;height:calc(100% - 46px);border:0;background:#f3f5f8}@media(max-width:560px){.message-drawer{right:6px;bottom:6px;width:calc(100vw - 12px);height:min(72vh,700px);border-radius:16px}}
+.message-drawer.is-conversation{width:min(360px,calc(100vw - 18px));height:min(540px,calc(100vh - 70px))}
 .composer-title { display: flex; align-items: center; gap: 12px; }
 .composer-avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #1769e0; color: white; font-weight: 900; }
 
@@ -857,6 +858,11 @@ document.getElementById("messagesNav").addEventListener("click", () => {
     document.body.appendChild(drawer);
   }
   drawer.hidden = false;
+});
+window.addEventListener("message", event => {
+  if (event.origin !== location.origin) return;
+  if (event.data?.type === "danzstak-chat-view") document.getElementById("messageDrawer")?.classList.toggle("is-conversation", event.data.open === true);
+  if (event.data?.type === "danzstak-chat-minimize") document.getElementById("messageDrawer")?.setAttribute("hidden", "");
 });
 
 document.querySelectorAll("[data-feature]").forEach(control => {
