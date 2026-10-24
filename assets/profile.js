@@ -36,6 +36,7 @@ async function loadProfile() {
     document.getElementById("profileInitial").textContent = name.charAt(0).toUpperCase() || "D";
     status.hidden = true;
     content.hidden = false;
+    window.dispatchEvent(new CustomEvent("danzstak:profile-loaded"));
   } catch (error) {
     status.textContent = "Unable to load your profile. Please return to the feed and try again.";
   }
