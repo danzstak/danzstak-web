@@ -578,9 +578,10 @@ async function loadStories() {
     document.getElementById("storiesLoading")?.remove();
     storiesRail.querySelectorAll(".story[data-story-id]").forEach(item => item.remove());
     for (const story of (data.stories || []).slice(0, 12)) {
-      const item = document.createElement("button");
-      item.type = "button";
+      const item = document.createElement("article");
       item.className = "story";
+      item.tabIndex = 0;
+      item.setAttribute("role", "button");
       item.dataset.storyId = story.storyId;
       item.title = story.content;
       if (story.mediaType === "image" && story.mediaUrl) {
@@ -599,6 +600,24 @@ async function loadStories() {
       label.textContent = story.userEmail.split("@")[0] + ": " + story.content.slice(0, 55);
       item.appendChild(label);
       item.addEventListener("click", () => alert(story.content));
+      item.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); item.click(); } });
+      if (story.isOwner) {
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "story-delete";
+        remove.setAttribute("aria-label", "Delete Story");
+        remove.textContent = "×";
+        remove.addEventListener("keydown", event => event.stopPropagation());
+        remove.addEventListener("click", async event => {
+          event.stopPropagation();
+          if (!confirm("Delete this Story now?")) return;
+          remove.disabled = true;
+          const deleted = await fetch("https://api.danzstak.com/stories/" + encodeURIComponent(story.storyId), { method: "DELETE", credentials: "include" });
+          if (deleted.ok) item.remove();
+          else { remove.disabled = false; alert("Story could not be deleted."); }
+        });
+        item.appendChild(remove);
+      }
       storiesRail.appendChild(item);
     }
   } catch { /* Feed still works if stories are temporarily unavailable. */ }
@@ -915,7 +934,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 </script>
 
-<script src="assets/feed-enhancements.js?v=20261025-2" defer></script>
+<script src="assets/feed-enhancements.js?v=20261025-3" defer></script>
 <script src="assets/session-activity.js?v=2" defer></script>
 <script src="assets/incoming-calls.js?v=1" defer></script>
 <script src="assets/logout.js?v=1" defer></script>
