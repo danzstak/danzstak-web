@@ -804,6 +804,93 @@ function renderReels() {
   }
 }
 
+function reelPlayer(url) {
+  const host = url.hostname.replace(/^www\./, "").toLowerCase();
+  const path = url.pathname;
+  if (/\.(?:mp4|webm|mov|m4v)$/i.test(path)) return { kind: "video", src: url.href };
+  let match;
+  if (host === "youtu.be") match = path.match(/^\/([^/?#]+)/);
+  else if (host.endsWith("youtube.com")) match = [null, url.searchParams.get("v") || path.match(/^\/(?:shorts|embed)\/([^/?#]+)/)?.[1]];
+  if (match?.[1]) return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(match[1]) + "?autoplay=1&mute=1&playsinline=1" };
+  if (host.endsWith("vimeo.com") && (match = path.match(/\/(\d+)/))) return { kind: "iframe", src: "https://player.vimeo.com/video/" + match[1] + "?autoplay=1&muted=1&playsinline=1" };
+  if (host.endsWith("tiktok.com") && (match = path.match(/\/video\/(\d+)/))) return { kind: "iframe", src: "https://www.tiktok.com/player/v1/" + match[1] + "?autoplay=1&loop=1" };
+  if (host.endsWith("facebook.com") || host === "fb.watch") return { kind: "iframe", src: "https://www.facebook.com/plugins/video.php?show_text=false&autoplay=true&href=" + encodeURIComponent(url.href) };
+  if (host.endsWith("instagram.com") && (match = path.match(/^\/(?:p|reel|tv)\/([^/?#]+)/))) return { kind: "iframe", src: "https://www.instagram.com/p/" + encodeURIComponent(match[1]) + "/embed/" };
+  if ((host.endsWith("dailymotion.com") && (match = path.match(/\/video\/([^/?#]+)/))) || (host === "dai.ly" && (match = path.match(/^\/([^/?#]+)/)))) return { kind: "iframe", src: "https://www.dailymotion.com/embed/video/" + encodeURIComponent(match[1]) + "?autoplay=1&mute=1" };
+  if (host.endsWith("streamable.com") && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", src: "https://streamable.com/e/" + encodeURIComponent(match[1]) + "?autoplay=1" };
+  if (host === "clips.twitch.tv" && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", src: "https://clips.twitch.tv/embed?autoplay=true&muted=true&clip=" + encodeURIComponent(match[1]) + "&parent=" + encodeURIComponent(location.hostname) };
+  if (host.endsWith("twitch.tv") && (match = path.match(/^\/videos\/(\d+)/))) return { kind: "iframe", src: "https://player.twitch.tv/?autoplay=true&muted=true&video=" + match[1] + "&parent=" + encodeURIComponent(location.hostname) };
+  return null;
+}
+
+function renderPlayableReels() {
+  reelsList.replaceChildren();
+  const reels = getReels();
+  if (!reels.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted reels-empty";
+    empty.textContent = "External reels shared by the community will appear here.";
+    reelsList.appendChild(empty);
+    return;
+  }
+  for (const reel of reels) {
+    const reelUrlValue = new URL(reel.url);
+    const card = document.createElement("article");
+    card.className = "reel-card";
+    const playerInfo = reelPlayer(reelUrlValue);
+    if (playerInfo?.kind === "video") {
+      const video = document.createElement("video");
+      video.className = "reel-player";
+      video.src = playerInfo.src;
+      video.controls = true;
+      video.playsInline = true;
+      video.autoplay = true;
+      video.muted = true;
+      video.loop = true;
+      video.preload = "metadata";
+      card.appendChild(video);
+    } else if (playerInfo?.kind === "iframe") {
+      const frame = document.createElement("iframe");
+      frame.className = "reel-player";
+      frame.src = playerInfo.src;
+      frame.title = reel.platform + " reel player";
+      frame.loading = "lazy";
+      frame.referrerPolicy = "strict-origin-when-cross-origin";
+      frame.allow = "autoplay; encrypted-media; fullscreen; picture-in-picture";
+      frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation");
+      frame.setAttribute("allowfullscreen", "");
+      card.appendChild(frame);
+    } else {
+      const unavailable = document.createElement("div");
+      unavailable.className = "reel-player-fallback";
+      unavailable.textContent = "This source does not provide an embeddable player.";
+      card.appendChild(unavailable);
+    }
+    const details = document.createElement("div");
+    details.className = "reel-details";
+    const platform = document.createElement("strong");
+    platform.textContent = reel.platform;
+    const open = document.createElement("a");
+    open.href = reel.url;
+    open.target = "_blank";
+    open.rel = "noopener noreferrer nofollow";
+    open.textContent = playerInfo ? "Open on source" : "Play on source";
+    const source = document.createElement("small");
+    source.textContent = reelUrlValue.hostname;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "reel-delete";
+    remove.textContent = "Delete Reel";
+    remove.addEventListener("click", () => {
+      localStorage.setItem(reelsStorageKey, JSON.stringify(getReels().filter(item => item.id !== reel.id)));
+      renderPlayableReels();
+    });
+    details.append(platform, open, source, remove);
+    card.appendChild(details);
+    reelsList.appendChild(card);
+  }
+}
+
 function placeReelsRail() {
   const feedElement = document.getElementById("feed");
   const posts = [...feedElement.children].filter(child => child.classList.contains("post") && child !== reelsRail);
@@ -823,10 +910,10 @@ addReel.addEventListener("click", () => {
   reelUrl.value = "";
   reelPermissionCheck.checked = false;
   reelStatus.textContent = "External reel added.";
-  renderReels();
+  renderPlayableReels();
 });
 
-renderReels();
+renderPlayableReels();
 placeReelsRail();
 document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } });
 new MutationObserver(records => {
