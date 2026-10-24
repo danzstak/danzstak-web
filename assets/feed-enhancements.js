@@ -755,6 +755,21 @@ function addShareButton(post) {
   actions.appendChild(button);
 }
 
+const postPreferencesKey = "danzstak-post-preferences";
+
+function readPostPreferences() {
+  try { return JSON.parse(localStorage.getItem(postPreferencesKey) || "{}"); }
+  catch { return {}; }
+}
+
+function updatePostPreference(post, changes) {
+  const postId = String(post.dataset.postId || "");
+  if (!postId) return;
+  const preferences = readPostPreferences();
+  preferences[postId] = { ...(preferences[postId] || {}), ...changes };
+  localStorage.setItem(postPreferencesKey, JSON.stringify(preferences));
+}
+
 function addPostDeleteButton(post) {
   const actions = post.querySelector(".post-actions");
   if (!actions || post.querySelector(".post-menu-toggle")) return;
@@ -772,6 +787,13 @@ function addPostDeleteButton(post) {
   handle.setAttribute("aria-hidden", "true");
   menu.appendChild(handle);
   const history = [];
+  const preferences = readPostPreferences()[String(post.dataset.postId || "")] || {};
+  post.dataset.pinned = String(preferences.pinned === true);
+  post.dataset.saved = String(preferences.saved === true);
+  post.dataset.notificationsOff = String(preferences.notificationsOff === true);
+  post.dataset.commentSetting = String(Number(preferences.commentSetting) || 0);
+  if (Number(preferences.commentSetting) === 2) post.querySelector(".commentBtn")?.setAttribute("disabled", "");
+  if (preferences.pinned === true && post.parentElement) post.parentElement.prepend(post);
 
   function removePostFromThisFeed() {
     const postId = post.dataset.postId;
@@ -811,19 +833,24 @@ function addPostDeleteButton(post) {
     button.append(icon, copy);
     button.addEventListener("click", async () => { await handler(button); menu.hidden = true; toggle.setAttribute("aria-expanded", "false"); });
     menu.appendChild(button);
+    return button;
   }
 
-  option("Pin post", "Keep this post at the top of your feed.", button => {
+  const pinOption = option("Pin post", "Keep this post at the top of your feed.", button => {
     const pinned = post.dataset.pinned === "true";
     post.dataset.pinned = String(!pinned);
+    updatePostPreference(post, { pinned: !pinned });
     button.querySelector("strong").textContent = pinned ? "Pin post" : "Unpin post";
     if (!pinned) post.parentElement.prepend(post);
   });
-  option("Save post", "Add this to your saved items.", button => {
+  const saveOption = option("Save post", "Add this to your saved items.", button => {
     const saved = post.dataset.saved === "true";
     post.dataset.saved = String(!saved);
+    updatePostPreference(post, { saved: !saved });
     button.querySelector("strong").textContent = saved ? "Save post" : "Unsave post";
   });
+  if (preferences.pinned === true) pinOption.querySelector("strong").textContent = "Unpin post";
+  if (preferences.saved === true) saveOption.querySelector("strong").textContent = "Unsave post";
   option("View edit history", "See changes made to this post.", () => {
     alert(history.length ? history.map((item, index) => `${index + 1}. ${item}`).join("\n") : "This post has not been edited.");
   });
@@ -885,14 +912,16 @@ function addPostDeleteButton(post) {
     editor.hidden = false;
     requestAnimationFrame(() => { textarea.focus(); textarea.setSelectionRange(textarea.value.length, textarea.value.length); });
   });
-  option("Who can comment?", "Everyone", button => {
+  const commentOption = option("Who can comment?", "Everyone", button => {
     const values = ["Everyone", "Friends", "Comments off"];
     const current = Number(post.dataset.commentSetting || 0);
     const next = (current + 1) % values.length;
     post.dataset.commentSetting = String(next);
+    updatePostPreference(post, { commentSetting: next });
     button.querySelector("small").textContent = values[next];
     post.querySelector(".commentBtn").disabled = next === 2;
   });
+  commentOption.querySelector("small").textContent = ["Everyone", "Friends", "Comments off"][Number(preferences.commentSetting) || 0];
   option("Edit privacy", "Public", button => {
     const values = ["Public", "Friends", "Only me"];
     const current = Number(post.dataset.privacySetting || 0);
@@ -925,11 +954,13 @@ function addPostDeleteButton(post) {
     }
     post.remove();
   });
-  option("Turn off notifications", "Stop updates for this post.", button => {
+  const notificationsOption = option("Turn off notifications", "Stop updates for this post.", button => {
     const off = post.dataset.notificationsOff === "true";
     post.dataset.notificationsOff = String(!off);
+    updatePostPreference(post, { notificationsOff: !off });
     button.querySelector("strong").textContent = off ? "Turn off notifications" : "Turn on notifications";
   });
+  if (preferences.notificationsOff === true) notificationsOption.querySelector("strong").textContent = "Turn on notifications";
   option("Copy link", "Copy a shareable link to this post.", async () => {
     try { await navigator.clipboard.writeText(location.href + (post.dataset.postId ? `#post-${post.dataset.postId}` : "")); }
     catch { alert("Copying is unavailable in this browser."); }
