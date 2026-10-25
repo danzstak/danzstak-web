@@ -853,7 +853,7 @@ if (composerActions && publishButton) {
       if (kind === "video") {
         const scanStatus = document.createElement("p");
         scanStatus.className = "copyright-scan-status";
-        scanStatus.textContent = isLocalHost() ? "Copyright check: not scanned — local preview only" : "Copyright check: required before publishing";
+        scanStatus.textContent = isLocalHost() ? "Rights certification: local preview only" : "Rights certification required; automated content matching is not currently available.";
         preview.appendChild(scanStatus);
       }
     });
@@ -920,7 +920,7 @@ if (composerActions && publishButton) {
         element.controls = true;
         badge = document.createElement("p");
         badge.className = "copyright-scan-status";
-        badge.textContent = "Copyright check: not scanned — local preview only";
+        badge.textContent = "Rights certification: local preview only";
       }
       post.querySelector(".post-content").insertAdjacentElement("afterend", element);
       if (badge) element.insertAdjacentElement("afterend", badge);
@@ -982,7 +982,7 @@ if (composerActions && publishButton) {
           mediaElement.controls = true;
           mediaBadge = document.createElement("p");
           mediaBadge.className = "copyright-scan-status";
-          mediaBadge.textContent = "Copyright check: not scanned — local preview only";
+          mediaBadge.textContent = "Rights certification: local preview only";
         }
       }
       const actions = document.createElement("div");
@@ -1125,6 +1125,52 @@ if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts", { credentia
     });
   })
   .catch(() => {});
+
+function openPostReportDialog(post) {
+  document.querySelector(".post-report-dialog")?.remove();
+  const dialog = document.createElement("dialog");
+  dialog.className = "post-report-dialog";
+  dialog.innerHTML = `
+    <form method="dialog">
+      <h2>Report post</h2>
+      <p>Tell DanzStak about a copyright or safety concern. Reports are saved for moderation review.</p>
+      <label>Reason
+        <select name="reason" required>
+          <option value="copyright">Copyright infringement</option>
+          <option value="hate_speech">Hate speech</option>
+          <option value="harassment">Harassment</option>
+          <option value="violence">Violence or threats</option>
+          <option value="spam">Spam or deception</option>
+          <option value="other">Other concern</option>
+        </select>
+      </label>
+      <label>Details <small>(optional)</small>
+        <textarea name="details" maxlength="500" rows="4" placeholder="Describe the concern without including private information."></textarea>
+      </label>
+      <p class="post-report-status" role="status" aria-live="polite"></p>
+      <div class="post-report-actions"><button value="cancel">Cancel</button><button type="button" class="primary post-report-submit">Submit report</button></div>
+    </form>`;
+  document.body.appendChild(dialog);
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.querySelector(".post-report-submit").addEventListener("click", async event => {
+    const button = event.currentTarget, status = dialog.querySelector(".post-report-status");
+    button.disabled = true;
+    status.textContent = "Submitting report…";
+    try {
+      const response = await fetch("https://api.danzstak.com/reports", {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.dataset.postId, reason: dialog.querySelector('[name="reason"]').value, details: dialog.querySelector('[name="details"]').value.trim() })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "The report could not be submitted.");
+      dialog.querySelector("form").innerHTML = `<h2>Report submitted</h2><p>Thank you. DanzStak saved your report for moderation review.</p><div class="post-report-actions"><button value="done" class="primary">Done</button></div>`;
+    } catch (error) {
+      status.textContent = error.message;
+      button.disabled = false;
+    }
+  });
+  dialog.showModal();
+}
 
 function addPostDeleteButton(post) {
   const actions = post.querySelector(".post-actions");
@@ -1366,6 +1412,7 @@ function addPostDeleteButton(post) {
     for (const row of menu.querySelectorAll(".post-option-row")) {
       if (["Edit post", "Who can comment?", "Edit privacy"].includes(row.querySelector("strong")?.textContent || "")) row.remove();
     }
+    option("Report post", "Tell DanzStak about copyright or safety concerns.", () => openPostReportDialog(post));
   }
 
   toggle.addEventListener("click", () => {

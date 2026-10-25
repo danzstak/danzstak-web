@@ -36,6 +36,7 @@ const friendsTable = "DANZSTAK-Friends";
 const reactionsTable = "DANZSTAK-Reactions";
 const commentsTable = "DANZSTAK-Comments";
 const engagementNotificationsTable = "DANZSTAK-EngagementNotifications";
+const reportsTable = "DANZSTAK-Reports";
 const storiesTable = "DANZSTAK-Stories";
 const groupsTable = "DANZSTAK-GroupMembers";
 const settingsTable = "DanzStak-UserSettings";
@@ -1009,6 +1010,33 @@ async function addComment(event) {
   return { statusCode: 201, headers, body: JSON.stringify({ comment: { commentId, userEmail, content, createdAt, isOwner: true, canDelete: true } }) };
 }
 
+async function reportPost(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const data = parseJsonBody(event), postId = String(data?.postId || ""), reason = String(data?.reason || ""), details = String(data?.details || "").trim();
+  const allowedReasons = new Set(["copyright", "hate_speech", "harassment", "violence", "spam", "other"]);
+  if (!allowedReasons.has(reason)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a valid report reason." }) };
+  if (details.length > 500) return { statusCode: 400, headers, body: JSON.stringify({ error: "Report details cannot exceed 500 characters." }) };
+  const access = await postForEngagement(postId, userId);
+  if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
+  if (access.post.userId?.S === userId) return { statusCode: 400, headers, body: JSON.stringify({ error: "Only other members' posts can be reported." }) };
+  const reporterEmail = await accountForSub(userId);
+  if (!reporterEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const reportId = randomUUID(), createdAt = new Date().toISOString();
+  await db.send(new PutItemCommand({
+    TableName: reportsTable,
+    Item: {
+      reportId: { S: reportId }, reporterId: { S: userId }, reporterEmail: { S: reporterEmail }, postId: { S: postId },
+      reportedUserId: { S: access.post.userId?.S || "unknown" }, reason: { S: reason }, details: { S: details },
+      status: { S: "open" }, createdAt: { S: createdAt }
+    },
+    ConditionExpression: "attribute_not_exists(reportId)"
+  }));
+  return { statusCode: 201, headers, body: JSON.stringify({ report: { reportId, status: "open", createdAt } }) };
+}
+
 async function deleteComment(event) {
   const headers = corsHeaders(event.headers?.origin);
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -1361,6 +1389,10 @@ export const handler = async event => {
 
     if (method === "POST" && path === "/comments") {
       return await addComment(event);
+    }
+
+    if (method === "POST" && path === "/reports") {
+      return await reportPost(event);
     }
 
     if (method === "DELETE" && path.startsWith("/comments/")) {
