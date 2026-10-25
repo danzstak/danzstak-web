@@ -250,12 +250,17 @@ if (-not $profileUpdate.Contains('oldMedia.push(old)') -or
 
 $requiredDataPermissions = @(
   'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]',
-  'Action: [dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem]',
+  'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem]',
   'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem]'
 )
 foreach ($permission in $requiredDataPermissions) {
   if (-not $template.Contains($permission)) {
     throw "Required DynamoDB permission is missing: $permission"
+  }
+}
+foreach ($readTable in @('MessagesTable', 'ConversationsTable')) {
+  if ($template -notmatch "Action: \[[^\r\n]*dynamodb:GetItem[^\r\n]*\]\s+Resource: !GetAtt $readTable\.Arn") {
+    throw "Individual message or saved-history reads lack GetItem permission on $readTable"
   }
 }
 

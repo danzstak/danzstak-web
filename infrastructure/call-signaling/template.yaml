@@ -1,3 +1,7 @@
+Description: DanzStak social messaging and call signaling with server-side sessions and per-contact authorization.
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@3
 Parameters:
   ApiId:
     Type: String
@@ -262,6 +266,12 @@ Resources:
         SSEEnabled: true
   SignalingRole:
     Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Saved history and message reactions require individual record reads as well as conversation queries.
+        must:
+          - Scope data access to the named application tables.
+          - Keep contact authorization in the Lambda before exposing history or accepting call signals.
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -298,13 +308,13 @@ Resources:
                 Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]
                 Resource: !GetAtt GroupMembersTable.Arn
               - Effect: Allow
-                Action: [dynamodb:PutItem, dynamodb:Query, dynamodb:DeleteItem]
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:DeleteItem]
                 Resource: !GetAtt MessagesTable.Arn
               - Effect: Allow
                 Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:DeleteItem]
                 Resource: !GetAtt MessageReactionsTable.Arn
               - Effect: Allow
-                Action: [dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem]
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem]
                 Resource: !GetAtt ConversationsTable.Arn
               - Effect: Allow
                 Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem]
