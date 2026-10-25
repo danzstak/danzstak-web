@@ -927,6 +927,13 @@ function parseJsonBody(event) {
 async function notifyPostOwner(post, eventId, type, actorEmail, preview) {
   const ownerEmail = post.userEmail?.S;
   if (!ownerEmail || ownerEmail === actorEmail) return;
+  const settings = await db.send(new GetItemCommand({
+    TableName: settingsTable,
+    Key: { userEmail: { S: ownerEmail } },
+    ConsistentRead: true,
+    ProjectionExpression: "mutedPosts"
+  }));
+  if (settings.Item?.mutedPosts?.SS?.includes(post.postId.S)) return;
   const createdAt = new Date().toISOString();
   await db.send(new PutItemCommand({
     TableName: engagementNotificationsTable,
@@ -1060,8 +1067,10 @@ async function getEngagementNotifications(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 200, headers, body: JSON.stringify({ notifications: [] }) };
-  const result = await db.send(new QueryCommand({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, Limit: 50, ScanIndexForward: false, ConsistentRead: true }));
-  const notifications = (result.Items || []).map(item => ({ type: item.type.S, email: item.actorEmail.S, postId: item.postId.S, preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true }));
+  const items = await queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, ConsistentRead: true });
+  const notifications = items.map(item => ({ type: item.type.S, email: item.actorEmail.S, postId: item.postId.S, preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true }))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 100);
   return { statusCode: 200, headers, body: JSON.stringify({ notifications }) };
 }
 

@@ -25,6 +25,10 @@ foreach ($legalControl in @('async function acceptLegalTerms(event)', 'async fun
 foreach ($notificationHistoryControl in @('read: { BOOL: false }', 'unread: item.read?.BOOL !== true', 'new UpdateItemCommand({ TableName: engagementNotificationsTable')) {
   if (-not $authApi.Contains($notificationHistoryControl)) { throw "Persistent notification history is missing: $notificationHistoryControl" }
 }
+foreach ($notificationReliabilityControl in @('ProjectionExpression: "mutedPosts"', 'mutedPosts?.SS?.includes(post.postId.S)', 'const items = await queryAll({ TableName: engagementNotificationsTable', '.sort((a, b) => b.createdAt.localeCompare(a.createdAt))', '.slice(0, 100)')) {
+  if (-not $authApi.Contains($notificationReliabilityControl)) { throw "Notification reliability control is missing: $notificationReliabilityControl" }
+}
+if ($authApi.Contains('TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, Limit: 50')) { throw 'Engagement notifications still stop at an arbitrary first page' }
 $engagementTemplate = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'infrastructure\engagement\template.yaml') -Raw -Encoding utf8
 foreach ($groupRoute in @('GET /groups', 'POST /groups', 'DELETE /groups/{groupId}', 'PATCH /secure-posts/{postId}', 'DANZSTAK-GroupMembers')) {
   if (-not $engagementTemplate.Contains($groupRoute)) { throw "Engagement stack durable group route or permission is missing: $groupRoute" }
@@ -108,6 +112,7 @@ foreach ($logoutPresenceBehavior in @('const presenceTable = "DANZSTAK-Presence"
   if (-not $authApi.Contains($logoutPresenceBehavior)) { throw "Logout does not authoritatively clear presence: $logoutPresenceBehavior" }
 }
 if (-not $engagementTemplate.Contains('Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Presence')) { throw 'Auth API lacks permission to clear presence during logout' }
+if (-not $engagementTemplate.Contains('Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DanzStak-UserSettings')) { throw 'Auth API lacks permission to enforce muted post notifications' }
 if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
   throw 'Raw media URL access is not restricted to the authenticated owner.'
 }
