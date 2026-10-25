@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self' 'sha256-cds2YAjXsQXMLfaFAo6+/YHqPdpVRCjZtAXnb0ALQ70='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self' 'sha256-fjuzAx6WgdMGmMcIefbR7mNzRfNMipGXA5xzCTPHiEM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -729,6 +729,15 @@ async function loadPosts() {
 
     });
 
+    const linkedPost = location.hash.startsWith("#post-")
+      ? document.getElementById(decodeURIComponent(location.hash.slice(1)))
+      : null;
+    if (linkedPost) requestAnimationFrame(() => {
+      linkedPost.tabIndex = -1;
+      linkedPost.focus({ preventScroll: true });
+      linkedPost.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
     feedStatus.textContent = "";
 
     console.log(
@@ -989,7 +998,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 </script>
 
-  <script src="assets/feed-enhancements.js?v=20261025-12" defer></script>
+  <script src="assets/feed-enhancements.js?v=20261025-13" defer></script>
 <script src="assets/session-activity.js?v=2" defer></script>
 <script src="assets/incoming-calls.js?v=1" defer></script>
 <script src="assets/logout.js?v=1" defer></script>

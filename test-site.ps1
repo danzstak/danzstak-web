@@ -123,6 +123,11 @@ if (-not $feedEnhancementsJs.Contains('readSections().Settings?.notifications ==
     -not $feedEnhancementsJs.Contains('Show activity notification badges on this device')) {
   Add-Failure 'Settings: the activity notification preference is misleading or not enforced'
 }
+if (-not $feedEnhancementsJs.Contains('function postPermalink(post)') -or
+    -not $feedEnhancementsJs.Contains('navigator.clipboard.writeText(postPermalink(post))') -or
+    -not $feed.Contains('document.getElementById(decodeURIComponent(location.hash.slice(1)))')) {
+  Add-Failure 'Post sharing: stable post-specific links or delayed anchor focus are missing'
+}
 if (-not $feedEnhancementsJs.Contains('localStorage.getItem("danzstak_dark_mode") === "1"') -or
     -not $feedEnhancementsJs.Contains('document.documentElement.lang = localStorage.getItem("danzstak_language") || "en"')) {
   Add-Failure 'Settings: saved dark-mode or language preferences are not restored after navigation'

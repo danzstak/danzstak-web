@@ -787,15 +787,23 @@ function addShareButton(post) {
   button.textContent = "Share";
   button.addEventListener("click", async () => {
     const content = post.querySelector(".post-content")?.textContent.trim() || "DanzStak post";
-    const shareData = { title: "DanzStak", text: content.slice(0, 200), url: location.href };
+    const shareUrl = postPermalink(post);
+    const shareData = { title: "DanzStak", text: content.slice(0, 200), url: shareUrl };
     if (navigator.share) {
       try { await navigator.share(shareData); } catch (error) { if (error.name !== "AbortError") alert("Unable to share this post."); }
       return;
     }
-    const facebook = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(location.href);
+    const facebook = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(shareUrl);
     window.open(facebook, "_blank", "noopener,noreferrer,width=720,height=620");
   });
   actions.appendChild(button);
+}
+
+function postPermalink(post) {
+  const url = new URL("feed.html", location.href);
+  url.search = "";
+  url.hash = post.dataset.postId ? "post-" + post.dataset.postId : "";
+  return url.href;
 }
 
 const postPreferencesKey = "danzstak-post-preferences";
@@ -1048,7 +1056,7 @@ function addPostDeleteButton(post) {
   });
   if (preferences.notificationsOff === true) notificationsOption.querySelector("strong").textContent = "Turn on notifications";
     option("Copy link", "Copy a shareable link to this post.", async () => {
-    try { await navigator.clipboard.writeText(location.href + (post.dataset.postId ? `#post-${post.dataset.postId}` : "")); }
+    try { await navigator.clipboard.writeText(postPermalink(post)); }
     catch { alert("Copying is unavailable in this browser."); }
   });
 
