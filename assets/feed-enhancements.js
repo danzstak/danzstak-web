@@ -549,6 +549,7 @@ function renderWorkspace(name) {
     const darkCheckbox = document.createElement("input");
     darkCheckbox.type = "checkbox";
     darkCheckbox.checked = document.documentElement.classList.contains("dark-mode");
+    darkCheckbox.setAttribute("aria-label", "Use dark mode");
     darkCheckbox.addEventListener("change", () => {
       document.documentElement.classList.toggle("dark-mode", darkCheckbox.checked);
       localStorage.setItem("danzstak_dark_mode", darkCheckbox.checked ? "1" : "0");
@@ -584,13 +585,25 @@ function renderWorkspace(name) {
     const alertSettings = document.createElement("button");
     alertSettings.type = "button";
     alertSettings.className = "secondary";
-    const updateAlertLabel = () => { alertSettings.textContent = !("Notification" in window) ? "Unavailable" : Notification.permission === "granted" ? "Enabled" : Notification.permission === "denied" ? "Blocked" : "Enable"; };
+    const updateAlertLabel = async () => {
+      alertSettings.disabled = true;
+      try {
+        const state = await window.danzstakPushState?.();
+        alertSettings.textContent = state === "enabled" ? "Enabled" : state === "blocked" ? "Blocked" : state === "unsupported" ? "Unavailable" : state === "incomplete" ? "Finish setup" : "Enable";
+      } catch { alertSettings.textContent = "Try again"; }
+      finally { alertSettings.disabled = alertSettings.textContent === "Enabled" || alertSettings.textContent === "Unavailable"; }
+    };
     updateAlertLabel();
     alertSettings.addEventListener("click", async () => {
-      if (!("Notification" in window)) { featureText.textContent = "This browser does not support system notifications."; return; }
-      if (Notification.permission === "default") await Notification.requestPermission();
-      updateAlertLabel();
-      featureText.textContent = Notification.permission === "granted" ? "Call and message alerts are enabled while DanzStak can receive them." : "Notifications are blocked. Enable them in your browser or device settings.";
+      alertSettings.disabled = true;
+      alertSettings.textContent = "Enabling…";
+      try {
+        await window.danzstakEnablePush();
+        featureText.textContent = "Background call alerts are enabled on this device, including while the installed app is closed.";
+      } catch (error) {
+        featureText.textContent = error.message;
+      }
+      await updateAlertLabel();
     });
     const legalLinks = document.createElement("span");
     legalLinks.className = "settings-links";
