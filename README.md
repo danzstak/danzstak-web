@@ -46,8 +46,8 @@ Profile saves retain newly uploaded files when the save response is lost, since 
 
 The current priority is stabilizing the existing DanzStak site: feed, profiles, friends, groups, privacy, media, and mobile use. Android call ringing and duplicate call notifications remain unresolved; phone testing is parked until the owner resumes it.
 
-After the site is ready, tour booking is the next priority, ahead of the admin dashboard and email server:
+The owner confirmed this delivery order: finish and verify the existing site, then tour booking, then email, then the admin dashboard. Do not start the next phase by declaring unverified flows complete.
 
 1. A tour-booking module for bands to locate clubs geographically and contact them about booking their act. The planned flow includes city or location search, distance filters, venue profiles, and booking requests with act details and proposed dates. Location permission should be optional, with manual city/location entry available. Initial booking conversations can use DanzStak messaging.
-2. An admin dashboard, including review of post and group reports.
-3. An email server and email delivery workflows, including optional booking email notifications.
+2. An email server and email delivery workflows, including optional booking email notifications.
+3. An admin dashboard for site monitoring and management, including review of post and group reports.

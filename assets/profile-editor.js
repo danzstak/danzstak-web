@@ -182,6 +182,7 @@ repositionButton.type = "button";
 repositionButton.textContent = "Reposition Cover";
 let repositioning = false;
 let dragStart = null;
+let coverPositionSaving = false;
 repositionButton.addEventListener("click", () => {
   if (!coverElement.classList.contains("has-photo")) return alert("Add a cover photo first.");
   repositioning = !repositioning;
@@ -190,31 +191,54 @@ repositionButton.addEventListener("click", () => {
   coverElement.classList.toggle("repositioning", repositioning);
 });
 coverElement.addEventListener("pointerdown", event => {
-  if (!repositioning) return;
+  if (!repositioning || coverPositionSaving) return;
   const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
   const cloud = window.danzstakCurrentProfile;
   dragStart = { x: event.clientX, y: event.clientY, coverX: cloud?.cloudProfile ? (cloud.coverX ?? 50) : (saved.coverX ?? 50), coverY: cloud?.cloudProfile ? (cloud.coverY ?? 50) : (saved.coverY ?? 50) };
+  coverElement.dataset.coverX = String(dragStart.coverX);
+  coverElement.dataset.coverY = String(dragStart.coverY);
   coverElement.setPointerCapture(event.pointerId);
 });
 coverElement.addEventListener("pointermove", event => {
   if (!repositioning || !dragStart) return;
   const rect = coverElement.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
   const x = Math.max(0, Math.min(100, dragStart.coverX + ((event.clientX - dragStart.x) / rect.width) * 100));
   const y = Math.max(0, Math.min(100, dragStart.coverY + ((event.clientY - dragStart.y) / rect.height) * 100));
   coverElement.style.backgroundPosition = `${x}% ${y}%`;
   coverElement.dataset.coverX = String(x);
   coverElement.dataset.coverY = String(y);
 });
+async function persistCoverPosition(position) {
+  const cloud = window.danzstakCurrentProfile?.cloudProfile;
+  if (cloud) await saveCloudProfile(position);
+  const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
+  Object.assign(saved, position);
+  try { localStorage.setItem(profileMediaKey, JSON.stringify(saved)); }
+  catch { if (!cloud) throw new Error("Cover position could not be saved in this browser."); }
+}
+function restoreCoverPosition(position) {
+  coverElement.style.backgroundPosition = `${position.coverX}% ${position.coverY}%`;
+  coverElement.dataset.coverX = String(position.coverX);
+  coverElement.dataset.coverY = String(position.coverY);
+}
 coverElement.addEventListener("pointerup", async () => {
   if (!dragStart) return;
-  const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
-  saved.coverX = Number(coverElement.dataset.coverX || dragStart.coverX);
-  saved.coverY = Number(coverElement.dataset.coverY || dragStart.coverY);
-  localStorage.setItem(profileMediaKey, JSON.stringify(saved));
-  if (window.danzstakCurrentProfile?.cloudProfile) {
-    try { await saveCloudProfile({ coverX: saved.coverX, coverY: saved.coverY }); }
-    catch (error) { alert(error.message); }
-  }
+  const previous = dragStart;
+  dragStart = null;
+  const position = {
+    coverX: Number(coverElement.dataset.coverX ?? previous.coverX),
+    coverY: Number(coverElement.dataset.coverY ?? previous.coverY)
+  };
+  if (position.coverX === previous.coverX && position.coverY === previous.coverY) return;
+  coverPositionSaving = true;
+  try { await persistCoverPosition(position); }
+  catch (error) { restoreCoverPosition(previous); alert(error.message); }
+  finally { coverPositionSaving = false; }
+});
+coverElement.addEventListener("pointercancel", () => {
+  if (!dragStart) return;
+  restoreCoverPosition(dragStart);
   dragStart = null;
 });
 mediaTools.appendChild(repositionButton);
