@@ -1,0 +1,31 @@
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
+const code = source.slice(source.indexOf('const pendingReactionSaves = new WeakMap();'), source.indexOf('async function saveComment(post, input)'));
+const requests = [], saved = [];
+const context = vm.createContext({ post: { dataset: {} }, engagementApi: 'https://api.danzstak.com', engagementPostId: () => 'p1', loadEngagement: async () => {},
+  fetch: (_, options) => new Promise(resolve => requests.push({ reaction: JSON.parse(options.body).reaction, resolve })) });
+vm.runInContext(code, context);
+const tick = () => new Promise(resolve => setImmediate(resolve));
+(async () => {
+  const first = vm.runInContext('saveReaction(post, "Like")', context);
+  const second = vm.runInContext('saveReaction(post, "Love")', context);
+  await tick();
+  assert.equal(requests.length, 1, 'only one reaction write per post may be in flight');
+  saved.push(requests[0].reaction); requests[0].resolve({ ok: true });
+  await first; await tick();
+  assert.equal(requests.length, 2);
+  saved.push(requests[1].reaction); requests[1].resolve({ ok: true });
+  await second;
+  assert.deepEqual(saved, ['Like', 'Love']);
+  const failed = vm.runInContext('saveReaction(post, "Wow")', context).catch(error => error);
+  const recovery = vm.runInContext('saveReaction(post, "Fire")', context);
+  await tick(); requests[2].resolve({ ok: false });
+  assert.match((await failed).message, /could not be saved/);
+  await tick(); assert.equal(requests[3].reaction, 'Fire');
+  requests[3].resolve({ ok: true }); await recovery;
+  assert.equal(vm.runInContext('pendingReactionSaves.has(post)', context), false);
+  console.log('Reaction order checks passed: last selection saves last and failed requests do not block the queue.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

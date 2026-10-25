@@ -1556,14 +1556,21 @@ async function loadEngagement(post) {
   } catch { if (version === (post.dataset.engagementVersion || "0")) post.dataset.engagementLoaded = ""; }
 }
 
+const pendingReactionSaves = new WeakMap();
 async function saveReaction(post, reaction) {
   const postId = engagementPostId(post);
   if (!postId) return;
-  const response = await fetch(`${engagementApi}/reactions`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, reaction }) });
-  if (!response.ok) throw new Error("Reaction could not be saved");
-  post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
-  post.dataset.engagementLoaded = "";
-  await loadEngagement(post);
+  const previous = pendingReactionSaves.get(post) || Promise.resolve();
+  const pending = previous.catch(() => {}).then(async () => {
+    const response = await fetch(`${engagementApi}/reactions`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, reaction }) });
+    if (!response.ok) throw new Error("Reaction could not be saved");
+    post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
+    post.dataset.engagementLoaded = "";
+    await loadEngagement(post);
+  });
+  pendingReactionSaves.set(post, pending);
+  try { await pending; }
+  finally { if (pendingReactionSaves.get(post) === pending) pendingReactionSaves.delete(post); }
 }
 
 async function saveComment(post, input) {
