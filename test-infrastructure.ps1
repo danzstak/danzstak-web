@@ -273,6 +273,16 @@ foreach ($pushCapability in @(
 )) {
   if (-not $template.Contains($pushCapability)) { throw "Background push capability is missing: $pushCapability" }
 }
+foreach ($pushFanout in @(
+  'async function notifyCall(recipientEmail,senderEmail,mode,callId){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE',
+  'async function notifyMessage(recipientEmail,senderEmail){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE',
+  'async function notifyFriendRequest(recipientEmail,senderEmail){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE'
+)) {
+  if (-not $template.Contains($pushFanout)) { throw "Push notifications do not reach every registered device: $pushFanout" }
+}
+if ($template.Contains("PUSH_SUBSCRIPTIONS_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:recipientEmail}},Limit:10")) {
+  throw 'Push notification delivery still stops after the first 10 registered devices.'
+}
 if (-not $template.Contains("FilterExpression:'expiresAt > :n'") -or -not $template.Contains("':n':{N:String(now())}")) {
   throw 'Call inbox can return expired signaling records before DynamoDB TTL cleanup.'
 }
