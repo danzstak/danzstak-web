@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v165";
+const CACHE = "danzstak-shell-v166";
 const SHELL = [
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-fb-v2.jpg",
@@ -81,10 +81,16 @@ self.addEventListener("notificationclick", event => {
   const destination = destinationUrl.href;
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async clients => {
     for (const client of clients) {
-      if (new URL(client.url).origin !== self.location.origin) continue;
-      await client.navigate(destination);
-      return client.focus();
+      if (new URL(client.url).origin !== self.location.origin || client.frameType === "nested") continue;
+      try {
+        // Focus while the notification tap still supplies user activation.
+        await client.focus();
+        const navigated = await client.navigate(destination);
+        if (navigated) return navigated;
+      } catch { /* A closed or unavailable window must not swallow the tap. */ }
     }
-    return self.clients.openWindow(destination);
+    const opened = await self.clients.openWindow(destination);
+    if (opened) return opened.focus().catch(() => opened);
+    return opened;
   }));
 });
