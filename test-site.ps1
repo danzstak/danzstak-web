@@ -41,6 +41,9 @@ if (-not $homeMarkup.Contains('.hero-logo{display:block;width:min(520px,100%)'))
 
 $feedPath = Join-Path $root 'feed.html'
 $feed = Get-Content -LiteralPath $feedPath -Raw -Encoding utf8
+if (-not $feed.Contains("frame-src 'self' https://www.youtube-nocookie.com")) {
+  Add-Failure 'Messages: the feed CSP blocks the same-origin embedded chat drawer'
+}
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }
