@@ -1517,17 +1517,19 @@ function renderPersistentComment(post, comment) {
 async function loadEngagement(post) {
   const postId = engagementPostId(post);
   if (!postId || post.dataset.engagementLoaded === "true") return;
+  const version = post.dataset.engagementVersion || "0";
   post.dataset.engagementLoaded = "true";
   try {
     const response = await fetch(`${engagementApi}/engagement?postId=${encodeURIComponent(postId)}`, { credentials: "include", cache: "no-store" });
-    if (!response.ok) { post.dataset.engagementLoaded = ""; return; }
+    if (!response.ok) { if (version === (post.dataset.engagementVersion || "0")) post.dataset.engagementLoaded = ""; return; }
     const data = await response.json();
+    if (version !== (post.dataset.engagementVersion || "0")) return;
     post.dataset.reactionCounts = JSON.stringify(data.reactionCounts || {});
     setReactionAppearance(post, data.myReaction || "", data.reactionCounts || {});
     const list = post.querySelector(".commentList");
     if (list) list.replaceChildren();
     for (const comment of data.comments || []) renderPersistentComment(post, comment);
-  } catch { post.dataset.engagementLoaded = ""; }
+  } catch { if (version === (post.dataset.engagementVersion || "0")) post.dataset.engagementLoaded = ""; }
 }
 
 async function saveReaction(post, reaction) {
@@ -1535,6 +1537,7 @@ async function saveReaction(post, reaction) {
   if (!postId) return;
   const response = await fetch(`${engagementApi}/reactions`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, reaction }) });
   if (!response.ok) throw new Error("Reaction could not be saved");
+  post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
   post.dataset.engagementLoaded = "";
   await loadEngagement(post);
 }
@@ -1547,8 +1550,11 @@ async function saveComment(post, input) {
     const response = await fetch(`${engagementApi}/comments`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, content }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Comment could not be saved");
+    post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
     input.value = "";
     renderPersistentComment(post, data.comment);
+    post.dataset.engagementLoaded = "";
+    await loadEngagement(post);
   } catch (error) { alert(error.message); }
   finally { input.disabled = false; input.focus(); }
 }
@@ -1568,6 +1574,8 @@ function addCommentDelete(comment) {
       button.disabled = true;
       const response = await fetch(`${engagementApi}/comments/${encodeURIComponent(commentId)}?postId=${encodeURIComponent(postId)}`, { method: "DELETE", credentials: "include" }).catch(() => null);
       if (!response?.ok) { button.disabled = false; alert("Comment could not be deleted."); return; }
+      post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
+      post.dataset.engagementLoaded = "";
     }
     comment.remove();
   });
