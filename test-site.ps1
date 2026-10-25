@@ -96,6 +96,9 @@ $messagesHtml = Get-Content -LiteralPath (Join-Path $root 'messages.html') -Raw 
 $chatJs = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
 $directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-messages.js') -Raw -Encoding utf8
 $feedEnhancementsJs = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
+if ([regex]::Matches($feedEnhancementsJs, '(?m)^function isLocalHost\(\)').Count -ne 1) {
+  Add-Failure 'feed-enhancements.js must expose one top-level isLocalHost helper'
+}
 if ($messagesHtml -notmatch 'id="receiverHangUp"[^>]+hidden' -or
     -not $chatJs.Contains('els.receiverHangup.hidden=false') -or
     -not $chatJs.Contains('els.receiverHangup.hidden=true')) {

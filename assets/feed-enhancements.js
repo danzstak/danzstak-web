@@ -6,6 +6,10 @@ const featureText = document.getElementById("featureDescription");
 const localKey = "danzstak_dev_sections";
 const notificationControls = [...document.querySelectorAll('[data-feature="Notifications"]')];
 
+function isLocalHost() {
+  return location.hostname === "127.0.0.1" || location.hostname === "localhost";
+}
+
 function updateNotificationCount(count) {
   const safeCount = Math.max(0, Number(count) || 0);
   for (const control of notificationControls) {
@@ -679,10 +683,6 @@ if (composerActions && publishButton) {
     observer.observe(document.getElementById("feed"), { childList: true });
     setTimeout(() => observer.disconnect(), 10000);
   }, true);
-
-  function isLocalHost() {
-    return location.hostname === "127.0.0.1" || location.hostname === "localhost";
-  }
 
   if (isLocalHost()) {
     publishButton.addEventListener("click", event => {
