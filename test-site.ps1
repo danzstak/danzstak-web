@@ -34,6 +34,11 @@ foreach ($file in $htmlFiles) {
   }
 }
 
+$homeMarkup = Get-Content -LiteralPath (Join-Path $root 'index.html') -Raw -Encoding utf8
+if (-not $homeMarkup.Contains('.hero-logo{display:block;width:min(720px,100%)')) {
+  Add-Failure 'Homepage: hero logo can overflow its padded mobile container'
+}
+
 $feedPath = Join-Path $root 'feed.html'
 $feed = Get-Content -LiteralPath $feedPath -Raw -Encoding utf8
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
