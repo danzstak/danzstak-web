@@ -118,6 +118,10 @@ if (-not $directMessagesJs.Contains('button.setAttribute("aria-label", "React wi
     -not $directMessagesJs.Contains('button.setAttribute("aria-label", "Insert " + emoji)')) {
   Add-Failure 'Messaging: dynamic emoji or call controls lack accessible names'
 }
+if (-not $directMessagesJs.Contains('event.source === window.parent') -or
+    -not $feed.Contains('event.source !== drawer.querySelector("iframe")?.contentWindow')) {
+  Add-Failure 'Messaging: cross-window events are not bound to the expected parent and iframe'
+}
 
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
   Where-Object {

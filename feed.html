@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self' 'sha256-7T7w8S1h5uKI+eqQQz4sJj2DFjJ2T9CA5YgDYLVZc6Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self' 'sha256-Ou2uPs0mveb3OSZIye22orcjM74uDxBxMm/vbM805ZE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -956,8 +956,10 @@ if (requestedMessageContact) {
 }
 window.addEventListener("message", event => {
   if (event.origin !== location.origin) return;
-  if (event.data?.type === "danzstak-chat-view") document.getElementById("messageDrawer")?.classList.toggle("is-conversation", event.data.open === true);
-  if (event.data?.type === "danzstak-chat-minimize") document.getElementById("messageDrawer")?.setAttribute("hidden", "");
+  const drawer = document.getElementById("messageDrawer");
+  if (!drawer || event.source !== drawer.querySelector("iframe")?.contentWindow) return;
+  if (event.data?.type === "danzstak-chat-view") drawer.classList.toggle("is-conversation", event.data.open === true);
+  if (event.data?.type === "danzstak-chat-minimize") drawer.setAttribute("hidden", "");
 });
 
 document.querySelectorAll("[data-feature]").forEach(control => {
