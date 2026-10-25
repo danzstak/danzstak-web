@@ -19,6 +19,7 @@ notificationAnnouncer.setAttribute("aria-live", "polite");
 document.body.appendChild(notificationAnnouncer);
 let lastNotificationCount = null;
 const notificationSourceCounts = { social: null, engagement: null };
+let notificationCountLoading = false;
 
 function isLocalHost() {
   return location.hostname === "127.0.0.1" || location.hostname === "localhost";
@@ -36,14 +37,18 @@ function updateNotificationCount(count) {
 }
 
 async function refreshNotificationCount() {
+  if (document.hidden || notificationCountLoading) return;
   if (readSections().Settings?.notifications === false) {
     updateNotificationCount(0);
     return;
   }
+  notificationCountLoading = true;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   try {
     const responses = await Promise.allSettled([
-      fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" }),
-      fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store" })
+      fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store", signal: controller.signal }),
+      fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store", signal: controller.signal })
     ]);
     let succeeded = false;
     for (const [index, result] of responses.entries()) {
@@ -55,6 +60,7 @@ async function refreshNotificationCount() {
     }
     if (succeeded) updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
   } catch { /* The next scheduled refresh will retry. */ }
+  finally { clearTimeout(timeout); notificationCountLoading = false; }
 }
 
 function readSections() {
