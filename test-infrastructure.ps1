@@ -81,6 +81,12 @@ if (-not $template.Contains('expiresAt:{N:String(now()+7200)}')) {
 if ($template.Contains('expiresAt:{N:String(now()+180)}')) {
   throw 'Presence still expires after three minutes when a browser suspends background JavaScript'
 }
+foreach ($paginationControl in @('async function scanAll(input,maximumItems=5000)', 'async function queryAll(input,maximumItems=5000)', 'page.LastEvaluatedKey', 'scanAll({TableName:process.env.PRESENCE_TABLE', 'queryAll({TableName:process.env.FRIENDS_TABLE', 'scanAll({TableName:process.env.STORIES_TABLE', 'async function groupIds(email){const items=await queryAll')) {
+  if (-not $template.Contains($paginationControl)) { throw "Stories, presence, or contact pagination is incomplete: $paginationControl" }
+}
+foreach ($retiredLimit in @('TableName:process.env.PRESENCE_TABLE,FilterExpression:''expiresAt > :n'',ExpressionAttributeValues:{'':n'':{N:String(now())}},Limit:100', 'TableName:process.env.STORIES_TABLE,FilterExpression:''expiresAt > :n'',ExpressionAttributeValues:{'':n'':{N:String(now())}},Limit:100', 'TableName:process.env.GROUPS_TABLE,Limit:250')) {
+  if ($template.Contains($retiredLimit)) { throw "A growing social directory still uses a single DynamoDB page: $retiredLimit" }
+}
 if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
   throw 'Raw media URL access is not restricted to the authenticated owner.'
 }
@@ -243,7 +249,7 @@ foreach ($friendSecurityControl in @(
   "Respond to the incoming request",
   "notifyFriendRequest(target,user.email)",
   "url:'/feed.html#notifications'",
-  "...(links.Items||[]).map(x=>x.friendEmail.S)"
+  "...links.map(x=>x.friendEmail.S)"
 )) {
   if (-not $template.Contains($friendSecurityControl)) { throw "Friend requests lack secure durable notification behavior: $friendSecurityControl" }
 }
