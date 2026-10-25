@@ -200,6 +200,15 @@ if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.C
 }
 $sessionActivityJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-activity.js') -Raw -Encoding utf8
 $profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.js') -Raw -Encoding utf8
+$pushNotificationsJs = Get-Content -LiteralPath (Join-Path $root 'assets\push-notifications.js') -Raw -Encoding utf8
+foreach ($pushPromptControl in @('Never miss a DanzStak call', 'setTimeout(showPermissionPrompt, 12000)', 'danzstak_push_prompt_dismissed', 'new URLSearchParams(location.search).get("embedded")')) {
+  if (-not $pushNotificationsJs.Contains($pushPromptControl)) { Add-Failure "Push alerts: permission prompt behavior is missing: $pushPromptControl" }
+}
+foreach ($pushPromptPage in @('feed.html', 'profile.html', 'messages.html')) {
+  $pushMarkup = Get-Content -LiteralPath (Join-Path $root $pushPromptPage) -Raw -Encoding utf8
+  if (-not $pushMarkup.Contains('assets/push-notifications.js?v=2')) { Add-Failure "${pushPromptPage}: background alert setup is not loaded" }
+  if (-not $pushMarkup.Contains('assets/incoming-calls.css?v=2')) { Add-Failure "${pushPromptPage}: background alert prompt styling is not loaded" }
+}
 $profileMarkup = Get-Content -LiteralPath (Join-Path $root 'profile.html') -Raw -Encoding utf8
 foreach ($profileShell in @('background:#f0f2f5', 'class="header-actions"', 'href="messages.html">Messages</a>', 'aria-label="Account navigation"')) {
   if (-not $profileMarkup.Contains($profileShell)) { Add-Failure "Profiles: familiar responsive navigation shell is missing: $profileShell" }
