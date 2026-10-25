@@ -359,12 +359,15 @@ function profilePostCard(post) {
   return article;
 }
 
+let profileTabVersion = 0;
 async function loadProfilePosts(mediaOnly = false) {
+  const version = profileTabVersion;
   tabMessage.textContent = mediaOnly ? "Loading media…" : "Loading posts…";
   try {
     const response = await fetch(profileApi + "/secure-posts", { credentials: "include", cache: "no-store" });
     if (!response.ok) throw new Error("Profile posts could not be loaded");
     const data = await response.json();
+    if (version !== profileTabVersion) return;
     const profileEmail = String(window.danzstakCurrentProfile?.email || "").toLowerCase();
     let posts = (data.posts || []).filter(post => String(post.authorEmail || post.userEmail || post.email || "").toLowerCase() === profileEmail);
     if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType));
@@ -374,8 +377,10 @@ async function loadProfilePosts(mediaOnly = false) {
       const profileEmail = String(window.danzstakCurrentProfile?.email || "");
       if (profileEmail) params.set("email", profileEmail);
       const videoResponse = await fetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
+      if (version !== profileTabVersion) return;
       if (videoResponse.ok) {
         const stored = await videoResponse.json();
+        if (version !== profileTabVersion) return;
         if (stored.mediaUrl) {
           tabMessage.appendChild(profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl: stored.mediaUrl }));
         } else if (stored.mediaKey && !viewingOtherProfile) {
@@ -386,6 +391,7 @@ async function loadProfilePosts(mediaOnly = false) {
           });
           if (viewResponse.ok) {
             const view = await viewResponse.json();
+            if (version !== profileTabVersion) return;
             tabMessage.appendChild(profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl: view.mediaUrl }));
           }
         }
@@ -393,10 +399,11 @@ async function loadProfilePosts(mediaOnly = false) {
     }
     if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? "No photos or videos to show yet." : "No posts to show yet."; return; }
     for (const post of posts) tabMessage.appendChild(profilePostCard(post));
-  } catch (error) { tabMessage.textContent = error.message; }
+  } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }
 }
 
 async function loadProfileFriends() {
+  const version = profileTabVersion;
   if (viewingOtherProfile) { tabMessage.textContent = "This member’s friend list is private."; return; }
   tabMessage.textContent = "Loading friends…";
   try {
@@ -413,6 +420,7 @@ async function loadProfileFriends() {
         .filter(user => user.online === true)
         .map(user => String(user.email || "").toLowerCase())
       : []);
+    if (version !== profileTabVersion) return;
     tabMessage.replaceChildren();
     if (!(data.friends || []).length) { tabMessage.textContent = "No friends yet."; return; }
     const grid = document.createElement("div"); grid.className = "profile-friend-grid";
@@ -432,12 +440,13 @@ async function loadProfileFriends() {
       copy.append(name, email); link.append(avatar, copy, status); grid.appendChild(link);
     }
     tabMessage.appendChild(grid);
-  } catch (error) { tabMessage.textContent = error.message; }
+  } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }
 }
 
 tabs.addEventListener("click", async event => {
   const tab = event.target.closest("[data-profile-tab]");
   if (!tab) return;
+  profileTabVersion += 1;
   tabs.querySelectorAll("button").forEach(button => { const selected = button === tab; button.classList.toggle("active", selected); button.setAttribute("aria-selected", String(selected)); button.tabIndex = selected ? 0 : -1; });
   const name = tab.dataset.profileTab;
   details.hidden = name !== "About";
