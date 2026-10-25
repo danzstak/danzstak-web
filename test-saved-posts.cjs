@@ -1,0 +1,23 @@
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
+const code = source.slice(source.indexOf('function renderSavedPosts('), source.indexOf('function renderWorkspace(name)'));
+const node = () => ({ children: [], append(...items) { this.children.push(...items); }, appendChild(item) { this.children.push(item); }, replaceChildren() { this.children = []; }, addEventListener(_, handler) { this.click = handler; } });
+const list = node();
+let posts = [], opened;
+const context = vm.createContext({ list, readPostPreferences: () => ({ saved1: { saved: true }, notSaved: { saved: false }, inaccessible: { saved: true } }),
+  document: { createElement: node, querySelectorAll: () => posts }, openPostInFeed: post => { opened = post; } });
+vm.runInContext(code, context);
+vm.runInContext('renderSavedPosts(list)', context);
+assert.match(list.children[0].textContent, /No saved posts available/);
+posts = ['saved1', 'notSaved'].map(id => ({ dataset: { postId: id }, querySelector: selector => ({ textContent: selector === '.post-content' ? 'Saved content' : 'Author' }) }));
+vm.runInContext('renderSavedPosts(list)', context);
+assert.equal(list.children.length, 1, 'only saved posts from the authorized feed are exposed');
+assert.equal(list.children[0].children[0].textContent, 'Saved content');
+list.children[0].children[2].click();
+assert.equal(opened, posts[0]);
+posts = []; vm.runInContext('renderSavedPosts(list)', context);
+assert.match(list.children[0].textContent, /No saved posts available/, 'removed or no-longer-visible posts disappear');
+console.log('Saved post checks passed: empty state, authorized posts only, and opening the source post.');

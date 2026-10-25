@@ -3,11 +3,11 @@ const { join } = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
-const code = source.slice(source.indexOf('const postPreferencesKey = '), source.indexOf('const hiddenPostKey = '));
+const code = source.slice(source.indexOf('const changedPostPreferenceFields = '), source.indexOf('const hiddenPostKey = '));
 function setup() {
   let saved = '{}';
   const requests = [];
-  const context = vm.createContext({ post: { dataset: { postId: 'p1' } }, isLocalHost: () => false,
+  const context = vm.createContext({ postPreferencesKey: 'danzstak-post-preferences', post: { dataset: { postId: 'p1' } }, isLocalHost: () => false,
     localStorage: { getItem: () => saved, setItem: (_, value) => { saved = value; } },
     fetch: (_, options) => new Promise((resolve, reject) => requests.push({ resolve, reject, body: JSON.parse(options.body) })) });
   vm.runInContext(code, context);

@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $Domain = "danzstak.com"
 $Root = $PSScriptRoot
 $Region = "us-west-1"
+$ExpectedWorkerCache = (Select-String -Path (Join-Path $Root "service-worker.js") -Pattern 'danzstak-shell-v\d+').Matches.Value
 
 function Wait-ForPublishedWorker {
   param([string]$Url, [string]$ExpectedCache, [int]$MaxAttempts = 19, [int]$RetrySeconds = 10)
@@ -56,8 +57,7 @@ if (-not $distribution) {
     throw "Amplify did not publish commit $localCommit within ten minutes."
   }
 
-  $expectedCache = (Select-String -Path (Join-Path $Root "service-worker.js") -Pattern 'danzstak-shell-v\d+').Matches.Value
-  Wait-ForPublishedWorker -Url "https://$Domain/service-worker.js" -ExpectedCache $expectedCache
+  Wait-ForPublishedWorker -Url "https://$Domain/service-worker.js" -ExpectedCache $ExpectedWorkerCache
   Write-Host "DanzStak Amplify release verified live at https://$Domain/."
   exit 0
 }

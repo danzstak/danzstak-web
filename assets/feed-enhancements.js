@@ -10,6 +10,7 @@ const featurePanel = document.getElementById("featureView");
 const featureHeading = document.getElementById("featureTitle");
 const featureText = document.getElementById("featureDescription");
 const localKey = "danzstak_dev_sections";
+const postPreferencesKey = "danzstak-post-preferences";
 const notificationControls = [...document.querySelectorAll('[data-feature="Notifications"]')];
 const notificationAnnouncer = document.createElement("div");
 notificationAnnouncer.className = "visually-hidden";
@@ -98,6 +99,18 @@ function field(label, type, placeholder) {
   return { wrap, input };
 }
 
+function openPostInFeed(post) {
+  const feedSearch = document.querySelector(".search");
+  if (feedSearch?.value) { feedSearch.value = ""; filterFeedPosts(); }
+  featurePanel.hidden = true;
+  document.getElementById("newsFeedView").hidden = false;
+  history.pushState(null, "", "#" + (post.id || "feed"));
+  if (typeof restoreWorkspaceRoute === "function") restoreWorkspaceRoute();
+  post.tabIndex = -1;
+  post.focus({ preventScroll: true });
+  post.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 function renderPublishedEvents(publishedEvents) {
   publishedEvents.replaceChildren();
   const eventPosts = [...document.querySelectorAll("#feed .post")].filter(post => post.querySelector(".post-content")?.textContent.startsWith("📅 Event:"));
@@ -109,15 +122,29 @@ function renderPublishedEvents(publishedEvents) {
     const content = document.createElement("p"); content.textContent = post.querySelector(".post-content").textContent;
     const meta = document.createElement("small"); meta.textContent = post.querySelector("time")?.textContent || "Published on DanzStak";
     const view = document.createElement("button"); view.type = "button"; view.className = "secondary"; view.textContent = "View in Feed";
-    view.addEventListener("click", () => {
-      featurePanel.hidden = true;
-      document.getElementById("newsFeedView").hidden = false;
-      history.replaceState(null, "", "#" + (post.id || "feed"));
-      post.scrollIntoView({ behavior: "smooth", block: "center" });
-      post.focus({ preventScroll: true });
-    });
+    view.addEventListener("click", () => openPostInFeed(post));
     post.tabIndex = -1;
     card.append(content, meta, view); publishedEvents.appendChild(card);
+  }
+}
+
+function renderSavedPosts(list) {
+  list.replaceChildren();
+  const preferences = readPostPreferences();
+  const posts = [...document.querySelectorAll("#feed .post[data-post-id]")].filter(post => preferences[String(post.dataset.postId)]?.saved === true);
+  if (!posts.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "No saved posts available. Save a post from its options menu to find it here.";
+    list.appendChild(empty);
+  }
+  for (const post of posts) {
+    const card = document.createElement("article"); card.className = "published-event-card";
+    const content = document.createElement("p"); content.textContent = post.querySelector(".post-content")?.textContent || "Saved media";
+    const author = document.createElement("small"); author.textContent = post.querySelector(".post-header a")?.textContent || "DanzStak post";
+    const view = document.createElement("button"); view.type = "button"; view.className = "secondary"; view.textContent = "View post";
+    view.addEventListener("click", () => openPostInFeed(post));
+    card.append(content, author, view); list.appendChild(card);
   }
 }
 
@@ -130,6 +157,14 @@ function renderWorkspace(name) {
   }
   workspace.replaceChildren();
   const saved = readSections();
+
+  if (name === "Saved") {
+    featureText.textContent = "Saved posts you can currently view. Manage saved items from each post’s options menu.";
+    const list = document.createElement("div"); list.className = "published-events saved-posts";
+    workspace.appendChild(list);
+    renderSavedPosts(list);
+    return;
+  }
 
   if (name === "Groups") {
     featureText.textContent = "Find communities by category, create a group, and connect with people who share your interests.";
@@ -735,7 +770,7 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
   friendsLink.insertAdjacentElement("afterend", groupsLink);
 }
 
-const workspaceRoutes = new Map(["Friends", "Groups", "Photos", "Videos", "Events", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
+const workspaceRoutes = new Map(["Friends", "Groups", "Photos", "Videos", "Events", "Saved", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
 function openWorkspaceRoute(name, pushHistory = true) {
   if (!workspaceRoutes.has(String(name).toLowerCase())) return false;
   const canonicalName = workspaceRoutes.get(String(name).toLowerCase());
@@ -770,7 +805,7 @@ document.querySelectorAll("[data-feature]").forEach(control => {
 function restoreWorkspaceRoute() {
   const name = workspaceRoutes.get(location.hash.slice(1).toLowerCase());
   if (name) openWorkspaceRoute(name, false);
-  else if (!location.hash || location.hash === "#feed") {
+  else if (!location.hash || location.hash === "#feed" || location.hash.startsWith("#post-")) {
     featurePanel.hidden = true;
     document.getElementById("newsFeedView").hidden = false;
     document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.getAttribute("href") === "feed.html"));
@@ -1110,7 +1145,6 @@ function postPermalink(post) {
   return url.href;
 }
 
-const postPreferencesKey = "danzstak-post-preferences";
 const changedPostPreferenceFields = new Map();
 
 function mergeRemotePostPreferences(postId, current, remote) {
@@ -1190,6 +1224,8 @@ if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts", { credentia
       post.querySelector(".post-options-menu")?.remove();
       addPostDeleteButton(post);
     });
+    const savedList = featurePanel.querySelector(".saved-posts");
+    if (!featurePanel.hidden && savedList) renderSavedPosts(savedList);
   })
   .catch(() => {});
 
@@ -1972,10 +2008,13 @@ document.getElementById("feed").addEventListener("keydown", event => {
 }, true);
 document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
 function refreshFeedMediaWorkspace(records) {
-  if (featurePanel.hidden || !["Photos", "Videos", "Events"].includes(featureHeading.textContent)) return;
+  if (featurePanel.hidden || !["Photos", "Videos", "Events", "Saved"].includes(featureHeading.textContent)) return;
   const feed = document.getElementById("feed");
   if (records.some(record => record.target === feed && (record.addedNodes.length || record.removedNodes.length))) {
-    if (featureHeading.textContent === "Events") {
+    if (featureHeading.textContent === "Saved") {
+      const savedList = featurePanel.querySelector(".saved-posts");
+      if (savedList) renderSavedPosts(savedList);
+    } else if (featureHeading.textContent === "Events") {
       const publishedEvents = featurePanel.querySelector(".published-events");
       if (publishedEvents) renderPublishedEvents(publishedEvents);
     } else renderWorkspace(featureHeading.textContent);
