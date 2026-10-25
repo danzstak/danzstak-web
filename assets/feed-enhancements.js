@@ -616,11 +616,18 @@ function openWorkspaceRoute(name, pushHistory = true) {
   document.getElementById("newsFeedView").hidden = true;
   featurePanel.hidden = false;
   featureHeading.textContent = canonicalName;
-  document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.dataset.feature === canonicalName));
+  document.querySelectorAll("[data-feature]").forEach(control => {
+    const active = control.dataset.feature === canonicalName;
+    if (control.matches(".menu a")) control.classList.toggle("active", active);
+    if (active) control.setAttribute("aria-current", "page");
+    else control.removeAttribute("aria-current");
+  });
   renderWorkspace(canonicalName);
   const nextHash = "#" + canonicalName.toLowerCase();
   if (pushHistory && location.hash !== nextHash) history.pushState({ workspace: canonicalName }, "", nextHash);
   featurePanel.scrollIntoView({ behavior: pushHistory ? "smooth" : "auto", block: "start" });
+  featureHeading.tabIndex = -1;
+  requestAnimationFrame(() => featureHeading.focus({ preventScroll: true }));
   return true;
 }
 
@@ -641,6 +648,7 @@ function restoreWorkspaceRoute() {
     featurePanel.hidden = true;
     document.getElementById("newsFeedView").hidden = false;
     document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.getAttribute("href") === "feed.html"));
+    document.querySelectorAll("[data-feature][aria-current]").forEach(control => control.removeAttribute("aria-current"));
   }
 }
 addEventListener("popstate", restoreWorkspaceRoute);

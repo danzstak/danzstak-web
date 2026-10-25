@@ -286,6 +286,9 @@ foreach ($groupFeature in @('fetch("https://api.danzstak.com/groups"', 'communit
 foreach ($workspaceRouting in @('const workspaceRoutes = new Map(', 'history.pushState({ workspace: canonicalName }', 'addEventListener("popstate", restoreWorkspaceRoute)', 'restoreWorkspaceRoute();')) {
   if (-not $feedEnhancements.Contains($workspaceRouting)) { Add-Failure "Feed workspaces do not support refresh and Back/Forward navigation: $workspaceRouting" }
 }
+foreach ($workspaceAccessibility in @('control.setAttribute("aria-current", "page")', 'featureHeading.tabIndex = -1', 'featureHeading.focus({ preventScroll: true })')) {
+  if (-not $feedEnhancements.Contains($workspaceAccessibility)) { Add-Failure "Feed workspaces do not announce navigation accessibly: $workspaceAccessibility" }
+}
 if ($feed.Contains('window.location.assign("./")') -or
     -not $feed.Contains('history.replaceState(null, "", location.pathname);')) {
   Add-Failure 'Feed navigation: Home still round-trips through the public landing page'
