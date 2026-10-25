@@ -7,7 +7,7 @@ const code = source.slice(source.indexOf('async function getSecurePosts(event)')
 const row = (id, owner, audience) => ({ postId: { S: id }, ...(owner ? { userId: { S: owner } } : {}), content: { S: 'Post content' }, createdAt: { S: '2026-10-25T00:00:00Z' }, audience: { S: audience } });
 const context = vm.createContext({ event: { headers: {} }, corsHeaders: () => ({}), getAuthenticatedUser: async () => 'viewer', postsTable: 'Posts',
   scanAll: async () => [row('mine', 'viewer', 'private'), row('other', 'someone-else', 'public'), row('legacy', null, 'public'), row('private-other', 'someone-else', 'private')],
-  accountForSub: async () => 'viewer@example.com', postEditHistory: () => [] });
+  accountForSub: async () => 'viewer@example.com', postEditHistory: () => [], loadFeedAuthorNames: async items => { assert.equal(items.some(item => item.postId.S === 'private-other'), false); return new Map(); } });
 vm.runInContext(code, context);
 (async () => {
   const result = await vm.runInContext('getSecurePosts(event)', context);

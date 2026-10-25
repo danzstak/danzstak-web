@@ -859,6 +859,27 @@ function postEditHistory(item) {
   } catch { return []; }
 }
 
+async function loadFeedAuthorNames(items) {
+  const emails = [...new Set(items.map(item => String(item.userEmail?.S || "").trim().toLowerCase()).filter(Boolean))];
+  const names = new Map();
+  let next = 0;
+  async function worker() {
+    while (next < emails.length) {
+      const email = emails[next++];
+      try {
+        const found = await db.send(new GetItemCommand({
+          TableName: settingsTable, Key: { userEmail: { S: email } },
+          ProjectionExpression: "profileName", ConsistentRead: true
+        }));
+        const name = String(found.Item?.profileName?.S || "").trim().slice(0, 80);
+        if (name) names.set(email, name);
+      } catch (error) { console.warn("Feed display-name lookup failed", error.name || "UnknownError"); }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(8, emails.length) }, worker));
+  return names;
+}
+
 async function getSecurePosts(event) {
   const headers = corsHeaders(event.headers?.origin);
   const userId = await getAuthenticatedUser(event);
@@ -882,13 +903,14 @@ async function getSecurePosts(event) {
     }
   }
 
-  const posts = rawPosts
-    .filter(item => item.userId?.S === userId || item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S)))
-    .map(item => ({
+  const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S)));
+  const authorNames = await loadFeedAuthorNames(visiblePosts);
+  const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
       isOwner: item.userId?.S === userId,
       userEmail: item.userEmail?.S ?? "",
+      authorName: authorNames.get(String(item.userEmail?.S || "").trim().toLowerCase()) || item.userEmail?.S?.split("@")[0] || "DanzStak Member",
       content: item.content.S,
       audience: item.audience?.S ?? "public",
       mediaKey: item.mediaKey?.S ?? "",
