@@ -5,7 +5,7 @@ $Root = $PSScriptRoot
 $Region = "us-west-1"
 
 Write-Host "Resolving the CloudFront distribution for $Domain..."
-$distributions = aws cloudfront list-distributions --output json | ConvertFrom-Json
+$distributions = aws cloudfront list-distributions --region $Region --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) { throw "Unable to list CloudFront distributions." }
 $distribution = $distributions.DistributionList.Items |
   Where-Object { $_.Aliases.Items -contains $Domain } |
@@ -87,11 +87,13 @@ foreach ($file in @("index.html", "feed.html", "messages.html", "profile.html", 
 
 Write-Host "Invalidating CloudFront distribution $($distribution.Id)..."
 $invalidation = aws cloudfront create-invalidation `
+  --region $Region `
   --distribution-id $distribution.Id `
   --paths "/*" `
   --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0 -or -not $invalidation.Invalidation.Id) { throw "CloudFront invalidation failed." }
 aws cloudfront wait invalidation-completed `
+  --region $Region `
   --distribution-id $distribution.Id `
   --id $invalidation.Invalidation.Id
 if ($LASTEXITCODE -ne 0) { throw "CloudFront invalidation did not complete." }

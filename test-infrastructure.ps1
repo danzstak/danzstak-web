@@ -171,10 +171,10 @@ foreach ($requiredCacheControl in @(
   '$CachePolicyName = "DanzStak-Frequent-Revalidation"',
   'MaxTTL = 300',
   'MinTTL = 0',
-  'create-invalidation --distribution-id $distributionId --paths "/*"'
+  'create-invalidation --region $Region --distribution-id $distributionId --paths "/*"'
 )) {
   if (-not $cloudFrontScript.Contains($requiredCacheControl)) {
-    Add-Failure "CloudFront deployment is missing bounded cache control: $requiredCacheControl"
+    throw "CloudFront deployment is missing bounded cache control: $requiredCacheControl"
   }
 }
 
@@ -187,7 +187,7 @@ foreach ($requiredHeader in @(
   'Permissions-Policy'
 )) {
   if (-not $amplifyHeaders.Contains($requiredHeader)) {
-    Add-Failure "Amplify Hosting security header is missing: $requiredHeader"
+    throw "Amplify Hosting security header is missing: $requiredHeader"
   }
 }
 
@@ -200,8 +200,14 @@ foreach ($requiredAmplifyCheck in @(
   '$latest.status -eq "SUCCEED"'
 )) {
   if (-not $publishScript.Contains($requiredAmplifyCheck)) {
-    Add-Failure "Amplify release verification is missing: $requiredAmplifyCheck"
+    throw "Amplify release verification is missing: $requiredAmplifyCheck"
   }
+}
+if (-not $publishScript.Contains('aws cloudfront list-distributions --region $Region')) {
+  throw 'Static deployment depends on an ambient AWS default region'
+}
+if (-not $cloudFrontScript.Contains('aws cloudfront list-distributions --region $Region')) {
+  throw 'CloudFront hardening depends on an ambient AWS default region'
 }
 
 Write-Host "Infrastructure checks passed ($templateBytes-byte template; embedded Lambda syntax valid)."

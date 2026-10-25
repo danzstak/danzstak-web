@@ -6,7 +6,7 @@ $SecurityHeadersPolicyId = "67f7725c-6f97-4210-82d7-5512b31e9d03"
 $CachePolicyName = "DanzStak-Frequent-Revalidation"
 
 Write-Host "Locating the CloudFront distribution for $Domain..."
-$distributions = aws cloudfront list-distributions --output json | ConvertFrom-Json
+$distributions = aws cloudfront list-distributions --region $Region --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) { throw "Unable to list CloudFront distributions." }
 $distribution = $distributions.DistributionList.Items |
   Where-Object { $_.Aliases.Items -contains $Domain } |
@@ -41,12 +41,12 @@ if (-not $distribution) {
 }
 
 $distributionId = $distribution.Id
-$current = aws cloudfront get-distribution-config --id $distributionId --output json | ConvertFrom-Json
+$current = aws cloudfront get-distribution-config --region $Region --id $distributionId --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) { throw "Unable to read CloudFront distribution $distributionId." }
 $changed = $false
 
 Write-Host "Locating the bounded DanzStak cache policy..."
-$cachePolicies = aws cloudfront list-cache-policies --type custom --output json | ConvertFrom-Json
+$cachePolicies = aws cloudfront list-cache-policies --region $Region --type custom --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) { throw "Unable to list CloudFront cache policies." }
 $cachePolicy = $cachePolicies.CachePolicyList.Items |
   Where-Object { $_.CachePolicy.CachePolicyConfig.Name -eq $CachePolicyName } |
@@ -69,7 +69,7 @@ if (-not $cachePolicy) {
         QueryStringsConfig = @{ QueryStringBehavior = "none" }
       }
     } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $cachePolicyPath -Encoding utf8
-    $createdPolicy = aws cloudfront create-cache-policy --cache-policy-config "file://$cachePolicyPath" --output json | ConvertFrom-Json
+    $createdPolicy = aws cloudfront create-cache-policy --region $Region --cache-policy-config "file://$cachePolicyPath" --output json | ConvertFrom-Json
     if ($LASTEXITCODE -ne 0 -or -not $createdPolicy.CachePolicy.Id) { throw "Unable to create the DanzStak cache policy." }
     $cachePolicyId = $createdPolicy.CachePolicy.Id
   } finally {
@@ -111,6 +111,7 @@ if (-not $changed) {
     $current.DistributionConfig | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $configPath -Encoding utf8
     Write-Host "Applying security headers, TLS 1.2 minimum, and HTTP/3 to distribution $distributionId..."
     aws cloudfront update-distribution `
+      --region $Region `
       --id $distributionId `
       --if-match $current.ETag `
       --distribution-config "file://$configPath" | Out-Null
@@ -120,12 +121,12 @@ if (-not $changed) {
   }
 
   Write-Host "Waiting for CloudFront distribution $distributionId to finish deploying..."
-  aws cloudfront wait distribution-deployed --id $distributionId
+  aws cloudfront wait distribution-deployed --region $Region --id $distributionId
   if ($LASTEXITCODE -ne 0) { throw "CloudFront did not finish deploying successfully." }
 }
 
 Write-Host "Invalidating the previous DanzStak release from CloudFront..."
-aws cloudfront create-invalidation --distribution-id $distributionId --paths "/*" | Out-Null
+aws cloudfront create-invalidation --region $Region --distribution-id $distributionId --paths "/*" | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "CloudFront invalidation failed." }
 
 $response = Invoke-WebRequest -Uri "https://$Domain/" -Method Head -UseBasicParsing
