@@ -62,6 +62,9 @@ if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
 foreach ($storyAudienceControl in @("audience=['public','friends','private'].includes(body.audience)", "x.audience?.S==='friends'&&friends.has(x.userEmail.S)")) {
   if (-not $template.Contains($storyAudienceControl)) { throw "Story audience enforcement is missing: $storyAudienceControl" }
 }
+foreach ($accountPreferenceControl in @('darkMode = :d', 'reduceMotion = :r', 'dataSaver = :s', "body.language!=='en'")) {
+  if (-not $template.Contains($accountPreferenceControl)) { throw "Account settings persistence is missing: $accountPreferenceControl" }
+}
 foreach ($copyrightControl in @('body.rightsCertified!==true', 'body.originalContentCertified!==true')) {
   if (-not $template.Contains($copyrightControl)) { throw "Story/Reel copyright attestation enforcement is missing: $copyrightControl" }
 }

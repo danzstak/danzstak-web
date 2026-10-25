@@ -204,7 +204,7 @@ foreach ($profileShell in @('background:#f0f2f5', 'class="header-actions"', 'hre
 foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey && !viewingOtherProfile')) {
   if (-not $profileEditorJs.Contains($protectedProfileMedia)) { Add-Failure "Profiles: media authorization safeguard is missing: $protectedProfileMedia" }
 }
-foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Signs out after 2h without activity', '"Account", logout')) {
+foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Signs out after 2h without activity', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: darkCheckbox.checked', 'language: language.value')) {
   if (-not $feedEnhancements.Contains($settingsBehavior)) { Add-Failure "Settings: persistent control is missing: $settingsBehavior" }
 }
 $logoutJs = Get-Content -LiteralPath (Join-Path $root 'assets\logout.js') -Raw -Encoding utf8

@@ -617,7 +617,29 @@ function renderWorkspace(name) {
     logout.type = "button"; logout.className = "secondary"; logout.dataset.logout = ""; logout.textContent = "Logout";
     fetch("https://api.danzstak.com/settings/presence", { credentials: "include", cache: "no-store" })
       .then(response => response.ok ? response.json() : null)
-      .then(data => { if (data) presenceCheckbox.checked = data.onlineVisible !== false; });
+      .then(data => {
+        if (!data) return;
+        presenceCheckbox.checked = data.onlineVisible !== false;
+        if (typeof data.darkMode === "boolean") {
+          darkCheckbox.checked = data.darkMode;
+          document.documentElement.classList.toggle("dark-mode", data.darkMode);
+          localStorage.setItem("danzstak_dark_mode", data.darkMode ? "1" : "0");
+        }
+        if (typeof data.reduceMotion === "boolean") {
+          motionCheckbox.checked = data.reduceMotion;
+          document.documentElement.classList.toggle("reduce-motion", data.reduceMotion);
+          localStorage.setItem("danzstak_reduce_motion", data.reduceMotion ? "1" : "0");
+        }
+        if (typeof data.dataSaver === "boolean") {
+          dataSaverCheckbox.checked = data.dataSaver;
+          localStorage.setItem("danzstak_data_saver", data.dataSaver ? "1" : "0");
+        }
+        if (data.language === "en") {
+          language.value = data.language;
+          document.documentElement.lang = data.language;
+          localStorage.setItem("danzstak_language", data.language);
+        }
+      });
     const button = document.createElement("button");
     button.className = "primary";
     button.type = "button";
@@ -625,8 +647,11 @@ function renderWorkspace(name) {
     button.addEventListener("click", async () => {
       saved.Settings = { ...(saved.Settings || {}), notifications: checkbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked };
       writeSections(saved);
-      const response = await fetch("https://api.danzstak.com/settings/presence", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ onlineVisible: presenceCheckbox.checked }) });
-      featureText.textContent = response.ok ? "Settings saved." : "Online visibility could not be saved.";
+      const response = await fetch("https://api.danzstak.com/settings/presence", {
+        method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+        body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, darkMode: darkCheckbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
+      });
+      featureText.textContent = response.ok ? "Settings saved to your DanzStak account." : "Account settings could not be saved.";
       refreshNotificationCount();
       if (typeof loadOnlineUsers === "function") loadOnlineUsers();
     });
