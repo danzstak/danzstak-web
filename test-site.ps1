@@ -47,6 +47,9 @@ if (-not $feed.Contains("frame-src 'self' https://www.youtube-nocookie.com")) {
 foreach ($uploadCleanupControl in @('async function discardUploadedMedia(mediaKey)', 'await discardUploadedMedia(uploadedStoryKey)', 'await discardUploadedMedia(uploadedPostKey)')) {
   if (-not $feed.Contains($uploadCleanupControl)) { Add-Failure "Media: failed publication leaves an orphaned upload: $uploadCleanupControl" }
 }
+foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Story from "', 'open.addEventListener("click", () => openStoryViewer(story))')) {
+  if (-not $feed.Contains($storyAccessibilityControl)) { Add-Failure "Stories: open and delete controls are not separately accessible: $storyAccessibilityControl" }
+}
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }

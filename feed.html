@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-oP8V8e77TQ/6BJWEIawC1uLE4/WSMgfcTwo/YIgrwIs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-VPdFeHkIYrrcDZAVs6xc9GH1UiaAyE3zXs0Pfsbxetk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -662,11 +662,12 @@ async function loadStories() {
     for (const story of (data.stories || []).slice(0, 12)) {
       const item = document.createElement("article");
       item.className = "story";
-      item.tabIndex = 0;
-      item.setAttribute("role", "button");
       item.dataset.storyId = story.storyId;
       item.title = story.content;
-      item.setAttribute("aria-label", "Story from " + story.userEmail.split("@")[0] + ": " + story.content);
+      const open = document.createElement("button");
+      open.type = "button";
+      open.className = "story-open";
+      open.setAttribute("aria-label", "Open Story from " + story.userEmail.split("@")[0] + ": " + story.content);
       if (story.mediaType === "image" && story.mediaUrl) {
         item.style.backgroundImage = `linear-gradient(transparent,#0009),url("${story.mediaUrl}")`;
         item.style.backgroundSize = "cover";
@@ -683,9 +684,9 @@ async function loadStories() {
       }
       const label = document.createElement("span");
       label.textContent = story.userEmail.split("@")[0] + ": " + story.content.slice(0, 55);
-      item.appendChild(label);
-      item.addEventListener("click", () => openStoryViewer(story));
-      item.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); item.click(); } });
+      open.appendChild(label);
+      open.addEventListener("click", () => openStoryViewer(story));
+      item.appendChild(open);
       if (story.isOwner) {
         const remove = document.createElement("button");
         remove.type = "button";
