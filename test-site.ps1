@@ -65,6 +65,12 @@ foreach ($step in $requiredStoryUploadSteps) {
     Add-Failure "feed.html: dedicated Story media upload step is missing: $step"
   }
 }
+if (-not $feed.Contains('function openStoryViewer(story)') -or
+    -not $feed.Contains('setInterval(loadStories, 45 * 60 * 1000)') -or
+    -not $feed.Contains('video.autoplay = true;') -or
+    -not $feed.Contains('viewer.showModal();')) {
+  Add-Failure 'Stories: media viewer, autoplay, or signed-URL refresh is incomplete'
+}
 
 $serviceWorker = Get-Content -LiteralPath (Join-Path $root 'service-worker.js') -Raw -Encoding utf8
 if ($serviceWorker -notmatch 'const CACHE = "danzstak-shell-v\d+";' -or
