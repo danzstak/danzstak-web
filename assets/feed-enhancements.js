@@ -803,6 +803,34 @@ function updatePostPreference(post, changes) {
   localStorage.setItem(postPreferencesKey, JSON.stringify(preferences));
 }
 
+const hiddenPostKey = "danzstak-hidden-posts";
+let hiddenPostIds;
+try { hiddenPostIds = new Set(JSON.parse(localStorage.getItem(hiddenPostKey) || "[]").map(String)); }
+catch { hiddenPostIds = new Set(); }
+
+function applyHiddenPosts(root = document) {
+  root.querySelectorAll?.(".post[data-post-id]").forEach(post => {
+    if (hiddenPostIds.has(String(post.dataset.postId))) post.remove();
+  });
+}
+
+async function hidePostForAccount(post) {
+  const postId = String(post.dataset.postId || "");
+  if (!postId) { post.remove(); return; }
+  hiddenPostIds.add(postId);
+  localStorage.setItem(hiddenPostKey, JSON.stringify([...hiddenPostIds]));
+  post.remove();
+  if (!isLocalHost()) await fetch("https://api.danzstak.com/settings/posts", {
+    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ postId, hidden: true })
+  }).catch(() => null);
+}
+
+if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts", { credentials: "include", cache: "no-store" })
+  .then(response => response.ok ? response.json() : null)
+  .then(data => { for (const id of data?.postIds || []) hiddenPostIds.add(String(id)); localStorage.setItem(hiddenPostKey, JSON.stringify([...hiddenPostIds])); applyHiddenPosts(); })
+  .catch(() => {});
+
 function addPostDeleteButton(post) {
   const actions = post.querySelector(".post-actions");
   if (!actions || post.querySelector(".post-menu-toggle")) return;
@@ -833,13 +861,7 @@ function addPostDeleteButton(post) {
   if (preferences.pinned === true && post.parentElement) post.parentElement.prepend(post);
 
   function removePostFromThisFeed() {
-    const postId = post.dataset.postId;
-    if (postId) {
-      let hidden = [];
-      try { hidden = JSON.parse(localStorage.getItem("danzstak-hidden-posts") || "[]"); } catch { hidden = []; }
-      localStorage.setItem("danzstak-hidden-posts", JSON.stringify([...new Set([...hidden, String(postId)])]));
-    }
-    post.remove();
+    hidePostForAccount(post);
   }
 
   const optionIcons = {
@@ -983,7 +1005,7 @@ function addPostDeleteButton(post) {
       }
       button.disabled = false;
     });
-    option("Move to archive", "Hide this post without deleting it.", () => { post.hidden = true; });
+    option("Move to archive", "Hide this post from your account.", () => hidePostForAccount(post));
   option("Delete post", "Delete your post or remove another user's post from your feed.", async () => {
     const postId = post.dataset.postId;
     if (post.dataset.isOwner === "false") {
@@ -1324,11 +1346,11 @@ async function loadCloudReels() {
 renderPlayableReels();
 loadCloudReels();
 placeReelsRail();
-document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } });
+document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
 new MutationObserver(records => {
   for (const record of records) {
     record.addedNodes.forEach(node => {
-      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { addReactionButton(node); addShareButton(node); addPostDeleteButton(node); placeReelsRail(); }
+      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { if (hiddenPostIds.has(String(node.dataset.postId || ""))) { node.remove(); return; } addReactionButton(node); addShareButton(node); addPostDeleteButton(node); placeReelsRail(); }
       if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".comment")) addCommentDelete(node);
       if (node.nodeType === Node.ELEMENT_NODE) node.querySelectorAll?.(".comment").forEach(addCommentDelete);
     });
