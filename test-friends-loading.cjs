@@ -10,7 +10,7 @@ function node(tag) {
   nodes.push(item); return item;
 }
 vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
-  document: { createElement: node }, workspace: node('workspace'), featureText: {},
+  document: { createElement: node }, workspace: node('workspace'), featureText: {}, createFriendRequestForm: () => node('form'),
   fetch: async url => {
     if (url.endsWith('/calls/directory')) throw new Error('Presence unavailable');
     return { ok: true, json: async () => ({ friends: [{ email: 'friend@example.com', name: 'Existing Friend' }] }) };

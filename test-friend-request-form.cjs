@@ -1,0 +1,33 @@
+const { readFileSync } = require('node:fs');
+const { join } = require('node:path');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
+const code = source.slice(source.indexOf('function createFriendRequestForm()'), source.indexOf('async function migrateLocalGroups('));
+const nodes = [], requests = [];
+const node = tag => { const item = { tag, value: '', children: [], setAttribute() {}, reportValidity: () => true, addEventListener(_, handler) { this.submit = handler; }, append(...items) { this.children.push(...items); } }; nodes.push(item); return item; };
+const input = node('input');
+const context = vm.createContext({ document: { createElement: node }, field: () => ({ wrap: node('label'), input }),
+  fetch: (_, options) => new Promise((resolve, reject) => requests.push({ resolve, reject, body: JSON.parse(options.body) })) });
+vm.runInContext(code + '\ncreateFriendRequestForm();', context);
+const form = nodes.find(item => item.tag === 'form'), send = nodes.find(item => item.tag === 'button'), status = nodes.find(item => item.tag === 'p');
+const event = { preventDefault() {} };
+(async () => {
+  input.value = ' Friend@Example.com ';
+  const pending = form.submit(event);
+  await form.submit(event);
+  assert.equal(requests.length, 1, 'duplicate submissions are prevented');
+  assert.equal(requests[0].body.email, 'friend@example.com');
+  requests[0].resolve({ ok: false, json: async () => ({ error: 'Member not found' }) });
+  await pending;
+  assert.equal(input.value, ' Friend@Example.com ', 'a rejected request preserves the address for correction');
+  assert.equal(status.textContent, 'Member not found'); assert.equal(send.disabled, false);
+  const accepted = form.submit(event);
+  requests[1].resolve({ ok: true, json: async () => ({ requested: true }) }); await accepted;
+  assert.equal(input.value, ''); assert.match(status.textContent, /Friend request sent/);
+  input.value = 'friend@example.com';
+  const existing = form.submit(event);
+  requests[2].resolve({ ok: true, json: async () => ({ alreadyFriends: true, requested: false }) }); await existing;
+  assert.match(status.textContent, /already friends/, 'existing friendships do not claim a new request was sent');
+  console.log('Friend request form checks passed: normalized email, duplicate prevention, and retry after errors.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

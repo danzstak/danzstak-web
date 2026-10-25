@@ -154,6 +154,38 @@ function renderSavedPosts(list) {
   }
 }
 
+function createFriendRequestForm() {
+  const form = document.createElement("form");
+  form.className = "friend-request-form";
+  const email = field("Add a friend by email", "email", "name@example.com");
+  email.input.required = true;
+  email.input.maxLength = 254;
+  email.input.autocomplete = "email";
+  const send = document.createElement("button");
+  send.type = "submit"; send.className = "primary"; send.textContent = "Send friend request";
+  const status = document.createElement("p"); status.className = "muted"; status.setAttribute("role", "status");
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (send.disabled || !form.reportValidity()) return;
+    const address = email.input.value.trim().toLowerCase();
+    send.disabled = true;
+    status.textContent = "Sending friend request…";
+    try {
+      const response = await fetch("https://api.danzstak.com/friends/request", {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: address })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Friend request could not be sent. Please try again.");
+      status.textContent = data.alreadyFriends ? "You are already friends with this member." : "Friend request sent. It will appear in their DanzStak notifications.";
+      if (email.input.value.trim().toLowerCase() === address) email.input.value = "";
+    } catch (error) { status.textContent = error.message || "Friend request could not be sent. Please try again."; }
+    finally { send.disabled = false; }
+  });
+  form.append(email.wrap, send, status);
+  return form;
+}
+
 async function migrateLocalGroups(localGroups, remoteGroups) {
   const groups = [...remoteGroups], pending = [], joinedIds = [];
   const key = group => `${String(group.name || "").toLowerCase()}|${group.category}`;
@@ -487,6 +519,7 @@ function renderWorkspace(name) {
 
   if (name === "Friends") {
     featureText.textContent = "All accepted friends appear here, including friends who are offline.";
+    workspace.appendChild(createFriendRequestForm());
     const list = document.createElement("div");
     list.className = "friends-workspace-list";
     const loading = document.createElement("p");
