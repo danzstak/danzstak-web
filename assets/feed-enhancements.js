@@ -709,6 +709,7 @@ if (composerActions && publishButton) {
       event.stopImmediatePropagation();
       const post = document.createElement("article");
       post.className = "post";
+      post.dataset.audience = "public";
       post.dataset.postId = crypto.randomUUID();
       const header = document.createElement("div");
       header.className = "post-header";
@@ -786,6 +787,10 @@ function addShareButton(post) {
   button.className = "shareBtn";
   button.textContent = "Share";
   button.addEventListener("click", async () => {
+    if ((post.dataset.audience || "public") !== "public") {
+      alert("Only Public posts can be shared outside DanzStak.");
+      return;
+    }
     const content = post.querySelector(".post-content")?.textContent.trim() || "DanzStak post";
     const shareUrl = postPermalink(post);
     const shareData = { title: "DanzStak", text: content.slice(0, 200), url: shareUrl };
@@ -1016,6 +1021,7 @@ function addPostDeleteButton(post) {
         } catch (error) { alert(error.message); button.disabled = false; return; }
       }
       post.dataset.privacySetting = String(next);
+      post.dataset.audience = audiences[next];
       button.querySelector("small").textContent = values[next];
       if (audienceBadge) {
         audienceBadge.textContent = ["🌎 Public", "👥 Friends", "🔒 Only me"][next];
