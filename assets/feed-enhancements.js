@@ -65,6 +65,23 @@ function writeSections(value) {
   localStorage.setItem(localKey, JSON.stringify(value));
 }
 
+function dataSaverEnabled() {
+  try { return localStorage.getItem("danzstak_data_saver") === "1"; }
+  catch { return false; }
+}
+
+function applyDataSaver(enabled) {
+  try { localStorage.setItem("danzstak_data_saver", enabled ? "1" : "0"); } catch {}
+  document.documentElement.classList.toggle("data-saver", enabled);
+  document.querySelectorAll("video").forEach(video => {
+    video.preload = enabled ? "none" : "metadata";
+    video.autoplay = !enabled;
+    if (enabled) video.pause();
+    else if (video.dataset.inView === "true" || video.closest(".story")) video.play().catch(() => {});
+  });
+  if (typeof renderPlayableReels === "function" && typeof reelsList !== "undefined") renderPlayableReels();
+}
+
 function field(label, type, placeholder) {
   const wrap = document.createElement("label");
   wrap.style.display = "grid";
@@ -568,7 +585,7 @@ function renderWorkspace(name) {
     dataSaverCheckbox.type = "checkbox";
     dataSaverCheckbox.checked = localStorage.getItem("danzstak_data_saver") === "1";
     dataSaverCheckbox.setAttribute("aria-label", "Use less mobile data");
-    dataSaverCheckbox.addEventListener("change", () => localStorage.setItem("danzstak_data_saver", dataSaverCheckbox.checked ? "1" : "0"));
+    dataSaverCheckbox.addEventListener("change", () => applyDataSaver(dataSaverCheckbox.checked));
     const language = document.createElement("select");
     language.setAttribute("aria-label", "DanzStak language");
     for (const [value, label] of [["en", "English"]]) {
@@ -634,7 +651,7 @@ function renderWorkspace(name) {
         }
         if (typeof data.dataSaver === "boolean") {
           dataSaverCheckbox.checked = data.dataSaver;
-          localStorage.setItem("danzstak_data_saver", data.dataSaver ? "1" : "0");
+          applyDataSaver(data.dataSaver);
         }
         if (data.language === "en") {
           language.value = data.language;
@@ -1564,7 +1581,7 @@ const reelPlaybackObserver = new IntersectionObserver(entries => {
   for (const entry of entries) {
     const video = entry.target;
     video.dataset.inView = String(entry.isIntersecting && entry.intersectionRatio >= 0.6);
-    if (video.dataset.inView === "true" && !document.hidden) video.play().catch(() => {});
+    if (video.dataset.inView === "true" && !document.hidden && !dataSaverEnabled()) video.play().catch(() => {});
     else video.pause();
   }
 }, { threshold: [0, 0.6, 1] });
@@ -1671,23 +1688,33 @@ function renderPlayableReels() {
       video.src = playerInfo.src;
       video.controls = true;
       video.playsInline = true;
-      video.autoplay = true;
+      video.autoplay = !dataSaverEnabled();
       video.muted = true;
       video.loop = true;
-      video.preload = localStorage.getItem("danzstak_data_saver") === "1" ? "none" : "metadata";
+      video.preload = dataSaverEnabled() ? "none" : "metadata";
       reelPlaybackObserver.observe(video);
       card.appendChild(video);
     } else if (playerInfo?.kind === "iframe") {
-      const frame = document.createElement("iframe");
-      frame.className = "reel-player";
-      frame.src = playerInfo.src;
-      frame.title = reel.platform + " reel player";
-      frame.loading = "lazy";
-      frame.referrerPolicy = "strict-origin-when-cross-origin";
-      frame.allow = "autoplay; encrypted-media; fullscreen; picture-in-picture";
-      frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation");
-      frame.setAttribute("allowfullscreen", "");
-      card.appendChild(frame);
+      const createFrame = () => {
+        const frame = document.createElement("iframe");
+        frame.className = "reel-player";
+        frame.src = playerInfo.src;
+        frame.title = reel.platform + " reel player";
+        frame.loading = "lazy";
+        frame.referrerPolicy = "strict-origin-when-cross-origin";
+        frame.allow = "autoplay; encrypted-media; fullscreen; picture-in-picture";
+        frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation");
+        frame.setAttribute("allowfullscreen", "");
+        return frame;
+      };
+      if (dataSaverEnabled()) {
+        const load = document.createElement("button");
+        load.type = "button";
+        load.className = "reel-player reel-load-button";
+        load.textContent = "Load " + reel.platform + " video";
+        load.addEventListener("click", () => load.replaceWith(createFrame()));
+        card.appendChild(load);
+      } else card.appendChild(createFrame());
     } else {
       const unavailable = document.createElement("div");
       unavailable.className = "reel-player-fallback";

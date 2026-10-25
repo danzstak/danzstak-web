@@ -156,7 +156,7 @@ foreach ($storyViewerBehavior in @('aria-labelledby", "storyViewerCaption"', 'me
 }
 if (-not $feed.Contains('function openStoryViewer(story)') -or
     -not $feed.Contains('setInterval(loadStories, 45 * 60 * 1000)') -or
-    -not $feed.Contains('video.autoplay = true;') -or
+    -not $feed.Contains('video.autoplay = localStorage.getItem("danzstak_data_saver") !== "1";') -or
     -not $feed.Contains('viewer.showModal();')) {
   Add-Failure 'Stories: media viewer, autoplay, or signed-URL refresh is incomplete'
 }
@@ -227,6 +227,9 @@ foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey &&
 }
 foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Signs out after 2h without activity', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: darkCheckbox.checked', 'language: language.value')) {
   if (-not $feedEnhancements.Contains($settingsBehavior)) { Add-Failure "Settings: persistent control is missing: $settingsBehavior" }
+}
+foreach ($dataSaverBehavior in @('function applyDataSaver(enabled)', '!document.hidden && !dataSaverEnabled()', 'video.autoplay = !dataSaverEnabled()', 'load.textContent = "Load " + reel.platform + " video"', 'load.replaceWith(createFrame())')) {
+  if (-not $feedEnhancements.Contains($dataSaverBehavior)) { Add-Failure "Settings: Data saver does not control active Story or Reel media: $dataSaverBehavior" }
 }
 $logoutJs = Get-Content -LiteralPath (Join-Path $root 'assets\logout.js') -Raw -Encoding utf8
 if (-not $logoutJs.Contains('event.target.closest("[data-logout]")')) { Add-Failure 'Logout: dynamically rendered account controls are not handled' }
