@@ -301,6 +301,9 @@ foreach ($workspaceRouting in @('const workspaceRoutes = new Map(', 'history.pus
 foreach ($workspaceAccessibility in @('control.setAttribute("aria-current", "page")', 'featureHeading.tabIndex = -1', 'featureHeading.focus({ preventScroll: true })')) {
   if (-not $feedEnhancements.Contains($workspaceAccessibility)) { Add-Failure "Feed workspaces do not announce navigation accessibly: $workspaceAccessibility" }
 }
+foreach ($reelPlaybackBehavior in @('const reelPlaybackObserver = new IntersectionObserver', 'entry.intersectionRatio >= 0.6', 'reelPlaybackObserver.observe(video)', 'document.hidden || video.dataset.inView !== "true"')) {
+  if (-not $feedEnhancements.Contains($reelPlaybackBehavior)) { Add-Failure "Reels do not pause off-screen or while the app is hidden: $reelPlaybackBehavior" }
+}
 if ($feed.Contains('window.location.assign("./")') -or
     -not $feed.Contains('history.replaceState(null, "", location.pathname);')) {
   Add-Failure 'Feed navigation: Home still round-trips through the public landing page'

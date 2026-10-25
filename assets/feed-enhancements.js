@@ -1410,6 +1410,14 @@ reelsSourceNote.textContent = "Externally hosted videos";
 reelsHeading.append(reelsTitle, reelsSourceNote);
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
+const reelPlaybackObserver = new IntersectionObserver(entries => {
+  for (const entry of entries) {
+    const video = entry.target;
+    video.dataset.inView = String(entry.isIntersecting && entry.intersectionRatio >= 0.6);
+    if (video.dataset.inView === "true" && !document.hidden) video.play().catch(() => {});
+    else video.pause();
+  }
+}, { threshold: [0, 0.6, 1] });
 const reelForm = document.createElement("div");
 reelForm.className = "reel-import-form";
 const reelUrl = document.createElement("input");
@@ -1492,6 +1500,7 @@ function reelPlayer(url) {
 }
 
 function renderPlayableReels() {
+  reelPlaybackObserver.disconnect();
   reelsList.replaceChildren();
   const reels = getReels();
   if (!reels.length) {
@@ -1516,6 +1525,7 @@ function renderPlayableReels() {
       video.muted = true;
       video.loop = true;
       video.preload = "metadata";
+      reelPlaybackObserver.observe(video);
       card.appendChild(video);
     } else if (playerInfo?.kind === "iframe") {
       const frame = document.createElement("iframe");
@@ -1631,6 +1641,12 @@ async function loadCloudReels() {
 renderPlayableReels();
 loadCloudReels();
 placeReelsRail();
+document.addEventListener("visibilitychange", () => {
+  reelsList.querySelectorAll("video.reel-player").forEach(video => {
+    if (document.hidden || video.dataset.inView !== "true") video.pause();
+    else video.play().catch(() => {});
+  });
+});
 document.getElementById("feed").addEventListener("keydown", event => {
   if (event.key !== "Enter" || !event.target.matches(".comments input")) return;
   const post = event.target.closest(".post");
