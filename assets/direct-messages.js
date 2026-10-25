@@ -48,10 +48,37 @@ function markChatRead(email, timestamp = new Date().toISOString()) {
   catch { /* Messaging remains usable when browser storage is unavailable. */ }
 }
 
-function openMessageReactions(item, x, y) {
+function updateMessageReactionBadge(item, message) {
+  item.querySelector(".message-reaction")?.remove();
+  const entries = Object.entries(message.reactionCounts || {}).filter(([, count]) => Number(count) > 0);
+  if (!entries.length) return;
+  const badge = document.createElement("span");
+  badge.className = "message-reaction";
+  badge.textContent = entries.map(([emoji, count]) => emoji + (Number(count) > 1 ? ` ${count}` : "")).join("  ");
+  badge.setAttribute("aria-label", entries.map(([emoji, count]) => `${count} ${emoji} reaction${Number(count) === 1 ? "" : "s"}`).join(", "));
+  item.appendChild(badge);
+}
+
+async function saveMessageReaction(item, message, emoji) {
+  const reaction = message.myReaction === emoji ? "" : emoji;
+  const response = await fetch(directApi + "/messages", {
+    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "reaction", contactEmail: directContact, messageId: message.messageId, reaction })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "Reaction could not be saved");
+  const counts = { ...(message.reactionCounts || {}) };
+  if (message.myReaction) counts[message.myReaction] = Math.max(0, Number(counts[message.myReaction] || 0) - 1);
+  if (reaction) counts[reaction] = Number(counts[reaction] || 0) + 1;
+  message.reactionCounts = counts;
+  message.myReaction = reaction;
+  updateMessageReactionBadge(item, message);
+}
+
+function openMessageReactions(item, message, x, y) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
-  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", "React with " + emoji); button.addEventListener("click", () => { let badge = item.querySelector(".message-reaction"); if (!badge) { badge = document.createElement("span"); badge.className = "message-reaction"; item.appendChild(badge); } badge.textContent = emoji; palette.remove(); }); palette.appendChild(button); }
+  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", (message.myReaction === emoji ? "Remove " : "React with ") + emoji); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
   document.body.appendChild(palette);
 }
 
@@ -72,14 +99,16 @@ function directMessageItem(message) {
   const mine = message.senderEmail === currentEmail;
   const item = document.createElement("div");
   item.className = "message" + (mine ? " mine" : "");
+  item.dataset.messageId = message.messageId;
   item.textContent = message.content;
   const meta = document.createElement("span");
   meta.className = "message-meta";
   meta.textContent = (mine ? "You" : message.senderEmail) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   item.appendChild(meta);
-  item.addEventListener("pointerdown", event => { reactionTimer = setTimeout(() => openMessageReactions(item, event.clientX, event.clientY), 550); });
+  updateMessageReactionBadge(item, message);
+  item.addEventListener("pointerdown", event => { reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
-  item.addEventListener("contextmenu", event => { event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, event.clientX, event.clientY); });
+  item.addEventListener("contextmenu", event => { event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
   return item;
 }
 
@@ -99,7 +128,11 @@ async function loadDirectMessages(reset = false) {
     if (reset) { shownMessages.clear(); messageList.replaceChildren(); }
     let appended = 0;
     for (const message of data.messages || []) {
-      if (shownMessages.has(message.messageId)) continue;
+      if (shownMessages.has(message.messageId)) {
+        const existing = [...messageList.querySelectorAll(".message")].find(item => item.dataset.messageId === message.messageId);
+        if (existing) updateMessageReactionBadge(existing, message);
+        continue;
+      }
       shownMessages.add(message.messageId);
       messageList.appendChild(directMessageItem(message));
       appended += 1;

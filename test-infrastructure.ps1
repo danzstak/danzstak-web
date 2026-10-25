@@ -49,6 +49,9 @@ foreach ($required in @('aws cloudfront list-distributions', 'aws s3api head-buc
 
 $templatePath = Join-Path $PSScriptRoot 'infrastructure\call-signaling\template.yaml'
 $template = Get-Content -LiteralPath $templatePath -Raw -Encoding utf8
+foreach ($messageReactionControl in @('DanzStak-MessageReactions', 'MESSAGE_REACTIONS_TABLE', 'async function reactMessage(body,user)', "body.action==='reaction'", 'reactionCounts:byMessage')) {
+  if (-not $template.Contains($messageReactionControl)) { throw "Persistent message reactions are missing: $messageReactionControl" }
+}
 $stableLogicalIds = @('SignalRoute:', 'InboxRoute:', 'AckRoute:', 'PresenceRoute:', 'DirectoryRoute:', 'GetPresenceSettingRoute:', 'SetPresenceSettingRoute:', 'GetPostSettingsRoute:', 'SetPostSettingsRoute:', 'FriendRequestRoute:', 'FriendRespondRoute:', 'GetFriendsRoute:', 'GetProfileRoute:', 'UpdateProfileRoute:', 'NotificationsRoute:', 'SendMessageRoute:', 'GetMessagesRoute:', 'DeleteMessagesRoute:', 'GetConversationsRoute:', 'GroupMembershipRoute:', 'CreateStoryRoute:', 'GetStoriesRoute:', 'DeleteStoryRoute:', 'GetNewsRoute:', 'SettingsInvokePermission:', 'FriendInvokePermission:', 'GetFriendsInvokePermission:')
 foreach ($logicalId in $stableLogicalIds) {
   if (-not $template.Contains("  $logicalId")) { throw "Deployed CloudFormation logical ID changed and would replace a live route: $logicalId" }

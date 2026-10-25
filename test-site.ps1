@@ -331,10 +331,13 @@ if (-not $directMessagesJs.Contains('if (!document.body.classList.contains("is-c
     -not $directMessagesJs.Contains('/messages?read=1&contact=')) {
   Add-Failure 'Messaging: background or minimized chats can incorrectly clear unread state'
 }
-if (-not $directMessagesJs.Contains('button.setAttribute("aria-label", "React with " + emoji)') -or
+if (-not $directMessagesJs.Contains('message.myReaction === emoji ? "Remove " : "React with "') -or
     -not $directMessagesJs.Contains('call.setAttribute("aria-label", call.title)') -or
     -not $directMessagesJs.Contains('button.setAttribute("aria-label", "Insert " + emoji)')) {
   Add-Failure 'Messaging: dynamic emoji or call controls lack accessible names'
+}
+foreach ($reactionBehavior in @('async function saveMessageReaction(', 'action: "reaction"', 'updateMessageReactionBadge(existing, message)', 'message.reactionCounts')) {
+  if (-not $directMessagesJs.Contains($reactionBehavior)) { Add-Failure "Messaging: durable message reaction behavior is missing: $reactionBehavior" }
 }
 if (-not $directMessagesJs.Contains('event.source === window.parent') -or
     -not $feed.Contains('event.source !== drawer.querySelector("iframe")?.contentWindow')) {
