@@ -45,6 +45,10 @@ foreach ($legalRoute in @('POST /auth/legal-acceptance', 'LegalAcceptanceInvokeP
 foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 'friendEmails.has(item.userEmail?.S)', 'data.originalContentCertified !== true', 'sha256(userEmail).slice(0, 24)', 'sha256(accountEmail).slice(0, 24)', 'Post media ownership could not be verified', 'function signedMediaUrl(', 'mediaUrl: item.mediaKey?.S ? signedMediaUrl', 'mediaUrl: signedMediaUrl(mediaKey, 3600)', '"strict-transport-security"', '"x-content-type-options"', '"x-frame-options"', 'user: userId && email ? { email } : undefined', 'async function getEngagement(event)', 'async function setReaction(event)', 'async function addComment(event)', 'async function deleteComment(event)', 'async function updateSecurePost(event)', 'commentPolicy === "off"', 'commentPolicy === "friends"', 'async function getEngagementNotifications(event)', 'async function clearEngagementNotifications(event)', 'reactions.map', 'comments.map', 'notices.filter', 'const storiesTable = "DANZSTAK-Stories"', 'linkedStories.map')) {
   if (-not $authApi.Contains($required)) { throw "Auth API post authorization safeguard is missing: $required" }
 }
+$callTemplate = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'infrastructure\call-signaling\template.yaml') -Raw -Encoding utf8
+foreach ($storyCleanupControl in @('Id: ExpireDedicatedStoryMedia', 'Prefix: stories/', 'NoncurrentVersionExpiration:', 'const key=`stories/${ownerPrefix(user)}/', 'storyUpload=new RegExp(`^stories/${prefix}/', 'body.dedicatedMedia!==true')) {
+  if (-not $callTemplate.Contains($storyCleanupControl)) { throw "Stories: dedicated expired media cleanup is missing: $storyCleanupControl" }
+}
 foreach ($feedPaginationControl in @('async function scanAll(request, maximumItems = 5000)', 'page.LastEvaluatedKey', 'await scanAll({ TableName: postsTable', 'async function batchGetFriendships(viewerEmail, friendEmails)', 'offset += 100', 'result.UnprocessedKeys?.[friendsTable]?.Keys')) {
   if (-not $authApi.Contains($feedPaginationControl)) { throw "Feed pagination or complete friendship authorization is missing: $feedPaginationControl" }
 }
@@ -212,10 +216,10 @@ foreach ($protection in $requiredReelProtections) {
 }
 
 $requiredStoryDeletionProtections = @(
-  "dedicated:{BOOL:body.dedicatedMedia===true}",
+  "dedicated:{BOOL:true}",
   "const mediaKey=found.Item.mediaKey?.S",
   "mediaKey&&found.Item.dedicated?.BOOL",
-  'mediaKey.startsWith(`users/${ownerPrefix(user)}/`)',
+  'new RegExp(`^(?:stories|users)/${prefix}/`).test(mediaKey)',
   "new DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:mediaKey})"
 )
 foreach ($protection in $requiredStoryDeletionProtections) {
@@ -268,7 +272,7 @@ foreach ($callInboxControl in @('async function inbox(user){const items=await qu
 if ($template.Contains("FilterExpression:'expiresAt > :n',ExpressionAttributeValues:{':r':{S:user.email},':n':{N:String(now())}},Limit:20")) {
   throw 'Call inbox still applies DynamoDB Limit before filtering expired events.'
 }
-foreach ($orphanMediaControl in @("body.action==='discard'", 'requestedMediaKey.startsWith(`users/${ownerPrefix(user)}/`)', "return json(200,{discarded:true})")) {
+foreach ($orphanMediaControl in @("body.action==='discard'", 'if(!storyUpload)return json(403', "return json(200,{discarded:true})")) {
   if (-not $template.Contains($orphanMediaControl)) { throw "Failed uploads cannot be securely discarded: $orphanMediaControl" }
 }
 
