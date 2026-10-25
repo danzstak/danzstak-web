@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Durable reactions, comments, and engagement notifications for DanzStak
+Parameters:
+  ApiId:
+    Type: String
+    Default: 0872gqal4m
+  AuthIntegrationId:
+    Type: String
+    Default: 5pipi5a
+  AuthFunctionName:
+    Type: String
+    Default: DANZSTAK-Auth-API
+  AuthRoleName:
+    Type: String
+    Default: DANZSTAK-Auth-API-role-zjknf4ur
+Resources:
+  ReactionsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: DANZSTAK-Reactions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: postId, AttributeType: S}
+        - {AttributeName: userId, AttributeType: S}
+      KeySchema:
+        - {AttributeName: postId, KeyType: HASH}
+        - {AttributeName: userId, KeyType: RANGE}
+      SSESpecification: {SSEEnabled: true}
+  CommentsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: DANZSTAK-Comments
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: postId, AttributeType: S}
+        - {AttributeName: commentId, AttributeType: S}
+      KeySchema:
+        - {AttributeName: postId, KeyType: HASH}
+        - {AttributeName: commentId, KeyType: RANGE}
+      SSESpecification: {SSEEnabled: true}
+  EngagementNotificationsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: DANZSTAK-EngagementNotifications
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: userEmail, AttributeType: S}
+        - {AttributeName: eventId, AttributeType: S}
+      KeySchema:
+        - {AttributeName: userEmail, KeyType: HASH}
+        - {AttributeName: eventId, KeyType: RANGE}
+      TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}
+      SSESpecification: {SSEEnabled: true}
+  AuthEngagementPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DanzStakEngagementAccess
+      Roles: [!Ref AuthRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:Query]
+            Resource:
+              - !GetAtt ReactionsTable.Arn
+              - !GetAtt CommentsTable.Arn
+              - !GetAtt EngagementNotificationsTable.Arn
+          - Effect: Allow
+            Action: [dynamodb:GetItem]
+            Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Posts
+  GetEngagementRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /engagement', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  SetReactionRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /reactions', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  AddCommentRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /comments', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  DeleteCommentRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /comments/{commentId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  EngagementNotificationsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /engagement-notifications', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ReadEngagementNotificationsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /engagement-notifications/read', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  EngagementInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/engagement*'
+  ReactionsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/POST/reactions'
+  CommentsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/comments*'
+Outputs:
+  ReactionsTableName: {Value: !Ref ReactionsTable}
+  CommentsTableName: {Value: !Ref CommentsTable}
+  NotificationsTableName: {Value: !Ref EngagementNotificationsTable}

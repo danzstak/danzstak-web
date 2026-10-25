@@ -15,6 +15,7 @@ import {
   GetItemCommand,
   DeleteItemCommand,
   ScanCommand,
+  QueryCommand,
   BatchGetItemCommand
 } from "@aws-sdk/client-dynamodb";
 import {
@@ -30,6 +31,9 @@ const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
 const tableName = process.env.SESSIONS_TABLE;
 const postsTable = "DANZSTAK-Posts";
 const friendsTable = "DANZSTAK-Friends";
+const reactionsTable = "DANZSTAK-Reactions";
+const commentsTable = "DANZSTAK-Comments";
+const engagementNotificationsTable = "DANZSTAK-EngagementNotifications";
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -638,6 +642,154 @@ async function getSecurePosts(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ posts }) };
 }
 
+async function postForEngagement(postId, userId) {
+  if (!/^[a-f0-9-]{36}$/.test(postId)) return { error: "Invalid post.", statusCode: 400 };
+  const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
+  const post = found.Item;
+  if (!post) return { error: "Post not found.", statusCode: 404 };
+  if (post.userId?.S === userId || post.audience?.S === "public") return { post };
+  if (post.audience?.S !== "friends" || !post.userEmail?.S) return { error: "Post is not available.", statusCode: 403 };
+  const viewerEmail = await accountForSub(userId);
+  if (!viewerEmail) return { error: "Account email could not be verified.", statusCode: 409 };
+  const friendship = await db.send(new BatchGetItemCommand({
+    RequestItems: {
+      [friendsTable]: {
+        Keys: [{ userEmail: { S: viewerEmail }, friendEmail: { S: post.userEmail.S } }],
+        ConsistentRead: true,
+        ProjectionExpression: "#status",
+        ExpressionAttributeNames: { "#status": "status" }
+      }
+    }
+  }));
+  if (friendship.Responses?.[friendsTable]?.[0]?.status?.S !== "friends") return { error: "Post is not available.", statusCode: 403 };
+  return { post };
+}
+
+function parseJsonBody(event) {
+  try {
+    const raw = event.isBase64Encoded ? Buffer.from(event.body || "", "base64").toString("utf8") : event.body || "";
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+async function notifyPostOwner(post, eventId, type, actorEmail, preview) {
+  const ownerEmail = post.userEmail?.S;
+  if (!ownerEmail || ownerEmail === actorEmail) return;
+  const createdAt = new Date().toISOString();
+  await db.send(new PutItemCommand({
+    TableName: engagementNotificationsTable,
+    Item: {
+      userEmail: { S: ownerEmail }, eventId: { S: eventId }, type: { S: type }, actorEmail: { S: actorEmail },
+      postId: { S: post.postId.S }, preview: { S: String(preview || "").slice(0, 160) }, createdAt: { S: createdAt },
+      expiresAt: { N: String(now() + 2592000) }
+    }
+  }));
+}
+
+async function getEngagement(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const postId = String(event.queryStringParameters?.postId || "");
+  const access = await postForEngagement(postId, userId);
+  if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
+  const [reactionResult, commentResult] = await Promise.all([
+    db.send(new QueryCommand({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, Limit: 100, ConsistentRead: true })),
+    db.send(new QueryCommand({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, Limit: 100, ConsistentRead: true }))
+  ]);
+  const reactionCounts = {};
+  let myReaction = "";
+  for (const item of reactionResult.Items || []) {
+    const reaction = item.reaction?.S || "Like";
+    reactionCounts[reaction] = (reactionCounts[reaction] || 0) + 1;
+    if (item.userId?.S === userId) myReaction = reaction;
+  }
+  const comments = (commentResult.Items || []).map(item => ({
+    commentId: item.commentId.S, userEmail: item.userEmail?.S || "DanzStak member", content: item.content.S,
+    createdAt: item.createdAt.S, isOwner: item.userId?.S === userId, canDelete: item.userId?.S === userId || access.post.userId?.S === userId
+  })).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
+}
+
+async function setReaction(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const data = parseJsonBody(event);
+  const postId = String(data?.postId || ""), reaction = String(data?.reaction || "");
+  if (reaction && !["Like", "Love", "Laugh", "Wow", "Sad", "Fire"].includes(reaction)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Unsupported reaction." }) };
+  const access = await postForEngagement(postId, userId);
+  if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
+  const key = { postId: { S: postId }, userId: { S: userId } };
+  const actorEmail = await accountForSub(userId);
+  if (!actorEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const notificationId = `reaction#${postId}#${userId}`;
+  if (!reaction) {
+    await db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: key }));
+    if (access.post.userEmail?.S) await db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: { S: access.post.userEmail.S }, eventId: { S: notificationId } } }));
+  } else {
+    await db.send(new PutItemCommand({ TableName: reactionsTable, Item: { ...key, reaction: { S: reaction }, userEmail: { S: actorEmail }, createdAt: { S: new Date().toISOString() } } }));
+    await notifyPostOwner(access.post, notificationId, "reaction", actorEmail, reaction);
+  }
+  return { statusCode: 200, headers, body: JSON.stringify({ reaction }) };
+}
+
+async function addComment(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const data = parseJsonBody(event), postId = String(data?.postId || ""), content = String(data?.content || "").trim();
+  if (!content || content.length > 1000) return { statusCode: 400, headers, body: JSON.stringify({ error: "Comment must contain 1–1000 characters." }) };
+  const access = await postForEngagement(postId, userId);
+  if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
+  const userEmail = await accountForSub(userId);
+  if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const commentId = `${String(Date.now()).padStart(13, "0")}#${randomUUID()}`, createdAt = new Date().toISOString();
+  await db.send(new PutItemCommand({ TableName: commentsTable, Item: { postId: { S: postId }, commentId: { S: commentId }, userId: { S: userId }, userEmail: { S: userEmail }, content: { S: content }, createdAt: { S: createdAt } } }));
+  await notifyPostOwner(access.post, `comment#${commentId}`, "comment", userEmail, content);
+  return { statusCode: 201, headers, body: JSON.stringify({ comment: { commentId, userEmail, content, createdAt, isOwner: true, canDelete: true } }) };
+}
+
+async function deleteComment(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event), postId = String(event.queryStringParameters?.postId || ""), commentId = String(event.pathParameters?.commentId || "");
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  if (!/^[a-f0-9-]{36}$/.test(postId) || !/^\d{13}#[a-f0-9-]{36}$/.test(commentId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid comment." }) };
+  const [comment, post] = await Promise.all([
+    db.send(new GetItemCommand({ TableName: commentsTable, Key: { postId: { S: postId }, commentId: { S: commentId } }, ConsistentRead: true })),
+    db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }))
+  ]);
+  if (!comment.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Comment not found." }) };
+  if (comment.Item.userId?.S !== userId && post.Item?.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the comment or post owner can delete this comment." }) };
+  await db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: { S: postId }, commentId: { S: commentId } } }));
+  if (post.Item?.userEmail?.S) await db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: { S: post.Item.userEmail.S }, eventId: { S: `comment#${commentId}` } } }));
+  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
+}
+
+async function getEngagementNotifications(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const userEmail = await accountForSub(userId);
+  if (!userEmail) return { statusCode: 200, headers, body: JSON.stringify({ notifications: [] }) };
+  const result = await db.send(new QueryCommand({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, Limit: 50, ScanIndexForward: false, ConsistentRead: true }));
+  const notifications = (result.Items || []).map(item => ({ type: item.type.S, email: item.actorEmail.S, postId: item.postId.S, preview: item.preview?.S || "", createdAt: item.createdAt.S }));
+  return { statusCode: 200, headers, body: JSON.stringify({ notifications }) };
+}
+
+async function clearEngagementNotifications(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const userEmail = await accountForSub(userId);
+  if (!userEmail) return { statusCode: 200, headers, body: JSON.stringify({ cleared: 0 }) };
+  const result = await db.send(new QueryCommand({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, ProjectionExpression: "eventId", Limit: 100, ConsistentRead: true }));
+  await Promise.all((result.Items || []).map(item => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: { S: userEmail }, eventId: { S: item.eventId.S } } }))));
+  return { statusCode: 200, headers, body: JSON.stringify({ cleared: result.Items?.length || 0 }) };
+}
+
 // CREATE SECURE POST
 async function createSecurePost(event) {
   const headers = corsHeaders(event.headers?.origin);
@@ -771,6 +923,16 @@ async function deleteSecurePost(event) {
     if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
     await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: found.Item.mediaKey.S }));
   }
+  const [reactions, comments, notices] = await Promise.all([
+    db.send(new QueryCommand({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, userId", ConsistentRead: true })),
+    db.send(new QueryCommand({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true })),
+    found.Item.userEmail?.S ? db.send(new QueryCommand({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: found.Item.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true })) : Promise.resolve({ Items: [] })
+  ]);
+  await Promise.all([
+    ...(reactions.Items || []).map(item => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
+    ...(comments.Items || []).map(item => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
+    ...(notices.Items || []).filter(item => item.postId?.S === postId).map(item => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } })))
+  ]);
   await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
@@ -871,6 +1033,30 @@ export const handler = async event => {
 
     if (method === "DELETE" && path.startsWith("/secure-posts/")) {
       return await deleteSecurePost(event);
+    }
+
+    if (method === "GET" && path === "/engagement") {
+      return await getEngagement(event);
+    }
+
+    if (method === "POST" && path === "/reactions") {
+      return await setReaction(event);
+    }
+
+    if (method === "POST" && path === "/comments") {
+      return await addComment(event);
+    }
+
+    if (method === "DELETE" && path.startsWith("/comments/")) {
+      return await deleteComment(event);
+    }
+
+    if (method === "GET" && path === "/engagement-notifications") {
+      return await getEngagementNotifications(event);
+    }
+
+    if (method === "POST" && path === "/engagement-notifications/read") {
+      return await clearEngagementNotifications(event);
     }
 
     if (method === "POST" && path === "/auth/logout") {

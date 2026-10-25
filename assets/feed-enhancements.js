@@ -30,10 +30,13 @@ async function refreshNotificationCount() {
     return;
   }
   try {
-    const response = await fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" });
-    if (!response.ok) return;
-    const data = await response.json();
-    updateNotificationCount((data.notifications || []).length);
+    const responses = await Promise.allSettled([
+      fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" }),
+      fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store" })
+    ]);
+    let count = 0;
+    for (const result of responses) if (result.status === "fulfilled" && result.value.ok) count += ((await result.value.json()).notifications || []).length;
+    updateNotificationCount(count);
   } catch { /* The next scheduled refresh will retry. */ }
 }
 
@@ -227,13 +230,17 @@ function renderWorkspace(name) {
     workspace.appendChild(list);
     Promise.allSettled([
       fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" }),
-      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" })
+      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" }),
+      fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store" })
     ]).then(async results => {
         const response = results[0].status === "fulfilled" ? results[0].value : null;
         const directoryResponse = results[1].status === "fulfilled" ? results[1].value : null;
         if (!response) throw new Error("Notifications could not be loaded");
         if (!response.ok) throw new Error("Notifications could not be loaded");
         const data = await response.json();
+        const engagementResponse = results[2].status === "fulfilled" ? results[2].value : null;
+        const engagement = engagementResponse?.ok ? (await engagementResponse.json()).notifications || [] : [];
+        data.notifications = [...(data.notifications || []), ...engagement].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
         const directory = directoryResponse?.ok ? (await directoryResponse.json()).users || [] : [];
         const people = new Map(directory.map(person => [String(person.email || "").toLowerCase(), person]));
         updateNotificationCount((data.notifications || []).length);
@@ -257,10 +264,20 @@ function renderWorkspace(name) {
           const message = document.createElement("p");
           message.textContent = notice.type === "message"
             ? `${displayName}: ${notice.preview || "New message"}`
-            : `${displayName} sent you a friend request.`;
+            : notice.type === "reaction"
+              ? `${displayName} reacted ${notice.preview || "to your post"}.`
+              : notice.type === "comment"
+                ? `${displayName} commented: ${notice.preview || "New comment"}`
+                : `${displayName} sent you a friend request.`;
           const actions = document.createElement("div");
           actions.className = "notification-actions";
-          if (notice.type === "message") {
+          if (["reaction", "comment"].includes(notice.type)) {
+            const open = document.createElement("a");
+            open.className = "primary";
+            open.textContent = "View post";
+            open.href = `feed.html#post-${encodeURIComponent(notice.postId)}`;
+            actions.appendChild(open);
+          } else if (notice.type === "message") {
             const open = document.createElement("button");
             open.type = "button";
             open.className = "primary";
@@ -288,6 +305,11 @@ function renderWorkspace(name) {
           }
           row.append(avatar, message, actions);
           list.appendChild(row);
+        }
+        if (engagement.length) {
+          fetch("https://api.danzstak.com/engagement-notifications/read", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" })
+            .then(marked => { if (marked.ok) updateNotificationCount((data.notifications || []).length - engagement.length); })
+            .catch(() => {});
         }
       })
       .catch(error => { loading.textContent = error.message; });
@@ -1096,15 +1118,94 @@ function addPostDeleteButton(post) {
   post.append(toggle, menu);
 }
 
+const engagementApi = "https://api.danzstak.com";
+const reactionEmoji = { Like: "👍", Love: "❤️", Laugh: "😂", Wow: "😮", Sad: "😢", Fire: "🔥" };
+
+function engagementPostId(post) {
+  const value = String(post?.dataset.postId || "");
+  return /^[a-f0-9-]{36}$/.test(value) ? value : "";
+}
+
+function setReactionAppearance(post, reaction, counts = {}) {
+  const like = post.querySelector(".likeBtn");
+  if (!like) return;
+  like.dataset.liked = String(Boolean(reaction));
+  like.dataset.reaction = reaction || "";
+  const total = Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0);
+  const emoji = reactionEmoji[reaction] || "♡";
+  like.replaceChildren(document.createTextNode(`${emoji} ${reaction || "Like"}${total ? ` · ${total}` : ""}`));
+}
+
+function renderPersistentComment(post, comment) {
+  const list = post.querySelector(".commentList");
+  if (!list || list.querySelector(`[data-comment-id="${CSS.escape(comment.commentId)}"]`)) return;
+  const item = document.createElement("div");
+  item.className = "comment";
+  item.dataset.commentId = comment.commentId;
+  item.dataset.canDelete = String(comment.canDelete === true);
+  const author = document.createElement("strong");
+  author.textContent = (comment.userEmail || "DanzStak member").split("@")[0] + ": ";
+  item.append(author, document.createTextNode(comment.content));
+  list.appendChild(item);
+  addCommentDelete(item);
+}
+
+async function loadEngagement(post) {
+  const postId = engagementPostId(post);
+  if (!postId || post.dataset.engagementLoaded === "true") return;
+  post.dataset.engagementLoaded = "true";
+  try {
+    const response = await fetch(`${engagementApi}/engagement?postId=${encodeURIComponent(postId)}`, { credentials: "include", cache: "no-store" });
+    if (!response.ok) { post.dataset.engagementLoaded = ""; return; }
+    const data = await response.json();
+    post.dataset.reactionCounts = JSON.stringify(data.reactionCounts || {});
+    setReactionAppearance(post, data.myReaction || "", data.reactionCounts || {});
+    const list = post.querySelector(".commentList");
+    if (list) list.replaceChildren();
+    for (const comment of data.comments || []) renderPersistentComment(post, comment);
+  } catch { post.dataset.engagementLoaded = ""; }
+}
+
+async function saveReaction(post, reaction) {
+  const postId = engagementPostId(post);
+  if (!postId) return;
+  const response = await fetch(`${engagementApi}/reactions`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, reaction }) });
+  if (!response.ok) throw new Error("Reaction could not be saved");
+  post.dataset.engagementLoaded = "";
+  await loadEngagement(post);
+}
+
+async function saveComment(post, input) {
+  const postId = engagementPostId(post), content = input.value.trim();
+  if (!postId || !content) return;
+  input.disabled = true;
+  try {
+    const response = await fetch(`${engagementApi}/comments`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, content }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Comment could not be saved");
+    input.value = "";
+    renderPersistentComment(post, data.comment);
+  } catch (error) { alert(error.message); }
+  finally { input.disabled = false; input.focus(); }
+}
+
 function addCommentDelete(comment) {
   if (comment.querySelector(".deleteCommentBtn")) return;
+  if (comment.dataset.canDelete === "false") return;
   const button = document.createElement("button");
   button.type = "button";
   button.className = "deleteCommentBtn";
   button.textContent = "Delete";
   button.style.marginLeft = "10px";
-  button.addEventListener("click", () => {
-    if (confirm("Delete this comment?")) comment.remove();
+  button.addEventListener("click", async () => {
+    if (!confirm("Delete this comment?")) return;
+    const post = comment.closest(".post"), postId = engagementPostId(post), commentId = comment.dataset.commentId;
+    if (postId && commentId) {
+      button.disabled = true;
+      const response = await fetch(`${engagementApi}/comments/${encodeURIComponent(commentId)}?postId=${encodeURIComponent(postId)}`, { method: "DELETE", credentials: "include" }).catch(() => null);
+      if (!response?.ok) { button.disabled = false; alert("Comment could not be deleted."); return; }
+    }
+    comment.remove();
   });
   comment.appendChild(button);
 }
@@ -1140,6 +1241,7 @@ function addReactionButton(post) {
         like.textContent = `${emoji} ${label}`;
       }
       palette.hidden = true;
+      saveReaction(post, label).catch(() => { post.dataset.engagementLoaded = ""; loadEngagement(post); });
     });
     palette.appendChild(choice);
   }
@@ -1165,10 +1267,12 @@ function addReactionButton(post) {
       heart.className = "like-heart";
       heart.textContent = liked ? "\u2661" : "\u2665";
       like.replaceChildren(heart, document.createTextNode(liked ? " Like" : " Liked"));
+      saveReaction(post, liked ? "" : "Like").catch(() => { post.dataset.engagementLoaded = ""; loadEngagement(post); });
       return;
     }
     held = false;
   }, true);
+  loadEngagement(post);
 }
 
 const reelsStorageKey = "danzstak_external_reels";
@@ -1387,6 +1491,14 @@ async function loadCloudReels() {
 renderPlayableReels();
 loadCloudReels();
 placeReelsRail();
+document.getElementById("feed").addEventListener("keydown", event => {
+  if (event.key !== "Enter" || !event.target.matches(".comments input")) return;
+  const post = event.target.closest(".post");
+  if (!engagementPostId(post)) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  saveComment(post, event.target);
+}, true);
 document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
 new MutationObserver(records => {
   for (const record of records) {
