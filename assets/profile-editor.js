@@ -263,52 +263,92 @@ for (const name of ["Posts", "About", "Friends", "Media"]) {
   tab.textContent = name;
   tab.dataset.profileTab = name;
   tab.classList.toggle("active", name === "About");
+  tab.setAttribute("role", "tab");
+  tab.setAttribute("aria-selected", String(name === "About"));
   tabs.appendChild(tab);
 }
 const tabMessage = document.createElement("div");
 tabMessage.className = "profile-tab-message";
 tabMessage.hidden = true;
+tabMessage.setAttribute("role", "tabpanel");
+tabMessage.setAttribute("aria-live", "polite");
 details.insertAdjacentElement("beforebegin", tabs);
 details.insertAdjacentElement("afterend", tabMessage);
 
-tabs.addEventListener("click", event => {
+function profilePostCard(post) {
+  const article = document.createElement("article");
+  article.className = "profile-post-card";
+  const meta = document.createElement("div");
+  meta.className = "profile-post-meta";
+  const time = document.createElement("time");
+  const created = post.createdAt ? new Date(post.createdAt) : null;
+  time.textContent = created && !Number.isNaN(created.valueOf()) ? created.toLocaleString() : "Recent post";
+  const audience = document.createElement("span");
+  audience.textContent = post.audience === "private" ? "Only me" : post.audience === "friends" ? "Friends" : "Public";
+  meta.append(time, audience);
+  const text = document.createElement("p");
+  text.textContent = post.content || "Shared media";
+  article.append(meta, text);
+  if (post.mediaUrl && ["image", "video"].includes(post.mediaType)) {
+    const media = document.createElement(post.mediaType === "image" ? "img" : "video");
+    media.className = "profile-post-media";
+    media.src = post.mediaUrl;
+    if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
+    else { media.controls = true; media.preload = "metadata"; }
+    article.appendChild(media);
+  }
+  return article;
+}
+
+async function loadProfilePosts(mediaOnly = false) {
+  tabMessage.textContent = mediaOnly ? "Loading media…" : "Loading posts…";
+  try {
+    const response = await fetch(profileApi + "/secure-posts", { credentials: "include", cache: "no-store" });
+    if (!response.ok) throw new Error("Profile posts could not be loaded");
+    const data = await response.json();
+    const profileEmail = String(window.danzstakCurrentProfile?.email || "").toLowerCase();
+    let posts = (data.posts || []).filter(post => String(post.authorEmail || post.userEmail || post.email || "").toLowerCase() === profileEmail);
+    if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType));
+    tabMessage.replaceChildren();
+    if (!posts.length) { tabMessage.textContent = mediaOnly ? "No photos or videos to show yet." : "No posts to show yet."; return; }
+    for (const post of posts) tabMessage.appendChild(profilePostCard(post));
+  } catch (error) { tabMessage.textContent = error.message; }
+}
+
+async function loadProfileFriends() {
+  if (viewingOtherProfile) { tabMessage.textContent = "This member’s friend list is private."; return; }
+  tabMessage.textContent = "Loading friends…";
+  try {
+    const response = await fetch(profileApi + "/friends", { credentials: "include", cache: "no-store" });
+    if (!response.ok) throw new Error("Friends could not be loaded");
+    const data = await response.json();
+    tabMessage.replaceChildren();
+    if (!(data.friends || []).length) { tabMessage.textContent = "No friends yet."; return; }
+    const grid = document.createElement("div"); grid.className = "profile-friend-grid";
+    for (const friend of data.friends) {
+      const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?user=" + encodeURIComponent(friend.email);
+      const avatar = friend.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "profile-friend-avatar";
+      if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+      else { avatar.textContent = (friend.name || friend.email).charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+      const copy = document.createElement("span");
+      const name = document.createElement("strong"); name.textContent = friend.name || friend.email;
+      const email = document.createElement("small"); email.textContent = friend.email;
+      copy.append(name, email); link.append(avatar, copy); grid.appendChild(link);
+    }
+    tabMessage.appendChild(grid);
+  } catch (error) { tabMessage.textContent = error.message; }
+}
+
+tabs.addEventListener("click", async event => {
   const tab = event.target.closest("[data-profile-tab]");
   if (!tab) return;
-  tabs.querySelectorAll("button").forEach(button => button.classList.toggle("active", button === tab));
+  tabs.querySelectorAll("button").forEach(button => { const selected = button === tab; button.classList.toggle("active", selected); button.setAttribute("aria-selected", String(selected)); });
   const name = tab.dataset.profileTab;
   details.hidden = name !== "About";
   tabMessage.hidden = name === "About";
-  if (name !== "About") {
-    tabMessage.replaceChildren();
-    if (name === "Media" && profileGallery.length) {
-      for (const item of [...profileGallery]) {
-        const wrap = document.createElement("div");
-        wrap.style.marginBottom = "14px";
-        const video = document.createElement("video");
-        video.src = item.url;
-        video.controls = true;
-        video.style.width = "100%";
-        video.style.maxHeight = "480px";
-        video.style.borderRadius = "10px";
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.className = "secondary";
-        remove.textContent = "Delete Video";
-        remove.addEventListener("click", () => {
-          if (!confirm("Delete this profile video?")) return;
-          const index = profileGallery.indexOf(item);
-          if (index >= 0) profileGallery.splice(index, 1);
-          URL.revokeObjectURL(item.url);
-          wrap.remove();
-          if (!profileGallery.length) tabMessage.textContent = "No media to show yet.";
-        });
-        wrap.append(video, remove);
-        tabMessage.appendChild(wrap);
-      }
-    } else {
-      tabMessage.textContent = name === "Posts" ? "Your posts will appear here." : `No ${name.toLowerCase()} to show yet.`;
-    }
-  }
+  if (name === "Posts") await loadProfilePosts(false);
+  else if (name === "Friends") await loadProfileFriends();
+  else if (name === "Media") await loadProfilePosts(true);
 });
 
 const panel = document.createElement("form");

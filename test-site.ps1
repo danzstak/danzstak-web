@@ -106,6 +106,7 @@ if (-not $pwaJs.Contains('const installStateKey = "danzstak_app_installed"') -or
 
 $sessionCleanupJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-cleanup.js') -Raw -Encoding utf8
 $sessionActivityJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-activity.js') -Raw -Encoding utf8
+$profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.js') -Raw -Encoding utf8
 $logoutJs = Get-Content -LiteralPath (Join-Path $root 'assets\logout.js') -Raw -Encoding utf8
 $homeJs = Get-Content -LiteralPath (Join-Path $root 'assets\home.js') -Raw -Encoding utf8
 foreach ($privateKey in @('danzstak_dev_sections', 'danzstak-post-preferences', 'danzstak-hidden-posts', 'danzstak_chat_read', 'danzstak_profile_draft', 'danzstak_profile_media')) {
@@ -115,9 +116,11 @@ if ($sessionActivityJs.Contains('if (document.hidden || presenceUpdating) return
     -not $sessionActivityJs.Contains('Date.now() - lastActivity >= idleTimeout || presenceUpdating')) {
   Add-Failure 'Presence: background tabs can expire an otherwise active signed-in user'
 }
+foreach ($profileFeature in @('loadProfilePosts(false)', 'loadProfilePosts(true)', 'loadProfileFriends()', 'profile-friend-card', 'profile-post-card')) {
+  if (-not $profileEditorJs.Contains($profileFeature)) { Add-Failure "Profile tabs are not functional: $profileFeature" }
+}
 
 $profileJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile.js') -Raw -Encoding utf8
-$profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.js') -Raw -Encoding utf8
 if (-not $profileJs.Contains('requestedUser ? "Private" : (email || "Not available")') -or
     -not $profileJs.Contains('avatar.classList.remove("has-photo")') -or
     -not $profileJs.Contains('cover.classList.remove("has-photo")') -or
