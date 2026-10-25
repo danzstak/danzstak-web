@@ -1052,6 +1052,12 @@ function addPostDeleteButton(post) {
     catch { alert("Copying is unavailable in this browser."); }
   });
 
+  if (!owner) {
+    for (const row of menu.querySelectorAll(".post-option-row")) {
+      if (["Edit post", "Who can comment?", "Edit privacy"].includes(row.querySelector("strong")?.textContent || "")) row.remove();
+    }
+  }
+
   toggle.addEventListener("click", () => {
     document.querySelectorAll(".post-options-menu").forEach(other => { if (other !== menu) other.hidden = true; });
     menu.hidden = !menu.hidden;
@@ -1105,11 +1111,6 @@ function addReactionButton(post) {
       }
       palette.hidden = true;
     });
-    if (!owner) {
-      for (const row of menu.querySelectorAll(".post-option-row")) {
-        if (["Edit post", "Who can comment?", "Edit privacy"].includes(row.querySelector("strong")?.textContent || "")) row.remove();
-      }
-    }
     palette.appendChild(choice);
   }
   post.appendChild(palette);
