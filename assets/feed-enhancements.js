@@ -189,7 +189,7 @@ function createFriendRequestForm() {
 async function migrateLocalGroups(localGroups, remoteGroups) {
   const groups = [...remoteGroups], pending = [], joinedIds = [];
   const key = group => `${String(group.name || "").toLowerCase()}|${group.category}`;
-  const known = new Set(groups.map(key));
+  const known = new Set(groups.filter(group => group.isOwner === true).map(key));
   for (const local of localGroups.filter(group => !group.cloud)) {
     if (known.has(key(local))) continue;
     try {

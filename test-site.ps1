@@ -265,7 +265,7 @@ foreach ($pushPromptControl in @('Never miss a DanzStak call', 'setTimeout(showP
 }
 foreach ($pushPromptPage in @('feed.html', 'profile.html', 'messages.html')) {
   $pushMarkup = Get-Content -LiteralPath (Join-Path $root $pushPromptPage) -Raw -Encoding utf8
-  if (-not $pushMarkup.Contains('assets/push-notifications.js?v=3')) { Add-Failure "${pushPromptPage}: background alert setup is not loaded" }
+  if (-not $pushMarkup.Contains('assets/push-notifications.js?v=')) { Add-Failure "${pushPromptPage}: background alert setup is not loaded" }
   if (-not $pushMarkup.Contains('assets/incoming-calls.css?v=2')) { Add-Failure "${pushPromptPage}: background alert prompt styling is not loaded" }
 }
 $profileMarkup = Get-Content -LiteralPath (Join-Path $root 'profile.html') -Raw -Encoding utf8

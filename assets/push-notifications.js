@@ -69,7 +69,7 @@
     const title = document.createElement('strong');
     title.textContent = 'Never miss a DanzStak call';
     const detail = document.createElement('span');
-    detail.textContent = 'Enable alerts so phone and video calls can ring when the app is in the background.';
+    detail.textContent = 'Receive call and message notifications while DanzStak is in the background. Sound follows your device settings.';
     copy.append(title, detail);
     const action = document.createElement('button');
     action.type = 'button';
