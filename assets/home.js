@@ -9,7 +9,7 @@ const signupBtn = document.getElementById("signupBtn");
 const publicExploreBtn = document.getElementById("publicExploreBtn");
 const legalConsent = document.getElementById("legalConsent");
 const legalAgreement = document.getElementById("legalAgreement");
-const legalVersion = "2026-10-24";
+const legalVersion = "2026-10-25";
 
 legalAgreement.addEventListener("change", () => {
   signupBtn.disabled = !legalAgreement.checked;

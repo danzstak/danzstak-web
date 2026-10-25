@@ -77,6 +77,12 @@ $chatCss = Get-Content -LiteralPath (Join-Path $root 'assets\chat.css') -Raw -En
 if (-not $chatCss.Contains('.embedded-messages .conversation-choices{display:none!important}')) {
   Add-Failure 'chat.css: embedded message drawer exposes the oversized conversation chooser'
 }
+
+$termsText = Get-Content -LiteralPath (Join-Path $root 'terms.html') -Raw -Encoding utf8
+$privacyText = Get-Content -LiteralPath (Join-Path $root 'privacy.html') -Raw -Encoding utf8
+if ($termsText -match 'invite codes|call codes' -or $privacyText -match 'invite codes|call codes') {
+  Add-Failure 'Legal pages still describe the retired call-code workflow'
+}
 if (-not $chatCss.Contains('.conversation-header[hidden]{display:none!important}')) {
   Add-Failure 'chat.css: hidden conversation header exposes call controls before selecting a contact'
 }
