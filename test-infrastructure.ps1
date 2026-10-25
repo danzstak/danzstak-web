@@ -178,4 +178,30 @@ foreach ($requiredCacheControl in @(
   }
 }
 
+$amplifyHeaders = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'customHttp.yml') -Raw -Encoding utf8
+foreach ($requiredHeader in @(
+  'Strict-Transport-Security',
+  'X-Content-Type-Options',
+  'X-Frame-Options',
+  'Referrer-Policy',
+  'Permissions-Policy'
+)) {
+  if (-not $amplifyHeaders.Contains($requiredHeader)) {
+    Add-Failure "Amplify Hosting security header is missing: $requiredHeader"
+  }
+}
+
+$publishScript = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-publish-site.ps1') -Raw -Encoding utf8
+foreach ($requiredAmplifyCheck in @(
+  'aws amplify list-apps',
+  'aws amplify list-domain-associations',
+  'aws amplify list-jobs',
+  '$latest.commitId -eq $localCommit',
+  '$latest.status -eq "SUCCEED"'
+)) {
+  if (-not $publishScript.Contains($requiredAmplifyCheck)) {
+    Add-Failure "Amplify release verification is missing: $requiredAmplifyCheck"
+  }
+}
+
 Write-Host "Infrastructure checks passed ($templateBytes-byte template; embedded Lambda syntax valid)."

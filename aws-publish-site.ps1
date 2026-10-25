@@ -2,6 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $Domain = "danzstak.com"
 $Root = $PSScriptRoot
+$Region = "us-west-1"
 
 Write-Host "Resolving the CloudFront distribution for $Domain..."
 $distributions = aws cloudfront list-distributions --output json | ConvertFrom-Json
@@ -10,7 +11,45 @@ $distribution = $distributions.DistributionList.Items |
   Where-Object { $_.Aliases.Items -contains $Domain } |
   Select-Object -First 1
 if (-not $distribution) {
-  throw "The active AWS account does not own the $Domain CloudFront distribution. Website files were not uploaded."
+  Write-Host "No customer-managed CloudFront distribution found; checking AWS Amplify Hosting..."
+  $apps = aws amplify list-apps --region $Region --output json | ConvertFrom-Json
+  if ($LASTEXITCODE -ne 0) { throw "Unable to list Amplify apps." }
+  $amplifyApp = $null
+  foreach ($app in $apps.apps) {
+    $domains = aws amplify list-domain-associations --region $Region --app-id $app.appId --output json | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0) { throw "Unable to inspect Amplify domains for $($app.name)." }
+    if ($domains.domainAssociations.domainName -contains $Domain) { $amplifyApp = $app; break }
+  }
+  if (-not $amplifyApp) {
+    throw "Neither CloudFront nor Amplify Hosting in the active AWS account serves $Domain."
+  }
+
+  $branch = (aws amplify list-branches --region $Region --app-id $amplifyApp.appId --output json | ConvertFrom-Json).branches |
+    Where-Object { $_.stage -eq "PRODUCTION" } | Select-Object -First 1
+  if (-not $branch) { throw "The Amplify app has no production branch." }
+  $localCommit = (& "C:\Users\5star\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\cmd\git.exe" -C $Root rev-parse HEAD).Trim()
+  if ($LASTEXITCODE -ne 0 -or -not $localCommit) { throw "Unable to resolve the local release commit." }
+
+  Write-Host "Waiting for Amplify production branch $($branch.branchName) to publish $localCommit..."
+  $deadline = (Get-Date).AddMinutes(10)
+  do {
+    $latest = (aws amplify list-jobs --region $Region --app-id $amplifyApp.appId --branch-name $branch.branchName --max-results 1 --output json | ConvertFrom-Json).jobSummaries | Select-Object -First 1
+    if ($LASTEXITCODE -ne 0) { throw "Unable to inspect the Amplify deployment job." }
+    if ($latest.commitId -eq $localCommit -and $latest.status -eq "SUCCEED") { break }
+    if ($latest.commitId -eq $localCommit -and $latest.status -in @("FAILED", "CANCELLED")) { throw "Amplify deployment $($latest.jobId) ended with status $($latest.status)." }
+    Start-Sleep -Seconds 10
+  } while ((Get-Date) -lt $deadline)
+  if ($latest.commitId -ne $localCommit -or $latest.status -ne "SUCCEED") {
+    throw "Amplify did not publish commit $localCommit within ten minutes."
+  }
+
+  $liveWorker = Invoke-WebRequest -Uri "https://$Domain/service-worker.js" -UseBasicParsing
+  $expectedCache = (Select-String -Path (Join-Path $Root "service-worker.js") -Pattern 'danzstak-shell-v\d+').Matches.Value
+  if (-not $expectedCache -or $liveWorker.Content -notmatch [regex]::Escape($expectedCache)) {
+    throw "Amplify succeeded, but the live service worker does not match this release."
+  }
+  Write-Host "DanzStak Amplify release verified live at https://$Domain/."
+  exit 0
 }
 
 $origin = $distribution.Origins.Items | Select-Object -First 1

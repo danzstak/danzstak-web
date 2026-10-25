@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $Domain = "danzstak.com"
+$Region = "us-west-1"
 $SecurityHeadersPolicyId = "67f7725c-6f97-4210-82d7-5512b31e9d03"
 $CachePolicyName = "DanzStak-Frequent-Revalidation"
 
@@ -12,7 +13,31 @@ $distribution = $distributions.DistributionList.Items |
   Select-Object -First 1
 
 if (-not $distribution) {
-  throw "No CloudFront distribution has the $Domain alias."
+  Write-Host "CloudFront is managed by Amplify Hosting; validating the repository-managed security headers."
+  $headerFile = Join-Path $PSScriptRoot "customHttp.yml"
+  if (-not (Test-Path -LiteralPath $headerFile)) { throw "Amplify security header file customHttp.yml is missing." }
+  $headerSource = Get-Content -LiteralPath $headerFile -Raw
+  foreach ($required in @("Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy")) {
+    if ($headerSource -notmatch [regex]::Escape($required)) { throw "customHttp.yml is missing $required." }
+  }
+  $apps = aws amplify list-apps --region $Region --output json | ConvertFrom-Json
+  if ($LASTEXITCODE -ne 0) { throw "Unable to list Amplify apps." }
+  $amplifyApp = $null
+  foreach ($app in $apps.apps) {
+    $domains = aws amplify list-domain-associations --region $Region --app-id $app.appId --output json | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0) { throw "Unable to inspect Amplify domains for $($app.name)." }
+    if ($domains.domainAssociations.domainName -contains $Domain) { $amplifyApp = $app; break }
+  }
+  if (-not $amplifyApp) { throw "No Amplify app serves $Domain." }
+
+  $response = Invoke-WebRequest -Uri "https://$Domain/" -Method Head -UseBasicParsing
+  foreach ($required in @("Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy")) {
+    if ([string]::IsNullOrWhiteSpace([string]$response.Headers[$required])) {
+      throw "Amplify serves $Domain, but the deployed release is missing $required."
+    }
+  }
+  Write-Host "Amplify Hosting verified live with required DanzStak security headers."
+  exit 0
 }
 
 $distributionId = $distribution.Id

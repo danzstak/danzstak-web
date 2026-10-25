@@ -43,11 +43,11 @@ if ($LASTEXITCODE -ne 0) { throw "Auth API deployment failed." }
 Write-Host "Reapplying production API safeguards..."
 & (Join-Path $PSScriptRoot "aws-configure-production.ps1")
 
-Write-Host "Applying CloudFront security response headers..."
-& (Join-Path $PSScriptRoot "aws-harden-cloudfront.ps1")
-
 Write-Host "Publishing the tested static website release..."
 & (Join-Path $PSScriptRoot "aws-publish-site.ps1")
+
+Write-Host "Applying and verifying hosting security response headers..."
+& (Join-Path $PSScriptRoot "aws-harden-cloudfront.ps1")
 
 Write-Host "Running post-deployment public security verification..."
 & (Join-Path $PSScriptRoot "test-live-security.ps1") -ExpectGroups -ExpectProfileVideo
