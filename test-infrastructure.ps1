@@ -38,6 +38,12 @@ foreach ($legalRoute in @('POST /auth/legal-acceptance', 'LegalAcceptanceInvokeP
 foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 'friendEmails.has(item.userEmail?.S)', 'data.originalContentCertified !== true', 'sha256(userEmail).slice(0, 24)', 'sha256(accountEmail).slice(0, 24)', 'Post media ownership could not be verified', 'function signedMediaUrl(', 'mediaUrl: item.mediaKey?.S ? signedMediaUrl', 'mediaUrl: signedMediaUrl(mediaKey, 3600)', '"strict-transport-security"', '"x-content-type-options"', '"x-frame-options"', 'user: userId && email ? { email } : undefined', 'async function getEngagement(event)', 'async function setReaction(event)', 'async function addComment(event)', 'async function deleteComment(event)', 'async function updateSecurePost(event)', 'commentPolicy === "off"', 'commentPolicy === "friends"', 'async function getEngagementNotifications(event)', 'async function clearEngagementNotifications(event)', 'reactions.Items || []', 'comments.Items || []', 'notices.Items || []', 'const storiesTable = "DANZSTAK-Stories"', 'linkedStories.map')) {
   if (-not $authApi.Contains($required)) { throw "Auth API post authorization safeguard is missing: $required" }
 }
+foreach ($feedPaginationControl in @('async function scanAll(request, maximumItems = 5000)', 'page.LastEvaluatedKey', 'await scanAll({ TableName: postsTable', 'async function batchGetFriendships(viewerEmail, friendEmails)', 'offset += 100', 'result.UnprocessedKeys?.[friendsTable]?.Keys')) {
+  if (-not $authApi.Contains($feedPaginationControl)) { throw "Feed pagination or complete friendship authorization is missing: $feedPaginationControl" }
+}
+if ($authApi.Contains('new ScanCommand({ TableName: postsTable, Limit: 100')) {
+  throw 'Feed still reads an arbitrary first 100 posts instead of paginating DynamoDB'
+}
 $authDeploy = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-deploy-auth-api.ps1') -Raw -Encoding utf8
 foreach ($mediaDeploymentControl in @('"s3:GetObject"', '$variables.MEDIA_BUCKET', 'describe-stack-resource', 'DeletePostStoryReferences')) {
   if (-not $authDeploy.Contains($mediaDeploymentControl)) { throw "Auth API protected-media deployment control is missing: $mediaDeploymentControl" }

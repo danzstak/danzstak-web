@@ -66,6 +66,42 @@ const legalVersion = "2026-10-25";
 
 const now = () => Math.floor(Date.now() / 1000);
 
+async function scanAll(request, maximumItems = 5000) {
+  const items = [];
+  let ExclusiveStartKey;
+  do {
+    const page = await db.send(new ScanCommand({ ...request, ExclusiveStartKey }));
+    items.push(...(page.Items || []));
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey && items.length < maximumItems);
+  return items.slice(0, maximumItems);
+}
+
+async function batchGetFriendships(viewerEmail, friendEmails) {
+  const items = [];
+  for (let offset = 0; offset < friendEmails.length; offset += 100) {
+    let keys = friendEmails.slice(offset, offset + 100).map(email => ({
+      userEmail: { S: viewerEmail },
+      friendEmail: { S: email }
+    }));
+    for (let attempt = 0; keys.length && attempt < 4; attempt += 1) {
+      const result = await db.send(new BatchGetItemCommand({
+        RequestItems: {
+          [friendsTable]: {
+            Keys: keys,
+            ConsistentRead: true,
+            ProjectionExpression: "friendEmail, #status",
+            ExpressionAttributeNames: { "#status": "status" }
+          }
+        }
+      }));
+      items.push(...(result.Responses?.[friendsTable] || []));
+      keys = result.UnprocessedKeys?.[friendsTable]?.Keys || [];
+    }
+  }
+  return items;
+}
+
 const sha256 = value =>
   createHash("sha256").update(value).digest("hex");
 
@@ -796,8 +832,8 @@ async function getSecurePosts(event) {
     return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   }
 
-  const result = await db.send(new ScanCommand({ TableName: postsTable, Limit: 100, ConsistentRead: true }));
-  const rawPosts = (result.Items || []).filter(item => item.postId?.S && item.content?.S && item.createdAt?.S);
+  const rawPosts = (await scanAll({ TableName: postsTable, ConsistentRead: true }))
+    .filter(item => item.postId?.S && item.content?.S && item.createdAt?.S);
   const viewerEmail = await accountForSub(userId);
   const friendAuthors = [...new Set(rawPosts
     .filter(item => item.userId?.S !== userId && item.audience?.S === "friends" && item.userEmail?.S)
@@ -805,17 +841,8 @@ async function getSecurePosts(event) {
   const friendEmails = new Set();
 
   if (viewerEmail && friendAuthors.length) {
-    const friendships = await db.send(new BatchGetItemCommand({
-      RequestItems: {
-        [friendsTable]: {
-          Keys: friendAuthors.slice(0, 100).map(email => ({ userEmail: { S: viewerEmail }, friendEmail: { S: email } })),
-          ConsistentRead: true,
-          ProjectionExpression: "friendEmail, #status",
-          ExpressionAttributeNames: { "#status": "status" }
-        }
-      }
-    }));
-    for (const item of friendships.Responses?.[friendsTable] || []) {
+    const friendships = await batchGetFriendships(viewerEmail, friendAuthors);
+    for (const item of friendships) {
       if (item.status?.S === "friends" && item.friendEmail?.S) friendEmails.add(item.friendEmail.S);
     }
   }
