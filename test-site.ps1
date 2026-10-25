@@ -198,6 +198,9 @@ foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'doc
 foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'Contacts are temporarily unavailable. Retrying automatically')) {
   if (-not $directMessagesJs.Contains($contactFailureBehavior)) { Add-Failure "Messages: bounded contact loading behavior is missing: $contactFailureBehavior" }
 }
+foreach ($onlineContactNavigation in @('name.href = "profile.html?user=" + encodeURIComponent(user.email)', 'action.addEventListener("click", () => openMessageDrawer(user.email))', 'user.friendStatus === "friends" || user.sharedGroup')) {
+  if (-not $feed.Contains($onlineContactNavigation)) { Add-Failure "Online contacts: profile or embedded-message navigation is incomplete: $onlineContactNavigation" }
+}
 if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.Contains('No friends are online right now.')) {
   Add-Failure 'Online Users: the right panel can show offline contacts as online-directory results'
 }
