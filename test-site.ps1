@@ -146,6 +146,11 @@ if (-not $feedEnhancementsJs.Contains('readSections().Settings?.notifications ==
     -not $feedEnhancementsJs.Contains('Show activity notification badges on this device')) {
   Add-Failure 'Settings: the activity notification preference is misleading or not enforced'
 }
+if (-not $feedEnhancementsJs.Contains('const people = new Map(directory.map') -or
+    -not $feedEnhancementsJs.Contains('avatar.className = "notification-avatar"') -or
+    -not $feedEnhancementsJs.Contains('if (featureHeading.textContent === "Notifications") renderWorkspace("Notifications")')) {
+  Add-Failure 'Notifications: member identity or post-read refresh is incomplete'
+}
 if (-not $feedEnhancementsJs.Contains('function postPermalink(post)') -or
     -not $feedEnhancementsJs.Contains('navigator.clipboard.writeText(postPermalink(post))') -or
     -not $feed.Contains('document.getElementById(decodeURIComponent(location.hash.slice(1)))')) {

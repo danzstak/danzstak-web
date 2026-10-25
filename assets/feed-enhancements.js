@@ -225,10 +225,17 @@ function renderWorkspace(name) {
     loading.textContent = "Loading notifications…";
     list.appendChild(loading);
     workspace.appendChild(list);
-    fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" })
-      .then(async response => {
+    Promise.allSettled([
+      fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" }),
+      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" })
+    ]).then(async results => {
+        const response = results[0].status === "fulfilled" ? results[0].value : null;
+        const directoryResponse = results[1].status === "fulfilled" ? results[1].value : null;
+        if (!response) throw new Error("Notifications could not be loaded");
         if (!response.ok) throw new Error("Notifications could not be loaded");
         const data = await response.json();
+        const directory = directoryResponse?.ok ? (await directoryResponse.json()).users || [] : [];
+        const people = new Map(directory.map(person => [String(person.email || "").toLowerCase(), person]));
         updateNotificationCount((data.notifications || []).length);
         list.replaceChildren();
         if (!(data.notifications || []).length) {
@@ -239,12 +246,18 @@ function renderWorkspace(name) {
           return;
         }
         for (const notice of data.notifications) {
+          const person = people.get(String(notice.email || "").toLowerCase());
+          const displayName = person?.name || String(notice.email || "DanzStak member").split("@")[0];
           const row = document.createElement("article");
           row.className = "notification-row";
+          const avatar = person?.picture ? document.createElement("img") : document.createElement("span");
+          avatar.className = "notification-avatar";
+          if (person?.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+          else { avatar.textContent = displayName.charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
           const message = document.createElement("p");
           message.textContent = notice.type === "message"
-            ? `${notice.email}: ${notice.preview || "New message"}`
-            : `${notice.email} sent you a friend request.`;
+            ? `${displayName}: ${notice.preview || "New message"}`
+            : `${displayName} sent you a friend request.`;
           const actions = document.createElement("div");
           actions.className = "notification-actions";
           if (notice.type === "message") {
@@ -254,7 +267,10 @@ function renderWorkspace(name) {
             open.textContent = "Open chat";
             open.addEventListener("click", () => {
               if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email);
-              setTimeout(refreshNotificationCount, 1000);
+              setTimeout(() => {
+                refreshNotificationCount();
+                if (featureHeading.textContent === "Notifications") renderWorkspace("Notifications");
+              }, 1500);
             });
             actions.appendChild(open);
           } else for (const [label, accept] of [["Accept", true], ["Decline", false]]) {
@@ -270,7 +286,7 @@ function renderWorkspace(name) {
             });
             actions.appendChild(button);
           }
-          row.append(message, actions);
+          row.append(avatar, message, actions);
           list.appendChild(row);
         }
       })
