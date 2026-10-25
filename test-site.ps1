@@ -298,6 +298,9 @@ if ($messagesHtml -notmatch 'id="receiverHangUp"[^>]+hidden' -or
     -not $chatJs.Contains('els.receiverHangup.hidden=true')) {
   Add-Failure 'Call controls: receiver Hang Up visibility is not tied to active call state'
 }
+foreach ($deletedChatControl in @('function closeConversation(', 'shownMessages.clear()', 'danzstak-chat-view", open: false', 'closeConversation({ focusList: true })')) {
+  if (-not $directMessagesJs.Contains($deletedChatControl)) { Add-Failure "Messaging: deleting or closing a chat leaves stale conversation state: $deletedChatControl" }
+}
 if (-not $chatJs.Contains('if(await handleEvent(event))handled.push(event.eventId)') -or
     -not $chatJs.Contains('eventIds:[offer.eventId]') -or
     -not $chatJs.Contains('if(pending?.eventId===event.eventId)return false;')) {

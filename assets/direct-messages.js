@@ -95,6 +95,21 @@ function openConversation(conversation) {
   loadDirectMessages(true);
 }
 
+function closeConversation({ focusList = false } = {}) {
+  document.querySelector(".message-reaction-palette")?.remove();
+  conversationHeader.hidden = true;
+  contactInput.value = "";
+  directContact = "";
+  shownMessages.clear();
+  messageList.replaceChildren();
+  messageInput.value = "";
+  messageInput.disabled = true;
+  sendButton.disabled = true;
+  document.body.classList.remove("is-conversation-open");
+  if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: false }, location.origin);
+  if (focusList) conversationUsers?.querySelector(".conversation-user")?.focus();
+}
+
 function directMessageItem(message) {
   const mine = message.senderEmail === currentEmail;
   const item = document.createElement("div");
@@ -249,7 +264,7 @@ document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
 document.getElementById("headerPhone")?.addEventListener("click", () => document.getElementById("startPhone")?.click());
 document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
 document.getElementById("minimizeConversation")?.addEventListener("click", () => { document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-minimize" }, location.origin); });
-document.getElementById("closeConversation")?.addEventListener("click", () => { conversationHeader.hidden = true; contactInput.value = ""; directContact = ""; messageInput.disabled = true; sendButton.disabled = true; document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: false }, location.origin); });
+document.getElementById("closeConversation")?.addEventListener("click", () => closeConversation({ focusList: true }));
 for (const emoji of ["😀","😂","😍","❤️","👍","🔥","🎉","😢","😮","🙏","👏","🎵"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", "Insert " + emoji); button.addEventListener("click", () => { messageInput.value += emoji; emojiPalette.hidden = true; messageInput.focus(); }); emojiPalette.appendChild(button); }
 emojiButton?.addEventListener("click", () => { emojiPalette.hidden = !emojiPalette.hidden; });
 window.addEventListener("message", event => { if (event.source === window.parent && event.origin === location.origin && event.data?.type === "danzstak-chat-hidden") document.body.classList.remove("is-conversation-open"); });
@@ -297,7 +312,7 @@ deleteChat?.addEventListener("click", async () => {
   try {
     const response = await fetch(directApi + "/messages/delete?contact=" + encodeURIComponent(contact), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
     if (!response.ok) throw new Error("Chat could not be deleted");
-    shownMessages.clear(); messageList.replaceChildren(); contactInput.value = ""; directContact = ""; messageInput.disabled = true; sendButton.disabled = true;
+    closeConversation({ focusList: true });
     callStatus.textContent = "Chat deleted from your account.";
     await loadConversations();
   } catch (error) { callStatus.textContent = error.message; }
