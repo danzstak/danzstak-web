@@ -59,6 +59,13 @@ $stableLogicalIds = @('SignalRoute:', 'InboxRoute:', 'AckRoute:', 'PresenceRoute
 foreach ($logicalId in $stableLogicalIds) {
   if (-not $template.Contains("  $logicalId")) { throw "Deployed CloudFormation logical ID changed and would replace a live route: $logicalId" }
 }
+
+if (-not $template.Contains('expiresAt:{N:String(now()+7200)}')) {
+  throw 'Presence records do not remain available for the full two-hour signed-in activity window'
+}
+if ($template.Contains('expiresAt:{N:String(now()+180)}')) {
+  throw 'Presence still expires after three minutes when a browser suspends background JavaScript'
+}
 if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
   throw 'Raw media URL access is not restricted to the authenticated owner.'
 }
