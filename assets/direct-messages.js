@@ -79,6 +79,7 @@ function directMessageItem(message) {
 
 async function loadDirectMessages(reset = false) {
   if (!document.body.classList.contains("is-conversation-open")) return;
+  if (document.hidden && !reset) return;
   const contact = contactInput?.value.trim().toLowerCase();
   if (!contact || loadingMessages) return;
   if (contact !== directContact) { directContact = contact; reset = true; }
@@ -87,16 +88,20 @@ async function loadDirectMessages(reset = false) {
     const response = await fetch(directApi + "/messages?read=1&contact=" + encodeURIComponent(contact), { credentials: "include", cache: "no-store" });
     if (!response.ok) return;
     const data = await response.json();
+    const distanceFromBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight;
+    const followNewest = reset || distanceFromBottom < 80;
     if (reset) { shownMessages.clear(); messageList.replaceChildren(); }
+    let appended = 0;
     for (const message of data.messages || []) {
       if (shownMessages.has(message.messageId)) continue;
       shownMessages.add(message.messageId);
       messageList.appendChild(directMessageItem(message));
+      appended += 1;
     }
     const receivedMessages = data.messages || [];
     const newest = receivedMessages.length ? receivedMessages[receivedMessages.length - 1].createdAt : "";
     markChatRead(contact, newest || new Date().toISOString());
-    messageList.scrollTop = messageList.scrollHeight;
+    if (followNewest && appended) messageList.scrollTop = messageList.scrollHeight;
     messageInput.disabled = false;
     sendButton.disabled = false;
     callStatus.textContent = "You can message " + contact + " directly.";
@@ -257,5 +262,6 @@ fetch(directApi + "/auth/session", { credentials: "include", cache: "no-store" }
   .then(response => response.ok ? response.json() : null)
   .then(data => { const profile = data?.user || data?.claims || data?.profile || data || {}; currentEmail = String(profile.email || profile.username || "").toLowerCase(); if (contactInput.value) loadDirectMessages(true); });
 setInterval(() => loadDirectMessages(), 3000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { loadDirectMessages(); loadConversations(); } });
 loadConversations();
 setInterval(loadConversations, 15000);
