@@ -40,6 +40,14 @@ $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhan
 foreach ($required in @('/engagement?postId=', '/reactions', '/comments', 'loadEngagement(post)', 'saveComment(post, event.target)', '/engagement-notifications/read')) {
   if (-not $feedEnhancements.Contains($required)) { Add-Failure "Durable feed engagement is missing: $required" }
 }
+$chatScript = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
+$incomingCalls = Get-Content -LiteralPath (Join-Path $root 'assets\incoming-calls.js') -Raw -Encoding utf8
+if (-not $chatScript.Contains('if(await handleEvent(event))handled.push(event.eventId)') -or $chatScript.Contains('filter(event=>event.signalType!=="offer")')) {
+  Add-Failure 'Calls: chat may acknowledge signals it did not handle'
+}
+if ($incomingCalls.Contains('const disposable =') -or -not $incomingCalls.Contains('document.getElementById("messageDrawer")')) {
+  Add-Failure 'Calls: background watcher may steal active chat signals'
+}
 $inlineScripts = [regex]::Matches(
   $feed,
   '<script(?![^>]+src=)[^>]*>([\s\S]*?)</script>',
@@ -150,9 +158,9 @@ if ($messagesHtml -notmatch 'id="receiverHangUp"[^>]+hidden' -or
     -not $chatJs.Contains('els.receiverHangup.hidden=true')) {
   Add-Failure 'Call controls: receiver Hang Up visibility is not tied to active call state'
 }
-if (-not $chatJs.Contains('.filter(event=>event.signalType!=="offer")') -or
+if (-not $chatJs.Contains('if(await handleEvent(event))handled.push(event.eventId)') -or
     -not $chatJs.Contains('eventIds:[offer.eventId]') -or
-    -not $chatJs.Contains('if(pending?.eventId===event.eventId)return;')) {
+    -not $chatJs.Contains('if(pending?.eventId===event.eventId)return false;')) {
   Add-Failure 'Calls: incoming offers are acknowledged before receiver action or ring repeatedly'
 }
 if (-not $feedEnhancementsJs.Contains('body: JSON.stringify({ content: post.querySelector(".post-content")?.textContent.trim() || "Shared media", audience: audiences[next] })') -or

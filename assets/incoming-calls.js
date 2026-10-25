@@ -73,13 +73,12 @@
 
   async function poll() {
     if (polling || current) return;
+    if (document.getElementById("messageDrawer")) return;
     polling = true;
     try {
       const inbox = await api("/calls/inbox");
       const offer = (inbox.events || []).find(event => event.signalType === "offer" && ["phone", "video"].includes(event.mode));
       if (offer) showCall(offer);
-      const disposable = (inbox.events || []).filter(event => event.signalType !== "offer").map(event => event.eventId);
-      if (disposable.length) await api("/calls/ack", { method: "POST", body: JSON.stringify({ eventIds: disposable }) });
     } catch { /* Retry quietly while the user remains on the site. */ }
     finally { polling = false; }
   }
