@@ -105,6 +105,9 @@ foreach ($paginationControl in @('async function scanAll(input,maximumItems=5000
 foreach ($socialListPagination in @('async function getFriends(user){const items=await queryAll', 'async function notifications(user){const [friends,chats]=await Promise.all([queryAll', 'async function getConversations(user){const items=await queryAll', 'async function mapLimit(items,limit,work)', 'const friends=await mapLimit(items,10', 'const conversations=await mapLimit(items.filter')) {
   if (-not $template.Contains($socialListPagination)) { throw "Friends, Notifications, or saved conversations can stop at one DynamoDB page: $socialListPagination" }
 }
+if (-not $template.Contains("hiddenBefore = :deleted, unread = :zero") -or -not $template.Contains("':zero':{N:'0'}")) {
+  throw 'Deleting a conversation does not clear its unread notification state'
+}
 foreach ($retiredLimit in @('TableName:process.env.PRESENCE_TABLE,FilterExpression:''expiresAt > :n'',ExpressionAttributeValues:{'':n'':{N:String(now())}},Limit:100', 'TableName:process.env.STORIES_TABLE,FilterExpression:''expiresAt > :n'',ExpressionAttributeValues:{'':n'':{N:String(now())}},Limit:100', 'TableName:process.env.GROUPS_TABLE,Limit:250')) {
   if ($template.Contains($retiredLimit)) { throw "A growing social directory still uses a single DynamoDB page: $retiredLimit" }
 }
