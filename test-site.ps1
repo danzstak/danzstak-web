@@ -183,6 +183,9 @@ foreach ($updatePromptBehavior in @('registration.waiting', 'registration.addEve
 
 $sessionCleanupJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-cleanup.js') -Raw -Encoding utf8
 $directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-messages.js') -Raw -Encoding utf8
+if (-not $directMessagesJs.Contains('currentEmail = String(profile.email || profile.username || "").toLowerCase()')) {
+  Add-Failure 'Messages: current account identity is not used to distinguish sent and received messages'
+}
 foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'document.hidden && !reset', 'visibilitychange')) {
   if (-not $directMessagesJs.Contains($messagePollingBehavior)) { Add-Failure "Messages: respectful live polling behavior is missing: $messagePollingBehavior" }
 }

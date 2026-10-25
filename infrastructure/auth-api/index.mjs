@@ -682,12 +682,14 @@ async function setProfileVideo(event) {
 async function checkSession(event) {
   const headers = corsHeaders(event.headers?.origin);
   const userId = await getAuthenticatedUser(event);
+  const email = userId ? await accountForSub(userId) : "";
 
   return {
     statusCode: userId ? 200 : 401,
     headers,
     body: JSON.stringify({
-      authenticated: Boolean(userId)
+      authenticated: Boolean(userId),
+      user: userId && email ? { email } : undefined
     })
   };
 }
