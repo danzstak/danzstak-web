@@ -24,6 +24,7 @@ const emojiPalette = document.getElementById("emojiPalette");
 let directContact = "";
 let currentEmail = "";
 let loadingMessages = false;
+let conversationVersion = 0;
 let nextMessageCursor = "";
 const shownMessages = new Set();
 let cachedConversations = [];
@@ -85,6 +86,7 @@ function openMessageReactions(item, message, x, y) {
 }
 
 function openConversation(conversation) {
+  closeConversation();
   document.body.classList.add("is-conversation-open");
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: true }, location.origin);
   contactInput.value = conversation.contactEmail;
@@ -99,6 +101,8 @@ function openConversation(conversation) {
 }
 
 function closeConversation({ focusList = false } = {}) {
+  conversationVersion += 1;
+  loadingMessages = false;
   document.querySelector(".message-reaction-palette")?.remove();
   conversationHeader.hidden = true;
   contactInput.value = "";
@@ -144,6 +148,7 @@ function renderEarlierMessagesButton() {
 }
 
 async function loadEarlierMessages() {
+  const version = conversationVersion;
   const contact = directContact;
   const cursor = nextMessageCursor;
   if (!contact || !cursor || loadingMessages) return;
@@ -154,6 +159,7 @@ async function loadEarlierMessages() {
   try {
     const response = await directFetch("/messages?contact=" + encodeURIComponent(contact) + "&before=" + encodeURIComponent(cursor), { credentials: "include", cache: "no-store" });
     const data = await response.json().catch(() => ({}));
+    if (version !== conversationVersion) return;
     if (!response.ok) throw new Error(data.error || "Earlier messages could not be loaded");
     const fragment = document.createDocumentFragment();
     for (const message of data.messages || []) {
@@ -167,12 +173,14 @@ async function loadEarlierMessages() {
     renderEarlierMessagesButton();
     messageList.scrollTop += messageList.scrollHeight - previousHeight;
   } catch (error) {
+    if (version !== conversationVersion) return;
     callStatus.textContent = error.message;
     if (button) { button.disabled = false; button.textContent = "Try loading earlier messages again"; }
-  } finally { loadingMessages = false; }
+  } finally { if (version === conversationVersion) loadingMessages = false; }
 }
 
 async function loadDirectMessages(reset = false) {
+  const version = conversationVersion;
   if (!document.body.classList.contains("is-conversation-open")) return;
   if (document.hidden && !reset) return;
   const contact = contactInput?.value.trim().toLowerCase();
@@ -180,9 +188,10 @@ async function loadDirectMessages(reset = false) {
   if (contact !== directContact) { directContact = contact; reset = true; }
   loadingMessages = true;
   try {
-    const response = await fetch(directApi + "/messages?read=1&contact=" + encodeURIComponent(contact), { credentials: "include", cache: "no-store" });
-    if (!response.ok) return;
+    const response = await directFetch("/messages?read=1&contact=" + encodeURIComponent(contact), { credentials: "include", cache: "no-store" });
     const data = await response.json();
+    if (version !== conversationVersion) return;
+    if (!response.ok) throw new Error(data.error || "Messages could not be loaded");
     const distanceFromBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight;
     const followNewest = reset || distanceFromBottom < 80;
     if (reset) { shownMessages.clear(); nextMessageCursor = data.nextCursor || ""; messageList.replaceChildren(); }
@@ -207,7 +216,9 @@ async function loadDirectMessages(reset = false) {
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
     callStatus.textContent = activeCanContact ? "You can message " + contact + " directly." : "Saved chat. Become friends or join the same group to send new messages or call.";
-  } finally { loadingMessages = false; }
+  } catch (error) {
+    if (version === conversationVersion) callStatus.textContent = error.message || "Messages could not be loaded";
+  } finally { if (version === conversationVersion) loadingMessages = false; }
 }
 
 async function loadConversations() {
@@ -346,27 +357,32 @@ messageForm?.addEventListener("submit", async event => {
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
   if (!content || !recipientEmail || !activeCanContact) return;
+  const version = conversationVersion;
   sendButton.disabled = true;
   try {
     const response = await fetch(directApi + "/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Message could not be sent");
-    messageInput.value = "";
+    if (version !== conversationVersion) { await loadConversations(); return; }
+    if (messageInput.value.trim() === content) messageInput.value = "";
     await loadDirectMessages();
     await loadConversations();
-  } catch (error) { callStatus.textContent = error.message; }
-  finally { sendButton.disabled = false; }
+  } catch (error) { if (version === conversationVersion) callStatus.textContent = error.message; }
+  finally { if (version === conversationVersion) sendButton.disabled = !activeCanContact; }
 }, true);
 
 deleteChat?.addEventListener("click", async () => {
   const contact = contactInput.value.trim().toLowerCase();
   if (!contact || !confirm("Delete this chat from your account? The other person will keep their message history.")) return;
+  const version = conversationVersion;
   deleteChat.disabled = true;
   try {
     const response = await fetch(directApi + "/messages/delete?contact=" + encodeURIComponent(contact), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
     if (!response.ok) throw new Error("Chat could not be deleted");
-    closeConversation({ focusList: true });
-    callStatus.textContent = "Chat deleted from your account.";
+    if (version === conversationVersion) {
+      closeConversation({ focusList: true });
+      callStatus.textContent = "Chat deleted from your account.";
+    }
     await loadConversations();
   } catch (error) { callStatus.textContent = error.message; }
   finally { deleteChat.disabled = false; }
