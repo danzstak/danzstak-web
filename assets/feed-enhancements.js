@@ -1967,7 +1967,14 @@ function renderPlayableReels() {
     source.textContent = reel.internal ? reel.content : reelUrlValue.hostname;
     details.append(platform, source);
     if (reel.internal) {
-      const open = document.createElement("a"); open.href = "#post-" + encodeURIComponent(reel.postId); open.textContent = "View post"; details.appendChild(open);
+      const open = document.createElement("a"); open.href = "#post-" + encodeURIComponent(reel.postId); open.textContent = "View post";
+      open.addEventListener("click", event => {
+        const post = document.getElementById("post-" + reel.postId);
+        if (!post) return;
+        event.preventDefault();
+        openPostInFeed(post);
+      });
+      details.appendChild(open);
     } else {
       const open = document.createElement("a"); open.href = reel.url; open.target = "_blank"; open.rel = "noopener noreferrer nofollow"; open.textContent = playerInfo ? "Open on source" : "Play on source"; details.appendChild(open);
     }

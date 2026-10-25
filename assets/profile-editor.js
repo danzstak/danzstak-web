@@ -359,6 +359,13 @@ function profilePostCard(post) {
     else { media.controls = true; media.preload = "metadata"; }
     article.appendChild(media);
   }
+  if (/^[a-f0-9-]{36}$/.test(String(post.postId || ""))) {
+    const open = document.createElement("a");
+    open.className = "secondary profile-post-open";
+    open.href = "feed.html#post-" + encodeURIComponent(post.postId);
+    open.textContent = "View in Feed";
+    article.appendChild(open);
+  }
   return article;
 }
 
