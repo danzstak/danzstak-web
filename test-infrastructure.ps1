@@ -267,6 +267,9 @@ foreach ($requiredHeader in @(
     throw "Amplify Hosting security header is missing: $requiredHeader"
   }
 }
+foreach ($framingPolicy in @("pattern: '/messages.html'", "value: 'SAMEORIGIN'", "pattern: '/feed.html'", "value: 'DENY'")) {
+  if (-not $amplifyHeaders.Contains($framingPolicy)) { throw "Amplify route-specific framing policy is missing: $framingPolicy" }
+}
 
 $publishScript = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-publish-site.ps1') -Raw -Encoding utf8
 foreach ($requiredAmplifyCheck in @(
