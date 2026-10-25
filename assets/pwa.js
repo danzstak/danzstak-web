@@ -2,6 +2,13 @@
 
 let installPrompt = null;
 let installDismissTimer = null;
+const installStateKey = "danzstak_app_installed";
+const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+let knownInstalled = standalone;
+try {
+  knownInstalled ||= localStorage.getItem(installStateKey) === "1";
+  if (standalone) localStorage.setItem(installStateKey, "1");
+} catch { /* Install detection still works through display mode. */ }
 const signedInPage = /(?:feed|profile|messages)\.html$/i.test(window.location.pathname);
 const installButton = document.createElement("button");
 installButton.type = "button";
@@ -11,7 +18,7 @@ installButton.hidden = true;
 document.body.appendChild(installButton);
 
 function showInstallButtonTemporarily() {
-  if (!signedInPage || standalone) return;
+  if (!signedInPage || knownInstalled) return;
   installButton.hidden = false;
   installButton.classList.remove("install-app-button--leaving");
   clearTimeout(installDismissTimer);
@@ -48,6 +55,8 @@ if ("serviceWorker" in navigator) {
 
 window.addEventListener("beforeinstallprompt", event => {
   event.preventDefault();
+  knownInstalled = false;
+  try { localStorage.removeItem(installStateKey); } catch { /* Storage is optional. */ }
   installPrompt = event;
   showInstallButtonTemporarily();
 });
@@ -65,16 +74,17 @@ installButton.addEventListener("click", async () => {
 });
 
 window.addEventListener("appinstalled", () => {
+  knownInstalled = true;
+  try { localStorage.setItem(installStateKey, "1"); } catch { /* Display mode remains authoritative. */ }
   clearTimeout(installDismissTimer);
   installButton.hidden = true;
 });
 
 window.addEventListener("danzstak:show-install", () => {
-  if (standalone) return;
+  if (knownInstalled) return;
   installButton.hidden = false;
   installButton.classList.remove("install-app-button--leaving");
   clearTimeout(installDismissTimer);
 });
 
-const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-if (!standalone && signedInPage) setTimeout(showInstallButtonTemporarily, 0);
+if (!knownInstalled && signedInPage) setTimeout(showInstallButtonTemporarily, 0);

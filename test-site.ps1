@@ -73,6 +73,13 @@ if ($serviceWorker -notmatch 'const CACHE = "danzstak-shell-v\d+";' -or
   Add-Failure 'service-worker.js: installed-app cache update activation is incomplete'
 }
 
+$pwaJs = Get-Content -LiteralPath (Join-Path $root 'assets\pwa.js') -Raw -Encoding utf8
+if (-not $pwaJs.Contains('const installStateKey = "danzstak_app_installed"') -or
+    -not $pwaJs.Contains('localStorage.setItem(installStateKey, "1")') -or
+    -not $pwaJs.Contains('localStorage.removeItem(installStateKey)')) {
+  Add-Failure 'PWA: completed installation is not remembered or cannot recover after uninstall'
+}
+
 $chatCss = Get-Content -LiteralPath (Join-Path $root 'assets\chat.css') -Raw -Encoding utf8
 $softUiCss = Get-Content -LiteralPath (Join-Path $root 'assets\soft-ui.css') -Raw -Encoding utf8
 if (-not $chatCss.Contains('.embedded-messages .conversation-choices{display:none!important}')) {
