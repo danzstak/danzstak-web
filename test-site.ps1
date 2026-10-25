@@ -44,6 +44,9 @@ $feed = Get-Content -LiteralPath $feedPath -Raw -Encoding utf8
 if (-not $feed.Contains("frame-src 'self' https://www.youtube-nocookie.com")) {
   Add-Failure 'Messages: the feed CSP blocks the same-origin embedded chat drawer'
 }
+foreach ($uploadCleanupControl in @('async function discardUploadedMedia(mediaKey)', 'await discardUploadedMedia(uploadedStoryKey)', 'await discardUploadedMedia(uploadedPostKey)')) {
+  if (-not $feed.Contains($uploadCleanupControl)) { Add-Failure "Media: failed publication leaves an orphaned upload: $uploadCleanupControl" }
+}
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }

@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-K6pklQBHCRllpj6+scW5+4nOPjSuRKLQlzOc3mXyoCY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-oP8V8e77TQ/6BJWEIawC1uLE4/WSMgfcTwo/YIgrwIs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -435,6 +435,16 @@ async function fetchWithDeadline(url, options = {}, timeoutMs = 10000) {
   finally { clearTimeout(timer); }
 }
 
+async function discardUploadedMedia(mediaKey) {
+  if (!mediaKey) return;
+  await fetchWithDeadline("https://api.danzstak.com/stories", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "discard", mediaKey })
+  }).catch(() => null);
+}
+
 async function loadOnlineUsers() {
   const container = document.getElementById("feedOnlineUsers");
   try {
@@ -723,6 +733,7 @@ createStoryInput.addEventListener("change", async () => {
   }
   createStoryButton.disabled = true;
   createStoryButton.querySelector("span").textContent = "Publishingâ€¦";
+  let uploadedStoryKey = "";
   try {
     const ticketResponse = await fetch("https://api.danzstak.com/stories", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
@@ -732,13 +743,16 @@ createStoryInput.addEventListener("change", async () => {
     const ticket = await ticketResponse.json();
     const uploadResponse = await fetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
     if (!uploadResponse.ok) throw new Error("Story media could not be uploaded.");
+    uploadedStoryKey = ticket.mediaKey;
     const publishResponse = await fetch("https://api.danzstak.com/stories", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: file.name || "Your Story", audience: postAudience.value, mediaKey: ticket.mediaKey, mediaType: ticket.mediaType, dedicatedMedia: true, originalContentCertified: true })
     });
     if (!publishResponse.ok) throw new Error("Story could not be published.");
+    uploadedStoryKey = "";
     await loadStories();
   } catch (error) {
+    await discardUploadedMedia(uploadedStoryKey);
     alert(error.message || "Story could not be published.");
   } finally {
     createStoryInput.value = "";
@@ -884,6 +898,7 @@ publishBtn.addEventListener("click", async () => {
   publishBtn.disabled = true;
 
   let savedPost;
+  let uploadedPostKey = "";
 
   try {
 
@@ -900,6 +915,7 @@ publishBtn.addEventListener("click", async () => {
       const uploadResponse = await fetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": selectedMedia.file.type }, body: selectedMedia.file });
       if (!uploadResponse.ok) throw new Error("Media upload failed");
       ({ mediaKey, mediaType } = ticket);
+      uploadedPostKey = mediaKey;
       mediaUrl = selectedMedia.url;
     }
 
@@ -920,8 +936,10 @@ publishBtn.addEventListener("click", async () => {
     }
 
     savedPost = await response.json();
+    uploadedPostKey = "";
 
     if (shareToStory.checked && shareToStory.dataset.hasMedia === "true") {
+      let uploadedStoryKey = "";
       try {
         const storyTicketResponse = await fetch("https://api.danzstak.com/stories", {
           method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
@@ -931,6 +949,7 @@ publishBtn.addEventListener("click", async () => {
         const storyTicket = await storyTicketResponse.json();
         const storyUploadResponse = await fetch(storyTicket.uploadUrl, { method: "PUT", headers: { "Content-Type": selectedMedia.file.type }, body: selectedMedia.file });
         if (!storyUploadResponse.ok) throw new Error("Story media upload failed");
+        uploadedStoryKey = storyTicket.mediaKey;
         const storyResponse = await fetch("https://api.danzstak.com/stories", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -938,8 +957,10 @@ publishBtn.addEventListener("click", async () => {
           body: JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey, mediaType: storyTicket.mediaType, dedicatedMedia: true, originalContentCertified: true })
         });
         if (!storyResponse.ok) throw new Error("Story could not be published");
+        uploadedStoryKey = "";
         await loadStories();
       } catch (storyError) {
+        await discardUploadedMedia(uploadedStoryKey);
         console.error("DanzStak Story error:", storyError);
         alert("Your post was saved, but the Story could not be published.");
       }
@@ -974,6 +995,8 @@ publishBtn.addEventListener("click", async () => {
     );
 
   } catch (error) {
+
+    await discardUploadedMedia(uploadedPostKey);
 
     console.error(
       "DanzStak posting error:",

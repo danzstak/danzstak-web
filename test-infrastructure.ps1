@@ -201,6 +201,9 @@ foreach ($pushCapability in @(
 if (-not $template.Contains("FilterExpression:'expiresAt > :n'") -or -not $template.Contains("':n':{N:String(now())}")) {
   throw 'Call inbox can return expired signaling records before DynamoDB TTL cleanup.'
 }
+foreach ($orphanMediaControl in @("body.action==='discard'", 'requestedMediaKey.startsWith(`users/${ownerPrefix(user)}/`)', "return json(200,{discarded:true})")) {
+  if (-not $template.Contains($orphanMediaControl)) { throw "Failed uploads cannot be securely discarded: $orphanMediaControl" }
+}
 
 if (-not $template.Contains("if(body.action==='list'){")) {
   throw 'Cross-device group membership loading is missing.'
