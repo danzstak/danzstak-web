@@ -116,6 +116,9 @@ if ($template.Contains('expiresAt:{N:String(now()+180)}')) {
 foreach ($paginationControl in @('async function scanAll(input,maximumItems=5000)', 'async function queryAll(input,maximumItems=5000)', 'page.LastEvaluatedKey', 'scanAll({TableName:process.env.PRESENCE_TABLE', 'queryAll({TableName:process.env.FRIENDS_TABLE', 'scanAll({TableName:process.env.STORIES_TABLE', 'async function groupIds(email){const items=await queryAll')) {
   if (-not $template.Contains($paginationControl)) { throw "Stories, presence, or contact pagination is incomplete: $paginationControl" }
 }
+if (-not $template.Contains("scanAll({TableName:process.env.PRESENCE_TABLE,FilterExpression:'expiresAt > :n',ExpressionAttributeValues:{':n':{N:String(now())}},ConsistentRead:true})")) {
+  throw 'Online directory presence reads can report a fresh heartbeat as offline.'
+}
 foreach ($socialListPagination in @('async function getFriends(user){const items=await queryAll', 'async function notifications(user){const [friends,chats]=await Promise.all([queryAll', 'async function getConversations(user){const items=await queryAll', 'async function mapLimit(items,limit,work)', 'const friends=await mapLimit(items,10', 'const conversations=await mapLimit(items.filter')) {
   if (-not $template.Contains($socialListPagination)) { throw "Friends, Notifications, or saved conversations can stop at one DynamoDB page: $socialListPagination" }
 }
