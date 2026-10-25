@@ -36,6 +36,7 @@ foreach ($file in $htmlFiles) {
 
 $feedPath = Join-Path $root 'feed.html'
 $feed = Get-Content -LiteralPath $feedPath -Raw -Encoding utf8
+if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
 foreach ($drawerAccessibility in @('aria-controls="messageDrawer"', 'aria-expanded="false"', 'drawer.setAttribute("role", "dialog")', 'event.key === "Escape"', 'launcher.setAttribute("aria-expanded", "true")')) {
   if (-not $feed.Contains($drawerAccessibility)) { Add-Failure "Messages: accessible drawer behavior is missing: $drawerAccessibility" }
 }

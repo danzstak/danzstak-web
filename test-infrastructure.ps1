@@ -52,6 +52,9 @@ $template = Get-Content -LiteralPath $templatePath -Raw -Encoding utf8
 if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
   throw 'Raw media URL access is not restricted to the authenticated owner.'
 }
+foreach ($storyAudienceControl in @("audience=['public','friends','private'].includes(body.audience)", "x.audience?.S==='friends'&&friends.has(x.userEmail.S)")) {
+  if (-not $template.Contains($storyAudienceControl)) { throw "Story audience enforcement is missing: $storyAudienceControl" }
+}
 $templateBytes = [Text.Encoding]::UTF8.GetByteCount($template)
 if ($templateBytes -gt 51200) {
   throw "CloudFormation template is $templateBytes bytes; inline validation accepts at most 51200 bytes."
