@@ -1120,6 +1120,10 @@ function addPostDeleteButton(post) {
   toggle.setAttribute("aria-expanded", "false");
   const menu = document.createElement("div");
   menu.className = "post-options-menu";
+  menu.id = "post-options-" + (post.dataset.postId || crypto.randomUUID());
+  menu.setAttribute("role", "menu");
+  toggle.setAttribute("aria-controls", menu.id);
+  toggle.setAttribute("aria-haspopup", "menu");
   menu.hidden = true;
   const handle = document.createElement("div");
   handle.className = "post-options-handle";
@@ -1153,6 +1157,7 @@ function addPostDeleteButton(post) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "post-option-row";
+    button.setAttribute("role", "menuitem");
     if (title === "Delete post") button.classList.add("post-option-danger");
     const icon = document.createElement("span");
     icon.className = "post-option-icon";
@@ -1347,12 +1352,41 @@ function addPostDeleteButton(post) {
   }
 
   toggle.addEventListener("click", () => {
-    document.querySelectorAll(".post-options-menu").forEach(other => { if (other !== menu) other.hidden = true; });
+    document.querySelectorAll(".post-options-menu").forEach(other => {
+      if (other !== menu) {
+        other.hidden = true;
+        other.closest(".post")?.querySelector(".post-menu-toggle")?.setAttribute("aria-expanded", "false");
+      }
+    });
     menu.hidden = !menu.hidden;
     toggle.setAttribute("aria-expanded", String(!menu.hidden));
+    if (!menu.hidden) menu.querySelector('[role="menuitem"]')?.focus();
+  });
+  menu.addEventListener("keydown", event => {
+    const items = [...menu.querySelectorAll('[role="menuitem"]:not(:disabled)')];
+    if (event.key === "Escape") {
+      event.preventDefault();
+      menu.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.focus();
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key) || !items.length) return;
+    event.preventDefault();
+    const current = items.indexOf(document.activeElement);
+    const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (current + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+    items[next].focus();
   });
   post.append(toggle, menu);
 }
+
+document.addEventListener("click", event => {
+  if (event.target.closest(".post-menu-toggle, .post-options-menu")) return;
+  document.querySelectorAll(".post-options-menu:not([hidden])").forEach(menu => {
+    menu.hidden = true;
+    menu.closest(".post")?.querySelector(".post-menu-toggle")?.setAttribute("aria-expanded", "false");
+  });
+});
 
 const engagementApi = "https://api.danzstak.com";
 const reactionEmoji = { Like: "👍", Love: "❤️", Laugh: "😂", Wow: "😮", Sad: "😢", Fire: "🔥" };

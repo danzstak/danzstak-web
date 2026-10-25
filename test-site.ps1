@@ -321,6 +321,9 @@ if (-not $feedEnhancementsJs.Contains('https://api.danzstak.com/settings/posts')
     -not $feedEnhancementsJs.Contains('option("Move to archive", "Hide this post from your account."')) {
   Add-Failure 'Post menu: archived and hidden posts are not persisted to the account'
 }
+foreach ($postMenuAccessibility in @('menu.setAttribute("role", "menu")', 'button.setAttribute("role", "menuitem")', 'toggle.setAttribute("aria-controls", menu.id)', 'toggle.setAttribute("aria-haspopup", "menu")', 'event.key === "Escape"', '"ArrowDown", "ArrowUp", "Home", "End"', '.post-options-menu:not([hidden])')) {
+  if (-not $feedEnhancementsJs.Contains($postMenuAccessibility)) { Add-Failure "Post menu: keyboard or assistive-technology behavior is missing: $postMenuAccessibility" }
+}
 if (-not $feedEnhancementsJs.Contains('const remoteNames = { pinned: "pinned", saved: "saved", notificationsOff: "muted" }') -or
     -not $feedEnhancementsJs.Contains('preference: remoteNames[name], enabled') -or
     -not $feedEnhancementsJs.Contains('if (title === "Delete post") button.classList.add("post-option-danger")')) {
