@@ -20,6 +20,10 @@ function updateNotificationCount(count) {
 }
 
 async function refreshNotificationCount() {
+  if (readSections().Settings?.notifications === false) {
+    updateNotificationCount(0);
+    return;
+  }
   try {
     const response = await fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" });
     if (!response.ok) return;
@@ -404,7 +408,7 @@ function renderWorkspace(name) {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = saved.Settings?.notifications !== false;
-    notifications.append(checkbox, document.createTextNode("Email notifications"));
+    notifications.append(checkbox, document.createTextNode("Show activity notification badges on this device"));
     const presence = document.createElement("label");
     presence.style.display = "flex";
     presence.style.gap = "10px";
@@ -458,6 +462,7 @@ function renderWorkspace(name) {
       writeSections(saved);
       const response = await fetch("https://api.danzstak.com/settings/presence", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ onlineVisible: presenceCheckbox.checked }) });
       featureText.textContent = response.ok ? "Settings saved." : "Online visibility could not be saved.";
+      refreshNotificationCount();
       if (typeof loadOnlineUsers === "function") loadOnlineUsers();
     });
     workspace.append(

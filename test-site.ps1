@@ -112,6 +112,10 @@ if (-not $feedEnhancementsJs.Contains('https://api.danzstak.com/settings/posts')
     -not $feedEnhancementsJs.Contains('option("Move to archive", "Hide this post from your account."')) {
   Add-Failure 'Post menu: archived and hidden posts are not persisted to the account'
 }
+if (-not $feedEnhancementsJs.Contains('readSections().Settings?.notifications === false') -or
+    -not $feedEnhancementsJs.Contains('Show activity notification badges on this device')) {
+  Add-Failure 'Settings: the activity notification preference is misleading or not enforced'
+}
 if (-not $directMessagesJs.Contains('if (!document.body.classList.contains("is-conversation-open")) return;') -or
     -not $directMessagesJs.Contains('/messages?read=1&contact=')) {
   Add-Failure 'Messaging: background or minimized chats can incorrectly clear unread state'
