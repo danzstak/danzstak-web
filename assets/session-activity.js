@@ -10,8 +10,11 @@
   let idleTimer = null;
   let loggingOut = false;
 
-  try { lastActivity = Number(localStorage.getItem(activityKey)) || Date.now(); }
-  catch { lastActivity = Date.now(); }
+  // Reaching an authenticated page is current activity. An old timestamp from
+  // a previous login must not suppress presence or immediately end a new session.
+  lastActivity = Date.now();
+  try { localStorage.setItem(activityKey, String(lastActivity)); }
+  catch { /* This tab can still track activity in memory. */ }
 
   function sharedLastActivity() {
     try { return Math.max(lastActivity, Number(localStorage.getItem(activityKey)) || 0); }

@@ -217,6 +217,9 @@ if ($sessionActivityJs.Contains('if (document.hidden || presenceUpdating) return
     -not $sessionActivityJs.Contains('Date.now() - lastActivity >= idleTimeout || presenceUpdating')) {
   Add-Failure 'Presence: background tabs can expire an otherwise active signed-in user'
 }
+if (-not $sessionActivityJs.Contains('localStorage.setItem(activityKey, String(lastActivity))')) {
+  Add-Failure 'Presence: authenticated page load does not begin a fresh activity window'
+}
 foreach ($idleBehavior in @('const activityKey = "danzstak_last_activity"', 'setTimeout(logoutIfIdle', 'keepalive: true', 'addEventListener("storage"')) {
   if (-not $sessionActivityJs.Contains($idleBehavior)) { Add-Failure "Sessions: exact two-hour cross-tab idle logout is missing: $idleBehavior" }
 }
