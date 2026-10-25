@@ -197,6 +197,10 @@ if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.C
 }
 $sessionActivityJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-activity.js') -Raw -Encoding utf8
 $profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.js') -Raw -Encoding utf8
+$profileMarkup = Get-Content -LiteralPath (Join-Path $root 'profile.html') -Raw -Encoding utf8
+foreach ($profileShell in @('background:#f0f2f5', 'class="header-actions"', 'href="messages.html">Messages</a>', 'aria-label="Account navigation"')) {
+  if (-not $profileMarkup.Contains($profileShell)) { Add-Failure "Profiles: familiar responsive navigation shell is missing: $profileShell" }
+}
 foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey && !viewingOtherProfile')) {
   if (-not $profileEditorJs.Contains($protectedProfileMedia)) { Add-Failure "Profiles: media authorization safeguard is missing: $protectedProfileMedia" }
 }

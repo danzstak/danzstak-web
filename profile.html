@@ -15,22 +15,24 @@
 <title>My Profile | DanzStak</title>
 <style>
 *{box-sizing:border-box}[hidden]{display:none!important}
-body{margin:0;min-height:100vh;background:#0b0b12;color:#fff;font-family:Arial,sans-serif}
-header{display:flex;align-items:center;justify-content:space-between;padding:18px 7%;border-bottom:1px solid #292936;background:#11111a}
-.brand{display:flex;align-items:center;color:#fff;text-decoration:none;font-weight:800}.brand img{width:104px;height:48px;object-fit:contain;object-position:center;border-radius:8px;margin-right:12px}
-.button{padding:11px 18px;border-radius:8px;background:#9d65f5;color:#fff;text-decoration:none;font-weight:700}
-main{width:min(760px,92vw);margin:48px auto}.card{overflow:hidden;border:1px solid #303044;border-radius:18px;background:#191924;box-shadow:0 24px 70px rgba(0,0,0,.28)}
-.cover{height:180px;background:radial-gradient(circle at 50% 0,#6335a6,#171720 70%)}
-.profile{padding:0 32px 36px;text-align:center}.avatar{width:118px;height:118px;margin:-59px auto 18px;display:grid;place-items:center;border:5px solid #191924;border-radius:50%;background:#9d65f5;font-size:48px;font-weight:900}
-h1{margin:0 0 8px;font-size:34px}.handle{margin:0;color:#bcbcc9}.status{padding:24px;text-align:center;color:#c9c4d6}
-.details{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:30px;text-align:left}.detail{padding:16px;border:1px solid #303044;border-radius:10px;background:#12121b}.label{display:block;margin-bottom:7px;color:#9a94a7;font-size:13px;text-transform:uppercase}.value{overflow-wrap:anywhere}
+body{margin:0;min-height:100vh;background:#f0f2f5;color:#1c1e21;font-family:Arial,sans-serif}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:10px max(18px,calc((100vw - 1180px)/2));border-bottom:1px solid #d8dce2;background:#0866ff;box-shadow:0 2px 8px #0002}
+.brand{display:flex;align-items:center;color:#fff;text-decoration:none;font-weight:850;font-size:18px}.brand img{width:92px;height:42px;object-fit:contain;object-position:center;border-radius:8px;margin-right:10px}
+.header-actions{display:flex;align-items:center;gap:8px}.button{padding:8px 13px;border-radius:8px;background:#fff;color:#1c1e21;text-decoration:none;font-weight:750}
+main{width:min(900px,94vw);margin:28px auto}.card{overflow:hidden;border:1px solid #d8dce2;border-radius:16px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.cover{height:260px;background:linear-gradient(145deg,#3f5f9b,#7855b8 56%,#ef7c39)}
+.profile{padding:0 32px 36px;text-align:center}.avatar{width:148px;height:148px;margin:-74px auto 16px;display:grid;place-items:center;border:5px solid #fff;border-radius:50%;background:#0866ff;color:#fff;font-size:52px;font-weight:900;box-shadow:0 2px 7px #0003}
+h1{margin:0 0 6px;font-size:34px}.handle{margin:0;color:#65676b}.status{padding:24px;text-align:center;color:#65676b}
+.details{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:24px;text-align:left}.detail{padding:15px;border:1px solid #e0e3e8;border-radius:10px;background:#f7f8fa}.label{display:block;margin-bottom:6px;color:#65676b;font-size:12px;font-weight:800;text-transform:uppercase}.value{overflow-wrap:anywhere}
+.legal-footer{text-align:center;color:#65676b}.legal-footer a{color:#0866ff}
+@media(max-width:600px){header{position:static;align-items:flex-start;flex-direction:column;padding:10px 14px}.header-actions{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.header-actions .button{text-align:center;padding:7px 5px}.cover{height:190px}main{width:min(100% - 20px,900px);margin:12px auto}.profile{padding-inline:18px}.avatar{width:124px;height:124px;margin-top:-62px;font-size:44px}h1{font-size:29px}}
 </style>
-<link rel="stylesheet" href="assets/profile-editor.css">
+<link rel="stylesheet" href="assets/profile-editor.css?v=2">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=1">
 <link rel="stylesheet" href="assets/soft-ui.css?v=20261025-12">
 </head>
 <body>
-<header><a class="brand" href="./"><img src="assets/danzstak-logo.png" alt=""><span>DanzStak</span></a><div><a class="button" href="feed.html">Back to Feed</a> <button class="button" type="button" data-logout>Logout</button></div></header>
+<header><a class="brand" href="feed.html"><img src="assets/danzstak-logo.png" alt=""><span>DanzStak</span></a><nav class="header-actions" aria-label="Account navigation"><a class="button" href="feed.html">Feed</a><a class="button" href="messages.html">Messages</a><button class="button" type="button" data-logout>Logout</button></nav></header>
 <main><section class="card" aria-labelledby="profileName"><div class="cover"></div><div id="profileStatus" class="status" role="status">Loading profile...</div><div id="profileContent" class="profile" hidden><div id="profileInitial" class="avatar" aria-hidden="true">D</div><h1 id="profileName">DanzStak Member</h1><p id="profileHandle" class="handle">@member</p><p><a id="profileMessage" class="button" href="messages.html" hidden>Message</a></p><div class="details"><div class="detail"><span class="label">Email</span><span id="profileEmail" class="value">Not available</span></div><div class="detail"><span class="label">Account</span><span class="value">Secure member</span></div></div></div></section><p style="text-align:center"><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a></p></main>
 <script src="assets/profile.js?v=5" defer></script>
 <script src="assets/profile-editor.js?v=20261025-7" defer></script>
