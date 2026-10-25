@@ -32,14 +32,18 @@
   }
 
   async function refreshPresence() {
-    if (document.hidden || presenceUpdating) return;
+    // A signed-in app often runs in a background tab. Keep presence alive while
+    // the user's two-hour activity session is valid; browsers otherwise marked
+    // people offline roughly one minute after they changed tabs.
+    if (Date.now() - lastActivity >= idleTimeout || presenceUpdating) return;
     presenceUpdating = true;
     try {
-      await fetch("https://api.danzstak.com/calls/presence", {
+      const response = await fetch("https://api.danzstak.com/calls/presence", {
         method: "POST",
         credentials: "include",
         cache: "no-store"
       });
+      if (response.ok) dispatchEvent(new CustomEvent("danzstak-presence-updated"));
     } catch { /* A later heartbeat will retry. */ }
     finally { presenceUpdating = false; }
   }
@@ -50,5 +54,5 @@
   setInterval(refreshPresence, 30 * 1000);
   addEventListener("focus", refreshPresence);
   addEventListener("pageshow", refreshPresence);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshPresence(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { markActive(); refreshPresence(); } });
 })();
