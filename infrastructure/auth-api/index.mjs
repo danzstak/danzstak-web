@@ -851,6 +851,14 @@ async function accountForSub(userId) {
 }
 
 // READ POSTS WITH SERVER-SIDE AUDIENCE ENFORCEMENT
+function postEditHistory(item) {
+  try {
+    const history = JSON.parse(item?.editHistory?.S || "[]");
+    if (!Array.isArray(history)) return [];
+    return history.filter(entry => entry && typeof entry.content === "string" && typeof entry.editedAt === "string").slice(-20);
+  } catch { return []; }
+}
+
 async function getSecurePosts(event) {
   const headers = corsHeaders(event.headers?.origin);
   const userId = await getAuthenticatedUser(event);
@@ -887,6 +895,8 @@ async function getSecurePosts(event) {
       mediaType: item.mediaType?.S ?? "",
       reel: item.reel?.BOOL === true,
       commentPolicy: item.commentPolicy?.S ?? "everyone",
+      editHistory: postEditHistory(item),
+      updatedAt: item.updatedAt?.S ?? "",
       createdAt: item.createdAt.S
     }))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -1264,6 +1274,12 @@ async function updateSecurePost(event) {
     const content = typeof data.content === "string" ? data.content.trim() : "";
     if (!content || content.length > 5000) return { statusCode: 400, headers, body: JSON.stringify({ error: "Post must contain 1–5000 characters." }) };
     updates.push("#content = :content"); names["#content"] = "content"; values[":content"] = { S: content };
+    if (content !== found.Item.content?.S) {
+      const editHistory = postEditHistory(found.Item);
+      editHistory.push({ content: found.Item.content?.S || "", editedAt: values[":updated"].S });
+      updates.push("editHistory = :editHistory");
+      values[":editHistory"] = { S: JSON.stringify(editHistory.slice(-20)) };
+    }
   }
   if (Object.prototype.hasOwnProperty.call(data, "audience")) {
     const audience = String(data.audience || "");
@@ -1280,7 +1296,7 @@ async function updateSecurePost(event) {
   const request = { TableName: postsTable, Key: { postId: { S: postId } }, UpdateExpression: `SET ${updates.join(", ")}`, ExpressionAttributeValues: values };
   if (Object.keys(names).length) request.ExpressionAttributeNames = names;
   await db.send(new UpdateItemCommand(request));
-  return { statusCode: 200, headers, body: JSON.stringify({ updated: true }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ updated: true, updatedAt: values[":updated"].S, editHistory: values[":editHistory"] ? JSON.parse(values[":editHistory"].S) : postEditHistory(found.Item) }) };
 }
 
 // LOG OUT

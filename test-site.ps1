@@ -486,6 +486,9 @@ $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
     $_.FullName -ne $PSCommandPath
   } |
   Select-String -SimpleMatch 'feed-secure-test' -List
+foreach ($editHistoryBehavior in @('article.dataset.editHistory = JSON.stringify', 'post.editHistory', 'post.dataset.editHistory || "[]"', 'data.editHistory', 'new Date(item.editedAt).toLocaleString()')) {
+  if (-not ($feed + $feedEnhancementsJs).Contains($editHistoryBehavior)) { Add-Failure "Post edit history is not durable across refreshes: $editHistoryBehavior" }
+}
 if ($deprecated) {
   $deprecated | ForEach-Object { Add-Failure "$($_.Path): deprecated test-feed reference remains" }
 }

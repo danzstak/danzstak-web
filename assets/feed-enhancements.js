@@ -1192,7 +1192,7 @@ function addPostDeleteButton(post) {
   handle.className = "post-options-handle";
   handle.setAttribute("aria-hidden", "true");
   menu.appendChild(handle);
-    const history = [];
+    let history = (() => { try { const value = JSON.parse(post.dataset.editHistory || "[]"); return Array.isArray(value) ? value : []; } catch { return []; } })();
     const preferences = readPostPreferences()[String(post.dataset.postId || "")] || {};
     const owner = post.dataset.isOwner !== "false";
     const audienceBadge = post.querySelector(".post-audience");
@@ -1258,7 +1258,7 @@ function addPostDeleteButton(post) {
   if (preferences.pinned === true) pinOption.querySelector("strong").textContent = "Unpin post";
   if (preferences.saved === true) saveOption.querySelector("strong").textContent = "Unsave post";
   option("View edit history", "See changes made to this post.", () => {
-    alert(history.length ? history.map((item, index) => `${index + 1}. ${item}`).join("\n") : "This post has not been edited.");
+    alert(history.length ? history.map((item, index) => `${index + 1}. ${new Date(item.editedAt).toLocaleString()}\n${item.content}`).join("\n\n") : "This post has not been edited.");
   });
   option("Edit post", "Change your post text.", () => {
     const body = post.querySelector(".post-content");
@@ -1296,14 +1296,16 @@ function addPostDeleteButton(post) {
               method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ content: updated })
             });
+            const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error();
+            history = Array.isArray(data.editHistory) ? data.editHistory : history;
+            post.dataset.editHistory = JSON.stringify(history);
           } catch {
             alert("The edited post could not be saved. Please try again.");
             save.disabled = false;
             return;
           }
         }
-        history.push(body.textContent.trim());
         body.textContent = updated;
         post.dataset.edited = "true";
         editor.hidden = true;

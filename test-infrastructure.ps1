@@ -25,6 +25,9 @@ foreach ($legalControl in @('async function acceptLegalTerms(event)', 'async fun
 foreach ($notificationHistoryControl in @('read: { BOOL: false }', 'unread: item.read?.BOOL !== true', 'new UpdateItemCommand({ TableName: engagementNotificationsTable')) {
   if (-not $authApi.Contains($notificationHistoryControl)) { throw "Persistent notification history is missing: $notificationHistoryControl" }
 }
+foreach ($editHistoryControl in @('function postEditHistory(item)', 'editHistory: postEditHistory(item)', 'editHistory.push({ content: found.Item.content?.S || "", editedAt:', 'JSON.stringify(editHistory.slice(-20))', 'editHistory: values[":editHistory"]')) {
+  if (-not $authApi.Contains($editHistoryControl)) { throw "Durable bounded post edit history is missing: $editHistoryControl" }
+}
 foreach ($notificationReliabilityControl in @('ProjectionExpression: "mutedPosts"', 'mutedPosts?.SS?.includes(post.postId.S)', 'const items = await queryAll({ TableName: engagementNotificationsTable', '.sort((a, b) => b.createdAt.localeCompare(a.createdAt))', '.slice(0, 100)')) {
   if (-not $authApi.Contains($notificationReliabilityControl)) { throw "Notification reliability control is missing: $notificationReliabilityControl" }
 }
