@@ -228,6 +228,12 @@ foreach ($pushCapability in @(
 if (-not $template.Contains("FilterExpression:'expiresAt > :n'") -or -not $template.Contains("':n':{N:String(now())}")) {
   throw 'Call inbox can return expired signaling records before DynamoDB TTL cleanup.'
 }
+foreach ($callInboxControl in @('async function inbox(user){const items=await queryAll', 'ScanIndexForward:true,ConsistentRead:true},20)', 'return json(200,{events:items.map')) {
+  if (-not $template.Contains($callInboxControl)) { throw "Call inbox can lose live events behind expired TTL records: $callInboxControl" }
+}
+if ($template.Contains("FilterExpression:'expiresAt > :n',ExpressionAttributeValues:{':r':{S:user.email},':n':{N:String(now())}},Limit:20")) {
+  throw 'Call inbox still applies DynamoDB Limit before filtering expired events.'
+}
 foreach ($orphanMediaControl in @("body.action==='discard'", 'requestedMediaKey.startsWith(`users/${ownerPrefix(user)}/`)', "return json(200,{discarded:true})")) {
   if (-not $template.Contains($orphanMediaControl)) { throw "Failed uploads cannot be securely discarded: $orphanMediaControl" }
 }
