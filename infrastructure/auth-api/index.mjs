@@ -36,6 +36,7 @@ const friendsTable = "DANZSTAK-Friends";
 const reactionsTable = "DANZSTAK-Reactions";
 const commentsTable = "DANZSTAK-Comments";
 const engagementNotificationsTable = "DANZSTAK-EngagementNotifications";
+const storiesTable = "DANZSTAK-Stories";
 const groupsTable = "DANZSTAK-GroupMembers";
 const settingsTable = "DanzStak-UserSettings";
 const clientId = process.env.COGNITO_CLIENT_ID;
@@ -1044,9 +1045,18 @@ async function deleteSecurePost(event) {
   const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Post not found." }) };
   if (found.Item.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the owner can delete this post." }) };
+  let linkedStories = [];
   if (found.Item.mediaKey?.S) {
     const ownerPrefix = sha256(userId).slice(0, 24);
     if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
+    const stories = await db.send(new ScanCommand({
+      TableName: storiesTable,
+      FilterExpression: "mediaKey = :media AND userEmail = :owner",
+      ExpressionAttributeValues: { ":media": { S: found.Item.mediaKey.S }, ":owner": { S: found.Item.userEmail?.S || "" } },
+      ProjectionExpression: "storyId",
+      Limit: 100
+    }));
+    linkedStories = stories.Items || [];
     await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: found.Item.mediaKey.S }));
   }
   const [reactions, comments, notices] = await Promise.all([
@@ -1057,7 +1067,8 @@ async function deleteSecurePost(event) {
   await Promise.all([
     ...(reactions.Items || []).map(item => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
     ...(comments.Items || []).map(item => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
-    ...(notices.Items || []).filter(item => item.postId?.S === postId).map(item => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } })))
+    ...(notices.Items || []).filter(item => item.postId?.S === postId).map(item => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } }))),
+    ...linkedStories.map(item => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } })))
   ]);
   await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };

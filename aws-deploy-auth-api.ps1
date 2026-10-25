@@ -48,6 +48,12 @@ try {
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DanzStak-UserSettings"
       },
       @{
+        Sid = "DeletePostStoryReferences"
+        Effect = "Allow"
+        Action = @("dynamodb:Scan", "dynamodb:DeleteItem")
+        Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Stories"
+      },
+      @{
         Sid = "DeleteReplacedProfileVideo"
         Effect = "Allow"
         Action = @("s3:GetObject", "s3:DeleteObject")
