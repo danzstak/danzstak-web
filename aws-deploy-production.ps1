@@ -49,4 +49,7 @@ Write-Host "Applying CloudFront security response headers..."
 Write-Host "Publishing the tested static website release..."
 & (Join-Path $PSScriptRoot "aws-publish-site.ps1")
 
+Write-Host "Running post-deployment public security verification..."
+& (Join-Path $PSScriptRoot "test-live-security.ps1") -ExpectGroups
+
 Write-Host "DanzStak production deployment completed."
