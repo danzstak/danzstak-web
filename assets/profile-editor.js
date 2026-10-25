@@ -255,6 +255,8 @@ videoInput.addEventListener("change", async () => {
     return;
   }
   videoButton.disabled = true;
+  removeVideoButton.disabled = true;
+  videoButton.disabled = true;
   try {
     const mediaKey = await uploadCloudMedia(file);
     const response = await fetch(profileApi + "/profile-video", {
@@ -263,9 +265,10 @@ videoInput.addEventListener("change", async () => {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Profile video could not be saved");
+    setProfileVideoControls(mediaKey);
     alert("Profile video saved. Open the Media tab to view it.");
   } catch (error) { alert(error.message); }
-  finally { videoButton.disabled = false; videoInput.value = ""; }
+  finally { videoButton.disabled = false; removeVideoButton.disabled = false; videoInput.value = ""; }
 });
 mediaTools.append(videoButton, videoInput);
 const removeVideoButton = document.createElement("button");
@@ -282,20 +285,29 @@ removeVideoButton.addEventListener("click", async () => {
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Profile video could not be removed");
-    alert("Profile video removed from your profile and storage.");
+    setProfileVideoControls("");
+    alert("Profile video removed from your profile.");
   } catch (error) { alert(error.message); }
-  finally { removeVideoButton.disabled = false; }
+  finally { removeVideoButton.disabled = false; videoButton.disabled = false; }
 });
 mediaTools.appendChild(removeVideoButton);
+let profileVideoControlsVersion = 0;
+function setProfileVideoControls(mediaKey) {
+  profileVideoControlsVersion++;
+  videoButton.hidden = false;
+  removeVideoButton.hidden = !mediaKey;
+}
 async function revealProfileVideoControls() {
+  const version = ++profileVideoControlsVersion;
   try {
     const response = await fetch(profileApi + "/profile-video", { credentials: "include", cache: "no-store" });
     if (!response.ok) return;
     const data = await response.json();
-    videoButton.hidden = false;
-    removeVideoButton.hidden = !data.mediaKey;
-  } catch { /* The backend feature has not been released yet. */ }
+    if (version !== profileVideoControlsVersion) return;
+    setProfileVideoControls(data.mediaKey);
+  } catch { /* Keep the existing controls when the lookup is unavailable. */ }
 }
+
 actions.insertAdjacentElement("afterend", mediaTools);
 if (viewingOtherProfile) {
   editButton.hidden = true;

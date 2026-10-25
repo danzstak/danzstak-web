@@ -9,6 +9,7 @@ let removed = false, cached = '[]';
 const requests = [];
 const context = vm.createContext({ post: { dataset: { postId: 'post-1' }, remove() { removed = true; } }, isLocalHost: () => false,
   localStorage: { getItem: () => cached, setItem: (_, value) => { cached = value; } },
+  window: { dispatchEvent() {} }, CustomEvent: class {},
   fetch: () => new Promise(resolve => requests.push(resolve)) });
 vm.runInContext(code, context);
 (async () => {

@@ -1254,6 +1254,7 @@ async function hidePostForAccount(post) {
   recentlyHiddenPostIds.add(postId);
   try { localStorage.setItem(hiddenPostKey, JSON.stringify([...hiddenPostIds])); } catch {}
   post.remove();
+  window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts || [] } }));
 }
 
 if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts", { credentials: "include", cache: "no-store" })
@@ -1268,6 +1269,7 @@ if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts", { credentia
     for (const postId of visibleIds) preferences[postId] = mergeRemotePostPreferences(postId, preferences[postId], remote);
     localStorage.setItem(postPreferencesKey, JSON.stringify(preferences));
     applyHiddenPosts();
+    window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts || [] } }));
     document.querySelectorAll(".post[data-post-id]").forEach(post => {
       post.querySelector(".post-menu-toggle")?.remove();
       post.querySelector(".post-options-menu")?.remove();
@@ -1322,6 +1324,12 @@ function openPostReportDialog(post) {
     }
   });
   dialog.showModal();
+}
+
+function updateLoadedPost(postId, changes) {
+  if (!postId || !Array.isArray(window.danzstakLoadedPosts)) return;
+  window.danzstakLoadedPosts = window.danzstakLoadedPosts.map(post => post.postId === postId ? { ...post, ...changes } : post);
+  window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts } }));
 }
 
 function addPostDeleteButton(post) {
@@ -1468,6 +1476,7 @@ function addPostDeleteButton(post) {
           }
         }
         body.textContent = updated;
+        updateLoadedPost(postId, { content: updated, editHistory: history });
         post.dataset.edited = "true";
         editor.hidden = true;
         save.disabled = false;
@@ -1523,6 +1532,7 @@ function addPostDeleteButton(post) {
       }
       post.dataset.privacySetting = String(next);
       post.dataset.audience = audiences[next];
+      updateLoadedPost(postId, { audience: audiences[next] });
       button.querySelector("small").textContent = values[next];
       if (audienceBadge) {
         audienceBadge.textContent = ["🌎 Public", "👥 Friends", "🔒 Only me"][next];
@@ -1839,16 +1849,19 @@ function getReels() {
   return [...internalReels, ...external];
 }
 
+let internalReelsVersion = 0;
 async function loadInternalReels(posts = []) {
-  const videos = posts.filter(post => post.reel === true && post.mediaType === "video" && post.mediaKey);
+  const version = ++internalReelsVersion;
+  const videos = posts.filter(post => !hiddenPostIds.has(String(post.postId)) && post.reel === true && post.mediaType === "video" && post.mediaKey);
   const resolved = await Promise.all(videos.map(async post => {
     let mediaUrl = post.mediaUrl || "";
     if (!mediaUrl) {
       const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: "video" }) }).catch(() => null);
-      if (response?.ok) mediaUrl = (await response.json()).mediaUrl || "";
+      if (response?.ok) mediaUrl = (await response.json().catch(() => ({}))).mediaUrl || "";
     }
     return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
   }));
+  if (version !== internalReelsVersion) return;
   internalReels = resolved.filter(Boolean);
   renderPlayableReels();
   placeReelsRail();
