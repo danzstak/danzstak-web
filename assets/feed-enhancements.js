@@ -1935,6 +1935,13 @@ document.getElementById("feed").addEventListener("keydown", event => {
   saveComment(post, event.target);
 }, true);
 document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
+function refreshFeedMediaWorkspace(records) {
+  if (featurePanel.hidden || !["Photos", "Videos"].includes(featureHeading.textContent)) return;
+  const feed = document.getElementById("feed");
+  if (records.some(record => record.target === feed && (record.addedNodes.length || record.removedNodes.length))) {
+    renderWorkspace(featureHeading.textContent);
+  }
+}
 new MutationObserver(records => {
   for (const record of records) {
     record.addedNodes.forEach(node => {
@@ -1944,4 +1951,5 @@ new MutationObserver(records => {
     });
   }
   filterFeedPosts();
+  refreshFeedMediaWorkspace(records);
 }).observe(document.getElementById("feed"), { childList: true, subtree: true });

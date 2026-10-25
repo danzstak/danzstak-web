@@ -12,7 +12,8 @@ const posts = [post('Live music tonight', 'Alice'), post('New photography', 'Bob
 const context = vm.createContext({ document: {
   querySelector: () => search, querySelectorAll: () => posts, createElement: () => feedback,
   getElementById: () => ({ insertAdjacentElement() {} }) },
-  MutationObserver: class { constructor(callback) { observer = callback; } observe() {} }
+  MutationObserver: class { constructor(callback) { observer = callback; } observe() {} },
+  refreshFeedMediaWorkspace() {}
 });
 vm.runInContext(code, context);
 vm.runInContext(source.slice(source.lastIndexOf('new MutationObserver(records => {')), context);
