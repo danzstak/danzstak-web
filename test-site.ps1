@@ -130,6 +130,10 @@ if (-not $directMessagesJs.Contains('Promise.allSettled([') -or
     -not $directMessagesJs.Contains('online: member.online === true')) {
   Add-Failure 'Messaging: partial API failures or friend presence can empty or stale the chat list'
 }
+if (-not $feed.Contains('const [friendsResult, directoryResult] = await Promise.allSettled([') -or
+    -not $feed.Contains('if (!friendsResponse?.ok) throw new Error("Friends could not be loaded");')) {
+  Add-Failure 'Feed friends: a presence failure can still hide accepted friends'
+}
 
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
   Where-Object {
