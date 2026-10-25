@@ -154,6 +154,27 @@ function renderSavedPosts(list) {
   }
 }
 
+async function migrateLocalGroups(localGroups, remoteGroups) {
+  const groups = [...remoteGroups], pending = [], joinedIds = [];
+  const key = group => `${String(group.name || "").toLowerCase()}|${group.category}`;
+  const known = new Set(groups.map(key));
+  for (const local of localGroups.filter(group => !group.cloud)) {
+    if (known.has(key(local))) continue;
+    try {
+      const response = await fetch("https://api.danzstak.com/groups", {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: local.name, category: local.category, description: local.description, communityStandards: true })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.group?.id) { pending.push(local); continue; }
+      groups.push({ ...result.group, custom: true, cloud: true });
+      joinedIds.push(result.group.id);
+      known.add(key(local));
+    } catch { pending.push(local); }
+  }
+  return { groups, pending, joinedIds };
+}
+
 function renderWorkspace(name) {
   let workspace = featurePanel.querySelector(".feature-workspace");
   if (!workspace) {
@@ -342,13 +363,13 @@ function renderWorkspace(name) {
         createButton.title = "";
         createButton.disabled = false;
         const cloud = data.groups.map(group => ({ ...group, custom: true, cloud: true }));
-        const known = new Set(cloud.map(group => `${group.name.toLowerCase()}|${group.category}`));
-        for (const local of customGroups.filter(group => !group.cloud && !known.has(`${group.name.toLowerCase()}|${group.category}`))) {
-          const response = await fetch("https://api.danzstak.com/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: local.name, category: local.category, description: local.description, communityStandards: true }) }).catch(() => null);
-          if (response?.ok) { const result = await response.json(); if (result.group) { cloud.push({ ...result.group, custom: true, cloud: true }); saved.GroupsJoined = saved.GroupsJoined || {}; saved.GroupsJoined[result.group.id] = true; } }
-        }
-        customGroups = cloud;
-        saved.CustomGroups = [];
+        const migration = await migrateLocalGroups(customGroups, cloud);
+        const knownIds = new Set(migration.groups.map(group => group.id));
+        const createdDuringMigration = customGroups.filter(group => group.cloud && !knownIds.has(group.id));
+        customGroups = [...createdDuringMigration, ...migration.groups, ...migration.pending];
+        saved.CustomGroups = migration.pending;
+        saved.GroupsJoined = saved.GroupsJoined || {};
+        migration.joinedIds.forEach(id => { saved.GroupsJoined[id] = true; });
         writeSections(saved);
         renderGroups();
       })

@@ -488,7 +488,7 @@ if (-not $directMessagesJs.Contains('const chatFilters =') -or -not $directMessa
 if (-not $feedEnhancements.Contains('notificationAnnouncer.setAttribute("aria-live", "polite")') -or -not $feedEnhancements.Contains('lastNotificationCount')) {
   Add-Failure 'Notification count changes are not announced accessibly'
 }
-foreach ($groupFeature in @('fetch("https://api.danzstak.com/groups"', 'communityStandards: true', 'method: "DELETE"', 'customGroups = cloud')) {
+foreach ($groupFeature in @('fetch("https://api.danzstak.com/groups"', 'communityStandards: true', 'method: "DELETE"', 'const migration = await migrateLocalGroups(customGroups, cloud)', 'saved.CustomGroups = migration.pending')) {
   if (-not $feedEnhancements.Contains($groupFeature)) { Add-Failure "Groups are not durable across devices: $groupFeature" }
 }
 foreach ($workspaceRouting in @('const workspaceRoutes = new Map(', 'history.pushState({ workspace: canonicalName }', 'addEventListener("popstate", restoreWorkspaceRoute)', 'restoreWorkspaceRoute();')) {
