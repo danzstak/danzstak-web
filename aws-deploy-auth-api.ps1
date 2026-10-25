@@ -6,6 +6,7 @@ $RoleName = "DANZSTAK-Auth-API-role-zjknf4ur"
 $Source = Join-Path $PSScriptRoot "infrastructure\auth-api\index.mjs"
 $Bundle = Join-Path $env:TEMP "danzstak-auth-api.zip"
 $Policy = Join-Path $env:TEMP "danzstak-auth-api-policy.json"
+$Environment = Join-Path $env:TEMP "danzstak-auth-api-environment.json"
 
 node --check $Source
 if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript validation failed." }
@@ -49,7 +50,7 @@ try {
       @{
         Sid = "DeleteReplacedProfileVideo"
         Effect = "Allow"
-        Action = @("s3:DeleteObject")
+        Action = @("s3:GetObject", "s3:DeleteObject")
         Resource = "arn:aws:s3:::danzstak-call-signaling-mediabucket-*/*"
       }
     )
@@ -61,6 +62,19 @@ try {
     --policy-name DanzStakPostAuthorization `
     --policy-document "file://$Policy"
   if ($LASTEXITCODE -ne 0) { throw "Auth API authorization policy update failed." }
+
+  $mediaBucket = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query 'StackResourceDetail.PhysicalResourceId' --output text
+  if ($LASTEXITCODE -ne 0 -or -not $mediaBucket) { throw "DanzStak media bucket could not be resolved." }
+  $current = aws lambda get-function-configuration --region $Region --function-name $FunctionName --output json | ConvertFrom-Json
+  if ($LASTEXITCODE -ne 0) { throw "Auth API configuration could not be read." }
+  $variables = @{}
+  foreach ($property in $current.Environment.Variables.PSObject.Properties) { $variables[$property.Name] = [string]$property.Value }
+  $variables.MEDIA_BUCKET = [string]$mediaBucket
+  @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
+  aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }
+  aws lambda wait function-updated --region $Region --function-name $FunctionName
+  if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration did not finish updating." }
 
   aws lambda update-function-code `
     --region $Region `
@@ -83,4 +97,5 @@ try {
 } finally {
   Remove-Item -LiteralPath $Bundle -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $Policy -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $Environment -Force -ErrorAction SilentlyContinue
 }

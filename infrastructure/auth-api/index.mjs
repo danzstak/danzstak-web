@@ -4,6 +4,7 @@ import {
   randomBytes,
   randomUUID,
   createHash,
+  createHmac,
   createPublicKey,
   verify,
   timingSafeEqual
@@ -41,6 +42,7 @@ const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
 const siteUrl = process.env.SITE_URL;
+const mediaBucket = process.env.MEDIA_BUCKET;
 
 const callbackUrl = "https://api.danzstak.com/auth/callback";
 const allowedOrigin = "https://danzstak.com";
@@ -66,6 +68,19 @@ const sha256 = value =>
 
 const randomValue = () =>
   randomBytes(32).toString("hex");
+
+const encodeAws = value => encodeURIComponent(value).replace(/[!'()*]/g, character => "%" + character.charCodeAt(0).toString(16).toUpperCase());
+const hmac = (key, value, encoding) => createHmac("sha256", key).update(value).digest(encoding);
+function signedMediaUrl(key, expires = 900) {
+  if (!mediaBucket || !key) return "";
+  const region = process.env.AWS_REGION, access = process.env.AWS_ACCESS_KEY_ID, secret = process.env.AWS_SECRET_ACCESS_KEY, token = process.env.AWS_SESSION_TOKEN;
+  const date = new Date(), stamp = date.toISOString().replace(/[:-]|\.\d{3}/g, ""), day = stamp.slice(0, 8), scope = `${day}/${region}/s3/aws4_request`;
+  const host = `${mediaBucket}.s3.${region}.amazonaws.com`, uri = "/" + key.split("/").map(encodeAws).join("/");
+  const query = [["X-Amz-Algorithm", "AWS4-HMAC-SHA256"], ["X-Amz-Credential", `${access}/${scope}`], ["X-Amz-Date", stamp], ["X-Amz-Expires", String(expires)], ["X-Amz-Security-Token", token], ["X-Amz-SignedHeaders", "host"]].sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => `${encodeAws(name)}=${encodeAws(value)}`).join("&");
+  const canonical = `GET\n${uri}\n${query}\nhost:${host}\n\nhost\nUNSIGNED-PAYLOAD`, toSign = `AWS4-HMAC-SHA256\n${stamp}\n${scope}\n${sha256(canonical)}`;
+  const signing = hmac(hmac(hmac(hmac("AWS4" + secret, day), region), "s3"), "aws4_request"), signature = hmac(signing, toSign, "hex");
+  return `https://${host}${uri}?${query}&X-Amz-Signature=${signature}`;
+}
 
 function corsHeaders(origin) {
   const headers = {
@@ -637,7 +652,8 @@ async function getProfileVideo(event) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileEmail)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid profile required." }) };
   if (!(await canViewProfileMedia(viewerEmail, profileEmail))) return { statusCode: 403, headers, body: JSON.stringify({ error: "Profile media is available to friends and group members." }) };
   const found = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: profileEmail } }, ConsistentRead: true }));
-  return { statusCode: 200, headers, body: JSON.stringify({ mediaKey: found.Item?.profileVideoKey?.S || "" }) };
+  const mediaKey = found.Item?.profileVideoKey?.S || "";
+  return { statusCode: 200, headers, body: JSON.stringify({ mediaKey, mediaUrl: signedMediaUrl(mediaKey, 3600) }) };
 }
 
 async function setProfileVideo(event) {
@@ -730,6 +746,7 @@ async function getSecurePosts(event) {
       content: item.content.S,
       audience: item.audience?.S ?? "public",
       mediaKey: item.mediaKey?.S ?? "",
+      mediaUrl: item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S, 3600) : "",
       mediaType: item.mediaType?.S ?? "",
       reel: item.reel?.BOOL === true,
       createdAt: item.createdAt.S

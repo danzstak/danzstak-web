@@ -23,8 +23,12 @@ foreach ($groupRoute in @('GET /groups', 'POST /groups', 'DELETE /groups/{groupI
 foreach ($profileVideoRoute in @('GET /profile-video', 'POST /profile-video', 'ProfileVideoInvokePermission')) {
   if (-not $engagementTemplate.Contains($profileVideoRoute)) { throw "Engagement stack profile-video route is missing: $profileVideoRoute" }
 }
-foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 'friendEmails.has(item.userEmail?.S)', 'sha256(userId).slice(0, 24)', 'Post media ownership could not be verified', '"strict-transport-security"', '"x-content-type-options"', '"x-frame-options"', 'async function getEngagement(event)', 'async function setReaction(event)', 'async function addComment(event)', 'async function deleteComment(event)', 'async function getEngagementNotifications(event)', 'async function clearEngagementNotifications(event)', 'reactions.Items || []', 'comments.Items || []', 'notices.Items || []')) {
+foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 'friendEmails.has(item.userEmail?.S)', 'sha256(userId).slice(0, 24)', 'Post media ownership could not be verified', 'function signedMediaUrl(', 'mediaUrl: item.mediaKey?.S ? signedMediaUrl', 'mediaUrl: signedMediaUrl(mediaKey, 3600)', '"strict-transport-security"', '"x-content-type-options"', '"x-frame-options"', 'async function getEngagement(event)', 'async function setReaction(event)', 'async function addComment(event)', 'async function deleteComment(event)', 'async function getEngagementNotifications(event)', 'async function clearEngagementNotifications(event)', 'reactions.Items || []', 'comments.Items || []', 'notices.Items || []')) {
   if (-not $authApi.Contains($required)) { throw "Auth API post authorization safeguard is missing: $required" }
+}
+$authDeploy = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-deploy-auth-api.ps1') -Raw -Encoding utf8
+foreach ($mediaDeploymentControl in @('"s3:GetObject"', '$variables.MEDIA_BUCKET', 'describe-stack-resource')) {
+  if (-not $authDeploy.Contains($mediaDeploymentControl)) { throw "Auth API protected-media deployment control is missing: $mediaDeploymentControl" }
 }
 $nodeAuthCheck = & node --check $authApiPath 2>&1
 if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript syntax failed: $nodeAuthCheck" }
@@ -45,6 +49,9 @@ foreach ($required in @('aws cloudfront list-distributions', 'aws s3api head-buc
 
 $templatePath = Join-Path $PSScriptRoot 'infrastructure\call-signaling\template.yaml'
 $template = Get-Content -LiteralPath $templatePath -Raw -Encoding utf8
+if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
+  throw 'Raw media URL access is not restricted to the authenticated owner.'
+}
 $templateBytes = [Text.Encoding]::UTF8.GetByteCount($template)
 if ($templateBytes -gt 51200) {
   throw "CloudFormation template is $templateBytes bytes; inline validation accepts at most 51200 bytes."

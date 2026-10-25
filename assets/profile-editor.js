@@ -361,7 +361,9 @@ async function loadProfilePosts(mediaOnly = false) {
       const videoResponse = await fetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
       if (videoResponse.ok) {
         const stored = await videoResponse.json();
-        if (stored.mediaKey) {
+        if (stored.mediaUrl) {
+          tabMessage.appendChild(profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl: stored.mediaUrl }));
+        } else if (stored.mediaKey && !viewingOtherProfile) {
           const viewResponse = await fetch(profileApi + "/stories", {
             method: "POST", credentials: "include", cache: "no-store",
             headers: { "Content-Type": "application/json" },
