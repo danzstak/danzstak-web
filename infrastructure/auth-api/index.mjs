@@ -732,8 +732,8 @@ async function listGroups(event) {
   const headers = corsHeaders(event.headers?.origin);
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
-  const result = await db.send(new ScanCommand({ TableName: groupsTable, FilterExpression: "groupId = :meta", ExpressionAttributeValues: { ":meta": { S: "META" } }, Limit: 250 }));
-  const groups = (result.Items || []).map(item => ({ id: item.userEmail.S.slice(6), name: item.name?.S || "Group", category: item.category?.S || "Creators", description: item.description?.S || "A DanzStak community group.", createdAt: item.createdAt?.S || "", isOwner: item.ownerId?.S === userId })).sort((a, b) => a.name.localeCompare(b.name));
+  const items = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :meta", ExpressionAttributeValues: { ":meta": { S: "META" } } });
+  const groups = items.map(item => ({ id: item.userEmail.S.slice(6), name: item.name?.S || "Group", category: item.category?.S || "Creators", description: item.description?.S || "A DanzStak community group.", createdAt: item.createdAt?.S || "", isOwner: item.ownerId?.S === userId })).sort((a, b) => a.name.localeCompare(b.name));
   return { statusCode: 200, headers, body: JSON.stringify({ groups }) };
 }
 

@@ -59,6 +59,9 @@ foreach ($feedPaginationControl in @('async function scanAll(request, maximumIte
 foreach ($completeCleanupControl in @('async function queryAll(request, maximumItems = 5000)', 'const members = await scanAll({ TableName: groupsTable', 'const memberships = await scanAll({', 'queryAll({ TableName: reactionsTable', 'queryAll({ TableName: commentsTable', 'linkedStories = await scanAll({', 'const items = await queryAll({ TableName: engagementNotificationsTable')) {
   if (-not $authApi.Contains($completeCleanupControl)) { throw "Engagement, profile authorization, or deletion cleanup stops at one DynamoDB page: $completeCleanupControl" }
 }
+if (-not $authApi.Contains('const items = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :meta"')) {
+  throw 'The Groups directory still stops at the first DynamoDB scan page.'
+}
 foreach ($authoritativeDeleteControl in @('async function runCleanup(tasks, attempts = 3)', 'await Promise.allSettled(batch.map(task => task()))', 'const cleanupPending = await runCleanup(cleanupTasks)', 'JSON.stringify({ deleted: true, cleanupPending })')) {
   if (-not $authApi.Contains($authoritativeDeleteControl)) { throw "Post deletion can reappear or abandon cleanup without retries: $authoritativeDeleteControl" }
 }
