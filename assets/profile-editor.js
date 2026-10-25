@@ -400,9 +400,19 @@ async function loadProfileFriends() {
   if (viewingOtherProfile) { tabMessage.textContent = "This member’s friend list is private."; return; }
   tabMessage.textContent = "Loading friends…";
   try {
-    const response = await fetch(profileApi + "/friends", { credentials: "include", cache: "no-store" });
-    if (!response.ok) throw new Error("Friends could not be loaded");
+    const [friendsResult, directoryResult] = await Promise.allSettled([
+      fetch(profileApi + "/friends", { credentials: "include", cache: "no-store" }),
+      fetch(profileApi + "/calls/directory", { credentials: "include", cache: "no-store" })
+    ]);
+    const response = friendsResult.status === "fulfilled" ? friendsResult.value : null;
+    if (!response?.ok) throw new Error("Friends could not be loaded");
     const data = await response.json();
+    const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
+    const online = new Set(directoryResponse?.ok
+      ? ((await directoryResponse.json()).users || [])
+        .filter(user => user.online === true)
+        .map(user => String(user.email || "").toLowerCase())
+      : []);
     tabMessage.replaceChildren();
     if (!(data.friends || []).length) { tabMessage.textContent = "No friends yet."; return; }
     const grid = document.createElement("div"); grid.className = "profile-friend-grid";
@@ -414,7 +424,12 @@ async function loadProfileFriends() {
       const copy = document.createElement("span");
       const name = document.createElement("strong"); name.textContent = friend.name || friend.email;
       const email = document.createElement("small"); email.textContent = friend.email;
-      copy.append(name, email); link.append(avatar, copy); grid.appendChild(link);
+      const status = document.createElement("span");
+      const isOnline = online.has(String(friend.email || "").toLowerCase());
+      status.className = isOnline ? "profile-friend-presence online" : "profile-friend-presence";
+      status.title = isOnline ? "Online" : "Offline";
+      status.setAttribute("aria-label", status.title);
+      copy.append(name, email); link.append(avatar, copy, status); grid.appendChild(link);
     }
     tabMessage.appendChild(grid);
   } catch (error) { tabMessage.textContent = error.message; }

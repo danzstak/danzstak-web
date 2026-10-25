@@ -297,6 +297,16 @@ foreach ($profileFeature in @('loadProfilePosts(false)', 'loadProfilePosts(true)
 foreach ($accessibilityFeature in @('tabs.setAttribute("role", "tablist")', 'button.setAttribute("aria-selected"', 'ArrowLeft', 'ArrowRight')) {
   if (-not $profileEditorJs.Contains($accessibilityFeature)) { Add-Failure "Profile tab keyboard accessibility is missing: $accessibilityFeature" }
 }
+foreach ($profilePresenceFeature in @(
+  'const [friendsResult, directoryResult] = await Promise.allSettled([',
+  'user.online === true',
+  'profile-friend-presence online',
+  'status.setAttribute("aria-label", status.title)'
+)) {
+  if (-not ($profileEditorJs + $profileStyles).Contains($profilePresenceFeature)) {
+    Add-Failure "Profile friends lack resilient accessible online status: $profilePresenceFeature"
+  }
+}
 
 $profileJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile.js') -Raw -Encoding utf8
 if (-not $profileJs.Contains('requestedUser ? "Private" : (email || "Not available")') -or
