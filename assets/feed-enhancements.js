@@ -1185,6 +1185,7 @@ async function updatePostPreference(post, changes) {
 }
 
 const hiddenPostKey = "danzstak-hidden-posts";
+const recentlyHiddenPostIds = new Set();
 let hiddenPostIds;
 try { hiddenPostIds = new Set(JSON.parse(localStorage.getItem(hiddenPostKey) || "[]").map(String)); }
 catch { hiddenPostIds = new Set(); }
@@ -1198,20 +1199,24 @@ function applyHiddenPosts(root = document) {
 async function hidePostForAccount(post) {
   const postId = String(post.dataset.postId || "");
   if (!postId) { post.remove(); return; }
+  if (!isLocalHost()) {
+    const response = await fetch("https://api.danzstak.com/settings/posts", {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId, preference: "hidden", enabled: true })
+    });
+    if (!response.ok) throw new Error("This post could not be hidden from your account. Please try again.");
+  }
   hiddenPostIds.add(postId);
-  localStorage.setItem(hiddenPostKey, JSON.stringify([...hiddenPostIds]));
+  recentlyHiddenPostIds.add(postId);
+  try { localStorage.setItem(hiddenPostKey, JSON.stringify([...hiddenPostIds])); } catch {}
   post.remove();
-  if (!isLocalHost()) await fetch("https://api.danzstak.com/settings/posts", {
-    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ postId, preference: "hidden", enabled: true })
-  }).catch(() => null);
 }
 
 if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts", { credentials: "include", cache: "no-store" })
   .then(response => response.ok ? response.json() : null)
   .then(data => {
     if (!data) return;
-    hiddenPostIds = new Set((data.hidden || data.postIds || []).map(String));
+    hiddenPostIds = new Set([...(data.hidden || data.postIds || []).map(String), ...recentlyHiddenPostIds]);
     localStorage.setItem(hiddenPostKey, JSON.stringify([...hiddenPostIds]));
     const preferences = readPostPreferences();
     const remote = { pinned: new Set((data.pinned || []).map(String)), saved: new Set((data.saved || []).map(String)), notificationsOff: new Set((data.muted || []).map(String)) };
@@ -1310,7 +1315,7 @@ function addPostDeleteButton(post) {
   if (preferences.pinned === true && post.parentElement) post.parentElement.prepend(post);
 
   function removePostFromThisFeed() {
-    hidePostForAccount(post);
+    return hidePostForAccount(post);
   }
 
   const optionIcons = {
@@ -1485,7 +1490,7 @@ function addPostDeleteButton(post) {
   option("Delete post", "Delete your post or remove another user's post from your feed.", async () => {
     const postId = post.dataset.postId;
     if (post.dataset.isOwner === "false") {
-      if (confirm("You did not post this. Do you want to delete it from your feed?")) removePostFromThisFeed();
+      if (confirm("You did not post this. Do you want to delete it from your feed?")) await removePostFromThisFeed();
       return;
     }
     if (!postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
@@ -1498,7 +1503,7 @@ function addPostDeleteButton(post) {
         const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
         if (response.status === 403) {
           post.dataset.isOwner = "false";
-          if (confirm("You did not post this. Do you want to delete it from your feed?")) removePostFromThisFeed();
+          if (confirm("You did not post this. Do you want to delete it from your feed?")) await removePostFromThisFeed();
           return;
         }
         if (!response.ok) throw new Error();
