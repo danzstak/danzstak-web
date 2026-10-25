@@ -117,6 +117,9 @@ foreach ($step in $requiredStoryUploadSteps) {
     Add-Failure "feed.html: dedicated Story media upload step is missing: $step"
   }
 }
+foreach ($storyViewerBehavior in @('aria-labelledby", "storyViewerCaption"', 'media.muted = true', 'storyViewerPreviousFocus?.focus({ preventScroll: true })', 'viewer.querySelector(".story-viewer-close").focus()')) {
+  if (-not $feed.Contains($storyViewerBehavior)) { Add-Failure "Stories: accessible autoplay viewer behavior is missing: $storyViewerBehavior" }
+}
 if (-not $feed.Contains('function openStoryViewer(story)') -or
     -not $feed.Contains('setInterval(loadStories, 45 * 60 * 1000)') -or
     -not $feed.Contains('video.autoplay = true;') -or
