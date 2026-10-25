@@ -95,6 +95,9 @@ if (-not $profileJs.Contains('requestedUser ? "Private" : (email || "Not availab
     -not $profileEditorJs.Contains('if (!viewingOtherProfile) {')) {
   Add-Failure 'Profiles: another member can inherit local profile media or expose their email'
 }
+if (-not $feed.Contains('authorLabel.href = isOwner === true ? "profile.html" : "profile.html?user=" + encodeURIComponent(authorEmail);')) {
+  Add-Failure 'Profiles: an owner post routes the author back to a non-editable other-user profile'
+}
 if (-not $logoutJs.Contains('window.danzstakClearAccountData?.()') -or
     -not $homeJs.Contains('window.danzstakClearAccountData?.()')) {
   Add-Failure 'Logout does not clear account-local browser data on every page'
