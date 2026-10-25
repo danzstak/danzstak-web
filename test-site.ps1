@@ -40,6 +40,12 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
 }
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
 $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
+foreach ($eventBehavior in @('Event audience', 'Publishing event', '/secure-posts', 'Event published to DanzStak', 'window.loadPosts')) {
+  if (-not $feedEnhancements.Contains($eventBehavior)) { Add-Failure "Events: durable feed publishing is missing: $eventBehavior" }
+}
+if ($feedEnhancements.Contains('Event saved locally:') -or $feedEnhancements.Contains('Draft saved privately in this browser')) {
+  Add-Failure 'Navigation still exposes browser-only Messages or Events behavior'
+}
 foreach ($required in @('/engagement?postId=', '/reactions', '/comments', 'loadEngagement(post)', 'saveComment(post, event.target)', '/engagement-notifications/read')) {
   if (-not $feedEnhancements.Contains($required)) { Add-Failure "Durable feed engagement is missing: $required" }
 }

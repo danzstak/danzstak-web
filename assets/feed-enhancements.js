@@ -439,39 +439,44 @@ function renderWorkspace(name) {
   }
 
   if (name === "Messages") {
-    const message = field("New message", "text", "Write a private message");
-    const button = document.createElement("button");
-    button.className = "primary";
-    button.type = "button";
-    button.textContent = "Save Draft";
-    button.addEventListener("click", () => {
-      const value = message.input.value.trim();
-      if (!value) return message.input.focus();
-      saved.Messages = [...(saved.Messages || []), value];
-      writeSections(saved);
-      message.input.value = "";
-      featureText.textContent = "Draft saved privately in this browser until the messaging backend is deployed.";
-    });
-    workspace.append(message.wrap, button);
+    document.getElementById("messagesNav")?.click();
+    featureText.textContent = "Messages opened.";
     return;
   }
 
   if (name === "Events") {
     const title = field("Event name", "text", "Show or performance");
     const date = field("Date", "date", "");
+    const audience = document.createElement("select");
+    audience.setAttribute("aria-label", "Event audience");
+    for (const [value, label] of [["public", "Public"], ["friends", "Friends"], ["private", "Only me"]]) {
+      const option = document.createElement("option"); option.value = value; option.textContent = label; audience.appendChild(option);
+    }
     const button = document.createElement("button");
     button.className = "primary";
     button.type = "button";
     button.textContent = "Add Event";
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       if (!title.input.value.trim() || !date.input.value) return title.input.focus();
-      saved.Events = [...(saved.Events || []), `${title.input.value.trim()} — ${date.input.value}`];
-      writeSections(saved);
-      featureText.textContent = "Event saved locally: " + saved.Events.at(-1);
-      title.input.value = "";
-      date.input.value = "";
+      button.disabled = true;
+      featureText.textContent = "Publishing event…";
+      try {
+        const formattedDate = new Date(date.input.value + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+        const response = await fetch("https://api.danzstak.com/secure-posts", {
+          method: "POST", credentials: "include", cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: `📅 Event: ${title.input.value.trim()}\n${formattedDate}`, audience: audience.value })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Event could not be published");
+        featureText.textContent = "Event published to DanzStak.";
+        title.input.value = "";
+        date.input.value = "";
+        if (typeof window.loadPosts === "function") await window.loadPosts();
+      } catch (error) { featureText.textContent = error.message; }
+      finally { button.disabled = false; }
     });
-    workspace.append(title.wrap, date.wrap, button);
+    workspace.append(title.wrap, date.wrap, audience, button);
     return;
   }
 
