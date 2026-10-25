@@ -105,15 +105,18 @@ async function loadDirectMessages(reset = false) {
 
 async function loadConversations() {
   try {
-    const [conversationResponse, friendsResponse, directoryResponse] = await Promise.all([
+    const results = await Promise.allSettled([
       fetch(directApi + "/conversations", { credentials: "include", cache: "no-store" }),
       fetch(directApi + "/friends", { credentials: "include", cache: "no-store" }),
       fetch(directApi + "/calls/directory", { credentials: "include", cache: "no-store" })
     ]);
-    if (!conversationResponse.ok) return;
-    const data = await conversationResponse.json();
-    const friendsData = friendsResponse.ok ? await friendsResponse.json() : { friends: [] };
-    const directoryData = directoryResponse.ok ? await directoryResponse.json() : { users: [] };
+    const usableResponse = result => result.status === "fulfilled" && result.value.ok ? result.value : null;
+    const conversationResponse = usableResponse(results[0]);
+    const friendsResponse = usableResponse(results[1]);
+    const directoryResponse = usableResponse(results[2]);
+    const data = conversationResponse ? await conversationResponse.json() : { conversations: [] };
+    const friendsData = friendsResponse ? await friendsResponse.json() : { friends: [] };
+    const directoryData = directoryResponse ? await directoryResponse.json() : { users: [] };
     const contacts = new Map();
     for (const conversation of data.conversations || []) {
       if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), conversation);
@@ -132,8 +135,8 @@ async function loadConversations() {
     }
     for (const member of directoryData.users || []) {
       const email = String(member.email || "").toLowerCase();
-      if (!email || !member.sharedGroup) continue;
       const existing = contacts.get(email);
+      if (!email || (!existing && !member.sharedGroup)) continue;
       contacts.set(email, {
         ...(existing || {}),
         contactEmail: email,
@@ -141,7 +144,7 @@ async function loadConversations() {
         picture: existing?.picture || member.picture || "",
         preview: existing?.preview || "Shared group member",
         updatedAt: existing?.updatedAt || "",
-        sharedGroup: true,
+        sharedGroup: existing?.sharedGroup === true || member.sharedGroup === true,
         online: member.online === true
       });
     }

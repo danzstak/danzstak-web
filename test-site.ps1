@@ -125,6 +125,11 @@ if (-not $directMessagesJs.Contains('event.source === window.parent') -or
     -not $feed.Contains('event.source !== drawer.querySelector("iframe")?.contentWindow')) {
   Add-Failure 'Messaging: cross-window events are not bound to the expected parent and iframe'
 }
+if (-not $directMessagesJs.Contains('Promise.allSettled([') -or
+    -not $directMessagesJs.Contains('if (!email || (!existing && !member.sharedGroup)) continue;') -or
+    -not $directMessagesJs.Contains('online: member.online === true')) {
+  Add-Failure 'Messaging: partial API failures or friend presence can empty or stale the chat list'
+}
 
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
   Where-Object {
