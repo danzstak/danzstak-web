@@ -44,6 +44,14 @@ foreach ($feedPaginationControl in @('async function scanAll(request, maximumIte
 foreach ($completeCleanupControl in @('async function queryAll(request, maximumItems = 5000)', 'const members = await scanAll({ TableName: groupsTable', 'const memberships = await scanAll({', 'queryAll({ TableName: reactionsTable', 'queryAll({ TableName: commentsTable', 'linkedStories = await scanAll({', 'const items = await queryAll({ TableName: engagementNotificationsTable')) {
   if (-not $authApi.Contains($completeCleanupControl)) { throw "Engagement, profile authorization, or deletion cleanup stops at one DynamoDB page: $completeCleanupControl" }
 }
+foreach ($authoritativeDeleteControl in @('async function runCleanup(tasks, attempts = 3)', 'await Promise.allSettled(batch.map(task => task()))', 'const cleanupPending = await runCleanup(cleanupTasks)', 'JSON.stringify({ deleted: true, cleanupPending })')) {
+  if (-not $authApi.Contains($authoritativeDeleteControl)) { throw "Post deletion can reappear or abandon cleanup without retries: $authoritativeDeleteControl" }
+}
+$postDeletion = [regex]::Match($authApi, 'async function deleteSecurePost[\s\S]*?async function updateSecurePost').Value
+if ($postDeletion.IndexOf('TableName: postsTable, Key: { postId: { S: postId } }') -lt 0 -or
+    $postDeletion.IndexOf('const cleanupPending = await runCleanup(cleanupTasks)') -lt $postDeletion.LastIndexOf('TableName: postsTable, Key: { postId: { S: postId } }')) {
+  throw 'Post deletion must remove the primary database record before dependent media and engagement cleanup.'
+}
 foreach ($retiredCleanupLimit in @('TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId", Limit: 500', 'TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, Limit: 100')) {
   if ($authApi.Contains($retiredCleanupLimit)) { throw "A deletion or engagement path still uses a partial DynamoDB page: $retiredCleanupLimit" }
 }
@@ -101,6 +109,11 @@ if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
 }
 foreach ($storyAudienceControl in @("audience=['public','friends','private'].includes(body.audience)", "x.audience?.S==='friends'&&friends.has(x.userEmail.S)")) {
   if (-not $template.Contains($storyAudienceControl)) { throw "Story audience enforcement is missing: $storyAudienceControl" }
+}
+$storyDeletion = [regex]::Match($template, 'async function deleteStory[\s\S]*?async function refreshSession').Value
+if ($storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES_TABLE') -lt 0 -or
+    $storyDeletion.IndexOf('for(let attempt=0;attempt<3;attempt++)') -lt $storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES_TABLE')) {
+  throw 'Story deletion must remove the database record before retrying dedicated-media cleanup.'
 }
 foreach ($accountPreferenceControl in @('darkMode = :d', 'reduceMotion = :r', 'dataSaver = :s', "body.language!=='en'")) {
   if (-not $template.Contains($accountPreferenceControl)) { throw "Account settings persistence is missing: $accountPreferenceControl" }

@@ -88,6 +88,21 @@ async function queryAll(request, maximumItems = 5000) {
   return items.slice(0, maximumItems);
 }
 
+async function runCleanup(tasks, attempts = 3) {
+  let pending = tasks;
+  for (let attempt = 0; pending.length && attempt < attempts; attempt += 1) {
+    const failed = [];
+    for (let offset = 0; offset < pending.length; offset += 25) {
+      const batch = pending.slice(offset, offset + 25);
+      const results = await Promise.allSettled(batch.map(task => task()));
+      results.forEach((result, index) => { if (result.status === "rejected") failed.push(batch[index]); });
+    }
+    pending = failed;
+    if (pending.length && attempt + 1 < attempts) await new Promise(resolve => setTimeout(resolve, 50 * (attempt + 1)));
+  }
+  return pending.length;
+}
+
 async function batchGetFriendships(viewerEmail, friendEmails) {
   const items = [];
   for (let offset = 0; offset < friendEmails.length; offset += 100) {
@@ -1165,30 +1180,34 @@ async function deleteSecurePost(event) {
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Post not found." }) };
   if (found.Item.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the owner can delete this post." }) };
   let linkedStories = [];
+  let mediaKey = "";
   if (found.Item.mediaKey?.S) {
     const ownerPrefix = sha256(found.Item.userEmail?.S || "").slice(0, 24);
     if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
+    mediaKey = found.Item.mediaKey.S;
     linkedStories = await scanAll({
       TableName: storiesTable,
       FilterExpression: "mediaKey = :media AND userEmail = :owner",
       ExpressionAttributeValues: { ":media": { S: found.Item.mediaKey.S }, ":owner": { S: found.Item.userEmail?.S || "" } },
       ProjectionExpression: "storyId"
     });
-    await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: found.Item.mediaKey.S }));
   }
   const [reactions, comments, notices] = await Promise.all([
     queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, userId", ConsistentRead: true }),
     queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true }),
     found.Item.userEmail?.S ? queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: found.Item.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true }) : Promise.resolve([])
   ]);
-  await Promise.all([
-    ...reactions.map(item => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
-    ...comments.map(item => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
-    ...notices.filter(item => item.postId?.S === postId).map(item => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } }))),
-    ...linkedStories.map(item => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } })))
-  ]);
   await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
-  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
+  const cleanupTasks = [
+    ...reactions.map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
+    ...comments.map(item => () => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
+    ...notices.filter(item => item.postId?.S === postId).map(item => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } }))),
+    ...linkedStories.map(item => () => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } }))),
+    ...(mediaKey ? [() => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey }))] : [])
+  ];
+  const cleanupPending = await runCleanup(cleanupTasks);
+  if (cleanupPending) console.error("Post deletion cleanup remains pending", { postId, cleanupPending });
+  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true, cleanupPending }) };
 }
 
 async function updateSecurePost(event) {
