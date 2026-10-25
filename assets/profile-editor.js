@@ -232,6 +232,7 @@ mediaTools.appendChild(fitCoverButton);
 const videoButton = document.createElement("button");
 videoButton.type = "button";
 videoButton.textContent = "Add Profile Video";
+videoButton.hidden = true;
 const videoInput = document.createElement("input");
 videoInput.type = "file";
 videoInput.accept = "video/mp4,video/webm,video/quicktime";
@@ -264,6 +265,7 @@ mediaTools.append(videoButton, videoInput);
 const removeVideoButton = document.createElement("button");
 removeVideoButton.type = "button";
 removeVideoButton.textContent = "Remove Profile Video";
+removeVideoButton.hidden = true;
 removeVideoButton.addEventListener("click", async () => {
   if (!confirm("Remove profile video?")) return;
   removeVideoButton.disabled = true;
@@ -279,6 +281,15 @@ removeVideoButton.addEventListener("click", async () => {
   finally { removeVideoButton.disabled = false; }
 });
 mediaTools.appendChild(removeVideoButton);
+async function revealProfileVideoControls() {
+  try {
+    const response = await fetch(profileApi + "/profile-video", { credentials: "include", cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    videoButton.hidden = false;
+    removeVideoButton.hidden = !data.mediaKey;
+  } catch { /* The backend feature has not been released yet. */ }
+}
 actions.insertAdjacentElement("afterend", mediaTools);
 if (viewingOtherProfile) {
   editButton.hidden = true;
@@ -505,5 +516,6 @@ window.addEventListener("danzstak:profile-loaded", event => {
   if (profile.cloudProfile) {
     fitCoverButton.classList.toggle("active", Boolean(profile.coverFit));
     fitCoverButton.textContent = profile.coverFit ? "Fill Cover Box" : "Fit Entire Cover";
+    if (!viewingOtherProfile) revealProfileVideoControls();
   }
 });
