@@ -35,7 +35,7 @@ foreach ($file in $htmlFiles) {
 }
 
 $homeMarkup = Get-Content -LiteralPath (Join-Path $root 'index.html') -Raw -Encoding utf8
-if (-not $homeMarkup.Contains('.hero-logo{display:block;width:min(720px,100%)')) {
+if (-not $homeMarkup.Contains('.hero-logo{display:block;width:min(520px,100%)')) {
   Add-Failure 'Homepage: hero logo can overflow its padded mobile container'
 }
 
