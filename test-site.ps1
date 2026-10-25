@@ -11,6 +11,12 @@ $htmlFiles = Get-ChildItem -LiteralPath $root -Filter '*.html' -File
 foreach ($file in $htmlFiles) {
   $html = Get-Content -LiteralPath $file.FullName -Raw -Encoding utf8
 
+  foreach ($pagePolicy in @('Content-Security-Policy', '<meta name="referrer"', "base-uri 'none'", 'upgrade-insecure-requests')) {
+    if (-not $html.Contains($pagePolicy)) { Add-Failure "$($file.Name): required browser security policy is missing: $pagePolicy" }
+  }
+  $requiredFrameAncestors = if ($file.Name -eq 'messages.html') { "frame-ancestors 'self'" } else { "frame-ancestors 'none'" }
+  if (-not $html.Contains($requiredFrameAncestors)) { Add-Failure "$($file.Name): required framing policy is missing: $requiredFrameAncestors" }
+
   $ids = [regex]::Matches($html, '\bid\s*=\s*["'']([^"'']+)["'']', 'IgnoreCase') |
     ForEach-Object { $_.Groups[1].Value }
   $ids | Group-Object | Where-Object Count -gt 1 | ForEach-Object {
