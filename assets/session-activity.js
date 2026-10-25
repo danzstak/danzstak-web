@@ -2,12 +2,53 @@
 (() => {
   const refreshEvery = 5 * 60 * 1000;
   const idleTimeout = 2 * 60 * 60 * 1000;
-  let lastActivity = Date.now();
+  const activityKey = "danzstak_last_activity";
+  let lastActivity = 0;
   let lastRefresh = 0;
   let refreshing = false;
   let presenceUpdating = false;
+  let idleTimer = null;
+  let loggingOut = false;
 
-  const markActive = () => { lastActivity = Date.now(); };
+  try { lastActivity = Number(localStorage.getItem(activityKey)) || Date.now(); }
+  catch { lastActivity = Date.now(); }
+
+  function sharedLastActivity() {
+    try { return Math.max(lastActivity, Number(localStorage.getItem(activityKey)) || 0); }
+    catch { return lastActivity; }
+  }
+
+  function scheduleIdleLogout() {
+    clearTimeout(idleTimer);
+    const remaining = Math.max(0, idleTimeout - (Date.now() - sharedLastActivity()));
+    idleTimer = setTimeout(logoutIfIdle, remaining + 50);
+  }
+
+  async function logoutIfIdle() {
+    if (Date.now() - sharedLastActivity() < idleTimeout) return scheduleIdleLogout();
+    if (loggingOut) return;
+    loggingOut = true;
+    try {
+      await fetch("https://api.danzstak.com/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        keepalive: true,
+        headers: { "Content-Type": "application/json" },
+        body: "{}"
+      });
+    } catch { /* The server session still expires at the same idle deadline. */ }
+    window.danzstakClearAccountData?.();
+    location.replace("./?idle=1");
+  }
+
+  const markActive = () => {
+    const timestamp = Date.now();
+    if (timestamp - lastActivity < 5000) return;
+    lastActivity = timestamp;
+    try { localStorage.setItem(activityKey, String(timestamp)); }
+    catch { /* This tab can still enforce its own idle deadline. */ }
+    scheduleIdleLogout();
+  };
   for (const eventName of ["pointerdown", "keydown", "touchstart", "scroll"]) {
     addEventListener(eventName, markActive, { passive: true });
   }
@@ -23,7 +64,9 @@
       const response = await fetch("https://api.danzstak.com/auth/refresh", {
         method: "POST",
         credentials: "include",
-        cache: "no-store"
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: "{}"
       });
       if (response.ok) lastRefresh = now;
       else if (response.status === 401) location.replace("./");
@@ -55,4 +98,6 @@
   addEventListener("focus", refreshPresence);
   addEventListener("pageshow", refreshPresence);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { markActive(); refreshPresence(); } });
+  addEventListener("storage", event => { if (event.key === activityKey) { lastActivity = Math.max(lastActivity, Number(event.newValue) || 0); scheduleIdleLogout(); } });
+  scheduleIdleLogout();
 })();

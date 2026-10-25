@@ -148,12 +148,15 @@ foreach ($profileVideoBehavior in @('/profile-video', 'uploadCloudMedia(file)', 
 }
 $logoutJs = Get-Content -LiteralPath (Join-Path $root 'assets\logout.js') -Raw -Encoding utf8
 $homeJs = Get-Content -LiteralPath (Join-Path $root 'assets\home.js') -Raw -Encoding utf8
-foreach ($privateKey in @('danzstak_dev_sections', 'danzstak-post-preferences', 'danzstak-hidden-posts', 'danzstak_chat_read', 'danzstak_profile_draft', 'danzstak_profile_media')) {
+foreach ($privateKey in @('danzstak_dev_sections', 'danzstak-post-preferences', 'danzstak-hidden-posts', 'danzstak_chat_read', 'danzstak_profile_draft', 'danzstak_profile_media', 'danzstak_last_activity')) {
   if (-not $sessionCleanupJs.Contains($privateKey)) { Add-Failure "Logout cleanup omits account-local data: $privateKey" }
 }
 if ($sessionActivityJs.Contains('if (document.hidden || presenceUpdating) return;') -or
     -not $sessionActivityJs.Contains('Date.now() - lastActivity >= idleTimeout || presenceUpdating')) {
   Add-Failure 'Presence: background tabs can expire an otherwise active signed-in user'
+}
+foreach ($idleBehavior in @('const activityKey = "danzstak_last_activity"', 'setTimeout(logoutIfIdle', 'keepalive: true', 'addEventListener("storage"')) {
+  if (-not $sessionActivityJs.Contains($idleBehavior)) { Add-Failure "Sessions: exact two-hour cross-tab idle logout is missing: $idleBehavior" }
 }
 foreach ($profileFeature in @('loadProfilePosts(false)', 'loadProfilePosts(true)', 'loadProfileFriends()', 'profile-friend-card', 'profile-post-card')) {
   if (-not $profileEditorJs.Contains($profileFeature)) { Add-Failure "Profile tabs are not functional: $profileFeature" }

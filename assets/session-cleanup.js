@@ -8,7 +8,8 @@
     "danzstak_external_reels",
     "danzstak_chat_read",
     "danzstak_profile_draft",
-    "danzstak_profile_media"
+    "danzstak_profile_media",
+    "danzstak_last_activity"
   ];
 
   window.danzstakClearAccountData = () => {
