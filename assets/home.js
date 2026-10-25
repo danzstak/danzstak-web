@@ -15,7 +15,7 @@ legalAgreement.addEventListener("change", () => {
   signupBtn.disabled = !legalAgreement.checked;
 });
 
-signupBtn.addEventListener("click", () => {
+signupBtn.addEventListener("click", async () => {
   if (!legalAgreement.checked) {
     status.textContent = "You must agree to the Terms of Service and acknowledge the Privacy Policy before signing up.";
     status.hidden = false;
@@ -23,12 +23,23 @@ signupBtn.addEventListener("click", () => {
     return;
   }
 
-  localStorage.setItem("danzstak_legal_acceptance", JSON.stringify({
-    version: legalVersion,
-    acceptedAt: new Date().toISOString()
-  }));
-
-  window.location.assign(signupBtn.dataset.signupUrl);
+  signupBtn.disabled = true;
+  status.textContent = "Saving your agreement securely...";
+  status.hidden = false;
+  try {
+    const response = await fetch(api + "/auth/legal-acceptance", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version: legalVersion, termsAccepted: true, privacyAcknowledged: true })
+    });
+    if (!response.ok) throw new Error("Agreement could not be saved");
+    localStorage.setItem("danzstak_legal_acceptance", JSON.stringify({ version: legalVersion, acceptedAt: new Date().toISOString() }));
+    window.location.assign(signupBtn.dataset.signupUrl);
+  } catch {
+    status.textContent = "Your agreement could not be saved. Please try again.";
+    signupBtn.disabled = false;
+  }
 });
 
 function showSession(loggedIn, message) {
@@ -62,7 +73,8 @@ async function checkSession() {
     }
 
     if (response.status === 401) {
-      showSession(false, "Not signed in. Click Log In or Sign Up.");
+      const legalRequired = new URLSearchParams(location.search).get("legal") === "required";
+      showSession(false, legalRequired ? "Agree to the Terms of Service and acknowledge the Privacy Policy before signing up." : "Not signed in. Click Log In or Sign Up.");
       return;
     }
 

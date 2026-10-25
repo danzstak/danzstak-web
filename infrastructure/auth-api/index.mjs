@@ -61,6 +61,8 @@ const issuer =
 
 const sessionCookieName = "__Host-danzstak_session";
 const oauthCookieName = "__Host-danzstak_oauth";
+const legalCookieName = "__Host-danzstak_legal";
+const legalVersion = "2026-10-25";
 
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -287,7 +289,7 @@ async function verifyIdToken(token, expectedNonce, expectedSub) {
 }
 
 // START SECURE COGNITO LOGIN OR SIGNUP
-async function startLogin(mode = "login") {
+async function startLogin(mode = "login", legalAcceptanceId = "") {
   const state = randomValue();
   const verifier = randomValue();
   const nonce = randomValue();
@@ -295,16 +297,19 @@ async function startLogin(mode = "login") {
   // This secret binds the OAuth request to this browser.
   const browserSecret = randomValue();
 
-  await db.send(new PutItemCommand({
-    TableName: tableName,
-    Item: {
+  const pendingItem = {
       sessionId: { S: sha256("oauth:" + state) },
       type: { S: "oauth_pending" },
       verifier: { S: verifier },
       nonce: { S: nonce },
       browserHash: { S: sha256(browserSecret) },
       expiresAt: { N: String(now() + 300) }
-    },
+  };
+  if (legalAcceptanceId) pendingItem.legalAcceptanceId = { S: legalAcceptanceId };
+
+  await db.send(new PutItemCommand({
+    TableName: tableName,
+    Item: pendingItem,
     ConditionExpression: "attribute_not_exists(sessionId)"
   }));
 
@@ -333,6 +338,43 @@ async function startLogin(mode = "login") {
   );
 
   return redirect(url.toString(), [browserCookie]);
+}
+
+async function acceptLegalTerms(event) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  if (!allowedOrigins.has(origin)) return errorResponse(403, "DanzStak origin required");
+  let body;
+  try { body = JSON.parse(event.body || "{}"); }
+  catch { return errorResponse(400, "Invalid legal acceptance"); }
+  if (body.version !== legalVersion || body.termsAccepted !== true || body.privacyAcknowledged !== true) {
+    return errorResponse(400, "Terms and Privacy Policy acceptance required");
+  }
+  const token = randomValue();
+  const acceptanceId = sha256("legal:" + token);
+  await db.send(new PutItemCommand({
+    TableName: tableName,
+    Item: {
+      sessionId: { S: acceptanceId },
+      type: { S: "legal_pending" },
+      legalVersion: { S: legalVersion },
+      acceptedAt: { S: new Date().toISOString() },
+      expiresAt: { N: String(now() + 1800) }
+    },
+    ConditionExpression: "attribute_not_exists(sessionId)"
+  }));
+  return { statusCode: 201, headers: corsHeaders(origin), cookies: [secureCookie(legalCookieName, token, 1800)], body: JSON.stringify({ accepted: true, version: legalVersion }) };
+}
+
+async function startSignup(event) {
+  const token = getCookie(event, legalCookieName);
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) return redirect(siteUrl + "/?legal=required");
+  const acceptanceId = sha256("legal:" + token);
+  const result = await db.send(new GetItemCommand({ TableName: tableName, Key: { sessionId: { S: acceptanceId } }, ConsistentRead: true }));
+  const acceptance = result.Item;
+  if (acceptance?.type?.S !== "legal_pending" || acceptance.legalVersion?.S !== legalVersion || Number(acceptance.expiresAt?.N || 0) <= now()) {
+    return redirect(siteUrl + "/?legal=required", [clearCookie(legalCookieName)]);
+  }
+  return startLogin("signup", acceptanceId);
 }
 
 // COMPLETE SECURE LOGIN
@@ -527,6 +569,16 @@ async function completeLogin(event) {
     );
   }
 
+  let acceptedLegal = null;
+  if (pending.legalAcceptanceId?.S) {
+    const legalKey = { sessionId: { S: pending.legalAcceptanceId.S } };
+    const accepted = await db.send(new GetItemCommand({ TableName: tableName, Key: legalKey, ConsistentRead: true }));
+    if (accepted.Item?.type?.S !== "legal_pending" || accepted.Item.legalVersion?.S !== legalVersion || Number(accepted.Item.expiresAt?.N || 0) <= now()) {
+      return errorResponse(400, "Legal acceptance expired. Please start signup again.", [expiredBrowserCookie, clearCookie(legalCookieName)]);
+    }
+    acceptedLegal = { key: legalKey, item: accepted.Item };
+  }
+
   const sessionId = randomValue();
   const expiresAt = now() + 3600;
 
@@ -547,10 +599,23 @@ async function completeLogin(event) {
     3600
   );
 
-  return redirect(siteUrl + "/", [
-    sessionCookie,
-    expiredBrowserCookie
-  ]);
+  const responseCookies = [sessionCookie, expiredBrowserCookie];
+  if (acceptedLegal) {
+    await db.send(new PutItemCommand({
+      TableName: tableName,
+      Item: {
+        sessionId: { S: sha256("legal-account:" + user.sub) },
+        type: { S: "legal_acceptance" },
+        userId: { S: user.sub },
+        legalVersion: { S: legalVersion },
+        acceptedAt: { S: acceptedLegal.item.acceptedAt?.S || new Date().toISOString() }
+      }
+    }));
+    await db.send(new DeleteItemCommand({ TableName: tableName, Key: acceptedLegal.key }));
+    responseCookies.push(clearCookie(legalCookieName));
+  }
+
+  return redirect(siteUrl + "/", responseCookies);
 }
 
 // VALIDATE SERVER-SIDE SESSION
@@ -1186,7 +1251,11 @@ export const handler = async event => {
     }
 
     if (method === "GET" && path === "/auth/signup") {
-      return await startLogin("signup");
+      return await startSignup(event);
+    }
+
+    if (method === "POST" && path === "/auth/legal-acceptance") {
+      return await acceptLegalTerms(event);
     }
 
     if (method === "GET" && path === "/auth/callback") {

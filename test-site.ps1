@@ -282,6 +282,10 @@ $privacyText = Get-Content -LiteralPath (Join-Path $root 'privacy.html') -Raw -E
 if ($termsText -match 'invite codes|call codes' -or $privacyText -match 'invite codes|call codes') {
   Add-Failure 'Legal pages still describe the retired call-code workflow'
 }
+$homeJs = Get-Content -LiteralPath (Join-Path $root 'assets\home.js') -Raw -Encoding utf8
+foreach ($legalSignupControl in @('/auth/legal-acceptance', 'termsAccepted: true', 'privacyAcknowledged: true', 'credentials: "include"')) {
+  if (-not $homeJs.Contains($legalSignupControl)) { Add-Failure "Signup: legal acceptance is not saved server-side before Cognito signup: $legalSignupControl" }
+}
 if (-not $chatCss.Contains('.conversation-header[hidden]{display:none!important}')) {
   Add-Failure 'chat.css: hidden conversation header exposes call controls before selecting a contact'
 }

@@ -16,6 +16,9 @@ foreach ($groupPersistence in @('async function listGroups(event)', 'async funct
 foreach ($profileVideoControl in @('async function getProfileVideo(event)', 'async function setProfileVideo(event)', 'profileVideoKey', 'Invalid profile video', 'DeleteObjectCommand', 'canViewProfileMedia')) {
   if (-not $authApi.Contains($profileVideoControl)) { throw "Auth API durable profile-video control is missing: $profileVideoControl" }
 }
+foreach ($legalControl in @('async function acceptLegalTerms(event)', 'async function startSignup(event)', 'type: { S: "legal_pending" }', 'sha256("legal-account:" + user.sub)', 'path === "/auth/legal-acceptance"')) {
+  if (-not $authApi.Contains($legalControl)) { throw "Server-enforced signup consent is missing: $legalControl" }
+}
 foreach ($notificationHistoryControl in @('read: { BOOL: false }', 'unread: item.read?.BOOL !== true', 'new UpdateItemCommand({ TableName: engagementNotificationsTable')) {
   if (-not $authApi.Contains($notificationHistoryControl)) { throw "Persistent notification history is missing: $notificationHistoryControl" }
 }
@@ -25,6 +28,9 @@ foreach ($groupRoute in @('GET /groups', 'POST /groups', 'DELETE /groups/{groupI
 }
 foreach ($profileVideoRoute in @('GET /profile-video', 'POST /profile-video', 'ProfileVideoInvokePermission')) {
   if (-not $engagementTemplate.Contains($profileVideoRoute)) { throw "Engagement stack profile-video route is missing: $profileVideoRoute" }
+}
+foreach ($legalRoute in @('POST /auth/legal-acceptance', 'LegalAcceptanceInvokePermission')) {
+  if (-not $engagementTemplate.Contains($legalRoute)) { throw "Signup consent route is missing: $legalRoute" }
 }
 foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 'friendEmails.has(item.userEmail?.S)', 'data.originalContentCertified !== true', 'sha256(userId).slice(0, 24)', 'Post media ownership could not be verified', 'function signedMediaUrl(', 'mediaUrl: item.mediaKey?.S ? signedMediaUrl', 'mediaUrl: signedMediaUrl(mediaKey, 3600)', '"strict-transport-security"', '"x-content-type-options"', '"x-frame-options"', 'user: userId && email ? { email } : undefined', 'async function getEngagement(event)', 'async function setReaction(event)', 'async function addComment(event)', 'async function deleteComment(event)', 'async function updateSecurePost(event)', 'commentPolicy === "off"', 'commentPolicy === "friends"', 'async function getEngagementNotifications(event)', 'async function clearEngagementNotifications(event)', 'reactions.Items || []', 'comments.Items || []', 'notices.Items || []', 'const storiesTable = "DANZSTAK-Stories"', 'linkedStories.map')) {
   if (-not $authApi.Contains($required)) { throw "Auth API post authorization safeguard is missing: $required" }
