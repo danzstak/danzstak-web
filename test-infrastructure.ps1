@@ -39,6 +39,7 @@ foreach ($protection in $requiredMessagingProtections) {
 $requiredUnreadMessaging = @(
   "conversationUpdate(user.email,recipient,0)",
   "UpdateExpression:'SET unread = :n'",
+  "event.queryStringParameters?.read==='1'",
   "unread:Number(x.unread?.N||0)",
   "type:'message'"
 )

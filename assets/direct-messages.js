@@ -78,12 +78,13 @@ function directMessageItem(message) {
 }
 
 async function loadDirectMessages(reset = false) {
+  if (!document.body.classList.contains("is-conversation-open")) return;
   const contact = contactInput?.value.trim().toLowerCase();
   if (!contact || loadingMessages) return;
   if (contact !== directContact) { directContact = contact; reset = true; }
   loadingMessages = true;
   try {
-    const response = await fetch(directApi + "/messages?contact=" + encodeURIComponent(contact), { credentials: "include", cache: "no-store" });
+    const response = await fetch(directApi + "/messages?read=1&contact=" + encodeURIComponent(contact), { credentials: "include", cache: "no-store" });
     if (!response.ok) return;
     const data = await response.json();
     if (reset) { shownMessages.clear(); messageList.replaceChildren(); }
@@ -184,10 +185,11 @@ chatSearch?.addEventListener("input", loadConversations);
 document.querySelectorAll("[data-chat-filter]").forEach(button => button.addEventListener("click", () => { document.querySelectorAll("[data-chat-filter]").forEach(item => item.classList.toggle("active", item === button)); activeFilter = button.dataset.chatFilter; loadConversations(); }));
 document.getElementById("headerPhone")?.addEventListener("click", () => document.getElementById("startPhone")?.click());
 document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
-document.getElementById("minimizeConversation")?.addEventListener("click", () => { if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-minimize" }, location.origin); });
+document.getElementById("minimizeConversation")?.addEventListener("click", () => { document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-minimize" }, location.origin); });
 document.getElementById("closeConversation")?.addEventListener("click", () => { conversationHeader.hidden = true; contactInput.value = ""; directContact = ""; messageInput.disabled = true; sendButton.disabled = true; document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: false }, location.origin); });
 for (const emoji of ["😀","😂","😍","❤️","👍","🔥","🎉","😢","😮","🙏","👏","🎵"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.addEventListener("click", () => { messageInput.value += emoji; emojiPalette.hidden = true; messageInput.focus(); }); emojiPalette.appendChild(button); }
 emojiButton?.addEventListener("click", () => { emojiPalette.hidden = !emojiPalette.hidden; });
+window.addEventListener("message", event => { if (event.origin === location.origin && event.data?.type === "danzstak-chat-hidden") document.body.classList.remove("is-conversation-open"); });
 
 onlineUsers?.addEventListener("click", event => {
   if (!event.target.closest("button")) return;

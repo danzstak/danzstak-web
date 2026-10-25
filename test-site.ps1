@@ -83,10 +83,15 @@ if (-not $chatCss.Contains('.conversation-header[hidden]{display:none!important}
 
 $messagesHtml = Get-Content -LiteralPath (Join-Path $root 'messages.html') -Raw -Encoding utf8
 $chatJs = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
+$directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-messages.js') -Raw -Encoding utf8
 if ($messagesHtml -notmatch 'id="receiverHangUp"[^>]+hidden' -or
     -not $chatJs.Contains('els.receiverHangup.hidden=false') -or
     -not $chatJs.Contains('els.receiverHangup.hidden=true')) {
   Add-Failure 'Call controls: receiver Hang Up visibility is not tied to active call state'
+}
+if (-not $directMessagesJs.Contains('if (!document.body.classList.contains("is-conversation-open")) return;') -or
+    -not $directMessagesJs.Contains('/messages?read=1&contact=')) {
+  Add-Failure 'Messaging: background or minimized chats can incorrectly clear unread state'
 }
 
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
