@@ -16,6 +16,9 @@ foreach ($groupPersistence in @('async function listGroups(event)', 'async funct
 foreach ($profileVideoControl in @('async function getProfileVideo(event)', 'async function setProfileVideo(event)', 'profileVideoKey', 'Invalid profile video', 'DeleteObjectCommand', 'canViewProfileMedia')) {
   if (-not $authApi.Contains($profileVideoControl)) { throw "Auth API durable profile-video control is missing: $profileVideoControl" }
 }
+foreach ($notificationHistoryControl in @('read: { BOOL: false }', 'unread: item.read?.BOOL !== true', 'new UpdateItemCommand({ TableName: engagementNotificationsTable')) {
+  if (-not $authApi.Contains($notificationHistoryControl)) { throw "Persistent notification history is missing: $notificationHistoryControl" }
+}
 $engagementTemplate = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'infrastructure\engagement\template.yaml') -Raw -Encoding utf8
 foreach ($groupRoute in @('GET /groups', 'POST /groups', 'DELETE /groups/{groupId}', 'PATCH /secure-posts/{postId}', 'DANZSTAK-GroupMembers')) {
   if (-not $engagementTemplate.Contains($groupRoute)) { throw "Engagement stack durable group route or permission is missing: $groupRoute" }
@@ -36,7 +39,7 @@ if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript syntax failed: $nodeAuthCh
 $engagementTemplatePath = Join-Path $PSScriptRoot 'infrastructure\engagement\template.yaml'
 if (-not (Test-Path -LiteralPath $engagementTemplatePath)) { throw 'Engagement infrastructure template is missing.' }
 $engagementTemplate = Get-Content -LiteralPath $engagementTemplatePath -Raw -Encoding utf8
-foreach ($required in @('DANZSTAK-Reactions', 'DANZSTAK-Comments', 'DANZSTAK-EngagementNotifications', 'GET /engagement', 'POST /reactions', 'POST /comments', 'DELETE /comments/{commentId}', 'GET /engagement-notifications', 'POST /engagement-notifications/read', 'DeletionPolicy: Retain')) {
+foreach ($required in @('DANZSTAK-Reactions', 'DANZSTAK-Comments', 'DANZSTAK-EngagementNotifications', 'GET /engagement', 'POST /reactions', 'POST /comments', 'DELETE /comments/{commentId}', 'GET /engagement-notifications', 'POST /engagement-notifications/read', 'DeletionPolicy: Retain', 'dynamodb:UpdateItem')) {
   if (-not $engagementTemplate.Contains($required)) { throw "Engagement infrastructure is missing: $required" }
 }
 

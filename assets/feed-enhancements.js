@@ -48,7 +48,8 @@ async function refreshNotificationCount() {
     for (const [index, result] of responses.entries()) {
       if (result.status !== "fulfilled" || !result.value.ok) continue;
       const key = index === 0 ? "social" : "engagement";
-      notificationSourceCounts[key] = ((await result.value.json()).notifications || []).length;
+      const notices = ((await result.value.json()).notifications || []);
+      notificationSourceCounts[key] = key === "engagement" ? notices.filter(notice => notice.unread !== false).length : notices.length;
       succeeded = true;
     }
     if (succeeded) updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
@@ -296,7 +297,7 @@ function renderWorkspace(name) {
         const data = response?.ok ? await response.json() : { notifications: [] };
         const engagement = engagementResponse?.ok ? (await engagementResponse.json()).notifications || [] : [];
         notificationSourceCounts.social = response?.ok ? (data.notifications || []).length : notificationSourceCounts.social;
-        notificationSourceCounts.engagement = engagementResponse?.ok ? engagement.length : notificationSourceCounts.engagement;
+        notificationSourceCounts.engagement = engagementResponse?.ok ? engagement.filter(notice => notice.unread !== false).length : notificationSourceCounts.engagement;
         data.notifications = [...(data.notifications || []), ...engagement].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
         const directory = directoryResponse?.ok ? (await directoryResponse.json()).users || [] : [];
         const people = new Map(directory.map(person => [String(person.email || "").toLowerCase(), person]));
@@ -314,6 +315,7 @@ function renderWorkspace(name) {
           const displayName = person?.name || String(notice.email || "DanzStak member").split("@")[0];
           const row = document.createElement("article");
           row.className = "notification-row";
+          row.classList.toggle("is-read", notice.unread === false);
           const avatar = person?.picture ? document.createElement("img") : document.createElement("span");
           avatar.className = "notification-avatar";
           if (person?.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }

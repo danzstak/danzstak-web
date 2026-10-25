@@ -799,6 +799,7 @@ async function notifyPostOwner(post, eventId, type, actorEmail, preview) {
     Item: {
       userEmail: { S: ownerEmail }, eventId: { S: eventId }, type: { S: type }, actorEmail: { S: actorEmail },
       postId: { S: post.postId.S }, preview: { S: String(preview || "").slice(0, 160) }, createdAt: { S: createdAt },
+      read: { BOOL: false },
       expiresAt: { N: String(now() + 2592000) }
     }
   }));
@@ -899,7 +900,7 @@ async function getEngagementNotifications(event) {
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 200, headers, body: JSON.stringify({ notifications: [] }) };
   const result = await db.send(new QueryCommand({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, Limit: 50, ScanIndexForward: false, ConsistentRead: true }));
-  const notifications = (result.Items || []).map(item => ({ type: item.type.S, email: item.actorEmail.S, postId: item.postId.S, preview: item.preview?.S || "", createdAt: item.createdAt.S }));
+  const notifications = (result.Items || []).map(item => ({ type: item.type.S, email: item.actorEmail.S, postId: item.postId.S, preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true }));
   return { statusCode: 200, headers, body: JSON.stringify({ notifications }) };
 }
 
@@ -909,9 +910,10 @@ async function clearEngagementNotifications(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 200, headers, body: JSON.stringify({ cleared: 0 }) };
-  const result = await db.send(new QueryCommand({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, ProjectionExpression: "eventId", Limit: 100, ConsistentRead: true }));
-  await Promise.all((result.Items || []).map(item => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: { S: userEmail }, eventId: { S: item.eventId.S } } }))));
-  return { statusCode: 200, headers, body: JSON.stringify({ cleared: result.Items?.length || 0 }) };
+  const result = await db.send(new QueryCommand({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, ProjectionExpression: "eventId, #read", ExpressionAttributeNames: { "#read": "read" }, Limit: 100, ConsistentRead: true }));
+  const unread = (result.Items || []).filter(item => item.read?.BOOL !== true);
+  await Promise.all(unread.map(item => db.send(new UpdateItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: { S: userEmail }, eventId: { S: item.eventId.S } }, UpdateExpression: "SET #read = :read", ExpressionAttributeNames: { "#read": "read" }, ExpressionAttributeValues: { ":read": { BOOL: true } } }))));
+  return { statusCode: 200, headers, body: JSON.stringify({ cleared: unread.length }) };
 }
 
 // CREATE SECURE POST
