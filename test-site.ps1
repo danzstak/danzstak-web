@@ -287,6 +287,11 @@ if ($feed.Contains('window.location.assign("./")') -or
     -not $feed.Contains('history.replaceState(null, "", location.pathname);')) {
   Add-Failure 'Feed navigation: Home still round-trips through the public landing page'
 }
+if (-not $feed.Contains('async function fetchWithDeadline') -or
+    -not $feed.Contains('fetchWithDeadline("https://api.danzstak.com/calls/directory"') -or
+    -not $chatJs.Contains('timer=setTimeout(()=>controller.abort(),10000)')) {
+  Add-Failure 'Presence: feed or chat can remain stuck indefinitely on a stalled API request'
+}
 
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
   Where-Object {
