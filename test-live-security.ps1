@@ -41,6 +41,17 @@ $profileVideoStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzs
 $expectedProfileVideoStatus = if ($ExpectProfileVideo) { "401" } else { "404" }
 if ($LASTEXITCODE -ne 0 -or $profileVideoStatus -ne $expectedProfileVideoStatus) { Add-Failure "Unauthenticated profile-video request returned $profileVideoStatus instead of $expectedProfileVideoStatus" }
 
+foreach ($pushRoute in @(
+  @{ Method = 'GET'; Path = '/push/key' },
+  @{ Method = 'POST'; Path = '/push/subscribe' },
+  @{ Method = 'DELETE'; Path = '/push/subscribe' }
+)) {
+  $pushStatus = & curl.exe -sS -o NUL -w "%{http_code}" -X $pushRoute.Method "https://api.danzstak.com$($pushRoute.Path)"
+  if ($LASTEXITCODE -ne 0 -or $pushStatus -ne '401') {
+    Add-Failure "Unauthenticated $($pushRoute.Method) $($pushRoute.Path) returned $pushStatus instead of 401"
+  }
+}
+
 foreach ($asset in @(
   @{ Url = "https://danzstak.com/assets/favicon-32.png?v=1"; Type = "image/png"; Name = "favicon" },
   @{ Url = "https://danzstak.com/assets/danzstak-share-fb-v2.jpg"; Type = "image/jpeg"; Name = "social-share image" }
