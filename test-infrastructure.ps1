@@ -49,6 +49,10 @@ $callTemplate = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'infrastructur
 foreach ($storyCleanupControl in @('Id: ExpireDedicatedStoryMedia', 'Prefix: stories/', 'NoncurrentVersionExpiration:', 'const key=`stories/${ownerPrefix(user)}/', 'storyUpload=new RegExp(`^stories/${prefix}/', 'body.dedicatedMedia!==true')) {
   if (-not $callTemplate.Contains($storyCleanupControl)) { throw "Stories: dedicated expired media cleanup is missing: $storyCleanupControl" }
 }
+foreach ($persistentReelControl in @("kind:{S:'reel'},content:{S:url.href},createdAt:{S:createdAt}}", "FilterExpression:'attribute_not_exists(expiresAt) OR expiresAt > :n'")) {
+  if (-not $callTemplate.Contains($persistentReelControl)) { throw "Reels: saved external videos do not persist until owner deletion: $persistentReelControl" }
+}
+if ($callTemplate.Contains("kind:{S:'reel'},content:{S:url.href},createdAt:{S:createdAt},expiresAt:")) { throw 'Reels: external videos still receive an automatic expiration timestamp' }
 foreach ($feedPaginationControl in @('async function scanAll(request, maximumItems = 5000)', 'page.LastEvaluatedKey', 'await scanAll({ TableName: postsTable', 'async function batchGetFriendships(viewerEmail, friendEmails)', 'offset += 100', 'result.UnprocessedKeys?.[friendsTable]?.Keys')) {
   if (-not $authApi.Contains($feedPaginationControl)) { throw "Feed pagination or complete friendship authorization is missing: $feedPaginationControl" }
 }
