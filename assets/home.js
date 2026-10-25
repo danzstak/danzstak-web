@@ -90,6 +90,7 @@ logoutBtn.addEventListener("click", async () => {
   logoutBtn.disabled = true;
 
   try {
+    await window.danzstakDisablePush?.().catch(() => false);
     const response = await fetch(api + "/auth/logout", {
       method: "POST",
       credentials: "include",

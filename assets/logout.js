@@ -10,6 +10,7 @@ document.addEventListener("click", async event => {
     const original = button.textContent;
     button.textContent = "Logging out…";
     try {
+      await window.danzstakDisablePush?.().catch(() => false);
       const response = await fetch("https://api.danzstak.com/auth/logout", {
         method: "POST",
         credentials: "include",

@@ -76,8 +76,18 @@ if ($feedEnhancements.Contains('Reel saved on this device until cloud sync is av
 }
 if (-not $feedEnhancements.Contains('rightsCertified: true')) { Add-Failure 'External Reel submissions omit rights attestation' }
 $pushClient = Get-Content -LiteralPath (Join-Path $root 'assets\push-notifications.js') -Raw -Encoding utf8
+$logoutJs = Get-Content -LiteralPath (Join-Path $root 'assets\logout.js') -Raw -Encoding utf8
+$homeJs = Get-Content -LiteralPath (Join-Path $root 'assets\home.js') -Raw -Encoding utf8
 foreach ($pushClientControl in @('registration.pushManager.subscribe', 'applicationServerKey', '"/push/key"', '"/push/subscribe"', 'window.danzstakEnablePush')) {
   if (-not $pushClient.Contains($pushClientControl)) { Add-Failure "Messages: background call subscription is missing: $pushClientControl" }
+}
+$sessionCleanupForPush = Get-Content -LiteralPath (Join-Path $root 'assets\session-cleanup.js') -Raw -Encoding utf8
+foreach ($pushLogoutControl in @('window.danzstakDisablePush = async () =>', 'method: "DELETE"', 'await subscription.unsubscribe()', 'await window.danzstakDisablePush?.()', 'controller.abort()', 'Promise.race([')) {
+  if (-not ($sessionCleanupForPush + $logoutJs + $homeJs).Contains($pushLogoutControl)) { Add-Failure "Logout: this device can remain subscribed to the previous account: $pushLogoutControl" }
+}
+foreach ($pushCleanupPage in @('index.html', 'feed.html', 'profile.html', 'messages.html')) {
+  $pushCleanupMarkup = Get-Content -LiteralPath (Join-Path $root $pushCleanupPage) -Raw -Encoding utf8
+  if (-not $pushCleanupMarkup.Contains('assets/session-cleanup.js?v=2')) { Add-Failure "${pushCleanupPage}: account device cleanup is not loaded" }
 }
 $chatScript = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
 if (-not $chatScript.Contains('await window.danzstakEnablePush()')) { Add-Failure 'Messages: Enable ringing is disconnected from durable Web Push setup' }
@@ -255,7 +265,7 @@ foreach ($pushPromptControl in @('Never miss a DanzStak call', 'setTimeout(showP
 }
 foreach ($pushPromptPage in @('feed.html', 'profile.html', 'messages.html')) {
   $pushMarkup = Get-Content -LiteralPath (Join-Path $root $pushPromptPage) -Raw -Encoding utf8
-  if (-not $pushMarkup.Contains('assets/push-notifications.js?v=2')) { Add-Failure "${pushPromptPage}: background alert setup is not loaded" }
+  if (-not $pushMarkup.Contains('assets/push-notifications.js?v=3')) { Add-Failure "${pushPromptPage}: background alert setup is not loaded" }
   if (-not $pushMarkup.Contains('assets/incoming-calls.css?v=2')) { Add-Failure "${pushPromptPage}: background alert prompt styling is not loaded" }
 }
 $profileMarkup = Get-Content -LiteralPath (Join-Path $root 'profile.html') -Raw -Encoding utf8
