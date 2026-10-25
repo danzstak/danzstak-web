@@ -28,11 +28,23 @@ $requiredMessagingProtections = @(
   "hiddenBefore = :deleted",
   ".filter(x=>x.createdAt.S>hiddenBefore)",
   ".filter(x=>x.preview?.S)",
-  "conversationUpdate(recipient,user.email)"
+  "conversationUpdate(recipient,user.email,1)"
 )
 foreach ($protection in $requiredMessagingProtections) {
   if (-not $template.Contains($protection)) {
     throw "Messaging privacy protection is missing: $protection"
+  }
+}
+
+$requiredUnreadMessaging = @(
+  "conversationUpdate(user.email,recipient,0)",
+  "UpdateExpression:'SET unread = :n'",
+  "unread:Number(x.unread?.N||0)",
+  "type:'message'"
+)
+foreach ($protection in $requiredUnreadMessaging) {
+  if (-not $template.Contains($protection)) {
+    throw "Unread-message behavior is missing: $protection"
   }
 }
 

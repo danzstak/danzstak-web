@@ -73,6 +73,11 @@ if ($serviceWorker -notmatch 'const CACHE = "danzstak-shell-v\d+";' -or
   Add-Failure 'service-worker.js: installed-app cache update activation is incomplete'
 }
 
+$chatCss = Get-Content -LiteralPath (Join-Path $root 'assets\chat.css') -Raw -Encoding utf8
+if (-not $chatCss.Contains('.embedded-messages .conversation-choices{display:none!important}')) {
+  Add-Failure 'chat.css: embedded message drawer exposes the oversized conversation chooser'
+}
+
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
   Where-Object {
     $_.FullName -notlike "$root\.git\*" -and

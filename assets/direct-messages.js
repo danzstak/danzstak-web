@@ -147,10 +147,9 @@ async function loadConversations() {
     cachedConversations = [...contacts.values()];
     conversationUsers.replaceChildren();
     const query = chatSearch?.value.trim().toLowerCase() || "";
-    const readTimes = readChatTimes();
     const visible = cachedConversations.filter(item => {
       const matchesSearch = !query || (item.name + " " + item.contactEmail + " " + item.preview).toLowerCase().includes(query);
-      const unread = item.updatedAt && item.updatedAt > (readTimes[item.contactEmail] || "");
+      const unread = Number(item.unread || 0) > 0;
       const matchesFilter = activeFilter === "all" || (activeFilter === "unread" && unread) || (["groups", "communities"].includes(activeFilter) && item.sharedGroup);
       return matchesSearch && matchesFilter;
     });
@@ -163,7 +162,7 @@ async function loadConversations() {
       const copy = document.createElement("span"); copy.className = "conversation-copy";
       const name = document.createElement("strong"); name.textContent = conversation.name || conversation.contactEmail;
       const preview = document.createElement("small"); preview.textContent = conversation.preview || "Open chat";
-      const unread = conversation.updatedAt && conversation.updatedAt > (readTimes[conversation.contactEmail] || "");
+      const unread = Number(conversation.unread || 0) > 0;
       button.classList.toggle("is-unread", Boolean(unread));
       const time = document.createElement("time"); time.textContent = conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
       copy.append(name, preview); button.append(avatar, copy, time);

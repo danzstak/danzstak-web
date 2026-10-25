@@ -229,10 +229,22 @@ function renderWorkspace(name) {
           const row = document.createElement("article");
           row.className = "notification-row";
           const message = document.createElement("p");
-          message.textContent = `${notice.email} sent you a friend request.`;
+          message.textContent = notice.type === "message"
+            ? `${notice.email}: ${notice.preview || "New message"}`
+            : `${notice.email} sent you a friend request.`;
           const actions = document.createElement("div");
           actions.className = "notification-actions";
-          for (const [label, accept] of [["Accept", true], ["Decline", false]]) {
+          if (notice.type === "message") {
+            const open = document.createElement("button");
+            open.type = "button";
+            open.className = "primary";
+            open.textContent = "Open chat";
+            open.addEventListener("click", () => {
+              if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email);
+              setTimeout(refreshNotificationCount, 1000);
+            });
+            actions.appendChild(open);
+          } else for (const [label, accept] of [["Accept", true], ["Decline", false]]) {
             const button = document.createElement("button");
             button.type = "button";
             button.textContent = label;
