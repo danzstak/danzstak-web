@@ -1053,6 +1053,7 @@ if (composerActions && publishButton) {
       post.className = "post";
       post.dataset.audience = "public";
       post.dataset.postId = crypto.randomUUID();
+      post.dataset.isOwner = "true";
       const header = document.createElement("div");
       header.className = "post-header";
       header.textContent = "You";
@@ -1310,7 +1311,7 @@ function addPostDeleteButton(post) {
   menu.appendChild(handle);
     let history = (() => { try { const value = JSON.parse(post.dataset.editHistory || "[]"); return Array.isArray(value) ? value : []; } catch { return []; } })();
     const preferences = readPostPreferences()[String(post.dataset.postId || "")] || {};
-    const owner = post.dataset.isOwner !== "false";
+    const owner = post.dataset.isOwner === "true";
     const audienceBadge = post.querySelector(".post-audience");
     const audienceText = audienceBadge?.textContent || "Public";
     post.dataset.privacySetting = String(/Friends/i.test(audienceText) ? 1 : /Only me/i.test(audienceText) ? 2 : 0);
@@ -1497,7 +1498,7 @@ function addPostDeleteButton(post) {
     option("Move to archive", "Hide this post from your account.", () => hidePostForAccount(post));
   option("Delete post", "Delete your post or remove another user's post from your feed.", async () => {
     const postId = post.dataset.postId;
-    if (post.dataset.isOwner === "false") {
+    if (post.dataset.isOwner !== "true") {
       if (confirm("You did not post this. Do you want to delete it from your feed?")) await removePostFromThisFeed();
       return;
     }

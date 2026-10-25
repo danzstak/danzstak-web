@@ -887,6 +887,7 @@ async function getSecurePosts(event) {
     .map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
+      isOwner: item.userId?.S === userId,
       userEmail: item.userEmail?.S ?? "",
       content: item.content.S,
       audience: item.audience?.S ?? "public",
