@@ -101,6 +101,9 @@ if (-not $chatScript.Contains('if(await handleEvent(event))handled.push(event.ev
 if ($incomingCalls.Contains('const disposable =') -or -not $incomingCalls.Contains('document.getElementById("messageDrawer")')) {
   Add-Failure 'Calls: background watcher may steal active chat signals'
 }
+foreach ($backgroundCallControl in @('if (drawer && !drawer.hidden) return;', 'window.openMessageDrawer(event.senderEmail, true)', 'answerCall = false', 'target.searchParams.set("answer", "1")')) {
+  if (-not ($incomingCalls + $feed).Contains($backgroundCallControl)) { Add-Failure "Calls: hidden message drawer can suppress or misroute incoming calls: $backgroundCallControl" }
+}
 foreach ($callBehavior in @('setCallMode(kind)', 'showCallConversation()', 'setCallMode("")')) {
   if (-not $chatScript.Contains($callBehavior)) { Add-Failure "Calls: missing call layout state behavior: $callBehavior" }
 }

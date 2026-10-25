@@ -54,8 +54,16 @@
 
   answer.addEventListener("click", () => {
     if (!current) return;
+    const event = current;
+    if (typeof window.openMessageDrawer === "function") {
+      navigator.vibrate?.(0);
+      popup.hidden = true;
+      current = null;
+      window.openMessageDrawer(event.senderEmail, true);
+      return;
+    }
     const destination = new URL("messages.html", location.href);
-    destination.searchParams.set("contact", current.senderEmail);
+    destination.searchParams.set("contact", event.senderEmail);
     destination.searchParams.set("answer", "1");
     navigator.vibrate?.(0);
     location.assign(destination.href);
@@ -88,7 +96,8 @@
 
   async function poll() {
     if (polling || current) return;
-    if (document.getElementById("messageDrawer")) return;
+    const drawer = document.getElementById("messageDrawer");
+    if (drawer && !drawer.hidden) return;
     polling = true;
     try {
       const inbox = await api("/calls/inbox");
