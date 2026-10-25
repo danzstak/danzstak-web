@@ -211,20 +211,24 @@ mediaTools.appendChild(repositionButton);
 const fitCoverButton = document.createElement("button");
 fitCoverButton.type = "button";
 fitCoverButton.textContent = "Fit Entire Cover";
-fitCoverButton.addEventListener("click", async () => {
+async function toggleCoverFit() {
   if (!coverElement.classList.contains("has-photo")) return alert("Add a cover photo first.");
   const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
-  saved.coverFit = !saved.coverFit;
-  localStorage.setItem(profileMediaKey, JSON.stringify(saved));
-  coverElement.style.backgroundSize = saved.coverFit ? "contain" : "cover";
-  coverElement.style.backgroundRepeat = "no-repeat";
-  fitCoverButton.classList.toggle("active", saved.coverFit);
-  fitCoverButton.textContent = saved.coverFit ? "Fill Cover Box" : "Fit Entire Cover";
-  if (window.danzstakCurrentProfile?.cloudProfile) {
-    try { await saveCloudProfile({ coverFit: saved.coverFit }); }
-    catch (error) { alert(error.message); }
-  }
-});
+  const cloud = window.danzstakCurrentProfile;
+  const coverFit = !(cloud?.cloudProfile ? cloud.coverFit : saved.coverFit);
+  fitCoverButton.disabled = true;
+  try {
+    if (cloud?.cloudProfile) await saveCloudProfile({ coverFit });
+    saved.coverFit = coverFit;
+    try { localStorage.setItem(profileMediaKey, JSON.stringify(saved)); } catch { /* Cloud save remains authoritative. */ }
+    coverElement.style.backgroundSize = coverFit ? "contain" : "cover";
+    coverElement.style.backgroundRepeat = "no-repeat";
+    fitCoverButton.classList.toggle("active", coverFit);
+    fitCoverButton.textContent = coverFit ? "Fill Cover Box" : "Fit Entire Cover";
+  } catch (error) { alert(error.message); }
+  finally { fitCoverButton.disabled = false; }
+}
+fitCoverButton.addEventListener("click", toggleCoverFit);
 try {
   const savedCover = JSON.parse(localStorage.getItem(profileMediaKey) || "{}");
   fitCoverButton.classList.toggle("active", Boolean(savedCover.coverFit));
