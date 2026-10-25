@@ -41,3 +41,13 @@ After deployment, run `powershell -ExecutionPolicy Bypass -File ./test-live-secu
 Upload tickets from `POST /stories` accept `purpose: "post"` or `purpose: "profile"` for permanent `users/` storage. Omitting the purpose preserves the temporary `stories/` path and its expiration policy. Post and profile saves verify the authenticated owner's prefix. Story discard requests cannot delete permanent uploads.
 
 Profile saves retain newly uploaded files when the save response is lost, since the database may already have committed them. Failure to delete an old profile image or video is logged without reporting the committed profile save as failed.
+
+## Delivery phases
+
+The current priority is stabilizing the existing DanzStak site: feed, profiles, friends, groups, privacy, media, and mobile use. Android call ringing and duplicate call notifications remain unresolved; phone testing is parked until the owner resumes it.
+
+After the site is ready, tour booking is the next priority, ahead of the admin dashboard and email server:
+
+1. A tour-booking module for bands to locate clubs geographically and contact them about booking their act. The planned flow includes city or location search, distance filters, venue profiles, and booking requests with act details and proposed dates. Location permission should be optional, with manual city/location entry available. Initial booking conversations can use DanzStak messaging.
+2. An admin dashboard, including review of post and group reports.
+3. An email server and email delivery workflows, including optional booking email notifications.
