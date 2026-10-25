@@ -168,6 +168,11 @@ if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.C
 }
 $sessionActivityJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-activity.js') -Raw -Encoding utf8
 $profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.js') -Raw -Encoding utf8
+foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Signs out after 2h without activity', '"Account", logout')) {
+  if (-not $feedEnhancements.Contains($settingsBehavior)) { Add-Failure "Settings: persistent control is missing: $settingsBehavior" }
+}
+$logoutJs = Get-Content -LiteralPath (Join-Path $root 'assets\logout.js') -Raw -Encoding utf8
+if (-not $logoutJs.Contains('event.target.closest("[data-logout]")')) { Add-Failure 'Logout: dynamically rendered account controls are not handled' }
 foreach ($profileVideoBehavior in @('/profile-video', 'uploadCloudMedia(file)', 'Remove Profile Video', 'action: "view"', 'revealProfileVideoControls()')) {
   if (-not $profileEditorJs.Contains($profileVideoBehavior)) { Add-Failure "Profiles: durable profile video behavior is missing: $profileVideoBehavior" }
 }

@@ -1,7 +1,8 @@
 "use strict";
 
-for (const button of document.querySelectorAll("[data-logout]")) {
-  button.addEventListener("click", async event => {
+document.addEventListener("click", async event => {
+    const button = event.target.closest("[data-logout]");
+    if (!button) return;
     event.preventDefault();
     if (!confirm("Log out of your DanzStak account?")) return;
     button.disabled = true;
@@ -24,5 +25,4 @@ for (const button of document.querySelectorAll("[data-logout]")) {
       button.textContent = original;
       alert("Logout failed. Please try again.");
     }
-  });
-}
+});

@@ -2,6 +2,7 @@
 
 try {
   document.documentElement.classList.toggle("dark-mode", localStorage.getItem("danzstak_dark_mode") === "1");
+  document.documentElement.classList.toggle("reduce-motion", localStorage.getItem("danzstak_reduce_motion") === "1");
   document.documentElement.lang = localStorage.getItem("danzstak_language") || "en";
 } catch { /* Device preferences remain optional when storage is unavailable. */ }
 
@@ -545,6 +546,19 @@ function renderWorkspace(name) {
       document.documentElement.classList.toggle("dark-mode", darkCheckbox.checked);
       localStorage.setItem("danzstak_dark_mode", darkCheckbox.checked ? "1" : "0");
     });
+    const motionCheckbox = document.createElement("input");
+    motionCheckbox.type = "checkbox";
+    motionCheckbox.checked = document.documentElement.classList.contains("reduce-motion");
+    motionCheckbox.setAttribute("aria-label", "Reduce interface motion");
+    motionCheckbox.addEventListener("change", () => {
+      document.documentElement.classList.toggle("reduce-motion", motionCheckbox.checked);
+      localStorage.setItem("danzstak_reduce_motion", motionCheckbox.checked ? "1" : "0");
+    });
+    const dataSaverCheckbox = document.createElement("input");
+    dataSaverCheckbox.type = "checkbox";
+    dataSaverCheckbox.checked = localStorage.getItem("danzstak_data_saver") === "1";
+    dataSaverCheckbox.setAttribute("aria-label", "Use less mobile data");
+    dataSaverCheckbox.addEventListener("change", () => localStorage.setItem("danzstak_data_saver", dataSaverCheckbox.checked ? "1" : "0"));
     const language = document.createElement("select");
     language.setAttribute("aria-label", "DanzStak language");
     for (const [value, label] of [["en", "English"]]) {
@@ -571,6 +585,16 @@ function renderWorkspace(name) {
       updateAlertLabel();
       featureText.textContent = Notification.permission === "granted" ? "Call and message alerts are enabled while DanzStak can receive them." : "Notifications are blocked. Enable them in your browser or device settings.";
     });
+    const legalLinks = document.createElement("span");
+    legalLinks.className = "settings-links";
+    const privacyLink = document.createElement("a"); privacyLink.href = "privacy.html"; privacyLink.textContent = "Privacy";
+    const termsLink = document.createElement("a"); termsLink.href = "terms.html"; termsLink.textContent = "Terms";
+    legalLinks.append(privacyLink, termsLink);
+    const sessionInfo = document.createElement("span");
+    sessionInfo.className = "settings-detail";
+    sessionInfo.textContent = "Signs out after 2h without activity";
+    const logout = document.createElement("button");
+    logout.type = "button"; logout.className = "secondary"; logout.dataset.logout = ""; logout.textContent = "Logout";
     fetch("https://api.danzstak.com/settings/presence", { credentials: "include", cache: "no-store" })
       .then(response => response.ok ? response.json() : null)
       .then(data => { if (data) presenceCheckbox.checked = data.onlineVisible !== false; });
@@ -579,7 +603,7 @@ function renderWorkspace(name) {
     button.type = "button";
     button.textContent = "Save Settings";
     button.addEventListener("click", async () => {
-      saved.Settings = { notifications: checkbox.checked };
+      saved.Settings = { ...(saved.Settings || {}), notifications: checkbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked };
       writeSections(saved);
       const response = await fetch("https://api.danzstak.com/settings/presence", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ onlineVisible: presenceCheckbox.checked }) });
       featureText.textContent = response.ok ? "Settings saved." : "Online visibility could not be saved.";
@@ -591,9 +615,14 @@ function renderWorkspace(name) {
       settingRow("👤", "Account settings", notifications),
       settingRow("🔒", "Privacy center", presence),
       settingRow("🌙", "Dark mode", darkCheckbox),
+      settingRow("✨", "Reduce motion", motionCheckbox),
+      settingRow("📶", "Data saver", dataSaverCheckbox),
       settingRow("🌐", "Language", language),
       settingRow("🔔", "Call and message alerts", alertSettings),
       settingRow("📱", "App and device settings", appSettings),
+      settingRow("🕒", "Session timeout", sessionInfo),
+      settingRow("📄", "Legal and privacy", legalLinks),
+      settingRow("🚪", "Account", logout),
       button
     );
   }
@@ -1524,7 +1553,7 @@ function renderPlayableReels() {
       video.autoplay = true;
       video.muted = true;
       video.loop = true;
-      video.preload = "metadata";
+      video.preload = localStorage.getItem("danzstak_data_saver") === "1" ? "none" : "metadata";
       reelPlaybackObserver.observe(video);
       card.appendChild(video);
     } else if (playerInfo?.kind === "iframe") {
