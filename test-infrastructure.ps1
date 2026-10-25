@@ -180,6 +180,13 @@ if (-not $template.Contains("body.action==='list')return json(200,{groupIds:[...
 if (-not $template.Contains("hiddenPosts?.SS||[]") -or -not $template.Contains("key.endsWith(' /settings/posts')")) {
   throw 'Cross-device archived/hidden post settings are missing.'
 }
+if (-not $template.Contains("pinned:'pinnedPosts',saved:'savedPosts',muted:'mutedPosts'") -or
+    -not $template.Contains("ExpressionAttributeNames:{'#field':field}") -or
+    -not $template.Contains("pinned:item.pinnedPosts?.SS||[]") -or
+    -not $template.Contains("saved:item.savedPosts?.SS||[]") -or
+    -not $template.Contains("muted:item.mutedPosts?.SS||[]")) {
+  throw 'Cross-device pin, save, and notification post settings are missing.'
+}
 
 foreach ($scriptName in @('aws-deploy-production.ps1', 'aws-configure-production.ps1', 'aws-harden-cloudfront.ps1')) {
   $scriptText = Get-Content -LiteralPath (Join-Path $PSScriptRoot $scriptName) -Raw -Encoding utf8

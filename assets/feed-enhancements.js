@@ -1027,6 +1027,16 @@ function updatePostPreference(post, changes) {
   const preferences = readPostPreferences();
   preferences[postId] = { ...(preferences[postId] || {}), ...changes };
   localStorage.setItem(postPreferencesKey, JSON.stringify(preferences));
+  if (!isLocalHost()) {
+    const remoteNames = { pinned: "pinned", saved: "saved", notificationsOff: "muted" };
+    for (const [name, enabled] of Object.entries(changes)) {
+      if (!remoteNames[name] || typeof enabled !== "boolean") continue;
+      fetch("https://api.danzstak.com/settings/posts", {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId, preference: remoteNames[name], enabled })
+      }).catch(() => null);
+    }
+  }
 }
 
 const hiddenPostKey = "danzstak-hidden-posts";
@@ -1048,13 +1058,28 @@ async function hidePostForAccount(post) {
   post.remove();
   if (!isLocalHost()) await fetch("https://api.danzstak.com/settings/posts", {
     method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ postId, hidden: true })
+    body: JSON.stringify({ postId, preference: "hidden", enabled: true })
   }).catch(() => null);
 }
 
 if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts", { credentials: "include", cache: "no-store" })
   .then(response => response.ok ? response.json() : null)
-  .then(data => { for (const id of data?.postIds || []) hiddenPostIds.add(String(id)); localStorage.setItem(hiddenPostKey, JSON.stringify([...hiddenPostIds])); applyHiddenPosts(); })
+  .then(data => {
+    if (!data) return;
+    hiddenPostIds = new Set((data.hidden || data.postIds || []).map(String));
+    localStorage.setItem(hiddenPostKey, JSON.stringify([...hiddenPostIds]));
+    const preferences = readPostPreferences();
+    const remote = { pinned: new Set((data.pinned || []).map(String)), saved: new Set((data.saved || []).map(String)), notificationsOff: new Set((data.muted || []).map(String)) };
+    const visibleIds = [...document.querySelectorAll(".post[data-post-id]")].map(post => String(post.dataset.postId));
+    for (const postId of visibleIds) preferences[postId] = { ...(preferences[postId] || {}), pinned: remote.pinned.has(postId), saved: remote.saved.has(postId), notificationsOff: remote.notificationsOff.has(postId) };
+    localStorage.setItem(postPreferencesKey, JSON.stringify(preferences));
+    applyHiddenPosts();
+    document.querySelectorAll(".post[data-post-id]").forEach(post => {
+      post.querySelector(".post-menu-toggle")?.remove();
+      post.querySelector(".post-options-menu")?.remove();
+      addPostDeleteButton(post);
+    });
+  })
   .catch(() => {});
 
 function addPostDeleteButton(post) {
@@ -1100,7 +1125,7 @@ function addPostDeleteButton(post) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "post-option-row";
-    if (title === "Move to trash") button.classList.add("post-option-danger");
+    if (title === "Delete post") button.classList.add("post-option-danger");
     const icon = document.createElement("span");
     icon.className = "post-option-icon";
     icon.setAttribute("aria-hidden", "true");

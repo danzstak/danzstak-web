@@ -286,6 +286,11 @@ if (-not $feedEnhancementsJs.Contains('https://api.danzstak.com/settings/posts')
     -not $feedEnhancementsJs.Contains('option("Move to archive", "Hide this post from your account."')) {
   Add-Failure 'Post menu: archived and hidden posts are not persisted to the account'
 }
+if (-not $feedEnhancementsJs.Contains('const remoteNames = { pinned: "pinned", saved: "saved", notificationsOff: "muted" }') -or
+    -not $feedEnhancementsJs.Contains('preference: remoteNames[name], enabled') -or
+    -not $feedEnhancementsJs.Contains('if (title === "Delete post") button.classList.add("post-option-danger")')) {
+  Add-Failure 'Post menu: pin, save, mute, or destructive-action persistence is incomplete'
+}
 if (-not $feedEnhancementsJs.Contains('readSections().Settings?.notifications === false') -or
     -not $feedEnhancementsJs.Contains('Show activity notification badges on this device')) {
   Add-Failure 'Settings: the activity notification preference is misleading or not enforced'
