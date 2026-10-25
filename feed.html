@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-ZSo1Bno/1MNWTXcwYwJ0GfVwkAVvc4A678LT4Avn0oU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-uPUlNwaNKLWe0P037cLv/5LeR3JhVRNc/d1EY4JIxxs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -374,7 +374,7 @@ textarea {
 
     <div class="panel" aria-labelledby="onlineUsersTitle">
       <h3 id="onlineUsersTitle">Online Users</h3>
-      <div id="feedOnlineUsers"><p class="muted">Checking who is online…</p></div>
+      <div id="feedOnlineUsers" aria-live="polite"><p class="muted">Checking who is online…</p></div>
     </div>
 
   </aside>
@@ -457,15 +457,14 @@ async function loadOnlineUsers() {
       const email = String(user.email || "").toLowerCase();
       if (email) merged.set(email, { ...(merged.get(email) || {}), ...user, email });
     }
-    const users = [...merged.values()];
+    const users = [...merged.values()].filter(user => user.online === true);
     container.replaceChildren();
     if (!users.length) {
-      const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No friends or group members available."; container.appendChild(empty); return;
+      const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No friends are online right now."; container.appendChild(empty); return;
     }
     for (const user of users) {
       const row = document.createElement("div"); row.className = "feed-online-row";
-      const name = document.createElement("span"); name.textContent = "● " + user.email;
-      name.textContent = (user.online ? "Online: " : "Offline: ") + (user.name || user.email);
+      const name = document.createElement("span"); name.textContent = "● " + (user.name || user.email);
       const action = document.createElement(user.friendStatus === "friends" ? "a" : "button");
       if (user.friendStatus === "friends" || user.sharedGroup) { action.href = "messages.html?contact=" + encodeURIComponent(user.email); action.textContent = user.friendStatus === "friends" ? "Message" : "Group Message"; }
       else if (user.friendStatus === "incoming") { action.type = "button"; action.textContent = "Accept"; action.addEventListener("click", async () => { await updateFeedFriend("/friends/respond", { email: user.email, accept: true }); }); }
@@ -488,8 +487,8 @@ async function loadFriends() {
   const container = document.getElementById("feedFriends");
   try {
     const [friendsResult, directoryResult] = await Promise.allSettled([
-      fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store" }),
-      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" })
+      fetchWithDeadline("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store" }),
+      fetchWithDeadline("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" })
     ]);
     const friendsResponse = friendsResult.status === "fulfilled" ? friendsResult.value : null;
     const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;

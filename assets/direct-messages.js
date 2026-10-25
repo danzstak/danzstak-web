@@ -27,6 +27,12 @@ let loadingMessages = false;
 const shownMessages = new Set();
 let cachedConversations = [];
 let reactionTimer = null;
+async function directFetch(path, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(directApi + path, { ...options, signal: controller.signal }); }
+  finally { clearTimeout(timer); }
+}
 let activeFilter = "all";
 const chatReadKey = "danzstak_chat_read";
 
@@ -111,14 +117,15 @@ async function loadDirectMessages(reset = false) {
 async function loadConversations() {
   try {
     const results = await Promise.allSettled([
-      fetch(directApi + "/conversations", { credentials: "include", cache: "no-store" }),
-      fetch(directApi + "/friends", { credentials: "include", cache: "no-store" }),
-      fetch(directApi + "/calls/directory", { credentials: "include", cache: "no-store" })
+      directFetch("/conversations", { credentials: "include", cache: "no-store" }),
+      directFetch("/friends", { credentials: "include", cache: "no-store" }),
+      directFetch("/calls/directory", { credentials: "include", cache: "no-store" })
     ]);
     const usableResponse = result => result.status === "fulfilled" && result.value.ok ? result.value : null;
     const conversationResponse = usableResponse(results[0]);
     const friendsResponse = usableResponse(results[1]);
     const directoryResponse = usableResponse(results[2]);
+    if (!conversationResponse && !friendsResponse && !directoryResponse) throw new Error("Contacts are temporarily unavailable");
     const data = conversationResponse ? await conversationResponse.json() : { conversations: [] };
     const friendsData = friendsResponse ? await friendsResponse.json() : { friends: [] };
     const directoryData = directoryResponse ? await directoryResponse.json() : { users: [] };
@@ -186,7 +193,12 @@ async function loadConversations() {
     }
     const requested = contactInput.value.trim().toLowerCase();
     if (requested && conversationHeader.hidden) openConversation(cachedConversations.find(item => item.contactEmail === requested) || { contactEmail: requested, name: requested.split("@")[0], picture: "" });
-  } catch { /* Retry on the next refresh. */ }
+  } catch {
+    if (!cachedConversations.length) {
+      conversationUsers.replaceChildren();
+      const unavailable = document.createElement("p"); unavailable.className = "chat-note"; unavailable.textContent = "Contacts are temporarily unavailable. Retrying automatically…"; conversationUsers.appendChild(unavailable);
+    }
+  }
 }
 
 chatSearch?.addEventListener("input", loadConversations);

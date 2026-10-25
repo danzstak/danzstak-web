@@ -160,6 +160,12 @@ $directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-mes
 foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'document.hidden && !reset', 'visibilitychange')) {
   if (-not $directMessagesJs.Contains($messagePollingBehavior)) { Add-Failure "Messages: respectful live polling behavior is missing: $messagePollingBehavior" }
 }
+foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'Contacts are temporarily unavailable. Retrying automatically')) {
+  if (-not $directMessagesJs.Contains($contactFailureBehavior)) { Add-Failure "Messages: bounded contact loading behavior is missing: $contactFailureBehavior" }
+}
+if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.Contains('No friends are online right now.')) {
+  Add-Failure 'Online Users: the right panel can show offline contacts as online-directory results'
+}
 $sessionActivityJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-activity.js') -Raw -Encoding utf8
 $profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.js') -Raw -Encoding utf8
 foreach ($profileVideoBehavior in @('/profile-video', 'uploadCloudMedia(file)', 'Remove Profile Video', 'action: "view"', 'revealProfileVideoControls()')) {
