@@ -1111,28 +1111,43 @@ function postPermalink(post) {
 }
 
 const postPreferencesKey = "danzstak-post-preferences";
+const changedPostPreferenceFields = new Map();
+
+function mergeRemotePostPreferences(postId, current, remote) {
+  const merged = { ...(current || {}) };
+  const changed = changedPostPreferenceFields.get(postId);
+  for (const [name, values] of Object.entries(remote)) {
+    if (!changed?.has(name)) merged[name] = values.has(postId);
+  }
+  return merged;
+}
 
 function readPostPreferences() {
   try { return JSON.parse(localStorage.getItem(postPreferencesKey) || "{}"); }
   catch { return {}; }
 }
 
-function updatePostPreference(post, changes) {
+async function updatePostPreference(post, changes) {
   const postId = String(post.dataset.postId || "");
   if (!postId) return;
-  const preferences = readPostPreferences();
-  preferences[postId] = { ...(preferences[postId] || {}), ...changes };
-  localStorage.setItem(postPreferencesKey, JSON.stringify(preferences));
   if (!isLocalHost()) {
     const remoteNames = { pinned: "pinned", saved: "saved", notificationsOff: "muted" };
     for (const [name, enabled] of Object.entries(changes)) {
       if (!remoteNames[name] || typeof enabled !== "boolean") continue;
-      fetch("https://api.danzstak.com/settings/posts", {
+      const response = await fetch("https://api.danzstak.com/settings/posts", {
         method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postId, preference: remoteNames[name], enabled })
-      }).catch(() => null);
+      });
+      if (!response.ok) throw new Error("This post preference could not be saved. Please try again.");
     }
   }
+  const preferences = readPostPreferences();
+  const changed = changedPostPreferenceFields.get(postId) || new Set();
+  Object.keys(changes).forEach(name => changed.add(name));
+  changedPostPreferenceFields.set(postId, changed);
+  preferences[postId] = { ...(preferences[postId] || {}), ...changes };
+  try { localStorage.setItem(postPreferencesKey, JSON.stringify(preferences)); }
+  catch { /* Confirmed account preferences remain usable without local storage. */ }
 }
 
 const hiddenPostKey = "danzstak-hidden-posts";
@@ -1167,7 +1182,7 @@ if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts", { credentia
     const preferences = readPostPreferences();
     const remote = { pinned: new Set((data.pinned || []).map(String)), saved: new Set((data.saved || []).map(String)), notificationsOff: new Set((data.muted || []).map(String)) };
     const visibleIds = [...document.querySelectorAll(".post[data-post-id]")].map(post => String(post.dataset.postId));
-    for (const postId of visibleIds) preferences[postId] = { ...(preferences[postId] || {}), pinned: remote.pinned.has(postId), saved: remote.saved.has(postId), notificationsOff: remote.notificationsOff.has(postId) };
+    for (const postId of visibleIds) preferences[postId] = mergeRemotePostPreferences(postId, preferences[postId], remote);
     localStorage.setItem(postPreferencesKey, JSON.stringify(preferences));
     applyHiddenPosts();
     document.querySelectorAll(".post[data-post-id]").forEach(post => {
@@ -1289,22 +1304,31 @@ function addPostDeleteButton(post) {
       copy.appendChild(small);
     }
     button.append(icon, copy);
-    button.addEventListener("click", async () => { await handler(button); menu.hidden = true; toggle.setAttribute("aria-expanded", "false"); });
+    button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      button.disabled = true;
+      try {
+        await handler(button);
+        menu.hidden = true;
+        toggle.setAttribute("aria-expanded", "false");
+      } catch (error) { alert(error.message || "This action could not be saved. Please try again."); }
+      finally { button.disabled = false; }
+    });
     menu.appendChild(button);
     return button;
   }
 
-  const pinOption = option("Pin post", "Keep this post at the top of your feed.", button => {
+  const pinOption = option("Pin post", "Keep this post at the top of your feed.", async button => {
     const pinned = post.dataset.pinned === "true";
+    await updatePostPreference(post, { pinned: !pinned });
     post.dataset.pinned = String(!pinned);
-    updatePostPreference(post, { pinned: !pinned });
     button.querySelector("strong").textContent = pinned ? "Pin post" : "Unpin post";
     if (!pinned) post.parentElement.prepend(post);
   });
-  const saveOption = option("Save post", "Add this to your saved items.", button => {
+  const saveOption = option("Save post", "Add this to your saved items.", async button => {
     const saved = post.dataset.saved === "true";
+    await updatePostPreference(post, { saved: !saved });
     post.dataset.saved = String(!saved);
-    updatePostPreference(post, { saved: !saved });
     button.querySelector("strong").textContent = saved ? "Save post" : "Unsave post";
   });
   if (preferences.pinned === true) pinOption.querySelector("strong").textContent = "Unpin post";
@@ -1390,7 +1414,7 @@ function addPostDeleteButton(post) {
       } catch (error) { alert(error.message); button.disabled = false; return; }
     }
     post.dataset.commentSetting = String(next);
-    updatePostPreference(post, { commentSetting: next });
+    await updatePostPreference(post, { commentSetting: next });
     button.querySelector("small").textContent = values[next];
     post.querySelector(".commentBtn").disabled = next === 2;
     button.disabled = false;
@@ -1450,10 +1474,10 @@ function addPostDeleteButton(post) {
       window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts } }));
     }
   });
-    const notificationsOption = option("Turn off notifications", "Stop updates for this post.", button => {
+    const notificationsOption = option("Turn off notifications", "Stop updates for this post.", async button => {
     const off = post.dataset.notificationsOff === "true";
+    await updatePostPreference(post, { notificationsOff: !off });
     post.dataset.notificationsOff = String(!off);
-    updatePostPreference(post, { notificationsOff: !off });
     button.querySelector("strong").textContent = off ? "Turn off notifications" : "Turn on notifications";
   });
   if (preferences.notificationsOff === true) notificationsOption.querySelector("strong").textContent = "Turn on notifications";
