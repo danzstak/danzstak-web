@@ -49,6 +49,10 @@ foreach ($required in @('aws cloudfront list-distributions', 'aws s3api head-buc
 
 $templatePath = Join-Path $PSScriptRoot 'infrastructure\call-signaling\template.yaml'
 $template = Get-Content -LiteralPath $templatePath -Raw -Encoding utf8
+$stableLogicalIds = @('SignalRoute:', 'InboxRoute:', 'AckRoute:', 'PresenceRoute:', 'DirectoryRoute:', 'GetPresenceSettingRoute:', 'SetPresenceSettingRoute:', 'GetPostSettingsRoute:', 'SetPostSettingsRoute:', 'FriendRequestRoute:', 'FriendRespondRoute:', 'GetFriendsRoute:', 'GetProfileRoute:', 'UpdateProfileRoute:', 'NotificationsRoute:', 'SendMessageRoute:', 'GetMessagesRoute:', 'DeleteMessagesRoute:', 'GetConversationsRoute:', 'GroupMembershipRoute:', 'CreateStoryRoute:', 'GetStoriesRoute:', 'DeleteStoryRoute:', 'GetNewsRoute:', 'SettingsInvokePermission:', 'FriendInvokePermission:', 'GetFriendsInvokePermission:')
+foreach ($logicalId in $stableLogicalIds) {
+  if (-not $template.Contains("  $logicalId")) { throw "Deployed CloudFormation logical ID changed and would replace a live route: $logicalId" }
+}
 if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
   throw 'Raw media URL access is not restricted to the authenticated owner.'
 }
