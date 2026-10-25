@@ -4,6 +4,19 @@ $Domain = "danzstak.com"
 $Root = $PSScriptRoot
 $Region = "us-west-1"
 
+function Wait-ForPublishedWorker {
+  param([string]$Url, [string]$ExpectedCache, [int]$MaxAttempts = 19, [int]$RetrySeconds = 10)
+  if (-not $ExpectedCache) { throw "The local service worker has no release identifier." }
+  for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+    try {
+      $worker = Invoke-WebRequest -Uri $Url -Headers @{ 'Cache-Control' = 'no-cache' } -UseBasicParsing -TimeoutSec 15
+      if ($worker.Content -match [regex]::Escape($ExpectedCache)) { return }
+    } catch { Write-Host "Live release check $attempt could not reach the service worker; retrying within the verification limit." }
+    if ($attempt -lt $MaxAttempts) { Start-Sleep -Seconds $RetrySeconds }
+  }
+  throw "The live service worker did not match release $ExpectedCache after $MaxAttempts checks."
+}
+
 Write-Host "Resolving the CloudFront distribution for $Domain..."
 $distributions = aws cloudfront list-distributions --region $Region --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) { throw "Unable to list CloudFront distributions." }
@@ -43,11 +56,8 @@ if (-not $distribution) {
     throw "Amplify did not publish commit $localCommit within ten minutes."
   }
 
-  $liveWorker = Invoke-WebRequest -Uri "https://$Domain/service-worker.js" -UseBasicParsing
   $expectedCache = (Select-String -Path (Join-Path $Root "service-worker.js") -Pattern 'danzstak-shell-v\d+').Matches.Value
-  if (-not $expectedCache -or $liveWorker.Content -notmatch [regex]::Escape($expectedCache)) {
-    throw "Amplify succeeded, but the live service worker does not match this release."
-  }
+  Wait-ForPublishedWorker -Url "https://$Domain/service-worker.js" -ExpectedCache $expectedCache
   Write-Host "DanzStak Amplify release verified live at https://$Domain/."
   exit 0
 }

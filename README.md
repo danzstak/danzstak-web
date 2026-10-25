@@ -26,6 +26,8 @@ The browser receives only the opaque `__Host-danzstak_session` cookie. Cognito t
 
 ## Local verification
 
+Run `./test-regressions.ps1` for the complete local regression check: the JavaScript behavior tests, release-verification tests, site checks, and infrastructure checks. It stops on the first failure. This command does not publish content or call live user accounts.
+
 Run `node ./test-messaging-races.cjs` to check that delayed requests cannot mix conversations, erase another chat's draft, or re-enable its composer.
 
 Run `powershell -ExecutionPolicy Bypass -File ./test-site.ps1` before publishing. It checks local page references, duplicate IDs, JavaScript syntax, removal of the retired test feed, and that the feed's inline application script is covered by its exact Content Security Policy hash.
