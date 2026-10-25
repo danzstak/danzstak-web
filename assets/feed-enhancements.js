@@ -156,6 +156,7 @@ function renderWorkspace(name) {
     featurePanel.appendChild(workspace);
   }
   workspace.replaceChildren();
+  workspace.classList.remove("settings-workspace");
   const saved = readSections();
 
   if (name === "Saved") {
