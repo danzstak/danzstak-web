@@ -40,6 +40,12 @@ $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhan
 foreach ($required in @('/engagement?postId=', '/reactions', '/comments', 'loadEngagement(post)', 'saveComment(post, event.target)', '/engagement-notifications/read')) {
   if (-not $feedEnhancements.Contains($required)) { Add-Failure "Durable feed engagement is missing: $required" }
 }
+foreach ($reelRequirement in @('id="shareToReels"', 'reel: mediaType === "video" && shareToReels.checked', 'danzstak:posts-loaded')) {
+  if (-not $feed.Contains($reelRequirement)) { Add-Failure "Uploaded-video Reels workflow is missing: $reelRequirement" }
+}
+foreach ($reelRequirement in @('post.reel === true', 'loadInternalReels', 'reel.internal')) {
+  if (-not $feedEnhancements.Contains($reelRequirement)) { Add-Failure "Internal Reels rendering is missing: $reelRequirement" }
+}
 $chatScript = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
 $incomingCalls = Get-Content -LiteralPath (Join-Path $root 'assets\incoming-calls.js') -Raw -Encoding utf8
 if (-not $chatScript.Contains('if(await handleEvent(event))handled.push(event.eventId)') -or $chatScript.Contains('filter(event=>event.signalType!=="offer")')) {

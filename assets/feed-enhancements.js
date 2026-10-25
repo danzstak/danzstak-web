@@ -636,6 +636,12 @@ if (composerActions && publishButton) {
         storyToggle.dataset.hasMedia = "true";
         storyToggle.closest("label")?.removeAttribute("title");
       }
+      const reelsToggle = document.getElementById("shareToReels");
+      if (reelsToggle) {
+        reelsToggle.disabled = kind !== "video";
+        reelsToggle.checked = kind === "video";
+        if (kind === "video") reelsToggle.closest("label")?.removeAttribute("title");
+      }
       const media = document.createElement(kind === "image" ? "img" : "video");
       media.src = selectedMedia.url;
       media.style.maxWidth = "100%";
@@ -726,6 +732,8 @@ if (composerActions && publishButton) {
         storyToggle.disabled = true;
         storyToggle.dataset.hasMedia = "false";
       }
+      const reelsToggle = document.getElementById("shareToReels");
+      if (reelsToggle) { reelsToggle.checked = false; reelsToggle.disabled = true; }
       observer.disconnect();
     });
     observer.observe(document.getElementById("feed"), { childList: true });
@@ -1091,6 +1099,10 @@ function addPostDeleteButton(post) {
       } catch { alert("The post could not be deleted from the server."); return; }
     }
     post.remove();
+    if (postId && Array.isArray(window.danzstakLoadedPosts)) {
+      window.danzstakLoadedPosts = window.danzstakLoadedPosts.filter(item => String(item.postId) !== String(postId));
+      window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts } }));
+    }
   });
     const notificationsOption = option("Turn off notifications", "Stop updates for this post.", button => {
     const off = post.dataset.notificationsOff === "true";
@@ -1277,6 +1289,7 @@ function addReactionButton(post) {
 
 const reelsStorageKey = "danzstak_external_reels";
 let cloudReels = null;
+let internalReels = [];
 const reelsRail = document.createElement("section");
 reelsRail.className = "reels-rail post";
 reelsRail.setAttribute("aria-label", "External video reels");
@@ -1314,7 +1327,23 @@ function getLocalReels() {
 }
 
 function getReels() {
-  return Array.isArray(cloudReels) ? cloudReels : getLocalReels();
+  const external = Array.isArray(cloudReels) ? cloudReels : getLocalReels();
+  return [...internalReels, ...external];
+}
+
+async function loadInternalReels(posts = []) {
+  const videos = posts.filter(post => post.reel === true && post.mediaType === "video" && post.mediaKey);
+  const resolved = await Promise.all(videos.map(async post => {
+    let mediaUrl = post.mediaUrl || "";
+    if (!mediaUrl) {
+      const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: "video" }) }).catch(() => null);
+      if (response?.ok) mediaUrl = (await response.json()).mediaUrl || "";
+    }
+    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
+  }));
+  internalReels = resolved.filter(Boolean);
+  renderPlayableReels();
+  placeReelsRail();
 }
 
 function reelPlatform(hostname) {
@@ -1360,15 +1389,15 @@ function renderPlayableReels() {
   if (!reels.length) {
     const empty = document.createElement("p");
     empty.className = "muted reels-empty";
-    empty.textContent = "External reels shared by the community will appear here.";
+    empty.textContent = "Videos shared to Reels will appear here.";
     reelsList.appendChild(empty);
     return;
   }
   for (const reel of reels) {
-    const reelUrlValue = new URL(reel.url);
+    const reelUrlValue = reel.url ? new URL(reel.url) : null;
     const card = document.createElement("article");
     card.className = "reel-card";
-    const playerInfo = reelPlayer(reelUrlValue);
+    const playerInfo = reel.internal ? { kind: "video", src: reel.mediaUrl } : reelPlayer(reelUrlValue);
     if (playerInfo?.kind === "video") {
       const video = document.createElement("video");
       video.className = "reel-player";
@@ -1401,15 +1430,15 @@ function renderPlayableReels() {
     details.className = "reel-details";
     const platform = document.createElement("strong");
     platform.textContent = reel.platform;
-    const open = document.createElement("a");
-    open.href = reel.url;
-    open.target = "_blank";
-    open.rel = "noopener noreferrer nofollow";
-    open.textContent = playerInfo ? "Open on source" : "Play on source";
     const source = document.createElement("small");
-    source.textContent = reelUrlValue.hostname;
-    details.append(platform, open, source);
-    if (!Array.isArray(cloudReels) || reel.isOwner === true) {
+    source.textContent = reel.internal ? reel.content : reelUrlValue.hostname;
+    details.append(platform, source);
+    if (reel.internal) {
+      const open = document.createElement("a"); open.href = "#post-" + encodeURIComponent(reel.postId); open.textContent = "View post"; details.appendChild(open);
+    } else {
+      const open = document.createElement("a"); open.href = reel.url; open.target = "_blank"; open.rel = "noopener noreferrer nofollow"; open.textContent = playerInfo ? "Open on source" : "Play on source"; details.appendChild(open);
+    }
+    if (!reel.internal && (!Array.isArray(cloudReels) || reel.isOwner === true)) {
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "reel-delete";
@@ -1429,6 +1458,9 @@ function renderPlayableReels() {
     reelsList.appendChild(card);
   }
 }
+
+window.addEventListener("danzstak:posts-loaded", event => loadInternalReels(event.detail?.posts || []));
+if (Array.isArray(window.danzstakLoadedPosts)) loadInternalReels(window.danzstakLoadedPosts);
 
 function placeReelsRail() {
   const feedElement = document.getElementById("feed");

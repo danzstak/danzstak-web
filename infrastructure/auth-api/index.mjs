@@ -635,6 +635,7 @@ async function getSecurePosts(event) {
       audience: item.audience?.S ?? "public",
       mediaKey: item.mediaKey?.S ?? "",
       mediaType: item.mediaType?.S ?? "",
+      reel: item.reel?.BOOL === true,
       createdAt: item.createdAt.S
     }))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -868,6 +869,7 @@ async function createSecurePost(event) {
   const audience = ["public", "friends", "private"].includes(data.audience) ? data.audience : "public";
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
+  const reel = mediaType === "video" && data.reel === true;
   const ownerPrefix = sha256(userId).slice(0, 24);
   if ((mediaKey && (!/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/.test(mediaKey) || !mediaKey.startsWith(`users/${ownerPrefix}/`))) || Boolean(mediaKey) !== Boolean(mediaType)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid media reference." }) };
@@ -886,7 +888,7 @@ async function createSecurePost(event) {
       content: { S: content },
       createdAt: { S: createdAt },
       audience: { S: audience },
-      ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType } } : {})
+      ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {})
     },
     ConditionExpression: "attribute_not_exists(postId)"
   }));
@@ -902,6 +904,7 @@ async function createSecurePost(event) {
       audience,
       mediaKey,
       mediaType,
+      reel,
       createdAt
     })
   };
