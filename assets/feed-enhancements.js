@@ -464,6 +464,29 @@ function renderWorkspace(name) {
     button.className = "primary";
     button.type = "button";
     button.textContent = "Add Event";
+    const publishedHeading = document.createElement("h4");
+    publishedHeading.textContent = "Published events";
+    const publishedEvents = document.createElement("div");
+    publishedEvents.className = "published-events";
+    const eventPosts = [...document.querySelectorAll("#feed .post")].filter(post => post.querySelector(".post-content")?.textContent.startsWith("📅 Event:"));
+    if (!eventPosts.length) {
+      const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No published events yet."; publishedEvents.appendChild(empty);
+    }
+    for (const post of eventPosts) {
+      const card = document.createElement("article"); card.className = "published-event-card";
+      const content = document.createElement("p"); content.textContent = post.querySelector(".post-content").textContent;
+      const meta = document.createElement("small"); meta.textContent = post.querySelector("time")?.textContent || "Published on DanzStak";
+      const view = document.createElement("button"); view.type = "button"; view.className = "secondary"; view.textContent = "View in Feed";
+      view.addEventListener("click", () => {
+        featurePanel.hidden = true;
+        document.getElementById("newsFeedView").hidden = false;
+        history.replaceState(null, "", "#" + (post.id || "feed"));
+        post.scrollIntoView({ behavior: "smooth", block: "center" });
+        post.focus({ preventScroll: true });
+      });
+      post.tabIndex = -1;
+      card.append(content, meta, view); publishedEvents.appendChild(card);
+    }
     button.addEventListener("click", async () => {
       if (!title.input.value.trim() || !date.input.value) return title.input.focus();
       button.disabled = true;
@@ -481,10 +504,11 @@ function renderWorkspace(name) {
         title.input.value = "";
         date.input.value = "";
         if (typeof window.loadPosts === "function") await window.loadPosts();
+        renderWorkspace("Events");
       } catch (error) { featureText.textContent = error.message; }
       finally { button.disabled = false; }
     });
-    workspace.append(title.wrap, date.wrap, audience, button);
+    workspace.append(title.wrap, date.wrap, audience, button, publishedHeading, publishedEvents);
     return;
   }
 

@@ -43,6 +43,9 @@ $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhan
 foreach ($eventBehavior in @('Event audience', 'Publishing event', '/secure-posts', 'Event published to DanzStak', 'window.loadPosts')) {
   if (-not $feedEnhancements.Contains($eventBehavior)) { Add-Failure "Events: durable feed publishing is missing: $eventBehavior" }
 }
+foreach ($eventListingBehavior in @('Published events', 'published-event-card', 'View in Feed', 'scrollIntoView')) {
+  if (-not $feedEnhancements.Contains($eventListingBehavior)) { Add-Failure "Events: published-event listing is missing: $eventListingBehavior" }
+}
 foreach ($groupRolloutBehavior in @('Checking group service', 'Create Group (updating)', 'createButton.disabled = false')) {
   if (-not $feedEnhancements.Contains($groupRolloutBehavior)) { Add-Failure "Groups: staged backend rollout behavior is missing: $groupRolloutBehavior" }
 }
