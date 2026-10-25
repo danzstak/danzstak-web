@@ -13,6 +13,9 @@ foreach ($reelPersistence in @('reel: item.reel?.BOOL === true', 'const reel = m
 foreach ($groupPersistence in @('async function listGroups(event)', 'async function createGroup(event)', 'async function deleteGroup(event)', 'data.communityStandards !== true', 'Only the group owner can delete it', 'groupId: { S: id }, joinedAt: { S: createdAt }')) {
   if (-not $authApi.Contains($groupPersistence)) { throw "Auth API durable group control is missing: $groupPersistence" }
 }
+foreach ($groupAuthorizationControl in @('const defaultGroupIds = new Set(', 'async function groupExists(groupId)', 'Key: { userEmail: { S: `GROUP#${groupId}` }, groupId: { S: "META" } }', 'for (const groupId of sharedGroups) if (await groupExists(groupId)) return true')) {
+  if (-not $authApi.Contains($groupAuthorizationControl)) { throw "Auth API accepts unverified group authorization: $groupAuthorizationControl" }
+}
 foreach ($profileVideoControl in @('async function getProfileVideo(event)', 'async function setProfileVideo(event)', 'profileVideoKey', 'Invalid profile video', 'DeleteObjectCommand', 'canViewProfileMedia')) {
   if (-not $authApi.Contains($profileVideoControl)) { throw "Auth API durable profile-video control is missing: $profileVideoControl" }
 }
@@ -168,7 +171,7 @@ if (-not $profileUpdate.Contains('oldMedia.push(old)') -or
 }
 
 $requiredDataPermissions = @(
-  'Action: [dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]',
+  'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]',
   'Action: [dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem]',
   'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem]'
 )
@@ -196,8 +199,18 @@ foreach ($pushCapability in @(
   if (-not $template.Contains($pushCapability)) { throw "Background push capability is missing: $pushCapability" }
 }
 
-if (-not $template.Contains("body.action==='list')return json(200,{groupIds:[...await groupIds(user.email)]})")) {
+if (-not $template.Contains("if(body.action==='list'){")) {
   throw 'Cross-device group membership loading is missing.'
+}
+foreach ($groupAuthorizationControl in @(
+  "const defaultGroupIds=new Set(",
+  'async function groupExists(groupId)',
+  'async function sharesValidGroup(a,b)',
+  "if(!(await groupExists(groupId)))return json(404,{error:'Group not found'})",
+  'sharedGroup:await sharesValidGroup(myGroups,theirs)',
+  'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]'
+)) {
+  if (-not $template.Contains($groupAuthorizationControl)) { throw "Messaging/calling accepts unverified group authorization: $groupAuthorizationControl" }
 }
 if (-not $template.Contains("hiddenPosts?.SS||[]") -or -not $template.Contains("key.endsWith(' /settings/posts')")) {
   throw 'Cross-device archived/hidden post settings are missing.'

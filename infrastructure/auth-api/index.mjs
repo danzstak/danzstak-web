@@ -651,6 +651,18 @@ async function getAuthenticatedUser(event) {
 }
 
 const groupCategories = new Set(["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"]);
+const defaultGroupIds = new Set(["default-0", "default-1", "default-2", "default-3", "default-4", "default-5", "default-6", "default-7", "default-8", "default-9"]);
+
+async function groupExists(groupId) {
+  if (defaultGroupIds.has(groupId)) return true;
+  if (!/^[a-f0-9-]{36}$/.test(groupId)) return false;
+  const found = await db.send(new GetItemCommand({
+    TableName: groupsTable,
+    Key: { userEmail: { S: `GROUP#${groupId}` }, groupId: { S: "META" } },
+    ConsistentRead: true
+  }));
+  return Boolean(found.Item);
+}
 
 async function listGroups(event) {
   const headers = corsHeaders(event.headers?.origin);
@@ -706,7 +718,9 @@ async function canViewProfileMedia(viewerEmail, profileEmail) {
     Limit: 500
   }));
   const viewerGroups = new Set((memberships.Items || []).filter(item => item.userEmail?.S === viewerEmail).map(item => item.groupId?.S));
-  return (memberships.Items || []).some(item => item.userEmail?.S === profileEmail && viewerGroups.has(item.groupId?.S));
+  const sharedGroups = [...new Set((memberships.Items || []).filter(item => item.userEmail?.S === profileEmail && viewerGroups.has(item.groupId?.S)).map(item => item.groupId?.S))];
+  for (const groupId of sharedGroups) if (await groupExists(groupId)) return true;
+  return false;
 }
 
 async function getProfileVideo(event) {
