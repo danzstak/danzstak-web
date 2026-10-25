@@ -40,11 +40,15 @@ foreach ($asset in @(
 
 & curl.exe -sS --tlsv1.2 --tls-max 1.2 -o NUL "https://danzstak.com/"
 if ($LASTEXITCODE -ne 0) { Add-Failure "TLS 1.2 connection failed" }
+$previousErrorPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
 & curl.exe -sS --tlsv1.0 --tls-max 1.1 -o NUL "https://danzstak.com/" 2>$null
-if ($LASTEXITCODE -eq 0) { Add-Failure "TLS 1.1 or older was accepted" }
+$legacyTlsExitCode = $LASTEXITCODE
+$ErrorActionPreference = $previousErrorPreference
+if ($legacyTlsExitCode -eq 0) { Add-Failure "TLS 1.1 or older was accepted" }
 
 if ($failures.Count) {
-  $failures | ForEach-Object { Write-Error $_ }
+  $failures | ForEach-Object { Write-Error $_ -ErrorAction Continue }
   exit 1
 }
 
