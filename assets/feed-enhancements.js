@@ -1056,51 +1056,20 @@ if (composerActions && publishButton) {
   composerActions.parentElement.insertBefore(mediaTools, certification);
   composerActions.parentElement.insertBefore(preview, certification);
 
-  publishButton.addEventListener("click", () => {
-    if (isLocalHost()) return;
-    if (!selectedMedia) return;
-    const media = selectedMedia;
-    const observer = new MutationObserver(records => {
-      const post = records.flatMap(record => [...record.addedNodes]).find(node => node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post"));
-      if (!post) return;
-      if (post.querySelector(".post-media")) {
-        preview.replaceChildren();
-        selectedMedia = null;
-        window.danzstakSelectedMedia = null;
-        observer.disconnect();
-        return;
-      }
-      const element = document.createElement(media.kind === "image" ? "img" : "video");
-      element.src = media.url;
-      element.style.width = "100%";
-      element.style.maxHeight = "560px";
-      element.style.objectFit = "contain";
-      element.style.borderRadius = "10px";
-      let badge = null;
-      if (media.kind === "video") {
-        element.controls = true;
-        badge = document.createElement("p");
-        badge.className = "copyright-scan-status";
-        badge.textContent = "Rights certification: local preview only";
-      }
-      post.querySelector(".post-content").insertAdjacentElement("afterend", element);
-      if (badge) element.insertAdjacentElement("afterend", badge);
-      preview.replaceChildren();
-      selectedMedia = null;
-      window.danzstakSelectedMedia = null;
-      const storyToggle = document.getElementById("shareToStory");
-      if (storyToggle) {
-        storyToggle.checked = false;
-        storyToggle.disabled = true;
-        storyToggle.dataset.hasMedia = "false";
-      }
-      const reelsToggle = document.getElementById("shareToReels");
-      if (reelsToggle) { reelsToggle.checked = false; reelsToggle.disabled = true; }
-      observer.disconnect();
-    });
-    observer.observe(document.getElementById("feed"), { childList: true });
-    setTimeout(() => observer.disconnect(), 10000);
-  }, true);
+  window.addEventListener("danzstak:post-published", event => {
+    if (isLocalHost() || !selectedMedia || selectedMedia.url !== event.detail?.mediaUrl) return;
+    preview.replaceChildren();
+    selectedMedia = null;
+    window.danzstakSelectedMedia = null;
+    const storyToggle = document.getElementById("shareToStory");
+    if (storyToggle) {
+      storyToggle.checked = false;
+      storyToggle.disabled = true;
+      storyToggle.dataset.hasMedia = "false";
+    }
+    const reelsToggle = document.getElementById("shareToReels");
+    if (reelsToggle) { reelsToggle.checked = false; reelsToggle.disabled = true; }
+  });
 
   if (isLocalHost()) {
     publishButton.addEventListener("click", event => {

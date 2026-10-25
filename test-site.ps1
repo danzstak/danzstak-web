@@ -128,7 +128,7 @@ if ($feedEnhancements.Contains('Event saved locally:') -or $feedEnhancements.Con
 foreach ($required in @('/engagement?postId=', '/reactions', '/comments', 'loadEngagement(post)', 'saveComment(post, event.target)', '/engagement-notifications/read')) {
   if (-not $feedEnhancements.Contains($required)) { Add-Failure "Durable feed engagement is missing: $required" }
 }
-foreach ($reelRequirement in @('id="shareToReels"', 'reel: mediaType === "video" && shareToReels.checked', 'danzstak:posts-loaded')) {
+foreach ($reelRequirement in @('id="shareToReels"', 'reel: mediaType === "video" && publishToReels', 'danzstak:posts-loaded')) {
   if (-not $feed.Contains($reelRequirement)) { Add-Failure "Uploaded-video Reels workflow is missing: $reelRequirement" }
 }
 foreach ($reelRequirement in @('post.reel === true', 'loadInternalReels', 'reel.internal')) {
