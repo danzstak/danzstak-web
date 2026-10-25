@@ -819,8 +819,12 @@ function addPostDeleteButton(post) {
   handle.className = "post-options-handle";
   handle.setAttribute("aria-hidden", "true");
   menu.appendChild(handle);
-  const history = [];
-  const preferences = readPostPreferences()[String(post.dataset.postId || "")] || {};
+    const history = [];
+    const preferences = readPostPreferences()[String(post.dataset.postId || "")] || {};
+    const owner = post.dataset.isOwner !== "false";
+    const audienceBadge = post.querySelector(".post-audience");
+    const audienceText = audienceBadge?.textContent || "Public";
+    post.dataset.privacySetting = String(/Friends/i.test(audienceText) ? 1 : /Only me/i.test(audienceText) ? 2 : 0);
   post.dataset.pinned = String(preferences.pinned === true);
   post.dataset.saved = String(preferences.saved === true);
   post.dataset.notificationsOff = String(preferences.notificationsOff === true);
@@ -955,14 +959,31 @@ function addPostDeleteButton(post) {
     post.querySelector(".commentBtn").disabled = next === 2;
   });
   commentOption.querySelector("small").textContent = ["Everyone", "Friends", "Comments off"][Number(preferences.commentSetting) || 0];
-  option("Edit privacy", "Public", button => {
-    const values = ["Public", "Friends", "Only me"];
-    const current = Number(post.dataset.privacySetting || 0);
-    const next = (current + 1) % values.length;
-    post.dataset.privacySetting = String(next);
-    button.querySelector("small").textContent = values[next];
-  });
-  option("Move to archive", "Hide this post without deleting it.", () => { post.hidden = true; });
+    const privacyOption = option("Edit privacy", ["Public", "Friends", "Only me"][Number(post.dataset.privacySetting) || 0], async button => {
+      const values = ["Public", "Friends", "Only me"];
+      const audiences = ["public", "friends", "private"];
+      const current = Number(post.dataset.privacySetting || 0);
+      const next = (current + 1) % values.length;
+      const postId = post.dataset.postId;
+      button.disabled = true;
+      if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
+        try {
+          const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), {
+            method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: post.querySelector(".post-content")?.textContent.trim() || "Shared media", audience: audiences[next] })
+          });
+          if (!response.ok) throw new Error("Privacy could not be saved");
+        } catch (error) { alert(error.message); button.disabled = false; return; }
+      }
+      post.dataset.privacySetting = String(next);
+      button.querySelector("small").textContent = values[next];
+      if (audienceBadge) {
+        audienceBadge.textContent = ["🌎 Public", "👥 Friends", "🔒 Only me"][next];
+        audienceBadge.setAttribute("aria-label", "Post audience: " + values[next]);
+      }
+      button.disabled = false;
+    });
+    option("Move to archive", "Hide this post without deleting it.", () => { post.hidden = true; });
   option("Delete post", "Delete your post or remove another user's post from your feed.", async () => {
     const postId = post.dataset.postId;
     if (post.dataset.isOwner === "false") {
@@ -987,14 +1008,14 @@ function addPostDeleteButton(post) {
     }
     post.remove();
   });
-  const notificationsOption = option("Turn off notifications", "Stop updates for this post.", button => {
+    const notificationsOption = option("Turn off notifications", "Stop updates for this post.", button => {
     const off = post.dataset.notificationsOff === "true";
     post.dataset.notificationsOff = String(!off);
     updatePostPreference(post, { notificationsOff: !off });
     button.querySelector("strong").textContent = off ? "Turn off notifications" : "Turn on notifications";
   });
   if (preferences.notificationsOff === true) notificationsOption.querySelector("strong").textContent = "Turn on notifications";
-  option("Copy link", "Copy a shareable link to this post.", async () => {
+    option("Copy link", "Copy a shareable link to this post.", async () => {
     try { await navigator.clipboard.writeText(location.href + (post.dataset.postId ? `#post-${post.dataset.postId}` : "")); }
     catch { alert("Copying is unavailable in this browser."); }
   });
@@ -1052,6 +1073,11 @@ function addReactionButton(post) {
       }
       palette.hidden = true;
     });
+    if (!owner) {
+      for (const row of menu.querySelectorAll(".post-option-row")) {
+        if (["Edit post", "Who can comment?", "Edit privacy"].includes(row.querySelector("strong")?.textContent || "")) row.remove();
+      }
+    }
     palette.appendChild(choice);
   }
   post.appendChild(palette);
