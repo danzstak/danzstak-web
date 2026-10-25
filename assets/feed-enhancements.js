@@ -102,7 +102,8 @@ function renderWorkspace(name) {
     const createButton = document.createElement("button");
     createButton.type = "button";
     createButton.className = "primary";
-    createButton.textContent = "Create Group";
+    createButton.textContent = "Checking group service…";
+    createButton.disabled = true;
     const standardsLabel = document.createElement("label");
     standardsLabel.className = "group-standards-agreement";
     const standardsCheckbox = document.createElement("input");
@@ -235,7 +236,14 @@ function renderWorkspace(name) {
     fetch("https://api.danzstak.com/groups", { credentials: "include", cache: "no-store" })
       .then(response => response.ok ? response.json() : null)
       .then(async data => {
-        if (!Array.isArray(data?.groups)) return;
+        if (!Array.isArray(data?.groups)) {
+          createButton.textContent = "Create Group (updating)";
+          createButton.title = "Group creation will be available after the current backend update.";
+          return;
+        }
+        createButton.textContent = "Create Group";
+        createButton.title = "";
+        createButton.disabled = false;
         const cloud = data.groups.map(group => ({ ...group, custom: true, cloud: true }));
         const known = new Set(cloud.map(group => `${group.name.toLowerCase()}|${group.category}`));
         for (const local of customGroups.filter(group => !group.cloud && !known.has(`${group.name.toLowerCase()}|${group.category}`))) {
@@ -247,7 +255,7 @@ function renderWorkspace(name) {
         writeSections(saved);
         renderGroups();
       })
-      .catch(() => {});
+      .catch(() => { createButton.textContent = "Create Group (offline)"; });
     fetch("https://api.danzstak.com/groups/membership", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ action: "list" }) })
       .then(response => response.ok ? response.json() : null)
       .then(data => {

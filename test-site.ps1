@@ -43,6 +43,9 @@ $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhan
 foreach ($eventBehavior in @('Event audience', 'Publishing event', '/secure-posts', 'Event published to DanzStak', 'window.loadPosts')) {
   if (-not $feedEnhancements.Contains($eventBehavior)) { Add-Failure "Events: durable feed publishing is missing: $eventBehavior" }
 }
+foreach ($groupRolloutBehavior in @('Checking group service', 'Create Group (updating)', 'createButton.disabled = false')) {
+  if (-not $feedEnhancements.Contains($groupRolloutBehavior)) { Add-Failure "Groups: staged backend rollout behavior is missing: $groupRolloutBehavior" }
+}
 if ($feedEnhancements.Contains('Event saved locally:') -or $feedEnhancements.Contains('Draft saved privately in this browser')) {
   Add-Failure 'Navigation still exposes browser-only Messages or Events behavior'
 }
