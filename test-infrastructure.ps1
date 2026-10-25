@@ -210,6 +210,19 @@ if (-not $template.Contains("pinned:'pinnedPosts',saved:'savedPosts',muted:'mute
   throw 'Cross-device pin, save, and notification post settings are missing.'
 }
 
+foreach ($friendSecurityControl in @(
+  "Pending friend request not found",
+  "mine.Item?.status?.S!=='incoming'",
+  "theirs.Item?.status?.S!=='outgoing'",
+  "alreadyFriends:true",
+  "Respond to the incoming request",
+  "notifyFriendRequest(target,user.email)",
+  "url:'/feed.html#notifications'",
+  "...(links.Items||[]).map(x=>x.friendEmail.S)"
+)) {
+  if (-not $template.Contains($friendSecurityControl)) { throw "Friend requests lack secure durable notification behavior: $friendSecurityControl" }
+}
+
 foreach ($scriptName in @('aws-deploy-production.ps1', 'aws-configure-production.ps1', 'aws-harden-cloudfront.ps1')) {
   $scriptText = Get-Content -LiteralPath (Join-Path $PSScriptRoot $scriptName) -Raw -Encoding utf8
   if (-not $scriptText.Contains('$LASTEXITCODE -ne 0')) {

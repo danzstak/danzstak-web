@@ -195,6 +195,7 @@ $serviceWorkerJs = Get-Content -LiteralPath (Join-Path $root 'service-worker.js'
 foreach ($callNotificationBehavior in @('payload.type === "call"', 'action: "answer"', 'action: "dismiss"', 'event.action === "dismiss"')) {
   if (-not $serviceWorkerJs.Contains($callNotificationBehavior)) { Add-Failure "PWA: call notification behavior is missing: $callNotificationBehavior" }
 }
+if (-not $serviceWorkerJs.Contains('candidate.pathname + candidate.search + candidate.hash')) { Add-Failure 'PWA: same-origin notification destinations lose their workspace route' }
 if (-not $pwaJs.Contains('const installStateKey = "danzstak_app_installed"') -or
     -not $pwaJs.Contains('localStorage.setItem(installStateKey, "1")') -or
     -not $pwaJs.Contains('localStorage.removeItem(installStateKey)')) {

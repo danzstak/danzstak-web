@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v147";
+const CACHE = "danzstak-shell-v148";
 const SHELL = [
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-fb-v2.jpg",
@@ -58,7 +58,7 @@ self.addEventListener("push", event => {
   let url = "/feed.html";
   try {
     const candidate = new URL(String(payload.url || url), self.location.origin);
-    if (candidate.origin === self.location.origin && /^\/(?:feed|messages|profile)\.html$/.test(candidate.pathname)) url = candidate.pathname + candidate.search;
+    if (candidate.origin === self.location.origin && /^\/(?:feed|messages|profile)\.html$/.test(candidate.pathname)) url = candidate.pathname + candidate.search + candidate.hash;
   } catch { /* Keep the safe feed destination. */ }
   const call = payload.type === "call";
   event.waitUntil(self.registration.showNotification(title, {
