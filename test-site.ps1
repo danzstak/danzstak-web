@@ -322,6 +322,13 @@ if (-not $chatCss.Contains('.conversation-header[hidden]{display:none!important}
 
 $messagesHtml = Get-Content -LiteralPath (Join-Path $root 'messages.html') -Raw -Encoding utf8
 $chatJs = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
+$incomingCallsJs = Get-Content -LiteralPath (Join-Path $root 'assets\incoming-calls.js') -Raw -Encoding utf8
+foreach ($callLifecycleControl in @('callTimer=setTimeout', 'No answer from ', 'clearTimeout(callTimer)')) {
+  if (-not $chatJs.Contains($callLifecycleControl)) { Add-Failure "Calls: unanswered-call timeout is missing: $callLifecycleControl" }
+}
+foreach ($globalCallControl in @('event.signalType === "hangup" && event.callId === current.callId', 'await acknowledge(current.eventId)', 'await acknowledge(ended.eventId)')) {
+  if (-not $incomingCallsJs.Contains($globalCallControl)) { Add-Failure "Calls: canceled global incoming call is not cleared: $globalCallControl" }
+}
 $directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-messages.js') -Raw -Encoding utf8
 $feedEnhancementsJs = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
 if ([regex]::Matches($feedEnhancementsJs, '(?m)^function isLocalHost\(\)').Count -ne 1) {

@@ -198,6 +198,9 @@ foreach ($pushCapability in @(
 )) {
   if (-not $template.Contains($pushCapability)) { throw "Background push capability is missing: $pushCapability" }
 }
+if (-not $template.Contains("FilterExpression:'expiresAt > :n'") -or -not $template.Contains("':n':{N:String(now())}")) {
+  throw 'Call inbox can return expired signaling records before DynamoDB TTL cleanup.'
+}
 
 if (-not $template.Contains("if(body.action==='list'){")) {
   throw 'Cross-device group membership loading is missing.'

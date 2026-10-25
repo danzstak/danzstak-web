@@ -95,12 +95,25 @@
   });
 
   async function poll() {
-    if (polling || current) return;
+    if (polling) return;
     const drawer = document.getElementById("messageDrawer");
     if (drawer && !drawer.hidden) return;
     polling = true;
     try {
       const inbox = await api("/calls/inbox");
+      if (current) {
+        const ended = (inbox.events || []).find(event => event.signalType === "hangup" && event.callId === current.callId);
+        if (ended) {
+          await acknowledge(current.eventId).catch(() => {});
+          await acknowledge(ended.eventId).catch(() => {});
+          popup.hidden = true;
+          current = null;
+          navigator.vibrate?.(0);
+          previousFocus?.focus();
+          previousFocus = null;
+        }
+        return;
+      }
       const offer = (inbox.events || []).find(event => event.signalType === "offer" && ["phone", "video"].includes(event.mode));
       if (offer) showCall(offer);
     } catch { /* Retry quietly while the user remains on the site. */ }
