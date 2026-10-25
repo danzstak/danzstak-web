@@ -729,8 +729,9 @@ async function setProfileVideo(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   let body;
   try { body = JSON.parse(event.body || "{}"); } catch { return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON." }) }; }
-  const accountEmail = await accountForSub(userId), mediaKey = String(body.mediaKey || ""), ownerPrefix = sha256(userId).slice(0, 24);
+  const accountEmail = await accountForSub(userId), mediaKey = String(body.mediaKey || "");
   if (!accountEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const ownerPrefix = sha256(accountEmail).slice(0, 24);
   if (mediaKey && !new RegExp(`^users/${ownerPrefix}/[a-f0-9-]{36}\\.(mp4|webm|mov)$`).test(mediaKey)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Invalid profile video." }) };
   const key = { userEmail: { S: accountEmail } }, current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: key, ConsistentRead: true }));
   const oldKey = current.Item?.profileVideoKey?.S || "";
@@ -1061,12 +1062,12 @@ async function createSecurePost(event) {
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
   const reel = mediaType === "video" && data.reel === true;
-  const ownerPrefix = sha256(userId).slice(0, 24);
+  const userEmail = await accountForSub(userId);
+  if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const ownerPrefix = sha256(userEmail).slice(0, 24);
   if ((mediaKey && (!/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/.test(mediaKey) || !mediaKey.startsWith(`users/${ownerPrefix}/`))) || Boolean(mediaKey) !== Boolean(mediaType)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid media reference." }) };
   }
-  const userEmail = await accountForSub(userId);
-  if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
   const postId = randomUUID();
   const createdAt = new Date().toISOString();
 
@@ -1114,7 +1115,7 @@ async function deleteSecurePost(event) {
   if (found.Item.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the owner can delete this post." }) };
   let linkedStories = [];
   if (found.Item.mediaKey?.S) {
-    const ownerPrefix = sha256(userId).slice(0, 24);
+    const ownerPrefix = sha256(found.Item.userEmail?.S || "").slice(0, 24);
     if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
     const stories = await db.send(new ScanCommand({
       TableName: storiesTable,

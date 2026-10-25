@@ -42,8 +42,11 @@ if (-not $homeMarkup.Contains('.hero-logo{display:block;width:min(520px,100%)'))
 $feedPath = Join-Path $root 'feed.html'
 $feed = Get-Content -LiteralPath $feedPath -Raw -Encoding utf8
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
-foreach ($copyrightSubmission in @('originalContentCertified: document.getElementById("originalContentCertification")?.checked === true', 'originalContentCertified: true')) {
+foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }
+}
+foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()', 'Do you certify that you created this photo or video')) {
+  if (-not $feed.Contains($preUploadCertification)) { Add-Failure "Copyright: upload can begin before explicit certification: $preUploadCertification" }
 }
 foreach ($drawerAccessibility in @('aria-controls="messageDrawer"', 'aria-expanded="false"', 'drawer.setAttribute("role", "dialog")', 'event.key === "Escape"', 'launcher.setAttribute("aria-expanded", "true")')) {
   if (-not $feed.Contains($drawerAccessibility)) { Add-Failure "Messages: accessible drawer behavior is missing: $drawerAccessibility" }
