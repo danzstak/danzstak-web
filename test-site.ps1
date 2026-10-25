@@ -57,7 +57,8 @@ if ($inlineScripts.Count -ne 1) {
 $requiredStoryUploadSteps = @(
   'const storyTicketResponse = await fetch("https://api.danzstak.com/stories"',
   'const storyUploadResponse = await fetch(storyTicket.uploadUrl',
-  'dedicatedMedia: true'
+  'dedicatedMedia: true',
+  'alert("Your post was saved, but the Story could not be published.")'
 )
 foreach ($step in $requiredStoryUploadSteps) {
   if (-not $feed.Contains($step)) {

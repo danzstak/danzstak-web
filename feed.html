@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self' 'sha256-JvI3WM7fbkSEpY8wk/TF9ETymh1n6zea1U3dtuZMf5U='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self' 'sha256-K2U5OpEn3CPMZo2puF6QIv3PWx2SWiyxEEAKAjn0K80='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -804,22 +804,27 @@ publishBtn.addEventListener("click", async () => {
     savedPost = await response.json();
 
     if (shareToStory.checked && shareToStory.dataset.hasMedia === "true") {
-      const storyTicketResponse = await fetch("https://api.danzstak.com/stories", {
-        method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-        body: JSON.stringify({ contentType: selectedMedia.file.type })
-      });
-      if (!storyTicketResponse.ok) throw new Error("Story upload could not start");
-      const storyTicket = await storyTicketResponse.json();
-      const storyUploadResponse = await fetch(storyTicket.uploadUrl, { method: "PUT", headers: { "Content-Type": selectedMedia.file.type }, body: selectedMedia.file });
-      if (!storyUploadResponse.ok) throw new Error("Story media upload failed");
-      const storyResponse = await fetch("https://api.danzstak.com/stories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ content, mediaKey: storyTicket.mediaKey, mediaType: storyTicket.mediaType, dedicatedMedia: true })
-      });
-      if (!storyResponse.ok) alert("Your post was saved, but the story could not be published.");
-      else await loadStories();
+      try {
+        const storyTicketResponse = await fetch("https://api.danzstak.com/stories", {
+          method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+          body: JSON.stringify({ contentType: selectedMedia.file.type })
+        });
+        if (!storyTicketResponse.ok) throw new Error("Story upload could not start");
+        const storyTicket = await storyTicketResponse.json();
+        const storyUploadResponse = await fetch(storyTicket.uploadUrl, { method: "PUT", headers: { "Content-Type": selectedMedia.file.type }, body: selectedMedia.file });
+        if (!storyUploadResponse.ok) throw new Error("Story media upload failed");
+        const storyResponse = await fetch("https://api.danzstak.com/stories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ content, mediaKey: storyTicket.mediaKey, mediaType: storyTicket.mediaType, dedicatedMedia: true })
+        });
+        if (!storyResponse.ok) throw new Error("Story could not be published");
+        await loadStories();
+      } catch (storyError) {
+        console.error("DanzStak Story error:", storyError);
+        alert("Your post was saved, but the Story could not be published.");
+      }
     }
 
     postText.value = "";
