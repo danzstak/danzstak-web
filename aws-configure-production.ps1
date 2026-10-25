@@ -11,12 +11,14 @@ aws cognito-idp set-user-pool-mfa-config `
   --user-pool-id $UserPoolId `
   --mfa-configuration OPTIONAL `
   --software-token-mfa-configuration Enabled=true | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Cognito MFA configuration failed." }
 
 Write-Host "Configuring credentialed CORS for the DanzStak origin..."
 aws apigatewayv2 update-api `
   --region $ApiRegion `
   --api-id $ApiId `
   --cors-configuration "AllowCredentials=true,AllowHeaders=content-type,AllowMethods=GET,POST,PATCH,DELETE,OPTIONS,AllowOrigins=https://danzstak.com,https://www.danzstak.com,MaxAge=300" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "API CORS configuration failed." }
 
 Write-Host "Configuring API metrics and throttling..."
 aws apigatewayv2 update-stage `
@@ -24,5 +26,6 @@ aws apigatewayv2 update-stage `
   --api-id $ApiId `
   --stage-name '$default' `
   --default-route-settings ThrottlingBurstLimit=40,ThrottlingRateLimit=20,DetailedMetricsEnabled=true | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "API throttling and metrics configuration failed." }
 
 Write-Host "DanzStak production runtime configuration applied."

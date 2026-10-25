@@ -99,4 +99,11 @@ if (-not $template.Contains("hiddenPosts?.SS||[]") -or -not $template.Contains("
   throw 'Cross-device archived/hidden post settings are missing.'
 }
 
+foreach ($scriptName in @('aws-deploy-production.ps1', 'aws-configure-production.ps1', 'aws-harden-cloudfront.ps1')) {
+  $scriptText = Get-Content -LiteralPath (Join-Path $PSScriptRoot $scriptName) -Raw -Encoding utf8
+  if (-not $scriptText.Contains('$LASTEXITCODE -ne 0')) {
+    throw "$scriptName does not stop after a failed AWS CLI command."
+  }
+}
+
 Write-Host "Infrastructure checks passed ($templateBytes-byte template; embedded Lambda syntax valid)."
