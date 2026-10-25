@@ -14,6 +14,7 @@
 .embedded-messages .conversation-choices{display:none!important}
 .conversation-header[hidden]{display:none!important}
 .receiver-hangup[hidden]{display:none!important}
+.load-earlier-messages{display:block;margin:0 auto 12px;padding:7px 13px;border:0;border-radius:999px;background:#edf1f6;color:#315a91;font-size:12px;font-weight:800;cursor:pointer}.load-earlier-messages:hover{background:#e1e8f2}.load-earlier-messages:focus-visible{outline:3px solid #65bfff;outline-offset:2px}.load-earlier-messages:disabled{cursor:wait;opacity:.68}.dark-mode .load-earlier-messages{background:#303c4f;color:#d8e9ff}
 body[data-call-mode="phone"] .video-grid{display:none!important}
 body[data-call-mode="phone"] .media-controls{padding:8px;background:#f8fafc}
 body[data-call-mode="phone"] #toggleCamera{display:none}

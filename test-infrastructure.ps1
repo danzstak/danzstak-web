@@ -150,6 +150,18 @@ foreach ($protection in $requiredUnreadMessaging) {
   }
 }
 
+foreach ($messageHistoryControl in @(
+  "event.queryStringParameters?.before",
+  "Valid message cursor required",
+  "ExclusiveStartKey:{conversationId:{S:id},messageId:{S:before}}",
+  "nextCursor=page.LastEvaluatedKey",
+  "return json(200,{messages,nextCursor})"
+)) {
+  if (-not $template.Contains($messageHistoryControl)) {
+    throw "Saved message history pagination is missing: $messageHistoryControl"
+  }
+}
+
 $requiredReelProtections = @(
   "body.action==='reel'",
   "url.protocol!=='https:'",

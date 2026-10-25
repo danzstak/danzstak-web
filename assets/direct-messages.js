@@ -24,6 +24,7 @@ const emojiPalette = document.getElementById("emojiPalette");
 let directContact = "";
 let currentEmail = "";
 let loadingMessages = false;
+let nextMessageCursor = "";
 const shownMessages = new Set();
 let cachedConversations = [];
 let reactionTimer = null;
@@ -100,6 +101,7 @@ function closeConversation({ focusList = false } = {}) {
   conversationHeader.hidden = true;
   contactInput.value = "";
   directContact = "";
+  nextMessageCursor = "";
   shownMessages.clear();
   messageList.replaceChildren();
   messageInput.value = "";
@@ -127,6 +129,46 @@ function directMessageItem(message) {
   return item;
 }
 
+function renderEarlierMessagesButton() {
+  messageList.querySelector(".load-earlier-messages")?.remove();
+  if (!nextMessageCursor) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "load-earlier-messages";
+  button.textContent = "Load earlier messages";
+  button.addEventListener("click", loadEarlierMessages);
+  messageList.prepend(button);
+}
+
+async function loadEarlierMessages() {
+  const contact = directContact;
+  const cursor = nextMessageCursor;
+  if (!contact || !cursor || loadingMessages) return;
+  loadingMessages = true;
+  const button = messageList.querySelector(".load-earlier-messages");
+  if (button) { button.disabled = true; button.textContent = "Loading…"; }
+  const previousHeight = messageList.scrollHeight;
+  try {
+    const response = await directFetch("/messages?contact=" + encodeURIComponent(contact) + "&before=" + encodeURIComponent(cursor), { credentials: "include", cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Earlier messages could not be loaded");
+    const fragment = document.createDocumentFragment();
+    for (const message of data.messages || []) {
+      if (shownMessages.has(message.messageId)) continue;
+      shownMessages.add(message.messageId);
+      fragment.appendChild(directMessageItem(message));
+    }
+    button?.remove();
+    messageList.prepend(fragment);
+    nextMessageCursor = data.nextCursor || "";
+    renderEarlierMessagesButton();
+    messageList.scrollTop += messageList.scrollHeight - previousHeight;
+  } catch (error) {
+    callStatus.textContent = error.message;
+    if (button) { button.disabled = false; button.textContent = "Try loading earlier messages again"; }
+  } finally { loadingMessages = false; }
+}
+
 async function loadDirectMessages(reset = false) {
   if (!document.body.classList.contains("is-conversation-open")) return;
   if (document.hidden && !reset) return;
@@ -140,7 +182,7 @@ async function loadDirectMessages(reset = false) {
     const data = await response.json();
     const distanceFromBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight;
     const followNewest = reset || distanceFromBottom < 80;
-    if (reset) { shownMessages.clear(); messageList.replaceChildren(); }
+    if (reset) { shownMessages.clear(); nextMessageCursor = data.nextCursor || ""; messageList.replaceChildren(); }
     let appended = 0;
     for (const message of data.messages || []) {
       if (shownMessages.has(message.messageId)) {
@@ -152,6 +194,7 @@ async function loadDirectMessages(reset = false) {
       messageList.appendChild(directMessageItem(message));
       appended += 1;
     }
+    if (reset) renderEarlierMessagesButton();
     const receivedMessages = data.messages || [];
     const newest = receivedMessages.length ? receivedMessages[receivedMessages.length - 1].createdAt : "";
     markChatRead(contact, newest || new Date().toISOString());

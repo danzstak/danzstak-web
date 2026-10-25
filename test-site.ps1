@@ -226,6 +226,9 @@ if (-not $directMessagesJs.Contains('currentEmail = String(profile.email || prof
 foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'document.hidden && !reset', 'visibilitychange')) {
   if (-not $directMessagesJs.Contains($messagePollingBehavior)) { Add-Failure "Messages: respectful live polling behavior is missing: $messagePollingBehavior" }
 }
+foreach ($messageHistoryBehavior in @('let nextMessageCursor = ""', 'function renderEarlierMessagesButton()', 'async function loadEarlierMessages()', '"&before=" + encodeURIComponent(cursor)', 'messageList.prepend(fragment)', 'Load earlier messages')) {
+  if (-not $directMessagesJs.Contains($messageHistoryBehavior)) { Add-Failure "Messages: saved history cannot load beyond the newest page: $messageHistoryBehavior" }
+}
 foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.online === true', 'conversation-online-dot', 'aria-label", "Online')) {
   if (-not ($directMessagesJs + $chatStyles).Contains($chatPresenceBehavior)) { Add-Failure "Messages: online friends lack a visible accessible presence marker: $chatPresenceBehavior" }
 }
