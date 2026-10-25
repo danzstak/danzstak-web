@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v163";
+const CACHE = "danzstak-shell-v164";
 const SHELL = [
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-fb-v2.jpg",
@@ -76,7 +76,9 @@ self.addEventListener("push", event => {
 self.addEventListener("notificationclick", event => {
   event.notification.close();
   if (event.action === "dismiss") return;
-  const destination = new URL(event.notification.data?.url || "/feed.html", self.location.origin).href;
+  const destinationUrl = new URL(event.notification.data?.url || "/feed.html", self.location.origin);
+  if (event.action === "answer" && event.notification.data?.type === "call") destinationUrl.searchParams.set("answer", "1");
+  const destination = destinationUrl.href;
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async clients => {
     for (const client of clients) {
       if (new URL(client.url).origin !== self.location.origin) continue;

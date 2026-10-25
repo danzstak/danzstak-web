@@ -283,6 +283,9 @@ foreach ($pushFanout in @(
 if ($template.Contains("PUSH_SUBSCRIPTIONS_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:recipientEmail}},Limit:10")) {
   throw 'Push notification delivery still stops after the first 10 registered devices.'
 }
+if ($template.Contains('url:`/messages.html?contact=${encodeURIComponent(senderEmail)}&answer=1`')) {
+  throw 'Tapping the body of an incoming-call notification must not answer the call automatically.'
+}
 if (-not $template.Contains("FilterExpression:'expiresAt > :n'") -or -not $template.Contains("':n':{N:String(now())}")) {
   throw 'Call inbox can return expired signaling records before DynamoDB TTL cleanup.'
 }
