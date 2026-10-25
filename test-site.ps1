@@ -74,8 +74,13 @@ if ($serviceWorker -notmatch 'const CACHE = "danzstak-shell-v\d+";' -or
 }
 
 $chatCss = Get-Content -LiteralPath (Join-Path $root 'assets\chat.css') -Raw -Encoding utf8
+$softUiCss = Get-Content -LiteralPath (Join-Path $root 'assets\soft-ui.css') -Raw -Encoding utf8
 if (-not $chatCss.Contains('.embedded-messages .conversation-choices{display:none!important}')) {
   Add-Failure 'chat.css: embedded message drawer exposes the oversized conversation chooser'
+}
+if ($softUiCss -notmatch 'a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible' -or
+    $softUiCss -notmatch '@media\(prefers-reduced-motion:reduce\).*\*::before' ) {
+  Add-Failure 'soft-ui.css: keyboard focus or reduced-motion accessibility support is incomplete'
 }
 
 $termsText = Get-Content -LiteralPath (Join-Path $root 'terms.html') -Raw -Encoding utf8
