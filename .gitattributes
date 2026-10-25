@@ -1,0 +1,2 @@
+# Keep inline-script CSP hashes identical on Windows and Linux hosting.
+feed.html text eol=lf

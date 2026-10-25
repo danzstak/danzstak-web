@@ -20,6 +20,15 @@ foreach ($header in @("Strict-Transport-Security", "X-Content-Type-Options", "X-
   if ($siteHeaders -notmatch "(?im)^$([regex]::Escape($header)):\s*\S+") { Add-Failure "Website is missing $header" }
 }
 
+# Validate the delivered bytes: local checks cannot catch hosting newline changes.
+$liveFeed = (Invoke-WebRequest -Uri 'https://danzstak.com/feed.html' -Headers @{ 'Cache-Control' = 'no-cache' }).Content
+$liveInlineScripts = [regex]::Matches($liveFeed, '<script>([\s\S]*?)</script>')
+if ($liveInlineScripts.Count -ne 1) { Add-Failure 'Live feed inline application script is missing' }
+else {
+  $liveScriptHash = [Convert]::ToBase64String([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($liveInlineScripts[0].Groups[1].Value)))
+  if (-not $liveFeed.Contains("'sha256-$liveScriptHash'")) { Add-Failure 'Live feed CSP blocks its application script' }
+}
+
 $postsStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzstak.com/secure-posts"
 if ($LASTEXITCODE -ne 0 -or $postsStatus -ne "401") { Add-Failure "Unauthenticated posts request returned $postsStatus instead of 401" }
 $trustedCors = & curl.exe -sS -D - -o NUL -H "Origin: https://danzstak.com" "https://api.danzstak.com/secure-posts"
@@ -75,4 +84,4 @@ if ($failures.Count) {
   exit 1
 }
 
-Write-Host "Live security checks passed: website headers, branded assets, API authentication, and TLS policy."
+Write-Host "Live security checks passed: website headers, feed script CSP, branded assets, API authentication, and TLS policy."
