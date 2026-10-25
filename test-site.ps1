@@ -306,6 +306,12 @@ if (-not $directMessagesJs.Contains('event.source === window.parent') -or
     -not $feed.Contains('event.source !== drawer.querySelector("iframe")?.contentWindow')) {
   Add-Failure 'Messaging: cross-window events are not bound to the expected parent and iframe'
 }
+if (-not $directMessagesJs.Contains('type: "danzstak-chat-read"') -or -not $feed.Contains('event.data?.type === "danzstak-chat-read"')) {
+  Add-Failure 'Notifications: reading an embedded chat does not refresh the unread count'
+}
+foreach ($partialNotificationBehavior in @('notificationSourceCounts', 'if (succeeded) updateNotificationCount', 'if (!response?.ok && !engagementResponse?.ok)')) {
+  if (-not $feedEnhancementsJs.Contains($partialNotificationBehavior)) { Add-Failure "Notifications: partial API failure handling is missing: $partialNotificationBehavior" }
+}
 if (-not $directMessagesJs.Contains('Promise.allSettled([') -or
     -not $directMessagesJs.Contains('if (!email || (!existing && !member.sharedGroup)) continue;') -or
     -not $directMessagesJs.Contains('online: member.online === true')) {

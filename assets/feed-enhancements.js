@@ -17,6 +17,7 @@ notificationAnnouncer.setAttribute("role", "status");
 notificationAnnouncer.setAttribute("aria-live", "polite");
 document.body.appendChild(notificationAnnouncer);
 let lastNotificationCount = null;
+const notificationSourceCounts = { social: null, engagement: null };
 
 function isLocalHost() {
   return location.hostname === "127.0.0.1" || location.hostname === "localhost";
@@ -43,9 +44,14 @@ async function refreshNotificationCount() {
       fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" }),
       fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store" })
     ]);
-    let count = 0;
-    for (const result of responses) if (result.status === "fulfilled" && result.value.ok) count += ((await result.value.json()).notifications || []).length;
-    updateNotificationCount(count);
+    let succeeded = false;
+    for (const [index, result] of responses.entries()) {
+      if (result.status !== "fulfilled" || !result.value.ok) continue;
+      const key = index === 0 ? "social" : "engagement";
+      notificationSourceCounts[key] = ((await result.value.json()).notifications || []).length;
+      succeeded = true;
+    }
+    if (succeeded) updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
   } catch { /* The next scheduled refresh will retry. */ }
 }
 
@@ -285,15 +291,16 @@ function renderWorkspace(name) {
     ]).then(async results => {
         const response = results[0].status === "fulfilled" ? results[0].value : null;
         const directoryResponse = results[1].status === "fulfilled" ? results[1].value : null;
-        if (!response) throw new Error("Notifications could not be loaded");
-        if (!response.ok) throw new Error("Notifications could not be loaded");
-        const data = await response.json();
         const engagementResponse = results[2].status === "fulfilled" ? results[2].value : null;
+        if (!response?.ok && !engagementResponse?.ok) throw new Error("Notifications could not be loaded");
+        const data = response?.ok ? await response.json() : { notifications: [] };
         const engagement = engagementResponse?.ok ? (await engagementResponse.json()).notifications || [] : [];
+        notificationSourceCounts.social = response?.ok ? (data.notifications || []).length : notificationSourceCounts.social;
+        notificationSourceCounts.engagement = engagementResponse?.ok ? engagement.length : notificationSourceCounts.engagement;
         data.notifications = [...(data.notifications || []), ...engagement].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
         const directory = directoryResponse?.ok ? (await directoryResponse.json()).users || [] : [];
         const people = new Map(directory.map(person => [String(person.email || "").toLowerCase(), person]));
-        updateNotificationCount((data.notifications || []).length);
+        updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
         list.replaceChildren();
         if (!(data.notifications || []).length) {
           const empty = document.createElement("p");
@@ -348,8 +355,8 @@ function renderWorkspace(name) {
             button.addEventListener("click", async () => {
               button.disabled = true;
               const response = await fetch("https://api.danzstak.com/friends/respond", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ email: notice.email, accept }) });
-              if (response.ok) { row.remove(); updateNotificationCount(list.querySelectorAll(".notification-row").length); if (typeof loadOnlineUsers === "function") loadOnlineUsers(); if (typeof loadFriends === "function") loadFriends(); }
-              else button.disabled = false;
+              if (response.ok) { row.remove(); await refreshNotificationCount(); if (typeof loadOnlineUsers === "function") loadOnlineUsers(); if (typeof loadFriends === "function") loadFriends(); }
+              else { button.disabled = false; featureText.textContent = "Friend request could not be updated. Please try again."; }
             });
             actions.appendChild(button);
           }
@@ -358,7 +365,7 @@ function renderWorkspace(name) {
         }
         if (engagement.length) {
           fetch("https://api.danzstak.com/engagement-notifications/read", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" })
-            .then(marked => { if (marked.ok) updateNotificationCount((data.notifications || []).length - engagement.length); })
+            .then(marked => { if (marked.ok) { notificationSourceCounts.engagement = 0; updateNotificationCount((notificationSourceCounts.social || 0)); } })
             .catch(() => {});
         }
       })

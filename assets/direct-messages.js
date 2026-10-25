@@ -107,6 +107,7 @@ async function loadDirectMessages(reset = false) {
     const receivedMessages = data.messages || [];
     const newest = receivedMessages.length ? receivedMessages[receivedMessages.length - 1].createdAt : "";
     markChatRead(contact, newest || new Date().toISOString());
+    if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-read", contact }, location.origin);
     if (followNewest && appended) messageList.scrollTop = messageList.scrollHeight;
     messageInput.disabled = false;
     sendButton.disabled = false;

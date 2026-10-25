@@ -27,6 +27,8 @@ let waitingWorker = null;
 function offerUpdate(worker) {
   if (!worker) return;
   waitingWorker = worker;
+  clearTimeout(installDismissTimer);
+  installButton.hidden = true;
   updateButton.hidden = false;
 }
 
@@ -37,7 +39,7 @@ updateButton.addEventListener("click", () => {
 });
 
 function showInstallButtonTemporarily() {
-  if (!signedInPage || knownInstalled) return;
+  if (!signedInPage || knownInstalled || waitingWorker) return;
   installButton.hidden = false;
   installButton.classList.remove("install-app-button--leaving");
   clearTimeout(installDismissTimer);
