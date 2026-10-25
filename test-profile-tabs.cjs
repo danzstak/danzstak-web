@@ -6,7 +6,7 @@ const source = readFileSync(join(__dirname, 'assets/profile-editor.js'), 'utf8')
 const code = source.slice(source.indexOf('let profileTabVersion = 0;'), source.indexOf('tabs.addEventListener("keydown"'));
 function setup() {
   const requests = [], handlers = {};
-  const panel = { textContent: '', childElementCount: 0, replaceChildren() { this.textContent = ''; }, appendChild() { this.childElementCount++; } };
+  const panel = { textContent: '', childElementCount: 0, replaceChildren() { this.textContent = ''; this.childElementCount = 0; }, appendChild() { this.childElementCount++; } };
   const context = vm.createContext({ URLSearchParams, tabMessage: panel, details: {}, profileApi: 'https://api.danzstak.com', viewingOtherProfile: false,
     window: { danzstakCurrentProfile: { email: 'me@example.com' } },
     tabs: { addEventListener: (type, handler) => { handlers[type] = handler; }, querySelectorAll: () => [] },
@@ -45,5 +45,11 @@ function setup() {
   await h.resolve(6, { users: [] });
   await oldFriends;
   assert.equal(h.panel.textContent, 'No posts to show yet.', 'old friends cannot overwrite posts');
+  const mediaWithPhotos = h.select('Media');
+  await h.resolve(8, { posts: [{ authorEmail: 'me@example.com', mediaType: 'image', mediaUrl: 'https://example.com/photo.jpg' }] });
+  assert.equal(h.panel.childElementCount, 1, 'photos render before the optional profile video returns');
+  h.requests[9].reject(new Error('Video service offline'));
+  await mediaWithPhotos;
+  assert.equal(h.panel.childElementCount, 2, 'photo is retained alongside a retry notice');
   console.log('Profile tab checks passed: delayed posts, friends, and media errors stay in their tab.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

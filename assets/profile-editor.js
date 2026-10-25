@@ -372,12 +372,14 @@ async function loadProfilePosts(mediaOnly = false) {
     let posts = (data.posts || []).filter(post => String(post.authorEmail || post.userEmail || post.email || "").toLowerCase() === profileEmail);
     if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType));
     tabMessage.replaceChildren();
+    for (const post of posts) tabMessage.appendChild(profilePostCard(post));
     if (mediaOnly) {
       const params = new URLSearchParams();
       const profileEmail = String(window.danzstakCurrentProfile?.email || "");
       if (profileEmail) params.set("email", profileEmail);
       const videoResponse = await fetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
       if (version !== profileTabVersion) return;
+      if (!videoResponse.ok && videoResponse.status !== 404) throw new Error("Profile video is temporarily unavailable.");
       if (videoResponse.ok) {
         const stored = await videoResponse.json();
         if (version !== profileTabVersion) return;
@@ -398,8 +400,15 @@ async function loadProfilePosts(mediaOnly = false) {
       }
     }
     if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? "No photos or videos to show yet." : "No posts to show yet."; return; }
-    for (const post of posts) tabMessage.appendChild(profilePostCard(post));
-  } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }
+  } catch (error) {
+    if (version !== profileTabVersion) return;
+    if (tabMessage.childElementCount) {
+      const notice = document.createElement("p");
+      notice.className = "muted";
+      notice.textContent = "Some profile media could not be loaded. Reopen Media to retry.";
+      tabMessage.appendChild(notice);
+    } else tabMessage.textContent = error.message;
+  }
 }
 
 async function loadProfileFriends() {
