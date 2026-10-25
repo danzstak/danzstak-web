@@ -18,7 +18,9 @@ Run `./aws-configure-production.ps1` from an authenticated AWS shell to reapply 
 
 Run `./aws-harden-cloudfront.ps1` from the same authenticated shell to harden the `danzstak.com` distribution. The script discovers the distribution by alias, preserves its current configuration, caps edge caching at five minutes so releases propagate reliably, invalidates the previous release, enforces TLS 1.2 as the compatibility floor, enables HTTP/2 and HTTP/3, and attaches AWS's managed `SecurityHeadersPolicy` for HSTS, `nosniff`, frame protection, and a strict referrer policy.
 
-Run `./aws-deploy-production.ps1` for the complete production workflow. It verifies the active AWS identity, validates and deploys the `danzstak-call-signaling` stack in `us-west-1`, reapplies API CORS/throttling/MFA settings, and invokes the CloudFront hardening step.
+Run `./aws-publish-site.ps1` to publish the static application. `danzstak.com` uses a private S3 origin behind CloudFront, so a GitHub push alone does not update the custom domain. The publisher requires an AWS session that owns both the distribution and its origin bucket; it stops before uploading if ownership cannot be verified, applies bounded cache metadata, invalidates CloudFront, and confirms the live service-worker release.
+
+Run `./aws-deploy-production.ps1` for the complete production workflow. It verifies the active AWS identity, validates and deploys the `DANZSTAK-Call-Signaling` stack in `us-west-1`, reapplies API CORS/throttling/MFA settings, hardens CloudFront, and publishes the static application.
 
 The browser receives only the opaque `__Host-danzstak_session` cookie. Cognito tokens remain server-side and must not be added to local storage, session storage, URLs, or browser-readable cookies.
 

@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $Region = "us-west-1"
-$StackName = "danzstak-call-signaling"
+$StackName = "DANZSTAK-Call-Signaling"
 $Template = Join-Path $PSScriptRoot "infrastructure\call-signaling\template.yaml"
 
 Write-Host "Verifying AWS identity..."
