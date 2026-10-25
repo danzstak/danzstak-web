@@ -83,6 +83,9 @@ $chatScript = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -
 if (-not $chatScript.Contains('await window.danzstakEnablePush()')) { Add-Failure 'Messages: Enable ringing is disconnected from durable Web Push setup' }
 if (-not $feedEnhancements.Contains('await window.danzstakEnablePush()')) { Add-Failure 'Settings: Call and message alerts is disconnected from durable Web Push setup' }
 if (-not $feedEnhancements.Contains('darkCheckbox.setAttribute("aria-label", "Use dark mode")')) { Add-Failure 'Settings: Dark mode control has no accessible name' }
+foreach ($safeSettingsLoad in @('button.textContent = "Loading Settings', 'button.dataset.mode = "retry"', 'Retry before changing privacy preferences.', 'if (!response.ok) throw new Error("Account settings could not be loaded.")')) {
+  if (-not $feedEnhancements.Contains($safeSettingsLoad)) { Add-Failure "Settings: a failed preference load can overwrite account privacy: $safeSettingsLoad" }
+}
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
 foreach ($displayPage in @('feed.html', 'profile.html', 'messages.html')) {
   $displayMarkup = Get-Content -LiteralPath (Join-Path $root $displayPage) -Raw -Encoding utf8
