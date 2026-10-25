@@ -68,6 +68,19 @@ if (-not $chatScript.Contains('await window.danzstakEnablePush()')) { Add-Failur
 if (-not $feedEnhancements.Contains('await window.danzstakEnablePush()')) { Add-Failure 'Settings: Call and message alerts is disconnected from durable Web Push setup' }
 if (-not $feedEnhancements.Contains('darkCheckbox.setAttribute("aria-label", "Use dark mode")')) { Add-Failure 'Settings: Dark mode control has no accessible name' }
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
+foreach ($displayPage in @('feed.html', 'profile.html', 'messages.html')) {
+  $displayMarkup = Get-Content -LiteralPath (Join-Path $root $displayPage) -Raw -Encoding utf8
+  if (-not $displayMarkup.Contains('assets/display-preferences.js?v=1')) { Add-Failure "${displayPage}: saved display preferences are not restored before rendering" }
+}
+$displayPreferences = Get-Content -LiteralPath (Join-Path $root 'assets\display-preferences.js') -Raw -Encoding utf8
+foreach ($preference in @('danzstak_dark_mode', 'danzstak_reduce_motion', 'danzstak_language')) {
+  if (-not $displayPreferences.Contains($preference)) { Add-Failure "Display preferences: shared bootstrap omits $preference" }
+}
+$profileStyles = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.css') -Raw -Encoding utf8
+$chatStylesForPreferences = Get-Content -LiteralPath (Join-Path $root 'assets\chat.css') -Raw -Encoding utf8
+foreach ($styleSet in @($feedEnhancementCss, $profileStyles, $chatStylesForPreferences)) {
+  if (-not $styleSet.Contains('.dark-mode') -or -not $styleSet.Contains('.reduce-motion')) { Add-Failure 'Display preferences: a core page lacks dark-mode or reduced-motion coverage' }
+}
 if (-not $feedEnhancementCss.Contains('.composer-actions #publishBtn{grid-column:3;grid-row:2') -or -not $feedEnhancementCss.Contains('.composer-actions #publishBtn{grid-column:3!important;grid-row:2!important') -or -not $feedEnhancementCss.Contains('.reels-option{grid-column:2!important;grid-row:2!important')) {
   Add-Failure 'Composer: Story and Post controls can overlap instead of occupying separate rows'
 }
@@ -162,6 +175,7 @@ if (-not $feed.Contains('function openStoryViewer(story)') -or
 }
 
 $serviceWorker = Get-Content -LiteralPath (Join-Path $root 'service-worker.js') -Raw -Encoding utf8
+if (-not $serviceWorker.Contains('/assets/display-preferences.js')) { Add-Failure 'PWA: shared display preferences are unavailable offline' }
 if ($serviceWorker -notmatch 'const CACHE = "danzstak-shell-v\d+";' -or
     $serviceWorker -notmatch 'skipWaiting\(\)' -or
     $serviceWorker -notmatch 'clients\.claim\(\)') {
