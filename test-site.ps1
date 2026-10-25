@@ -72,12 +72,22 @@ foreach ($reelRequirement in @('post.reel === true', 'loadInternalReels', 'reel.
   if (-not $feedEnhancements.Contains($reelRequirement)) { Add-Failure "Internal Reels rendering is missing: $reelRequirement" }
 }
 $chatScript = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
+$chatStyles = Get-Content -LiteralPath (Join-Path $root 'assets\chat.css') -Raw -Encoding utf8
 $incomingCalls = Get-Content -LiteralPath (Join-Path $root 'assets\incoming-calls.js') -Raw -Encoding utf8
 if (-not $chatScript.Contains('if(await handleEvent(event))handled.push(event.eventId)') -or $chatScript.Contains('filter(event=>event.signalType!=="offer")')) {
   Add-Failure 'Calls: chat may acknowledge signals it did not handle'
 }
 if ($incomingCalls.Contains('const disposable =') -or -not $incomingCalls.Contains('document.getElementById("messageDrawer")')) {
   Add-Failure 'Calls: background watcher may steal active chat signals'
+}
+foreach ($callBehavior in @('setCallMode(kind)', 'showCallConversation()', 'setCallMode("")')) {
+  if (-not $chatScript.Contains($callBehavior)) { Add-Failure "Calls: missing call layout state behavior: $callBehavior" }
+}
+foreach ($callLayout in @('body[data-call-mode="phone"] .video-grid', 'body[data-call-mode="phone"] #toggleCamera', 'body[data-call-mode="video"] .video-grid', '.receiver-hangup[hidden]')) {
+  if (-not $chatStyles.Contains($callLayout)) { Add-Failure "Calls: missing phone/video layout rule: $callLayout" }
+}
+if (-not $feed.Contains('event.data?.type === "danzstak-call-mode"') -or -not $feed.Contains('.message-drawer.is-video-call')) {
+  Add-Failure 'Calls: the message drawer does not expand exclusively for video calls'
 }
 if (-not $incomingCalls.Contains('answer.focus()') -or -not $incomingCalls.Contains('event.key === "Escape"') -or -not $incomingCalls.Contains('previousFocus?.focus()')) {
   Add-Failure 'Calls: global incoming-call dialog does not manage keyboard focus'

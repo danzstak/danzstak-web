@@ -12,3 +12,9 @@
 .embedded-messages .chat-header{display:none}.embedded-messages .chat-shell{display:block;width:100%;min-height:100vh;margin:0;padding:0;border:0;border-radius:0;box-shadow:none}.embedded-messages .chat-sidebar{min-height:100vh;border:0;border-radius:0;box-shadow:none}.embedded-messages .conversation{display:none}.embedded-messages.is-conversation-open .chat-sidebar{display:none}.embedded-messages.is-conversation-open .conversation{display:grid;height:100vh;min-height:0}.embedded-messages .message-list{max-height:none;min-height:0}.embedded-messages .online-panel,.embedded-messages .choice-label,.embedded-messages .conversation-choices,.embedded-messages #enableRinging,.embedded-messages #callStatus,.embedded-messages .delete-chat,.embedded-messages .receiver-hangup{display:none}
 .embedded-messages .conversation-choices{display:none!important}
 .conversation-header[hidden]{display:none!important}
+.receiver-hangup[hidden]{display:none!important}
+body[data-call-mode="phone"] .video-grid{display:none!important}
+body[data-call-mode="phone"] .media-controls{padding:8px;background:#f8fafc}
+body[data-call-mode="phone"] #toggleCamera{display:none}
+body[data-call-mode="video"] .video-grid{min-height:clamp(320px,58vh,680px)}
+@media(max-width:760px){body[data-call-mode="video"] .conversation{height:100dvh;min-height:100dvh}body[data-call-mode="video"] .video-grid{min-height:0;height:calc(100dvh - 150px)}body[data-call-mode="video"] .message-list,body[data-call-mode="video"] .message-form{display:none}}

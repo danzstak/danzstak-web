@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-9lR3bfWYKbPD2NDsqXB7JxMRVz6pxXw67kMb8L4Al4c='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-ZSo1Bno/1MNWTXcwYwJ0GfVwkAVvc4A678LT4Avn0oU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -231,6 +231,8 @@ textarea {
 .post-media { display:block; width:100%; max-height:560px; object-fit:contain; border-radius:10px; background:#0c111b; }
 .message-drawer{position:fixed;right:18px;bottom:18px;width:min(430px,calc(100vw - 24px));height:min(690px,calc(100vh - 84px));z-index:10000;background:#fff;border:1px solid #dce3ec;border-radius:18px;box-shadow:0 18px 60px #10182840;overflow:hidden}.message-drawer[hidden]{display:none}.message-drawer-bar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid #e5e9ef;font-weight:850}.message-drawer-close{min-width:34px;min-height:34px;padding:4px;border:0;background:transparent;font-size:1.35rem}.message-drawer iframe{display:block;width:100%;height:calc(100% - 46px);border:0;background:#f3f5f8}@media(max-width:560px){.message-drawer{right:6px;bottom:6px;width:calc(100vw - 12px);height:min(72vh,700px);border-radius:16px}}
 .message-drawer.is-conversation{width:min(360px,calc(100vw - 18px));height:min(540px,calc(100vh - 70px))}
+.message-drawer.is-video-call{inset:12px;width:auto;height:auto;border-radius:18px}.message-drawer.is-video-call iframe{height:calc(100% - 46px)}
+@media(max-width:560px){.message-drawer.is-video-call{inset:0;width:100vw;height:100dvh;border-radius:0}.message-drawer.is-video-call .message-drawer-bar{height:42px}.message-drawer.is-video-call iframe{height:calc(100dvh - 42px)}}
 .composer-title { display: flex; align-items: center; gap: 12px; }
 .composer-avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #1769e0; color: white; font-weight: 900; }
 
@@ -1031,6 +1033,7 @@ window.addEventListener("message", event => {
   const drawer = document.getElementById("messageDrawer");
   if (!drawer || event.source !== drawer.querySelector("iframe")?.contentWindow) return;
   if (event.data?.type === "danzstak-chat-view") drawer.classList.toggle("is-conversation", event.data.open === true);
+  if (event.data?.type === "danzstak-call-mode") drawer.classList.toggle("is-video-call", event.data.mode === "video");
   if (event.data?.type === "danzstak-chat-minimize") drawer.setAttribute("hidden", "");
 });
 
