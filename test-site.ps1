@@ -54,6 +54,9 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
   if (-not $markup.Contains($mediaOrigin)) { Add-Failure "${page}: signed AWS media origin is blocked by CSP" }
 }
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
+foreach ($dedicatedStoryControl in @('aria-label="Add a photo or video to Your Story"', 'createStoryInput.accept = "image/jpeg', 'dedicatedMedia: true', 'originalContentCertified: true', 'await loadStories()')) {
+  if (-not $feed.Contains($dedicatedStoryControl)) { Add-Failure "Stories: dedicated Your Story upload is incomplete: $dedicatedStoryControl" }
+}
 $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
 if (-not $feedEnhancements.Contains('rightsCertified: true')) { Add-Failure 'External Reel submissions omit rights attestation' }
 $pushClient = Get-Content -LiteralPath (Join-Path $root 'assets\push-notifications.js') -Raw -Encoding utf8

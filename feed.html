@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-2vCxfFw8a+BlHavQbBYae0fOhTs4phqapzGknlchBZs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-qBR/fxGqjlGEEqMfTX2/7Ve1Eshh7WLFEVAsIWgUoSk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -267,7 +267,7 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261025-37">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261025-38">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=1">
   <link rel="stylesheet" href="assets/soft-ui.css?v=20261025-12">
 </head>
@@ -318,7 +318,7 @@ textarea {
 
     <div id="newsFeedView">
     <section id="storiesRail" class="stories" aria-label="Stories">
-      <button type="button" class="story story-create"><span>Your Story</span></button>
+      <button type="button" class="story story-create" aria-label="Add a photo or video to Your Story"><span><b aria-hidden="true">+</b> Your Story</span></button>
       <div id="storiesLoading" class="story"><span>Loading Stories</span></div>
     </section>
     <section class="panel">
@@ -694,6 +694,52 @@ async function loadStories() {
   } catch { /* Feed still works if stories are temporarily unavailable. */ }
   finally { document.getElementById("storiesLoading")?.remove(); }
 }
+
+const createStoryButton = document.querySelector(".story-create");
+const createStoryInput = document.createElement("input");
+createStoryInput.type = "file";
+createStoryInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime";
+createStoryInput.hidden = true;
+createStoryButton?.insertAdjacentElement("afterend", createStoryInput);
+createStoryButton?.addEventListener("click", () => createStoryInput.click());
+createStoryInput.addEventListener("change", async () => {
+  const file = createStoryInput.files?.[0];
+  if (!file) return;
+  const mediaType = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "";
+  if (!mediaType || !createStoryInput.accept.split(",").includes(file.type)) {
+    alert("Stories must use a supported photo or video file.");
+    createStoryInput.value = "";
+    return;
+  }
+  if (!confirm("Do you certify that you created this Story and own all material in it, including any music inside a video?")) {
+    createStoryInput.value = "";
+    return;
+  }
+  createStoryButton.disabled = true;
+  createStoryButton.querySelector("span").textContent = "Publishingâ€¦";
+  try {
+    const ticketResponse = await fetch("https://api.danzstak.com/stories", {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentType: file.type })
+    });
+    if (!ticketResponse.ok) throw new Error("Story upload could not start.");
+    const ticket = await ticketResponse.json();
+    const uploadResponse = await fetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+    if (!uploadResponse.ok) throw new Error("Story media could not be uploaded.");
+    const publishResponse = await fetch("https://api.danzstak.com/stories", {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: file.name || "Your Story", audience: postAudience.value, mediaKey: ticket.mediaKey, mediaType: ticket.mediaType, dedicatedMedia: true, originalContentCertified: true })
+    });
+    if (!publishResponse.ok) throw new Error("Story could not be published.");
+    await loadStories();
+  } catch (error) {
+    alert(error.message || "Story could not be published.");
+  } finally {
+    createStoryInput.value = "";
+    createStoryButton.disabled = false;
+    createStoryButton.querySelector("span").innerHTML = '<b aria-hidden="true">+</b> Your Story';
+  }
+});
 
 // LOAD SAVED POSTS FROM AWS DYNAMODB
 async function loadPosts() {
