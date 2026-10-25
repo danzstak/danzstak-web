@@ -98,6 +98,29 @@ function field(label, type, placeholder) {
   return { wrap, input };
 }
 
+function renderPublishedEvents(publishedEvents) {
+  publishedEvents.replaceChildren();
+  const eventPosts = [...document.querySelectorAll("#feed .post")].filter(post => post.querySelector(".post-content")?.textContent.startsWith("📅 Event:"));
+  if (!eventPosts.length) {
+    const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No published events yet."; publishedEvents.appendChild(empty);
+  }
+  for (const post of eventPosts) {
+    const card = document.createElement("article"); card.className = "published-event-card";
+    const content = document.createElement("p"); content.textContent = post.querySelector(".post-content").textContent;
+    const meta = document.createElement("small"); meta.textContent = post.querySelector("time")?.textContent || "Published on DanzStak";
+    const view = document.createElement("button"); view.type = "button"; view.className = "secondary"; view.textContent = "View in Feed";
+    view.addEventListener("click", () => {
+      featurePanel.hidden = true;
+      document.getElementById("newsFeedView").hidden = false;
+      history.replaceState(null, "", "#" + (post.id || "feed"));
+      post.scrollIntoView({ behavior: "smooth", block: "center" });
+      post.focus({ preventScroll: true });
+    });
+    post.tabIndex = -1;
+    card.append(content, meta, view); publishedEvents.appendChild(card);
+  }
+}
+
 function renderWorkspace(name) {
   let workspace = featurePanel.querySelector(".feature-workspace");
   if (!workspace) {
@@ -501,25 +524,7 @@ function renderWorkspace(name) {
     publishedHeading.textContent = "Published events";
     const publishedEvents = document.createElement("div");
     publishedEvents.className = "published-events";
-    const eventPosts = [...document.querySelectorAll("#feed .post")].filter(post => post.querySelector(".post-content")?.textContent.startsWith("📅 Event:"));
-    if (!eventPosts.length) {
-      const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No published events yet."; publishedEvents.appendChild(empty);
-    }
-    for (const post of eventPosts) {
-      const card = document.createElement("article"); card.className = "published-event-card";
-      const content = document.createElement("p"); content.textContent = post.querySelector(".post-content").textContent;
-      const meta = document.createElement("small"); meta.textContent = post.querySelector("time")?.textContent || "Published on DanzStak";
-      const view = document.createElement("button"); view.type = "button"; view.className = "secondary"; view.textContent = "View in Feed";
-      view.addEventListener("click", () => {
-        featurePanel.hidden = true;
-        document.getElementById("newsFeedView").hidden = false;
-        history.replaceState(null, "", "#" + (post.id || "feed"));
-        post.scrollIntoView({ behavior: "smooth", block: "center" });
-        post.focus({ preventScroll: true });
-      });
-      post.tabIndex = -1;
-      card.append(content, meta, view); publishedEvents.appendChild(card);
-    }
+    renderPublishedEvents(publishedEvents);
     button.addEventListener("click", async () => {
       if (!title.input.value.trim() || !date.input.value) return title.input.focus();
       if (!eventCertified.checked) {
@@ -1936,10 +1941,13 @@ document.getElementById("feed").addEventListener("keydown", event => {
 }, true);
 document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
 function refreshFeedMediaWorkspace(records) {
-  if (featurePanel.hidden || !["Photos", "Videos"].includes(featureHeading.textContent)) return;
+  if (featurePanel.hidden || !["Photos", "Videos", "Events"].includes(featureHeading.textContent)) return;
   const feed = document.getElementById("feed");
   if (records.some(record => record.target === feed && (record.addedNodes.length || record.removedNodes.length))) {
-    renderWorkspace(featureHeading.textContent);
+    if (featureHeading.textContent === "Events") {
+      const publishedEvents = featurePanel.querySelector(".published-events");
+      if (publishedEvents) renderPublishedEvents(publishedEvents);
+    } else renderWorkspace(featureHeading.textContent);
   }
 }
 new MutationObserver(records => {

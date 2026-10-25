@@ -13,7 +13,7 @@ function node(tag) {
 const featureText = {};
 vm.runInNewContext(`function renderEvent(){ const name = "Events"; ${eventCode} } renderEvent();`, {
   document: { createElement: node, createTextNode: text => ({ textContent: text }), querySelectorAll: () => [] },
-  workspace: node('workspace'), featureText, featurePanel: {}, window: {}, renderWorkspace() {},
+  workspace: node('workspace'), featureText, featurePanel: {}, window: {}, renderWorkspace() {}, renderPublishedEvents() {},
   field: () => ({ wrap: node('label'), input: node('input') }),
   fetch: async (url, options) => { requests.push({ url, body: JSON.parse(options.body) }); return { ok: true, json: async () => ({}) }; }
 });
