@@ -134,6 +134,11 @@ if ($messagesHtml -notmatch 'id="receiverHangUp"[^>]+hidden' -or
     -not $chatJs.Contains('els.receiverHangup.hidden=true')) {
   Add-Failure 'Call controls: receiver Hang Up visibility is not tied to active call state'
 }
+if (-not $chatJs.Contains('.filter(event=>event.signalType!=="offer")') -or
+    -not $chatJs.Contains('eventIds:[offer.eventId]') -or
+    -not $chatJs.Contains('if(pending?.eventId===event.eventId)return;')) {
+  Add-Failure 'Calls: incoming offers are acknowledged before receiver action or ring repeatedly'
+}
 if (-not $feedEnhancementsJs.Contains('body: JSON.stringify({ content: post.querySelector(".post-content")?.textContent.trim() || "Shared media", audience: audiences[next] })') -or
     -not $feedEnhancementsJs.Contains('["Edit post", "Who can comment?", "Edit privacy"].includes')) {
   Add-Failure 'Post menu: privacy persistence or non-owner control filtering is incomplete'
