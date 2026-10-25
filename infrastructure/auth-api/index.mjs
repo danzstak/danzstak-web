@@ -77,6 +77,17 @@ async function scanAll(request, maximumItems = 5000) {
   return items.slice(0, maximumItems);
 }
 
+async function queryAll(request, maximumItems = 5000) {
+  const items = [];
+  let ExclusiveStartKey;
+  do {
+    const page = await db.send(new QueryCommand({ ...request, ExclusiveStartKey }));
+    items.push(...(page.Items || []));
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey && items.length < maximumItems);
+  return items.slice(0, maximumItems);
+}
+
 async function batchGetFriendships(viewerEmail, friendEmails) {
   const items = [];
   for (let offset = 0; offset < friendEmails.length; offset += 100) {
@@ -733,8 +744,8 @@ async function deleteGroup(event) {
   const found = await db.send(new GetItemCommand({ TableName: groupsTable, Key: key, ConsistentRead: true }));
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Group not found." }) };
   if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the group owner can delete it." }) };
-  const members = await db.send(new ScanCommand({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId", Limit: 500 }));
-  await Promise.all([db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key })), ...(members.Items || []).map(item => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })))]);
+  const members = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId" });
+  await Promise.all([db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key })), ...members.map(item => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })))]);
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
@@ -746,15 +757,14 @@ async function canViewProfileMedia(viewerEmail, profileEmail) {
     ConsistentRead: true
   }));
   if (friendship.Item?.status?.S === "friends") return true;
-  const memberships = await db.send(new ScanCommand({
+  const memberships = await scanAll({
     TableName: groupsTable,
     ProjectionExpression: "userEmail, groupId",
     FilterExpression: "userEmail = :viewer OR userEmail = :profile",
-    ExpressionAttributeValues: { ":viewer": { S: viewerEmail }, ":profile": { S: profileEmail } },
-    Limit: 500
-  }));
-  const viewerGroups = new Set((memberships.Items || []).filter(item => item.userEmail?.S === viewerEmail).map(item => item.groupId?.S));
-  const sharedGroups = [...new Set((memberships.Items || []).filter(item => item.userEmail?.S === profileEmail && viewerGroups.has(item.groupId?.S)).map(item => item.groupId?.S))];
+    ExpressionAttributeValues: { ":viewer": { S: viewerEmail }, ":profile": { S: profileEmail } }
+  });
+  const viewerGroups = new Set(memberships.filter(item => item.userEmail?.S === viewerEmail).map(item => item.groupId?.S));
+  const sharedGroups = [...new Set(memberships.filter(item => item.userEmail?.S === profileEmail && viewerGroups.has(item.groupId?.S)).map(item => item.groupId?.S))];
   for (const groupId of sharedGroups) if (await groupExists(groupId)) return true;
   return false;
 }
@@ -919,18 +929,18 @@ async function getEngagement(event) {
   const postId = String(event.queryStringParameters?.postId || "");
   const access = await postForEngagement(postId, userId);
   if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
-  const [reactionResult, commentResult] = await Promise.all([
-    db.send(new QueryCommand({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, Limit: 100, ConsistentRead: true })),
-    db.send(new QueryCommand({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, Limit: 100, ConsistentRead: true }))
+  const [reactionItems, commentItems] = await Promise.all([
+    queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ConsistentRead: true }),
+    queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ConsistentRead: true })
   ]);
   const reactionCounts = {};
   let myReaction = "";
-  for (const item of reactionResult.Items || []) {
+  for (const item of reactionItems) {
     const reaction = item.reaction?.S || "Like";
     reactionCounts[reaction] = (reactionCounts[reaction] || 0) + 1;
     if (item.userId?.S === userId) myReaction = reaction;
   }
-  const comments = (commentResult.Items || []).map(item => ({
+  const comments = commentItems.map(item => ({
     commentId: item.commentId.S, userEmail: item.userEmail?.S || "DanzStak member", content: item.content.S,
     createdAt: item.createdAt.S, isOwner: item.userId?.S === userId, canDelete: item.userId?.S === userId || access.post.userId?.S === userId
   })).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -1017,8 +1027,8 @@ async function clearEngagementNotifications(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 200, headers, body: JSON.stringify({ cleared: 0 }) };
-  const result = await db.send(new QueryCommand({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, ProjectionExpression: "eventId, #read", ExpressionAttributeNames: { "#read": "read" }, Limit: 100, ConsistentRead: true }));
-  const unread = (result.Items || []).filter(item => item.read?.BOOL !== true);
+  const items = await queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, ProjectionExpression: "eventId, #read", ExpressionAttributeNames: { "#read": "read" }, ConsistentRead: true });
+  const unread = items.filter(item => item.read?.BOOL !== true);
   await Promise.all(unread.map(item => db.send(new UpdateItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: { S: userEmail }, eventId: { S: item.eventId.S } }, UpdateExpression: "SET #read = :read", ExpressionAttributeNames: { "#read": "read" }, ExpressionAttributeValues: { ":read": { BOOL: true } } }))));
   return { statusCode: 200, headers, body: JSON.stringify({ cleared: unread.length }) };
 }
@@ -1158,25 +1168,23 @@ async function deleteSecurePost(event) {
   if (found.Item.mediaKey?.S) {
     const ownerPrefix = sha256(found.Item.userEmail?.S || "").slice(0, 24);
     if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
-    const stories = await db.send(new ScanCommand({
+    linkedStories = await scanAll({
       TableName: storiesTable,
       FilterExpression: "mediaKey = :media AND userEmail = :owner",
       ExpressionAttributeValues: { ":media": { S: found.Item.mediaKey.S }, ":owner": { S: found.Item.userEmail?.S || "" } },
-      ProjectionExpression: "storyId",
-      Limit: 100
-    }));
-    linkedStories = stories.Items || [];
+      ProjectionExpression: "storyId"
+    });
     await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: found.Item.mediaKey.S }));
   }
   const [reactions, comments, notices] = await Promise.all([
-    db.send(new QueryCommand({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, userId", ConsistentRead: true })),
-    db.send(new QueryCommand({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true })),
-    found.Item.userEmail?.S ? db.send(new QueryCommand({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: found.Item.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true })) : Promise.resolve({ Items: [] })
+    queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, userId", ConsistentRead: true }),
+    queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true }),
+    found.Item.userEmail?.S ? queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: found.Item.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true }) : Promise.resolve([])
   ]);
   await Promise.all([
-    ...(reactions.Items || []).map(item => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
-    ...(comments.Items || []).map(item => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
-    ...(notices.Items || []).filter(item => item.postId?.S === postId).map(item => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } }))),
+    ...reactions.map(item => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
+    ...comments.map(item => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
+    ...notices.filter(item => item.postId?.S === postId).map(item => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } }))),
     ...linkedStories.map(item => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } })))
   ]);
   await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
