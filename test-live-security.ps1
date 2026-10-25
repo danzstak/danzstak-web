@@ -1,5 +1,6 @@
 param(
-  [switch]$ExpectGroups
+  [switch]$ExpectGroups,
+  [switch]$ExpectProfileVideo
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,6 +25,18 @@ if ($LASTEXITCODE -ne 0 -or $postsStatus -ne "401") { Add-Failure "Unauthenticat
 $groupsStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzstak.com/groups"
 $expectedGroupsStatus = if ($ExpectGroups) { "401" } else { "404" }
 if ($LASTEXITCODE -ne 0 -or $groupsStatus -ne $expectedGroupsStatus) { Add-Failure "Unauthenticated groups request returned $groupsStatus instead of $expectedGroupsStatus" }
+$profileVideoStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzstak.com/profile-video"
+$expectedProfileVideoStatus = if ($ExpectProfileVideo) { "401" } else { "404" }
+if ($LASTEXITCODE -ne 0 -or $profileVideoStatus -ne $expectedProfileVideoStatus) { Add-Failure "Unauthenticated profile-video request returned $profileVideoStatus instead of $expectedProfileVideoStatus" }
+
+foreach ($asset in @(
+  @{ Url = "https://danzstak.com/assets/favicon-32.png?v=1"; Type = "image/png"; Name = "favicon" },
+  @{ Url = "https://danzstak.com/assets/danzstak-share-fb-v2.jpg"; Type = "image/jpeg"; Name = "social-share image" }
+)) {
+  $headers = Get-Headers $asset.Url
+  if ($headers -notmatch "HTTP/\S+ 200") { Add-Failure "$($asset.Name) did not return HTTP 200" }
+  if ($headers -notmatch "(?im)^Content-Type:\s*$([regex]::Escape($asset.Type))") { Add-Failure "$($asset.Name) has the wrong content type" }
+}
 
 & curl.exe -sS --tlsv1.2 --tls-max 1.2 -o NUL "https://danzstak.com/"
 if ($LASTEXITCODE -ne 0) { Add-Failure "TLS 1.2 connection failed" }
@@ -35,4 +48,4 @@ if ($failures.Count) {
   exit 1
 }
 
-Write-Host "Live security checks passed: website headers, API authentication, and TLS policy."
+Write-Host "Live security checks passed: website headers, branded assets, API authentication, and TLS policy."

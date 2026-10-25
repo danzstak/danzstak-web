@@ -30,4 +30,4 @@ Run `powershell -ExecutionPolicy Bypass -File ./test-site.ps1` before publishing
 
 Run `powershell -ExecutionPolicy Bypass -File ./test-infrastructure.ps1` before deploying the backend. It enforces the inline CloudFormation template size limit, validates the embedded Lambda's JavaScript syntax, and checks messaging privacy, cross-device Reel safeguards, and required least-privilege DynamoDB actions.
 
-After deployment, run `powershell -ExecutionPolicy Bypass -File ./test-live-security.ps1 -ExpectGroups`. This verifies the public website security headers, unauthenticated API rejection, the deployed Groups route, TLS 1.2 support, and rejection of TLS 1.1 or older.
+After deployment, run `powershell -ExecutionPolicy Bypass -File ./test-live-security.ps1 -ExpectGroups -ExpectProfileVideo`. This verifies the public website security headers, favicon and social-share assets, unauthenticated API rejection, the deployed Groups and profile-video routes, TLS 1.2 support, and rejection of TLS 1.1 or older.
