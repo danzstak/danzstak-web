@@ -70,6 +70,10 @@ foreach ($dedicatedStoryControl in @('aria-label="Add a photo or video to Your S
   if (-not $feed.Contains($dedicatedStoryControl)) { Add-Failure "Stories: dedicated Your Story upload is incomplete: $dedicatedStoryControl" }
 }
 $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
+if ($feedEnhancements.Contains('Reel saved on this device until cloud sync is available.') -or
+    -not $feedEnhancements.Contains('if (!response.ok || !result.reel) throw new Error')) {
+  Add-Failure 'Reels: failed cloud publication is still presented as a saved Reel'
+}
 if (-not $feedEnhancements.Contains('rightsCertified: true')) { Add-Failure 'External Reel submissions omit rights attestation' }
 $pushClient = Get-Content -LiteralPath (Join-Path $root 'assets\push-notifications.js') -Raw -Encoding utf8
 foreach ($pushClientControl in @('registration.pushManager.subscribe', 'applicationServerKey', '"/push/key"', '"/push/subscribe"', 'window.danzstakEnablePush')) {

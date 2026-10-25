@@ -1772,24 +1772,22 @@ addReel.addEventListener("click", async () => {
   if (!reelPlayer(parsed)) { reelStatus.textContent = "This link cannot autoplay inside DanzStak. Use a supported public video or direct HTTPS video-file link."; reelUrl.focus(); return; }
   if (!reelPermissionCheck.checked) { reelStatus.textContent = "Confirm ownership or permission before sharing."; reelPermissionCheck.focus(); return; }
   addReel.disabled = true;
-  let reel = null;
   try {
     const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: parsed.href, rightsCertified: true }) });
-    if (response.ok) reel = (await response.json()).reel;
-  } catch { /* Preserve a local copy until the cloud service is available. */ }
-  if (reel) {
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.reel) throw new Error(result.error || "Reel could not be saved to DanzStak.");
+    const reel = result.reel;
     cloudReels = Array.isArray(cloudReels) ? cloudReels : [];
     cloudReels.unshift({ ...reel, platform: reelPlatform(new URL(reel.url).hostname) });
-  } else {
-    const local = getLocalReels();
-    local.unshift({ id: crypto.randomUUID(), url: parsed.href, platform: reelPlatform(parsed.hostname), sharedAt: new Date().toISOString(), isOwner: true });
-    localStorage.setItem(reelsStorageKey, JSON.stringify(local.slice(0, 20)));
+    reelUrl.value = "";
+    reelPermissionCheck.checked = false;
+    reelStatus.textContent = "Reel saved to DanzStak.";
+    renderPlayableReels();
+  } catch (error) {
+    reelStatus.textContent = error.message || "Reel could not be saved to DanzStak.";
+  } finally {
+    addReel.disabled = false;
   }
-  reelUrl.value = "";
-  reelPermissionCheck.checked = false;
-  reelStatus.textContent = reel ? "Reel saved to DanzStak." : "Reel saved on this device until cloud sync is available.";
-  renderPlayableReels();
-  addReel.disabled = false;
 });
 
 async function loadCloudReels() {
