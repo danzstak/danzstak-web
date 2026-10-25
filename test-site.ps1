@@ -233,6 +233,9 @@ if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.C
 }
 $sessionActivityJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-activity.js') -Raw -Encoding utf8
 $profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.js') -Raw -Encoding utf8
+foreach ($profileUploadCleanup in @('async function discardCloudMedia(mediaKey)', 'await discardCloudMedia(mediaKey); throw error', 'await discardCloudMedia(uploadedVideoKey)')) {
+  if (-not $profileEditorJs.Contains($profileUploadCleanup)) { Add-Failure "Profile media: failed save leaves an orphaned upload: $profileUploadCleanup" }
+}
 $pushNotificationsJs = Get-Content -LiteralPath (Join-Path $root 'assets\push-notifications.js') -Raw -Encoding utf8
 foreach ($pushPromptControl in @('Never miss a DanzStak call', 'setTimeout(showPermissionPrompt, 12000)', 'danzstak_push_prompt_dismissed', 'new URLSearchParams(location.search).get("embedded")')) {
   if (-not $pushNotificationsJs.Contains($pushPromptControl)) { Add-Failure "Push alerts: permission prompt behavior is missing: $pushPromptControl" }
