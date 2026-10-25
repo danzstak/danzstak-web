@@ -37,6 +37,9 @@ foreach ($file in $htmlFiles) {
 $feedPath = Join-Path $root 'feed.html'
 $feed = Get-Content -LiteralPath $feedPath -Raw -Encoding utf8
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
+foreach ($copyrightSubmission in @('originalContentCertified: document.getElementById("originalContentCertification")?.checked === true', 'originalContentCertified: true')) {
+  if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }
+}
 foreach ($drawerAccessibility in @('aria-controls="messageDrawer"', 'aria-expanded="false"', 'drawer.setAttribute("role", "dialog")', 'event.key === "Escape"', 'launcher.setAttribute("aria-expanded", "true")')) {
   if (-not $feed.Contains($drawerAccessibility)) { Add-Failure "Messages: accessible drawer behavior is missing: $drawerAccessibility" }
 }
@@ -47,6 +50,7 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
 }
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
 $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
+if (-not $feedEnhancements.Contains('rightsCertified: true')) { Add-Failure 'External Reel submissions omit rights attestation' }
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
 if (-not $feedEnhancementCss.Contains('.composer-actions #publishBtn{grid-column:3;grid-row:2') -or -not $feedEnhancementCss.Contains('.composer-actions #publishBtn{grid-column:3!important;grid-row:2!important') -or -not $feedEnhancementCss.Contains('.reels-option{grid-column:2!important;grid-row:2!important')) {
   Add-Failure 'Composer: Story and Post controls can overlap instead of occupying separate rows'

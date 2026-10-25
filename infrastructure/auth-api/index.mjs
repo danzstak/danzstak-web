@@ -979,6 +979,7 @@ async function createSecurePost(event) {
   }
 
   const content = data.content.trim();
+  if (data.originalContentCertified !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Original-content certification is required." }) };
   const audience = ["public", "friends", "private"].includes(data.audience) ? data.audience : "public";
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";

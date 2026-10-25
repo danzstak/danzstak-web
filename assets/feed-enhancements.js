@@ -1633,7 +1633,7 @@ addReel.addEventListener("click", async () => {
   addReel.disabled = true;
   let reel = null;
   try {
-    const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: parsed.href }) });
+    const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: parsed.href, rightsCertified: true }) });
     if (response.ok) reel = (await response.json()).reel;
   } catch { /* Preserve a local copy until the cloud service is available. */ }
   if (reel) {
@@ -1663,7 +1663,7 @@ async function loadCloudReels() {
     const existingUrls = new Set(cloudReels.map(reel => reel.url));
     for (const local of pending) {
       if (existingUrls.has(local.url)) continue;
-      const saved = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: local.url }) }).catch(() => null);
+      const saved = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: local.url, rightsCertified: true }) }).catch(() => null);
       if (!saved?.ok) { remaining.push(local); continue; }
       const result = await saved.json();
       if (result.reel) { cloudReels.push({ ...result.reel, platform: reelPlatform(new URL(result.reel.url).hostname) }); existingUrls.add(result.reel.url); }
