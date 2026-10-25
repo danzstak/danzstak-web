@@ -283,6 +283,9 @@ if (-not $feedEnhancements.Contains('notificationAnnouncer.setAttribute("aria-li
 foreach ($groupFeature in @('fetch("https://api.danzstak.com/groups"', 'communityStandards: true', 'method: "DELETE"', 'customGroups = cloud')) {
   if (-not $feedEnhancements.Contains($groupFeature)) { Add-Failure "Groups are not durable across devices: $groupFeature" }
 }
+foreach ($workspaceRouting in @('const workspaceRoutes = new Map(', 'history.pushState({ workspace: canonicalName }', 'addEventListener("popstate", restoreWorkspaceRoute)', 'restoreWorkspaceRoute();')) {
+  if (-not $feedEnhancements.Contains($workspaceRouting)) { Add-Failure "Feed workspaces do not support refresh and Back/Forward navigation: $workspaceRouting" }
+}
 if ($feed.Contains('window.location.assign("./")') -or
     -not $feed.Contains('history.replaceState(null, "", location.pathname);')) {
   Add-Failure 'Feed navigation: Home still round-trips through the public landing page'

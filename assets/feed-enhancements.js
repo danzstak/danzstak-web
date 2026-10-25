@@ -606,23 +606,45 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
   groupsLink.dataset.feature = "Groups";
   groupsLink.textContent = "\uD83D\uDC65 Groups";
   groupsLink.setAttribute("aria-label", "Groups");
-  groupsLink.addEventListener("click", event => {
-    event.preventDefault();
-    history.replaceState(null, "", "#groups");
-    document.getElementById("newsFeedView").hidden = true;
-    featurePanel.hidden = false;
-    featureHeading.textContent = "Groups";
-    renderWorkspace("Groups");
-  });
   friendsLink.insertAdjacentElement("afterend", groupsLink);
 }
 
+const workspaceRoutes = new Map(["Friends", "Groups", "Photos", "Videos", "Events", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
+function openWorkspaceRoute(name, pushHistory = true) {
+  if (!workspaceRoutes.has(String(name).toLowerCase())) return false;
+  const canonicalName = workspaceRoutes.get(String(name).toLowerCase());
+  document.getElementById("newsFeedView").hidden = true;
+  featurePanel.hidden = false;
+  featureHeading.textContent = canonicalName;
+  document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.dataset.feature === canonicalName));
+  renderWorkspace(canonicalName);
+  const nextHash = "#" + canonicalName.toLowerCase();
+  if (pushHistory && location.hash !== nextHash) history.pushState({ workspace: canonicalName }, "", nextHash);
+  featurePanel.scrollIntoView({ behavior: pushHistory ? "smooth" : "auto", block: "start" });
+  return true;
+}
+
 document.querySelectorAll("[data-feature]").forEach(control => {
-  control.addEventListener("click", () => {
-    const name = control.dataset.feature;
-    setTimeout(() => renderWorkspace(name), 0);
+  const name = control.dataset.feature;
+  if (control.matches("a") && workspaceRoutes.has(name.toLowerCase())) control.href = "#" + name.toLowerCase();
+  control.addEventListener("click", event => {
+    if (!workspaceRoutes.has(name.toLowerCase())) return;
+    event.preventDefault();
+    openWorkspaceRoute(name);
   });
 });
+
+function restoreWorkspaceRoute() {
+  const name = workspaceRoutes.get(location.hash.slice(1).toLowerCase());
+  if (name) openWorkspaceRoute(name, false);
+  else if (!location.hash || location.hash === "#feed") {
+    featurePanel.hidden = true;
+    document.getElementById("newsFeedView").hidden = false;
+    document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.getAttribute("href") === "feed.html"));
+  }
+}
+addEventListener("popstate", restoreWorkspaceRoute);
+restoreWorkspaceRoute();
 
 refreshNotificationCount();
 setInterval(refreshNotificationCount, 30000);
