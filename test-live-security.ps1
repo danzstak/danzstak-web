@@ -22,6 +22,18 @@ foreach ($header in @("Strict-Transport-Security", "X-Content-Type-Options", "X-
 
 $postsStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzstak.com/secure-posts"
 if ($LASTEXITCODE -ne 0 -or $postsStatus -ne "401") { Add-Failure "Unauthenticated posts request returned $postsStatus instead of 401" }
+$trustedCors = & curl.exe -sS -D - -o NUL -H "Origin: https://danzstak.com" "https://api.danzstak.com/secure-posts"
+if ($LASTEXITCODE -ne 0 -or ($trustedCors -join "`n") -notmatch '(?im)^access-control-allow-origin:\s*https://danzstak\.com\s*$' -or ($trustedCors -join "`n") -notmatch '(?im)^access-control-allow-credentials:\s*true\s*$') {
+  Add-Failure "Trusted website origin does not receive credentialed API CORS access"
+}
+$untrustedCors = & curl.exe -sS -D - -o NUL -H "Origin: https://evil.example" "https://api.danzstak.com/secure-posts"
+if ($LASTEXITCODE -ne 0) { Add-Failure "Could not test untrusted API origin" }
+elseif (($untrustedCors -join "`n") -match '(?im)^access-control-allow-origin:') { Add-Failure "Untrusted origin received API CORS access" }
+$preflight = & curl.exe -sS -D - -o NUL -X OPTIONS -H "Origin: https://danzstak.com" -H "Access-Control-Request-Method: POST" "https://api.danzstak.com/secure-posts"
+$preflightText = $preflight -join "`n"
+if ($LASTEXITCODE -ne 0 -or $preflightText -notmatch '(?im)^access-control-allow-methods:.*\bPOST\b' -or $preflightText -notmatch '(?im)^access-control-allow-origin:\s*https://danzstak\.com\s*$') {
+  Add-Failure "Trusted API preflight does not authorize required POST requests"
+}
 $groupsStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzstak.com/groups"
 $expectedGroupsStatus = if ($ExpectGroups) { "401" } else { "404" }
 if ($LASTEXITCODE -ne 0 -or $groupsStatus -ne $expectedGroupsStatus) { Add-Failure "Unauthenticated groups request returned $groupsStatus instead of $expectedGroupsStatus" }
