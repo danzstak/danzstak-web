@@ -167,9 +167,11 @@ foreach ($pushCapability in @(
   "key==='DELETE /push/subscribe'",
   "Content-Encoding':'aes128gcm",
   "signalType==='offer'&&['phone','video'].includes(mode)",
-  'notifyCall(recipientEmail,user.email,mode,callId)'
+  "notifyCall(recipientEmail,user.email,mode,callId).catch(error=>console.error('Call push failed',error))",
+  "notifyMessage(recipient,user.email).catch(error=>console.error('Message push failed',error))",
+  "type:'message',title:'New DanzStak message'"
 )) {
-  if (-not $template.Contains($pushCapability)) { throw "Background call push capability is missing: $pushCapability" }
+  if (-not $template.Contains($pushCapability)) { throw "Background push capability is missing: $pushCapability" }
 }
 
 if (-not $template.Contains("body.action==='list')return json(200,{groupIds:[...await groupIds(user.email)]})")) {
