@@ -66,6 +66,13 @@ foreach ($step in $requiredStoryUploadSteps) {
   }
 }
 
+$serviceWorker = Get-Content -LiteralPath (Join-Path $root 'service-worker.js') -Raw -Encoding utf8
+if ($serviceWorker -notmatch 'const CACHE = "danzstak-shell-v\d+";' -or
+    $serviceWorker -notmatch 'skipWaiting\(\)' -or
+    $serviceWorker -notmatch 'clients\.claim\(\)') {
+  Add-Failure 'service-worker.js: installed-app cache update activation is incomplete'
+}
+
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
   Where-Object {
     $_.FullName -notlike "$root\.git\*" -and
