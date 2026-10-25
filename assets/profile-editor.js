@@ -340,7 +340,18 @@ function applyProfile(profile) {
   const name = document.getElementById("profileName").textContent.trim();
   const avatar = document.getElementById("profileInitial");
   if (profile.picture) { avatar.style.backgroundImage = `url("${profile.picture}")`; avatar.classList.add("has-photo"); avatar.textContent = ""; }
-  else avatar.textContent = name.charAt(0).toUpperCase() || "D";
+  else { avatar.style.backgroundImage = ""; avatar.classList.remove("has-photo"); avatar.textContent = name.charAt(0).toUpperCase() || "D"; }
+  const cover = document.querySelector(".cover");
+  if (profile.cover) {
+    cover.style.backgroundImage = `url("${profile.cover}")`;
+    cover.style.backgroundPosition = `${profile.coverX ?? 50}% ${profile.coverY ?? 50}%`;
+    cover.style.backgroundSize = profile.coverFit ? "contain" : "cover";
+    cover.style.backgroundRepeat = "no-repeat";
+    cover.classList.add("has-photo");
+  } else if (viewingOtherProfile || profile.cloudProfile) {
+    cover.style.backgroundImage = "";
+    cover.classList.remove("has-photo");
+  }
 }
 
 editButton.addEventListener("click", () => {
@@ -381,8 +392,10 @@ panel.addEventListener("submit", async event => {
   status.hidden = false;
 });
 
-applyProfile(savedProfile());
-try { applyProfileMedia(JSON.parse(localStorage.getItem(profileMediaKey) || "{}")); } catch { /* Ignore corrupt local drafts. */ }
+if (!viewingOtherProfile) {
+  applyProfile(savedProfile());
+  try { applyProfileMedia(JSON.parse(localStorage.getItem(profileMediaKey) || "{}")); } catch { /* Ignore corrupt local drafts. */ }
+}
 window.addEventListener("danzstak:profile-loaded", event => {
   const profile = event.detail || {};
   applyProfile(profile.cloudProfile ? profile : savedProfile());

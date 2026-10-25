@@ -86,6 +86,15 @@ $homeJs = Get-Content -LiteralPath (Join-Path $root 'assets\home.js') -Raw -Enco
 foreach ($privateKey in @('danzstak_dev_sections', 'danzstak-post-preferences', 'danzstak-hidden-posts', 'danzstak_chat_read', 'danzstak_profile_draft', 'danzstak_profile_media')) {
   if (-not $sessionCleanupJs.Contains($privateKey)) { Add-Failure "Logout cleanup omits account-local data: $privateKey" }
 }
+
+$profileJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile.js') -Raw -Encoding utf8
+$profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.js') -Raw -Encoding utf8
+if (-not $profileJs.Contains('requestedUser ? "Private" : (email || "Not available")') -or
+    -not $profileJs.Contains('avatar.classList.remove("has-photo")') -or
+    -not $profileJs.Contains('cover.classList.remove("has-photo")') -or
+    -not $profileEditorJs.Contains('if (!viewingOtherProfile) {')) {
+  Add-Failure 'Profiles: another member can inherit local profile media or expose their email'
+}
 if (-not $logoutJs.Contains('window.danzstakClearAccountData?.()') -or
     -not $homeJs.Contains('window.danzstakClearAccountData?.()')) {
   Add-Failure 'Logout does not clear account-local browser data on every page'
