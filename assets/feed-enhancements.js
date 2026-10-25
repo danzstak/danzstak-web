@@ -780,12 +780,31 @@ setInterval(refreshNotificationCount, 30000);
 window.addEventListener("focus", refreshNotificationCount);
 
 const search = document.querySelector(".search");
-search.addEventListener("input", () => {
+search.setAttribute("aria-label", "Search feed posts");
+search.placeholder = "Search feed posts";
+search.setAttribute("aria-controls", "feed");
+const searchFeedback = document.createElement("p");
+searchFeedback.className = "muted feed-search-feedback";
+searchFeedback.setAttribute("role", "status");
+searchFeedback.hidden = true;
+document.getElementById("feed").insertAdjacentElement("beforebegin", searchFeedback);
+function filterFeedPosts() {
   const query = search.value.trim().toLowerCase();
+  let matchingPosts = 0;
   document.querySelectorAll("#feed .post").forEach(post => {
-    post.hidden = Boolean(query) && !post.textContent.toLowerCase().includes(query);
+    const content = post.querySelector(".post-content");
+    const author = post.querySelector(".post-header");
+    const searchable = content ? `${author?.textContent || ""} ${content.textContent}` : post.textContent;
+    post.hidden = Boolean(query) && !searchable.toLowerCase().includes(query);
+    if (!post.hidden) matchingPosts += 1;
   });
-});
+  searchFeedback.hidden = !query;
+  searchFeedback.textContent = query
+    ? matchingPosts ? `${matchingPosts} matching feed result${matchingPosts === 1 ? "" : "s"}.` : "No matching feed posts. Try another search or clear the search box."
+    : "";
+}
+search.addEventListener("input", filterFeedPosts);
+filterFeedPosts();
 
 document.querySelector('[data-feature="Music"]')?.remove();
 document.querySelectorAll(".story span").forEach(label => {
@@ -1924,4 +1943,5 @@ new MutationObserver(records => {
       if (node.nodeType === Node.ELEMENT_NODE) node.querySelectorAll?.(".comment").forEach(addCommentDelete);
     });
   }
+  filterFeedPosts();
 }).observe(document.getElementById("feed"), { childList: true, subtree: true });
