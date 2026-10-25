@@ -27,6 +27,7 @@ let loadingMessages = false;
 let nextMessageCursor = "";
 const shownMessages = new Set();
 let cachedConversations = [];
+let activeCanContact = false;
 let reactionTimer = null;
 async function directFetch(path, options = {}, timeoutMs = 10000) {
   const controller = new AbortController();
@@ -87,6 +88,7 @@ function openConversation(conversation) {
   document.body.classList.add("is-conversation-open");
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: true }, location.origin);
   contactInput.value = conversation.contactEmail;
+  activeCanContact = conversation.canContact !== false;
   directContact = "";
   conversationHeader.hidden = false;
   conversationName.textContent = conversation.name || conversation.contactEmail;
@@ -101,6 +103,7 @@ function closeConversation({ focusList = false } = {}) {
   conversationHeader.hidden = true;
   contactInput.value = "";
   directContact = "";
+  activeCanContact = false;
   nextMessageCursor = "";
   shownMessages.clear();
   messageList.replaceChildren();
@@ -200,9 +203,10 @@ async function loadDirectMessages(reset = false) {
     markChatRead(contact, newest || new Date().toISOString());
     if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-read", contact }, location.origin);
     if (followNewest && appended) messageList.scrollTop = messageList.scrollHeight;
-    messageInput.disabled = false;
-    sendButton.disabled = false;
-    callStatus.textContent = "You can message " + contact + " directly.";
+    activeCanContact = data.canContact !== false;
+    messageInput.disabled = !activeCanContact;
+    sendButton.disabled = !activeCanContact;
+    callStatus.textContent = activeCanContact ? "You can message " + contact + " directly." : "Saved chat. Become friends or join the same group to send new messages or call.";
   } finally { loadingMessages = false; }
 }
 
@@ -283,6 +287,7 @@ async function loadConversations() {
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [label, targetId] of [["☎", "startPhone"], ["▣", "startVideo"]]) {
         const call = document.createElement("button"); call.type = "button"; call.className = "conversation-call"; call.textContent = label; call.title = targetId === "startPhone" ? "Phone call" : "Video call"; call.setAttribute("aria-label", call.title);
+        call.disabled = conversation.canContact === false;
         call.addEventListener("click", () => { contactInput.value = conversation.contactEmail; document.getElementById(targetId)?.click(); });
         calls.appendChild(call);
       }
@@ -340,7 +345,7 @@ messageForm?.addEventListener("submit", async event => {
   event.stopImmediatePropagation();
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
-  if (!content || !recipientEmail) return;
+  if (!content || !recipientEmail || !activeCanContact) return;
   sendButton.disabled = true;
   try {
     const response = await fetch(directApi + "/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content }) });

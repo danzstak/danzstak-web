@@ -122,6 +122,9 @@ if (-not $template.Contains("scanAll({TableName:process.env.PRESENCE_TABLE,Filte
 foreach ($socialListPagination in @('async function getFriends(user){const items=await queryAll', 'async function notifications(user){const [friends,chats]=await Promise.all([queryAll', 'async function getConversations(user){const items=await queryAll', 'async function mapLimit(items,limit,work)', 'const friends=await mapLimit(items,10', 'const conversations=await mapLimit(items.filter')) {
   if (-not $template.Contains($socialListPagination)) { throw "Friends, Notifications, or saved conversations can stop at one DynamoDB page: $socialListPagination" }
 }
+foreach ($savedChatControl in @('if(!allowed&&!state.Item?.preview?.S)return json(403', 'return json(200,{messages,nextCursor,canContact:allowed})', 'canContact:allowed')) {
+  if (-not $template.Contains($savedChatControl)) { throw "Saved chat history or current contact authorization is incomplete: $savedChatControl" }
+}
 if (-not $template.Contains("hiddenBefore = :deleted, unread = :zero") -or -not $template.Contains("':zero':{N:'0'}")) {
   throw 'Deleting a conversation does not clear its unread notification state'
 }
@@ -206,7 +209,7 @@ foreach ($messageHistoryControl in @(
   "Valid message cursor required",
   "ExclusiveStartKey:{conversationId:{S:id},messageId:{S:before}}",
   "nextCursor=page.LastEvaluatedKey",
-  "return json(200,{messages,nextCursor})"
+  "return json(200,{messages,nextCursor,canContact:allowed})"
 )) {
   if (-not $template.Contains($messageHistoryControl)) {
     throw "Saved message history pagination is missing: $messageHistoryControl"
