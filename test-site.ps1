@@ -77,6 +77,17 @@ $chatCss = Get-Content -LiteralPath (Join-Path $root 'assets\chat.css') -Raw -En
 if (-not $chatCss.Contains('.embedded-messages .conversation-choices{display:none!important}')) {
   Add-Failure 'chat.css: embedded message drawer exposes the oversized conversation chooser'
 }
+if (-not $chatCss.Contains('.conversation-header[hidden]{display:none!important}')) {
+  Add-Failure 'chat.css: hidden conversation header exposes call controls before selecting a contact'
+}
+
+$messagesHtml = Get-Content -LiteralPath (Join-Path $root 'messages.html') -Raw -Encoding utf8
+$chatJs = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
+if ($messagesHtml -notmatch 'id="receiverHangUp"[^>]+hidden' -or
+    -not $chatJs.Contains('els.receiverHangup.hidden=false') -or
+    -not $chatJs.Contains('els.receiverHangup.hidden=true')) {
+  Add-Failure 'Call controls: receiver Hang Up visibility is not tied to active call state'
+}
 
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
   Where-Object {
