@@ -283,6 +283,10 @@ if (-not $feedEnhancements.Contains('notificationAnnouncer.setAttribute("aria-li
 foreach ($groupFeature in @('fetch("https://api.danzstak.com/groups"', 'communityStandards: true', 'method: "DELETE"', 'customGroups = cloud')) {
   if (-not $feedEnhancements.Contains($groupFeature)) { Add-Failure "Groups are not durable across devices: $groupFeature" }
 }
+if ($feed.Contains('window.location.assign("./")') -or
+    -not $feed.Contains('history.replaceState(null, "", location.pathname);')) {
+  Add-Failure 'Feed navigation: Home still round-trips through the public landing page'
+}
 
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
   Where-Object {
