@@ -107,6 +107,10 @@ if ($serviceWorker -notmatch 'const CACHE = "danzstak-shell-v\d+";' -or
 }
 
 $pwaJs = Get-Content -LiteralPath (Join-Path $root 'assets\pwa.js') -Raw -Encoding utf8
+$serviceWorkerJs = Get-Content -LiteralPath (Join-Path $root 'service-worker.js') -Raw -Encoding utf8
+foreach ($callNotificationBehavior in @('payload.type === "call"', 'action: "answer"', 'action: "dismiss"', 'event.action === "dismiss"')) {
+  if (-not $serviceWorkerJs.Contains($callNotificationBehavior)) { Add-Failure "PWA: call notification behavior is missing: $callNotificationBehavior" }
+}
 if (-not $pwaJs.Contains('const installStateKey = "danzstak_app_installed"') -or
     -not $pwaJs.Contains('localStorage.setItem(installStateKey, "1")') -or
     -not $pwaJs.Contains('localStorage.removeItem(installStateKey)')) {

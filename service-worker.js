@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v139";
+const CACHE = "danzstak-shell-v140";
 const SHELL = [
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-fb-v2.jpg",
@@ -56,19 +56,22 @@ self.addEventListener("push", event => {
     const candidate = new URL(String(payload.url || url), self.location.origin);
     if (candidate.origin === self.location.origin && /^\/(?:feed|messages|profile)\.html$/.test(candidate.pathname)) url = candidate.pathname + candidate.search;
   } catch { /* Keep the safe feed destination. */ }
+  const call = payload.type === "call";
   event.waitUntil(self.registration.showNotification(title, {
     body,
     icon: "/assets/favicon-192.png",
     badge: "/assets/favicon-192.png",
     tag: String(payload.tag || "danzstak-alert").slice(0, 80),
     renotify: true,
-    requireInteraction: payload.type === "call",
-    data: { url }
+    requireInteraction: call,
+    actions: call ? [{ action: "answer", title: "Answer" }, { action: "dismiss", title: "Dismiss" }] : [],
+    data: { url, type: call ? "call" : "notification" }
   }));
 });
 
 self.addEventListener("notificationclick", event => {
   event.notification.close();
+  if (event.action === "dismiss") return;
   const destination = new URL(event.notification.data?.url || "/feed.html", self.location.origin).href;
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async clients => {
     for (const client of clients) {
