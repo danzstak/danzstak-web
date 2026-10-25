@@ -1,5 +1,10 @@
 "use strict";
 
+try {
+  document.documentElement.classList.toggle("dark-mode", localStorage.getItem("danzstak_dark_mode") === "1");
+  document.documentElement.lang = localStorage.getItem("danzstak_language") || "en";
+} catch { /* Device preferences remain optional when storage is unavailable. */ }
+
 const featurePanel = document.getElementById("featureView");
 const featureHeading = document.getElementById("featureTitle");
 const featureText = document.getElementById("featureDescription");

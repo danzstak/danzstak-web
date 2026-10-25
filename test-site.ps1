@@ -116,6 +116,10 @@ if (-not $feedEnhancementsJs.Contains('readSections().Settings?.notifications ==
     -not $feedEnhancementsJs.Contains('Show activity notification badges on this device')) {
   Add-Failure 'Settings: the activity notification preference is misleading or not enforced'
 }
+if (-not $feedEnhancementsJs.Contains('localStorage.getItem("danzstak_dark_mode") === "1"') -or
+    -not $feedEnhancementsJs.Contains('document.documentElement.lang = localStorage.getItem("danzstak_language") || "en"')) {
+  Add-Failure 'Settings: saved dark-mode or language preferences are not restored after navigation'
+}
 if (-not $directMessagesJs.Contains('if (!document.body.classList.contains("is-conversation-open")) return;') -or
     -not $directMessagesJs.Contains('/messages?read=1&contact=')) {
   Add-Failure 'Messaging: background or minimized chats can incorrectly clear unread state'
