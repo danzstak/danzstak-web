@@ -37,6 +37,7 @@ const reactionsTable = "DANZSTAK-Reactions";
 const commentsTable = "DANZSTAK-Comments";
 const engagementNotificationsTable = "DANZSTAK-EngagementNotifications";
 const reportsTable = "DANZSTAK-Reports";
+const presenceTable = "DANZSTAK-Presence";
 const storiesTable = "DANZSTAK-Stories";
 const groupsTable = "DANZSTAK-GroupMembers";
 const settingsTable = "DanzStak-UserSettings";
@@ -1302,6 +1303,8 @@ async function logout(event) {
   }
 
   const sessionId = getSessionId(event);
+  const userId = await getAuthenticatedUser(event);
+  const userEmail = userId ? await accountForSub(userId) : "";
 
   if (sessionId) {
     try {
@@ -1324,6 +1327,17 @@ async function logout(event) {
       ) {
         throw error;
       }
+    }
+  }
+
+  if (userEmail) {
+    try {
+      await db.send(new DeleteItemCommand({
+        TableName: presenceTable,
+        Key: { email: { S: userEmail } }
+      }));
+    } catch (error) {
+      console.error("Presence cleanup failed during logout:", error.name);
     }
   }
 

@@ -104,6 +104,10 @@ foreach ($socialListPagination in @('async function getFriends(user){const items
 foreach ($retiredLimit in @('TableName:process.env.PRESENCE_TABLE,FilterExpression:''expiresAt > :n'',ExpressionAttributeValues:{'':n'':{N:String(now())}},Limit:100', 'TableName:process.env.STORIES_TABLE,FilterExpression:''expiresAt > :n'',ExpressionAttributeValues:{'':n'':{N:String(now())}},Limit:100', 'TableName:process.env.GROUPS_TABLE,Limit:250')) {
   if ($template.Contains($retiredLimit)) { throw "A growing social directory still uses a single DynamoDB page: $retiredLimit" }
 }
+foreach ($logoutPresenceBehavior in @('const presenceTable = "DANZSTAK-Presence"', 'const userId = await getAuthenticatedUser(event);', 'TableName: presenceTable', 'Presence cleanup failed during logout')) {
+  if (-not $authApi.Contains($logoutPresenceBehavior)) { throw "Logout does not authoritatively clear presence: $logoutPresenceBehavior" }
+}
+if (-not $engagementTemplate.Contains('Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Presence')) { throw 'Auth API lacks permission to clear presence during logout' }
 if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
   throw 'Raw media URL access is not restricted to the authenticated owner.'
 }

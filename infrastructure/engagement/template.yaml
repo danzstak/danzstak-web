@@ -88,6 +88,9 @@ Resources:
             Action: [dynamodb:GetItem]
             Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Posts
           - Effect: Allow
+            Action: [dynamodb:DeleteItem]
+            Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Presence
+          - Effect: Allow
             Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:Scan]
             Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-GroupMembers
   GetEngagementRoute:
