@@ -257,6 +257,7 @@ if (viewingOtherProfile) {
 const tabs = document.createElement("nav");
 tabs.className = "profile-tabs";
 tabs.setAttribute("aria-label", "Profile sections");
+tabs.setAttribute("role", "tablist");
 for (const name of ["Posts", "About", "Friends", "Media"]) {
   const tab = document.createElement("button");
   tab.type = "button";
@@ -265,6 +266,7 @@ for (const name of ["Posts", "About", "Friends", "Media"]) {
   tab.classList.toggle("active", name === "About");
   tab.setAttribute("role", "tab");
   tab.setAttribute("aria-selected", String(name === "About"));
+  tab.tabIndex = name === "About" ? 0 : -1;
   tabs.appendChild(tab);
 }
 const tabMessage = document.createElement("div");
@@ -342,13 +344,23 @@ async function loadProfileFriends() {
 tabs.addEventListener("click", async event => {
   const tab = event.target.closest("[data-profile-tab]");
   if (!tab) return;
-  tabs.querySelectorAll("button").forEach(button => { const selected = button === tab; button.classList.toggle("active", selected); button.setAttribute("aria-selected", String(selected)); });
+  tabs.querySelectorAll("button").forEach(button => { const selected = button === tab; button.classList.toggle("active", selected); button.setAttribute("aria-selected", String(selected)); button.tabIndex = selected ? 0 : -1; });
   const name = tab.dataset.profileTab;
   details.hidden = name !== "About";
   tabMessage.hidden = name === "About";
   if (name === "Posts") await loadProfilePosts(false);
   else if (name === "Friends") await loadProfileFriends();
   else if (name === "Media") await loadProfilePosts(true);
+});
+tabs.addEventListener("keydown", event => {
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  const buttons = [...tabs.querySelectorAll('[role="tab"]')];
+  const current = buttons.indexOf(document.activeElement);
+  if (current < 0) return;
+  event.preventDefault();
+  const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
+  buttons[next].focus();
+  buttons[next].click();
 });
 
 const panel = document.createElement("form");

@@ -125,6 +125,9 @@ if ($sessionActivityJs.Contains('if (document.hidden || presenceUpdating) return
 foreach ($profileFeature in @('loadProfilePosts(false)', 'loadProfilePosts(true)', 'loadProfileFriends()', 'profile-friend-card', 'profile-post-card')) {
   if (-not $profileEditorJs.Contains($profileFeature)) { Add-Failure "Profile tabs are not functional: $profileFeature" }
 }
+foreach ($accessibilityFeature in @('tabs.setAttribute("role", "tablist")', 'button.setAttribute("aria-selected"', 'ArrowLeft', 'ArrowRight')) {
+  if (-not $profileEditorJs.Contains($accessibilityFeature)) { Add-Failure "Profile tab keyboard accessibility is missing: $accessibilityFeature" }
+}
 
 $profileJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile.js') -Raw -Encoding utf8
 if (-not $profileJs.Contains('requestedUser ? "Private" : (email || "Not available")') -or
@@ -234,6 +237,12 @@ if (-not $directMessagesJs.Contains('Promise.allSettled([') -or
 if (-not $feed.Contains('const [friendsResult, directoryResult] = await Promise.allSettled([') -or
     -not $feed.Contains('if (!friendsResponse?.ok) throw new Error("Friends could not be loaded");')) {
   Add-Failure 'Feed friends: a presence failure can still hide accepted friends'
+}
+if (-not $directMessagesJs.Contains('const chatFilters =') -or -not $directMessagesJs.Contains('item.setAttribute("aria-selected"') -or -not $directMessagesJs.Contains('ArrowRight')) {
+  Add-Failure 'Chat filter tabs do not support accessible selection and arrow-key navigation'
+}
+if (-not $feedEnhancements.Contains('notificationAnnouncer.setAttribute("aria-live", "polite")') -or -not $feedEnhancements.Contains('lastNotificationCount')) {
+  Add-Failure 'Notification count changes are not announced accessibly'
 }
 
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |

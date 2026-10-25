@@ -10,6 +10,12 @@ const featureHeading = document.getElementById("featureTitle");
 const featureText = document.getElementById("featureDescription");
 const localKey = "danzstak_dev_sections";
 const notificationControls = [...document.querySelectorAll('[data-feature="Notifications"]')];
+const notificationAnnouncer = document.createElement("div");
+notificationAnnouncer.className = "visually-hidden";
+notificationAnnouncer.setAttribute("role", "status");
+notificationAnnouncer.setAttribute("aria-live", "polite");
+document.body.appendChild(notificationAnnouncer);
+let lastNotificationCount = null;
 
 function isLocalHost() {
   return location.hostname === "127.0.0.1" || location.hostname === "localhost";
@@ -22,6 +28,8 @@ function updateNotificationCount(count) {
     control.textContent = safeCount ? `${control.dataset.baseLabel} (${safeCount})` : control.dataset.baseLabel;
     control.setAttribute("aria-label", safeCount ? `${control.dataset.baseLabel}, ${safeCount} new` : control.dataset.baseLabel);
   }
+  if (lastNotificationCount !== null && safeCount !== lastNotificationCount) notificationAnnouncer.textContent = safeCount ? `${safeCount} new notification${safeCount === 1 ? "" : "s"}.` : "No new notifications.";
+  lastNotificationCount = safeCount;
 }
 
 async function refreshNotificationCount() {

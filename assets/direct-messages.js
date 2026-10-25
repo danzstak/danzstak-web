@@ -185,7 +185,16 @@ async function loadConversations() {
 }
 
 chatSearch?.addEventListener("input", loadConversations);
-document.querySelectorAll("[data-chat-filter]").forEach(button => button.addEventListener("click", () => { document.querySelectorAll("[data-chat-filter]").forEach(item => item.classList.toggle("active", item === button)); activeFilter = button.dataset.chatFilter; loadConversations(); }));
+const chatFilters = [...document.querySelectorAll("[data-chat-filter]")];
+chatFilters.forEach(button => button.addEventListener("click", () => { chatFilters.forEach(item => { const selected = item === button; item.classList.toggle("active", selected); item.setAttribute("aria-selected", String(selected)); item.tabIndex = selected ? 0 : -1; }); activeFilter = button.dataset.chatFilter; loadConversations(); }));
+document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  const current = chatFilters.indexOf(document.activeElement);
+  if (current < 0) return;
+  event.preventDefault();
+  const next = event.key === "Home" ? 0 : event.key === "End" ? chatFilters.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + chatFilters.length) % chatFilters.length;
+  chatFilters[next].focus(); chatFilters[next].click();
+});
 document.getElementById("headerPhone")?.addEventListener("click", () => document.getElementById("startPhone")?.click());
 document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
 document.getElementById("minimizeConversation")?.addEventListener("click", () => { document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-minimize" }, location.origin); });

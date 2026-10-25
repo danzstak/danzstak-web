@@ -19,7 +19,7 @@
   <section class="chat-sidebar" aria-labelledby="messagesTitle">
     <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><span aria-hidden="true">•••</span></div>
     <label class="chat-search"><span aria-hidden="true">⌕</span><input id="chatSearch" type="search" placeholder="Search DanzStak messages" aria-label="Search messages"></label>
-    <nav class="chat-filters" aria-label="Chat filters"><button type="button" class="active" data-chat-filter="all">All</button><button type="button" data-chat-filter="unread">Unread</button><button type="button" data-chat-filter="groups">Groups</button><button type="button" data-chat-filter="communities">Communities</button></nav>
+    <nav class="chat-filters" aria-label="Chat filters" role="tablist"><button type="button" class="active" data-chat-filter="all" role="tab" aria-selected="true">All</button><button type="button" data-chat-filter="unread" role="tab" aria-selected="false" tabindex="-1">Unread</button><button type="button" data-chat-filter="groups" role="tab" aria-selected="false" tabindex="-1">Groups</button><button type="button" data-chat-filter="communities" role="tab" aria-selected="false" tabindex="-1">Communities</button></nav>
     <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers"><p class="chat-note">Loading saved chats…</p></div></section>
     <input id="contactEmail" type="hidden">
     <section class="online-panel" aria-labelledby="onlineTitle"><h2 id="onlineTitle">Friends and group members</h2><div id="onlineUsers"><p class="chat-note">Loading contacts…</p></div></section>
@@ -56,7 +56,7 @@
   </section>
 </main>
 <script src="assets/chat.js?v=18" defer></script>
-<script src="assets/direct-messages.js?v=15" defer></script>
+<script src="assets/direct-messages.js?v=16" defer></script>
 <script src="assets/session-activity.js?v=3" defer></script>
 <script src="assets/session-cleanup.js?v=1" defer></script>
 <script src="assets/logout.js?v=2" defer></script>
