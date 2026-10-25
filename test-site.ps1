@@ -30,6 +30,12 @@ foreach ($file in $htmlFiles) {
 
 $feedPath = Join-Path $root 'feed.html'
 $feed = Get-Content -LiteralPath $feedPath -Raw -Encoding utf8
+$mediaOrigin = 'https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com'
+foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
+  $markup = Get-Content -LiteralPath (Join-Path $root $page) -Raw -Encoding utf8
+  if (-not $markup.Contains($mediaOrigin)) { Add-Failure "${page}: signed AWS media origin is blocked by CSP" }
+}
+if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
 $inlineScripts = [regex]::Matches(
   $feed,
   '<script(?![^>]+src=)[^>]*>([\s\S]*?)</script>',
