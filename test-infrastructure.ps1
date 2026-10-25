@@ -63,8 +63,12 @@ foreach ($copyrightControl in @('body.rightsCertified!==true', 'body.originalCon
   if (-not $template.Contains($copyrightControl)) { throw "Story/Reel copyright attestation enforcement is missing: $copyrightControl" }
 }
 $templateBytes = [Text.Encoding]::UTF8.GetByteCount($template)
-if ($templateBytes -gt 51200) {
-  throw "CloudFormation template is $templateBytes bytes; inline validation accepts at most 51200 bytes."
+if ($templateBytes -gt 1048576) {
+  throw "CloudFormation template is $templateBytes bytes; S3-backed CloudFormation templates accept at most 1 MB."
+}
+$productionDeploy = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-deploy-production.ps1') -Raw -Encoding utf8
+foreach ($s3TemplateControl in @('describe-stack-resource', 'aws s3 cp $Template', 'aws s3 presign', '--template-url $templateUrl', '--s3-bucket $artifactBucket')) {
+  if (-not $productionDeploy.Contains($s3TemplateControl)) { throw "Large-template deployment support is missing: $s3TemplateControl" }
 }
 
 $lines = Get-Content -LiteralPath $templatePath -Encoding utf8
@@ -150,6 +154,22 @@ foreach ($permission in $requiredDataPermissions) {
   if (-not $template.Contains($permission)) {
     throw "Required DynamoDB permission is missing: $permission"
   }
+}
+
+foreach ($pushCapability in @(
+  'DANZSTAK-PushSubscriptions',
+  'KeySpec: ECC_NIST_P256',
+  'KeyUsage: SIGN_VERIFY',
+  'kms:GetPublicKey, kms:Sign',
+  'PUSH_SUBSCRIPTIONS_TABLE',
+  "key==='GET /push/key'",
+  "key==='POST /push/subscribe'",
+  "key==='DELETE /push/subscribe'",
+  "Content-Encoding':'aes128gcm",
+  "signalType==='offer'&&['phone','video'].includes(mode)",
+  'notifyCall(recipientEmail,user.email,mode,callId)'
+)) {
+  if (-not $template.Contains($pushCapability)) { throw "Background call push capability is missing: $pushCapability" }
 }
 
 if (-not $template.Contains("body.action==='list')return json(200,{groupIds:[...await groupIds(user.email)]})")) {

@@ -56,6 +56,10 @@ foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
 if ($feed -notmatch "connect-src[^;]+$([regex]::Escape($mediaOrigin))") { Add-Failure 'feed.html: signed S3 uploads are blocked by connect-src' }
 $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
 if (-not $feedEnhancements.Contains('rightsCertified: true')) { Add-Failure 'External Reel submissions omit rights attestation' }
+$chatScript = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
+foreach ($pushClientControl in @('registration.pushManager.subscribe', 'applicationServerKey', '"/push/key"', '"/push/subscribe"', 'Background ringing enabled')) {
+  if (-not $chatScript.Contains($pushClientControl)) { Add-Failure "Messages: background call subscription is missing: $pushClientControl" }
+}
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
 if (-not $feedEnhancementCss.Contains('.composer-actions #publishBtn{grid-column:3;grid-row:2') -or -not $feedEnhancementCss.Contains('.composer-actions #publishBtn{grid-column:3!important;grid-row:2!important') -or -not $feedEnhancementCss.Contains('.reels-option{grid-column:2!important;grid-row:2!important')) {
   Add-Failure 'Composer: Story and Post controls can overlap instead of occupying separate rows'
