@@ -458,6 +458,12 @@ foreach ($workspaceRouting in @('const workspaceRoutes = new Map(', 'history.pus
 foreach ($workspaceAccessibility in @('control.setAttribute("aria-current", "page")', 'featureHeading.tabIndex = -1', 'featureHeading.focus({ preventScroll: true })')) {
   if (-not $feedEnhancements.Contains($workspaceAccessibility)) { Add-Failure "Feed workspaces do not announce navigation accessibly: $workspaceAccessibility" }
 }
+foreach ($workspaceDestination in @('href="#friends"', 'href="#photos"', 'href="#videos"', 'href="#events"', 'href="#settings"')) {
+  if (-not $feed.Contains($workspaceDestination)) { Add-Failure "Feed workspace has no durable navigation destination: $workspaceDestination" }
+}
+if ($feed.Contains('This DanzStak section is being prepared.') -or $feed.Contains('const featureCopy =')) {
+  Add-Failure 'Feed workspaces still run the retired placeholder click handler before the functional router'
+}
 foreach ($reelPlaybackBehavior in @('const reelPlaybackObserver = new IntersectionObserver', 'entry.intersectionRatio >= 0.6', 'reelPlaybackObserver.observe(video)', 'document.hidden || video.dataset.inView !== "true"')) {
   if (-not $feedEnhancements.Contains($reelPlaybackBehavior)) { Add-Failure "Reels do not pause off-screen or while the app is hidden: $reelPlaybackBehavior" }
 }

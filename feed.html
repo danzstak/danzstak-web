@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-VPdFeHkIYrrcDZAVs6xc9GH1UiaAyE3zXs0Pfsbxetk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-vNTaUGLSSfwivOXEH9dDIcvj4P/UVKtS8uSr2+6b6fs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -298,12 +298,11 @@ textarea {
     <div class="panel menu">
       <a href="feed.html" class="active">🏠 Feed</a>
       <a href="profile.html">👤 My Profile</a>
-      <a href="#" data-feature="Friends">👥 Friends</a>
-      <a href="#" data-feature="Photos">📷 Photos</a>
-      <a href="#" data-feature="Videos">🎬 Videos</a>
-      <a href="#" data-feature="Music">🎵 Music</a>
-      <a href="#" data-feature="Events">🎤 Events</a>
-      <a href="#" data-feature="Settings">⚙️ Settings</a>
+      <a href="#friends" data-feature="Friends">👥 Friends</a>
+      <a href="#photos" data-feature="Photos">📷 Photos</a>
+      <a href="#videos" data-feature="Videos">🎬 Videos</a>
+      <a href="#events" data-feature="Events">🎤 Events</a>
+      <a href="#settings" data-feature="Settings">⚙️ Settings</a>
       <a href="privacy.html">🔒 Privacy Policy</a>
       <a href="terms.html" class="legal-menu-link"><span class="legal-menu-icon" aria-hidden="true">📄</span><span class="legal-menu-terms">Terms of</span><span class="legal-menu-service">Service</span></a>
       <a href="#" data-logout class="logout-menu-link"><span aria-hidden="true">🚪</span><span>Logout</span></a>
@@ -534,17 +533,6 @@ async function loadFriends() {
     }
   } catch { /* Refresh again on the next interval. */ }
 }
-
-const featureCopy = {
-  Friends: "Find and connect with artists, DJs, producers, and music fans.",
-  Messages: "Your private DanzStak conversations will appear here.",
-  Notifications: "Your latest reactions, comments, and connection updates will appear here.",
-  Photos: "Share and explore photos from the DanzStak community.",
-  Videos: "Discover performances, music videos, and creator clips.",
-  Music: "Explore tracks, releases, playlists, and featured artists.",
-  Events: "Find live shows, DJ sets, festivals, and booking opportunities.",
-  Settings: "Manage your DanzStak account, privacy, and notification preferences."
-};
 
 // CREATE THE VISUAL DISPLAY OF A POST
 function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorEmail = "", commentPolicy = "everyone") {
@@ -1123,20 +1111,6 @@ window.addEventListener("message", event => {
     drawer.setAttribute("hidden", "");
     document.getElementById("messagesNav")?.setAttribute("aria-expanded", "false");
   }
-});
-
-document.querySelectorAll("[data-feature]").forEach(control => {
-  control.addEventListener("click", event => {
-    event.preventDefault();
-    const feature = control.dataset.feature;
-    newsFeedView.hidden = true;
-    featureView.hidden = false;
-    featureTitle.textContent = feature;
-    featureDescription.textContent = featureCopy[feature] || "This DanzStak section is being prepared.";
-    document.querySelectorAll(".menu a").forEach(link => link.classList.remove("active"));
-    if (control.matches(".menu a")) control.classList.add("active");
-    featureView.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
 });
 
 loadPosts();
