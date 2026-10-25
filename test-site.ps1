@@ -80,6 +80,17 @@ if (-not $pwaJs.Contains('const installStateKey = "danzstak_app_installed"') -or
   Add-Failure 'PWA: completed installation is not remembered or cannot recover after uninstall'
 }
 
+$sessionCleanupJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-cleanup.js') -Raw -Encoding utf8
+$logoutJs = Get-Content -LiteralPath (Join-Path $root 'assets\logout.js') -Raw -Encoding utf8
+$homeJs = Get-Content -LiteralPath (Join-Path $root 'assets\home.js') -Raw -Encoding utf8
+foreach ($privateKey in @('danzstak_dev_sections', 'danzstak-post-preferences', 'danzstak-hidden-posts', 'danzstak_chat_read', 'danzstak_profile_draft', 'danzstak_profile_media')) {
+  if (-not $sessionCleanupJs.Contains($privateKey)) { Add-Failure "Logout cleanup omits account-local data: $privateKey" }
+}
+if (-not $logoutJs.Contains('window.danzstakClearAccountData?.()') -or
+    -not $homeJs.Contains('window.danzstakClearAccountData?.()')) {
+  Add-Failure 'Logout does not clear account-local browser data on every page'
+}
+
 $chatCss = Get-Content -LiteralPath (Join-Path $root 'assets\chat.css') -Raw -Encoding utf8
 $softUiCss = Get-Content -LiteralPath (Join-Path $root 'assets\soft-ui.css') -Raw -Encoding utf8
 if (-not $chatCss.Contains('.embedded-messages .conversation-choices{display:none!important}')) {

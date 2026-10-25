@@ -16,7 +16,7 @@ for (const button of document.querySelectorAll("[data-logout]")) {
         body: "{}"
       });
       if (!response.ok) throw new Error("Logout failed");
-      sessionStorage.removeItem("danzstak_install_prompt_shown");
+      window.danzstakClearAccountData?.();
       location.replace("./");
     } catch {
       button.disabled = false;

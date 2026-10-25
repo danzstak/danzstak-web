@@ -87,7 +87,7 @@ logoutBtn.addEventListener("click", async () => {
 
     if (!response.ok) throw new Error("Logout failed");
 
-    sessionStorage.removeItem("danzstak_install_prompt_shown");
+    window.danzstakClearAccountData?.();
     showSession(false, "Logged out of your secure session.");
   } catch (error) {
     status.textContent = "Logout failed. Please try again.";
