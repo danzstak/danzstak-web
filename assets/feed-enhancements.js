@@ -261,6 +261,7 @@ function renderWorkspace(name) {
     const grid = document.createElement("div");
     grid.className = "groups-grid";
     let customGroups = [...(saved.CustomGroups || [])];
+    const membershipChanges = new Map();
 
     function renderGroups() {
       grid.replaceChildren();
@@ -281,7 +282,10 @@ function renderWorkspace(name) {
         join.type = "button";
         join.className = "primary";
         const joined = Boolean(saved.GroupsJoined?.[group.id]);
-        join.textContent = joined ? "Joined" : "Join Group";
+        const pendingSync = group.custom && !group.cloud;
+        join.textContent = pendingSync ? "Waiting to sync" : joined ? "Joined" : "Join Group";
+        join.disabled = pendingSync;
+        if (pendingSync) join.title = "This group is saved on this device. Reopen Groups when connected to retry syncing it.";
         join.classList.toggle("is-selected", joined);
         join.addEventListener("click", async () => {
           const nextJoined = !saved.GroupsJoined?.[group.id];
@@ -296,6 +300,7 @@ function renderWorkspace(name) {
             if (!response.ok) throw new Error("Membership could not be saved");
             saved.GroupsJoined = saved.GroupsJoined || {};
             saved.GroupsJoined[group.id] = nextJoined;
+            membershipChanges.set(group.id, nextJoined);
             writeSections(saved);
             join.textContent = nextJoined ? "Joined" : "Join Group";
             join.classList.toggle("is-selected", nextJoined);
@@ -373,6 +378,7 @@ function renderWorkspace(name) {
         customGroups.unshift({ ...result.group, custom: true, cloud: true });
         saved.GroupsJoined = saved.GroupsJoined || {};
         saved.GroupsJoined[result.group.id] = true;
+        membershipChanges.set(result.group.id, true);
         saved.CustomGroups = customGroups.filter(item => !item.cloud);
         writeSections(saved);
       } catch (error) { alert(error.message); createButton.disabled = false; return; }
@@ -401,7 +407,7 @@ function renderWorkspace(name) {
         customGroups = [...createdDuringMigration, ...migration.groups, ...migration.pending];
         saved.CustomGroups = migration.pending;
         saved.GroupsJoined = saved.GroupsJoined || {};
-        migration.joinedIds.forEach(id => { saved.GroupsJoined[id] = true; });
+        migration.joinedIds.forEach(id => { saved.GroupsJoined[id] = true; membershipChanges.set(id, true); });
         writeSections(saved);
         renderGroups();
       })
@@ -410,7 +416,7 @@ function renderWorkspace(name) {
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (!Array.isArray(data?.groupIds)) return;
-        saved.GroupsJoined = Object.fromEntries(data.groupIds.map(groupId => [groupId, true]));
+        saved.GroupsJoined = Object.fromEntries([...data.groupIds.map(groupId => [groupId, true]), ...membershipChanges]);
         writeSections(saved);
         renderGroups();
       })
