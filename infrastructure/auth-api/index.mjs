@@ -1037,17 +1037,26 @@ async function reportPost(event) {
   const allowedReasons = new Set(["copyright", "hate_speech", "harassment", "violence", "spam", "other"]);
   if (!allowedReasons.has(reason)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a valid report reason." }) };
   if (details.length > 500) return { statusCode: 400, headers, body: JSON.stringify({ error: "Report details cannot exceed 500 characters." }) };
-  const access = await postForEngagement(postId, userId);
-  if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
-  if (access.post.userId?.S === userId) return { statusCode: 400, headers, body: JSON.stringify({ error: "Only other members' posts can be reported." }) };
+  const groupReport = data?.targetType === "group", groupId = String(data?.groupId || "");
+  let reportedUserId = "unknown";
+  if (groupReport) {
+    if (!details) return { statusCode: 400, headers, body: JSON.stringify({ error: "Describe the group concern." }) };
+    if (!(await groupExists(groupId))) return { statusCode: 404, headers, body: JSON.stringify({ error: "Group not found." }) };
+  } else {
+    const access = await postForEngagement(postId, userId);
+    if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
+    if (access.post.userId?.S === userId) return { statusCode: 400, headers, body: JSON.stringify({ error: "Only other members' posts can be reported." }) };
+    reportedUserId = access.post.userId?.S || "unknown";
+  }
   const reporterEmail = await accountForSub(userId);
   if (!reporterEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
   const reportId = randomUUID(), createdAt = new Date().toISOString();
   await db.send(new PutItemCommand({
     TableName: reportsTable,
     Item: {
-      reportId: { S: reportId }, reporterId: { S: userId }, reporterEmail: { S: reporterEmail }, postId: { S: postId },
-      reportedUserId: { S: access.post.userId?.S || "unknown" }, reason: { S: reason }, details: { S: details },
+      reportId: { S: reportId }, reporterId: { S: userId }, reporterEmail: { S: reporterEmail },
+      ...(groupReport ? { targetType: { S: "group" }, groupId: { S: groupId } } : { postId: { S: postId }, reportedUserId: { S: reportedUserId } }),
+      reason: { S: reason }, details: { S: details },
       status: { S: "open" }, createdAt: { S: createdAt }
     },
     ConditionExpression: "attribute_not_exists(reportId)"

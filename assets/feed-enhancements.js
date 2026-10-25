@@ -257,13 +257,20 @@ function renderWorkspace(name) {
         report.type = "button";
         report.className = "group-report";
         report.textContent = "Report a problem";
-        report.addEventListener("click", () => {
+        report.addEventListener("click", async () => {
           const details = prompt("What should the moderators review?");
           if (!details?.trim()) return;
-          saved.GroupReports = [...(saved.GroupReports || []), { groupId: group.id, details: details.trim(), reportedAt: new Date().toISOString() }];
-          writeSections(saved);
-          report.textContent = "Report sent";
+          if (details.trim().length > 500) { alert("Report details cannot exceed 500 characters."); return; }
           report.disabled = true;
+          try {
+            const response = await fetch("https://api.danzstak.com/reports", {
+              method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ targetType: "group", groupId: group.id, reason: "other", details: details.trim() })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.report?.reportId) throw new Error(data.error || "Report could not be submitted. Please try again.");
+            report.textContent = "Report submitted";
+          } catch (error) { alert(error.message); report.disabled = false; }
         });
         moderation.append(moderationTitle, moderationText, report);
         card.appendChild(moderation);
