@@ -61,6 +61,13 @@ foreach ($protection in $requiredStoryDeletionProtections) {
   }
 }
 
+$profileUpdate = [regex]::Match($template, 'async function updateProfile[\s\S]*?async function notifications').Value
+if (-not $profileUpdate.Contains('oldMedia.push(old)') -or
+    -not $profileUpdate.Contains('await Promise.all(oldMedia.map') -or
+    $profileUpdate.IndexOf('await Promise.all(oldMedia.map') -lt $profileUpdate.IndexOf('new UpdateItemCommand')) {
+  throw 'Profile media must be replaced in DynamoDB before the old S3 objects are deleted.'
+}
+
 $requiredDataPermissions = @(
   'Action: [dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]',
   'Action: [dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem]',
