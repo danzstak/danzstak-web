@@ -16,6 +16,25 @@ installButton.className = "install-app-button";
 installButton.textContent = "Install DanzStak";
 installButton.hidden = true;
 document.body.appendChild(installButton);
+const updateButton = document.createElement("button");
+updateButton.type = "button";
+updateButton.className = "app-update-button";
+updateButton.textContent = "Update DanzStak";
+updateButton.hidden = true;
+document.body.appendChild(updateButton);
+let waitingWorker = null;
+
+function offerUpdate(worker) {
+  if (!worker) return;
+  waitingWorker = worker;
+  updateButton.hidden = false;
+}
+
+updateButton.addEventListener("click", () => {
+  updateButton.disabled = true;
+  updateButton.textContent = "Updating…";
+  waitingWorker?.postMessage({ type: "SKIP_WAITING" });
+});
 
 function showInstallButtonTemporarily() {
   if (!signedInPage || knownInstalled) return;
@@ -35,6 +54,13 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const registration = await navigator.serviceWorker.register("/service-worker.js", { updateViaCache: "none" });
+      if (registration.waiting) offerUpdate(registration.waiting);
+      registration.addEventListener("updatefound", () => {
+        const installing = registration.installing;
+        installing?.addEventListener("statechange", () => {
+          if (installing.state === "installed" && navigator.serviceWorker.controller) offerUpdate(registration.waiting || installing);
+        });
+      });
       const checkForUpdate = () => registration.update().catch(() => {});
       checkForUpdate();
       setInterval(checkForUpdate, 60 * 60 * 1000);

@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v140";
+const CACHE = "danzstak-shell-v141";
 const SHELL = [
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-fb-v2.jpg",
@@ -11,12 +11,12 @@ const SHELL = [
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))));
-  self.clients.claim();
+  event.waitUntil(caches.keys()
+    .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+    .then(() => self.clients.claim()));
 });
 
 self.addEventListener("fetch", event => {
@@ -26,9 +26,9 @@ self.addEventListener("fetch", event => {
   if (request.mode === "navigate") {
     event.respondWith(fetch(request).then(response => {
       const copy = response.clone();
-      caches.open(CACHE).then(cache => cache.put(request, copy));
+      if (response.ok) caches.open(CACHE).then(cache => cache.put(url.pathname, copy));
       return response;
-    }).catch(() => caches.match(request).then(hit => hit || caches.match("/index.html"))));
+    }).catch(() => caches.match(url.pathname).then(hit => hit || caches.match("/index.html"))));
     return;
   }
   const isCodeOrStyle = /\.(?:css|js)$/.test(url.pathname);
@@ -36,13 +36,17 @@ self.addEventListener("fetch", event => {
     event.respondWith(fetch(request).then(response => {
       if (response.ok) caches.open(CACHE).then(cache => cache.put(request, response.clone()));
       return response;
-    }).catch(() => caches.match(request)));
+    }).catch(() => caches.match(request).then(hit => hit || caches.match(url.pathname))));
     return;
   }
   event.respondWith(caches.match(request).then(hit => hit || fetch(request).then(response => {
     if (response.ok) caches.open(CACHE).then(cache => cache.put(request, response.clone()));
     return response;
   })));
+});
+
+self.addEventListener("message", event => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("push", event => {

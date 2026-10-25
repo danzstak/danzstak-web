@@ -143,6 +143,11 @@ if ($serviceWorker -notmatch 'const CACHE = "danzstak-shell-v\d+";' -or
     $serviceWorker -notmatch 'clients\.claim\(\)') {
   Add-Failure 'service-worker.js: installed-app cache update activation is incomplete'
 }
+$installHandler = [regex]::Match($serviceWorker, 'self\.addEventListener\("install",[\s\S]*?\n\}\);').Value
+if ($installHandler -match 'skipWaiting\(') { Add-Failure 'PWA: a background update can interrupt an active post or call without consent' }
+foreach ($updateBehavior in @('cache.put(url.pathname, copy)', 'caches.match(url.pathname)', 'event.data?.type === "SKIP_WAITING"')) {
+  if (-not $serviceWorker.Contains($updateBehavior)) { Add-Failure "PWA: safe update behavior is missing: $updateBehavior" }
+}
 
 $pwaJs = Get-Content -LiteralPath (Join-Path $root 'assets\pwa.js') -Raw -Encoding utf8
 $serviceWorkerJs = Get-Content -LiteralPath (Join-Path $root 'service-worker.js') -Raw -Encoding utf8
@@ -153,6 +158,9 @@ if (-not $pwaJs.Contains('const installStateKey = "danzstak_app_installed"') -or
     -not $pwaJs.Contains('localStorage.setItem(installStateKey, "1")') -or
     -not $pwaJs.Contains('localStorage.removeItem(installStateKey)')) {
   Add-Failure 'PWA: completed installation is not remembered or cannot recover after uninstall'
+}
+foreach ($updatePromptBehavior in @('registration.waiting', 'registration.addEventListener("updatefound"', 'waitingWorker?.postMessage({ type: "SKIP_WAITING" })')) {
+  if (-not $pwaJs.Contains($updatePromptBehavior)) { Add-Failure "PWA: visible update lifecycle is missing: $updatePromptBehavior" }
 }
 
 $sessionCleanupJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-cleanup.js') -Raw -Encoding utf8
