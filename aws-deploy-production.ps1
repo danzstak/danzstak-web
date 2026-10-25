@@ -29,4 +29,7 @@ Write-Host "Reapplying production API safeguards..."
 Write-Host "Applying CloudFront security response headers..."
 & (Join-Path $PSScriptRoot "aws-harden-cloudfront.ps1")
 
+Write-Host "Publishing the tested static website release..."
+& (Join-Path $PSScriptRoot "aws-publish-site.ps1")
+
 Write-Host "DanzStak production deployment completed."

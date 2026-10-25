@@ -1,5 +1,12 @@
 $ErrorActionPreference = 'Stop'
 
+$publisherPath = Join-Path $PSScriptRoot 'aws-publish-site.ps1'
+if (-not (Test-Path -LiteralPath $publisherPath)) { throw 'Static site publisher is missing.' }
+$publisher = Get-Content -LiteralPath $publisherPath -Raw -Encoding utf8
+foreach ($required in @('aws cloudfront list-distributions', 'aws s3api head-bucket', 'aws s3 sync', '--delete', 'aws cloudfront create-invalidation', 'aws cloudfront wait invalidation-completed', 'live service worker does not match')) {
+  if (-not $publisher.Contains($required)) { throw "Static publisher is missing: $required" }
+}
+
 $templatePath = Join-Path $PSScriptRoot 'infrastructure\call-signaling\template.yaml'
 $template = Get-Content -LiteralPath $templatePath -Raw -Encoding utf8
 $templateBytes = [Text.Encoding]::UTF8.GetByteCount($template)
