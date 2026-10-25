@@ -16,7 +16,7 @@ Run `./aws-configure-production.ps1` from an authenticated AWS shell to reapply 
 - GET, POST, PATCH, DELETE, and OPTIONS support;
 - API throttling and detailed CloudWatch metrics.
 
-Run `./aws-harden-cloudfront.ps1` from the same authenticated shell to harden the `danzstak.com` distribution. The script discovers the distribution by alias, preserves its current configuration, enforces TLS 1.2 as the compatibility floor, enables HTTP/2 and HTTP/3, and attaches AWS's managed `SecurityHeadersPolicy` for HSTS, `nosniff`, frame protection, and a strict referrer policy.
+Run `./aws-harden-cloudfront.ps1` from the same authenticated shell to harden the `danzstak.com` distribution. The script discovers the distribution by alias, preserves its current configuration, caps edge caching at five minutes so releases propagate reliably, invalidates the previous release, enforces TLS 1.2 as the compatibility floor, enables HTTP/2 and HTTP/3, and attaches AWS's managed `SecurityHeadersPolicy` for HSTS, `nosniff`, frame protection, and a strict referrer policy.
 
 Run `./aws-deploy-production.ps1` for the complete production workflow. It verifies the active AWS identity, validates and deploys the `danzstak-call-signaling` stack in `us-west-1`, reapplies API CORS/throttling/MFA settings, and invokes the CloudFront hardening step.
 

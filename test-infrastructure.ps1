@@ -106,4 +106,16 @@ foreach ($scriptName in @('aws-deploy-production.ps1', 'aws-configure-production
   }
 }
 
+$cloudFrontScript = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-harden-cloudfront.ps1') -Raw -Encoding utf8
+foreach ($requiredCacheControl in @(
+  '$CachePolicyName = "DanzStak-Frequent-Revalidation"',
+  'MaxTTL = 300',
+  'MinTTL = 0',
+  'create-invalidation --distribution-id $distributionId --paths "/*"'
+)) {
+  if (-not $cloudFrontScript.Contains($requiredCacheControl)) {
+    Add-Failure "CloudFront deployment is missing bounded cache control: $requiredCacheControl"
+  }
+}
+
 Write-Host "Infrastructure checks passed ($templateBytes-byte template; embedded Lambda syntax valid)."
