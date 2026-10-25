@@ -96,8 +96,6 @@
 
   async function poll() {
     if (polling) return;
-    const drawer = document.getElementById("messageDrawer");
-    if (drawer && !drawer.hidden) return;
     polling = true;
     try {
       const inbox = await api("/calls/inbox");

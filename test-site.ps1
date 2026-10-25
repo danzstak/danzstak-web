@@ -127,11 +127,11 @@ $incomingCalls = Get-Content -LiteralPath (Join-Path $root 'assets\incoming-call
 if (-not $chatScript.Contains('if(await handleEvent(event))handled.push(event.eventId)') -or $chatScript.Contains('filter(event=>event.signalType!=="offer")')) {
   Add-Failure 'Calls: chat may acknowledge signals it did not handle'
 }
-if ($incomingCalls.Contains('const disposable =') -or -not $incomingCalls.Contains('document.getElementById("messageDrawer")')) {
-  Add-Failure 'Calls: background watcher may steal active chat signals'
+if ($incomingCalls.Contains('const disposable =') -or -not $chatScript.Contains('embeddedMode=messageParams.get("embedded")==="1"')) {
+  Add-Failure 'Calls: embedded chat and background watcher do not have distinct signal ownership'
 }
-foreach ($backgroundCallControl in @('if (drawer && !drawer.hidden) return;', 'window.openMessageDrawer(event.senderEmail, true)', 'answerCall = false', 'target.searchParams.set("answer", "1")')) {
-  if (-not ($incomingCalls + $feed).Contains($backgroundCallControl)) { Add-Failure "Calls: hidden message drawer can suppress or misroute incoming calls: $backgroundCallControl" }
+foreach ($backgroundCallControl in @('window.openMessageDrawer(event.senderEmail, true)', 'answerCall = false', 'target.searchParams.set("answer", "1")', 'if(!embeddedMode||autoAnswer)poll()')) {
+  if (-not ($incomingCalls + $feed + $chatScript).Contains($backgroundCallControl)) { Add-Failure "Calls: hidden message drawer can suppress or misroute incoming calls: $backgroundCallControl" }
 }
 foreach ($callBehavior in @('setCallMode(kind)', 'showCallConversation()', 'setCallMode("")')) {
   if (-not $chatScript.Contains($callBehavior)) { Add-Failure "Calls: missing call layout state behavior: $callBehavior" }
@@ -354,6 +354,16 @@ foreach ($callLifecycleControl in @('callTimer=setTimeout', 'No answer from ', '
 }
 foreach ($globalCallControl in @('event.signalType === "hangup" && event.callId === current.callId', 'await acknowledge(current.eventId)', 'await acknowledge(ended.eventId)')) {
   if (-not $incomingCallsJs.Contains($globalCallControl)) { Add-Failure "Calls: canceled global incoming call is not cleared: $globalCallControl" }
+}
+if ($incomingCallsJs.Contains('if (drawer && !drawer.hidden) return;') -or
+    -not $chatJs.Contains('embeddedMode=messageParams.get("embedded")==="1"') -or
+    -not $chatJs.Contains('if(!embeddedMode||autoAnswer)poll()') -or
+    -not $chatJs.Contains('if(!embeddedMode||autoAnswer||peer||pending)poll()')) {
+  Add-Failure 'Calls: an open embedded conversation can hide incoming calls or compete with the parent call watcher'
+}
+$correctPublishingStatus = 'Publishing' + [char]0x2026
+if (-not $feed.Contains($correctPublishingStatus)) {
+  Add-Failure 'Stories: publishing status contains corrupted text encoding'
 }
 $directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-messages.js') -Raw -Encoding utf8
 $feedEnhancementsJs = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
