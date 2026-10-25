@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-fNoNX26EYhEmxSzmME6ZtWcE+aPBmSHba79JPMDAsBw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-QeduH9NrICnQ2nZq1Z+W256c00dcfne5s3jvyCxmUB4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -284,7 +284,7 @@ textarea {
   <nav class="topnav">
     <button type="button" data-route="home">Home</button>
     <button type="button" data-feature="Friends">Friends</button>
-    <button type="button" id="messagesNav">Messages</button>
+    <button type="button" id="messagesNav" aria-controls="messageDrawer" aria-expanded="false">Messages</button>
     <button type="button" data-feature="Notifications">Notifications</button>
   </nav>
 </header>
@@ -983,14 +983,18 @@ document.querySelector('[data-route="home"]').addEventListener("click", () => {
   window.location.assign("./");
 });
 function openMessageDrawer(contact = "") {
+  const launcher = document.getElementById("messagesNav");
   let drawer = document.getElementById("messageDrawer");
   if (!drawer) {
     drawer = document.createElement("section");
     drawer.id = "messageDrawer";
     drawer.className = "message-drawer";
+    drawer.setAttribute("role", "dialog");
     drawer.setAttribute("aria-label", "Messages");
     drawer.innerHTML = '<div class="message-drawer-bar"><span>Chats</span><button type="button" class="message-drawer-close" aria-label="Close messages">×</button></div><iframe title="DanzStak messages"></iframe>';
     drawer.querySelector(".message-drawer-close").addEventListener("click", () => { drawer.hidden = true; drawer.querySelector("iframe")?.contentWindow?.postMessage({ type: "danzstak-chat-hidden" }, location.origin); });
+    drawer.querySelector(".message-drawer-close").addEventListener("click", () => { launcher.setAttribute("aria-expanded", "false"); launcher.focus(); });
+    drawer.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); drawer.querySelector(".message-drawer-close").click(); } });
     document.body.appendChild(drawer);
   }
   const frame = drawer.querySelector("iframe");
@@ -999,6 +1003,8 @@ function openMessageDrawer(contact = "") {
   if (contact) target.searchParams.set("contact", contact);
   if (!frame.src || contact) frame.src = target.href;
   drawer.hidden = false;
+  launcher.setAttribute("aria-expanded", "true");
+  drawer.querySelector(".message-drawer-close").focus();
 }
 document.getElementById("messagesNav").addEventListener("click", () => openMessageDrawer());
 const requestedMessageContact = new URLSearchParams(location.search).get("message")?.trim().toLowerCase();

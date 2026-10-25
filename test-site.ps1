@@ -30,6 +30,9 @@ foreach ($file in $htmlFiles) {
 
 $feedPath = Join-Path $root 'feed.html'
 $feed = Get-Content -LiteralPath $feedPath -Raw -Encoding utf8
+foreach ($drawerAccessibility in @('aria-controls="messageDrawer"', 'aria-expanded="false"', 'drawer.setAttribute("role", "dialog")', 'event.key === "Escape"', 'launcher.setAttribute("aria-expanded", "true")')) {
+  if (-not $feed.Contains($drawerAccessibility)) { Add-Failure "Messages: accessible drawer behavior is missing: $drawerAccessibility" }
+}
 $mediaOrigin = 'https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com'
 foreach ($page in @('feed.html', 'profile.html', 'messages.html')) {
   $markup = Get-Content -LiteralPath (Join-Path $root $page) -Raw -Encoding utf8
