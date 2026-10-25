@@ -14,6 +14,7 @@ import {
   PutItemCommand,
   GetItemCommand,
   DeleteItemCommand,
+  UpdateItemCommand,
   ScanCommand,
   QueryCommand,
   BatchGetItemCommand
@@ -35,6 +36,7 @@ const reactionsTable = "DANZSTAK-Reactions";
 const commentsTable = "DANZSTAK-Comments";
 const engagementNotificationsTable = "DANZSTAK-EngagementNotifications";
 const groupsTable = "DANZSTAK-GroupMembers";
+const settingsTable = "DanzStak-UserSettings";
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -607,6 +609,59 @@ async function deleteGroup(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
+async function canViewProfileMedia(viewerEmail, profileEmail) {
+  if (viewerEmail === profileEmail) return true;
+  const friendship = await db.send(new GetItemCommand({
+    TableName: friendsTable,
+    Key: { userEmail: { S: viewerEmail }, friendEmail: { S: profileEmail } },
+    ConsistentRead: true
+  }));
+  if (friendship.Item?.status?.S === "friends") return true;
+  const memberships = await db.send(new ScanCommand({
+    TableName: groupsTable,
+    ProjectionExpression: "userEmail, groupId",
+    FilterExpression: "userEmail = :viewer OR userEmail = :profile",
+    ExpressionAttributeValues: { ":viewer": { S: viewerEmail }, ":profile": { S: profileEmail } },
+    Limit: 500
+  }));
+  const viewerGroups = new Set((memberships.Items || []).filter(item => item.userEmail?.S === viewerEmail).map(item => item.groupId?.S));
+  return (memberships.Items || []).some(item => item.userEmail?.S === profileEmail && viewerGroups.has(item.groupId?.S));
+}
+
+async function getProfileVideo(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const viewerEmail = await accountForSub(userId);
+  if (!viewerEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const profileEmail = String(event.queryStringParameters?.email || viewerEmail).trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileEmail)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid profile required." }) };
+  if (!(await canViewProfileMedia(viewerEmail, profileEmail))) return { statusCode: 403, headers, body: JSON.stringify({ error: "Profile media is available to friends and group members." }) };
+  const found = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: profileEmail } }, ConsistentRead: true }));
+  return { statusCode: 200, headers, body: JSON.stringify({ mediaKey: found.Item?.profileVideoKey?.S || "" }) };
+}
+
+async function setProfileVideo(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  let body;
+  try { body = JSON.parse(event.body || "{}"); } catch { return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON." }) }; }
+  const accountEmail = await accountForSub(userId), mediaKey = String(body.mediaKey || ""), ownerPrefix = sha256(userId).slice(0, 24);
+  if (!accountEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  if (mediaKey && !new RegExp(`^users/${ownerPrefix}/[a-f0-9-]{36}\\.(mp4|webm|mov)$`).test(mediaKey)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Invalid profile video." }) };
+  const key = { userEmail: { S: accountEmail } }, current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: key, ConsistentRead: true }));
+  const oldKey = current.Item?.profileVideoKey?.S || "";
+  await db.send(new UpdateItemCommand({
+    TableName: settingsTable,
+    Key: key,
+    UpdateExpression: "SET profileVideoKey = :video, updatedAt = :updated",
+    ExpressionAttributeValues: { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() } }
+  }));
+  if (oldKey && oldKey !== mediaKey && oldKey.startsWith(`users/${ownerPrefix}/`)) await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: oldKey }));
+  return { statusCode: 200, headers, body: JSON.stringify({ mediaKey }) };
+}
+
 // CHECK SESSION
 async function checkSession(event) {
   const headers = corsHeaders(event.headers?.origin);
@@ -1113,6 +1168,14 @@ export const handler = async event => {
 
     if (method === "DELETE" && path.startsWith("/groups/")) {
       return await deleteGroup(event);
+    }
+
+    if (method === "GET" && path === "/profile-video") {
+      return await getProfileVideo(event);
+    }
+
+    if (method === "POST" && path === "/profile-video") {
+      return await setProfileVideo(event);
     }
 
     if (method === "POST" && path === "/auth/logout") {

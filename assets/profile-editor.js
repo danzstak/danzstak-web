@@ -6,7 +6,6 @@ const profileContent = document.getElementById("profileContent");
 const details = profileContent.querySelector(".details");
 const handleElement = document.getElementById("profileHandle");
 const profileMediaKey = "danzstak_profile_media";
-const profileGallery = [];
 const profileApi = "https://api.danzstak.com";
 const viewingOtherProfile = Boolean(new URLSearchParams(location.search).get("user"));
 
@@ -24,18 +23,22 @@ async function saveCloudProfile(changes) {
   return data.profile;
 }
 
-async function uploadCloudProfileMedia(file, field) {
+async function uploadCloudMedia(file) {
   const ticketResponse = await fetch(profileApi + "/stories", {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ contentType: file.type })
   });
-  if (!ticketResponse.ok) throw new Error("Image upload could not start");
+  if (!ticketResponse.ok) throw new Error("Media upload could not start");
   const ticket = await ticketResponse.json();
   const uploadResponse = await fetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
-  if (!uploadResponse.ok) throw new Error("Image upload failed");
-  return saveCloudProfile({ [field]: ticket.mediaKey });
+  if (!uploadResponse.ok) throw new Error("Media upload failed");
+  return ticket.mediaKey;
+}
+
+async function uploadCloudProfileMedia(file, field) {
+  return saveCloudProfile({ [field]: await uploadCloudMedia(file) });
 }
 
 const bioElement = document.createElement("p");
@@ -236,18 +239,46 @@ videoInput.hidden = true;
 videoButton.addEventListener("click", () => {
   if (confirm("Do you certify that you created this video and that any music in it is your original material? Standalone audio uploads are not allowed.")) videoInput.click();
 });
-videoInput.addEventListener("change", () => {
+videoInput.addEventListener("change", async () => {
   const file = videoInput.files[0];
   if (!file) return;
-  if (!file.type.startsWith("video/") || file.size > 100 * 1024 * 1024) {
-    alert("Profile videos must be MP4, WebM, or MOV and no larger than 100 MB.");
+  if (!videoInput.accept.split(",").includes(file.type)) {
+    alert("Profile videos must be MP4, WebM, or MOV.");
     videoInput.value = "";
     return;
   }
-  profileGallery.push({ kind: "video", url: URL.createObjectURL(file), name: file.name });
-  alert("Profile video added for this browser session. Open the Media tab to view it.");
+  videoButton.disabled = true;
+  try {
+    const mediaKey = await uploadCloudMedia(file);
+    const response = await fetch(profileApi + "/profile-video", {
+      method: "POST", credentials: "include", cache: "no-store",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Profile video could not be saved");
+    alert("Profile video saved. Open the Media tab to view it.");
+  } catch (error) { alert(error.message); }
+  finally { videoButton.disabled = false; videoInput.value = ""; }
 });
 mediaTools.append(videoButton, videoInput);
+const removeVideoButton = document.createElement("button");
+removeVideoButton.type = "button";
+removeVideoButton.textContent = "Remove Profile Video";
+removeVideoButton.addEventListener("click", async () => {
+  if (!confirm("Remove profile video?")) return;
+  removeVideoButton.disabled = true;
+  try {
+    const response = await fetch(profileApi + "/profile-video", {
+      method: "POST", credentials: "include", cache: "no-store",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey: "" })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Profile video could not be removed");
+    alert("Profile video removed from your profile and storage.");
+  } catch (error) { alert(error.message); }
+  finally { removeVideoButton.disabled = false; }
+});
+mediaTools.appendChild(removeVideoButton);
 actions.insertAdjacentElement("afterend", mediaTools);
 if (viewingOtherProfile) {
   editButton.hidden = true;
@@ -312,7 +343,27 @@ async function loadProfilePosts(mediaOnly = false) {
     let posts = (data.posts || []).filter(post => String(post.authorEmail || post.userEmail || post.email || "").toLowerCase() === profileEmail);
     if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType));
     tabMessage.replaceChildren();
-    if (!posts.length) { tabMessage.textContent = mediaOnly ? "No photos or videos to show yet." : "No posts to show yet."; return; }
+    if (mediaOnly) {
+      const params = new URLSearchParams();
+      const profileEmail = String(window.danzstakCurrentProfile?.email || "");
+      if (profileEmail) params.set("email", profileEmail);
+      const videoResponse = await fetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
+      if (videoResponse.ok) {
+        const stored = await videoResponse.json();
+        if (stored.mediaKey) {
+          const viewResponse = await fetch(profileApi + "/stories", {
+            method: "POST", credentials: "include", cache: "no-store",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "view", mediaKey: stored.mediaKey, mediaType: "video" })
+          });
+          if (viewResponse.ok) {
+            const view = await viewResponse.json();
+            tabMessage.appendChild(profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl: view.mediaUrl }));
+          }
+        }
+      }
+    }
+    if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? "No photos or videos to show yet." : "No posts to show yet."; return; }
     for (const post of posts) tabMessage.appendChild(profilePostCard(post));
   } catch (error) { tabMessage.textContent = error.message; }
 }

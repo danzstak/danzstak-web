@@ -25,7 +25,7 @@ try {
       @{
         Sid = "FriendAudienceChecks"
         Effect = "Allow"
-        Action = @("dynamodb:BatchGetItem")
+        Action = @("dynamodb:BatchGetItem", "dynamodb:GetItem")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Friends"
       },
       @{
@@ -39,6 +39,18 @@ try {
         Effect = "Allow"
         Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:Scan")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-GroupMembers"
+      },
+      @{
+        Sid = "ProfileVideoSettings"
+        Effect = "Allow"
+        Action = @("dynamodb:GetItem", "dynamodb:UpdateItem")
+        Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DanzStak-UserSettings"
+      },
+      @{
+        Sid = "DeleteReplacedProfileVideo"
+        Effect = "Allow"
+        Action = @("s3:DeleteObject")
+        Resource = "arn:aws:s3:::danzstak-call-signaling-mediabucket-*/*"
       }
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Policy -Encoding ascii
