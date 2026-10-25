@@ -1107,8 +1107,9 @@ function addPostDeleteButton(post) {
   post.dataset.pinned = String(preferences.pinned === true);
   post.dataset.saved = String(preferences.saved === true);
   post.dataset.notificationsOff = String(preferences.notificationsOff === true);
-  post.dataset.commentSetting = String(Number(preferences.commentSetting) || 0);
-  if (Number(preferences.commentSetting) === 2) post.querySelector(".commentBtn")?.setAttribute("disabled", "");
+  const serverCommentSetting = Number(post.dataset.commentSetting);
+  post.dataset.commentSetting = String(Number.isInteger(serverCommentSetting) ? serverCommentSetting : Number(preferences.commentSetting) || 0);
+  if (Number(post.dataset.commentSetting) === 2) post.querySelector(".commentBtn")?.setAttribute("disabled", "");
   if (preferences.pinned === true && post.parentElement) post.parentElement.prepend(post);
 
   function removePostFromThisFeed() {
@@ -1222,16 +1223,30 @@ function addPostDeleteButton(post) {
     editor.hidden = false;
     requestAnimationFrame(() => { textarea.focus(); textarea.setSelectionRange(textarea.value.length, textarea.value.length); });
   });
-  const commentOption = option("Who can comment?", "Everyone", button => {
+  const commentOption = option("Who can comment?", "Everyone", async button => {
     const values = ["Everyone", "Friends", "Comments off"];
+    const policies = ["everyone", "friends", "off"];
     const current = Number(post.dataset.commentSetting || 0);
     const next = (current + 1) % values.length;
+    const postId = post.dataset.postId;
+    button.disabled = true;
+    if (postId && !isLocalHost()) {
+      try {
+        const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), {
+          method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ commentPolicy: policies[next] })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Comment setting could not be saved");
+      } catch (error) { alert(error.message); button.disabled = false; return; }
+    }
     post.dataset.commentSetting = String(next);
     updatePostPreference(post, { commentSetting: next });
     button.querySelector("small").textContent = values[next];
     post.querySelector(".commentBtn").disabled = next === 2;
+    button.disabled = false;
   });
-  commentOption.querySelector("small").textContent = ["Everyone", "Friends", "Comments off"][Number(preferences.commentSetting) || 0];
+  commentOption.querySelector("small").textContent = ["Everyone", "Friends", "Comments off"][Number(post.dataset.commentSetting) || 0];
     const privacyOption = option("Edit privacy", ["Public", "Friends", "Only me"][Number(post.dataset.privacySetting) || 0], async button => {
       const values = ["Public", "Friends", "Only me"];
       const audiences = ["public", "friends", "private"];

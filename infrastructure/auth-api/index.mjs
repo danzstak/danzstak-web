@@ -749,6 +749,7 @@ async function getSecurePosts(event) {
       mediaUrl: item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S, 3600) : "",
       mediaType: item.mediaType?.S ?? "",
       reel: item.reel?.BOOL === true,
+      commentPolicy: item.commentPolicy?.S ?? "everyone",
       createdAt: item.createdAt.S
     }))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -860,6 +861,12 @@ async function addComment(event) {
   if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const commentPolicy = access.post.commentPolicy?.S || "everyone", ownerEmail = access.post.userEmail?.S || "";
+  if (commentPolicy === "off" && access.post.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Comments are turned off for this post." }) };
+  if (commentPolicy === "friends" && access.post.userId?.S !== userId) {
+    const friendship = await db.send(new GetItemCommand({ TableName: friendsTable, Key: { userEmail: { S: ownerEmail }, friendEmail: { S: userEmail } }, ConsistentRead: true }));
+    if (friendship.Item?.status?.S !== "friends") return { statusCode: 403, headers, body: JSON.stringify({ error: "Only friends can comment on this post." }) };
+  }
   const commentId = `${String(Date.now()).padStart(13, "0")}#${randomUUID()}`, createdAt = new Date().toISOString();
   await db.send(new PutItemCommand({ TableName: commentsTable, Item: { postId: { S: postId }, commentId: { S: commentId }, userId: { S: userId }, userEmail: { S: userEmail }, content: { S: content }, createdAt: { S: createdAt } } }));
   await notifyPostOwner(access.post, `comment#${commentId}`, "comment", userEmail, content);
@@ -1054,6 +1061,41 @@ async function deleteSecurePost(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
+async function updateSecurePost(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const postId = String(event.pathParameters?.postId || ""), data = parseJsonBody(event);
+  if (!/^[a-f0-9-]{36}$/.test(postId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid post." }) };
+  if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
+  const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
+  if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Post not found." }) };
+  if (found.Item.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the owner can edit this post." }) };
+  const updates = [], names = {}, values = { ":updated": { S: new Date().toISOString() } };
+  if (Object.prototype.hasOwnProperty.call(data, "content")) {
+    const content = typeof data.content === "string" ? data.content.trim() : "";
+    if (!content || content.length > 5000) return { statusCode: 400, headers, body: JSON.stringify({ error: "Post must contain 1–5000 characters." }) };
+    updates.push("#content = :content"); names["#content"] = "content"; values[":content"] = { S: content };
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "audience")) {
+    const audience = String(data.audience || "");
+    if (!["public", "friends", "private"].includes(audience)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid audience." }) };
+    updates.push("audience = :audience"); values[":audience"] = { S: audience };
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "commentPolicy")) {
+    const commentPolicy = String(data.commentPolicy || "");
+    if (!["everyone", "friends", "off"].includes(commentPolicy)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid comment policy." }) };
+    updates.push("commentPolicy = :commentPolicy"); values[":commentPolicy"] = { S: commentPolicy };
+  }
+  if (!updates.length) return { statusCode: 400, headers, body: JSON.stringify({ error: "No supported post changes were provided." }) };
+  updates.push("updatedAt = :updated");
+  const request = { TableName: postsTable, Key: { postId: { S: postId } }, UpdateExpression: `SET ${updates.join(", ")}`, ExpressionAttributeValues: values };
+  if (Object.keys(names).length) request.ExpressionAttributeNames = names;
+  await db.send(new UpdateItemCommand(request));
+  return { statusCode: 200, headers, body: JSON.stringify({ updated: true }) };
+}
+
 // LOG OUT
 async function logout(event) {
   const origin = event.headers?.origin;
@@ -1150,6 +1192,10 @@ export const handler = async event => {
 
     if (method === "DELETE" && path.startsWith("/secure-posts/")) {
       return await deleteSecurePost(event);
+    }
+
+    if (method === "PATCH" && path.startsWith("/secure-posts/")) {
+      return await updateSecurePost(event);
     }
 
     if (method === "GET" && path === "/engagement") {

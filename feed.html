@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-XaUgU0zqmqH33KlG5KDgiFt9Yp8vXv19I/LmcAv66Ts='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-2vCxfFw8a+BlHavQbBYae0fOhTs4phqapzGknlchBZs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -533,7 +533,7 @@ const featureCopy = {
 };
 
 // CREATE THE VISUAL DISPLAY OF A POST
-function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorEmail = "") {
+function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorEmail = "", commentPolicy = "everyone") {
 
   const article = document.createElement("article");
   article.className = "post";
@@ -543,6 +543,7 @@ function createPostElement(content, author = "DanzStak Member", createdAt = null
     article.id = "post-" + postId;
   }
   if (typeof isOwner === "boolean") article.dataset.isOwner = String(isOwner);
+  article.dataset.commentSetting = String(commentPolicy === "friends" ? 1 : commentPolicy === "off" ? 2 : 0);
 
   const header = document.createElement("div");
   header.className = "post-header";
@@ -753,7 +754,8 @@ async function loadPosts() {
         post.mediaType,
         post.postId,
         typeof post.isOwner === "boolean" ? post.isOwner : null,
-        authorEmail
+        authorEmail,
+        post.commentPolicy
       );
 
       if (!post.mediaUrl && post.mediaKey && post.mediaType) {

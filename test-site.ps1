@@ -291,6 +291,11 @@ if (-not $feedEnhancementsJs.Contains('const remoteNames = { pinned: "pinned", s
     -not $feedEnhancementsJs.Contains('if (title === "Delete post") button.classList.add("post-option-danger")')) {
   Add-Failure 'Post menu: pin, save, mute, or destructive-action persistence is incomplete'
 }
+if (-not $feedEnhancementsJs.Contains('body: JSON.stringify({ commentPolicy: policies[next] })') -or
+    -not $feed.Contains('post.commentPolicy') -or
+    -not $feed.Contains('commentPolicy = "everyone"')) {
+  Add-Failure 'Post menu: server-backed comment policy is not restored or saved'
+}
 if (-not $feedEnhancementsJs.Contains('readSections().Settings?.notifications === false') -or
     -not $feedEnhancementsJs.Contains('Show activity notification badges on this device')) {
   Add-Failure 'Settings: the activity notification preference is misleading or not enforced'

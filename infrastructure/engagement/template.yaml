@@ -86,6 +86,9 @@ Resources:
   AddCommentRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /comments', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  UpdatePostRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'PATCH /secure-posts/{postId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
   DeleteCommentRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /comments/{commentId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
@@ -131,6 +134,13 @@ Resources:
       FunctionName: !Ref AuthFunctionName
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/comments*'
+  UpdatePostInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/PATCH/secure-posts/*'
   GroupsInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
