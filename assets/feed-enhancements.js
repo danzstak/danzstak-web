@@ -401,13 +401,15 @@ function renderWorkspace(name) {
     loading.textContent = "Loading friends…";
     list.appendChild(loading);
     workspace.appendChild(list);
-    Promise.all([
+    Promise.allSettled([
       fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store" }),
       fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" })
-    ]).then(async ([friendsResponse, directoryResponse]) => {
-      if (!friendsResponse.ok) throw new Error("Friends could not be loaded");
+    ]).then(async ([friendsResult, directoryResult]) => {
+      const friendsResponse = friendsResult.status === "fulfilled" ? friendsResult.value : null;
+      const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
+      if (!friendsResponse?.ok) throw new Error("Friends could not be loaded");
       const friends = (await friendsResponse.json()).friends || [];
-      const online = new Set(directoryResponse.ok
+      const online = new Set(directoryResponse?.ok
         ? ((await directoryResponse.json()).users || [])
           .filter(user => user.online === true)
           .map(user => String(user.email || "").toLowerCase())
@@ -491,6 +493,10 @@ function renderWorkspace(name) {
     button.className = "primary";
     button.type = "button";
     button.textContent = "Add Event";
+    const eventCertification = document.createElement("label");
+    const eventCertified = document.createElement("input");
+    eventCertified.type = "checkbox";
+    eventCertification.append(eventCertified, document.createTextNode("I created this event announcement and authorize sharing it through DanzStak."));
     const publishedHeading = document.createElement("h4");
     publishedHeading.textContent = "Published events";
     const publishedEvents = document.createElement("div");
@@ -516,6 +522,11 @@ function renderWorkspace(name) {
     }
     button.addEventListener("click", async () => {
       if (!title.input.value.trim() || !date.input.value) return title.input.focus();
+      if (!eventCertified.checked) {
+        featureText.textContent = "Confirm that you created this event announcement before publishing.";
+        eventCertified.focus();
+        return;
+      }
       button.disabled = true;
       featureText.textContent = "Publishing event…";
       try {
@@ -523,7 +534,7 @@ function renderWorkspace(name) {
         const response = await fetch("https://api.danzstak.com/secure-posts", {
           method: "POST", credentials: "include", cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: `📅 Event: ${title.input.value.trim()}\n${formattedDate}`, audience: audience.value })
+          body: JSON.stringify({ content: `📅 Event: ${title.input.value.trim()}\n${formattedDate}`, audience: audience.value, originalContentCertified: true })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Event could not be published");
@@ -535,7 +546,7 @@ function renderWorkspace(name) {
       } catch (error) { featureText.textContent = error.message; }
       finally { button.disabled = false; }
     });
-    workspace.append(title.wrap, date.wrap, audience, button, publishedHeading, publishedEvents);
+    workspace.append(title.wrap, date.wrap, audience, eventCertification, button, publishedHeading, publishedEvents);
     return;
   }
 
