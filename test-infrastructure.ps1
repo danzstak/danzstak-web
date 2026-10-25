@@ -1,5 +1,14 @@
 $ErrorActionPreference = 'Stop'
 
+$authApiPath = Join-Path $PSScriptRoot 'infrastructure\auth-api\index.mjs'
+if (-not (Test-Path -LiteralPath $authApiPath)) { throw 'Version-controlled Auth API source is missing.' }
+$authApi = Get-Content -LiteralPath $authApiPath -Raw -Encoding utf8
+foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 'friendEmails.has(item.userEmail?.S)', 'sha256(userId).slice(0, 24)', 'Post media ownership could not be verified', '"strict-transport-security"', '"x-content-type-options"', '"x-frame-options"')) {
+  if (-not $authApi.Contains($required)) { throw "Auth API post authorization safeguard is missing: $required" }
+}
+$nodeAuthCheck = & node --check $authApiPath 2>&1
+if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript syntax failed: $nodeAuthCheck" }
+
 $publisherPath = Join-Path $PSScriptRoot 'aws-publish-site.ps1'
 if (-not (Test-Path -LiteralPath $publisherPath)) { throw 'Static site publisher is missing.' }
 $publisher = Get-Content -LiteralPath $publisherPath -Raw -Encoding utf8
