@@ -35,5 +35,26 @@ function setup() {
   const disconnected = vm.runInContext('updatePostPreference(post, {pinned:true})', h.context).catch(error => error);
   h.requests[3].reject(new Error('Network offline')); await disconnected;
   assert.equal(h.saved().p1.pinned, undefined);
+  h.context.localStorage.setItem = () => { throw new Error('quota exceeded'); };
+  const noStorage = vm.runInContext('updatePostPreference(post, {saved:false})', h.context);
+  h.requests[4].resolve({ok:true}); await noStorage;
+  assert.equal(vm.runInContext('readPostPreferences().p1.saved',h.context),false,'confirmed state overrides stale disk cache after quota failure');
+  h.context.localStorage.getItem = () => { throw new Error('storage blocked'); };
+  assert.equal(vm.runInContext('readPostPreferences().p1.notificationsOff',h.context),true,'confirmed preferences remain available without browser storage');
+  const hydrateStart = source.indexOf('if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts"');
+  const hydrateCode = source.slice(hydrateStart,source.indexOf('function openPostReportDialog(',hydrateStart));
+  let hiddenApplied=0;
+  Object.assign(h.context, {
+    hiddenPostIds:new Set(),recentlyHiddenPostIds:new Set(),hiddenPostKey:'hidden',
+    fetch:async()=>({ok:true,json:async()=>({hidden:['hidden1'],saved:['p2','notLoadedYet']})}),
+    document:{querySelectorAll:()=>[{dataset:{postId:'p2'},querySelector:()=>null}]},
+    applyHiddenPosts:()=>hiddenApplied++,addPostDeleteButton:()=>{},
+    window:{dispatchEvent:()=>{}},CustomEvent:class {},featurePanel:{querySelector:()=>null,hidden:false}
+  });
+  await vm.runInContext(hydrateCode,h.context);
+  assert.equal(hiddenApplied,1,'hidden posts still apply when caching account settings fails');
+  assert.equal(h.context.hiddenPostIds.has('hidden1'),true);
+  assert.equal(vm.runInContext('readPostPreferences().p2.saved',h.context),true,'initial account choices remain readable with blocked storage');
+  assert.equal(vm.runInContext('readPostPreferences().notLoadedYet.saved',h.context),true,'account preferences hydrate before the corresponding feed cards arrive');
   console.log('Post preference checks passed: server confirmation, failure recovery, and preserving existing choices.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -1190,6 +1190,7 @@ function postPermalink(post) {
 }
 
 const changedPostPreferenceFields = new Map();
+let volatilePostPreferences = {};
 
 function mergeRemotePostPreferences(postId, current, remote) {
   const merged = { ...(current || {}) };
@@ -1201,8 +1202,8 @@ function mergeRemotePostPreferences(postId, current, remote) {
 }
 
 function readPostPreferences() {
-  try { return JSON.parse(localStorage.getItem(postPreferencesKey) || "{}"); }
-  catch { return {}; }
+  try { return { ...JSON.parse(localStorage.getItem(postPreferencesKey) || "{}"), ...volatilePostPreferences }; }
+  catch { return { ...volatilePostPreferences }; }
 }
 
 async function updatePostPreference(post, changes) {
@@ -1224,8 +1225,8 @@ async function updatePostPreference(post, changes) {
   Object.keys(changes).forEach(name => changed.add(name));
   changedPostPreferenceFields.set(postId, changed);
   preferences[postId] = { ...(preferences[postId] || {}), ...changes };
-  try { localStorage.setItem(postPreferencesKey, JSON.stringify(preferences)); }
-  catch { /* Confirmed account preferences remain usable without local storage. */ }
+  try { localStorage.setItem(postPreferencesKey, JSON.stringify(preferences)); volatilePostPreferences = {}; }
+  catch { volatilePostPreferences = preferences; }
 }
 
 const hiddenPostKey = "danzstak-hidden-posts";
@@ -1262,12 +1263,17 @@ if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts", { credentia
   .then(data => {
     if (!data) return;
     hiddenPostIds = new Set([...(data.hidden || data.postIds || []).map(String), ...recentlyHiddenPostIds]);
-    localStorage.setItem(hiddenPostKey, JSON.stringify([...hiddenPostIds]));
+    try { localStorage.setItem(hiddenPostKey, JSON.stringify([...hiddenPostIds])); } catch { /* Account settings still apply when browser storage is unavailable. */ }
     const preferences = readPostPreferences();
     const remote = { pinned: new Set((data.pinned || []).map(String)), saved: new Set((data.saved || []).map(String)), notificationsOff: new Set((data.muted || []).map(String)) };
-    const visibleIds = [...document.querySelectorAll(".post[data-post-id]")].map(post => String(post.dataset.postId));
-    for (const postId of visibleIds) preferences[postId] = mergeRemotePostPreferences(postId, preferences[postId], remote);
-    localStorage.setItem(postPreferencesKey, JSON.stringify(preferences));
+    const preferenceIds = new Set([
+      ...Object.keys(preferences),
+      ...Object.values(remote).flatMap(ids => [...ids]),
+      ...[...document.querySelectorAll(".post[data-post-id]")].map(post => String(post.dataset.postId))
+    ]);
+    for (const postId of preferenceIds) preferences[postId] = mergeRemotePostPreferences(postId, preferences[postId], remote);
+    try { localStorage.setItem(postPreferencesKey, JSON.stringify(preferences)); volatilePostPreferences = {}; }
+    catch { volatilePostPreferences = preferences; }
     applyHiddenPosts();
     window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts || [] } }));
     document.querySelectorAll(".post[data-post-id]").forEach(post => {
