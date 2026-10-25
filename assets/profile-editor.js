@@ -141,23 +141,33 @@ function applyProfileMedia(saved) {
   }
 }
 
+async function removeProfileImage(field, target) {
+  const cloud = window.danzstakCurrentProfile?.cloudProfile;
+  if (cloud) {
+    const profile = await saveCloudProfile({ [field === "avatar" ? "avatarKey" : "coverKey"]: "" });
+    applyProfile(profile || window.danzstakCurrentProfile);
+  }
+  const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
+  delete saved[field];
+  try { localStorage.setItem(profileMediaKey, JSON.stringify(saved)); }
+  catch (error) { if (!cloud) throw new Error("The photo could not be removed from browser storage. Please try again."); }
+  if (!cloud) {
+    target.style.backgroundImage = "";
+    target.classList.remove("has-photo");
+    if (field === "avatar") target.textContent = document.getElementById("profileName").textContent.trim().charAt(0).toUpperCase() || "D";
+  }
+}
+
 function addRemoveImageButton(label, field, target) {
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = label;
   button.addEventListener("click", async () => {
     if (!confirm(`${label}?`)) return;
-    if (window.danzstakCurrentProfile?.cloudProfile) {
-      button.disabled = true;
-      try { await saveCloudProfile({ [field === "avatar" ? "avatarKey" : "coverKey"]: "" }); }
-      catch (error) { alert(error.message); button.disabled = false; return; }
-      button.disabled = false;
-    }
-    const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
-    delete saved[field];
-    localStorage.setItem(profileMediaKey, JSON.stringify(saved));
-    target.style.backgroundImage = "";
-    target.classList.remove("has-photo");
+    button.disabled = true;
+    try { await removeProfileImage(field, target); }
+    catch (error) { alert(error.message); }
+    finally { button.disabled = false; }
   });
   mediaTools.appendChild(button);
 }
