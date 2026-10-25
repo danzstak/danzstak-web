@@ -54,6 +54,17 @@ if ($inlineScripts.Count -ne 1) {
   }
 }
 
+$requiredStoryUploadSteps = @(
+  'const storyTicketResponse = await fetch("https://api.danzstak.com/stories"',
+  'const storyUploadResponse = await fetch(storyTicket.uploadUrl',
+  'dedicatedMedia: true'
+)
+foreach ($step in $requiredStoryUploadSteps) {
+  if (-not $feed.Contains($step)) {
+    Add-Failure "feed.html: dedicated Story media upload step is missing: $step"
+  }
+}
+
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
   Where-Object {
     $_.FullName -notlike "$root\.git\*" -and

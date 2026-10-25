@@ -48,6 +48,19 @@ foreach ($protection in $requiredReelProtections) {
   }
 }
 
+$requiredStoryDeletionProtections = @(
+  "dedicated:{BOOL:body.dedicatedMedia===true}",
+  "const mediaKey=found.Item.mediaKey?.S",
+  "mediaKey&&found.Item.dedicated?.BOOL",
+  'mediaKey.startsWith(`users/${ownerPrefix(user)}/`)',
+  "new DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:mediaKey})"
+)
+foreach ($protection in $requiredStoryDeletionProtections) {
+  if (-not $template.Contains($protection)) {
+    throw "Story media deletion protection is missing: $protection"
+  }
+}
+
 $requiredDataPermissions = @(
   'Action: [dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]',
   'Action: [dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem]',
