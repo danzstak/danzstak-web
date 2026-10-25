@@ -74,6 +74,9 @@ Resources:
           - Effect: Allow
             Action: [dynamodb:GetItem]
             Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Posts
+          - Effect: Allow
+            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:Scan]
+            Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-GroupMembers
   GetEngagementRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /engagement', Target: !Sub 'integrations/${AuthIntegrationId}'}
@@ -92,6 +95,15 @@ Resources:
   ReadEngagementNotificationsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /engagement-notifications/read', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ListGroupsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /groups', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  CreateGroupRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /groups', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  DeleteGroupRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /groups/{groupId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
   EngagementInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -113,6 +125,13 @@ Resources:
       FunctionName: !Ref AuthFunctionName
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/comments*'
+  GroupsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/groups*'
 Outputs:
   ReactionsTableName: {Value: !Ref ReactionsTable}
   CommentsTableName: {Value: !Ref CommentsTable}

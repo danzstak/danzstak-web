@@ -3,8 +3,19 @@ $ErrorActionPreference = 'Stop'
 $authApiPath = Join-Path $PSScriptRoot 'infrastructure\auth-api\index.mjs'
 if (-not (Test-Path -LiteralPath $authApiPath)) { throw 'Version-controlled Auth API source is missing.' }
 $authApi = Get-Content -LiteralPath $authApiPath -Raw -Encoding utf8
+$productionDeploy = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-deploy-production.ps1') -Raw -Encoding utf8
+foreach ($releaseStep in @('DANZSTAK-Engagement', 'aws-deploy-auth-api.ps1', '$EngagementTemplate')) {
+  if (-not $productionDeploy.Contains($releaseStep)) { throw "Production workflow omits required backend release step: $releaseStep" }
+}
 foreach ($reelPersistence in @('reel: item.reel?.BOOL === true', 'const reel = mediaType === "video" && data.reel === true', 'reel: { BOOL: true }')) {
   if (-not $authApi.Contains($reelPersistence)) { throw "Auth API does not persist uploaded-video Reel selection: $reelPersistence" }
+}
+foreach ($groupPersistence in @('async function listGroups(event)', 'async function createGroup(event)', 'async function deleteGroup(event)', 'data.communityStandards !== true', 'Only the group owner can delete it', 'groupId: { S: id }, joinedAt: { S: createdAt }')) {
+  if (-not $authApi.Contains($groupPersistence)) { throw "Auth API durable group control is missing: $groupPersistence" }
+}
+$engagementTemplate = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'infrastructure\engagement\template.yaml') -Raw -Encoding utf8
+foreach ($groupRoute in @('GET /groups', 'POST /groups', 'DELETE /groups/{groupId}', 'DANZSTAK-GroupMembers')) {
+  if (-not $engagementTemplate.Contains($groupRoute)) { throw "Engagement stack durable group route or permission is missing: $groupRoute" }
 }
 foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 'friendEmails.has(item.userEmail?.S)', 'sha256(userId).slice(0, 24)', 'Post media ownership could not be verified', '"strict-transport-security"', '"x-content-type-options"', '"x-frame-options"', 'async function getEngagement(event)', 'async function setReaction(event)', 'async function addComment(event)', 'async function deleteComment(event)', 'async function getEngagementNotifications(event)', 'async function clearEngagementNotifications(event)', 'reactions.Items || []', 'comments.Items || []', 'notices.Items || []')) {
   if (-not $authApi.Contains($required)) { throw "Auth API post authorization safeguard is missing: $required" }

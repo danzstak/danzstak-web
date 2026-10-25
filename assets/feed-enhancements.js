@@ -116,11 +116,12 @@ function renderWorkspace(name) {
     createBox.append(groupName.wrap, categoryLabel, standardsLabel, standardsError, createButton);
     const grid = document.createElement("div");
     grid.className = "groups-grid";
+    let customGroups = [...(saved.CustomGroups || [])];
 
     function renderGroups() {
       grid.replaceChildren();
       const defaults = categories.map((category, index) => ({ id: `default-${index}`, name: category, category, description: `Connect in ${category.toLowerCase()}.`, custom: false }));
-      const groups = [...(saved.CustomGroups || []), ...defaults];
+      const groups = [...customGroups, ...defaults];
       for (const group of groups) {
         const isSensitiveDiscussion = ["Politics", "Religion"].includes(group.category);
         const card = document.createElement("article");
@@ -182,14 +183,20 @@ function renderWorkspace(name) {
         moderation.append(moderationTitle, moderationText, report);
         card.appendChild(moderation);
         card.appendChild(join);
-        if (group.custom) {
+        if (group.custom && group.isOwner !== false) {
           const remove = document.createElement("button");
           remove.type = "button";
           remove.className = "group-delete";
           remove.textContent = "Delete Group";
-          remove.addEventListener("click", () => {
+          remove.addEventListener("click", async () => {
             if (!confirm("Delete this group?")) return;
-            saved.CustomGroups = saved.CustomGroups.filter(item => item.id !== group.id);
+            remove.disabled = true;
+            if (group.cloud) {
+              const response = await fetch("https://api.danzstak.com/groups/" + encodeURIComponent(group.id), { method: "DELETE", credentials: "include" }).catch(() => null);
+              if (!response?.ok) { remove.disabled = false; alert("Group could not be deleted."); return; }
+            }
+            customGroups = customGroups.filter(item => item.id !== group.id);
+            saved.CustomGroups = customGroups.filter(item => !item.cloud);
             writeSections(saved);
             renderGroups();
           });
@@ -199,7 +206,7 @@ function renderWorkspace(name) {
       }
     }
 
-    createButton.addEventListener("click", () => {
+    createButton.addEventListener("click", async () => {
       const value = groupName.input.value.trim();
       if (!value) return groupName.input.focus();
       if (!standardsCheckbox.checked) {
@@ -207,14 +214,40 @@ function renderWorkspace(name) {
         standardsCheckbox.focus();
         return;
       }
-      saved.CustomGroups = [...(saved.CustomGroups || []), { id: crypto.randomUUID(), name: value, category: categorySelect.value, description: "A new DanzStak community group.", custom: true }];
-      writeSections(saved);
+      createButton.disabled = true;
+      try {
+        const response = await fetch("https://api.danzstak.com/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: value, category: categorySelect.value, description: "A new DanzStak community group.", communityStandards: true }) });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.group) throw new Error(result.error || "Group could not be created");
+        customGroups.unshift({ ...result.group, custom: true, cloud: true });
+        saved.GroupsJoined = saved.GroupsJoined || {};
+        saved.GroupsJoined[result.group.id] = true;
+        saved.CustomGroups = customGroups.filter(item => !item.cloud);
+        writeSections(saved);
+      } catch (error) { alert(error.message); createButton.disabled = false; return; }
       groupName.input.value = "";
       standardsCheckbox.checked = false;
       renderGroups();
+      createButton.disabled = false;
     });
     workspace.append(createBox, grid);
     renderGroups();
+    fetch("https://api.danzstak.com/groups", { credentials: "include", cache: "no-store" })
+      .then(response => response.ok ? response.json() : null)
+      .then(async data => {
+        if (!Array.isArray(data?.groups)) return;
+        const cloud = data.groups.map(group => ({ ...group, custom: true, cloud: true }));
+        const known = new Set(cloud.map(group => `${group.name.toLowerCase()}|${group.category}`));
+        for (const local of customGroups.filter(group => !group.cloud && !known.has(`${group.name.toLowerCase()}|${group.category}`))) {
+          const response = await fetch("https://api.danzstak.com/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: local.name, category: local.category, description: local.description, communityStandards: true }) }).catch(() => null);
+          if (response?.ok) { const result = await response.json(); if (result.group) { cloud.push({ ...result.group, custom: true, cloud: true }); saved.GroupsJoined = saved.GroupsJoined || {}; saved.GroupsJoined[result.group.id] = true; } }
+        }
+        customGroups = cloud;
+        saved.CustomGroups = [];
+        writeSections(saved);
+        renderGroups();
+      })
+      .catch(() => {});
     fetch("https://api.danzstak.com/groups/membership", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ action: "list" }) })
       .then(response => response.ok ? response.json() : null)
       .then(data => {

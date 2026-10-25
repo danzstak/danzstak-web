@@ -34,6 +34,7 @@ const friendsTable = "DANZSTAK-Friends";
 const reactionsTable = "DANZSTAK-Reactions";
 const commentsTable = "DANZSTAK-Comments";
 const engagementNotificationsTable = "DANZSTAK-EngagementNotifications";
+const groupsTable = "DANZSTAK-GroupMembers";
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -566,6 +567,46 @@ async function getAuthenticatedUser(event) {
   return session.userId.S;
 }
 
+const groupCategories = new Set(["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"]);
+
+async function listGroups(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const result = await db.send(new ScanCommand({ TableName: groupsTable, FilterExpression: "groupId = :meta", ExpressionAttributeValues: { ":meta": { S: "META" } }, Limit: 250 }));
+  const groups = (result.Items || []).map(item => ({ id: item.userEmail.S.slice(6), name: item.name?.S || "Group", category: item.category?.S || "Creators", description: item.description?.S || "A DanzStak community group.", createdAt: item.createdAt?.S || "", isOwner: item.ownerId?.S === userId })).sort((a, b) => a.name.localeCompare(b.name));
+  return { statusCode: 200, headers, body: JSON.stringify({ groups }) };
+}
+
+async function createGroup(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  let data; try { data = JSON.parse(event.body || "{}"); } catch { return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON." }) }; }
+  const name = String(data.name || "").trim(), category = String(data.category || "").trim(), description = String(data.description || "A new DanzStak community group.").trim();
+  if (!name || name.length > 80 || !groupCategories.has(category) || description.length > 240 || data.communityStandards !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid group details and Community Standards agreement are required." }) };
+  const ownerEmail = await accountForSub(userId);
+  if (!ownerEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const id = randomUUID(), createdAt = new Date().toISOString();
+  await db.send(new PutItemCommand({ TableName: groupsTable, Item: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" }, ownerId: { S: userId }, name: { S: name }, category: { S: category }, description: { S: description }, createdAt: { S: createdAt } }, ConditionExpression: "attribute_not_exists(userEmail)" }));
+  await db.send(new PutItemCommand({ TableName: groupsTable, Item: { userEmail: { S: ownerEmail }, groupId: { S: id }, joinedAt: { S: createdAt } } }));
+  return { statusCode: 201, headers, body: JSON.stringify({ group: { id, name, category, description, createdAt, isOwner: true } }) };
+}
+
+async function deleteGroup(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  if (!/^[a-f0-9-]{36}$/.test(id)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid group required." }) };
+  const key = { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } };
+  const found = await db.send(new GetItemCommand({ TableName: groupsTable, Key: key, ConsistentRead: true }));
+  if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Group not found." }) };
+  if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the group owner can delete it." }) };
+  const members = await db.send(new ScanCommand({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId", Limit: 500 }));
+  await Promise.all([db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key })), ...(members.Items || []).map(item => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })))]);
+  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
+}
+
 // CHECK SESSION
 async function checkSession(event) {
   const headers = corsHeaders(event.headers?.origin);
@@ -1060,6 +1101,18 @@ export const handler = async event => {
 
     if (method === "POST" && path === "/engagement-notifications/read") {
       return await clearEngagementNotifications(event);
+    }
+
+    if (method === "GET" && path === "/groups") {
+      return await listGroups(event);
+    }
+
+    if (method === "POST" && path === "/groups") {
+      return await createGroup(event);
+    }
+
+    if (method === "DELETE" && path.startsWith("/groups/")) {
+      return await deleteGroup(event);
     }
 
     if (method === "POST" && path === "/auth/logout") {
