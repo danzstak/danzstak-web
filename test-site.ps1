@@ -113,6 +113,11 @@ if (-not $directMessagesJs.Contains('if (!document.body.classList.contains("is-c
     -not $directMessagesJs.Contains('/messages?read=1&contact=')) {
   Add-Failure 'Messaging: background or minimized chats can incorrectly clear unread state'
 }
+if (-not $directMessagesJs.Contains('button.setAttribute("aria-label", "React with " + emoji)') -or
+    -not $directMessagesJs.Contains('call.setAttribute("aria-label", call.title)') -or
+    -not $directMessagesJs.Contains('button.setAttribute("aria-label", "Insert " + emoji)')) {
+  Add-Failure 'Messaging: dynamic emoji or call controls lack accessible names'
+}
 
 $deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
   Where-Object {

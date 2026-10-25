@@ -45,7 +45,7 @@ function markChatRead(email, timestamp = new Date().toISOString()) {
 function openMessageReactions(item, x, y) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
-  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.addEventListener("click", () => { let badge = item.querySelector(".message-reaction"); if (!badge) { badge = document.createElement("span"); badge.className = "message-reaction"; item.appendChild(badge); } badge.textContent = emoji; palette.remove(); }); palette.appendChild(button); }
+  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", "React with " + emoji); button.addEventListener("click", () => { let badge = item.querySelector(".message-reaction"); if (!badge) { badge = document.createElement("span"); badge.className = "message-reaction"; item.appendChild(badge); } badge.textContent = emoji; palette.remove(); }); palette.appendChild(button); }
   document.body.appendChild(palette);
 }
 
@@ -170,7 +170,7 @@ async function loadConversations() {
       button.addEventListener("click", () => { markChatRead(conversation.contactEmail, conversation.updatedAt || new Date().toISOString()); openConversation(conversation); });
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [label, targetId] of [["☎", "startPhone"], ["▣", "startVideo"]]) {
-        const call = document.createElement("button"); call.type = "button"; call.className = "conversation-call"; call.textContent = label; call.title = targetId === "startPhone" ? "Phone call" : "Video call";
+        const call = document.createElement("button"); call.type = "button"; call.className = "conversation-call"; call.textContent = label; call.title = targetId === "startPhone" ? "Phone call" : "Video call"; call.setAttribute("aria-label", call.title);
         call.addEventListener("click", () => { contactInput.value = conversation.contactEmail; document.getElementById(targetId)?.click(); });
         calls.appendChild(call);
       }
@@ -187,7 +187,7 @@ document.getElementById("headerPhone")?.addEventListener("click", () => document
 document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
 document.getElementById("minimizeConversation")?.addEventListener("click", () => { document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-minimize" }, location.origin); });
 document.getElementById("closeConversation")?.addEventListener("click", () => { conversationHeader.hidden = true; contactInput.value = ""; directContact = ""; messageInput.disabled = true; sendButton.disabled = true; document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: false }, location.origin); });
-for (const emoji of ["😀","😂","😍","❤️","👍","🔥","🎉","😢","😮","🙏","👏","🎵"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.addEventListener("click", () => { messageInput.value += emoji; emojiPalette.hidden = true; messageInput.focus(); }); emojiPalette.appendChild(button); }
+for (const emoji of ["😀","😂","😍","❤️","👍","🔥","🎉","😢","😮","🙏","👏","🎵"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", "Insert " + emoji); button.addEventListener("click", () => { messageInput.value += emoji; emojiPalette.hidden = true; messageInput.focus(); }); emojiPalette.appendChild(button); }
 emojiButton?.addEventListener("click", () => { emojiPalette.hidden = !emojiPalette.hidden; });
 window.addEventListener("message", event => { if (event.origin === location.origin && event.data?.type === "danzstak-chat-hidden") document.body.classList.remove("is-conversation-open"); });
 
