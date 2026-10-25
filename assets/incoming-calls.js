@@ -4,6 +4,7 @@
   const API = "https://api.danzstak.com";
   let current = null;
   let polling = false;
+  let previousFocus = null;
 
   const popup = document.createElement("section");
   popup.className = "global-incoming-call";
@@ -34,6 +35,8 @@
     current = event;
     label.textContent = `${event.senderEmail} is calling by ${event.mode === "video" ? "video" : "phone"}.`;
     popup.hidden = false;
+    previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    answer.focus();
     navigator.vibrate?.([400, 180, 400, 180, 400]);
     if (document.hidden && "Notification" in window && Notification.permission === "granted") {
       const options = { body: label.textContent, icon: "/assets/favicon-192.png", badge: "/assets/favicon-192.png", tag: "danzstak-call", renotify: true, requireInteraction: true, data: { url: `/messages.html?contact=${encodeURIComponent(event.senderEmail)}&answer=1` } };
@@ -68,7 +71,19 @@
       popup.hidden = true;
       current = null;
       navigator.vibrate?.(0);
+      previousFocus?.focus();
+      previousFocus = null;
     } finally { decline.disabled = false; }
+  });
+
+  popup.addEventListener("keydown", event => {
+    if (event.key === "Escape") { event.preventDefault(); decline.click(); return; }
+    if (event.key !== "Tab") return;
+    const controls = [answer, decline].filter(control => !control.disabled);
+    const currentIndex = controls.indexOf(document.activeElement);
+    if (currentIndex < 0) return;
+    event.preventDefault();
+    controls[(currentIndex + (event.shiftKey ? -1 : 1) + controls.length) % controls.length].focus();
   });
 
   async function poll() {

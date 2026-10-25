@@ -30,7 +30,7 @@
       <button id="startVideo" type="button" class="primary">Video</button>
     </div>
     <button id="enableRinging" type="button" class="secondary answer-button">Enable ringing</button>
-    <section id="incomingCall" class="incoming-call" hidden><strong id="incomingLabel">Incoming call</strong><div class="call-actions"><button id="acceptCall" type="button" class="primary">Accept</button><button id="declineCall" type="button" class="danger">Decline</button></div></section>
+    <section id="incomingCall" class="incoming-call" role="dialog" aria-modal="true" aria-labelledby="incomingLabel" hidden><strong id="incomingLabel">Incoming call</strong><div class="call-actions"><button id="acceptCall" type="button" class="primary">Accept</button><button id="declineCall" type="button" class="danger">Decline</button></div></section>
     <button id="receiverHangUp" type="button" class="danger receiver-hangup" hidden>📞 Hang Up</button>
     <p id="callStatus" class="call-status" role="status">Ready to start a secure call.</p>
     <button id="deleteChat" type="button" class="secondary delete-chat">Delete Chat</button>
@@ -55,7 +55,7 @@
     </form>
   </section>
 </main>
-<script src="assets/chat.js?v=18" defer></script>
+<script src="assets/chat.js?v=19" defer></script>
 <script src="assets/direct-messages.js?v=16" defer></script>
 <script src="assets/session-activity.js?v=3" defer></script>
 <script src="assets/session-cleanup.js?v=1" defer></script>

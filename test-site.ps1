@@ -54,6 +54,9 @@ if (-not $chatScript.Contains('if(await handleEvent(event))handled.push(event.ev
 if ($incomingCalls.Contains('const disposable =') -or -not $incomingCalls.Contains('document.getElementById("messageDrawer")')) {
   Add-Failure 'Calls: background watcher may steal active chat signals'
 }
+if (-not $incomingCalls.Contains('answer.focus()') -or -not $incomingCalls.Contains('event.key === "Escape"') -or -not $incomingCalls.Contains('previousFocus?.focus()')) {
+  Add-Failure 'Calls: global incoming-call dialog does not manage keyboard focus'
+}
 $inlineScripts = [regex]::Matches(
   $feed,
   '<script(?![^>]+src=)[^>]*>([\s\S]*?)</script>',
@@ -179,6 +182,9 @@ if (-not $chatJs.Contains('if(await handleEvent(event))handled.push(event.eventI
     -not $chatJs.Contains('eventIds:[offer.eventId]') -or
     -not $chatJs.Contains('if(pending?.eventId===event.eventId)return false;')) {
   Add-Failure 'Calls: incoming offers are acknowledged before receiver action or ring repeatedly'
+}
+if (-not $messagesHtml.Contains('role="dialog" aria-modal="true" aria-labelledby="incomingLabel"') -or -not $chatJs.Contains('els.accept.focus()') -or -not $chatJs.Contains('event.key==="Escape"')) {
+  Add-Failure 'Calls: message-page incoming-call dialog is not keyboard accessible'
 }
 if (-not $feedEnhancementsJs.Contains('body: JSON.stringify({ content: post.querySelector(".post-content")?.textContent.trim() || "Shared media", audience: audiences[next] })') -or
     -not $feedEnhancementsJs.Contains('["Edit post", "Who can comment?", "Edit privacy"].includes')) {
