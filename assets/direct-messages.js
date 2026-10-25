@@ -222,15 +222,20 @@ async function loadConversations() {
     for (const conversation of visible) {
       const row = document.createElement("div"); row.className = "conversation-row";
       const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
+      const avatarWrap = document.createElement("span"); avatarWrap.className = "conversation-avatar-wrap";
       const avatar = conversation.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "conversation-list-avatar";
       if (conversation.picture) { avatar.src = conversation.picture; avatar.alt = ""; } else { avatar.textContent = (conversation.name || conversation.contactEmail).charAt(0).toUpperCase(); }
+      avatarWrap.appendChild(avatar);
+      if (conversation.online === true) {
+        const onlineDot = document.createElement("span"); onlineDot.className = "conversation-online-dot"; onlineDot.setAttribute("role", "img"); onlineDot.setAttribute("aria-label", "Online"); onlineDot.title = "Online"; avatarWrap.appendChild(onlineDot);
+      }
       const copy = document.createElement("span"); copy.className = "conversation-copy";
       const name = document.createElement("strong"); name.textContent = conversation.name || conversation.contactEmail;
       const preview = document.createElement("small"); preview.textContent = conversation.preview || "Open chat";
       const unread = Number(conversation.unread || 0) > 0;
       button.classList.toggle("is-unread", Boolean(unread));
       const time = document.createElement("time"); time.textContent = conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
-      copy.append(name, preview); button.append(avatar, copy, time);
+      copy.append(name, preview); button.append(avatarWrap, copy, time);
       button.addEventListener("click", () => { markChatRead(conversation.contactEmail, conversation.updatedAt || new Date().toISOString()); openConversation(conversation); });
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [label, targetId] of [["☎", "startPhone"], ["▣", "startVideo"]]) {

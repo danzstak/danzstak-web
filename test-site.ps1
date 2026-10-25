@@ -209,6 +209,9 @@ if (-not $directMessagesJs.Contains('currentEmail = String(profile.email || prof
 foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'document.hidden && !reset', 'visibilitychange')) {
   if (-not $directMessagesJs.Contains($messagePollingBehavior)) { Add-Failure "Messages: respectful live polling behavior is missing: $messagePollingBehavior" }
 }
+foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.online === true', 'conversation-online-dot', 'aria-label", "Online')) {
+  if (-not ($directMessagesJs + $chatStyles).Contains($chatPresenceBehavior)) { Add-Failure "Messages: online friends lack a visible accessible presence marker: $chatPresenceBehavior" }
+}
 foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'Contacts are temporarily unavailable. Retrying automatically')) {
   if (-not $directMessagesJs.Contains($contactFailureBehavior)) { Add-Failure "Messages: bounded contact loading behavior is missing: $contactFailureBehavior" }
 }
