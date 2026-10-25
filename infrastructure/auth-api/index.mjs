@@ -818,7 +818,10 @@ async function setProfileVideo(event) {
     UpdateExpression: "SET profileVideoKey = :video, updatedAt = :updated",
     ExpressionAttributeValues: { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() } }
   }));
-  if (oldKey && oldKey !== mediaKey && oldKey.startsWith(`users/${ownerPrefix}/`)) await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: oldKey }));
+  if (oldKey && oldKey !== mediaKey && oldKey.startsWith(`users/${ownerPrefix}/`)) {
+    try { await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: oldKey })); }
+    catch (error) { console.error("Profile video cleanup remains pending", { oldKey, error }); }
+  }
   return { statusCode: 200, headers, body: JSON.stringify({ mediaKey }) };
 }
 

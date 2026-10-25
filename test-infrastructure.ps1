@@ -46,7 +46,7 @@ foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 
   if (-not $authApi.Contains($required)) { throw "Auth API post authorization safeguard is missing: $required" }
 }
 $callTemplate = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'infrastructure\call-signaling\template.yaml') -Raw -Encoding utf8
-foreach ($storyCleanupControl in @('Id: ExpireDedicatedStoryMedia', 'Prefix: stories/', 'NoncurrentVersionExpiration:', 'const key=`stories/${ownerPrefix(user)}/', 'storyUpload=new RegExp(`^stories/${prefix}/', 'body.dedicatedMedia!==true')) {
+foreach ($storyCleanupControl in @('Id: ExpireDedicatedStoryMedia', 'Prefix: stories/', 'NoncurrentVersionExpiration:', 'const purpose=body.purpose||''story''', 'storyUpload=new RegExp(`^stories/${prefix}/', 'body.dedicatedMedia!==true')) {
   if (-not $callTemplate.Contains($storyCleanupControl)) { throw "Stories: dedicated expired media cleanup is missing: $storyCleanupControl" }
 }
 foreach ($persistentReelControl in @("kind:{S:'reel'},content:{S:url.href},createdAt:{S:createdAt}}", "FilterExpression:'attribute_not_exists(expiresAt) OR expiresAt > :n'")) {

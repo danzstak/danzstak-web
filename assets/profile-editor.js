@@ -28,7 +28,7 @@ async function uploadCloudMedia(file) {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contentType: file.type })
+    body: JSON.stringify({ contentType: file.type, purpose: "profile" })
   });
   if (!ticketResponse.ok) throw new Error("Media upload could not start");
   const ticket = await ticketResponse.json();
@@ -37,20 +37,10 @@ async function uploadCloudMedia(file) {
   return ticket.mediaKey;
 }
 
-async function discardCloudMedia(mediaKey) {
-  if (!mediaKey) return;
-  await fetch(profileApi + "/stories", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "discard", mediaKey })
-  }).catch(() => null);
-}
-
 async function uploadCloudProfileMedia(file, field) {
   const mediaKey = await uploadCloudMedia(file);
-  try { return await saveCloudProfile({ [field]: mediaKey }); }
-  catch (error) { await discardCloudMedia(mediaKey); throw error; }
+  // A lost save response can still mean the profile was committed. Retain the upload.
+  return await saveCloudProfile({ [field]: mediaKey });
 }
 
 const bioElement = document.createElement("p");
@@ -261,19 +251,16 @@ videoInput.addEventListener("change", async () => {
     return;
   }
   videoButton.disabled = true;
-  let uploadedVideoKey = "";
   try {
     const mediaKey = await uploadCloudMedia(file);
-    uploadedVideoKey = mediaKey;
     const response = await fetch(profileApi + "/profile-video", {
       method: "POST", credentials: "include", cache: "no-store",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey })
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Profile video could not be saved");
-    uploadedVideoKey = "";
     alert("Profile video saved. Open the Media tab to view it.");
-  } catch (error) { await discardCloudMedia(uploadedVideoKey); alert(error.message); }
+  } catch (error) { alert(error.message); }
   finally { videoButton.disabled = false; videoInput.value = ""; }
 });
 mediaTools.append(videoButton, videoInput);
