@@ -1,0 +1,18 @@
+"use strict";
+(()=>{
+ const $=id=>document.getElementById(id),money=new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
+ const presets={couch:{room:0,meals:20},budget:{room:95,meals:30},holiday:{room:165,meals:42},custom:null};
+ function number(id){return Math.max(0,Number($(id).value)||0);}
+ function recalculate(){
+  const days=Math.max(1,number("days")),people=Math.max(1,number("people")),miles=number("miles"),mpg=Math.max(1,number("mpg")),fuel=miles/mpg*number("fuelPrice"),lodging=number("rooms")*number("roomRate")*Math.max(0,days-1),meals=people*number("meals")*days,vehicle=document.querySelector('input[name="vehicle"]:checked')?.value==="rent"?number("rentalRate")*days:number("wearRate")*miles,extras=number("tolls")+number("other"),total=fuel+lodging+meals+vehicle+extras;
+  $("fuelCost").textContent=money.format(fuel);$("lodgingCost").textContent=money.format(lodging);$("mealCost").textContent=money.format(meals);$("vehicleCost").textContent=money.format(vehicle);$("otherCost").textContent=money.format(extras);$("totalCost").textContent=money.format(total);$("perPersonCost").textContent=money.format(total/people);
+  const start=$("startCity").value.trim()||"Starting city",end=$("endCity").value.trim()||"Ending city";$("routeTitle").textContent=`${start} → ${end}`;
+  const driver=$("driverName").value.trim();$("driverBanner").textContent=driver||"Driver not assigned";
+  const checks=[];if(!driver)checks.push("Assign the human driver before booking the route.");if(!$("driverVerified").checked)checks.push("Confirm license and insurance status without storing document numbers.");if(!miles)checks.push("Add route mileage before relying on the fuel estimate.");if(days&&miles/days>450)checks.push("Daily mileage is aggressive. Add a travel or rest day.");if(document.querySelector('input[name="vehicle"]:checked')?.value==="rent")checks.push("Confirm rental mileage allowance, overage, taxes, deposit, and authorized drivers.");if(!checks.length)checks.push("Review each driving leg, load-in time, parking, and the next safe rest stop with the driver.");
+  $("driverGuide").textContent=driver?`${driver} guides this tour. The driver has final authority over safe departure and rest.`:"Assign the driver before booking the route.";$("driverChecklist").replaceChildren(...checks.map(item=>{const li=document.createElement("li");li.textContent=item;return li;}));
+ }
+ document.querySelectorAll("input,textarea").forEach(control=>control.addEventListener("input",recalculate));
+ document.querySelectorAll('input[name="style"]').forEach(control=>control.addEventListener("change",()=>{const preset=presets[control.value];if(preset){$("roomRate").value=String(preset.room);$("meals").value=String(preset.meals);}recalculate();}));
+ $("locateMe").addEventListener("click",()=>{if(!navigator.geolocation){$("locationStatus").textContent="Location is not supported on this device.";return;}$("locationStatus").textContent="Requesting location permission…";navigator.geolocation.getCurrentPosition(position=>{$("startCity").value=`${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`;$("locationStatus").textContent="Current coordinates added as the starting point. They remain on this page unless you save the tour.";recalculate();},error=>{$("locationStatus").textContent=error.code===1?"Location permission was not granted.":"Current location could not be determined.";},{enableHighAccuracy:false,timeout:10000,maximumAge:300000});});
+ $("printPlan").addEventListener("click",()=>window.print());recalculate();
+})();

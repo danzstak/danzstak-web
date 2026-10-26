@@ -48,6 +48,15 @@ foreach ($supportClientControl in @('credentials:"include"', 'https://api.danzst
   if (-not $supportClient.Contains($supportClientControl)) { Add-Failure "Support: authenticated request handling is missing: $supportClientControl" }
 }
 
+$bookingMarkup = Get-Content -LiteralPath (Join-Path $root 'booking.html') -Raw -Encoding utf8
+$bookingClient = Get-Content -LiteralPath (Join-Path $root 'assets\booking-agent.js') -Raw -Encoding utf8
+foreach ($bookingControl in @('DanzStak Booking Agent', 'Punk Couch Tour', 'Holiday Inn Tour', "Bus driver’s name", 'No driver, no departure', 'Venue discovery and public booking contacts')) {
+  if (-not $bookingMarkup.Contains($bookingControl)) { Add-Failure "Booking Agent: required planning control is missing: $bookingControl" }
+}
+foreach ($tourEstimateControl in @('miles/mpg*number("fuelPrice")', 'number("rentalRate")*days', 'Daily mileage is aggressive', 'navigator.geolocation.getCurrentPosition', 'window.print()')) {
+  if (-not $bookingClient.Contains($tourEstimateControl)) { Add-Failure "Tour Manager: estimate or driver safeguard is missing: $tourEstimateControl" }
+}
+
 $feedPath = Join-Path $root 'feed.html'
 $feed = Get-Content -LiteralPath $feedPath -Raw -Encoding utf8
 if (-not $feed.Contains("frame-src 'self' https://www.youtube-nocookie.com")) {
