@@ -295,6 +295,9 @@ foreach ($pushFanout in @(
 )) {
   if (-not $template.Contains($pushFanout)) { throw "Push notifications do not reach every registered device: $pushFanout" }
 }
+if (-not $template.Contains("sender=(await publicProfile(senderEmail)).name||'DanzStak member'") -or $template.Contains('body:`${senderEmail}')) {
+  throw 'Push notifications expose a contact email instead of the DanzStak profile name.'
+}
 if ($template.Contains("PUSH_SUBSCRIPTIONS_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:recipientEmail}},Limit:10")) {
   throw 'Push notification delivery still stops after the first 10 registered devices.'
 }
