@@ -18,7 +18,8 @@ import {
   UpdateItemCommand,
   ScanCommand,
   QueryCommand,
-  BatchGetItemCommand
+  BatchGetItemCommand,
+  TransactWriteItemsCommand
 } from "@aws-sdk/client-dynamodb";
 import {
   CognitoIdentityProviderClient,
@@ -910,6 +911,8 @@ async function getSecurePosts(event) {
 
   const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S)));
   const authorNames = await loadFeedAuthorNames(visiblePosts);
+  const visibleSources = new Map(visiblePosts.map(item => [item.postId.S,item]));
+  const sharedPreview = item => item ? ({postId:item.postId.S,content:item.content.S,authorName:authorNames.get(item.userEmail?.S) || item.userEmail?.S?.split("@")[0] || "DanzStak member",authorEmail:item.userEmail?.S || "",createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
@@ -918,6 +921,9 @@ async function getSecurePosts(event) {
       authorName: authorNames.get(String(item.userEmail?.S || "").trim().toLowerCase()) || item.userEmail?.S?.split("@")[0] || "DanzStak Member",
       content: item.content.S,
       location: item.location?.S || "",
+      viewCount: Math.max(0,Number(item.viewCount?.N || 0)),
+      sharedPostId:item.sharedPostId?.S || "",
+      sharedPost:sharedPreview(visibleSources.get(item.sharedPostId?.S)),
       audience: item.audience?.S ?? "public",
       mediaKey: item.mediaKey?.S ?? "",
       mediaUrl: item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S, 3600) : "",
@@ -1024,6 +1030,31 @@ async function getEngagement(event) {
     createdAt: item.createdAt.S, isOwner: item.userId?.S === userId, canDelete: item.userId?.S === userId || access.post.userId?.S === userId
   })).sort((a, b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt));
   return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
+}
+
+async function recordPostView(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return {statusCode:403,headers,body:JSON.stringify({error:"Forbidden origin"})};
+  const userId = await getAuthenticatedUser(event); if (!userId) return {statusCode:401,headers,body:JSON.stringify({error:"Authentication required"})};
+  const data = parseJsonBody(event), postId = String(data?.postId || ""), access = await postForEngagement(postId,userId);
+  if (!access.post) return {statusCode:access.statusCode,headers,body:JSON.stringify({error:access.error})};
+  if (access.post.userId?.S === userId) return {statusCode:200,headers,body:JSON.stringify({viewCount:Number(access.post.viewCount?.N || 0),recorded:false})};
+  if (!process.env.POST_VIEWS_TABLE) return {statusCode:503,headers,body:JSON.stringify({error:"View counting is not available yet"})};
+  const day = new Date().toISOString().slice(0,10), viewerKey = day + "#" + sha256(userId);
+  let recorded = true;
+  try { await db.send(new TransactWriteItemsCommand({TransactItems:[
+    {Put:{TableName:process.env.POST_VIEWS_TABLE,Item:{postId:{S:postId},viewerKey:{S:viewerKey},expiresAt:{N:String(now()+90*86400)}},ConditionExpression:"attribute_not_exists(postId)"}},
+    {Update:{TableName:postsTable,Key:{postId:{S:postId}},UpdateExpression:"ADD viewCount :one",ExpressionAttributeValues:{":one":{N:"1"}},ConditionExpression:"attribute_exists(postId)"}}
+  ]})); } catch (error) {
+    if (error.name !== "TransactionCanceledException") throw error;
+    if (error.CancellationReasons?.[1]?.Code === "ConditionalCheckFailed") return {statusCode:404,headers,body:JSON.stringify({error:"Post not found"})};
+    const duplicate = await db.send(new GetItemCommand({TableName:process.env.POST_VIEWS_TABLE,Key:{postId:{S:postId},viewerKey:{S:viewerKey}},ConsistentRead:true}));
+    if (!duplicate.Item) throw error;
+    recorded = false;
+  }
+  const found = await db.send(new GetItemCommand({TableName:postsTable,Key:{postId:{S:postId}},ConsistentRead:true}));
+  if (!found.Item) return {statusCode:404,headers,body:JSON.stringify({error:"Post not found"})};
+  return {statusCode:200,headers,body:JSON.stringify({viewCount:Number(found.Item.viewCount?.N || 0),recorded})};
 }
 
 async function setReaction(event) {
@@ -1220,6 +1251,19 @@ async function createSecurePost(event) {
     };
   }
 
+  let sharedSource = null;
+  if (data?.sharedPostId !== undefined) {
+    if (typeof data.sharedPostId !== "string" || !/^[a-f0-9-]{36}$/.test(data.sharedPostId) || data.importSource !== undefined) return {statusCode:400,headers,body:JSON.stringify({error:"Invalid shared post."})};
+    let sourceId = data.sharedPostId;
+    for (let depth=0;depth<5;depth++) {
+      const access = await postForEngagement(sourceId,userId);
+      if (!access.post || access.post.audience?.S !== "public") return {statusCode:403,headers,body:JSON.stringify({error:"Only available Public posts can be shared."})};
+      sharedSource = access.post;
+      if (!sharedSource.sharedPostId?.S) break;
+      sourceId = sharedSource.sharedPostId.S;
+    }
+    if (sharedSource.sharedPostId?.S) return {statusCode:400,headers,body:JSON.stringify({error:"Open the original post to share it."})};
+  }
   const facebookImport = data?.importSource === "facebook";
   if (data?.importSource !== undefined && !facebookImport) return { statusCode: 400, headers, body: JSON.stringify({ error: "Unsupported import source." }) };
   if (facebookImport && !/^[a-f0-9]{64}$/.test(data.importKey || "")) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid import identifier." }) };
@@ -1237,7 +1281,7 @@ async function createSecurePost(event) {
     typeof data !== "object" ||
     Array.isArray(data) ||
     typeof data.content !== "string" ||
-    !data.content.trim() ||
+    (!data.content.trim() && !sharedSource) ||
     data.content.length > 5000
   ) {
     return {
@@ -1251,12 +1295,13 @@ async function createSecurePost(event) {
 
   const location = data.location === undefined ? "" : typeof data.location === "string" ? data.location.trim() : null;
   if (location === null || location.length > 120) return {statusCode:400,headers,body:JSON.stringify({error:"Location must be at most 120 characters."})};
-  const content = data.content.trim();
-  if (data.originalContentCertified !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Original-content certification is required." }) };
+  const content = data.content.trim() || "Shared a post.";
+  if (!sharedSource && data.originalContentCertified !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Original-content certification is required." }) };
   const audience = facebookImport ? "private" : (["public", "friends", "private"].includes(data.audience) ? data.audience : "public");
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
   const reel = mediaType === "video" && data.reel === true;
+  if (sharedSource && (mediaKey || mediaType || reel)) return {statusCode:400,headers,body:JSON.stringify({error:"Shared posts reference the original media."})};
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
   const ownerPrefix = sha256(userEmail).slice(0, 24);
@@ -1275,6 +1320,7 @@ async function createSecurePost(event) {
       userEmail: { S: userEmail },
       content: { S: content },
       ...(location ? {location:{S:location}} : {}),
+      ...(sharedSource ? {sharedPostId:{S:sharedSource.postId.S}} : {}),
       createdAt: { S: createdAt },
       audience: { S: audience },
       ...(facebookImport ? { importSource: { S: "facebook" }, importKey: { S: data.importKey }, importedAt: { S: importedAt } } : {}),
@@ -1515,6 +1561,8 @@ export const handler = async event => {
     if (method === "GET" && path === "/engagement") {
       return await getEngagement(event);
     }
+
+    if (method === "POST" && path === "/post-views") return await recordPostView(event);
 
     if (method === "POST" && path === "/reactions") {
       return await setReaction(event);

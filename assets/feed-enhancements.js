@@ -970,7 +970,7 @@ function filterFeedPosts() {
   document.querySelectorAll("#feed .post").forEach(post => {
     const content = post.querySelector(".post-content");
     const author = post.querySelector(".post-header");
-    const searchable = content ? `${author?.textContent || ""} ${content.textContent}` : post.textContent;
+    const searchable = content ? `${author?.textContent || ""} ${content.textContent} ${post.querySelector(".shared-post-card")?.textContent || ""}` : post.textContent;
     post.hidden = Boolean(query) && !searchable.toLowerCase().includes(query);
     if (!post.hidden) matchingPosts += 1;
   });
@@ -1213,6 +1213,7 @@ function addShareButton(post) {
       alert("Only Public posts can be shared outside DanzStak.");
       return;
     }
+    if (window.danzstakSharePost) { window.danzstakSharePost(post); return; }
     const content = post.querySelector(".post-content")?.textContent.trim() || "DanzStak post";
     const shareUrl = postPermalink(post);
     const shareData = { title: "DanzStak", text: content.slice(0, 200), url: shareUrl };

@@ -76,6 +76,9 @@ try {
   $variables = @{}
   foreach ($property in $current.Environment.Variables.PSObject.Properties) { $variables[$property.Name] = [string]$property.Value }
   $variables.MEDIA_BUCKET = [string]$mediaBucket
+  $postViewsTable = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Engagement --query "Stacks[0].Outputs[?OutputKey=='PostViewsTableName'].OutputValue | [0]" --output text
+  if ($LASTEXITCODE -ne 0) { throw "Post view configuration could not be resolved." }
+  if ($postViewsTable -and $postViewsTable -ne 'None') { $variables.POST_VIEWS_TABLE = [string]$postViewsTable }
   @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
   aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }

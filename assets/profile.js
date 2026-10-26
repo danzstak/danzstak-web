@@ -25,6 +25,8 @@ async function loadProfile() {
       return;
     }
 
+    if (response.status === 403) { status.textContent = "This profile is available to accepted friends and shared-group members."; return; }
+    if (response.status === 404) { status.textContent = "This profile is no longer available."; return; }
     if (!response.ok) throw new Error("Session unavailable");
 
     const data = await response.json();

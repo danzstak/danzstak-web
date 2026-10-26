@@ -17,6 +17,59 @@ Parameters:
     Type: String
     Default: DANZSTAK-Auth-API-role-zjknf4ur
 Resources:
+  PostViewsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Deduplicate authenticated non-owner post views per UTC day without storing IP addresses.
+        must: [Keep encryption and recovery enabled, Expire deduplication records after 90 days, Update the aggregate count atomically with the deduplication record.]
+    Properties:
+      TableName: !Sub '${AWS::StackName}-PostViews'
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      AttributeDefinitions:
+        - {AttributeName: postId, AttributeType: S}
+        - {AttributeName: viewerKey, AttributeType: S}
+      KeySchema:
+        - {AttributeName: postId, KeyType: HASH}
+        - {AttributeName: viewerKey, KeyType: RANGE}
+      TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}
+      SSESpecification: {SSEEnabled: true}
+  PostViewsPolicy:
+    Type: AWS::IAM::Policy
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: The view transaction needs only a conditional deduplication write and an aggregate update.
+        must: [Scope writes to the views table and existing posts table.]
+    Properties:
+      PolicyName: DanzStakPostViews
+      Roles: [!Ref AuthRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: [dynamodb:PutItem]
+            Resource: !GetAtt PostViewsTable.Arn
+          - Effect: Allow
+            Action: [dynamodb:GetItem, dynamodb:UpdateItem]
+            Resource: !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Posts'
+  PostViewRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Record a visible post view through the existing authenticated Auth API.
+        must: [Authenticate the viewer and enforce the original post audience.]
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /post-views', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  PostViewInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/POST/post-views'
+      SourceAccount: !Ref AWS::AccountId
   ReactionsTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -218,6 +271,7 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/POST/auth/legal-acceptance'
 Outputs:
+  PostViewsTableName: {Value: !Ref PostViewsTable}
   ReactionsTableName: {Value: !Ref ReactionsTable}
   CommentsTableName: {Value: !Ref CommentsTable}
   NotificationsTableName: {Value: !Ref EngagementNotificationsTable}
