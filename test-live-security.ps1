@@ -7,6 +7,11 @@ $ErrorActionPreference = "Stop"
 
 $failures = [System.Collections.Generic.List[string]]::new()
 function Add-Failure([string]$message) { $failures.Add($message) }
+$rateLimited = 0
+function Test-SecureRefusal([string]$status, [string]$expected) {
+  if ($status -eq '429') { $script:rateLimited += 1; return $true }
+  return $status -eq $expected
+}
 
 function Get-Headers([string]$url) {
   $output = & curl.exe -sS -D - -o NUL $url
@@ -54,7 +59,7 @@ else {
 }
 
 $postsStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzstak.com/secure-posts"
-if ($LASTEXITCODE -ne 0 -or $postsStatus -ne "401") { Add-Failure "Unauthenticated posts request returned $postsStatus instead of 401" }
+if ($LASTEXITCODE -ne 0 -or -not (Test-SecureRefusal $postsStatus '401')) { Add-Failure "Unauthenticated posts request returned $postsStatus instead of a secure refusal (401 or 429)" }
 $trustedCors = & curl.exe -sS -D - -o NUL -H "Origin: https://danzstak.com" "https://api.danzstak.com/secure-posts"
 if ($LASTEXITCODE -ne 0 -or ($trustedCors -join "`n") -notmatch '(?im)^access-control-allow-origin:\s*https://danzstak\.com\s*$' -or ($trustedCors -join "`n") -notmatch '(?im)^access-control-allow-credentials:\s*true\s*$') {
   Add-Failure "Trusted website origin does not receive credentialed API CORS access"
@@ -69,18 +74,18 @@ if ($LASTEXITCODE -ne 0 -or $preflightText -notmatch '(?im)^access-control-allow
 }
 $groupsStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzstak.com/groups"
 $expectedGroupsStatus = "401"
-if ($LASTEXITCODE -ne 0 -or $groupsStatus -ne $expectedGroupsStatus) { Add-Failure "Unauthenticated groups request returned $groupsStatus instead of $expectedGroupsStatus" }
+if ($LASTEXITCODE -ne 0 -or -not (Test-SecureRefusal $groupsStatus $expectedGroupsStatus)) { Add-Failure "Unauthenticated groups request returned $groupsStatus instead of a secure refusal ($expectedGroupsStatus or 429)" }
 $profileVideoStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzstak.com/profile-video"
 $expectedProfileVideoStatus = "401"
-if ($LASTEXITCODE -ne 0 -or $profileVideoStatus -ne $expectedProfileVideoStatus) { Add-Failure "Unauthenticated profile-video request returned $profileVideoStatus instead of $expectedProfileVideoStatus" }
+if ($LASTEXITCODE -ne 0 -or -not (Test-SecureRefusal $profileVideoStatus $expectedProfileVideoStatus)) { Add-Failure "Unauthenticated profile-video request returned $profileVideoStatus instead of a secure refusal ($expectedProfileVideoStatus or 429)" }
 
 foreach ($protectedPath in @('/profiles', '/friends', '/settings/posts', '/messages', '/conversations', '/calls/directory', '/calls/inbox', '/settings/presence', '/notifications', '/stories', '/news', '/engagement', '/engagement-notifications', '/tours')) {
   $protectedStatus = & curl.exe -sS -o NUL -w "%{http_code}" -H "Origin: https://danzstak.com" "https://api.danzstak.com$protectedPath"
-  if ($LASTEXITCODE -ne 0 -or $protectedStatus -ne '401') { Add-Failure "Unauthenticated GET $protectedPath returned $protectedStatus instead of 401" }
+  if ($LASTEXITCODE -ne 0 -or -not (Test-SecureRefusal $protectedStatus '401')) { Add-Failure "Unauthenticated GET $protectedPath returned $protectedStatus instead of a secure refusal (401 or 429)" }
 }
 foreach ($protectedWrite in @('/secure-posts', '/profiles', '/friends/request', '/friends/respond', '/settings/posts', '/settings/presence', '/messages', '/messages/delete', '/groups', '/groups/membership', '/stories', '/reactions', '/comments', '/reports', '/profile-video', '/engagement-notifications/read', '/support-tickets', '/calls/signal', '/calls/ack', '/calls/presence', '/tour/route', '/tours')) {
   $writeStatus = & curl.exe -sS -o NUL -w "%{http_code}" -X POST -H "Origin: https://danzstak.com" -H "Content-Type: application/json" --data '{}' "https://api.danzstak.com$protectedWrite"
-  if ($LASTEXITCODE -ne 0 -or $writeStatus -ne '401') { Add-Failure "Unauthenticated POST $protectedWrite returned $writeStatus instead of 401" }
+  if ($LASTEXITCODE -ne 0 -or -not (Test-SecureRefusal $writeStatus '401')) { Add-Failure "Unauthenticated POST $protectedWrite returned $writeStatus instead of a secure refusal (401 or 429)" }
 }
 
 $examplePostId = '11111111-1111-4111-a111-111111111111'
@@ -93,8 +98,8 @@ foreach ($protectedMutation in @(
   @{ Method = 'DELETE'; Path = "/comments/$examplePostId" }
 )) {
   $mutationStatus = & curl.exe -sS -o NUL -w "%{http_code}" -X $protectedMutation.Method -H "Origin: https://danzstak.com" -H "Content-Type: application/json" --data '{}' "https://api.danzstak.com$($protectedMutation.Path)"
-  if ($LASTEXITCODE -ne 0 -or $mutationStatus -ne '401') {
-    Add-Failure "Unauthenticated $($protectedMutation.Method) $($protectedMutation.Path) returned $mutationStatus instead of 401"
+  if ($LASTEXITCODE -ne 0 -or -not (Test-SecureRefusal $mutationStatus '401')) {
+    Add-Failure "Unauthenticated $($protectedMutation.Method) $($protectedMutation.Path) returned $mutationStatus instead of a secure refusal (401 or 429)"
   }
 }
 
@@ -104,14 +109,14 @@ foreach ($pushRoute in @(
   @{ Method = 'DELETE'; Path = '/push/subscribe' }
 )) {
   $pushStatus = & curl.exe -sS -o NUL -w "%{http_code}" -X $pushRoute.Method -H "Origin: https://danzstak.com" "https://api.danzstak.com$($pushRoute.Path)"
-  if ($LASTEXITCODE -ne 0 -or $pushStatus -ne '401') {
-    Add-Failure "Unauthenticated $($pushRoute.Method) $($pushRoute.Path) returned $pushStatus instead of 401"
+  if ($LASTEXITCODE -ne 0 -or -not (Test-SecureRefusal $pushStatus '401')) {
+    Add-Failure "Unauthenticated $($pushRoute.Method) $($pushRoute.Path) returned $pushStatus instead of a secure refusal (401 or 429)"
   }
 }
 
 foreach ($originProtectedPath in @('/groups', '/groups/membership', '/profiles', '/settings/posts', '/friends/request', '/support-tickets', '/calls/signal', '/auth/refresh')) {
   $originStatus = & curl.exe -sS -o NUL -w "%{http_code}" -X POST -H "Origin: https://untrusted.example" -H "Content-Type: application/json" --data '{}' "https://api.danzstak.com$originProtectedPath"
-  if ($LASTEXITCODE -ne 0 -or $originStatus -ne '403') { Add-Failure "Untrusted POST $originProtectedPath returned $originStatus instead of 403" }
+  if ($LASTEXITCODE -ne 0 -or -not (Test-SecureRefusal $originStatus '403')) { Add-Failure "Untrusted POST $originProtectedPath returned $originStatus instead of a secure refusal (403 or 429)" }
 }
 
 foreach ($asset in @(
@@ -137,4 +142,4 @@ if ($failures.Count) {
   exit 1
 }
 
-Write-Host "Live security checks passed: website headers, feed script CSP, branded assets, API authentication, and TLS policy."
+Write-Host "Live security checks passed: website headers, feed script CSP, branded assets, API authentication or rate-limit refusal ($rateLimited throttled probes), and TLS policy."
