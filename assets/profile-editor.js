@@ -521,19 +521,19 @@ async function loadProfileFriends() {
     if (!(data.friends || []).length) { tabMessage.textContent = "No friends yet."; return; }
     const grid = document.createElement("div"); grid.className = "profile-friend-grid";
     for (const friend of data.friends) {
-      const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?user=" + encodeURIComponent(friend.email);
+      const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?member=" + encodeURIComponent(friend.memberId);
       const avatar = friend.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "profile-friend-avatar";
       if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
       else { avatar.textContent = (friend.name || friend.email).charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
       const copy = document.createElement("span");
-      const name = document.createElement("strong"); name.textContent = friend.name || friend.email;
-      const email = document.createElement("small"); email.textContent = friend.email;
+      const name = document.createElement("strong"); name.textContent = friend.name || "DanzStak member";
       const status = document.createElement("span");
       const isOnline = online.has(String(friend.email || "").toLowerCase());
       status.className = isOnline ? "profile-friend-presence online" : "profile-friend-presence";
       status.title = isOnline ? "Online" : "Offline";
       status.setAttribute("aria-label", status.title);
-      copy.append(name, email); link.append(avatar, copy, status); grid.appendChild(link);
+      const availability = document.createElement("small"); availability.textContent = isOnline ? "Online" : "Offline";
+      copy.append(name, availability); link.append(avatar, copy, status); grid.appendChild(link);
     }
     tabMessage.appendChild(grid);
   } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }

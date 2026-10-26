@@ -13,13 +13,14 @@ vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();
   document: { createElement: node }, workspace: node('workspace'), featureText: {}, createFriendRequestForm: () => node('form'),
   fetch: async url => {
     if (url.endsWith('/calls/directory')) throw new Error('Presence unavailable');
-    return { ok: true, json: async () => ({ friends: [{ email: 'friend@example.com', name: 'Existing Friend' }] }) };
+    return { ok: true, json: async () => ({ friends: [{ email: 'friend@example.com', memberId: '44444444-4444-4444-4444-444444444444', name: 'Existing Friend' }] }) };
   }
 });
 setImmediate(() => {
   try {
     assert.equal(nodes.filter(item => item.tag === 'a').length, 1, 'presence failure must not hide accepted friends');
-    assert.match(nodes.find(item => item.tag === 'a').href, /friend%40example.com/);
+    assert.equal(nodes.find(item => item.tag === 'a').href, 'profile.html?member=44444444-4444-4444-4444-444444444444');
+    assert.doesNotMatch(nodes.find(item => item.tag === 'a').href, /@|%40/);
     console.log('Friends loading check passed: accepted friends survive a failed presence lookup.');
   } catch (error) { console.error(error); process.exitCode = 1; }
 });

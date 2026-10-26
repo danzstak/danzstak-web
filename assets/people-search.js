@@ -29,8 +29,9 @@
     const people = new Map();
     for (const member of directory) {
       if (!member.email || (member.friendStatus !== 'friends' && !member.sharedGroup)) continue;
-      const href = 'profile.html?user=' + encodeURIComponent(member.email);
-      people.set(href, {name:member.name || member.email.split('@')[0], detail:member.email, href});
+      if (!/^[a-f0-9-]{36}$/.test(String(member.memberId || ''))) continue;
+      const href = 'profile.html?member=' + encodeURIComponent(member.memberId);
+      people.set(href, {name:member.name || 'DanzStak member', detail:'', href});
     }
     for (const anchor of document.querySelectorAll('#feed .post .post-header a')) {
       try {

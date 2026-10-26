@@ -278,7 +278,7 @@ foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.on
 foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'Contacts are temporarily unavailable. Retrying automatically')) {
   if (-not $directMessagesJs.Contains($contactFailureBehavior)) { Add-Failure "Messages: bounded contact loading behavior is missing: $contactFailureBehavior" }
 }
-foreach ($onlineContactNavigation in @('name.href = "profile.html?user=" + encodeURIComponent(user.email)', 'action.addEventListener("click", () => openMessageDrawer(user.email))', 'user.friendStatus === "friends" || user.sharedGroup')) {
+foreach ($onlineContactNavigation in @('name.href = "profile.html?member=" + encodeURIComponent(memberId)', 'action.addEventListener("click", () => openMessageDrawer(user.email))', 'user.friendStatus === "friends" || user.sharedGroup')) {
   if (-not $feed.Contains($onlineContactNavigation)) { Add-Failure "Online contacts: profile or embedded-message navigation is incomplete: $onlineContactNavigation" }
 }
 if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.Contains('No users are online right now.')) {
@@ -350,8 +350,11 @@ if (-not $profileJs.Contains('isOther ? "Private" : (email || "Not available")')
     -not $profileEditorJs.Contains('if (!viewingOtherProfile) {')) {
   Add-Failure 'Profiles: another member can inherit local profile media or expose their email'
 }
-if (-not $feed.Contains('authorLabel.href = isOwner === true ? "profile.html" : "profile.html?user=" + encodeURIComponent(authorEmail);')) {
+if (-not $feed.Contains('authorLabel.href = isOwner === true ? "profile.html" : "profile.html?member=" + encodeURIComponent(authorMemberId);')) {
   Add-Failure 'Profiles: an owner post routes the author back to a non-editable other-user profile'
+}
+foreach ($privateProfileLinkSource in @($feed, $feedEnhancements, $profileEditorJs, (Get-Content -LiteralPath (Join-Path $root 'assets\people-search.js') -Raw -Encoding utf8))) {
+  if ($privateProfileLinkSource.Contains('profile.html?user=')) { Add-Failure 'Profiles: a public profile link exposes a member email address' }
 }
 if (-not $logoutJs.Contains('window.danzstakClearAccountData?.()') -or
     -not $homeJs.Contains('window.danzstakClearAccountData?.()')) {

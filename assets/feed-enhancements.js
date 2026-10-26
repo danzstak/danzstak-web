@@ -602,7 +602,7 @@ function renderWorkspace(name) {
       for (const friend of friends) {
         const link = document.createElement("a");
         link.className = "friend-card friend-card-large";
-        link.href = "profile.html?user=" + encodeURIComponent(friend.email);
+        link.href = "profile.html?member=" + encodeURIComponent(friend.memberId);
         const avatar = friend.picture ? document.createElement("img") : document.createElement("span");
         avatar.className = "friend-avatar";
         if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }

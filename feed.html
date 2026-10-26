@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-0y+cB8VMBY2TfdMrCggACr9YhnOju2x4cfFTqqNA7LE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-6j1cOyPKGtINfWg2XFBGKSkO831jq8ygca0Omvb/Kro='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -484,7 +484,10 @@ async function loadOnlineUsers() {
     }
     for (const user of users) {
       const row = document.createElement("div"); row.className = "feed-online-row";
-      const name = document.createElement("a"); name.href = "profile.html?user=" + encodeURIComponent(user.email); name.textContent = "● " + (user.name || user.email);
+      const memberId = String(user.memberId || "");
+      const name = /^[a-f0-9-]{36}$/.test(memberId) ? document.createElement("a") : document.createElement("span");
+      if (name.tagName === "A") name.href = "profile.html?member=" + encodeURIComponent(memberId);
+      name.textContent = "● " + (user.name || "DanzStak member");
       const action = document.createElement("button"); action.type = "button";
       if (user.friendStatus === "friends" || user.sharedGroup) {
         action.textContent = user.friendStatus === "friends" ? "Message" : "Group Message";
@@ -528,16 +531,16 @@ async function loadFriends() {
     container.replaceChildren();
     if (!friends.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No friends yet."; container.appendChild(empty); return; }
     for (const friend of friends) {
-      const link = document.createElement("a"); link.className = "friend-card"; link.href = "profile.html?user=" + encodeURIComponent(friend.email);
+      const link = document.createElement("a"); link.className = "friend-card"; link.href = "profile.html?member=" + encodeURIComponent(friend.memberId);
       const avatar = friend.picture ? document.createElement("img") : document.createElement("span");
       avatar.className = "friend-avatar";
       if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
       else { avatar.textContent = (friend.name || friend.email).charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
       const details = document.createElement("span"); details.className = "friend-details";
-      const name = document.createElement("strong"); name.textContent = friend.name || friend.email;
-      const email = document.createElement("small"); email.textContent = friend.email;
-      details.append(name, email);
+      const name = document.createElement("strong"); name.textContent = friend.name || "DanzStak member";
       const friendIsOnline = online.has(String(friend.email || "").toLowerCase());
+      const availability = document.createElement("small"); availability.textContent = friendIsOnline ? "Online" : "Offline";
+      details.append(name, availability);
       const state = document.createElement("span"); state.className = friendIsOnline ? "friend-presence online" : "friend-presence"; state.title = friendIsOnline ? "Online" : "Offline"; state.setAttribute("aria-label", state.title);
       link.append(avatar, details, state); container.appendChild(link);
     }
@@ -545,7 +548,7 @@ async function loadFriends() {
 }
 
 // CREATE THE VISUAL DISPLAY OF A POST
-function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorEmail = "", commentPolicy = "everyone", editHistory = [], locationLabel = "") {
+function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorMemberId = "", commentPolicy = "everyone", editHistory = [], locationLabel = "") {
 
   const article = document.createElement("article");
   article.className = "post";
@@ -562,10 +565,11 @@ function createPostElement(content, author = "DanzStak Member", createdAt = null
 
   const header = document.createElement("div");
   header.className = "post-header";
-  const authorLabel = authorEmail ? document.createElement("a") : document.createElement("span");
+  const validAuthorMember = /^[a-f0-9-]{36}$/.test(String(authorMemberId || ""));
+  const authorLabel = isOwner === true || validAuthorMember ? document.createElement("a") : document.createElement("span");
   authorLabel.className = "post-author";
   authorLabel.textContent = author;
-  if (authorEmail) authorLabel.href = isOwner === true ? "profile.html" : "profile.html?user=" + encodeURIComponent(authorEmail);
+  if (authorLabel.tagName === "A") authorLabel.href = isOwner === true ? "profile.html" : "profile.html?member=" + encodeURIComponent(authorMemberId);
 
   const time = document.createElement("div");
   time.className = "post-time";
@@ -820,7 +824,7 @@ async function loadPosts() {
         post.mediaType,
         post.postId,
         typeof post.isOwner === "boolean" ? post.isOwner : null,
-        authorEmail,
+        String(post.userId || ""),
         post.commentPolicy,
         post.editHistory,
         post.location
@@ -1163,7 +1167,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 <script src="assets/push-notifications.js?v=231" defer></script>
 <script src="assets/device-settings.js?v=231" defer></script>
-<script src="assets/feed-enhancements.js?v=231" defer></script>
+<script src="assets/feed-enhancements.js?v=265" defer></script>
 <script src="assets/session-activity.js?v=231" defer></script>
 <script src="assets/incoming-calls.js?v=231" defer></script>
 <script src="assets/session-cleanup.js?v=231" defer></script>
@@ -1172,7 +1176,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
 <script src="assets/media-visibility.js?v=231" defer></script>
 <script src="assets/text-emojis.js?v=231" defer></script>
-<script src="assets/people-search.js?v=231" defer></script>
+<script src="assets/people-search.js?v=265" defer></script>
 <script src="assets/post-views.js?v=231" defer></script>
 </body>
 </html>
