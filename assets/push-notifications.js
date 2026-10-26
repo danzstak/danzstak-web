@@ -9,13 +9,30 @@
     return Uint8Array.from(raw, character => character.charCodeAt(0));
   }
 
+  async function withDeadline(promise, timeoutMs, message) {
+    let timeout;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error(message)), timeoutMs); })
+    ]).finally(() => clearTimeout(timeout));
+  }
+
   async function api(path, options = {}) {
-    const response = await fetch(API + path, {
-      credentials: "include",
-      cache: "no-store",
-      ...options,
-      headers: { "Content-Type": "application/json", ...(options.headers || {}) }
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    let response;
+    try {
+      response = await fetch(API + path, {
+        credentials: "include",
+        cache: "no-store",
+        ...options,
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+      });
+    } catch (error) {
+      if (error.name === "AbortError") throw new Error("Notification setup took too long. Try again.");
+      throw error;
+    } finally { clearTimeout(timeout); }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Notification setup failed");
     return data;
@@ -25,8 +42,8 @@
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return "unsupported";
     if (Notification.permission === "denied") return "blocked";
     if (Notification.permission !== "granted") return "prompt";
-    const registration = await navigator.serviceWorker.ready;
-    return await registration.pushManager.getSubscription() ? "enabled" : "incomplete";
+    const registration = await withDeadline(navigator.serviceWorker.ready, 10000, "Notification service is not ready. Try again.");
+    return await withDeadline(registration.pushManager.getSubscription(), 10000, "Notification status took too long.") ? "enabled" : "incomplete";
   }
 
   async function enable() {
@@ -36,13 +53,13 @@
     let permission = Notification.permission;
     if (permission === "default") permission = await Notification.requestPermission();
     if (permission !== "granted") throw new Error("Notifications must be allowed for background alerts.");
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await withDeadline(navigator.serviceWorker.ready, 10000, "Notification service is not ready. Try again.");
     const key = await api("/push/key");
-    const existing = await registration.pushManager.getSubscription();
-    const subscription = existing || await registration.pushManager.subscribe({
+    const existing = await withDeadline(registration.pushManager.getSubscription(), 10000, "Notification status took too long.");
+    const subscription = existing || await withDeadline(registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: applicationServerKey(key.publicKey)
-    });
+    }), 15000, "Notification permission setup took too long. Try again.");
     const serialized = subscription.toJSON();
     await api("/push/subscribe", {
       method: "POST",
@@ -62,8 +79,8 @@
       if (sessionStorage.getItem("danzstak_push_synced") === "1") return;
     } catch (_) {}
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
+      const registration = await withDeadline(navigator.serviceWorker.ready, 10000, "Notification service is not ready.");
+      const subscription = await withDeadline(registration.pushManager.getSubscription(), 10000, "Notification status took too long.");
       if (!subscription) return;
       const serialized = subscription.toJSON();
       await api("/push/subscribe", {
