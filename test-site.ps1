@@ -59,6 +59,9 @@ if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {
 foreach ($bookingClientControl in @('Send me out and bring me home', 'First show / leave home', 'Back home', 'route-map', 'My saved tours')) {
   if (-not $bookingClient.Contains($bookingClientControl)) { Add-Failure "Booking Agent: required home-loop control is missing: $bookingClientControl" }
 }
+foreach ($bookingAccessibilityControl in @('tourNameLabel.append(document.createTextNode("Tour name"),tourName)', 'savedPanel.setAttribute("aria-labelledby","savedToursTitle")', 'routeStatus.setAttribute("role","status")', 'saveStatus.setAttribute("role","status")')) {
+  if (-not $bookingClient.Contains($bookingAccessibilityControl)) { Add-Failure "Booking Agent: accessible route or saved-tour feedback is missing: $bookingAccessibilityControl" }
+}
 foreach ($bookingInteraction in @('$("startCity").value=""', '$("startCity").placeholder="City, region, country"', '$("endCity").disabled=local', '$("tourStops").disabled=local', '$("endCity").addEventListener("focus",useDestinationMode)', '$("tourStops").addEventListener("focus",useDestinationMode)', 'routeAction.textContent=local?"Find clubs near home":"Start route"')) {
   if (-not $bookingClient.Contains($bookingInteraction)) { Add-Failure "Booking Agent: interactive route control is missing: $bookingInteraction" }
 }
