@@ -112,9 +112,12 @@ $template = Get-Content -LiteralPath $templatePath -Raw -Encoding utf8
 foreach ($messageReactionControl in @('DanzStak-MessageReactions', 'MESSAGE_REACTIONS_TABLE', 'async function reactMessage(body,user)', "body.action==='reaction'", 'reactionCounts:byMessage')) {
   if (-not $template.Contains($messageReactionControl)) { throw "Persistent message reactions are missing: $messageReactionControl" }
 }
-$stableLogicalIds = @('SignalRoute:', 'InboxRoute:', 'AckRoute:', 'PresenceRoute:', 'DirectoryRoute:', 'GetPresenceSettingRoute:', 'SetPresenceSettingRoute:', 'GetPostSettingsRoute:', 'SetPostSettingsRoute:', 'FriendRequestRoute:', 'FriendRespondRoute:', 'GetFriendsRoute:', 'GetProfileRoute:', 'UpdateProfileRoute:', 'NotificationsRoute:', 'SendMessageRoute:', 'GetMessagesRoute:', 'DeleteMessagesRoute:', 'GetConversationsRoute:', 'GroupMembershipRoute:', 'CreateStoryRoute:', 'GetStoriesRoute:', 'DeleteStoryRoute:', 'GetNewsRoute:', 'SettingsInvokePermission:', 'FriendInvokePermission:', 'GetFriendsInvokePermission:')
+$stableLogicalIds = @('SignalRoute:', 'InboxRoute:', 'AckRoute:', 'PresenceRoute:', 'DirectoryRoute:', 'GetPresenceSettingRoute:', 'SetPresenceSettingRoute:', 'GetPostSettingsRoute:', 'SetPostSettingsRoute:', 'FriendRequestRoute:', 'FriendRespondRoute:', 'GetFriendsRoute:', 'GetProfileRoute:', 'UpdateProfileRoute:', 'NotificationsRoute:', 'SendMessageRoute:', 'GetMessagesRoute:', 'DeleteMessagesRoute:', 'GetConversationsRoute:', 'GroupMembershipRoute:', 'CreateStoryRoute:', 'GetStoriesRoute:', 'DeleteStoryRoute:', 'GetNewsRoute:', 'SettingsInvokePermission:', 'FriendInvokePermission:', 'GetFriendsInvokePermission:', 'DeleteStoryInvokePermission:')
 foreach ($logicalId in $stableLogicalIds) {
   if (-not $template.Contains("  $logicalId")) { throw "Deployed CloudFormation logical ID changed and would replace a live route: $logicalId" }
+}
+if (-not $template.Contains("/*/DELETE/stories/*'")) {
+  throw 'Story deletion route is missing its path-specific Lambda invoke permission.'
 }
 
 if (-not $template.Contains('expiresAt:{N:String(now()+7200)}')) {

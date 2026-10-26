@@ -548,5 +548,17 @@ Resources:
   DeleteMessagesInvokePermission: {Type: AWS::Lambda::Permission, Properties: {Action: 'lambda:InvokeFunction', FunctionName: !Ref SignalingFunction, Principal: apigateway.amazonaws.com, SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/POST/messages/delete'}}
   ConversationsInvokePermission: {Type: AWS::Lambda::Permission, Properties: {Action: 'lambda:InvokeFunction', FunctionName: !Ref SignalingFunction, Principal: apigateway.amazonaws.com, SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/conversations'}}
   StoriesInvokePermission: {Type: AWS::Lambda::Permission, Properties: {Action: 'lambda:InvokeFunction', FunctionName: !Ref SignalingFunction, Principal: apigateway.amazonaws.com, SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/stories'}}
+  DeleteStoryInvokePermission:
+    Type: AWS::Lambda::Permission
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Lets API Gateway invoke owner-authorized Story deletion without widening access to unrelated signaling routes.
+        must: [Keep SourceArn restricted to DELETE /stories/* on this API.]
+        mutable: change-with-constraints
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SignalingFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/DELETE/stories/*'
   NewsInvokePermission: {Type: AWS::Lambda::Permission, Properties: {Action: 'lambda:InvokeFunction', FunctionName: !Ref SignalingFunction, Principal: apigateway.amazonaws.com, SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/news'}}
   RefreshSessionInvokePermission: {Type: AWS::Lambda::Permission, Properties: {Action: 'lambda:InvokeFunction', FunctionName: !Ref SignalingFunction, Principal: apigateway.amazonaws.com, SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/POST/auth/refresh'}}
