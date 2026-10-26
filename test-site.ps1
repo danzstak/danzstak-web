@@ -71,6 +71,9 @@ if (-not $bookingClient.Contains('dj:"DJ / Electronic"') -or -not $bookingClient
 if (-not $bookingClient.Contains('actType:performerType.value,genre:genreInput.value') -or -not $bookingClient.Contains('performerType.value=tour.plan.actType') -or -not $bookingClient.Contains('genreInput.value=tour.plan.genre')) {
   Add-Failure 'Booking Agent: saved tours do not preserve and restore performer type and genre'
 }
+if ($bookingClient.Contains('Enter the band, home city, and date.') -or -not $bookingClient.Contains('Enter the act, home city, and date.')) {
+  Add-Failure 'Booking Agent: route guidance is not inclusive of DJs and other performer types'
+}
 if ($bookingClient.Contains('$("endCity").disabled=local||directional') -or $bookingClient.Contains('$("tourStops").disabled=local||directional')) {
   Add-Failure 'Booking Agent: turnaround city or tour stops are disabled in the default route mode'
 }
