@@ -490,6 +490,12 @@ if ($messagesHtml -notmatch 'id="receiverHangUp"[^>]+hidden' -or
 foreach ($deletedChatControl in @('function closeConversation(', 'shownMessages.clear()', 'danzstak-chat-view", open: false', 'closeConversation({ focusList: true })')) {
   if (-not $directMessagesJs.Contains($deletedChatControl)) { Add-Failure "Messaging: deleting or closing a chat leaves stale conversation state: $deletedChatControl" }
 }
+foreach ($deleteChatState in @('if (deleteChat) deleteChat.disabled = false;', 'if (deleteChat) deleteChat.disabled = true;', 'deleteChat && version === conversationVersion && contactInput.value.trim()')) {
+  if (-not $directMessagesJs.Contains($deleteChatState)) { Add-Failure "Messaging: Delete Chat does not follow the active conversation state: $deleteChatState" }
+}
+if (-not $messagesHtml.Contains('id="deleteChat" type="button" class="secondary delete-chat" disabled')) {
+  Add-Failure 'Messaging: Delete Chat is enabled before a conversation is selected'
+}
 if (-not $chatJs.Contains('if(await handleEvent(event))handled.push(event.eventId)') -or
     -not $chatJs.Contains('eventIds:[offer.eventId]') -or
     -not $chatJs.Contains('if(pending?.eventId===event.eventId)return false;')) {

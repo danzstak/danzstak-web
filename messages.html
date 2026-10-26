@@ -38,7 +38,7 @@
     <section id="incomingCall" class="incoming-call" role="dialog" aria-modal="true" aria-labelledby="incomingLabel" hidden><strong id="incomingLabel">Incoming call</strong><div class="call-actions"><button id="acceptCall" type="button" class="primary">Accept</button><button id="declineCall" type="button" class="danger">Decline</button></div></section>
     <button id="receiverHangUp" type="button" class="danger receiver-hangup" hidden>📞 Hang Up</button>
     <p id="callStatus" class="call-status" role="status">Ready to start a secure call.</p>
-    <button id="deleteChat" type="button" class="secondary delete-chat">Delete Chat</button>
+    <button id="deleteChat" type="button" class="secondary delete-chat" disabled>Delete Chat</button>
   </section>
   <section class="conversation" aria-label="Conversation">
     <header id="conversationHeader" class="conversation-header" hidden><span id="conversationAvatar" class="conversation-avatar" aria-hidden="true">D</span><strong id="conversationName">Select a chat</strong><div class="conversation-header-actions"><button id="headerPhone" type="button" title="Phone call" aria-label="Phone call">☎</button><button id="headerVideo" type="button" title="Video call" aria-label="Video call">▣</button><button id="minimizeConversation" type="button" title="Minimize chat" aria-label="Minimize chat">−</button><button id="closeConversation" type="button" title="Close chat" aria-label="Close chat">×</button></div></header>
@@ -61,7 +61,7 @@
 </main>
 <script src="assets/push-notifications.js?v=231" defer></script>
 <script src="assets/chat.js?v=284" defer></script>
-<script src="assets/direct-messages.js?v=287" defer></script>
+<script src="assets/direct-messages.js?v=288" defer></script>
 <script src="assets/session-activity.js?v=231" defer></script>
 <script src="assets/session-cleanup.js?v=231" defer></script>
 <script src="assets/logout.js?v=231" defer></script>

@@ -102,6 +102,7 @@ function openConversation(conversation) {
   conversationHeader.hidden = false;
   conversationName.textContent = conversation.name || "DanzStak member";
   activeContactName = conversation.name || "Contact";
+  if (deleteChat) deleteChat.disabled = false;
   conversationAvatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
   if (conversation.picture) { conversationAvatar.style.backgroundImage = `url("${conversation.picture}")`; conversationAvatar.textContent = ""; }
   else conversationAvatar.style.backgroundImage = "";
@@ -123,6 +124,7 @@ function closeConversation({ focusList = false } = {}) {
   messageInput.value = "";
   messageInput.disabled = true;
   sendButton.disabled = true;
+  if (deleteChat) deleteChat.disabled = true;
   document.body.classList.remove("is-conversation-open");
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: false }, location.origin);
   if (focusList) conversationUsers?.querySelector(".conversation-user")?.focus();
@@ -408,7 +410,9 @@ deleteChat?.addEventListener("click", async () => {
     }
     await loadConversations();
   } catch (error) { callStatus.textContent = error.message; }
-  finally { deleteChat.disabled = false; }
+  finally {
+    if (deleteChat && version === conversationVersion && contactInput.value.trim()) deleteChat.disabled = false;
+  }
 });
 
 fetch(directApi + "/auth/session", { credentials: "include", cache: "no-store" })
