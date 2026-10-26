@@ -50,19 +50,19 @@ foreach ($supportClientControl in @('credentials:"include"', 'https://api.danzst
 
 $bookingMarkup = Get-Content -LiteralPath (Join-Path $root 'booking.html') -Raw -Encoding utf8
 $bookingClient = Get-Content -LiteralPath (Join-Path $root 'assets\booking-agent.js') -Raw -Encoding utf8
-foreach ($bookingControl in @('DanzStak Booking Agent', 'Get the gig. Grow beyond home.', 'Clubs often book one or two months ahead', 'major festivals can book 18 months ahead.', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public contacts for clubs', 'Find a show near home')) {
+foreach ($bookingControl in @('DanzStak Booking Agent', 'Get the gig. Grow beyond home.', 'Clubs often book one or two months ahead', 'major festivals can book 18 months ahead.', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public contacts for clubs', 'Find a show near home', 'id="performerType"', '<option value="dj">DJ</option>', 'id="musicGenre"', '<option>DJ / Electronic</option>')) {
   if (-not $bookingMarkup.Contains($bookingControl)) { Add-Failure "Booking Agent: required planning control is missing: $bookingControl" }
 }
 if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {
   Add-Failure 'Booking Agent: signed-in users do not publish site-wide online presence'
 }
-foreach ($bookingClientControl in @('Send me out and bring me home', 'Performer type', '["dj","DJ"]', 'Act name', 'Music style / genre', '["DJ / Electronic","DJ / Electronic"]', 'First show / leave home', 'Back home', 'route-map', 'My saved tours')) {
+foreach ($bookingClientControl in @('Send me out and bring me home', 'First show / leave home', 'Back home', 'route-map', 'My saved tours')) {
   if (-not $bookingClient.Contains($bookingClientControl)) { Add-Failure "Booking Agent: required home-loop control is missing: $bookingClientControl" }
 }
 foreach ($bookingInteraction in @('$("startCity").value=""', '$("startCity").placeholder="City, region, country"', '$("endCity").disabled=local', '$("tourStops").disabled=local', '$("endCity").addEventListener("focus",useDestinationMode)', '$("tourStops").addEventListener("focus",useDestinationMode)', 'routeAction.textContent=local?"Find clubs near home":"Start route"')) {
   if (-not $bookingClient.Contains($bookingInteraction)) { Add-Failure "Booking Agent: interactive route control is missing: $bookingInteraction" }
 }
-if (-not $bookingClient.Contains('["DIY Punk","DIY Punk"]') -or -not $bookingClient.Contains('actType=performerType.value')) {
+if (-not $bookingMarkup.Contains('<option>DIY Punk</option>') -or -not $bookingClient.Contains('actType=performerType.value')) {
   Add-Failure 'Booking Agent: performer type and music-style choices are not sent with route searches'
 }
 if (-not $bookingClient.Contains('dj:"DJ / Electronic"') -or -not $bookingClient.Contains('performerType.addEventListener("change"')) {
