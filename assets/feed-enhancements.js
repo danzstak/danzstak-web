@@ -273,7 +273,7 @@ function renderWorkspace(name) {
 
   if (name === "Groups") {
     featureText.textContent = "Find communities by category, create a group, and connect with people who share your interests.";
-    const groupCategoryName = category => ({Artists:"Visual Artists", Creators:"Bands"})[category] || category;
+    const groupCategoryName = category => ({Artists:"Visual Artist", Creators:"Bands"})[category] || category;
     const categories = ["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"];
     const createBox = document.createElement("div");
     createBox.className = "group-create-box";
