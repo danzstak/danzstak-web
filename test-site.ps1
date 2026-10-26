@@ -276,6 +276,9 @@ if (-not $pwaJs.Contains('const installStateKey = "danzstak_app_installed"') -or
 foreach ($updatePromptBehavior in @('registration.waiting', 'registration.addEventListener("updatefound"', 'waitingWorker?.postMessage({ type: "SKIP_WAITING" })')) {
   if (-not $pwaJs.Contains($updatePromptBehavior)) { Add-Failure "PWA: visible update lifecycle is missing: $updatePromptBehavior" }
 }
+foreach ($updateDismissBehavior in @('let updateDismissTimer = null', 'updateButton.classList.add("app-update-button--leaving")', 'updateButton.hidden = true', '}, 15000)')) {
+  if (-not $pwaJs.Contains($updateDismissBehavior)) { Add-Failure "PWA: update prompt can permanently cover page actions: $updateDismissBehavior" }
+}
 
 $sessionCleanupJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-cleanup.js') -Raw -Encoding utf8
 $directMessagesJs = Get-Content -LiteralPath (Join-Path $root 'assets\direct-messages.js') -Raw -Encoding utf8

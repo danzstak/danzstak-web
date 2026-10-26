@@ -2,6 +2,7 @@
 
 let installPrompt = null;
 let installDismissTimer = null;
+let updateDismissTimer = null;
 const installStateKey = "danzstak_app_installed";
 const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 let knownInstalled = standalone;
@@ -28,11 +29,21 @@ function offerUpdate(worker) {
   if (!worker) return;
   waitingWorker = worker;
   clearTimeout(installDismissTimer);
+  clearTimeout(updateDismissTimer);
   installButton.hidden = true;
   updateButton.hidden = false;
+  updateButton.classList.remove("app-update-button--leaving");
+  updateDismissTimer = setTimeout(() => {
+    updateButton.classList.add("app-update-button--leaving");
+    setTimeout(() => {
+      updateButton.hidden = true;
+      updateButton.classList.remove("app-update-button--leaving");
+    }, 250);
+  }, 15000);
 }
 
 updateButton.addEventListener("click", () => {
+  clearTimeout(updateDismissTimer);
   updateButton.disabled = true;
   updateButton.textContent = "Updating…";
   waitingWorker?.postMessage({ type: "SKIP_WAITING" });
