@@ -1435,6 +1435,16 @@ function postPermalink(post) {
   return url.href;
 }
 
+async function postActionFetch(path, options = {}, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
+  catch (error) {
+    if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
+    throw error;
+  } finally { clearTimeout(timeout); }
+}
+
 const changedPostPreferenceFields = new Map();
 let volatilePostPreferences = {};
 
@@ -1459,7 +1469,7 @@ async function updatePostPreference(post, changes) {
     const remoteNames = { pinned: "pinned", saved: "saved", notificationsOff: "muted" };
     for (const [name, enabled] of Object.entries(changes)) {
       if (!remoteNames[name] || typeof enabled !== "boolean") continue;
-      const response = await fetch("https://api.danzstak.com/settings/posts", {
+      const response = await postActionFetch("/settings/posts", {
         method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postId, preference: remoteNames[name], enabled })
       });
@@ -1491,7 +1501,7 @@ async function hidePostForAccount(post) {
   const postId = String(post.dataset.postId || "");
   if (!postId) { post.remove(); return; }
   if (!isLocalHost()) {
-    const response = await fetch("https://api.danzstak.com/settings/posts", {
+    const response = await postActionFetch("/settings/posts", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ postId, preference: "hidden", enabled: true })
     });
@@ -1504,7 +1514,7 @@ async function hidePostForAccount(post) {
   window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts || [] } }));
 }
 
-if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts", { credentials: "include", cache: "no-store" })
+if (!isLocalHost()) postActionFetch("/settings/posts", { credentials: "include", cache: "no-store" })
   .then(response => response.ok ? response.json() : null)
   .then(data => {
     if (!data) return;
@@ -1715,7 +1725,7 @@ function addPostDeleteButton(post) {
         const postId = post.dataset.postId;
         if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
           try {
-            const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), {
+            const response = await postActionFetch("/secure-posts/" + encodeURIComponent(postId), {
               method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ content: updated, location: updatedLocation })
             });
@@ -1758,7 +1768,7 @@ function addPostDeleteButton(post) {
     button.disabled = true;
     if (postId && !isLocalHost()) {
       try {
-        const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), {
+        const response = await postActionFetch("/secure-posts/" + encodeURIComponent(postId), {
           method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ commentPolicy: policies[next] })
         });
@@ -1782,7 +1792,7 @@ function addPostDeleteButton(post) {
       button.disabled = true;
       if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
         try {
-          const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), {
+          const response = await postActionFetch("/secure-posts/" + encodeURIComponent(postId), {
             method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ content: post.querySelector(".post-content")?.textContent.trim() || "Shared media", audience: audiences[next] })
           });
@@ -1813,7 +1823,7 @@ function addPostDeleteButton(post) {
     if (post.dataset.isOwner === "true" && !confirm("Permanently delete this post and its uploaded media?")) return;
     if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
       try {
-        const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
+        const response = await postActionFetch("/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
         if (response.status === 403) {
           post.dataset.isOwner = "false";
           if (confirm("You did not post this. Do you want to delete it from your feed?")) await removePostFromThisFeed();

@@ -9,7 +9,7 @@ function setup() {
   const requests = [];
   const context = vm.createContext({ postPreferencesKey: 'danzstak-post-preferences', post: { dataset: { postId: 'p1' } }, isLocalHost: () => false,
     localStorage: { getItem: () => saved, setItem: (_, value) => { saved = value; } },
-    fetch: (_, options) => new Promise((resolve, reject) => requests.push({ resolve, reject, body: JSON.parse(options.body) })) });
+    postActionFetch: (_, options) => new Promise((resolve, reject) => requests.push({ resolve, reject, body: JSON.parse(options.body) })) });
   vm.runInContext(code, context);
   return { context, requests, saved: () => JSON.parse(saved) };
 }
@@ -41,12 +41,12 @@ function setup() {
   assert.equal(vm.runInContext('readPostPreferences().p1.saved',h.context),false,'confirmed state overrides stale disk cache after quota failure');
   h.context.localStorage.getItem = () => { throw new Error('storage blocked'); };
   assert.equal(vm.runInContext('readPostPreferences().p1.notificationsOff',h.context),true,'confirmed preferences remain available without browser storage');
-  const hydrateStart = source.indexOf('if (!isLocalHost()) fetch("https://api.danzstak.com/settings/posts"');
+  const hydrateStart = source.indexOf('if (!isLocalHost()) postActionFetch("/settings/posts"');
   const hydrateCode = source.slice(hydrateStart,source.indexOf('function openPostReportDialog(',hydrateStart));
   let hiddenApplied=0;
   Object.assign(h.context, {
     hiddenPostIds:new Set(),recentlyHiddenPostIds:new Set(),hiddenPostKey:'hidden',
-    fetch:async()=>({ok:true,json:async()=>({hidden:['hidden1'],saved:['p2','notLoadedYet']})}),
+    postActionFetch:async()=>({ok:true,json:async()=>({hidden:['hidden1'],saved:['p2','notLoadedYet']})}),
     document:{querySelectorAll:()=>[{dataset:{postId:'p2'},querySelector:()=>null}]},
     applyHiddenPosts:()=>hiddenApplied++,addPostDeleteButton:()=>{},
     window:{dispatchEvent:()=>{}},CustomEvent:class {},featurePanel:{querySelector:()=>null,hidden:false}

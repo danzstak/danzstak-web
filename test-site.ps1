@@ -572,7 +572,7 @@ if (-not $feedEnhancementsJs.Contains('body: JSON.stringify({ content: post.quer
     -not $feedEnhancementsJs.Contains('["Edit post", "Who can comment?", "Edit privacy"].includes')) {
   Add-Failure 'Post menu: privacy persistence or non-owner control filtering is incomplete'
 }
-if (-not $feedEnhancementsJs.Contains('https://api.danzstak.com/settings/posts') -or
+if (-not $feedEnhancementsJs.Contains('postActionFetch("/settings/posts"') -or
     -not $feedEnhancementsJs.Contains('option("Move to archive", "Hide this post from your account."')) {
   Add-Failure 'Post menu: archived and hidden posts are not persisted to the account'
 }

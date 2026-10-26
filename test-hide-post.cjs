@@ -4,13 +4,13 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
 const start = source.indexOf('const hiddenPostKey = ');
-const code = source.slice(start, source.indexOf('\nif (!isLocalHost()) fetch(', start));
+const code = source.slice(start, source.indexOf('\nif (!isLocalHost()) postActionFetch(', start));
 let removed = false, cached = '[]';
 const requests = [];
 const context = vm.createContext({ post: { dataset: { postId: 'post-1' }, remove() { removed = true; } }, isLocalHost: () => false,
   localStorage: { getItem: () => cached, setItem: (_, value) => { cached = value; } },
   window: { dispatchEvent() {} }, CustomEvent: class {},
-  fetch: () => new Promise(resolve => requests.push(resolve)) });
+  postActionFetch: () => new Promise(resolve => requests.push(resolve)) });
 vm.runInContext(code, context);
 (async () => {
   const failure = vm.runInContext('hidePostForAccount(post)', context).catch(error => error);
