@@ -56,3 +56,6 @@ button:active,.button:active{background:#d8dade;border-color:#c9cdd3;box-shadow:
 body:has(>.install-app-button:not([hidden])),body:has(>.app-update-button:not([hidden])){padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
 body:has(dialog[open])>.install-app-button,body:has(dialog[open])>.app-update-button{visibility:hidden}
 @media(pointer:coarse){button,.button,.primary,.secondary,.profile-tabs button,.profile-media-tools button,.post-actions button{min-height:44px}.post-actions{flex-wrap:wrap}.post-menu-toggle{min-width:44px;min-height:44px}.topbar .topnav button{min-height:44px}}
+
+.site-ownership{padding:16px 20px;text-align:center;color:#65676b;font-size:12px;line-height:1.5}.dark-mode .site-ownership{color:#b8c2d1}.is-conversation-open>.site-ownership{display:none}
+@media(max-width:360px){.topbar .topnav button{font-size:10px;padding-inline:2px}.post-actions{flex-wrap:wrap}.post-actions button{flex:1 1 64px!important;min-width:0}}

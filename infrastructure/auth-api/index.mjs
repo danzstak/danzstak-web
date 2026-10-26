@@ -64,7 +64,7 @@ const issuer =
 const sessionCookieName = "__Host-danzstak_session";
 const oauthCookieName = "__Host-danzstak_oauth";
 const legalCookieName = "__Host-danzstak_legal";
-const legalVersion = "2026-10-25";
+const legalVersion = "2026-10-26";
 
 const now = () => Math.floor(Date.now() / 1000);
 

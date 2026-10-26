@@ -1,6 +1,8 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const source=fs.readFileSync('infrastructure/auth-api/index.mjs','utf8');
+const currentLegalVersion=source.match(/const legalVersion = "([^"]+)"/)[1];
+assert.equal(fs.readFileSync('assets/home.js','utf8').match(/const legalVersion = "([^"]+)"/)[1],currentLegalVersion,'signup and API must accept the same policy version');
 const between=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)));
 const pair=crypto.generateKeyPairSync('rsa',{modulusLength:2048});
 const jwk={...pair.publicKey.export({format:'jwk'}),kid:'test-key',use:'sig',alg:'RS256'};
@@ -29,7 +31,7 @@ const verify=async value=>{context.value=value;return vm.runInContext('verifyIdT
  for(const invalid of [undefined,{...valid,type:{S:'oauth_pending'}},{...valid,userId:undefined},{...valid,expiresAt:{N:'1000'}},{...valid,expiresAt:{N:'NaN'}}]){item=invalid;assert.equal(await session('a'.repeat(64)),null);}
  item=valid;assert.equal(await session('a'.repeat(64)),'owner-1');
  let acceptance,writes=0,started=0;
- const legal=vm.createContext({legalVersion:'2026-10-25',legalCookieName:'legal',siteUrl:'https://danzstak.com',tableName:'sessions',allowedOrigins:new Set(['https://danzstak.com']),now:()=>1000,sha256:digest,
+ const legal=vm.createContext({legalVersion:currentLegalVersion,legalCookieName:'legal',siteUrl:'https://danzstak.com',tableName:'sessions',allowedOrigins:new Set(['https://danzstak.com']),now:()=>1000,sha256:digest,
   randomValue:()=> 'b'.repeat(64),corsHeaders:()=>({}),secureCookie:()=> 'secure-test-cookie',clearCookie:()=> 'clear-test-cookie',
   errorResponse:(statusCode,error)=>({statusCode,error}),redirect:(url,cookies)=>({statusCode:302,url,cookies}),
   startLogin:async(mode,id)=>{started++;return {statusCode:302,mode,id};},GetItemCommand:class{},PutItemCommand:class{constructor(input){this.input=input;}},
@@ -38,9 +40,9 @@ const verify=async value=>{context.value=value;return vm.runInContext('verifyIdT
  vm.runInContext(between('function getCookie(', 'function secureCookie(')+between('async function acceptLegalTerms(', '// COMPLETE SECURE LOGIN'),legal);
  const accept=async body=>{legal.event={headers:{origin:'https://danzstak.com'},body:JSON.stringify(body)};return vm.runInContext('acceptLegalTerms(event)',legal);};
  assert.equal((await accept({})).statusCode,400);assert.equal((await accept({version:'old',termsAccepted:true,privacyAcknowledged:true})).statusCode,400);assert.equal(writes,0);
- assert.equal((await accept({version:'2026-10-25',termsAccepted:true,privacyAcknowledged:true})).statusCode,201);assert.equal(writes,1);
+ assert.equal((await accept({version:currentLegalVersion,termsAccepted:true,privacyAcknowledged:true})).statusCode,201);assert.equal(writes,1);
  legal.event={cookies:[]};assert.match((await vm.runInContext('startSignup(event)',legal)).url,/legal=required/);
- legal.event={cookies:['legal='+ 'b'.repeat(64)]};acceptance={type:{S:'legal_pending'},legalVersion:{S:'2026-10-25'},expiresAt:{N:'999'}};
+ legal.event={cookies:['legal='+ 'b'.repeat(64)]};acceptance={type:{S:'legal_pending'},legalVersion:{S:currentLegalVersion},expiresAt:{N:'999'}};
  assert.match((await vm.runInContext('startSignup(event)',legal)).url,/legal=required/);assert.equal(started,0);
  acceptance.expiresAt.N='2000';assert.equal((await vm.runInContext('startSignup(event)',legal)).mode,'signup');assert.equal(started,1);
  let useCookie=true,failRevocation=false;const revoked=[];
