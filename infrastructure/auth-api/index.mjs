@@ -1591,7 +1591,7 @@ function publicPlace(place) {
 function isBookableClub(place) {
   const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
   const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|symphony|orchestra|opera house|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
-  const wrongFormat = /\b(jazz|comedy|comic|salsa|ballroom|dance school|dance studio|dance class|kindermusik|music school|music lesson|music teacher|music instructor|children'?s music|church|worship|jubilee)\b/;
+  const wrongFormat = /\b(jazz|comedy|comic|laughs?|piano bar|salsa|ballroom|dance school|dance studio|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|children'?s music|church|worship|jubilee)\b/;
   const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival office)\b/;
   return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description);
 }
