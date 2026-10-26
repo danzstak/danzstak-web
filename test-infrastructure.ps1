@@ -79,6 +79,10 @@ if ($directionalMarketSearch.Contains('BiasPosition: bias')) {
 foreach ($nonVenueFilter in @('table\s*dance', 'adult entertainment', 'recording studio', 'event consultant', 'walking tour')) {
   if (-not $authApi.Contains($nonVenueFilter)) { throw "Booking Agent can still recommend a non-bookable venue type: $nonVenueFilter" }
 }
+$directionalRouteCalculation = [regex]::Match($authApi, 'let points = directional[\s\S]*?const summary = route\?\.Routes').Value
+foreach ($routeFallbackControl in @('while (points.length >= 3)', 'if (!directional) throw error', 'points.length === 3', 'points = [...points.slice(0, -2), points.at(-1)]')) {
+  if (-not $directionalRouteCalculation.Contains($routeFallbackControl)) { throw "Booking Agent cannot shorten an impossible generated driving loop safely: $routeFallbackControl" }
+}
 if (-not $authApi.Contains('const items = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :meta"')) {
   throw 'The Groups directory still stops at the first DynamoDB scan page.'
 }
