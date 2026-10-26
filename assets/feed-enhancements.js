@@ -273,8 +273,9 @@ function renderWorkspace(name) {
 
   if (name === "Groups") {
     featureText.textContent = "Find communities by category, create a group, and connect with people who share your interests.";
-    const groupCategoryName = category => ({Artists:"Visual Artist", Creators:"Bands"})[category] || category;
-    const categories = ["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"];
+    const groupCategoryName = category => ({Artists:"Visual Artist", Creators:"Bands", "Venues & Promoters":"Venues", "Local Scenes":"Scenes", "Industry Networking":"Industry"})[category] || category;
+    const legacyCategoryOrder = ["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"];
+    const categories = ["Artists", "Creators", "DJs & Producers", "Fans", "Venues & Promoters", "Local Scenes", "Industry Networking", "Events", "Politics", "Religion"];
     const createBox = document.createElement("div");
     createBox.className = "group-create-box";
     const groupName = field("Group name", "text", "Name your group");
@@ -311,7 +312,7 @@ function renderWorkspace(name) {
 
     function renderGroups() {
       grid.replaceChildren();
-      const defaults = categories.map((category, index) => ({ id: `default-${index}`, name: groupCategoryName(category), category, description: `Connect in ${(groupCategoryName(category)).toLowerCase()}.`, custom: false }));
+      const defaults = categories.map(category => ({ id: `default-${legacyCategoryOrder.indexOf(category)}`, name: groupCategoryName(category), category, description: `Connect in ${(groupCategoryName(category)).toLowerCase()}.`, custom: false }));
       const groups = [...customGroups, ...defaults];
       for (const group of groups) {
         const isSensitiveDiscussion = ["Politics", "Religion"].includes(group.category);
