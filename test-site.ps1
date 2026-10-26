@@ -213,6 +213,9 @@ foreach ($reelRequirement in @('post.reel === true', 'loadInternalReels', 'reel.
 $chatScript = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
 $chatStyles = Get-Content -LiteralPath (Join-Path $root 'assets\chat.css') -Raw -Encoding utf8
 $incomingCalls = Get-Content -LiteralPath (Join-Path $root 'assets\incoming-calls.js') -Raw -Encoding utf8
+foreach ($incomingCallDeadline in @('const controller = new AbortController()', 'setTimeout(() => controller.abort(), 10000)', 'signal: controller.signal', 'finally { clearTimeout(timeout); }')) {
+  if (-not $incomingCalls.Contains($incomingCallDeadline)) { Add-Failure "Calls: one stalled inbox request can freeze incoming-call polling: $incomingCallDeadline" }
+}
 if (-not $chatScript.Contains('if(await handleEvent(event))handled.push(event.eventId)') -or $chatScript.Contains('filter(event=>event.signalType!=="offer")')) {
   Add-Failure 'Calls: chat may acknowledge signals it did not handle'
 }

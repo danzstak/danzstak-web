@@ -8,7 +8,7 @@ let events=[first],poll,notifications=0,fetches=0;const drawers=[];
 class Notification {constructor(){notifications++;}}Notification.permission='granted';
 const context=vm.createContext({document:{hidden:false,addEventListener(){},activeElement:null,createElement:()=>popup,body:{appendChild(){}}},HTMLElement:class {},window:{Notification,openMessageDrawer:(...args)=>drawers.push(args)},Notification,
  navigator:{vibrate(){},serviceWorker:{ready:Promise.resolve({showNotification:async()=>notifications++})}},setInterval:fn=>{poll=fn;},URL,location:{href:'https://danzstak.com/feed.html'},
- fetch:async()=>{fetches++;return {ok:true,json:async()=>({events})};}});
+ AbortController,setTimeout,clearTimeout,fetch:async()=>{fetches++;return {ok:true,json:async()=>({events})};}});
 vm.runInContext(source,context);
 (async()=>{
  await new Promise(resolve=>setImmediate(resolve));assert.equal(popup.hidden,false);assert.equal(answer.focuses,1);assert.match(label.textContent,/Caller Name/);assert.doesNotMatch(label.textContent,/@/,'incoming banner must not expose an account email');assert.equal(notifications,0,'page polling must not duplicate service-worker background alerts');
