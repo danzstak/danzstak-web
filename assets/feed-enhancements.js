@@ -882,6 +882,19 @@ function renderWorkspace(name) {
     activityButton.className = "secondary";
     activityButton.textContent = "View";
     activityButton.addEventListener("click", () => openAccountActivity(activityButton));
+    const exportButton = document.createElement("button");
+    exportButton.type = "button";
+    exportButton.className = "secondary";
+    exportButton.textContent = "Download";
+    exportButton.addEventListener("click", async () => {
+      exportButton.disabled = true;
+      const original = exportButton.textContent;
+      exportButton.textContent = "Preparing…";
+      try {
+        await window.danzstakDownloadAccountData(message => { if (isCurrentWorkspace()) featureText.textContent = message; });
+      } catch { /* The exporter reports an actionable status message. */ }
+      finally { exportButton.disabled = false; exportButton.textContent = original; }
+    });
     const alertSettings = document.createElement("button");
     alertSettings.type = "button";
     alertSettings.className = "secondary";
@@ -988,6 +1001,7 @@ function renderWorkspace(name) {
       settingRow("🔔", "Call and message alerts", alertSettings),
       settingRow("📱", "App and device settings", appSettings),
       settingRow("🗂", "Your DanzStak activity", activityButton),
+      settingRow("↓", "Download my data", exportButton),
       settingRow("🕒", "Session", sessionInfo),
       settingRow("📄", "Privacy Policy", legalLinks),
       settingRow("🚪", "Account", logout),
