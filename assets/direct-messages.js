@@ -260,7 +260,7 @@ async function loadConversations() {
       if (!email || contacts.has(email)) continue;
       contacts.set(email, {
         contactEmail: email,
-        name: friend.name || email,
+        name: friend.name || "DanzStak member",
         picture: friend.picture || "",
         preview: "Start a conversation",
         updatedAt: "",
@@ -274,7 +274,7 @@ async function loadConversations() {
       contacts.set(email, {
         ...(existing || {}),
         contactEmail: email,
-        name: existing?.name || member.name || email.split("@")[0],
+        name: existing?.name || member.name || "DanzStak member",
         picture: existing?.picture || member.picture || "",
         preview: existing?.preview || "Shared group member",
         updatedAt: existing?.updatedAt || "",
@@ -356,7 +356,7 @@ textButton?.addEventListener("click", event => {
   event.stopImmediatePropagation();
   const email = contactInput.value.trim().toLowerCase();
   if (!email) { callStatus.textContent = "Select a friend or group member first."; return; }
-  openConversation(cachedConversations.find(item => item.contactEmail === email) || { contactEmail: email, name: email.split("@")[0], picture: "" });
+  openConversation(cachedConversations.find(item => item.contactEmail === email) || { contactEmail: email, name: "DanzStak member", picture: "" });
 }, true);
 
 window.addEventListener("danzstak-contact-selected", event => {

@@ -622,11 +622,11 @@ function renderWorkspace(name) {
         const avatar = friend.picture ? document.createElement("img") : document.createElement("span");
         avatar.className = "friend-avatar";
         if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
-        else { avatar.textContent = (friend.name || friend.email).charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+        else { avatar.textContent = (friend.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
         const details = document.createElement("span");
         details.className = "friend-details";
         const displayName = document.createElement("strong");
-        displayName.textContent = friend.name || friend.email;
+        displayName.textContent = friend.name || "DanzStak member";
         const status = document.createElement("small");
         const friendIsOnline = online.has(String(friend.email || "").toLowerCase());
         status.textContent = friendIsOnline ? "Online" : "Offline";
@@ -1796,7 +1796,7 @@ function renderPersistentComment(post, comment) {
   item.dataset.canDelete = String(comment.canDelete === true);
   const author = document.createElement("strong");
   author.className = "comment-author";
-  author.textContent = comment.authorName || (comment.userEmail || "DanzStak member").split("@")[0];
+  author.textContent = comment.authorName || "DanzStak member";
   const body = document.createElement("div"); body.className = "comment-content"; body.textContent = comment.content;
   item.dataset.reactionTotal = String(comment.reactionTotal || 0); item.dataset.createdAt = comment.createdAt || "";
   item.append(author, body);
@@ -1955,7 +1955,7 @@ async function loadInternalReels(posts = []) {
       const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: "video" }) }).catch(() => null);
       if (response?.ok) mediaUrl = (await response.json().catch(() => ({}))).mediaUrl || "";
     }
-    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", authorName: post.authorName || String(post.userEmail || "").split("@")[0] || "DanzStak Member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
+    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", authorName: post.authorName || "DanzStak Member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
   }));
   if (version !== internalReelsVersion) return;
   internalReels = resolved.filter(Boolean);
