@@ -954,8 +954,8 @@ setInterval(refreshNotificationCount, 30000);
 window.addEventListener("focus", refreshNotificationCount);
 
 const search = document.querySelector(".search");
-search.setAttribute("aria-label", "Search feed posts");
-search.placeholder = "Search feed posts";
+search.setAttribute("aria-label", "Search posts and users");
+search.placeholder = "Search posts and users";
 search.setAttribute("aria-controls", "feed");
 const searchFeedback = document.createElement("p");
 searchFeedback.className = "muted feed-search-feedback";
@@ -978,6 +978,11 @@ function filterFeedPosts() {
     : "";
 }
 search.addEventListener("input", filterFeedPosts);
+window.addEventListener("danzstak:show-search", () => {
+  if (!search.value.trim()) return;
+  const url = new URL(location.href); url.hash = ""; url.searchParams.set("view", "feed");
+  history.replaceState({}, "", url.pathname + url.search); restoreWorkspaceRoute();
+});
 filterFeedPosts();
 
 document.querySelector('[data-feature="Music"]')?.remove();
@@ -2128,7 +2133,7 @@ document.addEventListener("visibilitychange", () => {
   });
 });
 document.getElementById("feed").addEventListener("keydown", event => {
-  if (event.key !== "Enter" || !event.target.matches(".comments input")) return;
+  if (event.key !== "Enter" || event.isComposing || event.keyCode === 229 || !event.target.matches(".comments input")) return;
   const post = event.target.closest(".post");
   if (!engagementPostId(post)) return;
   event.preventDefault();

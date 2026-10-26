@@ -63,6 +63,8 @@ function setup() {
   await h.finish(4, { canContact: true });
   h.elements.get('messageInput').value = 'Sending to first contact';
   const pendingSend = h.run('submit({preventDefault(){},stopImmediatePropagation(){}})');
+  await h.run('submit({preventDefault(){},stopImmediatePropagation(){}})');
+  assert.equal(h.requests.length,6,"Repeated Enter cannot duplicate a pending message");
   h.run('openConversation({contactEmail:"other@example.com"})');
   h.elements.get('messageInput').value = 'Draft for another contact';
   await h.finish(5);

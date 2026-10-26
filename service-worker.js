@@ -1,7 +1,9 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v216";
+const CACHE = "danzstak-shell-v217";
 const SHELL = [
+  "/assets/people-search.js",
+  "/assets/mobile-keyboard.js",
   "/assets/languages.js", "/assets/i18n.js",
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-fb-v2.jpg",

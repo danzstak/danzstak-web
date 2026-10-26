@@ -23,6 +23,7 @@ let directContact = "";
 let currentEmail = "";
 let loadingMessages = false;
 let conversationVersion = 0;
+const pendingMessageSends = new Set();
 let nextMessageCursor = "";
 const shownMessages = new Set();
 let cachedConversations = [];
@@ -351,13 +352,22 @@ window.addEventListener("danzstak-contact-selected", event => {
   openConversation(selected);
 });
 
+// Mobile Return and physical Enter use the same guarded send path.
+messageInput?.addEventListener("keydown", event => {
+  if (event.key !== "Enter" || event.isComposing || event.keyCode === 229 || event.shiftKey) return;
+  event.preventDefault();
+  if (event.repeat || messageInput.disabled) return;
+  messageForm.requestSubmit();
+});
+
 messageForm?.addEventListener("submit", async event => {
   event.preventDefault();
   event.stopImmediatePropagation();
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
-  if (!content || !recipientEmail || !activeCanContact) return;
+  if (!content || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
   const version = conversationVersion;
+  pendingMessageSends.add(version);
   sendButton.disabled = true;
   try {
     const response = await fetch(directApi + "/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content }) });
@@ -368,7 +378,7 @@ messageForm?.addEventListener("submit", async event => {
     await loadDirectMessages();
     await loadConversations();
   } catch (error) { if (version === conversationVersion) callStatus.textContent = error.message; }
-  finally { if (version === conversationVersion) sendButton.disabled = !activeCanContact; }
+  finally { pendingMessageSends.delete(version); if (version === conversationVersion) sendButton.disabled = !activeCanContact; }
 }, true);
 
 deleteChat?.addEventListener("click", async () => {

@@ -9,7 +9,7 @@ const search = { value: '', setAttribute() {}, addEventListener(_, handler) { th
 const feedback = { setAttribute() {} };
 const post = (text, author) => ({ hidden: false, textContent: `${author} ${text} Like Comment Share`, querySelector: selector => ({ textContent: selector === '.post-content' ? text : author }) });
 const posts = [post('Live music tonight', 'Alice'), post('New photography', 'Bob')];
-const context = vm.createContext({ document: {
+const context = vm.createContext({ window:{addEventListener(){}}, document: {
   querySelector: () => search, querySelectorAll: () => posts, createElement: () => feedback,
   getElementById: () => ({ insertAdjacentElement() {} }) },
   MutationObserver: class { constructor(callback) { observer = callback; } observe() {} },
