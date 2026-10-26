@@ -56,14 +56,14 @@ foreach ($bookingControl in @('DanzStak Booking Agent', 'Get the gig. Grow beyon
 if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {
   Add-Failure 'Booking Agent: signed-in users do not publish site-wide online presence'
 }
-foreach ($bookingClientControl in @('Send me out and bring me home', 'Band or artist', 'Music style / genre', 'First show / leave home', 'Back home', 'route-map', 'My saved tours')) {
+foreach ($bookingClientControl in @('Send me out and bring me home', 'Performer type', '["dj","DJ"]', 'Act name', 'Music style / genre', '["DJ / Electronic","DJ / Electronic"]', 'First show / leave home', 'Back home', 'route-map', 'My saved tours')) {
   if (-not $bookingClient.Contains($bookingClientControl)) { Add-Failure "Booking Agent: required home-loop control is missing: $bookingClientControl" }
 }
 foreach ($bookingInteraction in @('$("startCity").value=""', '$("startCity").placeholder="City, region, country"', '$("endCity").disabled=local', '$("tourStops").disabled=local', '$("endCity").addEventListener("focus",useDestinationMode)', '$("tourStops").addEventListener("focus",useDestinationMode)', 'routeAction.textContent=local?"Find clubs near home":"Start route"')) {
   if (-not $bookingClient.Contains($bookingInteraction)) { Add-Failure "Booking Agent: interactive route control is missing: $bookingInteraction" }
 }
-if (-not $bookingClient.Contains('genreInput.value="DIY Punk / Metal / Rock"')) {
-  Add-Failure 'Booking Agent: punk, metal, and rock are not the default club-search lane'
+if (-not $bookingClient.Contains('["DIY Punk","DIY Punk"]') -or -not $bookingClient.Contains('actType=performerType.value')) {
+  Add-Failure 'Booking Agent: performer type and music-style choices are not sent with route searches'
 }
 if ($bookingClient.Contains('$("endCity").disabled=local||directional') -or $bookingClient.Contains('$("tourStops").disabled=local||directional')) {
   Add-Failure 'Booking Agent: turnaround city or tour stops are disabled in the default route mode'
