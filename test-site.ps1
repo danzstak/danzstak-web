@@ -330,6 +330,9 @@ foreach ($contactFailureBehavior in @('async function directFetch(', 'controller
 foreach ($onlineContactNavigation in @('name.href = "profile.html?member=" + encodeURIComponent(memberId)', 'action.addEventListener("click", () => openMessageDrawer(user.email))', 'user.friendStatus === "friends" || user.sharedGroup')) {
   if (-not $feed.Contains($onlineContactNavigation)) { Add-Failure "Online contacts: profile or embedded-message navigation is incomplete: $onlineContactNavigation" }
 }
+foreach ($messageDrawerFocusControl in @('let messageDrawerPreviousFocus = null', 'messageDrawerPreviousFocus = activeElement', '(messageDrawerPreviousFocus || launcher).focus()', 'messageDrawerPreviousFocus = null')) {
+  if (-not $feed.Contains($messageDrawerFocusControl)) { Add-Failure "Messages: embedded drawer does not return focus to its opener: $messageDrawerFocusControl" }
+}
 if (-not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")')) {
   Add-Failure 'Friends: decorative presence dot duplicates the visible online status for assistive technology'
 }
