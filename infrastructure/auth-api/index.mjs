@@ -995,17 +995,33 @@ async function getEngagement(event) {
     queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ConsistentRead: true }),
     queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ConsistentRead: true })
   ]);
-  const reactionCounts = {};
+  const commentReactionItems = reactionItems.filter(item => item.commentId?.S);
+  const authorNames = await loadFeedAuthorNames([...commentItems, ...commentReactionItems]);
+  const friends = new Set();
+  if (commentReactionItems.length) {
+    const viewerEmail = await accountForSub(userId), emails = [...new Set(commentReactionItems.map(item => item.userEmail?.S).filter(Boolean))];
+    if (viewerEmail && emails.length) { try { for (const item of await batchGetFriendships(viewerEmail, emails)) if (item.status?.S === "friends") friends.add(item.friendEmail.S); } catch (error) { console.warn("Comment friendship lookup failed",error.name); } }
+  }
+  const reactionCounts = {}, commentReactions = new Map();
   let myReaction = "";
   for (const item of reactionItems) {
     const reaction = item.reaction?.S || "Like";
+    if (item.commentId?.S) {
+      const id = item.commentId.S, summary = commentReactions.get(id) || {reactionCounts:{}, myReaction:"", reactionTotal:0, reactors:[]};
+      summary.reactionCounts[reaction] = (summary.reactionCounts[reaction] || 0) + 1; summary.reactionTotal++;
+      if (item.actorUserId?.S === userId) summary.myReaction = reaction;
+      summary.reactors.push({name:authorNames.get(item.userEmail?.S) || item.actorName?.S || "DanzStak member",reaction,isFriend:friends.has(item.userEmail?.S)});
+      commentReactions.set(id, summary); continue;
+    }
     reactionCounts[reaction] = (reactionCounts[reaction] || 0) + 1;
     if (item.userId?.S === userId) myReaction = reaction;
   }
   const comments = commentItems.map(item => ({
+    ...(commentReactions.get(item.commentId.S) || {reactionCounts:{}, myReaction:"", reactionTotal:0}),
+    authorName:authorNames.get(item.userEmail?.S) || (item.userEmail?.S || "DanzStak member").split("@")[0],
     commentId: item.commentId.S, userEmail: item.userEmail?.S || "DanzStak member", content: item.content.S,
     createdAt: item.createdAt.S, isOwner: item.userId?.S === userId, canDelete: item.userId?.S === userId || access.post.userId?.S === userId
-  })).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  })).sort((a, b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt));
   return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
 }
 
@@ -1016,9 +1032,22 @@ async function setReaction(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const data = parseJsonBody(event);
   const postId = String(data?.postId || ""), reaction = String(data?.reaction || "");
-  if (reaction && !["Like", "Love", "Laugh", "Wow", "Sad", "Fire"].includes(reaction)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Unsupported reaction." }) };
+  if (reaction && !["Like", "Dislike", "Love", "Laugh", "Wow", "Sad", "Fire"].includes(reaction)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Unsupported reaction." }) };
   const access = await postForEngagement(postId, userId);
   if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
+  const commentId = String(data?.commentId || "");
+  if (commentId) {
+    if (!/^\d{13}#[a-f0-9-]{36}$/.test(commentId)) return {statusCode:400,headers,body:JSON.stringify({error:"Invalid comment."})};
+    const found = await db.send(new GetItemCommand({TableName:commentsTable,Key:{postId:{S:postId},commentId:{S:commentId}},ConsistentRead:true}));
+    if (!found.Item) return {statusCode:404,headers,body:JSON.stringify({error:"Comment not found."})};
+    const actorEmail = await accountForSub(userId);
+    if (!actorEmail) return {statusCode:409,headers,body:JSON.stringify({error:"Account email could not be verified."})};
+    const names = reaction ? await loadFeedAuthorNames([{userEmail:{S:actorEmail}}]) : new Map();
+    const key = {postId:{S:postId},userId:{S:"comment#"+commentId+"#"+userId}};
+    if (!reaction) await db.send(new DeleteItemCommand({TableName:reactionsTable,Key:key}));
+    else await db.send(new PutItemCommand({TableName:reactionsTable,Item:{...key,commentId:{S:commentId},actorUserId:{S:userId},userEmail:{S:actorEmail},actorName:{S:names.get(actorEmail)||actorEmail.split("@")[0]},reaction:{S:reaction},createdAt:{S:new Date().toISOString()}}}));
+    return {statusCode:200,headers,body:JSON.stringify({reaction,commentId})};
+  }
   const key = { postId: { S: postId }, userId: { S: userId } };
   const actorEmail = await accountForSub(userId);
   if (!actorEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };

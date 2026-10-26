@@ -113,3 +113,12 @@ The audit caught a Facebook share fallback and replaced it with native sharing o
 
 
 The owner requested separate Delete profile and Delete account controls. Profile behavior is awaiting clarification (hide reversibly versus clear details/photos). No account deletion was executed during testing. These controls must not ship as inert buttons or imply completed data erasure without a working backend.
+
+
+### Current owner-requested work (October 26)
+
+Implemented locally, pending deployment: thumbs-up/down and long-press emoji reactions for posts and comments; comments beneath author names; top two comments ranked by reaction totals with expansion; reactor display names with friends first. Facebook import button is deployed at the bottom of Edit Profile; its dialog opens, but the browser upload approval gate rejected selecting the synthetic test ZIP. Do not bypass that gate. Parser/backend import tests pass; real browser file-preview verification remains incomplete.
+
+Next requested: consolidate profile/cover photo controls inside Edit Profile; separate Delete profile and Delete account controls with Download my data versus Delete my data and explicit final erasure confirmation; Share Profile; Invite People; photo/video tags with an account tagging opt-in/out and self-removal; Your DanzStak activity in Edit Profile (own posts/comments/reactions/tags). The deletion features must not be inert or claim erasure without a working backend. An earlier clarification about hiding versus clearing a profile remains unanswered. No real account deletion is authorized as a test.
+
+Additional requested features: Featured Posts on profiles, private Memories with original audience respected, post view counts, optional post location (blank unless chosen; no automatic precise location collection).

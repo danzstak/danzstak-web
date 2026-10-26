@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v224";
+const CACHE = "danzstak-shell-v225";
 const SHELL = [
   "/assets/facebook-import.js", "/assets/facebook-import.css", "/assets/facebook-import-worker.js", "/assets/facebook-import-core.js", "/assets/vendor/fflate-0.8.3.js",
   "/assets/people-search.js",

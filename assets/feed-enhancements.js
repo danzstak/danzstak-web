@@ -1690,25 +1690,70 @@ document.addEventListener("click", event => {
 });
 
 const engagementApi = "https://api.danzstak.com";
-const reactionEmoji = { Like: "♥", Love: "❤️", Laugh: "😂", Wow: "😮", Sad: "😢", Fire: "🔥" };
+const reactionEmoji = { Like:"\uD83D\uDC4D", Dislike:"\uD83D\uDC4E", Love:"\u2764\uFE0F", Laugh:"\uD83D\uDE02", Wow:"\uD83D\uDE2E", Sad:"\uD83D\uDE22", Fire:"\uD83D\uDD25" };
 
 function engagementPostId(post) {
   const value = String(post?.dataset.postId || "");
   return /^[a-f0-9-]{36}$/.test(value) ? value : "";
 }
 
+function paintReactionControls(up, down, reaction, counts = {}, noun = "post") {
+  const positive = Boolean(reaction) && reaction !== "Dislike";
+  const total = Object.entries(counts).filter(([kind]) => kind !== "Dislike").reduce((sum, [, count]) => sum + Number(count || 0), 0);
+  up.textContent = (positive ? reactionEmoji[reaction] : reactionEmoji.Like) + (total ? " · " + total : "");
+  up.dataset.liked = String(positive); up.dataset.reaction = reaction || "";
+  const upLabel = positive ? "Remove " + reaction.toLowerCase() + " reaction" : "Like " + noun;
+  up.setAttribute("aria-label", upLabel); up.setAttribute("aria-pressed", String(positive)); up.title = upLabel;
+  if (down) { down.textContent = reactionEmoji.Dislike + (counts.Dislike ? " · " + counts.Dislike : ""); down.setAttribute("aria-label", reaction === "Dislike" ? "Remove dislike reaction" : "Dislike " + noun); down.setAttribute("aria-pressed", String(reaction === "Dislike")); down.dataset.selected = String(reaction === "Dislike"); }
+}
 function setReactionAppearance(post, reaction, counts = {}) {
-  const like = post.querySelector(".likeBtn");
-  if (!like) return;
-  like.dataset.liked = String(Boolean(reaction));
-  like.dataset.reaction = reaction || "";
-  const total = Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0);
-  const emoji = reactionEmoji[reaction] || "♡";
-  like.replaceChildren(document.createTextNode(`${emoji}${total ? ` · ${total}` : ""}`));
-  const actionLabel = reaction ? `Remove ${reaction.toLowerCase()} reaction` : "Like post";
-  like.setAttribute("aria-label", actionLabel);
-  like.setAttribute("aria-pressed", String(Boolean(reaction)));
-  like.title = actionLabel;
+  const like = post.querySelector(".likeBtn"); if (!like) return;
+  paintReactionControls(like, post.querySelector(".dislikeBtn"), reaction, counts);
+}
+function updateCommentPreview(post) {
+  const list = post.querySelector(".commentList"); if (!list) return;
+  const composer = post.querySelector(".comments"); if (composer && list.parentElement === composer) composer.before(list);
+  const items = [...list.querySelectorAll(".comment")];
+  items.sort((a,b) => Number(b.dataset.reactionTotal || 0) - Number(a.dataset.reactionTotal || 0) || String(a.dataset.createdAt || "").localeCompare(String(b.dataset.createdAt || "")));
+  const expanded = post.dataset.commentsExpanded === "true";
+  items.forEach((item,index) => { list.appendChild(item); item.hidden = !expanded && index >= 2; });
+  let more = post.querySelector(".comments-more");
+  if (!more) { more = document.createElement("button"); more.type = "button"; more.className = "comments-more"; more.addEventListener("click", () => { post.dataset.commentsExpanded = String(post.dataset.commentsExpanded !== "true"); updateCommentPreview(post); }); list.after(more); }
+  more.hidden = items.length <= 2; more.textContent = expanded ? "Show top 2 comments" : "View all " + items.length + " comments"; more.setAttribute("aria-expanded", String(expanded));
+}
+function attachReactionPicker(container, up, down, current, choose) {
+  const palette = document.createElement("div"); palette.className = "reaction-palette"; palette.hidden = true; palette.setAttribute("role", "toolbar"); palette.setAttribute("aria-label", "Choose a reaction");
+  let held = false, moved = false, timer, origin, opener = up;
+  const hide = () => { palette.hidden = true; };
+  const show = button => { opener = button; const rect = button.getBoundingClientRect(); const width = Math.min(320, document.documentElement.clientWidth - 24); palette.style.width = width + "px"; palette.style.left = Math.max(12,Math.min(rect.left,document.documentElement.clientWidth-width-12)) + "px"; palette.style.top = Math.max(12,rect.top-64) + "px"; palette.hidden = false; };
+  for (const [label,emoji] of Object.entries(reactionEmoji)) { const choice = document.createElement("button"); choice.type = "button"; choice.textContent = emoji; choice.setAttribute("aria-label",label); choice.title = label; choice.addEventListener("click", event => { event.stopPropagation(); choose(current() === label ? "" : label); hide(); opener.focus(); }); palette.appendChild(choice); }
+  container.appendChild(palette);
+  for (const [button,label] of [[up,"Like"],[down,"Dislike"]]) {
+    const cancel = () => { clearTimeout(timer); timer = null; };
+    button.addEventListener("pointerdown", event => { cancel(); held = false; moved = false; origin = {x:event.clientX,y:event.clientY}; timer = setTimeout(() => { held = true; show(button); },500); });
+    button.addEventListener("pointermove", event => { if (origin && Math.hypot(event.clientX-origin.x,event.clientY-origin.y)>10) { cancel(); moved = true; hide(); } });
+    for (const name of ["pointerup","pointerleave","pointercancel"]) button.addEventListener(name,cancel);
+    button.addEventListener("contextmenu", event => { event.preventDefault(); cancel(); held = true; show(button); });
+    button.addEventListener("keydown", event => { if (event.shiftKey && event.key === "F10") { event.preventDefault(); show(button); palette.querySelector("button")?.focus(); } });
+    button.addEventListener("click", event => { event.preventDefault(); event.stopImmediatePropagation(); if (held || moved) { held = false; moved = false; return; } const value = current(); choose(label === "Like" && value && value !== "Dislike" ? "" : value === label ? "" : label); },true);
+  }
+  palette.addEventListener("keydown",event => { if (event.key === "Escape") { event.preventDefault(); hide(); opener.focus(); } });
+}
+function createCommentReactions(post, item, comment) {
+  const controls = document.createElement("div"); controls.className = "comment-reactions";
+  const up = document.createElement("button"), down = document.createElement("button"); up.type = down.type = "button"; up.className = "comment-like"; down.className = "comment-dislike"; controls.append(up,down);
+  let current = comment.myReaction || ""; paintReactionControls(up,down,current,comment.reactionCounts || {},"comment");
+  attachReactionPicker(item,up,down,() => current,value => { current = value; paintReactionControls(up,down,current,comment.reactionCounts || {},"comment"); saveReaction(post,value,comment.commentId).catch(() => { post.dataset.engagementLoaded = ""; loadEngagement(post); }); });
+  const reactors = [...(comment.reactors || [])].sort((a,b) => Number(b.isFriend)-Number(a.isFriend));
+  if (reactors.length) {
+    const names = document.createElement("details"); names.className = "comment-reactors";
+    const summary = document.createElement("summary"), likers = reactors.filter(person => person.reaction === "Like");
+    summary.textContent = likers.length ? "Liked by " + likers.slice(0,2).map(person => person.name + (person.isFriend ? " (Friend)" : "")).join(", ") + (likers.length > 2 ? " and " + (likers.length-2) + " others" : "") : reactors.length + " reactions";
+    names.appendChild(summary);
+    for (const person of reactors) { const name = document.createElement("div"); name.textContent = (reactionEmoji[person.reaction] || "") + " " + person.name + (person.isFriend ? " (Friend)" : ""); name.setAttribute("data-no-translate", ""); names.appendChild(name); }
+    controls.appendChild(names);
+  }
+  item.appendChild(controls);
 }
 
 function renderPersistentComment(post, comment) {
@@ -1719,10 +1764,15 @@ function renderPersistentComment(post, comment) {
   item.dataset.commentId = comment.commentId;
   item.dataset.canDelete = String(comment.canDelete === true);
   const author = document.createElement("strong");
-  author.textContent = (comment.userEmail || "DanzStak member").split("@")[0] + ": ";
-  item.append(author, document.createTextNode(comment.content));
+  author.className = "comment-author";
+  author.textContent = comment.authorName || (comment.userEmail || "DanzStak member").split("@")[0];
+  const body = document.createElement("div"); body.className = "comment-content"; body.textContent = comment.content;
+  item.dataset.reactionTotal = String(comment.reactionTotal || 0); item.dataset.createdAt = comment.createdAt || "";
+  item.append(author, body);
+  createCommentReactions(post,item,comment);
   list.appendChild(item);
   addCommentDelete(item);
+  updateCommentPreview(post);
 }
 
 async function loadEngagement(post) {
@@ -1740,16 +1790,17 @@ async function loadEngagement(post) {
     const list = post.querySelector(".commentList");
     if (list) list.replaceChildren();
     for (const comment of data.comments || []) renderPersistentComment(post, comment);
+    updateCommentPreview(post);
   } catch { if (version === (post.dataset.engagementVersion || "0")) post.dataset.engagementLoaded = ""; }
 }
 
 const pendingReactionSaves = new WeakMap();
-async function saveReaction(post, reaction) {
+async function saveReaction(post, reaction, commentId = "") {
   const postId = engagementPostId(post);
   if (!postId) return;
   const previous = pendingReactionSaves.get(post) || Promise.resolve();
   const pending = previous.catch(() => {}).then(async () => {
-    const response = await fetch(`${engagementApi}/reactions`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, reaction }) });
+    const response = await fetch(`${engagementApi}/reactions`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, reaction, ...(commentId ? {commentId} : {}) }) });
     if (!response.ok) throw new Error("Reaction could not be saved");
     post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
     post.dataset.engagementLoaded = "";
@@ -1796,73 +1847,20 @@ function addCommentDelete(comment) {
       post.dataset.engagementLoaded = "";
     }
     comment.remove();
+    if (post) updateCommentPreview(post);
   });
   comment.appendChild(button);
 }
 
 function addReactionButton(post) {
-  const like = post.querySelector(".likeBtn");
-  if (!like || like.dataset.reactionsReady === "true") return;
+  const like = post.querySelector(".likeBtn"); if (!like || like.dataset.reactionsReady === "true") return;
   like.dataset.reactionsReady = "true";
-  const initialHeart = document.createElement("span");
-  initialHeart.className = "like-heart";
-  initialHeart.textContent = "\u2661";
-  like.replaceChildren(initialHeart);
-  like.setAttribute("aria-label", "Like post");
-  like.setAttribute("aria-pressed", "false");
-  like.title = "Like post";
-  const palette = document.createElement("div");
-  palette.className = "reaction-palette";
-  palette.hidden = true;
-  const reactions = [["👍", "Like"], ["❤️", "Love"], ["😂", "Laugh"], ["😮", "Wow"], ["😢", "Sad"], ["🔥", "Fire"]];
-  for (const [emoji, label] of reactions) {
-    const choice = document.createElement("button");
-    choice.type = "button";
-    choice.textContent = emoji;
-    choice.title = label;
-    choice.setAttribute("aria-label", label);
-    choice.addEventListener("click", event => {
-      event.stopPropagation();
-      like.dataset.liked = "true";
-      like.dataset.reaction = label;
-      setReactionAppearance(post, label);
-      palette.hidden = true;
-      saveReaction(post, label).catch(() => { post.dataset.engagementLoaded = ""; loadEngagement(post); });
-    });
-    palette.appendChild(choice);
-  }
-  post.appendChild(palette);
-  let holdTimer = null;
-  let held = false;
-  like.addEventListener("pointerdown", () => {
-    held = false;
-    holdTimer = setTimeout(() => { held = true; palette.hidden = false; }, 500);
-  });
-  const cancelHold = () => { if (holdTimer) clearTimeout(holdTimer); holdTimer = null; };
-  like.addEventListener("pointerup", cancelHold);
-  like.addEventListener("pointerleave", cancelHold);
-  like.addEventListener("pointercancel", cancelHold);
-  like.addEventListener("click", event => {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    if (!held) {
-      const liked = like.dataset.liked === "true";
-      like.dataset.liked = String(!liked);
-      like.dataset.reaction = liked ? "" : "Like";
-      const heart = document.createElement("span");
-      heart.className = "like-heart";
-      heart.textContent = liked ? "\u2661" : "\u2665";
-      like.replaceChildren(heart);
-      like.setAttribute("aria-label", liked ? "Like post" : "Remove like reaction");
-      like.setAttribute("aria-pressed", String(!liked));
-      like.title = liked ? "Like post" : "Remove like reaction";
-      saveReaction(post, liked ? "" : "Like").catch(() => { post.dataset.engagementLoaded = ""; loadEngagement(post); });
-      return;
-    }
-    held = false;
-  }, true);
-  loadEngagement(post);
+  const down = document.createElement("button"); down.type = "button"; down.className = "dislikeBtn"; like.after(down);
+  setReactionAppearance(post, "");
+  attachReactionPicker(post,like,down,() => like.dataset.reaction || "",reaction => { setReactionAppearance(post,reaction); saveReaction(post,reaction).catch(() => { post.dataset.engagementLoaded = ""; loadEngagement(post); }); });
+  updateCommentPreview(post); loadEngagement(post);
 }
+document.addEventListener("pointerdown", event => { if (!event.target.closest(".reaction-palette,.likeBtn,.dislikeBtn,.comment-like,.comment-dislike")) document.querySelectorAll(".reaction-palette").forEach(palette => { palette.hidden = true; }); });
 
 const reelsStorageKey = "danzstak_external_reels";
 let cloudReels = null;
