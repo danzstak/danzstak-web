@@ -121,7 +121,7 @@ foreach ($originProtectedPath in @('/groups', '/groups/membership', '/profiles',
 
 foreach ($asset in @(
   @{ Url = "https://danzstak.com/assets/favicon-32.png?v=1"; Type = "image/png"; Name = "favicon" },
-  @{ Url = "https://danzstak.com/assets/danzstak-share-fb-v2.jpg"; Type = "image/jpeg"; Name = "social-share image" }
+  @{ Url = "https://danzstak.com/assets/danzstak-share-apps-v3.png"; Type = "image/png"; Name = "social-share image with app choices" }
 )) {
   $headers = Get-Headers $asset.Url
   if ($headers -notmatch "HTTP/\S+ 200") { Add-Failure "$($asset.Name) did not return HTTP 200" }
