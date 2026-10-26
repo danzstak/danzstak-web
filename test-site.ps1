@@ -166,8 +166,9 @@ if ($inlineScripts.Count -ne 1) {
 } else {
   $sha = [Security.Cryptography.SHA256]::Create()
   try {
+    $canonicalInlineScript = $inlineScripts[0].Groups[1].Value -replace "`r`n?", "`n"
     $hash = [Convert]::ToBase64String(
-      $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($inlineScripts[0].Groups[1].Value))
+      $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($canonicalInlineScript))
     )
   } finally {
     $sha.Dispose()

@@ -30,7 +30,13 @@ $liveFeed = (Invoke-WebRequest -Uri 'https://danzstak.com/feed.html' -Headers @{
 $liveInlineScripts = [regex]::Matches($liveFeed, '<script>([\s\S]*?)</script>')
 if ($liveInlineScripts.Count -ne 1) { Add-Failure 'Live feed inline application script is missing' }
 else {
-  $liveScriptHash = [Convert]::ToBase64String([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($liveInlineScripts[0].Groups[1].Value)))
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try {
+    $canonicalInlineScript = $liveInlineScripts[0].Groups[1].Value -replace "`r`n?", "`n"
+    $liveScriptHash = [Convert]::ToBase64String($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($canonicalInlineScript)))
+  } finally {
+    $sha.Dispose()
+  }
   if (-not $liveFeed.Contains("'sha256-$liveScriptHash'")) { Add-Failure 'Live feed CSP blocks its application script' }
 }
 
