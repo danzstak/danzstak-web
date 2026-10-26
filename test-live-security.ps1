@@ -87,7 +87,10 @@ $examplePostId = '11111111-1111-4111-a111-111111111111'
 foreach ($protectedMutation in @(
   @{ Method = 'PATCH'; Path = "/secure-posts/$examplePostId" },
   @{ Method = 'DELETE'; Path = "/secure-posts/$examplePostId" },
-  @{ Method = 'DELETE'; Path = "/stories/$examplePostId" }
+  @{ Method = 'DELETE'; Path = "/stories/$examplePostId" },
+  @{ Method = 'DELETE'; Path = "/groups/$examplePostId" },
+  @{ Method = 'DELETE'; Path = "/tours/$examplePostId" },
+  @{ Method = 'DELETE'; Path = "/comments/$examplePostId" }
 )) {
   $mutationStatus = & curl.exe -sS -o NUL -w "%{http_code}" -X $protectedMutation.Method -H "Origin: https://danzstak.com" -H "Content-Type: application/json" --data '{}' "https://api.danzstak.com$($protectedMutation.Path)"
   if ($LASTEXITCODE -ne 0 -or $mutationStatus -ne '401') {
