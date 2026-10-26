@@ -27,11 +27,22 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import {
+  GeoPlacesClient,
+  GeocodeCommand,
+  SearchTextCommand
+} from "@aws-sdk/client-geo-places";
+import {
+  GeoRoutesClient,
+  CalculateRoutesCommand
+} from "@aws-sdk/client-geo-routes";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
 const ses = new SESv2Client({ region: "us-west-1" });
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
+const geoPlaces = new GeoPlacesClient({ region: "us-west-2", maxAttempts: 3 });
+const geoRoutes = new GeoRoutesClient({ region: "us-west-2", maxAttempts: 3 });
 
 const tableName = process.env.SESSIONS_TABLE;
 const postsTable = "DANZSTAK-Posts";
@@ -1557,6 +1568,68 @@ async function createSupportTicket(event) {
   return { statusCode: 201, headers, body: JSON.stringify({ ticketId, status: "received", emailed }) };
 }
 
+function publicPlace(place) {
+  const websites = (place.Contacts?.Websites || []).map(item => String(item.Value || "")).filter(value => /^https:\/\//i.test(value)).slice(0, 2);
+  const emails = (place.Contacts?.Emails || []).map(item => String(item.Value || "").trim().toLowerCase()).filter(value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)).slice(0, 2);
+  const phones = (place.Contacts?.Phones || []).map(item => String(item.Value || "").trim()).filter(value => /^\+?[0-9 ()-]{7,24}$/.test(value)).slice(0, 2);
+  return {
+    name: String(place.Title || "Venue").slice(0, 160),
+    address: String(place.Address?.Label || "").slice(0, 300),
+    position: Array.isArray(place.Position) ? place.Position.slice(0, 2) : [],
+    distanceMiles: Number.isFinite(place.Distance) ? Math.round(place.Distance / 160.934) / 10 : null,
+    websites,
+    emails,
+    phones,
+    contactVerificationRequired: true
+  };
+}
+
+async function geocodeTourPlace(query) {
+  const result = await geoPlaces.send(new GeocodeCommand({ QueryText: query, MaxResults: 1 }));
+  const place = result.ResultItems?.[0];
+  if (!place || !Array.isArray(place.Position) || place.Position.length !== 2) throw Object.assign(new Error("Tour location not found"), { statusCode: 422 });
+  return { label: String(place.Title || query).slice(0, 160), position: place.Position.slice(0, 2) };
+}
+
+async function tourCandidates(point) {
+  const search = async query => {
+    const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, BiasPosition: point.position, MaxResults: 10, AdditionalFeatures: ["Contact"] }));
+    return (result.ResultItems || []).map(publicPlace);
+  };
+  const [musicVenues, liveBars, hotels] = await Promise.all([search("live music venue"), search("bar with live music"), search("hotel")]);
+  const seen = new Set(), venues = [...musicVenues, ...liveBars].filter(place => { const key = `${place.name}|${place.address}`.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
+  return { stop: point.label, position: point.position, venues, hotels };
+}
+
+async function planTourRoute(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const data = parseJsonBody(event);
+  if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
+  const cleanPlace = value => String(value || "").trim();
+  const local = data.mode === "local", start = cleanPlace(data.start), end = local ? start : cleanPlace(data.end), stops = local ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [];
+  if (start.length < 2 || start.length > 120 || end.length < 2 || end.length > 120 || stops.length > 8 || stops.some(stop => stop.length > 120)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Provide a home or starting city, a destination for tours, and no more than eight valid stops." }) };
+  try {
+    if (local) {
+      const point = await geocodeTourPlace(start), candidates = await tourCandidates(point);
+      return { statusCode: 200, headers, body: JSON.stringify({ route: { start: point, end: point, stops: [], distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, provider: "Amazon Location Service", planningOnly: true, local: true }, candidates: [candidates] }) };
+    }
+    const points = await Promise.all([start, ...stops, end].map(geocodeTourPlace));
+    const route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: points[0].position, Destination: points.at(-1).position, Waypoints: points.slice(1, -1).map(point => ({ Position: point.position })), TravelMode: "Car" }));
+    const summary = route.Routes?.[0]?.Summary;
+    if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
+    const markets = points.slice(1), selected = markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]), candidates = await Promise.all(selected.map(tourCandidates));
+    const distanceMiles = Math.round(Number(summary.Distance || 0) / 1609.344), durationHours = Math.round(Number(summary.Duration || 0) / 360) / 10;
+    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), stops: points.slice(1, -1), distanceMiles, durationHours, minimumDrivingDays: Math.max(1, Math.ceil(durationHours / 8)), provider: "Amazon Location Service", planningOnly: true }, candidates }) };
+  } catch (error) {
+    if (error.statusCode === 422) return { statusCode: 422, headers, body: JSON.stringify({ error: error.message }) };
+    console.error("Tour route planning failed", { name: error.name });
+    return { statusCode: 502, headers, body: JSON.stringify({ error: "Route and venue information is temporarily unavailable." }) };
+  }
+}
+
 // LOG OUT
 async function logout(event) {
   const origin = event.headers?.origin;
@@ -1728,6 +1801,10 @@ export const handler = async event => {
 
     if (method === "POST" && path === "/support-tickets") {
       return await createSupportTicket(event);
+    }
+
+    if (method === "POST" && path === "/tour/route") {
+      return await planTourRoute(event);
     }
 
     if (method === "POST" && path === "/auth/logout") {

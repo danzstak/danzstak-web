@@ -1,0 +1,12 @@
+{
+  "name": "danzstak-auth-api",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@aws-sdk/client-geo-places": "3.1156.0",
+    "@aws-sdk/client-geo-routes": "3.1156.0"
+  }
+}

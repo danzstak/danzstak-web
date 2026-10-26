@@ -4,15 +4,26 @@ $Region = "us-west-1"
 $FunctionName = "DANZSTAK-Auth-API"
 $RoleName = "DANZSTAK-Auth-API-role-zjknf4ur"
 $Source = Join-Path $PSScriptRoot "infrastructure\auth-api\index.mjs"
+$Package = Join-Path $PSScriptRoot "infrastructure\auth-api\package.json"
 $Bundle = Join-Path $env:TEMP "danzstak-auth-api.zip"
+$Stage = Join-Path $env:TEMP ("danzstak-auth-api-" + [guid]::NewGuid().ToString("N"))
 $Policy = Join-Path $env:TEMP "danzstak-auth-api-policy.json"
 $Environment = Join-Path $env:TEMP "danzstak-auth-api-environment.json"
+$ApiId = "0872gqal4m"
+$AuthIntegrationId = "5pipi5a"
 
 node --check $Source
 if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript validation failed." }
 
 try {
-  Compress-Archive -LiteralPath $Source -DestinationPath $Bundle -Force
+  New-Item -ItemType Directory -Path $Stage -Force | Out-Null
+  Copy-Item -LiteralPath $Source,$Package -Destination $Stage
+  Push-Location $Stage
+  try {
+    npm install --omit=dev --ignore-scripts --no-audit --no-fund
+    if ($LASTEXITCODE -ne 0) { throw "Auth API dependency installation failed." }
+  } finally { Pop-Location }
+  Compress-Archive -Path (Join-Path $Stage "*") -DestinationPath $Bundle -Force
 
   @{
     Version = "2012-10-17"
@@ -70,6 +81,12 @@ try {
         Effect = "Allow"
         Action = @("ses:SendEmail")
         Resource = "arn:aws:ses:us-west-1:635288116224:identity/danzstak.com"
+      },
+      @{
+        Sid = "TourRoutePlanning"
+        Effect = "Allow"
+        Action = @("geo-places:Geocode", "geo-places:SearchText", "geo-routes:CalculateRoutes")
+        Resource = "*"
       }
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Policy -Encoding ascii
@@ -97,6 +114,11 @@ try {
   aws lambda wait function-updated --region $Region --function-name $FunctionName
   if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration did not finish updating." }
 
+  aws lambda update-function-configuration --region $Region --function-name $FunctionName --timeout 30 --memory-size 256 --output json | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "Auth API route-planning runtime configuration failed." }
+  aws lambda wait function-updated --region $Region --function-name $FunctionName
+  if ($LASTEXITCODE -ne 0) { throw "Auth API route-planning runtime configuration did not finish updating." }
+
   aws lambda update-function-code `
     --region $Region `
     --function-name $FunctionName `
@@ -114,9 +136,26 @@ try {
   if ($configuration.LastUpdateStatus -ne "Successful") {
     throw "Auth API deployment status is $($configuration.LastUpdateStatus)."
   }
+
+  $routeId = aws apigatewayv2 get-routes --region $Region --api-id $ApiId --query "Items[?RouteKey=='POST /tour/route'].RouteId | [0]" --output text
+  if ($LASTEXITCODE -ne 0) { throw "Tour route API could not be inspected." }
+  if (-not $routeId -or $routeId -eq "None") {
+    aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
+  }
+  aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourRouteFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/route" --output json 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    $permission = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
+    if ($permission -notmatch "AllowTourRouteFromApiGateway") { throw "Tour route API invoke permission failed." }
+  }
   Write-Host "DanzStak Auth API authorization safeguards deployed successfully."
 } finally {
   Remove-Item -LiteralPath $Bundle -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $Policy -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $Environment -Force -ErrorAction SilentlyContinue
+  $resolvedStage = [IO.Path]::GetFullPath($Stage)
+  $resolvedTemp = [IO.Path]::GetFullPath($env:TEMP).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+  if ($resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) {
+    Remove-Item -LiteralPath $resolvedStage -Recurse -Force -ErrorAction SilentlyContinue
+  }
 }
