@@ -273,6 +273,7 @@ function renderWorkspace(name) {
 
   if (name === "Groups") {
     featureText.textContent = "Find communities by category, create a group, and connect with people who share your interests.";
+    const groupCategoryName = category => ({Artists:"Visual Artists", Creators:"Bands"})[category] || category;
     const categories = ["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"];
     const createBox = document.createElement("div");
     createBox.className = "group-create-box";
@@ -283,7 +284,7 @@ function renderWorkspace(name) {
     for (const category of categories) {
       const option = document.createElement("option");
       option.value = category;
-      option.textContent = category === "Artists" ? "Visual Artists" : category;
+      option.textContent = groupCategoryName(category);
       categorySelect.appendChild(option);
     }
     categoryLabel.appendChild(categorySelect);
@@ -310,7 +311,7 @@ function renderWorkspace(name) {
 
     function renderGroups() {
       grid.replaceChildren();
-      const defaults = categories.map((category, index) => ({ id: `default-${index}`, name: category === "Artists" ? "Visual Artists" : category, category, description: `Connect in ${(category === "Artists" ? "Visual Artists" : category).toLowerCase()}.`, custom: false }));
+      const defaults = categories.map((category, index) => ({ id: `default-${index}`, name: groupCategoryName(category), category, description: `Connect in ${(groupCategoryName(category)).toLowerCase()}.`, custom: false }));
       const groups = [...customGroups, ...defaults];
       for (const group of groups) {
         const isSensitiveDiscussion = ["Politics", "Religion"].includes(group.category);
@@ -320,7 +321,7 @@ function renderWorkspace(name) {
         title.textContent = group.name;
         const category = document.createElement("span");
         category.className = "group-category";
-        category.textContent = group.category === "Artists" ? "Visual Artists" : group.category;
+        category.textContent = groupCategoryName(group.category);
         const description = document.createElement("p");
         description.textContent = group.description;
         const join = document.createElement("button");
