@@ -328,6 +328,9 @@ $messagesMarkupForPresence = Get-Content -LiteralPath (Join-Path $root 'messages
 foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'conversationPresence.hidden = conversation.online !== true', 'conversationPresence.hidden = true', '.conversation-presence[hidden]{display:none}')) {
   if (-not ($messagesMarkupForPresence + $directMessagesJs + $chatStyles).Contains($activeChatPresenceControl)) { Add-Failure "Messages: active conversation does not accurately expose online presence: $activeChatPresenceControl" }
 }
+foreach ($activeChatActionLabel in @('function labelConversationHeaderActions(name = "")', '`${labels[key]} with ${name}`', 'labelConversationHeaderActions(conversationName.textContent)', 'labelConversationHeaderActions()')) {
+  if (-not $directMessagesJs.Contains($activeChatActionLabel)) { Add-Failure "Messages: active conversation controls do not identify or reset the selected contact: $activeChatActionLabel" }
+}
 foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'Contacts are temporarily unavailable. Retrying automatically')) {
   if (-not $directMessagesJs.Contains($contactFailureBehavior)) { Add-Failure "Messages: bounded contact loading behavior is missing: $contactFailureBehavior" }
 }

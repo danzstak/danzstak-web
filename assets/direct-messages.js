@@ -21,6 +21,12 @@ const conversationHeader = document.getElementById("conversationHeader");
 const conversationPresence = document.getElementById("conversationPresence");
 const conversationName = document.getElementById("conversationName");
 const conversationAvatar = document.getElementById("conversationAvatar");
+const conversationHeaderActions = {
+  phone: document.getElementById("headerPhone"),
+  video: document.getElementById("headerVideo"),
+  minimize: document.getElementById("minimizeConversation"),
+  close: document.getElementById("closeConversation")
+};
 let directContact = "";
 let activeContactName = "Contact";
 let currentEmail = "";
@@ -34,6 +40,15 @@ let activeCanContact = false;
 let reactionTimer = null;
 function setConversationActionsEnabled(enabled) {
   for (const button of conversationActions) button.disabled = !enabled;
+}
+function labelConversationHeaderActions(name = "") {
+  const labels = { phone: "Phone call", video: "Video call", minimize: "Minimize chat", close: "Close chat" };
+  for (const [key, button] of Object.entries(conversationHeaderActions)) {
+    if (!button) continue;
+    const label = name ? `${labels[key]} with ${name}` : labels[key];
+    button.setAttribute("aria-label", label);
+    button.title = label;
+  }
 }
 async function directFetch(path, options = {}, timeoutMs = 10000) {
   const controller = new AbortController();
@@ -107,6 +122,7 @@ function openConversation(conversation) {
   directContact = "";
   conversationHeader.hidden = false;
   conversationName.textContent = conversation.name || "DanzStak member";
+  labelConversationHeaderActions(conversationName.textContent);
   if (conversationPresence) conversationPresence.hidden = conversation.online !== true;
   activeContactName = conversation.name || "Contact";
   if (deleteChat) deleteChat.disabled = false;
@@ -121,6 +137,7 @@ function closeConversation({ focusList = false } = {}) {
   loadingMessages = false;
   document.querySelector(".message-reaction-palette")?.remove();
   conversationHeader.hidden = true;
+  labelConversationHeaderActions();
   if (conversationPresence) conversationPresence.hidden = true;
   contactInput.value = "";
   directContact = "";
