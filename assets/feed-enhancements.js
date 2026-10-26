@@ -561,8 +561,13 @@ function renderWorkspace(name) {
     featureText.textContent = "Friend requests and account activity appear here.";
     const list = document.createElement("div");
     list.className = "notification-list";
+    list.setAttribute("role", "region");
+    list.setAttribute("aria-label", "Notifications");
+    list.setAttribute("aria-live", "polite");
+    list.setAttribute("aria-busy", "true");
     const loading = document.createElement("p");
     loading.className = "muted";
+    loading.setAttribute("role", "status");
     loading.textContent = "Loading notifications…";
     list.appendChild(loading);
     workspace.appendChild(list);
@@ -584,6 +589,7 @@ function renderWorkspace(name) {
         const people = new Map(directory.map(person => [String(person.email || "").toLowerCase(), person]));
         updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
         list.replaceChildren();
+        list.setAttribute("aria-busy", "false");
         if (!(data.notifications || []).length) {
           const empty = document.createElement("p");
           empty.className = "muted";
@@ -661,7 +667,7 @@ function renderWorkspace(name) {
             .catch(() => {});
         }
       })
-      .catch(error => { loading.textContent = error.message; });
+      .catch(error => { list.setAttribute("aria-busy", "false"); loading.textContent = error.message; });
     return;
   }
 

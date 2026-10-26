@@ -360,6 +360,9 @@ foreach ($profileShell in @('background:#f0f2f5', 'class="header-actions"', 'hre
 foreach ($notificationHistoryUi in @('notice.unread !== false', 'row.classList.toggle("is-read"', 'notificationSourceCounts.engagement = 0')) {
   if (-not $feedEnhancements.Contains($notificationHistoryUi)) { Add-Failure "Notifications: read history behavior is missing: $notificationHistoryUi" }
 }
+foreach ($notificationAccessibility in @('list.setAttribute("aria-label", "Notifications")', 'list.setAttribute("aria-live", "polite")', 'list.setAttribute("aria-busy", "true")', 'loading.setAttribute("role", "status")', 'list.setAttribute("aria-busy", "false")')) {
+  if (-not $feedEnhancements.Contains($notificationAccessibility)) { Add-Failure "Notifications: dynamic loading state is not accessible: $notificationAccessibility" }
+}
 foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey && !viewingOtherProfile')) {
   if (-not $profileEditorJs.Contains($protectedProfileMedia)) { Add-Failure "Profiles: media authorization safeguard is missing: $protectedProfileMedia" }
 }
