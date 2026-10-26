@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v204";
+const CACHE = "danzstak-shell-v205";
 const SHELL = [
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-fb-v2.jpg",
@@ -68,6 +68,8 @@ self.addEventListener("push", event => {
     badge: "/assets/notification-badge.png",
     tag: String(payload.tag || "danzstak-alert").slice(0, 80),
     renotify: true,
+    silent: false,
+    vibrate: call ? [400, 180, 400, 180, 400] : [120],
     requireInteraction: call,
     actions: call ? [{ action: "answer", title: "Answer" }, { action: "dismiss", title: "Dismiss" }] : [],
     data: { url, type: call ? "call" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
