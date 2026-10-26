@@ -282,8 +282,11 @@ if (-not $pwaJs.Contains('const installStateKey = "danzstak_app_installed"') -or
     -not $pwaJs.Contains('localStorage.removeItem(installStateKey)')) {
   Add-Failure 'PWA: completed installation is not remembered or cannot recover after uninstall'
 }
-foreach ($updatePromptBehavior in @('registration.waiting', 'registration.addEventListener("updatefound"', 'waitingWorker?.postMessage({ type: "SKIP_WAITING" })')) {
+foreach ($updatePromptBehavior in @('registration.waiting', 'registration.addEventListener("updatefound"', 'activateWaitingWorker(waitingWorker)')) {
   if (-not $pwaJs.Contains($updatePromptBehavior)) { Add-Failure "PWA: visible update lifecycle is missing: $updatePromptBehavior" }
+}
+foreach ($safeUpdateBehavior in @('function hasPendingUserWork()', 'window.danzstakSelectedMedia', 'document.body.dataset.callMode', '(?:feed|messages)\.html$', 'scheduleSafeUpdate(worker)', 'document.visibilityState !== "visible"')) {
+  if (-not $pwaJs.Contains($safeUpdateBehavior)) { Add-Failure "PWA: idle feed/message clients do not update safely: $safeUpdateBehavior" }
 }
 foreach ($updateDismissBehavior in @('let updateDismissTimer = null', 'updateButton.classList.add("app-update-button--leaving")', 'updateButton.hidden = true', '}, 15000)')) {
   if (-not $pwaJs.Contains($updateDismissBehavior)) { Add-Failure "PWA: update prompt can permanently cover page actions: $updateDismissBehavior" }

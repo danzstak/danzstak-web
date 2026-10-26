@@ -24,6 +24,35 @@ updateButton.textContent = "Update DanzStak";
 updateButton.hidden = true;
 document.body.appendChild(updateButton);
 let waitingWorker = null;
+let safeUpdateTimer = null;
+
+function hasPendingUserWork() {
+  const draft = document.querySelector("#postText, #messageInput");
+  const incomingCall = document.getElementById("incomingCall");
+  return Boolean(
+    draft?.value.trim() ||
+    window.danzstakSelectedMedia ||
+    document.body.dataset.callMode ||
+    (incomingCall && !incomingCall.hidden)
+  );
+}
+
+function activateWaitingWorker(worker) {
+  if (!worker) return;
+  clearTimeout(safeUpdateTimer);
+  updateButton.disabled = true;
+  updateButton.textContent = "Updating…";
+  worker.postMessage({ type: "SKIP_WAITING" });
+}
+
+function scheduleSafeUpdate(worker) {
+  clearTimeout(safeUpdateTimer);
+  if (!/(?:feed|messages)\.html$/i.test(window.location.pathname)) return;
+  safeUpdateTimer = setTimeout(() => {
+    if (waitingWorker !== worker || document.visibilityState !== "visible" || hasPendingUserWork()) return;
+    activateWaitingWorker(worker);
+  }, 3000);
+}
 
 function offerUpdate(worker) {
   if (!worker) return;
@@ -40,13 +69,12 @@ function offerUpdate(worker) {
       updateButton.classList.remove("app-update-button--leaving");
     }, 250);
   }, 15000);
+  scheduleSafeUpdate(worker);
 }
 
 updateButton.addEventListener("click", () => {
   clearTimeout(updateDismissTimer);
-  updateButton.disabled = true;
-  updateButton.textContent = "Updating…";
-  waitingWorker?.postMessage({ type: "SKIP_WAITING" });
+  activateWaitingWorker(waitingWorker);
 });
 
 function showInstallButtonTemporarily() {
@@ -78,7 +106,10 @@ if ("serviceWorker" in navigator) {
       checkForUpdate();
       setInterval(checkForUpdate, 60 * 60 * 1000);
       document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") checkForUpdate();
+        if (document.visibilityState === "visible") {
+          checkForUpdate();
+          if (waitingWorker) scheduleSafeUpdate(waitingWorker);
+        }
       });
     } catch (error) {
       console.warn("DanzStak app updates are temporarily unavailable.", error);
