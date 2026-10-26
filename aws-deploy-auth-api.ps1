@@ -165,15 +165,15 @@ try {
       if ($LASTEXITCODE -ne 0) { throw "Tour plans API route $routeKey creation failed." }
     }
   }
-  aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourRouteFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/route" --output json 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    $permission = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
-    if ($permission -notmatch "AllowTourRouteFromApiGateway") { throw "Tour route API invoke permission failed." }
+  $permission = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
+  if ($LASTEXITCODE -ne 0) { throw "Auth API invoke permissions could not be inspected." }
+  if ($permission -notmatch "AllowTourRouteFromApiGateway") {
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourRouteFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/route" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Tour route API invoke permission failed." }
   }
-  aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourPlansFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/tours*" --output json 2>$null | Out-Null
-  if ($LASTEXITCODE -ne 0) {
-    $permission = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
-    if ($permission -notmatch "AllowTourPlansFromApiGateway") { throw "Tour plans API invoke permission failed." }
+  if ($permission -notmatch "AllowTourPlansFromApiGateway") {
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourPlansFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/tours*" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Tour plans API invoke permission failed." }
   }
   Write-Host "DanzStak Auth API authorization safeguards deployed successfully."
 } finally {
