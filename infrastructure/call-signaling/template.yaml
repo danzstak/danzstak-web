@@ -494,6 +494,76 @@ Resources:
           async function postVisibility(event,user){const key={userEmail:{S:user.email}},fields={hidden:'hiddenPosts',pinned:'pinnedPosts',saved:'savedPosts',muted:'mutedPosts'};if(event.requestContext.http.method==='GET'){const out=await db.send(new GetItemCommand({TableName:process.env.SETTINGS_TABLE,Key:key,ConsistentRead:true})),item=out.Item||{};return json(200,{postIds:item.hiddenPosts?.SS||[],hidden:item.hiddenPosts?.SS||[],pinned:item.pinnedPosts?.SS||[],saved:item.savedPosts?.SS||[],muted:item.mutedPosts?.SS||[]});}let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const id=String(body.postId||''),preference=String(body.preference||'hidden'),field=fields[preference];if(!/^[\w-]{1,100}$/.test(id))return json(400,{error:'Valid post required'});if(!field)return json(400,{error:'Valid post preference required'});const enabled=Object.prototype.hasOwnProperty.call(body,'enabled')?body.enabled===true:body.hidden!==false;await db.send(new UpdateItemCommand({TableName:process.env.SETTINGS_TABLE,Key:key,UpdateExpression:(enabled?'ADD':'DELETE')+' #field :p',ExpressionAttributeNames:{'#field':field},ExpressionAttributeValues:{':p':{SS:[id]}}}));return json(200,{preference,enabled});}
           const decodeXml=value=>value.replace(/<!\[CDATA\[|\]\]>/g,'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>');
           async function news(event){const interest=String(event.queryStringParameters?.interest||'music').toLowerCase();const topics={music:['music industry','new music releases','hip hop music','electronic music','live music','music business'],top:['top stories'],entertainment:['entertainment'],technology:['technology'],sports:['sports'],business:['business']};if(!topics[interest])return json(400,{error:'Unsupported news interest'});const load=query=>new Promise((resolve,reject)=>{const feedUrl='https://news.google.com/rss/search?q='+encodeURIComponent(query)+'&hl=en-US&gl=US&ceid=US:en';const request=https.get(feedUrl,{headers:{'user-agent':'DanzStak/1.0'}},response=>{let data='';response.setEncoding('utf8');response.on('data',chunk=>{if(data.length<1048576)data+=chunk;});response.on('end',()=>response.statusCode===200?resolve(data):reject(new Error('News upstream failed')));});request.setTimeout(5000,()=>request.destroy(new Error('News timeout')));request.on('error',reject);});const feeds=await Promise.allSettled(topics[interest].map(load));const seen=new Set(),items=[];for(const result of feeds){if(result.status!=='fulfilled')continue;for(const match of result.value.matchAll(/<item>([\s\S]*?)<\/item>/g)){const block=match[1],read=tag=>decodeXml((block.match(new RegExp('<'+tag+'>([\\s\\S]*?)<\\/'+tag+'>'))||[])[1]||'');const title=read('title').replace(/\s+-\s+[^-]+$/,'').trim(),source=read('source').trim(),url=read('link').trim(),key=title.toLowerCase();if(!title||!/^https:\/\//.test(url)||seen.has(key))continue;seen.add(key);items.push({title:title.slice(0,240),source:source.slice(0,100),url});if(items.length>=50)break;}if(items.length>=50)break;}return {statusCode:200,headers:{'content-type':'application/json','cache-control':'private, max-age=300'},body:JSON.stringify({interest,items})};}          exports.handler=async event=>{try{const method=event.requestContext?.http?.method,key=method+' '+event.rawPath;if(['POST','PUT','PATCH','DELETE'].includes(method)&&!['https://danzstak.com','https://www.danzstak.com'].includes(event.headers?.origin||event.headers?.Origin))return json(403,{error:'Forbidden origin'});if(key==='POST /auth/refresh')return await refreshSession(event);const user=await identity(event);if(!user)return json(401,{error:'Authentication required'});if(key==='GET /news')return await news(event);if(key==='GET /push/key')return json(200,{publicKey:await getVapidPublicKey()});if(key==='POST /push/subscribe')return await savePushSubscription(event,user);if(key==='DELETE /push/subscribe')return await removePushSubscription(event,user);if(key.endsWith(' /settings/posts'))return await postVisibility(event,user);if(key==='POST /calls/signal')return await send(event,user);if(key==='GET /calls/inbox')return await inbox(user);if(key==='POST /calls/ack')return await ack(event,user);if(key==='POST /calls/presence')return await presence(user);if(key==='GET /calls/directory')return await directory(user);if(key==='GET /settings/presence')return await getPresenceSetting(user);if(key==='POST /settings/presence')return await setPresenceSetting(event,user);if(key==='POST /friends/request')return await friendRequest(event,user);if(key==='POST /friends/respond')return await friendRespond(event,user);if(key==='GET /friends')return await getFriends(user);if(key==='GET /profiles')return await getProfile(event,user);if(key==='POST /profiles')return await updateProfile(event,user);if(key==='GET /notifications')return await notifications(user);if(key==='POST /messages')return await sendMessage(event,user);if(key==='GET /messages')return await getMessages(event,user);if(key==='POST /messages/delete')return await deleteConversation(event,user);if(key==='GET /conversations')return await getConversations(user);if(key==='POST /groups/membership')return await groupMembership(event,user);if(key==='POST /stories')return await createStory(event,user);if(key==='GET /stories')return await getStories(user);if(key.startsWith('DELETE /stories/'))return await deleteStory(event,user);return json(404,{error:'Not found'});}catch(error){console.error(error);return json(500,{error:'Service unavailable'});}};
+  StoryCleanupRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: A scheduled worker removes expired Story records and their dedicated media without receiving access to member messaging or profile data.
+        must: [Keep permissions limited to scanning/deleting Stories and deleting Story media.]
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DanzStakExpiredStoryCleanup
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:Scan, dynamodb:DeleteItem]
+                Resource: !GetAtt StoriesTable.Arn
+              - Effect: Allow
+                Action: s3:DeleteObject
+                Resource: !Sub '${MediaBucket.Arn}/stories/*'
+  StoryCleanupFunction:
+    Type: AWS::Lambda::Function
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: DynamoDB TTL can be delayed; this worker enforces Story record and media cleanup every 15 minutes while preserving Reels.
+        must: [Never delete Reel records., Never delete media outside the stories prefix.]
+    Properties:
+      FunctionName: DANZSTAK-Expired-Story-Cleanup
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !GetAtt StoryCleanupRole.Arn
+      Timeout: 30
+      MemorySize: 128
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          STORIES_TABLE: !Ref StoriesTable
+          MEDIA_BUCKET: !Ref MediaBucket
+      Code:
+        ZipFile: |
+          const {DynamoDBClient,ScanCommand,DeleteItemCommand}=require('@aws-sdk/client-dynamodb');
+          const {S3Client,DeleteObjectCommand}=require('@aws-sdk/client-s3');
+          const db=new DynamoDBClient({}),s3=new S3Client({});
+          exports.handler=async()=>{const current=Math.floor(Date.now()/1000),expired=[];let ExclusiveStartKey;do{const page=await db.send(new ScanCommand({TableName:process.env.STORIES_TABLE,ProjectionExpression:'storyId,kind,createdAt,expiresAt,mediaKey',ConsistentRead:true,ExclusiveStartKey}));for(const item of page.Items||[]){if(item.kind?.S==='reel'||!item.mediaKey?.S)continue;const created=Date.parse(item.createdAt?.S||''),expiry=Number(item.expiresAt?.N||0)||(Number.isFinite(created)?Math.floor(created/1000)+86400:0);if(expiry<=current)expired.push(item);}ExclusiveStartKey=page.LastEvaluatedKey;}while(ExclusiveStartKey);for(let offset=0;offset<expired.length;offset+=10)await Promise.all(expired.slice(offset,offset+10).map(async item=>{await db.send(new DeleteItemCommand({TableName:process.env.STORIES_TABLE,Key:{storyId:{S:item.storyId.S}}}));if(item.mediaKey.S.startsWith('stories/'))await s3.send(new DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:item.mediaKey.S}));}));return {cleaned:expired.length};};
+  StoryCleanupRule:
+    Type: AWS::Events::Rule
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Runs Story cleanup independently of feed visits.
+        must: [Keep the schedule limited to the dedicated Story cleanup worker.]
+    Properties:
+      Description: Remove expired DanzStak Stories and their dedicated media.
+      ScheduleExpression: rate(15 minutes)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt StoryCleanupFunction.Arn
+          Id: DanzStakStoryCleanup
+  StoryCleanupInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref StoryCleanupFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt StoryCleanupRule.Arn
   SignalingIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:

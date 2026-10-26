@@ -140,6 +140,9 @@ if (-not $template.Contains("/*/DELETE/stories/*'")) {
 if (-not $template.Contains('expiresAt:{N:String(now()+7200)}')) {
   throw 'Presence records do not remain available for the full two-hour signed-in activity window'
 }
+foreach ($scheduledStoryCleanup in @('DANZSTAK-Expired-Story-Cleanup', 'Type: AWS::Events::Rule', 'ScheduleExpression: rate(15 minutes)', 'Principal: events.amazonaws.com', "item.kind?.S==='reel'", "item.mediaKey.S.startsWith('stories/')", 'Resource: !Sub ''${MediaBucket.Arn}/stories/*''')) {
+  if (-not $template.Contains($scheduledStoryCleanup)) { throw "Stories: scheduled database/media cleanup is incomplete: $scheduledStoryCleanup" }
+}
 if ($template.Contains('expiresAt:{N:String(now()+180)}')) {
   throw 'Presence still expires after three minutes when a browser suspends background JavaScript'
 }
