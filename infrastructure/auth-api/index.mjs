@@ -1604,8 +1604,8 @@ function publicPlace(place) {
 function isBookableClub(place) {
   const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
   const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|symphony|orchestra|opera house|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
-  const wrongFormat = /\b(jazz|comedy|comic|laughs?|piano bar|salsa|ballroom|dance school|dance studio|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|children'?s music|church|worship|jubilee)\b/;
-  const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival office)\b/;
+  const wrongFormat = /\b(jazz|comedy|comic|laughs?|piano bar|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance studio|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|recording studio|rehearsal studio|event consultant|entertainment consultant|event planner|church|worship|jubilee)\b/;
+  const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival office|walking tour|history tour|guided tour)\b/;
   return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description);
 }
 
@@ -1628,9 +1628,14 @@ async function suggestDirectionalMarkets(home, direction, days, genre = "") {
   const markets = [];
   for (let index = 1; index <= outboundNights; index += 1) {
     const bias = directionalBias(home.position, direction, stepMiles * index);
-    const result = await geoPlaces.send(new SearchTextCommand({ QueryText: genre ? `${genre} music club` : "DIY punk metal rock music club", BiasPosition: bias, MaxResults: 10, AdditionalFeatures: ["Contact"] }));
-    const places = (result.ResultItems || []).map(publicPlace).filter(place => place.position.length === 2);
-    const lead = places[0];
+    const queries = [...new Set([genre ? `${genre} music club` : "DIY punk metal rock music club", "live music club", "live music venue"])];
+    let places = [];
+    for (const query of queries) {
+      const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, Filter: { Circle: { Center: bias, Radius: 60000 } }, MaxResults: 10, AdditionalFeatures: ["Contact"] }));
+      places = (result.ResultItems || []).map(publicPlace).filter(place => place.position.length === 2 && isBookableClub(place));
+      if (places.length) break;
+    }
+    const lead = places.sort((left, right) => (left.distanceMiles ?? Number.MAX_SAFE_INTEGER) - (right.distanceMiles ?? Number.MAX_SAFE_INTEGER))[0];
     if (!lead) continue;
     const label = lead.locality || lead.address || lead.name;
     if (!markets.some(market => market.label.toLowerCase() === label.toLowerCase())) markets.push({ label, position: lead.position, lead });

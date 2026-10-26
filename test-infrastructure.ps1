@@ -69,6 +69,16 @@ foreach ($completeCleanupControl in @('async function queryAll(request, maximumI
 foreach ($diyBookingControl in @('genre ? `${genre} music club` : "DIY punk metal rock music club"', 'function isBookableClub(place)', 'const wrongScale =', 'const wrongFormat =', 'const eventNotRoom =', 'MaxResults: 20')) {
   if (-not $authApi.Contains($diyBookingControl)) { throw "Booking Agent DIY venue filter is missing: $diyBookingControl" }
 }
+$directionalMarketSearch = [regex]::Match($authApi, 'async function suggestDirectionalMarkets[\s\S]*?async function geocodeTourPlace').Value
+foreach ($directionalControl in @('Filter: { Circle: { Center: bias, Radius: 60000 } }', '"live music club"', '"live music venue"', 'isBookableClub(place)', 'left.distanceMiles ?? Number.MAX_SAFE_INTEGER')) {
+  if (-not $directionalMarketSearch.Contains($directionalControl)) { throw "Booking Agent direction-constrained market search is missing: $directionalControl" }
+}
+if ($directionalMarketSearch.Contains('BiasPosition: bias')) {
+  throw 'Booking Agent directional markets use a soft location bias and can jump hundreds of miles off course.'
+}
+foreach ($nonVenueFilter in @('table\s*dance', 'adult entertainment', 'recording studio', 'event consultant', 'walking tour')) {
+  if (-not $authApi.Contains($nonVenueFilter)) { throw "Booking Agent can still recommend a non-bookable venue type: $nonVenueFilter" }
+}
 if (-not $authApi.Contains('const items = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :meta"')) {
   throw 'The Groups directory still stops at the first DynamoDB scan page.'
 }
