@@ -633,6 +633,7 @@ function renderWorkspace(name) {
             const open = document.createElement("a");
             open.className = "primary";
             open.textContent = "View post";
+            open.setAttribute("aria-label", "View post from " + displayName);
             open.href = `feed.html#post-${encodeURIComponent(notice.postId)}`;
             actions.appendChild(open);
           } else if (notice.type === "message") {
@@ -640,6 +641,7 @@ function renderWorkspace(name) {
             open.type = "button";
             open.className = "primary";
             open.textContent = "Open chat";
+            open.setAttribute("aria-label", "Open chat with " + displayName);
             open.addEventListener("click", () => {
               if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email);
               setTimeout(() => {
@@ -652,6 +654,7 @@ function renderWorkspace(name) {
             const button = document.createElement("button");
             button.type = "button";
             button.textContent = label;
+            button.setAttribute("aria-label", label + " friend request from " + displayName);
             button.className = accept ? "primary" : "secondary";
             button.addEventListener("click", async () => {
               await respondToNotificationRequest(row, notice.email, accept);
