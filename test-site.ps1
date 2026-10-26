@@ -333,6 +333,9 @@ foreach ($onlineContactNavigation in @('name.href = "profile.html?member=" + enc
 if (-not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")')) {
   Add-Failure 'Friends: decorative presence dot duplicates the visible online status for assistive technology'
 }
+foreach ($workspaceStateControl in @('homeControl?.setAttribute("aria-pressed", "false")', 'control.matches("button")) control.setAttribute("aria-pressed", String(active))', 'home?.setAttribute("aria-pressed", "true")')) {
+  if (-not $feedEnhancements.Contains($workspaceStateControl)) { Add-Failure "Navigation: top workspace control does not expose its selected state: $workspaceStateControl" }
+}
 if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.Contains('No other connected users are active right now.')) {
   Add-Failure 'Online Users: the right panel can show offline contacts as online-directory results'
 }

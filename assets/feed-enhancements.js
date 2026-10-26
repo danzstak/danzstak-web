@@ -1033,7 +1033,9 @@ function openWorkspaceRoute(name, pushHistory = true) {
   if (!workspaceRoutes.has(String(name).toLowerCase())) return false;
   const canonicalName = workspaceRoutes.get(String(name).toLowerCase());
   document.body.classList.add("content-only");
-  document.querySelector('[data-route="home"]')?.removeAttribute("aria-current");
+  const homeControl = document.querySelector('[data-route="home"]');
+  homeControl?.removeAttribute("aria-current");
+  homeControl?.setAttribute("aria-pressed", "false");
   document.getElementById("newsFeedView").hidden = true;
   featurePanel.hidden = false;
   featureHeading.textContent = canonicalName;
@@ -1041,7 +1043,8 @@ function openWorkspaceRoute(name, pushHistory = true) {
   document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.dataset.feature === canonicalName));
   document.querySelectorAll("[data-feature]").forEach(control => {
     const active = control.dataset.feature === canonicalName;
-    if (active) control.setAttribute("aria-current", "page");
+    if (control.matches("button")) control.setAttribute("aria-pressed", String(active));
+    else if (active) control.setAttribute("aria-current", "page");
     else control.removeAttribute("aria-current");
   });
   renderWorkspace(canonicalName);
@@ -1069,12 +1072,16 @@ function restoreWorkspaceRoute() {
   else if (!location.hash || location.hash === "#feed" || location.hash.startsWith("#post-")) {
     document.body.classList.toggle("content-only", new URLSearchParams(location.search).get("view") === "feed" || location.hash === "#feed" || location.hash.startsWith("#post-"));
     const home = document.querySelector('[data-route="home"]');
+    home?.setAttribute("aria-pressed", "true");
     if (document.body.classList.contains("content-only")) home?.removeAttribute("aria-current");
     else home?.setAttribute("aria-current", "page");
     featurePanel.hidden = true;
     document.getElementById("newsFeedView").hidden = false;
     document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.getAttribute("href") === "feed.html?view=feed"));
-    document.querySelectorAll("[data-feature][aria-current]").forEach(control => control.removeAttribute("aria-current"));
+    document.querySelectorAll("[data-feature]").forEach(control => {
+      control.removeAttribute("aria-current");
+      if (control.matches("button")) control.setAttribute("aria-pressed", "false");
+    });
   }
 }
 addEventListener("popstate", restoreWorkspaceRoute);
