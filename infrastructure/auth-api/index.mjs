@@ -1625,8 +1625,10 @@ async function tourCandidates(point) {
     const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, BiasPosition: point.position, MaxResults: 10, AdditionalFeatures: ["Contact"] }));
     return (result.ResultItems || []).map(publicPlace);
   };
-  const [musicVenues, liveBars, hotels] = await Promise.all([search("live music venue"), search("bar with live music"), search("hotel")]);
-  const seen = new Set(), venues = [...musicVenues, ...liveBars].filter(place => { const key = `${place.name}|${place.address}`.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
+  const [musicVenues, liveBars, hotelResults] = await Promise.all([search("live music venue"), search("bar with live music"), search("hotel")]);
+  const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
+  const seen = new Set(), venues = [...musicVenues, ...liveBars].filter(place => nearby(place, 50)).filter(place => { const key = `${place.name}|${place.address}`.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
+  const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }
 
