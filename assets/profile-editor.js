@@ -555,7 +555,7 @@ tabs.addEventListener("click", async event => {
 });
 tabs.addEventListener("keydown", event => {
   if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-  const buttons = [...tabs.querySelectorAll('[role="tab"]')];
+  const buttons = [...tabs.querySelectorAll('[role="tab"]:not([hidden])')];
   const current = buttons.indexOf(document.activeElement);
   if (current < 0) return;
   event.preventDefault();
