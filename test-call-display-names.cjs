@@ -13,6 +13,8 @@ assert.doesNotMatch(incoming, /label\.textContent = `\$\{event\.senderEmail\}/);
 assert.match(chat, /contactName=event\.senderName\|\|"DanzStak member"/);
 assert.match(chat, /els\.incomingLabel\.textContent="Incoming "\+event\.mode\+" from "\+contactName/);
 assert.match(messages, /window\.danzstakActiveContactName = conversation\.name \|\| "DanzStak member"/);
+assert.match(messages, /call\.addEventListener\("click", \(\) => \{ openConversation\(conversation\); document\.getElementById\(targetId\)\?\.click\(\); \}\)/);
+assert.doesNotMatch(messages, /call\.addEventListener\("click", \(\) => \{ contactInput\.value = conversation\.contactEmail/);
 assert.doesNotMatch(messages, /conversationName\.textContent = conversation\.name \|\| conversation\.contactEmail/);
 assert.doesNotMatch(messages, /name\.textContent = conversation\.name \|\| conversation\.contactEmail/);
 assert.doesNotMatch(messages, /name: requested\.split\("@"\)\[0\]/);

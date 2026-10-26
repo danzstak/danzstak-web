@@ -314,7 +314,7 @@ async function loadConversations() {
       for (const [label, targetId] of [["☎", "startPhone"], ["▣", "startVideo"]]) {
         const call = document.createElement("button"); call.type = "button"; call.className = "conversation-call"; call.textContent = label; call.title = targetId === "startPhone" ? "Phone call" : "Video call"; call.setAttribute("aria-label", call.title);
         call.disabled = conversation.canContact === false;
-        call.addEventListener("click", () => { contactInput.value = conversation.contactEmail; document.getElementById(targetId)?.click(); });
+        call.addEventListener("click", () => { openConversation(conversation); document.getElementById(targetId)?.click(); });
         calls.appendChild(call);
       }
       row.append(button, calls); conversationUsers.appendChild(row);
