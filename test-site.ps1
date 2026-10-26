@@ -68,6 +68,9 @@ if (-not $bookingClient.Contains('["DIY Punk","DIY Punk"]') -or -not $bookingCli
 if (-not $bookingClient.Contains('dj:"DJ / Electronic"') -or -not $bookingClient.Contains('performerType.addEventListener("change"')) {
   Add-Failure 'Booking Agent: choosing DJ does not automatically select DJ / Electronic venue matching'
 }
+if (-not $bookingClient.Contains('actType:performerType.value,genre:genreInput.value') -or -not $bookingClient.Contains('performerType.value=tour.plan.actType') -or -not $bookingClient.Contains('genreInput.value=tour.plan.genre')) {
+  Add-Failure 'Booking Agent: saved tours do not preserve and restore performer type and genre'
+}
 if ($bookingClient.Contains('$("endCity").disabled=local||directional') -or $bookingClient.Contains('$("tourStops").disabled=local||directional')) {
   Add-Failure 'Booking Agent: turnaround city or tour stops are disabled in the default route mode'
 }

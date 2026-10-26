@@ -1597,6 +1597,8 @@ function isBookableClub(place) {
 }
 
 const tourDirections = new Set(["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]);
+const tourActTypes = new Set(["band", "dj", "solo", "duo", "electronic", "ensemble"]);
+const tourGenres = new Set(["DIY Punk", "Metal", "Rock", "DJ / Electronic", "Hip-Hop", "Jazz", "Orchestra / Classical", "Other"]);
 
 function directionalBias(origin, direction, distanceMiles) {
   const bearings = { north: 0, northeast: 45, east: 90, southeast: 135, south: 180, southwest: 225, west: 270, northwest: 315 };
@@ -1710,11 +1712,13 @@ async function saveTourPlan(event) {
   const data = parseJsonBody(event);
   if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
   const name = String(data.name || "").trim().slice(0, 100), artist = String(data.artist || "").trim().slice(0, 100), tourId = /^[0-9a-f-]{36}$/i.test(String(data.tourId || "")) ? String(data.tourId) : randomUUID();
+  const requestedActType = String(data.actType || "").trim().toLowerCase(), requestedGenre = String(data.genre || "").trim();
+  const actType = tourActTypes.has(requestedActType) ? requestedActType : "band", genre = tourGenres.has(requestedGenre) ? requestedGenre : "DIY Punk";
   const start = String(data.start || "").trim().slice(0, 160), direction = String(data.direction || "").trim().toLowerCase(), departOn = String(data.departOn || "").trim(), returnBy = String(data.returnBy || "").trim();
   const days = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), distanceMiles = Math.max(0, Math.min(100000, Math.round(Number(data.distanceMiles) || 0)));
   const markets = Array.isArray(data.markets) ? data.markets.slice(0, 24).map(cleanTourMarket) : [];
   if (!name || !start || !days || markets.some(market => !market) || (departOn && !/^\d{4}-\d{2}-\d{2}$/.test(departOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour name, starting city, dates, and stops must be valid." }) };
-  const nowIso = new Date().toISOString(), plan = { name, artist, start, direction: tourDirections.has(direction) ? direction : "custom", departOn, returnBy, days, distanceMiles, markets };
+  const nowIso = new Date().toISOString(), plan = { name, artist, actType, genre, start, direction: tourDirections.has(direction) ? direction : "custom", departOn, returnBy, days, distanceMiles, markets };
   await db.send(new PutItemCommand({ TableName: toursTable, Item: { userId: { S: userId }, tourId: { S: tourId }, name: { S: name }, plan: { S: JSON.stringify(plan) }, createdAt: { S: nowIso }, updatedAt: { S: nowIso } } }));
   return { statusCode: 200, headers, body: JSON.stringify({ tourId, updatedAt: nowIso }) };
 }
