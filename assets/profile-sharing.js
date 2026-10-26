@@ -33,7 +33,7 @@
     invite.hidden = Boolean(new URLSearchParams(location.search).get('user') || new URLSearchParams(location.search).get('member'));
     invite.addEventListener('click', () => show('Invite People', new URL('./', location.href).href, 'Join me on DanzStak. Create an account to connect and share your original content.', invite));
     actions.append(share, invite);
-    const update = () => { share.hidden = !/^[a-f0-9-]{36}$/.test(window.danzstakCurrentProfile?.memberId || ''); };
+    const update = () => { share.hidden = !/^[a-f0-9-]{36}$/.test(window.danzstakCurrentProfile?.memberId || ''); if (window.danzstakCurrentProfile?.isOwner === true) invite.hidden = false; };
     window.addEventListener('danzstak:profile-loaded', update); update();
   }
   if (document.readyState !== 'complete') document.addEventListener('DOMContentLoaded', start, {once:true}); else start();

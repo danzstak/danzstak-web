@@ -520,12 +520,14 @@ function renderWorkspace(name) {
             ? `${displayName}: ${notice.preview || "New message"}`
             : notice.type === "reaction"
               ? `${displayName} reacted ${notice.preview || "to your post"}.`
-              : notice.type === "comment"
+              : notice.type === "tag"
+                ? `${displayName} tagged you in a post.`
+                : notice.type === "comment"
                 ? `${displayName} commented: ${notice.preview || "New comment"}`
                 : `${displayName} sent you a friend request.`;
           const actions = document.createElement("div");
           actions.className = "notification-actions";
-          if (["reaction", "comment"].includes(notice.type)) {
+          if (["reaction", "comment", "tag"].includes(notice.type)) {
             const open = document.createElement("a");
             open.className = "primary";
             open.textContent = "View post";
@@ -743,6 +745,7 @@ function renderWorkspace(name) {
     presenceCheckbox.type = "checkbox";
     presenceCheckbox.checked = true;
     presence.append(presenceCheckbox, document.createTextNode("Show me online to other users"));
+    const tagsCheckbox = document.createElement("input"); tagsCheckbox.type = "checkbox"; tagsCheckbox.checked = true; tagsCheckbox.id = "allowTags"; tagsCheckbox.setAttribute("aria-label", "Allow friends to tag me in photos and videos");
     const darkCheckbox = document.createElement("input");
     darkCheckbox.type = "checkbox";
     darkCheckbox.checked = document.documentElement.classList.contains("dark-mode");
@@ -815,7 +818,7 @@ function renderWorkspace(name) {
     button.type = "button";
     button.disabled = true;
     button.textContent = "Loading Settings…";
-    const preferenceControls = [presenceCheckbox, darkCheckbox, motionCheckbox, dataSaverCheckbox, language];
+    const preferenceControls = [presenceCheckbox, tagsCheckbox, darkCheckbox, motionCheckbox, dataSaverCheckbox, language];
     preferenceControls.forEach(control => { control.disabled = true; });
     fetch("https://api.danzstak.com/settings/presence", { credentials: "include", cache: "no-store" })
       .then(response => {
@@ -826,6 +829,7 @@ function renderWorkspace(name) {
         if (!isCurrentWorkspace()) return;
         preferenceControls.forEach(control => { control.disabled = false; });
         presenceCheckbox.checked = data.onlineVisible !== false;
+        tagsCheckbox.checked = data.allowTags !== false;
         if (typeof data.darkMode === "boolean") {
           darkCheckbox.checked = data.darkMode;
           document.documentElement.classList.toggle("dark-mode", data.darkMode);
@@ -862,7 +866,7 @@ function renderWorkspace(name) {
       try {
         const response = await fetch("https://api.danzstak.com/settings/presence", {
           method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-          body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, darkMode: darkCheckbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
+          body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, allowTags: tagsCheckbox.checked, darkMode: darkCheckbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
         });
         if (!response.ok) throw new Error("Account settings could not be saved.");
         if (isCurrentWorkspace()) featureText.textContent = "Settings saved to your DanzStak account.";
@@ -875,6 +879,7 @@ function renderWorkspace(name) {
       heading,
       settingRow("👤", "Account settings", notifications),
       settingRow("🔒", "Privacy center", presence),
+      settingRow("@", "Allow friends to tag me", tagsCheckbox),
       settingRow("🌙", "Dark mode", darkCheckbox),
       settingRow("✨", "Reduce motion", motionCheckbox),
       settingRow("📶", "Data saver", dataSaverCheckbox),
@@ -1648,6 +1653,7 @@ function addPostDeleteButton(post) {
     button.querySelector("strong").textContent = off ? "Turn off notifications" : "Turn on notifications";
   });
   if (preferences.notificationsOff === true) notificationsOption.querySelector("strong").textContent = "Turn on notifications";
+  if (owner && ["image","video"].includes(post.dataset.mediaType)) option("Tag people", "Tag accepted friends in this photo or video.", () => window.danzstakOpenMediaTags?.(post));
     option("Copy link", "Copy a shareable link to this post.", async () => {
     try { await navigator.clipboard.writeText(postPermalink(post)); }
     catch { alert("Copying is unavailable in this browser."); }
@@ -1755,8 +1761,9 @@ function createCommentReactions(post, item, comment) {
   const reactors = [...(comment.reactors || [])].sort((a,b) => Number(b.isFriend)-Number(a.isFriend));
   if (reactors.length) {
     const names = document.createElement("details"); names.className = "comment-reactors";
-    const summary = document.createElement("summary"), likers = reactors.filter(person => person.reaction === "Like");
-    summary.textContent = likers.length ? "Liked by " + likers.slice(0,2).map(person => person.name + (person.isFriend ? " (Friend)" : "")).join(", ") + (likers.length > 2 ? " and " + (likers.length-2) + " others" : "") : reactors.length + " reactions";
+    const summary = document.createElement("summary"), onlyLikes = reactors.every(person => person.reaction === "Like");
+    const prefix = onlyLikes ? "Liked by " : reactors.length === 1 ? "Reaction from " : "Reactions from ";
+    summary.textContent = prefix + reactors.slice(0,2).map(person => person.name + (person.isFriend ? " (Friend)" : "")).join(", ") + (reactors.length > 2 ? " and " + (reactors.length-2) + " others" : "");
     names.appendChild(summary);
     for (const person of reactors) { const name = document.createElement("div"); name.textContent = (reactionEmoji[person.reaction] || "") + " " + person.name + (person.isFriend ? " (Friend)" : ""); name.setAttribute("data-no-translate", ""); names.appendChild(name); }
     controls.appendChild(names);

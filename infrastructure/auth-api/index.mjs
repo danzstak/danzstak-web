@@ -910,7 +910,8 @@ async function getSecurePosts(event) {
   }
 
   const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S)));
-  const authorNames = await loadFeedAuthorNames(visiblePosts);
+  const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));
+  const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames]);
   const visibleSources = new Map(visiblePosts.map(item => [item.postId.S,item]));
   const sharedPreview = item => item ? ({postId:item.postId.S,content:item.content.S,authorName:authorNames.get(item.userEmail?.S) || item.userEmail?.S?.split("@")[0] || "DanzStak member",authorEmail:item.userEmail?.S || "",createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
   const posts = visiblePosts.map(item => ({
@@ -922,6 +923,7 @@ async function getSecurePosts(event) {
       content: item.content.S,
       location: item.location?.S || "",
       viewCount: Math.max(0,Number(item.viewCount?.N || 0)),
+      taggedUsers:(item.taggedUsers?.L || []).map(tag => ({memberId:tag.M?.memberId?.S || "",name:authorNames.get(tag.M?.userEmail?.S) || tag.M?.name?.S || "DanzStak member",isMe:tag.M?.memberId?.S === userId})),
       sharedPostId:item.sharedPostId?.S || "",
       sharedPost:sharedPreview(visibleSources.get(item.sharedPostId?.S)),
       audience: item.audience?.S ?? "public",
@@ -1394,6 +1396,31 @@ async function deleteSecurePost(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true, cleanupPending }) };
 }
 
+async function resolveMediaTags(ids, ownerId, previous, declined) {
+  if (!Array.isArray(ids) || ids.length > 10 || ids.some(id => typeof id !== "string" || !/^[a-f0-9-]{36}$/.test(id))) return {error:"Choose at most 10 valid members.",statusCode:400};
+  const unique = [...new Set(ids)]; if (unique.some(id => declined.has(id))) return {error:"A member removed their tag and cannot be tagged again on this post.",statusCode:409};
+  const ownerEmail = await accountForSub(ownerId); if (!ownerEmail) return {error:"Account could not be verified.",statusCode:409};
+  const targets = [];
+  for (const id of unique) {
+    const accounts = await cognito.send(new ListUsersCommand({UserPoolId:userPoolId,Filter:`sub = "${id}"`,Limit:1})), account = accounts.Users?.[0];
+    const email = account?.Attributes?.find(value => value.Name === "email")?.Value?.trim().toLowerCase();
+    if (!email || account.Enabled === false) return {error:"A selected member is unavailable.",statusCode:404};
+    const settings = await db.send(new GetItemCommand({TableName:settingsTable,Key:{userEmail:{S:email}},ConsistentRead:true}));
+    if (!previous.has(id) && id !== ownerId && settings.Item?.allowTags?.BOOL === false) return {error:"A selected friend has turned off tagging.",statusCode:409};
+    const attributes = Object.fromEntries((account.Attributes || []).map(value => [value.Name,value.Value]));
+    targets.push({id,email,name:settings.Item?.profileName?.S || attributes.name || attributes.preferred_username || email.split("@")[0]});
+  }
+  if (new Set(targets.map(value=>value.email)).size !== targets.length) return {error:"Choose each person once.",statusCode:400};
+  const newTargets = targets.filter(value => value.id !== ownerId && !previous.has(value.id));
+  const friends = new Set((newTargets.length ? await batchGetFriendships(ownerEmail,newTargets.map(value => value.email)) : []).filter(item => item.status?.S === "friends").map(item => item.friendEmail.S));
+  if (newTargets.some(value => !friends.has(value.email))) return {error:"You can tag accepted friends only.",statusCode:403};
+  const checks = newTargets.flatMap(value => [
+    {ConditionCheck:{TableName:settingsTable,Key:{userEmail:{S:value.email}},ConditionExpression:"attribute_not_exists(allowTags) OR allowTags = :allowed",ExpressionAttributeValues:{":allowed":{BOOL:true}}}},
+    {ConditionCheck:{TableName:friendsTable,Key:{userEmail:{S:ownerEmail},friendEmail:{S:value.email}},ConditionExpression:"#status = :friends",ExpressionAttributeNames:{"#status":"status"},ExpressionAttributeValues:{":friends":{S:"friends"}}}}
+  ]);
+  return {checks,tags:targets.map(value => ({M:{memberId:{S:value.id},userEmail:{S:value.email},name:{S:String(value.name).slice(0,80)}}}))};
+}
+
 async function updateSecurePost(event) {
   const headers = corsHeaders(event.headers?.origin);
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -1404,8 +1431,29 @@ async function updateSecurePost(event) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
   const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Post not found." }) };
+  if (data.removeOwnTag === true) {
+    const tags = found.Item.taggedUsers?.L || [], remaining = tags.filter(tag => tag.M?.memberId?.S !== userId);
+    if (remaining.length === tags.length) return {statusCode:200,headers,body:JSON.stringify({removed:true})};
+    const version = Number(found.Item.tagVersion?.N || 0);
+    try { await db.send(new UpdateItemCommand({TableName:postsTable,Key:{postId:{S:postId}},UpdateExpression:"SET taggedUsers = :tags, tagVersion = :next, updatedAt = :updated ADD tagDeclinedBy :declined",ConditionExpression:"attribute_exists(postId) AND (attribute_not_exists(tagVersion) OR tagVersion = :previous)",ExpressionAttributeValues:{":tags":{L:remaining},":next":{N:String(version+1)},":previous":{N:String(version)},":updated":{S:new Date().toISOString()},":declined":{SS:[userId]}}})); }
+    catch (error) { if (error.name === "ConditionalCheckFailedException") return {statusCode:409,headers,body:JSON.stringify({error:"Tags changed. Reload and try again."})}; throw error; }
+    const taggedEmail = tags.find(tag => tag.M?.memberId?.S === userId)?.M?.userEmail?.S;
+    if (taggedEmail) await db.send(new DeleteItemCommand({TableName:engagementNotificationsTable,Key:{userEmail:{S:taggedEmail},eventId:{S:"tag#"+postId+"#"+userId}}})).catch(error => console.warn("Tag notice cleanup failed",error.name));
+    return {statusCode:200,headers,body:JSON.stringify({removed:true})};
+  }
   if (found.Item.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the owner can edit this post." }) };
   const updates = [], names = {}, values = { ":updated": { S: new Date().toISOString() } };
+  let tagCondition = "", tagNotices = [], removedTags = [], tagChecks = [];
+  if (Object.prototype.hasOwnProperty.call(data,"taggedMembers")) {
+    if (!["image","video"].includes(found.Item.mediaType?.S)) return {statusCode:400,headers,body:JSON.stringify({error:"Tag people on photos or videos only."})};
+    const current = new Set((found.Item.taggedUsers?.L || []).map(tag => tag.M?.memberId?.S)), declined = new Set(found.Item.tagDeclinedBy?.SS || []);
+    const resolved = await resolveMediaTags(data.taggedMembers,userId,current,declined); if (resolved.error) return {statusCode:resolved.statusCode,headers,body:JSON.stringify({error:resolved.error})};
+    tagChecks = resolved.checks || [];
+    tagNotices = resolved.tags.filter(tag => !current.has(tag.M.memberId.S) && tag.M.memberId.S !== userId);
+    removedTags = (found.Item.taggedUsers?.L || []).filter(tag => !resolved.tags.some(next => next.M.memberId.S === tag.M.memberId.S));
+    const version = Number(found.Item.tagVersion?.N || 0); updates.push("taggedUsers = :tags", "tagVersion = :nextTagVersion"); values[":tags"] = {L:resolved.tags}; values[":nextTagVersion"] = {N:String(version+1)}; values[":oldTagVersion"] = {N:String(version)};
+    tagCondition = " AND (attribute_not_exists(tagVersion) OR tagVersion = :oldTagVersion)";
+  }
   if (Object.prototype.hasOwnProperty.call(data,"location")) {
     if (typeof data.location !== "string" || data.location.trim().length > 120) return {statusCode:400,headers,body:JSON.stringify({error:"Location must be at most 120 characters."})};
     names["#location"] = "location"; values[":location"] = {S:data.location.trim()}; updates.push("#location = :location");
@@ -1435,7 +1483,11 @@ async function updateSecurePost(event) {
   updates.push("updatedAt = :updated");
   const request = { TableName: postsTable, Key: { postId: { S: postId } }, UpdateExpression: `SET ${updates.join(", ")}`, ExpressionAttributeValues: values };
   if (Object.keys(names).length) request.ExpressionAttributeNames = names;
-  await db.send(new UpdateItemCommand(request));
+  values[":postOwner"] = {S:userId}; request.ConditionExpression = "attribute_exists(postId) AND userId = :postOwner" + tagCondition;
+  try { if (tagChecks.length) await db.send(new TransactWriteItemsCommand({TransactItems:[...tagChecks,{Update:request}]})); else await db.send(new UpdateItemCommand(request)); } catch (error) { if (["ConditionalCheckFailedException","TransactionCanceledException"].includes(error.name)) return {statusCode:409,headers,body:JSON.stringify({error:"The post changed. Reload and try again."})}; throw error; }
+  const tagNoticeTasks = removedTags.filter(tag=>tag.M.userEmail?.S).map(tag=>db.send(new DeleteItemCommand({TableName:engagementNotificationsTable,Key:{userEmail:tag.M.userEmail,eventId:{S:"tag#"+postId+"#"+tag.M.memberId.S}}})));
+  if (found.Item.audience?.S !== "private") for (const tag of tagNotices) tagNoticeTasks.push(notifyPostOwner({...found.Item,userEmail:tag.M.userEmail},"tag#"+postId+"#"+tag.M.memberId.S,"tag",found.Item.userEmail?.S || "","Tagged in a photo or video"));
+  if (tagNoticeTasks.length) await Promise.allSettled(tagNoticeTasks);
   return { statusCode: 200, headers, body: JSON.stringify({ updated: true, updatedAt: values[":updated"].S, editHistory: values[":editHistory"] ? JSON.parse(values[":editHistory"].S) : postEditHistory(found.Item) }) };
 }
 

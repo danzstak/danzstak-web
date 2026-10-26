@@ -7,7 +7,7 @@ const details = profileContent.querySelector(".details");
 const handleElement = document.getElementById("profileHandle");
 const profileMediaKey = "danzstak_profile_media";
 const profileApi = "https://api.danzstak.com";
-const viewingOtherProfile = Boolean(new URLSearchParams(location.search).get("user") || new URLSearchParams(location.search).get("member"));
+let viewingOtherProfile = Boolean(new URLSearchParams(location.search).get("user") || new URLSearchParams(location.search).get("member"));
 
 async function saveCloudProfile(changes) {
   const response = await fetch(profileApi + "/profiles", {
@@ -416,6 +416,8 @@ function profilePostCard(post) {
     open.textContent = "View in Feed";
     article.appendChild(open);
   }
+  window.danzstakRenderSharedPost?.(article, post);
+  window.danzstakRenderMediaTags?.(article, post);
   return article;
 }
 
@@ -632,6 +634,7 @@ if (!viewingOtherProfile) {
 }
 window.addEventListener("danzstak:profile-loaded", event => {
   const profile = event.detail || {};
+  if (profile.isOwner === true) { viewingOtherProfile = false; editButton.hidden = false; mediaTools.hidden = false; }
   applyProfile(profile.cloudProfile ? profile : savedProfile());
   if (profile.cloudProfile) {
     fitCoverButton.classList.toggle("active", Boolean(profile.coverFit));

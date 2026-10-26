@@ -26,7 +26,7 @@ try {
       @{
         Sid = "FriendAudienceChecks"
         Effect = "Allow"
-        Action = @("dynamodb:BatchGetItem", "dynamodb:GetItem")
+        Action = @("dynamodb:BatchGetItem", "dynamodb:GetItem", "dynamodb:ConditionCheckItem")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Friends"
       },
       @{
@@ -44,7 +44,7 @@ try {
       @{
         Sid = "ProfileVideoSettings"
         Effect = "Allow"
-        Action = @("dynamodb:GetItem", "dynamodb:UpdateItem")
+        Action = @("dynamodb:GetItem", "dynamodb:UpdateItem", "dynamodb:ConditionCheckItem")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DanzStak-UserSettings"
       },
       @{
