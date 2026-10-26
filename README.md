@@ -96,7 +96,7 @@ The owner has Android/Apple developer accounts under Datappaloosa. Use native pr
 
 ## Current interaction audit
 
-The owner explicitly paused import until every existing page, link, button, and layout has been checked again. Facebook import files are local work in progress and are not loaded by the site. Its backend patch is preserved separately at the task's temporary `danzstak-facebook-import-backend.patch`; do not deploy it before the interaction audit is complete.
+After the interaction pass and 49 regression checks, the owner explicitly requested the Facebook import button at the bottom of Edit Profile. The import flow reads JSON/ZIP locally, previews user-selected content, imports posts privately with original dates, and uses owner-scoped duplicate keys. Profile fields are optional and require selection. Full real-account export compatibility is still being verified; unsupported content is skipped with feedback.
 
 Requested UI behavior: icon-only Like/Comment/Share, with a right-facing share arrow and tap-again to unlike; Story label without 24h and no creator/title overlays on Story thumbnails; creator credit rather than platform name on internal Reels; a compact sidebar/content mobile grid matching the supplied tablet-style reference; consistent 4/8-pixel spacing; plain Public/Friends/Only me dropdown; Terms of Service directly below Logout. Manage must open working app/device controls.
 
@@ -110,3 +110,6 @@ Release v216: all 47 JavaScript regression checks, six-page static smoke checks,
 Live browser checks confirmed Home restores menu + feed; Feed and all seven sidebar workspaces open without the sidebar; no horizontal overflow at 320, 390, 768, or 1280 viewport widths. Korean, Japanese, and Filipino/Tagalog switch interface labels; English was restored afterward. Edit Profile saves successfully; Posts, Friends, and Media load. Like/unlike, comments expansion, Story viewer/close, save/view/unsave, notification empty state, message conversation/minimize, Manage, update check, and Apply Update were exercised. Save and reaction tests restored their original state. No new calls or messages were sent in this pass.
 
 The audit caught a Facebook share fallback and replaced it with native sharing or a copied/manual post link. Clipboard failures and stalled clipboard requests retain a visible link. Native share cancellation is respected. Translation covers core interface labels with English fallback, not every error or legal paragraph. Fresh signup with real email verification, physical-device notification sound, and native call ringing remain unverified or unresolved. AWS Lambda quota request remains CASE_OPENED. Facebook import remains paused; this record does not certify every destructive production action as tested.
+
+
+The owner requested separate Delete profile and Delete account controls. Profile behavior is awaiting clarification (hide reversibly versus clear details/photos). No account deletion was executed during testing. These controls must not ship as inert buttons or imply completed data erasure without a working backend.

@@ -530,8 +530,10 @@ panel.innerHTML = '<h2>Edit Profile</h2>' +
   '<label>Work<input name="work" maxlength="100"></label>' +
   '<label>Website<input name="website" type="url" maxlength="200" placeholder="https://"></label>' +
   '<p class="edit-note">Share only information you want members to see. Profile text must be your original content.</p>' +
-  '<div class="edit-actions"><button class="secondary" type="button" data-cancel>Cancel</button><button class="button" type="submit">Save Changes</button></div>';
+  '<div class="edit-actions"><button class="secondary" type="button" data-cancel>Cancel</button><button class="button" type="submit">Save Changes</button></div>' +
+  '<div class="profile-import"><button type="button" data-facebook-import>Import from Facebook</button><p>Preview your export on this device and choose what to copy. Imported posts start as Only me.</p></div>';
 profileCard.appendChild(panel);
+panel.querySelector("[data-facebook-import]").addEventListener("click", event => window.openDanzStakFacebookImport?.(event.currentTarget));
 
 function savedProfile() {
   try { return JSON.parse(localStorage.getItem(profileKey) || "{}"); }

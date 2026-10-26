@@ -1190,6 +1190,18 @@ async function createSecurePost(event) {
     };
   }
 
+  const facebookImport = data?.importSource === "facebook";
+  if (data?.importSource !== undefined && !facebookImport) return { statusCode: 400, headers, body: JSON.stringify({ error: "Unsupported import source." }) };
+  if (facebookImport && !/^[a-f0-9]{64}$/.test(data.importKey || "")) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid import identifier." }) };
+  const importHash = facebookImport ? sha256(`facebook:${userId}:${data.importKey}`) : "";
+  const importPostId = facebookImport ? `${importHash.slice(0,8)}-${importHash.slice(8,12)}-5${importHash.slice(13,16)}-a${importHash.slice(17,20)}-${importHash.slice(20,32)}` : "";
+  if (facebookImport && data.importCheckOnly === true) {
+    const existing = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: importPostId } }, ConsistentRead: true }));
+    return { statusCode: 200, headers, body: JSON.stringify({ exists: existing.Item?.userId?.S === userId && existing.Item?.importKey?.S === data.importKey, postId: importPostId }) };
+  }
+  const importedDate = facebookImport ? new Date(data.originalCreatedAt) : null;
+  if (facebookImport && (!Number.isFinite(importedDate.getTime()) || importedDate.getTime() < 0 || importedDate.getTime() > Date.now() + 86400000)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid original post date." }) };
+
   if (
     !data ||
     typeof data !== "object" ||
@@ -1209,7 +1221,7 @@ async function createSecurePost(event) {
 
   const content = data.content.trim();
   if (data.originalContentCertified !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Original-content certification is required." }) };
-  const audience = ["public", "friends", "private"].includes(data.audience) ? data.audience : "public";
+  const audience = facebookImport ? "private" : (["public", "friends", "private"].includes(data.audience) ? data.audience : "public");
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
   const reel = mediaType === "video" && data.reel === true;
@@ -1219,10 +1231,11 @@ async function createSecurePost(event) {
   if ((mediaKey && (!/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/.test(mediaKey) || !mediaKey.startsWith(`users/${ownerPrefix}/`))) || Boolean(mediaKey) !== Boolean(mediaType)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid media reference." }) };
   }
-  const postId = randomUUID();
-  const createdAt = new Date().toISOString();
+  const postId = facebookImport ? importPostId : randomUUID();
+  const importedAt = new Date().toISOString();
+  const createdAt = facebookImport ? importedDate.toISOString() : importedAt;
 
-  await db.send(new PutItemCommand({
+  try { await db.send(new PutItemCommand({
     TableName: postsTable,
     Item: {
       postId: { S: postId },
@@ -1231,10 +1244,16 @@ async function createSecurePost(event) {
       content: { S: content },
       createdAt: { S: createdAt },
       audience: { S: audience },
+      ...(facebookImport ? { importSource: { S: "facebook" }, importKey: { S: data.importKey }, importedAt: { S: importedAt } } : {}),
       ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {})
     },
     ConditionExpression: "attribute_not_exists(postId)"
-  }));
+  })); } catch (error) {
+    if (!facebookImport || error.name !== "ConditionalCheckFailedException") throw error;
+    const existing = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
+    if (existing.Item?.userId?.S !== userId || existing.Item?.importKey?.S !== data.importKey) throw error;
+    return { statusCode: 200, headers, body: JSON.stringify({ postId, deduplicated: true, createdAt: existing.Item.createdAt.S }) };
+  }
 
   return {
     statusCode: 201,
