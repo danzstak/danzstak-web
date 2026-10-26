@@ -33,7 +33,7 @@ async function loadProfile() {
     const profile = data.profile || data;
     const isOther = profile.isOwner === false || (profile.isOwner !== true && Boolean(requestedUser || requestedMember));
     const email = firstString(profile, ["email", "username"]);
-    const name = firstString(profile, ["name", "displayName", "given_name", "preferred_username"]) || "DanzStak Member";
+    const name = firstString(profile, ["name", "displayName", "given_name", "preferred_username"]) || "DanzStak member";
     const handle = firstString(profile, ["handle", "preferred_username", "username"]) || name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "member";
 
     document.getElementById("profileName").textContent = name;

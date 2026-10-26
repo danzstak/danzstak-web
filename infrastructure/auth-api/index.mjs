@@ -948,7 +948,7 @@ async function getSecurePosts(event) {
       isOwner: item.userId?.S === userId,
       featured: item.featured?.BOOL === true,
       userEmail: item.userEmail?.S ?? "",
-      authorName: authorNames.get(String(item.userEmail?.S || "").trim().toLowerCase()) || "DanzStak Member",
+      authorName: authorNames.get(String(item.userEmail?.S || "").trim().toLowerCase()) || "DanzStak member",
       content: item.content.S,
       location: item.location?.S || "",
       viewCount: Math.max(0,Number(item.viewCount?.N || 0)),
@@ -1048,7 +1048,7 @@ async function getEngagement(event) {
       const id = item.commentId.S, summary = commentReactions.get(id) || {reactionCounts:{}, myReaction:"", reactionTotal:0, reactors:[]};
       summary.reactionCounts[reaction] = (summary.reactionCounts[reaction] || 0) + 1; summary.reactionTotal++;
       if (item.actorUserId?.S === userId) summary.myReaction = reaction;
-      summary.reactors.push({name:authorNames.get(item.userEmail?.S) || item.actorName?.S || "DanzStak member",reaction,isFriend:friends.has(item.userEmail?.S)});
+      summary.reactors.push({name:authorNames.get(item.userEmail?.S) || "DanzStak member",reaction,isFriend:friends.has(item.userEmail?.S)});
       commentReactions.set(id, summary); continue;
     }
     reactionCounts[reaction] = (reactionCounts[reaction] || 0) + 1;

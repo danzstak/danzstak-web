@@ -2055,7 +2055,7 @@ async function loadInternalReels(posts = []) {
       const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: "video" }) }).catch(() => null);
       if (response?.ok) mediaUrl = (await response.json().catch(() => ({}))).mediaUrl || "";
     }
-    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", authorName: post.authorName || "DanzStak Member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
+    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", authorName: post.authorName || "DanzStak member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
   }));
   if (version !== internalReelsVersion) return;
   internalReels = resolved.filter(Boolean);
