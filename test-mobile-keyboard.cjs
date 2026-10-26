@@ -12,6 +12,6 @@ vm.runInNewContext(handler,{messageInput:input,messageForm:{requestSubmit(){subm
 function press(extra={}){let prevented=false;key({key:'Enter',preventDefault(){prevented=true;},...extra});return prevented;}
 assert.equal(press({isComposing:true}),false);assert.equal(press({keyCode:229}),false);assert.equal(submitted,0,'IME confirmation must not send');
 assert.equal(press(),true);assert.equal(submitted,1);press({repeat:true});press({shiftKey:true});input.disabled=true;press();assert.equal(submitted,1,'repeat or disabled input must not send');
-const markup=fs.readFileSync('messages.html','utf8');assert.match(markup,/<input id="messageInput"[^>]*enterkeyhint="enter"/);assert.match(markup,/<button type="submit" hidden disabled aria-label="Send message"/);
+const markup=fs.readFileSync('messages.html','utf8');assert.match(markup,/<input id="messageInput"[^>]*enterkeyhint="enter"/);assert.match(markup,/<button type="submit" class="message-send" disabled aria-label="Send message"/);assert.doesNotMatch(markup,/<button type="submit" hidden/);
 for(const page of ['index','feed','profile','messages'])assert.ok(fs.readFileSync(page+'.html','utf8').includes('assets/mobile-keyboard.js'),page+' must load keyboard hints');
-console.log('Mobile keyboard checks passed: initial/dynamic fields, focus, Return submission, IME safety, repeats, disabled chat, and hidden submit control.');
+console.log('Mobile keyboard checks passed: initial/dynamic fields, focus, Return submission, IME safety, repeats, disabled chat, and visible submit control.');
