@@ -1212,17 +1212,22 @@ function addShareButton(post) {
     button.disabled = true;
     let status = post.querySelector(".post-share-status");
     if (!status) { status = document.createElement("p"); status.className = "post-share-status"; status.setAttribute("role", "status"); actions.after(status); }
-    status.textContent = "";
+    const showLink = () => {
+      status.textContent = "Copy this link to share: ";
+      const link = document.createElement("a"); link.href = shareUrl; link.textContent = shareUrl; status.appendChild(link);
+    };
+    showLink();
     try {
       if (navigator.share) {
         try { await navigator.share(shareData); return; }
         catch (error) { if (error.name === "AbortError") return; }
       }
-      try { await navigator.clipboard.writeText(shareUrl); status.textContent = "Link copied. Paste it wherever you want to share."; }
-      catch {
-        status.textContent = "Copy this link to share: ";
-        const link = document.createElement("a"); link.href = shareUrl; link.textContent = shareUrl; status.appendChild(link);
-      }
+      let copyTimer;
+      try {
+        await Promise.race([navigator.clipboard.writeText(shareUrl), new Promise((_, reject) => { copyTimer = setTimeout(() => reject(new Error("Clipboard timed out")), 3000); })]);
+        status.textContent = "Link copied. Paste it wherever you want to share.";
+      } catch { showLink(); }
+      finally { clearTimeout(copyTimer); }
     } finally { button.disabled = false; }
   });
   actions.appendChild(button);

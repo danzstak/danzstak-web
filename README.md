@@ -102,3 +102,11 @@ Requested UI behavior: icon-only Like/Comment/Share, with a right-facing share a
 
 Implemented and locally regression-tested for release v213: off-screen video pause; text-field long press emoji picker without visible Emoji buttons; persistent sessions without idle sign-out; 15 UI languages including Korean, Japanese, Filipino/Tagalog, and both Chinese scripts. Home restores the menu alongside the feed; left-menu destinations open full page. Live visual verification remains required. Untranslated interface strings fall back to English; personal content is not translated.
 
+
+### Verified interaction pass — October 26, 2026
+
+Release v216: all 47 JavaScript regression checks, six-page static smoke checks, release verification checks, and infrastructure validation passed. Production v213 passed live security checks (HTTPS redirect, security headers, delivered inline-script CSP, assets, API authentication, and TLS policy). Repeat live security verification after the final sharing release.
+
+Live browser checks confirmed Home restores menu + feed; Feed and all seven sidebar workspaces open without the sidebar; no horizontal overflow at 320, 390, 768, or 1280 viewport widths. Korean, Japanese, and Filipino/Tagalog switch interface labels; English was restored afterward. Edit Profile saves successfully; Posts, Friends, and Media load. Like/unlike, comments expansion, Story viewer/close, save/view/unsave, notification empty state, message conversation/minimize, Manage, update check, and Apply Update were exercised. Save and reaction tests restored their original state. No new calls or messages were sent in this pass.
+
+The audit caught a Facebook share fallback and replaced it with native sharing or a copied/manual post link. Clipboard failures and stalled clipboard requests retain a visible link. Native share cancellation is respected. Translation covers core interface labels with English fallback, not every error or legal paragraph. Fresh signup with real email verification, physical-device notification sound, and native call ringing remain unverified or unresolved. AWS Lambda quota request remains CASE_OPENED. Facebook import remains paused; this record does not certify every destructive production action as tested.
