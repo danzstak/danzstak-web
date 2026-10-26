@@ -922,7 +922,8 @@ function renderWorkspace(name) {
     const legalLinks = document.createElement("span");
     legalLinks.className = "settings-links";
     const privacyLink = document.createElement("a"); privacyLink.href = "privacy.html"; privacyLink.textContent = "Privacy";
-    legalLinks.append(privacyLink);
+    const termsLink = document.createElement("a"); termsLink.href = "terms.html"; termsLink.textContent = "Terms";
+    legalLinks.append(privacyLink, termsLink);
     const sessionInfo = document.createElement("span");
     sessionInfo.className = "settings-detail";
     sessionInfo.textContent = "Stay signed in until you sign out";
@@ -1004,7 +1005,7 @@ function renderWorkspace(name) {
       settingRow("🗂", "Your DanzStak activity", activityButton),
       settingRow("↓", "Download my data", exportButton),
       settingRow("🕒", "Session", sessionInfo),
-      settingRow("📄", "Privacy Policy", legalLinks),
+      settingRow("📄", "Legal and privacy", legalLinks),
       settingRow("🚪", "Account", logout),
       button
     );

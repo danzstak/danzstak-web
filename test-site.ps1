@@ -348,6 +348,9 @@ foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey &&
 foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Stay signed in until you sign out', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: darkCheckbox.checked', 'language: language.value')) {
   if (-not $feedEnhancements.Contains($settingsBehavior)) { Add-Failure "Settings: persistent control is missing: $settingsBehavior" }
 }
+foreach ($legalSettingsBehavior in @('"Legal and privacy"', 'privacyLink.href = "privacy.html"', 'termsLink.href = "terms.html"', 'legalLinks.append(privacyLink, termsLink)')) {
+  if (-not $feedEnhancements.Contains($legalSettingsBehavior)) { Add-Failure "Settings: legal navigation is incomplete: $legalSettingsBehavior" }
+}
 foreach ($dataSaverBehavior in @('function applyDataSaver(enabled)', '!document.hidden && !dataSaverEnabled()', 'video.autoplay = !dataSaverEnabled()', 'load.textContent = "Load " + reel.platform + " video"', 'load.replaceWith(createFrame())')) {
   if (-not $feedEnhancements.Contains($dataSaverBehavior)) { Add-Failure "Settings: Data saver does not control active Story or Reel media: $dataSaverBehavior" }
 }
