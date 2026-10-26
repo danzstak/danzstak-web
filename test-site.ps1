@@ -59,6 +59,10 @@ foreach ($bookingClientControl in @('Send me out and bring me home', 'Band or ar
 if (-not (Get-Content -LiteralPath (Join-Path $root 'assets\booking-agent-driver.css') -Raw -Encoding utf8).Contains('@media(max-width:520px){.booking-lead{padding:16px 18px}')) {
   Add-Failure 'Booking Agent: narrow-phone hero and navigation sizing is missing'
 }
+$bookingDriverCss = Get-Content -LiteralPath (Join-Path $root 'assets\booking-agent-driver.css') -Raw -Encoding utf8
+if (-not $bookingDriverCss.Contains('@media(max-width:680px){.primary-route{position:static}')) {
+  Add-Failure 'Booking Agent: mobile route action can overlap form fields'
+}
 foreach ($tourEstimateControl in @('miles/mpg*number("fuelPrice")', 'number("rentalRate")*days', 'Daily mileage is aggressive', 'navigator.geolocation.getCurrentPosition', 'window.print()')) {
   if (-not $bookingClient.Contains($tourEstimateControl)) { Add-Failure "Tour Manager: estimate or driver safeguard is missing: $tourEstimateControl" }
 }
