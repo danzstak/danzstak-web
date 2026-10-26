@@ -48,12 +48,32 @@
       method: "POST",
       body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys })
     });
+    try { sessionStorage.setItem("danzstak_push_synced", "1"); } catch (_) {}
     dispatchEvent(new CustomEvent("danzstak:push-enabled"));
     return subscription;
   }
 
   window.danzstakPushState = state;
   window.danzstakEnablePush = enable;
+
+  async function renewExistingSubscription() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window) || Notification.permission !== "granted") return;
+    try {
+      if (sessionStorage.getItem("danzstak_push_synced") === "1") return;
+    } catch (_) {}
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) return;
+      const serialized = subscription.toJSON();
+      await api("/push/subscribe", {
+        method: "POST",
+        body: JSON.stringify({ endpoint: serialized.endpoint, keys: serialized.keys })
+      });
+      try { sessionStorage.setItem("danzstak_push_synced", "1"); } catch (_) {}
+      dispatchEvent(new CustomEvent("danzstak:push-enabled"));
+    } catch (_) { /* Retry on the next page load without disturbing the signed-in experience. */ }
+  }
 
   async function showPermissionPrompt() {
     if (new URLSearchParams(location.search).get("embedded") === "1") return;
@@ -100,5 +120,6 @@
   }
 
   addEventListener('danzstak:push-enabled', () => document.querySelector('.push-alert-prompt')?.remove());
+  setTimeout(renewExistingSubscription, 2000);
   setTimeout(showPermissionPrompt, 12000);
 })();
