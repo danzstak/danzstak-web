@@ -15,6 +15,8 @@ assert.match(chat, /els\.incomingLabel\.textContent="Incoming "\+event\.mode\+" 
 assert.match(messages, /window\.danzstakActiveContactName = conversation\.name \|\| "DanzStak member"/);
 assert.match(messages, /call\.addEventListener\("click", \(\) => \{ openConversation\(conversation\); document\.getElementById\(targetId\)\?\.click\(\); \}\)/);
 assert.doesNotMatch(messages, /call\.addEventListener\("click", \(\) => \{ contactInput\.value = conversation\.contactEmail/);
+assert.match(messages, /call\.title = `\$\{targetId === "startPhone" \? "Phone" : "Video"\} call with \$\{publicName\}`/);
+assert.doesNotMatch(messages, /call\.title = `[^`]*\$\{conversation\.contactEmail\}/);
 assert.doesNotMatch(messages, /conversationName\.textContent = conversation\.name \|\| conversation\.contactEmail/);
 assert.doesNotMatch(messages, /name\.textContent = conversation\.name \|\| conversation\.contactEmail/);
 assert.doesNotMatch(messages, /name: requested\.split\("@"\)\[0\]/);
