@@ -1601,12 +1601,17 @@ function publicPlace(place) {
   };
 }
 
-function isBookableClub(place) {
+function isBookableClub(place, genre = "") {
   const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
   const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|symphony|orchestra|opera house|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
-  const wrongFormat = /\b(jazz|comedy|comic|laughs?|piano bar|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance studio|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|recording studio|rehearsal studio|event consultant|entertainment consultant|event planner|church|worship|jubilee)\b/;
-  const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival office|walking tour|history tour|guided tour)\b/;
-  return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description);
+  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance studio|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|recording studio|rehearsal studio|event consultant|entertainment consultant|event planner|church|worship|jubilee|gospel|christmas market|weihnachtsmarkt|variet[eé])\b/;
+  const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival office|jazzfest|walking tour|history tour|guided tour)\b/;
+  const selectedGenre = genre.toLowerCase(), wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
+  return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre;
+}
+
+function hasBookingContact(place) {
+  return Boolean(place.websites?.length || place.emails?.length || place.phones?.length);
 }
 
 const tourDirections = new Set(["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]);
@@ -1632,7 +1637,7 @@ async function suggestDirectionalMarkets(home, direction, days, genre = "") {
     let places = [];
     for (const query of queries) {
       const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, Filter: { Circle: { Center: bias, Radius: 60000 } }, MaxResults: 10, AdditionalFeatures: ["Contact"] }));
-      places = (result.ResultItems || []).map(publicPlace).filter(place => place.position.length === 2 && isBookableClub(place));
+      places = (result.ResultItems || []).map(publicPlace).filter(place => place.position.length === 2 && isBookableClub(place, genre));
       if (places.length) break;
     }
     const lead = places.sort((left, right) => (left.distanceMiles ?? Number.MAX_SAFE_INTEGER) - (right.distanceMiles ?? Number.MAX_SAFE_INTEGER))[0];
@@ -1659,7 +1664,7 @@ async function tourCandidates(point, genre = "") {
   const genreQuery = genre ? `${genre} music club` : "DIY punk metal rock music club";
   const [genreVenues, musicVenues, liveBars, clubs, hotelResults] = await Promise.all([search(genreQuery), search("live music venue"), search("bar with live music"), search("music club"), search("hotel")]);
   const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
-  const seen = new Set(), venues = [...genreVenues, ...musicVenues, ...liveBars, ...clubs].filter(place => nearby(place, 50) && isBookableClub(place)).filter(place => { const key = `${place.name}|${place.address}`.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; }).slice(0, 30);
+  const seen = new Set(), venues = [...genreVenues, ...musicVenues, ...liveBars, ...clubs].filter(place => nearby(place, 50) && isBookableClub(place, genre) && hasBookingContact(place)).filter(place => { const key = (place.address || place.name).toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; }).slice(0, 30);
   const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }

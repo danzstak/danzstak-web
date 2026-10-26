@@ -66,11 +66,11 @@ foreach ($feedPaginationControl in @('async function scanAll(request, maximumIte
 foreach ($completeCleanupControl in @('async function queryAll(request, maximumItems = 5000)', 'const members = await scanAll({ TableName: groupsTable', 'const memberships = await scanAll({', 'queryAll({ TableName: reactionsTable', 'queryAll({ TableName: commentsTable', 'linkedStories = await scanAll({', 'const items = await queryAll({ TableName: engagementNotificationsTable')) {
   if (-not $authApi.Contains($completeCleanupControl)) { throw "Engagement, profile authorization, or deletion cleanup stops at one DynamoDB page: $completeCleanupControl" }
 }
-foreach ($diyBookingControl in @('genre ? `${genre} music club` : "DIY punk metal rock music club"', 'function isBookableClub(place)', 'const wrongScale =', 'const wrongFormat =', 'const eventNotRoom =', 'MaxResults: 20')) {
+foreach ($diyBookingControl in @('genre ? `${genre} music club` : "DIY punk metal rock music club"', 'function isBookableClub(place, genre = "")', 'function hasBookingContact(place)', 'const wrongScale =', 'const wrongFormat =', 'const eventNotRoom =', 'MaxResults: 20')) {
   if (-not $authApi.Contains($diyBookingControl)) { throw "Booking Agent DIY venue filter is missing: $diyBookingControl" }
 }
 $directionalMarketSearch = [regex]::Match($authApi, 'async function suggestDirectionalMarkets[\s\S]*?async function geocodeTourPlace').Value
-foreach ($directionalControl in @('Filter: { Circle: { Center: bias, Radius: 60000 } }', '"live music club"', '"live music venue"', 'isBookableClub(place)', 'left.distanceMiles ?? Number.MAX_SAFE_INTEGER')) {
+foreach ($directionalControl in @('Filter: { Circle: { Center: bias, Radius: 60000 } }', '"live music club"', '"live music venue"', 'isBookableClub(place, genre)', 'left.distanceMiles ?? Number.MAX_SAFE_INTEGER')) {
   if (-not $directionalMarketSearch.Contains($directionalControl)) { throw "Booking Agent direction-constrained market search is missing: $directionalControl" }
 }
 if ($directionalMarketSearch.Contains('BiasPosition: bias')) {
@@ -78,6 +78,9 @@ if ($directionalMarketSearch.Contains('BiasPosition: bias')) {
 }
 foreach ($nonVenueFilter in @('table\s*dance', 'adult entertainment', 'recording studio', 'event consultant', 'walking tour')) {
   if (-not $authApi.Contains($nonVenueFilter)) { throw "Booking Agent can still recommend a non-bookable venue type: $nonVenueFilter" }
+}
+foreach ($venueQualityControl in @('!selectedGenre.includes("jazz") && /\bjazz\w*/.test(description)', 'hasBookingContact(place)', 'const key = (place.address || place.name).toLowerCase()')) {
+  if (-not $authApi.Contains($venueQualityControl)) { throw "Booking Agent venue quality safeguard is missing: $venueQualityControl" }
 }
 $directionalRouteCalculation = [regex]::Match($authApi, 'let points = directional[\s\S]*?const summary = route\?\.Routes').Value
 foreach ($routeFallbackControl in @('while (points.length >= 3)', 'if (!directional) throw error', 'points.length === 3', 'points = [...points.slice(0, -2), points.at(-1)]')) {
