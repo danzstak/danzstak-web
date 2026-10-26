@@ -1174,11 +1174,16 @@ if (composerActions && publishButton) {
       const like = document.createElement("button");
       like.type = "button";
       like.className = "likeBtn";
-      like.textContent = "Like";
+      like.textContent = "♡";
+      like.setAttribute("aria-label", "Like post");
+      like.setAttribute("aria-pressed", "false");
+      like.title = "Like post";
       const comment = document.createElement("button");
       comment.type = "button";
       comment.className = "commentBtn";
-      comment.textContent = "Comment";
+      comment.textContent = "💬";
+      comment.setAttribute("aria-label", "Comment on post");
+      comment.title = "Comment on post";
       actions.append(like, comment);
       const comments = document.createElement("div");
       comments.className = "comments";
@@ -1216,7 +1221,9 @@ function addShareButton(post) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "shareBtn";
-  button.textContent = "Share";
+  button.textContent = "➜";
+  button.setAttribute("aria-label", "Share post");
+  button.title = "Share post";
   button.addEventListener("click", async () => {
     if ((post.dataset.audience || "public") !== "public") {
       alert("Only Public posts can be shared outside DanzStak.");
@@ -1685,7 +1692,7 @@ document.addEventListener("click", event => {
 });
 
 const engagementApi = "https://api.danzstak.com";
-const reactionEmoji = { Like: "👍", Love: "❤️", Laugh: "😂", Wow: "😮", Sad: "😢", Fire: "🔥" };
+const reactionEmoji = { Like: "♥", Love: "❤️", Laugh: "😂", Wow: "😮", Sad: "😢", Fire: "🔥" };
 
 function engagementPostId(post) {
   const value = String(post?.dataset.postId || "");
@@ -1699,7 +1706,11 @@ function setReactionAppearance(post, reaction, counts = {}) {
   like.dataset.reaction = reaction || "";
   const total = Object.values(counts).reduce((sum, count) => sum + Number(count || 0), 0);
   const emoji = reactionEmoji[reaction] || "♡";
-  like.replaceChildren(document.createTextNode(`${emoji} ${reaction || "Like"}${total ? ` · ${total}` : ""}`));
+  like.replaceChildren(document.createTextNode(`${emoji}${total ? ` · ${total}` : ""}`));
+  const actionLabel = reaction ? `Remove ${reaction.toLowerCase()} reaction` : "Like post";
+  like.setAttribute("aria-label", actionLabel);
+  like.setAttribute("aria-pressed", String(Boolean(reaction)));
+  like.title = actionLabel;
 }
 
 function renderPersistentComment(post, comment) {
@@ -1798,7 +1809,10 @@ function addReactionButton(post) {
   const initialHeart = document.createElement("span");
   initialHeart.className = "like-heart";
   initialHeart.textContent = "\u2661";
-  like.replaceChildren(initialHeart, document.createTextNode(" Like"));
+  like.replaceChildren(initialHeart);
+  like.setAttribute("aria-label", "Like post");
+  like.setAttribute("aria-pressed", "false");
+  like.title = "Like post";
   const palette = document.createElement("div");
   palette.className = "reaction-palette";
   palette.hidden = true;
@@ -1813,14 +1827,7 @@ function addReactionButton(post) {
       event.stopPropagation();
       like.dataset.liked = "true";
       like.dataset.reaction = label;
-      if (label === "Love") {
-        const heart = document.createElement("span");
-        heart.className = "like-heart";
-        heart.textContent = "\u2665";
-        like.replaceChildren(heart, document.createTextNode(" Love"));
-      } else {
-        like.textContent = `${emoji} ${label}`;
-      }
+      setReactionAppearance(post, label);
       palette.hidden = true;
       saveReaction(post, label).catch(() => { post.dataset.engagementLoaded = ""; loadEngagement(post); });
     });
@@ -1847,7 +1854,10 @@ function addReactionButton(post) {
       const heart = document.createElement("span");
       heart.className = "like-heart";
       heart.textContent = liked ? "\u2661" : "\u2665";
-      like.replaceChildren(heart, document.createTextNode(liked ? " Like" : " Liked"));
+      like.replaceChildren(heart);
+      like.setAttribute("aria-label", liked ? "Like post" : "Remove like reaction");
+      like.setAttribute("aria-pressed", String(!liked));
+      like.title = liked ? "Like post" : "Remove like reaction";
       saveReaction(post, liked ? "" : "Like").catch(() => { post.dataset.engagementLoaded = ""; loadEngagement(post); });
       return;
     }

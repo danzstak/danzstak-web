@@ -59,3 +59,5 @@ body:has(dialog[open])>.install-app-button,body:has(dialog[open])>.app-update-bu
 
 .site-ownership{padding:16px 20px;text-align:center;color:#65676b;font-size:12px;line-height:1.5}.dark-mode .site-ownership{color:#b8c2d1}.is-conversation-open>.site-ownership{display:none}
 @media(max-width:360px){.topbar .topnav button{font-size:10px;padding-inline:2px}.post-actions{flex-wrap:wrap}.post-actions button{flex:1 1 64px!important;min-width:0}}
+
+.post-actions button{min-width:44px;min-height:40px;flex:1 1 0!important;font-size:20px;line-height:1.2}.post-actions .likeBtn[data-liked="true"]{color:#e0314b!important}
