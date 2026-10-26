@@ -30,8 +30,10 @@ function isLocalHost() {
 function updateNotificationCount(count) {
   const safeCount = Math.max(0, Number(count) || 0);
   for (const control of notificationControls) {
-    if (!control.dataset.baseLabel) control.dataset.baseLabel = control.textContent.trim();
-    control.textContent = safeCount ? `${control.dataset.baseLabel} (${safeCount})` : control.dataset.baseLabel;
+    if (!control.dataset.baseLabel) control.dataset.baseLabel = control.dataset.feature || control.textContent.trim();
+    const badge = control.querySelector(".nav-count");
+    if (badge) { badge.hidden = safeCount === 0; badge.textContent = safeCount > 99 ? "99+" : String(safeCount); }
+    else control.textContent = safeCount ? `${control.dataset.baseLabel} (${safeCount})` : control.dataset.baseLabel;
     control.setAttribute("aria-label", safeCount ? `${control.dataset.baseLabel}, ${safeCount} new` : control.dataset.baseLabel);
   }
   if (lastNotificationCount !== null && safeCount !== lastNotificationCount) notificationAnnouncer.textContent = safeCount ? `${safeCount} new notification${safeCount === 1 ? "" : "s"}.` : "No new notifications.";
@@ -250,7 +252,7 @@ async function respondToNotificationRequest(row, email, accept) {
 let workspaceRenderVersion = 0;
 function renderWorkspace(name) {
   const renderVersion = ++workspaceRenderVersion;
-  const isCurrentWorkspace = () => renderVersion === workspaceRenderVersion && !featurePanel.hidden && featureHeading.textContent === name;
+  const isCurrentWorkspace = () => renderVersion === workspaceRenderVersion && !featurePanel.hidden;
   let workspace = featurePanel.querySelector(".feature-workspace");
   if (!workspace) {
     workspace = document.createElement("div");
@@ -536,7 +538,7 @@ function renderWorkspace(name) {
               if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email);
               setTimeout(() => {
                 refreshNotificationCount();
-                if (featureHeading.textContent === "Notifications") renderWorkspace("Notifications");
+                if ((featurePanel.dataset?.workspaceName || featureHeading.textContent) === "Notifications") renderWorkspace("Notifications");
               }, 1500);
             });
             actions.appendChild(open);
@@ -762,11 +764,11 @@ function renderWorkspace(name) {
     dataSaverCheckbox.addEventListener("change", () => applyDataSaver(dataSaverCheckbox.checked));
     const language = document.createElement("select");
     language.setAttribute("aria-label", "DanzStak language");
-    for (const [value, label] of [["en", "English"]]) {
-      const option = document.createElement("option"); option.value = value; option.textContent = label; language.appendChild(option);
+    for (const [value, label] of (window.danzstakLanguages || [["en", "English"]])) {
+      const option = document.createElement("option"); option.value = value; option.textContent = label; option.setAttribute("data-no-translate", ""); language.appendChild(option);
     }
     language.value = readDevicePreference("danzstak_language") || "en";
-    language.addEventListener("change", () => { cacheDevicePreference("danzstak_language", language.value); document.documentElement.lang = language.value; });
+    language.addEventListener("change", () => { cacheDevicePreference("danzstak_language", language.value); if (window.danzstakSetLanguage) window.danzstakSetLanguage(language.value); else document.documentElement.lang = language.value; });
     const appSettings = document.createElement("button");
     appSettings.type = "button";
     appSettings.className = "secondary";
@@ -800,11 +802,10 @@ function renderWorkspace(name) {
     const legalLinks = document.createElement("span");
     legalLinks.className = "settings-links";
     const privacyLink = document.createElement("a"); privacyLink.href = "privacy.html"; privacyLink.textContent = "Privacy";
-    const termsLink = document.createElement("a"); termsLink.href = "terms.html"; termsLink.textContent = "Terms";
-    legalLinks.append(privacyLink, termsLink);
+    legalLinks.append(privacyLink);
     const sessionInfo = document.createElement("span");
     sessionInfo.className = "settings-detail";
-    sessionInfo.textContent = "Signs out after 2h without activity";
+    sessionInfo.textContent = "Stay signed in until you sign out";
     const logout = document.createElement("button");
     logout.type = "button"; logout.className = "secondary"; logout.dataset.logout = ""; logout.textContent = "Logout";
     const button = document.createElement("button");
@@ -837,7 +838,7 @@ function renderWorkspace(name) {
           dataSaverCheckbox.checked = data.dataSaver;
           applyDataSaver(data.dataSaver);
         }
-        if (data.language === "en") {
+        if ((window.danzstakLanguages || [["en", "English"]]).some(([code]) => code === data.language)) {
           language.value = data.language;
           document.documentElement.lang = data.language;
           cacheDevicePreference("danzstak_language", data.language);
@@ -878,8 +879,8 @@ function renderWorkspace(name) {
       settingRow("🌐", "Language", language),
       settingRow("🔔", "Call and message alerts", alertSettings),
       settingRow("📱", "App and device settings", appSettings),
-      settingRow("🕒", "Session timeout", sessionInfo),
-      settingRow("📄", "Legal and privacy", legalLinks),
+      settingRow("🕒", "Session", sessionInfo),
+      settingRow("📄", "Privacy Policy", legalLinks),
       settingRow("🚪", "Account", logout),
       button
     );
@@ -900,9 +901,12 @@ const workspaceRoutes = new Map(["Friends", "Groups", "Photos", "Videos", "Event
 function openWorkspaceRoute(name, pushHistory = true) {
   if (!workspaceRoutes.has(String(name).toLowerCase())) return false;
   const canonicalName = workspaceRoutes.get(String(name).toLowerCase());
+  document.body.classList.add("content-only");
+  document.querySelector('[data-route="home"]')?.removeAttribute("aria-current");
   document.getElementById("newsFeedView").hidden = true;
   featurePanel.hidden = false;
   featureHeading.textContent = canonicalName;
+  featurePanel.dataset.workspaceName = canonicalName;
   document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.dataset.feature === canonicalName));
   document.querySelectorAll("[data-feature]").forEach(control => {
     const active = control.dataset.feature === canonicalName;
@@ -932,9 +936,13 @@ function restoreWorkspaceRoute() {
   const name = workspaceRoutes.get(location.hash.slice(1).toLowerCase());
   if (name) openWorkspaceRoute(name, false);
   else if (!location.hash || location.hash === "#feed" || location.hash.startsWith("#post-")) {
+    document.body.classList.toggle("content-only", new URLSearchParams(location.search).get("view") === "feed" || location.hash === "#feed" || location.hash.startsWith("#post-"));
+    const home = document.querySelector('[data-route="home"]');
+    if (document.body.classList.contains("content-only")) home?.removeAttribute("aria-current");
+    else home?.setAttribute("aria-current", "page");
     featurePanel.hidden = true;
     document.getElementById("newsFeedView").hidden = false;
-    document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.getAttribute("href") === "feed.html"));
+    document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.getAttribute("href") === "feed.html?view=feed"));
     document.querySelectorAll("[data-feature][aria-current]").forEach(control => control.removeAttribute("aria-current"));
   }
 }
@@ -1075,36 +1083,6 @@ if (composerActions && publishButton) {
 
   mediaPicker("Photo", "image/jpeg,image/png,image/webp,image/gif", "image", null);
   mediaPicker("Video", "video/mp4,video/webm,video/quicktime", "video", 100 * 1024 * 1024);
-  const emojiButton = document.createElement("button");
-  emojiButton.type = "button";
-  emojiButton.className = "secondary";
-  emojiButton.textContent = "Emoji";
-  const emojiPicker = document.createElement("div");
-  emojiPicker.className = "emoji-picker";
-  emojiPicker.hidden = true;
-  emojiPicker.style.width = "100%";
-  emojiPicker.style.padding = "10px";
-  emojiPicker.style.background = "#f0f2f5";
-  emojiPicker.style.borderRadius = "10px";
-  for (const emoji of ["😀", "😂", "😍", "🔥", "🎉", "👏", "❤️", "🤘", "🎤", "🎧", "💯", "🙏"]) {
-    const choice = document.createElement("button");
-    choice.type = "button";
-    choice.textContent = emoji;
-    choice.setAttribute("aria-label", "Insert " + emoji);
-    choice.style.fontSize = "24px";
-    choice.style.border = "0";
-    choice.style.background = "transparent";
-    choice.style.padding = "7px";
-    choice.addEventListener("click", () => {
-      const composer = document.getElementById("postText");
-      const start = composer.selectionStart;
-      composer.setRangeText(emoji, start, composer.selectionEnd, "end");
-      composer.focus();
-    });
-    emojiPicker.appendChild(choice);
-  }
-  emojiButton.addEventListener("click", () => { emojiPicker.hidden = !emojiPicker.hidden; });
-  mediaTools.append(emojiButton, emojiPicker);
   composerActions.parentElement.insertBefore(mediaTools, certification);
   composerActions.parentElement.insertBefore(preview, certification);
 
@@ -2132,7 +2110,7 @@ placeReelsRail();
 document.addEventListener("visibilitychange", () => {
   reelsList.querySelectorAll("video.reel-player").forEach(video => {
     if (document.hidden || video.dataset.inView !== "true") video.pause();
-    else video.play().catch(() => {});
+    else if (!dataSaverEnabled()) video.play().catch(() => {});
   });
 });
 document.getElementById("feed").addEventListener("keydown", event => {
@@ -2145,16 +2123,17 @@ document.getElementById("feed").addEventListener("keydown", event => {
 }, true);
 document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
 function refreshFeedMediaWorkspace(records) {
-  if (featurePanel.hidden || !["Photos", "Videos", "Events", "Saved"].includes(featureHeading.textContent)) return;
+  const workspaceName = featurePanel.dataset?.workspaceName || featureHeading.textContent;
+  if (featurePanel.hidden || !["Photos", "Videos", "Events", "Saved"].includes(workspaceName)) return;
   const feed = document.getElementById("feed");
   if (records.some(record => record.target === feed && (record.addedNodes.length || record.removedNodes.length))) {
-    if (featureHeading.textContent === "Saved") {
+    if (workspaceName === "Saved") {
       const savedList = featurePanel.querySelector(".saved-posts");
       if (savedList) renderSavedPosts(savedList);
-    } else if (featureHeading.textContent === "Events") {
+    } else if (workspaceName === "Events") {
       const publishedEvents = featurePanel.querySelector(".published-events");
       if (publishedEvents) renderPublishedEvents(publishedEvents);
-    } else renderWorkspace(featureHeading.textContent);
+    } else renderWorkspace(workspaceName);
   }
 }
 new MutationObserver(records => {

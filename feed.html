@@ -6,14 +6,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-p1hUDqz4UAatqgG62+R5hm+1qsxwqJzCAUkIm/o9QjU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-NMsVGgNbVmtAgUVly9PPIXP9f5AKT7q4lfsYkfLXnJA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
 <link rel="icon" href="assets/app-icon.svg?v=2" type="image/svg+xml">
 <link rel="shortcut icon" href="assets/favicon-32.png?v=1" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1" sizes="180x180">
-<script src="assets/display-preferences.js?v=20261026-211"></script>
+<script src="assets/display-preferences.js?v=213-212"></script>
 <title>DanzStak | Social Feed</title>
 
 <style>
@@ -268,9 +268,11 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261026-211">
-<link rel="stylesheet" href="assets/incoming-calls.css?v=20261026-211">
-  <link rel="stylesheet" href="assets/soft-ui.css?v=20261026-211">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=213-212">
+<link rel="stylesheet" href="assets/incoming-calls.css?v=213-212">
+  <link rel="stylesheet" href="assets/soft-ui.css?v=213-212">
+<script src="assets/languages.js?v=213-213" defer></script>
+<script src="assets/i18n.js?v=213-213" defer></script>
 </head>
 
 <body>
@@ -285,10 +287,10 @@ textarea {
   >
 
   <nav class="topnav">
-    <button type="button" data-route="home">Home</button>
-    <button type="button" data-feature="Friends">Friends</button>
-    <button type="button" id="messagesNav" aria-controls="messageDrawer" aria-expanded="false">Messages</button>
-    <button type="button" data-feature="Notifications">Notifications</button>
+    <button type="button" data-route="home" aria-label="Home" title="Home"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></svg></button>
+    <button type="button" data-feature="Friends" aria-label="Friends" title="Friends"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5v1"/></svg></button>
+    <button type="button" id="messagesNav" aria-controls="messageDrawer" aria-expanded="false" aria-label="Messages" title="Messages"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 10h10M7 14h7"/></svg></button>
+    <button type="button" data-feature="Notifications" aria-label="Notifications" title="Notifications"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="nav-count" aria-hidden="true" hidden></span></button>
   </nav>
 </header>
 
@@ -296,7 +298,7 @@ textarea {
 
   <aside class="left">
     <div class="panel menu">
-      <a href="feed.html" class="active"><span class="menu-icon" aria-hidden="true">🏠</span><span class="menu-label">Feed</span></a>
+      <a href="feed.html?view=feed" class="active"><span class="menu-icon" aria-hidden="true">🏠</span><span class="menu-label">Feed</span></a>
       <a href="profile.html"><span class="menu-icon" aria-hidden="true">👤</span><span class="menu-label">My Profile</span></a>
       <a href="#friends" data-feature="Friends"><span class="menu-icon" aria-hidden="true">👥</span><span class="menu-label">Friends</span></a>
       <a href="#groups" data-feature="Groups"><span class="menu-icon" aria-hidden="true">👥</span><span class="menu-label">Groups</span></a>
@@ -320,7 +322,7 @@ textarea {
 
     <div id="newsFeedView">
     <section id="storiesRail" class="stories" aria-label="Stories">
-      <button type="button" class="story story-create" aria-label="Add a photo or video to Your Story"><span><b aria-hidden="true">+</b> Your Story</span></button>
+      <button type="button" class="story story-create" aria-label="Add a photo or video to Your Story"><span class="story-create-art" aria-hidden="true"><img src="assets/story-book.svg" alt=""></span><span class="story-create-caption"><b aria-hidden="true">+</b><span class="story-create-label">Stories</span></span></button>
       <div id="storiesLoading" class="story"><span>Loading Stories</span></div>
     </section>
     <section class="panel">
@@ -705,7 +707,7 @@ createStoryInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,v
 createStoryInput.hidden = true;
 createStoryButton?.insertAdjacentElement("afterend", createStoryInput);
 createStoryButton?.addEventListener("click", () => {
-  if (confirm("Do you certify that you created this photo or video and it contains no unauthorized copyrighted material?")) createStoryInput.click();
+  createStoryInput.click();
 });
 createStoryInput.addEventListener("change", async () => {
   const file = createStoryInput.files?.[0];
@@ -721,7 +723,7 @@ createStoryInput.addEventListener("change", async () => {
     return;
   }
   createStoryButton.disabled = true;
-  createStoryButton.querySelector("span").textContent = "Publishing…";
+  createStoryButton.querySelector(".story-create-label").textContent = "Publishing…";
   let uploadedStoryKey = "";
   try {
     const ticketResponse = await fetch("https://api.danzstak.com/stories", {
@@ -746,7 +748,7 @@ createStoryInput.addEventListener("change", async () => {
   } finally {
     createStoryInput.value = "";
     createStoryButton.disabled = false;
-    createStoryButton.querySelector("span").innerHTML = '<b aria-hidden="true">+</b> Your Story';
+    createStoryButton.querySelector(".story-create-label").textContent = "Stories";
   }
 });
 
@@ -1076,9 +1078,12 @@ feed.addEventListener("keydown", (event) => {
 
 // LOAD POSTS AUTOMATICALLY ON PAGE OPEN OR REFRESH
 document.querySelector('[data-route="home"]').addEventListener("click", () => {
+  document.body.classList.remove("content-only");
+  document.querySelectorAll("[data-feature][aria-current]").forEach(control => control.removeAttribute("aria-current"));
+  document.querySelector('[data-route="home"]').setAttribute("aria-current", "page");
   featureView.hidden = true;
   newsFeedView.hidden = false;
-  document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.getAttribute("href") === "feed.html"));
+  document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.getAttribute("href") === "feed.html?view=feed"));
   history.replaceState(null, "", location.pathname);
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
@@ -1141,14 +1146,16 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 </script>
 
-<script src="assets/push-notifications.js?v=20261026-211" defer></script>
-<script src="assets/device-settings.js?v=20261026-211" defer></script>
-<script src="assets/feed-enhancements.js?v=20261026-211" defer></script>
-<script src="assets/session-activity.js?v=20261026-211" defer></script>
-<script src="assets/incoming-calls.js?v=20261026-211" defer></script>
-<script src="assets/session-cleanup.js?v=20261026-211" defer></script>
-<script src="assets/logout.js?v=20261026-211" defer></script>
-<script src="assets/pwa.js?v=20261026-211" defer></script>
+<script src="assets/push-notifications.js?v=213-212" defer></script>
+<script src="assets/device-settings.js?v=213-212" defer></script>
+<script src="assets/feed-enhancements.js?v=213-212" defer></script>
+<script src="assets/session-activity.js?v=213-212" defer></script>
+<script src="assets/incoming-calls.js?v=213-212" defer></script>
+<script src="assets/session-cleanup.js?v=213-212" defer></script>
+<script src="assets/logout.js?v=213-212" defer></script>
+<script src="assets/pwa.js?v=213-212" defer></script>
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
+<script src="assets/media-visibility.js?v=213-212" defer></script>
+<script src="assets/text-emojis.js?v=213-212" defer></script>
 </body>
 </html>

@@ -25,4 +25,5 @@ featurePanel.hidden = false;
 context.changes = [{ target: {}, addedNodes: [{}], removedNodes: [] }];
 vm.runInContext('refreshFeedMediaWorkspace(changes)', context);
 assert.equal(rendered.length, 2, 'comments and reactions do not reset the media player');
+featurePanel.dataset={workspaceName:'Photos'};featureHeading.textContent='사진';context.changes=[{target:feed,addedNodes:[{}],removedNodes:[]}];vm.runInContext('refreshFeedMediaWorkspace(changes)',context);assert.equal(rendered.at(-1),'Photos','translated headings do not change route identity');
 console.log('Feed media checks passed: late posts refresh galleries without resetting other workspaces.');

@@ -644,7 +644,7 @@ async function completeLogin(event) {
   }
 
   const sessionId = randomValue();
-  const expiresAt = now() + 3600;
+  const expiresAt = now() + 31536000;
 
   await db.send(new PutItemCommand({
     TableName: tableName,
@@ -660,7 +660,7 @@ async function completeLogin(event) {
   const sessionCookie = secureCookie(
     sessionCookieName,
     sessionId,
-    3600
+    31536000
   );
 
   const responseCookies = [sessionCookie, expiredBrowserCookie];

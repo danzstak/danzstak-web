@@ -54,7 +54,7 @@ if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTick
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }
 }
-foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()', 'Do you certify that you created this photo or video')) {
+foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()', 'Do you certify that you created this Story')) {
   if (-not $feed.Contains($preUploadCertification)) { Add-Failure "Copyright: upload can begin before explicit certification: $preUploadCertification" }
 }
 foreach ($drawerAccessibility in @('aria-controls="messageDrawer"', 'aria-expanded="false"', 'drawer.setAttribute("role", "dialog")', 'event.key === "Escape"', 'launcher.setAttribute("aria-expanded", "true")')) {
@@ -276,7 +276,7 @@ foreach ($notificationHistoryUi in @('notice.unread !== false', 'row.classList.t
 foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey && !viewingOtherProfile')) {
   if (-not $profileEditorJs.Contains($protectedProfileMedia)) { Add-Failure "Profiles: media authorization safeguard is missing: $protectedProfileMedia" }
 }
-foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Signs out after 2h without activity', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: darkCheckbox.checked', 'language: language.value')) {
+foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Stay signed in until you sign out', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: darkCheckbox.checked', 'language: language.value')) {
   if (-not $feedEnhancements.Contains($settingsBehavior)) { Add-Failure "Settings: persistent control is missing: $settingsBehavior" }
 }
 foreach ($dataSaverBehavior in @('function applyDataSaver(enabled)', '!document.hidden && !dataSaverEnabled()', 'video.autoplay = !dataSaverEnabled()', 'load.textContent = "Load " + reel.platform + " video"', 'load.replaceWith(createFrame())')) {
@@ -292,16 +292,8 @@ $homeJs = Get-Content -LiteralPath (Join-Path $root 'assets\home.js') -Raw -Enco
 foreach ($privateKey in @('danzstak_dev_sections', 'danzstak-post-preferences', 'danzstak-hidden-posts', 'danzstak_chat_read', 'danzstak_profile_draft', 'danzstak_profile_media', 'danzstak_last_activity')) {
   if (-not $sessionCleanupJs.Contains($privateKey)) { Add-Failure "Logout cleanup omits account-local data: $privateKey" }
 }
-if ($sessionActivityJs.Contains('if (document.hidden || presenceUpdating) return;') -or
-    -not $sessionActivityJs.Contains('Date.now() - lastActivity >= idleTimeout || presenceUpdating')) {
-  Add-Failure 'Presence: background tabs can expire an otherwise active signed-in user'
-}
-if (-not $sessionActivityJs.Contains('localStorage.setItem(activityKey, String(lastActivity))')) {
-  Add-Failure 'Presence: authenticated page load does not begin a fresh activity window'
-}
-foreach ($idleBehavior in @('const activityKey = "danzstak_last_activity"', 'setTimeout(logoutIfIdle', 'keepalive: true', 'addEventListener("storage"')) {
-  if (-not $sessionActivityJs.Contains($idleBehavior)) { Add-Failure "Sessions: exact two-hour cross-tab idle logout is missing: $idleBehavior" }
-}
+if ($sessionActivityJs.Contains('logoutIfIdle') -or $sessionActivityJs.Contains('/auth/logout')) { Add-Failure 'Sessions: inactivity still signs users out' }
+if (-not $sessionActivityJs.Contains('/auth/refresh')) { Add-Failure 'Sessions: persistent session refresh is missing' }
 foreach ($profileFeature in @('loadProfilePosts(false)', 'loadProfilePosts(true)', 'loadProfileFriends()', 'profile-friend-card', 'profile-post-card')) {
   if (-not $profileEditorJs.Contains($profileFeature)) { Add-Failure "Profile tabs are not functional: $profileFeature" }
 }
@@ -424,7 +416,7 @@ if (-not $feedEnhancementsJs.Contains('readSections().Settings?.notifications ==
 }
 if (-not $feedEnhancementsJs.Contains('const people = new Map(directory.map') -or
     -not $feedEnhancementsJs.Contains('avatar.className = "notification-avatar"') -or
-    -not $feedEnhancementsJs.Contains('if (featureHeading.textContent === "Notifications") renderWorkspace("Notifications")')) {
+    -not $feedEnhancementsJs.Contains('if ((featurePanel.dataset?.workspaceName || featureHeading.textContent) === "Notifications") renderWorkspace("Notifications")')) {
   Add-Failure 'Notifications: member identity or post-read refresh is incomplete'
 }
 if (-not $feedEnhancementsJs.Contains('function postPermalink(post)') -or
@@ -452,7 +444,7 @@ if (-not $directMessagesJs.Contains('if (!document.body.classList.contains("is-c
 }
 if (-not $directMessagesJs.Contains('message.myReaction === emoji ? "Remove " : "React with "') -or
     -not $directMessagesJs.Contains('call.setAttribute("aria-label", call.title)') -or
-    -not $directMessagesJs.Contains('button.setAttribute("aria-label", "Insert " + emoji)')) {
+    -not (Get-Content (Join-Path $root 'assets/text-emojis.js') -Raw).Contains("button.setAttribute('aria-label','Insert '+emoji)")) {
   Add-Failure 'Messaging: dynamic emoji or call controls lack accessible names'
 }
 foreach ($reactionBehavior in @('async function saveMessageReaction(', 'action: "reaction"', 'updateMessageReactionBadge(existing, message)', 'message.reactionCounts')) {

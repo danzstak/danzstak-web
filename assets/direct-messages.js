@@ -19,8 +19,6 @@ const chatSearch = document.getElementById("chatSearch");
 const conversationHeader = document.getElementById("conversationHeader");
 const conversationName = document.getElementById("conversationName");
 const conversationAvatar = document.getElementById("conversationAvatar");
-const emojiButton = document.getElementById("emojiButton");
-const emojiPalette = document.getElementById("emojiPalette");
 let directContact = "";
 let currentEmail = "";
 let loadingMessages = false;
@@ -332,8 +330,7 @@ document.getElementById("headerPhone")?.addEventListener("click", () => document
 document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
 document.getElementById("minimizeConversation")?.addEventListener("click", () => { document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-minimize" }, location.origin); });
 document.getElementById("closeConversation")?.addEventListener("click", () => closeConversation({ focusList: true }));
-for (const emoji of ["😀","😂","😍","❤️","👍","🔥","🎉","😢","😮","🙏","👏","🎵"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", "Insert " + emoji); button.addEventListener("click", () => { messageInput.value += emoji; emojiPalette.hidden = true; messageInput.focus(); }); emojiPalette.appendChild(button); }
-emojiButton?.addEventListener("click", () => { emojiPalette.hidden = !emojiPalette.hidden; });
+
 window.addEventListener("message", event => { if (event.source === window.parent && event.origin === location.origin && event.data?.type === "danzstak-chat-hidden") document.body.classList.remove("is-conversation-open"); });
 
 onlineUsers?.addEventListener("click", event => {

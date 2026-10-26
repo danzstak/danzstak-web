@@ -147,7 +147,7 @@ if ($storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES
     $storyDeletion.IndexOf('for(let attempt=0;attempt<3;attempt++)') -lt $storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES_TABLE')) {
   throw 'Story deletion must remove the database record before retrying dedicated-media cleanup.'
 }
-foreach ($accountPreferenceControl in @('darkMode = :d', 'reduceMotion = :r', 'dataSaver = :s', "body.language!=='en'")) {
+foreach ($accountPreferenceControl in @('darkMode = :d', 'reduceMotion = :r', 'dataSaver = :s', '.includes(body.language)')) {
   if (-not $template.Contains($accountPreferenceControl)) { throw "Account settings persistence is missing: $accountPreferenceControl" }
 }
 foreach ($copyrightControl in @('body.rightsCertified!==true', 'body.originalContentCertified!==true')) {
