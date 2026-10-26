@@ -404,6 +404,15 @@ foreach ($requiredAmplifyCheck in @(
     throw "Amplify release verification is missing: $requiredAmplifyCheck"
   }
 }
+$amplifyRules = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'infrastructure\amplify-custom-rules.json') -Raw -Encoding utf8 | ConvertFrom-Json
+$canonicalRule = $amplifyRules | Where-Object { $_.source -eq 'https://www.danzstak.com' }
+if (-not $canonicalRule -or $canonicalRule.status -ne '301' -or $canonicalRule.target -ne 'https://danzstak.com') {
+  throw 'Amplify Hosting is missing the permanent www-to-apex redirect rule'
+}
+$productionConfig = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-configure-production.ps1') -Raw -Encoding utf8
+if (-not $productionConfig.Contains('infrastructure\amplify-custom-rules.json') -or -not $productionConfig.Contains('aws amplify update-app')) {
+  throw 'Production configuration does not apply the version-controlled Amplify redirect rules'
+}
 if (-not $publishScript.Contains('aws cloudfront list-distributions --region $Region')) {
   throw 'Static deployment depends on an ambient AWS default region'
 }

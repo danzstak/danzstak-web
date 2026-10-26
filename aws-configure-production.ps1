@@ -2,6 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $ApiRegion = "us-west-1"
 $ApiId = "0872gqal4m"
+$AmplifyAppId = "d31oovi2mos5iz"
 $UserPoolRegion = "us-east-1"
 $UserPoolId = "us-east-1_qA4B46ilc"
 
@@ -27,5 +28,13 @@ aws apigatewayv2 update-stage `
   --stage-name '$default' `
   --default-route-settings ThrottlingBurstLimit=40,ThrottlingRateLimit=20,DetailedMetricsEnabled=true | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "API throttling and metrics configuration failed." }
+
+Write-Host "Configuring the canonical DanzStak domain redirect..."
+$amplifyRulesPath = Join-Path $PSScriptRoot 'infrastructure\amplify-custom-rules.json'
+aws amplify update-app `
+  --region $ApiRegion `
+  --app-id $AmplifyAppId `
+  --custom-rules "file://$amplifyRulesPath" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Amplify canonical-domain redirect configuration failed." }
 
 Write-Host "DanzStak production runtime configuration applied."

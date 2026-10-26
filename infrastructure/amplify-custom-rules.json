@@ -1,0 +1,12 @@
+[
+  {
+    "source": "https://www.danzstak.com",
+    "target": "https://danzstak.com",
+    "status": "301"
+  },
+  {
+    "source": "/<*>",
+    "target": "/index.html",
+    "status": "404-200"
+  }
+]
