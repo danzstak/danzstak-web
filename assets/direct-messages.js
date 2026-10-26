@@ -275,7 +275,7 @@ async function loadConversations() {
     const visible = cachedConversations.filter(item => {
       const matchesSearch = !query || (item.name + " " + item.contactEmail + " " + item.preview).toLowerCase().includes(query);
       const unread = Number(item.unread || 0) > 0;
-      const matchesFilter = activeFilter === "all" || (activeFilter === "unread" && unread) || (["groups", "communities"].includes(activeFilter) && item.sharedGroup);
+      const matchesFilter = activeFilter === "all" || (activeFilter === "unread" && unread) || (activeFilter === "groups" && item.sharedGroup);
       return matchesSearch && matchesFilter;
     });
     if (!visible.length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = query ? "No friends or chats match your search." : "No friends or saved chats yet."; conversationUsers.appendChild(empty); return; }
