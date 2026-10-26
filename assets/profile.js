@@ -53,7 +53,8 @@ async function loadProfile() {
       cover.classList.add("has-photo");
     } else { cover.style.backgroundImage = ""; cover.classList.remove("has-photo"); }
     const message = document.getElementById("profileMessage");
-    if (isOther) { message.href = "feed.html?message=" + encodeURIComponent(email); message.hidden = false; }
+    const memberId = String(profile.memberId || "");
+    if (isOther && /^[a-f0-9-]{36}$/.test(memberId)) { message.href = "feed.html?messageMember=" + encodeURIComponent(memberId); message.hidden = false; }
     status.hidden = true;
     content.hidden = false;
     window.danzstakCurrentProfile = profile;

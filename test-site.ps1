@@ -350,6 +350,12 @@ if (-not $profileJs.Contains('isOther ? "Private" : (email || "Not available")')
     -not $profileEditorJs.Contains('if (!viewingOtherProfile) {')) {
   Add-Failure 'Profiles: another member can inherit local profile media or expose their email'
 }
+if (-not $profileJs.Contains('feed.html?messageMember=') -or $profileJs.Contains('feed.html?message=')) {
+  Add-Failure 'Profiles: Message navigation exposes a member email address in the browser URL'
+}
+foreach ($opaqueMessageHandoff in @('get("messageMember")', 'profiles?member=', 'openMessageDrawer(data.profile.email)')) {
+  if (-not $feed.Contains($opaqueMessageHandoff)) { Add-Failure "Messages: opaque profile handoff is missing: $opaqueMessageHandoff" }
+}
 if (-not $feed.Contains('authorLabel.href = isOwner === true ? "profile.html" : "profile.html?member=" + encodeURIComponent(authorMemberId);')) {
   Add-Failure 'Profiles: an owner post routes the author back to a non-editable other-user profile'
 }
