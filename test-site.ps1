@@ -53,6 +53,9 @@ $bookingClient = Get-Content -LiteralPath (Join-Path $root 'assets\booking-agent
 foreach ($bookingControl in @('DanzStak Booking Agent', 'Book the band. Map the run.', 'clubs usually book about two months out.', 'Festivals can book 18 months out.', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public venue contacts', 'Bands join by invitation')) {
   if (-not $bookingMarkup.Contains($bookingControl)) { Add-Failure "Booking Agent: required planning control is missing: $bookingControl" }
 }
+if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {
+  Add-Failure 'Booking Agent: signed-in users do not publish site-wide online presence'
+}
 foreach ($bookingClientControl in @('Send me out and bring me home', 'Band or artist', 'Music style / genre', 'First show / leave home', 'Back home', 'route-map', 'My saved tours')) {
   if (-not $bookingClient.Contains($bookingClientControl)) { Add-Failure "Booking Agent: required home-loop control is missing: $bookingClientControl" }
 }
