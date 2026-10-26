@@ -513,7 +513,7 @@ function renderWorkspace(name) {
         }
         for (const notice of data.notifications) {
           const person = people.get(String(notice.email || "").toLowerCase());
-          const displayName = person?.name || String(notice.email || "DanzStak member").split("@")[0];
+          const displayName = person?.name || "DanzStak member";
           const row = document.createElement("article");
           row.className = "notification-row";
           row.classList.toggle("is-read", notice.unread === false);

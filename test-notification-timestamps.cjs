@@ -18,4 +18,6 @@ const notificationBlock = source.slice(source.indexOf('if (name === "Notificatio
 assert.match(notificationBlock, /copy\.className = "notification-copy"/);
 assert.match(notificationBlock, /time\.dateTime = notice\.createdAt/);
 assert.match(notificationBlock, /row\.append\(avatar, copy, actions\)/);
-console.log('Notification timestamp checks passed: valid times render and malformed dates are ignored.');
+assert.match(notificationBlock, /const displayName = person\?\.name \|\| "DanzStak member"/);
+assert.doesNotMatch(notificationBlock, /String\(notice\.email \|\| "DanzStak member"\)\.split\("@"\)\[0\]/);
+console.log('Notification checks passed: timestamps render and account emails stay private.');
