@@ -694,7 +694,8 @@ function renderWorkspace(name) {
       const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
       if (!friendsResponse?.ok) throw new Error("Friends could not be loaded");
       const friends = (await friendsResponse.json()).friends || [];
-      const online = new Set(directoryResponse?.ok
+      const presenceAvailable = directoryResponse?.ok === true;
+      const online = new Set(presenceAvailable
         ? ((await directoryResponse.json()).users || [])
           .filter(user => user.online === true)
           .map(user => String(user.email || "").toLowerCase())
@@ -723,7 +724,7 @@ function renderWorkspace(name) {
         displayName.textContent = friend.name || "DanzStak member";
         const status = document.createElement("small");
         const friendIsOnline = online.has(String(friend.email || "").toLowerCase());
-        status.textContent = friendIsOnline ? "Online" : "Offline";
+        status.textContent = friendIsOnline ? "Online" : presenceAvailable ? "Offline" : "Status unavailable";
         details.append(displayName, status);
         const presence = document.createElement("span");
         presence.className = friendIsOnline ? "friend-presence online" : "friend-presence";

@@ -21,6 +21,7 @@ setImmediate(() => {
     assert.equal(nodes.filter(item => item.tag === 'a').length, 1, 'presence failure must not hide accepted friends');
     assert.equal(nodes.find(item => item.tag === 'a').href, 'profile.html?member=44444444-4444-4444-4444-444444444444');
     assert.doesNotMatch(nodes.find(item => item.tag === 'a').href, /@|%40/);
-    console.log('Friends loading check passed: accepted friends survive a failed presence lookup.');
+    assert.ok(nodes.some(item => item.tag === 'small' && item.textContent === 'Status unavailable'), 'presence failure must not falsely label a friend offline');
+    console.log('Friends loading check passed: accepted friends survive a failed presence lookup without a false offline status.');
   } catch (error) { console.error(error); process.exitCode = 1; }
 });
