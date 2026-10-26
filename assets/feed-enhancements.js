@@ -713,7 +713,8 @@ function renderWorkspace(name) {
         details.append(displayName, status);
         const presence = document.createElement("span");
         presence.className = friendIsOnline ? "friend-presence online" : "friend-presence";
-        presence.setAttribute("aria-label", status.textContent);
+        presence.setAttribute("aria-hidden", "true");
+        presence.title = status.textContent;
         link.append(avatar, details, presence);
         list.appendChild(link);
       }

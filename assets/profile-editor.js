@@ -531,7 +531,7 @@ async function loadProfileFriends() {
       const isOnline = online.has(String(friend.email || "").toLowerCase());
       status.className = isOnline ? "profile-friend-presence online" : "profile-friend-presence";
       status.title = isOnline ? "Online" : "Offline";
-      status.setAttribute("aria-label", status.title);
+      status.setAttribute("aria-hidden", "true");
       const availability = document.createElement("small"); availability.textContent = isOnline ? "Online" : "Offline";
       copy.append(name, availability); link.append(avatar, copy, status); grid.appendChild(link);
     }

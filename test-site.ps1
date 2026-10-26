@@ -315,6 +315,9 @@ foreach ($contactFailureBehavior in @('async function directFetch(', 'controller
 foreach ($onlineContactNavigation in @('name.href = "profile.html?member=" + encodeURIComponent(memberId)', 'action.addEventListener("click", () => openMessageDrawer(user.email))', 'user.friendStatus === "friends" || user.sharedGroup')) {
   if (-not $feed.Contains($onlineContactNavigation)) { Add-Failure "Online contacts: profile or embedded-message navigation is incomplete: $onlineContactNavigation" }
 }
+if (-not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")')) {
+  Add-Failure 'Friends: decorative presence dot duplicates the visible online status for assistive technology'
+}
 if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.Contains('No other connected users are active right now.')) {
   Add-Failure 'Online Users: the right panel can show offline contacts as online-directory results'
 }
@@ -370,7 +373,7 @@ foreach ($profilePresenceFeature in @(
   'const [friendsResult, directoryResult] = await Promise.allSettled([',
   'user.online === true',
   'profile-friend-presence online',
-  'status.setAttribute("aria-label", status.title)'
+  'status.setAttribute("aria-hidden", "true")'
 )) {
   if (-not ($profileEditorJs + $profileStyles).Contains($profilePresenceFeature)) {
     Add-Failure "Profile friends lack resilient accessible online status: $profilePresenceFeature"
