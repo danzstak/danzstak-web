@@ -928,14 +928,14 @@ async function getSecurePosts(event) {
   const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));
   const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames]);
   const visibleSources = new Map(visiblePosts.map(item => [item.postId.S,item]));
-  const sharedPreview = item => item ? ({postId:item.postId.S,content:item.content.S,authorName:authorNames.get(item.userEmail?.S) || item.userEmail?.S?.split("@")[0] || "DanzStak member",authorEmail:item.userEmail?.S || "",createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
+  const sharedPreview = item => item ? ({postId:item.postId.S,content:item.content.S,authorName:authorNames.get(item.userEmail?.S) || "DanzStak member",authorEmail:item.userEmail?.S || "",createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
       isOwner: item.userId?.S === userId,
       featured: item.featured?.BOOL === true,
       userEmail: item.userEmail?.S ?? "",
-      authorName: authorNames.get(String(item.userEmail?.S || "").trim().toLowerCase()) || item.userEmail?.S?.split("@")[0] || "DanzStak Member",
+      authorName: authorNames.get(String(item.userEmail?.S || "").trim().toLowerCase()) || "DanzStak Member",
       content: item.content.S,
       location: item.location?.S || "",
       viewCount: Math.max(0,Number(item.viewCount?.N || 0)),
@@ -1043,7 +1043,7 @@ async function getEngagement(event) {
   }
   const comments = commentItems.map(item => ({
     ...(commentReactions.get(item.commentId.S) || {reactionCounts:{}, myReaction:"", reactionTotal:0}),
-    authorName:authorNames.get(item.userEmail?.S) || (item.userEmail?.S || "DanzStak member").split("@")[0],
+    authorName:authorNames.get(item.userEmail?.S) || "DanzStak member",
     commentId: item.commentId.S, userEmail: item.userEmail?.S || "DanzStak member", content: item.content.S,
     createdAt: item.createdAt.S, isOwner: item.userId?.S === userId, canDelete: item.userId?.S === userId || access.post.userId?.S === userId
   })).sort((a, b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt));
@@ -1095,7 +1095,7 @@ async function setReaction(event) {
     const names = reaction ? await loadFeedAuthorNames([{userEmail:{S:actorEmail}}]) : new Map();
     const key = {postId:{S:postId},userId:{S:"comment#"+commentId+"#"+userId}};
     if (!reaction) await db.send(new DeleteItemCommand({TableName:reactionsTable,Key:key}));
-    else await db.send(new PutItemCommand({TableName:reactionsTable,Item:{...key,commentId:{S:commentId},actorUserId:{S:userId},userEmail:{S:actorEmail},actorName:{S:names.get(actorEmail)||actorEmail.split("@")[0]},reaction:{S:reaction},createdAt:{S:new Date().toISOString()}}}));
+    else await db.send(new PutItemCommand({TableName:reactionsTable,Item:{...key,commentId:{S:commentId},actorUserId:{S:userId},userEmail:{S:actorEmail},actorName:{S:names.get(actorEmail)||"DanzStak member"},reaction:{S:reaction},createdAt:{S:new Date().toISOString()}}}));
     return {statusCode:200,headers,body:JSON.stringify({reaction,commentId})};
   }
   const key = { postId: { S: postId }, userId: { S: userId } };
@@ -1424,7 +1424,7 @@ async function resolveMediaTags(ids, ownerId, previous, declined) {
     const settings = await db.send(new GetItemCommand({TableName:settingsTable,Key:{userEmail:{S:email}},ConsistentRead:true}));
     if (!previous.has(id) && id !== ownerId && settings.Item?.allowTags?.BOOL === false) return {error:"A selected friend has turned off tagging.",statusCode:409};
     const attributes = Object.fromEntries((account.Attributes || []).map(value => [value.Name,value.Value]));
-    targets.push({id,email,name:settings.Item?.profileName?.S || attributes.name || attributes.preferred_username || email.split("@")[0]});
+    targets.push({id,email,name:settings.Item?.profileName?.S || attributes.name || attributes.preferred_username || "DanzStak member"});
   }
   if (new Set(targets.map(value=>value.email)).size !== targets.length) return {error:"Choose each person once.",statusCode:400};
   const newTargets = targets.filter(value => value.id !== ownerId && !previous.has(value.id));
