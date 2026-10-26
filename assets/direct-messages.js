@@ -20,6 +20,7 @@ const conversationHeader = document.getElementById("conversationHeader");
 const conversationName = document.getElementById("conversationName");
 const conversationAvatar = document.getElementById("conversationAvatar");
 let directContact = "";
+let activeContactName = "Contact";
 let currentEmail = "";
 let loadingMessages = false;
 let conversationVersion = 0;
@@ -93,6 +94,7 @@ function openConversation(conversation) {
   directContact = "";
   conversationHeader.hidden = false;
   conversationName.textContent = conversation.name || conversation.contactEmail;
+  activeContactName = conversation.name || "Contact";
   conversationAvatar.textContent = (conversation.name || conversation.contactEmail).charAt(0).toUpperCase();
   if (conversation.picture) { conversationAvatar.style.backgroundImage = `url("${conversation.picture}")`; conversationAvatar.textContent = ""; }
   else conversationAvatar.style.backgroundImage = "";
@@ -106,6 +108,7 @@ function closeConversation({ focusList = false } = {}) {
   conversationHeader.hidden = true;
   contactInput.value = "";
   directContact = "";
+  activeContactName = "Contact";
   activeCanContact = false;
   nextMessageCursor = "";
   shownMessages.clear();
@@ -126,7 +129,7 @@ function directMessageItem(message) {
   item.textContent = message.content;
   const meta = document.createElement("span");
   meta.className = "message-meta";
-  meta.textContent = (mine ? "You" : message.senderEmail) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  meta.textContent = (mine ? "You" : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   item.appendChild(meta);
   updateMessageReactionBadge(item, message);
   item.addEventListener("pointerdown", event => { reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
@@ -214,7 +217,7 @@ async function loadDirectMessages(reset = false) {
     activeCanContact = data.canContact !== false;
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
-    callStatus.textContent = activeCanContact ? "You can message " + contact + " directly." : "Saved chat. Become friends or join the same group to send new messages or call.";
+    callStatus.textContent = activeCanContact ? "You can message " + activeContactName + " directly." : "Saved chat. Become friends or join the same group to send new messages or call.";
   } catch (error) {
     if (version === conversationVersion) callStatus.textContent = error.message || "Messages could not be loaded";
   } finally { if (version === conversationVersion) loadingMessages = false; }

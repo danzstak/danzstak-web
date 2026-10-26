@@ -262,6 +262,9 @@ foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'doc
 foreach ($messageHistoryBehavior in @('let nextMessageCursor = ""', 'function renderEarlierMessagesButton()', 'async function loadEarlierMessages()', '"&before=" + encodeURIComponent(cursor)', 'messageList.prepend(fragment)', 'Load earlier messages')) {
   if (-not $directMessagesJs.Contains($messageHistoryBehavior)) { Add-Failure "Messages: saved history cannot load beyond the newest page: $messageHistoryBehavior" }
 }
+foreach ($messageIdentityBehavior in @('let activeContactName = "Contact"', 'activeContactName = conversation.name || "Contact"', '(mine ? "You" : activeContactName)')) {
+  if (-not $directMessagesJs.Contains($messageIdentityBehavior)) { Add-Failure "Messages: visible message metadata can expose contact email instead of the profile name: $messageIdentityBehavior" }
+}
 foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.online === true', 'conversation-online-dot', 'aria-label", "Online')) {
   if (-not ($directMessagesJs + $chatStyles).Contains($chatPresenceBehavior)) { Add-Failure "Messages: online friends lack a visible accessible presence marker: $chatPresenceBehavior" }
 }
