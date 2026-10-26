@@ -26,13 +26,18 @@ const items = [
 const deletedRecords = [], deletedMedia = [];
 class DeleteItemCommand { constructor(input) { this.input=input; } }
 class DeleteObjectCommand { constructor(input) { this.input=input; } }
+class ListUsersCommand { constructor(input) { this.input=input; } }
 const ctx = vm.createContext({
-  process:{env:{STORIES_TABLE:'stories',FRIENDS_TABLE:'friends',MEDIA_BUCKET:'media'}}, now:()=>current,
+  process:{env:{STORIES_TABLE:'stories',FRIENDS_TABLE:'friends',MEDIA_BUCKET:'media',USER_POOL_ID:'pool'}}, now:()=>current,
   scanAll:async input=>{assert.equal(input.TableName,'stories');assert.ok(!input.FilterExpression);return items;},
   queryAll:async()=>[{status:{S:'friends'},friendEmail:{S:'friend@example.com'}}],
   db:{send:async command=>{deletedRecords.push(command.input.Key.storyId.S);}},
   s3:{send:async command=>{deletedMedia.push(command.input.Key);}}, DeleteItemCommand, DeleteObjectCommand,
-  signedMediaUrl:(_,key)=>'https://media.test/'+key, json:(_,payload)=>payload
+  ListUsersCommand,
+  cognito:{send:async command=>{const email=command.input.Filter.match(/"(.*)"/)[1];return {Users:[{Attributes:[{Name:'email',Value:email},{Name:'sub',Value:`member-${email}`},{Name:'name',Value:email==='someone@example.com'?'Public Story Author':email==='friend@example.com'?'Friend Story Author':'Current Member'}]}]};}},
+  publicProfile:async(email,account)=>({memberId:account.Attributes.find(value=>value.Name==='sub').Value,name:account.Attributes.find(value=>value.Name==='name').Value}),
+  mapLimit:async(values,_limit,task)=>Promise.all(values.map(task)),
+  console:{warn(){}}, signedMediaUrl:(_,key)=>'https://media.test/'+key, json:(_,payload)=>payload
 });
 vm.runInContext(line.trim(),ctx);
 (async()=>{
@@ -42,5 +47,9 @@ vm.runInContext(line.trim(),ctx);
   assert.deepEqual(deletedRecords.sort(),['expired-legacy','expired-ttl']);
   assert.deepEqual(deletedMedia.sort(),['stories/expired-legacy.png','stories/expired-ttl.png']);
   assert.equal(result.stories[1].isOwner,false);
-  console.log('Story visibility checks passed: 24h expiry, legacy cleanup, durable Reels, and audience privacy.');
+  assert.equal(result.stories.find(value=>value.storyId==='public').displayName,'Public Story Author');
+  assert.equal(result.stories.find(value=>value.storyId==='friend').displayName,'Friend Story Author');
+  assert.equal(result.stories.find(value=>value.storyId==='public').memberId,'member-someone@example.com');
+  assert.equal(result.reels[0].displayName,'Current Member');
+  console.log('Story visibility checks passed: 24h expiry, legacy cleanup, durable Reels, audience privacy, and public display names.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

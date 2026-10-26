@@ -21,4 +21,6 @@ assert.doesNotMatch(authApi, /(?:authorName|actorName|name)[^;\n]{0,180}split\("
 assert.doesNotMatch(signaling, /(?:name|handle)[^;\n]{0,180}split\('@'\)\[0\]/, 'Signaling API must not derive public display names from account email');
 assert.match(authApi, /actorName:\{S:names\.get\(actorEmail\)\|\|"DanzStak member"\}/);
 assert.match(signaling, /name:item\?\.profileName\?\.S\|\|attr\(account,'name'\)\|\|attr\(account,'preferred_username'\)\|\|'DanzStak member'/);
+assert.match(signaling, /displayName:profile\.name\|\|'DanzStak member'/, 'Stories and Reels expose public profile labels');
+assert.doesNotMatch(signaling, /displayName:(?:x\.)?userEmail/, 'Story and Reel display labels must not use account email');
 console.log('Visible-name privacy checks passed: frontend and API social surfaces do not derive display names from email addresses.');

@@ -893,8 +893,21 @@ async function loadFeedAuthorNames(items) {
           ProjectionExpression: "profileName", ConsistentRead: true
         }));
         const name = String(found.Item?.profileName?.S || "").trim().slice(0, 80);
-        if (name) names.set(email, name);
+        if (name) {
+          names.set(email, name);
+          continue;
+        }
       } catch (error) { console.warn("Feed display-name lookup failed", error.name || "UnknownError"); }
+      try {
+        const result = await cognito.send(new ListUsersCommand({
+          UserPoolId: userPoolId,
+          Filter: `email = "${email.replace(/["\\]/g, "")}"`,
+          Limit: 1
+        }));
+        const attributes = result.Users?.[0]?.Attributes || [];
+        const publicName = String(attributes.find(attribute => attribute.Name === "name")?.Value || attributes.find(attribute => attribute.Name === "preferred_username")?.Value || "").trim().slice(0, 80);
+        if (publicName) names.set(email, publicName);
+      } catch (error) { console.warn("Cognito display-name lookup failed", error.name || "UnknownError"); }
     }
   }
   await Promise.all(Array.from({ length: Math.min(8, emails.length) }, worker));
