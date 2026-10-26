@@ -26,9 +26,11 @@ import {
   ListUsersCommand
 } from "@aws-sdk/client-cognito-identity-provider";
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
+const ses = new SESv2Client({ region: "us-west-1" });
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
 
 const tableName = process.env.SESSIONS_TABLE;
@@ -42,6 +44,7 @@ const presenceTable = "DANZSTAK-Presence";
 const storiesTable = "DANZSTAK-Stories";
 const groupsTable = "DANZSTAK-GroupMembers";
 const settingsTable = "DanzStak-UserSettings";
+const supportTicketsTable = process.env.SUPPORT_TICKETS_TABLE || "DANZSTAK-SupportTickets";
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -1496,6 +1499,64 @@ async function updateSecurePost(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ updated: true, updatedAt: values[":updated"].S, editHistory: values[":editHistory"] ? JSON.parse(values[":editHistory"].S) : postEditHistory(found.Item) }) };
 }
 
+async function createSupportTicket(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const data = parseJsonBody(event);
+  if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
+  const category = String(data.category || "").trim();
+  const subject = String(data.subject || "").trim();
+  const message = String(data.message || "").trim();
+  const categories = new Set(["account", "safety", "copyright", "technical", "booking", "billing", "other"]);
+  if (!categories.has(category)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a valid support category." }) };
+  if (subject.length < 3 || subject.length > 120) return { statusCode: 400, headers, body: JSON.stringify({ error: "Subject must contain 3–120 characters." }) };
+  if (message.length < 20 || message.length > 5000) return { statusCode: 400, headers, body: JSON.stringify({ error: "Message must contain 20–5,000 characters." }) };
+  const email = await accountForSub(userId);
+  if (!email) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const createdAt = new Date().toISOString();
+  const windowId = Math.floor(Date.now() / 600000);
+  const ticketId = sha256(`support:${userId}:${windowId}`).slice(0, 24);
+  try {
+    await db.send(new PutItemCommand({
+      TableName: supportTicketsTable,
+      Item: {
+        ticketId: { S: ticketId }, userId: { S: userId }, userEmail: { S: email },
+        category: { S: category }, subject: { S: subject }, message: { S: message },
+        createdAt: { S: createdAt }, status: { S: "new" }, emailStatus: { S: "pending" },
+        expiresAt: { N: String(now() + 63072000) }
+      },
+      ConditionExpression: "attribute_not_exists(ticketId)"
+    }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return { statusCode: 429, headers: { ...headers, "retry-after": "600" }, body: JSON.stringify({ error: "A support request was already submitted recently. Please wait up to 10 minutes before sending another." }) };
+    throw error;
+  }
+  let emailed = false;
+  try {
+    await ses.send(new SendEmailCommand({
+      FromEmailAddress: "DanzStak Support <support@danzstak.com>",
+      Destination: { ToAddresses: ["support@danzstak.com"] },
+      ReplyToAddresses: [email],
+      Content: { Simple: {
+        Subject: { Data: `[${category.toUpperCase()}] ${subject}`, Charset: "UTF-8" },
+        Body: { Text: { Data: `Ticket: ${ticketId}\nMember: ${email}\nCreated: ${createdAt}\nCategory: ${category}\n\n${message}`, Charset: "UTF-8" } }
+      } }
+    }));
+    emailed = true;
+  } catch (error) {
+    console.error("Support email notification failed:", error.name);
+  }
+  await db.send(new UpdateItemCommand({
+    TableName: supportTicketsTable,
+    Key: { ticketId: { S: ticketId } },
+    UpdateExpression: "SET emailStatus = :status",
+    ExpressionAttributeValues: { ":status": { S: emailed ? "sent" : "queued" } }
+  }));
+  return { statusCode: 201, headers, body: JSON.stringify({ ticketId, status: "received", emailed }) };
+}
+
 // LOG OUT
 async function logout(event) {
   const origin = event.headers?.origin;
@@ -1663,6 +1724,10 @@ export const handler = async event => {
 
     if (method === "POST" && path === "/profile-video") {
       return await setProfileVideo(event);
+    }
+
+    if (method === "POST" && path === "/support-tickets") {
+      return await createSupportTicket(event);
     }
 
     if (method === "POST" && path === "/auth/logout") {

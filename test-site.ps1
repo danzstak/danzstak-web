@@ -39,6 +39,15 @@ if (-not $homeMarkup.Contains('.hero-logo{display:block;width:min(520px,100%)'))
   Add-Failure 'Homepage: hero logo can overflow its padded mobile container'
 }
 
+$supportMarkup = Get-Content -LiteralPath (Join-Path $root 'support.html') -Raw -Encoding utf8
+$supportClient = Get-Content -LiteralPath (Join-Path $root 'assets\support.js') -Raw -Encoding utf8
+foreach ($supportControl in @('support@danzstak.com', 'Do not include passwords', 'id="supportForm"', 'maxlength="5000"')) {
+  if (-not $supportMarkup.Contains($supportControl)) { Add-Failure "Support: secure member form is missing: $supportControl" }
+}
+foreach ($supportClientControl in @('credentials:"include"', 'https://api.danzstak.com/support-tickets', 'response.status===401')) {
+  if (-not $supportClient.Contains($supportClientControl)) { Add-Failure "Support: authenticated request handling is missing: $supportClientControl" }
+}
+
 $feedPath = Join-Path $root 'feed.html'
 $feed = Get-Content -LiteralPath $feedPath -Raw -Encoding utf8
 if (-not $feed.Contains("frame-src 'self' https://www.youtube-nocookie.com")) {

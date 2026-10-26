@@ -22,6 +22,13 @@ foreach ($profileVideoControl in @('async function getProfileVideo(event)', 'asy
 foreach ($legalControl in @('async function acceptLegalTerms(event)', 'async function startSignup(event)', 'type: { S: "legal_pending" }', 'sha256("legal-account:" + user.sub)', 'path === "/auth/legal-acceptance"')) {
   if (-not $authApi.Contains($legalControl)) { throw "Server-enforced signup consent is missing: $legalControl" }
 }
+foreach ($supportControl in @('async function createSupportTicket(event)', 'const supportTicketsTable', 'new SendEmailCommand({', 'A support request was already submitted recently', 'path === "/support-tickets"')) {
+  if (-not $authApi.Contains($supportControl)) { throw "Support system safeguard is missing: $supportControl" }
+}
+$supportSetup = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-configure-support-email.ps1') -Raw -Encoding utf8
+foreach ($supportInfrastructureControl in @('TlsPolicy = "Require"', 'ScanEnabled = $true', 'BlockPublicAcls=true', 'PointInTimeRecoveryEnabled=true', 'POST /support-tickets', 'p=quarantine')) {
+  if (-not $supportSetup.Contains($supportInfrastructureControl)) { throw "Support email infrastructure control is missing: $supportInfrastructureControl" }
+}
 foreach ($notificationHistoryControl in @('read: { BOOL: false }', 'unread: item.read?.BOOL !== true', 'new UpdateItemCommand({ TableName: engagementNotificationsTable')) {
   if (-not $authApi.Contains($notificationHistoryControl)) { throw "Persistent notification history is missing: $notificationHistoryControl" }
 }

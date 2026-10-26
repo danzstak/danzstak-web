@@ -73,7 +73,7 @@ foreach ($protectedPath in @('/profiles', '/friends', '/settings/posts', '/messa
   $protectedStatus = & curl.exe -sS -o NUL -w "%{http_code}" -H "Origin: https://danzstak.com" "https://api.danzstak.com$protectedPath"
   if ($LASTEXITCODE -ne 0 -or $protectedStatus -ne '401') { Add-Failure "Unauthenticated GET $protectedPath returned $protectedStatus instead of 401" }
 }
-foreach ($protectedWrite in @('/secure-posts', '/profiles', '/friends/request', '/friends/respond', '/settings/posts', '/settings/presence', '/messages', '/messages/delete', '/groups', '/groups/membership', '/stories', '/reactions', '/comments', '/reports', '/profile-video', '/engagement-notifications/read', '/calls/signal', '/calls/ack', '/calls/presence')) {
+foreach ($protectedWrite in @('/secure-posts', '/profiles', '/friends/request', '/friends/respond', '/settings/posts', '/settings/presence', '/messages', '/messages/delete', '/groups', '/groups/membership', '/stories', '/reactions', '/comments', '/reports', '/profile-video', '/engagement-notifications/read', '/support-tickets', '/calls/signal', '/calls/ack', '/calls/presence')) {
   $writeStatus = & curl.exe -sS -o NUL -w "%{http_code}" -X POST -H "Origin: https://danzstak.com" -H "Content-Type: application/json" --data '{}' "https://api.danzstak.com$protectedWrite"
   if ($LASTEXITCODE -ne 0 -or $writeStatus -ne '401') { Add-Failure "Unauthenticated POST $protectedWrite returned $writeStatus instead of 401" }
 }
@@ -89,7 +89,7 @@ foreach ($pushRoute in @(
   }
 }
 
-foreach ($originProtectedPath in @('/groups', '/groups/membership', '/profiles', '/settings/posts', '/friends/request', '/calls/signal', '/auth/refresh')) {
+foreach ($originProtectedPath in @('/groups', '/groups/membership', '/profiles', '/settings/posts', '/friends/request', '/support-tickets', '/calls/signal', '/auth/refresh')) {
   $originStatus = & curl.exe -sS -o NUL -w "%{http_code}" -X POST -H "Origin: https://untrusted.example" -H "Content-Type: application/json" --data '{}' "https://api.danzstak.com$originProtectedPath"
   if ($LASTEXITCODE -ne 0 -or $originStatus -ne '403') { Add-Failure "Untrusted POST $originProtectedPath returned $originStatus instead of 403" }
 }

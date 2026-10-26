@@ -58,6 +58,18 @@ try {
         Effect = "Allow"
         Action = @("s3:GetObject", "s3:DeleteObject")
         Resource = "arn:aws:s3:::danzstak-call-signaling-mediabucket-*/*"
+      },
+      @{
+        Sid = "SupportTickets"
+        Effect = "Allow"
+        Action = @("dynamodb:PutItem", "dynamodb:UpdateItem")
+        Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-SupportTickets"
+      },
+      @{
+        Sid = "SupportMailNotification"
+        Effect = "Allow"
+        Action = @("ses:SendEmail")
+        Resource = "arn:aws:ses:us-west-1:635288116224:identity/danzstak.com"
       }
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Policy -Encoding ascii
