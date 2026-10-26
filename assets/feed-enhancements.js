@@ -256,6 +256,86 @@ async function respondToNotificationRequest(row, email, accept) {
 }
 
 let workspaceRenderVersion = 0;
+
+async function openAccountActivity(opener) {
+  document.querySelector(".account-activity-dialog")?.remove();
+  const dialog = document.createElement("dialog");
+  dialog.className = "account-activity-dialog";
+  dialog.setAttribute("aria-labelledby", "accountActivityTitle");
+  const header = document.createElement("header");
+  const title = document.createElement("h2");
+  title.id = "accountActivityTitle";
+  title.textContent = "Your DanzStak activity";
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "activity-close";
+  close.setAttribute("aria-label", "Close activity history");
+  close.textContent = "Close";
+  const summary = document.createElement("p");
+  summary.className = "activity-summary";
+  summary.textContent = "Loading your recent activity…";
+  summary.setAttribute("role", "status");
+  const list = document.createElement("div");
+  list.className = "activity-list";
+  header.append(title, close);
+  dialog.append(header, summary, list);
+  document.body.appendChild(dialog);
+  close.addEventListener("click", () => dialog.close());
+  dialog.addEventListener("close", () => { dialog.remove(); opener?.focus(); }, { once: true });
+  dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+  dialog.showModal();
+  close.focus();
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch("https://api.danzstak.com/secure-posts", { credentials: "include", cache: "no-store", signal: controller.signal });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Activity could not be loaded.");
+    const posts = Array.isArray(data.posts) ? data.posts.slice(0, 20) : [];
+    const engagementByPost = {};
+    let next = 0;
+    const worker = async () => {
+      while (next < posts.length) {
+        const post = posts[next++];
+        try {
+          const engagementResponse = await fetch("https://api.danzstak.com/engagement?postId=" + encodeURIComponent(post.postId), { credentials: "include", cache: "no-store", signal: controller.signal });
+          if (engagementResponse.ok) engagementByPost[post.postId] = await engagementResponse.json();
+        } catch (error) { if (error.name === "AbortError") throw error; }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, posts.length) }, worker));
+    const activity = window.danzstakActivityCore?.buildActivity(posts, engagementByPost, 100) || [];
+    list.replaceChildren();
+    const postCount = activity.filter(item => item.type === "post").length;
+    const commentCount = activity.filter(item => item.type === "comment").length;
+    summary.textContent = `${postCount} recent post${postCount === 1 ? "" : "s"} and ${commentCount} recent comment${commentCount === 1 ? "" : "s"}.`;
+    if (!activity.length) {
+      const empty = document.createElement("p");
+      empty.className = "muted";
+      empty.textContent = "No recent posts or comments are available yet.";
+      list.appendChild(empty);
+      return;
+    }
+    for (const item of activity) {
+      const link = document.createElement("a");
+      link.className = "activity-item";
+      link.href = "feed.html?view=feed#post-" + encodeURIComponent(item.postId);
+      const kind = document.createElement("strong");
+      kind.textContent = item.type === "post" ? "You published a post" : "You commented on a post";
+      const text = document.createElement("span");
+      text.textContent = item.text.length > 180 ? item.text.slice(0, 177) + "…" : item.text;
+      const meta = document.createElement("small");
+      const created = new Date(item.createdAt);
+      meta.textContent = created.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + (item.audience ? " · " + item.audience : "");
+      link.append(kind, text, meta);
+      list.appendChild(link);
+    }
+  } catch (error) {
+    summary.textContent = error.name === "AbortError" ? "Activity took too long to load. Close this panel and try again." : error.message;
+  } finally { clearTimeout(timeout); }
+}
+
 function renderWorkspace(name) {
   const renderVersion = ++workspaceRenderVersion;
   const isCurrentWorkspace = () => renderVersion === workspaceRenderVersion && !featurePanel.hidden;
@@ -797,6 +877,11 @@ function renderWorkspace(name) {
     appSettings.addEventListener("click", () => {
       window.danzstakOpenDeviceSettings(appSettings);
     });
+    const activityButton = document.createElement("button");
+    activityButton.type = "button";
+    activityButton.className = "secondary";
+    activityButton.textContent = "View";
+    activityButton.addEventListener("click", () => openAccountActivity(activityButton));
     const alertSettings = document.createElement("button");
     alertSettings.type = "button";
     alertSettings.className = "secondary";
@@ -902,6 +987,7 @@ function renderWorkspace(name) {
       settingRow("🌐", "Language", language),
       settingRow("🔔", "Call and message alerts", alertSettings),
       settingRow("📱", "App and device settings", appSettings),
+      settingRow("🗂", "Your DanzStak activity", activityButton),
       settingRow("🕒", "Session", sessionInfo),
       settingRow("📄", "Privacy Policy", legalLinks),
       settingRow("🚪", "Account", logout),
