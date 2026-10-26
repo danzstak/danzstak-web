@@ -143,7 +143,7 @@ if (-not $chatScript.Contains('if(await handleEvent(event))handled.push(event.ev
 if ($incomingCalls.Contains('const disposable =') -or -not $chatScript.Contains('embeddedMode=messageParams.get("embedded")==="1"')) {
   Add-Failure 'Calls: embedded chat and background watcher do not have distinct signal ownership'
 }
-foreach ($backgroundCallControl in @('window.openMessageDrawer(event.senderEmail, true)', 'answerCall = false', 'target.searchParams.set("answer", "1")', 'if(!embeddedMode||autoAnswer)poll()')) {
+foreach ($backgroundCallControl in @('window.openMessageDrawer(event.senderEmail, true, event.callId)', 'answerCall = false', 'target.searchParams.set("answer", "1")', 'if(!embeddedMode||autoAnswer)poll()')) {
   if (-not ($incomingCalls + $feed + $chatScript).Contains($backgroundCallControl)) { Add-Failure "Calls: hidden message drawer can suppress or misroute incoming calls: $backgroundCallControl" }
 }
 foreach ($callBehavior in @('setCallMode(kind)', 'showCallConversation()', 'setCallMode("")')) {

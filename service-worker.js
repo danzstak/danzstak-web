@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v197";
+const CACHE = "danzstak-shell-v198";
 const SHELL = [
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-fb-v2.jpg",
@@ -70,7 +70,7 @@ self.addEventListener("push", event => {
     renotify: true,
     requireInteraction: call,
     actions: call ? [{ action: "answer", title: "Answer" }, { action: "dismiss", title: "Dismiss" }] : [],
-    data: { url, type: call ? "call" : "notification" }
+    data: { url, type: call ? "call" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
   }));
 });
 
@@ -79,6 +79,7 @@ self.addEventListener("notificationclick", event => {
   if (event.action === "dismiss") return;
   const destinationUrl = new URL(event.notification.data?.url || "/feed.html", self.location.origin);
   if (event.action === "answer" && event.notification.data?.type === "call") destinationUrl.searchParams.set("answer", "1");
+  if (event.action === "answer" && event.notification.data?.type === "call" && event.notification.data?.callId) destinationUrl.searchParams.set("callId", event.notification.data.callId);
   const destination = destinationUrl.href;
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async clients => {
     for (const client of clients) {

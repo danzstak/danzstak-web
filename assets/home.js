@@ -34,7 +34,8 @@ signupBtn.addEventListener("click", async () => {
       body: JSON.stringify({ version: legalVersion, termsAccepted: true, privacyAcknowledged: true })
     });
     if (!response.ok) throw new Error("Agreement could not be saved");
-    localStorage.setItem("danzstak_legal_acceptance", JSON.stringify({ version: legalVersion, acceptedAt: new Date().toISOString() }));
+    try { localStorage.setItem("danzstak_legal_acceptance", JSON.stringify({ version: legalVersion, acceptedAt: new Date().toISOString() })); }
+    catch { /* The server cookie carries the confirmed agreement. */ }
     window.location.assign(signupBtn.dataset.signupUrl);
   } catch {
     status.textContent = "Your agreement could not be saved. Please try again.";
@@ -65,7 +66,7 @@ async function checkSession() {
       const data = await response.json();
 
       if (data.authenticated === true) {
-        sessionStorage.removeItem("danzstak_install_prompt_shown");
+        try { sessionStorage.removeItem("danzstak_install_prompt_shown"); } catch { /* Optional device hint must not block sign-in. */ }
         showSession(true, "");
         window.location.replace("feed.html");
         return;

@@ -5,6 +5,7 @@
   let current = null;
   let polling = false;
   let previousFocus = null;
+  const handledCalls = new Map();
 
   const popup = document.createElement("section");
   popup.className = "global-incoming-call";
@@ -31,21 +32,14 @@
   }
 
   function showCall(event) {
-    if (current?.eventId === event.eventId) return;
+    if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
     current = event;
     label.textContent = `${event.senderEmail} is calling by ${event.mode === "video" ? "video" : "phone"}.`;
     popup.hidden = false;
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     answer.focus();
     navigator.vibrate?.([400, 180, 400, 180, 400]);
-    if (document.hidden && "Notification" in window && Notification.permission === "granted") {
-      const options = { body: label.textContent, icon: "/assets/favicon-192.png", badge: "/assets/favicon-192.png", tag: "danzstak-call", renotify: true, requireInteraction: true, data: { url: `/messages.html?contact=${encodeURIComponent(event.senderEmail)}&answer=1` } };
-      if (navigator.serviceWorker) navigator.serviceWorker.ready.then(registration => registration.showNotification("Incoming DanzStak call", options)).catch(() => {});
-      else {
-        const notice = new Notification("Incoming DanzStak call", options);
-        notice.onclick = () => { window.focus(); answer.click(); notice.close(); };
-      }
-    }
+    // The service worker owns background notifications; polling only updates this page.
   }
 
   async function acknowledge(eventId) {
@@ -55,16 +49,18 @@
   answer.addEventListener("click", () => {
     if (!current) return;
     const event = current;
+    handledCalls.set(event.callId, Date.now() + 120000);
     if (typeof window.openMessageDrawer === "function") {
       navigator.vibrate?.(0);
       popup.hidden = true;
       current = null;
-      window.openMessageDrawer(event.senderEmail, true);
+      window.openMessageDrawer(event.senderEmail, true, event.callId);
       return;
     }
     const destination = new URL("messages.html", location.href);
     destination.searchParams.set("contact", event.senderEmail);
     destination.searchParams.set("answer", "1");
+    destination.searchParams.set("callId", event.callId);
     navigator.vibrate?.(0);
     location.assign(destination.href);
   });
@@ -75,13 +71,15 @@
     decline.disabled = true;
     try {
       await api("/calls/signal", { method: "POST", body: JSON.stringify({ recipientEmail: event.senderEmail, callId: event.callId, mode: event.mode, signalType: "hangup", payload: null }) });
-      await acknowledge(event.eventId);
+      await acknowledge(event.eventId).catch(() => {});
+      handledCalls.set(event.callId, Date.now() + 120000);
       popup.hidden = true;
       current = null;
       navigator.vibrate?.(0);
       previousFocus?.focus();
       previousFocus = null;
-    } finally { decline.disabled = false; }
+    } catch { label.textContent = "Could not decline the call. Please try again."; }
+    finally { decline.disabled = false; }
   });
 
   popup.addEventListener("keydown", event => {
@@ -97,13 +95,16 @@
   async function poll() {
     if (polling) return;
     polling = true;
+    for (const [callId, expiry] of handledCalls) if (expiry <= Date.now()) handledCalls.delete(callId);
     try {
       const inbox = await api("/calls/inbox");
       if (current) {
         const ended = (inbox.events || []).find(event => event.signalType === "hangup" && event.callId === current.callId);
-        if (ended) {
+        const activeOffer = (inbox.events || []).some(event => event.signalType === "offer" && event.callId === current.callId);
+        if (ended || !activeOffer) {
+          handledCalls.set(current.callId, Date.now() + 120000);
           await acknowledge(current.eventId).catch(() => {});
-          await acknowledge(ended.eventId).catch(() => {});
+          if (ended) await acknowledge(ended.eventId).catch(() => {});
           popup.hidden = true;
           current = null;
           navigator.vibrate?.(0);
@@ -112,7 +113,7 @@
         }
         return;
       }
-      const offer = (inbox.events || []).find(event => event.signalType === "offer" && ["phone", "video"].includes(event.mode));
+      const offer = (inbox.events || []).find(event => event.signalType === "offer" && ["phone", "video"].includes(event.mode) && !handledCalls.has(event.callId));
       if (offer) showCall(offer);
     } catch { /* Retry quietly while the user remains on the site. */ }
     finally { polling = false; }

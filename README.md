@@ -48,7 +48,7 @@ Profile saves retain newly uploaded files when the save response is lost, since 
 
 ## Delivery phases
 
-The current priority is stabilizing the existing DanzStak site: feed, profiles, friends, groups, privacy, media, and mobile use. Android call ringing and duplicate call notifications remain unresolved; phone testing is parked until the owner resumes it.
+The current priority is stabilizing the existing DanzStak site: feed, profiles, friends, groups, privacy, media, and mobile use. Android background call ringing remains unverified. The duplicate-notification code path is fixed, with physical-phone confirmation parked until the owner resumes testing.
 
 The owner confirmed this next-feature order after the current site stabilization pass:
 
@@ -71,6 +71,8 @@ Browser smoke checks covered Friends, Groups, Photos, Videos, Events, Saved, Set
 
 A Posts recovery drill also passed: a point-in-time copy was restored into an isolated temporary table, the known saved post and all its attributes matched the source snapshot, and the temporary table was removed after verification. This is evidence for the Posts restore path, not a claim that every table has been restored together.
 
-Still open: the parked Android background-call ringing and duplicate-notification tests, and a fresh-account signup walkthrough. These must remain explicit rather than being counted as completed by mocked tests or by checking that recovery is enabled. The latest agreed next-feature order is Facebook import, email server, geo-based tour booking, then the admin dashboard.
+Signup now tolerates blocked/full browser storage after confirmed consent. Call polling no longer creates a second system notification, and expired or answered calls dismiss their stale popup. Answer handoffs carry a call identifier so an unrelated pending call cannot be auto-answered.
+
+Still open: the parked Android background-call ringing and duplicate-notification confirmation tests, and a fresh-account signup walkthrough. These must remain explicit rather than being counted as completed by mocked tests or by checking that recovery is enabled. The latest agreed next-feature order is Facebook import, email server, geo-based tour booking, then the admin dashboard.
 
 Notification email architecture reference: [Amazon SES HTTPS security](https://docs.aws.amazon.com/ses/latest/dg/security-protocols.html) and [SES API endpoint port 443](https://docs.aws.amazon.com/ses/latest/dg/send-email-set-up-vpc-endpoints.html).

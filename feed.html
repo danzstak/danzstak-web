@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-qqljurz2zmRByrJKkBANiIpO5U4qKcqkhTaNy2qIbcc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-58CXaSU06LLEHV3uM3x85jaODp0Ym7IkaA6LL+dv6hE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -1081,7 +1081,7 @@ document.querySelector('[data-route="home"]').addEventListener("click", () => {
   history.replaceState(null, "", location.pathname);
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
-function openMessageDrawer(contact = "", answerCall = false) {
+function openMessageDrawer(contact = "", answerCall = false, callId = "") {
   const launcher = document.getElementById("messagesNav");
   let drawer = document.getElementById("messageDrawer");
   if (!drawer) {
@@ -1101,6 +1101,7 @@ function openMessageDrawer(contact = "", answerCall = false) {
   target.searchParams.set("embedded", "1");
   if (contact) target.searchParams.set("contact", contact);
   if (answerCall) target.searchParams.set("answer", "1");
+  if (answerCall && callId) target.searchParams.set("callId", callId);
   if (!frame.src || contact || answerCall) frame.src = target.href;
   drawer.hidden = false;
   launcher.setAttribute("aria-expanded", "true");
