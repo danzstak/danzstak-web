@@ -86,3 +86,8 @@
 #featureTitle:focus{outline:2px solid #0866ff;outline-offset:4px;border-radius:3px}
 
 .dark-mode .message-drawer-close{color:#f5f7fb}.dark-mode .message-drawer-close:hover{background:#35455e}
+
+/* Tablet navigation uses two rows before the phone layout takes over. */
+@media(min-width:701px) and (max-width:1050px){.topbar{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;padding:10px 18px}.topbar .search{width:100%;min-width:0}.topbar .topnav{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.topbar .topnav button{min-width:0}#featureView{scroll-margin-top:132px}}
+.settings-workspace{container-type:inline-size;container-name:account-settings}
+@container account-settings (max-width:540px){.settings-row{grid-template-columns:34px minmax(0,1fr);align-items:start;padding:10px 4px}.settings-row>.settings-icon{grid-column:1;grid-row:1 / span 2}.settings-row>strong{grid-column:2;grid-row:1}.settings-row>:last-child{grid-column:2;grid-row:2;justify-self:start;margin-top:5px;min-width:0}.settings-row>input[type=checkbox]{grid-column:2;grid-row:1 / span 2;justify-self:end;margin-top:0}.settings-detail{max-width:none;text-align:left}.settings-links{flex-wrap:wrap}}
