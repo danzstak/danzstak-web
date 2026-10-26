@@ -405,6 +405,13 @@ if (-not $chatCss.Contains('.conversation-header[hidden]{display:none!important}
 $messagesHtml = Get-Content -LiteralPath (Join-Path $root 'messages.html') -Raw -Encoding utf8
 $chatJs = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
 $incomingCallsJs = Get-Content -LiteralPath (Join-Path $root 'assets\incoming-calls.js') -Raw -Encoding utf8
+if ($messagesHtml -notmatch 'class="message-send"[^>]+aria-label="Send message"' -or
+    $messagesHtml -match '<button type="submit" hidden') {
+  Add-Failure 'Messages: the conversation composer must expose a visible Send button'
+}
+if (-not $chatCss.Contains('.message-form>.message-send{')) {
+  Add-Failure 'Messages: the visible Send button is missing its compact composer styling'
+}
 foreach ($callLifecycleControl in @('callTimer=setTimeout', 'No answer from ', 'clearTimeout(callTimer)')) {
   if (-not $chatJs.Contains($callLifecycleControl)) { Add-Failure "Calls: unanswered-call timeout is missing: $callLifecycleControl" }
 }
