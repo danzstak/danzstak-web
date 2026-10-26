@@ -1,0 +1,13 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync('assets/feed-enhancements.js','utf8');
+const a=source.indexOf('function readDevicePreference('),b=source.indexOf('function dataSaverEnabled()',a);
+const context=vm.createContext({devicePreferenceMemory:new Map(),localKey:'sections',localStorage:{getItem:()=>{throw Error('blocked');},setItem:()=>{throw Error('quota');}}});
+vm.runInContext(source.slice(a,b),context);
+vm.runInContext('cacheDevicePreference("dark","1");writeSections({Settings:{notifications:false},GroupsJoined:{group1:true}})',context);
+assert.equal(vm.runInContext('readDevicePreference("dark")',context),'1');
+assert.equal(vm.runInContext('readSections().Settings.notifications',context),false);
+assert.equal(vm.runInContext('readSections().GroupsJoined.group1',context),true);
+assert.equal(vm.runInContext('readDevicePreference("missing")',context),null);
+assert.ok(!source.includes('localStorage.setItem("danzstak_dark_mode"'),'settings hydration uses optional cache writes');
+assert.ok(!source.includes('localStorage.getItem("danzstak_data_saver"'),'Settings remains readable with blocked storage');
+console.log('Device preference checks passed: blocked storage, current settings, and group draft fallback.');

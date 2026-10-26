@@ -51,3 +51,9 @@ The owner confirmed this delivery order: finish and verify the existing site, th
 1. A tour-booking module for bands to locate clubs geographically and contact them about booking their act. The planned flow includes city or location search, distance filters, venue profiles, and booking requests with act details and proposed dates. Location permission should be optional, with manual city/location entry available. Initial booking conversations can use DanzStak messaging.
 2. An email server and email delivery workflows, including optional booking email notifications.
 3. An admin dashboard for site monitoring and management, including review of post and group reports.
+
+## Database recovery protection
+
+Durable DynamoDB tables in the social and engagement stacks enable point-in-time recovery. Call signals and online presence are intentionally excluded because they expire and must not be restored as current activity. The existing Posts table is managed outside those stacks; `./aws-configure-data-recovery.ps1` enables and verifies its recovery protection in the configured production account. The complete production deployment runs this step automatically. Enabling recovery does not restore or replace a table; any actual restore requires a separate recovery workflow.
+
+Run `./test-live-data-recovery.ps1` after backend deployments to verify recovery is enabled for every durable DanzStak table. This check is read-only and does not perform a restore drill.

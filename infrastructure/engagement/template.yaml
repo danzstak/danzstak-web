@@ -1,5 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Durable reactions, comments, and engagement notifications for DanzStak
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@3
 Parameters:
   ApiId:
     Type: String
@@ -18,7 +21,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DANZSTAK-Reactions
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -32,7 +40,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DANZSTAK-Comments
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -46,7 +59,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DANZSTAK-EngagementNotifications
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -61,7 +79,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DANZSTAK-Reports
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:

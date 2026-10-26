@@ -46,6 +46,9 @@ aws cloudformation deploy `
   --no-fail-on-empty-changeset
 if ($LASTEXITCODE -ne 0) { throw "Engagement deployment failed; Lambda code was not changed." }
 
+Write-Host "Verifying post database recovery protection..."
+& (Join-Path $PSScriptRoot "aws-configure-data-recovery.ps1")
+
 Write-Host "Deploying the tested Auth API code and least-privilege permissions..."
 & (Join-Path $PSScriptRoot "aws-deploy-auth-api.ps1")
 if ($LASTEXITCODE -ne 0) { throw "Auth API deployment failed." }
@@ -61,5 +64,7 @@ Write-Host "Applying and verifying hosting security response headers..."
 
 Write-Host "Running post-deployment public security verification..."
 & (Join-Path $PSScriptRoot "test-live-security.ps1") -ExpectGroups -ExpectProfileVideo
+
+& (Join-Path $PSScriptRoot "test-live-data-recovery.ps1")
 
 Write-Host "DanzStak production deployment completed."

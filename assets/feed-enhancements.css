@@ -74,3 +74,5 @@
 .feed-online-row button{background:#1769e0;color:#fff;text-shadow:none;box-shadow:none;border:1px solid #1769e0;white-space:nowrap}
 .feed-online-row button:disabled{background:#e2e8f0;border-color:#cbd5e1;color:#475569;opacity:1}
 .dark-mode .feed-online-row{background:#25364d;color:#dbeafe}.dark-mode .feed-online-row a{color:#b9dcff}.dark-mode .feed-online-row button:disabled{background:#334155;border-color:#526074;color:#d3dce8}
+
+#featureView{scroll-margin-top:86px}@media(max-width:700px){#featureView{scroll-margin-top:12px}}

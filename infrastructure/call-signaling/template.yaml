@@ -56,6 +56,12 @@ Resources:
               Bool: {aws:SecureTransport: false}
   CallSignalsTable:
     Type: AWS::DynamoDB::Table
+    Metadata:
+      guard:
+        SuppressedRules: [DYNAMODB_PITR_ENABLED]
+      com.aws.cloudformation.Context:
+        why: Ephemeral call signals and presence expire automatically and must not be restored as current activity.
+        must: [Keep TTL expiration enabled.]
     Properties:
       TableName: DANZSTAK-CallSignals
       BillingMode: PAY_PER_REQUEST
@@ -76,6 +82,12 @@ Resources:
         SSEEnabled: true
   PresenceTable:
     Type: AWS::DynamoDB::Table
+    Metadata:
+      guard:
+        SuppressedRules: [DYNAMODB_PITR_ENABLED]
+      com.aws.cloudformation.Context:
+        why: Ephemeral call signals and presence expire automatically and must not be restored as current activity.
+        must: [Keep TTL expiration enabled.]
     Properties:
       TableName: DANZSTAK-Presence
       BillingMode: PAY_PER_REQUEST
@@ -94,7 +106,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DANZSTAK-PushSubscriptions
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -140,7 +157,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DANZSTAK-Friends
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -159,7 +181,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DANZSTAK-Stories
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -177,7 +204,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DANZSTAK-GroupMembers
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -196,7 +228,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DanzStak-Messages
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -215,7 +252,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DanzStak-MessageReactions
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -234,7 +276,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DanzStak-Conversations
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -253,7 +300,12 @@ Resources:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Member data needs recovery protection against accidental writes or deletion.
+        must: [Keep point-in-time recovery and encryption enabled.]
     Properties:
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
       TableName: DanzStak-UserSettings
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:

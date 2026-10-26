@@ -1,9 +1,11 @@
 "use strict";
 
+const devicePreferenceMemory = new Map();
+
 try {
-  document.documentElement.classList.toggle("dark-mode", localStorage.getItem("danzstak_dark_mode") === "1");
-  document.documentElement.classList.toggle("reduce-motion", localStorage.getItem("danzstak_reduce_motion") === "1");
-  document.documentElement.lang = localStorage.getItem("danzstak_language") || "en";
+  document.documentElement.classList.toggle("dark-mode", readDevicePreference("danzstak_dark_mode") === "1");
+  document.documentElement.classList.toggle("reduce-motion", readDevicePreference("danzstak_reduce_motion") === "1");
+  document.documentElement.lang = readDevicePreference("danzstak_language") || "en";
 } catch { /* Device preferences remain optional when storage is unavailable. */ }
 
 const featurePanel = document.getElementById("featureView");
@@ -63,22 +65,33 @@ async function refreshNotificationCount() {
   finally { clearTimeout(timeout); notificationCountLoading = false; }
 }
 
+function readDevicePreference(key) {
+  if (devicePreferenceMemory.has(key)) return devicePreferenceMemory.get(key);
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function cacheDevicePreference(key, value) {
+  devicePreferenceMemory.set(key, String(value));
+  try { localStorage.setItem(key, value); } catch { /* Keep the current device choice in memory. */ }
+}
+let transientSections = null;
 function readSections() {
+  if (transientSections) return transientSections;
   try { return JSON.parse(localStorage.getItem(localKey) || "{}"); }
   catch { return {}; }
 }
 
 function writeSections(value) {
-  localStorage.setItem(localKey, JSON.stringify(value));
+  try { localStorage.setItem(localKey, JSON.stringify(value)); transientSections = null; }
+  catch { transientSections = value; }
 }
 
 function dataSaverEnabled() {
-  try { return localStorage.getItem("danzstak_data_saver") === "1"; }
+  try { return readDevicePreference("danzstak_data_saver") === "1"; }
   catch { return false; }
 }
 
 function applyDataSaver(enabled) {
-  try { localStorage.setItem("danzstak_data_saver", enabled ? "1" : "0"); } catch {}
+  try { cacheDevicePreference("danzstak_data_saver", enabled ? "1" : "0"); } catch {}
   document.documentElement.classList.toggle("data-saver", enabled);
   document.querySelectorAll("video").forEach(video => {
     video.preload = enabled ? "none" : "metadata";
@@ -205,6 +218,33 @@ async function migrateLocalGroups(localGroups, remoteGroups) {
     } catch { pending.push(local); }
   }
   return { groups, pending, joinedIds };
+}
+
+async function respondToNotificationRequest(row, email, accept) {
+  const buttons = [...row.querySelectorAll(".notification-actions button")];
+  if (buttons.some(button => button.disabled)) return false;
+  buttons.forEach(button => { button.disabled = true; });
+  row.querySelector(".notification-request-status")?.remove();
+  try {
+    const response = await fetch("https://api.danzstak.com/friends/respond", {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, accept })
+    });
+    if (!response.ok) throw new Error("Friend request could not be updated. Please try again.");
+  } catch (error) {
+    buttons.forEach(button => { button.disabled = false; });
+    const status = document.createElement("p");
+    status.className = "notification-request-status muted";
+    status.setAttribute("role", "status");
+    status.textContent = "Friend request could not be updated. Please try again.";
+    row.appendChild(status);
+    return false;
+  }
+  row.remove();
+  await refreshNotificationCount().catch(() => {});
+  if (typeof loadOnlineUsers === "function") Promise.resolve(loadOnlineUsers()).catch(() => {});
+  if (typeof loadFriends === "function") Promise.resolve(loadFriends()).catch(() => {});
+  return true;
 }
 
 function renderWorkspace(name) {
@@ -503,10 +543,7 @@ function renderWorkspace(name) {
             button.textContent = label;
             button.className = accept ? "primary" : "secondary";
             button.addEventListener("click", async () => {
-              button.disabled = true;
-              const response = await fetch("https://api.danzstak.com/friends/respond", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ email: notice.email, accept }) });
-              if (response.ok) { row.remove(); await refreshNotificationCount(); if (typeof loadOnlineUsers === "function") loadOnlineUsers(); if (typeof loadFriends === "function") loadFriends(); }
-              else { button.disabled = false; featureText.textContent = "Friend request could not be updated. Please try again."; }
+              await respondToNotificationRequest(row, notice.email, accept);
             });
             actions.appendChild(button);
           }
@@ -614,6 +651,7 @@ function renderWorkspace(name) {
   }
 
   if (name === "Events") {
+    featureText.textContent = "Create event announcements and find events shared in your feed.";
     const title = field("Event name", "text", "Show or performance");
     const date = field("Date", "date", "");
     const audience = document.createElement("select");
@@ -665,6 +703,7 @@ function renderWorkspace(name) {
   }
 
   if (name === "Settings") {
+    featureText.textContent = "Manage account privacy, device preferences, and notifications.";
     workspace.classList.add("settings-workspace");
     const heading = document.createElement("h3");
     heading.className = "settings-heading";
@@ -696,7 +735,7 @@ function renderWorkspace(name) {
     darkCheckbox.setAttribute("aria-label", "Use dark mode");
     darkCheckbox.addEventListener("change", () => {
       document.documentElement.classList.toggle("dark-mode", darkCheckbox.checked);
-      localStorage.setItem("danzstak_dark_mode", darkCheckbox.checked ? "1" : "0");
+      cacheDevicePreference("danzstak_dark_mode", darkCheckbox.checked ? "1" : "0");
     });
     const motionCheckbox = document.createElement("input");
     motionCheckbox.type = "checkbox";
@@ -704,11 +743,11 @@ function renderWorkspace(name) {
     motionCheckbox.setAttribute("aria-label", "Reduce interface motion");
     motionCheckbox.addEventListener("change", () => {
       document.documentElement.classList.toggle("reduce-motion", motionCheckbox.checked);
-      localStorage.setItem("danzstak_reduce_motion", motionCheckbox.checked ? "1" : "0");
+      cacheDevicePreference("danzstak_reduce_motion", motionCheckbox.checked ? "1" : "0");
     });
     const dataSaverCheckbox = document.createElement("input");
     dataSaverCheckbox.type = "checkbox";
-    dataSaverCheckbox.checked = localStorage.getItem("danzstak_data_saver") === "1";
+    dataSaverCheckbox.checked = readDevicePreference("danzstak_data_saver") === "1";
     dataSaverCheckbox.setAttribute("aria-label", "Use less mobile data");
     dataSaverCheckbox.addEventListener("change", () => applyDataSaver(dataSaverCheckbox.checked));
     const language = document.createElement("select");
@@ -716,8 +755,8 @@ function renderWorkspace(name) {
     for (const [value, label] of [["en", "English"]]) {
       const option = document.createElement("option"); option.value = value; option.textContent = label; language.appendChild(option);
     }
-    language.value = localStorage.getItem("danzstak_language") || "en";
-    language.addEventListener("change", () => { localStorage.setItem("danzstak_language", language.value); document.documentElement.lang = language.value; });
+    language.value = readDevicePreference("danzstak_language") || "en";
+    language.addEventListener("change", () => { cacheDevicePreference("danzstak_language", language.value); document.documentElement.lang = language.value; });
     const appSettings = document.createElement("button");
     appSettings.type = "button";
     appSettings.className = "secondary";
@@ -774,12 +813,12 @@ function renderWorkspace(name) {
         if (typeof data.darkMode === "boolean") {
           darkCheckbox.checked = data.darkMode;
           document.documentElement.classList.toggle("dark-mode", data.darkMode);
-          localStorage.setItem("danzstak_dark_mode", data.darkMode ? "1" : "0");
+          cacheDevicePreference("danzstak_dark_mode", data.darkMode ? "1" : "0");
         }
         if (typeof data.reduceMotion === "boolean") {
           motionCheckbox.checked = data.reduceMotion;
           document.documentElement.classList.toggle("reduce-motion", data.reduceMotion);
-          localStorage.setItem("danzstak_reduce_motion", data.reduceMotion ? "1" : "0");
+          cacheDevicePreference("danzstak_reduce_motion", data.reduceMotion ? "1" : "0");
         }
         if (typeof data.dataSaver === "boolean") {
           dataSaverCheckbox.checked = data.dataSaver;
@@ -788,7 +827,7 @@ function renderWorkspace(name) {
         if (data.language === "en") {
           language.value = data.language;
           document.documentElement.lang = data.language;
-          localStorage.setItem("danzstak_language", data.language);
+          cacheDevicePreference("danzstak_language", data.language);
         }
         button.disabled = false;
         button.textContent = "Save Settings";
@@ -851,9 +890,9 @@ function openWorkspaceRoute(name, pushHistory = true) {
   document.getElementById("newsFeedView").hidden = true;
   featurePanel.hidden = false;
   featureHeading.textContent = canonicalName;
+  document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.dataset.feature === canonicalName));
   document.querySelectorAll("[data-feature]").forEach(control => {
     const active = control.dataset.feature === canonicalName;
-    if (control.matches(".menu a")) control.classList.toggle("active", active);
     if (active) control.setAttribute("aria-current", "page");
     else control.removeAttribute("aria-current");
   });

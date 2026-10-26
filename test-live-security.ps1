@@ -50,6 +50,15 @@ $profileVideoStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzs
 $expectedProfileVideoStatus = if ($ExpectProfileVideo) { "401" } else { "404" }
 if ($LASTEXITCODE -ne 0 -or $profileVideoStatus -ne $expectedProfileVideoStatus) { Add-Failure "Unauthenticated profile-video request returned $profileVideoStatus instead of $expectedProfileVideoStatus" }
 
+foreach ($protectedPath in @('/profiles', '/friends', '/settings/posts', '/messages', '/conversations', '/calls/directory', '/calls/inbox', '/settings/presence', '/notifications', '/stories', '/news', '/engagement', '/engagement-notifications')) {
+  $protectedStatus = & curl.exe -sS -o NUL -w "%{http_code}" -H "Origin: https://danzstak.com" "https://api.danzstak.com$protectedPath"
+  if ($LASTEXITCODE -ne 0 -or $protectedStatus -ne '401') { Add-Failure "Unauthenticated GET $protectedPath returned $protectedStatus instead of 401" }
+}
+foreach ($protectedWrite in @('/secure-posts', '/profiles', '/friends/request', '/friends/respond', '/settings/posts', '/messages', '/groups/membership', '/stories', '/reactions', '/comments', '/reports', '/calls/signal')) {
+  $writeStatus = & curl.exe -sS -o NUL -w "%{http_code}" -X POST -H "Origin: https://danzstak.com" -H "Content-Type: application/json" --data '{}' "https://api.danzstak.com$protectedWrite"
+  if ($LASTEXITCODE -ne 0 -or $writeStatus -ne '401') { Add-Failure "Unauthenticated POST $protectedWrite returned $writeStatus instead of 401" }
+}
+
 foreach ($pushRoute in @(
   @{ Method = 'GET'; Path = '/push/key' },
   @{ Method = 'POST'; Path = '/push/subscribe' },
