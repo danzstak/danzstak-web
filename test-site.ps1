@@ -496,6 +496,12 @@ foreach ($deleteChatState in @('if (deleteChat) deleteChat.disabled = false;', '
 if (-not $messagesHtml.Contains('id="deleteChat" type="button" class="secondary delete-chat" disabled')) {
   Add-Failure 'Messaging: Delete Chat is enabled before a conversation is selected'
 }
+foreach ($idleConversationControl in @('id="startText" type="button" class="primary" disabled', 'id="startPhone" type="button" class="primary" disabled', 'id="startVideo" type="button" class="primary" disabled')) {
+  if (-not $messagesHtml.Contains($idleConversationControl)) { Add-Failure "Messaging: conversation action is enabled before contact selection: $idleConversationControl" }
+}
+foreach ($conversationActionState in @('function setConversationActionsEnabled(enabled)', 'setConversationActionsEnabled(activeCanContact)', 'setConversationActionsEnabled(false)')) {
+  if (-not $directMessagesJs.Contains($conversationActionState)) { Add-Failure "Messaging: Text, Phone, and Video do not follow contact authorization: $conversationActionState" }
+}
 if (-not $chatJs.Contains('if(await handleEvent(event))handled.push(event.eventId)') -or
     -not $chatJs.Contains('eventIds:[offer.eventId]') -or
     -not $chatJs.Contains('if(pending?.eventId===event.eventId)return false;')) {

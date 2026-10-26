@@ -12,6 +12,7 @@ const messageInput = document.getElementById("messageInput");
 const messageList = document.getElementById("messageList");
 const sendButton = messageForm?.querySelector('button[type="submit"]');
 const textButton = document.getElementById("startText");
+const conversationActions = [textButton, document.getElementById("startPhone"), document.getElementById("startVideo")].filter(Boolean);
 const callStatus = document.getElementById("callStatus");
 const conversationUsers = document.getElementById("conversationUsers");
 const deleteChat = document.getElementById("deleteChat");
@@ -30,6 +31,9 @@ const shownMessages = new Set();
 let cachedConversations = [];
 let activeCanContact = false;
 let reactionTimer = null;
+function setConversationActionsEnabled(enabled) {
+  for (const button of conversationActions) button.disabled = !enabled;
+}
 async function directFetch(path, options = {}, timeoutMs = 10000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -98,6 +102,7 @@ function openConversation(conversation) {
   contactInput.value = conversation.contactEmail;
   window.danzstakActiveContactName = conversation.name || "DanzStak member";
   activeCanContact = conversation.canContact !== false;
+  setConversationActionsEnabled(activeCanContact);
   directContact = "";
   conversationHeader.hidden = false;
   conversationName.textContent = conversation.name || "DanzStak member";
@@ -118,6 +123,7 @@ function closeConversation({ focusList = false } = {}) {
   directContact = "";
   activeContactName = "Contact";
   activeCanContact = false;
+  setConversationActionsEnabled(false);
   nextMessageCursor = "";
   shownMessages.clear();
   messageList.replaceChildren();
@@ -227,6 +233,7 @@ async function loadDirectMessages(reset = false) {
     if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-read", contact }, location.origin);
     if (followNewest && appended) messageList.scrollTop = messageList.scrollHeight;
     activeCanContact = data.canContact !== false;
+    setConversationActionsEnabled(activeCanContact);
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
     callStatus.textContent = activeCanContact ? "You can message " + activeContactName + " directly." : "Saved chat. Become friends or join the same group to send new messages or call.";
