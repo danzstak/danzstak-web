@@ -321,8 +321,17 @@ if (-not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true"
 if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.Contains('No other connected users are active right now.')) {
   Add-Failure 'Online Users: the right panel can show offline contacts as online-directory results'
 }
+if ($feed.Contains('state.setAttribute("aria-label", state.title)') -or -not $feed.Contains('state.setAttribute("aria-hidden", "true")')) {
+  Add-Failure 'Friends: compact presence indicator duplicates the visible Online or Offline screen-reader announcement'
+}
 $sessionActivityJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-activity.js') -Raw -Encoding utf8
 $profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.js') -Raw -Encoding utf8
+if ($feedEnhancements.Contains('presence.setAttribute("aria-label", status.textContent)') -or -not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")')) {
+  Add-Failure 'Friends: workspace presence indicator duplicates the visible Online or Offline screen-reader announcement'
+}
+if ($profileEditorJs.Contains('status.setAttribute("aria-label", status.title)') -or -not $profileEditorJs.Contains('status.setAttribute("aria-hidden", "true")')) {
+  Add-Failure 'Profiles: friend presence indicator duplicates the visible Online or Offline screen-reader announcement'
+}
 if (-not $profileEditorJs.Contains('purpose: "profile"') -or $profileEditorJs.Contains('await discardCloudMedia(')) {
   Add-Failure 'Profile media must use permanent uploads and retain files after ambiguous save failures'
 }
