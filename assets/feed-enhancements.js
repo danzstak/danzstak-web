@@ -247,7 +247,10 @@ async function respondToNotificationRequest(row, email, accept) {
   return true;
 }
 
+let workspaceRenderVersion = 0;
 function renderWorkspace(name) {
+  const renderVersion = ++workspaceRenderVersion;
+  const isCurrentWorkspace = () => renderVersion === workspaceRenderVersion && !featurePanel.hidden && featureHeading.textContent === name;
   let workspace = featurePanel.querySelector(".feature-workspace");
   if (!workspace) {
     workspace = document.createElement("div");
@@ -679,23 +682,28 @@ function renderWorkspace(name) {
         eventCertified.focus();
         return;
       }
+      const submittedTitle = title.input.value.trim();
+      const submittedDate = date.input.value;
       button.disabled = true;
       featureText.textContent = "Publishing event…";
       try {
-        const formattedDate = new Date(date.input.value + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+        const formattedDate = new Date(submittedDate + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
         const response = await fetch("https://api.danzstak.com/secure-posts", {
           method: "POST", credentials: "include", cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: `📅 Event: ${title.input.value.trim()}\n${formattedDate}`, audience: audience.value, originalContentCertified: true })
+          body: JSON.stringify({ content: `📅 Event: ${submittedTitle}\n${formattedDate}`, audience: audience.value, originalContentCertified: true })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Event could not be published");
-        featureText.textContent = "Event published to DanzStak.";
-        title.input.value = "";
-        date.input.value = "";
+        if (isCurrentWorkspace()) featureText.textContent = "Event published to DanzStak.";
+        if (title.input.value.trim() === submittedTitle && date.input.value === submittedDate) {
+          title.input.value = "";
+          date.input.value = "";
+        }
+        eventCertified.checked = false;
         if (typeof window.loadPosts === "function") await window.loadPosts();
-        renderWorkspace("Events");
-      } catch (error) { featureText.textContent = error.message; }
+        if (isCurrentWorkspace()) renderPublishedEvents(publishedEvents);
+      } catch (error) { if (isCurrentWorkspace()) featureText.textContent = error.message; }
       finally { button.disabled = false; }
     });
     workspace.append(title.wrap, date.wrap, audience, eventCertification, button, publishedHeading, publishedEvents);
@@ -782,9 +790,9 @@ function renderWorkspace(name) {
       alertSettings.textContent = "Enabling…";
       try {
         await window.danzstakEnablePush();
-        featureText.textContent = "Background call alerts are enabled on this device, including while the installed app is closed.";
+        if (isCurrentWorkspace()) featureText.textContent = "Background call alerts are enabled on this device, including while the installed app is closed.";
       } catch (error) {
-        featureText.textContent = error.message;
+        if (isCurrentWorkspace()) featureText.textContent = error.message;
       }
       await updateAlertLabel();
     });
@@ -833,7 +841,7 @@ function renderWorkspace(name) {
         button.textContent = "Save Settings";
       })
       .catch(error => {
-        featureText.textContent = error.message + " Retry before changing privacy preferences.";
+        if (isCurrentWorkspace()) featureText.textContent = error.message + " Retry before changing privacy preferences.";
         button.disabled = false;
         button.dataset.mode = "retry";
         button.textContent = "Retry Settings";
@@ -849,10 +857,10 @@ function renderWorkspace(name) {
           body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, darkMode: darkCheckbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
         });
         if (!response.ok) throw new Error("Account settings could not be saved.");
-        featureText.textContent = "Settings saved to your DanzStak account.";
+        if (isCurrentWorkspace()) featureText.textContent = "Settings saved to your DanzStak account.";
         refreshNotificationCount();
         if (typeof loadOnlineUsers === "function") loadOnlineUsers();
-      } catch (error) { featureText.textContent = error.message; }
+      } catch (error) { if (isCurrentWorkspace()) featureText.textContent = error.message; }
       finally { button.disabled = false; }
     });
     workspace.append(

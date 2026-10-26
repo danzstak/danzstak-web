@@ -48,7 +48,7 @@ The current priority is stabilizing the existing DanzStak site: feed, profiles, 
 
 The owner confirmed this delivery order: finish and verify the existing site, then tour booking, then email, then the admin dashboard. Do not start the next phase by declaring unverified flows complete.
 
-1. A tour-booking module for bands to locate clubs geographically and contact them about booking their act. The planned flow includes city or location search, distance filters, venue profiles, and booking requests with act details and proposed dates. Location permission should be optional, with manual city/location entry available. Initial booking conversations can use DanzStak messaging.
+1. A tour-booking module for bands to locate clubs geographically and contact them about booking their act. The planned flow includes city or location search, distance filters, venue profiles, and booking requests with act details and proposed dates. Bands should be able to plan a multi-stop tour, track proposed dates and travel distances, and see booking-request status for each venue. Location permission should be optional, with manual city/location entry available. Initial booking conversations can use DanzStak messaging.
 2. An email server and email delivery workflows, including optional booking email notifications.
 3. An admin dashboard for site monitoring and management, including review of post and group reports.
 
@@ -57,3 +57,13 @@ The owner confirmed this delivery order: finish and verify the existing site, th
 Durable DynamoDB tables in the social and engagement stacks enable point-in-time recovery. Call signals and online presence are intentionally excluded because they expire and must not be restored as current activity. The existing Posts table is managed outside those stacks; `./aws-configure-data-recovery.ps1` enables and verifies its recovery protection in the configured production account. The complete production deployment runs this step automatically. Enabling recovery does not restore or replace a table; any actual restore requires a separate recovery workflow.
 
 Run `./test-live-data-recovery.ps1` after backend deployments to verify recovery is enabled for every durable DanzStak table. This check is read-only and does not perform a restore drill.
+
+## Site readiness evidence and open checks
+
+The October 26, 2026 stabilization pass covers the local regression suite, real RSA token-verification tests, session and signup-consent gates, group ownership/origin checks, delayed-response races, blocked/full browser storage, both infrastructure templates, and live API authentication/CORS/TLS checks. AWS guard checks cover database encryption and recovery, private media storage, encrypted objects, and HTTPS-only media access.
+
+Browser smoke checks covered Friends, Groups, Photos, Videos, Events, Saved, Settings, profile posts, and profile media. The profile and Settings layout were checked at a 390-pixel phone viewport, and saving the existing account preferences was confirmed against the live API. Live search checks covered a known match, no results, and clearing the filter. The save/open/unsave workflow also passed, with the original bookmark state restored. A viewport test is not a physical Android device test.
+
+A Posts recovery drill also passed: a point-in-time copy was restored into an isolated temporary table, the known saved post and all its attributes matched the source snapshot, and the temporary table was removed after verification. This is evidence for the Posts restore path, not a claim that every table has been restored together.
+
+Still open: the parked Android background-call ringing and duplicate-notification tests, and a fresh-account signup walkthrough. These must remain explicit rather than being counted as completed by mocked tests or by checking that recovery is enabled. The agreed next feature order remains tour booking, then email, then the admin dashboard.

@@ -11,9 +11,11 @@ function node(tag) {
   return item;
 }
 const featureText = {};
+let active = true;
+const renders = [];
 vm.runInNewContext(`function renderEvent(){ const name = "Events"; ${eventCode} } renderEvent();`, {
   document: { createElement: node, createTextNode: text => ({ textContent: text }), querySelectorAll: () => [] },
-  workspace: node('workspace'), featureText, featurePanel: {}, window: {}, renderWorkspace() {}, renderPublishedEvents() {},
+  workspace: node('workspace'), featureText, featurePanel: {}, window: {}, isCurrentWorkspace: () => active, renderWorkspace: name => renders.push(name), renderPublishedEvents() {},
   field: () => ({ wrap: node('label'), input: node('input') }),
   fetch: async (url, options) => { requests.push({ url, body: JSON.parse(options.body) }); return { ok: true, json: async () => ({}) }; }
 });
@@ -30,5 +32,13 @@ vm.runInNewContext(`function renderEvent(){ const name = "Events"; ${eventCode} 
   assert.equal(requests[0].body.originalContentCertified, true);
   assert.match(requests[0].body.content, /Local music meetup/);
   assert.equal(title.value, '');
+  title.value = 'Pending event'; date.value = '2026-11-02'; certification.checked = true;
+  const previousRenders = renders.length;
+  const pending = button.handlers.click(); active = false; featureText.textContent = 'Settings remains visible'; await pending;
+  assert.equal(featureText.textContent,'Settings remains visible','late event saves cannot replace another screen description');
+  assert.equal(renders.length,previousRenders,'late saves cannot render Events into another workspace');
+  active = true;title.value = 'Submitted event';date.value = '2026-11-03';certification.checked = true;
+  const draft = button.handlers.click();title.value = 'Next event draft';await draft;
+  assert.equal(title.value,'Next event draft','publishing preserves new typing while the request is pending');
   console.log('Event publishing checks passed: explicit confirmation and certified API request.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
