@@ -26,7 +26,15 @@ foreach ($header in @("Strict-Transport-Security", "X-Content-Type-Options", "X-
 }
 
 # Validate the delivered bytes: local checks cannot catch hosting newline changes.
-$liveFeed = (Invoke-WebRequest -Uri 'https://danzstak.com/feed.html' -Headers @{ 'Cache-Control' = 'no-cache' }).Content
+# Windows PowerShell 5's legacy web parser can decode UTF-8 emoji with the system
+# code page when a CDN response omits charset, changing the string before hashing.
+$webClient = [Net.WebClient]::new()
+try {
+  $webClient.Headers['Cache-Control'] = 'no-cache'
+  $liveFeed = [Text.Encoding]::UTF8.GetString($webClient.DownloadData('https://danzstak.com/feed.html'))
+} finally {
+  $webClient.Dispose()
+}
 $liveInlineScripts = [regex]::Matches($liveFeed, '<script>([\s\S]*?)</script>')
 if ($liveInlineScripts.Count -ne 1) { Add-Failure 'Live feed inline application script is missing' }
 else {
