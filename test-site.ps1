@@ -412,6 +412,9 @@ if ($messagesHtml -notmatch 'class="message-send"[^>]+aria-label="Send message"'
 if (-not $chatCss.Contains('.message-form>.message-send{')) {
   Add-Failure 'Messages: the visible Send button is missing its compact composer styling'
 }
+if (-not $chatCss.Contains('.message-form{grid-template-columns:minmax(0,1fr) auto!important;align-items:center}')) {
+  Add-Failure 'Messages: the input and Send button are not locked to one compact row'
+}
 foreach ($callLifecycleControl in @('callTimer=setTimeout', 'No answer from ', 'clearTimeout(callTimer)')) {
   if (-not $chatJs.Contains($callLifecycleControl)) { Add-Failure "Calls: unanswered-call timeout is missing: $callLifecycleControl" }
 }
