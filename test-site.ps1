@@ -41,6 +41,9 @@ if (-not $homeMarkup.Contains('.hero-logo{display:block;width:min(520px,100%)'))
 foreach ($appInstallControl in @('data-app-platform="android"', 'data-app-platform="apple"', 'Install DanzStak on Android', 'Install DanzStak on iPhone or iPad', 'assets/app-downloads.js?v=')) {
   if (-not $homeMarkup.Contains($appInstallControl)) { Add-Failure "Homepage: branded app-install choice is missing: $appInstallControl" }
 }
+if (-not $homeMarkup.Contains('.app-downloads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))')) {
+  Add-Failure 'Homepage: Android and Apple install choices are not locked side by side'
+}
 $appDownloads = Get-Content -LiteralPath (Join-Path $root 'assets\app-downloads.js') -Raw -Encoding utf8
 foreach ($appInstallBehavior in @('window.danzstakRequestInstall?.()', 'Add to Home Screen', 'updates automatically', 'installHelp.showModal()')) {
   if (-not $appDownloads.Contains($appInstallBehavior)) { Add-Failure "Homepage: app-install behavior is incomplete: $appInstallBehavior" }
