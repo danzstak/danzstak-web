@@ -2,6 +2,14 @@
 (()=>{
  const $=id=>document.getElementById(id),money=new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
  const presets={couch:{room:0,meals:25},budget:{room:95,meals:35},holiday:{room:165,meals:50},custom:null};
+ const routePresets={
+  custom:null,
+  i5:{start:"San Diego, CA",end:"Bellingham, WA",stops:["Los Angeles, CA","Santa Barbara, CA","San Francisco, CA","Sacramento, CA","Eugene, OR","Portland, OR","Seattle, WA"],miles:1344,days:10},
+  route66:{start:"Los Angeles, CA",end:"Chicago, IL",stops:["San Bernardino, CA","Flagstaff, AZ","Albuquerque, NM","Amarillo, TX","Oklahoma City, OK","Tulsa, OK","Springfield, MO","St. Louis, MO"],miles:2016,days:14},
+  southern:{start:"Los Angeles, CA",end:"Atlanta, GA",stops:["Phoenix, AZ","Tucson, AZ","El Paso, TX","Midland, TX","Dallas, TX","Shreveport, LA","Jackson, MS","Birmingham, AL"],miles:2200,days:15},
+  gator:{start:"Atlanta, GA",end:"Miami, FL",stops:["Macon, GA","Valdosta, GA","Gainesville, FL","Tampa, FL","Fort Myers, FL","Naples, FL"],miles:820,days:8}
+ };
+ const routeFieldset=$("startCity").closest("fieldset"),routePicker=document.createElement("label"),routeSelect=document.createElement("select");routePicker.append(document.createTextNode("Starter route"),routeSelect);routeSelect.id="routePreset";[["custom","Custom route"],["i5","I-5 Killers: San Diego to Bellingham"],["route66","Route 66 / I-40: Los Angeles to Chicago"],["southern","Southern Drawl: I-10 / I-20 via El Paso and Jackson"],["gator","Gator Leg: Atlanta to Miami on I-75"]].forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;routeSelect.append(option);});routeFieldset.insertBefore(routePicker,routeFieldset.firstElementChild.nextSibling);
  const fitLabel=document.createElement("label"),fitInput=document.createElement("input"),fitText=document.createElement("span");fitLabel.className="check";fitInput.id="driverFit";fitInput.type="checkbox";fitText.textContent="Driver confirms they are rested, unimpaired, and fit to drive this leg.";fitLabel.append(fitInput,fitText);$("driverVerified").closest("label").insertAdjacentElement("afterend",fitLabel);
  const milesRow=document.createElement("div"),milesLabel=document.createElement("dt"),milesValue=document.createElement("dd");milesLabel.textContent="Road miles funded by merch";milesValue.id="merchMiles";milesValue.textContent="0 mi";milesRow.append(milesLabel,milesValue);$("actualMerch").closest("div").insertAdjacentElement("afterend",milesRow);
  $("meals").value="25";$("meals").closest("label").firstChild.textContent="Per diem/person/day";$("mealCost").previousElementSibling.textContent="Crew per diem";
@@ -21,6 +29,7 @@
  }
  document.querySelectorAll("input,textarea").forEach(control=>control.addEventListener("input",recalculate));
  document.querySelectorAll('input[name="style"]').forEach(control=>control.addEventListener("change",()=>{const preset=presets[control.value];if(preset){$("roomRate").value=String(preset.room);$("meals").value=String(preset.meals);}recalculate();}));
+ routeSelect.addEventListener("change",()=>{const route=routePresets[routeSelect.value];if(!route)return;$("startCity").value=route.start;$("endCity").value=route.end;$("tourStops").value=route.stops.join("\n");$("miles").value=String(route.miles);$("days").value=String(route.days);recalculate();});
  $("locateMe").addEventListener("click",()=>{if(!navigator.geolocation){$("locationStatus").textContent="Location is not supported on this device.";return;}$("locationStatus").textContent="Requesting location permission…";navigator.geolocation.getCurrentPosition(position=>{$("startCity").value=`${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`;$("locationStatus").textContent="Current coordinates added as the starting point. They remain on this page unless you save the tour.";recalculate();},error=>{$("locationStatus").textContent=error.code===1?"Location permission was not granted.":"Current location could not be determined.";},{enableHighAccuracy:false,timeout:10000,maximumAge:300000});});
  $("printPlan").addEventListener("click",()=>window.print());recalculate();
 })();
