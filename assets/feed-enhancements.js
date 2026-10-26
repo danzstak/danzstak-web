@@ -676,8 +676,13 @@ function renderWorkspace(name) {
     workspace.appendChild(createFriendRequestForm());
     const list = document.createElement("div");
     list.className = "friends-workspace-list";
+    list.setAttribute("role", "region");
+    list.setAttribute("aria-label", "Friends");
+    list.setAttribute("aria-live", "polite");
+    list.setAttribute("aria-busy", "true");
     const loading = document.createElement("p");
     loading.className = "muted";
+    loading.setAttribute("role", "status");
     loading.textContent = "Loading friends…";
     list.appendChild(loading);
     workspace.appendChild(list);
@@ -695,6 +700,7 @@ function renderWorkspace(name) {
           .map(user => String(user.email || "").toLowerCase())
         : []);
       list.replaceChildren();
+      list.setAttribute("aria-busy", "false");
       if (!friends.length) {
         const empty = document.createElement("p");
         empty.className = "muted";
@@ -702,6 +708,8 @@ function renderWorkspace(name) {
         list.appendChild(empty);
       }
       for (const friend of friends) {
+        const row = document.createElement("div");
+        row.className = "friend-workspace-row";
         const link = document.createElement("a");
         link.className = "friend-card friend-card-large";
         link.href = "profile.html?member=" + encodeURIComponent(friend.memberId);
@@ -722,9 +730,16 @@ function renderWorkspace(name) {
         presence.setAttribute("aria-hidden", "true");
         presence.title = status.textContent;
         link.append(avatar, details, presence);
-        list.appendChild(link);
+        const message = document.createElement("button");
+        message.type = "button";
+        message.className = "friend-message-action";
+        message.textContent = "Message";
+        message.setAttribute("aria-label", "Message " + displayName.textContent);
+        message.addEventListener("click", () => openMessageDrawer(friend.email));
+        row.append(link, message);
+        list.appendChild(row);
       }
-    }).catch(error => { loading.textContent = error.message; });
+    }).catch(error => { list.setAttribute("aria-busy", "false"); loading.textContent = error.message; });
     return;
   }
 

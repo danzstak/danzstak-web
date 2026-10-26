@@ -333,6 +333,9 @@ foreach ($onlineContactNavigation in @('name.href = "profile.html?member=" + enc
 if (-not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")')) {
   Add-Failure 'Friends: decorative presence dot duplicates the visible online status for assistive technology'
 }
+foreach ($friendsWorkspaceControl in @('list.setAttribute("aria-label", "Friends")', 'list.setAttribute("aria-busy", "true")', 'message.setAttribute("aria-label", "Message " + displayName.textContent)', 'message.addEventListener("click", () => openMessageDrawer(friend.email))')) {
+  if (-not $feedEnhancements.Contains($friendsWorkspaceControl)) { Add-Failure "Friends: workspace loading or quick-message behavior is missing: $friendsWorkspaceControl" }
+}
 foreach ($workspaceStateControl in @('homeControl?.setAttribute("aria-pressed", "false")', 'control.matches("button")) control.setAttribute("aria-pressed", String(active))', 'home?.setAttribute("aria-pressed", "true")')) {
   if (-not $feedEnhancements.Contains($workspaceStateControl)) { Add-Failure "Navigation: top workspace control does not expose its selected state: $workspaceStateControl" }
 }
