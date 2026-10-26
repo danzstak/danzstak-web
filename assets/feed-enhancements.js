@@ -1209,12 +1209,21 @@ function addShareButton(post) {
     const content = post.querySelector(".post-content")?.textContent.trim() || "DanzStak post";
     const shareUrl = postPermalink(post);
     const shareData = { title: "DanzStak", text: content.slice(0, 200), url: shareUrl };
-    if (navigator.share) {
-      try { await navigator.share(shareData); } catch (error) { if (error.name !== "AbortError") alert("Unable to share this post."); }
-      return;
-    }
-    const facebook = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(shareUrl);
-    window.open(facebook, "_blank", "noopener,noreferrer,width=720,height=620");
+    button.disabled = true;
+    let status = post.querySelector(".post-share-status");
+    if (!status) { status = document.createElement("p"); status.className = "post-share-status"; status.setAttribute("role", "status"); actions.after(status); }
+    status.textContent = "";
+    try {
+      if (navigator.share) {
+        try { await navigator.share(shareData); return; }
+        catch (error) { if (error.name === "AbortError") return; }
+      }
+      try { await navigator.clipboard.writeText(shareUrl); status.textContent = "Link copied. Paste it wherever you want to share."; }
+      catch {
+        status.textContent = "Copy this link to share: ";
+        const link = document.createElement("a"); link.href = shareUrl; link.textContent = shareUrl; status.appendChild(link);
+      }
+    } finally { button.disabled = false; }
   });
   actions.appendChild(button);
 }
