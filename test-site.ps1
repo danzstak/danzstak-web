@@ -312,7 +312,7 @@ foreach ($contactFailureBehavior in @('async function directFetch(', 'controller
 foreach ($onlineContactNavigation in @('name.href = "profile.html?member=" + encodeURIComponent(memberId)', 'action.addEventListener("click", () => openMessageDrawer(user.email))', 'user.friendStatus === "friends" || user.sharedGroup')) {
   if (-not $feed.Contains($onlineContactNavigation)) { Add-Failure "Online contacts: profile or embedded-message navigation is incomplete: $onlineContactNavigation" }
 }
-if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.Contains('No users are online right now.')) {
+if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.Contains('No other connected users are active right now.')) {
   Add-Failure 'Online Users: the right panel can show offline contacts as online-directory results'
 }
 $sessionActivityJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-activity.js') -Raw -Encoding utf8
