@@ -56,7 +56,7 @@ $callTemplate = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'infrastructur
 foreach ($storyCleanupControl in @('Id: ExpireDedicatedStoryMedia', 'Prefix: stories/', 'NoncurrentVersionExpiration:', 'const purpose=body.purpose||''story''', 'storyUpload=new RegExp(`^stories/${prefix}/', 'body.dedicatedMedia!==true')) {
   if (-not $callTemplate.Contains($storyCleanupControl)) { throw "Stories: dedicated expired media cleanup is missing: $storyCleanupControl" }
 }
-foreach ($persistentReelControl in @("kind:{S:'reel'},content:{S:url.href},createdAt:{S:createdAt}}", "FilterExpression:'attribute_not_exists(expiresAt) OR expiresAt > :n'")) {
+foreach ($persistentReelControl in @("kind:{S:'reel'},content:{S:url.href},createdAt:{S:createdAt}}", "x.kind?.S==='reel'", "Math.floor(created/1000)+86400")) {
   if (-not $callTemplate.Contains($persistentReelControl)) { throw "Reels: saved external videos do not persist until owner deletion: $persistentReelControl" }
 }
 if ($callTemplate.Contains("kind:{S:'reel'},content:{S:url.href},createdAt:{S:createdAt},expiresAt:")) { throw 'Reels: external videos still receive an automatic expiration timestamp' }

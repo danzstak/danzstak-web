@@ -1573,6 +1573,7 @@ function publicPlace(place) {
   const websites = (place.Contacts?.Websites || []).map(item => String(item.Value || "")).filter(value => /^https:\/\//i.test(value)).slice(0, 2);
   const emails = (place.Contacts?.Emails || []).map(item => String(item.Value || "").trim().toLowerCase()).filter(value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)).slice(0, 2);
   const phones = (place.Contacts?.Phones || []).map(item => String(item.Value || "").trim()).filter(value => /^\+?[0-9 ()-]{7,24}$/.test(value)).slice(0, 2);
+  const categories = (place.Categories || []).map(item => String(item.LocalizedName || item.Name || item.Id || "").trim()).filter(Boolean).slice(0, 8);
   return {
     name: String(place.Title || "Venue").slice(0, 160),
     address: String(place.Address?.Label || "").slice(0, 300),
@@ -1582,8 +1583,14 @@ function publicPlace(place) {
     websites,
     emails,
     phones,
+    categories,
     contactVerificationRequired: true
   };
+}
+
+function isBookableClub(place) {
+  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
+  return !/\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|symphony|orchestra|opera house|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/.test(description);
 }
 
 const tourDirections = new Set(["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]);
@@ -1597,13 +1604,13 @@ function directionalBias(origin, direction, distanceMiles) {
   return [Math.max(-179.9, Math.min(179.9, longitude)), Math.max(-84, Math.min(84, latitude))];
 }
 
-async function suggestDirectionalMarkets(home, direction, days) {
+async function suggestDirectionalMarkets(home, direction, days, genre = "") {
   const outboundNights = Math.max(1, Math.min(5, Math.floor((days - 1) / 2)));
   const stepMiles = days <= 3 ? 70 : days <= 7 ? 100 : 125;
   const markets = [];
   for (let index = 1; index <= outboundNights; index += 1) {
     const bias = directionalBias(home.position, direction, stepMiles * index);
-    const result = await geoPlaces.send(new SearchTextCommand({ QueryText: "live music venue", BiasPosition: bias, MaxResults: 5, AdditionalFeatures: ["Contact"] }));
+    const result = await geoPlaces.send(new SearchTextCommand({ QueryText: genre ? `${genre} music club` : "DIY punk metal rock music club", BiasPosition: bias, MaxResults: 10, AdditionalFeatures: ["Contact"] }));
     const places = (result.ResultItems || []).map(publicPlace).filter(place => place.position.length === 2);
     const lead = places[0];
     if (!lead) continue;
@@ -1621,14 +1628,15 @@ async function geocodeTourPlace(query) {
   return { label: String(place.Title || query).slice(0, 160), position: place.Position.slice(0, 2) };
 }
 
-async function tourCandidates(point) {
+async function tourCandidates(point, genre = "") {
   const search = async query => {
-    const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, BiasPosition: point.position, MaxResults: 10, AdditionalFeatures: ["Contact"] }));
+    const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, BiasPosition: point.position, MaxResults: 20, AdditionalFeatures: ["Contact"] }));
     return (result.ResultItems || []).map(publicPlace);
   };
-  const [musicVenues, liveBars, hotelResults] = await Promise.all([search("live music venue"), search("bar with live music"), search("hotel")]);
+  const genreQuery = genre ? `${genre} music club` : "DIY punk metal rock music club";
+  const [genreVenues, musicVenues, liveBars, clubs, hotelResults] = await Promise.all([search(genreQuery), search("live music venue"), search("bar with live music"), search("music club"), search("hotel")]);
   const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
-  const seen = new Set(), venues = [...musicVenues, ...liveBars].filter(place => nearby(place, 50)).filter(place => { const key = `${place.name}|${place.address}`.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
+  const seen = new Set(), venues = [...genreVenues, ...musicVenues, ...liveBars, ...clubs].filter(place => nearby(place, 50) && isBookableClub(place)).filter(place => { const key = `${place.name}|${place.address}`.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; }).slice(0, 30);
   const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }
@@ -1641,24 +1649,24 @@ async function planTourRoute(event) {
   const data = parseJsonBody(event);
   if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
   const cleanPlace = value => String(value || "").trim();
-  const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), requestedDepartOn = cleanPlace(data.departOn), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), end = local || directional ? start : cleanPlace(data.end), stops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [];
+  const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), genre = cleanPlace(data.genre).slice(0, 80), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), requestedDepartOn = cleanPlace(data.departOn), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), suppliedStops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [], suppliedEnd = local || directional ? start : cleanPlace(data.end), end = suppliedEnd || suppliedStops.at(-1) || "", stops = suppliedEnd ? suppliedStops : suppliedStops.slice(0, -1);
   if (directional && (!tourDirections.has(direction) || !requestedDays)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a travel direction and provide 1–180 tour days." }) };
   if ((requestedDepartOn && !/^\d{4}-\d{2}-\d{2}$/.test(requestedDepartOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour dates must use YYYY-MM-DD." }) };
   if (requestedDepartOn && returnBy && requestedDepartOn > returnBy) return { statusCode: 400, headers, body: JSON.stringify({ error: "The home date must be on or after the first show date." }) };
   if (start.length < 2 || start.length > 120 || end.length < 2 || end.length > 120 || stops.length > 8 || stops.some(stop => stop.length > 120)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Provide a home or starting city, a destination for tours, and no more than eight valid stops." }) };
   try {
     if (local) {
-      const point = await geocodeTourPlace(start), candidates = await tourCandidates(point);
+      const point = await geocodeTourPlace(start), candidates = await tourCandidates(point, genre);
       if (requestedDepartOn) candidates.proposedDate = requestedDepartOn;
       return { statusCode: 200, headers, body: JSON.stringify({ route: { start: point, end: point, stops: [], distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, requestedDays, departOn: requestedDepartOn, returnBy, provider: "Amazon Location Service", planningOnly: true, local: true }, candidates: [candidates] }) };
     }
     const home = await geocodeTourPlace(start);
-    const suggestedMarkets = directional ? await suggestDirectionalMarkets(home, direction, requestedDays) : [];
+    const suggestedMarkets = directional ? await suggestDirectionalMarkets(home, direction, requestedDays, genre) : [];
     const points = directional ? [home, ...suggestedMarkets, home] : await Promise.all([start, ...stops, end, start].map(geocodeTourPlace));
     const route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: points[0].position, Destination: points.at(-1).position, Waypoints: points.slice(1, -1).map(point => ({ Position: point.position })), TravelMode: "Car" }));
     const summary = route.Routes?.[0]?.Summary;
     if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
-    const markets = points.slice(1, -1), selected = markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]), candidates = await Promise.all(selected.map(tourCandidates));
+    const markets = points.slice(1, -1), selected = markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]), candidates = await Promise.all(selected.map(point => tourCandidates(point, genre)));
     const distanceMiles = Math.round(Number(summary.Distance || 0) / 1609.344), durationHours = Math.round(Number(summary.Duration || 0) / 360) / 10;
     const minimumDrivingDays = Math.max(1, Math.ceil(durationHours / 8));
     if (directional && minimumDrivingDays >= requestedDays) return { statusCode: 422, headers, body: JSON.stringify({ error: `That ${direction} loop needs at least ${minimumDrivingDays} full driving days. Add days or choose a shorter direction-based plan.` }) };
