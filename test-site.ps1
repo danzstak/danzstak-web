@@ -212,6 +212,9 @@ foreach ($relationshipStatus in @('relationship=document.createElement("span")',
 if ($chatScript.Contains('friend.textContent="Friends";friend.disabled=true') -or $chatScript.Contains('friend.textContent="Requested";friend.disabled=true')) {
   Add-Failure 'Messages: non-action relationship states are still exposed as disabled buttons'
 }
+foreach ($presenceAnnouncement in @('dot.setAttribute("aria-hidden","true")', 'availability.className="sr-only"', 'availability.textContent=user.online?"Online":"Offline"')) {
+  if (-not $chatScript.Contains($presenceAnnouncement)) { Add-Failure "Messages: contact presence is not explicitly announced: $presenceAnnouncement" }
+}
 if (-not $feed.Contains('event.data?.type === "danzstak-call-mode"') -or -not $feed.Contains('.message-drawer.is-video-call')) {
   Add-Failure 'Calls: the message drawer does not expand exclusively for video calls'
 }
