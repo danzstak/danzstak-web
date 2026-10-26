@@ -918,6 +918,7 @@ async function getSecurePosts(event) {
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
       isOwner: item.userId?.S === userId,
+      featured: item.featured?.BOOL === true,
       userEmail: item.userEmail?.S ?? "",
       authorName: authorNames.get(String(item.userEmail?.S || "").trim().toLowerCase()) || item.userEmail?.S?.split("@")[0] || "DanzStak Member",
       content: item.content.S,
@@ -1444,6 +1445,10 @@ async function updateSecurePost(event) {
   if (found.Item.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the owner can edit this post." }) };
   const updates = [], names = {}, values = { ":updated": { S: new Date().toISOString() } };
   let tagCondition = "", tagNotices = [], removedTags = [], tagChecks = [];
+  if (Object.prototype.hasOwnProperty.call(data, "featured")) {
+    if (typeof data.featured !== "boolean") return {statusCode:400,headers,body:JSON.stringify({error:"Featured must be true or false."})};
+    updates.push("featured = :featured"); values[":featured"] = {BOOL:data.featured};
+  }
   if (Object.prototype.hasOwnProperty.call(data,"taggedMembers")) {
     if (!["image","video"].includes(found.Item.mediaType?.S)) return {statusCode:400,headers,body:JSON.stringify({error:"Tag people on photos or videos only."})};
     const current = new Set((found.Item.taggedUsers?.L || []).map(tag => tag.M?.memberId?.S)), declined = new Set(found.Item.tagDeclinedBy?.SS || []);

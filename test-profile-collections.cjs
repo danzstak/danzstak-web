@@ -1,0 +1,12 @@
+const assert = require('node:assert/strict');
+const {select} = require('./assets/profile-collections.js');
+const now = new Date(2026,9,26,12), post = {userEmail:'owner@example.com',createdAt:new Date(2025,9,26,12).toISOString(),isOwner:true,featured:true,audience:'private'};
+assert.equal(select([post],'featured','owner@example.com',true).length,1);
+assert.equal(select([post],'featured','other@example.com',false).length,0);
+assert.equal(select([post],'memories','owner@example.com',false,now).length,0);
+assert.equal(select([{...post,isOwner:false}],'memories','owner@example.com',true,now).length,0);
+assert.equal(select([post],'memories','owner@example.com',true,now).length,1);
+assert.equal(post.audience,'private');
+assert.equal(select([{...post,createdAt:new Date(2026,9,26,10).toISOString()}],'memories','owner@example.com',true,now).length,0);
+assert.equal(select([{...post,createdAt:'invalid'}],'memories','owner@example.com',true,now).length,0);
+console.log('Profile collection checks passed: author boundaries, private Memories, anniversary dates, and unchanged audience.');

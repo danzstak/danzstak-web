@@ -367,11 +367,12 @@ const tabs = document.createElement("nav");
 tabs.className = "profile-tabs";
 tabs.setAttribute("aria-label", "Profile sections");
 tabs.setAttribute("role", "tablist");
-for (const name of ["Posts", "About", "Friends", "Media"]) {
+for (const name of ["Posts", "Featured", "Memories", "About", "Friends", "Media"]) {
   const tab = document.createElement("button");
   tab.type = "button";
   tab.textContent = name;
   tab.dataset.profileTab = name;
+  if (name === "Memories") tab.hidden = true;
   tab.classList.toggle("active", name === "About");
   tab.setAttribute("role", "tab");
   tab.setAttribute("aria-selected", String(name === "About"));
@@ -418,11 +419,29 @@ function profilePostCard(post) {
   }
   window.danzstakRenderSharedPost?.(article, post);
   window.danzstakRenderMediaTags?.(article, post);
+  if (post.isOwner === true && post.postId) {
+    const feature = document.createElement("button");
+    feature.type = "button"; feature.className = "secondary";
+    const paint = () => { feature.textContent = post.featured ? "Remove from Featured" : "Feature on profile"; feature.setAttribute("aria-pressed", String(post.featured === true)); };
+    paint();
+    feature.addEventListener("click", async () => {
+      feature.disabled = true;
+      try {
+        const response = await fetch(profileApi + "/secure-posts/" + encodeURIComponent(post.postId), {method:"PATCH",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({featured:!post.featured})});
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Featured post could not be saved.");
+        post.featured = !post.featured; paint();
+        if (!post.featured && tabs.querySelector('[data-profile-tab="Featured"]').getAttribute("aria-selected") === "true") article.remove();
+      } catch (error) { alert(error.message); }
+      finally { feature.disabled = false; }
+    });
+    article.appendChild(feature);
+  }
   return article;
 }
 
 let profileTabVersion = 0;
-async function loadProfilePosts(mediaOnly = false) {
+async function loadProfilePosts(mediaOnly = false, collection = "posts") {
   const version = profileTabVersion;
   tabMessage.textContent = mediaOnly ? "Loading media…" : "Loading posts…";
   try {
@@ -431,9 +450,15 @@ async function loadProfilePosts(mediaOnly = false) {
     const data = await response.json();
     if (version !== profileTabVersion) return;
     const profileEmail = String(window.danzstakCurrentProfile?.email || "").toLowerCase();
-    let posts = (data.posts || []).filter(post => String(post.authorEmail || post.userEmail || post.email || "").toLowerCase() === profileEmail);
+    let posts = window.danzstakProfileCollections.select(data.posts || [], collection, profileEmail, !viewingOtherProfile);
     if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType));
     tabMessage.replaceChildren();
+    if (collection !== "posts") {
+      const note = document.createElement("p"); note.className = "muted";
+      note.textContent = collection === "memories" ? "Only you can see this Memories view. These are your posts from this day in previous years; their original audiences stay unchanged." : "Featured posts keep their original audience. Highlighting a post does not make it public.";
+      tabMessage.appendChild(note);
+      if (!posts.length) { const empty = document.createElement("p"); empty.textContent = collection === "memories" ? "No memories from this day yet." : "No featured posts to show yet."; tabMessage.appendChild(empty); }
+    }
     for (const post of posts) tabMessage.appendChild(profilePostCard(post));
     if (mediaOnly) {
       const params = new URLSearchParams();
@@ -523,6 +548,8 @@ tabs.addEventListener("click", async event => {
   details.hidden = name !== "About";
   tabMessage.hidden = name === "About";
   if (name === "Posts") await loadProfilePosts(false);
+  else if (name === "Featured") await loadProfilePosts(false, "featured");
+  else if (name === "Memories" && !viewingOtherProfile) await loadProfilePosts(false, "memories");
   else if (name === "Friends") await loadProfileFriends();
   else if (name === "Media") await loadProfilePosts(true);
 });
@@ -633,6 +660,7 @@ if (!viewingOtherProfile) {
   try { applyProfileMedia(JSON.parse(localStorage.getItem(profileMediaKey) || "{}")); } catch { /* Ignore corrupt local drafts. */ }
 }
 window.addEventListener("danzstak:profile-loaded", event => {
+  tabs.querySelector('[data-profile-tab="Memories"]').hidden = event.detail?.isOwner !== true;
   const profile = event.detail || {};
   if (profile.isOwner === true) { viewingOtherProfile = false; editButton.hidden = false; mediaTools.hidden = false; }
   applyProfile(profile.cloudProfile ? profile : savedProfile());
