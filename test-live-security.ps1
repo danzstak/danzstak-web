@@ -63,17 +63,17 @@ if ($LASTEXITCODE -ne 0 -or $preflightText -notmatch '(?im)^access-control-allow
   Add-Failure "Trusted API preflight does not authorize required POST requests"
 }
 $groupsStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzstak.com/groups"
-$expectedGroupsStatus = if ($ExpectGroups) { "401" } else { "404" }
+$expectedGroupsStatus = "401"
 if ($LASTEXITCODE -ne 0 -or $groupsStatus -ne $expectedGroupsStatus) { Add-Failure "Unauthenticated groups request returned $groupsStatus instead of $expectedGroupsStatus" }
 $profileVideoStatus = & curl.exe -sS -o NUL -w "%{http_code}" "https://api.danzstak.com/profile-video"
-$expectedProfileVideoStatus = if ($ExpectProfileVideo) { "401" } else { "404" }
+$expectedProfileVideoStatus = "401"
 if ($LASTEXITCODE -ne 0 -or $profileVideoStatus -ne $expectedProfileVideoStatus) { Add-Failure "Unauthenticated profile-video request returned $profileVideoStatus instead of $expectedProfileVideoStatus" }
 
-foreach ($protectedPath in @('/profiles', '/friends', '/settings/posts', '/messages', '/conversations', '/calls/directory', '/calls/inbox', '/settings/presence', '/notifications', '/stories', '/news', '/engagement', '/engagement-notifications')) {
+foreach ($protectedPath in @('/profiles', '/friends', '/settings/posts', '/messages', '/conversations', '/calls/directory', '/calls/inbox', '/settings/presence', '/notifications', '/stories', '/news', '/engagement', '/engagement-notifications', '/tours')) {
   $protectedStatus = & curl.exe -sS -o NUL -w "%{http_code}" -H "Origin: https://danzstak.com" "https://api.danzstak.com$protectedPath"
   if ($LASTEXITCODE -ne 0 -or $protectedStatus -ne '401') { Add-Failure "Unauthenticated GET $protectedPath returned $protectedStatus instead of 401" }
 }
-foreach ($protectedWrite in @('/secure-posts', '/profiles', '/friends/request', '/friends/respond', '/settings/posts', '/settings/presence', '/messages', '/messages/delete', '/groups', '/groups/membership', '/stories', '/reactions', '/comments', '/reports', '/profile-video', '/engagement-notifications/read', '/support-tickets', '/calls/signal', '/calls/ack', '/calls/presence')) {
+foreach ($protectedWrite in @('/secure-posts', '/profiles', '/friends/request', '/friends/respond', '/settings/posts', '/settings/presence', '/messages', '/messages/delete', '/groups', '/groups/membership', '/stories', '/reactions', '/comments', '/reports', '/profile-video', '/engagement-notifications/read', '/support-tickets', '/calls/signal', '/calls/ack', '/calls/presence', '/tour/route', '/tours')) {
   $writeStatus = & curl.exe -sS -o NUL -w "%{http_code}" -X POST -H "Origin: https://danzstak.com" -H "Content-Type: application/json" --data '{}' "https://api.danzstak.com$protectedWrite"
   if ($LASTEXITCODE -ne 0 -or $writeStatus -ne '401') { Add-Failure "Unauthenticated POST $protectedWrite returned $writeStatus instead of 401" }
 }
