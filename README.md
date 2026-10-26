@@ -52,7 +52,7 @@ The current priority is stabilizing the existing DanzStak site: feed, profiles, 
 
 The owner confirmed this next-feature order after the current site stabilization pass:
 
-1. A Facebook data import tool. Start with the owner's Facebook data export: preview supported content, choose what to import, and detect duplicates before publishing anything to DanzStak. Existing DanzStak ownership, audience, and original-content requirements still apply. Importing a friend list must not create accepted DanzStak friendships automatically.
+1. A Facebook data import tool, launched from a button in Edit Profile. Start with the owner's Facebook data export: preview supported content, choose what to import, and detect duplicates before publishing anything to DanzStak. Existing DanzStak ownership, audience, and original-content requirements still apply. Importing a friend list must not create accepted DanzStak friendships automatically.
 2. An email notification service and email delivery workflows. The owner requires public ingress to be limited to HTTPS 443 and HTTP 80 for HTTPS redirects. Send notifications through an HTTPS provider API on outbound 443 (for example Amazon SES); do not expose SMTP listeners on the DanzStak service. The provider handles downstream email delivery. This requirement applies to the future email deployment; no standalone mail server has been deployed yet.
 3. A geo-based tour-booking agent/module for bands to locate clubs and contact them about booking their act. The planned flow includes optional location permission or manual city entry, distance filters, venue profiles, multi-stop tour planning, proposed dates, travel distances, and per-venue booking-request status. Email delivery can support booking notifications after the email phase is complete.
 4. An admin dashboard for site monitoring and management, including review of post and group reports.
@@ -71,7 +71,7 @@ Browser smoke checks covered Friends, Groups, Photos, Videos, Events, Saved, Set
 
 A Posts recovery drill also passed: a point-in-time copy was restored into an isolated temporary table, the known saved post and all its attributes matched the source snapshot, and the temporary table was removed after verification. This is evidence for the Posts restore path, not a claim that every table has been restored together.
 
-Signup now tolerates blocked/full browser storage after confirmed consent. Call polling no longer creates a second system notification, and expired or answered calls dismiss their stale popup. Answer handoffs carry a call identifier so an unrelated pending call cannot be auto-answered.
+Signup now tolerates blocked/full browser storage after confirmed consent. Call polling no longer creates a second system notification, and expired or answered calls dismiss their stale popup. Answer handoffs carry a call identifier so an unrelated pending call cannot be auto-answered. The Messages screen clears ended and expired pending offers so they cannot block later calls.
 
 Still open: the parked Android background-call ringing and duplicate-notification confirmation tests, and a fresh-account signup walkthrough. These must remain explicit rather than being counted as completed by mocked tests or by checking that recovery is enabled. The latest agreed next-feature order is Facebook import, email server, geo-based tour booking, then the admin dashboard.
 
