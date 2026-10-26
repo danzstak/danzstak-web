@@ -11,11 +11,19 @@ $Policy = Join-Path $env:TEMP "danzstak-auth-api-policy.json"
 $Environment = Join-Path $env:TEMP "danzstak-auth-api-environment.json"
 $ApiId = "0872gqal4m"
 $AuthIntegrationId = "5pipi5a"
+$ToursTable = "DANZSTAK-Tours"
 
 node --check $Source
 if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript validation failed." }
 
 try {
+  aws dynamodb describe-table --region $Region --table-name $ToursTable --output json 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    aws dynamodb create-table --region $Region --table-name $ToursTable --billing-mode PAY_PER_REQUEST --attribute-definitions AttributeName=userId,AttributeType=S AttributeName=tourId,AttributeType=S --key-schema AttributeName=userId,KeyType=HASH AttributeName=tourId,KeyType=RANGE --tags Key=Application,Value=DanzStak Key=Purpose,Value=TourPlans --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Tour plans table creation failed." }
+    aws dynamodb wait table-exists --region $Region --table-name $ToursTable
+    if ($LASTEXITCODE -ne 0) { throw "Tour plans table did not become ready." }
+  }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
   Copy-Item -LiteralPath $Source,$Package -Destination $Stage
   Push-Location $Stage
@@ -87,6 +95,12 @@ try {
         Effect = "Allow"
         Action = @("geo-places:Geocode", "geo-places:SearchText", "geo-routes:CalculateRoutes")
         Resource = "*"
+      },
+      @{
+        Sid = "SavedTourPlans"
+        Effect = "Allow"
+        Action = @("dynamodb:PutItem", "dynamodb:Query", "dynamodb:DeleteItem")
+        Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Tours"
       }
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Policy -Encoding ascii
@@ -144,10 +158,22 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
+  foreach ($routeKey in @("GET /tours", "POST /tours", "DELETE /tours/{tourId}")) {
+    $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
+    if ([string]::IsNullOrWhiteSpace([string]$existing)) {
+      aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
+      if ($LASTEXITCODE -ne 0) { throw "Tour plans API route $routeKey creation failed." }
+    }
+  }
   aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourRouteFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/route" --output json 2>$null | Out-Null
   if ($LASTEXITCODE -ne 0) {
     $permission = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
     if ($permission -notmatch "AllowTourRouteFromApiGateway") { throw "Tour route API invoke permission failed." }
+  }
+  aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourPlansFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/tours*" --output json 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    $permission = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
+    if ($permission -notmatch "AllowTourPlansFromApiGateway") { throw "Tour plans API invoke permission failed." }
   }
   Write-Host "DanzStak Auth API authorization safeguards deployed successfully."
 } finally {

@@ -56,6 +56,7 @@ const storiesTable = "DANZSTAK-Stories";
 const groupsTable = "DANZSTAK-GroupMembers";
 const settingsTable = "DanzStak-UserSettings";
 const supportTicketsTable = process.env.SUPPORT_TICKETS_TABLE || "DANZSTAK-SupportTickets";
+const toursTable = process.env.TOURS_TABLE || "DANZSTAK-Tours";
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -1651,11 +1652,11 @@ async function planTourRoute(event) {
     }
     const home = await geocodeTourPlace(start);
     const suggestedMarkets = directional ? await suggestDirectionalMarkets(home, direction, requestedDays) : [];
-    const points = directional ? [home, ...suggestedMarkets, home] : await Promise.all([start, ...stops, end].map(geocodeTourPlace));
+    const points = directional ? [home, ...suggestedMarkets, home] : await Promise.all([start, ...stops, end, start].map(geocodeTourPlace));
     const route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: points[0].position, Destination: points.at(-1).position, Waypoints: points.slice(1, -1).map(point => ({ Position: point.position })), TravelMode: "Car" }));
     const summary = route.Routes?.[0]?.Summary;
     if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
-    const markets = directional ? points.slice(1, -1) : points.slice(1), selected = markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]), candidates = await Promise.all(selected.map(tourCandidates));
+    const markets = points.slice(1, -1), selected = markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]), candidates = await Promise.all(selected.map(tourCandidates));
     const distanceMiles = Math.round(Number(summary.Distance || 0) / 1609.344), durationHours = Math.round(Number(summary.Duration || 0) / 360) / 10;
     const minimumDrivingDays = Math.max(1, Math.ceil(durationHours / 8));
     if (directional && minimumDrivingDays >= requestedDays) return { statusCode: 422, headers, body: JSON.stringify({ error: `That ${direction} loop needs at least ${minimumDrivingDays} full driving days. Add days or choose a shorter direction-based plan.` }) };
@@ -1666,12 +1667,63 @@ async function planTourRoute(event) {
       const departureDate = new Date(returnDate); departureDate.setUTCDate(departureDate.getUTCDate() - requestedDays + 1); departOn = departureDate.toISOString().slice(0, 10);
       candidates.forEach((market, index) => { const date = new Date(departureDate); date.setUTCDate(date.getUTCDate() + Math.min(requestedDays - 2, index + 1)); market.proposedDate = date.toISOString().slice(0, 10); market.bookingStatus = "proposed"; });
     }
-    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), stops: points.slice(1, -1), distanceMiles, durationHours, minimumDrivingDays, requestedDays: directional ? requestedDays : undefined, direction: directional ? direction : undefined, departOn, returnBy: directional ? returnBy : undefined, bookingStatus: directional ? "proposed" : undefined, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), turnaround: points.at(-2), stops: points.slice(1, -1), distanceMiles, durationHours, minimumDrivingDays, requestedDays: directional ? requestedDays : undefined, direction: directional ? direction : undefined, departOn, returnBy: directional ? returnBy : undefined, bookingStatus: directional ? "proposed" : undefined, roundTrip: true, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
   } catch (error) {
     if (error.statusCode === 422) return { statusCode: 422, headers, body: JSON.stringify({ error: error.message }) };
     console.error("Tour route planning failed", { name: error.name });
     return { statusCode: 502, headers, body: JSON.stringify({ error: "Route and venue information is temporarily unavailable." }) };
   }
+}
+
+function cleanTourMarket(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const stop = String(value.stop || "").trim().slice(0, 160), proposedDate = String(value.proposedDate || "").trim();
+  if (!stop || (proposedDate && !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate))) return null;
+  const venue = value.venue && typeof value.venue === "object" && !Array.isArray(value.venue) ? {
+    name: String(value.venue.name || "").trim().slice(0, 160),
+    address: String(value.venue.address || "").trim().slice(0, 300),
+    website: /^https:\/\//i.test(String(value.venue.website || "")) ? String(value.venue.website).slice(0, 500) : "",
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value.venue.email || "")) ? String(value.venue.email).slice(0, 254).toLowerCase() : "",
+    phone: /^\+?[0-9 ()-]{7,24}$/.test(String(value.venue.phone || "")) ? String(value.venue.phone).slice(0, 24) : ""
+  } : null;
+  return { stop, proposedDate, confirmed: value.confirmed === true, venue };
+}
+
+async function saveTourPlan(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const data = parseJsonBody(event);
+  if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
+  const name = String(data.name || "").trim().slice(0, 100), tourId = /^[0-9a-f-]{36}$/i.test(String(data.tourId || "")) ? String(data.tourId) : randomUUID();
+  const start = String(data.start || "").trim().slice(0, 160), direction = String(data.direction || "").trim().toLowerCase(), departOn = String(data.departOn || "").trim(), returnBy = String(data.returnBy || "").trim();
+  const days = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), distanceMiles = Math.max(0, Math.min(100000, Math.round(Number(data.distanceMiles) || 0)));
+  const markets = Array.isArray(data.markets) ? data.markets.slice(0, 24).map(cleanTourMarket) : [];
+  if (!name || !start || !days || markets.some(market => !market) || (departOn && !/^\d{4}-\d{2}-\d{2}$/.test(departOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour name, starting city, dates, and stops must be valid." }) };
+  const nowIso = new Date().toISOString(), plan = { name, start, direction: tourDirections.has(direction) ? direction : "custom", departOn, returnBy, days, distanceMiles, markets };
+  await db.send(new PutItemCommand({ TableName: toursTable, Item: { userId: { S: userId }, tourId: { S: tourId }, name: { S: name }, plan: { S: JSON.stringify(plan) }, createdAt: { S: nowIso }, updatedAt: { S: nowIso } } }));
+  return { statusCode: 200, headers, body: JSON.stringify({ tourId, updatedAt: nowIso }) };
+}
+
+async function listTourPlans(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId", ExpressionAttributeValues: { ":userId": { S: userId } }, ProjectionExpression: "tourId, #name, plan, updatedAt", ExpressionAttributeNames: { "#name": "name" }, Limit: 50, ScanIndexForward: false }));
+  const tours = (result.Items || []).map(item => { let plan = {}; try { plan = JSON.parse(item.plan?.S || "{}"); } catch { /* Ignore malformed legacy data. */ } return { tourId: item.tourId?.S || "", name: item.name?.S || "Tour", updatedAt: item.updatedAt?.S || "", plan }; });
+  return { statusCode: 200, headers, body: JSON.stringify({ tours }) };
+}
+
+async function deleteTourPlan(event, tourId) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  if (!/^[0-9a-f-]{36}$/i.test(tourId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid tour identifier." }) };
+  await db.send(new DeleteItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: tourId } } }));
+  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
 // LOG OUT
@@ -1850,6 +1902,10 @@ export const handler = async event => {
     if (method === "POST" && path === "/tour/route") {
       return await planTourRoute(event);
     }
+
+    if (method === "GET" && path === "/tours") return await listTourPlans(event);
+    if (method === "POST" && path === "/tours") return await saveTourPlan(event);
+    if (method === "DELETE" && path.startsWith("/tours/")) return await deleteTourPlan(event, decodeURIComponent(path.slice(7)));
 
     if (method === "POST" && path === "/auth/logout") {
       return await logout(event);
