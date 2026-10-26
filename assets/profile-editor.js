@@ -7,10 +7,19 @@ const details = profileContent.querySelector(".details");
 const handleElement = document.getElementById("profileHandle");
 const profileMediaKey = "danzstak_profile_media";
 const profileApi = "https://api.danzstak.com";
+async function profileFetch(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(url, { ...options, signal: controller.signal }); }
+  catch (error) {
+    if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
+    throw error;
+  } finally { clearTimeout(timeout); }
+}
 let viewingOtherProfile = Boolean(new URLSearchParams(location.search).get("user") || new URLSearchParams(location.search).get("member"));
 
 async function saveCloudProfile(changes) {
-  const response = await fetch(profileApi + "/profiles", {
+  const response = await profileFetch(profileApi + "/profiles", {
     method: "POST",
     credentials: "include",
     cache: "no-store",
@@ -24,7 +33,7 @@ async function saveCloudProfile(changes) {
 }
 
 async function uploadCloudMedia(file) {
-  const ticketResponse = await fetch(profileApi + "/stories", {
+  const ticketResponse = await profileFetch(profileApi + "/stories", {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -32,7 +41,8 @@ async function uploadCloudMedia(file) {
   });
   if (!ticketResponse.ok) throw new Error("Media upload could not start");
   const ticket = await ticketResponse.json();
-  const uploadResponse = await fetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+  const uploadDeadline = Math.max(120000, Math.ceil(file.size / (64 * 1024)) * 1000);
+  const uploadResponse = await profileFetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file }, uploadDeadline);
   if (!uploadResponse.ok) throw new Error("Media upload failed");
   return ticket.mediaKey;
 }
@@ -307,7 +317,7 @@ videoInput.addEventListener("change", async () => {
   videoButton.disabled = true;
   try {
     const mediaKey = await uploadCloudMedia(file);
-    const response = await fetch(profileApi + "/profile-video", {
+    const response = await profileFetch(profileApi + "/profile-video", {
       method: "POST", credentials: "include", cache: "no-store",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey })
     });
@@ -328,7 +338,7 @@ removeVideoButton.addEventListener("click", async () => {
   if (!confirm("Remove profile video?")) return;
   removeVideoButton.disabled = true;
   try {
-    const response = await fetch(profileApi + "/profile-video", {
+    const response = await profileFetch(profileApi + "/profile-video", {
       method: "POST", credentials: "include", cache: "no-store",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey: "" })
     });
@@ -349,7 +359,7 @@ function setProfileVideoControls(mediaKey) {
 async function revealProfileVideoControls() {
   const version = ++profileVideoControlsVersion;
   try {
-    const response = await fetch(profileApi + "/profile-video", { credentials: "include", cache: "no-store" });
+    const response = await profileFetch(profileApi + "/profile-video", { credentials: "include", cache: "no-store" });
     if (!response.ok) return;
     const data = await response.json();
     if (version !== profileVideoControlsVersion) return;
@@ -427,7 +437,7 @@ function profilePostCard(post) {
     feature.addEventListener("click", async () => {
       feature.disabled = true;
       try {
-        const response = await fetch(profileApi + "/secure-posts/" + encodeURIComponent(post.postId), {method:"PATCH",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({featured:!post.featured})});
+        const response = await profileFetch(profileApi + "/secure-posts/" + encodeURIComponent(post.postId), {method:"PATCH",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({featured:!post.featured})});
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Featured post could not be saved.");
         post.featured = !post.featured; paint();
@@ -445,7 +455,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
   const version = profileTabVersion;
   tabMessage.textContent = mediaOnly ? "Loading media…" : "Loading posts…";
   try {
-    const response = await fetch(profileApi + "/secure-posts", { credentials: "include", cache: "no-store" });
+    const response = await profileFetch(profileApi + "/secure-posts", { credentials: "include", cache: "no-store" });
     if (!response.ok) throw new Error("Profile posts could not be loaded");
     const data = await response.json();
     if (version !== profileTabVersion) return;
@@ -464,7 +474,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
       const params = new URLSearchParams();
       const profileEmail = String(window.danzstakCurrentProfile?.email || "");
       if (profileEmail) params.set("email", profileEmail);
-      const videoResponse = await fetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
+      const videoResponse = await profileFetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
       if (version !== profileTabVersion) return;
       if (!videoResponse.ok && videoResponse.status !== 404) throw new Error("Profile video is temporarily unavailable.");
       if (videoResponse.ok) {
@@ -473,7 +483,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
         if (stored.mediaUrl) {
           tabMessage.appendChild(profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl: stored.mediaUrl }));
         } else if (stored.mediaKey && !viewingOtherProfile) {
-          const viewResponse = await fetch(profileApi + "/stories", {
+          const viewResponse = await profileFetch(profileApi + "/stories", {
             method: "POST", credentials: "include", cache: "no-store",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "view", mediaKey: stored.mediaKey, mediaType: "video" })
@@ -504,8 +514,8 @@ async function loadProfileFriends() {
   tabMessage.textContent = "Loading friends…";
   try {
     const [friendsResult, directoryResult] = await Promise.allSettled([
-      fetch(profileApi + "/friends", { credentials: "include", cache: "no-store" }),
-      fetch(profileApi + "/calls/directory", { credentials: "include", cache: "no-store" })
+      profileFetch(profileApi + "/friends", { credentials: "include", cache: "no-store" }),
+      profileFetch(profileApi + "/calls/directory", { credentials: "include", cache: "no-store" })
     ]);
     const response = friendsResult.status === "fulfilled" ? friendsResult.value : null;
     if (!response?.ok) throw new Error("Friends could not be loaded");

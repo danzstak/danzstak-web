@@ -2,7 +2,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const source=fs.readFileSync('assets/profile-editor.js','utf8');
 const a=source.indexOf('let profileVideoControlsVersion = 0;');
 const code=source.slice(a,source.indexOf('actions.insertAdjacentElement',a));
-const requests=[];const context=vm.createContext({videoButton:{hidden:true},removeVideoButton:{hidden:true},profileApi:'/api',fetch:()=>new Promise(resolve=>requests.push(resolve))});
+const requests=[];const context=vm.createContext({videoButton:{hidden:true},removeVideoButton:{hidden:true},profileApi:'/api',profileFetch:()=>new Promise(resolve=>requests.push(resolve))});
 vm.runInContext(code,context);
 (async()=>{
   const old=vm.runInContext('revealProfileVideoControls()',context);

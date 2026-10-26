@@ -10,7 +10,7 @@ function setup() {
   const context = vm.createContext({ URLSearchParams, tabMessage: panel, details: {}, profileApi: 'https://api.danzstak.com', viewingOtherProfile: false,
     window: { danzstakCurrentProfile: { email: 'me@example.com' }, danzstakProfileCollections: require('./assets/profile-collections.js') },
     tabs: { addEventListener: (type, handler) => { handlers[type] = handler; }, querySelectorAll: () => [] },
-    fetch: url => new Promise((resolve, reject) => requests.push({ url, resolve, reject })),
+    profileFetch: url => new Promise((resolve, reject) => requests.push({ url, resolve, reject })),
     profilePostCard: () => ({}), document: { createElement: () => ({ append() {}, appendChild() {} }) } });
   vm.runInContext(code, context);
   const select = name => handlers.click({ target: { closest: () => ({ dataset: { profileTab: name } }) } });
