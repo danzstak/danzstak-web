@@ -336,6 +336,9 @@ if (-not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true"
 if (-not $feed.Contains('filter(user => user.online === true)') -or -not $feed.Contains('No other connected users are active right now.')) {
   Add-Failure 'Online Users: the right panel can show offline contacts as online-directory results'
 }
+foreach ($onlineUsersAnnouncement in @('name.setAttribute("aria-label", displayName + ", online")', '"Message " + displayName', '"Accept friend request from " + displayName', '"Send friend request to " + displayName')) {
+  if (-not $feed.Contains($onlineUsersAnnouncement)) { Add-Failure "Online Users: presence or relationship action lacks a contact-specific accessible name: $onlineUsersAnnouncement" }
+}
 if ($feed.Contains('state.setAttribute("aria-label", state.title)') -or -not $feed.Contains('state.setAttribute("aria-hidden", "true")')) {
   Add-Failure 'Friends: compact presence indicator duplicates the visible Online or Offline screen-reader announcement'
 }
