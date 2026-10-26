@@ -90,6 +90,13 @@ foreach ($uploadCleanupControl in @('async function discardUploadedMedia(mediaKe
 foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Story from "', 'open.addEventListener("click", () => openStoryViewer(story))')) {
   if (-not $feed.Contains($storyAccessibilityControl)) { Add-Failure "Stories: open and delete controls are not separately accessible: $storyAccessibilityControl" }
 }
+$feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
+foreach ($storyPreviewControl in @('storyCopy.className = "story-card-copy"', 'item.classList.add("story-video")', 'caption.textContent = story.content')) {
+  if (-not $feed.Contains($storyPreviewControl)) { Add-Failure "Stories: photo and video cards lack an identifiable preview: $storyPreviewControl" }
+}
+if (-not $feedEnhancementCss.Contains('.story.story-video::after{content:')) {
+  Add-Failure 'Stories: video cards lack a branded play fallback when no poster frame is available'
+}
 if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey')) { Add-Failure 'Stories do not inherit the selected post audience' }
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }

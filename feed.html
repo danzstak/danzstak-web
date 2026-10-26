@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-6TfpcPX5w5yNYdNOqM1M3qf5zTi/ksghxm2F/kw5pL4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-+GnvooBDSLWDqiLoWwvyB0+ONu0poYdpnt49kxYQg8M='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -268,7 +268,7 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=231">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=275">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
   <link rel="stylesheet" href="assets/soft-ui.css?v=231">
 <script src="assets/languages.js?v=231" defer></script>
@@ -673,12 +673,22 @@ async function loadStories() {
       const open = document.createElement("button");
       open.type = "button";
       open.className = "story-open";
-      open.setAttribute("aria-label", "Open Story from " + story.userEmail.split("@")[0] + ": " + story.content);
+      const storyAuthor = story.displayName || story.userEmail.split("@")[0];
+      open.setAttribute("aria-label", "Open Story from " + storyAuthor + ": " + story.content);
+      const storyCopy = document.createElement("span");
+      storyCopy.className = "story-card-copy";
+      const author = document.createElement("strong");
+      const caption = document.createElement("small");
+      author.textContent = storyAuthor;
+      caption.textContent = story.content || (story.mediaType === "video" ? "Video Story" : "Photo Story");
+      storyCopy.append(author, caption);
+      open.appendChild(storyCopy);
       if (story.mediaType === "image" && story.mediaUrl) {
         item.style.backgroundImage = `linear-gradient(transparent,#0009),url("${story.mediaUrl}")`;
         item.style.backgroundSize = "cover";
         item.style.backgroundPosition = "center";
       } else if (story.mediaType === "video" && story.mediaUrl) {
+        item.classList.add("story-video");
         const video = document.createElement("video");
         video.src = story.mediaUrl;
         video.muted = true;
