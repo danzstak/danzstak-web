@@ -297,6 +297,10 @@ foreach ($updateBehavior in @('cache.put(url.pathname, copy)', 'caches.match(url
 }
 
 $pwaJs = Get-Content -LiteralPath (Join-Path $root 'assets\pwa.js') -Raw -Encoding utf8
+foreach ($offlineInstallAsset in @('/assets/app-downloads.js', '/assets/danzstak-share-apps-v3.png')) {
+  if (-not $serviceWorker.Contains($offlineInstallAsset)) { Add-Failure "Offline app shell omits current install/share asset: $offlineInstallAsset" }
+}
+if ($serviceWorker.Contains('/assets/danzstak-share-fb-v2.jpg')) { Add-Failure 'Offline app shell still pins the retired social-share artwork' }
 $serviceWorkerJs = Get-Content -LiteralPath (Join-Path $root 'service-worker.js') -Raw -Encoding utf8
 foreach ($callNotificationBehavior in @('payload.type === "call"', 'action: "answer"', 'action: "dismiss"', 'event.action === "dismiss"', 'event.action === "answer" && event.notification.data?.type === "call"', 'destinationUrl.searchParams.set("answer", "1")')) {
   if (-not $serviceWorkerJs.Contains($callNotificationBehavior)) { Add-Failure "PWA: call notification behavior is missing: $callNotificationBehavior" }
