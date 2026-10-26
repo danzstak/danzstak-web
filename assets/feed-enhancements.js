@@ -40,6 +40,12 @@ function updateNotificationCount(count) {
   lastNotificationCount = safeCount;
 }
 
+function formatNotificationTimestamp(value) {
+  const created = new Date(value || "");
+  if (Number.isNaN(created.valueOf())) return "";
+  return created.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+}
+
 async function refreshNotificationCount() {
   if (document.hidden || notificationCountLoading) return;
   if (readSections().Settings?.notifications === false) {
@@ -525,6 +531,16 @@ function renderWorkspace(name) {
                 : notice.type === "comment"
                 ? `${displayName} commented: ${notice.preview || "New comment"}`
                 : `${displayName} sent you a friend request.`;
+          const copy = document.createElement("div");
+          copy.className = "notification-copy";
+          copy.appendChild(message);
+          const timestamp = formatNotificationTimestamp(notice.createdAt);
+          if (timestamp) {
+            const time = document.createElement("time");
+            time.dateTime = notice.createdAt;
+            time.textContent = timestamp;
+            copy.appendChild(time);
+          }
           const actions = document.createElement("div");
           actions.className = "notification-actions";
           if (["reaction", "comment", "tag"].includes(notice.type)) {
@@ -556,7 +572,7 @@ function renderWorkspace(name) {
             });
             actions.appendChild(button);
           }
-          row.append(avatar, message, actions);
+          row.append(avatar, copy, actions);
           list.appendChild(row);
         }
         if (engagement.length) {
