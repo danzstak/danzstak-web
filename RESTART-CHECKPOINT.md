@@ -15,3 +15,5 @@ Facebook import browser file-preview remains unverified due to declined file-upl
 User asks if idle 07:22–09:55: exact interval is not verified. Be candid: work did not run continuously between replies; AWS login exchanges paused development. Do not claim continuous background work.
 
 Leave the existing untracked push/call PNG files alone.
+
+Save-time checks: all JavaScript regression files passed; full runner then caught a feed CSP hash mismatch after line-ending changes. Hash corrected and site smoke checks rerun. Full final regression suite and live v231 verification are still required before deployment.
