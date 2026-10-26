@@ -207,6 +207,16 @@ function createFriendRequestForm() {
   return form;
 }
 
+async function groupFetch(path, options = {}, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
+  catch (error) {
+    if (error.name === "AbortError") throw new Error("The group service took too long to respond. Try again.");
+    throw error;
+  } finally { clearTimeout(timeout); }
+}
+
 async function migrateLocalGroups(localGroups, remoteGroups) {
   const groups = [...remoteGroups], pending = [], joinedIds = [];
   const key = group => `${String(group.name || "").toLowerCase()}|${group.category}`;
@@ -214,7 +224,7 @@ async function migrateLocalGroups(localGroups, remoteGroups) {
   for (const local of localGroups.filter(group => !group.cloud)) {
     if (known.has(key(local))) continue;
     try {
-      const response = await fetch("https://api.danzstak.com/groups", {
+      const response = await groupFetch("/groups", {
         method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: local.name, category: local.category, description: local.description, communityStandards: true })
       });
@@ -424,7 +434,7 @@ function renderWorkspace(name) {
           const nextJoined = !saved.GroupsJoined?.[group.id];
           join.disabled = true;
           try {
-            const response = await fetch("https://api.danzstak.com/groups/membership", {
+            const response = await groupFetch("/groups/membership", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               credentials: "include",
@@ -460,7 +470,7 @@ function renderWorkspace(name) {
           if (details.trim().length > 500) { alert("Report details cannot exceed 500 characters."); return; }
           report.disabled = true;
           try {
-            const response = await fetch("https://api.danzstak.com/reports", {
+            const response = await groupFetch("/reports", {
               method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ targetType: "group", groupId: group.id, reason: "other", details: details.trim() })
             });
@@ -481,7 +491,7 @@ function renderWorkspace(name) {
             if (!confirm("Delete this group?")) return;
             remove.disabled = true;
             if (group.cloud) {
-              const response = await fetch("https://api.danzstak.com/groups/" + encodeURIComponent(group.id), { method: "DELETE", credentials: "include" }).catch(() => null);
+              const response = await groupFetch("/groups/" + encodeURIComponent(group.id), { method: "DELETE", credentials: "include" }).catch(() => null);
               if (!response?.ok) { remove.disabled = false; alert("Group could not be deleted."); return; }
             }
             customGroups = customGroups.filter(item => item.id !== group.id);
@@ -496,6 +506,7 @@ function renderWorkspace(name) {
     }
 
     createButton.addEventListener("click", async () => {
+      if (createButton.dataset.mode === "retry") { renderWorkspace("Groups"); return; }
       const value = groupName.input.value.trim();
       if (!value) return groupName.input.focus();
       if (!standardsCheckbox.checked) {
@@ -505,7 +516,7 @@ function renderWorkspace(name) {
       }
       createButton.disabled = true;
       try {
-        const response = await fetch("https://api.danzstak.com/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: value, category: categorySelect.value, description: "A new DanzStak community group.", communityStandards: true }) });
+        const response = await groupFetch("/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: value, category: categorySelect.value, description: "A new DanzStak community group.", communityStandards: true }) });
         const result = await response.json().catch(() => ({}));
         if (!response.ok || !result.group) throw new Error(result.error || "Group could not be created");
         customGroups.unshift({ ...result.group, custom: true, cloud: true });
@@ -522,7 +533,7 @@ function renderWorkspace(name) {
     });
     workspace.append(createBox, grid);
     renderGroups();
-    fetch("https://api.danzstak.com/groups", { credentials: "include", cache: "no-store" })
+    groupFetch("/groups", { credentials: "include", cache: "no-store" })
       .then(response => response.ok ? response.json() : null)
       .then(async data => {
         if (!Array.isArray(data?.groups)) {
@@ -532,6 +543,7 @@ function renderWorkspace(name) {
         }
         createButton.textContent = "Create Group";
         createButton.title = "";
+        delete createButton.dataset.mode;
         createButton.disabled = false;
         const cloud = data.groups.map(group => ({ ...group, custom: true, cloud: true }));
         const migration = await migrateLocalGroups(customGroups, cloud);
@@ -544,8 +556,8 @@ function renderWorkspace(name) {
         writeSections(saved);
         renderGroups();
       })
-      .catch(() => { createButton.textContent = "Create Group (offline)"; });
-    fetch("https://api.danzstak.com/groups/membership", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ action: "list" }) })
+      .catch(() => { createButton.textContent = "Retry Group Service"; createButton.dataset.mode = "retry"; createButton.disabled = false; });
+    groupFetch("/groups/membership", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ action: "list" }) })
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (!Array.isArray(data?.groupIds)) return;

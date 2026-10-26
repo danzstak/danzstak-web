@@ -4,14 +4,14 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
 const joinCode = source.slice(source.indexOf('        join.addEventListener("click", async () => {'), source.indexOf('        card.append(category, title, description);'));
-const listStart = source.indexOf('    fetch("https://api.danzstak.com/groups/membership"');
+const listStart = source.indexOf('    groupFetch("/groups/membership"');
 const listCode = source.slice(listStart, source.indexOf('\n    return;', listStart));
 async function scenario(initiallyJoined, staleGroupIds) {
   const requests = [], saved = { GroupsJoined: { group1: initiallyJoined } };
   let click;
   const button = { disabled: false, classList: { toggle() {} }, addEventListener: (_, handler) => { click = handler; } };
   const context = vm.createContext({ saved, group: { id: 'group1' }, membershipChanges: new Map(), join: button, writeSections() {}, renderGroups() {},
-    alert: message => { throw new Error(message); }, fetch: () => new Promise(resolve => requests.push(resolve)) });
+    alert: message => { throw new Error(message); }, groupFetch: () => new Promise(resolve => requests.push(resolve)) });
   vm.runInContext(listCode, context);
   vm.runInContext(joinCode, context);
   const mutation = click();

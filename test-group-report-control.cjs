@@ -8,7 +8,7 @@ let click, response = { ok: false, json: async () => ({ error: 'Unavailable' }) 
 const requests = [], errors = [];
 const report = { disabled: false, textContent: 'Report a problem', addEventListener: (_, handler) => { click = handler; } };
 vm.runInNewContext(code, { report, group: { id: 'default-0' }, prompt: () => 'Concern to review', alert: message => errors.push(message),
-  fetch: async (_, options) => { requests.push(JSON.parse(options.body)); return response; } });
+  groupFetch: async (_, options) => { requests.push(JSON.parse(options.body)); return response; } });
 (async () => {
   await click();
   assert.equal(report.textContent, 'Report a problem', 'failure cannot claim the report was sent');

@@ -7,7 +7,7 @@ const code = source.slice(source.indexOf('async function migrateLocalGroups('), 
 const requested = [];
 const locals = ['Already synced', 'Upload succeeds', 'Offline group', 'Rejected group', 'Incomplete response', 'Same name, other owner'].map((name, i) => ({ id: `local-${i}`, name, category: 'Artists' }));
 const context = vm.createContext({ locals, remote: [{ id: 'remote-1', name: 'Already synced', category: 'Artists', cloud: true, isOwner: true }, { id: 'someone-elses', name: 'Same name, other owner', category: 'Artists', cloud: true, isOwner: false }],
-  fetch: async (_, options) => {
+  groupFetch: async (_, options) => {
     const body = JSON.parse(options.body); requested.push(body.name);
     if (body.name === 'Offline group') throw new Error('Offline');
     return { ok: body.name !== 'Rejected group', json: async () => body.name === 'Upload succeeds' ? { group: { id: 'remote-2', name: body.name, category: body.category } } : {} };
