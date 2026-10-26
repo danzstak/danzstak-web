@@ -54,6 +54,10 @@ async function directFetch(path, options = {}, timeoutMs = 10000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch(directApi + path, { ...options, signal: controller.signal }); }
+  catch (error) {
+    if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
+    throw error;
+  }
   finally { clearTimeout(timer); }
 }
 let activeFilter = "all";
@@ -84,7 +88,7 @@ function updateMessageReactionBadge(item, message) {
 
 async function saveMessageReaction(item, message, emoji) {
   const reaction = message.myReaction === emoji ? "" : emoji;
-  const response = await fetch(directApi + "/messages", {
+  const response = await directFetch("/messages", {
     method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: "reaction", contactEmail: directContact, messageId: message.messageId, reaction })
   });
@@ -412,7 +416,7 @@ messageForm?.addEventListener("submit", async event => {
   pendingMessageSends.add(version);
   sendButton.disabled = true;
   try {
-    const response = await fetch(directApi + "/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content }) });
+    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Message could not be sent");
     if (version !== conversationVersion) { await loadConversations(); return; }
@@ -429,7 +433,7 @@ deleteChat?.addEventListener("click", async () => {
   const version = conversationVersion;
   deleteChat.disabled = true;
   try {
-    const response = await fetch(directApi + "/messages/delete?contact=" + encodeURIComponent(contact), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
+    const response = await directFetch("/messages/delete?contact=" + encodeURIComponent(contact), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
     if (!response.ok) throw new Error("Chat could not be deleted");
     if (version === conversationVersion) {
       closeConversation({ focusList: true });
@@ -442,9 +446,23 @@ deleteChat?.addEventListener("click", async () => {
   }
 });
 
-fetch(directApi + "/auth/session", { credentials: "include", cache: "no-store" })
-  .then(response => response.ok ? response.json() : null)
-  .then(data => { const profile = data?.user || data?.claims || data?.profile || data || {}; currentEmail = String(profile.email || profile.username || "").toLowerCase(); if (contactInput.value) loadDirectMessages(true); });
+let sessionLoading = false;
+async function loadCurrentSession() {
+  if (sessionLoading || currentEmail) return;
+  sessionLoading = true;
+  try {
+    const response = await directFetch("/auth/session", { credentials: "include", cache: "no-store" });
+    if (response.status === 401) { location.replace("./"); return; }
+    if (!response.ok) throw new Error("Your account could not be loaded");
+    const data = await response.json().catch(() => ({}));
+    const profile = data?.user || data?.claims || data?.profile || data || {};
+    currentEmail = String(profile.email || profile.username || "").toLowerCase();
+    if (contactInput.value) loadDirectMessages(true);
+  } catch {
+    setTimeout(loadCurrentSession, 5000);
+  } finally { sessionLoading = false; }
+}
+loadCurrentSession();
 setInterval(() => loadDirectMessages(), 3000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { loadDirectMessages(); loadConversations(); } });
 loadConversations();

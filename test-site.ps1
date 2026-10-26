@@ -357,6 +357,10 @@ foreach ($activeChatActionLabel in @('function labelConversationHeaderActions(na
 foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'Contacts are temporarily unavailable. Retrying automatically')) {
   if (-not $directMessagesJs.Contains($contactFailureBehavior)) { Add-Failure "Messages: bounded contact loading behavior is missing: $contactFailureBehavior" }
 }
+foreach ($messageDeadlineBehavior in @('directFetch("/messages",', 'directFetch("/messages/delete?contact="', 'directFetch("/auth/session"', 'setTimeout(loadCurrentSession, 5000)', 'DanzStak is taking too long to respond. Try again.')) {
+  if (-not $directMessagesJs.Contains($messageDeadlineBehavior)) { Add-Failure "Messages: a user action or session request can stall without recovery: $messageDeadlineBehavior" }
+}
+if ([regex]::Matches($directMessagesJs, 'fetch\(').Count -ne 1) { Add-Failure 'Messages: API requests must use the single deadline-protected directFetch wrapper' }
 foreach ($onlineContactNavigation in @('name.href = "profile.html?member=" + encodeURIComponent(memberId)', 'action.addEventListener("click", () => openMessageDrawer(user.email))', 'user.friendStatus === "friends" || user.sharedGroup')) {
   if (-not $feed.Contains($onlineContactNavigation)) { Add-Failure "Online contacts: profile or embedded-message navigation is incomplete: $onlineContactNavigation" }
 }
