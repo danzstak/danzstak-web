@@ -1711,7 +1711,7 @@ async function listTourPlans(event) {
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
-  const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId", ExpressionAttributeValues: { ":userId": { S: userId } }, ProjectionExpression: "tourId, #name, plan, updatedAt", ExpressionAttributeNames: { "#name": "name" }, Limit: 50, ScanIndexForward: false }));
+  const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId", ExpressionAttributeValues: { ":userId": { S: userId } }, ProjectionExpression: "tourId, #name, #plan, updatedAt", ExpressionAttributeNames: { "#name": "name", "#plan": "plan" }, Limit: 50, ScanIndexForward: false }));
   const tours = (result.Items || []).map(item => { let plan = {}; try { plan = JSON.parse(item.plan?.S || "{}"); } catch { /* Ignore malformed legacy data. */ } return { tourId: item.tourId?.S || "", name: item.name?.S || "Tour", updatedAt: item.updatedAt?.S || "", plan }; });
   return { statusCode: 200, headers, body: JSON.stringify({ tours }) };
 }
