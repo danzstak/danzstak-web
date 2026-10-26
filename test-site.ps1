@@ -38,6 +38,13 @@ $homeMarkup = Get-Content -LiteralPath (Join-Path $root 'index.html') -Raw -Enco
 if (-not $homeMarkup.Contains('.hero-logo{display:block;width:min(520px,100%)')) {
   Add-Failure 'Homepage: hero logo can overflow its padded mobile container'
 }
+foreach ($appInstallControl in @('data-app-platform="android"', 'data-app-platform="apple"', 'Install DanzStak on Android', 'Install DanzStak on iPhone or iPad', 'assets/app-downloads.js?v=')) {
+  if (-not $homeMarkup.Contains($appInstallControl)) { Add-Failure "Homepage: branded app-install choice is missing: $appInstallControl" }
+}
+$appDownloads = Get-Content -LiteralPath (Join-Path $root 'assets\app-downloads.js') -Raw -Encoding utf8
+foreach ($appInstallBehavior in @('window.danzstakRequestInstall?.()', 'Add to Home Screen', 'updates automatically', 'installHelp.showModal()')) {
+  if (-not $appDownloads.Contains($appInstallBehavior)) { Add-Failure "Homepage: app-install behavior is incomplete: $appInstallBehavior" }
+}
 
 $supportMarkup = Get-Content -LiteralPath (Join-Path $root 'support.html') -Raw -Encoding utf8
 $supportClient = Get-Content -LiteralPath (Join-Path $root 'assets\support.js') -Raw -Encoding utf8

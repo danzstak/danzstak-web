@@ -76,7 +76,7 @@ foreach ($directionalControl in @('Filter: { Circle: { Center: bias, Radius: 600
 if ($directionalMarketSearch.Contains('BiasPosition: bias')) {
   throw 'Booking Agent directional markets use a soft location bias and can jump hundreds of miles off course.'
 }
-foreach ($nonVenueFilter in @('table\s*dance', 'adult entertainment', 'recording studio', 'event consultant', 'walking tour')) {
+foreach ($nonVenueFilter in @('table\s*dance', 'adult entertainment', 'studio', 'event consultant', 'walking tour', 'gospel\w*')) {
   if (-not $authApi.Contains($nonVenueFilter)) { throw "Booking Agent can still recommend a non-bookable venue type: $nonVenueFilter" }
 }
 foreach ($venueQualityControl in @('!selectedGenre.includes("jazz") && /\bjazz\w*/.test(description)', 'hasBookingContact(place)', 'const key = (place.address || place.name).toLowerCase()')) {

@@ -1604,7 +1604,7 @@ function publicPlace(place) {
 function isBookableClub(place, genre = "") {
   const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
   const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|symphony|orchestra|opera house|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
-  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance studio|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|recording studio|rehearsal studio|event consultant|entertainment consultant|event planner|church|worship|jubilee|gospel|christmas market|weihnachtsmarkt|variet[eé])\b/;
+  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|studio|event consultant|entertainment consultant|event planner|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé])\b/;
   const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival office|jazzfest|walking tour|history tour|guided tour)\b/;
   const selectedGenre = genre.toLowerCase(), wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
   return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre;
