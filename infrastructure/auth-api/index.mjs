@@ -1641,14 +1641,16 @@ async function planTourRoute(event) {
   const data = parseJsonBody(event);
   if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
   const cleanPlace = value => String(value || "").trim();
-  const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), end = local || directional ? start : cleanPlace(data.end), stops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [];
+  const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), requestedDepartOn = cleanPlace(data.departOn), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), end = local || directional ? start : cleanPlace(data.end), stops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [];
   if (directional && (!tourDirections.has(direction) || !requestedDays)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a travel direction and provide 1–180 tour days." }) };
-  if (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Return date must use YYYY-MM-DD." }) };
+  if ((requestedDepartOn && !/^\d{4}-\d{2}-\d{2}$/.test(requestedDepartOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour dates must use YYYY-MM-DD." }) };
+  if (requestedDepartOn && returnBy && requestedDepartOn > returnBy) return { statusCode: 400, headers, body: JSON.stringify({ error: "The home date must be on or after the first show date." }) };
   if (start.length < 2 || start.length > 120 || end.length < 2 || end.length > 120 || stops.length > 8 || stops.some(stop => stop.length > 120)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Provide a home or starting city, a destination for tours, and no more than eight valid stops." }) };
   try {
     if (local) {
       const point = await geocodeTourPlace(start), candidates = await tourCandidates(point);
-      return { statusCode: 200, headers, body: JSON.stringify({ route: { start: point, end: point, stops: [], distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, provider: "Amazon Location Service", planningOnly: true, local: true }, candidates: [candidates] }) };
+      if (requestedDepartOn) candidates.proposedDate = requestedDepartOn;
+      return { statusCode: 200, headers, body: JSON.stringify({ route: { start: point, end: point, stops: [], distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, requestedDays, departOn: requestedDepartOn, returnBy, provider: "Amazon Location Service", planningOnly: true, local: true }, candidates: [candidates] }) };
     }
     const home = await geocodeTourPlace(start);
     const suggestedMarkets = directional ? await suggestDirectionalMarkets(home, direction, requestedDays) : [];
@@ -1660,14 +1662,14 @@ async function planTourRoute(event) {
     const distanceMiles = Math.round(Number(summary.Distance || 0) / 1609.344), durationHours = Math.round(Number(summary.Duration || 0) / 360) / 10;
     const minimumDrivingDays = Math.max(1, Math.ceil(durationHours / 8));
     if (directional && minimumDrivingDays >= requestedDays) return { statusCode: 422, headers, body: JSON.stringify({ error: `That ${direction} loop needs at least ${minimumDrivingDays} full driving days. Add days or choose a shorter direction-based plan.` }) };
-    let departOn;
-    if (directional && returnBy) {
+    let departOn = requestedDepartOn;
+    if (directional && returnBy && !departOn) {
       const returnDate = new Date(`${returnBy}T12:00:00Z`);
       if (!Number.isFinite(returnDate.getTime()) || returnDate < new Date()) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a future home-by date." }) };
       const departureDate = new Date(returnDate); departureDate.setUTCDate(departureDate.getUTCDate() - requestedDays + 1); departOn = departureDate.toISOString().slice(0, 10);
-      candidates.forEach((market, index) => { const date = new Date(departureDate); date.setUTCDate(date.getUTCDate() + Math.min(requestedDays - 2, index + 1)); market.proposedDate = date.toISOString().slice(0, 10); market.bookingStatus = "proposed"; });
     }
-    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), turnaround: points.at(-2), stops: points.slice(1, -1), distanceMiles, durationHours, minimumDrivingDays, requestedDays: directional ? requestedDays : undefined, direction: directional ? direction : undefined, departOn, returnBy: directional ? returnBy : undefined, bookingStatus: directional ? "proposed" : undefined, roundTrip: true, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
+    if (departOn) candidates.forEach((market, index) => { const date = new Date(`${departOn}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + Math.min(Math.max(0, requestedDays - 1), index + (local ? 0 : 1))); market.proposedDate = date.toISOString().slice(0, 10); market.bookingStatus = "proposed"; });
+    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), turnaround: points.at(-2), stops: points.slice(1, -1), distanceMiles, durationHours, minimumDrivingDays, requestedDays, direction: directional ? direction : undefined, departOn, returnBy, bookingStatus: "proposed", roundTrip: true, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
   } catch (error) {
     if (error.statusCode === 422) return { statusCode: 422, headers, body: JSON.stringify({ error: error.message }) };
     console.error("Tour route planning failed", { name: error.name });
@@ -1696,12 +1698,12 @@ async function saveTourPlan(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const data = parseJsonBody(event);
   if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
-  const name = String(data.name || "").trim().slice(0, 100), tourId = /^[0-9a-f-]{36}$/i.test(String(data.tourId || "")) ? String(data.tourId) : randomUUID();
+  const name = String(data.name || "").trim().slice(0, 100), artist = String(data.artist || "").trim().slice(0, 100), tourId = /^[0-9a-f-]{36}$/i.test(String(data.tourId || "")) ? String(data.tourId) : randomUUID();
   const start = String(data.start || "").trim().slice(0, 160), direction = String(data.direction || "").trim().toLowerCase(), departOn = String(data.departOn || "").trim(), returnBy = String(data.returnBy || "").trim();
   const days = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), distanceMiles = Math.max(0, Math.min(100000, Math.round(Number(data.distanceMiles) || 0)));
   const markets = Array.isArray(data.markets) ? data.markets.slice(0, 24).map(cleanTourMarket) : [];
   if (!name || !start || !days || markets.some(market => !market) || (departOn && !/^\d{4}-\d{2}-\d{2}$/.test(departOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour name, starting city, dates, and stops must be valid." }) };
-  const nowIso = new Date().toISOString(), plan = { name, start, direction: tourDirections.has(direction) ? direction : "custom", departOn, returnBy, days, distanceMiles, markets };
+  const nowIso = new Date().toISOString(), plan = { name, artist, start, direction: tourDirections.has(direction) ? direction : "custom", departOn, returnBy, days, distanceMiles, markets };
   await db.send(new PutItemCommand({ TableName: toursTable, Item: { userId: { S: userId }, tourId: { S: tourId }, name: { S: name }, plan: { S: JSON.stringify(plan) }, createdAt: { S: nowIso }, updatedAt: { S: nowIso } } }));
   return { statusCode: 200, headers, body: JSON.stringify({ tourId, updatedAt: nowIso }) };
 }
