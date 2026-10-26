@@ -78,11 +78,17 @@ async function saveMessageReaction(item, message, emoji) {
   updateMessageReactionBadge(item, message);
 }
 
-function openMessageReactions(item, message, x, y) {
+function isReactionKeyboardShortcut(event) {
+  return event.key === "ContextMenu" || (event.shiftKey && event.key === "F10");
+}
+
+function openMessageReactions(item, message, x, y, focusFirst = false) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
   for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", (message.myReaction === emoji ? "Remove " : "React with ") + emoji); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
+  palette.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); palette.remove(); item.focus(); } });
   document.body.appendChild(palette);
+  if (focusFirst) palette.querySelector("button")?.focus();
 }
 
 function openConversation(conversation) {
@@ -125,8 +131,10 @@ function directMessageItem(message) {
   const mine = message.senderEmail === currentEmail;
   const item = document.createElement("div");
   item.className = "message" + (mine ? " mine" : "");
+  item.tabIndex = 0;
   item.dataset.messageId = message.messageId;
   item.textContent = message.content;
+  item.setAttribute("aria-label", `${mine ? "You" : activeContactName}: ${message.content}. Press Shift F10 for reactions.`);
   const meta = document.createElement("span");
   meta.className = "message-meta";
   meta.textContent = (mine ? "You" : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -135,6 +143,7 @@ function directMessageItem(message) {
   item.addEventListener("pointerdown", event => { reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
   item.addEventListener("contextmenu", event => { event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
+  item.addEventListener("keydown", event => { if (!isReactionKeyboardShortcut(event)) return; event.preventDefault(); const rect = item.getBoundingClientRect(); openMessageReactions(item, message, rect.left + rect.width / 2, rect.top, true); });
   return item;
 }
 
