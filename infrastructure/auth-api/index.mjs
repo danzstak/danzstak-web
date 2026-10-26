@@ -917,6 +917,7 @@ async function getSecurePosts(event) {
       userEmail: item.userEmail?.S ?? "",
       authorName: authorNames.get(String(item.userEmail?.S || "").trim().toLowerCase()) || item.userEmail?.S?.split("@")[0] || "DanzStak Member",
       content: item.content.S,
+      location: item.location?.S || "",
       audience: item.audience?.S ?? "public",
       mediaKey: item.mediaKey?.S ?? "",
       mediaUrl: item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S, 3600) : "",
@@ -1248,6 +1249,8 @@ async function createSecurePost(event) {
     };
   }
 
+  const location = data.location === undefined ? "" : typeof data.location === "string" ? data.location.trim() : null;
+  if (location === null || location.length > 120) return {statusCode:400,headers,body:JSON.stringify({error:"Location must be at most 120 characters."})};
   const content = data.content.trim();
   if (data.originalContentCertified !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Original-content certification is required." }) };
   const audience = facebookImport ? "private" : (["public", "friends", "private"].includes(data.audience) ? data.audience : "public");
@@ -1271,6 +1274,7 @@ async function createSecurePost(event) {
       userId: { S: userId },
       userEmail: { S: userEmail },
       content: { S: content },
+      ...(location ? {location:{S:location}} : {}),
       createdAt: { S: createdAt },
       audience: { S: audience },
       ...(facebookImport ? { importSource: { S: "facebook" }, importKey: { S: data.importKey }, importedAt: { S: importedAt } } : {}),
@@ -1293,6 +1297,7 @@ async function createSecurePost(event) {
       userEmail,
       content,
       audience,
+      location,
       mediaKey,
       mediaType,
       reel,
@@ -1355,6 +1360,10 @@ async function updateSecurePost(event) {
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Post not found." }) };
   if (found.Item.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the owner can edit this post." }) };
   const updates = [], names = {}, values = { ":updated": { S: new Date().toISOString() } };
+  if (Object.prototype.hasOwnProperty.call(data,"location")) {
+    if (typeof data.location !== "string" || data.location.trim().length > 120) return {statusCode:400,headers,body:JSON.stringify({error:"Location must be at most 120 characters."})};
+    names["#location"] = "location"; values[":location"] = {S:data.location.trim()}; updates.push("#location = :location");
+  }
   if (Object.prototype.hasOwnProperty.call(data, "content")) {
     const content = typeof data.content === "string" ? data.content.trim() : "";
     if (!content || content.length > 5000) return { statusCode: 400, headers, body: JSON.stringify({ error: "Post must contain 1–5000 characters." }) };

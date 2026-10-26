@@ -6,14 +6,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-J5iHNaTi0M5bemPSVxmyy+rVlATO4aS1h7rOLcqXkgg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-KImfP/2t5oWiSJH8SdsLEIP9NEVbCsZtIaLh3Eleb5c='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
 <link rel="icon" href="assets/app-icon.svg?v=2" type="image/svg+xml">
 <link rel="shortcut icon" href="assets/favicon-32.png?v=1" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1" sizes="180x180">
-<script src="assets/display-preferences.js?v=225"></script>
+<script src="assets/display-preferences.js?v=226"></script>
 <title>DanzStak | Social Feed</title>
 
 <style>
@@ -268,12 +268,12 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=225">
-<link rel="stylesheet" href="assets/incoming-calls.css?v=225">
-  <link rel="stylesheet" href="assets/soft-ui.css?v=225">
-<script src="assets/languages.js?v=225" defer></script>
-<script src="assets/i18n.js?v=225" defer></script>
-<script src="assets/mobile-keyboard.js?v=225" defer></script>
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=226">
+<link rel="stylesheet" href="assets/incoming-calls.css?v=226">
+  <link rel="stylesheet" href="assets/soft-ui.css?v=226">
+<script src="assets/languages.js?v=226" defer></script>
+<script src="assets/i18n.js?v=226" defer></script>
+<script src="assets/mobile-keyboard.js?v=226" defer></script>
 </head>
 
 <body>
@@ -335,7 +335,8 @@ textarea {
         placeholder="What's on your mind?"
       ></textarea>
 
-      <div class="composer-actions">
+      <details class="post-location-picker"><summary>Add location (optional)</summary><label for="postLocation">Location<input id="postLocation" type="text" maxlength="120" placeholder="City, venue, or place" autocomplete="off"></label></details>
+    <div class="composer-actions">
         <div class="post-audience-control">
           <label for="postAudience">Audience</label>
           <select id="postAudience" aria-label="Who can see this post">
@@ -540,10 +541,11 @@ async function loadFriends() {
 }
 
 // CREATE THE VISUAL DISPLAY OF A POST
-function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorEmail = "", commentPolicy = "everyone", editHistory = []) {
+function createPostElement(content, author = "DanzStak Member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorEmail = "", commentPolicy = "everyone", editHistory = [], locationLabel = "") {
 
   const article = document.createElement("article");
   article.className = "post";
+  article.dataset.location = locationLabel || "";
   article.dataset.audience = ["public", "friends", "private"].includes(audience) ? audience : "public";
   if (postId) {
     article.dataset.postId = postId;
@@ -581,6 +583,7 @@ function createPostElement(content, author = "DanzStak Member", createdAt = null
   audienceBadge.setAttribute("aria-label", "Post audience: " + audienceBadge.textContent.replace(/^[^ ]+ /, ""));
 
   header.append(authorLabel, time, audienceBadge);
+  if (locationLabel) { const place = document.createElement("span"); place.className = "post-location"; place.textContent = "Location: " + locationLabel; header.appendChild(place); }
 
   const body = document.createElement("p");
   body.className = "post-content";
@@ -814,7 +817,8 @@ async function loadPosts() {
         typeof post.isOwner === "boolean" ? post.isOwner : null,
         authorEmail,
         post.commentPolicy,
-        post.editHistory
+        post.editHistory,
+        post.location
       );
 
       if (!post.mediaUrl && post.mediaKey && post.mediaType) {
@@ -870,6 +874,7 @@ async function loadPosts() {
 // SAVE NEW POST TO DYNAMODB
 publishBtn.addEventListener("click", async () => {
 
+  const locationInput = document.getElementById("postLocation"), submittedLocation = locationInput?.value || "";
   const submittedText = postText.value;
   const content = submittedText.trim();
   const publishToStory = shareToStory.checked && shareToStory.dataset.hasMedia === "true";
@@ -921,7 +926,7 @@ publishBtn.addEventListener("click", async () => {
         "Content-Type": "application/json"
       },
       credentials: "include",
-      body: JSON.stringify({ content: content || "Shared media", audience, mediaKey, mediaType, reel: mediaType === "video" && publishToReels, originalContentCertified: true })
+      body: JSON.stringify({ content: content || "Shared media", location: submittedLocation.trim(), audience, mediaKey, mediaType, reel: mediaType === "video" && publishToReels, originalContentCertified: true })
     });
 
     if (response.status === 401) {
@@ -964,6 +969,7 @@ publishBtn.addEventListener("click", async () => {
 
     if (postText.value === submittedText) {
       postText.value = "";
+      if (locationInput?.value === submittedLocation) locationInput.value = "";
       certification.checked = false;
     }
     if (window.danzstakSelectedMedia === selectedMedia) {
@@ -1147,17 +1153,17 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 </script>
 
-<script src="assets/push-notifications.js?v=225" defer></script>
-<script src="assets/device-settings.js?v=225" defer></script>
-<script src="assets/feed-enhancements.js?v=225" defer></script>
-<script src="assets/session-activity.js?v=225" defer></script>
-<script src="assets/incoming-calls.js?v=225" defer></script>
-<script src="assets/session-cleanup.js?v=225" defer></script>
-<script src="assets/logout.js?v=225" defer></script>
-<script src="assets/pwa.js?v=225" defer></script>
+<script src="assets/push-notifications.js?v=226" defer></script>
+<script src="assets/device-settings.js?v=226" defer></script>
+<script src="assets/feed-enhancements.js?v=226" defer></script>
+<script src="assets/session-activity.js?v=226" defer></script>
+<script src="assets/incoming-calls.js?v=226" defer></script>
+<script src="assets/session-cleanup.js?v=226" defer></script>
+<script src="assets/logout.js?v=226" defer></script>
+<script src="assets/pwa.js?v=226" defer></script>
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
-<script src="assets/media-visibility.js?v=225" defer></script>
-<script src="assets/text-emojis.js?v=225" defer></script>
-<script src="assets/people-search.js?v=225" defer></script>
+<script src="assets/media-visibility.js?v=226" defer></script>
+<script src="assets/text-emojis.js?v=226" defer></script>
+<script src="assets/people-search.js?v=226" defer></script>
 </body>
 </html>

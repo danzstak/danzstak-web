@@ -82,7 +82,9 @@ function addProfileImageButton(label, target, field) {
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = label;
+  button.dataset.mediaField = field;
   const input = document.createElement("input");
+  input.dataset.mediaField = field;
   input.type = "file";
   input.accept = "image/jpeg,image/png,image/webp";
   input.hidden = true;
@@ -160,6 +162,7 @@ async function removeProfileImage(field, target) {
 
 function addRemoveImageButton(label, field, target) {
   const button = document.createElement("button");
+  button.dataset.mediaField = field;
   button.type = "button";
   button.textContent = label;
   button.addEventListener("click", async () => {
@@ -179,7 +182,12 @@ addRemoveImageButton("Remove Cover Photo", "cover", document.querySelector(".cov
 const coverElement = document.querySelector(".cover");
 const repositionButton = document.createElement("button");
 repositionButton.type = "button";
+repositionButton.dataset.mediaField = "cover";
 repositionButton.textContent = "Reposition Cover";
+const finishReposition = document.createElement("button");
+finishReposition.type = "button"; finishReposition.className = "cover-reposition-done"; finishReposition.textContent = "Done repositioning"; finishReposition.hidden = true;
+coverElement.appendChild(finishReposition);
+finishReposition.addEventListener("click", () => repositionButton.click());
 let repositioning = false;
 let dragStart = null;
 let coverPositionSaving = false;
@@ -189,9 +197,12 @@ repositionButton.addEventListener("click", () => {
   repositionButton.classList.toggle("active", repositioning);
   repositionButton.textContent = repositioning ? "Done Repositioning" : "Reposition Cover";
   coverElement.classList.toggle("repositioning", repositioning);
+  finishReposition.hidden = !repositioning;
+  if (repositioning) coverElement.scrollIntoView({block:"center",behavior:"smooth"});
+  else panel.scrollIntoView({block:"start",behavior:"smooth"});
 });
 coverElement.addEventListener("pointerdown", event => {
-  if (!repositioning || coverPositionSaving) return;
+  if (!repositioning || coverPositionSaving || event.target.closest?.("button")) return;
   const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
   const cloud = window.danzstakCurrentProfile;
   dragStart = { x: event.clientX, y: event.clientY, coverX: cloud?.cloudProfile ? (cloud.coverX ?? 50) : (saved.coverX ?? 50), coverY: cloud?.cloudProfile ? (cloud.coverY ?? 50) : (saved.coverY ?? 50) };
@@ -244,6 +255,7 @@ coverElement.addEventListener("pointercancel", () => {
 mediaTools.appendChild(repositionButton);
 const fitCoverButton = document.createElement("button");
 fitCoverButton.type = "button";
+fitCoverButton.dataset.mediaField = "cover";
 fitCoverButton.textContent = "Fit Entire Cover";
 async function toggleCoverFit() {
   if (!coverElement.classList.contains("has-photo")) return alert("Add a cover photo first.");
@@ -271,9 +283,11 @@ try {
 mediaTools.appendChild(fitCoverButton);
 const videoButton = document.createElement("button");
 videoButton.type = "button";
+videoButton.dataset.mediaField = "video";
 videoButton.textContent = "Add Profile Video";
 videoButton.hidden = true;
 const videoInput = document.createElement("input");
+videoInput.dataset.mediaField = "video";
 videoInput.type = "file";
 videoInput.accept = "video/mp4,video/webm,video/quicktime";
 videoInput.hidden = true;
@@ -307,6 +321,7 @@ videoInput.addEventListener("change", async () => {
 mediaTools.append(videoButton, videoInput);
 const removeVideoButton = document.createElement("button");
 removeVideoButton.type = "button";
+removeVideoButton.dataset.mediaField = "video";
 removeVideoButton.textContent = "Remove Profile Video";
 removeVideoButton.hidden = true;
 removeVideoButton.addEventListener("click", async () => {
@@ -533,6 +548,14 @@ panel.innerHTML = '<h2>Edit Profile</h2>' +
   '<div class="edit-actions"><button class="secondary" type="button" data-cancel>Cancel</button><button class="button" type="submit">Save Changes</button></div>' +
   '<div class="profile-import"><button type="button" data-facebook-import>Import from Facebook</button><p>Preview your export on this device and choose what to copy. Imported posts start as Only me.</p></div>';
 profileCard.appendChild(panel);
+const mediaItems = [...mediaTools.children];
+for (const [field,label] of [["avatar","Profile photo"],["cover","Cover photo"],["video","Profile video"]]) {
+  const menu = document.createElement("details"); menu.className = "profile-media-menu";
+  const summary = document.createElement("summary"); summary.textContent = label; menu.appendChild(summary);
+  for (const control of mediaItems) if (control.dataset.mediaField === field) menu.appendChild(control);
+  mediaTools.appendChild(menu);
+}
+panel.insertBefore(mediaTools, panel.querySelector("label"));
 panel.querySelector("[data-facebook-import]").addEventListener("click", event => window.openDanzStakFacebookImport?.(event.currentTarget));
 
 function savedProfile() {
@@ -576,7 +599,7 @@ editButton.addEventListener("click", () => {
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
-panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; });
+panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; repositioning = false; finishReposition.hidden = true; coverElement.classList.remove("repositioning"); repositionButton.classList.remove("active"); repositionButton.textContent = "Reposition Cover"; });
 panel.addEventListener("submit", async event => {
   event.preventDefault();
   if (!panel.reportValidity()) return;

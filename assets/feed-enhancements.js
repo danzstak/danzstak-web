@@ -1502,6 +1502,7 @@ function addPostDeleteButton(post) {
       editor.className = "post-inline-editor";
       const textarea = document.createElement("textarea");
       textarea.setAttribute("aria-label", "Edit post text");
+      const placeInput = document.createElement("input"); placeInput.type = "text"; placeInput.maxLength = 120; placeInput.className = "edit-post-location"; placeInput.setAttribute("aria-label", "Location (optional)"); placeInput.placeholder = "Location (optional)";
       const controls = document.createElement("div");
       controls.className = "post-inline-editor-actions";
       const cancel = document.createElement("button");
@@ -1520,14 +1521,15 @@ function addPostDeleteButton(post) {
           return;
         }
         textarea.setCustomValidity("");
-        if (updated === body.textContent.trim()) { editor.hidden = true; return; }
+        const updatedLocation = placeInput.value.trim();
+        if (updated === body.textContent.trim() && updatedLocation === (post.dataset.location || "")) { editor.hidden = true; return; }
         save.disabled = true;
         const postId = post.dataset.postId;
         if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
           try {
             const response = await fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId), {
               method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ content: updated })
+              body: JSON.stringify({ content: updated, location: updatedLocation })
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error();
@@ -1540,17 +1542,22 @@ function addPostDeleteButton(post) {
           }
         }
         body.textContent = updated;
-        updateLoadedPost(postId, { content: updated, editHistory: history });
+        updateLoadedPost(postId, { content: updated, location: updatedLocation, editHistory: history });
+        post.dataset.location = updatedLocation;
+        let place = post.querySelector(".post-location");
+        if (updatedLocation) { if (!place) { place = document.createElement("span"); place.className = "post-location"; post.querySelector(".post-header")?.appendChild(place); } place.textContent = "Location: " + updatedLocation; }
+        else place?.remove();
         post.dataset.edited = "true";
         editor.hidden = true;
         save.disabled = false;
       });
       controls.append(cancel, save);
-      editor.append(textarea, controls);
+      editor.append(textarea, placeInput, controls);
       body.insertAdjacentElement("afterend", editor);
     }
     const textarea = editor.querySelector("textarea");
     textarea.value = body.textContent.trim();
+    editor.querySelector(".edit-post-location").value = post.dataset.location || "";
     editor.hidden = false;
     requestAnimationFrame(() => { textarea.focus(); textarea.setSelectionRange(textarea.value.length, textarea.value.length); });
   });
