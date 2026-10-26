@@ -650,9 +650,11 @@ foreach ($workspaceDestination in @('href="#friends"', 'href="#photos"', 'href="
   if (-not $feed.Contains($workspaceDestination)) { Add-Failure "Feed workspace has no durable navigation destination: $workspaceDestination" }
 }
 $termsMenuIndex = $feed.IndexOf('<a href="terms.html"><span class="menu-icon"')
+$androidMenuIndex = $feed.IndexOf('data-app-platform="android"')
+$appleMenuIndex = $feed.IndexOf('data-app-platform="apple"')
 $logoutMenuIndex = $feed.IndexOf('<a href="#" data-logout><span class="menu-icon"')
-if ($termsMenuIndex -lt 0 -or $logoutMenuIndex -lt 0 -or $logoutMenuIndex -lt $termsMenuIndex) {
-  Add-Failure 'Feed navigation: Logout is not positioned beneath Terms of Service'
+if ($termsMenuIndex -lt 0 -or $androidMenuIndex -lt $termsMenuIndex -or $appleMenuIndex -lt $androidMenuIndex -or $logoutMenuIndex -lt $appleMenuIndex) {
+  Add-Failure 'Feed navigation: Android and Apple app links are not stacked beneath Terms of Service and above Logout'
 }
 if ($feed.Contains('This DanzStak section is being prepared.') -or $feed.Contains('const featureCopy =')) {
   Add-Failure 'Feed workspaces still run the retired placeholder click handler before the functional router'
