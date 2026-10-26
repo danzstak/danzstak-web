@@ -7,6 +7,10 @@ DanzStak is an installable, responsive Progressive Web App for social
 networking. It does not include blockchain, cryptocurrency, wallets, tokens,
 or Web3 transactions. Those capabilities belong to the separate SFSCOOP
 product and must not be introduced into DanzStak.
+## Migration objective
+
+The owner wants DanzStak to help users leave billionaire-owned social platforms. Data portability is a core product goal: users should be able to copy their own Facebook profile and content into DanzStak while keeping Facebook, or migrate and then close Facebook after verifying their imported data. Account closure must remain a separate user-controlled action on Facebook. The importer should preview supported content, preserve original dates where available, default imported material to private, and prevent duplicate imports. Facebook connections, likes, and comments must not be represented as actions taken by real DanzStak members.
+
 ## Production runtime configuration
 
 Run `./aws-configure-production.ps1` from an authenticated AWS shell to reapply the production-safe runtime settings used by the site:
@@ -46,11 +50,12 @@ Profile saves retain newly uploaded files when the save response is lost, since 
 
 The current priority is stabilizing the existing DanzStak site: feed, profiles, friends, groups, privacy, media, and mobile use. Android call ringing and duplicate call notifications remain unresolved; phone testing is parked until the owner resumes it.
 
-The owner confirmed this delivery order: finish and verify the existing site, then tour booking, then email, then the admin dashboard. Do not start the next phase by declaring unverified flows complete.
+The owner confirmed this next-feature order after the current site stabilization pass:
 
-1. A tour-booking module for bands to locate clubs geographically and contact them about booking their act. The planned flow includes city or location search, distance filters, venue profiles, and booking requests with act details and proposed dates. Bands should be able to plan a multi-stop tour, track proposed dates and travel distances, and see booking-request status for each venue. Location permission should be optional, with manual city/location entry available. Initial booking conversations can use DanzStak messaging.
-2. An email server and email delivery workflows, including optional booking email notifications.
-3. An admin dashboard for site monitoring and management, including review of post and group reports.
+1. A Facebook data import tool. Start with the owner's Facebook data export: preview supported content, choose what to import, and detect duplicates before publishing anything to DanzStak. Existing DanzStak ownership, audience, and original-content requirements still apply. Importing a friend list must not create accepted DanzStak friendships automatically.
+2. An email notification service and email delivery workflows. The owner requires public ingress to be limited to HTTPS 443 and HTTP 80 for HTTPS redirects. Send notifications through an HTTPS provider API on outbound 443 (for example Amazon SES); do not expose SMTP listeners on the DanzStak service. The provider handles downstream email delivery. This requirement applies to the future email deployment; no standalone mail server has been deployed yet.
+3. A geo-based tour-booking agent/module for bands to locate clubs and contact them about booking their act. The planned flow includes optional location permission or manual city entry, distance filters, venue profiles, multi-stop tour planning, proposed dates, travel distances, and per-venue booking-request status. Email delivery can support booking notifications after the email phase is complete.
+4. An admin dashboard for site monitoring and management, including review of post and group reports.
 
 ## Database recovery protection
 
@@ -66,4 +71,6 @@ Browser smoke checks covered Friends, Groups, Photos, Videos, Events, Saved, Set
 
 A Posts recovery drill also passed: a point-in-time copy was restored into an isolated temporary table, the known saved post and all its attributes matched the source snapshot, and the temporary table was removed after verification. This is evidence for the Posts restore path, not a claim that every table has been restored together.
 
-Still open: the parked Android background-call ringing and duplicate-notification tests, and a fresh-account signup walkthrough. These must remain explicit rather than being counted as completed by mocked tests or by checking that recovery is enabled. The agreed next feature order remains tour booking, then email, then the admin dashboard.
+Still open: the parked Android background-call ringing and duplicate-notification tests, and a fresh-account signup walkthrough. These must remain explicit rather than being counted as completed by mocked tests or by checking that recovery is enabled. The latest agreed next-feature order is Facebook import, email server, geo-based tour booking, then the admin dashboard.
+
+Notification email architecture reference: [Amazon SES HTTPS security](https://docs.aws.amazon.com/ses/latest/dg/security-protocols.html) and [SES API endpoint port 443](https://docs.aws.amazon.com/ses/latest/dg/send-email-set-up-vpc-endpoints.html).

@@ -14,6 +14,11 @@ function Get-Headers([string]$url) {
   return ($output -join "`n")
 }
 
+$httpHeaders = Get-Headers "http://danzstak.com/"
+if ($httpHeaders -notmatch 'HTTP/\S+\s+(301|302|307|308)' -or $httpHeaders -notmatch '(?im)^Location:\s*https://danzstak\.com/\s*$') {
+  Add-Failure 'HTTP port 80 does not redirect to the HTTPS website'
+}
+
 $siteHeaders = Get-Headers "https://danzstak.com/"
 if ($siteHeaders -notmatch "HTTP/\S+ 200") { Add-Failure "Website did not return HTTP 200" }
 foreach ($header in @("Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy")) {
