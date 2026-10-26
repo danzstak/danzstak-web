@@ -2111,6 +2111,16 @@ function getReels() {
   return [...internalReels, ...external];
 }
 
+async function reelFetch(path, options = {}, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
+  catch (error) {
+    if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
+    throw error;
+  } finally { clearTimeout(timeout); }
+}
+
 let internalReelsVersion = 0;
 async function loadInternalReels(posts = []) {
   const version = ++internalReelsVersion;
@@ -2118,7 +2128,7 @@ async function loadInternalReels(posts = []) {
   const resolved = await Promise.all(videos.map(async post => {
     let mediaUrl = post.mediaUrl || "";
     if (!mediaUrl) {
-      const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: "video" }) }).catch(() => null);
+      const response = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: "video" }) }).catch(() => null);
       if (response?.ok) mediaUrl = (await response.json().catch(() => ({}))).mediaUrl || "";
     }
     return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", authorName: post.authorName || "DanzStak member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
@@ -2248,7 +2258,7 @@ function renderPlayableReels() {
       remove.addEventListener("click", async () => {
         remove.disabled = true;
         if (Array.isArray(cloudReels)) {
-          const response = await fetch("https://api.danzstak.com/stories/" + encodeURIComponent(reel.id), { method: "DELETE", credentials: "include" }).catch(() => null);
+          const response = await reelFetch("/stories/" + encodeURIComponent(reel.id), { method: "DELETE", credentials: "include" }).catch(() => null);
           if (!response?.ok) { remove.disabled = false; reelStatus.textContent = "Reel could not be deleted."; return; }
           cloudReels = cloudReels.filter(item => item.id !== reel.id);
         } else localStorage.setItem(reelsStorageKey, JSON.stringify(getLocalReels().filter(item => item.id !== reel.id)));
@@ -2280,7 +2290,7 @@ addReel.addEventListener("click", async () => {
   if (!reelPermissionCheck.checked) { reelStatus.textContent = "Confirm ownership or permission before sharing."; reelPermissionCheck.focus(); return; }
   addReel.disabled = true;
   try {
-    const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: parsed.href, rightsCertified: true }) });
+    const response = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: parsed.href, rightsCertified: true }) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.reel) throw new Error(result.error || "Reel could not be saved to DanzStak.");
     const reel = result.reel;
@@ -2299,7 +2309,7 @@ addReel.addEventListener("click", async () => {
 
 async function loadCloudReels() {
   try {
-    const response = await fetch("https://api.danzstak.com/stories", { credentials: "include", cache: "no-store" });
+    const response = await reelFetch("/stories", { credentials: "include", cache: "no-store" });
     if (!response.ok) return;
     const data = await response.json();
     if (!Array.isArray(data.reels)) return;
@@ -2309,7 +2319,7 @@ async function loadCloudReels() {
     const existingUrls = new Set(cloudReels.map(reel => reel.url));
     for (const local of pending) {
       if (existingUrls.has(local.url)) continue;
-      const saved = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: local.url, rightsCertified: true }) }).catch(() => null);
+      const saved = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: local.url, rightsCertified: true }) }).catch(() => null);
       if (!saved?.ok) { remaining.push(local); continue; }
       const result = await saved.json();
       if (result.reel) { cloudReels.push({ ...result.reel, platform: reelPlatform(new URL(result.reel.url).hostname) }); existingUrls.add(result.reel.url); }

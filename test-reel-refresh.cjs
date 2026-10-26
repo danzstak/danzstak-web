@@ -4,7 +4,7 @@ const start=source.indexOf('let internalReelsVersion = 0;');
 const code=source.slice(start,source.indexOf('function reelPlatform(',start));
 const requests=[],rendered=[];
 const context=vm.createContext({hiddenPostIds:new Set(['hidden']),internalReels:[],
-  fetch:()=>new Promise(resolve=>requests.push(resolve)),renderPlayableReels:()=>rendered.push(true),placeReelsRail:()=>{}
+  reelFetch:()=>new Promise(resolve=>requests.push(resolve)),renderPlayableReels:()=>rendered.push(true),placeReelsRail:()=>{}
 });vm.runInContext(code,context);
 const video=(id,mediaUrl='')=>({postId:id,reel:true,mediaType:'video',mediaKey:id,mediaUrl,content:id,authorName:"Sleeping Dragon"});
 (async()=>{
