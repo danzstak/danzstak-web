@@ -157,7 +157,7 @@ foreach ($pushClientControl in @('registration.pushManager.subscribe', 'applicat
   if (-not $pushClient.Contains($pushClientControl)) { Add-Failure "Messages: background call subscription is missing: $pushClientControl" }
 }
 $sessionCleanupForPush = Get-Content -LiteralPath (Join-Path $root 'assets\session-cleanup.js') -Raw -Encoding utf8
-foreach ($pushLogoutControl in @('window.danzstakDisablePush = async () =>', 'method: "DELETE"', 'await subscription.unsubscribe()', 'await window.danzstakDisablePush?.()', 'controller.abort()', 'Promise.race([')) {
+foreach ($pushLogoutControl in @('window.danzstakDisablePush = async () =>', 'method: "DELETE"', 'await subscription.unsubscribe()', 'await window.danzstakDisablePush?.()', 'controller.abort()', 'Promise.race([', 'sessionStorage.removeItem("danzstak_push_synced")', 'sessionStorage.removeItem("danzstak_push_prompt_dismissed")')) {
   if (-not ($sessionCleanupForPush + $logoutJs + $homeJs).Contains($pushLogoutControl)) { Add-Failure "Logout: this device can remain subscribed to the previous account: $pushLogoutControl" }
 }
 foreach ($pushCleanupPage in @('index.html', 'feed.html', 'profile.html', 'messages.html')) {

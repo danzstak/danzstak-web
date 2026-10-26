@@ -15,11 +15,19 @@
   window.danzstakClearAccountData = () => {
     try { for (const key of accountLocalKeys) localStorage.removeItem(key); }
     catch { /* Server logout remains authoritative when browser storage is unavailable. */ }
-    try { sessionStorage.removeItem("danzstak_install_prompt_shown"); }
+    try {
+      sessionStorage.removeItem("danzstak_install_prompt_shown");
+      sessionStorage.removeItem("danzstak_push_synced");
+      sessionStorage.removeItem("danzstak_push_prompt_dismissed");
+    }
     catch { /* Session storage is optional. */ }
   };
 
   window.danzstakDisablePush = async () => {
+    try {
+      sessionStorage.removeItem("danzstak_push_synced");
+      sessionStorage.removeItem("danzstak_push_prompt_dismissed");
+    } catch { /* A device without session storage can still disable its subscription. */ }
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
     let readyTimer;
     const registration = await Promise.race([
