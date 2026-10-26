@@ -258,7 +258,7 @@ function renderWorkspace(name) {
     featurePanel.appendChild(workspace);
   }
   workspace.replaceChildren();
-  workspace.classList.remove("settings-workspace");
+  workspace.classList.remove("settings-workspace", "events-workspace");
   const saved = readSections();
 
   if (name === "Saved") {
@@ -655,6 +655,7 @@ function renderWorkspace(name) {
 
   if (name === "Events") {
     featureText.textContent = "Create event announcements and find events shared in your feed.";
+    workspace.classList.add("events-workspace");
     const title = field("Event name", "text", "Show or performance");
     const date = field("Date", "date", "");
     const audience = document.createElement("select");
@@ -667,6 +668,7 @@ function renderWorkspace(name) {
     button.type = "button";
     button.textContent = "Add Event";
     const eventCertification = document.createElement("label");
+    eventCertification.className = "event-certification";
     const eventCertified = document.createElement("input");
     eventCertified.type = "checkbox";
     eventCertification.append(eventCertified, document.createTextNode("I created this event announcement and authorize sharing it through DanzStak."));

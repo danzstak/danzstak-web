@@ -76,3 +76,7 @@
 .dark-mode .feed-online-row{background:#25364d;color:#dbeafe}.dark-mode .feed-online-row a{color:#b9dcff}.dark-mode .feed-online-row button:disabled{background:#334155;border-color:#526074;color:#d3dce8}
 
 #featureView{scroll-margin-top:86px}@media(max-width:700px){#featureView{scroll-margin-top:12px}}
+
+/* Consistent workspace form rhythm and readable long content. */
+.events-workspace{display:grid;gap:14px}.events-workspace>label{display:grid;gap:7px}.events-workspace>select{width:100%;min-height:42px;padding:9px 11px;border:1px solid #ccd0d5;border-radius:8px;font:inherit}.events-workspace>.event-certification{display:flex;align-items:flex-start;gap:9px;line-height:1.5}.event-certification input{flex:0 0 18px;width:18px;height:18px;margin-top:3px}.events-workspace>.primary{justify-self:start}.events-workspace h4{margin:8px 0 0}.group-card,.notification-row p,.published-event-card p,.profile-post-card p{overflow-wrap:anywhere}.notification-actions{flex-wrap:wrap}.post-report-dialog{max-height:calc(100dvh - 32px);overflow:auto}.post-report-actions{flex-wrap:wrap}
+.dark-mode .group-create-box,.dark-mode .group-card,.dark-mode .post-inline-editor,.dark-mode .notification-row,.dark-mode .notification-row.is-read,.dark-mode .post-report-dialog{background:#1f2937;color:#f5f7fb;border-color:#3b4658}.dark-mode .group-card p,.dark-mode .notification-row.is-read p,.dark-mode .post-options-menu small{color:#b8c2d1}.dark-mode .post-option-row{color:#f5f7fb}

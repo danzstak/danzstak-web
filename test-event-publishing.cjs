@@ -6,7 +6,7 @@ const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf
 const eventCode = source.slice(source.indexOf('  if (name === "Events") {'), source.indexOf('  if (name === "Settings") {'));
 const nodes = [], requests = [];
 function node(tag) {
-  const item = { tag, value: '', checked: false, children: [], handlers: {}, append(...children) { this.children.push(...children); }, appendChild(child) { this.children.push(child); }, setAttribute() {}, addEventListener(type, handler) { this.handlers[type] = handler; }, focus() { this.focused = true; } };
+  const item = { classList: { add() {} }, tag, value: '', checked: false, children: [], handlers: {}, append(...children) { this.children.push(...children); }, appendChild(child) { this.children.push(child); }, setAttribute() {}, addEventListener(type, handler) { this.handlers[type] = handler; }, focus() { this.focused = true; } };
   nodes.push(item);
   return item;
 }
