@@ -206,6 +206,12 @@ foreach ($callBehavior in @('setCallMode(kind)', 'showCallConversation()', 'setC
 foreach ($callLayout in @('body[data-call-mode="phone"] .video-grid', 'body[data-call-mode="phone"] #toggleCamera', 'body[data-call-mode="video"] .video-grid', '.receiver-hangup[hidden]')) {
   if (-not $chatStyles.Contains($callLayout)) { Add-Failure "Calls: missing phone/video layout rule: $callLayout" }
 }
+foreach ($relationshipStatus in @('relationship=document.createElement("span")', 'relationship.className="connection-status"', 'relationship.setAttribute("role","status")')) {
+  if (-not $chatScript.Contains($relationshipStatus)) { Add-Failure "Messages: friend and request states are not rendered as status text: $relationshipStatus" }
+}
+if ($chatScript.Contains('friend.textContent="Friends";friend.disabled=true') -or $chatScript.Contains('friend.textContent="Requested";friend.disabled=true')) {
+  Add-Failure 'Messages: non-action relationship states are still exposed as disabled buttons'
+}
 if (-not $feed.Contains('event.data?.type === "danzstak-call-mode"') -or -not $feed.Contains('.message-drawer.is-video-call')) {
   Add-Failure 'Calls: the message drawer does not expand exclusively for video calls'
 }
