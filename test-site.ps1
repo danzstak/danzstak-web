@@ -62,6 +62,9 @@ foreach ($bookingClientControl in @('Send me out and bring me home', 'First show
 foreach ($bookingInteraction in @('$("startCity").value=""', '$("startCity").placeholder="City, region, country"', '$("endCity").disabled=local', '$("tourStops").disabled=local', '$("endCity").addEventListener("focus",useDestinationMode)', '$("tourStops").addEventListener("focus",useDestinationMode)', 'routeAction.textContent=local?"Find clubs near home":"Start route"')) {
   if (-not $bookingClient.Contains($bookingInteraction)) { Add-Failure "Booking Agent: interactive route control is missing: $bookingInteraction" }
 }
+if (-not $bookingClient.Contains('routeOptions.append(modeLabel,routePicker,directionLabel,departLabel,returnLabel)') -or -not $bookingClient.Contains('routeFieldset.querySelector(".two").after(routeOptions)')) {
+  Add-Failure 'Booking Agent: route controls do not follow the performer and genre choices'
+}
 if (-not $bookingMarkup.Contains('<option>DIY Punk</option>') -or -not $bookingClient.Contains('actType=performerType.value')) {
   Add-Failure 'Booking Agent: performer type and music-style choices are not sent with route searches'
 }
