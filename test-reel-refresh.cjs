@@ -6,12 +6,12 @@ const requests=[],rendered=[];
 const context=vm.createContext({hiddenPostIds:new Set(['hidden']),internalReels:[],
   fetch:()=>new Promise(resolve=>requests.push(resolve)),renderPlayableReels:()=>rendered.push(true),placeReelsRail:()=>{}
 });vm.runInContext(code,context);
-const video=(id,mediaUrl='')=>({postId:id,reel:true,mediaType:'video',mediaKey:id,mediaUrl,content:id});
+const video=(id,mediaUrl='')=>({postId:id,reel:true,mediaType:'video',mediaKey:id,mediaUrl,content:id,authorName:"Sleeping Dragon"});
 (async()=>{
   context.posts=[video('old')];const old=vm.runInContext('loadInternalReels(posts)',context);
   context.posts=[video('current','https://example.com/current.mp4'),video('hidden','https://example.com/hidden.mp4')];
   await vm.runInContext('loadInternalReels(posts)',context);
-  assert.equal(context.internalReels.length,1);assert.equal(context.internalReels[0].postId,'current');
+  assert.equal(context.internalReels.length,1);assert.equal(context.internalReels[0].postId,'current');assert.equal(context.internalReels[0].authorName,'Sleeping Dragon','a Reel credits its creator rather than the platform');
   requests[0]({ok:true,json:async()=>({mediaUrl:'https://example.com/old.mp4'})});await old;
   assert.equal(context.internalReels[0].postId,'current','delayed list cannot restore a removed Reel');
   context.posts=[video('bad'),video('good','https://example.com/good.mp4')];

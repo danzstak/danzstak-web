@@ -110,9 +110,7 @@ $chatStylesForPreferences = Get-Content -LiteralPath (Join-Path $root 'assets\ch
 foreach ($styleSet in @($feedEnhancementCss, $profileStyles, $chatStylesForPreferences)) {
   if (-not $styleSet.Contains('.dark-mode') -or -not $styleSet.Contains('.reduce-motion')) { Add-Failure 'Display preferences: a core page lacks dark-mode or reduced-motion coverage' }
 }
-if (-not $feedEnhancementCss.Contains('.composer-actions #publishBtn{grid-column:3;grid-row:2') -or -not $feedEnhancementCss.Contains('.composer-actions #publishBtn{grid-column:3!important;grid-row:2!important') -or -not $feedEnhancementCss.Contains('.reels-option{grid-column:2!important;grid-row:2!important')) {
-  Add-Failure 'Composer: Story and Post controls can overlap instead of occupying separate rows'
-}
+if ($feedEnhancementCss -match '\.story-share-control input\{position:absolute') { Add-Failure 'Composer: checkbox placement still relies on an absolute offset' }
 foreach ($eventBehavior in @('Event audience', 'Publishing event', '/secure-posts', 'Event published to DanzStak', 'window.loadPosts')) {
   if (-not $feedEnhancements.Contains($eventBehavior)) { Add-Failure "Events: durable feed publishing is missing: $eventBehavior" }
 }

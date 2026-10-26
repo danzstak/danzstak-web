@@ -6,14 +6,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-XTlu5IcTzeIr70OrYzBM6Sp4S/z4JBnTTQyQPGZ+FHA='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-p1hUDqz4UAatqgG62+R5hm+1qsxwqJzCAUkIm/o9QjU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
 <link rel="icon" href="assets/app-icon.svg?v=2" type="image/svg+xml">
 <link rel="shortcut icon" href="assets/favicon-32.png?v=1" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1" sizes="180x180">
-<script src="assets/display-preferences.js?v=20261026-209"></script>
+<script src="assets/display-preferences.js?v=20261026-211"></script>
 <title>DanzStak | Social Feed</title>
 
 <style>
@@ -268,9 +268,9 @@ textarea {
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261026-209">
-<link rel="stylesheet" href="assets/incoming-calls.css?v=20261026-209">
-  <link rel="stylesheet" href="assets/soft-ui.css?v=20261026-210">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=20261026-211">
+<link rel="stylesheet" href="assets/incoming-calls.css?v=20261026-211">
+  <link rel="stylesheet" href="assets/soft-ui.css?v=20261026-211">
 </head>
 
 <body>
@@ -296,17 +296,18 @@ textarea {
 
   <aside class="left">
     <div class="panel menu">
-      <a href="feed.html" class="active">🏠 Feed</a>
-      <a href="profile.html">👤 My Profile</a>
-      <a href="#friends" data-feature="Friends">👥 Friends</a>
-      <a href="#photos" data-feature="Photos">📷 Photos</a>
-      <a href="#videos" data-feature="Videos">🎬 Videos</a>
-      <a href="#events" data-feature="Events">🎤 Events</a>
-      <a href="#saved" data-feature="Saved">🔖 Saved</a>
-      <a href="#settings" data-feature="Settings">⚙️ Settings</a>
-      <a href="privacy.html">🔒 Privacy Policy</a>
-      <a href="terms.html" class="legal-menu-link"><span class="legal-menu-icon" aria-hidden="true">📄</span><span class="legal-menu-terms">Terms of</span><span class="legal-menu-service">Service</span></a>
-      <a href="#" data-logout class="logout-menu-link"><span aria-hidden="true">🚪</span><span>Logout</span></a>
+      <a href="feed.html" class="active"><span class="menu-icon" aria-hidden="true">🏠</span><span class="menu-label">Feed</span></a>
+      <a href="profile.html"><span class="menu-icon" aria-hidden="true">👤</span><span class="menu-label">My Profile</span></a>
+      <a href="#friends" data-feature="Friends"><span class="menu-icon" aria-hidden="true">👥</span><span class="menu-label">Friends</span></a>
+      <a href="#groups" data-feature="Groups"><span class="menu-icon" aria-hidden="true">👥</span><span class="menu-label">Groups</span></a>
+      <a href="#photos" data-feature="Photos"><span class="menu-icon" aria-hidden="true">📷</span><span class="menu-label">Photos</span></a>
+      <a href="#videos" data-feature="Videos"><span class="menu-icon" aria-hidden="true">🎬</span><span class="menu-label">Videos</span></a>
+      <a href="#events" data-feature="Events"><span class="menu-icon" aria-hidden="true">🎤</span><span class="menu-label">Events</span></a>
+      <a href="#saved" data-feature="Saved"><span class="menu-icon" aria-hidden="true">🔖</span><span class="menu-label">Saved</span></a>
+      <a href="#settings" data-feature="Settings"><span class="menu-icon" aria-hidden="true">⚙</span><span class="menu-label">Settings</span></a>
+      <a href="privacy.html"><span class="menu-icon" aria-hidden="true">🔒</span><span class="menu-label">Privacy Policy</span></a>
+      <a href="#" data-logout><span class="menu-icon" aria-hidden="true">🚪</span><span class="menu-label">Logout</span></a>
+      <a href="terms.html"><span class="menu-icon" aria-hidden="true">📄</span><span class="menu-label">Terms of Service</span></a>
     </div>
   </aside>
 
@@ -340,7 +341,7 @@ textarea {
             <option value="private">Only me</option>
           </select>
         </div>
-        <label class="story-share-control story-option" title="Add a photo or video to share this post to Story"><input id="shareToStory" type="checkbox" disabled><span>Story · 24h</span></label>
+        <label class="story-share-control story-option" title="Add a photo or video to share this post to Story"><input id="shareToStory" type="checkbox" disabled><span>Story</span></label>
         <label class="story-share-control reels-option" title="Add a video before sharing it to Reels"><input id="shareToReels" type="checkbox" disabled><span>Reels</span></label>
 
         <button class="primary" id="publishBtn">
@@ -672,9 +673,6 @@ async function loadStories() {
         video.preload = localStorage.getItem("danzstak_data_saver") === "1" ? "none" : "metadata";
         item.appendChild(video);
       }
-      const label = document.createElement("span");
-      label.textContent = story.userEmail.split("@")[0] + ": " + story.content.slice(0, 55);
-      open.appendChild(label);
       open.addEventListener("click", () => openStoryViewer(story));
       item.appendChild(open);
       if (story.isOwner) {
@@ -1143,13 +1141,14 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 </script>
 
-<script src="assets/push-notifications.js?v=20261026-209" defer></script>
-<script src="assets/feed-enhancements.js?v=20261026-210" defer></script>
-<script src="assets/session-activity.js?v=20261026-209" defer></script>
-<script src="assets/incoming-calls.js?v=20261026-209" defer></script>
-<script src="assets/session-cleanup.js?v=20261026-209" defer></script>
-<script src="assets/logout.js?v=20261026-209" defer></script>
-<script src="assets/pwa.js?v=20261026-209" defer></script>
+<script src="assets/push-notifications.js?v=20261026-211" defer></script>
+<script src="assets/device-settings.js?v=20261026-211" defer></script>
+<script src="assets/feed-enhancements.js?v=20261026-211" defer></script>
+<script src="assets/session-activity.js?v=20261026-211" defer></script>
+<script src="assets/incoming-calls.js?v=20261026-211" defer></script>
+<script src="assets/session-cleanup.js?v=20261026-211" defer></script>
+<script src="assets/logout.js?v=20261026-211" defer></script>
+<script src="assets/pwa.js?v=20261026-211" defer></script>
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
 </body>
 </html>

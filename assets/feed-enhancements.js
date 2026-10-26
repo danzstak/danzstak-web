@@ -772,8 +772,7 @@ function renderWorkspace(name) {
     appSettings.className = "secondary";
     appSettings.textContent = "Manage";
     appSettings.addEventListener("click", () => {
-      window.dispatchEvent(new CustomEvent("danzstak:show-install"));
-      featureText.textContent = "Install DanzStak from the prompt. Notification and camera permissions remain under your browser or device settings.";
+      window.danzstakOpenDeviceSettings(appSettings);
     });
     const alertSettings = document.createElement("button");
     alertSettings.type = "button";
@@ -1928,7 +1927,7 @@ async function loadInternalReels(posts = []) {
       const response = await fetch("https://api.danzstak.com/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: "video" }) }).catch(() => null);
       if (response?.ok) mediaUrl = (await response.json().catch(() => ({}))).mediaUrl || "";
     }
-    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
+    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", authorName: post.authorName || String(post.userEmail || "").split("@")[0] || "DanzStak Member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
   }));
   if (version !== internalReelsVersion) return;
   internalReels = resolved.filter(Boolean);
@@ -2031,7 +2030,7 @@ function renderPlayableReels() {
     const details = document.createElement("div");
     details.className = "reel-details";
     const platform = document.createElement("strong");
-    platform.textContent = reel.platform;
+    platform.textContent = reel.internal ? reel.authorName : reel.platform;
     const source = document.createElement("small");
     source.textContent = reel.internal ? reel.content : reelUrlValue.hostname;
     details.append(platform, source);

@@ -89,16 +89,20 @@ window.addEventListener("beforeinstallprompt", event => {
   showInstallButtonTemporarily();
 });
 
+window.danzstakRequestInstall = async () => {
+  if (knownInstalled) return "installed";
+  if (!installPrompt) return "manual";
+  const prompt = installPrompt;
+  installPrompt = null;
+  await prompt.prompt();
+  const choice = await prompt.userChoice;
+  clearTimeout(installDismissTimer);
+  installButton.hidden = true;
+  return choice.outcome;
+};
 installButton.addEventListener("click", async () => {
-  if (installPrompt) {
-    installPrompt.prompt();
-    await installPrompt.userChoice;
-    installPrompt = null;
-    clearTimeout(installDismissTimer);
-    installButton.hidden = true;
-    return;
-  }
-  alert("On iPhone or iPad, open the Share menu and choose Add to Home Screen. On desktop, use your browser's Install option.");
+  const result = await window.danzstakRequestInstall();
+  if (result === "manual") alert("Use your browser's Install option. On iPhone or iPad, open Share and choose Add to Home Screen.");
 });
 
 window.addEventListener("appinstalled", () => {
