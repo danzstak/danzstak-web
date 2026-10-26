@@ -614,6 +614,11 @@ foreach ($workspaceAccessibility in @('control.setAttribute("aria-current", "pag
 foreach ($workspaceDestination in @('href="#friends"', 'href="#photos"', 'href="#videos"', 'href="#events"', 'href="#settings"')) {
   if (-not $feed.Contains($workspaceDestination)) { Add-Failure "Feed workspace has no durable navigation destination: $workspaceDestination" }
 }
+$termsMenuIndex = $feed.IndexOf('<a href="terms.html"><span class="menu-icon"')
+$logoutMenuIndex = $feed.IndexOf('<a href="#" data-logout><span class="menu-icon"')
+if ($termsMenuIndex -lt 0 -or $logoutMenuIndex -lt 0 -or $logoutMenuIndex -lt $termsMenuIndex) {
+  Add-Failure 'Feed navigation: Logout is not positioned beneath Terms of Service'
+}
 if ($feed.Contains('This DanzStak section is being prepared.') -or $feed.Contains('const featureCopy =')) {
   Add-Failure 'Feed workspaces still run the retired placeholder click handler before the functional router'
 }
