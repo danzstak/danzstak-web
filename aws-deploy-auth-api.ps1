@@ -137,9 +137,10 @@ try {
     throw "Auth API deployment status is $($configuration.LastUpdateStatus)."
   }
 
-  $routeId = aws apigatewayv2 get-routes --region $Region --api-id $ApiId --query "Items[?RouteKey=='POST /tour/route'].RouteId | [0]" --output text
+  $routes = aws apigatewayv2 get-routes --region $Region --api-id $ApiId --output json | ConvertFrom-Json
   if ($LASTEXITCODE -ne 0) { throw "Tour route API could not be inspected." }
-  if (-not $routeId -or $routeId -eq "None") {
+  $routeId = ($routes.Items | Where-Object { $_.RouteKey -eq "POST /tour/route" } | Select-Object -First 1).RouteId
+  if ([string]::IsNullOrWhiteSpace([string]$routeId)) {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
