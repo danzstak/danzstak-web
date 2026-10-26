@@ -34,7 +34,7 @@
   function showCall(event) {
     if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
     current = event;
-    label.textContent = `${event.senderEmail} is calling by ${event.mode === "video" ? "video" : "phone"}.`;
+    label.textContent = `${event.senderName || "DanzStak member"} is calling by ${event.mode === "video" ? "video" : "phone"}.`;
     popup.hidden = false;
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     answer.focus();

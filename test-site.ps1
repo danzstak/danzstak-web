@@ -65,6 +65,9 @@ foreach ($bookingInteraction in @('$("startCity").value=""', '$("startCity").pla
 if (-not $bookingClient.Contains('["DIY Punk","DIY Punk"]') -or -not $bookingClient.Contains('actType=performerType.value')) {
   Add-Failure 'Booking Agent: performer type and music-style choices are not sent with route searches'
 }
+if (-not $bookingClient.Contains('dj:"DJ / Electronic"') -or -not $bookingClient.Contains('performerType.addEventListener("change"')) {
+  Add-Failure 'Booking Agent: choosing DJ does not automatically select DJ / Electronic venue matching'
+}
 if ($bookingClient.Contains('$("endCity").disabled=local||directional') -or $bookingClient.Contains('$("tourStops").disabled=local||directional')) {
   Add-Failure 'Booking Agent: turnaround city or tour stops are disabled in the default route mode'
 }

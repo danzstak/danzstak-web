@@ -96,6 +96,7 @@ function openConversation(conversation) {
   document.body.classList.add("is-conversation-open");
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: true }, location.origin);
   contactInput.value = conversation.contactEmail;
+  window.danzstakActiveContactName = conversation.name || "DanzStak member";
   activeCanContact = conversation.canContact !== false;
   directContact = "";
   conversationHeader.hidden = false;
