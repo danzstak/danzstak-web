@@ -283,7 +283,7 @@ function renderWorkspace(name) {
     for (const category of categories) {
       const option = document.createElement("option");
       option.value = category;
-      option.textContent = category;
+      option.textContent = category === "Artists" ? "Visual Artists" : category;
       categorySelect.appendChild(option);
     }
     categoryLabel.appendChild(categorySelect);
@@ -310,7 +310,7 @@ function renderWorkspace(name) {
 
     function renderGroups() {
       grid.replaceChildren();
-      const defaults = categories.map((category, index) => ({ id: `default-${index}`, name: category, category, description: `Connect in ${category.toLowerCase()}.`, custom: false }));
+      const defaults = categories.map((category, index) => ({ id: `default-${index}`, name: category === "Artists" ? "Visual Artists" : category, category, description: `Connect in ${(category === "Artists" ? "Visual Artists" : category).toLowerCase()}.`, custom: false }));
       const groups = [...customGroups, ...defaults];
       for (const group of groups) {
         const isSensitiveDiscussion = ["Politics", "Religion"].includes(group.category);
@@ -320,7 +320,7 @@ function renderWorkspace(name) {
         title.textContent = group.name;
         const category = document.createElement("span");
         category.className = "group-category";
-        category.textContent = group.category;
+        category.textContent = group.category === "Artists" ? "Visual Artists" : group.category;
         const description = document.createElement("p");
         description.textContent = group.description;
         const join = document.createElement("button");
