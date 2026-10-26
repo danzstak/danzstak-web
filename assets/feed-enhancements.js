@@ -875,6 +875,15 @@ function renderWorkspace(name) {
   if (name === "Settings") {
     featureText.textContent = "Manage account privacy, device preferences, and notifications.";
     workspace.classList.add("settings-workspace");
+    async function settingsFetch(options = {}) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      try { return await fetch("https://api.danzstak.com/settings/presence", { ...options, signal: controller.signal }); }
+      catch (error) {
+        if (error.name === "AbortError") throw new Error("Account settings took too long to respond.");
+        throw error;
+      } finally { clearTimeout(timeout); }
+    }
     const heading = document.createElement("h3");
     heading.className = "settings-heading";
     heading.textContent = "⚙ Settings and privacy";
@@ -993,7 +1002,7 @@ function renderWorkspace(name) {
     button.textContent = "Loading Settings…";
     const preferenceControls = [presenceCheckbox, tagsCheckbox, darkCheckbox, motionCheckbox, dataSaverCheckbox, language];
     preferenceControls.forEach(control => { control.disabled = true; });
-    fetch("https://api.danzstak.com/settings/presence", { credentials: "include", cache: "no-store" })
+    settingsFetch({ credentials: "include", cache: "no-store" })
       .then(response => {
         if (!response.ok) throw new Error("Account settings could not be loaded.");
         return response.json();
@@ -1037,7 +1046,7 @@ function renderWorkspace(name) {
       saved.Settings = { ...(saved.Settings || {}), notifications: checkbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked };
       writeSections(saved);
       try {
-        const response = await fetch("https://api.danzstak.com/settings/presence", {
+        const response = await settingsFetch({
           method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
           body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, allowTags: tagsCheckbox.checked, darkMode: darkCheckbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
         });
