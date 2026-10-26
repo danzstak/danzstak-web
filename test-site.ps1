@@ -87,7 +87,7 @@ foreach ($pushLogoutControl in @('window.danzstakDisablePush = async () =>', 'me
 }
 foreach ($pushCleanupPage in @('index.html', 'feed.html', 'profile.html', 'messages.html')) {
   $pushCleanupMarkup = Get-Content -LiteralPath (Join-Path $root $pushCleanupPage) -Raw -Encoding utf8
-  if (-not $pushCleanupMarkup.Contains('assets/session-cleanup.js?v=2')) { Add-Failure "${pushCleanupPage}: account device cleanup is not loaded" }
+  if (-not $pushCleanupMarkup.Contains('assets/session-cleanup.js?v=')) { Add-Failure "${pushCleanupPage}: account device cleanup is not loaded" }
 }
 $chatScript = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
 if (-not $chatScript.Contains('await window.danzstakEnablePush()')) { Add-Failure 'Messages: Enable ringing is disconnected from durable Web Push setup' }
@@ -99,7 +99,7 @@ foreach ($safeSettingsLoad in @('button.textContent = "Loading Settings', 'butto
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
 foreach ($displayPage in @('feed.html', 'profile.html', 'messages.html')) {
   $displayMarkup = Get-Content -LiteralPath (Join-Path $root $displayPage) -Raw -Encoding utf8
-  if (-not $displayMarkup.Contains('assets/display-preferences.js?v=1')) { Add-Failure "${displayPage}: saved display preferences are not restored before rendering" }
+  if (-not $displayMarkup.Contains('assets/display-preferences.js?v=')) { Add-Failure "${displayPage}: saved display preferences are not restored before rendering" }
 }
 $displayPreferences = Get-Content -LiteralPath (Join-Path $root 'assets\display-preferences.js') -Raw -Encoding utf8
 foreach ($preference in @('danzstak_dark_mode', 'danzstak_reduce_motion', 'danzstak_language')) {
@@ -266,7 +266,7 @@ foreach ($pushPromptControl in @('Never miss a DanzStak call', 'setTimeout(showP
 foreach ($pushPromptPage in @('feed.html', 'profile.html', 'messages.html')) {
   $pushMarkup = Get-Content -LiteralPath (Join-Path $root $pushPromptPage) -Raw -Encoding utf8
   if (-not $pushMarkup.Contains('assets/push-notifications.js?v=')) { Add-Failure "${pushPromptPage}: background alert setup is not loaded" }
-  if (-not $pushMarkup.Contains('assets/incoming-calls.css?v=2')) { Add-Failure "${pushPromptPage}: background alert prompt styling is not loaded" }
+  if (-not $pushMarkup.Contains('assets/incoming-calls.css?v=')) { Add-Failure "${pushPromptPage}: background alert prompt styling is not loaded" }
 }
 $profileMarkup = Get-Content -LiteralPath (Join-Path $root 'profile.html') -Raw -Encoding utf8
 foreach ($profileShell in @('background:#f0f2f5', 'class="header-actions"', 'href="messages.html">Messages</a>', 'aria-label="Account navigation"')) {
