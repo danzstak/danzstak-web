@@ -27,3 +27,7 @@ body[data-call-mode="video"] .video-grid{min-height:clamp(320px,58vh,680px)}
 @media(max-width:560px){.chat-header{height:auto;min-height:68px;flex-wrap:wrap;gap:8px;padding:10px 14px}.chat-header>div{margin-left:auto}.chat-brand{min-width:0}.chat-brand img{width:66px}.chat-brand span{font-size:1.05rem}.conversation{min-height:60dvh}.online-user{grid-template-columns:minmax(0,1fr) auto}}
 
 #conversationName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conversation-header-actions{flex:0 0 auto}.dark-mode .chat-filters button.active{background:#253c60!important;color:#dceaff!important}.dark-mode .emoji-control>button{background:#303c4f;color:#f5f7fb}body.embedded-messages{padding-bottom:0!important}
+
+/* On phones, opening a chat replaces the contact list instead of placing it below. */
+body.is-conversation-open>.install-app-button,body.is-conversation-open>.app-update-button{display:none!important}
+@media(max-width:760px){body.is-conversation-open{display:flex;flex-direction:column;height:100dvh;overflow:hidden;padding-bottom:0!important}body.is-conversation-open .chat-header{flex:0 0 auto}body.is-conversation-open .chat-sidebar{display:none}body.is-conversation-open .chat-shell{display:block;flex:1 1 auto;width:100%;min-height:0;margin:0}body.is-conversation-open .conversation{height:100%;min-height:0}body.is-conversation-open .message-list{min-height:0}body.is-conversation-open[data-call-mode="video"] .video-grid{flex:1;min-height:0;height:auto}}

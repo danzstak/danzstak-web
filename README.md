@@ -56,6 +56,7 @@ The owner confirmed this next-feature order after the current site stabilization
 2. An email notification service and email delivery workflows. The owner requires public ingress to be limited to HTTPS 443 and HTTP 80 for HTTPS redirects. Send notifications through an HTTPS provider API on outbound 443 (for example Amazon SES); do not expose SMTP listeners on the DanzStak service. The provider handles downstream email delivery. This requirement applies to the future email deployment; no standalone mail server has been deployed yet.
 3. A geo-based tour-booking agent/module for bands to locate clubs and contact them about booking their act. The planned flow includes optional location permission or manual city entry, distance filters, venue profiles, multi-stop tour planning, proposed dates, travel distances, and per-venue booking-request status. Email delivery can support booking notifications after the email phase is complete.
 4. An admin dashboard for site monitoring and management, including review of post and group reports.
+5. Android and Apple apps as the final phase. The website is the requested distribution hub; direct Android APK distribution and Apple-eligible distribution routes must be evaluated before implementation. Native call integration belongs here, including reliable incoming voice/video ringing from push.
 
 ## Database recovery protection
 
@@ -79,7 +80,7 @@ Notification email architecture reference: [Amazon SES HTTPS security](https://d
 
 ## October 26 UI and capacity follow-up
 
-Rendered review found and corrected phone Edit Profile padding, Events form spacing, messaging composer placement, long contact-name overlap, app prompts inside embedded chats, and dark-mode navigation, group consent, post menus, and drawer controls. All seven feed workspaces fit the measured desktop grid without horizontal overflow. A final phone/tablet pass remains open because the browser viewport override stopped applying new dimensions during verification; earlier phone screenshots must not be treated as verification of every final change. Settings now waits for account preferences before enabling edits and ignores stale responses after navigation.
+Rendered review found and corrected phone Edit Profile padding, Events form spacing, messaging composer placement, long contact-name overlap, app prompts inside embedded chats, and dark-mode navigation, group consent, post menus, and drawer controls. All seven feed workspaces fit the measured desktop grid without horizontal overflow. The browser viewport override initially stopped applying new dimensions; resetting the testing connection recovered it. The final phone pass verified all seven feed workspaces without horizontal overflow, corrected Edit Profile padding, embedded chat controls, and both legal page layouts. Tablet checks remain separate from that phone evidence. Settings now waits for account preferences before enabling edits and ignores stale responses after navigation.
 
 One authorized physical Android call retry delivered a notification but did not ring, as confirmed by the owner. This remains unresolved. Do not mark continuous background ringing as passed.
 
