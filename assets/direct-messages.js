@@ -221,7 +221,10 @@ async function loadDirectMessages(reset = false) {
   } finally { if (version === conversationVersion) loadingMessages = false; }
 }
 
+let loadingConversations = false;
 async function loadConversations() {
+  if (document.hidden || loadingConversations) return;
+  loadingConversations = true;
   try {
     const results = await Promise.allSettled([
       directFetch("/conversations", { credentials: "include", cache: "no-store" }),
@@ -311,7 +314,7 @@ async function loadConversations() {
       conversationUsers.replaceChildren();
       const unavailable = document.createElement("p"); unavailable.className = "chat-note"; unavailable.textContent = "Contacts are temporarily unavailable. Retrying automatically…"; conversationUsers.appendChild(unavailable);
     }
-  }
+  } finally { loadingConversations = false; }
 }
 
 chatSearch?.addEventListener("input", loadConversations);

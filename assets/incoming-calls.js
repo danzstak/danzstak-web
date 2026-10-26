@@ -93,7 +93,7 @@
   });
 
   async function poll() {
-    if (polling) return;
+    if (document.hidden || polling) return;
     polling = true;
     for (const [callId, expiry] of handledCalls) if (expiry <= Date.now()) handledCalls.delete(callId);
     try {
@@ -121,4 +121,5 @@
 
   poll();
   setInterval(poll, 2000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
 })();

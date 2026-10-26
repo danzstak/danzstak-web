@@ -813,12 +813,16 @@ function renderWorkspace(name) {
     button.type = "button";
     button.disabled = true;
     button.textContent = "Loading Settings…";
+    const preferenceControls = [presenceCheckbox, darkCheckbox, motionCheckbox, dataSaverCheckbox, language];
+    preferenceControls.forEach(control => { control.disabled = true; });
     fetch("https://api.danzstak.com/settings/presence", { credentials: "include", cache: "no-store" })
       .then(response => {
         if (!response.ok) throw new Error("Account settings could not be loaded.");
         return response.json();
       })
       .then(data => {
+        if (!isCurrentWorkspace()) return;
+        preferenceControls.forEach(control => { control.disabled = false; });
         presenceCheckbox.checked = data.onlineVisible !== false;
         if (typeof data.darkMode === "boolean") {
           darkCheckbox.checked = data.darkMode;

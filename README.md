@@ -76,3 +76,11 @@ Signup now tolerates blocked/full browser storage after confirmed consent. Call 
 Still open: the parked Android background-call ringing and duplicate-notification confirmation tests, and a fresh-account signup walkthrough. These must remain explicit rather than being counted as completed by mocked tests or by checking that recovery is enabled. The latest agreed next-feature order is Facebook import, email server, geo-based tour booking, then the admin dashboard.
 
 Notification email architecture reference: [Amazon SES HTTPS security](https://docs.aws.amazon.com/ses/latest/dg/security-protocols.html) and [SES API endpoint port 443](https://docs.aws.amazon.com/ses/latest/dg/send-email-set-up-vpc-endpoints.html).
+
+## October 26 UI and capacity follow-up
+
+Rendered review found and corrected phone Edit Profile padding, Events form spacing, messaging composer placement, long contact-name overlap, app prompts inside embedded chats, and dark-mode navigation, group consent, post menus, and drawer controls. All seven feed workspaces fit the measured desktop grid without horizontal overflow. A final phone/tablet pass remains open because the browser viewport override stopped applying new dimensions during verification; earlier phone screenshots must not be treated as verification of every final change. Settings now waits for account preferences before enabling edits and ignores stale responses after navigation.
+
+One authorized physical Android call retry delivered a notification but did not ring, as confirmed by the owner. This remains unresolved. Do not mark continuous background ringing as passed.
+
+Live API checking observed an intermittent 503; a direct retry returned the expected 401. CloudWatch showed zero Lambda execution errors but throttled invocations, and the regional account concurrency limit was only 10. AWS rejected an increase to 100 because its API requires a value above the standard 1,000 baseline. A request for 1,001 was submitted (request ID `03b40f639c3149e7a0844d27f00453d2zupH4jm0`), with status PENDING at submission. That is a requested limit, not applied capacity or provisioned/paid idle instances. Hidden pages now pause idle call/contact polling, and conversation-list refreshes cannot overlap. Recheck live security and throttling after AWS applies the quota.
