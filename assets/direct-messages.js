@@ -18,6 +18,7 @@ const conversationUsers = document.getElementById("conversationUsers");
 const deleteChat = document.getElementById("deleteChat");
 const chatSearch = document.getElementById("chatSearch");
 const conversationHeader = document.getElementById("conversationHeader");
+const conversationPresence = document.getElementById("conversationPresence");
 const conversationName = document.getElementById("conversationName");
 const conversationAvatar = document.getElementById("conversationAvatar");
 let directContact = "";
@@ -106,6 +107,7 @@ function openConversation(conversation) {
   directContact = "";
   conversationHeader.hidden = false;
   conversationName.textContent = conversation.name || "DanzStak member";
+  if (conversationPresence) conversationPresence.hidden = conversation.online !== true;
   activeContactName = conversation.name || "Contact";
   if (deleteChat) deleteChat.disabled = false;
   conversationAvatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
@@ -119,6 +121,7 @@ function closeConversation({ focusList = false } = {}) {
   loadingMessages = false;
   document.querySelector(".message-reaction-palette")?.remove();
   conversationHeader.hidden = true;
+  if (conversationPresence) conversationPresence.hidden = true;
   contactInput.value = "";
   directContact = "";
   activeContactName = "Contact";

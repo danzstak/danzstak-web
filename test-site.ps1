@@ -324,6 +324,10 @@ foreach ($messageIdentityBehavior in @('let activeContactName = "Contact"', 'act
 foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.online === true', 'conversation-online-dot', 'aria-label", "Online')) {
   if (-not ($directMessagesJs + $chatStyles).Contains($chatPresenceBehavior)) { Add-Failure "Messages: online friends lack a visible accessible presence marker: $chatPresenceBehavior" }
 }
+$messagesMarkupForPresence = Get-Content -LiteralPath (Join-Path $root 'messages.html') -Raw -Encoding utf8
+foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'conversationPresence.hidden = conversation.online !== true', 'conversationPresence.hidden = true', '.conversation-presence[hidden]{display:none}')) {
+  if (-not ($messagesMarkupForPresence + $directMessagesJs + $chatStyles).Contains($activeChatPresenceControl)) { Add-Failure "Messages: active conversation does not accurately expose online presence: $activeChatPresenceControl" }
+}
 foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'Contacts are temporarily unavailable. Retrying automatically')) {
   if (-not $directMessagesJs.Contains($contactFailureBehavior)) { Add-Failure "Messages: bounded contact loading behavior is missing: $contactFailureBehavior" }
 }
