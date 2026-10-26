@@ -100,9 +100,9 @@ function openConversation(conversation) {
   activeCanContact = conversation.canContact !== false;
   directContact = "";
   conversationHeader.hidden = false;
-  conversationName.textContent = conversation.name || conversation.contactEmail;
+  conversationName.textContent = conversation.name || "DanzStak member";
   activeContactName = conversation.name || "Contact";
-  conversationAvatar.textContent = (conversation.name || conversation.contactEmail).charAt(0).toUpperCase();
+  conversationAvatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
   if (conversation.picture) { conversationAvatar.style.backgroundImage = `url("${conversation.picture}")`; conversationAvatar.textContent = ""; }
   else conversationAvatar.style.backgroundImage = "";
   loadDirectMessages(true);
@@ -297,13 +297,13 @@ async function loadConversations() {
       const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
       const avatarWrap = document.createElement("span"); avatarWrap.className = "conversation-avatar-wrap";
       const avatar = conversation.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "conversation-list-avatar";
-      if (conversation.picture) { avatar.src = conversation.picture; avatar.alt = ""; } else { avatar.textContent = (conversation.name || conversation.contactEmail).charAt(0).toUpperCase(); }
+      if (conversation.picture) { avatar.src = conversation.picture; avatar.alt = ""; } else { avatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase(); }
       avatarWrap.appendChild(avatar);
       if (conversation.online === true) {
         const onlineDot = document.createElement("span"); onlineDot.className = "conversation-online-dot"; onlineDot.setAttribute("role", "img"); onlineDot.setAttribute("aria-label", "Online"); onlineDot.title = "Online"; avatarWrap.appendChild(onlineDot);
       }
       const copy = document.createElement("span"); copy.className = "conversation-copy";
-      const name = document.createElement("strong"); name.textContent = conversation.name || conversation.contactEmail;
+      const name = document.createElement("strong"); name.textContent = conversation.name || "DanzStak member";
       const preview = document.createElement("small"); preview.textContent = conversation.preview || "Open chat";
       const unread = Number(conversation.unread || 0) > 0;
       button.classList.toggle("is-unread", Boolean(unread));
@@ -320,7 +320,7 @@ async function loadConversations() {
       row.append(button, calls); conversationUsers.appendChild(row);
     }
     const requested = contactInput.value.trim().toLowerCase();
-    if (requested && conversationHeader.hidden) openConversation(cachedConversations.find(item => item.contactEmail === requested) || { contactEmail: requested, name: requested.split("@")[0], picture: "" });
+    if (requested && conversationHeader.hidden) openConversation(cachedConversations.find(item => item.contactEmail === requested) || { contactEmail: requested, name: "DanzStak member", picture: "" });
   } catch {
     if (!cachedConversations.length) {
       conversationUsers.replaceChildren();
