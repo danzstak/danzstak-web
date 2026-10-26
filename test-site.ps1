@@ -373,6 +373,9 @@ if (-not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true"
 foreach ($friendsWorkspaceControl in @('list.setAttribute("aria-label", "Friends")', 'list.setAttribute("aria-busy", "true")', 'message.setAttribute("aria-label", "Message " + displayName.textContent)', 'message.addEventListener("click", () => openMessageDrawer(friend.email))')) {
   if (-not $feedEnhancements.Contains($friendsWorkspaceControl)) { Add-Failure "Friends: workspace loading or quick-message behavior is missing: $friendsWorkspaceControl" }
 }
+foreach ($friendsWorkspaceRecovery in @('const friendsController = new AbortController()', 'setTimeout(() => friendsController.abort(), 10000)', 'signal: friendsController.signal', 'Friends took too long to load.', 'retry.addEventListener("click", () => renderWorkspace("Friends"))', 'clearTimeout(friendsTimeout)')) {
+  if (-not $feedEnhancements.Contains($friendsWorkspaceRecovery)) { Add-Failure "Friends: workspace can remain stuck in its loading state: $friendsWorkspaceRecovery" }
+}
 foreach ($workspaceStateControl in @('homeControl?.setAttribute("aria-pressed", "false")', 'control.matches("button")) control.setAttribute("aria-pressed", String(active))', 'home?.setAttribute("aria-pressed", "true")')) {
   if (-not $feedEnhancements.Contains($workspaceStateControl)) { Add-Failure "Navigation: top workspace control does not expose its selected state: $workspaceStateControl" }
 }

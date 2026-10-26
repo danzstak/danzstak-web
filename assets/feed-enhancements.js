@@ -705,10 +705,13 @@ function renderWorkspace(name) {
     loading.textContent = "Loading friends…";
     list.appendChild(loading);
     workspace.appendChild(list);
+    const friendsController = new AbortController();
+    const friendsTimeout = setTimeout(() => friendsController.abort(), 10000);
     Promise.allSettled([
-      fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store" }),
-      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" })
+      fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store", signal: friendsController.signal }),
+      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: friendsController.signal })
     ]).then(async ([friendsResult, directoryResult]) => {
+      if (friendsResult.status === "rejected" && friendsResult.reason?.name === "AbortError") throw friendsResult.reason;
       const friendsResponse = friendsResult.status === "fulfilled" ? friendsResult.value : null;
       const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
       if (!friendsResponse?.ok) throw new Error("Friends could not be loaded");
@@ -759,7 +762,20 @@ function renderWorkspace(name) {
         row.append(link, message);
         list.appendChild(row);
       }
-    }).catch(error => { list.setAttribute("aria-busy", "false"); loading.textContent = error.message; });
+    }).catch(error => {
+      list.setAttribute("aria-busy", "false");
+      list.replaceChildren();
+      const failure = document.createElement("p");
+      failure.className = "muted";
+      failure.setAttribute("role", "alert");
+      failure.textContent = error.name === "AbortError" ? "Friends took too long to load." : error.message;
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "secondary";
+      retry.textContent = "Retry";
+      retry.addEventListener("click", () => renderWorkspace("Friends"));
+      list.append(failure, retry);
+    }).finally(() => clearTimeout(friendsTimeout));
     return;
   }
 
