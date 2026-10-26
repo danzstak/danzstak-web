@@ -50,11 +50,14 @@ foreach ($supportClientControl in @('credentials:"include"', 'https://api.danzst
 
 $bookingMarkup = Get-Content -LiteralPath (Join-Path $root 'booking.html') -Raw -Encoding utf8
 $bookingClient = Get-Content -LiteralPath (Join-Path $root 'assets\booking-agent.js') -Raw -Encoding utf8
-foreach ($bookingControl in @('DanzStak Booking Agent', 'Book the band. Map the run.', 'Festivals often book about 18 months out.', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public venue contacts', 'Bands join by invitation')) {
+foreach ($bookingControl in @('DanzStak Booking Agent', 'Book the band. Map the run.', 'clubs usually book about two months out.', 'Festivals can book 18 months out.', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public venue contacts', 'Bands join by invitation')) {
   if (-not $bookingMarkup.Contains($bookingControl)) { Add-Failure "Booking Agent: required planning control is missing: $bookingControl" }
 }
 foreach ($bookingClientControl in @('Send me out and bring me home', 'Band or artist', 'First show / leave home', 'Back home', 'route-map', 'My saved tours')) {
   if (-not $bookingClient.Contains($bookingClientControl)) { Add-Failure "Booking Agent: required home-loop control is missing: $bookingClientControl" }
+}
+if (-not (Get-Content -LiteralPath (Join-Path $root 'assets\booking-agent-driver.css') -Raw -Encoding utf8).Contains('@media(max-width:520px){.booking-lead{padding:16px 18px}')) {
+  Add-Failure 'Booking Agent: narrow-phone hero and navigation sizing is missing'
 }
 foreach ($tourEstimateControl in @('miles/mpg*number("fuelPrice")', 'number("rentalRate")*days', 'Daily mileage is aggressive', 'navigator.geolocation.getCurrentPosition', 'window.print()')) {
   if (-not $bookingClient.Contains($tourEstimateControl)) { Add-Failure "Tour Manager: estimate or driver safeguard is missing: $tourEstimateControl" }
