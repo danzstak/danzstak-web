@@ -151,6 +151,9 @@ $pushClient = Get-Content -LiteralPath (Join-Path $root 'assets\push-notificatio
 foreach ($pushRenewalBehavior in @('async function renewExistingSubscription()', 'Notification.permission !== "granted"', 'registration.pushManager.getSubscription()', 'sessionStorage.getItem("danzstak_push_synced")', 'await api("/push/subscribe"', 'setTimeout(renewExistingSubscription, 2000)')) {
   if (-not $pushClient.Contains($pushRenewalBehavior)) { Add-Failure "Push alerts: an approved browser subscription can expire server-side without renewal: $pushRenewalBehavior" }
 }
+foreach ($notificationRecoveryBehavior in @('const notificationController = new AbortController()', 'setTimeout(() => notificationController.abort(), 10000)', 'signal: notificationController.signal', 'error.textContent = "Notifications could not be loaded."', 'retry.addEventListener("click", () => renderWorkspace("Notifications"))', 'clearTimeout(notificationTimeout)')) {
+  if (-not $feedEnhancements.Contains($notificationRecoveryBehavior)) { Add-Failure "Notifications workspace can remain stuck without recovery: $notificationRecoveryBehavior" }
+}
 $logoutJs = Get-Content -LiteralPath (Join-Path $root 'assets\logout.js') -Raw -Encoding utf8
 $homeJs = Get-Content -LiteralPath (Join-Path $root 'assets\home.js') -Raw -Encoding utf8
 foreach ($pushClientControl in @('registration.pushManager.subscribe', 'applicationServerKey', '"/push/key"', '"/push/subscribe"', 'window.danzstakEnablePush')) {

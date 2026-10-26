@@ -571,10 +571,12 @@ function renderWorkspace(name) {
     loading.textContent = "Loading notifications…";
     list.appendChild(loading);
     workspace.appendChild(list);
+    const notificationController = new AbortController();
+    const notificationTimeout = setTimeout(() => notificationController.abort(), 10000);
     Promise.allSettled([
-      fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store" }),
-      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" }),
-      fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store" })
+      fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
+      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
+      fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store", signal: notificationController.signal })
     ]).then(async results => {
         const response = results[0].status === "fulfilled" ? results[0].value : null;
         const directoryResponse = results[1].status === "fulfilled" ? results[1].value : null;
@@ -670,7 +672,21 @@ function renderWorkspace(name) {
             .catch(() => {});
         }
       })
-      .catch(error => { list.setAttribute("aria-busy", "false"); loading.textContent = error.message; });
+      .catch(() => {
+        list.setAttribute("aria-busy", "false");
+        list.replaceChildren();
+        const error = document.createElement("p");
+        error.className = "muted";
+        error.setAttribute("role", "alert");
+        error.textContent = "Notifications could not be loaded.";
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "secondary";
+        retry.textContent = "Retry";
+        retry.addEventListener("click", () => renderWorkspace("Notifications"));
+        list.append(error, retry);
+      })
+      .finally(() => clearTimeout(notificationTimeout));
     return;
   }
 
