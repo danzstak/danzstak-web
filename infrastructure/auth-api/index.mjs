@@ -1657,7 +1657,14 @@ async function planTourRoute(event) {
     const distanceMiles = Math.round(Number(summary.Distance || 0) / 1609.344), durationHours = Math.round(Number(summary.Duration || 0) / 360) / 10;
     const minimumDrivingDays = Math.max(1, Math.ceil(durationHours / 8));
     if (directional && minimumDrivingDays >= requestedDays) return { statusCode: 422, headers, body: JSON.stringify({ error: `That ${direction} loop needs at least ${minimumDrivingDays} full driving days. Add days or choose a shorter direction-based plan.` }) };
-    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), stops: points.slice(1, -1), distanceMiles, durationHours, minimumDrivingDays, requestedDays: directional ? requestedDays : undefined, direction: directional ? direction : undefined, returnBy: directional ? returnBy : undefined, bookingStatus: directional ? "proposed" : undefined, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
+    let departOn;
+    if (directional && returnBy) {
+      const returnDate = new Date(`${returnBy}T12:00:00Z`);
+      if (!Number.isFinite(returnDate.getTime()) || returnDate < new Date()) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a future home-by date." }) };
+      const departureDate = new Date(returnDate); departureDate.setUTCDate(departureDate.getUTCDate() - requestedDays + 1); departOn = departureDate.toISOString().slice(0, 10);
+      candidates.forEach((market, index) => { const date = new Date(departureDate); date.setUTCDate(date.getUTCDate() + Math.min(requestedDays - 2, index + 1)); market.proposedDate = date.toISOString().slice(0, 10); market.bookingStatus = "proposed"; });
+    }
+    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), stops: points.slice(1, -1), distanceMiles, durationHours, minimumDrivingDays, requestedDays: directional ? requestedDays : undefined, direction: directional ? direction : undefined, departOn, returnBy: directional ? returnBy : undefined, bookingStatus: directional ? "proposed" : undefined, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
   } catch (error) {
     if (error.statusCode === 422) return { statusCode: 422, headers, body: JSON.stringify({ error: error.message }) };
     console.error("Tour route planning failed", { name: error.name });
