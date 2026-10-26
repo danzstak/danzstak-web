@@ -7,7 +7,7 @@ const details = profileContent.querySelector(".details");
 const handleElement = document.getElementById("profileHandle");
 const profileMediaKey = "danzstak_profile_media";
 const profileApi = "https://api.danzstak.com";
-const viewingOtherProfile = Boolean(new URLSearchParams(location.search).get("user"));
+const viewingOtherProfile = Boolean(new URLSearchParams(location.search).get("user") || new URLSearchParams(location.search).get("member"));
 
 async function saveCloudProfile(changes) {
   const response = await fetch(profileApi + "/profiles", {

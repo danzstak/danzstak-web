@@ -312,7 +312,7 @@ foreach ($profilePresenceFeature in @(
 }
 
 $profileJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile.js') -Raw -Encoding utf8
-if (-not $profileJs.Contains('requestedUser ? "Private" : (email || "Not available")') -or
+if (-not $profileJs.Contains('(requestedUser || requestedMember) ? "Private" : (email || "Not available")') -or
     -not $profileJs.Contains('avatar.classList.remove("has-photo")') -or
     -not $profileJs.Contains('cover.classList.remove("has-photo")') -or
     -not $profileEditorJs.Contains('if (!viewingOtherProfile) {')) {

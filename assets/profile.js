@@ -4,6 +4,8 @@ const status = document.getElementById("profileStatus");
 const content = document.getElementById("profileContent");
 const requestedUser = new URLSearchParams(location.search).get("user")?.trim().toLowerCase() || "";
 
+const requestedMember = new URLSearchParams(location.search).get("member") || "";
+
 function firstString(source, keys) {
   for (const key of keys) {
     if (typeof source?.[key] === "string" && source[key].trim()) return source[key].trim();
@@ -13,7 +15,7 @@ function firstString(source, keys) {
 
 async function loadProfile() {
   try {
-    const response = await fetch("https://api.danzstak.com/profiles" + (requestedUser ? "?email=" + encodeURIComponent(requestedUser) : ""), {
+    const response = await fetch("https://api.danzstak.com/profiles" + (requestedMember ? "?member=" + encodeURIComponent(requestedMember) : requestedUser ? "?email=" + encodeURIComponent(requestedUser) : ""), {
       credentials: "include",
       cache: "no-store"
     });
@@ -32,9 +34,9 @@ async function loadProfile() {
     const handle = firstString(profile, ["handle", "preferred_username", "username"]) || name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "member";
 
     document.getElementById("profileName").textContent = name;
-    document.title = requestedUser ? name + " | DanzStak" : "My Profile | DanzStak";
+    document.title = (requestedUser || requestedMember) ? name + " | DanzStak" : "My Profile | DanzStak";
     document.getElementById("profileHandle").textContent = "@" + handle;
-    document.getElementById("profileEmail").textContent = requestedUser ? "Private" : (email || "Not available");
+    document.getElementById("profileEmail").textContent = (requestedUser || requestedMember) ? "Private" : (email || "Not available");
     const avatar = document.getElementById("profileInitial");
     avatar.textContent = name.charAt(0).toUpperCase() || "D";
     if (profile.picture) { avatar.style.backgroundImage = `url("${profile.picture}")`; avatar.classList.add("has-photo"); avatar.textContent = ""; }
@@ -48,7 +50,7 @@ async function loadProfile() {
       cover.classList.add("has-photo");
     } else { cover.style.backgroundImage = ""; cover.classList.remove("has-photo"); }
     const message = document.getElementById("profileMessage");
-    if (requestedUser) { message.href = "feed.html?message=" + encodeURIComponent(email); message.hidden = false; }
+    if (requestedUser || requestedMember) { message.href = "feed.html?message=" + encodeURIComponent(email); message.hidden = false; }
     status.hidden = true;
     content.hidden = false;
     window.danzstakCurrentProfile = profile;
