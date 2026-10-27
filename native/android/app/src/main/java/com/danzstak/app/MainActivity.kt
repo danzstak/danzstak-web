@@ -3,13 +3,14 @@ package com.danzstak.app
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
-import android.security.SecureRandom
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.*
 import java.security.MessageDigest
+import java.security.SecureRandom
 
 class MainActivity : Activity() {
     private lateinit var store: SessionStore
@@ -41,7 +42,7 @@ class MainActivity : Activity() {
         }
         val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         header.addView(TextView(this).apply {
-            text = "DanzStak"; textSize = 25f; setTextColor(Color.rgb(25, 32, 45)); setTypeface(typeface, 1)
+            text = "DanzStak"; textSize = 25f; setTextColor(Color.rgb(25, 32, 45)); setTypeface(typeface, Typeface.BOLD)
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         login = Button(this).apply { setOnClickListener { if (store.get("session") == null) startLogin() else signOut() } }
         header.addView(login)
@@ -100,7 +101,7 @@ class MainActivity : Activity() {
                     orientation = LinearLayout.VERTICAL
                     setPadding(dp(14), dp(12), dp(14), dp(12))
                     setBackgroundColor(Color.WHITE)
-                    addView(TextView(this@MainActivity).apply { text = post.author; textSize = 17f; setTypeface(typeface, 1) })
+                    addView(TextView(this@MainActivity).apply { text = post.author; textSize = 17f; setTypeface(typeface, Typeface.BOLD) })
                     addView(TextView(this@MainActivity).apply { text = post.text; textSize = 16f; setPadding(0, dp(8), 0, dp(6)) })
                     addView(TextView(this@MainActivity).apply { text = post.createdAt; textSize = 12f; setTextColor(Color.DKGRAY) })
                 }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 0, dp(10)) })
