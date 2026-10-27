@@ -116,7 +116,7 @@ foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.
   if (-not $feed.Contains($storyAccessibilityControl)) { Add-Failure "Stories: open and delete controls are not separately accessible: $storyAccessibilityControl" }
 }
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
-foreach ($storyPreviewControl in @('storyCopy.className = "story-card-copy"', 'item.classList.add("story-video")', 'caption.textContent = story.content')) {
+foreach ($storyPreviewControl in @('storyCopy.className = "story-card-copy"', 'item.classList.add("story-video")', 'caption.textContent = storyDisplayCaption(story)')) {
   if (-not $feed.Contains($storyPreviewControl)) { Add-Failure "Stories: photo and video cards lack an identifiable preview: $storyPreviewControl" }
 }
 if (-not $feedEnhancementCss.Contains('.story.story-video::after{content:')) {
