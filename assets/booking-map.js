@@ -9,10 +9,9 @@
   }
 
   const map = L.map(mapElement, { zoomControl: true }).setView([39.5, -98.35], 4);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
     maxZoom: 19,
-    subdomains: "abcd",
-    attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
+    attribution: "Tiles &copy; Esri"
   }).addTo(map);
 
   const drawn = new L.FeatureGroup().addTo(map);
