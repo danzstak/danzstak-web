@@ -880,9 +880,9 @@ function postEditHistory(item) {
   } catch { return []; }
 }
 
-async function loadFeedAuthorNames(items) {
+async function loadFeedAuthorProfiles(items) {
   const emails = [...new Set(items.map(item => String(item.userEmail?.S || "").trim().toLowerCase()).filter(Boolean))];
-  const names = new Map();
+  const profiles = new Map();
   let next = 0;
   async function worker() {
     while (next < emails.length) {
@@ -890,11 +890,12 @@ async function loadFeedAuthorNames(items) {
       try {
         const found = await db.send(new GetItemCommand({
           TableName: settingsTable, Key: { userEmail: { S: email } },
-          ProjectionExpression: "profileName", ConsistentRead: true
+          ProjectionExpression: "profileName, profileAvatarKey", ConsistentRead: true
         }));
         const name = String(found.Item?.profileName?.S || "").trim().slice(0, 80);
+        const avatarKey = String(found.Item?.profileAvatarKey?.S || "");
         if (name) {
-          names.set(email, name);
+          profiles.set(email, { name, picture: avatarKey ? signedMediaUrl(avatarKey, 3600) : "" });
           continue;
         }
       } catch (error) { console.warn("Feed display-name lookup failed", error.name || "UnknownError"); }
@@ -906,12 +907,17 @@ async function loadFeedAuthorNames(items) {
         }));
         const attributes = result.Users?.[0]?.Attributes || [];
         const publicName = String(attributes.find(attribute => attribute.Name === "name")?.Value || attributes.find(attribute => attribute.Name === "preferred_username")?.Value || "").trim().slice(0, 80);
-        if (publicName) names.set(email, publicName);
+        if (publicName) profiles.set(email, { name: publicName, picture: "" });
       } catch (error) { console.warn("Cognito display-name lookup failed", error.name || "UnknownError"); }
     }
   }
   await Promise.all(Array.from({ length: Math.min(8, emails.length) }, worker));
-  return names;
+  return profiles;
+}
+
+async function loadFeedAuthorNames(items, existingProfiles = null) {
+  const profiles = existingProfiles || await loadFeedAuthorProfiles(items);
+  return new Map([...profiles].map(([email, profile]) => [email, profile.name]));
 }
 
 async function getSecurePosts(event) {
@@ -939,16 +945,20 @@ async function getSecurePosts(event) {
 
   const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S)));
   const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));
-  const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames]);
+  const authorProfiles = typeof loadFeedAuthorProfiles === "function" ? await loadFeedAuthorProfiles([...visiblePosts,...tagNames]) : new Map();
+  const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
+  const authorName = email => authorNames.get(String(email || "").trim().toLowerCase()) || "DanzStak member";
+  const authorPicture = email => authorProfiles.get(String(email || "").trim().toLowerCase())?.picture || "";
   const visibleSources = new Map(visiblePosts.map(item => [item.postId.S,item]));
-  const sharedPreview = item => item ? ({postId:item.postId.S,content:item.content.S,authorName:authorNames.get(item.userEmail?.S) || "DanzStak member",authorEmail:item.userEmail?.S || "",createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
+  const sharedPreview = item => item ? ({postId:item.postId.S,content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),authorEmail:item.userEmail?.S || "",createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
       isOwner: item.userId?.S === userId,
       featured: item.featured?.BOOL === true,
       userEmail: item.userEmail?.S ?? "",
-      authorName: authorNames.get(String(item.userEmail?.S || "").trim().toLowerCase()) || "DanzStak member",
+      authorName: authorName(item.userEmail?.S),
+      authorPicture: authorPicture(item.userEmail?.S),
       content: item.content.S,
       location: item.location?.S || "",
       viewCount: Math.max(0,Number(item.viewCount?.N || 0)),
