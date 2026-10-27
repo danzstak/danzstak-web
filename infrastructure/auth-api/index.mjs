@@ -1772,7 +1772,10 @@ const verifiedSanFranciscoRooms = [
   { name: "Public Works", address: "161 Erie St, San Francisco, CA 94103", position: [-122.4192, 37.7682], websites: ["https://publicsf.com/booking/"], emails: [], phones: [], categories: ["Nightclub", "DJ", "Electronic"] },
   { name: "Monarch", address: "101 6th St, San Francisco, CA 94103", position: [-122.4091, 37.7804], websites: ["https://www.monarchsf.com/contact-us"], emails: ["info@monarchsf.com"], phones: [], categories: ["Nightclub", "DJ", "Electronic"] },
   { name: "1015 Folsom", address: "1015 Folsom St, San Francisco, CA 94103", position: [-122.4059, 37.7781], websites: ["https://1015.com/venue-rental/"], emails: ["josh@1015.com"], phones: [], categories: ["Nightclub", "DJ", "Electronic", "House", "Techno"] },
-  { name: "The Midway", address: "900 Marin St, San Francisco, CA 94124", position: [-122.3866, 37.7491], websites: ["https://themidwaysf.com/connect/contact/"], emails: ["brendan@themidwaysf.com"], phones: ["831-239-2435"], categories: ["Music Venue", "DJ", "Electronic"] }
+  { name: "The Midway", address: "900 Marin St, San Francisco, CA 94124", position: [-122.3866, 37.7491], websites: ["https://themidwaysf.com/connect/contact/"], emails: ["brendan@themidwaysf.com"], phones: ["831-239-2435"], categories: ["Music Venue", "DJ", "Electronic"] },
+  { name: "Audio SF", address: "316 11th St, San Francisco, CA 94103", position: [-122.4137, 37.7717], websites: ["https://www.audiosf.com/contact/"], emails: ["info@audiosf.com"], phones: [], categories: ["Nightclub", "DJ", "Electronic", "House", "Techno"] },
+  { name: "The Great Northern", address: "119 Utah St, San Francisco, CA 94103", position: [-122.4066, 37.7669], websites: ["https://www.thegreatnorthernsf.com/contact-us"], emails: [], phones: [], categories: ["Nightclub", "DJ", "Electronic"] },
+  { name: "Halcyon", address: "314 11th St, San Francisco, CA 94103", position: [-122.4137, 37.7718], websites: ["https://halcyon-sf.com/main/contact/"], emails: [], phones: [], categories: ["Nightclub", "DJ", "Electronic", "House", "Techno"] }
 ];
 
 function verifiedVenueKey(place) {
