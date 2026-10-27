@@ -584,10 +584,18 @@ panel.innerHTML = '<h2>Edit Profile</h2>' +
   '<label>Location<input name="location" maxlength="80"></label>' +
   '<label>Work<input name="work" maxlength="100"></label>' +
   '<label>Website<input name="website" type="url" maxlength="200" placeholder="https://"></label>' +
+  '<label>DanzStak language<select name="language" data-profile-language></select></label>' +
   '<p class="edit-note">Share only information you want members to see. Profile text must be your original content.</p>' +
   '<div class="edit-actions"><button class="secondary" type="button" data-cancel>Cancel</button><button class="button" type="submit">Save Changes</button></div>' +
-  '<div class="profile-import"><button type="button" data-facebook-import>Import from Facebook</button><p>Preview your export on this device and choose what to copy. Imported posts start as Only me.</p></div>';
+  '<div class="profile-import"><button type="button" data-facebook-import>Import from Facebook</button><p>Preview your export, set Public, Friends, or Only me in batches, and review shared-source posts before copying them.</p></div>';
 profileCard.appendChild(panel);
+const profileLanguage = panel.querySelector("[data-profile-language]");
+for (const [code, label] of (window.danzstakLanguages || [["en", "English"]])) {
+  const option = document.createElement("option");
+  option.value = code;
+  option.textContent = label;
+  profileLanguage.appendChild(option);
+}
 const mediaItems = [...mediaTools.children];
 for (const [field,label] of [["avatar","Profile photo"],["cover","Cover photo"],["video","Profile video"]]) {
   const menu = document.createElement("details"); menu.className = "profile-media-menu";
@@ -635,6 +643,7 @@ editButton.addEventListener("click", () => {
   panel.elements.location.value = profile.location || "";
   panel.elements.work.value = profile.work || "";
   panel.elements.website.value = profile.website || "";
+  panel.elements.language.value = (() => { try { return localStorage.getItem("danzstak_language") || document.documentElement.lang || "en"; } catch { return document.documentElement.lang || "en"; } })();
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
@@ -645,6 +654,9 @@ panel.addEventListener("submit", async event => {
   if (!panel.reportValidity()) return;
   const profile = Object.fromEntries(new FormData(panel).entries());
   profile.handle = profile.handle.replace(/^@/, "");
+  const language = profile.language;
+  delete profile.language;
+  if (window.danzstakSetLanguage) window.danzstakSetLanguage(language);
   const status = document.getElementById("profileStatus");
   const submit = panel.querySelector('button[type="submit"]');
   submit.disabled = true;

@@ -148,5 +148,9 @@ vite.config.ts.timestamp-*
 # Private deployment configuration (contains the Cognito email allowlist)
 infrastructure/cognito-email-allowlist/
 
+# Python bytecode
+__pycache__/
+*.py[cod]
+
 # Turbo Repo
 .turbo

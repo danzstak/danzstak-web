@@ -1,0 +1,26 @@
+{
+  "campaign": "independent-music-launch",
+  "status": "preview",
+  "from": "DanzStak <support@danzstak.com>",
+  "audiences": ["artists", "bands", "DJs", "venues", "music professionals", "music fans"],
+  "week1": {
+    "dailySendCaps": [29, 29, 29, 29, 29, 29, 26],
+    "total": 200
+  },
+  "scaling": {
+    "reviewEveryDays": 7,
+    "maximumWeeklyGrowthPercent": 100,
+    "pauseWhen": {
+      "hardBounceRateAtLeast": 0.02,
+      "complaintRateAtLeast": 0.001
+    }
+  },
+  "requiredRecipientFields": ["email", "organization", "role", "country", "language", "sourceUrl", "contactBasis"],
+  "allowedContactBasis": ["opt-in", "existing relationship", "reviewed public business contact"],
+  "prohibited": ["purchased lists", "private-address scraping", "missing source", "previous unsubscribe", "previous complaint", "hard bounce"],
+  "attribution": {
+    "utmSource": "danzstak_outreach",
+    "utmMedium": "email",
+    "conversionEvents": ["landing_visit", "signup_verified", "profile_completed", "facebook_import_completed", "sfscoop_visit"]
+  }
+}

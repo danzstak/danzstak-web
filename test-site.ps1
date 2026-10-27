@@ -609,7 +609,7 @@ if (-not $feed.Contains('article.dataset.audience = ["public", "friends", "priva
   Add-Failure 'Post sharing: non-public content can leak through external sharing or stale privacy state'
 }
 if (-not $feedEnhancementsJs.Contains('readDevicePreference("danzstak_dark_mode") === "1"') -or
-    -not $feedEnhancementsJs.Contains('document.documentElement.lang = readDevicePreference("danzstak_language") || "en"')) {
+    -not $feedEnhancementsJs.Contains('document.documentElement.lang = readDevicePreference("danzstak_language") || navigator.language || "en"')) {
   Add-Failure 'Settings: saved dark-mode or language preferences are not restored after navigation'
 }
 $reactionStart = $feedEnhancementsJs.IndexOf('function addReactionButton(post)')

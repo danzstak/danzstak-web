@@ -1,0 +1,206 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  DanzStak-owned IMAP mailbox host — isolates durable encrypted mail data on a
+  hardened EC2 node managed through Systems Manager without SSH.
+
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@3
+  com.aws.cloudformation.Context:
+    arch: Route53 A -> EIP -> single Stalwart v1 host; SES remains outbound relay
+    must:
+      - Do not replace live MX until IMAP, SMTP, TLS, backup, and recovery tests pass
+      - No inbound SSH; administer through SSM
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+  AmiId:
+    Type: AWS::EC2::Image::Id
+  HostedZoneId:
+    Type: String
+    AllowedPattern: '^[A-Z0-9]+$'
+  MailHostname:
+    Type: String
+    Default: inbox.danzstak.com
+    AllowedPattern: '^[a-z0-9.-]+$'
+  InstanceType:
+    Type: String
+    Default: t4g.small
+    AllowedValues: [t4g.small]
+
+Resources:
+  MailInstanceRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: grants keyless SSM management; no SSH keys or inbound admin port
+        must:
+          - Keep instance role free of general IAM and account-administration permissions
+        mutable: change-with-constraints
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Application
+          Value: DanzStak
+        - Key: Purpose
+          Value: MailServer
+
+  MailInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref MailInstanceRole]
+
+  MailSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: public mail exchange and roaming mail clients require internet ingress; admin access remains private through SSM
+        must:
+          - Port 25 is unauthenticated server-to-server delivery only
+          - Ports 443, 465, and 993 must require modern TLS at the application layer
+          - Never add port 22
+        mutable: change-with-constraints
+    Properties:
+      GroupDescription: DanzStak public mail protocols; no SSH
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 25
+          ToPort: 25
+          CidrIp: 0.0.0.0/0
+          Description: SMTP delivery from internet mail servers
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS account UI and ACME TLS validation
+        - IpProtocol: tcp
+          FromPort: 465
+          ToPort: 465
+          CidrIp: 0.0.0.0/0
+          Description: Authenticated implicit-TLS SMTP submission
+        - IpProtocol: tcp
+          FromPort: 993
+          ToPort: 993
+          CidrIp: 0.0.0.0/0
+          Description: Authenticated implicit-TLS IMAP
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+          Description: Package updates, SSM, ACME, DNS, and SES relay
+      Tags:
+        - Key: Application
+          Value: DanzStak
+        - Key: Purpose
+          Value: MailServer
+
+  MailInstance:
+    Type: AWS::EC2::Instance
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: one low-volume mailbox host; Graviton minimizes cost; Stalwart v1 provides IMAP, SMTP, spam filtering, and integrated ACME
+        must:
+          - Root volume holds mailbox state and must remain encrypted and retained
+          - IMDSv2 required with hop limit 2 for Docker
+          - Container major version pinned; upgrades require backup and rollback plan
+        mutable: review-required
+        mutability:
+          InstanceType: free-to-tune
+          ImageId: change-with-constraints
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds: [!Ref MailSecurityGroup]
+      IamInstanceProfile: !Ref MailInstanceProfile
+      Monitoring: true
+      MetadataOptions:
+        HttpTokens: required
+        HttpEndpoint: enabled
+        HttpPutResponseHopLimit: 2
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp3
+            VolumeSize: 30
+            Encrypted: true
+            DeleteOnTermination: false
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          dnf install -y docker
+          systemctl enable --now docker
+          docker volume create stalwart-etc
+          docker volume create stalwart-data
+          docker run -d --name stalwart --init --restart unless-stopped \
+            -p 25:25 -p 465:465 -p 993:993 -p 443:443 \
+            -p 127.0.0.1:8080:8080 \
+            -v stalwart-etc:/etc/stalwart \
+            -v stalwart-data:/var/lib/stalwart \
+            stalwartlabs/stalwart:v1
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-mail'
+        - Key: Application
+          Value: DanzStak
+        - Key: Purpose
+          Value: MailServer
+        - Key: Backup
+          Value: Daily
+
+  MailAddress:
+    Type: AWS::EC2::EIP
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: stable SMTP and IMAP endpoint; DNS and sender reputation cannot follow changing public IPs
+        must:
+          - Keep associated while MailInstance is active
+        mutable: must-never-change
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref MailInstance
+      Tags:
+        - Key: Application
+          Value: DanzStak
+        - Key: Purpose
+          Value: MailServer
+
+  MailAddressRecord:
+    Type: AWS::Route53::RecordSet
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: resolves staged mail hostname before live MX cutover and enables certificate validation
+        must:
+          - Point only to MailAddress
+        mutable: change-with-constraints
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref MailHostname
+      Type: A
+      TTL: 300
+      ResourceRecords: [!Ref MailAddress]
+
+Outputs:
+  InstanceId:
+    Description: SSM-managed DanzStak mail server instance
+    Value: !Ref MailInstance
+  PublicIp:
+    Description: Static IPv4 address for the mail host
+    Value: !Ref MailAddress
+  MailHostname:
+    Description: Staged hostname for IMAP, SMTP submission, and HTTPS administration
+    Value: !Ref MailHostname

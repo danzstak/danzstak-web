@@ -5,7 +5,7 @@ const devicePreferenceMemory = new Map();
 try {
   document.documentElement.classList.toggle("dark-mode", readDevicePreference("danzstak_dark_mode") === "1");
   document.documentElement.classList.toggle("reduce-motion", readDevicePreference("danzstak_reduce_motion") === "1");
-  document.documentElement.lang = readDevicePreference("danzstak_language") || "en";
+  document.documentElement.lang = readDevicePreference("danzstak_language") || navigator.language || "en";
 } catch { /* Device preferences remain optional when storage is unavailable. */ }
 
 const featurePanel = document.getElementById("featureView");

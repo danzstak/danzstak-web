@@ -961,6 +961,7 @@ async function getSecurePosts(event) {
       userEmail: item.userEmail?.S ?? "",
       authorName: authorName(item.userEmail?.S),
       authorPicture: authorPicture(item.userEmail?.S),
+      importSource: item.importSource?.S || "",
       content: item.content.S,
       location: item.location?.S || "",
       viewCount: Math.max(0,Number(item.viewCount?.N || 0)),
@@ -1340,7 +1341,7 @@ async function createSecurePost(event) {
   if (location === null || location.length > 120) return {statusCode:400,headers,body:JSON.stringify({error:"Location must be at most 120 characters."})};
   const content = data.content.trim() || "Shared a post.";
   if (!sharedSource && data.originalContentCertified !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Original-content certification is required." }) };
-  const audience = facebookImport ? "private" : (["public", "friends", "private"].includes(data.audience) ? data.audience : "public");
+  const audience = ["public", "friends", "private"].includes(data.audience) ? data.audience : "public";
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
   const reel = mediaType === "video" && data.reel === true;

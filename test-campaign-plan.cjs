@@ -1,0 +1,12 @@
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const plan=JSON.parse(fs.readFileSync('infrastructure/campaign/launch-plan.json','utf8'));
+const html=fs.readFileSync('infrastructure/campaign/launch-email.html','utf8');
+assert.equal(plan.week1.dailySendCaps.length,7);
+assert.equal(plan.week1.dailySendCaps.reduce((sum,value)=>sum+value,0),200);
+assert.equal(plan.status,'preview');
+assert.ok(plan.prohibited.includes('private-address scraping'));
+assert.ok(html.includes('{{unsubscribe_url}}'));
+assert.ok(html.includes('utm_campaign=independent_music_launch'));
+assert.ok(html.includes('DanzStak')&&html.includes('SFScoop'));
+assert.ok(html.includes('Import from Facebook'));
+console.log('Campaign checks passed: seven-day pacing, 200-email cap, consent controls, unsubscribe, attribution, both brands, and Facebook migration.');

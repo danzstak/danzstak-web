@@ -31,7 +31,10 @@
  function setLanguage(code){const language=normalize(code);document.documentElement.lang=language;document.documentElement.dir='ltr';try{localStorage.setItem('danzstak_language',language);}catch{}apply();return language;}
  window.danzstakSetLanguage=setLanguage;window.danzstakTranslate=translate;
  function start(){
-  let language=document.documentElement.lang||'en';try{language=localStorage.getItem('danzstak_language')||language;}catch{}
+  let language=document.documentElement.lang||'en';
+  let saved='';try{saved=localStorage.getItem('danzstak_language')||'';}catch{}
+  let regional='';try{regional=(navigator.languages||[navigator.language]).map(normalize).find(code=>code!=='en')||normalize(navigator.language);}catch{}
+  language=saved||regional||language;
   document.documentElement.lang=normalize(language);apply();
   new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});
   new MutationObserver(()=>{apply();for(const frame of document.querySelectorAll('iframe')){try{if(new URL(frame.src,location.href).origin===location.origin)frame.contentWindow?.postMessage({type:'danzstak-language',language:document.documentElement.lang},location.origin);}catch{}}}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
