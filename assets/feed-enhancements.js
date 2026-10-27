@@ -1111,6 +1111,30 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
 }
 
 const workspaceRoutes = new Map(["Friends", "Groups", "Photos", "Videos", "Events", "Saved", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
+const mobileMenuControl = document.querySelector(".mobile-menu-control");
+const mobileNavMenu = document.getElementById("mobileNavMenu");
+function setMobileMenu(open) {
+  const shouldOpen = Boolean(open && matchMedia("(max-width: 700px)").matches);
+  const wasOpen = document.body.classList.contains("mobile-menu-open");
+  document.body.classList.toggle("mobile-menu-open", shouldOpen);
+  mobileMenuControl?.setAttribute("aria-expanded", String(shouldOpen));
+  if (shouldOpen) mobileNavMenu?.querySelector("a")?.focus({ preventScroll: true });
+  else if (wasOpen) mobileMenuControl?.focus({ preventScroll: true });
+}
+mobileMenuControl?.addEventListener("click", () => setMobileMenu(!document.body.classList.contains("mobile-menu-open")));
+mobileNavMenu?.addEventListener("click", event => {
+  if (document.body.classList.contains("mobile-menu-open") && event.target.closest("a")) setMobileMenu(false);
+});
+document.addEventListener("click", event => {
+  if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !mobileMenuControl?.contains(event.target)) setMobileMenu(false);
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && document.body.classList.contains("mobile-menu-open")) setMobileMenu(false);
+});
+const desktopMenuQuery = matchMedia("(min-width: 701px)");
+const closeMobileMenuOnDesktop = event => { if (event.matches) setMobileMenu(false); };
+if (desktopMenuQuery.addEventListener) desktopMenuQuery.addEventListener("change", closeMobileMenuOnDesktop);
+else desktopMenuQuery.addListener(closeMobileMenuOnDesktop);
 function openWorkspaceRoute(name, pushHistory = true) {
   if (!workspaceRoutes.has(String(name).toLowerCase())) return false;
   const canonicalName = workspaceRoutes.get(String(name).toLowerCase());
