@@ -84,7 +84,8 @@
 
 /* Preserve contrast on selected navigation, consent notices, and dark menus. */
 .dark-mode .menu a.active{background:#253c60;color:#dceaff}.dark-mode .group-standards-agreement{color:#5f4300}.dark-mode .post-audience-control,.dark-mode .story-share-control{color:#b8c2d1}.dark-mode .post-options-menu button{background:#273449!important;color:#f5f7fb!important;border-color:#3b4658!important;box-shadow:none!important}.dark-mode .post-options-menu button:hover,.dark-mode .post-options-menu button:focus-visible{background:#35455e!important}.dark-mode .post-options-menu small{color:#c6cfdb}.dark-mode .post-option-danger strong{color:#ffabab}
-#featureTitle:focus{outline:2px solid #0866ff;outline-offset:4px;border-radius:3px}
+#featureTitle:focus{outline:none}
+#featureTitle:focus-visible{outline:2px solid #0866ff;outline-offset:4px;border-radius:3px}
 
 .dark-mode .message-drawer-close{color:#f5f7fb}.dark-mode .message-drawer-close:hover{background:#35455e}
 
