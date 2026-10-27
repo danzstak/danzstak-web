@@ -1,6 +1,12 @@
 "use strict";
 (() => {
   let dialog;
+  async function shareFetch(path, options = {}, timeoutMs = 10000) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
+    try { return await fetch('https://api.danzstak.com' + path, { ...options, signal: controller.signal }); }
+    catch (error) { if (error?.name === 'AbortError') throw new Error('Sharing took too long. Check your connection and try again.'); throw error; }
+    finally { clearTimeout(timer); }
+  }
   window.danzstakSharePost = post => {
     if (post.dataset.audience !== 'public') return;
     if (!dialog) { dialog = document.createElement('dialog'); dialog.className = 'post-share-dialog'; document.body.appendChild(dialog); }
@@ -15,7 +21,7 @@
     publish.addEventListener('click', async () => {
       publish.disabled = true; comment.disabled = true; audience.disabled = true; feedback.textContent = 'Sharing…';
       try {
-        const response = await fetch('https://api.danzstak.com/secure-posts', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:comment.value.trim(),sharedPostId:post.dataset.postId,audience:audience.value})});
+        const response = await shareFetch('/secure-posts', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:comment.value.trim(),sharedPostId:post.dataset.postId,audience:audience.value})});
         const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'The post could not be shared.');
         feedback.textContent = 'Shared to your feed.'; if (typeof window.loadPosts === 'function') await window.loadPosts();
       } catch (error) { feedback.textContent = error.message; publish.disabled = false; comment.disabled = false; audience.disabled = false; }

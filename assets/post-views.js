@@ -1,6 +1,11 @@
 "use strict";
 (() => {
   const selector = '.post[data-post-id],.profile-post-card[data-post-id]', visible = new Set(), timers = new Map(), pending = new WeakSet(), recorded = new WeakSet();
+  async function viewFetch(path, options = {}, timeoutMs = 10000) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
+    try { return await fetch('https://api.danzstak.com' + path, { ...options, signal: controller.signal }); }
+    finally { clearTimeout(timer); }
+  }
   function countLabel(article, count) {
     let label = article.querySelector('.post-view-count');
     if (!label) { label = document.createElement('div'); label.className = 'post-view-count'; const actions = article.querySelector('.post-actions'); if (actions) actions.before(label); else article.appendChild(label); }
@@ -12,7 +17,7 @@
     if (document.hidden || !visible.has(article) || pending.has(article) || recorded.has(article) || !article.isConnected) return;
     pending.add(article);
     try {
-      const response = await fetch('https://api.danzstak.com/post-views', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({postId:article.dataset.postId})});
+      const response = await viewFetch('/post-views', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({postId:article.dataset.postId})});
       if (!response.ok) return; const data = await response.json(); if (article.isConnected) countLabel(article,data.viewCount); recorded.add(article);
     } catch { /* Counts are best effort; content remains available. */ }
     finally { pending.delete(article); }

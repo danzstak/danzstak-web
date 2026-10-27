@@ -2,8 +2,14 @@
 (() => {
   let dialog, generation = 0;
   const memberId = value => /^[a-f0-9-]{36}$/.test(String(value || ''));
+  async function tagFetch(path, options = {}, timeoutMs = 10000) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
+    try { return await fetch('https://api.danzstak.com' + path, { ...options, signal: controller.signal }); }
+    catch (error) { if (error?.name === 'AbortError') throw new Error('Tagging took too long. Check your connection and try again.'); throw error; }
+    finally { clearTimeout(timer); }
+  }
   async function patch(postId, body) {
-    const response = await fetch('https://api.danzstak.com/secure-posts/' + encodeURIComponent(postId), {method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const response = await tagFetch('/secure-posts/' + encodeURIComponent(postId), {method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'Tags could not be saved.'); return result;
   }
   window.danzstakRenderMediaTags = (article, post) => {
@@ -37,7 +43,7 @@
     let existing; try { existing = JSON.parse(post.dataset.taggedUsers || '[]'); } catch { existing = []; }
     const selected = new Set(existing.map(tag => tag.memberId));
     try {
-      const response = await fetch('https://api.danzstak.com/friends',{credentials:'include',cache:'no-store'}); if (!response.ok) throw new Error('Friends could not be loaded. Close and retry.');
+      const response = await tagFetch('/friends',{credentials:'include',cache:'no-store'}); if (!response.ok) throw new Error('Friends could not be loaded. Close and retry.');
       const members = new Map((await response.json()).friends?.filter(person => memberId(person.memberId)).map(person => [person.memberId,person]) || []);
       for (const person of existing) if (!members.has(person.memberId)) members.set(person.memberId,person);
       if (!dialog.open || version !== generation) return;
