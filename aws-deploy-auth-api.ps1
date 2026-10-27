@@ -158,7 +158,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("GET /tours", "POST /tours", "DELETE /tours/{tourId}")) {
+  foreach ($routeKey in @("GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
@@ -174,6 +174,10 @@ try {
   if ($permission -notmatch "AllowTourPlansFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourPlansFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/tours*" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour plans API invoke permission failed." }
+  }
+  if ($permission -notmatch "AllowNativeAuthFromApiGateway") {
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowNativeAuthFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/auth/mobile-*" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Native authentication API invoke permission failed." }
   }
   Write-Host "DanzStak Auth API authorization safeguards deployed successfully."
 } finally {

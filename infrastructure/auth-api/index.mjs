@@ -226,7 +226,9 @@ function getCookie(event, name) {
 }
 
 function getSessionId(event) {
-  const value = getCookie(event, sessionCookieName);
+  const authorization = event.headers?.authorization || event.headers?.Authorization || "";
+  const bearer = /^Bearer\s+([a-f0-9]{64})$/i.exec(authorization)?.[1];
+  const value = bearer || getCookie(event, sessionCookieName);
   return value && /^[a-f0-9]{64}$/.test(value)
     ? value
     : null;
@@ -369,7 +371,7 @@ async function verifyIdToken(token, expectedNonce, expectedSub) {
 }
 
 // START SECURE COGNITO LOGIN OR SIGNUP
-async function startLogin(mode = "login", legalAcceptanceId = "") {
+async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null) {
   const state = randomValue();
   const verifier = randomValue();
   const nonce = randomValue();
@@ -386,6 +388,10 @@ async function startLogin(mode = "login", legalAcceptanceId = "") {
       expiresAt: { N: String(now() + 300) }
   };
   if (legalAcceptanceId) pendingItem.legalAcceptanceId = { S: legalAcceptanceId };
+  if (mobile) {
+    pendingItem.mobilePlatform = { S: mobile.platform };
+    pendingItem.mobileChallenge = { S: mobile.challenge };
+  }
 
   await db.send(new PutItemCommand({
     TableName: tableName,
@@ -695,7 +701,68 @@ async function completeLogin(event) {
     responseCookies.push(clearCookie(legalCookieName));
   }
 
+  if (pending.mobilePlatform?.S && pending.mobileChallenge?.S) {
+    const exchangeCode = randomValue();
+    await db.send(new PutItemCommand({
+      TableName: tableName,
+      Item: {
+        sessionId: { S: sha256("mobile-exchange:" + exchangeCode) },
+        type: { S: "mobile_exchange" },
+        platform: { S: pending.mobilePlatform.S },
+        challenge: { S: pending.mobileChallenge.S },
+        sessionToken: { S: sessionId },
+        expiresAt: { N: String(now() + 120) }
+      },
+      ConditionExpression: "attribute_not_exists(sessionId)"
+    }));
+    return redirect(`danzstak://${pending.mobilePlatform.S}/auth?code=${exchangeCode}`, [expiredBrowserCookie]);
+  }
+
   return redirect(siteUrl + "/", responseCookies);
+}
+
+async function startMobileLogin(event) {
+  const platform = String(event.queryStringParameters?.platform || "").toLowerCase();
+  const challenge = String(event.queryStringParameters?.challenge || "").toLowerCase();
+  if (!new Set(["android", "ios"]).has(platform) || !/^[a-f0-9]{64}$/.test(challenge)) {
+    return errorResponse(400, "Valid native platform and device challenge required");
+  }
+  return startLogin("login", "", { platform, challenge });
+}
+
+async function exchangeMobileSession(event) {
+  let body;
+  try { body = JSON.parse(event.body || "{}"); }
+  catch { return errorResponse(400, "Invalid native session request"); }
+  const code = String(body.code || "").toLowerCase();
+  const verifier = String(body.verifier || "").toLowerCase();
+  const platform = String(body.platform || "").toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(code) || !/^[a-f0-9]{64}$/.test(verifier) || !new Set(["android", "ios"]).has(platform)) {
+    return errorResponse(400, "Valid native session proof required");
+  }
+  const key = { sessionId: { S: sha256("mobile-exchange:" + code) } };
+  const result = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
+  const item = result.Item;
+  if (item?.type?.S !== "mobile_exchange" || item.platform?.S !== platform || Number(item.expiresAt?.N || 0) <= now() || !safeEqual(item.challenge?.S, sha256(verifier)) || !/^[a-f0-9]{64}$/.test(item.sessionToken?.S || "")) {
+    return errorResponse(401, "Native login expired or was already used");
+  }
+  try {
+    await db.send(new DeleteItemCommand({
+      TableName: tableName,
+      Key: key,
+      ConditionExpression: "#t = :exchange AND challenge = :challenge",
+      ExpressionAttributeNames: { "#t": "type" },
+      ExpressionAttributeValues: { ":exchange": { S: "mobile_exchange" }, ":challenge": { S: item.challenge.S } }
+    }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return errorResponse(401, "Native login was already used");
+    throw error;
+  }
+  return {
+    statusCode: 200,
+    headers: { ...securityHeaders, "content-type": "application/json", "cache-control": "no-store" },
+    body: JSON.stringify({ sessionToken: item.sessionToken.S, expiresIn: 31536000 })
+  };
 }
 
 // VALIDATE SERVER-SIDE SESSION
@@ -819,7 +886,7 @@ async function getProfileVideo(event) {
 
 async function setProfileVideo(event) {
   const headers = corsHeaders(event.headers?.origin);
-  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  if (!allowedOrigins.has(event.headers?.origin) && !/^Bearer\s+[a-f0-9]{64}$/i.test(event.headers?.authorization || event.headers?.Authorization || "")) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   let body;
@@ -1078,7 +1145,7 @@ async function getEngagement(event) {
 
 async function recordPostView(event) {
   const headers = corsHeaders(event.headers?.origin);
-  if (!allowedOrigins.has(event.headers?.origin)) return {statusCode:403,headers,body:JSON.stringify({error:"Forbidden origin"})};
+  if (!allowedOrigins.has(event.headers?.origin) && !/^Bearer\s+[a-f0-9]{64}$/i.test(event.headers?.authorization || event.headers?.Authorization || "")) return {statusCode:403,headers,body:JSON.stringify({error:"Forbidden origin"})};
   const userId = await getAuthenticatedUser(event); if (!userId) return {statusCode:401,headers,body:JSON.stringify({error:"Authentication required"})};
   const data = parseJsonBody(event), postId = String(data?.postId || ""), access = await postForEngagement(postId,userId);
   if (!access.post) return {statusCode:access.statusCode,headers,body:JSON.stringify({error:access.error})};
@@ -1103,7 +1170,7 @@ async function recordPostView(event) {
 
 async function setReaction(event) {
   const headers = corsHeaders(event.headers?.origin);
-  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  if (!allowedOrigins.has(event.headers?.origin) && !/^Bearer\s+[a-f0-9]{64}$/i.test(event.headers?.authorization || event.headers?.Authorization || "")) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const data = parseJsonBody(event);
@@ -1242,7 +1309,7 @@ async function clearEngagementNotifications(event) {
 async function createSecurePost(event) {
   const headers = corsHeaders(event.headers?.origin);
 
-  if (!allowedOrigins.has(event.headers?.origin)) {
+  if (!allowedOrigins.has(event.headers?.origin) && !/^Bearer\s+[a-f0-9]{64}$/i.test(event.headers?.authorization || event.headers?.Authorization || "")) {
     return {
       statusCode: 403,
       headers,
@@ -1399,7 +1466,7 @@ async function createSecurePost(event) {
 // LOG OUT
 async function deleteSecurePost(event) {
   const headers = corsHeaders(event.headers?.origin);
-  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  if (!allowedOrigins.has(event.headers?.origin) && !/^Bearer\s+[a-f0-9]{64}$/i.test(event.headers?.authorization || event.headers?.Authorization || "")) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const postId = String(event.pathParameters?.postId || "");
@@ -1465,7 +1532,7 @@ async function resolveMediaTags(ids, ownerId, previous, declined) {
 
 async function updateSecurePost(event) {
   const headers = corsHeaders(event.headers?.origin);
-  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  if (!allowedOrigins.has(event.headers?.origin) && !/^Bearer\s+[a-f0-9]{64}$/i.test(event.headers?.authorization || event.headers?.Authorization || "")) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const postId = String(event.pathParameters?.postId || ""), data = parseJsonBody(event);
@@ -1793,8 +1860,9 @@ async function deleteTourPlan(event, tourId) {
 async function logout(event) {
   const origin = event.headers?.origin;
   const headers = corsHeaders(origin);
+  const authorization = event.headers?.authorization || event.headers?.Authorization || "";
 
-  if (!allowedOrigins.has(origin)) {
+  if (!allowedOrigins.has(origin) && !/^Bearer\s+[a-f0-9]{64}$/i.test(authorization)) {
     return {
       statusCode: 403,
       headers,
@@ -1874,6 +1942,14 @@ export const handler = async event => {
   try {
     if (method === "GET" && path === "/auth/login") {
       return await startLogin("login");
+    }
+
+    if (method === "GET" && path === "/auth/mobile-login") {
+      return await startMobileLogin(event);
+    }
+
+    if (method === "POST" && path === "/auth/mobile-session") {
+      return await exchangeMobileSession(event);
     }
 
     if (method === "GET" && path === "/auth/signup") {
