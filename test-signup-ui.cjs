@@ -3,7 +3,7 @@ const source=fs.readFileSync('assets/home.js','utf8');
 async function setup({authenticated=false,agreementOk=true}={}){
  const nodes={},posts=[],assigned=[],replaced=[];
  for(const id of ['loginBtn','logoutBtn','feedBtn','sessionStatus','signupBtn','publicExploreBtn','legalConsent','legalAgreement']) nodes[id]={handlers:{},dataset:{signupUrl:'https://api.danzstak.com/auth/signup'},addEventListener(name,fn){this.handlers[name]=fn;},focus(){this.focused=true;}};
- const context=vm.createContext({document:{getElementById:id=>nodes[id]},window:{location:{assign:url=>assigned.push(url),replace:url=>replaced.push(url)}},location:{search:''},URLSearchParams,
+ const context=vm.createContext({document:{getElementById:id=>nodes[id]},window:{location:{assign:url=>assigned.push(url),replace:url=>replaced.push(url)}},location:{search:''},URLSearchParams,AbortController:class{constructor(){this.signal={};}abort(){}},setTimeout:()=>1,clearTimeout:()=>{},
   localStorage:{setItem(){throw Error('storage full');}},sessionStorage:{removeItem(){throw Error('storage blocked');}},
   fetch:async(url,options)=>{if(url.endsWith('/auth/session'))return {status:authenticated?200:401,json:async()=>({authenticated})};posts.push(JSON.parse(options.body));return {ok:agreementOk};},confirm:()=>true});
  vm.runInContext(source,context);await new Promise(resolve=>setImmediate(resolve));return {nodes,posts,assigned,replaced};

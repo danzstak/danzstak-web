@@ -1,5 +1,12 @@
 "use strict";
 
+async function logoutFetch(options = {}, timeoutMs = 10000) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
+    try { return await fetch("https://api.danzstak.com/auth/logout", { ...options, signal: controller.signal }); }
+    catch (error) { if (error?.name === "AbortError") throw new Error("Logout took too long. Check your connection and try again."); throw error; }
+    finally { clearTimeout(timer); }
+}
+
 document.addEventListener("click", async event => {
     const button = event.target.closest("[data-logout]");
     if (!button) return;
@@ -11,7 +18,7 @@ document.addEventListener("click", async event => {
     button.textContent = "Logging out…";
     try {
       await window.danzstakDisablePush?.().catch(() => false);
-      const response = await fetch("https://api.danzstak.com/auth/logout", {
+      const response = await logoutFetch({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -20,10 +27,10 @@ document.addEventListener("click", async event => {
       if (!response.ok) throw new Error("Logout failed");
       window.danzstakClearAccountData?.();
       location.replace("./");
-    } catch {
+    } catch (error) {
       button.disabled = false;
       button.removeAttribute("aria-disabled");
       button.textContent = original;
-      alert("Logout failed. Please try again.");
+      alert(error.message || "Logout failed. Please try again.");
     }
 });

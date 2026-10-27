@@ -11,6 +11,13 @@ const legalConsent = document.getElementById("legalConsent");
 const legalAgreement = document.getElementById("legalAgreement");
 const legalVersion = "2026-10-26";
 
+async function homeFetch(path, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(api + path, { ...options, signal: controller.signal }); }
+  catch (error) { if (error?.name === "AbortError") throw new Error("DanzStak took too long to respond. Check your connection and try again."); throw error; }
+  finally { clearTimeout(timer); }
+}
+
 legalAgreement.addEventListener("change", () => {
   signupBtn.disabled = !legalAgreement.checked;
 });
@@ -27,7 +34,7 @@ signupBtn.addEventListener("click", async () => {
   status.textContent = "Saving your agreement securely...";
   status.hidden = false;
   try {
-    const response = await fetch(api + "/auth/legal-acceptance", {
+    const response = await homeFetch("/auth/legal-acceptance", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -56,7 +63,7 @@ function showSession(loggedIn, message) {
 
 async function checkSession() {
   try {
-    const response = await fetch(api + "/auth/session", {
+    const response = await homeFetch("/auth/session", {
       method: "GET",
       credentials: "include",
       cache: "no-store"
@@ -92,7 +99,7 @@ logoutBtn.addEventListener("click", async () => {
 
   try {
     await window.danzstakDisablePush?.().catch(() => false);
-    const response = await fetch(api + "/auth/logout", {
+    const response = await homeFetch("/auth/logout", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

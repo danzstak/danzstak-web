@@ -6,6 +6,13 @@ const requestedUser = new URLSearchParams(location.search).get("user")?.trim().t
 
 const requestedMember = new URLSearchParams(location.search).get("member") || "";
 
+async function profileFetch(path, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
+  catch (error) { if (error?.name === "AbortError") throw new Error("Profile loading took too long. Check your connection and try again."); throw error; }
+  finally { clearTimeout(timer); }
+}
+
 function firstString(source, keys) {
   for (const key of keys) {
     if (typeof source?.[key] === "string" && source[key].trim()) return source[key].trim();
@@ -15,7 +22,7 @@ function firstString(source, keys) {
 
 async function loadProfile() {
   try {
-    const response = await fetch("https://api.danzstak.com/profiles" + (requestedMember ? "?member=" + encodeURIComponent(requestedMember) : requestedUser ? "?email=" + encodeURIComponent(requestedUser) : ""), {
+    const response = await profileFetch("/profiles" + (requestedMember ? "?member=" + encodeURIComponent(requestedMember) : requestedUser ? "?email=" + encodeURIComponent(requestedUser) : ""), {
       credentials: "include",
       cache: "no-store"
     });
@@ -60,7 +67,7 @@ async function loadProfile() {
     window.danzstakCurrentProfile = profile;
     window.dispatchEvent(new CustomEvent("danzstak:profile-loaded", { detail: profile }));
   } catch (error) {
-    status.textContent = "Unable to load your profile. Please return to the feed and try again.";
+    status.textContent = error.message || "Unable to load your profile. Please return to the feed and try again.";
   }
 }
 
