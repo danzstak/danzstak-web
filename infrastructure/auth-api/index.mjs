@@ -887,6 +887,7 @@ async function loadFeedAuthorProfiles(items) {
   async function worker() {
     while (next < emails.length) {
       const email = emails[next++];
+      let picture = "";
       try {
         const found = await db.send(new GetItemCommand({
           TableName: settingsTable, Key: { userEmail: { S: email } },
@@ -894,8 +895,9 @@ async function loadFeedAuthorProfiles(items) {
         }));
         const name = String(found.Item?.profileName?.S || "").trim().slice(0, 80);
         const avatarKey = String(found.Item?.profileAvatarKey?.S || "");
+        picture = avatarKey ? signedMediaUrl(avatarKey, 3600) : "";
         if (name) {
-          profiles.set(email, { name, picture: avatarKey ? signedMediaUrl(avatarKey, 3600) : "" });
+          profiles.set(email, { name, picture });
           continue;
         }
       } catch (error) { console.warn("Feed display-name lookup failed", error.name || "UnknownError"); }
@@ -907,7 +909,7 @@ async function loadFeedAuthorProfiles(items) {
         }));
         const attributes = result.Users?.[0]?.Attributes || [];
         const publicName = String(attributes.find(attribute => attribute.Name === "name")?.Value || attributes.find(attribute => attribute.Name === "preferred_username")?.Value || "").trim().slice(0, 80);
-        if (publicName) profiles.set(email, { name: publicName, picture: "" });
+        if (publicName) profiles.set(email, { name: publicName, picture });
       } catch (error) { console.warn("Cognito display-name lookup failed", error.name || "UnknownError"); }
     }
   }

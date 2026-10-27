@@ -16,6 +16,7 @@ const context = vm.createContext({ items, settingsTable: 'DanzStak-UserSettings'
     await new Promise(resolve => setTimeout(resolve, 1)); active--;
     if (command.input.Key.userEmail.S === 'member1@example.com') throw new Error('Temporarily unavailable');
     if (command.input.Key.userEmail.S === 'member0@example.com') return { Item: { profileName: { S: '  Saved display name  ' }, profileAvatarKey: { S: 'users/member0/avatar.jpg' } } };
+    if (command.input.Key.userEmail.S === 'member2@example.com') return { Item: { profileAvatarKey: { S: 'users/member2/avatar.jpg' } } };
     return {};
   } }, cognito: { send: async command => {
     cognitoRequested.push(command.input);
@@ -34,6 +35,7 @@ vm.runInContext(code, context);
   assert.equal(names.get('member1@example.com'), 'Cognito public name', 'Cognito name fills a missing settings name');
   assert.equal(names.get('member2@example.com'), 'Preferred public name', 'preferred username is the secondary public fallback');
   assert.equal(profiles.get('member0@example.com').picture, 'signed:users/member0/avatar.jpg', 'saved profile photos receive expiring media URLs');
+  assert.equal(profiles.get('member2@example.com').picture, 'signed:users/member2/avatar.jpg', 'a saved photo survives when Cognito supplies the fallback display name');
   assert.equal(cognitoRequested.length, 38, 'each bounded lookup skips Cognito when a saved profile name exists');
   assert.equal(cognitoRequested.every(request => request.UserPoolId === 'pool' && request.Limit === 1), true);
   assert.equal(requested.every(request => request.ProjectionExpression === 'profileName, profileAvatarKey'), true, 'only public profile identity fields are loaded');
