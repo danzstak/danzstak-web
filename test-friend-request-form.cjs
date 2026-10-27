@@ -8,7 +8,7 @@ const nodes = [], requests = [];
 const node = tag => { const item = { tag, value: '', children: [], setAttribute() {}, reportValidity: () => true, addEventListener(_, handler) { this.submit = handler; }, append(...items) { this.children.push(...items); } }; nodes.push(item); return item; };
 const input = node('input');
 const context = vm.createContext({ document: { createElement: node }, field: () => ({ wrap: node('label'), input }),
-  fetch: (_, options) => new Promise((resolve, reject) => requests.push({ resolve, reject, body: JSON.parse(options.body) })) });
+  friendActionFetch: (_, options) => new Promise((resolve, reject) => requests.push({ resolve, reject, body: JSON.parse(options.body) })) });
 vm.runInContext(code + '\ncreateFriendRequestForm();', context);
 const form = nodes.find(item => item.tag === 'form'), send = nodes.find(item => item.tag === 'button'), status = nodes.find(item => item.tag === 'p');
 const event = { preventDefault() {} };

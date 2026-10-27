@@ -3,7 +3,7 @@ const source=fs.readFileSync('assets/feed-enhancements.js','utf8');
 const a=source.indexOf('async function respondToNotificationRequest('),b=source.indexOf('function renderWorkspace(name)',a);
 const buttons=[{},{}], requests=[], messages=[];let removed=false;
 const row={querySelectorAll:()=>buttons,querySelector:()=>null,appendChild:node=>messages.push(node.textContent),remove:()=>removed=true};
-const context=vm.createContext({row,document:{createElement:()=>({setAttribute(){}})},refreshNotificationCount:async()=>{throw Error('badge unavailable');},fetch:(_,options)=>new Promise((resolve,reject)=>requests.push({resolve,reject,body:JSON.parse(options.body)}))});
+const context=vm.createContext({row,document:{createElement:()=>({setAttribute(){}})},refreshNotificationCount:async()=>{throw Error('badge unavailable');},friendActionFetch:(_,options)=>new Promise((resolve,reject)=>requests.push({resolve,reject,body:JSON.parse(options.body)}))});
 vm.runInContext(source.slice(a,b),context);
 (async()=>{
   const first=vm.runInContext('respondToNotificationRequest(row,"friend@example.com",true)',context);

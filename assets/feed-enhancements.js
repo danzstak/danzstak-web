@@ -175,6 +175,16 @@ function renderSavedPosts(list) {
   }
 }
 
+async function friendActionFetch(path, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
+  catch (error) {
+    if (error.name === "AbortError") throw new Error("The friend service took too long to respond. Try again.");
+    throw error;
+  } finally { clearTimeout(timeout); }
+}
+
 function createFriendRequestForm() {
   const form = document.createElement("form");
   form.className = "friend-request-form";
@@ -192,7 +202,7 @@ function createFriendRequestForm() {
     send.disabled = true;
     status.textContent = "Sending friend request…";
     try {
-      const response = await fetch("https://api.danzstak.com/friends/request", {
+      const response = await friendActionFetch("/friends/request", {
         method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: address })
       });
@@ -244,7 +254,7 @@ async function respondToNotificationRequest(row, email, accept) {
   buttons.forEach(button => { button.disabled = true; });
   row.querySelector(".notification-request-status")?.remove();
   try {
-    const response = await fetch("https://api.danzstak.com/friends/respond", {
+    const response = await friendActionFetch("/friends/respond", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, accept })
     });
