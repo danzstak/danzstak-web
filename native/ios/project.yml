@@ -1,0 +1,29 @@
+name: DanzStak
+options:
+  bundleIdPrefix: com.danzstak
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  DanzStak:
+    type: application
+    platform: iOS
+    sources: [DanzStak]
+    info:
+      path: DanzStak/Info.plist
+      properties:
+        CFBundleDisplayName: DanzStak
+        CFBundleURLTypes:
+          - CFBundleURLName: com.danzstak.app.auth
+            CFBundleURLSchemes: [danzstak]
+        LSApplicationCategoryType: public.app-category.social-networking
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.danzstak.app
+        PRODUCT_NAME: DanzStak
+        SWIFT_VERSION: "5.10"
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1,2"
