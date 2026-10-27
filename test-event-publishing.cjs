@@ -17,7 +17,7 @@ vm.runInNewContext(`function renderEvent(){ const name = "Events"; ${eventCode} 
   document: { createElement: node, createTextNode: text => ({ textContent: text }), querySelectorAll: () => [] },
   workspace: node('workspace'), featureText, featurePanel: {}, window: {}, isCurrentWorkspace: () => active, renderWorkspace: name => renders.push(name), renderPublishedEvents() {},
   field: () => ({ wrap: node('label'), input: node('input') }),
-  fetch: async (url, options) => { requests.push({ url, body: JSON.parse(options.body) }); return { ok: true, json: async () => ({}) }; }
+  postActionFetch: async (url, options) => { requests.push({ url, body: JSON.parse(options.body) }); return { ok: true, json: async () => ({}) }; }
 });
 (async () => {
   const [title, date, certification] = nodes.filter(item => item.tag === 'input');

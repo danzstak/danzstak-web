@@ -35,8 +35,13 @@ vm.runInContext(source.slice(start, end), context);
   assert.equal(cleared, 1, 'post-action deadline must be cleared after failure');
   for (const required of [
     'postActionFetch("/settings/posts"',
-    'postActionFetch("/secure-posts/" + encodeURIComponent(postId)'
+    'postActionFetch("/secure-posts/" + encodeURIComponent(postId)',
+    'postActionFetch("/secure-posts",',
+    'postActionFetch("/reports",',
+    'postActionFetch("/engagement-notifications/read",'
   ]) assert.ok(source.includes(required), `Post action bypasses recovery helper: ${required}`);
   assert.equal(source.includes('fetch("https://api.danzstak.com/secure-posts/" + encodeURIComponent(postId)'), false);
-  console.log('Post network checks passed: edit, privacy, policy, delete, hide, and preferences use bounded requests.');
+  assert.equal(source.includes('fetch("https://api.danzstak.com/reports"'), false);
+  assert.equal(source.includes('fetch("https://api.danzstak.com/engagement-notifications/read"'), false);
+  console.log('Post network checks passed: edit, privacy, policy, delete, hide, preferences, events, reports, and notification reads use bounded requests.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

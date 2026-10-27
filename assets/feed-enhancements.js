@@ -689,7 +689,7 @@ function renderWorkspace(name) {
           list.appendChild(row);
         }
         if (engagement.length) {
-          fetch("https://api.danzstak.com/engagement-notifications/read", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" })
+          postActionFetch("/engagement-notifications/read", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" })
             .then(marked => { if (marked.ok) { notificationSourceCounts.engagement = 0; updateNotificationCount((notificationSourceCounts.social || 0)); } })
             .catch(() => {});
         }
@@ -872,7 +872,7 @@ function renderWorkspace(name) {
       featureText.textContent = "Publishing event…";
       try {
         const formattedDate = new Date(submittedDate + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
-        const response = await fetch("https://api.danzstak.com/secure-posts", {
+        const response = await postActionFetch("/secure-posts", {
           method: "POST", credentials: "include", cache: "no-store",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ content: `📅 Event: ${submittedTitle}\n${formattedDate}`, audience: audience.value, originalContentCertified: true })
@@ -1604,7 +1604,7 @@ function openPostReportDialog(post) {
     button.disabled = true;
     status.textContent = "Submitting report…";
     try {
-      const response = await fetch("https://api.danzstak.com/reports", {
+      const response = await postActionFetch("/reports", {
         method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postId: post.dataset.postId, reason: dialog.querySelector('[name="reason"]').value, details: dialog.querySelector('[name="details"]').value.trim() })
       });
