@@ -60,7 +60,7 @@ foreach ($supportClientControl in @('credentials:"include"', 'https://api.danzst
 
 $bookingMarkup = Get-Content -LiteralPath (Join-Path $root 'booking.html') -Raw -Encoding utf8
 $bookingClient = Get-Content -LiteralPath (Join-Path $root 'assets\booking-agent.js') -Raw -Encoding utf8
-foreach ($bookingControl in @('DanzStak Booking Agent', 'Get the gig. Grow beyond home.', 'Clubs often book one or two months ahead', 'major festivals can book 18 months ahead.', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public contacts for clubs', 'Find a show near home', 'id="performerType"', '<option value="dj">DJ</option>', 'id="musicGenre"', '<option>DJ / Electronic</option>')) {
+foreach ($bookingControl in @('DanzStak Booking Agent', 'Find the clubs. Book the route.', 'id="venueSearchMap"', 'Draw where you want to play', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public contacts for clubs', 'Find a show near home', 'id="performerType"', '<option value="dj">DJ</option>', 'id="musicGenre"', '<option>DJ / Electronic</option>')) {
   if (-not $bookingMarkup.Contains($bookingControl)) { Add-Failure "Booking Agent: required planning control is missing: $bookingControl" }
 }
 if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {

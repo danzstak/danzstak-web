@@ -45,6 +45,13 @@ assert.match(client, /Navigate full route in Google Maps/);
 assert.match(client, /Navigate to this club/);
 assert.match(client, /dir_action=navigate/);
 assert.match(client, /https:\/\/maps\.apple\.com/);
-assert.match(api, /const venues = curatedPool\.length \? curated\.slice\(0, 6\) : \[\]/);
+assert.match(api, /pointLabel\.includes\("san francisco"\)/);
+assert.match(api, /curated\.length \|\| discovered\.length \? \[\] : curatedPool/);
+assert.match(api, /selectedGenre \? `\$\{selectedGenre\} live music club`/);
+assert.match(api, /searchBounds/);
+const mapClient = fs.readFileSync("assets/booking-map.js", "utf8");
+assert.match(mapClient, /new L\.Control\.Draw/);
+assert.match(mapClient, /body\.searchBounds = searchBounds/);
+assert.match(mapClient, /venueMarkers/);
 
 console.log("Booking venue checks passed: positive music-room evidence is required and repeat searches request a different batch.");

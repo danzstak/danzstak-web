@@ -1796,8 +1796,9 @@ function verifiedVenueKey(place) {
 function curatedVenueLeads(point, genre = "", variation = 0) {
   const [longitude, latitude] = point.position || [];
   if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return [];
+  const pointLabel = String(point.label || "").toLowerCase();
   let rooms = [], locality = "";
-  if (latitude >= 37.68 && latitude <= 37.86 && longitude >= -122.55 && longitude <= -122.32) {
+  if (pointLabel.includes("san francisco") || (latitude >= 37.68 && latitude <= 37.86 && longitude >= -122.55 && longitude <= -122.32)) {
     rooms = verifiedSanFranciscoRooms;
     locality = "San Francisco";
   } else if (latitude >= 45.40 && latitude <= 45.65 && longitude >= -122.85 && longitude <= -122.45) {
@@ -1806,8 +1807,7 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   } else return [];
   const wanted = genre.toLowerCase();
   const genreTerms = wanted.includes("punk") ? ["punk", "diy"] : wanted.includes("metal") ? ["metal"] : wanted.includes("rock") ? ["rock"] : wanted.includes("dj") || wanted.includes("electronic") ? ["dj", "electronic"] : wanted.includes("hip-hop") ? ["hip-hop"] : [];
-  if (!genreTerms.length) return [];
-  const matches = rooms.filter(place => genreTerms.some(term => place.categories.some(category => category.toLowerCase().includes(term))));
+  const matches = genreTerms.length ? rooms.filter(place => genreTerms.some(term => place.categories.some(category => category.toLowerCase().includes(term)))) : rooms;
   const offset = matches.length ? variation % matches.length : 0;
   return [...matches.slice(offset), ...matches.slice(0, offset)].map(place => ({ ...place, venueKey: verifiedVenueKey(place), locality, distanceMiles: null, contactVerificationRequired: true, verifiedRoom: true }));
 }
@@ -1817,11 +1817,26 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, BiasPosition: point.position, MaxResults: 20, AdditionalFeatures: ["Contact"] }));
     return (result.ResultItems || []).map(publicPlace);
   };
-  const hotelResults = await search("hotel");
+  const selectedGenre = String(genre || "").trim();
+  const venueQueries = [...new Set([
+    selectedGenre ? `${selectedGenre} live music club` : "live music club",
+    selectedGenre ? `${selectedGenre} music venue` : "independent music venue",
+    "live music venue"
+  ])];
+  const [hotelResults, ...venueBatches] = await Promise.all([search("hotel"), ...venueQueries.map(search)]);
   const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
   const curatedPool = curatedVenueLeads(point, genre, variation);
   const curated = curatedPool.filter(place => !excludedVenueKeys.has(place.venueKey));
-  const venues = curatedPool.length ? curated.slice(0, 6) : [];
+  const discovered = venueBatches.flat()
+    .filter(place => nearby(place, 60) && isBookableClub(place, genre) && hasBookingContact(place) && !excludedVenueKeys.has(place.venueKey))
+    .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre));
+  const unique = new Map();
+  for (const place of [...curated, ...discovered, ...(curated.length || discovered.length ? [] : curatedPool)]) {
+    if (!unique.has(place.venueKey)) unique.set(place.venueKey, place);
+  }
+  const venuePool = [...unique.values()];
+  const offset = venuePool.length ? variation % venuePool.length : 0;
+  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 12);
   const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }
@@ -1837,6 +1852,9 @@ async function planTourRoute(event) {
   const excludedVenueKeys = new Set((Array.isArray(data.excludeVenueKeys) ? data.excludeVenueKeys : []).slice(0, 120).map(value => String(value || "").trim()).filter(value => /^[a-f0-9]{20}$/.test(value)));
   const variation = Math.max(0, Math.min(1000, Math.trunc(Number(data.variation) || 0)));
   const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), genre = cleanPlace(data.genre).slice(0, 80), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), requestedDepartOn = cleanPlace(data.departOn), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), suppliedStops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [], suppliedEnd = local || directional ? start : cleanPlace(data.end), end = suppliedEnd || suppliedStops.at(-1) || "", stops = suppliedEnd ? suppliedStops : suppliedStops.slice(0, -1);
+  const rawBounds = data.searchBounds && typeof data.searchBounds === "object" ? data.searchBounds : null;
+  const searchBounds = rawBounds ? { north: Number(rawBounds.north), south: Number(rawBounds.south), east: Number(rawBounds.east), west: Number(rawBounds.west) } : null;
+  if (searchBounds && (!Object.values(searchBounds).every(Number.isFinite) || searchBounds.north <= searchBounds.south || searchBounds.east <= searchBounds.west || searchBounds.north - searchBounds.south > 8 || searchBounds.east - searchBounds.west > 8)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Draw a smaller valid map search area." }) };
   if (directional && (!tourDirections.has(direction) || !requestedDays)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a travel direction and provide 1–180 tour days." }) };
   if ((requestedDepartOn && !/^\d{4}-\d{2}-\d{2}$/.test(requestedDepartOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour dates must use YYYY-MM-DD." }) };
   if (requestedDepartOn && returnBy && requestedDepartOn > returnBy) return { statusCode: 400, headers, body: JSON.stringify({ error: "The home date must be on or after the first show date." }) };
@@ -1844,6 +1862,7 @@ async function planTourRoute(event) {
   try {
     if (local) {
       const point = await geocodeTourPlace(start), candidates = await tourCandidates(point, genre, excludedVenueKeys, variation);
+      if (searchBounds) candidates.venues = candidates.venues.filter(place => Array.isArray(place.position) && place.position.length === 2 && place.position[1] <= searchBounds.north && place.position[1] >= searchBounds.south && place.position[0] <= searchBounds.east && place.position[0] >= searchBounds.west);
       if (requestedDepartOn) candidates.proposedDate = requestedDepartOn;
       return { statusCode: 200, headers, body: JSON.stringify({ route: { start: point, end: point, stops: [], distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, requestedDays, departOn: requestedDepartOn, returnBy, provider: "Amazon Location Service", planningOnly: true, local: true }, candidates: [candidates] }) };
     }
