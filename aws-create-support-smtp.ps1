@@ -22,7 +22,7 @@ try {
     Statement = @(@{
       Effect = "Allow"
       Action = @("ses:SendEmail", "ses:SendRawEmail")
-      Resource = "arn:aws:ses:${Region}:${AccountId}:identity/danzstak.com"
+      Resource = "*"
       Condition = @{ StringEquals = @{ "ses:FromAddress" = "support@danzstak.com" } }
     })
   } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $PolicyPath -Encoding ascii
