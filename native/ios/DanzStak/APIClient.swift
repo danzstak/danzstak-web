@@ -15,6 +15,15 @@ private struct ExchangeResponse: Decodable { let sessionToken: String }
 
 struct APIClient {
     private let base = URL(string: "https://api.danzstak.com")!
+    private let session: URLSession
+    private let sessionToken: () -> String?
+
+    init(session: URLSession = .shared, sessionToken: @escaping () -> String? = SessionStore.load) {
+        self.session = session
+        self.sessionToken = sessionToken
+    }
+
+    enum Failure: Error { case sessionExpired }
 
     func exchange(code: String, verifier: String) async throws -> String {
         let response: ExchangeResponse = try await send("/auth/mobile-session", method: "POST", body: ["code": code, "verifier": verifier, "platform": "ios"], authenticated: false)
@@ -47,15 +56,17 @@ struct APIClient {
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if authenticated {
-            guard let token = SessionStore.load() else { throw URLError(.userAuthenticationRequired) }
+            guard let token = sessionToken() else { throw Failure.sessionExpired }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         if let body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw URLError(.badServerResponse) }
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        if authenticated && http.statusCode == 401 { throw Failure.sessionExpired }
+        guard 200..<300 ~= http.statusCode else { throw URLError(.badServerResponse) }
         if data.isEmpty, Response.self == EmptyResponse.self { return EmptyResponse() as! Response }
         return try JSONDecoder().decode(Response.self, from: data)
     }

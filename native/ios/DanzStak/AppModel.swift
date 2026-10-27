@@ -1,4 +1,5 @@
 import AuthenticationServices
+import Combine
 import CryptoKit
 import Foundation
 import UIKit
@@ -21,8 +22,10 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         let challenge = SHA256.hash(data: Data(verifier.utf8)).map { String(format: "%02x", $0) }.joined()
         let url = URL(string: "https://api.danzstak.com/auth/mobile-login?platform=ios&challenge=\(challenge)")!
         webSession = ASWebAuthenticationSession(url: url, callbackURLScheme: "danzstak") { [weak self] callback, error in
-            guard let self, error == nil, callback?.host == "ios", callback?.path == "/auth",
-                  let code = URLComponents(url: callback!, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value else { return }
+            guard let self, error == nil, let callback,
+                  callback.scheme == "danzstak", callback.host == "ios", callback.path == "/auth",
+                  let code = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value,
+                  code.range(of: "^[a-f0-9]{64}$", options: .regularExpression) != nil else { return }
             Task { await self.finishLogin(code: code, verifier: verifier) }
         }
         webSession?.presentationContextProvider = self
@@ -33,16 +36,32 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     func refresh() async {
         status = "Loading feed…"
         do {
-            guard try await api.validSession() else { throw URLError(.userAuthenticationRequired) }
+            guard try await api.validSession() else { throw APIClient.Failure.sessionExpired }
             posts = try await api.posts()
             status = posts.isEmpty ? "Your feed is ready. Be the first to post." : "\(posts.count) posts"
-        } catch { signedIn = false; SessionStore.clear(); status = "Your session expired. Log in again." }
+        } catch APIClient.Failure.sessionExpired {
+            expireSession()
+        } catch { status = "Feed could not be loaded. Please try again." }
     }
 
-    func publish(_ text: String) async {
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+    func publish(_ text: String) async -> Bool {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         status = "Publishing…"
-        do { try await api.publish(text); await refresh() } catch { status = "Post could not be published." }
+        do {
+            try await api.publish(text)
+            await refresh()
+            return true
+        } catch APIClient.Failure.sessionExpired {
+            expireSession()
+        } catch { status = "Post could not be published. Your draft is saved." }
+        return false
+    }
+
+    private func expireSession() {
+        signedIn = false
+        SessionStore.clear()
+        posts = []
+        status = "Your session expired. Log in again."
     }
 
     func logout() async {

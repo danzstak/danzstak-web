@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var model: AppModel
     @State private var draft = ""
+    @State private var publishing = false
 
     var body: some View {
         NavigationStack {
@@ -10,7 +11,16 @@ struct ContentView: View {
                 if model.signedIn {
                     HStack(alignment: .bottom) {
                         TextField("What's on your mind?", text: $draft, axis: .vertical).lineLimit(2...5).textFieldStyle(.roundedBorder)
-                        Button("Post") { let text = draft; draft = ""; Task { await model.publish(text) } }.buttonStyle(.borderedProminent)
+                        Button("Post") {
+                            let text = draft
+                            publishing = true
+                            Task {
+                                defer { publishing = false }
+                                if await model.publish(text), draft == text { draft = "" }
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(publishing || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                     List(model.posts) { post in
                         VStack(alignment: .leading, spacing: 7) {
