@@ -679,6 +679,13 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
 let lastStoriesLoad = 0;
 let storyViewerPreviousFocus = null;
 
+function storyDisplayCaption(story) {
+  const content = String(story?.content || "").trim();
+  const uploadedFileName = /^[^/\\]{1,180}\.(?:avif|gif|heic|jpe?g|png|webp|m4v|mov|mp4|webm)$/i.test(content);
+  if (content && !uploadedFileName) return content;
+  return story?.mediaType === "video" ? "Video Story" : "Photo Story";
+}
+
 function openStoryViewer(story) {
   let viewer = document.getElementById("storyViewer");
   if (!viewer) {
@@ -697,9 +704,9 @@ function openStoryViewer(story) {
   const media = document.createElement(story.mediaType === "video" ? "video" : "img");
   media.src = story.mediaUrl;
   if (story.mediaType === "video") { media.controls = true; media.autoplay = true; media.muted = true; media.playsInline = true; }
-  else media.alt = story.content || "DanzStak Story";
+  else media.alt = storyDisplayCaption(story);
   mediaBox.appendChild(media);
-  viewer.querySelector(".story-viewer-caption").textContent = story.content || "Story";
+  viewer.querySelector(".story-viewer-caption").textContent = storyDisplayCaption(story);
   storyViewerPreviousFocus = document.activeElement;
   viewer.showModal();
   viewer.querySelector(".story-viewer-close").focus();
@@ -717,18 +724,18 @@ async function loadStories() {
       const item = document.createElement("article");
       item.className = "story";
       item.dataset.storyId = story.storyId;
-      item.title = story.content;
+      item.title = storyDisplayCaption(story);
       const open = document.createElement("button");
       open.type = "button";
       open.className = "story-open";
       const storyAuthor = story.displayName || "DanzStak member";
-      open.setAttribute("aria-label", "Open Story from " + storyAuthor + ": " + story.content);
+      open.setAttribute("aria-label", "Open Story from " + storyAuthor + ": " + storyDisplayCaption(story));
       const storyCopy = document.createElement("span");
       storyCopy.className = "story-card-copy";
       const author = document.createElement("strong");
       const caption = document.createElement("small");
       author.textContent = storyAuthor;
-      caption.textContent = story.content || (story.mediaType === "video" ? "Video Story" : "Photo Story");
+      caption.textContent = storyDisplayCaption(story);
       storyCopy.append(author, caption);
       open.appendChild(storyCopy);
       if (story.mediaType === "image" && story.mediaUrl) {
