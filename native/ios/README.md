@@ -14,3 +14,12 @@ swiftc -swift-version 5 DanzStak/APIClient.swift DanzStak/SessionStore.swift Tes
 ```
 
 These checks exercise mocked HTTP responses and transport errors. They do not replace an iOS simulator build or interactive login, Keychain, and device-signing validation in full Xcode.
+
+To compile the simulator app with Xcode 26.3, even before a simulator runtime is installed, run from this directory:
+
+```sh
+xcodegen generate
+xcodebuild -project DanzStak.xcodeproj -target DanzStak -configuration Debug -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO build
+```
+
+The project uses Swift 5 language mode (not a Swift compiler version such as 5.10). Xcode installer archives under the source directory are excluded from the app bundle. To launch and exercise the app, also install an iOS simulator runtime in Xcode's Components settings, choose an iPhone simulator, and run the DanzStak scheme. A successful SDK build alone does not validate interactive authentication or signing on an iPhone.

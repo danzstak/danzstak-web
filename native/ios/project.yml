@@ -7,7 +7,11 @@ targets:
   DanzStak:
     type: application
     platform: iOS
-    sources: [DanzStak]
+    sources:
+      - path: DanzStak
+        excludes:
+          - "**/*.dmg"
+          - "**/*.xip"
     info:
       path: DanzStak/Info.plist
       properties:
@@ -24,6 +28,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.danzstak.app
         PRODUCT_NAME: DanzStak
-        SWIFT_VERSION: "5.10"
+        SWIFT_VERSION: "5"
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1,2"
