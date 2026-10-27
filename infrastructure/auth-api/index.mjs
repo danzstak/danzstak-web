@@ -1798,19 +1798,11 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, BiasPosition: point.position, MaxResults: 20, AdditionalFeatures: ["Contact"] }));
     return (result.ResultItems || []).map(publicPlace);
   };
-  const genreQuery = genre ? `${genre} music club` : "DIY punk metal rock music club";
-  const alternateQueries = ["independent live music venue", "punk rock bar live music", "small concert venue", "local band music club"];
-  const alternateQuery = alternateQueries[Math.abs(variation) % alternateQueries.length];
-  const [genreVenues, musicVenues, liveBars, clubs, hotelResults] = await Promise.all([search(genreQuery), search(alternateQuery), search("bar with live music"), search("music club"), search("hotel")]);
+  const hotelResults = await search("hotel");
   const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
-  const seen = new Set(), discoveredVenues = [...genreVenues, ...musicVenues, ...liveBars, ...clubs]
-    .filter(place => nearby(place, 50) && isBookableClub(place, genre) && hasBookingContact(place) && !excludedVenueKeys.has(place.venueKey))
-    .filter(place => { const key = (place.address || place.name).toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; })
-    .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre) || (left.distanceMiles ?? 9999) - (right.distanceMiles ?? 9999))
-    .slice(0, 18);
   const curatedPool = curatedVenueLeads(point, genre, variation);
   const curated = curatedPool.filter(place => !excludedVenueKeys.has(place.venueKey));
-  const venues = curatedPool.length ? curated.slice(0, 6) : discoveredVenues;
+  const venues = curatedPool.length ? curated.slice(0, 6) : [];
   const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }
