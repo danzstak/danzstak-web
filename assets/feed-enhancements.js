@@ -1148,6 +1148,7 @@ function closeNotificationDrawer(restoreFocus = true) {
     control.setAttribute("aria-expanded", "false");
     control.setAttribute("aria-pressed", "false");
   });
+  if (location.hash.toLowerCase() === "#notifications") history.replaceState(null, "", location.pathname + location.search);
   if (restoreFocus) (notificationDrawerPreviousFocus || notificationControls[0])?.focus({ preventScroll: true });
   notificationDrawerPreviousFocus = null;
   return true;

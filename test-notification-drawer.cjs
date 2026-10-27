@@ -12,6 +12,7 @@ assert.match(source, /event\.key === "Escape"[\s\S]*?closeNotificationDrawer\(\)
 assert.match(source, /messageDrawer[\s\S]*?message-drawer-close[\s\S]*?openNotificationDrawer/, "opening notifications closes Messages first");
 assert.match(source, /getElementById\("messagesNav"\)[\s\S]*?closeNotificationDrawer\(false\)/, "opening Messages closes Notifications first");
 assert.match(source, /notificationFeedView\.hidden = false/, "opening notifications preserves the feed");
+assert.match(source, /location\.hash\.toLowerCase\(\) === "#notifications"[\s\S]*?history\.replaceState/, "closing a legacy notification route prevents refresh from reopening it");
 assert.match(css, /\.notification-drawer\{position:fixed/, "the notification panel overlays rather than replaces the feed");
 assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-drawer\{top:58px;right:8px;left:8px/, "the drawer fits phone screens");
 
