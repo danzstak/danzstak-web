@@ -47,5 +47,12 @@ vm.runInContext(source.slice(helperStart, helperEnd), context);
     'const storyResponse = await fetchWithDeadline("https://api.danzstak.com/stories"'
   ]) assert.ok(source.includes(operation), `missing guarded operation: ${operation}`);
   assert.doesNotMatch(source, /await fetch\("https:\/\/api\.danzstak\.com\/stories/);
+  assert.match(source, /await fetchWithDeadline\("https:\/\/api\.danzstak\.com\/news\?interest=/);
+  assert.match(source, /await fetchWithDeadline\("https:\/\/api\.danzstak\.com" \+ path/);
+  assert.match(source, /fetchWithDeadline\("https:\/\/api\.danzstak\.com\/profiles\?member=/);
+  assert.match(source, /if \(version !== newsLoadVersion\) return/);
+  assert.match(source, /button\.textContent = "Working…"/);
+  const rawCalls = [...source.matchAll(/\bfetch\(/g)];
+  assert.equal(rawCalls.length, 1, 'only the bounded request helper may call fetch directly');
   console.log('Feed network checks passed: story and media operations recover from stalls and large uploads receive adaptive time.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

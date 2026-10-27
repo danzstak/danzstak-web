@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-uJsTMNXhjIwY5vdah4qMym5jeRVaMpzCjd8xQIpSwZI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-taYqTj19qhHE8i11kS7boJBidvw7IhNqTMtLHmizjE8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -422,7 +422,9 @@ const featureView = document.getElementById("featureView");
 const featureTitle = document.getElementById("featureTitle");
 const featureDescription = document.getElementById("featureDescription");
 
+let newsLoadVersion = 0;
 async function loadInterestNews() {
+  const version = ++newsLoadVersion;
   const select = document.getElementById("newsInterest"), container = document.getElementById("interestNews");
   if (!select || !container) return;
   const allowed = ["music", "top", "entertainment", "technology", "sports", "business"];
@@ -430,9 +432,10 @@ async function loadInterestNews() {
   if (allowed.includes(saved)) select.value = saved;
   container.innerHTML = '<p class="muted">Loading news…</p>';
   try {
-    const response = await fetch("https://api.danzstak.com/news?interest=" + encodeURIComponent(select.value), { credentials: "include", cache: "no-store" });
+    const response = await fetchWithDeadline("https://api.danzstak.com/news?interest=" + encodeURIComponent(select.value), { credentials: "include", cache: "no-store" });
     if (!response.ok) throw new Error();
     const data = await response.json();
+    if (version !== newsLoadVersion) return;
     container.replaceChildren();
     for (const item of (data.items || []).slice(0, 6)) {
       const link = document.createElement("a"); link.className = "news-card"; link.href = item.url; link.target = "_blank"; link.rel = "noopener noreferrer";
@@ -441,7 +444,7 @@ async function loadInterestNews() {
       link.append(title, source); container.appendChild(link);
     }
     if (!container.children.length) container.innerHTML = '<p class="muted">No headlines available right now.</p>';
-  } catch { container.innerHTML = '<p class="muted">News is temporarily unavailable.</p>'; }
+  } catch { if (version === newsLoadVersion) container.innerHTML = '<p class="muted">News is temporarily unavailable.</p>'; }
 }
 document.getElementById("newsInterest")?.addEventListener("change", event => { localStorage.setItem("danzstak-news-interest", event.target.value); loadInterestNews(); });
 document.getElementById("addNewsInterest")?.addEventListener("click", () => {
@@ -524,9 +527,9 @@ async function loadOnlineUsers() {
         action.setAttribute("aria-label", user.friendStatus === "friends" ? "Message " + displayName : "Message " + displayName + " from your group");
         action.addEventListener("click", () => openMessageDrawer(user.email));
       }
-      else if (user.friendStatus === "incoming") { action.type = "button"; action.textContent = "Accept"; action.setAttribute("aria-label", "Accept friend request from " + displayName); action.addEventListener("click", async () => { await updateFeedFriend("/friends/respond", { email: user.email, accept: true }); }); }
+      else if (user.friendStatus === "incoming") { action.type = "button"; action.textContent = "Accept"; action.setAttribute("aria-label", "Accept friend request from " + displayName); action.addEventListener("click", async () => { await updateFeedFriend("/friends/respond", { email: user.email, accept: true }, action); }); }
       else if (user.friendStatus === "outgoing") { action.type = "button"; action.textContent = "Requested"; action.setAttribute("aria-label", "Friend request sent to " + displayName); action.disabled = true; }
-      else { action.type = "button"; action.textContent = "Add Friend"; action.setAttribute("aria-label", "Send friend request to " + displayName); action.addEventListener("click", async () => { await updateFeedFriend("/friends/request", { email: user.email }); }); }
+      else { action.type = "button"; action.textContent = "Add Friend"; action.setAttribute("aria-label", "Send friend request to " + displayName); action.addEventListener("click", async () => { await updateFeedFriend("/friends/request", { email: user.email }, action); }); }
       row.append(name, action); container.appendChild(row);
     }
   } catch {
@@ -535,9 +538,18 @@ async function loadOnlineUsers() {
   }
 }
 
-async function updateFeedFriend(path, body) {
-  const response = await fetch("https://api.danzstak.com" + path, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
-  if (response.ok) { loadOnlineUsers(); loadFriends(); }
+async function updateFeedFriend(path, body, button) {
+  const originalLabel = button?.textContent || "";
+  if (button) { button.disabled = true; button.textContent = "Working…"; }
+  try {
+    const response = await fetchWithDeadline("https://api.danzstak.com" + path, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Friend request could not be updated.");
+    await Promise.allSettled([loadOnlineUsers(), loadFriends()]);
+  } catch (error) {
+    alert(error.message || "Friend request could not be updated.");
+    if (button?.isConnected) { button.disabled = false; button.textContent = originalLabel; }
+  }
 }
 
 async function loadFriends() {
@@ -1193,7 +1205,7 @@ if (requestedMessageContact) {
 }
 const requestedMessageMember = new URLSearchParams(location.search).get("messageMember")?.trim().toLowerCase() || "";
 if (/^[a-f0-9-]{36}$/.test(requestedMessageMember)) {
-  fetch("https://api.danzstak.com/profiles?member=" + encodeURIComponent(requestedMessageMember), { credentials: "include", cache: "no-store" })
+  fetchWithDeadline("https://api.danzstak.com/profiles?member=" + encodeURIComponent(requestedMessageMember), { credentials: "include", cache: "no-store" })
     .then(response => response.ok ? response.json() : Promise.reject(new Error("Contact unavailable")))
     .then(data => { if (data.profile?.email) openMessageDrawer(data.profile.email); })
     .catch(() => null)
