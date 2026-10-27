@@ -16,7 +16,20 @@
 
   const drawn = new L.FeatureGroup().addTo(map);
   const venueMarkers = new L.FeatureGroup().addTo(map);
+  const selectedVenues = new Map();
+  const selectionCount = document.getElementById("selectedVenueCount");
+  const openSelections = document.getElementById("openVenueSelections");
   let searchBounds = null;
+
+  function venueIdentity(place) {
+    return String(place.venueKey || `${place.name || ""}|${place.address || ""}`);
+  }
+
+  function updateSelectionUi() {
+    const count = selectedVenues.size;
+    selectionCount.textContent = `${count} club${count === 1 ? "" : "s"} selected`;
+    openSelections.disabled = count === 0;
+  }
 
   map.addControl(new L.Control.Draw({
     position: "topright",
@@ -61,6 +74,19 @@
       link.textContent = "Venue / booking website";
       box.append(link);
     }
+    const select = document.createElement("button");
+    const key = venueIdentity(place);
+    const sync = () => { select.textContent = selectedVenues.has(key) ? "Remove from booking list" : "Add to booking list"; };
+    select.type = "button";
+    select.className = "map-select-venue";
+    select.addEventListener("click", () => {
+      if (selectedVenues.has(key)) selectedVenues.delete(key);
+      else selectedVenues.set(key, place);
+      sync();
+      updateSelectionUi();
+    });
+    sync();
+    box.append(select);
     return box;
   }
 
@@ -100,6 +126,12 @@
   };
 
   window.addEventListener("resize", () => map.invalidateSize());
+  openSelections.addEventListener("click", () => {
+    if (!selectedVenues.size) return;
+    sessionStorage.setItem("danzstakBookingVenueSelections", JSON.stringify([...selectedVenues.values()]));
+    window.location.assign("booking-selections.html");
+  });
+  updateSelectionUi();
   document.addEventListener("DOMContentLoaded", () => {
     const mode = document.getElementById("bookingMode");
     if (mode) {
