@@ -2013,13 +2013,26 @@ function renderPersistentComment(post, comment) {
   updateCommentPreview(post);
 }
 
+async function engagementFetch(path, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(`${engagementApi}${path}`, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error("DanzStak is taking too long to update this post. Try again.");
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function loadEngagement(post) {
   const postId = engagementPostId(post);
   if (!postId || post.dataset.engagementLoaded === "true") return;
   const version = post.dataset.engagementVersion || "0";
   post.dataset.engagementLoaded = "true";
   try {
-    const response = await fetch(`${engagementApi}/engagement?postId=${encodeURIComponent(postId)}`, { credentials: "include", cache: "no-store" });
+    const response = await engagementFetch(`/engagement?postId=${encodeURIComponent(postId)}`, { credentials: "include", cache: "no-store" });
     if (!response.ok) { if (version === (post.dataset.engagementVersion || "0")) post.dataset.engagementLoaded = ""; return; }
     const data = await response.json();
     if (version !== (post.dataset.engagementVersion || "0")) return;
@@ -2038,7 +2051,7 @@ async function saveReaction(post, reaction, commentId = "") {
   if (!postId) return;
   const previous = pendingReactionSaves.get(post) || Promise.resolve();
   const pending = previous.catch(() => {}).then(async () => {
-    const response = await fetch(`${engagementApi}/reactions`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, reaction, ...(commentId ? {commentId} : {}) }) });
+    const response = await engagementFetch("/reactions", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, reaction, ...(commentId ? {commentId} : {}) }) });
     if (!response.ok) throw new Error("Reaction could not be saved");
     post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
     post.dataset.engagementLoaded = "";
@@ -2054,7 +2067,7 @@ async function saveComment(post, input) {
   if (!postId || !content) return;
   input.disabled = true;
   try {
-    const response = await fetch(`${engagementApi}/comments`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, content }) });
+    const response = await engagementFetch("/comments", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, content }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Comment could not be saved");
     post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
@@ -2079,7 +2092,7 @@ function addCommentDelete(comment) {
     const post = comment.closest(".post"), postId = engagementPostId(post), commentId = comment.dataset.commentId;
     if (postId && commentId) {
       button.disabled = true;
-      const response = await fetch(`${engagementApi}/comments/${encodeURIComponent(commentId)}?postId=${encodeURIComponent(postId)}`, { method: "DELETE", credentials: "include" }).catch(() => null);
+      const response = await engagementFetch(`/comments/${encodeURIComponent(commentId)}?postId=${encodeURIComponent(postId)}`, { method: "DELETE", credentials: "include" }).catch(() => null);
       if (!response?.ok) { button.disabled = false; alert("Comment could not be deleted."); return; }
       post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
       post.dataset.engagementLoaded = "";

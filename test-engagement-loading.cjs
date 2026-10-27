@@ -10,7 +10,7 @@ const input = { value: 'My new comment', disabled: false, focus() {} };
 const context = vm.createContext({ post, input, engagementApi: 'https://api.danzstak.com',
   engagementPostId: () => 'post-1', setReactionAppearance() {}, updateCommentPreview() {}, alert: message => { throw new Error(message); },
   renderPersistentComment: (_, comment) => { if (!comments.some(item => item.commentId === comment.commentId)) comments.push(comment); },
-  fetch: () => new Promise((resolve, reject) => requests.push({ resolve, reject })) });
+  engagementFetch: () => new Promise((resolve, reject) => requests.push({ resolve, reject })) });
 vm.runInContext(code, context);
 const resolve = async (index, data) => { requests[index].resolve({ ok: true, json: async () => data }); await new Promise(done => setImmediate(done)); };
 (async () => {

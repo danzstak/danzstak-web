@@ -6,7 +6,7 @@ const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf
 const code = source.slice(source.indexOf('const pendingReactionSaves = new WeakMap();'), source.indexOf('async function saveComment(post, input)'));
 const requests = [], saved = [];
 const context = vm.createContext({ post: { dataset: {} }, engagementApi: 'https://api.danzstak.com', engagementPostId: () => 'p1', loadEngagement: async () => {},
-  fetch: (_, options) => new Promise(resolve => requests.push({ reaction: JSON.parse(options.body).reaction, resolve })) });
+  engagementFetch: (_, options) => new Promise(resolve => requests.push({ reaction: JSON.parse(options.body).reaction, resolve })) });
 vm.runInContext(code, context);
 const tick = () => new Promise(resolve => setImmediate(resolve));
 (async () => {
