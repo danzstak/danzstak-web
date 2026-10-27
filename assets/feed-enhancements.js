@@ -1135,9 +1135,64 @@ const desktopMenuQuery = matchMedia("(min-width: 701px)");
 const closeMobileMenuOnDesktop = event => { if (event.matches) setMobileMenu(false); };
 if (desktopMenuQuery.addEventListener) desktopMenuQuery.addEventListener("change", closeMobileMenuOnDesktop);
 else desktopMenuQuery.addListener(closeMobileMenuOnDesktop);
+let notificationDrawerPreviousFocus = null;
+let notificationDrawer = null;
+const notificationFeedView = document.getElementById("newsFeedView");
+
+function closeNotificationDrawer(restoreFocus = true) {
+  if (!notificationDrawer || notificationDrawer.hidden) return false;
+  notificationDrawer.hidden = true;
+  featurePanel.hidden = true;
+  notificationFeedView.before(featurePanel);
+  notificationControls.forEach(control => {
+    control.setAttribute("aria-expanded", "false");
+    control.setAttribute("aria-pressed", "false");
+  });
+  if (restoreFocus) (notificationDrawerPreviousFocus || notificationControls[0])?.focus({ preventScroll: true });
+  notificationDrawerPreviousFocus = null;
+  return true;
+}
+
+function openNotificationDrawer(opener) {
+  document.getElementById("messageDrawer")?.querySelector(".message-drawer-close")?.click();
+  setMobileMenu(false);
+  document.body.classList.remove("content-only");
+  notificationFeedView.hidden = false;
+  if (!notificationDrawer) {
+    notificationDrawer = document.createElement("section");
+    notificationDrawer.id = "notificationDrawer";
+    notificationDrawer.className = "notification-drawer";
+    notificationDrawer.setAttribute("role", "dialog");
+    notificationDrawer.setAttribute("aria-label", "Notifications");
+    notificationDrawer.innerHTML = '<div class="notification-drawer-bar"><strong>Notifications</strong><button type="button" class="notification-drawer-close" aria-label="Close notifications">×</button></div><div class="notification-drawer-content"></div>';
+    notificationDrawer.querySelector(".notification-drawer-close").addEventListener("click", () => closeNotificationDrawer());
+    notificationDrawer.addEventListener("keydown", event => {
+      if (event.key === "Escape") { event.preventDefault(); closeNotificationDrawer(); }
+    });
+    document.body.appendChild(notificationDrawer);
+  }
+  notificationDrawerPreviousFocus = opener || document.activeElement;
+  featureHeading.textContent = "Notifications";
+  featurePanel.dataset.workspaceName = "Notifications";
+  featurePanel.hidden = false;
+  notificationDrawer.querySelector(".notification-drawer-content").appendChild(featurePanel);
+  notificationDrawer.hidden = false;
+  notificationControls.forEach(control => {
+    control.setAttribute("aria-expanded", "true");
+    control.setAttribute("aria-pressed", "true");
+  });
+  renderWorkspace("Notifications");
+  requestAnimationFrame(() => notificationDrawer.querySelector(".notification-drawer-close")?.focus({ preventScroll: true }));
+}
+
 function openWorkspaceRoute(name, pushHistory = true) {
   if (!workspaceRoutes.has(String(name).toLowerCase())) return false;
   const canonicalName = workspaceRoutes.get(String(name).toLowerCase());
+  if (canonicalName === "Notifications") {
+    openNotificationDrawer(notificationControls[0]);
+    return true;
+  }
+  if (typeof closeNotificationDrawer === "function") closeNotificationDrawer(false);
   document.body.classList.add("content-only");
   const homeControl = document.querySelector('[data-route="home"]');
   homeControl?.removeAttribute("aria-current");
@@ -1168,9 +1223,16 @@ document.querySelectorAll("[data-feature]").forEach(control => {
   control.addEventListener("click", event => {
     if (!workspaceRoutes.has(name.toLowerCase())) return;
     event.preventDefault();
+    if (name === "Notifications" && !notificationDrawer?.hidden) {
+      closeNotificationDrawer();
+      return;
+    }
     openWorkspaceRoute(name);
   });
 });
+
+document.querySelector('[data-route="home"]')?.addEventListener("click", () => closeNotificationDrawer(false), { capture: true });
+document.getElementById("messagesNav")?.addEventListener("click", () => closeNotificationDrawer(false), { capture: true });
 
 function restoreWorkspaceRoute() {
   const name = workspaceRoutes.get(location.hash.slice(1).toLowerCase());
