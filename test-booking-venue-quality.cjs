@@ -32,5 +32,8 @@ const client = fs.readFileSync("assets/booking-agent.js", "utf8");
 assert.match(client, /Search again for different clubs/);
 assert.match(client, /excludeVenueKeys/);
 assert.match(client, /variation:\s*searchVariation/);
+assert.match(api, /name: "Public Works"[\s\S]*categories: \["Nightclub", "DJ", "Electronic"\]/);
+assert.match(api, /name: "1015 Folsom"[\s\S]*"House", "Techno"/);
+assert.doesNotMatch(api, /name: "Kilowatt"[^\n]+categories: \[[^\]]*"DJ"/);
 
 console.log("Booking venue checks passed: positive music-room evidence is required and repeat searches request a different batch.");

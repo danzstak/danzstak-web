@@ -1758,7 +1758,7 @@ async function geocodeTourPlace(query) {
 
 const verifiedSanFranciscoRooms = [
   { name: "The Knockout", address: "3223 Mission St, San Francisco, CA 94110", position: [-122.4198, 37.7456], websites: ["https://theknockoutsf.com/events-2-1"], emails: ["knockoutsfbooking@gmail.com"], phones: [], categories: ["Live Music Venue", "Punk", "Rock", "Metal"] },
-  { name: "Kilowatt", address: "3160 16th St, San Francisco, CA 94103", position: [-122.4235, 37.7643], websites: ["https://kilowattbar.com/"], emails: ["kilowatt@kilowattbar.com"], phones: ["415-861-2595"], categories: ["Live Music Venue", "Punk", "Rock", "DJ"] },
+  { name: "Kilowatt", address: "3160 16th St, San Francisco, CA 94103", position: [-122.4235, 37.7643], websites: ["https://kilowattbar.com/"], emails: ["kilowatt@kilowattbar.com"], phones: ["415-861-2595"], categories: ["Live Music Venue", "Punk", "Rock"] },
   { name: "Bottom of the Hill", address: "1233 17th St, San Francisco, CA 94107", position: [-122.3951, 37.7651], websites: ["https://www.bottomofthehill.com/bookingAB.html"], emails: ["booking@bottomofthehill.com"], phones: [], categories: ["Live Music Venue", "Punk", "Rock", "Metal"] },
   { name: "Hotel Utah Saloon", address: "500 4th St, San Francisco, CA 94107", position: [-122.3976, 37.7795], websites: ["https://hotelutah.com/utah-booking-request/"], emails: [], phones: ["415-546-6300"], categories: ["Live Music Venue", "Punk", "Rock", "Hardcore"] },
   { name: "Brick & Mortar Music Hall", address: "1710 Mission St, San Francisco, CA 94103", position: [-122.4198, 37.7693], websites: ["https://www.brickandmortarmusic.com/contact/"], emails: ["booking@brickandmortarmusic.org"], phones: [], categories: ["Music Venue", "Rock", "Metal", "Hip-Hop"] },
@@ -1767,8 +1767,12 @@ const verifiedSanFranciscoRooms = [
   { name: "Rickshaw Stop", address: "155 Fell St, San Francisco, CA 94102", position: [-122.4200, 37.7756], websites: ["https://rickshawstop.com/contact/"], emails: ["info@rickshawstop.com"], phones: ["415-861-2011"], categories: ["Music Venue", "Rock", "Electronic"] },
   { name: "The Chapel", address: "777 Valencia St, San Francisco, CA 94110", position: [-122.4212, 37.7605], websites: ["https://thechapelsf.com/contact/"], emails: ["booking@thechapelsf.com"], phones: ["415-551-5157"], categories: ["Music Venue", "Rock"] },
   { name: "Lucky Horseshoe", address: "453 Cortland Ave, San Francisco, CA 94110", position: [-122.4160, 37.7390], websites: ["https://www.theluckyhorseshoebar.com/band-info"], emails: [], phones: [], categories: ["Live Music Venue", "Rock"] },
-  { name: "Music City San Francisco", address: "1355 Bush St, San Francisco, CA 94109", position: [-122.4196, 37.7886], websites: ["https://musiccitysf.com/mcsf-venue/"], emails: ["info@musiccitysf.org"], phones: ["415-816-6207"], categories: ["DIY Music Venue", "Punk", "Rock", "DJ", "Hip-Hop"] },
-  { name: "Tupelo", address: "1337 Grant Ave, San Francisco, CA 94133", position: [-122.4071, 37.7994], websites: ["https://tupelosf.com/"], emails: ["tupelosf@gmail.com"], phones: ["415-981-9177"], categories: ["Live Music Venue", "Rock"] }
+  { name: "Music City San Francisco", address: "1355 Bush St, San Francisco, CA 94109", position: [-122.4196, 37.7886], websites: ["https://musiccitysf.com/mcsf-venue/"], emails: ["info@musiccitysf.org"], phones: ["415-816-6207"], categories: ["DIY Music Venue", "Punk", "Rock", "Hip-Hop"] },
+  { name: "Tupelo", address: "1337 Grant Ave, San Francisco, CA 94133", position: [-122.4071, 37.7994], websites: ["https://tupelosf.com/"], emails: ["tupelosf@gmail.com"], phones: ["415-981-9177"], categories: ["Live Music Venue", "Rock"] },
+  { name: "Public Works", address: "161 Erie St, San Francisco, CA 94103", position: [-122.4192, 37.7682], websites: ["https://publicsf.com/booking/"], emails: [], phones: [], categories: ["Nightclub", "DJ", "Electronic"] },
+  { name: "Monarch", address: "101 6th St, San Francisco, CA 94103", position: [-122.4091, 37.7804], websites: ["https://www.monarchsf.com/contact-us"], emails: ["info@monarchsf.com"], phones: [], categories: ["Nightclub", "DJ", "Electronic"] },
+  { name: "1015 Folsom", address: "1015 Folsom St, San Francisco, CA 94103", position: [-122.4059, 37.7781], websites: ["https://1015.com/venue-rental/"], emails: ["josh@1015.com"], phones: [], categories: ["Nightclub", "DJ", "Electronic", "House", "Techno"] },
+  { name: "The Midway", address: "900 Marin St, San Francisco, CA 94124", position: [-122.3866, 37.7491], websites: ["https://themidwaysf.com/connect/contact/"], emails: ["brendan@themidwaysf.com"], phones: ["831-239-2435"], categories: ["Music Venue", "DJ", "Electronic"] }
 ];
 
 function verifiedVenueKey(place) {
