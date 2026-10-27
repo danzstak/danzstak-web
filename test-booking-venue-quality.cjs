@@ -37,6 +37,9 @@ assert.match(api, /name: "1015 Folsom"[\s\S]*"House", "Techno"/);
 assert.match(api, /name: "Audio SF"[\s\S]*"House", "Techno"/);
 assert.doesNotMatch(api, /name: "Kilowatt"[^\n]+categories: \[[^\]]*"DJ"/);
 assert.match(client, /seenVenueKeys/);
+assert.match(client, /https:\/\/www\.google\.com\/maps\/search\/\?api=1/);
+assert.match(client, /Navigate full route in Google Maps/);
+assert.match(client, /https:\/\/maps\.apple\.com/);
 assert.match(api, /const venues = curatedPool\.length \? curated\.slice\(0, 6\) : \[\]/);
 
 console.log("Booking venue checks passed: positive music-room evidence is required and repeat searches request a different batch.");
