@@ -3,12 +3,14 @@ package com.danzstak.app
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.BitmapFactory
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.*
+import java.net.URL
 import java.security.MessageDigest
 import java.security.SecureRandom
 
@@ -37,12 +39,12 @@ class MainActivity : Activity() {
     private fun buildUi() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(14), dp(16), dp(12))
+            setPadding(dp(14), dp(8), dp(14), dp(10))
             setBackgroundColor(Color.rgb(244, 246, 249))
         }
         val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         header.addView(TextView(this).apply {
-            text = "DanzStak"; textSize = 25f; setTextColor(Color.rgb(25, 32, 45)); setTypeface(typeface, Typeface.BOLD)
+            text = "DanzStak"; textSize = 20f; setTextColor(Color.rgb(25, 32, 45)); setTypeface(typeface, Typeface.BOLD)
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         login = Button(this).apply { setOnClickListener { if (store.get("session") == null) startLogin() else signOut() } }
         header.addView(login)
@@ -103,9 +105,40 @@ class MainActivity : Activity() {
                     setBackgroundColor(Color.WHITE)
                     addView(TextView(this@MainActivity).apply { text = post.author; textSize = 17f; setTypeface(typeface, Typeface.BOLD) })
                     addView(TextView(this@MainActivity).apply { text = post.text; textSize = 16f; setPadding(0, dp(8), 0, dp(6)) })
+                    addPostMedia(this, post)
                     addView(TextView(this@MainActivity).apply { text = post.createdAt; textSize = 12f; setTextColor(Color.DKGRAY) })
                 }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(0, 0, 0, dp(10)) })
             }
+        }
+    }
+
+    private fun addPostMedia(card: LinearLayout, post: FeedPost) {
+        if (post.mediaUrl.isBlank()) return
+        if (post.mediaType == "image") {
+            val image = ImageView(this).apply {
+                adjustViewBounds = true
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                setBackgroundColor(Color.rgb(12, 17, 27))
+                contentDescription = "Photo shared by ${post.author}"
+            }
+            card.addView(image, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(8)
+            })
+            Thread {
+                val bitmap = runCatching { URL(post.mediaUrl).openStream().use(BitmapFactory::decodeStream) }.getOrNull()
+                if (bitmap != null) runOnUiThread { image.setImageBitmap(bitmap) }
+            }.start()
+        } else if (post.mediaType == "video") {
+            val video = VideoView(this).apply {
+                setVideoURI(Uri.parse(post.mediaUrl))
+                setMediaController(MediaController(this@MainActivity).also { it.setAnchorView(this) })
+                setOnPreparedListener { player -> player.isLooping = false }
+            }
+            card.addView(video, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(240)).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(8)
+            })
         }
     }
 

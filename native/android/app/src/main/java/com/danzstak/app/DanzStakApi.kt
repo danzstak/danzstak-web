@@ -4,7 +4,13 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class FeedPost(val author: String, val text: String, val createdAt: String)
+data class FeedPost(
+    val author: String,
+    val text: String,
+    val createdAt: String,
+    val mediaUrl: String,
+    val mediaType: String
+)
 
 class DanzStakApi(private val session: () -> String?) {
     private val base = "https://api.danzstak.com"
@@ -25,7 +31,9 @@ class DanzStakApi(private val session: () -> String?) {
             FeedPost(
                 item.optString("authorName", "DanzStak Member"),
                 item.optString("text", item.optString("content")),
-                item.optString("createdAt")
+                item.optString("createdAt"),
+                item.optString("mediaUrl"),
+                item.optString("mediaType")
             )
         }
     }
