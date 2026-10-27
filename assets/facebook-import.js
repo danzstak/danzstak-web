@@ -4,7 +4,9 @@
   let dialog=null,activeWorker=null,loaded=null,running=false,stopping=false,changed=false,trigger=null;
   const selected=new Set(),profileFields=new Set();
   function node(tag,text,className){const el=document.createElement(tag);if(text)el.textContent=text;if(className)el.className=className;return el;}
-  async function request(path,body){const response=await fetch(API+path,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||(response.status===401?'Your session expired. Sign in again before importing.':'The import could not be saved. You can retry safely.'));return data;}
+  async function importFetch(url,options={},timeoutMs=15000){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);try{return await fetch(url,{...options,signal:controller.signal});}catch(error){if(error?.name==='AbortError')throw Error('The import took too long. Completed items are kept; check your connection and retry.');throw error;}finally{clearTimeout(timer);}}
+  function importUploadDeadline(byteLength){return Math.max(120000,Math.ceil((Number(byteLength)||0)/(64*1024))*1000);}
+  async function request(path,body){const response=await importFetch(API+path,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||(response.status===401?'Your session expired. Sign in again before importing.':'The import could not be saved. You can retry safely.'));return data;}
   async function digest(text){return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))].map(x=>x.toString(16).padStart(2,'0')).join('');}
   function build(){
     dialog=node('dialog',null,'facebook-import-dialog');dialog.setAttribute('aria-labelledby','facebookImportTitle');
@@ -57,7 +59,7 @@
     if(!item.mediaPath)return {};
     const file=loaded.media.find(m=>m.name===item.mediaPath);if(!file||file.bytes.byteLength>100*1024*1024)throw Error('A selected media file is missing or larger than 100 MB. Clear that item and retry.');
     const ticket=await request('/stories',{contentType:file.type,purpose:'post'});
-    const uploaded=await fetch(ticket.uploadUrl,{method:'PUT',headers:{'Content-Type':file.type},body:new Blob([file.bytes],{type:file.type})});if(!uploaded.ok)throw Error('Media upload failed. Completed imports are kept; retry when the connection is stable.');
+    const uploaded=await importFetch(ticket.uploadUrl,{method:'PUT',headers:{'Content-Type':file.type},body:new Blob([file.bytes],{type:file.type})},importUploadDeadline(file.bytes.byteLength));if(!uploaded.ok)throw Error('Media upload failed. Completed imports are kept; retry when the connection is stable.');
     return {mediaKey:ticket.mediaKey,mediaType:file.type.startsWith('video/')?'video':'image'};
   }
   async function run(){
