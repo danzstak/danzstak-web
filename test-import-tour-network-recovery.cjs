@@ -33,6 +33,6 @@ function abortHarness(source, startText, endText, expression) {
   const booking=readFileSync('assets/booking-agent.js','utf8');
   const tourResult=await abortHarness(booking,'async function toursRequest','function showSavedTours','toursRequest("/tours")');
   assert.match(tourResult.error.message,/tour service took too long/i);assert.equal(tourResult.cleared,true);
-  assert.match(booking,/signal:controller\.signal/);
+  assert.match(booking,/signal:\s*controller\.signal/);
   console.log('Import and tour network checks passed: API and media operations time out safely with adaptive upload time.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

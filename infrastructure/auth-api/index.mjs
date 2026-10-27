@@ -1667,9 +1667,12 @@ function publicPlace(place) {
   const emails = (place.Contacts?.Emails || []).map(item => String(item.Value || "").trim().toLowerCase()).filter(value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)).slice(0, 2);
   const phones = (place.Contacts?.Phones || []).map(item => String(item.Value || "").trim()).filter(value => /^\+?[0-9 ()-]{7,24}$/.test(value)).slice(0, 2);
   const categories = (place.Categories || []).map(item => String(item.LocalizedName || item.Name || item.Id || "").trim()).filter(Boolean).slice(0, 8);
+  const name = String(place.Title || "Venue").slice(0, 160);
+  const address = String(place.Address?.Label || "").slice(0, 300);
   return {
-    name: String(place.Title || "Venue").slice(0, 160),
-    address: String(place.Address?.Label || "").slice(0, 300),
+    venueKey: createHash("sha256").update(`${name.toLowerCase()}|${address.toLowerCase()}`).digest("hex").slice(0, 20),
+    name,
+    address,
     locality: String(place.Address?.Locality || place.Address?.District || "").slice(0, 120),
     position: Array.isArray(place.Position) ? place.Position.slice(0, 2) : [],
     distanceMiles: Number.isFinite(place.Distance) ? Math.round(place.Distance / 160.934) / 10 : null,
@@ -1684,10 +1687,27 @@ function publicPlace(place) {
 function isBookableClub(place, genre = "") {
   const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
   const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|symphony|orchestra|opera house|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
-  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|studio|event consultant|entertainment consultant|event planner|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé])\b/;
-  const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival office|jazzfest|walking tour|history tour|guided tour)\b/;
+  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|orchestra|ensemble|workshop|clinic|promoter|promotion|productions?|entertainment company|event consultant|entertainment consultant|event planner|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|music store|record store|instrument store|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|government|office)\b/;
+  const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival|festival office|jazzfest|walking tour|history tour|guided tour)\b/;
   const selectedGenre = genre.toLowerCase(), wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
-  return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre;
+  const strongVenue = /\b(live music|music venue|rock club|punk club|metal club|night ?club|concert venue|concert hall)\b/.test(description);
+  const plausibleRoom = /\b(club|bar|pub|tavern|lounge|music hall|social hall|taproom|brewery|roadhouse)\b/.test(description);
+  const musicSignal = /\b(music|concert|live|rock|punk|metal|electronic|dj|hip[- ]?hop|jazz)\b/.test(description);
+  return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre && (strongVenue || (plausibleRoom && musicSignal));
+}
+
+function venueSuitability(place, genre = "") {
+  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
+  let score = 0;
+  if (/\b(live music|music venue|rock club|punk club|metal club|concert venue)\b/.test(description)) score += 12;
+  if (/\b(club|bar|pub|tavern|lounge|music hall|taproom|brewery|roadhouse)\b/.test(description)) score += 5;
+  if (/\b(independent|diy|all ages|punk|metal|rock)\b/.test(description)) score += 4;
+  const genreWords = genre.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 2 && !["electronic", "classical", "other"].includes(word));
+  if (genreWords.some(word => description.includes(word))) score += 5;
+  if (place.emails?.length) score += 3;
+  if (place.websites?.length) score += 2;
+  if (place.phones?.length) score += 1;
+  return score;
 }
 
 function hasBookingContact(place) {
@@ -1736,15 +1756,53 @@ async function geocodeTourPlace(query) {
   return { label: String(place.Title || query).slice(0, 160), position: place.Position.slice(0, 2) };
 }
 
-async function tourCandidates(point, genre = "") {
+const verifiedSanFranciscoRooms = [
+  { name: "The Knockout", address: "3223 Mission St, San Francisco, CA 94110", position: [-122.4198, 37.7456], websites: ["https://theknockoutsf.com/events-2-1"], emails: ["knockoutsfbooking@gmail.com"], phones: [], categories: ["Live Music Venue", "Punk", "Rock", "Metal"] },
+  { name: "Kilowatt", address: "3160 16th St, San Francisco, CA 94103", position: [-122.4235, 37.7643], websites: ["https://kilowattbar.com/"], emails: ["kilowatt@kilowattbar.com"], phones: ["415-861-2595"], categories: ["Live Music Venue", "Punk", "Rock", "DJ"] },
+  { name: "Bottom of the Hill", address: "1233 17th St, San Francisco, CA 94107", position: [-122.3951, 37.7651], websites: ["https://www.bottomofthehill.com/bookingAB.html"], emails: ["booking@bottomofthehill.com"], phones: [], categories: ["Live Music Venue", "Punk", "Rock", "Metal"] },
+  { name: "Hotel Utah Saloon", address: "500 4th St, San Francisco, CA 94107", position: [-122.3976, 37.7795], websites: ["https://hotelutah.com/utah-booking-request/"], emails: [], phones: ["415-546-6300"], categories: ["Live Music Venue", "Punk", "Rock", "Hardcore"] },
+  { name: "Brick & Mortar Music Hall", address: "1710 Mission St, San Francisco, CA 94103", position: [-122.4198, 37.7693], websites: ["https://www.brickandmortarmusic.com/contact/"], emails: ["booking@brickandmortarmusic.org"], phones: [], categories: ["Music Venue", "Rock", "Metal", "Hip-Hop"] },
+  { name: "Neck of the Woods", address: "406 Clement St, San Francisco, CA 94118", position: [-122.4631, 37.7830], websites: ["https://www.neckofthewoodssf.com/faq/page/4/"], emails: ["booking@neckofthewoodssf.com"], phones: [], categories: ["Live Music Venue", "Punk", "Rock", "Metal", "Hip-Hop"] },
+  { name: "Thee Parkside", address: "1600 17th St, San Francisco, CA 94107", position: [-122.4014, 37.7652], websites: ["https://www.theeparkside.com/"], emails: [], phones: ["415-252-1330"], categories: ["Live Music Venue", "Punk", "Rock"] },
+  { name: "Rickshaw Stop", address: "155 Fell St, San Francisco, CA 94102", position: [-122.4200, 37.7756], websites: ["https://rickshawstop.com/contact/"], emails: ["info@rickshawstop.com"], phones: ["415-861-2011"], categories: ["Music Venue", "Rock", "Electronic"] },
+  { name: "The Chapel", address: "777 Valencia St, San Francisco, CA 94110", position: [-122.4212, 37.7605], websites: ["https://thechapelsf.com/contact/"], emails: ["booking@thechapelsf.com"], phones: ["415-551-5157"], categories: ["Music Venue", "Rock"] },
+  { name: "Lucky Horseshoe", address: "453 Cortland Ave, San Francisco, CA 94110", position: [-122.4160, 37.7390], websites: ["https://www.theluckyhorseshoebar.com/band-info"], emails: [], phones: [], categories: ["Live Music Venue", "Rock"] },
+  { name: "Music City San Francisco", address: "1355 Bush St, San Francisco, CA 94109", position: [-122.4196, 37.7886], websites: ["https://musiccitysf.com/mcsf-venue/"], emails: ["info@musiccitysf.org"], phones: ["415-816-6207"], categories: ["DIY Music Venue", "Punk", "Rock", "DJ", "Hip-Hop"] },
+  { name: "Tupelo", address: "1337 Grant Ave, San Francisco, CA 94133", position: [-122.4071, 37.7994], websites: ["https://tupelosf.com/"], emails: ["tupelosf@gmail.com"], phones: ["415-981-9177"], categories: ["Live Music Venue", "Rock"] }
+];
+
+function verifiedVenueKey(place) {
+  return createHash("sha256").update(`${place.name.toLowerCase()}|${place.address.toLowerCase()}`).digest("hex").slice(0, 20);
+}
+
+function curatedVenueLeads(point, genre = "", variation = 0) {
+  const [longitude, latitude] = point.position || [];
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude) || latitude < 37.68 || latitude > 37.86 || longitude < -122.55 || longitude > -122.32) return [];
+  const wanted = genre.toLowerCase();
+  const genreTerms = wanted.includes("punk") ? ["punk", "diy"] : wanted.includes("metal") ? ["metal"] : wanted.includes("rock") ? ["rock"] : wanted.includes("dj") || wanted.includes("electronic") ? ["dj", "electronic"] : wanted.includes("hip-hop") ? ["hip-hop"] : [];
+  if (!genreTerms.length) return [];
+  const matches = verifiedSanFranciscoRooms.filter(place => genreTerms.some(term => place.categories.some(category => category.toLowerCase().includes(term))));
+  const offset = matches.length ? variation % matches.length : 0;
+  return [...matches.slice(offset), ...matches.slice(0, offset)].map(place => ({ ...place, venueKey: verifiedVenueKey(place), locality: "San Francisco", distanceMiles: null, contactVerificationRequired: true, verifiedRoom: true }));
+}
+
+async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), variation = 0) {
   const search = async query => {
     const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, BiasPosition: point.position, MaxResults: 20, AdditionalFeatures: ["Contact"] }));
     return (result.ResultItems || []).map(publicPlace);
   };
   const genreQuery = genre ? `${genre} music club` : "DIY punk metal rock music club";
-  const [genreVenues, musicVenues, liveBars, clubs, hotelResults] = await Promise.all([search(genreQuery), search("live music venue"), search("bar with live music"), search("music club"), search("hotel")]);
+  const alternateQueries = ["independent live music venue", "punk rock bar live music", "small concert venue", "local band music club"];
+  const alternateQuery = alternateQueries[Math.abs(variation) % alternateQueries.length];
+  const [genreVenues, musicVenues, liveBars, clubs, hotelResults] = await Promise.all([search(genreQuery), search(alternateQuery), search("bar with live music"), search("music club"), search("hotel")]);
   const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
-  const seen = new Set(), venues = [...genreVenues, ...musicVenues, ...liveBars, ...clubs].filter(place => nearby(place, 50) && isBookableClub(place, genre) && hasBookingContact(place)).filter(place => { const key = (place.address || place.name).toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; }).slice(0, 30);
+  const seen = new Set(), discoveredVenues = [...genreVenues, ...musicVenues, ...liveBars, ...clubs]
+    .filter(place => nearby(place, 50) && isBookableClub(place, genre) && hasBookingContact(place) && !excludedVenueKeys.has(place.venueKey))
+    .filter(place => { const key = (place.address || place.name).toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; })
+    .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre) || (left.distanceMiles ?? 9999) - (right.distanceMiles ?? 9999))
+    .slice(0, 18);
+  const curated = curatedVenueLeads(point, genre, variation).filter(place => !excludedVenueKeys.has(place.venueKey));
+  const venues = curated.length ? curated.slice(0, 6) : discoveredVenues;
   const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }
@@ -1757,6 +1815,8 @@ async function planTourRoute(event) {
   const data = parseJsonBody(event);
   if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
   const cleanPlace = value => String(value || "").trim();
+  const excludedVenueKeys = new Set((Array.isArray(data.excludeVenueKeys) ? data.excludeVenueKeys : []).slice(0, 120).map(value => String(value || "").trim()).filter(value => /^[a-f0-9]{20}$/.test(value)));
+  const variation = Math.max(0, Math.min(1000, Math.trunc(Number(data.variation) || 0)));
   const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), genre = cleanPlace(data.genre).slice(0, 80), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), requestedDepartOn = cleanPlace(data.departOn), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), suppliedStops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [], suppliedEnd = local || directional ? start : cleanPlace(data.end), end = suppliedEnd || suppliedStops.at(-1) || "", stops = suppliedEnd ? suppliedStops : suppliedStops.slice(0, -1);
   if (directional && (!tourDirections.has(direction) || !requestedDays)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a travel direction and provide 1–180 tour days." }) };
   if ((requestedDepartOn && !/^\d{4}-\d{2}-\d{2}$/.test(requestedDepartOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour dates must use YYYY-MM-DD." }) };
@@ -1764,7 +1824,7 @@ async function planTourRoute(event) {
   if (start.length < 2 || start.length > 120 || end.length < 2 || end.length > 120 || stops.length > 8 || stops.some(stop => stop.length > 120)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Provide a home or starting city, a destination for tours, and no more than eight valid stops." }) };
   try {
     if (local) {
-      const point = await geocodeTourPlace(start), candidates = await tourCandidates(point, genre);
+      const point = await geocodeTourPlace(start), candidates = await tourCandidates(point, genre, excludedVenueKeys, variation);
       if (requestedDepartOn) candidates.proposedDate = requestedDepartOn;
       return { statusCode: 200, headers, body: JSON.stringify({ route: { start: point, end: point, stops: [], distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, requestedDays, departOn: requestedDepartOn, returnBy, provider: "Amazon Location Service", planningOnly: true, local: true }, candidates: [candidates] }) };
     }
@@ -1784,7 +1844,7 @@ async function planTourRoute(event) {
     }
     const summary = route?.Routes?.[0]?.Summary;
     if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
-    const markets = points.slice(1, -1), selected = markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]), candidates = await Promise.all(selected.map(point => tourCandidates(point, genre)));
+    const markets = points.slice(1, -1), selected = markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]), candidates = await Promise.all(selected.map(point => tourCandidates(point, genre, excludedVenueKeys, variation)));
     const distanceMiles = Math.round(Number(summary.Distance || 0) / 1609.344), durationHours = Math.round(Number(summary.Duration || 0) / 360) / 10;
     const minimumDrivingDays = Math.max(1, Math.ceil(durationHours / 8));
     if (directional && minimumDrivingDays >= requestedDays) return { statusCode: 422, headers, body: JSON.stringify({ error: `That ${direction} loop needs at least ${minimumDrivingDays} full driving days. Add days or choose a shorter direction-based plan.` }) };
