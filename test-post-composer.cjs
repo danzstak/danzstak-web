@@ -7,7 +7,7 @@ const context=vm.createContext({
   publishBtn:{addEventListener:(_,fn)=>handler=fn},postText:{value:'First post'},postAudience:{value:'public'},
   shareToStory:{checked:false,dataset:{}},shareToReels:{checked:false},document:{getElementById:()=>checkbox},
   window:{danzstakSelectedMedia:null,dispatchEvent:()=>{}},CustomEvent:class {},API_URL:'/secure-posts',
-  fetch:()=>new Promise(resolve=>resolveSave=resolve),feed:{prepend:()=>{}},createPostElement:()=>({}),
+  fetchWithDeadline:()=>new Promise(resolve=>resolveSave=resolve),feed:{prepend:()=>{}},createPostElement:()=>({}),
   feedStatus:{},console:{log:()=>{},error:()=>{}},alert:()=>{},discardUploadedMedia:async()=>{}
 });
 vm.runInContext(code,context);
