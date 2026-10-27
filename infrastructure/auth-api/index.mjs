@@ -1778,19 +1778,38 @@ const verifiedSanFranciscoRooms = [
   { name: "Halcyon", address: "314 11th St, San Francisco, CA 94103", position: [-122.4137, 37.7718], websites: ["https://halcyon-sf.com/main/contact/"], emails: [], phones: [], categories: ["Nightclub", "DJ", "Electronic", "House", "Techno"] }
 ];
 
+const verifiedPortlandRooms = [
+  { name: "Hawthorne Theatre", address: "1507 SE 39th Ave, Portland, OR 97214", position: [-122.6223, 45.5119], websites: ["https://hawthornetheatre.com/booking/"], emails: [], phones: [], categories: ["Live Music Venue", "Punk", "Rock", "Metal", "Hip-Hop"] },
+  { name: "Kelly's Olympian", address: "426 SW Washington St, Portland, OR 97204", position: [-122.6748, 45.5202], websites: ["https://kellysolympian.com/"], emails: ["bookings@kellysolympian.com"], phones: ["503-228-3669"], categories: ["Live Music Venue", "Punk", "Rock", "Metal"] },
+  { name: "Turn! Turn! Turn!", address: "8 NE Killingsworth St, Portland, OR 97211", position: [-122.6666, 45.5628], websites: ["https://turnturnturnpdx.com/booking/"], emails: ["turnturnturnpdx.booking@gmail.com"], phones: [], categories: ["DIY Music Venue", "Punk", "Rock"] },
+  { name: "The Goodfoot", address: "2845 SE Stark St, Portland, OR 97214", position: [-122.6358, 45.5191], websites: ["https://thegoodfoot.com/contact/"], emails: ["neil@thegoodfoot.com"], phones: ["503-239-9292"], categories: ["Live Music Venue", "Rock", "DJ", "Electronic"] },
+  { name: "The Get Down", address: "680 SE 6th Ave, Portland, OR 97214", position: [-122.6598, 45.5179], websites: ["https://thegetdownpdx.com/contact"], emails: ["booking@thegetdownpdx.com"], phones: [], categories: ["Live Music Venue", "Rock", "DJ", "Electronic", "Hip-Hop"] },
+  { name: "Revival Patio", address: "6716 SE 16th Ave, Portland, OR 97202", position: [-122.6489, 45.4744], websites: ["https://bibleclubpdx.com/revival-patio"], emails: ["musicbooking@pdxrevival.com"], phones: [], categories: ["Live Music Venue", "Rock", "DJ", "Electronic"] },
+  { name: "Polaris Hall", address: "635 N Killingsworth Ct, Portland, OR 97217", position: [-122.6745, 45.5625], websites: ["https://polarishall.com/contact"], emails: [], phones: [], categories: ["Independent Music Venue", "Punk", "Rock"] },
+  { name: "Haymaker", address: "1233 N Killingsworth St, Portland, OR 97217", position: [-122.6839, 45.5625], websites: ["https://www.haymakerportland.com/"], emails: ["haymakermusicbooking@gmail.com"], phones: ["971-871-5429"], categories: ["Live Music Venue", "Punk", "Rock"] }
+];
+
 function verifiedVenueKey(place) {
   return createHash("sha256").update(`${place.name.toLowerCase()}|${place.address.toLowerCase()}`).digest("hex").slice(0, 20);
 }
 
 function curatedVenueLeads(point, genre = "", variation = 0) {
   const [longitude, latitude] = point.position || [];
-  if (!Number.isFinite(longitude) || !Number.isFinite(latitude) || latitude < 37.68 || latitude > 37.86 || longitude < -122.55 || longitude > -122.32) return [];
+  if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return [];
+  let rooms = [], locality = "";
+  if (latitude >= 37.68 && latitude <= 37.86 && longitude >= -122.55 && longitude <= -122.32) {
+    rooms = verifiedSanFranciscoRooms;
+    locality = "San Francisco";
+  } else if (latitude >= 45.40 && latitude <= 45.65 && longitude >= -122.85 && longitude <= -122.45) {
+    rooms = verifiedPortlandRooms;
+    locality = "Portland";
+  } else return [];
   const wanted = genre.toLowerCase();
   const genreTerms = wanted.includes("punk") ? ["punk", "diy"] : wanted.includes("metal") ? ["metal"] : wanted.includes("rock") ? ["rock"] : wanted.includes("dj") || wanted.includes("electronic") ? ["dj", "electronic"] : wanted.includes("hip-hop") ? ["hip-hop"] : [];
   if (!genreTerms.length) return [];
-  const matches = verifiedSanFranciscoRooms.filter(place => genreTerms.some(term => place.categories.some(category => category.toLowerCase().includes(term))));
+  const matches = rooms.filter(place => genreTerms.some(term => place.categories.some(category => category.toLowerCase().includes(term))));
   const offset = matches.length ? variation % matches.length : 0;
-  return [...matches.slice(offset), ...matches.slice(0, offset)].map(place => ({ ...place, venueKey: verifiedVenueKey(place), locality: "San Francisco", distanceMiles: null, contactVerificationRequired: true, verifiedRoom: true }));
+  return [...matches.slice(offset), ...matches.slice(0, offset)].map(place => ({ ...place, venueKey: verifiedVenueKey(place), locality, distanceMiles: null, contactVerificationRequired: true, verifiedRoom: true }));
 }
 
 async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), variation = 0) {
