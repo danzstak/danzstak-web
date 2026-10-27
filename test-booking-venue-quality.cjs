@@ -26,6 +26,7 @@ assert.equal(isBookableClub({ name: "Clusterfest", categories: ["Festival"] }, "
 assert.equal(isBookableClub({ name: "SFJAZZ Center", categories: ["Jazz Workshop"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "PDE", categories: ["Orchestra"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "Musicians Entrance", categories: ["San Francisco Symphony", "Orchestra Facility"] }, "Rock"), false);
+assert.equal(isBookableClub({ name: "Club Passport", categories: ["Passport Service", "Government Office"] }, "DJ / Electronic"), false);
 
 const client = fs.readFileSync("assets/booking-agent.js", "utf8");
 assert.match(client, /Search again for different clubs/);
