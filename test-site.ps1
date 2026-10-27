@@ -38,7 +38,7 @@ $homeMarkup = Get-Content -LiteralPath (Join-Path $root 'index.html') -Raw -Enco
 if (-not $homeMarkup.Contains('.hero-logo{display:block;width:min(520px,100%)')) {
   Add-Failure 'Homepage: hero logo can overflow its padded mobile container'
 }
-foreach ($appInstallControl in @('data-app-platform="android"', 'data-app-platform="apple"', 'Install DanzStak on Android', 'Install DanzStak on iPhone or iPad', 'assets/app-downloads.js?v=')) {
+foreach ($appInstallControl in @('data-app-platform="android"', 'data-app-platform="apple"', 'downloads/danzstak-android-test.apk', 'Download test build', 'Install DanzStak on iPhone or iPad', 'assets/app-downloads.js?v=')) {
   if (-not $homeMarkup.Contains($appInstallControl)) { Add-Failure "Homepage: branded app-install choice is missing: $appInstallControl" }
 }
 if (-not $homeMarkup.Contains('.app-downloads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))')) {

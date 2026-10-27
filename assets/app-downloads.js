@@ -18,6 +18,7 @@ function openInstallHelp(platform) {
 
 document.querySelectorAll("[data-app-platform]").forEach(link => {
   link.addEventListener("click", event => {
+    if (link.dataset.appPlatform === "android") return;
     event.preventDefault();
     openInstallHelp(link.dataset.appPlatform);
   });
