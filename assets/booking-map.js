@@ -9,9 +9,10 @@
   }
 
   const map = L.map(mapElement, { zoomControl: true }).setView([39.5, -98.35], 4);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
     maxZoom: 19,
-    attribution: "&copy; OpenStreetMap contributors"
+    subdomains: "abcd",
+    attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
   }).addTo(map);
 
   const drawn = new L.FeatureGroup().addTo(map);
