@@ -30,12 +30,8 @@
       integrity="sha256-p4NxAoJBhIINfQ3ynh17D9Nl55gHKTCeAq1G/nDqww="
       crossorigin="anonymous"
     />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
-    />
     <link rel="stylesheet" href="assets/booking-agent.css?v=311" />
-    <link rel="stylesheet" href="assets/booking-agent-driver.css?v=312" />
+    <link rel="stylesheet" href="assets/booking-agent-driver.css?v=313" />
   </head>
   <body>
     <header>
@@ -52,10 +48,28 @@
         <p class="eyebrow">DanzStak Booking Agent</p>
         <h1>Find the clubs. Book the route.</h1>
         <p>
-          Enter your act, music style, and home city. Pan or zoom to any city or
-          region and press Search this area. Drawing a precise boundary is
-          optional on computers.
+          Enter your act and home town. Then search the map or draw the route
+          you want to travel.
         </p>
+      </section>
+      <section class="booking-start" aria-labelledby="bookingStartTitle">
+        <h2 id="bookingStartTitle">Start here</h2>
+        <div class="two booking-start-fields">
+          <label
+            >Act name<input
+              id="bandName"
+              form="tourForm"
+              required
+              maxlength="100"
+              placeholder="Your band, DJ, or artist name" /></label
+          ><label
+            >Home town<input
+              id="startCity"
+              form="tourForm"
+              required
+              placeholder="Where are you starting from?" /></label
+        </div>
+        <p class="hint">That is all you need to start looking for clubs.</p>
       </section>
       <section class="booking-map-panel" aria-labelledby="venueMapTitle">
         <div class="map-heading">
@@ -64,6 +78,9 @@
             <h2 id="venueMapTitle">Search where you want to play</h2>
           </div>
           <div class="map-actions">
+            <button type="button" id="drawVenueRoute" class="secondary">
+              <span aria-hidden="true">✎</span> Draw a route</button
+            >
             <button
               type="button"
               id="searchVisibleVenueArea"
@@ -76,8 +93,8 @@
           </div>
         </div>
         <p id="venueMapStatus">
-          Enter a home city and search, or pan and zoom the map to a city or
-          region and press Search this area. Drawing is optional on computers.
+          Pan and zoom to a city or region and press Search this area, or press
+          Draw a route and tap the places you want to travel through.
         </p>
         <div
           id="venueSearchMap"
@@ -98,7 +115,7 @@
       <section class="planner-grid">
         <form id="tourForm" class="planner" autocomplete="off">
           <fieldset>
-            <legend>1. Start with your act and hometown</legend>
+            <legend>1. Tell us what you play</legend>
             <div class="two">
               <label
                 >Performer type<select id="performerType">
@@ -111,12 +128,6 @@
                   </option>
                   <option value="ensemble">Orchestra / ensemble</option>
                 </select></label
-              ><label
-                >Act name<input
-                  id="bandName"
-                  required
-                  maxlength="100"
-                  placeholder="Band, DJ, or artist name" /></label
               ><label
                 >Music style / genre<select id="musicGenre">
                   <option>DIY Punk</option>
@@ -132,14 +143,8 @@
             </div>
             <div class="two">
               <label
-                >Starting city<input
-                  id="startCity"
-                  required
-                  placeholder="Your hometown" /></label
-              ><label
                 >Ending city<input
                   id="endCity"
-                  required
                   placeholder="Optional turnaround city"
               /></label>
             </div>
@@ -621,11 +626,7 @@
       crossorigin="anonymous"
       defer
     ></script>
-    <script
-      src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"
-      defer
-    ></script>
-    <script src="assets/booking-map.js?v=312" defer></script>
+    <script src="assets/booking-map.js?v=313" defer></script>
     <script src="assets/session-activity.js?v=270" defer></script>
     <script src="assets/logout.js?v=308" defer></script>
     <script src="assets/booking-agent.js?v=312" defer></script>

@@ -72,7 +72,10 @@ const deduped = deduplicateVenues([
 assert.equal(deduped.length, 1, "minor name/address variations must not create duplicate venue leads");
 assert.deepEqual(Array.from(deduped[0].emails), ["book@test.example"]);
 const mapClient = fs.readFileSync("assets/booking-map.js", "utf8");
-assert.match(mapClient, /new L\.Control\.Draw/);
+assert.match(mapClient, /mapElement\.dataset\.mapInitialized/);
+assert.match(mapClient, /drawRouteButton/);
+assert.match(mapClient, /L\.polyline\(routePoints/);
+assert.match(mapClient, /ResizeObserver/);
 assert.match(mapClient, /body\.searchBounds = searchBounds/);
 assert.match(mapClient, /venueMarkers/);
 assert.match(mapClient, /searchVisibleVenueArea/);

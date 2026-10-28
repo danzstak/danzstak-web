@@ -5,12 +5,14 @@
   const mapElement = document.getElementById("venueSearchMap");
   const searchAreaButton = document.getElementById("searchVisibleVenueArea");
   const clearAreaButton = document.getElementById("clearVenueArea");
+  const drawRouteButton = document.getElementById("drawVenueRoute");
   if (!status || !mapElement || !searchAreaButton || !window.L) {
     if (status) status.textContent = "The venue map could not load. Refresh and try again.";
     return;
   }
 
-  const isTouch = window.matchMedia?.("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+  if (mapElement.dataset.mapInitialized === "true") return;
+  mapElement.dataset.mapInitialized = "true";
   const map = L.map(mapElement, {
     zoomControl: true,
     tap: true,
@@ -30,6 +32,10 @@
   const openSelections = document.getElementById("openVenueSelections");
   let searchBounds = null;
   let searchScope = "city";
+  let drawingRoute = false;
+  let routePoints = [];
+  let routePreview = null;
+  let drawPointerStart = null;
 
   const venueIdentity = place => String(place.venueKey || `${place.name || ""}|${place.address || ""}`);
   const boundsPayload = bounds => ({
@@ -42,16 +48,6 @@
     if (openSelections) openSelections.disabled = count === 0;
   }
 
-  // Precise drawing remains available with a mouse. Touch users pan and zoom,
-  // then press Search this area instead of fighting small drawing handles.
-  if (!isTouch && L.Control.Draw) {
-    map.addControl(new L.Control.Draw({
-      position: "topright",
-      draw: { polyline: false, circle: false, circlemarker: false, marker: false, rectangle: true, polygon: { allowIntersection: false } },
-      edit: { featureGroup: drawn, edit: false, remove: true }
-    }));
-  }
-
   function useBounds(bounds, scope) {
     searchBounds = boundsPayload(bounds);
     searchScope = scope;
@@ -60,17 +56,53 @@
       : "Map area selected. Press Search this area to find clubs visible on the map.";
   }
 
-  map.on(L.Draw?.Event?.CREATED || "draw:created", event => {
-    drawn.clearLayers();
-    drawn.addLayer(event.layer);
-    useBounds(event.layer.getBounds(), "drawn");
-  });
-  map.on(L.Draw?.Event?.DELETED || "draw:deleted", () => {
-    if (!drawn.getLayers().length) {
-      searchBounds = null;
-      searchScope = "city";
-      status.textContent = "Pan or zoom to a city or region, then press Search this area.";
+  function finishRouteDrawing() {
+    if (routePoints.length >= 2) {
+      drawn.clearLayers();
+      routePreview = L.polyline(routePoints, { color: "#1769e0", weight: 5 }).addTo(drawn);
+      useBounds(routePreview.getBounds(), "drawn");
+      map.fitBounds(routePreview.getBounds(), { padding: [24, 24] });
+    } else {
+      status.textContent = "Tap at least two places on the map to draw your route.";
     }
+    drawingRoute = false;
+    routePoints = [];
+    drawRouteButton?.setAttribute("aria-pressed", "false");
+    if (drawRouteButton) drawRouteButton.innerHTML = '<span aria-hidden="true">✎</span> Draw a route';
+    document.querySelector(".booking-map-panel")?.classList.remove("is-drawing");
+    map.dragging.enable();
+    map.touchZoom.enable();
+  }
+  drawRouteButton?.addEventListener("click", () => {
+    if (drawingRoute) {
+      finishRouteDrawing();
+      return;
+    }
+    drawingRoute = true;
+    routePoints = [];
+    drawn.clearLayers();
+    routePreview = null;
+    drawRouteButton.setAttribute("aria-pressed", "true");
+    drawRouteButton.textContent = "Finish route";
+    document.querySelector(".booking-map-panel")?.classList.add("is-drawing");
+    map.dragging.disable();
+    map.touchZoom.disable();
+    status.textContent = "Tap points on the map along your route, then press Finish route.";
+  });
+  function addRoutePoint(latlng) {
+    routePoints.push(latlng);
+    if (routePreview) drawn.removeLayer(routePreview);
+    routePreview = L.polyline(routePoints, { color: "#1769e0", weight: 5 }).addTo(drawn);
+    status.textContent = `${routePoints.length} route point${routePoints.length === 1 ? "" : "s"} added. Keep tapping, then press Finish route.`;
+  }
+  mapElement.addEventListener("pointerdown", event => {
+    if (drawingRoute) drawPointerStart = { x: event.clientX, y: event.clientY };
+  });
+  mapElement.addEventListener("pointerup", event => {
+    if (!drawingRoute || !drawPointerStart) return;
+    const distance = Math.hypot(event.clientX - drawPointerStart.x, event.clientY - drawPointerStart.y);
+    drawPointerStart = null;
+    if (distance <= 14) addRoutePoint(map.mouseEventToLatLng(event));
   });
   map.on("moveend zoomend", () => {
     if (searchScope !== "drawn") {
@@ -81,6 +113,7 @@
   });
 
   clearAreaButton?.addEventListener("click", () => {
+    if (drawingRoute) finishRouteDrawing();
     drawn.clearLayers();
     searchBounds = null;
     searchScope = "city";
@@ -194,7 +227,13 @@
     return response;
   };
 
-  window.addEventListener("resize", () => map.invalidateSize());
+  const resizeMap = () => window.requestAnimationFrame(() => map.invalidateSize());
+  window.addEventListener("resize", resizeMap);
+  window.addEventListener("orientationchange", resizeMap);
+  window.addEventListener("pageshow", resizeMap);
+  if (window.ResizeObserver) new ResizeObserver(resizeMap).observe(mapElement);
+  window.setTimeout(resizeMap, 100);
+  window.setTimeout(resizeMap, 500);
   openSelections?.addEventListener("click", () => {
     if (!selectedVenues.size) return;
     sessionStorage.setItem("danzstakBookingVenueSelections", JSON.stringify([...selectedVenues.values()]));
