@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const html = fs.readFileSync("booking.html", "utf8");
 const agent = fs.readFileSync("assets/booking-agent.js", "utf8");
 const map = fs.readFileSync("assets/booking-map.js", "utf8");
+const mapCss = fs.readFileSync("assets/booking-agent-driver.css", "utf8");
 
 assert.match(html, /assets\/booking-agent\.js\?v=314/, "the repaired Booking Agent must bypass prior browser caches");
 assert.match(agent, /const routeFieldset = \$\("tourForm"\)\.querySelector\("fieldset"\)/, "route controls must use the planner fieldset after Act and Home move above the form");
@@ -17,5 +18,8 @@ assert.match(map, /L\.DomUtil\.create\("button", "map-draw-control"/, "the map m
 assert.match(map, /map\.invalidateSize\(\{ animate: false, pan: false \}\)/, "responsive map resizing must not leave a stale tile grid");
 assert.match(map, /baseTiles\.redraw\(\)/, "map tiles must redraw after responsive resizing");
 assert.match(map, /new IntersectionObserver/, "the map must repair its tile grid when it becomes visible");
+assert.doesNotMatch(html, /href="https:\/\/unpkg\.com\/leaflet[^"]+\.css"/, "map positioning must not depend on a third-party stylesheet");
+assert.match(mapCss, /\.leaflet-pane,[^}]+position:absolute;left:0;top:0/, "local map CSS must position every tile pane");
+assert.match(mapCss, /\.leaflet-top,\.leaflet-bottom\{position:absolute;z-index:1000;pointer-events:none\}/, "local map CSS must anchor map controls over the tiles");
 
 console.log("Booking startup checks passed: moved Act/Home fields no longer crash route controls and map search has a stable action target.");
