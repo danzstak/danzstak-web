@@ -344,7 +344,7 @@ async function loadConversations() {
       copy.append(name, preview); button.append(avatarWrap, copy, time);
       button.addEventListener("click", () => { markChatRead(conversation.contactEmail, conversation.updatedAt || new Date().toISOString()); openConversation(conversation); });
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
-      for (const [label, targetId] of [["☎", "startPhone"], ["▣", "startVideo"]]) {
+      for (const [label, targetId] of [["📞", "startPhone"], ["📹", "startVideo"]]) {
         const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.textContent = label; call.title = `${targetId === "startPhone" ? "Phone" : "Video"} call with ${publicName}`; call.setAttribute("aria-label", call.title);
         call.disabled = conversation.canContact === false;
         call.addEventListener("click", () => { openConversation(conversation); document.getElementById(targetId)?.click(); });
