@@ -13,6 +13,7 @@ assert.match(feed, /event\.data\?\.type === "danzstak-chat-view"\) drawer\.class
 assert.match(messages, /aria-label="Phone call">📞<\/button>/, "conversation header exposes a recognizable phone action");
 assert.match(messages, /aria-label="Video call">📹<\/button>/, "conversation header exposes a recognizable video action");
 assert.match(directMessages, /\[\["📞", "startPhone"\], \["📹", "startVideo"\]\]/, "chat list call actions use the same recognizable icons");
-assert.match(chatCss, /\.message-form\{grid-template-columns:auto minmax\(0,1fr\) auto!important\}/, "emoji, message text, and send stay on one composer row");
+assert.match(chatCss, /\.message-form\{grid-template-columns:minmax\(0,1fr\) auto!important\}/, "message text and send stay on one composer row");
+assert.match(chatCss, /\.conversation-header-actions\{grid-column:3;grid-row:1\/3;align-self:center\}/, "call actions stay aligned beside the contact name and presence");
 
 console.log("Message drawer checks passed: feed popup, icon toggle, compact chat, and video-only full screen.");

@@ -58,6 +58,12 @@ body.is-conversation-open>.install-app-button,body.is-conversation-open>.app-upd
 .online-actions{align-items:center}.connection-status{padding:5px 3px;color:#667085;font-size:12px;font-weight:700}.dark-mode .connection-status{color:#b8c2d1}
 .online-user-email{display:flex;align-items:center;gap:5px}.online-user-dot{color:#8a94a3}.online-user.is-online .online-user-dot{color:#20b15a}
 
-/* Keep emoji, text and send on one row at every viewport. */
-.message-form{grid-template-columns:auto minmax(0,1fr) auto!important}
+/* Keep the text field and send action on one row; emoji choices open by long press. */
+.message-form{grid-template-columns:minmax(0,1fr) auto!important}
 .dark-mode .message.mine{background:#164f86;border-color:#2575ba;color:#f5f7fb}
+
+/* Avatar and actions span both name/status rows so the call controls never wrap below. */
+.conversation-avatar{grid-column:1;grid-row:1/3;align-self:center}
+#conversationName{grid-column:2;grid-row:1;align-self:end}
+.conversation-presence{grid-column:2;grid-row:2;align-self:start}
+.conversation-header-actions{grid-column:3;grid-row:1/3;align-self:center}
