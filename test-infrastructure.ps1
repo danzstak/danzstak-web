@@ -214,7 +214,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Embedded Lambda JavaScript syntax check failed
 
 $requiredMessagingProtections = @(
   "hiddenBefore = :deleted",
-  ".filter(x=>x.createdAt.S>hiddenBefore)",
+  "hiddenMessages=new Set(state.Item?.hiddenMessages?.SS||[])",
+  ".filter(x=>x.createdAt.S>hiddenBefore&&!hiddenMessages.has(x.messageId.S))",
   ".filter(x=>x.preview?.S)",
   "conversationUpdate(recipient,user.email,1)"
 )
