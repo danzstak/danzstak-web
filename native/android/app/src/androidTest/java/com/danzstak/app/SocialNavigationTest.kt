@@ -101,6 +101,28 @@ class SocialNavigationTest {
         assertTrue(device.hasObject(By.text("Videos")))
         assertFalse(device.hasObject(By.textContains("Header size")))
     }
+    @Test fun chatOptionsAndMultiMessageCopy() {
+        device.findObject(By.desc("Messages")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Jamie Rivera")), 5000)); device.findObject(By.text("Jamie Rivera")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Message")), 5000))
+        for (text in listOf("First line to translate", "Second line to translate")) {
+            device.findObject(By.desc("Message")).text = text; device.findObject(By.desc("Send message")).click()
+            assertTrue(device.wait(Until.hasObject(By.text(text)), 5000))
+        }
+        device.findObject(By.desc("Chat options")).click()
+        for (label in listOf("View contact", "Search", "Media", "Mute", "Disappearing messages", "Select messages", "Delete chat")) assertTrue(device.wait(Until.hasObject(By.text(label)), 5000))
+        device.findObject(By.text("Select messages")).click()
+        device.findObject(By.text("First line to translate")).click(); device.findObject(By.text("Second line to translate")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("2 selected")), 5000)); device.findObject(By.text("Copy selected")).click()
+        var copied = ""
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { val context = InstrumentationRegistry.getInstrumentation().targetContext; copied = (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).primaryClip!!.getItemAt(0).coerceToText(context).toString() }
+        assertEquals("First line to translate\n\nSecond line to translate", copied)
+        device.findObject(By.text("Done")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Chat options")), 5000)); device.findObject(By.desc("Chat options")).click(); assertTrue(device.wait(Until.hasObject(By.text("Search")), 5000)); device.findObject(By.text("Search")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Search messages")), 5000)); device.findObject(By.desc("Search messages")).text = "First line"
+        device.findObject(By.res("android:id/button1")).click()
+        assertTrue(device.wait(Until.gone(By.text("Second line to translate")), 5000)); assertTrue(device.hasObject(By.text("First line to translate")))
+    }
     @Test fun chatMediaButtonsAreInsideTheInputBox() {
         device.findObject(By.desc("Messages")).click()
         assertTrue(device.wait(Until.hasObject(By.text("Jamie Rivera")), 5000))

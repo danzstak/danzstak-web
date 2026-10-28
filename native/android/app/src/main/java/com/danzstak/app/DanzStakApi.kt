@@ -70,6 +70,13 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
         } finally { connection.disconnect() }
         return ticket
     }
+    fun chatSettings(contact: String, muted: Boolean? = null, seconds: Int? = null): JSONObject {
+        val body = JSONObject().put("action", "settings").put("contactEmail", contact)
+        if (muted != null) body.put("muted", muted)
+        if (seconds != null) body.put("disappearingSeconds", seconds)
+        return request("/messages", "POST", body).getJSONObject("settings")
+    }
+    fun deleteChat(contact: String) { request("/messages/delete?contact=" + URLEncoder.encode(contact, "UTF-8"), "POST", JSONObject().put("removeSentMedia", true)) }
     fun sendMessage(contact: String, text: String, mediaKey: String = "", mediaType: String = ""): JSONObject = request("/messages", "POST", JSONObject().put("recipientEmail", contact).put("content", text).put("mediaKey", mediaKey).put("mediaType", mediaType)).getJSONObject("message")
     fun deleteMessage(contact: String, message: String, scope: String) { request("/messages", "POST", JSONObject().put("action", "delete").put("contactEmail", contact).put("messageId", message).put("scope", scope)) }
     fun editMessage(contact: String, message: String, text: String): JSONObject = request("/messages", "POST", JSONObject().put("action", "edit").put("contactEmail", contact).put("messageId", message).put("content", text)).getJSONObject("message")

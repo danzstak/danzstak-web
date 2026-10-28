@@ -175,6 +175,13 @@ struct APIClientChecks {
         precondition(upload.mediaType == "video")
         precondition(StubProtocol.requests.last?.httpMethod == "PUT")
         precondition(StubProtocol.requests.last?.value(forHTTPHeaderField: "Authorization") == nil)
+        StubProtocol.payload = #"{"settings":{"muted":true,"disappearingSeconds":86400}}"#
+        let chatPreferences = try await api.chatSettings(contact: "friend@example.com", muted: true, seconds: 86400)
+        precondition(chatPreferences.muted && chatPreferences.disappearingSeconds == 86400)
+        StubProtocol.payload = "{}"
+        try await api.deleteChat(contact: "friend+music@example.com")
+        let deleteBody = try JSONSerialization.jsonObject(with: StubProtocol.requests.last!.httpBody!) as! [String: Any]
+        precondition(deleteBody["removeSentMedia"] as? Bool == true)
         print("API checks passed: feed, sessions, recovery, exchange, publish, logout, engagement, query encoding, comments, reactions, groups, notices, HTTPS.")
     }
 }

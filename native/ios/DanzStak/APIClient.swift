@@ -245,6 +245,17 @@ struct APIClient {
         guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw URLError(.badServerResponse) }
         return ticket
     }
+    func chatSettings(contact: String, muted: Bool? = nil, seconds: Int? = nil) async throws -> ChatSettings {
+        struct Response: Decodable { let settings: ChatSettings }
+        var body: [String: Any] = ["action": "settings", "contactEmail": contact]
+        if let muted { body["muted"] = muted }; if let seconds { body["disappearingSeconds"] = seconds }
+        let result: Response = try await send("/messages", method: "POST", body: body)
+        return result.settings
+    }
+    func deleteChat(contact: String) async throws {
+        var components = URLComponents(); components.queryItems = [URLQueryItem(name: "contact", value: contact)]
+        let _: EmptyResponse = try await send("/messages/delete" + (components.string ?? ""), method: "POST", body: ["removeSentMedia": true])
+    }
     func sendMessage(to contact: String, text: String, mediaKey: String = "", mediaType: String = "") async throws -> ChatMessage {
         let result: SentChatMessage = try await send("/messages", method: "POST", body: ["recipientEmail": contact, "content": text, "mediaKey": mediaKey, "mediaType": mediaType])
         return result.message
@@ -318,6 +329,7 @@ struct ChatConversation: Decodable, Identifiable {
     var updatedAt = ""
     var unread = 0
     var canContact = true
+    var muted: Bool? = nil
     var id: String { contactEmail }
 }
 struct ChatContact: Decodable, Identifiable {
@@ -341,6 +353,7 @@ struct ChatMessage: Decodable, Identifiable {
     var myReaction: String? = nil
     var mediaType: String? = nil
     var mediaUrl: String? = nil
+    var expiresAt: Int? = nil
     var id: String { messageId }
 }
 struct ChatMessages: Decodable {
@@ -357,3 +370,5 @@ private struct SentChatMessage: Decodable { let message: ChatMessage }
 private final class MessageUploadRedirectGuard: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) { completionHandler(nil) }
 }
+
+struct ChatSettings: Decodable { let muted: Bool; let disappearingSeconds: Int }

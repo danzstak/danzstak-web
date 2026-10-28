@@ -86,6 +86,15 @@ class DanzStakApiTest {
         response = "{}"; api.reportGroup("default-6", "Review this")
         body = JSONObject(connection.body.toString("UTF-8")); assertEquals("group", body.getString("targetType")); assertEquals("default-6", body.getString("groupId"))
     }
+    @Test fun chatSettingsAndDeletionPreserveContactAndExplicitMediaChoice() {
+        lateinit var connection: Connection
+        var response = """{"settings":{"muted":true,"disappearingSeconds":86400}}"""
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 200, response).also { connection = it } }) { "opaque" }
+        assertTrue(api.chatSettings("friend@example.com", muted = true, seconds = 86400).getBoolean("muted"))
+        val settings = JSONObject(connection.body.toString("UTF-8")); assertEquals("settings", settings.getString("action")); assertEquals("friend@example.com", settings.getString("contactEmail"))
+        response = "{}"; api.deleteChat("friend+music@example.com")
+        assertTrue(JSONObject(connection.body.toString("UTF-8")).getBoolean("removeSentMedia")); assertEquals("contact=friend%2Bmusic%40example.com", connection.url.query)
+    }
     @Test fun attachmentUploadNeverSendsSessionToStorage() {
         val connections = mutableListOf<Connection>()
         val api = DanzStakApi(openConnection = { url -> Connection(url, 200, if (url.host == "api.danzstak.com") """{"uploadUrl":"https://media.s3.us-west-1.amazonaws.com/messages/test/file.mp4","mediaKey":"messages/test/file.mp4","mediaType":"video"}""" else "").also { connections.add(it) } }) { "opaque" }

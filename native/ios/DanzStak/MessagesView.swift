@@ -76,7 +76,7 @@ struct MessagesView: View {
                     ToolbarItem(placement: .topBarTrailing) { Button("New chat", systemImage: "square.and.pencil") { newChat = true }.accessibilityIdentifier("chats.new") }
                 }
                 .task { await chats.load() }.refreshable { await chats.load() }
-                .navigationDestination(item: $selected) { chat in ChatThreadView(chat: chat, isDemo: chats.isDemo).environmentObject(app) }
+                .navigationDestination(item: $selected) { chat in ChatThreadView(chat: chat, isDemo: chats.isDemo, onDeleted: { chats.conversations.removeAll { $0.id == chat.id } }).environmentObject(app) }
                 .sheet(isPresented: $newChat) {
                     NavigationStack {
                         List(chats.contacts) { contact in Button { newChat = false; selected = contact.conversation } label: { HStack { ChatAvatar(name: contact.name, picture: contact.picture); Text(contact.name).foregroundStyle(.primary) } } }
@@ -108,11 +108,13 @@ private struct ChatAvatar: View {
 }
 
 private struct ChatThreadView: View {
+    @Environment(\.dismiss) private var dismissThread
     @EnvironmentObject private var app: AppModel
     @Environment(\.scenePhase) private var phase
     let chat: ChatConversation
     let isDemo: Bool
     var forwardedDraft: String? = nil
+    var onDeleted: (() -> Void)? = nil
     @State private var actions: ChatMessage?
     @State private var pendingShare: ChatMessage?
     @State private var pendingForward: ChatMessage?
@@ -129,6 +131,19 @@ private struct ChatThreadView: View {
     @State private var nextCursor: String?
     @State private var canContact = true
     @State private var reactionTarget: ChatMessage?
+    @State private var selectedIDs: Set<String> = []
+    @State private var copyNotice = ""
+    @State private var selecting = false
+    @State private var searching = false
+    @State private var messageSearch = ""
+    @State private var showContact = false
+    @State private var showMedia = false
+    @State private var showTimer = false
+    @State private var confirmDeleteChat = false
+    @State private var muted = false
+    @State private var timer = 0
+    @State private var settingsReady = false
+    @State private var savingSettings = false
     @State private var cameraPresented = false
     @State private var attachmentItem: PhotosPickerItem?
     @State private var attachment: ChatPickedFile?
@@ -136,8 +151,10 @@ private struct ChatThreadView: View {
     @State private var sentAttachmentFiles: [URL] = []
     private let api = APIClient()
     private var draftKey: String { "danzstak.chatDraft.\(isDemo ? "preview" : "live").\(chat.id)" }
+    private var visibleMessages: [ChatMessage] { messages.filter { ($0.expiresAt ?? 0) == 0 || ($0.expiresAt ?? 0) > Int(Date().timeIntervalSince1970) }.filter { messageSearch.isEmpty || $0.content.localizedCaseInsensitiveContains(messageSearch) } }
     var body: some View {
         VStack(spacing: 0) {
+            if searching { HStack { TextField("Search loaded messages", text: $messageSearch); Button("Done") { searching = false; messageSearch = "" } }.padding(12) }
             if isDemo { Text("Preview · Messages stay in this screen").font(.caption).padding(7).frame(maxWidth: .infinity).background(Color.orange.opacity(0.12)) }
             if !error.isEmpty { HStack { Text(error).font(.caption); Button("Retry") { Task { await load() } } }.padding(8).foregroundStyle(.red) }
             ScrollViewReader { proxy in
@@ -145,7 +162,7 @@ private struct ChatThreadView: View {
                     LazyVStack(spacing: 10) {
                         if nextCursor != nil { Button("Load earlier messages") { Task { await load(earlier: true) } }.disabled(loading) }
                         if messages.isEmpty { Text("Say hello to \(chat.name)").font(.footnote).foregroundStyle(.secondary).padding(.top, 24) }
-                        ForEach(messages) { message in
+                        ForEach(visibleMessages) { message in
                             let own = message.senderEmail.lowercased() != chat.contactEmail.lowercased()
                             HStack {
                                 if own { Spacer(minLength: 50) }
@@ -165,8 +182,8 @@ private struct ChatThreadView: View {
                                         if message.editedAt?.isEmpty == false { Text("Edited").font(.caption2).foregroundStyle(.secondary) }
                                         if let date = ISO8601DateFormatter().date(from: message.createdAt) { Text(date, style: .time).font(.caption2).foregroundStyle(.secondary) }
                                     }
-                                }.foregroundStyle(.white).padding(12).background(own ? Color(red: 0.12, green: 0.24, blue: 0.37) : Color(red: 0.125, green: 0.17, blue: 0.20), in: RoundedRectangle(cornerRadius: 17))
-                                    .contentShape(Rectangle()).highPriorityGesture(LongPressGesture(minimumDuration: 0.5, maximumDistance: 30).onEnded { _ in dictation.stop(); actions = message })
+                                }.foregroundStyle(.white).padding(12).background(selectedIDs.contains(message.id) ? Color(red: 0.17, green: 0.35, blue: 0.51) : own ? Color(red: 0.12, green: 0.24, blue: 0.37) : Color(red: 0.125, green: 0.17, blue: 0.20), in: RoundedRectangle(cornerRadius: 17))
+                                    .contentShape(Rectangle()).onTapGesture { if selecting { if !selectedIDs.insert(message.id).inserted { selectedIDs.remove(message.id) } } }.highPriorityGesture(LongPressGesture(minimumDuration: 0.5, maximumDistance: 30).onEnded { _ in dictation.stop(); actions = message })
 
                                     if let counts = message.reactionCounts, counts.values.contains(where: { $0 > 0 }) {
                                         HStack(spacing: 8) {
@@ -184,6 +201,11 @@ private struct ChatThreadView: View {
             }
             if !canContact { Text("You can read this conversation. Sending requires an accepted friendship or a shared Tribe.").font(.footnote).padding() }
             if !dictation.error.isEmpty { Text(dictation.error).font(.caption).foregroundStyle(.orange).padding(.horizontal) }
+            if selecting {
+                HStack { Text("\(selectedIDs.intersection(Set(visibleMessages.map(\.id))).count) selected"); Spacer(); Button("Copy selected") { UIPasteboard.general.string = visibleMessages.filter { selectedIDs.contains($0.id) }.map { $0.content.isEmpty ? ($0.mediaType == "video" ? "[Video]" : "[Photo]") : $0.content }.joined(separator: "\n\n"); copyNotice = "Messages copied" }; Button("Done") { copyNotice = ""; selecting = false; selectedIDs = [] } }.font(.caption).padding(12)
+            }
+            if !copyNotice.isEmpty { Text(copyNotice).font(.caption) }
+            if timer > 0 { Text("New messages disappear after " + (timer == 86400 ? "24 hours" : timer == 604800 ? "7 days" : "90 days")).font(.caption).foregroundStyle(.secondary) }
             if attachmentLoading { ProgressView("Preparing attachment…").font(.caption) }
             if let attachment {
                 HStack { Label(attachment.contentType.hasPrefix("video") ? "Video attached" : "Photo attached", systemImage: "paperclip"); Spacer(); Button("Remove") { try? FileManager.default.removeItem(at: attachment.url); self.attachment = nil; attachmentItem = nil }.disabled(sending) }.font(.caption).padding(.horizontal, 14)
@@ -208,11 +230,21 @@ private struct ChatThreadView: View {
                 Button { Task { await send() } } label: { Image(systemName: "arrow.up").font(.title3.bold()).foregroundStyle(.white).frame(width: 44, height: 44).background(.orange, in: Circle()) }
                     .disabled(sending || attachmentLoading || !canContact || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && attachment == nil || draft.count > 2000).accessibilityLabel("Send message")
             }.padding(12).background(.bar)
-        }.navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .principal) { HStack(spacing: 10) { ChatAvatar(name: chat.name, picture: chat.picture).scaleEffect(0.7).frame(width: 36, height: 36); Text(chat.name).font(.headline).lineLimit(1) } }; ToolbarItem(placement: .topBarTrailing) { Image("DanzStakMark").resizable().scaledToFit().frame(width: 30, height: 30).accessibilityLabel("DanzStak brand") } }
+        }.navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .principal) { HStack(spacing: 10) { ChatAvatar(name: chat.name, picture: chat.picture).scaleEffect(0.7).frame(width: 36, height: 36); Text(chat.name).font(.headline).lineLimit(1) } }; ToolbarItem(placement: .topBarTrailing) { HStack { Image("DanzStakMark").resizable().scaledToFit().frame(width: 30, height: 30).accessibilityLabel("DanzStak brand"); Menu {
+                Button("View contact", systemImage: "person.crop.circle") { showContact = true }
+                Button("Search", systemImage: "magnifyingglass") { searching = true }
+                Button("Media", systemImage: "photo.on.rectangle") { showMedia = true }
+                Button(muted ? "Unmute" : "Mute", systemImage: muted ? "bell" : "bell.slash") { Task { await saveSettings(mute: !muted) } }.disabled(!settingsReady || savingSettings)
+                Button("Disappearing messages", systemImage: "timer") { showTimer = true }.disabled(!settingsReady || savingSettings)
+                Button("Select messages", systemImage: "checkmark.circle") { selecting = true }
+                Button("Delete chat", systemImage: "trash", role: .destructive) { confirmDeleteChat = true }
+            } label: { Image(systemName: "ellipsis").frame(width: 30, height: 36) }.accessibilityLabel("Chat options") } } }
             .task {
                 draft = UserDefaults.standard.string(forKey: draftKey) ?? ""
                 if !appliedForward, let forwardedDraft { draft = draft.isEmpty ? forwardedDraft : draft + "\n" + forwardedDraft; appliedForward = true }
                 await load()
+                if isDemo { settingsReady = true }
+                else { do { let settings = try await api.chatSettings(contact: chat.contactEmail); muted = settings.muted; timer = settings.disappearingSeconds; settingsReady = true } catch { self.error = "Chat settings could not be loaded." } }
                 while !Task.isCancelled { try? await Task.sleep(for: .seconds(10)); if phase == .active && !Task.isCancelled { await load() } }
             }.onChange(of: draft) { _, text in let limited = limitedChatText(text); if limited != text { draft = limited }; UserDefaults.standard.set(limited, forKey: draftKey) }
             .onChange(of: phase) { _, phase in if phase == .background { dictation.stop() } }
@@ -230,11 +262,20 @@ private struct ChatThreadView: View {
                 if let item = pendingForward { pendingForward = nil; forwarding = item }
             }) { message in
                 ChatMessagePanel(message: message, own: message.senderEmail.lowercased() != chat.contactEmail.lowercased(),
+                    select: { selecting = true; selectedIDs.insert(message.id); actions = nil },
                     save: { text in await edit(message, text: text) },
                     react: { emoji in await react(message, emoji: emoji); actions = nil },
                     share: { pendingShare = message; actions = nil },
                     forward: { pendingForward = message; actions = nil },
                     delete: { scope in await delete(message, scope: scope) })
+            }
+            .sheet(isPresented: $showContact) { NavigationStack { ScrollView { MemberProfileIdentity(name: chat.name, picture: chat.picture, email: chat.contactEmail, isDemo: isDemo) }.navigationTitle("Contact").toolbar { Button("Done") { showContact = false } } } }
+            .sheet(isPresented: $showMedia) { NavigationStack { ScrollView { LazyVStack { Text("Media in loaded messages").font(.caption); ForEach(visibleMessages.filter { $0.mediaUrl?.isEmpty == false }) { message in ChatAttachmentView(message: message, allowLocal: isDemo); Text(message.content).font(.caption) } }.padding() }.navigationTitle("Media").toolbar { Button("Done") { showMedia = false } } } }
+            .confirmationDialog("Disappearing messages · Applies to new messages for both people", isPresented: $showTimer, titleVisibility: .visible) {
+                Button("Off") { Task { await saveSettings(seconds: 0) } }; Button("24 hours") { Task { await saveSettings(seconds: 86400) } }; Button("7 days") { Task { await saveSettings(seconds: 604800) } }; Button("90 days") { Task { await saveSettings(seconds: 7776000) } }
+            }
+            .confirmationDialog("Delete chat and your sent media? This clears your chat and removes your sent attachments from both sides. The other person’s media is preserved.", isPresented: $confirmDeleteChat, titleVisibility: .visible) {
+                Button("Delete chat", role: .destructive) { Task { await deleteConversation() } }
             }
             .fullScreenCover(isPresented: $cameraPresented) {
                 ChatCameraPicker { result in
@@ -245,6 +286,24 @@ private struct ChatThreadView: View {
             }
             .sheet(item: $sharing) { message in ChatShareSheet(text: message.content) }
             .sheet(item: $forwarding) { message in ChatForwardPicker(content: message.content, isDemo: isDemo).environmentObject(app) }
+    }
+    private func saveSettings(mute: Bool? = nil, seconds: Int? = nil) async {
+        savingSettings = true; defer { savingSettings = false }
+        do {
+            if isDemo { if let mute { muted = mute }; if let seconds { timer = seconds } }
+            else { let settings = try await api.chatSettings(contact: chat.contactEmail, muted: mute, seconds: seconds); muted = settings.muted; timer = settings.disappearingSeconds }
+            if muted { MessageAlerts.shared.clear(chat.id) }
+        } catch APIClient.Failure.sessionExpired { app.expireSession() }
+        catch { self.error = "Chat settings could not be saved. Try again." }
+    }
+    private func deleteConversation() async {
+        do {
+            if !isDemo { try await api.deleteChat(contact: chat.contactEmail) }
+            dictation.stop(); NativePlayback.shared.stop()
+            if let attachment { try? FileManager.default.removeItem(at: attachment.url) }; sentAttachmentFiles.forEach { try? FileManager.default.removeItem(at: $0) }
+            messages = []; draft = ""; attachment = nil; UserDefaults.standard.removeObject(forKey: draftKey); MessageAlerts.shared.clear(chat.id); onDeleted?(); dismissThread()
+        } catch APIClient.Failure.sessionExpired { app.expireSession() }
+        catch { self.error = "Chat deletion did not finish. Try again." }
     }
     private func load(earlier: Bool = false) async {
         guard !loading, !sending else { return }; loading = true
@@ -360,6 +419,7 @@ private struct ChatMessagePanel: View {
     @Environment(\.dismiss) private var dismiss
     let message: ChatMessage
     let own: Bool
+    let select: () -> Void
     let save: (String) async -> Bool
     let react: (String) async -> Void
     let share: () -> Void
@@ -370,8 +430,8 @@ private struct ChatMessagePanel: View {
     @State private var draft: String
     @State private var saving = false
     @State private var saveError = ""
-    init(message: ChatMessage, own: Bool, save: @escaping (String) async -> Bool, react: @escaping (String) async -> Void, share: @escaping () -> Void, forward: @escaping () -> Void, delete: @escaping (String) async -> Bool) {
-        self.message = message; self.own = own; self.save = save; self.react = react; self.share = share; self.forward = forward; self.delete = delete
+    init(message: ChatMessage, own: Bool, select: @escaping () -> Void, save: @escaping (String) async -> Bool, react: @escaping (String) async -> Void, share: @escaping () -> Void, forward: @escaping () -> Void, delete: @escaping (String) async -> Bool) {
+        self.message = message; self.own = own; self.select = select; self.save = save; self.react = react; self.share = share; self.forward = forward; self.delete = delete
         _draft = State(initialValue: message.content)
     }
     var body: some View {
@@ -382,6 +442,7 @@ private struct ChatMessagePanel: View {
                 } }.padding(8).background(Color.white.opacity(0.07), in: Capsule()) }
                 if editable { TextEditor(text: Binding(get: { draft }, set: { draft = limitedChatText($0) })).scrollContentBackground(.hidden).frame(minHeight: 110, maxHeight: 220).padding(10).background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16)).accessibilityIdentifier("chat.edit") }
                 else { Text(message.content).frame(maxWidth: .infinity, alignment: .leading) }
+                Button("Select messages", systemImage: "checkmark.circle", action: select)
                 if !saveError.isEmpty { Text(saveError).font(.caption).foregroundStyle(.red) }
                 if message.deletedAt?.isEmpty != false { HStack(spacing: 22) {
                     Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = message.content; dismiss() }

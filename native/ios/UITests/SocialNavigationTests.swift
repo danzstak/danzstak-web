@@ -24,6 +24,18 @@ final class SocialNavigationTests: XCTestCase {
         app.buttons["Cancel"].tap()
     }
 
+    func testChatOptionsAndMultiMessageCopy() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-preview"]; app.launch()
+        XCTAssertTrue(app.buttons["header.messages"].waitForExistence(timeout: 20)); app.buttons["header.messages"].tap()
+        XCTAssertTrue(app.buttons["chat.preview-jamie"].waitForExistence(timeout: 5)); app.buttons["chat.preview-jamie"].tap()
+        let composer = app.textFields["chat.composer"]
+        for text in ["First line to translate", "Second line to translate"] { composer.tap(); composer.typeText(text); app.buttons["Send message"].tap(); XCTAssertTrue(app.staticTexts[text].waitForExistence(timeout: 5)) }
+        app.buttons["Chat options"].tap()
+        for title in ["View contact", "Search", "Media", "Mute", "Disappearing messages", "Select messages", "Delete chat"] { XCTAssertTrue(app.buttons[title].exists) }
+        app.buttons["Select messages"].tap(); app.staticTexts["First line to translate"].tap(); app.staticTexts["Second line to translate"].tap()
+        XCTAssertTrue(app.staticTexts["2 selected"].waitForExistence(timeout: 5)); app.buttons["Copy selected"].tap(); XCTAssertTrue(app.staticTexts["Messages copied"].exists)
+    }
+
     func testRemoveOwnPhotoTag() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview", "--tagging-preview"]

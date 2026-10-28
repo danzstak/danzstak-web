@@ -31,7 +31,8 @@ class MessageAlerts(private val activity: Activity) {
         val allowed = Build.VERSION.SDK_INT < 33 || activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         for (chat in chats) {
             val id = chat.optString("contactEmail"); val stamp = chat.optString("updatedAt")
-            if (allowed && baseline && chat.optInt("unread") > 0 && seen[id] != stamp) {
+            if (chat.optBoolean("muted")) manager.cancel(id.hashCode())
+            if (!chat.optBoolean("muted") && allowed && baseline && chat.optInt("unread") > 0 && seen[id] != stamp) {
                 manager.notify(id.hashCode(), Notification.Builder(activity, "danzstak_messages").setSmallIcon(android.R.drawable.ic_dialog_email).setContentTitle("DanzStak · ${chat.optString("name", "New message")}").setContentText("New message").setAutoCancel(true).build())
             }
             seen[id] = stamp

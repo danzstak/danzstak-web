@@ -1163,7 +1163,7 @@ private struct FitVideoPlayer: UIViewRepresentable {
     }
 }
 
-private struct MemberProfileIdentity: View {
+struct MemberProfileIdentity: View {
     let name: String
     let picture: String?
     let email: String?

@@ -9,13 +9,15 @@ final class MessageAlerts: NSObject, ObservableObject, UNUserNotificationCenterD
     private let center = UNUserNotificationCenter.current()
     override init() { super.init(); center.delegate = self }
     func enable() async throws -> Bool { try await center.requestAuthorization(options: [.alert, .badge, .sound]) }
+    func clear(_ contact: String) { center.removeDeliveredNotifications(withIdentifiers: ["message." + contact]) }
     func reset() { seen = [:]; hasBaseline = false }
     func poll() async {
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
         guard let chats = try? await APIClient().conversations() else { return }
         for chat in chats {
-            if hasBaseline && chat.unread > 0 && seen[chat.id] != chat.updatedAt {
+            if chat.muted == true { clear(chat.id) }
+            if chat.muted != true && hasBaseline && chat.unread > 0 && seen[chat.id] != chat.updatedAt {
                 let content = UNMutableNotificationContent()
                 content.title = "DanzStak · \(chat.name)"; content.body = "New message"; content.sound = .default
                 content.threadIdentifier = chat.id

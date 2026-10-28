@@ -156,7 +156,7 @@ class MainActivity : ComponentActivity() {
         chatDark = false; footerView = null; brandedHeader = null
         window.navigationBarColor = canvas
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply { isAppearanceLightStatusBars = true; isAppearanceLightNavigationBars = true }
-        selectedChat = null; renderChatMessages = null; attachmentSelection = null
+        selectedChat = null; renderChatMessages = null; attachmentSelection = null; selectingMessages = false; selectedMessageIds.clear(); filterChat = null; timerNotice = null
         stopMedia()
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setBackgroundColor(canvas)
@@ -296,9 +296,9 @@ class MainActivity : ComponentActivity() {
         content.addView(button("Enable message sounds") { messageAlerts.enable(); status.text = "Sounds follow Android notification settings." })
     }
     private fun profile() { memberProfile(posts.firstOrNull { it.owner }, true) }
-    private fun memberProfile(person: FeedPost?, own: Boolean = false) {
+    private fun memberProfile(person: FeedPost?, own: Boolean = false, onBack: (() -> Unit)? = null) {
         content.removeAllViews(); title(if (own) "Your profile" else person?.author ?: "Profile")
-        content.addView(button("Back") { if (own) { tab = "Menu"; showApp() } else peopleAfterProfile() })
+        content.addView(button("Back") { if (onBack != null) onBack() else if (own) { tab = "Menu"; showApp() } else peopleAfterProfile() })
         val body = column(); content.addView(body)
         fun render(profile: JSONObject) {
             body.removeAllViews()
@@ -619,6 +619,14 @@ class MainActivity : ComponentActivity() {
     private var renderChatMessages: ((List<JSONObject>) -> Unit)? = null
     private val chatMessages = mutableMapOf<String, MutableList<JSONObject>>()
     private val locallyDeletedMessages = mutableSetOf<String>()
+    private val selectedMessageIds = mutableSetOf<String>()
+    private var selectingMessages = false
+    private var filterChat: ((String) -> Unit)? = null
+    private var chatMuted = false
+    private var chatExpiry = 0
+    private var timerNotice: TextView? = null
+    private var chatSettingsReady = false
+    private val deletedDemoChats = mutableSetOf<String>()
     private fun darkChat() {
         stopFeedVideo(); feedVideoPreviews.clear()
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply { isAppearanceLightStatusBars = false; isAppearanceLightNavigationBars = false }
@@ -646,7 +654,7 @@ class MainActivity : ComponentActivity() {
                 box.addView(heading); box.addView(label(chat.optString("preview"), 15)); box.setOnClickListener { thread(chat) }; content.addView(box)
             }
         }
-        if (demo) show(listOf(JSONObject().put("contactEmail", "preview-jamie").put("name", "Jamie Rivera").put("preview", "Ready for the next set?").put("unread", 1), JSONObject().put("contactEmail", "preview-alex").put("name", "Alex Morgan").put("preview", "Let’s make something worth showing up for.")))
+        if (demo) show(listOf(JSONObject().put("contactEmail", "preview-jamie").put("name", "Jamie Rivera").put("preview", "Ready for the next set?").put("unread", 1), JSONObject().put("contactEmail", "preview-alex").put("name", "Alex Morgan").put("preview", "Let’s make something worth showing up for.")).filter { it.optString("contactEmail") !in deletedDemoChats })
         else work("Loading chats…", { api.conversations() }, { show(it) })
     }
     private fun newChat(forward: String? = null) {
@@ -664,8 +672,10 @@ class MainActivity : ComponentActivity() {
         chatHeader.addView(avatar(chat.optString("name"), chat.optString("picture")))
         chatHeader.addView(label(chat.optString("name", "DanzStak member"), 17, true), LinearLayout.LayoutParams(0, -2, 1f))
         chatHeader.addView(ImageView(this).apply { setImageResource(R.drawable.danzstak_mark); scaleType = ImageView.ScaleType.FIT_CENTER; contentDescription = "DanzStak brand" }, LinearLayout.LayoutParams(dp(32), dp(32)))
-        chatHeader.addView(icon("⋮", "Chat options") { AlertDialog.Builder(this).setItems(arrayOf("Refresh conversation", "Close")) { _, which -> if (which == 0) thread(chat) else chats() }.show() }.apply { setTextColor(Color.WHITE) })
+        chatHeader.addView(icon("⋮", "Chat options") { chatOptions(chat) }.apply { setTextColor(Color.WHITE) })
         root.addView(chatHeader, root.indexOfChild(content.parent as View), LinearLayout.LayoutParams(-1, dp(58)))
+        timerNotice = label("", 12).apply { visibility = View.GONE }
+        root.addView(timerNotice, root.indexOfChild(content.parent as View))
         val transcript = column(); content.addView(transcript)
         val input = EditText(this).apply { filters = arrayOf(android.text.InputFilter.LengthFilter(2000)); hint = "Message"; minLines = 1; maxLines = 5; setText(prefs.getString("chat.$demo.$contact", "")); contentDescription = "Message" }
         input.addTextChangedListener(watcher { prefs.edit().putString("chat.$demo.$contact", it).apply() })
@@ -682,13 +692,26 @@ class MainActivity : ComponentActivity() {
             if (type !in setOf("image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime")) status.text = "Choose a JPEG, PNG, WebP, GIF, MP4, WebM or MOV file."
             else { attachment = Pair(uri, type); attachmentLabel.text = if (type.startsWith("video")) "Video attached · Tap Send when ready" else "Photo attached · Tap Send when ready"; attachmentRow.visibility = View.VISIBLE }
         }
+        var chatQuery = ""
+        val selectionBar = row().apply { visibility = View.GONE; setBackgroundColor(Color.rgb(32, 44, 51)) }
+        val selectionLabel = label("", 13); selectionBar.addView(selectionLabel, LinearLayout.LayoutParams(0, -2, 1f))
+        selectionBar.addView(button("Copy selected") {
+            val text = chatMessages[contact].orEmpty().filter { it.optString("messageId") in selectedMessageIds && (it.optLong("expiresAt") == 0L || it.optLong("expiresAt") > System.currentTimeMillis() / 1000) }.joinToString("\n\n") { it.optString("content").ifBlank { if (it.optString("mediaType") == "video") "[Video]" else "[Photo]" } }
+            if (text.isNotBlank()) (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("Messages", text))
+            status.text = "Selected messages copied"
+        })
+        selectionBar.addView(button("Done") { selectingMessages = false; selectedMessageIds.clear(); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) })
         fun render(items: List<JSONObject>) {
             transcript.removeAllViews()
-            items.forEach { message ->
+            selectedMessageIds.retainAll(items.filter { it.optLong("expiresAt") == 0L || it.optLong("expiresAt") > System.currentTimeMillis() / 1000 }.map { it.optString("messageId") }.toSet())
+            selectionBar.visibility = if (selectingMessages) View.VISIBLE else View.GONE; selectionLabel.text = "${selectedMessageIds.size} selected"
+            items.filter { (it.optLong("expiresAt") == 0L || it.optLong("expiresAt") > System.currentTimeMillis() / 1000) && (chatQuery.isBlank() || it.optString("content").contains(chatQuery, true)) }.forEach { message ->
                 val own = !message.optString("senderEmail").equals(contact, true)
                 val bubble = label(message.optString("content"), 16).apply {
-                    background = rounded(if (own) Color.rgb(31, 61, 94) else Color.rgb(32, 44, 51))
+                    background = rounded(if (message.optString("messageId") in selectedMessageIds) Color.rgb(44, 89, 130) else if (own) Color.rgb(31, 61, 94) else Color.rgb(32, 44, 51))
                     layoutParams = LinearLayout.LayoutParams(-2, -2).apply { gravity = if (own) Gravity.END else Gravity.START; setMargins(if (own) dp(44) else dp(8), dp(5), if (own) dp(8) else dp(44), dp(5)) }
+                    isSelected = message.optString("messageId") in selectedMessageIds
+                    setOnClickListener { if (selectingMessages) { val id = message.optString("messageId"); if (!selectedMessageIds.add(id)) selectedMessageIds.remove(id); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) } }
                     setOnLongClickListener { messageActions(chat, message); true }
                 }
                 transcript.addView(bubble)
@@ -726,6 +749,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         renderChatMessages = { render(it) }
+        filterChat = { query -> chatQuery = query; render(chatMessages[contact].orEmpty()); status.text = if (query.isBlank()) "" else "Searching loaded messages" }
         val send = button("➤") {}.apply { contentDescription = "Send message"; minimumWidth = dp(44); minWidth = dp(44); textSize = 20f; setTextColor(Color.WHITE); setPadding(0, 0, 0, 0); background = rounded(orange); layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)) }
         send.setOnClickListener {
             val text = input.text.toString().trim(); val chosen = attachment; if (!allowed || text.isBlank() && chosen == null) return@setOnClickListener
@@ -755,9 +779,11 @@ class MainActivity : ComponentActivity() {
         }.apply { setColorFilter(Color.rgb(126, 200, 255)); setPadding(dp(6), dp(10), dp(6), dp(10)) }
         attach.layoutParams = LinearLayout.LayoutParams(dp(32), dp(44))
         val camera = headerIcon(R.drawable.camera, "Take photo or record video") { captureChatMedia(contact) }.apply { layoutParams = LinearLayout.LayoutParams(dp(32), dp(44)); setPadding(dp(6), dp(10), dp(6), dp(10)) }
-        inputBox.addView(attach); inputBox.addView(camera); compose.addView(microphone); compose.addView(send); root.addView(attachmentRow, root.childCount - 1); root.addView(compose, root.childCount - 1)
+        inputBox.addView(attach); inputBox.addView(camera); compose.addView(microphone); compose.addView(send); root.addView(selectionBar, root.childCount - 1); root.addView(attachmentRow, root.childCount - 1); root.addView(compose, root.childCount - 1)
+        chatMuted = false; chatExpiry = 0; chatSettingsReady = demo
+        if (!demo) work("Loading chat settings…", { api.chatSettings(contact) }, { settings -> if (selectedChat?.optString("contactEmail") == contact) { chatMuted = settings.optBoolean("muted"); chatExpiry = settings.optInt("disappearingSeconds"); chatSettingsReady = true; updateTimerNotice() } })
         if (demo) {
-            val items = chatMessages.getOrPut(contact) { mutableListOf(JSONObject().put("messageId", "preview-first").put("senderEmail", contact).put("content", chat.optString("preview", "Hey! What are you working on?"))) }; render(items); status.text = "Preview · Messages stay on this device"
+            val items = chatMessages.getOrPut(contact) { if (contact in deletedDemoChats) mutableListOf() else mutableListOf(JSONObject().put("messageId", "preview-first").put("senderEmail", contact).put("content", chat.optString("preview", "Hey! What are you working on?"))) }; render(items); status.text = "Preview · Messages stay on this device"
         } else work("Loading conversation…", { api.messages(contact) }, { result ->
             allowed = result.optBoolean("canContact", true); input.isEnabled = allowed; send.isEnabled = allowed; attach.isEnabled = allowed; camera.isEnabled = allowed
             val items = DanzStakApi.objects(result.optJSONArray("messages")).filter { "$contact:${it.optString("messageId")}" !in locallyDeletedMessages }; chatMessages[contact] = items.toMutableList(); render(items)
@@ -765,6 +791,43 @@ class MainActivity : ComponentActivity() {
             val cursor = result.optString("nextCursor")
             if (cursor.isNotEmpty()) transcript.addView(button("Load earlier messages") { work("Loading earlier messages…", { api.messages(contact, cursor) }, { older -> val combined = (DanzStakApi.objects(older.optJSONArray("messages")) + chatMessages[contact].orEmpty()).distinctBy { it.optString("messageId") }; chatMessages[contact] = combined.toMutableList(); render(combined) }) }, 0)
         })
+    }
+    private fun updateTimerNotice() {
+        timerNotice?.visibility = if (chatExpiry == 0) View.GONE else View.VISIBLE
+        timerNotice?.text = "New messages disappear after " + if (chatExpiry == 86400) "24 hours" else if (chatExpiry == 604800) "7 days" else "90 days"
+    }
+    private fun AlertDialog.Builder.showChat(): AlertDialog {
+        val dialog = create(); dialog.show(); dialog.window?.setBackgroundDrawable(rounded(Color.rgb(32, 44, 51)))
+        for (which in listOf(-1, -2, -3)) dialog.getButton(which)?.setTextColor(if (dialog.getButton(which).text.toString() == "Delete") Color.rgb(255, 142, 142) else Color.rgb(126, 200, 255))
+        return dialog
+    }
+    private fun chatOptions(chat: JSONObject) {
+        val contact = chat.optString("contactEmail")
+        AlertDialog.Builder(android.view.ContextThemeWrapper(this, android.R.style.Theme_Material_Dialog_Alert)).setTitle("Chat options").setItems(arrayOf("View contact", "Search", "Media", if (chatMuted) "Unmute" else "Mute", "Disappearing messages", "Select messages", "Delete chat")) { _, index ->
+            when (index) {
+                0 -> { showApp(); content.removeAllViews(); memberProfile(FeedPost("", chat.optString("name"), "", "", picture = chat.optString("picture"), userEmail = contact), onBack = { thread(chat) }) }
+                1 -> { val input = EditText(this).apply { hint = "Search loaded messages"; contentDescription = "Search messages"; setTextColor(Color.WHITE); setHintTextColor(Color.LTGRAY) }; AlertDialog.Builder(android.view.ContextThemeWrapper(this, android.R.style.Theme_Material_Dialog_Alert)).setTitle("Search conversation").setView(input).setPositiveButton("Search") { _, _ -> filterChat?.invoke(input.text.toString()) }.setNeutralButton("Clear") { _, _ -> filterChat?.invoke("") }.setNegativeButton("Cancel", null).showChat() }
+                2 -> {
+                    val media = chatMessages[contact].orEmpty().filter { it.optString("mediaUrl").isNotBlank() && (it.optLong("expiresAt") == 0L || it.optLong("expiresAt") > System.currentTimeMillis() / 1000) }
+                    AlertDialog.Builder(android.view.ContextThemeWrapper(this, android.R.style.Theme_Material_Dialog_Alert)).setTitle("Media · Loaded messages").setItems(if (media.isEmpty()) arrayOf("No media in loaded messages") else media.map { (if (it.optString("mediaType") == "video") "Video" else "Photo") + " · " + it.optString("createdAt") }.toTypedArray()) { _, which -> if (media.isNotEmpty()) chatMedia(media[which].getString("mediaUrl"), media[which].optString("mediaType")) }.setNegativeButton("Done", null).showChat()
+                }
+                3 -> { if (!chatSettingsReady) { status.text = "Chat settings are still loading. Try again."; return@setItems }; val next = !chatMuted; if (demo) { chatMuted = next; status.text = if (next) "Preview · Chat muted" else "Preview · Chat unmuted" } else work("Saving mute setting…", { api.chatSettings(contact, muted = next) }, { chatMuted = it.optBoolean("muted"); status.text = if (chatMuted) "Chat muted" else "Chat unmuted" }) }
+                4 -> {
+                    if (!chatSettingsReady) { status.text = "Chat settings are still loading. Try again."; return@setItems }
+                    val values = listOf(0, 86400, 604800, 7776000)
+                    AlertDialog.Builder(android.view.ContextThemeWrapper(this, android.R.style.Theme_Material_Dialog_Alert)).setTitle("Disappearing messages").setSingleChoiceItems(arrayOf("Off", "24 hours", "7 days", "90 days"), values.indexOf(chatExpiry).coerceAtLeast(0)) { dialog, choice ->
+                        val seconds = values[choice]
+                        fun apply() { chatExpiry = seconds; updateTimerNotice(); dialog.dismiss(); status.text = if (seconds == 0) "New messages will be kept" else "Timer applies to new messages for both people" }
+                        if (demo) apply() else work("Saving message timer…", { api.chatSettings(contact, seconds = seconds) }, { apply() })
+                    }.setNegativeButton("Cancel", null).showChat()
+                }
+                5 -> { selectingMessages = true; renderChatMessages?.invoke(chatMessages[contact].orEmpty()) }
+                6 -> AlertDialog.Builder(android.view.ContextThemeWrapper(this, android.R.style.Theme_Material_Dialog_Alert)).setTitle("Delete chat and your sent media?").setMessage("Clear this chat for you and remove your sent attachments from both sides. The other person’s sent media is preserved. This cannot be undone.").setNegativeButton("Cancel", null).setPositiveButton("Delete") { _, _ ->
+                    fun clear() { if (demo) deletedDemoChats.add(contact); chatVideo?.stopPlayback(); chatMessages.remove(contact); prefs.edit().remove("chat.$demo.$contact").apply(); java.io.File(cacheDir, "video-previews").deleteRecursively(); java.io.File(cacheDir, "chat-camera").deleteRecursively(); selectedChat = null; chats() }
+                    if (demo) clear() else work("Deleting chat and sent media…", { api.deleteChat(contact) }, { clear() })
+                }.showChat()
+            }
+        }.showChat()
     }
     private fun sendChatAttachment(contact: String, text: String, uri: Uri, contentType: String): JSONObject {
         val file = java.io.File.createTempFile("chat-upload-", ".tmp", cacheDir)
@@ -812,6 +875,7 @@ class MainActivity : ComponentActivity() {
         val editor = EditText(context).apply { filters = arrayOf(android.text.InputFilter.LengthFilter(2000)); setText(message.optString("content")); minLines = 2; maxLines = 7; setTextColor(Color.WHITE); background = rounded(Color.rgb(11, 20, 26)); setPadding(dp(14), dp(12), dp(14), dp(12)); contentDescription = "Edit message" }
         if (editable) box.addView(editor) else box.addView(label(message.optString("content"), 16))
         box.addView(editFeedback)
+        box.addView(button("Select messages") { selectingMessages = true; selectedMessageIds.add(message.optString("messageId")); dialog.dismiss(); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) })
         val actions = row()
         actions.addView(button("Copy") { (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("DanzStak message", message.optString("content"))); dialog.dismiss() }, LinearLayout.LayoutParams(0, -2, 1f))
         actions.addView(button("Share") { dialog.dismiss(); share(message.optString("content")) }, LinearLayout.LayoutParams(0, -2, 1f))
