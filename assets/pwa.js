@@ -10,6 +10,33 @@ try {
   knownInstalled ||= localStorage.getItem(installStateKey) === "1";
   if (standalone) localStorage.setItem(installStateKey, "1");
 } catch { /* Install detection still works through display mode. */ }
+let installedAppCheck = null;
+async function detectInstalledDanzStak(recheck = false) {
+  if (knownInstalled && !recheck) return true;
+  if (recheck) installedAppCheck = null;
+  if (installedAppCheck) return installedAppCheck;
+  installedAppCheck = (async () => {
+    if (typeof navigator.getInstalledRelatedApps !== "function") return false;
+    try {
+      const apps = await navigator.getInstalledRelatedApps();
+      const installed = apps.some(app =>
+        app?.id === "com.danzstak.app" ||
+        app?.platform === "webapp"
+      );
+      if (installed) {
+        knownInstalled = true;
+        try { localStorage.setItem(installStateKey, "1"); } catch { /* Storage is optional. */ }
+      } else if (recheck && !standalone) {
+        knownInstalled = false;
+        try { localStorage.removeItem(installStateKey); } catch { /* Storage is optional. */ }
+      }
+      return installed;
+    } catch {
+      return false;
+    }
+  })();
+  return installedAppCheck;
+}
 const signedInPage = /(?:feed|profile|messages)\.html$/i.test(window.location.pathname);
 const installButton = document.createElement("button");
 installButton.type = "button";
@@ -125,14 +152,21 @@ if ("serviceWorker" in navigator) {
 
 window.addEventListener("beforeinstallprompt", event => {
   event.preventDefault();
-  knownInstalled = false;
-  try { localStorage.removeItem(installStateKey); } catch { /* Storage is optional. */ }
   installPrompt = event;
-  showInstallButtonTemporarily();
+  void detectInstalledDanzStak(true).then(installed => {
+    if (installed) {
+      installPrompt = null;
+      installButton.hidden = true;
+      return;
+    }
+    knownInstalled = false;
+    try { localStorage.removeItem(installStateKey); } catch { /* Storage is optional. */ }
+    showInstallButtonTemporarily();
+  });
 });
 
 window.danzstakRequestInstall = async () => {
-  if (knownInstalled) return "installed";
+  if (knownInstalled || await detectInstalledDanzStak()) return "installed";
   if (!installPrompt) return "manual";
   const prompt = installPrompt;
   installPrompt = null;
@@ -155,10 +189,16 @@ window.addEventListener("appinstalled", () => {
 });
 
 window.addEventListener("danzstak:show-install", () => {
-  if (knownInstalled) return;
-  installButton.hidden = false;
-  installButton.classList.remove("install-app-button--leaving");
-  clearTimeout(installDismissTimer);
+  void detectInstalledDanzStak().then(installed => {
+    if (installed) return;
+    installButton.hidden = false;
+    installButton.classList.remove("install-app-button--leaving");
+    clearTimeout(installDismissTimer);
+  });
 });
 
-if (!knownInstalled && signedInPage) setTimeout(showInstallButtonTemporarily, 0);
+if (!knownInstalled && signedInPage) {
+  void detectInstalledDanzStak().then(installed => {
+    if (!installed) showInstallButtonTemporarily();
+  });
+}

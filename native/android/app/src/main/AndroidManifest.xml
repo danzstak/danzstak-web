@@ -11,6 +11,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DanzStak"
         android:usesCleartextTraffic="false">
+        <meta-data
+            android:name="asset_statements"
+            android:resource="@string/asset_statements" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
