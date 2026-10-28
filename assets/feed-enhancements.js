@@ -719,6 +719,8 @@ function renderWorkspace(name) {
               ? `${displayName} reacted ${notice.preview || "to your post"}.`
               : notice.type === "tag"
                 ? `${displayName} tagged you in a post.`
+                : notice.type === "reply"
+                  ? `${displayName} replied to you: ${notice.preview || "New reply"}`
                 : notice.type === "comment"
                 ? `${displayName} commented: ${notice.preview || "New comment"}`
                 : `${displayName} sent you a friend request.`;
@@ -740,7 +742,7 @@ function renderWorkspace(name) {
             open.textContent = "Open Tribe";
             open.href = "feed.html#groups";
             actions.appendChild(open);
-          } else if (["reaction", "comment", "tag"].includes(notice.type)) {
+          } else if (["reaction", "comment", "reply", "tag"].includes(notice.type)) {
             const open = document.createElement("a");
             open.className = "primary";
             open.textContent = "View post";
@@ -2175,9 +2177,16 @@ function updateCommentPreview(post) {
   const list = post.querySelector(".commentList"); if (!list) return;
   const composer = post.querySelector(".comments"); if (composer && list.parentElement === composer) composer.before(list);
   const items = [...list.querySelectorAll(".comment")];
-  items.sort((a,b) => Number(b.dataset.reactionTotal || 0) - Number(a.dataset.reactionTotal || 0) || String(a.dataset.createdAt || "").localeCompare(String(b.dataset.createdAt || "")));
+  const byId = new Map(items.map(item => [item.dataset.commentId || "",item])), children = new Map();
+  for (const item of items) if (item.dataset.parentCommentId && byId.has(item.dataset.parentCommentId)) {
+    const group = children.get(item.dataset.parentCommentId) || []; group.push(item); children.set(item.dataset.parentCommentId,group);
+  }
+  const roots = items.filter(item => !item.dataset.parentCommentId || !byId.has(item.dataset.parentCommentId));
+  roots.sort((a,b) => Number(b.dataset.reactionTotal || 0) - Number(a.dataset.reactionTotal || 0) || String(a.dataset.createdAt || "").localeCompare(String(b.dataset.createdAt || "")));
+  const ordered = [], rootIndex = new Map(), appendThread = (item,index) => { ordered.push(item); rootIndex.set(item,index); for (const reply of (children.get(item.dataset.commentId || "") || []).sort((a,b) => String(a.dataset.createdAt || "").localeCompare(String(b.dataset.createdAt || "")))) appendThread(reply,index); };
+  roots.forEach((item,index) => appendThread(item,index));
   const expanded = post.dataset.commentsExpanded === "true";
-  items.forEach((item,index) => { list.appendChild(item); item.hidden = !expanded && index >= 2; });
+  ordered.forEach(item => { list.appendChild(item); item.hidden = !expanded && (rootIndex.get(item) ?? 0) >= 2; });
   let more = post.querySelector(".comments-more");
   if (!more) { more = document.createElement("button"); more.type = "button"; more.className = "comments-more"; more.addEventListener("click", () => { post.dataset.commentsExpanded = String(post.dataset.commentsExpanded !== "true"); updateCommentPreview(post); }); list.after(more); }
   more.hidden = items.length <= 2; more.textContent = expanded ? "Show top 2 comments" : "View all " + items.length + " comments"; more.setAttribute("aria-expanded", String(expanded));
@@ -2218,6 +2227,65 @@ function createCommentReactions(post, item, comment) {
   item.appendChild(controls);
 }
 
+function clearCommentReply(input) {
+  if (!input) return;
+  delete input.dataset.replyToCommentId;
+  delete input.dataset.replyToName;
+  input.placeholder = "Write a comment…";
+  const composer = input.closest(".comment-composer");
+  composer?.querySelector(".comment-replying")?.remove();
+}
+
+function beginCommentReply(post, comment, item) {
+  const input = post.querySelector(".comments input");
+  if (!input) return;
+  const name = comment.authorName || "DanzStak member";
+  input.dataset.replyToCommentId = comment.commentId;
+  input.dataset.replyToName = name;
+  input.placeholder = "Reply to " + name + "…";
+  const composer = input.closest(".comment-composer");
+  composer?.querySelector(".comment-replying")?.remove();
+  if (composer) {
+    const replying = document.createElement("div");
+    replying.className = "comment-replying";
+    const label = document.createElement("span");
+    label.textContent = "Replying to " + name;
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    cancel.setAttribute("aria-label", "Cancel reply to " + name);
+    cancel.addEventListener("click", () => { clearCommentReply(input); input.focus(); });
+    replying.append(label, cancel);
+    composer.prepend(replying);
+  }
+  post.querySelector(".comments").hidden = false;
+  item?.scrollIntoView?.({ block: "nearest" });
+  input.focus();
+}
+
+function ensureCommentComposer(post) {
+  const comments = post.querySelector(".comments"), input = comments?.querySelector(":scope > input, .comment-composer input");
+  if (!comments || !input || input.closest(".comment-composer")) return;
+  input.placeholder = "Write a comment…";
+  const composer = document.createElement("div");
+  composer.className = "comment-composer";
+  const avatar = document.createElement("span");
+  avatar.className = "comment-composer-avatar";
+  avatar.textContent = "D";
+  avatar.setAttribute("aria-hidden", "true");
+  const field = document.createElement("div");
+  field.className = "comment-composer-field";
+  const send = document.createElement("button");
+  send.type = "button";
+  send.className = "comment-send";
+  send.textContent = "➤";
+  send.setAttribute("aria-label", "Post comment");
+  send.addEventListener("click", () => saveComment(post, input));
+  input.replaceWith(composer);
+  field.append(input, send);
+  composer.append(avatar, field);
+}
+
 function renderPersistentComment(post, comment) {
   const list = post.querySelector(".commentList");
   if (!list || list.querySelector(`[data-comment-id="${CSS.escape(comment.commentId)}"]`)) return;
@@ -2225,13 +2293,31 @@ function renderPersistentComment(post, comment) {
   item.className = "comment";
   item.dataset.commentId = comment.commentId;
   item.dataset.canDelete = String(comment.canDelete === true);
+  if (comment.parentCommentId) { item.dataset.parentCommentId = comment.parentCommentId; item.classList.add("comment-reply"); }
+  const avatar = document.createElement("span");
+  avatar.className = "comment-avatar";
+  avatar.textContent = String(comment.authorName || "D").charAt(0).toUpperCase();
+  avatar.setAttribute("aria-hidden", "true");
+  const bubble = document.createElement("div"); bubble.className = "comment-bubble";
   const author = document.createElement("strong");
   author.className = "comment-author";
   author.textContent = comment.authorName || "DanzStak member";
+  const time = document.createElement("time"); time.className = "comment-time"; time.dateTime = comment.createdAt || "";
+  const parsed = comment.createdAt ? new Date(comment.createdAt) : null;
+  time.textContent = parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "Just now";
   const body = document.createElement("div"); body.className = "comment-content"; body.textContent = comment.content;
   item.dataset.reactionTotal = String(comment.reactionTotal || 0); item.dataset.createdAt = comment.createdAt || "";
-  item.append(author, body);
+  if (comment.replyToName) { const context = document.createElement("span"); context.className = "comment-reply-context"; context.textContent = "Replying to " + comment.replyToName; bubble.appendChild(context); }
+  bubble.append(author, time, body);
+  item.append(avatar, bubble);
   createCommentReactions(post,item,comment);
+  const reply = document.createElement("button");
+  reply.type = "button";
+  reply.className = "comment-reply-button";
+  reply.textContent = "Reply";
+  reply.setAttribute("aria-label", "Reply to " + (comment.authorName || "this comment"));
+  reply.addEventListener("click", () => beginCommentReply(post, comment, item));
+  item.querySelector(".comment-reactions")?.appendChild(reply);
   list.appendChild(item);
   addCommentDelete(item);
   updateCommentPreview(post);
@@ -2291,11 +2377,13 @@ async function saveComment(post, input) {
   if (!postId || !content) return;
   input.disabled = true;
   try {
-    const response = await engagementFetch("/comments", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, content }) });
+    const parentCommentId = String(input.dataset?.replyToCommentId || "");
+    const response = await engagementFetch("/comments", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, content, ...(parentCommentId ? { parentCommentId } : {}) }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Comment could not be saved");
     post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
     input.value = "";
+    if (typeof clearCommentReply === "function") clearCommentReply(input);
     renderPersistentComment(post, data.comment);
     post.dataset.engagementLoaded = "";
     await loadEngagement(post);
@@ -2332,6 +2420,7 @@ function addReactionButton(post) {
   like.dataset.reactionsReady = "true";
   const down = document.createElement("button"); down.type = "button"; down.className = "dislikeBtn"; like.after(down);
   setReactionAppearance(post, "");
+  ensureCommentComposer(post);
   attachReactionPicker(post,like,down,() => like.dataset.reaction || "",reaction => { setReactionAppearance(post,reaction); saveReaction(post,reaction).catch(() => { post.dataset.engagementLoaded = ""; loadEngagement(post); }); });
   updateCommentPreview(post); loadEngagement(post);
 }

@@ -1161,12 +1161,21 @@ async function getEngagement(event) {
     reactionCounts[reaction] = (reactionCounts[reaction] || 0) + 1;
     if (item.userId?.S === userId) myReaction = reaction;
   }
-  const comments = commentItems.map(item => ({
+  const commentRecords = commentItems.map(item => ({
     ...(commentReactions.get(item.commentId.S) || {reactionCounts:{}, myReaction:"", reactionTotal:0}),
     authorName:authorNames.get(item.userEmail?.S) || "DanzStak member",
     commentId: item.commentId.S, userEmail: item.userEmail?.S || "DanzStak member", content: item.content.S,
-    createdAt: item.createdAt.S, isOwner: item.userId?.S === userId, canDelete: item.userId?.S === userId || access.post.userId?.S === userId
-  })).sort((a, b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt));
+    createdAt: item.createdAt.S, isOwner: item.userId?.S === userId, canDelete: item.userId?.S === userId || access.post.userId?.S === userId,
+    ...(item.parentCommentId?.S ? { parentCommentId: item.parentCommentId.S, replyToName: item.replyToName?.S || "DanzStak member" } : {})
+  }));
+  const commentById = new Map(commentRecords.map(comment => [comment.commentId, comment]));
+  const children = new Map();
+  for (const comment of commentRecords) if (comment.parentCommentId && commentById.has(comment.parentCommentId)) {
+    const list = children.get(comment.parentCommentId) || []; list.push(comment); children.set(comment.parentCommentId, list);
+  }
+  const comments = [], appendThread = comment => { comments.push(comment); for (const reply of (children.get(comment.commentId) || []).sort((a,b) => a.createdAt.localeCompare(b.createdAt))) appendThread(reply); };
+  commentRecords.filter(comment => !comment.parentCommentId || !commentById.has(comment.parentCommentId))
+    .sort((a,b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
   return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
 }
 
@@ -1237,7 +1246,7 @@ async function addComment(event) {
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
-  const data = parseJsonBody(event), postId = String(data?.postId || ""), content = String(data?.content || "").trim();
+  const data = parseJsonBody(event), postId = String(data?.postId || ""), content = String(data?.content || "").trim(), parentCommentId = String(data?.parentCommentId || "");
   if (!content || content.length > 1000) return { statusCode: 400, headers, body: JSON.stringify({ error: "Comment must contain 1–1000 characters." }) };
   const access = await postForEngagement(postId, userId);
   if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
@@ -1249,10 +1258,20 @@ async function addComment(event) {
     const friendship = await db.send(new GetItemCommand({ TableName: friendsTable, Key: { userEmail: { S: ownerEmail }, friendEmail: { S: userEmail } }, ConsistentRead: true }));
     if (friendship.Item?.status?.S !== "friends") return { statusCode: 403, headers, body: JSON.stringify({ error: "Only friends can comment on this post." }) };
   }
+  let parentComment = null, replyToName = "";
+  if (parentCommentId) {
+    if (!/^\d{13}#[a-f0-9-]{36}$/.test(parentCommentId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid reply target." }) };
+    const found = await db.send(new GetItemCommand({ TableName: commentsTable, Key: { postId: { S: postId }, commentId: { S: parentCommentId } }, ConsistentRead: true }));
+    parentComment = found.Item;
+    if (!parentComment) return { statusCode: 404, headers, body: JSON.stringify({ error: "The comment you are replying to no longer exists." }) };
+    const names = await loadFeedAuthorNames([parentComment]);
+    replyToName = names.get(parentComment.userEmail?.S) || "DanzStak member";
+  }
   const commentId = `${String(Date.now()).padStart(13, "0")}#${randomUUID()}`, createdAt = new Date().toISOString();
-  await db.send(new PutItemCommand({ TableName: commentsTable, Item: { postId: { S: postId }, commentId: { S: commentId }, userId: { S: userId }, userEmail: { S: userEmail }, content: { S: content }, createdAt: { S: createdAt } } }));
+  await db.send(new PutItemCommand({ TableName: commentsTable, Item: { postId: { S: postId }, commentId: { S: commentId }, userId: { S: userId }, userEmail: { S: userEmail }, content: { S: content }, createdAt: { S: createdAt }, ...(parentComment ? { parentCommentId: { S: parentCommentId }, replyToName: { S: replyToName } } : {}) } }));
   await notifyPostOwner(access.post, `comment#${commentId}`, "comment", userEmail, content);
-  return { statusCode: 201, headers, body: JSON.stringify({ comment: { commentId, userEmail, content, createdAt, isOwner: true, canDelete: true } }) };
+  if (parentComment?.userEmail?.S && parentComment.userEmail.S !== access.post.userEmail?.S) await notifyPostOwner({ ...access.post, userEmail: parentComment.userEmail }, `reply#${commentId}`, "reply", userEmail, content);
+  return { statusCode: 201, headers, body: JSON.stringify({ comment: { commentId, userEmail, content, createdAt, isOwner: true, canDelete: true, ...(parentComment ? { parentCommentId, replyToName } : {}) } }) };
 }
 
 async function reportPost(event) {
