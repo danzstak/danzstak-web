@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 const source = fs.readFileSync('assets/session-activity.js', 'utf8');
+const support = fs.readFileSync('support.html', 'utf8');
 const timeouts = [];
 const intervals = [];
 const calls = [];
@@ -53,5 +54,6 @@ vm.runInContext(source, context);
   assert.equal(presenceAttempts, 2, 'a timed-out heartbeat must release its lock for the next retry');
   assert.deepEqual(events, ['danzstak-presence-updated']);
   assert.ok(calls.some(url => url.endsWith('/auth/refresh')));
+  assert.match(support, /assets\/session-activity\.js\?v=296/, 'signed-in support activity must keep the session and presence alive');
   console.log('Presence heartbeat checks passed: stalled requests abort, release their locks, and recover on retry.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
