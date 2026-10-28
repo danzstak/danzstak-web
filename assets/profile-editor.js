@@ -424,7 +424,7 @@ function profilePostCard(post) {
     const open = document.createElement("a");
     open.className = "secondary profile-post-open";
     open.href = "feed.html#post-" + encodeURIComponent(post.postId);
-    open.textContent = "View in Feed";
+    open.textContent = "View in Your Mix";
     article.appendChild(open);
   }
   window.danzstakRenderSharedPost?.(article, post);

@@ -148,7 +148,7 @@ function renderPublishedEvents(publishedEvents) {
     const card = document.createElement("article"); card.className = "published-event-card";
     const content = document.createElement("p"); content.textContent = post.querySelector(".post-content").textContent;
     const meta = document.createElement("small"); meta.textContent = post.querySelector("time")?.textContent || "Published on DanzStak";
-    const view = document.createElement("button"); view.type = "button"; view.className = "secondary"; view.textContent = "View in Feed";
+    const view = document.createElement("button"); view.type = "button"; view.className = "secondary"; view.textContent = "View in Your Mix";
     view.addEventListener("click", () => openPostInFeed(post));
     post.tabIndex = -1;
     card.append(content, meta, view); publishedEvents.appendChild(card);
@@ -1105,8 +1105,8 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
   const groupsLink = document.createElement("a");
   groupsLink.href = "#groups";
   groupsLink.dataset.feature = "Groups";
-  groupsLink.textContent = "\uD83D\uDC65 Groups";
-  groupsLink.setAttribute("aria-label", "Groups");
+  groupsLink.textContent = "\uD83D\uDC65 Tribes";
+  groupsLink.setAttribute("aria-label", "Tribes");
   friendsLink.insertAdjacentElement("afterend", groupsLink);
 }
 
@@ -1200,7 +1200,7 @@ function openWorkspaceRoute(name, pushHistory = true) {
   homeControl?.setAttribute("aria-pressed", "false");
   document.getElementById("newsFeedView").hidden = true;
   featurePanel.hidden = false;
-  featureHeading.textContent = canonicalName;
+  featureHeading.textContent = canonicalName === "Groups" ? "Tribes" : canonicalName;
   featurePanel.dataset.workspaceName = canonicalName;
   document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.dataset.feature === canonicalName));
   document.querySelectorAll("[data-feature]").forEach(control => {
@@ -2209,7 +2209,7 @@ reelsRail.setAttribute("aria-label", "External video reels");
 const reelsHeading = document.createElement("div");
 reelsHeading.className = "reels-heading";
 const reelsTitle = document.createElement("h3");
-reelsTitle.textContent = "Reels";
+reelsTitle.textContent = "The Roll";
 const reelsSourceNote = document.createElement("span");
 reelsSourceNote.textContent = "Externally hosted videos";
 reelsHeading.append(reelsTitle, reelsSourceNote);
@@ -2324,7 +2324,7 @@ function renderPlayableReels() {
   if (!reels.length) {
     const empty = document.createElement("p");
     empty.className = "muted reels-empty";
-    empty.textContent = "Videos shared to Reels will appear here.";
+    empty.textContent = "Videos shared to The Roll will appear here.";
     reelsList.appendChild(empty);
     return;
   }
