@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1">
 <script src="assets/display-preferences.js?v=342"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=277">
-<link rel="stylesheet" href="assets/chat.css?v=358">
+<link rel="stylesheet" href="assets/chat.css?v=360">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
 <title>Messages | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
@@ -23,17 +23,18 @@
 <header class="chat-header"><a href="feed.html" class="chat-brand"><img src="assets/danzstak-logo.png" alt="DanzStak"></a><div><a class="button" href="feed.html?view=feed">Back to Your Mix</a> <button class="button" type="button" data-logout>Logout</button></div></header>
 <main class="chat-shell">
   <section class="chat-sidebar" aria-labelledby="messagesTitle">
-    <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><span aria-hidden="true">•••</span></div>
+    <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><button id="newChat" type="button" class="new-chat-button" aria-label="Start a new chat" title="Start a new chat">✎</button></div>
     <label class="chat-search"><span aria-hidden="true">⌕</span><input id="chatSearch" type="search" placeholder="Search DanzStak messages" aria-label="Search messages"></label>
     <nav class="chat-filters" aria-label="Chat filters" role="tablist"><button type="button" class="active" data-chat-filter="all" role="tab" aria-selected="true">All</button><button type="button" data-chat-filter="unread" role="tab" aria-selected="false" tabindex="-1">Unread</button><button type="button" data-chat-filter="groups" role="tab" aria-selected="false" tabindex="-1">Tribes</button></nav>
     <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers"><p class="chat-note">Loading saved chats…</p></div></section>
     <input id="contactEmail" type="hidden">
-    <section class="online-panel" aria-labelledby="onlineTitle"><h2 id="onlineTitle">Friends and group members</h2><div id="onlineUsers"><p class="chat-note">Loading contacts…</p></div></section>
-    <p class="choice-label">Start a conversation</p>
-    <div class="call-actions conversation-choices">
+    <div class="chat-compat-controls" hidden aria-hidden="true">
+      <section class="online-panel" aria-labelledby="onlineTitle"><h2 id="onlineTitle">Friends and group members</h2><div id="onlineUsers"><p class="chat-note">Loading contacts…</p></div></section>
+      <div class="call-actions conversation-choices">
       <button id="startText" type="button" class="primary" disabled>Text</button>
       <button id="startPhone" type="button" class="primary" disabled>Phone</button>
       <button id="startVideo" type="button" class="primary" disabled>Video</button>
+      </div>
     </div>
     <button id="enableRinging" type="button" class="secondary answer-button">Enable call alerts</button>
     <section id="incomingCall" class="incoming-call" role="dialog" aria-modal="true" aria-labelledby="incomingLabel" hidden><strong id="incomingLabel">Incoming call</strong><div class="call-actions"><button id="acceptCall" type="button" class="primary">Accept</button><button id="declineCall" type="button" class="danger">Decline</button></div></section>
@@ -64,13 +65,13 @@
 </main>
 <script src="assets/push-notifications.js?v=303" defer></script>
 <script src="assets/chat.js?v=284" defer></script>
-<script src="assets/direct-messages.js?v=359" defer></script>
+<script src="assets/direct-messages.js?v=360" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
 <script src="assets/logout.js?v=308" defer></script>
 <script src="assets/pwa.js?v=278" defer></script>
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
-<script src="assets/media-visibility.js?v=231" defer></script>
+<script src="assets/media-visibility.js?v=361" defer></script>
 <script src="assets/text-emojis.js?v=231" defer></script>
 </body>
 </html>

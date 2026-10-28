@@ -482,6 +482,19 @@ async function loadConversations() {
 }
 
 chatSearch?.addEventListener("input", loadConversations);
+document.getElementById("newChat")?.addEventListener("click", () => {
+  activeFilter = "all";
+  chatFilters.forEach(item => {
+    const selected = item.dataset.chatFilter === "all";
+    item.classList.toggle("active", selected);
+    item.setAttribute("aria-selected", String(selected));
+    item.tabIndex = selected ? 0 : -1;
+  });
+  if (chatSearch) chatSearch.value = "";
+  document.body.classList.remove("is-conversation-open");
+  loadConversations();
+  chatSearch?.focus();
+});
 const chatFilters = [...document.querySelectorAll("[data-chat-filter]")];
 chatFilters.forEach(button => button.addEventListener("click", () => { chatFilters.forEach(item => { const selected = item === button; item.classList.toggle("active", selected); item.setAttribute("aria-selected", String(selected)); item.tabIndex = selected ? 0 : -1; }); activeFilter = button.dataset.chatFilter; loadConversations(); }));
 document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
