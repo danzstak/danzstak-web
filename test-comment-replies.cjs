@@ -34,6 +34,6 @@ assert.ok(api.includes('authorPicture: actorProfile.picture || ""'), "A newly po
 for (const required of [".comment-composer{", ".comment-bubble{", ".comment-reply-button", ".comment-replying{"])
   assert.ok(css.includes(required), `Compact comment styling is missing: ${required}`);
 
-assert.match(feed, /feed-enhancements\.css\?v=365/);
-assert.match(feed, /feed-enhancements\.js\?v=369/);
+assert.match(feed, /feed-enhancements\.css\?v=370/);
+assert.match(feed, /feed-enhancements\.js\?v=370/);
 console.log("Comment reply checks passed: named reply targeting, durable parent validation, threaded ordering, accessible controls, and compact composer styling.");

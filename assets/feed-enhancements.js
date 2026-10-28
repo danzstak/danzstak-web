@@ -2182,7 +2182,10 @@ function updateCommentPreview(post) {
     const group = children.get(item.dataset.parentCommentId) || []; group.push(item); children.set(item.dataset.parentCommentId,group);
   }
   const roots = items.filter(item => !item.dataset.parentCommentId || !byId.has(item.dataset.parentCommentId));
-  roots.sort((a,b) => Number(b.dataset.reactionTotal || 0) - Number(a.dataset.reactionTotal || 0) || String(a.dataset.createdAt || "").localeCompare(String(b.dataset.createdAt || "")));
+  const sortMode = post.dataset.commentSort || "relevant";
+  roots.sort(sortMode === "newest"
+    ? (a,b) => String(b.dataset.createdAt || "").localeCompare(String(a.dataset.createdAt || ""))
+    : (a,b) => Number(b.dataset.reactionTotal || 0) - Number(a.dataset.reactionTotal || 0) || String(b.dataset.createdAt || "").localeCompare(String(a.dataset.createdAt || "")));
   const ordered = [], rootIndex = new Map(), appendThread = (item,index) => { ordered.push(item); rootIndex.set(item,index); for (const reply of (children.get(item.dataset.commentId || "") || []).sort((a,b) => String(a.dataset.createdAt || "").localeCompare(String(b.dataset.createdAt || "")))) appendThread(reply,index); };
   roots.forEach((item,index) => appendThread(item,index));
   const expanded = post.dataset.commentsExpanded === "true";
@@ -2248,6 +2251,11 @@ function beginCommentReply(post, comment, item) {
   if (composer) {
     const replying = document.createElement("div");
     replying.className = "comment-replying";
+    const targetAvatar = item?.querySelector(".comment-avatar")?.cloneNode(true);
+    if (targetAvatar) {
+      targetAvatar.classList.add("comment-replying-avatar");
+      replying.appendChild(targetAvatar);
+    }
     const label = document.createElement("span");
     label.textContent = "Replying to " + name;
     const cancel = document.createElement("button");
@@ -2289,6 +2297,38 @@ function ensureCommentComposer(post) {
   });
   const field = document.createElement("div");
   field.className = "comment-composer-field";
+  const tools = document.createElement("div");
+  tools.className = "comment-composer-tools";
+  const emoji = document.createElement("button");
+  emoji.type = "button";
+  emoji.className = "comment-emoji-toggle";
+  emoji.textContent = "☺";
+  emoji.setAttribute("aria-label", "Add emoji to comment");
+  emoji.setAttribute("aria-expanded", "false");
+  const emojiMenu = document.createElement("div");
+  emojiMenu.className = "comment-emoji-menu";
+  emojiMenu.hidden = true;
+  for (const symbol of ["👍", "❤️", "😂", "😮", "😢", "🔥"]) {
+    const choice = document.createElement("button");
+    choice.type = "button";
+    choice.textContent = symbol;
+    choice.setAttribute("aria-label", "Add " + symbol);
+    choice.addEventListener("click", () => {
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? start;
+      input.value = input.value.slice(0, start) + symbol + input.value.slice(end);
+      input.setSelectionRange(start + symbol.length, start + symbol.length);
+      emojiMenu.hidden = true;
+      emoji.setAttribute("aria-expanded", "false");
+      input.focus();
+    });
+    emojiMenu.appendChild(choice);
+  }
+  emoji.addEventListener("click", () => {
+    emojiMenu.hidden = !emojiMenu.hidden;
+    emoji.setAttribute("aria-expanded", String(!emojiMenu.hidden));
+  });
+  tools.append(emoji, emojiMenu);
   const send = document.createElement("button");
   send.type = "button";
   send.className = "comment-send";
@@ -2296,8 +2336,24 @@ function ensureCommentComposer(post) {
   send.setAttribute("aria-label", "Post comment");
   send.addEventListener("click", () => saveComment(post, input));
   input.replaceWith(composer);
-  field.append(input, send);
+  field.append(input, tools, send);
   composer.append(avatar, field);
+
+  if (!post.querySelector(".comment-sort")) {
+    const sort = document.createElement("button");
+    sort.type = "button";
+    sort.className = "comment-sort";
+    sort.textContent = "Most relevant ▾";
+    sort.setAttribute("aria-label", "Comment order: most relevant. Activate for newest first.");
+    sort.addEventListener("click", () => {
+      const newest = post.dataset.commentSort !== "newest";
+      post.dataset.commentSort = newest ? "newest" : "relevant";
+      sort.textContent = newest ? "Newest ▾" : "Most relevant ▾";
+      sort.setAttribute("aria-label", newest ? "Comment order: newest first. Activate for most relevant." : "Comment order: most relevant. Activate for newest first.");
+      updateCommentPreview(post);
+    });
+    post.querySelector(".commentList")?.before(sort);
+  }
 }
 
 function renderPersistentComment(post, comment) {
@@ -2318,7 +2374,10 @@ function renderPersistentComment(post, comment) {
   author.textContent = comment.authorName || "DanzStak member";
   const time = document.createElement("time"); time.className = "comment-time"; time.dateTime = comment.createdAt || "";
   const parsed = comment.createdAt ? new Date(comment.createdAt) : null;
-  time.textContent = parsed && !Number.isNaN(parsed.getTime()) ? parsed.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "Just now";
+  if (parsed && !Number.isNaN(parsed.getTime())) {
+    const minutes = Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 60000));
+    time.textContent = minutes < 1 ? "now" : minutes < 60 ? minutes + "m" : minutes < 1440 ? Math.floor(minutes / 60) + "h" : minutes < 10080 ? Math.floor(minutes / 1440) + "d" : parsed.toLocaleDateString([], { month: "short", day: "numeric" });
+  } else time.textContent = "now";
   const body = document.createElement("div"); body.className = "comment-content"; body.textContent = comment.content;
   item.dataset.reactionTotal = String(comment.reactionTotal || 0); item.dataset.createdAt = comment.createdAt || "";
   if (comment.replyToName) { const context = document.createElement("span"); context.className = "comment-reply-context"; context.textContent = "Replying to " + comment.replyToName; bubble.appendChild(context); }
@@ -2390,11 +2449,14 @@ async function saveComment(post, input) {
   const postId = engagementPostId(post), content = input.value.trim();
   if (!postId || !content) return;
   input.disabled = true;
+  const submit = input.closest?.(".comment-composer")?.querySelector(".comment-send");
+  if (submit) submit.disabled = true;
   try {
     const parentCommentId = String(input.dataset?.replyToCommentId || "");
     const response = await engagementFetch("/comments", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId, content, ...(parentCommentId ? { parentCommentId } : {}) }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Comment could not be saved");
+    if (parentCommentId && data.comment?.parentCommentId !== parentCommentId) throw new Error("The reply service needs the latest server update. Your reply is still here—please try again after deployment.");
     post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
     input.value = "";
     if (typeof clearCommentReply === "function") clearCommentReply(input);
@@ -2402,7 +2464,7 @@ async function saveComment(post, input) {
     post.dataset.engagementLoaded = "";
     await loadEngagement(post);
   } catch (error) { alert(error.message); }
-  finally { input.disabled = false; input.focus(); }
+  finally { input.disabled = false; if (submit) submit.disabled = false; input.focus(); }
 }
 
 function addCommentDelete(comment) {
