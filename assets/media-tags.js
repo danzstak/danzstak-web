@@ -51,13 +51,15 @@
     const version = ++generation;
     if (!dialog) { dialog = document.createElement('dialog'); dialog.className = 'media-tags-dialog'; document.body.appendChild(dialog); }
     dialog.replaceChildren();
-    const title = document.createElement('h2'); title.id = 'mediaTagsTitle'; title.textContent = 'Tag people'; dialog.setAttribute('aria-labelledby',title.id);
-    const note = document.createElement('p'); note.textContent = 'Tag accepted friends who allow tagging. Each person can remove their own tag. Removed tags cannot be added back to this post.';
+    const title = document.createElement('h2'); title.id = 'mediaTagsTitle'; title.textContent = 'Tag people and location'; dialog.setAttribute('aria-labelledby',title.id);
+    const note = document.createElement('p'); note.textContent = 'Tag accepted friends who allow tagging and optionally name the city, venue, or place. Each person can remove their own tag. Removed tags cannot be added back to this post.';
+    const locationLabel = document.createElement('label'); locationLabel.className = 'media-tags-location'; locationLabel.appendChild(document.createTextNode('Location — optional'));
+    const location = document.createElement('input'); location.type = 'text'; location.maxLength = 120; location.placeholder = 'City, venue, or place'; location.value = post.dataset.location || ''; locationLabel.appendChild(location);
     const list = document.createElement('div'); list.className = 'media-tags-people';
     const status = document.createElement('p'); status.setAttribute('role','status'); status.textContent = 'Loading friends…';
     const save = document.createElement('button'); save.type = 'button'; save.className = 'primary'; save.textContent = 'Save tags'; save.disabled = true;
     const close = document.createElement('button'); close.type = 'button'; close.textContent = 'Cancel'; close.addEventListener('click',()=>dialog.close());
-    const actions = document.createElement('div'); actions.className = 'media-tags-actions'; actions.append(close,save); dialog.append(title,note,list,status,actions); dialog.showModal();
+    const actions = document.createElement('div'); actions.className = 'media-tags-actions'; actions.append(close,save); dialog.append(title,note,locationLabel,list,status,actions); dialog.showModal();
     let existing; try { existing = JSON.parse(post.dataset.taggedUsers || '[]'); } catch { existing = []; }
     const selected = new Set(existing.map(tag => tag.memberId));
     try {
@@ -75,7 +77,7 @@
     if (version !== generation || !dialog.open) return;
     save.addEventListener('click', async () => {
       save.disabled = true; close.disabled = true; list.querySelectorAll('input').forEach(input => input.disabled = true);
-      try { await patch(post.dataset.postId,{taggedMembers:[...selected]}); status.textContent = 'Tags saved.'; if (typeof window.loadPosts === 'function') await window.loadPosts(); if (version === generation && dialog.open) dialog.close(); }
+      try { await patch(post.dataset.postId,{taggedMembers:[...selected],location:location.value.trim()}); post.dataset.location = location.value.trim(); status.textContent = 'Tags saved.'; if (typeof window.loadPosts === 'function') await window.loadPosts(); if (version === generation && dialog.open) dialog.close(); }
       catch (error) { status.textContent = error.message; save.disabled = false; }
       finally { close.disabled = false; list.querySelectorAll('input').forEach(input => input.disabled = false); }
     });

@@ -1963,7 +1963,7 @@ function addPostDeleteButton(post) {
     button.querySelector("strong").textContent = off ? "Turn off notifications" : "Turn on notifications";
   });
   if (preferences.notificationsOff === true) notificationsOption.querySelector("strong").textContent = "Turn on notifications";
-  if (owner && ["image","video"].includes(post.dataset.mediaType)) option("Tag people", "Tag accepted friends in this photo or video.", () => window.danzstakOpenMediaTags?.(post));
+  if (owner && ["image","video"].includes(post.dataset.mediaType)) option("Tag people or location", "Tag accepted friends or add a place to this photo or video.", () => window.danzstakOpenMediaTags?.(post));
     option("Copy link", "Copy a shareable link to this post.", async () => {
     try { await navigator.clipboard.writeText(postPermalink(post)); }
     catch { alert("Copying is unavailable in this browser."); }
