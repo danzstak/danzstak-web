@@ -101,6 +101,33 @@ class SocialNavigationTest {
         assertTrue(device.hasObject(By.text("Videos")))
         assertFalse(device.hasObject(By.textContains("Header size")))
     }
+    @Test fun chatMediaButtonsAreInsideTheInputBox() {
+        device.findObject(By.desc("Messages")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Jamie Rivera")), 5000))
+        device.findObject(By.text("Jamie Rivera")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Message input box")), 5000))
+        val box = device.findObject(By.desc("Message input box")).visibleBounds
+        val attach = device.findObject(By.desc("Attach photo or video"))
+        val camera = device.findObject(By.desc("Take photo or record video"))
+        assertTrue(box.contains(attach.visibleBounds)); assertTrue(box.contains(camera.visibleBounds))
+        camera.click()
+        assertTrue(device.wait(Until.hasObject(By.text("Record video")), 5000))
+        assertTrue(device.hasObject(By.text("Take photo")))
+        device.pressBack()
+    }
+    @Test fun tribesShowPwaCategoriesAndAllowJoining() {
+        device.findObject(By.desc("Menu").pkg("com.danzstak.app")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Tribes")), 5000))
+        device.findObject(By.text("Tribes")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Create a Tribe")), 5000))
+        assertTrue(device.hasObject(By.desc("Tribe name")))
+        val scroll = androidx.test.uiautomator.UiScrollable(androidx.test.uiautomator.UiSelector().scrollable(true))
+        assertTrue(scroll.scrollIntoView(androidx.test.uiautomator.UiSelector().description("Join Visual Artist")))
+        device.findObject(By.desc("Join Visual Artist")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Leave Visual Artist")), 5000))
+        device.findObject(By.desc("Leave Visual Artist")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Join Visual Artist")), 5000))
+    }
     @Test fun emptyMediaKeepsBothPlaceholderRails() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!.apply {

@@ -72,6 +72,32 @@ class DanzStakApiTest {
         assertEquals("https://example.com/avatar.jpg", profile.getString("picture"))
         assertEquals("https://example.com/cover.jpg", profile.getString("cover"))
     }
+    @Test fun tribesUseSharedCloudMembershipAndCreationContracts() {
+        lateinit var connection: Connection
+        var response = """{"groupIds":["default-0","default-6"]}"""
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 200, response).also { connection = it } }) { "opaque" }
+        assertEquals(setOf("default-0", "default-6"), api.groupMemberships())
+        assertEquals("list", JSONObject(connection.body.toString("UTF-8")).getString("action"))
+        response = "{}"; api.joinGroup("default-6", true)
+        var body = JSONObject(connection.body.toString("UTF-8")); assertEquals("default-6", body.getString("groupId")); assertTrue(body.getBoolean("joined"))
+        response = """{"group":{"id":"33333333-3333-4333-a333-333333333333","name":"Our scene"}}"""
+        assertEquals("Our scene", api.createGroup("Our scene", "Creators").getString("name"))
+        body = JSONObject(connection.body.toString("UTF-8")); assertTrue(body.getBoolean("communityStandards")); assertEquals("Creators", body.getString("category"))
+        response = "{}"; api.reportGroup("default-6", "Review this")
+        body = JSONObject(connection.body.toString("UTF-8")); assertEquals("group", body.getString("targetType")); assertEquals("default-6", body.getString("groupId"))
+    }
+    @Test fun attachmentUploadNeverSendsSessionToStorage() {
+        val connections = mutableListOf<Connection>()
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 200, if (url.host == "api.danzstak.com") """{"uploadUrl":"https://media.s3.us-west-1.amazonaws.com/messages/test/file.mp4","mediaKey":"messages/test/file.mp4","mediaType":"video"}""" else "").also { connections.add(it) } }) { "opaque" }
+        val file = java.io.File.createTempFile("danzstak-upload-test", ".mp4")
+        try {
+            file.writeBytes(byteArrayOf(1, 2, 3))
+            val ticket = api.uploadMessageMedia(file, "video/mp4")
+            val body = JSONObject(connections.first().body.toString("UTF-8")); assertEquals("message", body.getString("purpose"))
+            val upload = connections.last(); assertEquals("PUT", upload.requestMethod); assertNull(upload.getRequestProperty("Authorization")); assertFalse(upload.instanceFollowRedirects)
+            assertArrayEquals(byteArrayOf(1, 2, 3), upload.body.toByteArray()); assertEquals("video", ticket.getString("mediaType"))
+        } finally { file.delete() }
+    }
     @Test fun chatContactQueryAndSendAreCorrect() {
         lateinit var connection: Connection
         var response = """{"messages":[],"canContact":true}"""

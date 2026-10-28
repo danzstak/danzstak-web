@@ -1,4 +1,7 @@
 import SwiftUI
+import PhotosUI
+import UniformTypeIdentifiers
+import AVKit
 
 @MainActor
 final class ChatsModel: ObservableObject {
@@ -126,6 +129,11 @@ private struct ChatThreadView: View {
     @State private var nextCursor: String?
     @State private var canContact = true
     @State private var reactionTarget: ChatMessage?
+    @State private var cameraPresented = false
+    @State private var attachmentItem: PhotosPickerItem?
+    @State private var attachment: ChatPickedFile?
+    @State private var attachmentLoading = false
+    @State private var sentAttachmentFiles: [URL] = []
     private let api = APIClient()
     private var draftKey: String { "danzstak.chatDraft.\(isDemo ? "preview" : "live").\(chat.id)" }
     var body: some View {
@@ -143,7 +151,8 @@ private struct ChatThreadView: View {
                                 if own { Spacer(minLength: 50) }
                                 VStack(alignment: own ? .trailing : .leading, spacing: 4) {
                                 VStack(alignment: .trailing, spacing: 5) {
-                                    Text(message.content).frame(maxWidth: .infinity, alignment: .leading)
+                                    if message.mediaUrl?.isEmpty == false { ChatAttachmentView(message: message, allowLocal: isDemo) }
+                                    if !message.content.isEmpty { Text(message.content).frame(maxWidth: .infinity, alignment: .leading) }
                                     if let url = chatLink(message.content) {
                                         Link(destination: url) {
                                             VStack(alignment: .leading, spacing: 5) {
@@ -175,8 +184,16 @@ private struct ChatThreadView: View {
             }
             if !canContact { Text("You can read this conversation. Sending requires an accepted friendship or a shared Tribe.").font(.footnote).padding() }
             if !dictation.error.isEmpty { Text(dictation.error).font(.caption).foregroundStyle(.orange).padding(.horizontal) }
+            if attachmentLoading { ProgressView("Preparing attachment…").font(.caption) }
+            if let attachment {
+                HStack { Label(attachment.contentType.hasPrefix("video") ? "Video attached" : "Photo attached", systemImage: "paperclip"); Spacer(); Button("Remove") { try? FileManager.default.removeItem(at: attachment.url); self.attachment = nil; attachmentItem = nil }.disabled(sending) }.font(.caption).padding(.horizontal, 14)
+            }
             HStack(alignment: .bottom, spacing: 10) {
-                TextField("Message", text: Binding(get: { draft }, set: { draft = limitedChatText($0) }), axis: .vertical).lineLimit(1...5).padding(12).background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 24)).accessibilityIdentifier("chat.composer")
+                HStack(spacing: 6) {
+                    TextField("Message", text: Binding(get: { draft }, set: { draft = limitedChatText($0) }), axis: .vertical).lineLimit(1...5).accessibilityIdentifier("chat.composer")
+                    PhotosPicker(selection: $attachmentItem, matching: .any(of: [.images, .videos]), preferredItemEncoding: .compatible) { Image(systemName: "paperclip").frame(width: 28, height: 32) }.disabled(sending || attachmentLoading || !canContact).accessibilityLabel("Attach photo or video")
+                    Button { if UIImagePickerController.isSourceTypeAvailable(.camera) { cameraPresented = true } else { error = "No camera is available here. Use Attach to choose a photo or video." } } label: { Image(systemName: "camera").frame(width: 28, height: 32) }.disabled(sending || attachmentLoading || !canContact).accessibilityLabel("Take photo or record video")
+                }.padding(12).background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 24))
                 Button {
                     if dictation.listening { dictation.stop() }
                     else {
@@ -189,7 +206,7 @@ private struct ChatThreadView: View {
                 } label: { Image(systemName: dictation.listening ? "stop.circle.fill" : "mic.fill").font(.title3).foregroundStyle(dictation.listening ? .red : .orange).frame(width: 40, height: 44) }
                     .disabled(sending || !canContact).accessibilityLabel(dictation.listening ? "Stop dictation" : "Dictate message")
                 Button { Task { await send() } } label: { Image(systemName: "arrow.up").font(.title3.bold()).foregroundStyle(.white).frame(width: 44, height: 44).background(.orange, in: Circle()) }
-                    .disabled(sending || !canContact || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draft.count > 2000).accessibilityLabel("Send message")
+                    .disabled(sending || attachmentLoading || !canContact || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && attachment == nil || draft.count > 2000).accessibilityLabel("Send message")
             }.padding(12).background(.bar)
         }.navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .principal) { HStack(spacing: 10) { ChatAvatar(name: chat.name, picture: chat.picture).scaleEffect(0.7).frame(width: 36, height: 36); Text(chat.name).font(.headline).lineLimit(1) } }; ToolbarItem(placement: .topBarTrailing) { Image("DanzStakMark").resizable().scaledToFit().frame(width: 30, height: 30).accessibilityLabel("DanzStak brand") } }
             .task {
@@ -199,6 +216,14 @@ private struct ChatThreadView: View {
                 while !Task.isCancelled { try? await Task.sleep(for: .seconds(10)); if phase == .active && !Task.isCancelled { await load() } }
             }.onChange(of: draft) { _, text in let limited = limitedChatText(text); if limited != text { draft = limited }; UserDefaults.standard.set(limited, forKey: draftKey) }
             .onChange(of: phase) { _, phase in if phase == .background { dictation.stop() } }
+            .onChange(of: attachmentItem) { _, item in
+                guard let item else { return }
+                Task {
+                    attachmentLoading = true; defer { attachmentLoading = false }
+                    do { if let file = try await item.loadTransferable(type: ChatPickedFile.self) { if let old = attachment { try? FileManager.default.removeItem(at: old.url) }; attachment = file } }
+                    catch { self.error = "Choose a supported photo or video smaller than 100 MB." }
+                }
+            }
             .onDisappear { dictation.stop() }
             .sheet(item: $actions, onDismiss: {
                 if let item = pendingShare { pendingShare = nil; sharing = item }
@@ -210,6 +235,13 @@ private struct ChatThreadView: View {
                     share: { pendingShare = message; actions = nil },
                     forward: { pendingForward = message; actions = nil },
                     delete: { scope in await delete(message, scope: scope) })
+            }
+            .fullScreenCover(isPresented: $cameraPresented) {
+                ChatCameraPicker { result in
+                    cameraPresented = false
+                    if case .success(let file) = result { if let old = attachment { try? FileManager.default.removeItem(at: old.url) }; attachment = file }
+                    else if case .failure = result { error = "The capture could not be attached. Try again." }
+                }
             }
             .sheet(item: $sharing) { message in ChatShareSheet(text: message.content) }
             .sheet(item: $forwarding) { message in ChatForwardPicker(content: message.content, isDemo: isDemo).environmentObject(app) }
@@ -242,12 +274,20 @@ private struct ChatThreadView: View {
     }
     private func send() async {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !sending, canContact, !text.isEmpty, text.count <= 2000 else { return }
+        guard !sending, !attachmentLoading, canContact, !text.isEmpty || attachment != nil, text.count <= 2000 else { return }
         dictation.stop(); sending = true; error = ""
         defer { sending = false }
         do {
-            let message = isDemo ? ChatMessage(messageId: UUID().uuidString, senderEmail: "preview-you", recipientEmail: chat.contactEmail, content: text, createdAt: ISO8601DateFormatter().string(from: Date())) : try await api.sendMessage(to: chat.contactEmail, text: text)
-            messages.append(message); draft = ""
+            var message: ChatMessage
+            if isDemo {
+                message = ChatMessage(messageId: UUID().uuidString, senderEmail: "preview-you", recipientEmail: chat.contactEmail, content: text, createdAt: ISO8601DateFormatter().string(from: Date()), mediaType: attachment.map { $0.contentType.hasPrefix("video") ? "video" : "image" }, mediaUrl: attachment?.url.absoluteString)
+                if let file = attachment { sentAttachmentFiles.append(file.url) }
+            } else if let file = attachment {
+                let ticket = try await api.uploadMessageMedia(file: file.url, contentType: file.contentType)
+                message = try await api.sendMessage(to: chat.contactEmail, text: text, mediaKey: ticket.mediaKey, mediaType: ticket.mediaType)
+                try? FileManager.default.removeItem(at: file.url)
+            } else { message = try await api.sendMessage(to: chat.contactEmail, text: text) }
+            messages.append(message); if draft.trimmingCharacters(in: .whitespacesAndNewlines) == text { draft = "" }; attachment = nil; attachmentItem = nil
         } catch APIClient.Failure.sessionExpired { app.expireSession() }
         catch { self.error = "Message could not be sent. Your draft is saved." }
     }
@@ -374,4 +414,71 @@ private func limitedChatText(_ text: String) -> String {
         units += count
         return true
     })
+}
+
+private struct ChatPickedFile: Transferable {
+    let url: URL
+    let contentType: String
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(importedContentType: .data) { received in
+            let size = try received.file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+            guard size > 0, size <= 100 * 1024 * 1024 else { throw URLError(.dataLengthExceedsMaximum) }
+            let type = UTType(filenameExtension: received.file.pathExtension)
+            var mime = type?.preferredMIMEType ?? ""
+            let supported = ["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime"]
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent("danzstak-chat", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let destination = directory.appendingPathComponent(UUID().uuidString).appendingPathExtension(received.file.pathExtension)
+            if type?.conforms(to: .image) == true && !supported.contains(mime), let image = UIImage(contentsOfFile: received.file.path), let jpeg = image.jpegData(compressionQuality: 0.9) { try jpeg.write(to: destination); mime = "image/jpeg" }
+            else { guard supported.contains(mime) else { throw URLError(.unsupportedURL) }; try FileManager.default.copyItem(at: received.file, to: destination) }
+            return ChatPickedFile(url: destination, contentType: mime)
+        }
+    }
+}
+private struct ChatAttachmentView: View {
+    @Environment(\.scenePhase) private var phase
+    let message: ChatMessage
+    let allowLocal: Bool
+    @State private var player: AVPlayer?
+    var body: some View {
+        if let value = message.mediaUrl, let url = URL(string: value), url.scheme == "https" || allowLocal && url.isFileURL {
+            if message.mediaType == "video" {
+                VideoPlayer(player: player).frame(height: 200).onAppear { player = AVPlayer(url: url) }.onDisappear { player?.pause(); player = nil }.onChange(of: phase) { _, state in if state != .active { player?.pause() } }.accessibilityLabel("Attached video")
+            } else {
+                if url.isFileURL, let image = UIImage(contentsOfFile: url.path) { Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 200) }
+                else { AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView() }.frame(maxHeight: 200) }
+            }
+        }
+    }
+}
+
+private struct ChatCameraPicker: UIViewControllerRepresentable {
+    let completion: (Result<ChatPickedFile, Error>?) -> Void
+    func makeCoordinator() -> Coordinator { Coordinator(completion: completion) }
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController(); picker.sourceType = .camera
+        picker.mediaTypes = UIImagePickerController.availableMediaTypes(for: .camera)?.filter { [UTType.image.identifier, UTType.movie.identifier].contains($0) } ?? [UTType.image.identifier]
+        picker.videoQuality = .typeMedium; picker.delegate = context.coordinator
+        return picker
+    }
+    func updateUIViewController(_ controller: UIImagePickerController, context: Context) {}
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let completion: (Result<ChatPickedFile, Error>?) -> Void
+        init(completion: @escaping (Result<ChatPickedFile, Error>?) -> Void) { self.completion = completion }
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { completion(nil) }
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            do {
+                if let url = info[.mediaURL] as? URL {
+                    let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                    guard size > 0, size <= 100 * 1024 * 1024 else { throw URLError(.dataLengthExceedsMaximum) }
+                    let destination = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension(url.pathExtension)
+                    try FileManager.default.copyItem(at: url, to: destination)
+                    completion(.success(ChatPickedFile(url: destination, contentType: UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "video/quicktime")))
+                } else if let image = info[.originalImage] as? UIImage, let jpeg = image.jpegData(compressionQuality: 0.9) {
+                    let destination = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("jpg")
+                    try jpeg.write(to: destination); completion(.success(ChatPickedFile(url: destination, contentType: "image/jpeg")))
+                } else { throw URLError(.cannotDecodeContentData) }
+            } catch { completion(.failure(error)) }
+        }
+    }
 }

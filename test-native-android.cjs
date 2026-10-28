@@ -9,7 +9,7 @@ const api = fs.readFileSync(path.join(root, "app", "src", "main", "java", "com",
 const store = fs.readFileSync(path.join(root, "app", "src", "main", "java", "com", "danzstak", "app", "SessionStore.kt"), "utf8");
 const manifest = fs.readFileSync(path.join(root, "app", "src", "main", "AndroidManifest.xml"), "utf8");
 
-assert.doesNotMatch(main + api, /WebView|loadUrl/, "the native app must not be a website wrapper");
+assert.doesNotMatch(main + api, /\bWebView\b|\bloadUrl\s*\(/, "the native app must not be a website wrapper");
 assert.match(main, /SecureRandom/, "device verifier uses a cryptographic RNG");
 assert.match(main, /SHA-256/, "the browser receives only the verifier challenge");
 assert.match(main, /danzstak\.com\/auth\/mobile-login/, "login uses the DanzStak-owned API");

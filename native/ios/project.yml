@@ -16,7 +16,8 @@ targets:
       path: DanzStak/Info.plist
       properties:
         CFBundleDisplayName: DanzStak
-        NSMicrophoneUsageDescription: Dictate a message into editable text before sending.
+        NSMicrophoneUsageDescription: Dictate messages and record audio with chat videos.
+        NSCameraUsageDescription: Take photos and record videos to review before sending in chat.
         NSSpeechRecognitionUsageDescription: Turn your speech into text so you can review and send your message.
         UILaunchScreen: {}
         CFBundleURLTypes:

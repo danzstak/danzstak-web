@@ -162,6 +162,19 @@ struct APIClientChecks {
         StubProtocol.status = 401
         do { _ = try await api.messages("friend@example.com"); fatalError("Chat 401 must expire session") }
         catch APIClient.Failure.sessionExpired {}
+        StubProtocol.status = 200
+        StubProtocol.payload = #"{"groupIds":["default-0","default-6"]}"#
+        let memberships = try await api.groupMemberships()
+        precondition(memberships == ["default-0", "default-6"])
+        precondition(CommunityGroup.defaults.count == 10)
+        let uploadFile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try Data([1,2,3]).write(to: uploadFile)
+        defer { try? FileManager.default.removeItem(at: uploadFile) }
+        StubProtocol.payload = #"{"uploadUrl":"https://media.s3.us-west-1.amazonaws.com/messages/test/file.mp4","mediaKey":"messages/test/file.mp4","mediaType":"video"}"#
+        let upload = try await api.uploadMessageMedia(file: uploadFile, contentType: "video/mp4")
+        precondition(upload.mediaType == "video")
+        precondition(StubProtocol.requests.last?.httpMethod == "PUT")
+        precondition(StubProtocol.requests.last?.value(forHTTPHeaderField: "Authorization") == nil)
         print("API checks passed: feed, sessions, recovery, exchange, publish, logout, engagement, query encoding, comments, reactions, groups, notices, HTTPS.")
     }
 }

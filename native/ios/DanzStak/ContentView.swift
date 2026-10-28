@@ -183,7 +183,6 @@ struct ContentView: View {
                         Image(systemName: "square.and.pencil").foregroundStyle(SocialStyle.blue)
                     }.padding(.horizontal, 12).padding(.vertical, 9).background(SocialStyle.card, in: RoundedRectangle(cornerRadius: 14))
                 }.buttonStyle(.plain).padding(.horizontal, 16).padding(.top, 8).accessibilityIdentifier("home.composer")
-                if query.isEmpty { storiesRail }
                 HStack {
                     Text(query.isEmpty ? "Your Mix" : "Search results").font(.headline)
                     Spacer()
@@ -201,8 +200,11 @@ struct ContentView: View {
                 }
                 ForEach(Array(filteredPosts.enumerated()), id: \.element.id) { index, post in
                     PostCard(post: post)
+                    if index == 0, query.isEmpty { storiesRail }
                     if index == 3, query.isEmpty { reelsRail }
                 }
+                if query.isEmpty, filteredPosts.isEmpty { storiesRail }
+                if query.isEmpty, filteredPosts.count < 4 { reelsRail }
             }.padding(.bottom, 16).frame(maxWidth: 760).frame(maxWidth: .infinity)
         }
         .background(SocialStyle.canvas).refreshable { await model.refresh(); await model.loadStories() }
@@ -444,19 +446,10 @@ struct ContentView: View {
     }
 
     private var groups: some View {
-        List {
-            if !model.communityError.isEmpty { Text(model.communityError).foregroundStyle(.secondary) }
-            if model.groups.isEmpty { EmptyState(icon: "person.3", title: "Find your community", detail: "Available DanzStak tribes will appear here.") }
-            ForEach(model.groups) { group in
-                VStack(alignment: .leading, spacing: 10) {
-                    Label(group.category, systemImage: "waveform").font(.caption.weight(.semibold)).foregroundStyle(SocialStyle.blue)
-                    Text(group.name).font(.title3.bold())
-                    Text(group.description).font(.subheadline).foregroundStyle(.secondary)
-                }.padding(.vertical, 12)
-            }
-        }.navigationTitle("Tribes").task { await model.loadGroups() }.refreshable { await model.loadGroups() }
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { showGroups = false } } }
+        NativeTribesView().environmentObject(model)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { showGroups = false } } }
     }
+
 }
 
 private struct ReelTile: View {
@@ -1204,5 +1197,111 @@ private struct MemberProfileIdentity: View {
                 do { profile = try await APIClient().memberProfile(email: email) }
                 catch { self.error = "The full profile could not be loaded. Try again later." }
             }
+    }
+}
+
+private struct NativeTribesView: View {
+    @EnvironmentObject private var model: AppModel
+    @State private var custom: [CommunityGroup] = []
+    @State private var joined: Set<String> = []
+    @State private var ready = false
+    @State private var loading = false
+    @State private var busy: Set<String> = []
+    @State private var name = ""
+    @State private var category = "Artists"
+    @State private var standards = false
+    @State private var feedback = ""
+    @State private var pendingDelete: CommunityGroup?
+    @State private var reporting: CommunityGroup?
+    @State private var reportDetails = ""
+    private let api = APIClient()
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 16) {
+                Text("Find communities by category, create a Tribe, and connect with people who share your interests.").font(.subheadline).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Create a Tribe").font(.title3.bold())
+                    TextField("Name your Tribe", text: $name).textFieldStyle(.roundedBorder).accessibilityIdentifier("tribes.name")
+                        .onChange(of: name) { _, value in if value.count > 80 { name = String(value.prefix(80)) } }
+                    Picker("Category", selection: $category) { ForEach(CommunityGroup.categories, id: \.raw) { item in Text(item.name).tag(item.raw) } }
+                    Toggle("I agree to enforce DanzStak Community Standards: no hate speech, harassment, threats, or targeted abuse.", isOn: $standards).font(.caption)
+                    Button("Create Tribe") { Task { await create() } }.buttonStyle(.borderedProminent).disabled(!ready || busy.contains("create"))
+                }.padding(16).background(SocialStyle.card, in: RoundedRectangle(cornerRadius: 16))
+                if loading { ProgressView("Loading Tribes…") }
+                if !feedback.isEmpty { Text(feedback).font(.caption).foregroundStyle(.secondary) }
+                ForEach(custom + CommunityGroup.defaults) { group in
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(CommunityGroup.categories.first { $0.raw == group.category }?.name ?? group.category).font(.caption.bold()).foregroundStyle(SocialStyle.blue)
+                        Text(group.name).font(.title3.bold())
+                        Text(group.description).font(.subheadline).foregroundStyle(.secondary)
+                        Text(["Politics", "Religion"].contains(group.category) ? "Moderated discussion" : "Community Standards apply").font(.subheadline.bold())
+                        Text("Hate speech, harassment, threats, and targeted abuse are not allowed.").font(.caption).foregroundStyle(.secondary)
+                        Button("Report a problem") { reportDetails = ""; reporting = group }.font(.caption)
+                        Button(joined.contains(group.id) ? "Joined" : "Join Tribe") { Task { await membership(group) } }
+                            .buttonStyle(.borderedProminent).disabled(!ready || busy.contains(group.id)).accessibilityIdentifier("tribes.join.\(group.id)")
+                        if group.isOwner == true { Button("Delete Tribe", role: .destructive) { pendingDelete = group }.disabled(busy.contains(group.id)) }
+                    }.padding(16).frame(maxWidth: .infinity, alignment: .leading).background(SocialStyle.card, in: RoundedRectangle(cornerRadius: 16))
+                }
+                Button("Refresh Tribes") { Task { await load() } }.disabled(loading || !busy.isEmpty)
+            }.padding(16).frame(maxWidth: 760).frame(maxWidth: .infinity)
+        }.background(SocialStyle.canvas).navigationTitle("Tribes").task { await load() }.refreshable { if busy.isEmpty { await load() } }
+            .confirmationDialog("Delete this Tribe? This cannot be undone.", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), titleVisibility: .visible) {
+                if let group = pendingDelete { Button("Delete Tribe", role: .destructive) { Task { await remove(group) } } }
+            }
+            .sheet(item: $reporting) { group in
+                NavigationStack {
+                    Form {
+                        Text("What should moderators review?")
+                        TextEditor(text: $reportDetails).frame(minHeight: 130).onChange(of: reportDetails) { _, value in if value.count > 500 { reportDetails = String(value.prefix(500)) } }
+                        Text(feedback).font(.caption).foregroundStyle(.secondary)
+                    }.navigationTitle("Report a problem").toolbar {
+                        ToolbarItem(placement: .cancellationAction) { Button("Cancel") { reporting = nil } }
+                        ToolbarItem(placement: .confirmationAction) { Button("Submit") { Task { await report(group) } }.disabled(busy.contains("report") || reportDetails.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+                    }
+                }
+            }
+    }
+    private func load() async {
+        guard !loading else { return }; loading = true; defer { loading = false }
+        if model.isDemo { ready = true; feedback = "Preview · Tribe changes stay on this device"; return }
+        ready = false
+        do {
+            async let groups = api.groups(); async let memberships = api.groupMemberships()
+            let result = try await (groups, memberships)
+            custom = result.0; joined = result.1; ready = true; feedback = ""
+        } catch APIClient.Failure.sessionExpired { model.expireSession() }
+        catch { feedback = "Tribes could not be loaded. Categories are shown below; tap Refresh Tribes to retry." }
+    }
+    private func create() async {
+        let value = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { feedback = "Name your Tribe."; return }
+        guard standards else { feedback = "Agree to the Community Standards before creating a Tribe."; return }
+        busy.insert("create"); defer { busy.remove("create") }
+        do {
+            let group = model.isDemo ? CommunityGroup(id: UUID().uuidString, name: value, category: category, description: "A new DanzStak community group.", isOwner: true) : try await api.createGroup(name: value, category: category)
+            custom.insert(group, at: 0); joined.insert(group.id); name = ""; standards = false; feedback = model.isDemo ? "Preview · Tribe stays on this device" : "Tribe created"
+        } catch APIClient.Failure.sessionExpired { model.expireSession() }
+        catch { feedback = "The Tribe could not be created. Your details are saved here; try again." }
+    }
+    private func membership(_ group: CommunityGroup) async {
+        let next = !joined.contains(group.id); busy.insert(group.id); defer { busy.remove(group.id) }
+        do {
+            if !model.isDemo { try await api.joinGroup(group.id, joined: next) }
+            if next { joined.insert(group.id) } else { joined.remove(group.id) }
+            feedback = model.isDemo ? "Preview · Membership stays on this device" : "Membership saved"
+        } catch APIClient.Failure.sessionExpired { model.expireSession() }
+        catch { feedback = "Membership could not be saved. Try again." }
+    }
+    private func remove(_ group: CommunityGroup) async {
+        busy.insert(group.id); defer { busy.remove(group.id) }
+        do { if !model.isDemo { try await api.deleteGroup(group.id) }; custom.removeAll { $0.id == group.id }; joined.remove(group.id); pendingDelete = nil }
+        catch APIClient.Failure.sessionExpired { model.expireSession() }
+        catch { feedback = "The Tribe could not be deleted. Try again." }
+    }
+    private func report(_ group: CommunityGroup) async {
+        busy.insert("report"); defer { busy.remove("report") }
+        do { if !model.isDemo { try await api.reportGroup(group.id, details: reportDetails.trimmingCharacters(in: .whitespacesAndNewlines)) }; reporting = nil; feedback = model.isDemo ? "Preview · No report was sent" : "Report submitted" }
+        catch APIClient.Failure.sessionExpired { model.expireSession() }
+        catch { feedback = "The report could not be submitted. Your text is saved here; try again." }
     }
 }

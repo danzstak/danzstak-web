@@ -37,6 +37,11 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
         val roll = objects(data.optJSONArray("reels")).map { MediaPage(it.getString("id"), it.optString("displayName", "DanzStak member"), it.optString("caption"), it.optString("url"), "video") }
         return Pair(flashes, roll)
     }
+    fun groupMemberships(): Set<String> { val ids = request("/groups/membership", "POST", JSONObject().put("action", "list")).optJSONArray("groupIds"); return (0 until (ids?.length() ?: 0)).map { ids!!.getString(it) }.toSet() }
+    fun joinGroup(id: String, joined: Boolean) { request("/groups/membership", "POST", JSONObject().put("groupId", id).put("joined", joined)) }
+    fun createGroup(name: String, category: String): JSONObject = request("/groups", "POST", JSONObject().put("name", name).put("category", category).put("description", "A new DanzStak community group.").put("communityStandards", true)).getJSONObject("group")
+    fun deleteGroup(id: String) { require(id.matches(Regex("[a-f0-9-]{36}"))); request("/groups/$id", "DELETE") }
+    fun reportGroup(id: String, details: String) { request("/reports", "POST", JSONObject().put("targetType", "group").put("groupId", id).put("reason", "other").put("details", details)) }
     fun groups(): List<JSONObject> = objects(request("/groups").optJSONArray("groups"))
     fun notices(): List<JSONObject> = objects(request("/engagement-notifications").optJSONArray("notifications"))
     fun markNoticesRead() { request("/engagement-notifications/read", "POST", JSONObject()) }
@@ -50,7 +55,22 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
     fun conversations(): List<JSONObject> = objects(request("/conversations").optJSONArray("conversations"))
     fun chatContacts(): List<JSONObject> = objects(request("/calls/directory").optJSONArray("users")).filter { it.optString("friendStatus") == "friends" || it.optBoolean("sharedGroup") }
     fun messages(contact: String, before: String = ""): JSONObject = request("/messages?contact=" + URLEncoder.encode(contact, "UTF-8") + "&read=1" + if (before.isNotEmpty()) "&before=" + URLEncoder.encode(before, "UTF-8") else "")
-    fun sendMessage(contact: String, text: String): JSONObject = request("/messages", "POST", JSONObject().put("recipientEmail", contact).put("content", text)).getJSONObject("message")
+    fun uploadMessageMedia(file: java.io.File, contentType: String): JSONObject {
+        require(file.length() in 1..100L * 1024 * 1024) { "Choose a file smaller than 100 MB." }
+        val ticket = request("/stories", "POST", JSONObject().put("purpose", "message").put("contentType", contentType))
+        val url = URL(ticket.getString("uploadUrl"))
+        require(url.protocol == "https" && url.host.endsWith(".amazonaws.com") && ticket.getString("mediaKey").startsWith("messages/")) { "Upload service returned an invalid destination." }
+        val connection = openConnection(url)
+        try {
+            connection.instanceFollowRedirects = false; connection.requestMethod = "PUT"; connection.doOutput = true
+            connection.connectTimeout = 10000; connection.readTimeout = 90000
+            connection.setRequestProperty("Content-Type", contentType); connection.setFixedLengthStreamingMode(file.length())
+            connection.outputStream.use { output -> file.inputStream().use { it.copyTo(output) } }
+            check(connection.responseCode in 200..299) { "The attachment could not be uploaded. Try again." }
+        } finally { connection.disconnect() }
+        return ticket
+    }
+    fun sendMessage(contact: String, text: String, mediaKey: String = "", mediaType: String = ""): JSONObject = request("/messages", "POST", JSONObject().put("recipientEmail", contact).put("content", text).put("mediaKey", mediaKey).put("mediaType", mediaType)).getJSONObject("message")
     fun deleteMessage(contact: String, message: String, scope: String) { request("/messages", "POST", JSONObject().put("action", "delete").put("contactEmail", contact).put("messageId", message).put("scope", scope)) }
     fun editMessage(contact: String, message: String, text: String): JSONObject = request("/messages", "POST", JSONObject().put("action", "edit").put("contactEmail", contact).put("messageId", message).put("content", text)).getJSONObject("message")
     fun reactMessage(contact: String, message: String, reaction: String) { request("/messages", "POST", JSONObject().put("action", "reaction").put("contactEmail", contact).put("messageId", message).put("reaction", reaction)) }

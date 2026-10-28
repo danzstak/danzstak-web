@@ -12,6 +12,8 @@ final class SocialNavigationTests: XCTestCase {
         let composer = app.textFields["chat.composer"]
         XCTAssertTrue(composer.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Dictate message"].exists)
+        XCTAssertTrue(app.buttons["Attach photo or video"].exists)
+        XCTAssertTrue(app.buttons["Take photo or record video"].exists)
         composer.tap(); composer.typeText("See you at https://example.com/show")
         app.buttons["Send message"].tap()
         XCTAssertTrue(app.staticTexts["See you at https://example.com/show"].waitForExistence(timeout: 5))
@@ -250,7 +252,14 @@ final class SocialNavigationTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["DanzStak Community"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Menu"].tap()
         app.buttons["Tribes"].tap()
-        XCTAssertTrue(app.staticTexts["DJs & Producers"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Create a Tribe"].waitForExistence(timeout: 5))
+        let membership = app.buttons["tribes.join.default-0"]
+        for _ in 0..<4 { if membership.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(membership.waitForExistence(timeout: 5))
+        membership.tap()
+        XCTAssertEqual(membership.label, "Joined")
+        membership.tap()
+        XCTAssertEqual(membership.label, "Join Tribe")
     }
 
     func testDemoNavigationAndPosting() throws {

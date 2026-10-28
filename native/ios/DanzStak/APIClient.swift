@@ -82,6 +82,15 @@ struct CommunityGroup: Identifiable, Decodable {
     let name: String
     let category: String
     let description: String
+    var isOwner: Bool? = nil
+    static let categories: [(raw: String, name: String, id: String)] = [
+        ("Artists", "Visual Artist", "default-0"), ("Creators", "Bands", "default-6"),
+        ("DJs & Producers", "DJs & Producers", "default-1"), ("Fans", "Fans", "default-2"),
+        ("Venues & Promoters", "Venues", "default-3"), ("Local Scenes", "Scenes", "default-5"),
+        ("Industry Networking", "Industry", "default-7"), ("Events", "Events", "default-4"),
+        ("Politics", "Politics", "default-8"), ("Religion", "Religion", "default-9")
+    ]
+    static var defaults: [CommunityGroup] { categories.map { CommunityGroup(id: $0.id, name: $0.name, category: $0.raw, description: "Connect in \($0.name.lowercased()).") } }
 }
 
 struct FeedNotice: Identifiable, Decodable {
@@ -172,6 +181,26 @@ struct APIClient {
         let _: EmptyResponse = try await send("/comments", method: "POST", body: ["postId": postID, "content": text])
     }
 
+    func groupMemberships() async throws -> Set<String> {
+        struct Response: Decodable { let groupIds: [String] }
+        let result: Response = try await send("/groups/membership", method: "POST", body: ["action": "list"])
+        return Set(result.groupIds)
+    }
+    func joinGroup(_ id: String, joined: Bool) async throws {
+        let _: EmptyResponse = try await send("/groups/membership", method: "POST", body: ["groupId": id, "joined": joined])
+    }
+    func createGroup(name: String, category: String) async throws -> CommunityGroup {
+        struct Response: Decodable { let group: CommunityGroup }
+        let result: Response = try await send("/groups", method: "POST", body: ["name": name, "category": category, "description": "A new DanzStak community group.", "communityStandards": true])
+        return result.group
+    }
+    func deleteGroup(_ id: String) async throws {
+        guard UUID(uuidString: id) != nil else { throw URLError(.badURL) }
+        let _: EmptyResponse = try await send("/groups/" + id, method: "DELETE")
+    }
+    func reportGroup(_ id: String, details: String) async throws {
+        let _: EmptyResponse = try await send("/reports", method: "POST", body: ["targetType": "group", "groupId": id, "reason": "other", "details": details])
+    }
     func groups() async throws -> [CommunityGroup] {
         let response: GroupResponse = try await send("/groups")
         return response.groups
@@ -204,8 +233,20 @@ struct APIClient {
         if let before { components.queryItems?.append(URLQueryItem(name: "before", value: before)) }
         return try await send("/messages" + (components.string ?? ""))
     }
-    func sendMessage(to contact: String, text: String) async throws -> ChatMessage {
-        let result: SentChatMessage = try await send("/messages", method: "POST", body: ["recipientEmail": contact, "content": text])
+    struct MessageUpload: Decodable { let uploadUrl: String; let mediaKey: String; let mediaType: String }
+    func uploadMessageMedia(file: URL, contentType: String) async throws -> MessageUpload {
+        let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        guard size > 0, size <= 100 * 1024 * 1024 else { throw URLError(.dataLengthExceedsMaximum) }
+        let ticket: MessageUpload = try await send("/stories", method: "POST", body: ["purpose": "message", "contentType": contentType])
+        guard let url = URL(string: ticket.uploadUrl), url.scheme == "https", url.host?.hasSuffix(".amazonaws.com") == true, ticket.mediaKey.hasPrefix("messages/") else { throw URLError(.badURL) }
+        var request = URLRequest(url: url); request.httpMethod = "PUT"; request.timeoutInterval = 90
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        let (_, response) = try await session.upload(for: request, fromFile: file, delegate: MessageUploadRedirectGuard())
+        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw URLError(.badServerResponse) }
+        return ticket
+    }
+    func sendMessage(to contact: String, text: String, mediaKey: String = "", mediaType: String = "") async throws -> ChatMessage {
+        let result: SentChatMessage = try await send("/messages", method: "POST", body: ["recipientEmail": contact, "content": text, "mediaKey": mediaKey, "mediaType": mediaType])
         return result.message
     }
     func deleteMessage(contact: String, message: String, scope: String) async throws {
@@ -298,6 +339,8 @@ struct ChatMessage: Decodable, Identifiable {
     var deletedAt: String? = nil
     var reactionCounts: [String: Int]? = nil
     var myReaction: String? = nil
+    var mediaType: String? = nil
+    var mediaUrl: String? = nil
     var id: String { messageId }
 }
 struct ChatMessages: Decodable {
@@ -310,3 +353,7 @@ struct ChatMessages: Decodable {
 private struct ChatConversations: Decodable { let conversations: [ChatConversation] }
 private struct ChatDirectory: Decodable { let users: [ChatContact] }
 private struct SentChatMessage: Decodable { let message: ChatMessage }
+
+private final class MessageUploadRedirectGuard: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) { completionHandler(nil) }
+}

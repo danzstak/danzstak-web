@@ -38,11 +38,36 @@ class MainActivity : ComponentActivity() {
             if (spoken.isNotEmpty()) {
                 val current = target.text.toString()
                 val merged = if (current.isBlank()) spoken else current.trimEnd() + " " + spoken
-                if (merged.length <= 2000) { target.setText(merged); target.setSelection(target.text.length); status.text = "Review your words, then tap Send." }
-                else status.text = "Speech exceeds the 2,000-character message limit. Your existing draft is unchanged."
+                target.setText(merged); target.setSelection(target.text.length); status.text = "Review your words, then tap Send."
             }
         }
         dictationInput = null; dictationContact = null
+    }
+    private var attachmentSelection: ((Uri) -> Unit)? = null
+    private var attachmentContact: String? = null
+    private var attachmentEpoch = 0
+    private val attachmentPicker = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null && attachmentEpoch == epoch && selectedChat?.optString("contactEmail") == attachmentContact) attachmentSelection?.invoke(uri)
+    }
+    private var cameraUri: Uri? = null
+    private var cameraFile: java.io.File? = null
+    private fun captured(success: Boolean) {
+        val uri = cameraUri
+        if (success && uri != null && attachmentEpoch == epoch && selectedChat?.optString("contactEmail") == attachmentContact) attachmentSelection?.invoke(uri)
+        else cameraFile?.delete()
+        cameraUri = null; cameraFile = null
+    }
+    private val cameraVideo = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CaptureVideo()) { captured(it) }
+    private val cameraPhoto = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.TakePicture()) { captured(it) }
+    private fun captureChatMedia(contact: String) {
+        AlertDialog.Builder(this).setTitle("Camera").setItems(arrayOf("Take photo", "Record video")) { _, which ->
+            attachmentContact = contact; attachmentEpoch = epoch
+            val folder = java.io.File(cacheDir, "chat-camera").apply { mkdirs(); listFiles()?.filter { it.lastModified() < System.currentTimeMillis() - 86400000L }?.forEach { it.delete() } }
+            val file = java.io.File(folder, java.util.UUID.randomUUID().toString() + if (which == 0) ".jpg" else ".mp4")
+            cameraFile = file; cameraUri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.attachments", file)
+            try { if (which == 0) cameraPhoto.launch(cameraUri!!) else cameraVideo.launch(cameraUri!!) }
+            catch (_: android.content.ActivityNotFoundException) { file.delete(); cameraFile = null; cameraUri = null; status.text = "No camera app is available. Use Attach to choose a photo or video." }
+        }.setNegativeButton("Cancel", null).show()
     }
     private lateinit var root: LinearLayout
     private lateinit var content: LinearLayout
@@ -95,6 +120,7 @@ class MainActivity : ComponentActivity() {
     private var media: List<MediaPage>? = null
     private var mediaIndex = 0
     private var video: VideoView? = null
+    private var chatVideo: VideoView? = null
     private data class FeedVideoPreview(val frame: FrameLayout, val poster: ImageView, val url: String)
     private val feedVideoPreviews = mutableListOf<FeedVideoPreview>()
     private var activeFeedVideo: FeedVideoPreview? = null
@@ -119,9 +145,9 @@ class MainActivity : ComponentActivity() {
     }
     override fun onSaveInstanceState(outState: Bundle) { outState.putBoolean("preview", demo); super.onSaveInstanceState(outState) }
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); handleDeepLink(intent) }
-    override fun onPause() { appForeground = false; stopFeedVideo(); alertHandler.removeCallbacks(alertPoll); video?.pause(); super.onPause() }
+    override fun onPause() { appForeground = false; stopFeedVideo(); alertHandler.removeCallbacks(alertPoll); video?.pause(); chatVideo?.pause(); super.onPause() }
     override fun onResume() { super.onResume(); appForeground = true; updateFeedVideo(); alertHandler.post(alertPoll); if (media != null) video?.start() }
-    override fun onDestroy() { stopFeedVideo(); video?.stopPlayback(); executor.shutdownNow(); imageExecutor.shutdownNow(); videoFrameExecutor.shutdownNow(); super.onDestroy() }
+    override fun onDestroy() { stopFeedVideo(); chatVideo?.stopPlayback(); video?.stopPlayback(); executor.shutdownNow(); imageExecutor.shutdownNow(); videoFrameExecutor.shutdownNow(); super.onDestroy() }
     private fun goBack() { if (media != null) { stopMedia(); showApp() } else if (selectedChat != null) { chats() } else { tab = "Home"; showApp() } }
     private fun signedIn() = demo || store.get("session") != null
 
@@ -130,7 +156,7 @@ class MainActivity : ComponentActivity() {
         chatDark = false; footerView = null; brandedHeader = null
         window.navigationBarColor = canvas
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply { isAppearanceLightStatusBars = true; isAppearanceLightNavigationBars = true }
-        selectedChat = null; renderChatMessages = null
+        selectedChat = null; renderChatMessages = null; attachmentSelection = null
         stopMedia()
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setBackgroundColor(canvas)
@@ -179,11 +205,12 @@ class MainActivity : ComponentActivity() {
             setOnClickListener { tab = "Create"; showApp() }; contentDescription = "Create post"
         }
         content.addView(compose, LinearLayout.LayoutParams(-1, dp(50)).apply { setMargins(dp(16), dp(8), dp(16), dp(8)) })
-        rail("Flashes", flashes)
         val mixHeading = row(); mixHeading.addView(label(if (query.isBlank()) "Your Mix" else "Search results", 17, true), LinearLayout.LayoutParams(0, -2, 1f)); mixHeading.addView(label("≡ Latest", 12).apply { setTextColor(Color.GRAY) }); mixHeading.setPadding(dp(6), dp(4), dp(6), dp(4)); content.addView(mixHeading)
         if (query.isNotEmpty()) content.addView(label("Search: $query", 15))
         val filtered = posts.filter { query.isBlank() || (it.text + it.author + it.location).contains(query, true) }
-        filtered.forEachIndexed { index, post -> content.addView(postCard(post)); if (index == 3 && query.isBlank()) rail("The Roll", roll) }
+        filtered.forEachIndexed { index, post -> content.addView(postCard(post)); if (index == 0 && query.isBlank()) rail("Flashes", flashes); if (index == 3 && query.isBlank()) rail("The Roll", roll) }
+        if (query.isBlank() && filtered.isEmpty()) rail("Flashes", flashes)
+        if (query.isBlank() && filtered.size < 4) rail("The Roll", roll)
         if (filtered.isEmpty()) content.addView(card().apply { addView(label("Your Mix is ready", 22, true)); addView(label("No posts to show yet. Create a post or refresh.", 15)) })
         content.addView(button("Refresh Your Mix") { refresh() })
     }
@@ -373,10 +400,72 @@ class MainActivity : ComponentActivity() {
         if (demo) { posts = posts.map { if (it.id == post.id) it.copy(tags = it.tags.filterNot { tag -> tag.isMe }) else it }; showApp() }
         else work("Removing your tag…", { api.removeOwnTag(post.id); api.posts() }, { posts = it; showApp() })
     }
+    private val tribeCategories = listOf(
+        Triple("Artists", "Visual Artist", "default-0"), Triple("Creators", "Bands", "default-6"),
+        Triple("DJs & Producers", "DJs & Producers", "default-1"), Triple("Fans", "Fans", "default-2"),
+        Triple("Venues & Promoters", "Venues", "default-3"), Triple("Local Scenes", "Scenes", "default-5"),
+        Triple("Industry Networking", "Industry", "default-7"), Triple("Events", "Events", "default-4"),
+        Triple("Politics", "Politics", "default-8"), Triple("Religion", "Religion", "default-9")
+    )
     private fun tribes() {
         title("Tribes")
-        if (demo) { content.addView(label("DJs & Producers\nTalk tracks, trade ideas and find your next collaborator.", 17)); return }
-        work("Loading Tribes…", { api.groups() }, { list -> list.forEach { group -> content.addView(card().apply { addView(label(group.optString("name"), 19, true)); addView(label(group.optString("description"), 15)) }) } })
+        content.addView(label("Find communities by category, create a Tribe, and connect with people who share your interests.", 15))
+        var custom = emptyList<JSONObject>()
+        val joined = mutableSetOf<String>()
+        var ready = demo
+        val form = card(); form.addView(label("Create a Tribe", 19, true))
+        val name = EditText(this).apply { hint = "Name your Tribe"; contentDescription = "Tribe name"; filters = arrayOf(android.text.InputFilter.LengthFilter(80)) }; form.addView(name)
+        val category = Spinner(this).apply { adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, tribeCategories.map { it.second }); contentDescription = "Tribe category" }; form.addView(category)
+        val standards = CheckBox(this).apply { text = "I agree to enforce DanzStak Community Standards: no hate speech, harassment, threats, or targeted abuse."; setTextColor(ink) }; form.addView(standards)
+        val feedback = label(if (demo) "Preview · Tribe changes stay on this device" else "Loading Tribes and memberships…", 13); form.addView(feedback)
+        val create = button("Create Tribe") {}; create.isEnabled = ready; form.addView(create); content.addView(form)
+        val list = column(); content.addView(list)
+        fun fail() { feedback.text = "Could not save this change. Try again." }
+        fun render() {
+            list.removeAllViews()
+            val defaults = tribeCategories.map { (raw, display, id) -> JSONObject().put("id", id).put("name", display).put("category", raw).put("description", "Connect in ${display.lowercase()}.") }
+            (custom + defaults).forEach { group ->
+                val id = group.getString("id"); val rawCategory = group.optString("category")
+                val box = card()
+                box.addView(label(tribeCategories.firstOrNull { it.first == rawCategory }?.second ?: rawCategory, 12, true).apply { setTextColor(orange) })
+                box.addView(label(group.optString("name"), 20, true)); box.addView(label(group.optString("description"), 15))
+                box.addView(label(if (rawCategory in listOf("Politics", "Religion")) "Moderated discussion" else "Community Standards apply", 14, true))
+                box.addView(label("Hate speech, harassment, threats, and targeted abuse are not allowed.", 13))
+                box.addView(button("Report a problem") {
+                    val details = EditText(this).apply { hint = "What should moderators review?"; filters = arrayOf(android.text.InputFilter.LengthFilter(500)) }
+                    val dialog = AlertDialog.Builder(this).setTitle("Report ${group.optString("name")}").setView(details).setNegativeButton("Cancel", null).setPositiveButton("Submit", null).create()
+                    dialog.setOnShowListener { dialog.getButton(-1).setOnClickListener {
+                        val text = details.text.toString().trim(); if (text.isBlank()) return@setOnClickListener
+                        if (demo) { dialog.dismiss(); feedback.text = "Preview · No report was sent" }
+                        else { dialog.getButton(-1).isEnabled = false; work("Submitting report…", { api.reportGroup(id, text) }, { dialog.dismiss(); feedback.text = "Report submitted" }, { dialog.getButton(-1).isEnabled = true; details.error = "Could not submit. Try again." }) }
+                    } }; dialog.show()
+                })
+                val join = button(if (id in joined) "Joined" else "Join Tribe") {}.apply { isEnabled = ready; contentDescription = "${if (id in joined) "Leave" else "Join"} ${group.optString("name")}" }
+                join.setOnClickListener {
+                    val next = id !in joined
+                    fun apply() { if (next) joined.add(id) else joined.remove(id); render(); feedback.text = if (demo) "Preview · Membership stays on this device" else "Membership saved" }
+                    if (demo) apply() else { join.isEnabled = false; work("Saving membership…", { api.joinGroup(id, next) }, { apply() }, { join.isEnabled = true; fail() }) }
+                }; box.addView(join)
+                if (group.optBoolean("isOwner")) box.addView(button("Delete Tribe") {
+                    AlertDialog.Builder(this).setTitle("Delete this Tribe?").setMessage("This cannot be undone.").setNegativeButton("Cancel", null).setPositiveButton("Delete") { _, _ ->
+                        fun apply() { custom = custom.filterNot { it.optString("id") == id }; joined.remove(id); render() }
+                        if (demo) apply() else work("Deleting Tribe…", { api.deleteGroup(id) }, { apply() }, { fail() })
+                    }.show()
+                })
+                list.addView(box)
+            }
+        }
+        create.setOnClickListener {
+            val selectedCategory = tribeCategories[category.selectedItemPosition].first
+            val value = name.text.toString().trim(); if (value.isBlank()) { name.error = "Name your Tribe"; return@setOnClickListener }
+            if (!standards.isChecked) { feedback.text = "Agree to the Community Standards before creating a Tribe."; return@setOnClickListener }
+            fun apply(group: JSONObject) { custom = listOf(group) + custom; joined.add(group.getString("id")); name.text.clear(); standards.isChecked = false; render(); create.isEnabled = true; feedback.text = if (demo) "Preview · Tribe stays on this device" else "Tribe created" }
+            if (demo) apply(JSONObject().put("id", java.util.UUID.randomUUID().toString()).put("name", value).put("category", tribeCategories[category.selectedItemPosition].first).put("description", "A new DanzStak community group.").put("isOwner", true))
+            else { create.isEnabled = false; work("Creating Tribe…", { api.createGroup(value, selectedCategory) }, { apply(it) }, { create.isEnabled = true; fail() }) }
+        }
+        render()
+        content.addView(button("Refresh Tribes") { content.removeAllViews(); tribes() })
+        if (!demo) work("Loading Tribes…", { Pair(api.groups(), api.groupMemberships()) }, { result -> custom = result.first; joined.addAll(result.second); ready = true; create.isEnabled = true; feedback.text = ""; render() }, { feedback.text = "Tribes could not be loaded. Categories are shown below; tap Refresh Tribes to retry." })
     }
     private fun alerts() {
         title("Notifications")
@@ -580,8 +669,19 @@ class MainActivity : ComponentActivity() {
         val transcript = column(); content.addView(transcript)
         val input = EditText(this).apply { filters = arrayOf(android.text.InputFilter.LengthFilter(2000)); hint = "Message"; minLines = 1; maxLines = 5; setText(prefs.getString("chat.$demo.$contact", "")); contentDescription = "Message" }
         input.addTextChangedListener(watcher { prefs.edit().putString("chat.$demo.$contact", it).apply() })
-        val compose = row(); compose.addView(input, LinearLayout.LayoutParams(0, -2, 1f))
+        val compose = row()
+        val inputBox = row().apply { background = rounded(Color.rgb(32, 44, 51)); contentDescription = "Message input box" }
+        inputBox.addView(input, LinearLayout.LayoutParams(0, -2, 1f)); compose.addView(inputBox, LinearLayout.LayoutParams(0, -2, 1f))
         var allowed = true
+        var attachment: Pair<Uri, String>? = null
+        val attachmentRow = row().apply { visibility = View.GONE; setBackgroundColor(Color.rgb(32, 44, 51)) }
+        val attachmentLabel = label("", 13); attachmentRow.addView(attachmentLabel, LinearLayout.LayoutParams(0, -2, 1f))
+        attachmentRow.addView(button("Remove") { attachment = null; attachmentRow.visibility = View.GONE })
+        attachmentSelection = { uri ->
+            val type = contentResolver.getType(uri).orEmpty().lowercase()
+            if (type !in setOf("image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime")) status.text = "Choose a JPEG, PNG, WebP, GIF, MP4, WebM or MOV file."
+            else { attachment = Pair(uri, type); attachmentLabel.text = if (type.startsWith("video")) "Video attached · Tap Send when ready" else "Photo attached · Tap Send when ready"; attachmentRow.visibility = View.VISIBLE }
+        }
         fun render(items: List<JSONObject>) {
             transcript.removeAllViews()
             items.forEach { message ->
@@ -603,6 +703,13 @@ class MainActivity : ComponentActivity() {
                         setOnClickListener { messageActions(chat, message) }
                     })
                 }
+                val mediaUrl = message.optString("mediaUrl")
+                if (mediaUrl.startsWith("https://") || demo && mediaUrl.startsWith("content://")) {
+                    val type = message.optString("mediaType")
+                    val preview = ImageView(this).apply { scaleType = ImageView.ScaleType.FIT_CENTER; setBackgroundColor(Color.BLACK); contentDescription = if (type == "video") "Play attached video" else "View attached photo"; setOnLongClickListener { messageActions(chat, message); true }; setOnClickListener { chatMedia(mediaUrl, type) } }
+                    transcript.addView(preview, LinearLayout.LayoutParams(-1, dp(200)))
+                    if (mediaUrl.startsWith("content://")) preview.setImageURI(Uri.parse(mediaUrl)) else if (type == "video") loadVideoFrame(mediaUrl, preview) else loadImage(mediaUrl, preview)
+                }
                 val matcher = android.util.Patterns.WEB_URL.matcher(message.optString("content"))
                 var preview: String? = null
                 while (matcher.find()) { val candidate = matcher.group(); if (candidate.startsWith("https://")) { preview = candidate; break } }
@@ -621,12 +728,12 @@ class MainActivity : ComponentActivity() {
         renderChatMessages = { render(it) }
         val send = button("➤") {}.apply { contentDescription = "Send message"; minimumWidth = dp(44); minWidth = dp(44); textSize = 20f; setTextColor(Color.WHITE); setPadding(0, 0, 0, 0); background = rounded(orange); layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)) }
         send.setOnClickListener {
-            val text = input.text.toString().trim(); if (!allowed || text.isBlank()) return@setOnClickListener
+            val text = input.text.toString().trim(); val chosen = attachment; if (!allowed || text.isBlank() && chosen == null) return@setOnClickListener
             if (text.length > 2000) { input.error = "Shorten this message before sending."; return@setOnClickListener }
             send.isEnabled = false; send.text = "…"
-            fun append(message: JSONObject) { val items = chatMessages.getOrPut(contact) { mutableListOf() }; items.add(message); render(items); input.text.clear(); send.isEnabled = true; send.text = "➤"; status.text = if (demo) "Preview · Messages stay on this device" else "Sent" }
-            if (demo) append(JSONObject().put("messageId", "preview-${System.nanoTime()}").put("senderEmail", "preview-you").put("content", text))
-            else work("Sending message…", { api.sendMessage(contact, text) }, { append(it) }, { send.isEnabled = true; send.text = "➤" })
+            fun append(message: JSONObject) { val items = chatMessages.getOrPut(contact) { mutableListOf() }; items.add(message); render(items); if (input.text.toString().trim() == text) input.text.clear(); if (attachment == chosen) { attachment = null; attachmentRow.visibility = View.GONE }; send.isEnabled = true; send.text = "➤"; status.text = if (demo) "Preview · Messages stay on this device" else "Sent" }
+            if (demo) append(JSONObject().put("messageId", "preview-${System.nanoTime()}").put("senderEmail", "preview-you").put("content", text).put("mediaType", if (chosen?.second?.startsWith("video") == true) "video" else if (chosen != null) "image" else "").put("mediaUrl", chosen?.first?.toString().orEmpty()))
+            else work("Sending message…", { if (chosen == null) api.sendMessage(contact, text) else sendChatAttachment(contact, text, chosen.first, chosen.second) }, { append(it) }, { send.isEnabled = true; send.text = "➤" })
         }
         val microphone = headerIcon(R.drawable.mic, "Dictate message") {
             dictationInput = input; dictationContact = contact; dictationEpoch = epoch
@@ -641,17 +748,45 @@ class MainActivity : ComponentActivity() {
                 status.text = "Speech input is unavailable. Enable your phone’s speech service or use your keyboard microphone."
             }
         }.apply { setColorFilter(orange) }
-        compose.setPadding(dp(8), dp(6), dp(8), dp(6)); compose.setBackgroundColor(Color.rgb(11, 20, 26)); input.background = rounded(Color.rgb(32, 44, 51)); input.setPadding(dp(14), dp(10), dp(10), dp(10)); input.setTextColor(Color.rgb(233, 237, 239)); input.setHintTextColor(Color.LTGRAY)
-        compose.addView(microphone); compose.addView(send); root.addView(compose, root.childCount - 1)
+        compose.setPadding(dp(8), dp(6), dp(8), dp(6)); compose.setBackgroundColor(Color.rgb(11, 20, 26)); input.setBackgroundColor(Color.TRANSPARENT); input.setPadding(dp(14), dp(10), dp(10), dp(10)); input.setTextColor(Color.rgb(233, 237, 239)); input.setHintTextColor(Color.LTGRAY)
+        val attach = headerIcon(R.drawable.attachment, "Attach photo or video") {
+            attachmentContact = contact; attachmentEpoch = epoch
+            attachmentPicker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+        }.apply { setColorFilter(Color.rgb(126, 200, 255)); setPadding(dp(6), dp(10), dp(6), dp(10)) }
+        attach.layoutParams = LinearLayout.LayoutParams(dp(32), dp(44))
+        val camera = headerIcon(R.drawable.camera, "Take photo or record video") { captureChatMedia(contact) }.apply { layoutParams = LinearLayout.LayoutParams(dp(32), dp(44)); setPadding(dp(6), dp(10), dp(6), dp(10)) }
+        inputBox.addView(attach); inputBox.addView(camera); compose.addView(microphone); compose.addView(send); root.addView(attachmentRow, root.childCount - 1); root.addView(compose, root.childCount - 1)
         if (demo) {
             val items = chatMessages.getOrPut(contact) { mutableListOf(JSONObject().put("messageId", "preview-first").put("senderEmail", contact).put("content", chat.optString("preview", "Hey! What are you working on?"))) }; render(items); status.text = "Preview · Messages stay on this device"
         } else work("Loading conversation…", { api.messages(contact) }, { result ->
-            allowed = result.optBoolean("canContact", true); input.isEnabled = allowed; send.isEnabled = allowed
+            allowed = result.optBoolean("canContact", true); input.isEnabled = allowed; send.isEnabled = allowed; attach.isEnabled = allowed; camera.isEnabled = allowed
             val items = DanzStakApi.objects(result.optJSONArray("messages")).filter { "$contact:${it.optString("messageId")}" !in locallyDeletedMessages }; chatMessages[contact] = items.toMutableList(); render(items)
             if (!allowed) status.text = "You can read this conversation. Sending requires friendship or a shared Tribe."
             val cursor = result.optString("nextCursor")
             if (cursor.isNotEmpty()) transcript.addView(button("Load earlier messages") { work("Loading earlier messages…", { api.messages(contact, cursor) }, { older -> val combined = (DanzStakApi.objects(older.optJSONArray("messages")) + chatMessages[contact].orEmpty()).distinctBy { it.optString("messageId") }; chatMessages[contact] = combined.toMutableList(); render(combined) }) }, 0)
         })
+    }
+    private fun sendChatAttachment(contact: String, text: String, uri: Uri, contentType: String): JSONObject {
+        val file = java.io.File.createTempFile("chat-upload-", ".tmp", cacheDir)
+        try {
+            contentResolver.openInputStream(uri)?.use { input -> file.outputStream().use { output ->
+                val bytes = ByteArray(65536); var total = 0L
+                while (true) { val count = input.read(bytes); if (count < 0) break; total += count; require(total <= 100L * 1024 * 1024) { "Choose a file smaller than 100 MB." }; output.write(bytes, 0, count) }
+            } } ?: throw IllegalStateException("This attachment is no longer available. Choose it again.")
+            val ticket = api.uploadMessageMedia(file, contentType)
+            return api.sendMessage(contact, text, ticket.getString("mediaKey"), ticket.getString("mediaType"))
+        } finally { file.delete() }
+    }
+    private fun chatMedia(url: String, type: String) {
+        stopFeedVideo()
+        val frame = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
+        var player: VideoView? = null
+        if (type == "video") {
+            player = VideoView(this).apply { setVideoURI(Uri.parse(url)); setMediaController(MediaController(this@MainActivity)); setOnPreparedListener { start() }; setOnErrorListener { _, _, _ -> Toast.makeText(this@MainActivity, "Video could not be loaded. Reopen the conversation to refresh it.", Toast.LENGTH_LONG).show(); true } }
+            frame.addView(player, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
+        } else { val image = ImageView(this).apply { scaleType = ImageView.ScaleType.FIT_CENTER }; frame.addView(image, FrameLayout.LayoutParams(-1, -1)); if (url.startsWith("content://")) image.setImageURI(Uri.parse(url)) else loadImage(url, image) }
+        val dialog = AlertDialog.Builder(this).setView(frame).setPositiveButton("Done", null).create()
+        chatVideo = player; dialog.setOnDismissListener { player?.stopPlayback(); if (chatVideo === player) chatVideo = null }; dialog.show(); dialog.window?.setLayout(-1, -1)
     }
     private fun messageActions(chat: JSONObject, message: JSONObject) {
         (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).hideSoftInputFromWindow(root.windowToken, 0)
