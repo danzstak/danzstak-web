@@ -12,6 +12,10 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     @Published var isDemo = false
     @Published var isLoading = false
     @Published var groups: [CommunityGroup] = []
+    @Published var stories: [FeedStory] = []
+    @Published var reels: [FeedReel] = []
+    @Published var storiesError = ""
+    @Published var storiesLoading = false
     @Published var notices: [FeedNotice] = []
     @Published var engagement: [String: Engagement] = [:]
     @Published var postErrors: [String: String] = [:]
@@ -105,7 +109,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     }
 
     private func clearContent() {
-        posts = []; groups = []; notices = []; engagement = [:]
+        posts = []; groups = []; stories = []; reels = []; storiesError = ""; storiesLoading = false; notices = []; engagement = [:]
         postErrors = [:]; busyPosts = []; communityError = ""; noticesError = ""; isLoading = false
     }
 
@@ -120,9 +124,17 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         posts = [
             FeedPost(id: "demo-1", author: "DanzStak Community", text: "A place for the people who move music forward.\n\nShare your next set, find your scene, and make something worth showing up for.", createdAt: now),
             FeedPost(id: "demo-2", author: "The Night Shift", text: "What’s the one track you always come back to? Drop it in the comments. 🎧", createdAt: now),
-            FeedPost(id: "demo-3", author: "You", text: "Ready to find my people. See you on the dance floor. ✨", createdAt: now, isOwner: true)
+            FeedPost(id: "demo-3", author: "You", text: "Ready to find my people. See you on the dance floor. ✨", createdAt: now, isOwner: true),
+            FeedPost(id: "demo-4", author: "Studio Notes", text: "A little practice, a fresh idea, and a track that won’t leave your head. What are you working on today?", createdAt: now),
+            FeedPost(id: "demo-5", author: "Local Scenes", text: "Support the people building something in your city. The next great night starts with your community.", createdAt: now)
         ]
         groups = [CommunityGroup(id: "demo-djs", name: "DJs & Producers", category: "Music makers", description: "Talk tracks, trade ideas, and find your next collaborator."), CommunityGroup(id: "demo-scene", name: "Local Scenes", category: "Community", description: "The people and places that keep your city moving.")]
+        stories = [
+            FeedStory(storyId: "demo-s1", displayName: "DanzStak", caption: "Find your people. Feel your scene."),
+            FeedStory(storyId: "demo-s2", displayName: "The Night Shift", caption: "One more track. One more moment."),
+            FeedStory(storyId: "demo-s3", displayName: "Local Scenes", caption: "Music brings us together.")
+        ]
+        reels = [FeedReel(id: "demo-r1", caption: "In the mix", displayName: "DanzStak"), FeedReel(id: "demo-r2", caption: "Behind the sound", displayName: "Studio Notes"), FeedReel(id: "demo-r3", caption: "Find your scene", displayName: "Local Scenes")]
         notices = [FeedNotice(type: "comment", postId: "demo-3", preview: "Welcome to the community!", createdAt: now, unread: true)]
         for post in posts { engagement[post.id] = Engagement() }
         status = "Demo mode • Sample content. Nothing is sent to DanzStak."
@@ -187,6 +199,21 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         do { let result = try await api.groups(); if epoch == sessionEpoch { groups = result } }
         catch APIClient.Failure.sessionExpired { if epoch == sessionEpoch { expireSession() } }
         catch { if epoch == sessionEpoch { communityError = "Groups could not be loaded. Pull down to retry." } }
+    }
+
+    func loadStories() async {
+        guard signedIn, !isDemo, !storiesLoading else { return }
+        let epoch = sessionEpoch
+        storiesLoading = true
+        storiesError = ""
+        defer { if epoch == sessionEpoch { storiesLoading = false } }
+        do {
+            let result = try await api.stories()
+            if epoch == sessionEpoch { stories = result.stories; reels = result.reels ?? [] }
+        } catch {
+            // Optional story-service failures must not invalidate a healthy feed session.
+            if epoch == sessionEpoch { storiesError = "Stories couldn’t be loaded. Tap Retry." }
+        }
     }
 
     func loadNotices() async {

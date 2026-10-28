@@ -91,6 +91,11 @@ struct APIClientChecks {
         StubProtocol.payload = "{}"
         try await api.markNoticesRead()
         precondition(StubProtocol.requests.last?.url?.path == "/engagement-notifications/read")
+        StubProtocol.payload = #"{"stories":[{"storyId":"s1","displayName":"DJ","caption":"Tonight"}],"reels":[{"id":"r1","url":"https://example.com/reel","caption":"A set"}]}"#
+        let mediaFeed = try await api.stories()
+        precondition(mediaFeed.stories.first?.caption == "Tonight")
+        precondition(mediaFeed.reels?.first?.id == "r1")
+        precondition(StubProtocol.requests.last?.url?.path == "/stories")
 
         let noSession = APIClient(session: session, sessionToken: { nil })
         let count = StubProtocol.requests.count

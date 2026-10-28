@@ -27,6 +27,7 @@ struct ContentView: View {
     @State private var searching = false
     @State private var query = ""
     @State private var showGroups = false
+    @State private var selectedStory: FeedStory?
     @AppStorage("danzstak.headerPercent") private var headerPercent = 6.0
 
     private var effectiveHeaderPercent: Double {
@@ -68,6 +69,7 @@ struct ContentView: View {
                 }
                 .sheet(isPresented: $composer) { ComposerView(isDemo: model.isDemo).environmentObject(model) }
                 .sheet(isPresented: $showGroups) { NavigationStack { groups }.environmentObject(model) }
+                .sheet(item: $selectedStory) { StoryViewer(story: $0) }
             } else { welcome }
         }
         .tint(SocialStyle.blue)
@@ -121,23 +123,15 @@ struct ContentView: View {
                         Button { query = ""; searching = false } label: { Image(systemName: "xmark.circle.fill") }
                     }.padding(14).background(SocialStyle.card, in: RoundedRectangle(cornerRadius: 16)).padding(.horizontal, 16)
                 }
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("YOUR COMMUNITY").font(.caption2.bold()).tracking(1.5).foregroundStyle(SocialStyle.blue)
-                        Text("Good to see you.").font(.title2.bold())
-                    }
-                    Spacer()
-                    Button { showGroups = true } label: { Label("Groups", systemImage: "person.3").font(.subheadline.weight(.semibold)) }
-                        .buttonStyle(.bordered).clipShape(Capsule())
-                }.padding(.horizontal, 18).padding(.top, 12)
                 Button { composer = true } label: {
-                    HStack(spacing: 12) {
-                        Avatar(name: "You", size: 44)
-                        Text("What’s happening in your world?").font(.subheadline).foregroundStyle(.secondary)
+                    HStack(spacing: 10) {
+                        Avatar(name: "You", size: 32)
+                        Text("What’s on your mind?").font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                         Spacer(minLength: 0)
                         Image(systemName: "square.and.pencil").foregroundStyle(SocialStyle.blue)
-                    }.padding(16).background(SocialStyle.card, in: RoundedRectangle(cornerRadius: 18))
-                }.buttonStyle(.plain).padding(.horizontal, 16)
+                    }.padding(.horizontal, 12).padding(.vertical, 9).background(SocialStyle.card, in: RoundedRectangle(cornerRadius: 14))
+                }.buttonStyle(.plain).padding(.horizontal, 16).padding(.top, 8).accessibilityIdentifier("home.composer")
+                if query.isEmpty { storiesRail }
                 HStack {
                     Text(query.isEmpty ? "Your feed" : "Search results").font(.headline)
                     Spacer()
@@ -153,16 +147,83 @@ struct ContentView: View {
                 if filteredPosts.isEmpty, !model.isLoading {
                     EmptyState(icon: query.isEmpty ? "text.bubble" : "magnifyingglass", title: query.isEmpty ? "Start the conversation" : "No matching posts", detail: query.isEmpty ? "Share a thought, a track, or a moment with your community." : "Try another name or phrase. Search covers the posts loaded in your feed.")
                 }
-                ForEach(filteredPosts) { post in PostCard(post: post) }
+                ForEach(Array(filteredPosts.enumerated()), id: \.element.id) { index, post in
+                    PostCard(post: post)
+                    if index == 3, query.isEmpty { reelsRail }
+                }
             }.padding(.bottom, 16).frame(maxWidth: 760).frame(maxWidth: .infinity)
         }
-        .background(SocialStyle.canvas).refreshable { await model.refresh() }
+        .background(SocialStyle.canvas).refreshable { await model.refresh(); await model.loadStories() }
+        .task { await model.loadStories() }
         }
         .toolbar(.hidden, for: .navigationBar)
     }
 
     private var filteredPosts: [FeedPost] {
         model.posts.filter { query.isEmpty || $0.text.localizedCaseInsensitiveContains(query) || $0.author.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var storiesRail: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Stories").font(.headline)
+                Spacer()
+                if model.storiesLoading { ProgressView() }
+            }.padding(.horizontal, 18)
+            if !model.storiesError.isEmpty {
+                HStack {
+                    Text(model.storiesError).font(.caption).foregroundStyle(.secondary)
+                    Button("Retry") { Task { await model.loadStories() } }.font(.caption.bold())
+                }.padding(.horizontal, 18)
+            }
+            if model.stories.isEmpty, !model.storiesLoading, model.storiesError.isEmpty {
+                Text("No stories right now. Check back for moments from your community.")
+                    .font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 18)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(Array(model.stories.enumerated()), id: \.element.id) { index, story in
+                        Button { selectedStory = story } label: {
+                            ZStack(alignment: .bottomLeading) {
+                                LinearGradient(colors: [index.isMultiple(of: 2) ? SocialStyle.blue : .purple, .black], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                if let value = story.mediaUrl, let url = URL(string: value), url.scheme == "https", story.mediaType == "image" {
+                                    AsyncImage(url: url) { image in image.resizable().scaledToFill() } placeholder: { Color.clear }
+                                } else {
+                                    Image(systemName: story.mediaType == "video" ? "play.circle.fill" : "waveform")
+                                        .font(.system(size: 34)).foregroundStyle(.white.opacity(0.65)).frame(maxWidth: .infinity, maxHeight: .infinity)
+                                }
+                                LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom)
+                                Text(story.displayName ?? "DanzStak member").font(.caption.bold()).foregroundStyle(.white).lineLimit(2).padding(10)
+                            }.frame(width: 105, height: 140).clipShape(RoundedRectangle(cornerRadius: 14))
+                        }.buttonStyle(.plain).accessibilityLabel("Open story from \(story.displayName ?? "DanzStak member")").accessibilityIdentifier("story.\(story.id)")
+                    }
+                }.padding(.horizontal, 16)
+            }
+        }.padding(.vertical, 3).accessibilityIdentifier("home.stories")
+    }
+
+    private var reelsRail: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Reels", systemImage: "play.rectangle.fill").font(.title3.bold()).padding(.horizontal, 18)
+            if model.reels.isEmpty {
+                Text(model.storiesError.isEmpty ? "No reels available right now." : "Reels couldn’t be loaded. Refresh to try again.")
+                    .font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 18)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(model.reels) { reel in
+                        if let value = reel.url, let url = URL(string: value), url.scheme == "https" {
+                            Link(destination: url) { ReelTile(reel: reel) }
+                                .accessibilityLabel("Watch reel: \(reel.caption ?? "DanzStak reel")")
+                        } else if model.isDemo {
+                            Button {
+                                selectedStory = FeedStory(storyId: reel.id, displayName: reel.displayName, caption: "\(reel.caption ?? "Reel")\n\nDemo preview — no video is attached.")
+                            } label: { ReelTile(reel: reel) }
+                        }
+                    }
+                }.padding(.horizontal, 16)
+            }
+        }.padding(.vertical, 12).accessibilityIdentifier("home.reels")
     }
 
     private var peoplePosts: [FeedPost] {
@@ -332,6 +393,41 @@ struct ContentView: View {
             }
         }.navigationTitle("Groups").task { await model.loadGroups() }.refreshable { await model.loadGroups() }
         .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { showGroups = false } } }
+    }
+}
+
+private struct ReelTile: View {
+    let reel: FeedReel
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(colors: [.purple, SocialStyle.blue, .black], startPoint: .topLeading, endPoint: .bottomTrailing)
+            Image(systemName: "play.circle.fill").font(.system(size: 42)).foregroundStyle(.white.opacity(0.85)).frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(reel.caption ?? "Watch reel").font(.subheadline.bold()).lineLimit(3)
+                Text(reel.displayName ?? "DanzStak").font(.caption).opacity(0.8)
+            }.foregroundStyle(.white).padding(12)
+        }.frame(width: 145, height: 210).clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+private struct StoryViewer: View {
+    @Environment(\.dismiss) private var dismiss
+    let story: FeedStory
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                LinearGradient(colors: [SocialStyle.blue, .black], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea()
+                VStack(spacing: 22) {
+                    if let value = story.mediaUrl, let url = URL(string: value), url.scheme == "https" {
+                        if story.mediaType == "video" { PostVideo(url: url) }
+                        else { AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView().tint(.white) } }
+                    } else { Image(systemName: "waveform").font(.system(size: 70)).foregroundStyle(.white.opacity(0.6)) }
+                    if let caption = story.caption, !caption.isEmpty { Text(caption).font(.title2.weight(.semibold)).multilineTextAlignment(.center).foregroundStyle(.white) }
+                }.padding(24)
+            }
+            .navigationTitle(story.displayName ?? "Story").navigationBarTitleDisplayMode(.inline)
+            .toolbar { Button("Done") { dismiss() } }.toolbarColorScheme(.dark, for: .navigationBar)
+        }
     }
 }
 

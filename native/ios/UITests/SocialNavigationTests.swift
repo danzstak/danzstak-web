@@ -1,6 +1,31 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testStoriesAndReels() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview"]
+        app.launch()
+        let composer = app.buttons["home.composer"]
+        XCTAssertTrue(composer.waitForExistence(timeout: 20))
+        XCTAssertLessThanOrEqual(composer.frame.height, 60)
+        XCTAssertFalse(app.staticTexts["Good to see you."].exists)
+        let story = app.buttons["story.demo-s1"]
+        XCTAssertTrue(story.exists)
+        XCTAssertGreaterThan(story.frame.minY, composer.frame.maxY)
+        story.tap()
+        XCTAssertTrue(app.staticTexts["Find your people. Feel your scene."].waitForExistence(timeout: 5))
+        app.buttons["Done"].tap()
+        let reels = app.staticTexts["Reels"]
+        for _ in 0..<8 {
+            if reels.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(reels.isHittable)
+        let fourth = app.staticTexts["A little practice, a fresh idea, and a track that won’t leave your head. What are you working on today?"]
+        XCTAssertTrue(fourth.exists)
+        XCTAssertLessThan(fourth.frame.maxY, reels.frame.minY)
+    }
+
     func testFooterMenu() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview"]
@@ -35,6 +60,7 @@ final class SocialNavigationTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["No matching posts"].waitForExistence(timeout: 5))
         app.buttons["Search feed"].tap()
         XCTAssertTrue(app.staticTexts["DanzStak Community"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Menu"].tap()
         app.buttons["Groups"].tap()
         XCTAssertTrue(app.staticTexts["DJs & Producers"].waitForExistence(timeout: 5))
     }
@@ -44,7 +70,7 @@ final class SocialNavigationTests: XCTestCase {
         app.launchArguments = ["--ui-preview"]
         app.launch()
         XCTAssertTrue(app.staticTexts["DEMO · Sample content"].waitForExistence(timeout: 20))
-        XCTAssertTrue(app.staticTexts["Good to see you."].exists)
+        XCTAssertTrue(app.buttons["home.composer"].exists)
         app.tabBars.buttons["People"].tap()
         XCTAssertTrue(app.staticTexts["People in your feed"].exists)
         app.tabBars.buttons["Create"].tap()
@@ -81,7 +107,7 @@ final class SocialNavigationTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview"]
         app.launch()
-        XCTAssertTrue(app.staticTexts["Good to see you."].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.buttons["home.composer"].waitForExistence(timeout: 20))
         app.tabBars.buttons["Create"].tap()
         app.buttons["Create a post"].tap()
         let editor = app.textViews.firstMatch

@@ -25,6 +25,27 @@ struct FeedComment: Identifiable, Decodable {
     var id: String { commentId }
 }
 
+struct FeedStory: Identifiable, Decodable {
+    let storyId: String
+    var displayName: String? = nil
+    var caption: String? = nil
+    var mediaUrl: String? = nil
+    var mediaType: String? = nil
+    var id: String { storyId }
+}
+
+struct FeedReel: Identifiable, Decodable {
+    let id: String
+    var url: String? = nil
+    var caption: String? = nil
+    var displayName: String? = nil
+}
+
+struct StoryCollection: Decodable {
+    let stories: [FeedStory]
+    let reels: [FeedReel]?
+}
+
 struct Engagement: Decodable {
     var reactionCounts: [String: Int] = [:]
     var myReaction = ""
@@ -112,6 +133,10 @@ struct APIClient {
     func notices() async throws -> [FeedNotice] {
         let response: NoticeResponse = try await send("/engagement-notifications")
         return response.notifications
+    }
+
+    func stories() async throws -> StoryCollection {
+        return try await send("/stories")
     }
 
     func markNoticesRead() async throws {

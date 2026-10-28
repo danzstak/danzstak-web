@@ -30,6 +30,8 @@ The app now provides Home, People, Create, Alerts, and Menu tabs. The footer Men
 
 Existing authenticated endpoints power these screens. Native friend requests, direct messages, profile editing, group membership actions, media uploads, and push notifications are not implemented by this interface. Website functionality remains available separately.
 
+Home places a compact post composer directly below the branded header, with a horizontal Stories rail beneath it. Stories open a native image/video/caption viewer. A Reels rail appears after the fourth feed post (and is omitted from filtered search results). The `/stories` response supplies stories and optional reel links; HTTPS reel links open their source. Demo reels explicitly identify themselves as previews without attached videos. Story/reel publishing is not implemented, and optional media-service failures leave the main feed usable.
+
 Use **Explore the demo** on the login screen to inspect sample content without an account. The banner identifies demo mode, and its posts, comments, and reactions remain in memory; no API writes occur. Demo composer drafts use separate local storage from real posts. Production login continues to use the device-bound system authentication flow and Keychain session.
 
 After generating the project, run the simulator UI tests with an installed iPhone destination:
