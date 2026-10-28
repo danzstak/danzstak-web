@@ -143,3 +143,4 @@ if ($failures.Count) {
 }
 
 Write-Host "Live security checks passed: website headers, feed script CSP, branded assets, API authentication or rate-limit refusal ($rateLimited throttled probes), and TLS policy."
+exit 0
