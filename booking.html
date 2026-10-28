@@ -1,18 +1,633 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://server.arcgisonline.com; style-src 'self' https://unpkg.com; img-src 'self' data: https://server.arcgisonline.com https://unpkg.com; script-src 'self' https://unpkg.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"><title>Booking Agent | DanzStak</title><meta name="description" content="Book an act, map the dates and destinations, and find public venue contacts with DanzStak."><link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1" sizes="180x180"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3ynh17D9Nl55gHKTCeAq1G/nDqww=" crossorigin="anonymous"><link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"><link rel="stylesheet" href="assets/booking-agent.css?v=311"><link rel="stylesheet" href="assets/booking-agent-driver.css?v=311"></head><body>
-<header><a class="brand" href="feed.html"><img src="assets/danzstak-logo.png" alt="DanzStak"></a><nav><a href="feed.html">Your Mix</a><a href="support.html">Support</a><button type="button" data-logout>Logout</button></nav></header>
-<main>
-<section class="hero booking-lead"><p class="eyebrow">DanzStak Booking Agent</p><h1>Find the clubs. Book the route.</h1><p>Enter your act, music style, and home city. Pan or zoom to any city or region and press Search this area. Drawing a precise boundary is optional on computers.</p></section>
- <section class="booking-map-panel" aria-labelledby="venueMapTitle"><div class="map-heading"><div><p class="eyebrow">Venue search map</p><h2 id="venueMapTitle">Search where you want to play</h2></div><div class="map-actions"><button type="button" id="searchVisibleVenueArea" class="primary-map-action">Search this area</button><button type="button" id="clearVenueArea" class="secondary">Clear area filter</button></div></div><p id="venueMapStatus">Enter a home city and search, or pan and zoom the map to a city or region and press Search this area. Drawing is optional on computers.</p><div id="venueSearchMap" aria-label="Interactive map for searching visible live-music clubs"></div><div class="venue-selection-bar"><strong id="selectedVenueCount">0 clubs selected</strong><button type="button" id="openVenueSelections" class="secondary" disabled>Open selected clubs and contacts</button></div></section>
- <section class="planner-grid">
-  <form id="tourForm" class="planner" autocomplete="off">
-   <fieldset><legend>1. Start with your act and hometown</legend><div class="two"><label>Performer type<select id="performerType"><option value="band">Band</option><option value="dj">DJ</option><option value="solo">Solo artist</option><option value="duo">Duo</option><option value="electronic">Producer / live electronic act</option><option value="ensemble">Orchestra / ensemble</option></select></label><label>Act name<input id="bandName" required maxlength="100" placeholder="Band, DJ, or artist name"></label><label>Music style / genre<select id="musicGenre"><option>DIY Punk</option><option>Metal</option><option>Rock</option><option>DJ / Electronic</option><option>Hip-Hop</option><option>Jazz</option><option>Orchestra / Classical</option><option>Other</option></select></label></div><div class="two"><label>Starting city<input id="startCity" required placeholder="Your hometown"></label><label>Ending city<input id="endCity" required placeholder="Optional turnaround city"></label></div><label>Tour stops<textarea id="tourStops" placeholder="Optional cities or venues, one per line"></textarea></label><label>Acts on this tour—one per line<textarea id="tourBands" placeholder="Your act&#10;Support act&#10;Local opener"></textarea></label><p class="hint">New act? Choose “Find a show near home.” Ready to travel? Pick a direction and DanzStak will suggest realistic club stops that bring you home.</p><button type="button" class="secondary" id="locateMe">Use my current location</button><p class="hint" id="locationStatus">Location is requested only when you press the button and is not saved unless you save this tour.</p></fieldset>
-   <fieldset><legend>2. Choose the tour style</legend><div class="tour-styles" role="radiogroup" aria-label="Tour comfort level"><label><input type="radio" name="style" value="couch" checked><span><strong>Punk Couch Tour</strong><small>Free stays, cheapest safe route, basic meals.</small></span></label><label><input type="radio" name="style" value="budget"><span><strong>DIY Budget Tour</strong><small>Low-cost motels or hostels and practical rest days.</small></span></label><label><input type="radio" name="style" value="holiday"><span><strong>Holiday Inn Tour</strong><small>Hotel rooms, proper driver rest, taxes and parking estimates.</small></span></label><label><input type="radio" name="style" value="custom"><span><strong>Custom Tour</strong><small>Set your own room and meal budget.</small></span></label></div></fieldset>
-   <fieldset><legend>3. Put the driver on the bus</legend><div class="driver-banner"><strong id="driverBanner">Driver not assigned</strong><span>No driver, no departure.</span></div><div class="two"><label>Bus driver’s name<input id="driverName" placeholder="Most important name on the tour"></label><label>Driver phone<input id="driverPhone" type="tel" autocomplete="tel"></label><label>Backup driver<input id="backupDriver"></label><label>Vehicle name or plate nickname<input id="vehicleName" placeholder="The Blue Van"></label><label>Bus parking or pickup point<input id="parkingPoint" placeholder="Exact entrance or landmark"></label><label>Indoor fallback meeting point<input id="shelterPoint" placeholder="Lobby, venue office, 24-hour stop"></label><label>Safe return / departure time<input id="returnTime" type="time"></label><label>Tour manager or night contact<input id="nightContact" placeholder="Name and phone"></label></div><label>Crew roster—one name per line<textarea id="crewRoster" placeholder="Driver&#10;Tour manager&#10;Band and crew"></textarea></label><div class="two"><label>Expected aboard<input id="expectedAboard" type="number" min="1" max="60" value="5"></label><label>Counted aboard now<input id="countedAboard" type="number" min="0" max="60" value="0"></label></div><label class="check"><input id="driverVerified" type="checkbox"><span>Driver confirms license and insurance are current. Do not enter document numbers.</span></label><label class="check"><input id="allAboard" type="checkbox"><span>Tour manager completed the named headcount. Never assume someone can safely wait outside.</span></label></fieldset>
-   <fieldset><legend>4. Price the tour</legend><div class="numbers"><label>Tour days<input id="days" type="number" min="1" max="180" value="7"></label><label>People<input id="people" type="number" min="1" max="60" value="5"></label><label>Route miles<input id="miles" type="number" min="0" max="30000" value="900"></label><label>Vehicle MPG<input id="mpg" type="number" min="1" max="100" step="0.1" value="15"></label><label>Fuel $/gallon<input id="fuelPrice" type="number" min="0" max="20" step="0.01" value="4.50"></label><label>Rooms/night<input id="rooms" type="number" min="0" max="40" value="2"></label><label>Room $/night<input id="roomRate" type="number" min="0" max="2000" step="1" value="0"></label><label>Meals/person/day<input id="meals" type="number" min="0" max="500" step="1" value="20"></label><label>Tolls + parking<input id="tolls" type="number" min="0" max="10000" step="1" value="150"></label><label>Other costs<input id="other" type="number" min="0" max="100000" step="1" value="0"></label></div><div class="vehicle-choice"><label><input type="radio" name="vehicle" value="own" checked> Own van or bus</label><label><input type="radio" name="vehicle" value="rent"> Rent one</label></div><div class="two vehicle-costs"><label>Own-vehicle wear $/mile<input id="wearRate" type="number" min="0" max="10" step="0.01" value="0.25"></label><label>Rental $/day<input id="rentalRate" type="number" min="0" max="5000" step="1" value="225"></label></div></fieldset>
-  </form>
-  <aside class="summary" aria-live="polite"><p class="eyebrow">Tour Manager estimate</p><h2 id="routeTitle">San Francisco → Seattle</h2><p class="estimate-warning">Planning estimate—not a confirmed hotel, fuel, vehicle, or venue quote.</p><dl><div><dt>Fuel</dt><dd id="fuelCost">$270</dd></div><div><dt>Lodging</dt><dd id="lodgingCost">$0</dd></div><div><dt>Meals</dt><dd id="mealCost">$700</dd></div><div><dt>Vehicle</dt><dd id="vehicleCost">$225</dd></div><div><dt>Tolls, parking + other</dt><dd id="otherCost">$150</dd></div><div class="total"><dt>Estimated total</dt><dd id="totalCost">$1,345</dd></div><div><dt>Per person</dt><dd id="perPersonCost">$269</dd></div></dl><section class="driver-guide"><h3>🚌 Driver Card</h3><p id="driverGuide">Assign the driver before booking the route.</p><dl class="driver-card"><div><dt>Vehicle</dt><dd id="cardVehicle">Not assigned</dd></div><div><dt>Parking / pickup</dt><dd id="cardParking">Not set</dd></div><div><dt>Indoor fallback</dt><dd id="cardShelter">Not set</dd></div><div><dt>Safe return</dt><dd id="cardReturn">Not set</dd></div><div><dt>Night contact</dt><dd id="cardNight">Not set</dd></div></dl><ol id="driverChecklist"></ol></section><button type="button" id="printPlan">Print or save this estimate</button></aside>
- </section>
- <section class="booking-board"><h2>Your next playable rooms</h2><p>Choose your act, hometown, dates, and how far you can travel. DanzStak will map a practical run and list public contacts for clubs your act can realistically approach.</p></section>
- <section class="booking-board" id="finishLine"><h2>Tour Finish Line</h2><p>A successful tour completes every confirmed booking, brings every person and the vehicle home intact, settles the bills, and finishes with the band still together.</p><div class="board-columns"><article><h3>Bookings</h3><label>Confirmed shows completed<input id="completedShows" type="number" min="0" max="180" value="0"></label><p id="bookingCompletion">0 of 8 completed</p></article><article><h3>Home Safe</h3><label class="check"><input id="everyoneHome" type="checkbox"><span>Every person and all essential gear made it home.</span></label><label class="check"><input id="vehicleHome" type="checkbox"><span>The vehicle made it home or has a safe recovery plan.</span></label><label class="check"><input id="billsSettled" type="checkbox"><span>Venue, hotel, rental, fuel, crew, and other bills are settled.</span></label></article><article><h3>Still a Band</h3><label class="check"><input id="bandTogether" type="checkbox"><span>The members agree the band is still together.</span></label><label>Emergency reserve left<input id="reserveLeft" type="number" min="0" max="1000000" step="0.01" value="0"></label><p id="tourSuccess">Tour in progress.</p></article></div></section>
- <section class="booking-board"><h2>Show close-out</h2><p>The tour manager settles with the club. The merch seller closes the table. A show is not settled until the money is actually received and both roles confirm their numbers.</p><div class="board-columns closeout"><article><h3>Venue Settlement</h3><label>Tour manager<input id="settledBy" placeholder="Name"></label><label>Agreed deal<input id="agreedDeal" placeholder="$500 guarantee or 80% after expenses"></label><label>Amount received<input id="settlementReceived" type="number" min="0" step="0.01" value="0"></label><label>Payment method<input id="settlementMethod" placeholder="Cash, check, transfer"></label><label class="check"><input id="settlementConfirmed" type="checkbox"><span>Tour manager confirms the venue payment was received.</span></label></article><article><h3>Merch Close-Out</h3><label>Merch seller<input id="merchSeller" placeholder="Name"></label><label>Cash sales<input id="merchCash" type="number" min="0" step="0.01" value="0"></label><label>Card sales<input id="merchCard" type="number" min="0" step="0.01" value="0"></label><label>Venue merch cut %<input id="merchCut" type="number" min="0" max="100" step="0.1" value="0"></label><label class="check"><input id="merchConfirmed" type="checkbox"><span>Merch seller confirms cash, card totals, and ending inventory.</span></label></article><article class="closeout-total"><h3>Actual Tour Position</h3><dl><div><dt>Venue received</dt><dd id="actualVenue">$0</dd></div><div><dt>Merch after venue cut</dt><dd id="actualMerch">$0</dd></div><div><dt>Estimated tour costs</dt><dd id="actualCosts">$0</dd></div><div class="total"><dt>Current profit / loss</dt><dd id="actualNet">$0</dd></div></dl><p id="closeoutStatus">Waiting for the tour manager and merch seller to confirm.</p></article></div></section>
-</main><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous" defer></script><script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js" defer></script><script src="assets/booking-map.js?v=311" defer></script><script src="assets/session-activity.js?v=270" defer></script><script src="assets/logout.js?v=308" defer></script><script src="assets/booking-agent.js?v=309" defer></script></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://server.arcgisonline.com; style-src 'self' https://unpkg.com; img-src 'self' data: https://server.arcgisonline.com https://unpkg.com; script-src 'self' https://unpkg.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+    />
+    <title>Booking Agent | DanzStak</title>
+    <meta
+      name="description"
+      content="Book an act, map the dates and destinations, and find public venue contacts with DanzStak."
+    />
+    <link
+      rel="icon"
+      href="assets/favicon-32.png?v=1"
+      sizes="32x32"
+      type="image/png"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="assets/apple-touch-icon.png?v=1"
+      sizes="180x180"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIINfQ3ynh17D9Nl55gHKTCeAq1G/nDqww="
+      crossorigin="anonymous"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+    />
+    <link rel="stylesheet" href="assets/booking-agent.css?v=311" />
+    <link rel="stylesheet" href="assets/booking-agent-driver.css?v=312" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="feed.html"
+        ><img src="assets/danzstak-logo.png" alt="DanzStak"
+      /></a>
+      <nav>
+        <a href="feed.html">Your Mix</a><a href="support.html">Support</a
+        ><button type="button" data-logout>Logout</button>
+      </nav>
+    </header>
+    <main>
+      <section class="hero booking-lead">
+        <p class="eyebrow">DanzStak Booking Agent</p>
+        <h1>Find the clubs. Book the route.</h1>
+        <p>
+          Enter your act, music style, and home city. Pan or zoom to any city or
+          region and press Search this area. Drawing a precise boundary is
+          optional on computers.
+        </p>
+      </section>
+      <section class="booking-map-panel" aria-labelledby="venueMapTitle">
+        <div class="map-heading">
+          <div>
+            <p class="eyebrow">Venue search map</p>
+            <h2 id="venueMapTitle">Search where you want to play</h2>
+          </div>
+          <div class="map-actions">
+            <button
+              type="button"
+              id="searchVisibleVenueArea"
+              class="primary-map-action"
+            >
+              Search this area</button
+            ><button type="button" id="clearVenueArea" class="secondary">
+              Clear area filter
+            </button>
+          </div>
+        </div>
+        <p id="venueMapStatus">
+          Enter a home city and search, or pan and zoom the map to a city or
+          region and press Search this area. Drawing is optional on computers.
+        </p>
+        <div
+          id="venueSearchMap"
+          aria-label="Interactive map for searching visible live-music clubs"
+        ></div>
+        <div class="venue-selection-bar">
+          <strong id="selectedVenueCount">0 clubs selected</strong
+          ><button
+            type="button"
+            id="openVenueSelections"
+            class="secondary"
+            disabled
+          >
+            Open selected clubs and contacts
+          </button>
+        </div>
+      </section>
+      <section class="planner-grid">
+        <form id="tourForm" class="planner" autocomplete="off">
+          <fieldset>
+            <legend>1. Start with your act and hometown</legend>
+            <div class="two">
+              <label
+                >Performer type<select id="performerType">
+                  <option value="band">Band</option>
+                  <option value="dj">DJ</option>
+                  <option value="solo">Solo artist</option>
+                  <option value="duo">Duo</option>
+                  <option value="electronic">
+                    Producer / live electronic act
+                  </option>
+                  <option value="ensemble">Orchestra / ensemble</option>
+                </select></label
+              ><label
+                >Act name<input
+                  id="bandName"
+                  required
+                  maxlength="100"
+                  placeholder="Band, DJ, or artist name" /></label
+              ><label
+                >Music style / genre<select id="musicGenre">
+                  <option>DIY Punk</option>
+                  <option>Metal</option>
+                  <option>Rock</option>
+                  <option>DJ / Electronic</option>
+                  <option>Hip-Hop</option>
+                  <option>Jazz</option>
+                  <option>Orchestra / Classical</option>
+                  <option>Other</option>
+                </select></label
+              >
+            </div>
+            <div class="two">
+              <label
+                >Starting city<input
+                  id="startCity"
+                  required
+                  placeholder="Your hometown" /></label
+              ><label
+                >Ending city<input
+                  id="endCity"
+                  required
+                  placeholder="Optional turnaround city"
+              /></label>
+            </div>
+            <label
+              >Tour stops<textarea
+                id="tourStops"
+                placeholder="Optional cities or venues, one per line"
+              ></textarea></label
+            ><label
+              >Acts on this tour—one per line<textarea
+                id="tourBands"
+                placeholder="Your act&#10;Support act&#10;Local opener"
+              ></textarea>
+            </label>
+            <p class="hint">
+              New act? Choose “Find a show near home.” Ready to travel? Pick a
+              direction and DanzStak will suggest realistic club stops that
+              bring you home.
+            </p>
+            <button type="button" class="secondary" id="locateMe">
+              Use my current location
+            </button>
+            <p class="hint" id="locationStatus">
+              Location is requested only when you press the button and is not
+              saved unless you save this tour.
+            </p>
+          </fieldset>
+          <fieldset>
+            <legend>2. Choose the tour style</legend>
+            <div
+              class="tour-styles"
+              role="radiogroup"
+              aria-label="Tour comfort level"
+            >
+              <label
+                ><input type="radio" name="style" value="couch" checked /><span
+                  ><strong>Punk Couch Tour</strong
+                  ><small
+                    >Free stays, cheapest safe route, basic meals.</small
+                  ></span
+                ></label
+              ><label
+                ><input type="radio" name="style" value="budget" /><span
+                  ><strong>DIY Budget Tour</strong
+                  ><small
+                    >Low-cost motels or hostels and practical rest days.</small
+                  ></span
+                ></label
+              ><label
+                ><input type="radio" name="style" value="holiday" /><span
+                  ><strong>Holiday Inn Tour</strong
+                  ><small
+                    >Hotel rooms, proper driver rest, taxes and parking
+                    estimates.</small
+                  ></span
+                ></label
+              ><label
+                ><input type="radio" name="style" value="custom" /><span
+                  ><strong>Custom Tour</strong
+                  ><small>Set your own room and meal budget.</small></span
+                ></label
+              >
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>3. Put the driver on the bus</legend>
+            <div class="driver-banner">
+              <strong id="driverBanner">Driver not assigned</strong
+              ><span>No driver, no departure.</span>
+            </div>
+            <div class="two">
+              <label
+                >Bus driver’s name<input
+                  id="driverName"
+                  placeholder="Most important name on the tour" /></label
+              ><label
+                >Driver phone<input
+                  id="driverPhone"
+                  type="tel"
+                  autocomplete="tel" /></label
+              ><label>Backup driver<input id="backupDriver" /></label
+              ><label
+                >Vehicle name or plate nickname<input
+                  id="vehicleName"
+                  placeholder="The Blue Van" /></label
+              ><label
+                >Bus parking or pickup point<input
+                  id="parkingPoint"
+                  placeholder="Exact entrance or landmark" /></label
+              ><label
+                >Indoor fallback meeting point<input
+                  id="shelterPoint"
+                  placeholder="Lobby, venue office, 24-hour stop" /></label
+              ><label
+                >Safe return / departure time<input
+                  id="returnTime"
+                  type="time" /></label
+              ><label
+                >Tour manager or night contact<input
+                  id="nightContact"
+                  placeholder="Name and phone"
+              /></label>
+            </div>
+            <label
+              >Crew roster—one name per line<textarea
+                id="crewRoster"
+                placeholder="Driver&#10;Tour manager&#10;Band and crew"
+              ></textarea>
+            </label>
+            <div class="two">
+              <label
+                >Expected aboard<input
+                  id="expectedAboard"
+                  type="number"
+                  min="1"
+                  max="60"
+                  value="5" /></label
+              ><label
+                >Counted aboard now<input
+                  id="countedAboard"
+                  type="number"
+                  min="0"
+                  max="60"
+                  value="0"
+              /></label>
+            </div>
+            <label class="check"
+              ><input id="driverVerified" type="checkbox" /><span
+                >Driver confirms license and insurance are current. Do not enter
+                document numbers.</span
+              ></label
+            ><label class="check"
+              ><input id="allAboard" type="checkbox" /><span
+                >Tour manager completed the named headcount. Never assume
+                someone can safely wait outside.</span
+              ></label
+            >
+          </fieldset>
+          <fieldset>
+            <legend>4. Price the tour</legend>
+            <div class="numbers">
+              <label
+                >Tour days<input
+                  id="days"
+                  type="number"
+                  min="1"
+                  max="180"
+                  value="7" /></label
+              ><label
+                >People<input
+                  id="people"
+                  type="number"
+                  min="1"
+                  max="60"
+                  value="5" /></label
+              ><label
+                >Route miles<input
+                  id="miles"
+                  type="number"
+                  min="0"
+                  max="30000"
+                  value="900" /></label
+              ><label
+                >Vehicle MPG<input
+                  id="mpg"
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="0.1"
+                  value="15" /></label
+              ><label
+                >Fuel $/gallon<input
+                  id="fuelPrice"
+                  type="number"
+                  min="0"
+                  max="20"
+                  step="0.01"
+                  value="4.50" /></label
+              ><label
+                >Rooms/night<input
+                  id="rooms"
+                  type="number"
+                  min="0"
+                  max="40"
+                  value="2" /></label
+              ><label
+                >Room $/night<input
+                  id="roomRate"
+                  type="number"
+                  min="0"
+                  max="2000"
+                  step="1"
+                  value="0" /></label
+              ><label
+                >Meals/person/day<input
+                  id="meals"
+                  type="number"
+                  min="0"
+                  max="500"
+                  step="1"
+                  value="20" /></label
+              ><label
+                >Tolls + parking<input
+                  id="tolls"
+                  type="number"
+                  min="0"
+                  max="10000"
+                  step="1"
+                  value="150" /></label
+              ><label
+                >Other costs<input
+                  id="other"
+                  type="number"
+                  min="0"
+                  max="100000"
+                  step="1"
+                  value="0"
+              /></label>
+            </div>
+            <div class="vehicle-choice">
+              <label
+                ><input type="radio" name="vehicle" value="own" checked /> Own
+                van or bus</label
+              ><label
+                ><input type="radio" name="vehicle" value="rent" /> Rent
+                one</label
+              >
+            </div>
+            <div class="two vehicle-costs">
+              <label
+                >Own-vehicle wear $/mile<input
+                  id="wearRate"
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.01"
+                  value="0.25" /></label
+              ><label
+                >Rental $/day<input
+                  id="rentalRate"
+                  type="number"
+                  min="0"
+                  max="5000"
+                  step="1"
+                  value="225"
+              /></label>
+            </div>
+          </fieldset>
+        </form>
+        <aside class="summary" aria-live="polite">
+          <p class="eyebrow">Tour Manager estimate</p>
+          <h2 id="routeTitle">San Francisco → Seattle</h2>
+          <p class="estimate-warning">
+            Planning estimate—not a confirmed hotel, fuel, vehicle, or venue
+            quote.
+          </p>
+          <dl>
+            <div>
+              <dt>Fuel</dt>
+              <dd id="fuelCost">$270</dd>
+            </div>
+            <div>
+              <dt>Lodging</dt>
+              <dd id="lodgingCost">$0</dd>
+            </div>
+            <div>
+              <dt>Meals</dt>
+              <dd id="mealCost">$700</dd>
+            </div>
+            <div>
+              <dt>Vehicle</dt>
+              <dd id="vehicleCost">$225</dd>
+            </div>
+            <div>
+              <dt>Tolls, parking + other</dt>
+              <dd id="otherCost">$150</dd>
+            </div>
+            <div class="total">
+              <dt>Estimated total</dt>
+              <dd id="totalCost">$1,345</dd>
+            </div>
+            <div>
+              <dt>Per person</dt>
+              <dd id="perPersonCost">$269</dd>
+            </div>
+          </dl>
+          <section class="driver-guide">
+            <h3>🚌 Driver Card</h3>
+            <p id="driverGuide">Assign the driver before booking the route.</p>
+            <dl class="driver-card">
+              <div>
+                <dt>Vehicle</dt>
+                <dd id="cardVehicle">Not assigned</dd>
+              </div>
+              <div>
+                <dt>Parking / pickup</dt>
+                <dd id="cardParking">Not set</dd>
+              </div>
+              <div>
+                <dt>Indoor fallback</dt>
+                <dd id="cardShelter">Not set</dd>
+              </div>
+              <div>
+                <dt>Safe return</dt>
+                <dd id="cardReturn">Not set</dd>
+              </div>
+              <div>
+                <dt>Night contact</dt>
+                <dd id="cardNight">Not set</dd>
+              </div>
+            </dl>
+            <ol id="driverChecklist"></ol>
+          </section>
+          <button type="button" id="printPlan">
+            Print or save this estimate
+          </button>
+        </aside>
+      </section>
+      <section class="booking-board">
+        <h2>Your next playable rooms</h2>
+        <p>
+          Choose your act, hometown, dates, and how far you can travel. DanzStak
+          will map a practical run and list public contacts for clubs your act
+          can realistically approach.
+        </p>
+      </section>
+      <section class="booking-board" id="finishLine">
+        <h2>Tour Finish Line</h2>
+        <p>
+          A successful tour completes every confirmed booking, brings every
+          person and the vehicle home intact, settles the bills, and finishes
+          with the band still together.
+        </p>
+        <div class="board-columns">
+          <article>
+            <h3>Bookings</h3>
+            <label
+              >Confirmed shows completed<input
+                id="completedShows"
+                type="number"
+                min="0"
+                max="180"
+                value="0"
+            /></label>
+            <p id="bookingCompletion">0 of 8 completed</p>
+          </article>
+          <article>
+            <h3>Home Safe</h3>
+            <label class="check"
+              ><input id="everyoneHome" type="checkbox" /><span
+                >Every person and all essential gear made it home.</span
+              ></label
+            ><label class="check"
+              ><input id="vehicleHome" type="checkbox" /><span
+                >The vehicle made it home or has a safe recovery plan.</span
+              ></label
+            ><label class="check"
+              ><input id="billsSettled" type="checkbox" /><span
+                >Venue, hotel, rental, fuel, crew, and other bills are
+                settled.</span
+              ></label
+            >
+          </article>
+          <article>
+            <h3>Still a Band</h3>
+            <label class="check"
+              ><input id="bandTogether" type="checkbox" /><span
+                >The members agree the band is still together.</span
+              ></label
+            ><label
+              >Emergency reserve left<input
+                id="reserveLeft"
+                type="number"
+                min="0"
+                max="1000000"
+                step="0.01"
+                value="0"
+            /></label>
+            <p id="tourSuccess">Tour in progress.</p>
+          </article>
+        </div>
+      </section>
+      <section class="booking-board">
+        <h2>Show close-out</h2>
+        <p>
+          The tour manager settles with the club. The merch seller closes the
+          table. A show is not settled until the money is actually received and
+          both roles confirm their numbers.
+        </p>
+        <div class="board-columns closeout">
+          <article>
+            <h3>Venue Settlement</h3>
+            <label
+              >Tour manager<input id="settledBy" placeholder="Name" /></label
+            ><label
+              >Agreed deal<input
+                id="agreedDeal"
+                placeholder="$500 guarantee or 80% after expenses" /></label
+            ><label
+              >Amount received<input
+                id="settlementReceived"
+                type="number"
+                min="0"
+                step="0.01"
+                value="0" /></label
+            ><label
+              >Payment method<input
+                id="settlementMethod"
+                placeholder="Cash, check, transfer" /></label
+            ><label class="check"
+              ><input id="settlementConfirmed" type="checkbox" /><span
+                >Tour manager confirms the venue payment was received.</span
+              ></label
+            >
+          </article>
+          <article>
+            <h3>Merch Close-Out</h3>
+            <label
+              >Merch seller<input id="merchSeller" placeholder="Name" /></label
+            ><label
+              >Cash sales<input
+                id="merchCash"
+                type="number"
+                min="0"
+                step="0.01"
+                value="0" /></label
+            ><label
+              >Card sales<input
+                id="merchCard"
+                type="number"
+                min="0"
+                step="0.01"
+                value="0" /></label
+            ><label
+              >Venue merch cut %<input
+                id="merchCut"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value="0" /></label
+            ><label class="check"
+              ><input id="merchConfirmed" type="checkbox" /><span
+                >Merch seller confirms cash, card totals, and ending
+                inventory.</span
+              ></label
+            >
+          </article>
+          <article class="closeout-total">
+            <h3>Actual Tour Position</h3>
+            <dl>
+              <div>
+                <dt>Venue received</dt>
+                <dd id="actualVenue">$0</dd>
+              </div>
+              <div>
+                <dt>Merch after venue cut</dt>
+                <dd id="actualMerch">$0</dd>
+              </div>
+              <div>
+                <dt>Estimated tour costs</dt>
+                <dd id="actualCosts">$0</dd>
+              </div>
+              <div class="total">
+                <dt>Current profit / loss</dt>
+                <dd id="actualNet">$0</dd>
+              </div>
+            </dl>
+            <p id="closeoutStatus">
+              Waiting for the tour manager and merch seller to confirm.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin="anonymous"
+      defer
+    ></script>
+    <script
+      src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"
+      defer
+    ></script>
+    <script src="assets/booking-map.js?v=312" defer></script>
+    <script src="assets/session-activity.js?v=270" defer></script>
+    <script src="assets/logout.js?v=308" defer></script>
+    <script src="assets/booking-agent.js?v=312" defer></script>
+  </body>
+</html>

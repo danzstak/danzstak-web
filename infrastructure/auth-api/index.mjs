@@ -1703,6 +1703,7 @@ function publicPlace(place) {
   const categories = (place.Categories || []).map(item => String(item.LocalizedName || item.Name || item.Id || "").trim()).filter(Boolean).slice(0, 8);
   const name = String(place.Title || "Venue").slice(0, 160);
   const address = String(place.Address?.Label || "").slice(0, 300);
+  const discoveredAt = new Date(now() * 1000).toISOString();
   return {
     venueKey: createHash("sha256").update(`${name.toLowerCase()}|${address.toLowerCase()}`).digest("hex").slice(0, 20),
     name,
@@ -1714,7 +1715,15 @@ function publicPlace(place) {
     emails,
     phones,
     categories,
-    contactVerificationRequired: true
+    contactVerificationRequired: true,
+    sourceName: "AWS Places public listing",
+    sourceUrl: websites[0] || "",
+    discoveredAt,
+    activityEvidence: websites.length
+      ? "A public venue website was returned by the current place search."
+      : emails.length || phones.length
+        ? "A public contact was returned by the current place search."
+        : "A current public place listing was returned; confirm live-show activity before contacting."
   };
 }
 
@@ -1746,6 +1755,29 @@ function venueSuitability(place, genre = "") {
 
 function hasBookingContact(place) {
   return Boolean(place.websites?.length || place.emails?.length || place.phones?.length);
+}
+
+function normalizedVenueText(value) {
+  return String(value || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/^the\s+/, "").replace(/\b(inc|llc|ltd|club|venue|bar)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function deduplicateVenues(places) {
+  const unique = new Map();
+  for (const place of places) {
+    const streetNumber = String(place.address || "").match(/\b\d+[a-z]?\b/i)?.[0]?.toLowerCase() || "";
+    const identity = `${normalizedVenueText(place.name)}|${streetNumber}|${normalizedVenueText(place.locality)}`;
+    const key = identity === "||" ? place.venueKey : identity;
+    const current = unique.get(key);
+    if (!current) { unique.set(key, place); continue; }
+    const merge = field => [...new Set([...(current[field] || []), ...(place[field] || [])])];
+    current.websites = merge("websites").slice(0, 2);
+    current.emails = merge("emails").slice(0, 2);
+    current.phones = merge("phones").slice(0, 2);
+    current.categories = merge("categories").slice(0, 8);
+    if (!current.sourceUrl && place.sourceUrl) current.sourceUrl = place.sourceUrl;
+    if (!current.activityEvidence && place.activityEvidence) current.activityEvidence = place.activityEvidence;
+  }
+  return [...unique.values()];
 }
 
 const tourDirections = new Set(["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]);
@@ -1850,7 +1882,17 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   const genreTerms = wanted.includes("punk") ? ["punk", "diy"] : wanted.includes("metal") ? ["metal"] : wanted.includes("rock") ? ["rock"] : wanted.includes("dj") || wanted.includes("electronic") ? ["dj", "electronic"] : wanted.includes("hip-hop") ? ["hip-hop"] : [];
   const matches = genreTerms.length ? rooms.filter(place => genreTerms.some(term => place.categories.some(category => category.toLowerCase().includes(term)))) : rooms;
   const offset = matches.length ? variation % matches.length : 0;
-  return [...matches.slice(offset), ...matches.slice(0, offset)].map(place => ({ ...place, venueKey: verifiedVenueKey(place), locality, distanceMiles: null, contactVerificationRequired: true, verifiedRoom: true }));
+  return [...matches.slice(offset), ...matches.slice(0, offset)].map(place => ({
+    ...place,
+    venueKey: verifiedVenueKey(place),
+    locality,
+    distanceMiles: null,
+    contactVerificationRequired: true,
+    verifiedRoom: true,
+    sourceName: "DanzStak curated public venue directory",
+    sourceUrl: place.websites?.[0] || "",
+    activityEvidence: "A public venue or booking page is available; confirm the current calendar before pitching."
+  }));
 }
 
 async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), variation = 0, searchBounds = null) {
@@ -1874,11 +1916,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const discovered = venueBatches.flat()
     .filter(place => nearby(place, 60) && isBookableClub(place, genre) && hasBookingContact(place) && !excludedVenueKeys.has(place.venueKey))
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre));
-  const unique = new Map();
-  for (const place of [...curated, ...discovered, ...(curated.length || discovered.length ? [] : curatedPool)]) {
-    if (!unique.has(place.venueKey)) unique.set(place.venueKey, place);
-  }
-  const venuePool = [...unique.values()];
+  const venuePool = deduplicateVenues([...curated, ...discovered, ...(curated.length || discovered.length ? [] : curatedPool)]);
   const offset = venuePool.length ? variation % venuePool.length : 0;
   const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 24);
   const hotels = hotelResults.filter(place => nearby(place, 35));

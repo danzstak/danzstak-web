@@ -102,9 +102,13 @@
     const box = document.createElement("div");
     const name = document.createElement("strong");
     const address = document.createElement("p");
+    const evidence = document.createElement("p");
     name.textContent = place.name || "Live music venue";
     address.textContent = place.address || "Address unavailable";
     box.append(name, address);
+    evidence.className = "venue-evidence";
+    evidence.textContent = [place.categories?.slice(0, 3).join(" · "), place.activityEvidence].filter(Boolean).join(" — ");
+    if (evidence.textContent) box.append(evidence);
     for (const website of place.websites || []) {
       const link = document.createElement("a");
       link.href = website;
@@ -112,6 +116,17 @@
       link.rel = "noopener noreferrer";
       link.textContent = "Venue / booking website";
       box.append(link);
+    }
+    if (place.sourceName) {
+      const source = document.createElement(place.sourceUrl ? "a" : "small");
+      source.textContent = `Source: ${place.sourceName}`;
+      if (place.sourceUrl) {
+        source.href = place.sourceUrl;
+        source.target = "_blank";
+        source.rel = "noopener noreferrer";
+      }
+      source.className = "venue-source";
+      box.append(source);
     }
     const select = document.createElement("button");
     const key = venueIdentity(place);

@@ -79,7 +79,7 @@ if ($directionalMarketSearch.Contains('BiasPosition: bias')) {
 foreach ($nonVenueFilter in @('table\s*dance', 'adult entertainment', 'studio', 'event consultant', 'walking tour', 'gospel\w*')) {
   if (-not $authApi.Contains($nonVenueFilter)) { throw "Booking Agent can still recommend a non-bookable venue type: $nonVenueFilter" }
 }
-foreach ($venueQualityControl in @('!selectedGenre.includes("jazz") && /\bjazz\w*/.test(description)', 'hasBookingContact(place)', 'if (!unique.has(place.venueKey)) unique.set(place.venueKey, place)')) {
+foreach ($venueQualityControl in @('!selectedGenre.includes("jazz") && /\bjazz\w*/.test(description)', 'hasBookingContact(place)', 'function deduplicateVenues(places)', 'const venuePool = deduplicateVenues(')) {
   if (-not $authApi.Contains($venueQualityControl)) { throw "Booking Agent venue quality safeguard is missing: $venueQualityControl" }
 }
 $directionalRouteCalculation = [regex]::Match($authApi, 'let points = directional[\s\S]*?const summary = route\?\.Routes').Value

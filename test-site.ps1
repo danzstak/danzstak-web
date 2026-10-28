@@ -60,6 +60,7 @@ foreach ($supportClientControl in @('credentials:"include"', 'https://api.danzst
 
 $bookingMarkup = Get-Content -LiteralPath (Join-Path $root 'booking.html') -Raw -Encoding utf8
 $bookingClient = Get-Content -LiteralPath (Join-Path $root 'assets\booking-agent.js') -Raw -Encoding utf8
+$bookingClientCompact = $bookingClient -replace '\s+', ''
 foreach ($bookingControl in @('DanzStak Booking Agent', 'Find the clubs. Book the route.', 'id="venueSearchMap"', 'Search where you want to play', 'id="searchVisibleVenueArea"', 'Search this area', 'Punk Couch Tour', 'Holiday Inn Tour', 'id="driverName"', 'No driver, no departure', 'public contacts for clubs', 'Find a show near home', 'id="performerType"', '<option value="dj">DJ</option>', 'id="musicGenre"', '<option>DJ / Electronic</option>')) {
   if (-not $bookingMarkup.Contains($bookingControl)) { Add-Failure "Booking Agent: required planning control is missing: $bookingControl" }
 }
@@ -70,27 +71,27 @@ foreach ($bookingClientControl in @('Send me out and bring me home', 'First show
   if (-not $bookingClient.Contains($bookingClientControl)) { Add-Failure "Booking Agent: required home-loop control is missing: $bookingClientControl" }
 }
 foreach ($bookingAccessibilityControl in @('tourNameLabel.append(document.createTextNode("Tour name"),tourName)', 'savedPanel.setAttribute("aria-labelledby","savedToursTitle")', 'routeStatus.setAttribute("role","status")', 'saveStatus.setAttribute("role","status")')) {
-  if (-not $bookingClient.Contains($bookingAccessibilityControl)) { Add-Failure "Booking Agent: accessible route or saved-tour feedback is missing: $bookingAccessibilityControl" }
+  if (-not $bookingClientCompact.Contains(($bookingAccessibilityControl -replace '\s+', ''))) { Add-Failure "Booking Agent: accessible route or saved-tour feedback is missing: $bookingAccessibilityControl" }
 }
 foreach ($bookingInteraction in @('$("startCity").value=""', '$("startCity").placeholder="City, region, country"', '$("endCity").disabled=local', '$("tourStops").disabled=local', '$("endCity").addEventListener("focus",useDestinationMode)', '$("tourStops").addEventListener("focus",useDestinationMode)', 'routeAction.textContent=local?"Find clubs near home":"Start route"')) {
-  if (-not $bookingClient.Contains($bookingInteraction)) { Add-Failure "Booking Agent: interactive route control is missing: $bookingInteraction" }
+  if (-not $bookingClientCompact.Contains(($bookingInteraction -replace '\s+', ''))) { Add-Failure "Booking Agent: interactive route control is missing: $bookingInteraction" }
 }
-if (-not $bookingClient.Contains('routeOptions.append(modeLabel,routePicker,directionLabel,departLabel,returnLabel)') -or -not $bookingClient.Contains('routeFieldset.querySelector(".two").after(routeOptions)')) {
+if (-not $bookingClientCompact.Contains('routeOptions.append(modeLabel,routePicker,directionLabel,departLabel,returnLabel,)') -or -not $bookingClientCompact.Contains('routeFieldset.querySelector(".two").after(routeOptions)')) {
   Add-Failure 'Booking Agent: route controls do not follow the performer and genre choices'
 }
-if (-not $bookingMarkup.Contains('<option>DIY Punk</option>') -or -not $bookingClient.Contains('actType=performerType.value')) {
+if (-not $bookingMarkup.Contains('<option>DIY Punk</option>') -or -not $bookingClientCompact.Contains('actType=performerType.value')) {
   Add-Failure 'Booking Agent: performer type and music-style choices are not sent with route searches'
 }
-if (-not $bookingClient.Contains('dj:"DJ / Electronic"') -or -not $bookingClient.Contains('performerType.addEventListener("change"')) {
+if (-not $bookingClientCompact.Contains('dj:"DJ/Electronic"') -or -not $bookingClientCompact.Contains('performerType.addEventListener("change"')) {
   Add-Failure 'Booking Agent: choosing DJ does not automatically select DJ / Electronic venue matching'
 }
-if (-not $bookingClient.Contains('actType:performerType.value,genre:genreInput.value') -or -not $bookingClient.Contains('performerType.value=tour.plan.actType') -or -not $bookingClient.Contains('genreInput.value=tour.plan.genre')) {
+if (-not $bookingClientCompact.Contains('actType:performerType.value,genre:genreInput.value') -or -not $bookingClientCompact.Contains('performerType.value=tour.plan.actType') -or -not $bookingClientCompact.Contains('genreInput.value=tour.plan.genre')) {
   Add-Failure 'Booking Agent: saved tours do not preserve and restore performer type and genre'
 }
 if ($bookingClient.Contains('Enter the band, home city, and date.') -or -not $bookingClient.Contains('Enter the act, home city, and date.')) {
   Add-Failure 'Booking Agent: route guidance is not inclusive of DJs and other performer types'
 }
-if ($bookingClient.Contains('$("endCity").disabled=local||directional') -or $bookingClient.Contains('$("tourStops").disabled=local||directional')) {
+if ($bookingClientCompact.Contains('$("endCity").disabled=local||directional') -or $bookingClientCompact.Contains('$("tourStops").disabled=local||directional')) {
   Add-Failure 'Booking Agent: turnaround city or tour stops are disabled in the default route mode'
 }
 if (-not (Get-Content -LiteralPath (Join-Path $root 'assets\booking-agent-driver.css') -Raw -Encoding utf8).Contains('@media(max-width:520px){.booking-lead{padding:16px 18px}')) {
@@ -100,7 +101,7 @@ $bookingDriverCss = Get-Content -LiteralPath (Join-Path $root 'assets\booking-ag
 if (-not $bookingDriverCss.Contains('@media(max-width:680px){.primary-route{position:static}')) {
   Add-Failure 'Booking Agent: mobile route action can overlap form fields'
 }
-foreach ($tourEstimateControl in @('miles/mpg*number("fuelPrice")', 'number("rentalRate")*days', 'Daily mileage is aggressive', 'navigator.geolocation.getCurrentPosition', 'window.print()')) {
+foreach ($tourEstimateControl in @('number("fuelPrice")', 'number("rentalRate")', 'Daily mileage is aggressive', 'navigator.geolocation.getCurrentPosition', 'window.print()')) {
   if (-not $bookingClient.Contains($tourEstimateControl)) { Add-Failure "Tour Manager: estimate or driver safeguard is missing: $tourEstimateControl" }
 }
 

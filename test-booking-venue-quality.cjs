@@ -56,6 +56,21 @@ assert.match(api, /selectedGenre \? `\$\{selectedGenre\} live music club`/);
 assert.match(api, /searchBounds/);
 assert.match(api, /Filter: \{ BoundingBox:/);
 assert.match(api, /slice\(0, 24\)/);
+assert.match(api, /sourceName: "AWS Places public listing"/);
+assert.match(api, /sourceName: "DanzStak curated public venue directory"/);
+assert.match(api, /activityEvidence:/);
+assert.match(api, /function deduplicateVenues\(places\)/);
+const dedupeStart = api.indexOf("function normalizedVenueText");
+const dedupeEnd = api.indexOf("const tourDirections", dedupeStart);
+const dedupeContext = vm.createContext({});
+vm.runInContext(api.slice(dedupeStart, dedupeEnd), dedupeContext);
+const deduplicateVenues = vm.runInContext("deduplicateVenues", dedupeContext);
+const deduped = deduplicateVenues([
+  { venueKey: "a", name: "The Test Club", address: "123 Main St", locality: "Portland", websites: ["https://one.example"], emails: [], phones: [], categories: ["Punk"] },
+  { venueKey: "b", name: "Test", address: "123 Main Street", locality: "Portland", websites: [], emails: ["book@test.example"], phones: [], categories: ["Live Music Venue"] }
+]);
+assert.equal(deduped.length, 1, "minor name/address variations must not create duplicate venue leads");
+assert.deepEqual(Array.from(deduped[0].emails), ["book@test.example"]);
 const mapClient = fs.readFileSync("assets/booking-map.js", "utf8");
 assert.match(mapClient, /new L\.Control\.Draw/);
 assert.match(mapClient, /body\.searchBounds = searchBounds/);
@@ -63,5 +78,9 @@ assert.match(mapClient, /venueMarkers/);
 assert.match(mapClient, /searchVisibleVenueArea/);
 assert.match(mapClient, /map\.getBounds\(\)/);
 assert.match(mapClient, /Search different clubs/);
+assert.match(mapClient, /Source: \$\{place\.sourceName\}/);
+assert.match(mapClient, /place\.activityEvidence/);
+assert.match(client, /place\.activityEvidence/);
+assert.match(client, /Source: \$\{place\.sourceName\}/);
 
 console.log("Booking venue checks passed: positive music-room evidence is required and repeat searches request a different batch.");
