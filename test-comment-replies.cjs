@@ -18,6 +18,11 @@ for (const required of [
 assert.ok(ui.includes('comment.authorPicture ? document.createElement("img")'), "Comments must use the member's profile photo when available");
 assert.ok(ui.includes('engagementFetch("/profiles", { credentials: "include", cache: "no-store" })'), "The comment composer must load the signed-in member profile through the guarded API helper");
 assert.ok(ui.includes('image.className = "comment-composer-avatar"'), "The comment composer must render the signed-in member photo");
+const replyContractCheck = ui.indexOf('if (parentCommentId && data.comment?.parentCommentId !== parentCommentId)');
+const clearReplyText = ui.indexOf('input.value = "";', replyContractCheck);
+const clearReplyTarget = ui.indexOf('clearCommentReply(input)', replyContractCheck);
+assert.ok(replyContractCheck >= 0, "A reply response must prove that the server preserved its parent target");
+assert.ok(clearReplyText > replyContractCheck && clearReplyTarget > replyContractCheck, "A rejected reply must retain its typed text and target");
 
 for (const required of [
   "parentCommentId = String(data?.parentCommentId",
