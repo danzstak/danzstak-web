@@ -50,6 +50,8 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
     fun chatContacts(): List<JSONObject> = objects(request("/calls/directory").optJSONArray("users")).filter { it.optString("friendStatus") == "friends" || it.optBoolean("sharedGroup") }
     fun messages(contact: String, before: String = ""): JSONObject = request("/messages?contact=" + URLEncoder.encode(contact, "UTF-8") + "&read=1" + if (before.isNotEmpty()) "&before=" + URLEncoder.encode(before, "UTF-8") else "")
     fun sendMessage(contact: String, text: String): JSONObject = request("/messages", "POST", JSONObject().put("recipientEmail", contact).put("content", text)).getJSONObject("message")
+    fun deleteMessage(contact: String, message: String, scope: String) { request("/messages", "POST", JSONObject().put("action", "delete").put("contactEmail", contact).put("messageId", message).put("scope", scope)) }
+    fun editMessage(contact: String, message: String, text: String): JSONObject = request("/messages", "POST", JSONObject().put("action", "edit").put("contactEmail", contact).put("messageId", message).put("content", text)).getJSONObject("message")
     fun reactMessage(contact: String, message: String, reaction: String) { request("/messages", "POST", JSONObject().put("action", "reaction").put("contactEmail", contact).put("messageId", message).put("reaction", reaction)) }
     private fun postID(value: String): String { require(value.matches(Regex("[a-fA-F0-9-]{36}"))); return value }
     private fun request(path: String, method: String = "GET", body: JSONObject? = null, authenticated: Boolean = true): JSONObject {

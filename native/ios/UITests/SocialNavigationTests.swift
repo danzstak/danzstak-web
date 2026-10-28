@@ -11,10 +11,15 @@ final class SocialNavigationTests: XCTestCase {
         app.buttons["chat.preview-jamie"].tap()
         let composer = app.textFields["chat.composer"]
         XCTAssertTrue(composer.waitForExistence(timeout: 5))
-        composer.tap(); composer.typeText("See you at the next set")
+        XCTAssertTrue(app.buttons["Dictate message"].exists)
+        composer.tap(); composer.typeText("See you at https://example.com/show")
         app.buttons["Send message"].tap()
-        XCTAssertTrue(app.staticTexts["See you at the next set"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["See you at https://example.com/show"].waitForExistence(timeout: 5))
         XCTAssertEqual(composer.value as? String, "Message")
+        app.staticTexts["See you at https://example.com/show"].firstMatch.press(forDuration: 0.7)
+        XCTAssertTrue(app.textViews["chat.edit"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["React with 👍"].exists)
+        app.buttons["Cancel"].tap()
     }
 
     func testRemoveOwnPhotoTag() {
@@ -192,7 +197,10 @@ final class SocialNavigationTests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Menu"].waitForExistence(timeout: 20))
         app.tabBars.buttons["Menu"].tap()
         XCTAssertTrue(app.navigationBars["Menu"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.sliders["Header size"].exists)
+        XCTAssertFalse(app.sliders["Header size"].exists)
+        XCTAssertTrue(app.buttons["Friends"].exists)
+        XCTAssertTrue(app.buttons["Photos"].exists)
+        XCTAssertTrue(app.buttons["Videos"].exists)
         app.buttons["menu.profile"].tap()
         XCTAssertTrue(app.staticTexts["Your posts"].waitForExistence(timeout: 5))
     }

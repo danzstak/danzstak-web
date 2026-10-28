@@ -53,6 +53,17 @@ class DanzStakApiTest {
         val body = JSONObject(connection.body.toString("UTF-8"))
         assertFalse(body.getBoolean("allowTags")); assertTrue(body.getBoolean("darkMode")); assertFalse(body.getBoolean("onlineVisible")); assertEquals("de", body.getString("language"))
     }
+    @Test fun messageEditsAndDeletionUseOriginalIdentity() {
+        lateinit var connection: Connection
+        var response = """{"message":{"messageId":"m1","content":"Fixed","editedAt":"2026-10-28"}}"""
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 200, response).also { connection = it } }) { "opaque" }
+        assertEquals("Fixed", api.editMessage("friend@example.com", "m1", "Fixed").getString("content"))
+        var body = JSONObject(connection.body.toString("UTF-8"))
+        assertEquals("edit", body.getString("action")); assertEquals("m1", body.getString("messageId"))
+        response = "{}"; api.deleteMessage("friend@example.com", "m1", "me")
+        body = JSONObject(connection.body.toString("UTF-8"))
+        assertEquals("delete", body.getString("action")); assertEquals("me", body.getString("scope")); assertEquals("m1", body.getString("messageId"))
+    }
     @Test fun chatContactQueryAndSendAreCorrect() {
         lateinit var connection: Connection
         var response = """{"messages":[],"canContact":true}"""

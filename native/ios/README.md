@@ -26,7 +26,7 @@ The project uses Swift 5 language mode (not a Swift compiler version such as 5.1
 
 ## Native social interface
 
-The app now provides Home, People, Create, Alerts, and Menu tabs. The footer Menu opens profile, post creation, groups, header sizing, policy links, and logout. Your Mix (Home) includes searchable loaded posts, HTTPS image/video media, reactions, comments, native sharing, pull-to-refresh, and error recovery. The composer saves drafts when closed or when publishing fails and requires content-permission confirmation. People shows authors from the loaded feed, not a fabricated friends list. Profile shows the current user's loaded posts; Tribes lists the community directory. Notifications support opening loaded posts and marking activity as read.
+The app now provides Home, People, Create, Alerts, and Menu tabs. The footer Menu mirrors the website menu, with profile, friends, Tribes, media, settings, policy links and logout. Your Mix (Home) includes searchable loaded posts, HTTPS image/video media, reactions, comments, native sharing, pull-to-refresh, and error recovery. The composer saves drafts when closed or when publishing fails and requires content-permission confirmation. People shows authors from the loaded feed, not a fabricated friends list. Profile shows the current user's loaded posts; Tribes lists the community directory. Notifications support opening loaded posts and marking activity as read.
 
 Existing authenticated endpoints power these screens. Native friend requests, general profile editing, group membership actions and media uploads are not implemented by this interface. Native text messaging is described below. Website functionality remains available separately.
 
@@ -76,3 +76,12 @@ The header Messages control now opens native Chats: searchable conversations, di
 Enable message sounds requests iOS notification permission. Foreground polling produces a system notification for newly observed unread activity after establishing an initial baseline. Silent mode, Focus and user notification settings remain in control. Native remote push, native voice/video calling and closed-app ringing are not implemented or claimed. The website's separate PWA Web Push/browser calling work is maintained on the PC.
 
 On this Mac, simulator builds and all 15 UI tests passed after the messenger was added. A generic device-signing build was attempted after Xcode acquired a team and signing identity; Apple reported that the team has no registered device and no development provisioning profile. No device build or physical-device validation passed. The owner declined paid Apple/Google developer-program enrollment and store submissions. Continue native iOS simulator development, native Android work on the Mac, and website/PWA work on the PC. Do not overwrite Xcode's local team selection when regenerating the project; team/profile settings and generated projects remain local.
+
+
+### Messenger controls and menu update
+
+The native menu now follows the PWA's vertical list and order, retaining DanzStak's Your Mix and Tribes naming. Native Photos/Videos filter loaded posts; Events, Booking, Saved, Support and policy links open their existing website destinations. Appearance options are under Settings, and Header size controls are removed. The approved 6% default remains fixed. The launcher icon uses only the original D mark.
+
+The messenger is dark. The microphone uses the system Speech framework to turn audio into editable text; Send remains a separate user action. Microphone/speech permissions, recognition availability and language support are controlled by iOS. Recording stops on dismissal/backgrounding. Real recognition and sound output still require device testing.
+
+Long-press a message for emoji reactions, Copy/Share/Forward and deletion; the sender also gets an editor and Save. Senders may delete for themselves or everyone, while recipients may delete only for themselves. The shared backend performs authorization. The PC's current edit/delete API and media/read-receipt changes were preserved. Forwarding prepares a draft without sending. Clickable HTTPS domain/URL cards do not automatically fetch external preview metadata. Refreshes reconcile server-side removals, including messages hidden on another device.

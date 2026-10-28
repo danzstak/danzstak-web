@@ -152,6 +152,13 @@ struct APIClientChecks {
         precondition(messageBody["recipientEmail"] as? String == "friend@example.com")
         StubProtocol.payload = "{}"
         try await api.reactToMessage(contact: "friend@example.com", message: "message-2", reaction: "👍")
+        StubProtocol.payload = #"{"message":{"messageId":"message-2","senderEmail":"me@example.com","recipientEmail":"friend@example.com","content":"Fixed","createdAt":"2026-10-28","editedAt":"2026-10-28"}}"#
+        let edited = try await api.editMessage(contact: "friend@example.com", message: "message-2", text: "Fixed")
+        precondition(edited.content == "Fixed" && edited.editedAt != nil)
+        StubProtocol.payload = "{}"
+        try await api.deleteMessage(contact: "friend@example.com", message: "message-2", scope: "me")
+        let deletionBody = try JSONSerialization.jsonObject(with: StubProtocol.requests.last!.httpBody!) as! [String: Any]
+        precondition(deletionBody["scope"] as? String == "me" && deletionBody["messageId"] as? String == "message-2")
         StubProtocol.status = 401
         do { _ = try await api.messages("friend@example.com"); fatalError("Chat 401 must expire session") }
         catch APIClient.Failure.sessionExpired {}

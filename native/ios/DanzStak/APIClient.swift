@@ -190,6 +190,13 @@ struct APIClient {
         let result: SentChatMessage = try await send("/messages", method: "POST", body: ["recipientEmail": contact, "content": text])
         return result.message
     }
+    func deleteMessage(contact: String, message: String, scope: String) async throws {
+        let _: EmptyResponse = try await send("/messages", method: "POST", body: ["action": "delete", "contactEmail": contact, "messageId": message, "scope": scope])
+    }
+    func editMessage(contact: String, message: String, text: String) async throws -> ChatMessage {
+        let result: SentChatMessage = try await send("/messages", method: "POST", body: ["action": "edit", "contactEmail": contact, "messageId": message, "content": text])
+        return result.message
+    }
     func reactToMessage(contact: String, message: String, reaction: String) async throws {
         let _: EmptyResponse = try await send("/messages", method: "POST", body: ["action": "reaction", "contactEmail": contact, "messageId": message, "reaction": reaction])
     }
@@ -267,8 +274,10 @@ struct ChatMessage: Decodable, Identifiable {
     let messageId: String
     let senderEmail: String
     let recipientEmail: String
-    let content: String
+    var content: String
     let createdAt: String
+    var editedAt: String? = nil
+    var deletedAt: String? = nil
     var reactionCounts: [String: Int]? = nil
     var myReaction: String? = nil
     var id: String { messageId }
@@ -277,6 +286,8 @@ struct ChatMessages: Decodable {
     let messages: [ChatMessage]
     let nextCursor: String?
     let canContact: Bool
+    var windowStart: String? = nil
+    var windowEnd: String? = nil
 }
 private struct ChatConversations: Decodable { let conversations: [ChatConversation] }
 private struct ChatDirectory: Decodable { let users: [ChatContact] }

@@ -25,10 +25,30 @@ import java.util.concurrent.Executors
 class MainActivity : ComponentActivity() {
     private lateinit var store: SessionStore
     private lateinit var api: DanzStakApi
+    private var footerView: View? = null
+    private var brandedHeader: View? = null
+    private var chatDark = false
+    private var dictationInput: EditText? = null
+    private var dictationContact: String? = null
+    private var dictationEpoch = 0
+    private val speechInput = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+        val target = dictationInput
+        if (result.resultCode == RESULT_OK && dictationEpoch == epoch && selectedChat?.optString("contactEmail") == dictationContact && target != null) {
+            val spoken = result.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty().trim()
+            if (spoken.isNotEmpty()) {
+                val current = target.text.toString()
+                val merged = if (current.isBlank()) spoken else current.trimEnd() + " " + spoken
+                if (merged.length <= 2000) { target.setText(merged); target.setSelection(target.text.length); status.text = "Review your words, then tap Send." }
+                else status.text = "Speech exceeds the 2,000-character message limit. Your existing draft is unchanged."
+            }
+        }
+        dictationInput = null; dictationContact = null
+    }
     private lateinit var root: LinearLayout
     private lateinit var content: LinearLayout
     private lateinit var status: TextView
     private val executor = Executors.newFixedThreadPool(3)
+    private val imageExecutor = Executors.newFixedThreadPool(2)
     private val orange = Color.rgb(44, 82, 255)
     private val ink = Color.rgb(29, 34, 43)
     private val canvas = Color.rgb(242, 242, 248)
@@ -37,7 +57,7 @@ class MainActivity : ComponentActivity() {
     private val alertHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val alertPoll = object : Runnable { override fun run() {
         if (!demo && store.get("session") != null) {
-            val current = epoch; val chat = selectedChat; val contact = chat?.optString("contactEmail")
+            val current = epoch; val chat = selectedChat; val contact = chat?.optString("contactEmail"); val previous = chatMessages[contact].orEmpty().map { it.optString("messageId") }.toSet()
             executor.execute {
                 val chats = runCatching { api.conversations() }.getOrNull()
                 val messages = if (contact != null) runCatching { api.messages(contact) }.getOrNull() else null
@@ -46,10 +66,12 @@ class MainActivity : ComponentActivity() {
                         if (chats != null) messageAlerts.update(chats)
                         if (messages != null && selectedChat?.optString("contactEmail") == contact) {
                             val old = chatMessages[contact].orEmpty()
-                            val latest = DanzStakApi.objects(messages.optJSONArray("messages"))
+                            val latest = DanzStakApi.objects(messages.optJSONArray("messages")).filter { "$contact:${it.optString("messageId")}" !in locallyDeletedMessages }
                             val ids = latest.map { it.optString("messageId") }.toSet()
-                            val merged = old.filter { it.optString("messageId") !in ids } + latest
-                            chatMessages[contact!!] = merged.toMutableList(); renderChatMessages?.invoke(merged)
+                            val start = messages.optString("windowStart").ifEmpty { messages.optString("nextCursor") }; val complete = messages.optString("nextCursor").isEmpty()
+                            val merged = old.filter { val id = it.optString("messageId"); id !in ids && (id !in previous || (!complete && start.isNotEmpty() && id < start)) } + latest
+                            val ordered = merged.sortedBy { it.optString("messageId") }
+                            chatMessages[contact!!] = ordered.toMutableList(); renderChatMessages?.invoke(ordered)
                         }
                     }
                 }
@@ -73,7 +95,7 @@ class MainActivity : ComponentActivity() {
     private var mediaIndex = 0
     private var video: VideoView? = null
     private var mediaStartY = 0f
-    private var headerPercent = 6
+    private val headerPercent = 6
     private val prefs by lazy { getSharedPreferences("danzstak_drafts", MODE_PRIVATE) }
     private val draftKey get() = if (demo) "demo_draft" else "post_draft"
 
@@ -93,17 +115,20 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); handleDeepLink(intent) }
     override fun onPause() { alertHandler.removeCallbacks(alertPoll); video?.pause(); super.onPause() }
     override fun onResume() { super.onResume(); alertHandler.post(alertPoll); if (media != null) video?.start() }
-    override fun onDestroy() { video?.stopPlayback(); executor.shutdownNow(); super.onDestroy() }
+    override fun onDestroy() { video?.stopPlayback(); executor.shutdownNow(); imageExecutor.shutdownNow(); super.onDestroy() }
     private fun goBack() { if (media != null) { stopMedia(); showApp() } else if (selectedChat != null) { chats() } else { tab = "Home"; showApp() } }
     private fun signedIn() = demo || store.get("session") != null
 
     private fun showApp() {
+        chatDark = false; footerView = null; brandedHeader = null
+        window.navigationBarColor = canvas
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply { isAppearanceLightStatusBars = true; isAppearanceLightNavigationBars = true }
         selectedChat = null; renderChatMessages = null
         stopMedia()
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setBackgroundColor(canvas)
             setOnApplyWindowInsetsListener { view, insets ->
-                if (Build.VERSION.SDK_INT >= 30) { val bars = insets.getInsets(android.view.WindowInsets.Type.systemBars()); view.setPadding(bars.left, bars.top, bars.right, bars.bottom) }
+                if (Build.VERSION.SDK_INT >= 30) { val bars = insets.getInsets(android.view.WindowInsets.Type.systemBars()); val keyboard = insets.getInsets(android.view.WindowInsets.Type.ime()); view.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, keyboard.bottom)) }
                 else { @Suppress("DEPRECATION") view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop, insets.systemWindowInsetRight, insets.systemWindowInsetBottom) }
                 insets
             }
@@ -114,6 +139,7 @@ class MainActivity : ComponentActivity() {
         header.addView(headerIcon(R.drawable.import_data, "Import Facebook data") { importGuide() })
         header.addView(headerIcon(R.drawable.search, "Search") { search() })
         header.addView(headerIcon(R.drawable.messages, "Messages") { chats() })
+        brandedHeader = header
         root.addView(header, LinearLayout.LayoutParams(-1, maxOf(dp(48), resources.displayMetrics.heightPixels * headerPercent / 100)))
         status = label(if (demo) "Preview · Changes stay on this device" else if (!signedIn()) "Log in to find your people." else "", 12).apply { setPadding(dp(16), dp(3), dp(16), dp(3)) }
         if (demo) { root.removeView(header); status.setBackgroundColor(Color.rgb(255, 246, 206)); root.addView(status); root.addView(header) } else root.addView(status)
@@ -132,6 +158,7 @@ class MainActivity : ComponentActivity() {
                     setOnClickListener { tab = name; query = ""; showApp() }
                 }, LinearLayout.LayoutParams(0, dp(58), 1f))
             }
+            footerView = footer
             root.addView(footer, LinearLayout.LayoutParams(-1, dp(58)).apply { setMargins(dp(16), dp(6), dp(16), dp(8)) })
         }
         setContentView(root)
@@ -165,7 +192,7 @@ class MainActivity : ComponentActivity() {
             val image = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; setBackgroundColor(Color.rgb(33, 36, 43)); contentDescription = "Photo or video by ${post.author}"; setOnClickListener { openMedia(listOf(page), 0) }; setOnLongClickListener { mediaOptions(page); true } }
             box.addView(image, LinearLayout.LayoutParams(-1, dp(220)))
             if (post.mediaType.startsWith("image")) loadImage(post.mediaUrl, image)
-            else { image.setImageResource(android.R.drawable.ic_media_play); image.setColorFilter(Color.WHITE) }
+            else { image.scaleType = ImageView.ScaleType.CENTER_CROP; loadVideoFrame(post.mediaUrl, image) }
         }
         val state = engagement[post.id]
         val counts = state?.optJSONObject("reactionCounts")
@@ -187,13 +214,41 @@ class MainActivity : ComponentActivity() {
     }
     private fun menu() {
         title("Menu")
-        listOf("Your profile" to "Profile", "Create a post" to "Create", "Tribes" to "Tribes").forEach { (name, target) -> content.addView(button(name) { tab = target; showApp() }) }
+        val items = card()
+        fun item(name: String, resource: Int, action: () -> Unit) {
+            items.addView(row().apply {
+                setPadding(dp(12), 0, dp(12), 0); minimumHeight = dp(49); contentDescription = name
+                addView(ImageView(this@MainActivity).apply { setImageResource(resource); setColorFilter(orange) }, LinearLayout.LayoutParams(dp(23), dp(23)))
+                addView(label(name, 16, true)); setOnClickListener { action() }
+            })
+        }
+        item("Your Mix", R.drawable.home) { tab = "Home"; showApp() }
+        item("My Profile", R.drawable.profile) { tab = "Profile"; showApp() }
+        item("Friends", R.drawable.people) { tab = "People"; showApp() }
+        item("Tribes", R.drawable.tribes) { tab = "Tribes"; showApp() }
+        item("Photos", R.drawable.camera) { showMediaPosts("image", "Photos") }
+        item("Videos", R.drawable.video) { showMediaPosts("video", "Videos") }
+        item("Events", R.drawable.mic) { openWeb("https://www.danzstak.com/feed.html#events") }
+        item("Booking Agent", R.drawable.bus) { openWeb("https://www.danzstak.com/booking.html") }
+        item("Saved", R.drawable.bookmark) { openWeb("https://www.danzstak.com/feed.html#saved") }
+        item("Settings", R.drawable.settings) { settingsMenu() }
+        item("Support", R.drawable.support) { openWeb("https://www.danzstak.com/support.html") }
+        item("Privacy Policy", R.drawable.lock) { openWeb("https://www.danzstak.com/privacy.html") }
+        item("Terms of Service", R.drawable.document) { openWeb("https://www.danzstak.com/terms.html") }
+        item(if (demo) "Exit demo" else "Logout", R.drawable.logout) { signOut() }
+        content.addView(items)
+    }
+    private fun showMediaPosts(type: String, name: String) {
+        content.removeAllViews(); title(name)
+        val filtered = posts.filter { it.mediaType.startsWith(type) }
+        if (filtered.isEmpty()) content.addView(label("No ${name.lowercase()} in your loaded posts. Refresh Your Mix for recent posts.", 15))
+        filtered.forEach { content.addView(postCard(it)) }
+    }
+    private fun settingsMenu() {
+        content.removeAllViews(); title("Settings")
+        content.addView(button("Edit Profile") { editProfile() })
         content.addView(button("Import Facebook data") { importGuide() })
-        content.addView(button("Header size: $headerPercent%") { AlertDialog.Builder(this).setTitle("Header size").setItems((4..10).map { "$it%" }.toTypedArray()) { _, which -> headerPercent = which + 4; showApp() }.show() })
-        content.addView(button("Enable message sounds") { messageAlerts.enable(); status.text = "Message sounds follow Android notification settings. Closed-app push delivery is still being configured." })
-        content.addView(button("Privacy policy") { openWeb("https://www.danzstak.com/privacy.html") })
-        content.addView(button("Terms of service") { openWeb("https://www.danzstak.com/terms.html") })
-        content.addView(button(if (demo) "Exit demo" else "Log out") { signOut() })
+        content.addView(button("Enable message sounds") { messageAlerts.enable(); status.text = "Sounds follow Android notification settings." })
     }
     private fun profile() {
         title(posts.firstOrNull { it.owner }?.author ?: "Your profile")
@@ -391,8 +446,15 @@ class MainActivity : ComponentActivity() {
     private var selectedChat: JSONObject? = null
     private var renderChatMessages: ((List<JSONObject>) -> Unit)? = null
     private val chatMessages = mutableMapOf<String, MutableList<JSONObject>>()
+    private val locallyDeletedMessages = mutableSetOf<String>()
+    private fun darkChat() {
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply { isAppearanceLightStatusBars = false; isAppearanceLightNavigationBars = false }
+        chatDark = true; root.setBackgroundColor(Color.rgb(11, 20, 26)); footerView?.visibility = View.GONE; brandedHeader?.visibility = View.GONE
+        window.navigationBarColor = Color.rgb(11, 20, 26)
+        status.setBackgroundColor(Color.rgb(32, 44, 51)); status.setTextColor(Color.LTGRAY)
+    }
     private fun chats() {
-        showApp(); content.removeAllViews(); title("Chats")
+        showApp(); darkChat(); content.removeAllViews(); title("Chats"); content.addView(button("Done") { showApp() })
         if (demo) content.addView(label("Preview chats · No messages are sent", 13))
         content.addView(button("New chat") { newChat() })
         fun show(items: List<JSONObject>) {
@@ -407,17 +469,22 @@ class MainActivity : ComponentActivity() {
         if (demo) show(listOf(JSONObject().put("contactEmail", "preview-jamie").put("name", "Jamie Rivera").put("preview", "Ready for the next set?").put("unread", 1), JSONObject().put("contactEmail", "preview-alex").put("name", "Alex Morgan").put("preview", "Let’s make something worth showing up for.")))
         else work("Loading chats…", { api.conversations() }, { show(it) })
     }
-    private fun newChat() {
+    private fun newChat(forward: String? = null) {
         fun show(contacts: List<JSONObject>) {
-            AlertDialog.Builder(this).setTitle("New chat").setItems(contacts.map { it.optString("name", "DanzStak member") }.toTypedArray()) { _, which -> val contact = contacts[which]; thread(JSONObject().put("contactEmail", contact.optString("email")).put("name", contact.optString("name")).put("picture", contact.optString("picture"))) }.setNegativeButton("Cancel", null).show()
+            AlertDialog.Builder(this).setTitle("New chat").setItems(contacts.map { it.optString("name", "DanzStak member") }.toTypedArray()) { _, which -> val contact = contacts[which]; if (forward != null) { val key = "chat.$demo.${contact.optString("email")}"; val current = prefs.getString(key, "").orEmpty(); prefs.edit().putString(key, if (current.isBlank()) forward else current.trimEnd() + "\n" + forward).apply() }; thread(JSONObject().put("contactEmail", contact.optString("email")).put("name", contact.optString("name")).put("picture", contact.optString("picture"))) }.setNegativeButton("Cancel", null).show()
             if (contacts.isEmpty()) status.text = "Add a friend or join a Tribe to start a conversation."
         }
         if (demo) show(listOf(JSONObject().put("email", "preview-jamie").put("name", "Jamie Rivera"))) else work("Loading contacts…", { api.chatContacts() }, { show(it) })
     }
     private fun thread(chat: JSONObject) {
-        showApp(); selectedChat = chat; content.removeAllViews()
-        val contact = chat.optString("contactEmail"); title(chat.optString("name", "DanzStak member"))
-        content.addView(button("Back to chats") { selectedChat = null; chats() })
+        showApp(); darkChat(); selectedChat = chat; content.removeAllViews()
+        val contact = chat.optString("contactEmail")
+        val chatHeader = row().apply { setBackgroundColor(Color.rgb(32, 44, 51)); setPadding(dp(4), dp(4), dp(8), dp(4)) }
+        chatHeader.addView(icon("‹", "Back to chats") { selectedChat = null; chats() }.apply { setTextColor(Color.WHITE) })
+        chatHeader.addView(avatar(chat.optString("name"), chat.optString("picture")))
+        chatHeader.addView(label(chat.optString("name", "DanzStak member"), 17, true), LinearLayout.LayoutParams(0, -2, 1f))
+        chatHeader.addView(icon("⋮", "Chat options") { AlertDialog.Builder(this).setItems(arrayOf("Refresh conversation", "Close")) { _, which -> if (which == 0) thread(chat) else chats() }.show() }.apply { setTextColor(Color.WHITE) })
+        root.addView(chatHeader, root.indexOfChild(content.parent as View), LinearLayout.LayoutParams(-1, dp(58)))
         val transcript = column(); content.addView(transcript)
         val input = EditText(this).apply { hint = "Message"; minLines = 1; maxLines = 5; setText(prefs.getString("chat.$demo.$contact", "")); contentDescription = "Message" }
         input.addTextChangedListener(watcher { prefs.edit().putString("chat.$demo.$contact", it).apply() })
@@ -428,40 +495,114 @@ class MainActivity : ComponentActivity() {
             items.forEach { message ->
                 val own = !message.optString("senderEmail").equals(contact, true)
                 val bubble = label(message.optString("content"), 16).apply {
-                    background = rounded(if (own) Color.rgb(255, 228, 208) else Color.WHITE)
+                    background = rounded(if (own) Color.rgb(31, 61, 94) else Color.rgb(32, 44, 51))
                     layoutParams = LinearLayout.LayoutParams(-2, -2).apply { gravity = if (own) Gravity.END else Gravity.START; setMargins(if (own) dp(44) else dp(8), dp(5), if (own) dp(8) else dp(44), dp(5)) }
-                    setOnLongClickListener {
-                        AlertDialog.Builder(this@MainActivity).setTitle("React to message").setItems(arrayOf("👍", "❤️", "😂", "😮", "😢", "😡", "Remove reaction")) { _, which ->
-                            val emoji = listOf("👍", "❤️", "😂", "😮", "😢", "😡", "")[which]
-                            if (demo) { message.put("myReaction", emoji); Toast.makeText(this@MainActivity, "Reaction saved in preview only", Toast.LENGTH_SHORT).show() }
-                            else work("Saving reaction…", { api.reactMessage(contact, message.getString("messageId"), emoji) }, { thread(chat) })
-                        }.show(); true
-                    }
+                    setOnLongClickListener { messageActions(chat, message); true }
                 }
                 transcript.addView(bubble)
+                val matcher = android.util.Patterns.WEB_URL.matcher(message.optString("content"))
+                var preview: String? = null
+                while (matcher.find()) { val candidate = matcher.group(); if (candidate.startsWith("https://")) { preview = candidate; break } }
+                if (preview != null) {
+                    val url = preview
+                    transcript.addView(label("↗ ${Uri.parse(url).host.orEmpty()}\n$url", 13).apply {
+                        setTextColor(Color.rgb(126, 200, 255)); background = rounded(Color.rgb(32, 44, 51))
+                        layoutParams = LinearLayout.LayoutParams(-2, -2).apply { gravity = if (own) Gravity.END else Gravity.START; setMargins(dp(12), 0, dp(12), dp(5)) }
+                        setOnClickListener { openWeb(url) }; contentDescription = "Open link $url"
+                    })
+                }
+                if (message.optString("editedAt").isNotEmpty()) transcript.addView(label("Edited", 11).apply { setTextColor(Color.LTGRAY) })
                 val reactions = message.optJSONObject("reactionCounts")
-                if (reactions != null && reactions.length() > 0) transcript.addView(label(reactions.keys().asSequence().joinToString(" ") { "$it ${reactions.optInt(it)}" }, 12))
+                if (message.optString("deletedAt").isEmpty() && reactions != null && reactions.length() > 0) transcript.addView(label(reactions.keys().asSequence().joinToString(" ") { "$it ${reactions.optInt(it)}" }, 12))
             }
         }
         renderChatMessages = { render(it) }
-        val send = button("Send") {}
+        val send = button("➤") {}.apply { contentDescription = "Send message"; minimumWidth = dp(44); minWidth = dp(44); textSize = 20f; setTextColor(Color.WHITE); setPadding(0, 0, 0, 0); background = rounded(orange); layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)) }
         send.setOnClickListener {
             val text = input.text.toString().trim(); if (!allowed || text.isBlank() || text.length > 2000) { input.error = "Enter 1–2,000 characters"; return@setOnClickListener }
-            send.isEnabled = false
-            fun append(message: JSONObject) { val items = chatMessages.getOrPut(contact) { mutableListOf() }; items.add(message); render(items); input.text.clear(); send.isEnabled = true }
+            send.isEnabled = false; send.text = "…"
+            fun append(message: JSONObject) { val items = chatMessages.getOrPut(contact) { mutableListOf() }; items.add(message); render(items); input.text.clear(); send.isEnabled = true; send.text = "➤"; status.text = if (demo) "Preview · Messages stay on this device" else "Sent" }
             if (demo) append(JSONObject().put("messageId", "preview-${System.nanoTime()}").put("senderEmail", "preview-you").put("content", text))
-            else work("Sending message…", { api.sendMessage(contact, text) }, { append(it) }, { send.isEnabled = true })
+            else work("Sending message…", { api.sendMessage(contact, text) }, { append(it) }, { send.isEnabled = true; send.text = "➤" })
         }
-        compose.addView(send); root.addView(compose, root.childCount - 1)
+        val microphone = headerIcon(R.drawable.mic, "Dictate message") {
+            dictationInput = input; dictationContact = contact; dictationEpoch = epoch
+            try {
+                speechInput.launch(Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Speak your message. Review it before sending.")
+                    putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                })
+            } catch (_: android.content.ActivityNotFoundException) {
+                dictationInput = null; dictationContact = null
+                status.text = "Speech input is unavailable. Enable your phone’s speech service or use your keyboard microphone."
+            }
+        }.apply { setColorFilter(orange) }
+        compose.setPadding(dp(8), dp(6), dp(8), dp(6)); compose.setBackgroundColor(Color.rgb(11, 20, 26)); input.background = rounded(Color.rgb(32, 44, 51)); input.setPadding(dp(14), dp(10), dp(10), dp(10)); input.setTextColor(Color.rgb(233, 237, 239)); input.setHintTextColor(Color.LTGRAY)
+        compose.addView(microphone); compose.addView(send); root.addView(compose, root.childCount - 1)
         if (demo) {
             val items = chatMessages.getOrPut(contact) { mutableListOf(JSONObject().put("messageId", "preview-first").put("senderEmail", contact).put("content", chat.optString("preview", "Hey! What are you working on?"))) }; render(items); status.text = "Preview · Messages stay on this device"
         } else work("Loading conversation…", { api.messages(contact) }, { result ->
             allowed = result.optBoolean("canContact", true); input.isEnabled = allowed; send.isEnabled = allowed
-            val items = DanzStakApi.objects(result.optJSONArray("messages")); chatMessages[contact] = items.toMutableList(); render(items)
+            val items = DanzStakApi.objects(result.optJSONArray("messages")).filter { "$contact:${it.optString("messageId")}" !in locallyDeletedMessages }; chatMessages[contact] = items.toMutableList(); render(items)
             if (!allowed) status.text = "You can read this conversation. Sending requires friendship or a shared Tribe."
             val cursor = result.optString("nextCursor")
             if (cursor.isNotEmpty()) transcript.addView(button("Load earlier messages") { work("Loading earlier messages…", { api.messages(contact, cursor) }, { older -> val combined = (DanzStakApi.objects(older.optJSONArray("messages")) + chatMessages[contact].orEmpty()).distinctBy { it.optString("messageId") }; chatMessages[contact] = combined.toMutableList(); render(combined) }) }, 0)
         })
+    }
+    private fun messageActions(chat: JSONObject, message: JSONObject) {
+        (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).hideSoftInputFromWindow(root.windowToken, 0)
+        val contact = chat.optString("contactEmail")
+        val own = !message.optString("senderEmail").equals(contact, true)
+        val deleted = message.optString("deletedAt").isNotEmpty()
+        val editable = own && !deleted
+        val context = android.view.ContextThemeWrapper(this, android.R.style.Theme_Material_Dialog_Alert)
+        val box = column().apply { setPadding(dp(14), dp(8), dp(14), dp(8)) }
+        lateinit var dialog: AlertDialog
+        val reactions = row()
+        listOf("👍", "❤️", "😂", "😮", "😢", "😡").forEach { emoji ->
+            reactions.addView(TextView(context).apply {
+                text = emoji; textSize = 24f; gravity = Gravity.CENTER; contentDescription = "React with $emoji"
+                setOnClickListener {
+                    if (demo) { message.put("myReaction", emoji).put("reactionCounts", JSONObject().put(emoji, 1)); dialog.dismiss(); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) }
+                    else work("Saving reaction…", { api.reactMessage(contact, message.getString("messageId"), emoji) }, { dialog.dismiss(); thread(chat) })
+                }
+            }, LinearLayout.LayoutParams(0, dp(48), 1f))
+        }
+        if (!deleted) box.addView(reactions)
+        val editor = EditText(context).apply { setText(message.optString("content")); minLines = 2; maxLines = 7; setTextColor(Color.WHITE); contentDescription = "Edit message" }
+        if (editable) box.addView(editor) else box.addView(label(message.optString("content"), 16))
+        val actions = row()
+        actions.addView(button("Copy") { (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("DanzStak message", message.optString("content"))); dialog.dismiss() }, LinearLayout.LayoutParams(0, -2, 1f))
+        actions.addView(button("Share") { dialog.dismiss(); share(message.optString("content")) }, LinearLayout.LayoutParams(0, -2, 1f))
+        actions.addView(button("Forward") { dialog.dismiss(); newChat(message.optString("content")) }, LinearLayout.LayoutParams(0, -2, 1f))
+        if (!deleted) box.addView(actions)
+        fun delete(scope: String) {
+            fun perform() {
+                fun applyDelete() {
+                    locallyDeletedMessages.add("$contact:${message.optString("messageId")}")
+                    chatMessages[contact]?.removeAll { it.optString("messageId") == message.optString("messageId") }
+                    dialog.dismiss(); renderChatMessages?.invoke(chatMessages[contact].orEmpty())
+                }
+                if (demo) applyDelete()
+                else work("Deleting message…", { api.deleteMessage(contact, message.getString("messageId"), scope) }, { applyDelete() })
+            }
+            if (scope == "everyone") AlertDialog.Builder(context).setTitle("Delete for everyone?").setMessage("Remove this message text for everyone in this conversation?").setNegativeButton("Cancel", null).setPositiveButton("Delete") { _, _ -> perform() }.show()
+            else perform()
+        }
+        box.addView(button("Delete for me") { delete("me") })
+        if (own && !deleted) box.addView(button("Delete for everyone") { delete("everyone") })
+        val builder = AlertDialog.Builder(context).setTitle(if (editable) "Edit message" else "Message").setView(ScrollView(context).apply { addView(box) }).setNegativeButton("Cancel", null)
+        if (editable) builder.setPositiveButton("Save", null)
+        dialog = builder.create()
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
+        dialog.setOnShowListener { if (editable) dialog.getButton(-1).setOnClickListener {
+            val text = editor.text.toString().trim()
+            if (text.isEmpty() || text.length > 2000) { editor.error = "Enter 1–2,000 characters"; return@setOnClickListener }
+            if (demo) { message.put("content", text).put("editedAt", java.time.Instant.now().toString()); dialog.dismiss(); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) }
+            else { dialog.getButton(-1).isEnabled = false; work("Saving message…", { api.editMessage(contact, message.getString("messageId"), text) }, { updated -> message.put("content", updated.getString("content")).put("editedAt", updated.optString("editedAt")); dialog.dismiss(); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) }, { dialog.getButton(-1).isEnabled = true }) }
+        } }
+        dialog.show()
     }
     private fun importGuide() { AlertDialog.Builder(this).setTitle("Import Facebook data").setMessage("1. In Facebook, open Settings → Accounts Center → Your information and permissions.\n\n2. Download or export your information to your device. Choose JSON and select your posts, photos and videos.\n\n3. Download the ZIP when Facebook says it is ready.\n\n4. Open DanzStak’s website menu → Import Facebook data. Review the selected items and audience before importing. Imported posts default to Public.").setNegativeButton("Done", null).setPositiveButton("Open DanzStak") { _, _ -> openWeb("https://www.danzstak.com/feed.html") }.show() }
     private fun search() { val input = EditText(this).apply { hint = "Search Your Mix"; setText(query) }; AlertDialog.Builder(this).setTitle("Search").setView(input).setPositiveButton("Search") { _, _ -> query = input.text.toString(); tab = "Home"; showApp() }.setNeutralButton("Clear") { _, _ -> query = ""; tab = "Home"; showApp() }.setNegativeButton("Cancel", null).show() }
@@ -498,7 +639,7 @@ class MainActivity : ComponentActivity() {
     }
     private fun signOut() {
         val token = store.get("session"); val wasDemo = demo
-        epoch++; messageAlerts.reset(); demo = false; store.clear(); posts = emptyList(); flashes = emptyList(); roll = emptyList(); engagement.clear(); localMedia.clear(); chatMessages.clear(); selectedChat = null; composerTags = emptyList(); composerLocation = ""; tab = "Home"; showApp()
+        epoch++; messageAlerts.reset(); demo = false; store.clear(); posts = emptyList(); flashes = emptyList(); roll = emptyList(); engagement.clear(); localMedia.clear(); chatMessages.clear(); locallyDeletedMessages.clear(); selectedChat = null; composerTags = emptyList(); composerLocation = ""; tab = "Home"; showApp()
         if (!wasDemo && token != null) executor.execute { runCatching { DanzStakApi { token }.logout() } }
     }
     private fun enterDemo() {
@@ -517,12 +658,24 @@ class MainActivity : ComponentActivity() {
         status.text = message; val current = epoch
         executor.execute {
             if (current != epoch) return@execute
-            try { val result = job(); runOnUiThread { if (!isDestroyed && current == epoch) done(result) } }
-            catch (error: Exception) { runOnUiThread { if (!isDestroyed && current == epoch) { failure(); if (error is SessionExpired) { epoch++; store.clear(); demo = false; posts = emptyList(); engagement.clear(); showApp() }; status.text = error.message ?: "Something went wrong. Try again." } } }
+            try { val result = job(); runOnUiThread { if (!isDestroyed && current == epoch) { status.text = if (demo) "Preview · Changes stay on this device" else ""; done(result) } } }
+            catch (error: Exception) { runOnUiThread { if (!isDestroyed && current == epoch) { failure(); if (error is SessionExpired) { epoch++; store.clear(); demo = false; posts = emptyList(); engagement.clear(); showApp() }; status.text = if (message == "Sending message…") "Message delivery was not confirmed. Your draft is saved. Reopen this conversation to check for delivery before sending again." else error.message ?: "Something went wrong. Try again." } } }
+        }
+    }
+    private fun loadVideoFrame(url: String, image: ImageView) {
+        if (!url.startsWith("https://")) return
+        imageExecutor.execute {
+            val retriever = android.media.MediaMetadataRetriever()
+            val frame = try {
+                retriever.setDataSource(url, emptyMap<String, String>())
+                if (Build.VERSION.SDK_INT >= 27) retriever.getScaledFrameAtTime(0, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 1024, 1024)
+                else retriever.getFrameAtTime(0, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+            } catch (_: Exception) { null } finally { runCatching { retriever.release() } }
+            runOnUiThread { if (!isDestroyed) { if (frame != null) image.setImageBitmap(frame); image.contentDescription = "Video preview. Tap to play." } }
         }
     }
     private fun loadImage(url: String, image: ImageView) {
-        executor.execute {
+        imageExecutor.execute {
             val bitmap = runCatching {
                 val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
                 try { connection.instanceFollowRedirects = false; connection.connectTimeout = 10000; connection.readTimeout = 15000; require(connection.responseCode == 200); val bytes = connection.inputStream.use { stream -> val out = java.io.ByteArrayOutputStream(); val buffer = ByteArray(8192); var total = 0; while (true) { val count = stream.read(buffer); if (count < 0) break; total += count; require(total <= 8 * 1024 * 1024); out.write(buffer, 0, count) }; out.toByteArray() }; val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }; android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options); options.inSampleSize = maxOf(1, maxOf(options.outWidth, options.outHeight) / 1200); options.inJustDecodeBounds = false; android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) } finally { connection.disconnect() }
@@ -535,8 +688,8 @@ class MainActivity : ComponentActivity() {
     private fun column() = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     private fun row() = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
     private fun title(text: String) { content.addView(label(text, 24, true)) }
-    private fun label(text: String, size: Int, bold: Boolean = false) = TextView(this).apply { this.text = text; textSize = size.toFloat(); setTextColor(ink); setPadding(dp(12), dp(8), dp(12), dp(8)); if (bold) setTypeface(typeface, Typeface.BOLD) }
-    private fun button(text: String, click: () -> Unit) = Button(this).apply { this.text = text; isAllCaps = false; setTextColor(orange); minHeight = dp(44); setOnClickListener { click() } }
+    private fun label(text: String, size: Int, bold: Boolean = false) = TextView(this).apply { this.text = text; textSize = size.toFloat(); setTextColor(if (chatDark) Color.rgb(233, 237, 239) else ink); setPadding(dp(12), dp(8), dp(12), dp(8)); if (bold) setTypeface(typeface, Typeface.BOLD) }
+    private fun button(text: String, click: () -> Unit) = Button(this).apply { this.text = text; isAllCaps = false; setBackgroundColor(Color.TRANSPARENT); setTextColor(orange); minHeight = dp(44); setOnClickListener { click() } }
     private fun headerIcon(resource: Int, description: String, click: () -> Unit) = ImageButton(this).apply { setImageResource(resource); setColorFilter(Color.WHITE); setBackgroundColor(Color.TRANSPARENT); contentDescription = description; layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)); setPadding(dp(11), dp(11), dp(11), dp(11)); setOnClickListener { click() } }
     private fun icon(text: String, description: String, click: () -> Unit) = label(text, 24).apply { contentDescription = description; gravity = Gravity.CENTER; layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)); setOnClickListener { click() } }
     private inner class CountAction(resource: Int, count: Int) : LinearLayout(this@MainActivity) {
@@ -554,7 +707,7 @@ class MainActivity : ComponentActivity() {
         val resource = when (description.lowercase()) { "like", "likes" -> R.drawable.like; "comment", "comments" -> R.drawable.comment; else -> R.drawable.share }
         return CountAction(resource, count).apply { contentDescription = "$description, $count"; setOnClickListener { click() }; setOnLongClickListener { long(); true } }
     }
-    private fun card() = column().apply { background = rounded(Color.WHITE); setPadding(dp(8), dp(8), dp(8), dp(8)); layoutParams = LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(12), dp(6), dp(12), dp(6)) } }
+    private fun card() = column().apply { background = rounded(if (chatDark) Color.rgb(32, 44, 51) else Color.WHITE); setPadding(dp(8), dp(8), dp(8), dp(8)); layoutParams = LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(12), dp(6), dp(12), dp(6)) } }
     private fun rounded(color: Int) = GradientDrawable().apply { setColor(color); cornerRadius = dp(16).toFloat() }
     private fun avatar(name: String, picture: String): View {
         if (picture.startsWith("https://")) return ImageView(this).apply { layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)); scaleType = ImageView.ScaleType.CENTER_CROP; contentDescription = name; loadImage(picture, this) }

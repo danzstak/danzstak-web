@@ -16,6 +16,8 @@ targets:
       path: DanzStak/Info.plist
       properties:
         CFBundleDisplayName: DanzStak
+        NSMicrophoneUsageDescription: Dictate a message into editable text before sending.
+        NSSpeechRecognitionUsageDescription: Turn your speech into text so you can review and send your message.
         UILaunchScreen: {}
         CFBundleURLTypes:
           - CFBundleURLName: com.danzstak.app.auth

@@ -42,7 +42,7 @@ struct ContentView: View {
     @State private var pendingResponse: MediaResponsePresentation?
     @State private var drawerResponse: MediaResponsePresentation?
     @AppStorage("danzstak.responseStyle") private var responseStyle = "full"
-    @AppStorage("danzstak.headerPercent") private var headerPercent = 6.0
+    private let headerPercent = 6.0
 
     private var effectiveHeaderPercent: Double {
         let arguments = ProcessInfo.processInfo.arguments
@@ -370,17 +370,6 @@ struct ContentView: View {
                 }
                 ForEach(model.posts.filter { $0.isOwner == true }) { post in PostCard(post: post) }
                 VStack(alignment: .leading, spacing: 18) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Label("Header size", systemImage: "rectangle.topthird.inset.filled")
-                            Spacer()
-                            Text("\(Int(headerPercent))%") .foregroundStyle(.secondary)
-                        }
-                        Slider(value: $headerPercent, in: 4...10, step: 1)
-                            .accessibilityLabel("Header size")
-                        Text("Compact 4% · Default 6% · Larger 10%")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
                     Link(destination: URL(string: "https://www.danzstak.com/privacy.html")!) { Label("Privacy policy", systemImage: "hand.raised") }
                     Link(destination: URL(string: "https://www.danzstak.com/terms.html")!) { Label("Terms of service", systemImage: "doc.text") }
                     Button(role: .destructive) { Task { await model.logout() } } label: { Label(model.isDemo ? "Exit demo" : "Log out", systemImage: "rectangle.portrait.and.arrow.right") }
@@ -392,47 +381,55 @@ struct ContentView: View {
     private var myPost: FeedPost? { model.posts.first { $0.isOwner == true } }
 
     private var menu: some View {
-        List {
-            Section {
-                NavigationLink { profile } label: {
-                    HStack(spacing: 12) {
-                        Avatar(name: myPost?.author ?? "You", picture: myPost?.authorPicture, size: 48)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(myPost?.author ?? "Your profile").font(.headline)
-                            Text("View your profile and posts").font(.caption).foregroundStyle(.secondary)
-                        }.padding(.vertical, 6)
-                    }
-                }.accessibilityIdentifier("menu.profile")
+        ScrollView {
+            VStack(spacing: 0) {
+                menuRow("Your Mix", icon: "house.fill") { selection = .home }
+                NavigationLink { profile } label: { menuLabel("My Profile", icon: "person.fill") }.accessibilityIdentifier("menu.profile")
+                menuRow("Friends", icon: "person.2.fill") { selection = .people }
+                menuRow("Tribes", icon: "person.3.fill") { showGroups = true }
+                NavigationLink { mediaPosts(kind: "image", title: "Photos") } label: { menuLabel("Photos", icon: "camera.fill") }
+                NavigationLink { mediaPosts(kind: "video", title: "Videos") } label: { menuLabel("Videos", icon: "play.rectangle.fill") }
+                menuWebRow("Events", icon: "mic.fill", path: "feed.html#events")
+                menuWebRow("Booking Agent", icon: "bus.fill", path: "booking.html")
+                menuWebRow("Saved", icon: "bookmark.fill", path: "feed.html#saved")
+                NavigationLink { nativeSettings } label: { menuLabel("Settings", icon: "gearshape.fill") }
+                menuWebRow("Support", icon: "questionmark.circle.fill", path: "support.html")
+                menuWebRow("Privacy Policy", icon: "lock.fill", path: "privacy.html")
+                menuWebRow("Terms of Service", icon: "doc.text.fill", path: "terms.html")
+                menuRow(model.isDemo ? "Exit demo" : "Logout", icon: "rectangle.portrait.and.arrow.right") { Task { await model.logout() } }
+            }.padding(.vertical, 8).background(SocialStyle.card, in: RoundedRectangle(cornerRadius: 16)).padding(16)
+        }.background(SocialStyle.canvas).navigationTitle("Menu").navigationBarTitleDisplayMode(.inline)
+    }
+    private func menuLabel(_ title: String, icon: String) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon).font(.system(size: 19, weight: .semibold)).foregroundStyle(SocialStyle.blue).frame(width: 26)
+            Text(title).font(.system(size: 16, weight: .semibold)).foregroundStyle(.primary)
+            Spacer()
+        }.padding(.horizontal, 18).frame(minHeight: 49).contentShape(Rectangle())
+    }
+    private func menuRow(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) { menuLabel(title, icon: icon) }.buttonStyle(.plain)
+    }
+    private func menuWebRow(_ title: String, icon: String, path: String) -> some View {
+        Link(destination: URL(string: "https://www.danzstak.com/" + path)!) { menuLabel(title, icon: icon) }
+    }
+    private func mediaPosts(kind: String, title: String) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                let filtered = model.posts.filter { $0.mediaType?.hasPrefix(kind) == true }
+                if filtered.isEmpty { EmptyState(icon: kind == "image" ? "photo" : "video", title: "No \(title.lowercased()) in your loaded posts", detail: "Refresh Your Mix to load recent community posts.") }
+                ForEach(filtered) { post in PostCard(post: post) }
+            }.padding(.vertical, 12)
+        }.background(SocialStyle.canvas).navigationTitle(title)
+    }
+    private var nativeSettings: some View {
+        Form {
+            Section("Account") { NavigationLink("Edit Profile") { TaggingPrivacyView().environmentObject(model) } }
+            Section("Responses") {
+                Picker("Response lists", selection: $responseStyle) { Text("Slide out").tag("drawer"); Text("Full screen").tag("full") }.pickerStyle(.segmented)
             }
-            Section("Community") {
-                Button { composer = true } label: { Label("Create a post", systemImage: "square.and.pencil") }
-                Button { showGroups = true } label: { Label("Tribes", systemImage: "person.3.fill") }
-            }
-            Section("Appearance") {
-                Picker("Response lists", selection: $responseStyle) {
-                    Text("Slide out").tag("drawer")
-                    Text("Full screen").tag("full")
-                }.pickerStyle(.segmented)
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Label("Header size", systemImage: "rectangle.topthird.inset.filled")
-                        Spacer()
-                        Text("\(Int(headerPercent))%").foregroundStyle(.secondary)
-                    }
-                    Slider(value: $headerPercent, in: 4...10, step: 1).accessibilityLabel("Header size")
-                    Text("Compact 4% · Default 6% · Larger 10%").font(.caption).foregroundStyle(.secondary)
-                }.padding(.vertical, 6)
-            }
-            Section("About DanzStak") {
-                Link(destination: URL(string: "https://www.danzstak.com/privacy.html")!) { Label("Privacy policy", systemImage: "hand.raised") }
-                Link(destination: URL(string: "https://www.danzstak.com/terms.html")!) { Label("Terms of service", systemImage: "doc.text") }
-            }
-            Section {
-                Button(role: .destructive) { Task { await model.logout() } } label: {
-                    Label(model.isDemo ? "Exit demo" : "Log out", systemImage: "rectangle.portrait.and.arrow.right")
-                }
-            }
-        }.navigationTitle("Menu").toolbar(.visible, for: .navigationBar)
+            Section { Button("Import Facebook data") { showFacebookImport = true }; Button("Messages") { showMessages = true } }
+        }.navigationTitle("Settings")
     }
 
     private var groups: some View {
