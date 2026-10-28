@@ -1141,7 +1141,8 @@ async function getEngagement(event) {
     queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ConsistentRead: true })
   ]);
   const commentReactionItems = reactionItems.filter(item => item.commentId?.S);
-  const authorNames = await loadFeedAuthorNames([...commentItems, ...commentReactionItems]);
+  const authorProfiles = await loadFeedAuthorProfiles([...commentItems, ...commentReactionItems]);
+  const authorNames = await loadFeedAuthorNames([...commentItems, ...commentReactionItems], authorProfiles);
   const friends = new Set();
   if (commentReactionItems.length) {
     const viewerEmail = await accountForSub(userId), emails = [...new Set(commentReactionItems.map(item => item.userEmail?.S).filter(Boolean))];
@@ -1164,6 +1165,7 @@ async function getEngagement(event) {
   const commentRecords = commentItems.map(item => ({
     ...(commentReactions.get(item.commentId.S) || {reactionCounts:{}, myReaction:"", reactionTotal:0}),
     authorName:authorNames.get(item.userEmail?.S) || "DanzStak member",
+    authorPicture:authorProfiles.get(String(item.userEmail?.S || "").trim().toLowerCase())?.picture || "",
     commentId: item.commentId.S, userEmail: item.userEmail?.S || "DanzStak member", content: item.content.S,
     createdAt: item.createdAt.S, isOwner: item.userId?.S === userId, canDelete: item.userId?.S === userId || access.post.userId?.S === userId,
     ...(item.parentCommentId?.S ? { parentCommentId: item.parentCommentId.S, replyToName: item.replyToName?.S || "DanzStak member" } : {})
@@ -1252,6 +1254,7 @@ async function addComment(event) {
   if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const actorProfiles = await loadFeedAuthorProfiles([{ userEmail: { S: userEmail } }]), actorProfile = actorProfiles.get(userEmail) || {};
   const commentPolicy = access.post.commentPolicy?.S || "everyone", ownerEmail = access.post.userEmail?.S || "";
   if (commentPolicy === "off" && access.post.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Comments are turned off for this post." }) };
   if (commentPolicy === "friends" && access.post.userId?.S !== userId) {
@@ -1271,7 +1274,7 @@ async function addComment(event) {
   await db.send(new PutItemCommand({ TableName: commentsTable, Item: { postId: { S: postId }, commentId: { S: commentId }, userId: { S: userId }, userEmail: { S: userEmail }, content: { S: content }, createdAt: { S: createdAt }, ...(parentComment ? { parentCommentId: { S: parentCommentId }, replyToName: { S: replyToName } } : {}) } }));
   await notifyPostOwner(access.post, `comment#${commentId}`, "comment", userEmail, content);
   if (parentComment?.userEmail?.S && parentComment.userEmail.S !== access.post.userEmail?.S) await notifyPostOwner({ ...access.post, userEmail: parentComment.userEmail }, `reply#${commentId}`, "reply", userEmail, content);
-  return { statusCode: 201, headers, body: JSON.stringify({ comment: { commentId, userEmail, content, createdAt, isOwner: true, canDelete: true, ...(parentComment ? { parentCommentId, replyToName } : {}) } }) };
+  return { statusCode: 201, headers, body: JSON.stringify({ comment: { commentId, userEmail, content, createdAt, authorName: actorProfile.name || "DanzStak member", authorPicture: actorProfile.picture || "", isOwner: true, canDelete: true, ...(parentComment ? { parentCommentId, replyToName } : {}) } }) };
 }
 
 async function reportPost(event) {

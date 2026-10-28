@@ -2294,10 +2294,10 @@ function renderPersistentComment(post, comment) {
   item.dataset.commentId = comment.commentId;
   item.dataset.canDelete = String(comment.canDelete === true);
   if (comment.parentCommentId) { item.dataset.parentCommentId = comment.parentCommentId; item.classList.add("comment-reply"); }
-  const avatar = document.createElement("span");
+  const avatar = comment.authorPicture ? document.createElement("img") : document.createElement("span");
   avatar.className = "comment-avatar";
-  avatar.textContent = String(comment.authorName || "D").charAt(0).toUpperCase();
-  avatar.setAttribute("aria-hidden", "true");
+  if (comment.authorPicture) { avatar.src = comment.authorPicture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+  else { avatar.textContent = String(comment.authorName || "D").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
   const bubble = document.createElement("div"); bubble.className = "comment-bubble";
   const author = document.createElement("strong");
   author.className = "comment-author";

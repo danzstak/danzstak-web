@@ -15,6 +15,7 @@ for (const required of [
   "ensureCommentComposer(post)",
   'send.setAttribute("aria-label", "Post comment")'
 ]) assert.ok(ui.includes(required), `Comment reply UI is missing: ${required}`);
+assert.ok(ui.includes('comment.authorPicture ? document.createElement("img")'), "Comments must use the member's profile photo when available");
 
 for (const required of [
   "parentCommentId = String(data?.parentCommentId",
@@ -25,10 +26,12 @@ for (const required of [
   "const children = new Map()",
   "appendThread(reply)"
 ]) assert.ok(api.includes(required), `Durable reply handling is missing: ${required}`);
+assert.ok(api.includes("authorPicture:authorProfiles.get("), "Loaded comments must include signed member profile photos");
+assert.ok(api.includes('authorPicture: actorProfile.picture || ""'), "A newly posted comment must render with the current member photo immediately");
 
 for (const required of [".comment-composer{", ".comment-bubble{", ".comment-reply-button", ".comment-replying{"])
   assert.ok(css.includes(required), `Compact comment styling is missing: ${required}`);
 
-assert.match(feed, /feed-enhancements\.css\?v=364/);
-assert.match(feed, /feed-enhancements\.js\?v=367/);
+assert.match(feed, /feed-enhancements\.css\?v=365/);
+assert.match(feed, /feed-enhancements\.js\?v=368/);
 console.log("Comment reply checks passed: named reply targeting, durable parent validation, threaded ordering, accessible controls, and compact composer styling.");
