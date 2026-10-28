@@ -51,9 +51,9 @@ class SocialNavigationTest {
         assertTrue(device.wait(Until.hasObject(By.text("Preview · Tour saved on this device")), 5000))
         device.findObject(By.desc("Messages")).click()
         assertTrue(device.wait(Until.hasObject(By.text("Jamie Rivera")), 5000)); device.findObject(By.text("Jamie Rivera")).click()
-        val link = "https://www.danzstak.com/feed.html#events"
+        val link = "www.danzstak.com/feed.html#events"
         device.findObject(By.desc("Message")).text = link; device.findObject(By.desc("Send message")).click()
-        assertTrue(device.wait(Until.hasObject(By.desc("Open link $link")), 5000)); device.findObject(By.desc("Open link $link")).click()
+        assertTrue(device.wait(Until.hasObject(By.text(link)), 5000)); device.findObject(By.text(link)).click()
         assertTrue(device.wait(Until.hasObject(By.text("No published events in your loaded feed.")), 5000)); assertEquals("com.danzstak.app", device.currentPackageName)
         device.findObject(By.desc("Messages")).click()
         assertTrue(device.wait(Until.hasObject(By.text("Chats")), 5000)); assertEquals("com.danzstak.app", device.currentPackageName)

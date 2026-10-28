@@ -179,6 +179,12 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
             FeedPost(id: "demo-4", author: "Studio Notes", text: "A little practice, a fresh idea, and a track that won’t leave your head. What are you working on today?", createdAt: now),
             FeedPost(id: "demo-5", author: "Local Scenes", text: "Support the people building something in your city. The next great night starts with your community.", createdAt: now)
         ]
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--video-controls-preview") {
+            posts[0].mediaUrl = "https://example.invalid/native-preview.mp4"
+            posts[0].mediaType = "video"
+        }
+        #endif
         groups = [CommunityGroup(id: "demo-djs", name: "DJs & Producers", category: "Music makers", description: "Talk tracks, trade ideas, and find your next collaborator."), CommunityGroup(id: "demo-scene", name: "Local Scenes", category: "Community", description: "The people and places that keep your city moving.")]
         if ProcessInfo.processInfo.arguments.contains("--tagging-preview") {
             posts[0].mediaUrl = "https://www.danzstak.com/assets/danzstak-logo.png"

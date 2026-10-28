@@ -239,7 +239,7 @@ class MainActivity : ComponentActivity() {
         heading.addView(icon("⋯", "Post options") { postOptions(post) }); box.addView(heading)
         if (post.tags.isNotEmpty()) box.addView(label("With " + post.tags.joinToString { it.name }, 13))
         if (post.location.isNotEmpty()) box.addView(label("⌖ ${post.location}", 13))
-        if (post.text.isNotEmpty()) box.addView(label(post.text, 17).apply { setLineSpacing(dp(3).toFloat(), 1f) })
+        if (post.text.isNotEmpty()) box.addView(linkedLabel(post.text, 17).apply { setLineSpacing(dp(3).toFloat(), 1f) })
         if (post.mediaUrl.startsWith("https://")) {
             val page = MediaPage(post.id, post.author, post.text, post.mediaUrl, post.mediaType, post)
             val image = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; setBackgroundColor(Color.rgb(33, 36, 43)); contentDescription = "Photo or video by ${post.author}"; setOnClickListener { openPostMedia(post) }; setOnLongClickListener { mediaOptions(page); true } }
@@ -856,7 +856,7 @@ class MainActivity : ComponentActivity() {
                     transcript.addView(holder, LinearLayout.LayoutParams(-1, dp(200)))
                     if (mediaUrl.startsWith("content://")) preview.setImageURI(Uri.parse(mediaUrl)) else if (type == "video") { preview.setImageResource(android.R.drawable.ic_media_play); preview.scaleType = ImageView.ScaleType.CENTER; loadVideoFrame(mediaUrl, preview, false) } else loadChatImage(mediaUrl, preview)
                 }
-                val bubble = label(message.optString("content"), 16).apply {
+                val bubble = linkedLabel(message.optString("content"), 16, !selectingMessages).apply {
                     background = rounded(if (message.optString("messageId") in selectedMessageIds) Color.rgb(44, 89, 130) else if (own) Color.rgb(31, 61, 94) else Color.rgb(32, 44, 51))
                     layoutParams = LinearLayout.LayoutParams(-2, -2).apply { gravity = if (own) Gravity.END else Gravity.START; setMargins(if (own) dp(44) else dp(8), dp(5), if (own) dp(8) else dp(44), dp(5)) }
                     isSelected = message.optString("messageId") in selectedMessageIds
@@ -876,9 +876,7 @@ class MainActivity : ComponentActivity() {
                         setOnClickListener { messageActions(chat, message) }
                     })
                 }
-                val matcher = android.util.Patterns.WEB_URL.matcher(message.optString("content"))
-                var preview: String? = null
-                while (matcher.find()) { val candidate = matcher.group(); if (candidate.startsWith("https://")) { preview = candidate; break } }
+                val preview = webLinks(message.optString("content")).firstOrNull()?.url
                 if (preview != null) {
                     val url = preview
                     transcript.addView(label("↗ ${Uri.parse(url).host.orEmpty()}\n$url", 13).apply {
@@ -1422,6 +1420,36 @@ class MainActivity : ComponentActivity() {
     private fun column() = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     private fun row() = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
     private fun title(text: String) { content.addView(label(text, 24, true)) }
+    private data class TextLink(val start: Int, val end: Int, val url: String)
+    private fun webLinks(text: String): List<TextLink> {
+        val matcher = android.util.Patterns.WEB_URL.matcher(text)
+        val links = mutableListOf<TextLink>()
+        while (matcher.find()) {
+            var raw = matcher.group().trimEnd('.', ',', ';', '!')
+            listOf(')' to '(', ']' to '[', '}' to '{').forEach { (close, open) -> while (raw.endsWith(close) && raw.count { it == close } > raw.count { it == open }) raw = raw.dropLast(1) }
+            val normalized = when { raw.startsWith("https://", true) -> "https://" + raw.substring(8); raw.startsWith("http://", true) -> "https://" + raw.substring(7); else -> "https://$raw" }
+            val uri = Uri.parse(normalized)
+            if (!uri.host.isNullOrBlank()) links.add(TextLink(matcher.start(), matcher.start() + raw.length, normalized))
+        }
+        return links
+    }
+    private fun linkedLabel(value: String, size: Int, enableLinks: Boolean = true): TextView = label(value, size).apply {
+        if (enableLinks) {
+            val styled = android.text.SpannableString(value)
+            val links = webLinks(value)
+            links.forEach { link -> styled.setSpan(object : android.text.style.ClickableSpan() {
+                override fun onClick(widget: View) { openWeb(link.url) }
+                override fun updateDrawState(paint: android.text.TextPaint) { paint.color = if (chatDark) Color.rgb(126, 200, 255) else orange; paint.isUnderlineText = true }
+            }, link.start, link.end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE) }
+            text = styled
+            if (links.isNotEmpty()) movementMethod = object : android.text.method.LinkMovementMethod() {
+                override fun onTouchEvent(widget: TextView, buffer: android.text.Spannable, event: MotionEvent): Boolean {
+                    if (event.actionMasked == MotionEvent.ACTION_UP && event.eventTime - event.downTime >= android.view.ViewConfiguration.getLongPressTimeout()) { android.text.Selection.removeSelection(buffer); return true }
+                    return super.onTouchEvent(widget, buffer, event)
+                }
+            }
+        }
+    }
     private fun label(text: String, size: Int, bold: Boolean = false) = TextView(this).apply { this.text = text; textSize = size.toFloat(); setTextColor(if (chatDark) Color.rgb(233, 237, 239) else ink); setPadding(dp(12), dp(8), dp(12), dp(8)); if (bold) setTypeface(typeface, Typeface.BOLD) }
     private fun button(text: String, click: () -> Unit) = Button(this).apply { this.text = text; isAllCaps = false; setBackgroundColor(Color.TRANSPARENT); setTextColor(orange); minHeight = dp(44); setOnClickListener { click() } }
     private fun headerIcon(resource: Int, description: String, click: () -> Unit) = ImageButton(this).apply { setImageResource(resource); setColorFilter(Color.WHITE); setBackgroundColor(Color.TRANSPARENT); contentDescription = description; layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)); setPadding(dp(11), dp(11), dp(11), dp(11)); setOnClickListener { click() } }

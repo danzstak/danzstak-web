@@ -80,6 +80,7 @@ struct ContentView: View {
                         .font(.caption.weight(.semibold)).padding(.horizontal, 16).padding(.vertical, 8)
                         .background(Color.yellow.opacity(0.18))
                     }
+                brandedHeader
                 TabView(selection: $selection) {
                     NavigationStack { home }.tag(SocialTab.home).tabItem { Label("Home", systemImage: "house.fill") }
                     NavigationStack { people }.tag(SocialTab.people).tabItem { Label("People", systemImage: "person.2.fill") }
@@ -167,8 +168,7 @@ struct ContentView: View {
         }.padding(28).frame(maxWidth: 600).frame(maxWidth: .infinity).background(SocialStyle.canvas)
     }
 
-    private var home: some View {
-        VStack(spacing: 0) {
+    private var brandedHeader: some View {
             HStack {
                 Image("DanzStakBrand")
                     .resizable().scaledToFit().frame(width: (headerHeight - 2) * 1.5, height: headerHeight - 2)
@@ -179,7 +179,7 @@ struct ContentView: View {
                     Image(systemName: "arrow.down.doc").font(.title3.weight(.semibold))
                         .foregroundStyle(.white).frame(width: 44, height: 44)
                 }.accessibilityLabel("Import Facebook data").accessibilityIdentifier("header.facebookImport")
-                Button { searching.toggle(); if !searching { query = "" } } label: {
+                Button { selection = .home; searching.toggle(); if !searching { query = "" } } label: {
                     Image(systemName: "magnifyingglass").font(.title3.weight(.semibold))
                         .foregroundStyle(.white).frame(width: min(40, headerHeight - 4), height: min(40, headerHeight - 4))
                         .background(.white.opacity(0.12), in: Circle())
@@ -191,6 +191,10 @@ struct ContentView: View {
             }
             .padding(.horizontal, 18).frame(height: headerHeight)
             .background(.black)
+    }
+
+    private var home: some View {
+        VStack(spacing: 0) {
         ScrollView {
             LazyVStack(spacing: 12) {
                 if searching {
@@ -923,7 +927,7 @@ private struct PostCard: View {
             }
             if let location = post.location, !location.isEmpty { Label(location, systemImage: "mappin.and.ellipse").font(.caption).padding(.horizontal, 18) }
             if !tagError.isEmpty { Text(tagError).font(.caption).foregroundStyle(.red).padding(.horizontal, 18) }
-            if !post.text.isEmpty { Text(post.text).font(.body).lineSpacing(4).textSelection(.enabled).padding(.horizontal, 18).fixedSize(horizontal: false, vertical: true) }
+            if !post.text.isEmpty { Text(nativeLinkedText(post.text)).font(.body).lineSpacing(4).textSelection(.enabled).padding(.horizontal, 18).fixedSize(horizontal: false, vertical: true) }
             if let value = post.mediaUrl, let url = URL(string: value), url.scheme == "https" {
                 Group {
                 if post.mediaType?.hasPrefix("image") == true {
@@ -1522,4 +1526,21 @@ private struct NativeBookingView: View {
             else { try await api.saveTour(body); feedback = "Tour saved to your account."; await load() }
         } catch APIClient.Failure.sessionExpired { await model.logout() } catch { feedback = "Save was not confirmed. Refresh saved tours before trying again." }
     }
+}
+
+func nativeWebLinks(_ value: String) -> [(NSRange, URL)] {
+    guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return [] }
+    return detector.matches(in: value, range: NSRange(value.startIndex..., in: value)).compactMap { match in
+        guard let candidate = match.url, ["http", "https"].contains(candidate.scheme?.lowercased() ?? ""), var parts = URLComponents(url: candidate, resolvingAgainstBaseURL: false), parts.host?.isEmpty == false else { return nil }
+        parts.scheme = "https"
+        guard let url = parts.url else { return nil }
+        return (match.range, url)
+    }
+}
+func nativeLinkedText(_ value: String) -> AttributedString {
+    var text = AttributedString(value)
+    for (range, url) in nativeWebLinks(value) {
+        if let stringRange = Range(range, in: value), let attributedRange = Range(stringRange, in: text) { text[attributedRange].link = url }
+    }
+    return text
 }

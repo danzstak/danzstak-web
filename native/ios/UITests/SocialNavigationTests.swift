@@ -1,6 +1,23 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testFeedAndProfileSoundControls() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-preview", "--video-controls-preview"]; app.launch()
+        let sound = app.buttons["Unmute feed video"]
+        XCTAssertTrue(sound.waitForExistence(timeout: 20))
+        for _ in 0..<3 { if sound.isHittable { break }; app.swipeUp() }
+        sound.tap(); XCTAssertTrue(app.buttons["Mute feed video"].exists); app.buttons["Mute feed video"].tap()
+        app.tabBars.buttons["People"].tap()
+        XCTAssertFalse(app.staticTexts["You"].exists)
+        app.staticTexts["DanzStak Community"].firstMatch.tap()
+        let cover = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Cover image of DanzStak Community")).firstMatch
+        XCTAssertTrue(cover.waitForExistence(timeout: 5)); XCTAssertLessThan(cover.frame.minY, 200)
+        let identity = XCTAttachment(screenshot: app.screenshot()); identity.name = "Native-iOS-profile-cover"; identity.lifetime = .keepAlways; add(identity)
+        for _ in 0..<5 { if sound.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(sound.isHittable); sound.tap(); XCTAssertTrue(app.buttons["Mute feed video"].exists)
+        let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = "Native-iOS-profile-video-controls"; attachment.lifetime = .keepAlways; add(attachment)
+    }
+
     func testNativeMenuSectionsAndChatLink() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-preview"]; app.launch()
         XCTAssertTrue(app.tabBars.buttons["Menu"].waitForExistence(timeout: 20)); app.tabBars.buttons["Menu"].tap()
@@ -11,8 +28,8 @@ final class SocialNavigationTests: XCTestCase {
         app.buttons["Booking Agent"].tap(); XCTAssertTrue(app.textFields["booking.artist"].waitForExistence(timeout: 5)); XCTAssertTrue(app.textFields["booking.home"].exists)
         app.tabBars.buttons["Home"].tap()
         app.buttons["header.messages"].tap(); XCTAssertTrue(app.buttons["chat.preview-jamie"].waitForExistence(timeout: 5)); app.buttons["chat.preview-jamie"].tap()
-        let composer = app.textFields["chat.composer"]; composer.tap(); composer.typeText("https://www.danzstak.com/feed.html#events"); app.buttons["Send message"].tap()
-        let link = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "https://www.danzstak.com/feed.html#events")).firstMatch; XCTAssertTrue(link.waitForExistence(timeout: 5)); link.tap()
+        let composer = app.textFields["chat.composer"]; composer.tap(); composer.typeText("www.danzstak.com/feed.html#events"); app.buttons["Send message"].tap()
+        let link = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "www.danzstak.com/feed.html#events")).firstMatch; XCTAssertTrue(link.waitForExistence(timeout: 5)); link.tap()
         XCTAssertTrue(app.navigationBars["Events"].waitForExistence(timeout: 8))
     }
     func testNativeChatPreview() {

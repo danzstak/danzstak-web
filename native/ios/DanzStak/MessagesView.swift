@@ -171,7 +171,7 @@ private struct ChatThreadView: View {
                                 VStack(alignment: own ? .trailing : .leading, spacing: 4) {
                                 VStack(alignment: .trailing, spacing: 5) {
                                     if message.mediaUrl?.isEmpty == false { ChatAttachmentView(message: message, allowLocal: isDemo) }
-                                    if !message.content.isEmpty { Text(message.content).frame(maxWidth: .infinity, alignment: .leading) }
+                                    if !message.content.isEmpty { Text(selecting ? AttributedString(message.content) : nativeLinkedText(message.content)).tint(Color(red: 0.50, green: 0.79, blue: 1)).frame(maxWidth: .infinity, alignment: .leading) }
                                     if let url = chatLink(message.content) {
                                         Link(destination: url) {
                                             VStack(alignment: .leading, spacing: 5) {
@@ -387,10 +387,7 @@ private struct ChatThreadView: View {
     }
 }
 
-private func chatLink(_ text: String) -> URL? {
-    let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
-    return detector?.matches(in: text, range: NSRange(text.startIndex..., in: text)).compactMap(\.url).first { $0.scheme == "https" }
-}
+private func chatLink(_ text: String) -> URL? { nativeWebLinks(text).first?.1 }
 private struct ChatShareSheet: UIViewControllerRepresentable {
     let text: String
     func makeUIViewController(context: Context) -> UIActivityViewController { UIActivityViewController(activityItems: [text], applicationActivities: nil) }
