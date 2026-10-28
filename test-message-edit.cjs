@@ -28,6 +28,9 @@ assert.match(backend, /editedAt:x\.editedAt\?\.S\|\|''/, "message reads return e
 assert.match(backend, /if\(body\.action==='delete'\)return deleteMessage\(body,user\)/, "message API routes deletions");
 assert.match(backend, /async function deleteMessage\(body,user\)/, "message deletion backend exists");
 assert.match(backend, /if\(scope==='me'\).*UpdateExpression:'ADD hiddenMessages :m'/, "delete for me is private to the requesting account");
+assert.match(backend, /ownedMedia=mediaKey\.startsWith\(`messages\/\$\{ownerPrefix\(user\)\}\//, "delete for everyone only removes message media owned by its sender");
+assert.match(backend, /DeleteObjectCommand\(\{Bucket:process\.env\.MEDIA_BUCKET,Key:mediaKey\}\)/, "delete for everyone removes its attached photo or video from storage");
+assert.match(backend, /return json\(200,\{deleted:true,scope,cleanupPending\}\)/, "message deletion reports delayed storage cleanup");
 assert.match(backend, /if\(found\.Item\.senderEmail\?\.S!==user\.email\)return json\(403,\{error:'Only the sender can delete for everyone'\}\)/, "delete for everyone enforces sender ownership");
 assert.match(backend, /hiddenMessages=new Set\(state\.Item\?\.hiddenMessages\?\.SS\|\|\[\]\)/, "hidden messages remain deleted after refresh");
 
