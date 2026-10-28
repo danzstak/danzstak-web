@@ -1651,6 +1651,7 @@ const search = document.querySelector(".search");
 search.setAttribute("aria-label", "Search posts and users");
 search.placeholder = "Search posts and users";
 search.setAttribute("aria-controls", "feed");
+search.setAttribute("enterkeyhint", "search");
 const searchFeedback = document.createElement("p");
 searchFeedback.className = "muted feed-search-feedback";
 searchFeedback.setAttribute("role", "status");
@@ -1866,6 +1867,7 @@ if (composerActions && publishButton) {
       comments.hidden = true;
       const commentInput = document.createElement("input");
       commentInput.setAttribute("aria-label", "Write a comment");
+      commentInput.setAttribute("enterkeyhint", "send");
       commentInput.placeholder = "Write a comment and press Enter";
       const commentList = document.createElement("div");
       commentList.className = "commentList";
