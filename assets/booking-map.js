@@ -88,7 +88,7 @@
   });
   searchAreaButton.addEventListener("click", () => {
     if (searchScope !== "drawn") useBounds(map.getBounds(), "viewport");
-    const search = document.getElementById("routeSearchAction");
+    const search = document.getElementById("routeSearchAction") || document.querySelector(".primary-route");
     if (!search) {
       status.textContent = "Enter an act and home city below first.";
       document.getElementById("bandName")?.focus();
@@ -131,7 +131,7 @@
 
   function appendDifferentClubsButton() {
     const results = document.getElementById("routeResults");
-    const primarySearch = document.getElementById("routeSearchAction");
+    const primarySearch = document.getElementById("routeSearchAction") || document.querySelector(".primary-route");
     if (!results || !primarySearch || !results.children.length) return;
     results.querySelector("#searchDifferentClubs")?.remove();
     const button = document.createElement("button");
