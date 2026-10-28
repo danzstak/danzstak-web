@@ -29,6 +29,6 @@ for (const required of [
 for (const required of [".comment-composer{", ".comment-bubble{", ".comment-reply-button", ".comment-replying{"])
   assert.ok(css.includes(required), `Compact comment styling is missing: ${required}`);
 
-assert.match(feed, /feed-enhancements\.css\?v=363/);
+assert.match(feed, /feed-enhancements\.css\?v=364/);
 assert.match(feed, /feed-enhancements\.js\?v=367/);
 console.log("Comment reply checks passed: named reply targeting, durable parent validation, threaded ordering, accessible controls, and compact composer styling.");
