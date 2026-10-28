@@ -85,7 +85,7 @@ struct ContentView: View {
         VStack(spacing: 0) {
             HStack {
                 Image("DanzStakBrand")
-                    .resizable().scaledToFit().frame(width: 168, height: 112)
+                    .resizable().scaledToFit().frame(width: 126, height: 84)
                     .accessibilityLabel("DanzStak")
                     .accessibilityIdentifier("danzstak.brand")
                 Spacer()
@@ -95,7 +95,7 @@ struct ContentView: View {
                         .background(.white.opacity(0.12), in: Circle())
                 }.accessibilityLabel("Search feed")
             }
-            .padding(.horizontal, 18).padding(.vertical, 2)
+            .padding(.horizontal, 18).padding(.vertical, 1)
             .background(.black)
         ScrollView {
             LazyVStack(spacing: 12) {
