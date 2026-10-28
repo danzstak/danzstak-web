@@ -30,7 +30,7 @@ h1{margin:0 0 6px;font-size:34px}.handle{margin:0;color:#65676b}.status{padding:
 </style>
 <link rel="stylesheet" href="assets/profile-editor.css?v=356">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
-<link rel="stylesheet" href="assets/soft-ui.css?v=362">
+<link rel="stylesheet" href="assets/soft-ui.css?v=363">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=1" defer></script>
 <script src="assets/i18n.js?v=342" defer></script>
@@ -42,8 +42,9 @@ h1{margin:0 0 6px;font-size:34px}.handle{margin:0;color:#65676b}.status{padding:
 <script src="assets/media-tags.js?v=357" defer></script>
 </head>
 <body>
+<a class="skip-link" href="#profileMain">Skip to profile</a>
 <header><a class="brand" href="feed.html"><img src="assets/danzstak-logo.png" alt="DanzStak"></a><nav class="header-actions" aria-label="Account navigation"><a class="button" href="feed.html?view=feed">Your Mix</a><a class="button" href="messages.html">Messages</a><button class="button" type="button" data-logout>Logout</button></nav></header>
-<main><section class="card" aria-labelledby="profileName"><div class="cover"></div><div id="profileStatus" class="status" role="status">Loading profile...</div><div id="profileContent" class="profile" hidden><div id="profileInitial" class="avatar" aria-hidden="true">D</div><h1 id="profileName">DanzStak member</h1><p id="profileHandle" class="handle">@member</p><p><a id="profileMessage" class="button" href="messages.html" hidden>Message</a></p><div class="details"><div class="detail"><span class="label">Email</span><span id="profileEmail" class="value">Not available</span></div><div class="detail"><span class="label">Account</span><span class="value">Secure member</span></div></div></div></section><p style="text-align:center"><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a></p></main>
+<main id="profileMain" tabindex="-1"><section class="card" aria-labelledby="profileName"><div class="cover"></div><div id="profileStatus" class="status" role="status">Loading profile...</div><div id="profileContent" class="profile" hidden><div id="profileInitial" class="avatar" aria-hidden="true">D</div><h1 id="profileName">DanzStak member</h1><p id="profileHandle" class="handle">@member</p><p><a id="profileMessage" class="button" href="messages.html" hidden>Message</a></p><div class="details"><div class="detail"><span class="label">Email</span><span id="profileEmail" class="value">Not available</span></div><div class="detail"><span class="label">Account</span><span class="value">Secure member</span></div></div></div></section><p style="text-align:center"><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a></p></main>
 <script src="assets/profile.js?v=353" defer></script>
 <script src="assets/profile-collections.js?v=354" defer></script>
 <script src="assets/profile-editor.js?v=358" defer></script>

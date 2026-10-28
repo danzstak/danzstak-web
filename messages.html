@@ -10,7 +10,7 @@
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1">
 <script src="assets/display-preferences.js?v=342"></script>
-<link rel="stylesheet" href="assets/soft-ui.css?v=362">
+<link rel="stylesheet" href="assets/soft-ui.css?v=363">
 <link rel="stylesheet" href="assets/chat.css?v=367">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
 <title>Messages | DanzStak</title>
@@ -20,8 +20,9 @@
 <script src="assets/mobile-keyboard.js?v=231" defer></script>
 </head>
 <body>
+<a class="skip-link" href="#messagesMain">Skip to messages</a>
 <header class="chat-header"><a href="feed.html" class="chat-brand"><img src="assets/danzstak-logo.png" alt="DanzStak"></a><div><a class="button" href="feed.html?view=feed">Back to Your Mix</a> <button class="button" type="button" data-logout>Logout</button></div></header>
-<main class="chat-shell">
+<main id="messagesMain" class="chat-shell" tabindex="-1">
   <section class="chat-sidebar" aria-labelledby="messagesTitle">
     <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><div class="chat-heading-actions"><button id="enableRinging" type="button" class="chat-heading-button" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
     <label class="chat-search"><span aria-hidden="true">⌕</span><input id="chatSearch" type="search" placeholder="Search DanzStak messages" aria-label="Search messages"></label>
