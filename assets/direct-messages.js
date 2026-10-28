@@ -9,6 +9,8 @@ const contactInput = document.getElementById("contactEmail");
 const onlineUsers = document.getElementById("onlineUsers");
 const messageForm = document.getElementById("messageForm");
 const messageInput = document.getElementById("messageInput");
+const messageMedia = document.getElementById("messageMedia");
+const messageMediaPreview = document.getElementById("messageMediaPreview");
 const messageList = document.getElementById("messageList");
 const sendButton = messageForm?.querySelector('button[type="submit"]');
 const textButton = document.getElementById("startText");
@@ -38,8 +40,49 @@ const shownMessages = new Set();
 let cachedConversations = [];
 let activeCanContact = false;
 let reactionTimer = null;
+let selectedMessageMedia = null;
+let selectedMessageMediaUrl = "";
 function setConversationActionsEnabled(enabled) {
   for (const button of conversationActions) button.disabled = !enabled;
+  if (messageMedia) messageMedia.disabled = !enabled;
+}
+
+function clearSelectedMessageMedia() {
+  selectedMessageMedia = null;
+  if (messageMedia) messageMedia.value = "";
+  if (selectedMessageMediaUrl) URL.revokeObjectURL(selectedMessageMediaUrl);
+  selectedMessageMediaUrl = "";
+  if (messageMediaPreview) { messageMediaPreview.replaceChildren(); messageMediaPreview.hidden = true; }
+}
+
+function previewSelectedMessageMedia(file) {
+  clearSelectedMessageMedia();
+  if (!file) return;
+  const allowed = /^(image\/(jpeg|png|webp|gif)|video\/(mp4|webm|quicktime))$/i;
+  if (!allowed.test(file.type)) { callStatus.textContent = "Choose a photo or video. Standalone audio files are not supported."; return; }
+  selectedMessageMedia = file;
+  selectedMessageMediaUrl = URL.createObjectURL(file);
+  const media = document.createElement(file.type.startsWith("video/") ? "video" : "img");
+  media.src = selectedMessageMediaUrl;
+  media.alt = file.type.startsWith("image/") ? "Photo ready to send" : "";
+  if (media.tagName === "VIDEO") { media.controls = true; media.preload = "metadata"; }
+  const remove = document.createElement("button");
+  remove.type = "button"; remove.className = "message-media-remove"; remove.textContent = "×"; remove.setAttribute("aria-label", "Remove attachment"); remove.addEventListener("click", clearSelectedMessageMedia);
+  messageMediaPreview.append(media, remove); messageMediaPreview.hidden = false;
+}
+
+async function uploadSelectedMessageMedia(file) {
+  const ticketResponse = await directFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: file.type, purpose: "message" }) });
+  const ticket = await ticketResponse.json().catch(() => ({}));
+  if (!ticketResponse.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || "Attachment upload could not start");
+  try {
+    const upload = await directFetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file }, Math.max(30000, Math.min(300000, Math.ceil(file.size / 20000))));
+    if (!upload.ok) throw new Error("Attachment upload failed");
+  } catch (error) {
+    if (/taking too long/i.test(error.message)) throw new Error("Attachment upload took too long. Try again on a stronger connection.");
+    throw error;
+  }
+  return { mediaKey: ticket.mediaKey, mediaType: file.type.startsWith("video/") ? "video" : "image" };
 }
 function labelConversationHeaderActions(name = "") {
   const labels = { phone: "Phone call", video: "Video call", minimize: "Minimize chat", close: "Close chat" };
@@ -51,9 +94,11 @@ function labelConversationHeaderActions(name = "") {
   }
 }
 async function directFetch(path, options = {}, timeoutMs = 10000) {
+  const target = path.startsWith("/") ? directApi + path : new URL(path);
+  if (typeof target !== "string" && target.origin !== "https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com") throw new Error("Unexpected upload destination");
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try { return await fetch(directApi + path, { ...options, signal: controller.signal }); }
+  try { return await fetch(String(target), { ...options, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
     throw error;
@@ -152,6 +197,7 @@ function closeConversation({ focusList = false } = {}) {
   shownMessages.clear();
   messageList.replaceChildren();
   messageInput.value = "";
+  clearSelectedMessageMedia();
   messageInput.disabled = true;
   sendButton.disabled = true;
   if (deleteChat) deleteChat.disabled = true;
@@ -167,6 +213,13 @@ function directMessageItem(message) {
   item.tabIndex = 0;
   item.dataset.messageId = message.messageId;
   item.textContent = message.content;
+  if (message.mediaUrl && ["image", "video"].includes(message.mediaType)) {
+    const media = document.createElement(message.mediaType === "video" ? "video" : "img");
+    media.className = "message-attachment"; media.src = message.mediaUrl;
+    if (message.mediaType === "image") { media.alt = mine ? "Photo you sent" : `Photo from ${activeContactName}`; media.loading = "lazy"; }
+    else { media.controls = true; media.playsInline = true; media.preload = "metadata"; }
+    item.prepend(media);
+  }
   item.setAttribute("aria-label", `${mine ? "You" : activeContactName}: ${message.content}. Press Shift F10 for reactions.`);
   const meta = document.createElement("span");
   meta.className = "message-meta";
@@ -411,21 +464,27 @@ messageForm?.addEventListener("submit", async event => {
   event.stopImmediatePropagation();
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
-  if (!content || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
+  if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
   const version = conversationVersion;
+  const mediaFile = selectedMessageMedia;
   pendingMessageSends.add(version);
   sendButton.disabled = true;
   try {
-    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content }) });
+    if (mediaFile) callStatus.textContent = "Uploading attachment…";
+    const attachment = mediaFile ? await uploadSelectedMessageMedia(mediaFile) : {};
+    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, ...attachment }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Message could not be sent");
     if (version !== conversationVersion) { await loadConversations(); return; }
     if (messageInput.value.trim() === content) messageInput.value = "";
+    if (selectedMessageMedia === mediaFile) clearSelectedMessageMedia();
     await loadDirectMessages();
     await loadConversations();
   } catch (error) { if (version === conversationVersion) callStatus.textContent = error.message; }
   finally { pendingMessageSends.delete(version); if (version === conversationVersion) sendButton.disabled = !activeCanContact; }
 }, true);
+
+messageMedia?.addEventListener("change", () => previewSelectedMessageMedia(messageMedia.files?.[0]));
 
 deleteChat?.addEventListener("click", async () => {
   const contact = contactInput.value.trim().toLowerCase();

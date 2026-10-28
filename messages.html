@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#1769e0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1">
 <script src="assets/display-preferences.js?v=342"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=277">
-<link rel="stylesheet" href="assets/chat.css?v=351">
+<link rel="stylesheet" href="assets/chat.css?v=354">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
 <title>Messages | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
@@ -53,6 +53,8 @@
     </div>
     <div id="messageList" class="message-list" aria-live="polite"><p class="system-message">Select a saved chat or an available friend to begin messaging.</p></div>
     <form id="messageForm" class="message-form">
+      <div id="messageMediaPreview" class="message-media-preview" hidden></div>
+      <label class="message-attach" title="Attach photo or video"><span aria-hidden="true">＋</span><span class="sr-only">Attach photo or video</span><input id="messageMedia" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" disabled></label>
       <label class="sr-only" for="messageInput">Message</label>
       <input id="messageInput" type="text" enterkeyhint="enter" maxlength="2000" autocomplete="off" placeholder="Write a message" disabled>
       <button type="submit" class="message-send" disabled aria-label="Send message" title="Send message">➤</button>
@@ -61,7 +63,7 @@
 </main>
 <script src="assets/push-notifications.js?v=303" defer></script>
 <script src="assets/chat.js?v=284" defer></script>
-<script src="assets/direct-messages.js?v=351" defer></script>
+<script src="assets/direct-messages.js?v=354" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
 <script src="assets/logout.js?v=308" defer></script>
