@@ -14,5 +14,6 @@ assert.equal(press({isComposing:true}),false);assert.equal(press({keyCode:229}),
 assert.equal(press(),true);assert.equal(submitted,1);press({repeat:true});press({shiftKey:true});input.disabled=true;press();assert.equal(submitted,1,'repeat or disabled input must not send');
 const markup=fs.readFileSync('messages.html','utf8');assert.match(markup,/<input id="messageInput"[^>]*enterkeyhint="send"/);assert.match(markup,/<button type="submit" class="message-send" disabled aria-label="Send message"/);assert.doesNotMatch(markup,/<button type="submit" hidden/);
 const feed=fs.readFileSync('assets/feed-enhancements.js','utf8');assert.match(feed,/search\.setAttribute\("enterkeyhint", "search"\)/);assert.match(feed,/commentInput\.setAttribute\("enterkeyhint", "send"\)/);
+const feedMarkup=fs.readFileSync('feed.html','utf8');assert.match(feedMarkup,/<input aria-label="Write a comment" enterkeyhint="send"/);
 for(const page of ['index','feed','profile','messages'])assert.ok(fs.readFileSync(page+'.html','utf8').includes('assets/mobile-keyboard.js'),page+' must load keyboard hints');
 console.log('Mobile keyboard checks passed: initial/dynamic fields, focus, Return submission, IME safety, repeats, disabled chat, and visible submit control.');
