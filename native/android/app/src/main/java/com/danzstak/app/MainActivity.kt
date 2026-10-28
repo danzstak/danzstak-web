@@ -129,10 +129,11 @@ class MainActivity : ComponentActivity() {
     private var chatVideo: androidx.media3.exoplayer.ExoPlayer? = null
     private val compactControls = mutableSetOf<CompactVideoControls>()
     private var fullMediaControls: CompactVideoControls? = null
-    private data class FeedVideoPreview(val frame: FrameLayout, val poster: ImageView, val url: String)
+    private data class FeedVideoPreview(val frame: FrameLayout, val poster: ImageView, val url: String, val sound: ImageButton? = null, var muted: Boolean = true)
     private val feedVideoPreviews = mutableListOf<FeedVideoPreview>()
     private var activeFeedVideo: FeedVideoPreview? = null
     private var feedVideoPlayer: VideoView? = null
+    private var feedAudioPlayer: android.media.MediaPlayer? = null
     private var appForeground = true
     private var mediaStartY = 0f
     private val headerPercent = 6
@@ -185,7 +186,7 @@ class MainActivity : ComponentActivity() {
         header.addView(headerIcon(R.drawable.messages, "Messages") { chats() })
         brandedHeader = header
         root.addView(header, LinearLayout.LayoutParams(-1, maxOf(dp(48), resources.displayMetrics.heightPixels * headerPercent / 100)))
-        status = label(if (demo) "Preview · Changes stay on this device" else if (!signedIn()) "Log in to find your people." else "", 12).apply { setPadding(dp(16), dp(3), dp(16), dp(3)) }
+        status = label(if (demo) "Preview · Changes stay on this device" else if (!signedIn()) "Log in to find your people." else "", 12).apply { setPadding(dp(16), dp(3), dp(16), dp(3)); visibility = if (text.isBlank()) View.GONE else View.VISIBLE; addTextChangedListener(watcher { visibility = if (it.isBlank()) View.GONE else View.VISIBLE }) }
         if (demo) { root.removeView(header); status.setBackgroundColor(Color.rgb(255, 246, 206)); root.addView(status); root.addView(header) } else root.addView(status)
         content = column()
         rootScroll = FeedScroll().apply { isFillViewport = true; addView(content); viewTreeObserver.addOnScrollChangedListener { if (pendingFeedAnchor == null && !restoringFeed) lastFeedAnchor = feedAnchor(); processVisibleImages(); updateFeedVideo() }; addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> processVisibleImages(); updateFeedVideo() } }
@@ -250,7 +251,16 @@ class MainActivity : ComponentActivity() {
                 preview.addOnLayoutChangeListener { view, left, _, right, _, oldLeft, _, oldRight, _ -> if (right - left != oldRight - oldLeft) { val drawable = image.drawable; if (drawable != null && drawable.intrinsicWidth > 0 && drawable.intrinsicHeight > 0) view.layoutParams = view.layoutParams.apply { height = ((right - left).toFloat() * drawable.intrinsicHeight / drawable.intrinsicWidth).toInt().coerceAtLeast(1) } } }
                 preview.addView(image, FrameLayout.LayoutParams(-1, -1))
                 box.addView(preview, LinearLayout.LayoutParams(-1, dp(230)))
-                feedVideoPreviews.add(FeedVideoPreview(preview, image, post.mediaUrl)); loadVideoFrame(post.mediaUrl, image, false)
+                val sound = ImageButton(this).apply { setImageResource(R.drawable.sound_off); setColorFilter(Color.WHITE); contentDescription = "Unmute feed video"; background = rounded(Color.argb(150, 0, 0, 0)); setPadding(dp(10), dp(10), dp(10), dp(10)) }
+                val feedPreview = FeedVideoPreview(preview, image, post.mediaUrl, sound)
+                sound.setOnClickListener {
+                    feedPreview.muted = !feedPreview.muted
+                    sound.setImageResource(if (feedPreview.muted) R.drawable.sound_off else R.drawable.sound_on)
+                    sound.contentDescription = if (feedPreview.muted) "Unmute feed video" else "Mute feed video"
+                    if (activeFeedVideo === feedPreview) feedAudioPlayer?.setVolume(if (feedPreview.muted) 0f else 1f, if (feedPreview.muted) 0f else 1f)
+                }
+                preview.addView(sound, FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP or Gravity.END).apply { topMargin = dp(8); rightMargin = dp(8) })
+                feedVideoPreviews.add(feedPreview); loadVideoFrame(post.mediaUrl, image, false)
                 preview.post { updateFeedVideo() }
             }
         }
@@ -336,8 +346,9 @@ class MainActivity : ComponentActivity() {
     }
     private fun profile() { memberProfile(posts.firstOrNull { it.owner }, true) }
     private fun memberProfile(person: FeedPost?, own: Boolean = false, onBack: (() -> Unit)? = null) {
-        content.removeAllViews(); title(if (own) "Your profile" else person?.author ?: "Profile")
-        content.addView(button("Back") { if (onBack != null) onBack() else if (own) { tab = "Menu"; showApp() } else peopleAfterProfile() })
+        stopFeedVideo(); feedVideoPreviews.clear()
+        content.removeAllViews()
+        val goBack = { if (onBack != null) onBack() else if (own) { tab = "Menu"; showApp() } else peopleAfterProfile() }
         val body = column(); content.addView(body)
         fun render(profile: JSONObject) {
             body.removeAllViews()
@@ -345,6 +356,7 @@ class MainActivity : ComponentActivity() {
             val images = FrameLayout(this)
             val cover = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; background = rounded(Color.rgb(31, 61, 94)); contentDescription = "Cover image of $name" }
             images.addView(cover, FrameLayout.LayoutParams(-1, dp(190)))
+            images.addView(icon("‹", "Back", goBack).apply { setTextColor(Color.WHITE); background = rounded(Color.argb(150, 0, 0, 0)); setPadding(0, 0, 0, 0) }, FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP or Gravity.START).apply { topMargin = dp(8); leftMargin = dp(8) })
             if (profile.optString("cover").startsWith("https://")) loadImage(profile.getString("cover"), cover)
             val photo = avatar(name, profile.optString("picture").ifBlank { person?.picture.orEmpty() })
             photo.contentDescription = "Profile image of $name"
@@ -1098,6 +1110,8 @@ class MainActivity : ComponentActivity() {
         }
     }
     private fun stopFeedVideo() {
+        feedAudioPlayer = null
+        activeFeedVideo?.let { it.muted = true; it.sound?.setImageResource(R.drawable.sound_off); it.sound?.contentDescription = "Unmute feed video" }
         feedVideoPlayer?.stopPlayback()
         feedVideoPlayer?.let { (it.parent as? android.view.ViewGroup)?.removeView(it) }
         activeFeedVideo?.poster?.visibility = View.VISIBLE
@@ -1119,7 +1133,7 @@ class MainActivity : ComponentActivity() {
             isClickable = false; isFocusable = false
             setOnPreparedListener { prepared ->
                 if (activeFeedVideo !== next || !appForeground) return@setOnPreparedListener
-                prepared.isLooping = true; prepared.setVolume(0f, 0f)
+                feedAudioPlayer = prepared; prepared.isLooping = true; prepared.setVolume(if (next.muted) 0f else 1f, if (next.muted) 0f else 1f)
                 if (prepared.videoWidth > 0 && prepared.videoHeight > 0 && next.frame.width > 0) next.frame.layoutParams = next.frame.layoutParams.apply { height = (next.frame.width.toFloat() * prepared.videoHeight / prepared.videoWidth).toInt().coerceAtLeast(1) }
                 start()
             }

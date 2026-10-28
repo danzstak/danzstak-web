@@ -133,6 +133,20 @@ class SocialNavigationTest {
         org.junit.Assume.assumeTrue(java.io.File(context.cacheDir, "attachment-fixture.json").isFile)
         context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK); putExtra("preview", true); putExtra("profile_video_fixture", true) })
         assertTrue(device.wait(Until.hasObject(By.desc("Autoplay video by Profile A")), 10000))
+        val sound = device.wait(Until.findObject(By.desc("Unmute feed video")), 5000)
+        assertNotNull(sound); sound.click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Mute feed video")), 5000))
+        assertFalse(device.hasObject(By.text("1 / 2")))
+        device.findObject(By.desc("Mute feed video")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Unmute feed video")), 5000))
+        device.findObject(By.desc("People").pkg("com.danzstak.app")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("View profile of Profile A")), 5000))
+        device.findObject(By.desc("View profile of Profile A")).click()
+        val scroll = androidx.test.uiautomator.UiScrollable(androidx.test.uiautomator.UiSelector().scrollable(true))
+        assertTrue(scroll.scrollIntoView(androidx.test.uiautomator.UiSelector().description("Unmute feed video")))
+        device.findObjects(By.desc("Unmute feed video")).first().click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Mute feed video")), 5000))
+        device.findObject(By.desc("Mute feed video")).click()
         device.findObjects(By.desc("Autoplay video by Profile A")).first().click()
         assertTrue(device.wait(Until.hasObject(By.text("1 / 2")), 5000))
         device.swipe(device.displayWidth / 2, device.displayHeight * 3 / 4, device.displayWidth / 2, device.displayHeight / 4, 18)
@@ -241,6 +255,10 @@ class SocialNavigationTest {
         device.findObjects(By.descStartsWith("View profile of ")).first().click()
         assertTrue(device.wait(Until.hasObject(By.descStartsWith("Cover image of ")), 5000))
         assertTrue(device.hasObject(By.descStartsWith("Profile image of ")))
+        val cover = device.findObject(By.descStartsWith("Cover image of ")).visibleBounds
+        val viewport = device.findObject(By.clazz(android.widget.ScrollView::class.java)).visibleBounds
+        assertTrue("Cover should meet the top of the profile viewport", kotlin.math.abs(cover.top - viewport.top) <= 2)
+        assertTrue(device.hasObject(By.desc("Back")))
     }
     @Test fun flashesUseFullScreenVerticalPaging() {
         device.findObject(By.desc("Open Flashes from DanzStak")).click()

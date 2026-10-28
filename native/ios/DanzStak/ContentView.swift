@@ -313,7 +313,9 @@ struct ContentView: View {
                                 MemberProfileIdentity(name: person.author, picture: person.authorPicture, email: person.userEmail, isDemo: model.isDemo)
                                 ForEach(model.posts.filter { ($0.userEmail ?? $0.author) == (person.userEmail ?? person.author) }) { post in PostCard(post: post) }
                             }
-                        }.background(SocialStyle.canvas).navigationTitle(person.author).navigationBarTitleDisplayMode(.inline)
+                        }.background(SocialStyle.canvas).navigationTitle("").navigationBarTitleDisplayMode(.inline)
+                            .toolbarBackground(.hidden, for: .navigationBar)
+                            .ignoresSafeArea(edges: .top)
                     } label: {
                         HStack(spacing: 12) {
                             Avatar(name: person.author, picture: person.authorPicture, size: 50)
@@ -390,7 +392,9 @@ struct ContentView: View {
                     Button(role: .destructive) { Task { await model.logout() } } label: { Label(model.isDemo ? "Exit demo" : "Log out", systemImage: "rectangle.portrait.and.arrow.right") }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(20).background(SocialStyle.card, in: RoundedRectangle(cornerRadius: 18)).padding(.horizontal, 16)
             }.padding(.bottom, 24).frame(maxWidth: 760).frame(maxWidth: .infinity)
-        }.background(SocialStyle.canvas).navigationTitle("Profile").navigationBarTitleDisplayMode(.inline)
+        }.background(SocialStyle.canvas).navigationTitle("").navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .ignoresSafeArea(edges: .top)
     }
 
     private var myPost: FeedPost? { model.posts.first { $0.isOwner == true } }
@@ -1025,6 +1029,7 @@ struct PostVideo: View {
     var controlsBottomInset: CGFloat = 0
     var onOpen: (() -> Void)? = nil
     @State private var controlsVisible = true
+    @State private var audioMuted = true
     @State private var pausedByUser = false
     @State private var isPlaying = false
     @State private var progress = 0.0
@@ -1056,6 +1061,13 @@ struct PostVideo: View {
                 }).tint(.white).accessibilityLabel("Video progress").padding(.horizontal, 12).padding(.bottom, controlsBottomInset) }
             }
         }
+            .overlay(alignment: .topTrailing) {
+                if !fullScreen {
+                    Button { audioMuted.toggle(); player?.isMuted = audioMuted } label: {
+                        Image(systemName: audioMuted ? "speaker.slash.fill" : "speaker.wave.2.fill").font(.system(size: 18)).foregroundStyle(.white).frame(width: 44, height: 44).background(.black.opacity(0.6), in: Circle())
+                    }.accessibilityLabel(audioMuted ? "Unmute feed video" : "Mute feed video").padding(8)
+                }
+            }
             .frame(maxWidth: .infinity, maxHeight: fullScreen ? .infinity : nil)
             .frame(height: fullScreen ? nil : mediaWidth / videoAspect)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { if $0 > 0 { mediaWidth = $0 } }
@@ -1068,7 +1080,7 @@ struct PostVideo: View {
             .onAppear {
                 guard player == nil else { return }
                 let item = AVPlayerItem(url: url); item.preferredForwardBufferDuration = 2; item.preferredPeakBitRate = 2_500_000; item.preferredMaximumResolution = CGSize(width: 1280, height: 720)
-                let next = AVPlayer(playerItem: item); next.automaticallyWaitsToMinimizeStalling = false; next.isMuted = !fullScreen; player = next; pausedByUser = !autoplay
+                let next = AVPlayer(playerItem: item); next.automaticallyWaitsToMinimizeStalling = false; audioMuted = !fullScreen; next.isMuted = audioMuted; player = next; pausedByUser = !autoplay
                 observer = next.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main) { time in
                     Task { @MainActor in guard player === next else { return }; let seconds = next.currentItem?.duration.seconds ?? 0; if seconds.isFinite && seconds > 0 { duration = seconds }; if !scrubbing && time.seconds.isFinite { progress = min(max(0, time.seconds), duration) }; isPlaying = next.rate > 0 }
                 }
@@ -1086,7 +1098,7 @@ struct PostVideo: View {
                     }
                 } catch { /* The player retains its own loading and error handling. */ }
             }
-            .onChange(of: shouldPlay) { _, _ in updatePlayback() }
+            .onChange(of: shouldPlay) { _, playing in if !playing && !fullScreen { audioMuted = true; player?.isMuted = true }; updatePlayback() }
             .onDisappear {
                 hideTask?.cancel()
                 if let player { if let observer { player.removeTimeObserver(observer) }; NativePlayback.shared.pause(player) }
