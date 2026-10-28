@@ -1,6 +1,22 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testNativeChatPreview() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview"]
+        app.launch()
+        XCTAssertTrue(app.buttons["header.messages"].waitForExistence(timeout: 20))
+        app.buttons["header.messages"].tap()
+        XCTAssertTrue(app.navigationBars["Chats"].waitForExistence(timeout: 5))
+        app.buttons["chat.preview-jamie"].tap()
+        let composer = app.textFields["chat.composer"]
+        XCTAssertTrue(composer.waitForExistence(timeout: 5))
+        composer.tap(); composer.typeText("See you at the next set")
+        app.buttons["Send message"].tap()
+        XCTAssertTrue(app.staticTexts["See you at the next set"].waitForExistence(timeout: 5))
+        XCTAssertEqual(composer.value as? String, "Message")
+    }
+
     func testRemoveOwnPhotoTag() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview", "--tagging-preview"]

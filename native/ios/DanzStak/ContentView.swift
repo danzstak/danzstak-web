@@ -38,6 +38,7 @@ struct ContentView: View {
     @State private var selectedStory: FeedStory?
     @State private var viewingReels = false
     @State private var showFacebookImport = false
+    @State private var showMessages = false
     @State private var pendingResponse: MediaResponsePresentation?
     @State private var drawerResponse: MediaResponsePresentation?
     @AppStorage("danzstak.responseStyle") private var responseStyle = "full"
@@ -86,6 +87,7 @@ struct ContentView: View {
                 }
                 .tint(SocialStyle.blue)
                 }
+                .fullScreenCover(isPresented: $showMessages) { MessagesView(isDemo: model.isDemo).environmentObject(model) }
                 .sheet(isPresented: $composer) { ComposerView(isDemo: model.isDemo).environmentObject(model) }
                 .sheet(isPresented: $showGroups) { NavigationStack { groups }.environmentObject(model) }
                 .fullScreenCover(item: $selectedStory, onDismiss: {
@@ -117,7 +119,7 @@ struct ContentView: View {
         }
         .task { await model.start() }
         .onChange(of: model.signedIn) { _, signedIn in
-            if !signedIn { selection = .home; composer = false; showGroups = false; query = ""; drawerResponse = nil; pendingResponse = nil; selectedStory = nil }
+            if !signedIn { showMessages = false; selection = .home; composer = false; showGroups = false; query = ""; drawerResponse = nil; pendingResponse = nil; selectedStory = nil }
         }
     }
 
@@ -157,7 +159,7 @@ struct ContentView: View {
                         .foregroundStyle(.white).frame(width: min(40, headerHeight - 4), height: min(40, headerHeight - 4))
                         .background(.white.opacity(0.12), in: Circle())
                 }.frame(width: 44, height: 44).contentShape(Rectangle()).accessibilityLabel("Search Your Mix")
-                Link(destination: URL(string: "https://www.danzstak.com/messages.html")!) {
+                Button { showMessages = true } label: {
                     Image(systemName: "bubble.left.and.bubble.right.fill").font(.title3.weight(.semibold))
                         .foregroundStyle(.white).frame(width: 44, height: 44)
                 }.accessibilityLabel("Messages").accessibilityIdentifier("header.messages")

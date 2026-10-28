@@ -1,65 +1,82 @@
 package com.danzstak.app
 
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 
-data class FeedPost(val author: String, val text: String, val createdAt: String)
+data class FeedPost(
+    val id: String, val author: String, val text: String, val createdAt: String,
+    val picture: String = "", val owner: Boolean = false, val mediaUrl: String = "",
+    val mediaType: String = "", val location: String = "", val tags: List<TaggedMember> = emptyList()
+)
+data class TaggedMember(val id: String, val name: String, val isMe: Boolean = false)
+data class TagFriend(val id: String, val name: String, val picture: String = "")
+data class MediaPage(val id: String, val author: String, val caption: String, val url: String = "", val type: String = "", val post: FeedPost? = null)
+class SessionExpired : Exception("Your session expired. Log in again.")
 
-class DanzStakApi(private val session: () -> String?) {
+class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.openConnection() as HttpURLConnection }, private val session: () -> String?) {
     private val base = "https://api.danzstak.com"
-
-    fun exchange(code: String, verifier: String): String {
-        val body = JSONObject().put("code", code).put("verifier", verifier).put("platform", "android")
-        val result = request("/auth/mobile-session", "POST", body, authenticated = false)
-        return result.getString("sessionToken")
-    }
-
+    fun exchange(code: String, verifier: String): String = request("/auth/mobile-session", "POST", JSONObject().put("code", code).put("verifier", verifier).put("platform", "android"), false).getString("sessionToken")
     fun sessionValid(): Boolean = request("/auth/session").optBoolean("authenticated", false)
-
-    fun posts(): List<FeedPost> {
-        val body = request("/secure-posts")
-        val items = body.optJSONArray("posts") ?: body.optJSONArray("items") ?: return emptyList()
-        return (0 until items.length()).mapNotNull { index ->
-            val item = items.optJSONObject(index) ?: return@mapNotNull null
-            FeedPost(
-                item.optString("authorName", "DanzStak Member"),
-                item.optString("text", item.optString("content")),
-                item.optString("createdAt")
-            )
-        }
+    fun posts(): List<FeedPost> = objects(request("/secure-posts").optJSONArray("posts")).map { item ->
+        FeedPost(item.getString("postId"), item.optString("authorName", "DanzStak member"), item.optString("content"), item.optString("createdAt"),
+            item.optString("authorPicture"), item.optBoolean("isOwner"), item.optString("mediaUrl"), item.optString("mediaType"), item.optString("location"),
+            objects(item.optJSONArray("taggedUsers")).map { TaggedMember(it.getString("memberId"), it.optString("name"), it.optBoolean("isMe")) })
     }
-
-    fun publish(text: String) {
-        request("/secure-posts", "POST", JSONObject()
-            .put("content", text)
-            .put("audience", "public")
-            .put("originalContentCertified", true))
-    }
-
+    fun publish(text: String, location: String): String = request("/secure-posts", "POST", JSONObject().put("content", text).put("location", location).put("audience", "public").put("originalContentCertified", true)).getString("postId")
     fun logout() { request("/auth/logout", "POST", JSONObject()) }
-
+    fun engagement(id: String): JSONObject = request("/engagement?postId=" + URLEncoder.encode(id, "UTF-8"))
+    fun react(id: String, reaction: String) { request("/reactions", "POST", JSONObject().put("postId", id).put("reaction", reaction)) }
+    fun comment(id: String, text: String) { request("/comments", "POST", JSONObject().put("postId", id).put("content", text)) }
+    fun stories(): Pair<List<MediaPage>, List<MediaPage>> {
+        val data = request("/stories")
+        val flashes = objects(data.optJSONArray("stories")).map { MediaPage(it.getString("storyId"), it.optString("displayName", "DanzStak member"), it.optString("caption", it.optString("content")), it.optString("mediaUrl"), it.optString("mediaType")) }
+        val roll = objects(data.optJSONArray("reels")).map { MediaPage(it.getString("id"), it.optString("displayName", "DanzStak member"), it.optString("caption"), it.optString("url"), "video") }
+        return Pair(flashes, roll)
+    }
+    fun groups(): List<JSONObject> = objects(request("/groups").optJSONArray("groups"))
+    fun notices(): List<JSONObject> = objects(request("/engagement-notifications").optJSONArray("notifications"))
+    fun markNoticesRead() { request("/engagement-notifications/read", "POST", JSONObject()) }
+    fun tagFriends(): List<TagFriend> = objects(request("/calls/directory").optJSONArray("users")).filter { it.optString("friendStatus") == "friends" }.map { TagFriend(it.getString("memberId"), it.optString("name"), it.optString("picture")) }
+    fun editTags(id: String, tags: List<TaggedMember>, location: String) { request("/secure-posts/${postID(id)}", "PATCH", JSONObject().put("taggedMembers", JSONArray(tags.map { it.id })).put("location", location)) }
+    fun removeOwnTag(id: String) { request("/secure-posts/${postID(id)}", "PATCH", JSONObject().put("removeOwnTag", true)) }
+    fun settings(): JSONObject = request("/settings/presence")
+    fun saveTagConsent(settings: JSONObject, allowed: Boolean) {
+        request("/settings/presence", "POST", JSONObject().put("allowTags", allowed).put("onlineVisible", settings.optBoolean("onlineVisible", true)).put("darkMode", settings.optBoolean("darkMode", false)).put("reduceMotion", settings.optBoolean("reduceMotion", false)).put("dataSaver", settings.optBoolean("dataSaver", false)).put("language", settings.optString("language", "en")))
+    }
+    fun conversations(): List<JSONObject> = objects(request("/conversations").optJSONArray("conversations"))
+    fun chatContacts(): List<JSONObject> = objects(request("/calls/directory").optJSONArray("users")).filter { it.optString("friendStatus") == "friends" || it.optBoolean("sharedGroup") }
+    fun messages(contact: String, before: String = ""): JSONObject = request("/messages?contact=" + URLEncoder.encode(contact, "UTF-8") + "&read=1" + if (before.isNotEmpty()) "&before=" + URLEncoder.encode(before, "UTF-8") else "")
+    fun sendMessage(contact: String, text: String): JSONObject = request("/messages", "POST", JSONObject().put("recipientEmail", contact).put("content", text)).getJSONObject("message")
+    fun reactMessage(contact: String, message: String, reaction: String) { request("/messages", "POST", JSONObject().put("action", "reaction").put("contactEmail", contact).put("messageId", message).put("reaction", reaction)) }
+    private fun postID(value: String): String { require(value.matches(Regex("[a-fA-F0-9-]{36}"))); return value }
     private fun request(path: String, method: String = "GET", body: JSONObject? = null, authenticated: Boolean = true): JSONObject {
-        val connection = (URL(base + path).openConnection() as HttpURLConnection).apply {
-            requestMethod = method
-            connectTimeout = 10_000
-            readTimeout = 15_000
-            setRequestProperty("Accept", "application/json")
-            if (authenticated) {
-                val token = session() ?: throw IllegalStateException("Sign in required")
-                setRequestProperty("Authorization", "Bearer $token")
-            }
+        val url = URL(base + path)
+        require(url.protocol == "https" && url.host == "api.danzstak.com")
+        val token = if (authenticated) session() ?: throw SessionExpired() else null
+        val connection = openConnection(url)
+        try {
+            connection.instanceFollowRedirects = false
+            connection.requestMethod = method
+            connection.connectTimeout = 10_000; connection.readTimeout = 15_000
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("Origin", "https://www.danzstak.com")
+            if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")
             if (body != null) {
-                doOutput = true
-                setRequestProperty("Content-Type", "application/json")
-                outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+                connection.doOutput = true; connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             }
-        }
-        val status = connection.responseCode
-        val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-        val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-        connection.disconnect()
-        if (status !in 200..299) throw IllegalStateException(runCatching { JSONObject(text).optString("error") }.getOrNull().orEmpty().ifBlank { "DanzStak request failed ($status)" })
-        return if (text.isBlank()) JSONObject() else JSONObject(text)
+            val status = connection.responseCode
+            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+            val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            if (authenticated && status == 401) throw SessionExpired()
+            if (status !in 200..299) throw IllegalStateException(runCatching { JSONObject(text).optString("error") }.getOrNull().orEmpty().ifBlank { "DanzStak request failed ($status). Try again." })
+            return if (text.isBlank()) JSONObject() else JSONObject(text)
+        } finally { connection.disconnect() }
+    }
+    companion object {
+        fun objects(array: JSONArray?): List<JSONObject> = if (array == null) emptyList() else (0 until array.length()).mapNotNull { array.optJSONObject(it) }
     }
 }

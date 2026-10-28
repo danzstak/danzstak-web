@@ -136,6 +136,25 @@ struct APIClientChecks {
         catch APIClient.Failure.sessionExpired {}
         precondition(StubProtocol.requests.count == count)
         precondition(StubProtocol.requests.allSatisfy { $0.url?.scheme == "https" })
+        StubProtocol.payload = #"{"conversations":[{"contactEmail":"friend@example.com","name":"Friend","preview":"Hello","updatedAt":"2026-10-28","unread":2,"canContact":true}]}"#
+        let chats = try await api.conversations()
+        precondition(chats.first?.unread == 2)
+        StubProtocol.payload = #"{"messages":[{"messageId":"message-1","senderEmail":"friend@example.com","recipientEmail":"me@example.com","content":"Hello","createdAt":"2026-10-28"}],"nextCursor":"","canContact":true}"#
+        let thread = try await api.messages("friend+music@example.com")
+        precondition(thread.messages.first?.content == "Hello")
+        let parameters = URLComponents(url: StubProtocol.requests.last!.url!, resolvingAgainstBaseURL: false)!.queryItems!
+        precondition(parameters.first { $0.name == "contact" }?.value == "friend+music@example.com")
+        precondition(parameters.first { $0.name == "read" }?.value == "1")
+        StubProtocol.payload = #"{"message":{"messageId":"message-2","senderEmail":"me@example.com","recipientEmail":"friend@example.com","content":"Hey","createdAt":"2026-10-28"}}"#
+        let sent = try await api.sendMessage(to: "friend@example.com", text: "Hey")
+        precondition(sent.content == "Hey")
+        let messageBody = try JSONSerialization.jsonObject(with: StubProtocol.requests.last!.httpBody!) as! [String: Any]
+        precondition(messageBody["recipientEmail"] as? String == "friend@example.com")
+        StubProtocol.payload = "{}"
+        try await api.reactToMessage(contact: "friend@example.com", message: "message-2", reaction: "👍")
+        StubProtocol.status = 401
+        do { _ = try await api.messages("friend@example.com"); fatalError("Chat 401 must expire session") }
+        catch APIClient.Failure.sessionExpired {}
         print("API checks passed: feed, sessions, recovery, exchange, publish, logout, engagement, query encoding, comments, reactions, groups, notices, HTTPS.")
     }
 }

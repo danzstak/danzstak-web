@@ -2,9 +2,9 @@
 <resources>
     <style name="Theme.DanzStak" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">#1769E0</item>
+        <item name="android:colorAccent">#E15723</item>
         <item name="android:navigationBarColor">#FFFFFF</item>
-        <item name="android:statusBarColor">#1769E0</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#E15723</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

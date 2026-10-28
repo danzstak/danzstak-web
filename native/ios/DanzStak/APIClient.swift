@@ -172,6 +172,28 @@ struct APIClient {
         let _: EmptyResponse = try await send("/engagement-notifications/read", method: "POST", body: [:])
     }
 
+    func conversations() async throws -> [ChatConversation] {
+        let result: ChatConversations = try await send("/conversations")
+        return result.conversations
+    }
+    func chatContacts() async throws -> [ChatContact] {
+        let result: ChatDirectory = try await send("/calls/directory")
+        return result.users.filter { $0.friendStatus == "friends" || $0.sharedGroup == true }
+    }
+    func messages(_ contact: String, before: String? = nil) async throws -> ChatMessages {
+        var components = URLComponents()
+        components.queryItems = [URLQueryItem(name: "contact", value: contact), URLQueryItem(name: "read", value: "1")]
+        if let before { components.queryItems?.append(URLQueryItem(name: "before", value: before)) }
+        return try await send("/messages" + (components.string ?? ""))
+    }
+    func sendMessage(to contact: String, text: String) async throws -> ChatMessage {
+        let result: SentChatMessage = try await send("/messages", method: "POST", body: ["recipientEmail": contact, "content": text])
+        return result.message
+    }
+    func reactToMessage(contact: String, message: String, reaction: String) async throws {
+        let _: EmptyResponse = try await send("/messages", method: "POST", body: ["action": "reaction", "contactEmail": contact, "messageId": message, "reaction": reaction])
+    }
+
     private struct EmptyResponse: Decodable {}
 
     private func send<Response: Decodable>(_ path: String, method: String = "GET", body: [String: Any]? = nil, authenticated: Bool = true) async throws -> Response {
@@ -221,3 +243,41 @@ struct TaggingSettings: Decodable {
     var dataSaver: Bool? = nil
     var language: String? = nil
 }
+
+struct ChatConversation: Decodable, Identifiable {
+    let contactEmail: String
+    let name: String
+    var picture: String? = nil
+    var preview = ""
+    var updatedAt = ""
+    var unread = 0
+    var canContact = true
+    var id: String { contactEmail }
+}
+struct ChatContact: Decodable, Identifiable {
+    let email: String
+    let name: String
+    var picture: String? = nil
+    var friendStatus: String? = nil
+    var sharedGroup: Bool? = nil
+    var id: String { email }
+    var conversation: ChatConversation { ChatConversation(contactEmail: email, name: name, picture: picture) }
+}
+struct ChatMessage: Decodable, Identifiable {
+    let messageId: String
+    let senderEmail: String
+    let recipientEmail: String
+    let content: String
+    let createdAt: String
+    var reactionCounts: [String: Int]? = nil
+    var myReaction: String? = nil
+    var id: String { messageId }
+}
+struct ChatMessages: Decodable {
+    let messages: [ChatMessage]
+    let nextCursor: String?
+    let canContact: Bool
+}
+private struct ChatConversations: Decodable { let conversations: [ChatConversation] }
+private struct ChatDirectory: Decodable { let users: [ChatContact] }
+private struct SentChatMessage: Decodable { let message: ChatMessage }

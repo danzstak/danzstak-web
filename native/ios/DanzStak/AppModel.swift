@@ -129,7 +129,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         } catch APIClient.Failure.sessionExpired { if epoch == sessionEpoch { expireSession() }; throw APIClient.Failure.sessionExpired }
     }
 
-    private func expireSession() {
+    func expireSession() {
         sessionEpoch += 1
         signedIn = false
         SessionStore.clear()
