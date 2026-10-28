@@ -413,9 +413,18 @@ async function loadConversations() {
       const preview = document.createElement("small"); preview.textContent = conversation.preview || "Open chat";
       const unread = Number(conversation.unread || 0) > 0;
       button.classList.toggle("is-unread", Boolean(unread));
+      const meta = document.createElement("span"); meta.className = "conversation-list-meta";
       const time = document.createElement("time"); time.textContent = conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
-      copy.append(name, preview); button.append(avatarWrap, copy, time);
-      button.addEventListener("click", () => { markChatRead(conversation.contactEmail, conversation.updatedAt || new Date().toISOString()); openConversation(conversation); });
+      meta.appendChild(time);
+      if (unread) {
+        const badge = document.createElement("span");
+        badge.className = "conversation-unread";
+        badge.textContent = Number(conversation.unread) > 99 ? "99+" : String(Number(conversation.unread));
+        badge.setAttribute("aria-label", `${conversation.unread} unread message${Number(conversation.unread) === 1 ? "" : "s"}`);
+        meta.appendChild(badge);
+      }
+      copy.append(name, preview); button.append(avatarWrap, copy, meta);
+      button.addEventListener("click", () => { conversation.unread = 0; markChatRead(conversation.contactEmail, conversation.updatedAt || new Date().toISOString()); openConversation(conversation); });
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [label, targetId] of [["📞", "startPhone"], ["📹", "startVideo"]]) {
         const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.textContent = label; call.title = `${targetId === "startPhone" ? "Phone" : "Video"} call with ${publicName}`; call.setAttribute("aria-label", call.title);
