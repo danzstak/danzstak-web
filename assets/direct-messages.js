@@ -27,8 +27,11 @@ const conversationHeaderActions = {
   phone: document.getElementById("headerPhone"),
   video: document.getElementById("headerVideo"),
   minimize: document.getElementById("minimizeConversation"),
+  more: document.getElementById("conversationMore"),
   close: document.getElementById("closeConversation")
 };
+const conversationMenu = document.getElementById("conversationMenu");
+const headerDeleteChat = document.getElementById("headerDeleteChat");
 let directContact = "";
 let activeContactName = "Contact";
 let currentEmail = "";
@@ -85,13 +88,19 @@ async function uploadSelectedMessageMedia(file) {
   return { mediaKey: ticket.mediaKey, mediaType: file.type.startsWith("video/") ? "video" : "image" };
 }
 function labelConversationHeaderActions(name = "") {
-  const labels = { phone: "Phone call", video: "Video call", minimize: "Minimize chat", close: "Close chat" };
+  const labels = { phone: "Phone call", video: "Video call", minimize: "Minimize chat", more: "More chat options", close: "Close chat" };
   for (const [key, button] of Object.entries(conversationHeaderActions)) {
     if (!button) continue;
     const label = name ? `${labels[key]} with ${name}` : labels[key];
     button.setAttribute("aria-label", label);
     button.title = label;
   }
+}
+function closeConversationMenu({ restoreFocus = false } = {}) {
+  if (!conversationMenu || !conversationHeaderActions.more) return;
+  conversationMenu.hidden = true;
+  conversationHeaderActions.more.setAttribute("aria-expanded", "false");
+  if (restoreFocus) conversationHeaderActions.more.focus();
 }
 async function directFetch(path, options = {}, timeoutMs = 10000) {
   const target = path.startsWith("/") ? directApi + path : new URL(path);
@@ -212,6 +221,7 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   conversationVersion += 1;
   loadingMessages = false;
   document.querySelector(".message-reaction-palette")?.remove();
+  closeConversationMenu();
   conversationHeader.hidden = true;
   labelConversationHeaderActions();
   if (conversationPresence) conversationPresence.hidden = true;
@@ -485,6 +495,16 @@ document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
 document.getElementById("headerPhone")?.addEventListener("click", () => document.getElementById("startPhone")?.click());
 document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
 document.getElementById("minimizeConversation")?.addEventListener("click", () => { document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-minimize" }, location.origin); });
+conversationHeaderActions.more?.addEventListener("click", event => {
+  event.stopPropagation();
+  const opening = conversationMenu.hidden;
+  conversationMenu.hidden = !opening;
+  conversationHeaderActions.more.setAttribute("aria-expanded", String(opening));
+  if (opening) headerDeleteChat?.focus();
+});
+headerDeleteChat?.addEventListener("click", () => { closeConversationMenu(); deleteChat?.click(); });
+conversationMenu?.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); closeConversationMenu({ restoreFocus: true }); } });
+document.addEventListener("click", event => { if (!conversationMenu?.hidden && !conversationHeader.contains(event.target)) closeConversationMenu(); });
 document.getElementById("closeConversation")?.addEventListener("click", () => closeConversation({ focusList: true }));
 
 window.addEventListener("message", event => { if (event.source === window.parent && event.origin === location.origin && event.data?.type === "danzstak-chat-hidden") document.body.classList.remove("is-conversation-open"); });
