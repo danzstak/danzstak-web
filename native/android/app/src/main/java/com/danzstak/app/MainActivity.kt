@@ -43,6 +43,16 @@ class MainActivity : ComponentActivity() {
         }
         dictationInput = null; dictationContact = null
     }
+    private var profileSelection: ((Uri) -> Unit)? = null
+    private var profileSelectionEpoch = 0
+    private var profileEditor: ProfileEditorDialog? = null
+    private var discussionDialog: DiscussionDialog? = null
+    private var ownProfileSnapshot: JSONObject? = null
+    private var demoProfileSnapshot = JSONObject().put("name", "You").put("handle", "you").put("allowTags", true).put("profilePostPermission", "owner")
+    private val profilePicker = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        val callback = profileSelection; profileSelection = null
+        if (uri != null && profileSelectionEpoch == epoch) callback?.invoke(uri)
+    }
     private var attachmentSelection: ((Uri) -> Unit)? = null
     private var attachmentContact: String? = null
     private var attachmentEpoch = 0
@@ -156,7 +166,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); handleDeepLink(intent) }
     override fun onPause() { saveFeedPosition(); appForeground = false; compactControls.toList().forEach { it.suspend() }; stopFeedVideo(); alertHandler.removeCallbacks(alertPoll); video?.pause(); chatVideo?.pause(); super.onPause() }
     override fun onResume() { super.onResume(); appForeground = true; compactControls.toList().forEach { it.resume() }; updateFeedVideo(); alertHandler.post(alertPoll); if (media != null) video?.start() }
-    override fun onDestroy() { stopFeedVideo(); chatVideo?.release(); video?.stopPlayback(); executor.shutdownNow(); imageExecutor.shutdownNow(); chatImageExecutor.shutdownNow(); videoFrameExecutor.shutdownNow(); super.onDestroy() }
+    override fun onDestroy() { discussionDialog?.dismiss(); profileEditor?.dismiss(); profileSelection = null; stopFeedVideo(); chatVideo?.release(); video?.stopPlayback(); executor.shutdownNow(); imageExecutor.shutdownNow(); chatImageExecutor.shutdownNow(); videoFrameExecutor.shutdownNow(); super.onDestroy() }
     private fun goBack() { if (media != null) { stopMedia(); showApp() } else if (selectedChat != null) { chats() } else { tab = "Home"; showApp() } }
     private fun signedIn() = demo || store.get("session") != null
 
@@ -272,7 +282,7 @@ class MainActivity : ComponentActivity() {
         fun updateCommentPreview() {
             val all = DanzStakApi.objects(engagement[post.id]?.optJSONArray("comments"))
             preview.removeAllViews(); commentControl.setCount(all.size, "Comments")
-            all.take(2).forEach { comment ->
+            all.filter { it.optString("parentCommentId").isBlank() }.take(2).forEach { comment ->
                 preview.addView(row().apply {
                     setPadding(dp(8), dp(4), dp(8), dp(4))
                     addView(avatar(comment.optString("authorName", "Member"), comment.optString("authorPicture")))
@@ -280,7 +290,7 @@ class MainActivity : ComponentActivity() {
                         addView(label(comment.optString("authorName", "Member"), 13, true).apply { setPadding(dp(8), 0, dp(8), dp(2)) })
                         addView(label(comment.optString("content"), 14).apply { maxLines = 3; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(dp(8), 0, dp(8), dp(4)) })
                     }, LinearLayout.LayoutParams(0, -2, 1f))
-                    setOnClickListener { comments(post) { updateCommentPreview() } }
+                    setOnClickListener { comments(post, comment.optString("commentId").takeIf { it.isNotBlank() }) { updateCommentPreview() } }
                 })
             }
             if (all.size > 2) preview.addView(button("View all ${all.size} comments") { comments(post) { updateCommentPreview() } })
@@ -421,14 +431,14 @@ class MainActivity : ComponentActivity() {
         content.removeAllViews()
         val goBack = { if (onBack != null) onBack() else if (own) { tab = "Menu"; showApp() } else peopleAfterProfile() }
         val body = column(); content.addView(body)
-        fun render(profile: JSONObject) {
+        fun render(profile: JSONObject, fetchVideo: Boolean = false) {
             body.removeAllViews()
             val name = profile.optString("name").ifBlank { person?.author ?: "Your profile" }
             val images = FrameLayout(this)
-            val cover = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; background = rounded(Color.rgb(31, 61, 94)); contentDescription = "Cover image of $name" }
+            val cover = ProfileCoverView(this).apply { coverX = profile.optInt("coverX", 50).toFloat(); coverY = profile.optInt("coverY", 50).toFloat(); fitEntire = profile.optBoolean("coverFit"); background = rounded(Color.rgb(31, 61, 94)); contentDescription = "Cover image of $name" }
             images.addView(cover, FrameLayout.LayoutParams(-1, dp(190)))
             images.addView(icon("‹", "Back", goBack).apply { setTextColor(Color.WHITE); background = rounded(Color.argb(150, 0, 0, 0)); setPadding(0, 0, 0, 0) }, FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP or Gravity.START).apply { topMargin = dp(8); leftMargin = dp(8) })
-            if (profile.optString("cover").startsWith("https://")) loadImage(profile.getString("cover"), cover)
+            if (profile.optString("cover").startsWith("https://")) loadImage(profile.getString("cover"), cover) else if (isDemoProfileFile(profile.optString("cover"))) cover.setImageURI(Uri.parse(profile.getString("cover")))
             val photo = avatar(name, profile.optString("picture").ifBlank { person?.picture.orEmpty() })
             photo.contentDescription = "Profile image of $name"
             photo.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.WHITE); setStroke(dp(4), Color.WHITE) }; photo.clipToOutline = true
@@ -438,26 +448,42 @@ class MainActivity : ComponentActivity() {
             listOf("handle", "bio", "location", "work").forEach { key -> profile.optString(key).takeIf { it.isNotBlank() }?.let { body.addView(label(if (key == "handle") "@$it" else it, 16)) } }
             profile.optString("website").takeIf { it.startsWith("https://") }?.let { url -> body.addView(button(url) { openWeb(url) }) }
             if (own) body.addView(button("Edit Profile") { editProfile() })
+            val videoArea = column(); body.addView(videoArea)
+            fun videoButton(url: String) { if (url.startsWith("https://") || isDemoProfileFile(url)) videoArea.addView(button("Play Profile Video") { chatMedia(url, "video") }) }
+            if (demo && own) videoButton(profile.optString("videoUrl"))
+            else if (fetchVideo) work("Loading profile video…", { api.profileVideo(if (own) "" else person!!.userEmail) }, { data -> if (videoArea.isAttachedToWindow) videoButton(data.optString("mediaUrl")) }, { if (videoArea.isAttachedToWindow) videoArea.addView(label("Profile video could not be loaded.", 13)) })
             body.addView(label("Posts", 20, true))
             posts.filter { if (own) it.owner else if (!person?.userEmail.isNullOrBlank()) it.userEmail == person?.userEmail else it.author == person?.author }.forEach { body.addView(postCard(it)) }
         }
-        render(JSONObject())
-        if (!demo && (own || !person?.userEmail.isNullOrBlank())) work("Loading profile…", { api.profile(if (own) "" else person!!.userEmail) }, { render(it) })
+        render(if (own) ownProfileSnapshot ?: if (demo) demoProfileSnapshot else JSONObject() else JSONObject())
+        if (!demo && (own || !person?.userEmail.isNullOrBlank())) work("Loading profile…", { api.profile(if (own) "" else person!!.userEmail) }, { if (own) ownProfileSnapshot = it; render(it, true) })
         else if (!demo) body.addView(label("This member’s full profile is not available from this post yet.", 14))
     }
     private fun peopleAfterProfile() { content.removeAllViews(); people() }
     private fun editProfile() {
-        fun show(settings: JSONObject) {
-            val toggle = Switch(this).apply { text = "Allow people to tag me"; isChecked = settings.optBoolean("allowTags", true); setPadding(dp(12), dp(12), dp(12), dp(12)) }
-            val box = column(); box.addView(toggle); box.addView(label("Turning this off blocks new tags. Remove an existing tag by long-pressing its photo or video, or using Post options.", 14))
-            val dialog = AlertDialog.Builder(this).setTitle("Edit Profile").setView(box).setNegativeButton("Cancel", null).setPositiveButton("Save", null).create()
-            dialog.setOnShowListener { dialog.getButton(-1).setOnClickListener {
-                if (demo) { localConsent = toggle.isChecked; dialog.dismiss() }
-                else { dialog.getButton(-1).isEnabled = false; work("Saving tagging preference…", { api.saveTagConsent(settings, toggle.isChecked) }, { dialog.dismiss(); status.text = "Tagging preference saved." }, { dialog.getButton(-1).isEnabled = true }) }
-            } }; dialog.show()
-        }
-        if (demo) show(JSONObject().put("allowTags", localConsent)) else work("Loading profile settings…", { api.settings() }, { show(it) })
+        stopFeedVideo(); chatVideo?.pause()
+        profileEditor?.dismiss()
+        profileEditor = ProfileEditorDialog(this, api, demo, demoProfileSnapshot,
+            pick = { kind, callback ->
+                profileSelection = callback; profileSelectionEpoch = epoch
+                profilePicker.launch(androidx.activity.result.PickVisualMediaRequest(if (kind == "video") androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.VideoOnly else androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
+            loadImage = { url, image -> loadChatImage(url, image) },
+            prepareVideo = ::prepare720pVideo,
+            playVideo = { url -> chatMedia(url, "video") },
+            onSaved = { saved ->
+                ownProfileSnapshot = saved
+                if (demo) demoProfileSnapshot = JSONObject(saved.toString())
+                localConsent = saved.optBoolean("allowTags", true)
+                posts = posts.map { if (it.owner) it.copy(author = saved.optString("name", it.author), picture = saved.optString("picture", it.picture)) else it }
+                saveFeedSnapshot()
+                tab = "Profile"; showApp(); Toast.makeText(this, "Profile refreshed", Toast.LENGTH_SHORT).show()
+            },
+            onExpired = { signOut(); status.text = "Your session expired. Log in again." },
+            onImport = ::importGuide)
+        profileEditor?.show()
     }
+    private fun isDemoProfileFile(url: String): Boolean = demo && runCatching { val uri = Uri.parse(url); uri.scheme == "file" && java.io.File(uri.path.orEmpty()).canonicalPath.startsWith(java.io.File(cacheDir, "profile-demo").canonicalPath + "/") }.getOrDefault(false)
     private var localConsent = true
     private fun composer() {
         title("Create post")
@@ -601,19 +627,14 @@ class MainActivity : ComponentActivity() {
         if (demo) { engagement[post.id] = state.put("myReaction", next).put("reactionCounts", JSONObject().put("Like", if (next.isEmpty()) 0 else 1)); showApp() }
         else work("Updating reaction…", { api.react(post.id, next); api.engagement(post.id) }, { engagement[post.id] = it; showApp() })
     }
-    private fun comments(post: FeedPost, onChanged: () -> Unit = {}) {
-        fun show(state: JSONObject) {
-            val box = column()
-            DanzStakApi.objects(state.optJSONArray("comments")).forEach { comment -> box.addView(label("${comment.optString("authorName")}\n${comment.optString("content")}", 15)) }
-            val input = EditText(this).apply { hint = "Write a comment…" }; box.addView(input)
-            val dialog = AlertDialog.Builder(this).setTitle("Comments").setView(ScrollView(this).apply { addView(box) }).setNegativeButton("Done", null).setPositiveButton("Send", null).create()
-            dialog.setOnShowListener { dialog.getButton(-1).setOnClickListener {
-                val text = input.text.toString().trim(); if (text.isBlank() || text.length > 2000) { input.error = "Enter 1–2,000 characters"; return@setOnClickListener }
-                if (demo) { val comments = state.optJSONArray("comments") ?: org.json.JSONArray(); comments.put(JSONObject().put("authorName", "You").put("content", text)); engagement[post.id] = state.put("comments", comments); onChanged(); dialog.dismiss(); comments(post, onChanged) }
-                else { dialog.getButton(-1).isEnabled = false; work("Sending comment…", { api.comment(post.id, text); api.engagement(post.id) }, { engagement[post.id] = it; onChanged(); dialog.dismiss(); comments(post, onChanged) }, { dialog.getButton(-1).isEnabled = true }) }
-            } }; dialog.show()
-        }
-        if (demo) show(engagement.getOrPut(post.id) { JSONObject() }) else work("Loading comments…", { api.engagement(post.id) }, { engagement[post.id] = it; show(it) })
+    private fun comments(post: FeedPost, initialParent: String? = null, onChanged: () -> Unit = {}) {
+        stopFeedVideo(); cancelFeedImages(); chatVideo?.pause(); discussionDialog?.dismiss()
+        discussionDialog = DiscussionDialog(this, api, post, engagement[post.id] ?: JSONObject(), demo, initialParent,
+            avatar = ::avatar, linkedText = { value, size -> linkedLabel(value, size) },
+            onChanged = { fresh -> engagement[post.id] = fresh; onChanged() },
+            onVisible = ::processVisibleImages, onDismiss = { showApp() },
+            onExpired = { signOut(); status.text = "Your session expired. Log in again." })
+        discussionDialog?.show()
     }
     private fun responders(post: FeedPost, kind: String) {
         val state = engagement[post.id] ?: JSONObject()
@@ -1150,10 +1171,12 @@ class MainActivity : ComponentActivity() {
     }
     private fun signOut() {
         val token = store.get("session"); val wasDemo = demo
-        epoch++; cacheDir.listFiles()?.filter { it.name.startsWith("feed-") || it.name == "chat-media" }?.forEach { it.deleteRecursively() }; pendingChatImages.clear(); feedImageMemory.evictAll(); messageAlerts.reset(); demo = false; store.clear(); posts = emptyList(); flashes = emptyList(); roll = emptyList(); engagement.clear(); localMedia.clear(); chatMessages.clear(); locallyDeletedMessages.clear(); selectedChat = null; composerTags = emptyList(); composerLocation = ""; tab = "Home"; showApp()
+        epoch++; ownProfileSnapshot = null; discussionDialog?.dismiss(); profileEditor?.dismiss(); profileSelection = null; cacheDir.listFiles()?.filter { it.name.startsWith("feed-") || it.name == "chat-media" }?.forEach { it.deleteRecursively() }; pendingChatImages.clear(); feedImageMemory.evictAll(); messageAlerts.reset(); demo = false; store.clear(); posts = emptyList(); flashes = emptyList(); roll = emptyList(); engagement.clear(); localMedia.clear(); chatMessages.clear(); locallyDeletedMessages.clear(); selectedChat = null; composerTags = emptyList(); composerLocation = ""; tab = "Home"; showApp()
         if (!wasDemo && token != null) executor.execute { runCatching { DanzStakApi { token }.logout() } }
     }
     private fun enterDemo() {
+        ownProfileSnapshot = null; demoProfileSnapshot = JSONObject().put("name", "You").put("handle", "you").put("allowTags", true).put("profilePostPermission", "owner")
+        java.io.File(cacheDir, "profile-demo").deleteRecursively()
         epoch++; demo = true
         posts = listOf(
             FeedPost("demo-1", "DanzStak Community", "A place for the people who move music forward.\n\nShare your next set, find your scene, and make something worth showing up for.", "Today"),
@@ -1405,7 +1428,7 @@ class MainActivity : ComponentActivity() {
                 "", "/", "/feed.html" -> when (uri.fragment?.lowercase()) { "events" -> "Events"; "saved" -> "Saved"; "messages", "messenger", "chat" -> "Messages"; else -> "Home" }
                 else -> null
             }
-            if (target != null && signedIn()) { tab = if (target == "Messages") "Home" else target; showApp(); if (target == "Messages") chats(); return }
+            if (target != null && signedIn()) { discussionDialog?.dismiss(); discussionDialog = null; tab = if (target == "Messages") "Home" else target; showApp(); if (target == "Messages") chats(); return }
         }
         val provider = androidx.browser.customtabs.CustomTabsClient.getPackageName(this, null)
             ?: packageManager.queryIntentActivities(Intent(Intent.ACTION_VIEW, Uri.parse("https://example.invalid")).addCategory(Intent.CATEGORY_BROWSABLE), android.content.pm.PackageManager.MATCH_DEFAULT_ONLY).firstOrNull { it.activityInfo.exported && it.activityInfo.packageName != packageName }?.activityInfo?.packageName
@@ -1473,6 +1496,7 @@ class MainActivity : ComponentActivity() {
     private fun card() = column().apply { background = rounded(if (chatDark) Color.rgb(32, 44, 51) else Color.WHITE); setPadding(dp(8), dp(8), dp(8), dp(8)); layoutParams = LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(12), dp(6), dp(12), dp(6)) } }
     private fun rounded(color: Int) = GradientDrawable().apply { setColor(color); cornerRadius = dp(16).toFloat() }
     private fun avatar(name: String, picture: String): View {
+        if (isDemoProfileFile(picture)) return ImageView(this).apply { layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)); scaleType = ImageView.ScaleType.CENTER_CROP; contentDescription = name; setImageURI(Uri.parse(picture)) }
         if (picture.startsWith("https://")) return ImageView(this).apply { layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)); scaleType = ImageView.ScaleType.CENTER_CROP; contentDescription = name; loadImage(picture, this) }
         return label(name.split(" ").take(2).joinToString("") { it.take(1) }, 14, true).apply { gravity = Gravity.CENTER; setPadding(0, 0, 0, 0); setTextColor(Color.WHITE); background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(orange, Color.rgb(170, 60, 225))).apply { shape = GradientDrawable.OVAL }; layoutParams = LinearLayout.LayoutParams(dp(42), dp(42)) }
     }

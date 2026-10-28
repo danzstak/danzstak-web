@@ -129,3 +129,7 @@ Live Booking planning/saving is on hold for the PC handoff. The native Booking s
 Version 0.1.10 makes web addresses in post bodies and chat text directly tappable, including multiple links and bare `www`/domain addresses detected by the platform. Web links use HTTPS and the existing native routing/browser handling. Message selection retains plain text selection behavior, and the preview card remains available.
 
 The compact branded header is shared across all native iOS tabs, keeping Import, Search, and Messages available from profiles and menu sections. Search returns to Your Mix. Simulator parity checks cover the footer menu, Flashes/The Roll placement, profile cover position, self-exclusion from People, and feed/profile sound-button state. Sound-button fixtures use an intentionally unavailable sample URL: they verify controls, not audible playback. Native calls, remote push, and physical-iPhone testing remain incomplete.
+
+### Threaded native comments
+
+The discussion screen shows a reply icon on every comment and reply, keeps replies beneath their parent, and labels the composer “Replying to [name]”. Top-level posting remains available. Live reply sending requires the API to return `commentRepliesSupported: true`; an older service cannot silently turn a reply into a top-level comment. See `native/COMMENT_REPLY_CONTRACT.md`. The PC owns backend deployment.

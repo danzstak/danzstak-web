@@ -131,4 +131,44 @@ class DanzStakApiTest {
         assertEquals("Test plan", JSONObject(requests.last().body.toString("UTF-8")).getString("name"))
         assertTrue(requests.all { it.getRequestProperty("Authorization") == "Bearer opaque-native-session" && it.getRequestProperty("Origin") == "https://www.danzstak.com" && !it.instanceFollowRedirects && it.closed })
     }
+    @Test fun profileEditorSavesAllPwaFieldsAndRemovalKeys() {
+        lateinit var connection: Connection
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 200, """{"profile":{"name":"Native Artist","handle":"native_artist"}}""").also { connection = it } }) { "opaque-native-session" }
+        val changes = JSONObject().put("name", "Native Artist").put("handle", "native_artist").put("bio", "Original music").put("location", "Oakland").put("work", "Musician").put("website", "https://example.com").put("profilePostPermission", "friends").put("allowTags", false).put("coverX", 23).put("coverY", 76).put("coverFit", true).put("avatarKey", "").put("coverKey", "")
+        assertEquals("Native Artist", api.saveProfile(changes).getString("name"))
+        assertEquals("/profiles", connection.url.path); assertEquals("POST", connection.requestMethod)
+        val sent = JSONObject(connection.body.toString("UTF-8"))
+        assertEquals(changes.toString(), sent.toString()); assertEquals("Bearer opaque-native-session", connection.getRequestProperty("Authorization")); assertFalse(connection.instanceFollowRedirects)
+    }
+    @Test fun profileMediaUsesProfilePurposeAndNeverSendsSessionToStorage() {
+        val requests = mutableListOf<Connection>()
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 200, if (url.host == "api.danzstak.com") """{"uploadUrl":"https://bucket.s3.us-west-1.amazonaws.com/users/owner/photo.jpg","mediaKey":"users/owner/photo.jpg","mediaType":"image"}""" else "").also { requests.add(it) } }) { "opaque-native-session" }
+        val file = java.io.File.createTempFile("native-profile", ".jpg")
+        try {
+            file.writeBytes(byteArrayOf(1, 2, 3, 4)); api.uploadProfileMedia(file, "image/jpeg")
+            assertEquals("profile", JSONObject(requests.first().body.toString("UTF-8")).getString("purpose"))
+            assertEquals("PUT", requests.last().requestMethod); assertNull(requests.last().getRequestProperty("Authorization")); assertNull(requests.last().getRequestProperty("Cookie")); assertFalse(requests.last().instanceFollowRedirects); assertArrayEquals(file.readBytes(), requests.last().body.toByteArray())
+        } finally { file.delete() }
+    }
+    @Test fun profileConflictsPreserveTheServersSuggestedAlternative() {
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 409, """{"error":"That username is already taken. Try native_artist2 or another name.","suggestion":"native_artist2"}""") }) { "opaque-native-session" }
+        val error = assertThrows(IllegalStateException::class.java) { api.saveProfile(JSONObject().put("handle", "native_artist")) }
+        assertTrue(error.message.orEmpty().contains("native_artist2"))
+    }
+    @Test fun profileVideoReadAndRemovalUseTheAuthenticatedProfileEndpoint() {
+        val requests = mutableListOf<Connection>()
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 200, "{}").also { requests.add(it) } }) { "opaque-native-session" }
+        api.profileVideo("friend+music@example.com"); api.saveProfileVideo("")
+        assertEquals("/profile-video", requests.first().url.path); assertTrue(requests.first().url.query.contains("%2B"))
+        assertEquals("POST", requests.last().requestMethod); assertEquals("", JSONObject(requests.last().body.toString("UTF-8")).getString("mediaKey"))
+    }
+    @Test fun commentRepliesSendOnlyTheExplicitParentAndReadItsAcknowledgement() {
+        lateinit var connection: Connection
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 201, """{"comment":{"commentId":"c2","parentCommentId":"c1"}}""").also { connection = it } }) { "opaque-native-session" }
+        val reply = api.comment("post", "Reply text", "c1")
+        val body = JSONObject(connection.body.toString("UTF-8"))
+        assertEquals("c1", body.getString("parentCommentId")); assertEquals("c1", reply.getString("parentCommentId")); assertFalse(body.has("replyToName")); assertEquals("Bearer opaque-native-session", connection.getRequestProperty("Authorization"))
+        api.comment("post", "New root comment")
+        assertFalse(JSONObject(connection.body.toString("UTF-8")).has("parentCommentId"))
+    }
 }

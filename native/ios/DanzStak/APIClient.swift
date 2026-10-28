@@ -52,6 +52,8 @@ struct FeedComment: Identifiable, Decodable {
     let content: String
     let createdAt: String
     var authorPicture: String? = nil
+    var parentCommentId: String? = nil
+    var replyToName: String? = nil
     var id: String { commentId }
 }
 
@@ -82,6 +84,7 @@ struct Engagement: Decodable {
     var myReaction = ""
     var comments: [FeedComment] = []
     var reactors: [FeedReactor]? = nil
+    var commentRepliesSupported: Bool? = nil
     var total: Int { reactionCounts.values.reduce(0, +) }
 }
 
@@ -207,8 +210,13 @@ struct APIClient {
         let _: EmptyResponse = try await send("/reactions", method: "POST", body: ["postId": postID, "reaction": reaction])
     }
 
-    func comment(_ postID: String, text: String) async throws {
-        let _: EmptyResponse = try await send("/comments", method: "POST", body: ["postId": postID, "content": text])
+    struct CommentAck: Decodable { let commentId: String; let parentCommentId: String? }
+    @discardableResult func comment(_ postID: String, text: String, parentCommentID: String? = nil) async throws -> CommentAck? {
+        struct Response: Decodable { let comment: CommentAck? }
+        var body: [String: Any] = ["postId": postID, "content": text]
+        if let parentCommentID { body["parentCommentId"] = parentCommentID }
+        let response: Response = try await send("/comments", method: "POST", body: body)
+        return response.comment
     }
 
     func groupMemberships() async throws -> Set<String> {

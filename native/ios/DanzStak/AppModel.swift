@@ -199,6 +199,13 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         reels = [FeedReel(id: "demo-r1", caption: "In the mix", displayName: "DanzStak"), FeedReel(id: "demo-r2", caption: "Behind the sound", displayName: "Studio Notes"), FeedReel(id: "demo-r3", caption: "Find your scene", displayName: "Local Scenes")]
         notices = [FeedNotice(type: "comment", postId: "demo-3", preview: "Welcome to the community!", createdAt: now, unread: true)]
         for post in posts { engagement[post.id] = Engagement() }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--comments-thread-preview") {
+            var detail = Engagement(); detail.commentRepliesSupported = true
+            detail.comments = (1...3).map { FeedComment(commentId: "c\($0)", authorName: "Commenter \($0)", content: "Preview comment \($0)", createdAt: now) }
+            engagement["demo-1"] = detail
+        }
+        #endif
         status = "Demo mode • Sample content. Nothing is sent to DanzStak."
     }
 
@@ -233,11 +240,14 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         catch { if epoch == sessionEpoch { postErrors[id] = "Reaction could not be saved. Try again." } }
     }
 
-    func comment(_ id: String, text: String) async -> Bool {
-        guard signedIn, !busyPosts.contains(id), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, text.count <= 1000 else { return false }
+    func comment(_ id: String, text: String, parentCommentID: String? = nil) async -> Bool {
+        guard signedIn, !busyPosts.contains(id), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, text.utf16.count <= 1000 else { return false }
+        let parent = engagement[id]?.comments.first { $0.id == parentCommentID }
+        if parentCommentID != nil && (parent == nil || !isDemo && engagement[id]?.commentRepliesSupported != true) { postErrors[id] = "Replies are waiting for the discussion service update, or this comment is no longer available."; return false }
         if isDemo {
-            var detail = engagement[id] ?? Engagement()
-            detail.comments.append(FeedComment(commentId: UUID().uuidString, authorName: "You", content: text, createdAt: ISO8601DateFormatter().string(from: Date())))
+            var detail = engagement[id] ?? Engagement(); detail.commentRepliesSupported = true
+            postErrors[id] = nil
+            detail.comments.append(FeedComment(commentId: UUID().uuidString, authorName: "You", content: text, createdAt: ISO8601DateFormatter().string(from: Date()), parentCommentId: parentCommentID, replyToName: parent?.authorName))
             engagement[id] = detail
             return true
         }
@@ -245,9 +255,13 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         busyPosts.insert(id)
         defer { if epoch == sessionEpoch { busyPosts.remove(id) } }
         do {
-            try await api.comment(id, text: text)
+            let ack = try await api.comment(id, text: text, parentCommentID: parentCommentID)
             guard epoch == sessionEpoch else { return false }
             await loadEngagement(id, force: true)
+            guard epoch == sessionEpoch else { return false }
+            if let target = parentCommentID, ack?.parentCommentId != target, engagement[id]?.comments.first(where: { $0.id == ack?.commentId })?.parentCommentId != target {
+                engagement[id]?.commentRepliesSupported = false; postErrors[id] = "The service did not confirm this as a reply. Check the discussion before posting again."
+            }
             return true
         } catch APIClient.Failure.sessionExpired { if epoch == sessionEpoch { expireSession() } }
         catch { if epoch == sessionEpoch { postErrors[id] = "Comment could not be sent. Your draft is saved." } }

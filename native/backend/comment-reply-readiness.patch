@@ -1,0 +1,11 @@
+--- a/infrastructure/auth-api/index.mjs
++++ b/infrastructure/auth-api/index.mjs
+@@ -1176,7 +1176,7 @@
+   const comments = [], appendThread = comment => { comments.push(comment); for (const reply of (children.get(comment.commentId) || []).sort((a,b) => a.createdAt.localeCompare(b.createdAt))) appendThread(reply); };
+   commentRecords.filter(comment => !comment.parentCommentId || !commentById.has(comment.parentCommentId))
+     .sort((a,b) => b.reactionTotal - a.reactionTotal || a.createdAt.localeCompare(b.createdAt)).forEach(appendThread);
+-  return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments }) };
++  return { statusCode: 200, headers, body: JSON.stringify({ reactionCounts, myReaction, comments, commentRepliesSupported: true }) };
+ }
+ 
+ async function recordPostView(event) {

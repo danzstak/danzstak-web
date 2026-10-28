@@ -112,6 +112,15 @@ struct APIClientChecks {
         precondition(StubProtocol.requests.last?.url?.path == "/reactions")
         try await api.comment("post1", text: "My comment")
         precondition(StubProtocol.requests.last?.url?.path == "/comments")
+        let rootBody = try JSONSerialization.jsonObject(with: StubProtocol.requests.last!.httpBody!) as! [String: Any]
+        precondition(rootBody["parentCommentId"] == nil)
+        StubProtocol.payload = #"{"comment":{"commentId":"c2","parentCommentId":"c1"}}"#
+        let replyAck = try await api.comment("post1", text: "A reply", parentCommentID: "c1")
+        let replyBody = try JSONSerialization.jsonObject(with: StubProtocol.requests.last!.httpBody!) as! [String: Any]
+        precondition(replyBody["parentCommentId"] as? String == "c1" && replyAck?.parentCommentId == "c1")
+        StubProtocol.payload = #"{"reactionCounts":{},"myReaction":"","commentRepliesSupported":true,"comments":[{"commentId":"c2","parentCommentId":"c1","replyToName":"Member","authorName":"You","content":"A reply","createdAt":"2026-10-28"}]}"#
+        let threaded = try await api.engagement("post1")
+        precondition(threaded.commentRepliesSupported == true && threaded.comments.first?.parentCommentId == "c1")
         StubProtocol.payload = #"{"groups":[{"id":"g1","name":"DJs","category":"Music","description":"Community"}]}"#
         let groups = try await api.groups()
         precondition(groups.first?.name == "DJs")

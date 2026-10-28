@@ -1,6 +1,24 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testCommentReplyIconsAndTargetNames() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-preview", "--comments-thread-preview"]; app.launch()
+        XCTAssertTrue(app.buttons["Comment"].firstMatch.waitForExistence(timeout: 20)); app.buttons["Comment"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["comment.reply.c1"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["comment.reply.c2"].exists); XCTAssertTrue(app.buttons["comment.reply.c3"].exists)
+        app.buttons["comment.reply.c1"].tap(); XCTAssertTrue(app.staticTexts["Replying to Commenter 1"].waitForExistence(timeout: 5))
+        let composer = app.descendants(matching: .any)["comments.composer"].firstMatch
+        composer.tap(); composer.typeText("A reply under the first comment"); app.buttons["Send reply"].tap()
+        XCTAssertTrue(app.staticTexts["A reply under the first comment"].waitForExistence(timeout: 5))
+        let reply = app.buttons["Reply to You"].firstMatch; XCTAssertTrue(reply.exists); reply.tap()
+        XCTAssertTrue(app.staticTexts["Replying to You"].waitForExistence(timeout: 5))
+        composer.tap(); composer.typeText("A reply to the reply"); app.buttons["Send reply"].tap()
+        XCTAssertTrue(app.staticTexts["A reply to the reply"].waitForExistence(timeout: 5))
+        let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.name = "Native-threaded-comments"; screenshot.lifetime = .keepAlways; add(screenshot)
+        app.buttons["Done"].tap()
+        XCTAssertEqual(app.buttons["Comment"].firstMatch.value as? String, "5")
+    }
+
     func testFeedAndProfileSoundControls() {
         let app = XCUIApplication(); app.launchArguments = ["--ui-preview", "--video-controls-preview"]; app.launch()
         let sound = app.buttons["Unmute feed video"]

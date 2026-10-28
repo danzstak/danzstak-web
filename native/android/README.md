@@ -19,7 +19,7 @@ The compact black branded header has Import Facebook data, Search and Messages c
 
 The native messenger provides conversations, display names/avatars, unread badges, text bubbles, saved drafts, sending, message reactions, and loading earlier messages. The service is authenticated HTTPS messaging; this does not claim end-to-end encryption. It polls while the app is active. Message notification sounds use an Android channel with user-controlled settings and permission. Native closed-app push and native voice/video calling are not implemented. The website PWA has a separate Web Push and browser calling implementation and is maintained on the PC.
 
-Post reactions/comments, chats and account preferences use existing authenticated endpoints. Flashes/The Roll response activity is clearly labeled local preview state, not community-wide engagement. Shares launch Android's share sheet; completion/delivery and community share counts are not claimed. Media uploads, native friend requests, push delivery, calls and full profile editing remain future work.
+Post reactions/comments, chats and account preferences use existing authenticated endpoints. Flashes/The Roll response activity is clearly labeled local preview state, not community-wide engagement. Shares launch Android's share sheet; completion/delivery and community share counts are not claimed. Feed media uploads, native friend requests, push delivery and calls remain future work.
 
 People/location tags are supported on posts containing text, images or videos. Only accepted friends may be selected, and the server enforces tagging consent. Remove my tag is available by long-pressing a tagged photo/video or through Post options. Menu → My Profile → Edit Profile includes Allow people to tag me, preserving the other account preferences. Demo consent and activity stay in memory.
 
@@ -81,3 +81,18 @@ Events uses the same `📅 Event:` post convention as the PWA, rendered with nat
 Live Booking planning/saving is on hold for the PC handoff. The native Booking screen states this clearly and makes no production tour requests. The demo planner and API transport mocks are preparatory only. Local source includes `/tour/route` and `/tours` handlers, and unauthenticated live probes returned 401; these checks do not establish authenticated planning, permissions, or persistence. Record Store Locator and artist EPK remain PC-owned, pending stable interfaces before native integration.
 
 Version 0.1.10 makes web addresses in post bodies and chat text directly tappable, including multiple links and bare `www`/domain addresses detected by the platform. Web links use HTTPS and the existing native routing/browser handling. Message selection retains plain text selection behavior, and the preview card remains available.
+
+
+### Edit Profile parity (0.1.11)
+
+The Android editor follows the PWA editor from main `bfbb642`: display name (2–80 UTF-16 units), unique username (3–24 letters/numbers/dots/underscores), bio (160), location (80), work (100), HTTPS website (200), account language, owner/friends/anyone profile-post permission, and accepted-friend tagging consent. The account language is saved while native menus remain English. Photo, cover, and profile-video pick/remove controls are native; selected media and removals are staged until Save Changes, and Cancel discards unsaved edits. Cover fit and percentage positioning render in both editor and profile. Image drafts preserve EXIF orientation and are resized before upload; profile videos reuse the 720p exporter. Original device files are unchanged.
+
+Profile updates use POST `/profiles`; uploads request POST `/stories` with `purpose: profile` and PUT directly to HTTPS storage without the opaque session header or redirects. Profile video reads/updates use `/profile-video`. Settings updates preserve existing online, dark-mode, reduce-motion, and data-saver choices. Profile text/media, profile video, and language settings are separate backend writes; partial failures explicitly say what was saved and keep the remaining draft available. Session expiry signs out and clears local account state. No production profiles, backend code, or website files are changed by automated tests. Facebook import opens the existing native instructions; native ZIP import is not implemented.
+
+Verification: 15 API unit tests and the native/auth contract checks pass. Emulator editor checks cover the PWA fields, save/reopen, cancel, cover controls, profile-post permission, tagging, and server name-conflict draft retention. Upload tests use mock HTTPS storage and do not change a real account. Photo/video delivery with an authenticated phone account still needs device verification. The website and backend remain unchanged.
+
+### Threaded native comments
+
+Every comment and reply has a reply icon. The native discussion shows nested replies and a “Replying to [name]” composer with cancel. Root comments remain available while live replies wait for `commentRepliesSupported: true` from the backend. The client checks the saved parent relationship before confirming a reply. See `native/COMMENT_REPLY_CONTRACT.md`; the PC owns backend deployment.
+
+`native/backend/comment-reply-readiness.patch` is a one-line capability flag for the PC's threaded backend source. Apply it only alongside the complete validated parent-comment implementation. It has not been deployed by this native change.

@@ -31,10 +31,18 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
     fun tours(): List<JSONObject> = objects(request("/tours").optJSONArray("tours"))
     fun planTour(body: JSONObject): JSONObject = request("/tour/route", "POST", body, readTimeout = 35_000)
     fun saveTour(body: JSONObject) { request("/tours", "POST", body) }
+    fun saveProfile(changes: JSONObject): JSONObject = request("/profiles", "POST", changes).getJSONObject("profile")
+    fun profileVideo(email: String = ""): JSONObject = request("/profile-video" + if (email.isBlank()) "" else "?email=" + URLEncoder.encode(email, "UTF-8"))
+    fun saveProfileVideo(mediaKey: String) { request("/profile-video", "POST", JSONObject().put("mediaKey", mediaKey)) }
+    fun uploadProfileMedia(file: java.io.File, contentType: String): JSONObject = uploadMedia(file, contentType, "profile", "users/")
     fun logout() { request("/auth/logout", "POST", JSONObject()) }
     fun engagement(id: String): JSONObject = request("/engagement?postId=" + URLEncoder.encode(id, "UTF-8"))
     fun react(id: String, reaction: String) { request("/reactions", "POST", JSONObject().put("postId", id).put("reaction", reaction)) }
-    fun comment(id: String, text: String) { request("/comments", "POST", JSONObject().put("postId", id).put("content", text)) }
+    fun comment(id: String, text: String, parentCommentId: String? = null): JSONObject {
+        val body = JSONObject().put("postId", id).put("content", text)
+        if (parentCommentId != null) { require(parentCommentId.isNotBlank()); body.put("parentCommentId", parentCommentId) }
+        return request("/comments", "POST", body).optJSONObject("comment") ?: JSONObject()
+    }
     fun stories(): Pair<List<MediaPage>, List<MediaPage>> {
         val data = request("/stories")
         val flashes = objects(data.optJSONArray("stories")).map { MediaPage(it.getString("storyId"), it.optString("displayName", "DanzStak member"), it.optString("caption", it.optString("content")), it.optString("mediaUrl"), it.optString("mediaType")) }
@@ -59,11 +67,12 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
     fun conversations(): List<JSONObject> = objects(request("/conversations").optJSONArray("conversations"))
     fun chatContacts(): List<JSONObject> = objects(request("/calls/directory").optJSONArray("users")).filter { it.optString("friendStatus") == "friends" || it.optBoolean("sharedGroup") }
     fun messages(contact: String, before: String = ""): JSONObject = request("/messages?contact=" + URLEncoder.encode(contact, "UTF-8") + "&read=1" + if (before.isNotEmpty()) "&before=" + URLEncoder.encode(before, "UTF-8") else "")
-    fun uploadMessageMedia(file: java.io.File, contentType: String): JSONObject {
+    fun uploadMessageMedia(file: java.io.File, contentType: String): JSONObject = uploadMedia(file, contentType, "message", "messages/")
+    private fun uploadMedia(file: java.io.File, contentType: String, purpose: String, prefix: String): JSONObject {
         require(file.length() in 1..100L * 1024 * 1024) { "Choose a file smaller than 100 MB." }
-        val ticket = request("/stories", "POST", JSONObject().put("purpose", "message").put("contentType", contentType))
+        val ticket = request("/stories", "POST", JSONObject().put("purpose", purpose).put("contentType", contentType))
         val url = URL(ticket.getString("uploadUrl"))
-        require(url.protocol == "https" && url.host.endsWith(".amazonaws.com") && ticket.getString("mediaKey").startsWith("messages/")) { "Upload service returned an invalid destination." }
+        require(url.protocol == "https" && url.host.endsWith(".amazonaws.com") && ticket.getString("mediaKey").startsWith(prefix)) { "Upload service returned an invalid destination." }
         val connection = openConnection(url)
         try {
             connection.instanceFollowRedirects = false; connection.requestMethod = "PUT"; connection.doOutput = true

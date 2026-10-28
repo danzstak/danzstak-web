@@ -899,6 +899,7 @@ private struct PostCard: View {
     @EnvironmentObject private var model: AppModel
     let post: FeedPost
     @State private var comments = false
+    @State private var previewReply: FeedComment?
     @State private var sharing = false
     @State private var responseKind: MediaResponseKind?
     @State private var editingTags = false
@@ -968,8 +969,8 @@ private struct PostCard: View {
             }.font(.title3.weight(.semibold)).padding(.horizontal, 10).padding(.bottom, 8)
             if let entries = activity?.comments, !entries.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(Array(entries.prefix(2))) { comment in
-                        Button { comments = true } label: {
+                    ForEach(Array(entries.filter { $0.parentCommentId?.isEmpty != false }.prefix(2))) { comment in
+                        Button { previewReply = comment; comments = true } label: {
                             HStack(alignment: .top, spacing: 9) {
                                 Avatar(name: comment.authorName, picture: comment.authorPicture, size: 32)
                                 VStack(alignment: .leading, spacing: 3) {
@@ -979,14 +980,14 @@ private struct PostCard: View {
                             }.foregroundStyle(.primary)
                         }.buttonStyle(.plain)
                     }
-                    if entries.count > 2 { Button("View all \(entries.count) comments") { comments = true }.font(.subheadline.weight(.semibold)) }
+                    if entries.count > 2 { Button("View all \(entries.count) comments") { previewReply = nil; comments = true }.font(.subheadline.weight(.semibold)) }
                 }.padding(.horizontal, 18).padding(.bottom, 14)
             }
         }.background(SocialStyle.card).clipShape(RoundedRectangle(cornerRadius: 16))
         .fullScreenCover(isPresented: $showingVideos) { MediaViewer(pages: profileVideos, initialID: post.id).environmentObject(model) }
         .sheet(isPresented: $editingTags) { PostTagEditor(post: post).environmentObject(model) }
         .task { await model.loadEngagement(post.id) }
-        .fullScreenCover(isPresented: $comments) { CommentsView(post: post).environmentObject(model) }
+        .fullScreenCover(isPresented: $comments, onDismiss: { previewReply = nil }) { CommentsView(post: post, initialReply: previewReply).environmentObject(model) }
         .fullScreenCover(item: $responseKind) { kind in
             if kind == .comments { CommentsView(post: post).environmentObject(model) }
             else { PostRespondersView(post: post, kind: kind).environmentObject(model) }
@@ -1153,37 +1154,89 @@ struct PostVideo: View {
     }
 }
 
+private struct CommentThreadEntry: Identifiable {
+    let comment: FeedComment
+    let depth: Int
+    let replyingTo: String?
+    var id: String { comment.id }
+}
+private func commentThreads(_ comments: [FeedComment]) -> [CommentThreadEntry] {
+    let ids = Set(comments.map(\.id)); let parents = Dictionary(grouping: comments, by: { $0.parentCommentId ?? "" })
+    var rows: [CommentThreadEntry] = []; var visited = Set<String>()
+    func visit(_ comment: FeedComment, _ depth: Int) {
+        guard visited.insert(comment.id).inserted else { return }
+        let parent = comments.first { $0.id == comment.parentCommentId }
+        rows.append(.init(comment: comment, depth: depth, replyingTo: parent?.authorName ?? comment.replyToName))
+        for child in parents[comment.id] ?? [] { visit(child, depth + 1) }
+    }
+    for comment in comments where comment.parentCommentId?.isEmpty != false || !ids.contains(comment.parentCommentId ?? "") || comment.parentCommentId == comment.id { visit(comment, comment.parentCommentId?.isEmpty == false ? 1 : 0) }
+    for comment in comments where !visited.contains(comment.id) { visit(comment, 0) }
+    return rows
+}
 private struct CommentsView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
     let post: FeedPost
     @State private var draft = ""
+    @State private var replyID: String?
+    @FocusState private var focused: Bool
+    init(post: FeedPost, initialReply: FeedComment? = nil) { self.post = post; _replyID = State(initialValue: initialReply?.id) }
+    private var comments: [FeedComment] { model.engagement[post.id]?.comments ?? [] }
+    private var parent: FeedComment? { comments.first { $0.id == replyID } }
+    private var canReply: Bool { model.isDemo || model.engagement[post.id]?.commentRepliesSupported == true }
+    private var waiting: Bool { replyID != nil && (!canReply || parent == nil) }
     var body: some View {
         NavigationStack {
-            List {
-                Text(post.text).font(.subheadline).foregroundStyle(.secondary)
-                if let error = model.postErrors[post.id] { Text(error).foregroundStyle(.secondary) }
-                if let detail = model.engagement[post.id] {
-                    if detail.comments.isEmpty { Text("Be the first to comment.").foregroundStyle(.secondary) }
-                    ForEach(detail.comments) { comment in
-                        HStack(alignment: .top, spacing: 10) {
-                            Avatar(name: comment.authorName, picture: comment.authorPicture, size: 34)
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(comment.authorName).font(.subheadline.bold())
-                                Text(comment.content)
-                                PostDate(value: comment.createdAt)
-                            }.padding(.vertical, 6)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        Text(post.text).font(.footnote).foregroundStyle(.secondary).lineLimit(3).padding(.horizontal, 16)
+                        if let error = model.postErrors[post.id] { Text(error).font(.caption).foregroundStyle(.red).padding(.horizontal, 16) }
+                        if model.engagement[post.id] == nil { ProgressView("Loading comments…").padding() }
+                        else if comments.isEmpty { Text("Be the first to comment.").foregroundStyle(.secondary).padding() }
+                        ForEach(commentThreads(comments)) { entry in
+                            HStack(alignment: .top, spacing: 9) {
+                                Avatar(name: entry.comment.authorName, picture: entry.comment.authorPicture, size: entry.depth == 0 ? 34 : 28)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(entry.comment.authorName).font(.subheadline.bold())
+                                        if entry.comment.parentCommentId?.isEmpty == false { Text("Replying to \(entry.replyingTo ?? "this comment")").font(.caption).foregroundStyle(SocialStyle.blue) }
+                                        Text(entry.comment.content.isEmpty ? "Comment removed" : entry.comment.content).font(.body).fixedSize(horizontal: false, vertical: true)
+                                    }.padding(.horizontal, 12).padding(.vertical, 9).frame(maxWidth: .infinity, alignment: .leading).background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16)).contentShape(Rectangle()).onTapGesture { choose(entry.comment) }
+                                    HStack {
+                                        PostDate(value: entry.comment.createdAt)
+                                        Spacer()
+                                        Button { choose(entry.comment) } label: { Image(systemName: "arrowshape.turn.up.left").font(.system(size: 16, weight: .semibold)).frame(width: 40, height: 34) }
+                                            .buttonStyle(.plain).foregroundStyle(SocialStyle.blue).accessibilityLabel("Reply to \(entry.comment.authorName)").accessibilityIdentifier("comment.reply.\(entry.id)")
+                                    }.padding(.leading, 8)
+                                }
+                            }.padding(.leading, CGFloat(min(entry.depth, 3) * 16) + 12).padding(.trailing, 12).id(entry.id)
                         }
-                    }
-                } else { ProgressView("Loading comments…") }
+                        Button("Refresh comments") { Task { await model.loadEngagement(post.id, force: true) } }.padding(16)
+                    }.padding(.vertical, 12)
+                }.background(Color(uiColor: .systemGroupedBackground))
+                    .onChange(of: comments.last?.id) { _, id in if let id { withAnimation { proxy.scrollTo(id, anchor: .bottom) } } }
             }
-            .safeAreaInset(edge: .bottom) {
-                HStack(alignment: .bottom) {
-                    TextField("Write a comment…", text: $draft, axis: .vertical).lineLimit(1...5).textFieldStyle(.roundedBorder)
-                    Button { let text = draft; Task { if await model.comment(post.id, text: text), draft == text { draft = "" } } } label: { Image(systemName: "paperplane.fill").padding(8) }
-                        .accessibilityLabel("Send comment")
-                        .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draft.count > 1000 || model.busyPosts.contains(post.id))
-                }.padding().background(.bar)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
+                    if replyID != nil {
+                        HStack {
+                            Text("Replying to \(parent?.authorName ?? "this comment")").font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Button { replyID = nil } label: { Image(systemName: "xmark").frame(width: 36, height: 36) }.accessibilityLabel("Cancel reply")
+                        }.padding(.leading, 16).padding(.trailing, 8).background(SocialStyle.blue.opacity(0.10))
+                    }
+                    if waiting { Text(parent == nil ? "That comment is no longer available. Cancel the reply to write a new comment." : "Replies are waiting for the discussion service update. New comments still work.").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 16).padding(.top, 8) }
+                    HStack(alignment: .bottom, spacing: 8) {
+                        TextField(replyID == nil ? "Write a comment…" : "Write a reply…", text: Binding(get: { draft }, set: { value in var limited = value; while limited.utf16.count > 1000 { limited.removeLast() }; draft = limited }), axis: .vertical).lineLimit(1...5).padding(.horizontal, 12).padding(.vertical, 10).background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18)).focused($focused).accessibilityIdentifier("comments.composer")
+                        Button {
+                            let text = draft; let target = replyID
+                            Task { if await model.comment(post.id, text: text, parentCommentID: target), draft == text { draft = ""; if replyID == target { replyID = nil } } }
+                        } label: { Image(systemName: "paperplane.fill").font(.title3).frame(width: 44, height: 44) }
+                            .accessibilityLabel(replyID == nil ? "Send comment" : "Send reply")
+                            .disabled(waiting || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.busyPosts.contains(post.id))
+                    }.padding(12)
+                }.background(.bar)
             }
             .navigationTitle("Comments").navigationBarTitleDisplayMode(.inline)
             .toolbar { Button("Done") { dismiss() } }
@@ -1191,7 +1244,9 @@ private struct CommentsView: View {
             .refreshable { await model.loadEngagement(post.id, force: true) }
         }
     }
+    private func choose(_ comment: FeedComment) { replyID = comment.id; if canReply { focused = true } }
 }
+
 
 private struct ComposerView: View {
     @EnvironmentObject private var model: AppModel
