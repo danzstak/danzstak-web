@@ -1558,7 +1558,6 @@ async function updateSecurePost(event) {
     updates.push("featured = :featured"); values[":featured"] = {BOOL:data.featured};
   }
   if (Object.prototype.hasOwnProperty.call(data,"taggedMembers")) {
-    if (!["image","video"].includes(found.Item.mediaType?.S)) return {statusCode:400,headers,body:JSON.stringify({error:"Tag people on photos or videos only."})};
     const current = new Set((found.Item.taggedUsers?.L || []).map(tag => tag.M?.memberId?.S)), declined = new Set(found.Item.tagDeclinedBy?.SS || []);
     const resolved = await resolveMediaTags(data.taggedMembers,userId,current,declined); if (resolved.error) return {statusCode:resolved.statusCode,headers,body:JSON.stringify({error:resolved.error})};
     tagChecks = resolved.checks || [];
@@ -1599,7 +1598,7 @@ async function updateSecurePost(event) {
   values[":postOwner"] = {S:userId}; request.ConditionExpression = "attribute_exists(postId) AND userId = :postOwner" + tagCondition;
   try { if (tagChecks.length) await db.send(new TransactWriteItemsCommand({TransactItems:[...tagChecks,{Update:request}]})); else await db.send(new UpdateItemCommand(request)); } catch (error) { if (["ConditionalCheckFailedException","TransactionCanceledException"].includes(error.name)) return {statusCode:409,headers,body:JSON.stringify({error:"The post changed. Reload and try again."})}; throw error; }
   const tagNoticeTasks = removedTags.filter(tag=>tag.M.userEmail?.S).map(tag=>db.send(new DeleteItemCommand({TableName:engagementNotificationsTable,Key:{userEmail:tag.M.userEmail,eventId:{S:"tag#"+postId+"#"+tag.M.memberId.S}}})));
-  if (found.Item.audience?.S !== "private") for (const tag of tagNotices) tagNoticeTasks.push(notifyPostOwner({...found.Item,userEmail:tag.M.userEmail},"tag#"+postId+"#"+tag.M.memberId.S,"tag",found.Item.userEmail?.S || "","Tagged in a photo or video"));
+  if (found.Item.audience?.S !== "private") for (const tag of tagNotices) tagNoticeTasks.push(notifyPostOwner({...found.Item,userEmail:tag.M.userEmail},"tag#"+postId+"#"+tag.M.memberId.S,"tag",found.Item.userEmail?.S || "","Tagged in a post"));
   if (tagNoticeTasks.length) await Promise.allSettled(tagNoticeTasks);
   return { statusCode: 200, headers, body: JSON.stringify({ updated: true, updatedAt: values[":updated"].S, editHistory: values[":editHistory"] ? JSON.parse(values[":editHistory"].S) : postEditHistory(found.Item) }) };
 }

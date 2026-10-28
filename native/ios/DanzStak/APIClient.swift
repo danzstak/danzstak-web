@@ -11,9 +11,12 @@ struct FeedPost: Identifiable, Decodable {
     var mediaUrl: String? = nil
     var mediaType: String? = nil
 
+    var location: String? = nil
+    var taggedUsers: [TaggedMember]? = nil
+
     enum CodingKeys: String, CodingKey {
         case id = "postId", author = "authorName", text = "content", createdAt
-        case authorPicture, userEmail, isOwner, mediaUrl, mediaType
+        case authorPicture, userEmail, isOwner, mediaUrl, mediaType, location, taggedUsers
     }
 }
 
@@ -111,8 +114,25 @@ struct APIClient {
         return response.posts
     }
 
-    func publish(_ text: String) async throws {
-        let _: EmptyResponse = try await send("/secure-posts", method: "POST", body: ["content": text, "audience": "public", "originalContentCertified": true])
+    struct PublishedPost: Decodable { let postId: String }
+    func publish(_ text: String, location: String = "") async throws -> String {
+        let result: PublishedPost = try await send("/secure-posts", method: "POST", body: ["content": text, "location": location, "audience": "public", "originalContentCertified": true])
+        return result.postId
+    }
+
+    func friendsForTags() async throws -> [TagFriend] {
+        let result: TagDirectory = try await send("/calls/directory")
+        return result.users.filter { $0.friendStatus == "friends" }
+    }
+    func editTags(_ id: String, members: [String], location: String) async throws {
+        let _: EmptyResponse = try await send("/secure-posts/" + id, method: "PATCH", body: ["taggedMembers": members, "location": location])
+    }
+    func removeMyTag(_ id: String) async throws {
+        let _: EmptyResponse = try await send("/secure-posts/" + id, method: "PATCH", body: ["removeOwnTag": true])
+    }
+    func taggingSettings() async throws -> TaggingSettings { try await send("/settings/presence") }
+    func saveTaggingSettings(_ settings: TaggingSettings) async throws {
+        let _: EmptyResponse = try await send("/settings/presence", method: "POST", body: ["allowTags": settings.allowTags, "onlineVisible": settings.onlineVisible ?? true, "darkMode": settings.darkMode ?? false, "reduceMotion": settings.reduceMotion ?? false, "dataSaver": settings.dataSaver ?? false, "language": settings.language ?? "en"])
     }
 
     func logout() async throws {
@@ -177,4 +197,27 @@ struct APIClient {
         if data.isEmpty, Response.self == EmptyResponse.self { return EmptyResponse() as! Response }
         return try JSONDecoder().decode(Response.self, from: data)
     }
+}
+
+struct TaggedMember: Decodable, Identifiable {
+    let memberId: String
+    let name: String
+    var isMe: Bool? = nil
+    var id: String { memberId }
+}
+struct TagFriend: Decodable, Identifiable {
+    let memberId: String
+    let name: String
+    var picture: String? = nil
+    let friendStatus: String
+    var id: String { memberId }
+}
+private struct TagDirectory: Decodable { let users: [TagFriend] }
+struct TaggingSettings: Decodable {
+    var allowTags: Bool
+    var onlineVisible: Bool? = nil
+    var darkMode: Bool? = nil
+    var reduceMotion: Bool? = nil
+    var dataSaver: Bool? = nil
+    var language: String? = nil
 }

@@ -82,12 +82,12 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         } catch { if epoch == sessionEpoch { status = "Your Mix could not be loaded. Please try again." } }
     }
 
-    func publish(_ text: String) async -> Bool {
+    func publish(_ text: String, location: String = "", tagged: [TaggedMember] = []) async -> Bool {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         guard signedIn, text.count <= 5000 else { return false }
         if isDemo {
             let id = UUID().uuidString
-            posts.insert(FeedPost(id: id, author: "You", text: text, createdAt: ISO8601DateFormatter().string(from: Date()), isOwner: true), at: 0)
+            posts.insert(FeedPost(id: id, author: "You", text: text, createdAt: ISO8601DateFormatter().string(from: Date()), isOwner: true, location: location, taggedUsers: tagged), at: 0)
             engagement[id] = Engagement()
             status = "Demo post added on this device only."
             return true
@@ -95,7 +95,16 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         let epoch = sessionEpoch
         status = "Publishing…"
         do {
-            try await api.publish(text)
+            let postID = try await api.publish(text, location: location)
+            if !tagged.isEmpty {
+                do { try await api.editTags(postID, members: tagged.map(\.memberId), location: location) }
+                catch {
+                    await refresh()
+                    guard epoch == sessionEpoch else { return true }
+                    status = "Post published, but people tags could not be saved. Open Tags & location on the post to retry."
+                    return true
+                }
+            }
             guard epoch == sessionEpoch else { return false }
             await refresh()
             return true
@@ -103,6 +112,21 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
             if epoch == sessionEpoch { expireSession() }
         } catch { if epoch == sessionEpoch { status = "Post could not be published. Your draft is saved." } }
         return false
+    }
+
+    func updateTags(_ post: FeedPost, members: [TaggedMember], location: String, removeMine: Bool = false) async throws {
+        let epoch = sessionEpoch
+        do {
+            if !isDemo {
+                if removeMine { try await api.removeMyTag(post.id) }
+                else { try await api.editTags(post.id, members: members.map(\.memberId), location: location) }
+            }
+            guard epoch == sessionEpoch else { return }
+            if let index = posts.firstIndex(where: { $0.id == post.id }) {
+                posts[index].taggedUsers = removeMine ? (posts[index].taggedUsers ?? []).filter { $0.isMe != true } : members
+                if !removeMine { posts[index].location = location }
+            }
+        } catch APIClient.Failure.sessionExpired { if epoch == sessionEpoch { expireSession() }; throw APIClient.Failure.sessionExpired }
     }
 
     private func expireSession() {
@@ -146,6 +170,11 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
             FeedPost(id: "demo-5", author: "Local Scenes", text: "Support the people building something in your city. The next great night starts with your community.", createdAt: now)
         ]
         groups = [CommunityGroup(id: "demo-djs", name: "DJs & Producers", category: "Music makers", description: "Talk tracks, trade ideas, and find your next collaborator."), CommunityGroup(id: "demo-scene", name: "Local Scenes", category: "Community", description: "The people and places that keep your city moving.")]
+        if ProcessInfo.processInfo.arguments.contains("--tagging-preview") {
+            posts[0].mediaUrl = "https://www.danzstak.com/assets/danzstak-logo.png"
+            posts[0].mediaType = "image"
+            posts[0].taggedUsers = [TaggedMember(memberId: "demo-me", name: "Tagged preview user", isMe: true)]
+        }
         stories = [
             FeedStory(storyId: "demo-s1", displayName: "DanzStak", caption: "Find your people. Feel your scene."),
             FeedStory(storyId: "demo-s2", displayName: "The Night Shift", caption: "One more track. One more moment."),

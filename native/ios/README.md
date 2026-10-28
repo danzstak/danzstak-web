@@ -58,3 +58,12 @@ xcodebuild -project DanzStak.xcodeproj -scheme DanzStak -destination 'platform=i
 ```
 
 The UI tests exercise demo navigation, draft preservation, posting, liking, commenting, notifications, profile, and logout. API checks use mocked responses. Neither substitutes for an authenticated production-account test or physical-device testing before release. The app icon reuses the repository's existing DanzStak brand artwork.
+
+
+### People tags, locations and consent
+
+The composer offers friend tags and an optional manually entered place (120 characters; no GPS permission). Post cards show tagged names and location. Owners can change these from Post options → Tags & location. A tagged member can long-press a post photo/video or use Post options → Remove my tag. The server records declined tags to prevent the owner silently restoring them.
+
+Profile → Edit Profile includes Allow people to tag me. It loads the existing account settings before saving and preserves the other preferences. Disabling tagging blocks new tags, while existing tags remain until individually removed. Only accepted friends can tag others, and the server checks friendship and consent atomically. Demo edits are in memory only.
+
+Text-post people tagging requires deploying the accompanying auth-api change; existing server support was limited to photo/video posts. Creation saves the post first, then applies people tags. If the second request fails, the app reports that the post was published and offers retry through its tag editor, avoiding duplicate posts. Photo/video uploads and tagging for the separate Flashes/The Roll API are not implemented here. These controls apply to posts containing text, images or videos. Production account behavior has not been exercised by the local preview tests.

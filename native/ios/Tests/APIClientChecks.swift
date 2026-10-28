@@ -10,7 +10,18 @@ final class StubProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
-        Self.requests.append(request)
+        var captured = request
+        if captured.httpBody == nil, let stream = captured.httpBodyStream {
+            stream.open(); defer { stream.close() }
+            var data = Data(), buffer = [UInt8](repeating: 0, count: 1024)
+            while stream.hasBytesAvailable {
+                let count = stream.read(&buffer, maxLength: buffer.count)
+                if count <= 0 { break }
+                data.append(buffer, count: count)
+            }
+            captured.httpBody = data
+        }
+        Self.requests.append(captured)
         if let failure = Self.failure {
             client?.urlProtocol(self, didFailWithError: failure)
             return
@@ -63,9 +74,27 @@ struct APIClientChecks {
 
         StubProtocol.status = 204
         StubProtocol.payload = ""
-        try await api.publish("Hello")
+        StubProtocol.status = 201
+        StubProtocol.payload = #"{"postId":"new-post"}"#
+        let published = try await api.publish("Hello", location: "Berlin")
+        precondition(published == "new-post")
         precondition(StubProtocol.requests.last?.httpMethod == "POST")
         precondition(StubProtocol.requests.last?.url?.path == "/secure-posts")
+        StubProtocol.payload = "{}"
+        try await api.editTags("new-post", members: ["friend-id"], location: "Berlin")
+        precondition(StubProtocol.requests.last?.httpMethod == "PATCH")
+        let editBody = try JSONSerialization.jsonObject(with: StubProtocol.requests.last!.httpBody!) as! [String: Any]
+        precondition(editBody["location"] as? String == "Berlin")
+        try await api.removeMyTag("new-post")
+        let removeBody = try JSONSerialization.jsonObject(with: StubProtocol.requests.last!.httpBody!) as! [String: Any]
+        precondition(removeBody["removeOwnTag"] as? Bool == true)
+        StubProtocol.payload = #"{"allowTags":false,"onlineVisible":false,"darkMode":true,"language":"de"}"#
+        let settings = try await api.taggingSettings()
+        precondition(!settings.allowTags)
+        StubProtocol.payload = "{}"
+        try await api.saveTaggingSettings(settings)
+        let settingsBody = try JSONSerialization.jsonObject(with: StubProtocol.requests.last!.httpBody!) as! [String: Any]
+        precondition(settingsBody["allowTags"] as? Bool == false && settingsBody["darkMode"] as? Bool == true && settingsBody["language"] as? String == "de")
         try await api.logout()
         precondition(StubProtocol.requests.last?.url?.path == "/auth/logout")
 

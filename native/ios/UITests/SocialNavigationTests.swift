@@ -1,6 +1,44 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testRemoveOwnPhotoTag() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview", "--tagging-preview"]
+        app.launch()
+        let media = app.descendants(matching: .any)["post.media.demo-1"].firstMatch
+        XCTAssertTrue(media.waitForExistence(timeout: 20))
+        for _ in 0..<3 { if media.isHittable { break }; app.swipeUp() }
+        media.press(forDuration: 0.8)
+        let remove = app.buttons["Remove my tag"]
+        XCTAssertTrue(remove.waitForExistence(timeout: 5))
+        remove.tap()
+        XCTAssertFalse(app.staticTexts["Tagged preview user"].exists)
+    }
+
+    func testTaggingControls() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview"]
+        app.launch()
+        XCTAssertTrue(app.buttons["home.composer"].waitForExistence(timeout: 20))
+        app.buttons["home.composer"].tap()
+        app.buttons["Tag people · Add location"].tap()
+        XCTAssertTrue(app.textFields["tags.location"].waitForExistence(timeout: 5))
+        app.textFields["tags.location"].tap()
+        app.textFields["tags.location"].typeText("Los Angeles")
+        app.buttons["Jamie Rivera"].tap()
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.staticTexts["Jamie Rivera"].exists)
+        XCTAssertTrue(app.staticTexts["Los Angeles"].exists)
+        app.buttons["Close"].tap()
+        app.tabBars.buttons["Menu"].tap()
+        app.buttons["menu.profile"].tap()
+        app.buttons["Edit Profile"].tap()
+        let toggle = app.switches["profile.allowTags"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        toggle.switches.firstMatch.exists ? toggle.switches.firstMatch.tap() : toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertTrue(NSPredicate(format: "value == %@", "0").evaluate(with: toggle) || XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: toggle)], timeout: 5) == .completed)
+    }
+
     func testLongPressPostResponders() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview"]

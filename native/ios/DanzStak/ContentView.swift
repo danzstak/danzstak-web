@@ -361,6 +361,7 @@ struct ContentView: View {
                     Button { composer = true } label: { Label("Create post", systemImage: "plus") }.buttonStyle(.borderedProminent)
                     Button { showGroups = true } label: { Label("Tribes", systemImage: "person.3") }.buttonStyle(.bordered)
                 }
+                NavigationLink("Edit Profile") { TaggingPrivacyView().environmentObject(model) }.buttonStyle(.bordered)
                 HStack { Text("Your posts").font(.title3.bold()); Spacer() }.padding(.horizontal, 18)
                 if model.posts.filter({ $0.isOwner == true }).isEmpty {
                     EmptyState(icon: "square.and.pencil", title: "Make your first post", detail: "Your loaded posts appear here.")
@@ -849,6 +850,8 @@ private struct PostCard: View {
     @State private var comments = false
     @State private var sharing = false
     @State private var responseKind: MediaResponseKind?
+    @State private var editingTags = false
+    @State private var tagError = ""
     private var activity: Engagement? { model.engagement[post.id] }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -859,13 +862,27 @@ private struct PostCard: View {
                     HStack(spacing: 5) { PostDate(value: post.createdAt); Text("·").foregroundStyle(.secondary); Image(systemName: "person.2").font(.caption2).foregroundStyle(.secondary) }
                 }
                 Spacer()
-                Button { sharing = true } label: { Image(systemName: "ellipsis").padding(8) }.accessibilityLabel("Share post")
+                Menu {
+                    Button("Share") { sharing = true }
+                    if post.isOwner == true { Button("Tags & location") { editingTags = true } }
+                    if post.taggedUsers?.contains(where: { $0.isMe == true }) == true { Button("Remove my tag", role: .destructive) { removeTag() } }
+                } label: { Image(systemName: "ellipsis").padding(8) }.accessibilityLabel("Post options")
             }.padding(.horizontal, 18).padding(.top, 16)
+            if let tags = post.taggedUsers, !tags.isEmpty {
+                Label(tags.map(\.name).joined(separator: ", "), systemImage: "person.crop.circle.badge.checkmark").font(.subheadline).padding(.horizontal, 18)
+            }
+            if let location = post.location, !location.isEmpty { Label(location, systemImage: "mappin.and.ellipse").font(.caption).padding(.horizontal, 18) }
+            if !tagError.isEmpty { Text(tagError).font(.caption).foregroundStyle(.red).padding(.horizontal, 18) }
             if !post.text.isEmpty { Text(post.text).font(.body).lineSpacing(4).textSelection(.enabled).padding(.horizontal, 18).fixedSize(horizontal: false, vertical: true) }
             if let value = post.mediaUrl, let url = URL(string: value), url.scheme == "https" {
+                Group {
                 if post.mediaType?.hasPrefix("image") == true {
                     AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView().frame(height: 180) }.frame(maxWidth: .infinity)
-                } else if post.mediaType?.hasPrefix("video") == true { PostVideo(url: url, active: !comments && !sharing && responseKind == nil) }
+                } else if post.mediaType?.hasPrefix("video") == true { PostVideo(url: url, active: !comments && !sharing && !editingTags && responseKind == nil) }
+                }.accessibilityIdentifier("post.media.\(post.id)").contextMenu {
+                    if post.taggedUsers?.contains(where: { $0.isMe == true }) == true { Button("Remove my tag", role: .destructive) { removeTag() } }
+                    if post.isOwner == true { Button("Tags & location") { editingTags = true } }
+                }
             }
             if let error = model.postErrors[post.id] {
                 HStack {
@@ -896,6 +913,7 @@ private struct PostCard: View {
                     .highPriorityGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in responseKind = .shares })
             }.font(.title3.weight(.semibold)).padding(.horizontal, 10).padding(.bottom, 8)
         }.background(SocialStyle.card).clipShape(RoundedRectangle(cornerRadius: 16)).padding(.horizontal, 12)
+        .sheet(isPresented: $editingTags) { PostTagEditor(post: post).environmentObject(model) }
         .task { await model.loadEngagement(post.id) }
         .fullScreenCover(isPresented: $comments) { CommentsView(post: post).environmentObject(model) }
         .fullScreenCover(item: $responseKind) { kind in
@@ -906,6 +924,12 @@ private struct PostCard: View {
             NativeShareSheet(items: [post.text, URL(string: "https://www.danzstak.com/feed.html")!]) { completed in
                 if completed { model.recordPostShare(post.id) }
             }
+        }
+    }
+    private func removeTag() {
+        Task {
+            do { try await model.updateTags(post, members: [], location: post.location ?? "", removeMine: true); tagError = "" }
+            catch { tagError = "Your tag could not be removed. Try again." }
         }
     }
 }
@@ -1040,6 +1064,9 @@ private struct ComposerView: View {
     @AppStorage private var draft: String
     @State private var publishing = false
     @State private var certified = false
+    @State private var tagEditor = false
+    @State private var tagged: [TaggedMember] = []
+    @State private var location = ""
 
     init(isDemo: Bool) {
         _draft = AppStorage(wrappedValue: "", isDemo ? "danzstak.demoDraft" : "danzstak.postDraft")
@@ -1056,6 +1083,9 @@ private struct ComposerView: View {
                         Label("Public", systemImage: "globe").font(.caption).foregroundStyle(.secondary)
                     }
                 }
+                Button { tagEditor = true } label: { Label("Tag people · Add location", systemImage: "mappin.and.ellipse") }
+                if !tagged.isEmpty { Text(tagged.map(\.name).joined(separator: ", ")).font(.caption) }
+                if !location.isEmpty { Label(location, systemImage: "mappin").font(.caption) }
                 Toggle("I created this content or have permission to share it.", isOn: $certified).font(.footnote)
                 ZStack(alignment: .topLeading) {
                     if draft.isEmpty { Text("What’s happening in your world?").font(.title3).foregroundStyle(.tertiary).padding(.top, 8).padding(.leading, 5).allowsHitTesting(false) }
@@ -1074,12 +1104,17 @@ private struct ComposerView: View {
                         let text = draft; publishing = true
                         Task {
                             defer { publishing = false }
-                            if await model.publish(text) { draft = ""; dismiss() }
+                            if await model.publish(text, location: location, tagged: tagged) { draft = ""; dismiss() }
                         }
                     } label: { if publishing { ProgressView() } else { Text("Post").bold() } }
                     .disabled(publishing || !certified || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draft.count > 5000)
                 }
             }
+        }.sheet(isPresented: $tagEditor) {
+            NavigationStack {
+                Form { TagSelection(selected: $tagged, location: $location) }.navigationTitle("Tags & location")
+                    .toolbar { Button("Done") { tagEditor = false }.disabled(location.count > 120) }
+            }.interactiveDismissDisabled(location.count > 120)
         }.interactiveDismissDisabled(publishing)
     }
 }
