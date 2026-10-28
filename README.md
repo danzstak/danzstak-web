@@ -24,6 +24,10 @@ DanzStak answers to its users. Product and monetization work must preserve these
 
 Growth must come from useful artist and community tools, not manipulative engagement loops. DanzStak should be rewarding to use while preserving user choice, quiet hours, chronological or user-controlled views, and the ability to leave.
 
+### Platform independence
+
+No core DanzStak feature may require a privileged API from a dominant social, streaming, mobile, or advertising platform. Accounts, profiles, posts, media, friends, Tribes, messages, calls, bookings, EPKs, moderation records, and user exports must remain operational if any external platform changes policy or withdraws access. External platforms may appear as optional HTTPS links or user-chosen export destinations, but their SDKs, identity graphs, recommendation feeds, and restricted catalog APIs must not become sources of truth. Prefer open web standards, user-provided links, documented portable formats, and DanzStak-controlled storage.
+
 ## Production runtime configuration
 
 Run `./aws-configure-production.ps1` from an authenticated AWS shell to reapply the production-safe runtime settings used by the site:
