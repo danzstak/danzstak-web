@@ -84,6 +84,7 @@
 
 /* Preserve contrast on selected navigation, consent notices, and dark menus. */
 .dark-mode .menu a.active{background:#253c60;color:#dceaff}.dark-mode .group-standards-agreement{color:#5f4300}.dark-mode .post-audience-control,.dark-mode .story-share-control{color:#b8c2d1}.dark-mode .post-options-menu button{background:#273449!important;color:#f5f7fb!important;border-color:#3b4658!important;box-shadow:none!important}.dark-mode .post-options-menu button:hover,.dark-mode .post-options-menu button:focus-visible{background:#35455e!important}.dark-mode .post-options-menu small{color:#c6cfdb}.dark-mode .post-option-danger strong{color:#ffabab}
+.group-everyone{margin:10px 8px 0 0;padding:8px 12px;border:1px solid #1769e0;border-radius:10px;background:#fff;color:#1769e0;font-weight:800;cursor:pointer}.group-everyone:hover,.group-everyone:focus-visible{background:#eaf4ff}.group-everyone:disabled{opacity:.65;cursor:wait}.dark-mode .group-everyone{border-color:#65bfff;background:#1f2937;color:#8ed4ff}.dark-mode .group-everyone:hover,.dark-mode .group-everyone:focus-visible{background:#253c60}
 #featureTitle:focus,#featureTitle:focus-visible{outline:none}
 
 .dark-mode .message-drawer-close{color:#f5f7fb}.dark-mode .message-drawer-close:hover{background:#35455e}

@@ -851,6 +851,31 @@ async function deleteGroup(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
+async function broadcastGroup(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  if (!/^[a-f0-9-]{36}$/.test(id)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid Tribe required." }) };
+  const data = parseJsonBody(event), message = String(data?.message || "").trim();
+  if (!message || message.length > 500) return { statusCode: 400, headers, body: JSON.stringify({ error: "Announcement must contain 1–500 characters." }) };
+  const found = await db.send(new GetItemCommand({ TableName: groupsTable, Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } }, ConsistentRead: true }));
+  if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
+  if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the Tribe creator can notify @everyone." }) };
+  const actorEmail = await accountForSub(userId);
+  if (!actorEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const members = (await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail" }))
+    .map(item => item.userEmail?.S).filter(email => email && email !== actorEmail && !email.startsWith("GROUP#"));
+  const createdAt = new Date().toISOString(), eventId = `group_everyone#${id}#${randomUUID()}`, groupName = found.Item.name?.S || "your Tribe";
+  for (let offset = 0; offset < members.length; offset += 25) {
+    await Promise.all(members.slice(offset, offset + 25).map(userEmail => db.send(new PutItemCommand({
+      TableName: engagementNotificationsTable,
+      Item: { userEmail: { S: userEmail }, eventId: { S: eventId }, type: { S: "group_everyone" }, actorEmail: { S: actorEmail }, groupId: { S: id }, groupName: { S: groupName.slice(0, 80) }, preview: { S: message }, createdAt: { S: createdAt }, read: { BOOL: false }, expiresAt: { N: String(now() + 2592000) } }
+    }))));
+  }
+  return { statusCode: 200, headers, body: JSON.stringify({ notified: members.length, createdAt }) };
+}
+
 async function canViewProfileMedia(viewerEmail, profileEmail) {
   if (viewerEmail === profileEmail) return true;
   const friendship = await db.send(new GetItemCommand({
@@ -1289,7 +1314,7 @@ async function getEngagementNotifications(event) {
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 200, headers, body: JSON.stringify({ notifications: [] }) };
   const items = await queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, ConsistentRead: true });
-  const notifications = items.map(item => ({ type: item.type.S, email: item.actorEmail.S, postId: item.postId.S, preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true }))
+  const notifications = items.map(item => ({ type: item.type.S, email: item.actorEmail.S, ...(item.postId?.S ? { postId: item.postId.S } : {}), ...(item.groupId?.S ? { groupId: item.groupId.S, groupName: item.groupName?.S || "Tribe" } : {}), preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true }))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 100);
   return { statusCode: 200, headers, body: JSON.stringify({ notifications }) };
@@ -2222,6 +2247,10 @@ export const handler = async event => {
 
     if (method === "DELETE" && path.startsWith("/groups/")) {
       return await deleteGroup(event);
+    }
+
+    if (method === "POST" && path.startsWith("/groups/") && path.endsWith("/everyone")) {
+      return await broadcastGroup(event);
     }
 
     if (method === "GET" && path === "/profile-video") {

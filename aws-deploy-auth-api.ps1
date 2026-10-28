@@ -158,7 +158,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session")) {
+  foreach ($routeKey in @("GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null

@@ -205,6 +205,16 @@ Resources:
   DeleteGroupRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /groups/{groupId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GroupEveryoneRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: lets a Tribe creator notify current members through durable in-app notifications; server-side fanout prevents client impersonation or member-address exposure
+        must:
+          - Auth API verifies the stored owner before fanout
+          - notify current members only; never return member email addresses
+        mutable: change-with-constraints
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /groups/{groupId}/everyone', Target: !Sub 'integrations/${AuthIntegrationId}'}
   GetProfileVideoRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /profile-video', Target: !Sub 'integrations/${AuthIntegrationId}'}
