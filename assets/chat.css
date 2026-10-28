@@ -38,6 +38,7 @@ body[data-call-mode="video"] .video-grid{min-height:clamp(320px,58vh,680px)}
 .message{max-width:min(82%,540px);margin:4px 0;padding:8px 11px 7px;border:1px solid #dde3eb;border-radius:7px 15px 15px 15px;background:#fff;box-shadow:0 1px 1px #17203312;color:#172033}
 .message.mine{margin-left:auto;border-color:#a8d5ff;border-radius:15px 7px 15px 15px;background:#d9efff;color:#172033}
 .message-meta{color:#526173;text-align:right;font-size:9px}
+.message-receipt{font-weight:900;color:#738094;letter-spacing:-2px}.message-receipt.is-read{color:#1687d9}
 .message-form{align-items:center;gap:7px;padding:9px 10px calc(9px + env(safe-area-inset-bottom,0px));background:#f3f5f8;border-top:1px solid #dce2ea}
 .message-form input{min-height:42px;padding:10px 14px;border:1px solid #d7dee8;border-radius:999px;background:#fff}
 .message-form input:focus{border-color:#6aa9ef;outline:2px solid #6aa9ef33}

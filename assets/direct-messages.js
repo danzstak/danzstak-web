@@ -224,6 +224,13 @@ function directMessageItem(message) {
   const meta = document.createElement("span");
   meta.className = "message-meta";
   meta.textContent = (mine ? "You" : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (mine) {
+    const receipt = document.createElement("span");
+    receipt.className = message.read ? "message-receipt is-read" : "message-receipt";
+    receipt.textContent = message.read ? "✓✓" : "✓";
+    receipt.setAttribute("aria-label", message.read ? "Read" : "Delivered");
+    meta.append(" ", receipt);
+  }
   item.appendChild(meta);
   updateMessageReactionBadge(item, message);
   item.addEventListener("pointerdown", event => { reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
