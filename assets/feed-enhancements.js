@@ -1224,7 +1224,7 @@ document.querySelectorAll("[data-feature]").forEach(control => {
   control.addEventListener("click", event => {
     if (!workspaceRoutes.has(name.toLowerCase())) return;
     event.preventDefault();
-    if (name === "Notifications" && !notificationDrawer?.hidden) {
+    if (name === "Notifications" && notificationDrawer && !notificationDrawer.hidden) {
       closeNotificationDrawer();
       return;
     }

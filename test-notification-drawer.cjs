@@ -7,7 +7,8 @@ const css = fs.readFileSync("assets/feed-enhancements.css", "utf8");
 
 assert.match(feed, /data-feature="Notifications" aria-controls="notificationDrawer" aria-expanded="false"/, "the bell names and controls its drawer");
 assert.match(source, /notificationDrawer\.className = "notification-drawer"/, "notifications open in an embedded feed drawer");
-assert.match(source, /if \(name === "Notifications" && !notificationDrawer\?\.hidden\)[\s\S]*?closeNotificationDrawer\(\)/, "the bell toggles an open drawer closed");
+assert.match(source, /if \(name === "Notifications" && notificationDrawer && !notificationDrawer\.hidden\)[\s\S]*?closeNotificationDrawer\(\)/, "the bell only closes a drawer that already exists and is open");
+assert.doesNotMatch(source, /name === "Notifications" && !notificationDrawer\?\.hidden/, "the first bell click must not mistake a missing drawer for an open one");
 assert.match(source, /event\.key === "Escape"[\s\S]*?closeNotificationDrawer\(\)/, "Escape closes the notification drawer");
 assert.match(source, /messageDrawer[\s\S]*?message-drawer-close[\s\S]*?openNotificationDrawer/, "opening notifications closes Messages first");
 assert.match(source, /getElementById\("messagesNav"\)[\s\S]*?closeNotificationDrawer\(false\)/, "opening Messages closes Notifications first");
