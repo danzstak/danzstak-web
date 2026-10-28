@@ -212,7 +212,7 @@ function renderSavedPosts(list) {
   if (!posts.length) {
     const empty = document.createElement("p");
     empty.className = "muted";
-    empty.textContent = "No saved posts available. Save a post from its options menu to find it here.";
+    empty.textContent = "No saved posts yet. Choose Save on any post, photo or video to keep it here.";
     list.appendChild(empty);
   }
   for (const post of posts) {
@@ -429,7 +429,7 @@ function renderWorkspace(name) {
   const saved = readSections();
 
   if (name === "Saved") {
-    featureText.textContent = "Saved posts you can currently view. Manage saved items from each post’s options menu.";
+    featureText.textContent = "Posts, photos and videos you saved. Choose Saved again on a post to remove it.";
     const list = document.createElement("div"); list.className = "published-events saved-posts";
     workspace.appendChild(list);
     renderSavedPosts(list);
@@ -1644,7 +1644,7 @@ function paintPostSaveButton(post) {
   const button = post.querySelector(".saveBtn");
   if (!button) return;
   const saved = post.dataset.saved === "true";
-  button.textContent = "🔖";
+  button.textContent = saved ? "✓ Saved" : "🔖 Save";
   button.setAttribute("aria-label", saved ? "Remove post from Saved" : "Save post");
   button.setAttribute("aria-pressed", String(saved));
   button.title = saved ? "Remove from Saved" : "Save post";

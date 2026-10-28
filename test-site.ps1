@@ -67,7 +67,7 @@ foreach ($bookingControl in @('DanzStak Booking Agent', 'Find the clubs. Book th
 if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {
   Add-Failure 'Booking Agent: signed-in users do not publish site-wide online presence'
 }
-foreach ($bookingClientControl in @('Send me out and bring me home', 'First show / leave home', 'Back home', 'route-map', 'My saved tours')) {
+foreach ($bookingClientControl in @('Send me out and bring me home', 'First show / leave home', 'Back home', 'route-map', 'My gigs', 'Upcoming gigs', 'Past gigs')) {
   if (-not $bookingClient.Contains($bookingClientControl)) { Add-Failure "Booking Agent: required home-loop control is missing: $bookingClientControl" }
 }
 foreach ($bookingAccessibilityControl in @('tourNameLabel.append(document.createTextNode("Tour name"),tourName)', 'savedPanel.setAttribute("aria-labelledby","savedToursTitle")', 'routeStatus.setAttribute("role","status")', 'saveStatus.setAttribute("role","status")')) {

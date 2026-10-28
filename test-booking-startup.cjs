@@ -6,7 +6,10 @@ const agent = fs.readFileSync("assets/booking-agent.js", "utf8");
 const map = fs.readFileSync("assets/booking-map.js", "utf8");
 const mapCss = fs.readFileSync("assets/booking-agent-driver.css", "utf8");
 
-assert.match(html, /assets\/booking-agent\.js\?v=314/, "the repaired Booking Agent must bypass prior browser caches");
+assert.match(html, /assets\/booking-agent\.js\?v=315/, "the repaired Booking Agent must bypass prior browser caches");
+assert.match(agent, /upcomingTitle\.textContent = "Upcoming gigs"/, "future plans must stay on Booking Agent under Upcoming gigs");
+assert.match(agent, /pastTitle\.textContent = "Past gigs"/, "completed plans must stay on Booking Agent under Past gigs");
+assert.match(agent, /tourDate\(tour\) < startOfToday\.getTime\(\)/, "gig plans must be grouped by their tour dates");
 assert.match(agent, /const routeFieldset = \$\("tourForm"\)\.querySelector\("fieldset"\)/, "route controls must use the planner fieldset after Act and Home move above the form");
 assert.doesNotMatch(agent, /\$\("startCity"\)\.closest\("fieldset"\)/, "startup must not look for a fieldset around the external Home field");
 assert.match(agent, /routeAction\.id = "routeSearchAction"/, "the map must have a stable route-search target");

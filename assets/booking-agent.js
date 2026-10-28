@@ -763,7 +763,10 @@
     tourName = document.createElement("input"),
     saveTour = document.createElement("button"),
     saveStatus = document.createElement("p"),
-    savedList = document.createElement("div");
+    upcomingTitle = document.createElement("h4"),
+    upcomingList = document.createElement("div"),
+    pastTitle = document.createElement("h4"),
+    pastList = document.createElement("div");
   let latestRoute = null,
     lastSearchSignature = "",
     searchVariation = 0,
@@ -784,20 +787,27 @@
   savedPanel.className = "saved-tours";
   savedPanel.setAttribute("aria-labelledby", "savedToursTitle");
   savedTitle.id = "savedToursTitle";
-  savedTitle.textContent = "My saved tours";
+  savedTitle.textContent = "My gigs";
   tourName.id = "tourName";
   tourName.placeholder = "Name this tour";
   tourName.maxLength = 100;
   tourNameLabel.append(document.createTextNode("Tour name"), tourName);
   saveTour.type = "button";
   saveTour.className = "secondary";
-  saveTour.textContent = "Save this tour";
+  saveTour.textContent = "Add to upcoming gigs";
   saveTour.disabled = true;
   saveStatus.className = "hint";
   saveStatus.setAttribute("role", "status");
   saveStatus.setAttribute("aria-live", "polite");
-  savedList.className = "saved-tour-list";
-  savedPanel.append(savedTitle, tourNameLabel, saveTour, saveStatus, savedList);
+  upcomingTitle.textContent = "Upcoming gigs";
+  upcomingTitle.id = "upcomingGigsTitle";
+  upcomingList.className = "saved-tour-list";
+  upcomingList.setAttribute("aria-labelledby", upcomingTitle.id);
+  pastTitle.textContent = "Past gigs";
+  pastTitle.id = "pastGigsTitle";
+  pastList.className = "saved-tour-list";
+  pastList.setAttribute("aria-labelledby", pastTitle.id);
+  savedPanel.append(savedTitle, tourNameLabel, saveTour, saveStatus, upcomingTitle, upcomingList, pastTitle, pastList);
   bookingBoard.children[1].after(savedPanel, routeResults);
   const daysLabel = $("days").closest("label");
   returnLabel.insertAdjacentElement("afterend", daysLabel);
@@ -1320,16 +1330,29 @@
     "northwest",
   ]);
   function showSavedTours(tours) {
-    savedList.replaceChildren();
-    if (!tours.length) {
+    upcomingList.replaceChildren();
+    pastList.replaceChildren();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const tourDate = (tour) => {
+      const value = tour.plan?.returnBy || tour.plan?.departOn || "";
+      const parsed = Date.parse(value + (value ? "T00:00:00" : ""));
+      return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+    };
+    const upcomingTours = tours
+      .filter((tour) => tourDate(tour) >= startOfToday.getTime())
+      .sort((a, b) => tourDate(a) - tourDate(b));
+    const pastTours = tours
+      .filter((tour) => tourDate(tour) < startOfToday.getTime())
+      .sort((a, b) => tourDate(b) - tourDate(a));
+    function showEmpty(list, message) {
       const empty = document.createElement("p");
       empty.className = "hint";
-      empty.textContent =
-        "No saved tours yet. Build a route, name it, and save it here.";
-      savedList.append(empty);
-      return;
+      empty.textContent = message;
+      list.append(empty);
     }
-    for (const tour of tours) {
+    function renderTours(list, entries) {
+      for (const tour of entries) {
       const card = document.createElement("article"),
         title = document.createElement("strong"),
         details = document.createElement("span"),
@@ -1386,13 +1409,13 @@
           copy = document.createElement("p");
         summary.className = "route-summary";
         heading.textContent = tour.name;
-        copy.textContent = `Saved plan with ${(tour.plan?.markets || []).length} proposed markets. Rebuild the route to refresh current venue and hotel contacts.`;
+        copy.textContent = `Gig plan with ${(tour.plan?.markets || []).length} proposed markets. Rebuild the route to refresh current venue and hotel contacts.`;
         summary.append(heading, copy);
         routeResults.append(summary);
         recalculate();
       });
       remove.addEventListener("click", async () => {
-        if (!confirm(`Delete saved tour “${tour.name}”?`)) return;
+        if (!confirm(`Delete gig plan “${tour.name}”?`)) return;
         try {
           await toursRequest("/tours/" + encodeURIComponent(tour.tourId), {
             method: "DELETE",
@@ -1403,8 +1426,15 @@
         }
       });
       card.append(title, details, open, remove);
-      savedList.append(card);
+      list.append(card);
+      }
     }
+    renderTours(upcomingList, upcomingTours);
+    renderTours(pastList, pastTours);
+    if (!upcomingTours.length)
+      showEmpty(upcomingList, "No upcoming gigs yet. Build a route and add it here.");
+    if (!pastTours.length)
+      showEmpty(pastList, "Completed gig plans will appear here.");
   }
   async function loadSavedTours() {
     try {
@@ -1446,7 +1476,7 @@
           markets: markets,
         }),
       });
-      saveStatus.textContent = "Tour saved to your DanzStak account.";
+      saveStatus.textContent = "Gig plan added to Upcoming gigs.";
       tourName.value = "";
       await loadSavedTours();
     } catch (error) {
