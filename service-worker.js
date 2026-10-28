@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v362";
+const CACHE = "danzstak-shell-v363";
 const SHELL = [
   "/assets/media-tags.js",
   "/assets/post-sharing.js", "/assets/post-views.js",
@@ -15,7 +15,7 @@ const SHELL = [
   "/assets/profile-collections.js", "/assets/activity-history-core.js", "/assets/account-export-core.js", "/assets/account-export.js",
   "/assets/support.css", "/assets/support.js", "/assets/booking-agent.css", "/assets/booking-agent-driver.css", "/assets/booking-agent.js",
   "/assets/profile-editor.css", "/assets/display-preferences.js", "/assets/feed-enhancements.js", "/assets/push-notifications.js", "/assets/direct-messages.js", "/assets/incoming-calls.js", "/assets/incoming-calls.css",
-  "/assets/feed-enhancements.css", "/assets/chat.js", "/assets/chat.css", "/assets/legal.css", "/assets/soft-ui.css",
+  "/assets/feed-enhancements.css", "/assets/chat.js", "/assets/chat.css", "/assets/legal.css", "/assets/soft-ui.css", "/assets/accessibility.css",
   "/assets/notification-badge.png"
 ];
 

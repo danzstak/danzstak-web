@@ -26,8 +26,10 @@
     />
     <link rel="stylesheet" href="assets/booking-agent.css?v=311" />
     <link rel="stylesheet" href="assets/booking-agent-driver.css?v=315" />
+    <link rel="stylesheet" href="assets/accessibility.css?v=364" />
   </head>
   <body>
+    <a class="skip-link" href="#bookingMain">Skip to Booking Agent</a>
     <header>
       <a class="brand" href="feed.html"
         ><img src="assets/danzstak-logo.png" alt="DanzStak"
@@ -37,7 +39,7 @@
         ><button type="button" data-logout>Logout</button>
       </nav>
     </header>
-    <main>
+    <main id="bookingMain" tabindex="-1">
       <section class="hero booking-lead">
         <p class="eyebrow">DanzStak Booking Agent</p>
         <h1>Find the clubs. Book the route.</h1>
