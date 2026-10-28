@@ -14,6 +14,7 @@
 .video-grid[hidden],.media-controls[hidden]{display:none!important}
 .embedded-messages .chat-header{display:none}.embedded-messages .chat-shell{display:block;width:100%;min-height:100vh;margin:0;padding:0;border:0;border-radius:0;box-shadow:none}.embedded-messages .chat-sidebar{min-height:100vh;border:0;border-radius:0;box-shadow:none}.embedded-messages .conversation{display:none}.embedded-messages.is-conversation-open .chat-sidebar{display:none}.embedded-messages.is-conversation-open .conversation{display:grid;height:100vh;min-height:0}.embedded-messages .message-list{max-height:none;min-height:0}.embedded-messages .online-panel,.embedded-messages .choice-label,.embedded-messages .conversation-choices,.embedded-messages #enableRinging,.embedded-messages #callStatus,.embedded-messages .delete-chat,.embedded-messages .receiver-hangup{display:none}
 .embedded-messages .conversation-choices{display:none!important}
+.embedded-messages>.site-ownership{display:none}
 .conversation-header[hidden]{display:none!important}
 .receiver-hangup[hidden]{display:none!important}
 .load-earlier-messages{display:block;margin:0 auto 12px;padding:7px 13px;border:0;border-radius:999px;background:#edf1f6;color:#315a91;font-size:12px;font-weight:800;cursor:pointer}.load-earlier-messages:hover{background:#e1e8f2}.load-earlier-messages:focus-visible{outline:3px solid #65bfff;outline-offset:2px}.load-earlier-messages:disabled{cursor:wait;opacity:.68}.dark-mode .load-earlier-messages{background:#303c4f;color:#d8e9ff}

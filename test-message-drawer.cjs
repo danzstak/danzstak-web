@@ -15,5 +15,6 @@ assert.match(messages, /aria-label="Video call">📹<\/button>/, "conversation h
 assert.match(directMessages, /\[\["📞", "startPhone"\], \["📹", "startVideo"\]\]/, "chat list call actions use the same recognizable icons");
 assert.match(chatCss, /\.message-form\{grid-template-columns:minmax\(0,1fr\) auto!important\}/, "message text and send stay on one composer row");
 assert.match(chatCss, /\.conversation-header-actions\{grid-column:3;grid-row:1\/3;align-self:center\}/, "call actions stay aligned beside the contact name and presence");
+assert.match(chatCss, /\.embedded-messages>\.site-ownership\{display:none\}/, "the embedded chat hides the standalone legal footer");
 
 console.log("Message drawer checks passed: feed popup, icon toggle, compact chat, and video-only full screen.");
