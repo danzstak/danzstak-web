@@ -201,7 +201,7 @@
       days: 5,
     },
   };
-  const routeFieldset = $("startCity").closest("fieldset"),
+  const routeFieldset = $("tourForm").querySelector("fieldset"),
     routeOptions = document.createElement("div"),
     routePicker = document.createElement("label"),
     routeSelect = document.createElement("select");
@@ -769,6 +769,7 @@
     searchVariation = 0,
     seenVenueKeys = new Set();
   routeAction.type = "button";
+  routeAction.id = "routeSearchAction";
   routeAction.className = "primary-route";
   routeAction.textContent = "Build route and find clubs and hotels";
   routeStatus.id = "routeSearchStatus";
