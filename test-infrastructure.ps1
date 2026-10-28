@@ -340,7 +340,7 @@ foreach ($callInboxControl in @('async function inbox(user){const items=await qu
 if ($template.Contains("FilterExpression:'expiresAt > :n',ExpressionAttributeValues:{':r':{S:user.email},':n':{N:String(now())}},Limit:20")) {
   throw 'Call inbox still applies DynamoDB Limit before filtering expired events.'
 }
-foreach ($orphanMediaControl in @("body.action==='discard'", 'if(!storyUpload)return json(403', "return json(200,{discarded:true})")) {
+foreach ($orphanMediaControl in @("body.action==='discard'", 'postUpload=new RegExp', 'if(!storyUpload&&!postUpload)return json(403', "return json(200,{discarded:true})")) {
   if (-not $template.Contains($orphanMediaControl)) { throw "Failed uploads cannot be securely discarded: $orphanMediaControl" }
 }
 

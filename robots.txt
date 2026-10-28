@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /feed.html
+Disallow: /messages.html
+Disallow: /profile.html
+Disallow: /settings.html
+Disallow: /notifications.html
+Disallow: /booking-selections.html
+
+Sitemap: https://danzstak.com/sitemap.xml

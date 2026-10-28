@@ -170,7 +170,7 @@ Resources:
             Action: [dynamodb:GetItem]
             Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DanzStak-UserSettings
           - Effect: Allow
-            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:Scan]
+            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:UpdateItem, dynamodb:Scan]
             Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-GroupMembers
   GetEngagementRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -228,6 +228,9 @@ Resources:
           - target must already be a Tribe member
         mutable: change-with-constraints
     Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /groups/{groupId}/elders', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GroupCoverRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /groups/{groupId}/cover', Target: !Sub 'integrations/${AuthIntegrationId}'}
   GetProfileVideoRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /profile-video', Target: !Sub 'integrations/${AuthIntegrationId}'}

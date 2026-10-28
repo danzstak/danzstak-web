@@ -25,7 +25,7 @@ import {
   CognitoIdentityProviderClient,
   ListUsersCommand
 } from "@aws-sdk/client-cognito-identity-provider";
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import {
   GeoPlacesClient,
@@ -846,14 +846,14 @@ async function listGroups(event) {
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const viewerEmail = await accountForSub(userId);
-  const items = await scanAll({ TableName: groupsTable, ConsistentRead: true });
-  const memberships = items.filter(item => item.groupId?.S && item.groupId.S !== "META" && !item.userEmail?.S?.startsWith("GROUP#"));
+  const items = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :meta", ExpressionAttributeValues: { ":meta": { S: "META" } }, ConsistentRead: true });
+  const memberships = await scanAll({ TableName: groupsTable, FilterExpression: "groupId <> :meta", ExpressionAttributeValues: { ":meta": { S: "META" } }, ConsistentRead: true });
   const counts = new Map();
   for (const item of memberships) counts.set(item.groupId.S, (counts.get(item.groupId.S) || 0) + 1);
   const viewerMemberships = new Map(memberships.filter(item => item.userEmail?.S === viewerEmail).map(item => [item.groupId.S, item]));
   const groups = items.filter(item => item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#")).map(item => {
     const id = item.userEmail.S.slice(6), isOwner = item.ownerId?.S === userId, membership = viewerMemberships.get(id);
-    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description: item.description?.S || "A DanzStak community.", createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
+    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description: item.description?.S || "A DanzStak community.", coverUrl: item.coverKey?.S ? signedMediaUrl(item.coverKey.S, 3600) : "", createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
   }).sort((a, b) => a.name.localeCompare(b.name));
   return { statusCode: 200, headers, body: JSON.stringify({ groups }) };
 }
@@ -912,6 +912,33 @@ async function manageGroupElder(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ memberId, role: elder ? "elder" : "member" }) };
 }
 
+async function updateGroupCover(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const meta = await groupRecord(id);
+  if (!meta) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
+  const callerEmail = await accountForSub(userId), membership = await groupMembership(id, callerEmail);
+  if (meta.ownerId?.S !== userId && membership?.role?.S !== "elder") return { statusCode: 403, headers, body: JSON.stringify({ error: "Only an Elder can change the Tribe cover." }) };
+  const data = parseJsonBody(event), mediaKey = String(data?.mediaKey || ""), ownerPrefix = sha256(callerEmail).slice(0, 24);
+  if (!new RegExp(`^users/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|gif)$`).test(mediaKey)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Choose a photo you uploaded." }) };
+  try { await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: mediaKey })); }
+  catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded cover photo was not found." }) }; }
+  const oldKey = meta.coverKey?.S || "";
+  await db.send(new UpdateItemCommand({
+    TableName: groupsTable,
+    Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+    UpdateExpression: "SET coverKey = :cover, updatedAt = :updated",
+    ExpressionAttributeValues: { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() } },
+    ConditionExpression: "attribute_exists(userEmail)"
+  }));
+  if (oldKey && oldKey !== mediaKey) {
+    try { await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: oldKey })); }
+    catch (error) { console.error("Tribe cover cleanup remains pending", { id, error }); }
+  }
+  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600) }) };
+}
+
 async function deleteGroup(event) {
   const headers = corsHeaders(event.headers?.origin);
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -924,6 +951,10 @@ async function deleteGroup(event) {
   if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the group owner can delete it." }) };
   const members = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId" });
   await Promise.all([db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key })), ...members.map(item => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })))]);
+  if (found.Item.coverKey?.S) {
+    try { await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: found.Item.coverKey.S })); }
+    catch (error) { console.error("Deleted Tribe cover cleanup remains pending", { id, error }); }
+  }
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
@@ -2386,6 +2417,10 @@ export const handler = async event => {
 
     if (method === "POST" && path.startsWith("/groups/") && path.endsWith("/elders")) {
       return await manageGroupElder(event);
+    }
+
+    if (method === "POST" && path.startsWith("/groups/") && path.endsWith("/cover")) {
+      return await updateGroupCover(event);
     }
 
     if (method === "GET" && path === "/profile-video") {

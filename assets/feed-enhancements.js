@@ -622,7 +622,33 @@ function renderWorkspace(name) {
       featureText.textContent = group.name;
       const back = document.createElement("button"); back.type = "button"; back.className = "tribe-back"; back.textContent = "← Back to Tribes"; back.addEventListener("click", showTribeDirectory);
       const hero = document.createElement("header"); hero.className = "tribe-hero";
-      const cover = document.createElement("div"); cover.className = "tribe-hero-cover"; cover.textContent = groupIcon(group.category); cover.setAttribute("aria-hidden", "true");
+      const cover = document.createElement("div"); cover.className = "tribe-hero-cover";
+      if (group.coverUrl) { cover.style.backgroundImage = `linear-gradient(180deg,transparent 45%,rgba(8,12,20,.72)),url("${String(group.coverUrl).replace(/["\\]/g, "")}")`; cover.classList.add("has-photo"); }
+      else { cover.textContent = groupIcon(group.category); cover.setAttribute("aria-hidden", "true"); }
+      if ((group.isElder || group.isOwner) && group.custom) {
+        const editCover = document.createElement("button"); editCover.type = "button"; editCover.className = "tribe-cover-edit"; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
+        const coverInput = document.createElement("input"); coverInput.type = "file"; coverInput.accept = "image/jpeg,image/png,image/webp,image/gif"; coverInput.hidden = true;
+        editCover.addEventListener("click", () => coverInput.click());
+        coverInput.addEventListener("change", async () => {
+          const file = coverInput.files?.[0]; if (!file || !file.type.startsWith("image/")) return;
+          editCover.disabled = true; editCover.textContent = "Uploading…"; let uploadedMediaKey = "";
+          try {
+            const ticketResponse = await postActionFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: file.type, purpose: "post" }) }, 15000);
+            const ticket = await ticketResponse.json().catch(() => ({})); if (!ticketResponse.ok || !ticket.uploadUrl) throw new Error(ticket.error || "Cover upload could not start");
+            const uploadOptions = { method: "PUT", headers: { "Content-Type": file.type }, body: file };
+            const uploadResponse = typeof window.fetchWithDeadline === "function" ? await window.fetchWithDeadline(ticket.uploadUrl, uploadOptions, typeof window.mediaUploadDeadline === "function" ? window.mediaUploadDeadline(file) : 120000) : await fetch(ticket.uploadUrl, uploadOptions);
+            if (!uploadResponse.ok) throw new Error("Cover upload failed");
+            uploadedMediaKey = ticket.mediaKey;
+            const saveResponse = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/cover", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mediaKey: ticket.mediaKey }) });
+            const savedCover = await saveResponse.json().catch(() => ({})); if (!saveResponse.ok || !savedCover.coverUrl) throw new Error(savedCover.error || "Cover could not be saved");
+            uploadedMediaKey = ""; group.coverUrl = savedCover.coverUrl; openTribe(group);
+          } catch (error) {
+            if (uploadedMediaKey && typeof window.discardUploadedMedia === "function") await window.discardUploadedMedia(uploadedMediaKey).catch(() => {});
+            alert(error.message); editCover.disabled = false; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
+          }
+        });
+        cover.append(editCover, coverInput);
+      }
       const identity = document.createElement("div"); identity.className = "tribe-hero-identity";
       const title = document.createElement("h4"); title.textContent = group.name;
       const meta = document.createElement("p"); const count = Number(group.memberCount || 0); meta.textContent = `🔒 Tribe · ${count ? count + " in The Crew" : "The Crew"}`;
