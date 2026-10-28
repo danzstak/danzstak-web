@@ -16,6 +16,7 @@ targets:
       path: DanzStak/Info.plist
       properties:
         CFBundleDisplayName: DanzStak
+        UILaunchScreen: {}
         CFBundleURLTypes:
           - CFBundleURLName: com.danzstak.app.auth
             CFBundleURLSchemes: [danzstak]
@@ -28,6 +29,25 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.danzstak.app
         PRODUCT_NAME: DanzStak
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5"
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1,2"
+  DanzStakUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: DanzStak
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.danzstak.app.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5"
+schemes:
+  DanzStak:
+    build:
+      targets:
+        DanzStak: all
+    test:
+      targets: [DanzStakUITests]

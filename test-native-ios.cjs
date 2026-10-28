@@ -17,6 +17,7 @@ assert.doesNotMatch(api, /id_token|access_token|refresh_token/, "native code nev
 assert.match(store, /kSecClassGenericPassword/, "sessions are stored in Keychain");
 assert.match(store, /kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly/, "sessions cannot migrate through device backups");
 assert.match(project, /NSAllowsArbitraryLoads: false/, "arbitrary insecure networking is prohibited");
-assert.match(view, /List\(model\.posts\)/, "the feed renders through native SwiftUI controls");
+assert.match(view, /ForEach\(filteredPosts\)/, "the feed renders through native SwiftUI controls");
+assert.match(view, /PostCard\(post: post\)/, "feed posts use native cards");
 
 console.log("Native iOS checks passed: real SwiftUI, device-bound login, opaque API session, Keychain storage, and strict transport security.");

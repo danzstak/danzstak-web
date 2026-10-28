@@ -69,12 +69,35 @@ struct APIClientChecks {
         try await api.logout()
         precondition(StubProtocol.requests.last?.url?.path == "/auth/logout")
 
+        StubProtocol.status = 200
+        StubProtocol.payload = #"{"reactionCounts":{"Like":2},"myReaction":"Like","comments":[{"commentId":"c1","authorName":"Member","content":"Hello","createdAt":"2026-10-28"}]}"#
+        let activity = try await api.engagement("post & one")
+        precondition(activity.total == 2 && activity.comments.count == 1)
+        let query = URLComponents(url: StubProtocol.requests.last!.url!, resolvingAgainstBaseURL: false)?.queryItems
+        precondition(query?.first?.value == "post & one")
+        precondition(StubProtocol.requests.last?.url?.path == "/engagement")
+        precondition(StubProtocol.requests.last?.value(forHTTPHeaderField: "Origin") == "https://www.danzstak.com")
+        StubProtocol.payload = "{}"
+        try await api.react("post1", reaction: "Like")
+        precondition(StubProtocol.requests.last?.url?.path == "/reactions")
+        try await api.comment("post1", text: "My comment")
+        precondition(StubProtocol.requests.last?.url?.path == "/comments")
+        StubProtocol.payload = #"{"groups":[{"id":"g1","name":"DJs","category":"Music","description":"Community"}]}"#
+        let groups = try await api.groups()
+        precondition(groups.first?.name == "DJs")
+        StubProtocol.payload = #"{"notifications":[{"type":"comment","postId":"p1","preview":"Hello","createdAt":"2026-10-28","unread":true}]}"#
+        let notices = try await api.notices()
+        precondition(notices.first?.unread == true)
+        StubProtocol.payload = "{}"
+        try await api.markNoticesRead()
+        precondition(StubProtocol.requests.last?.url?.path == "/engagement-notifications/read")
+
         let noSession = APIClient(session: session, sessionToken: { nil })
         let count = StubProtocol.requests.count
         do { _ = try await noSession.posts(); fatalError("Missing sessions must fail before networking") }
         catch APIClient.Failure.sessionExpired {}
         precondition(StubProtocol.requests.count == count)
         precondition(StubProtocol.requests.allSatisfy { $0.url?.scheme == "https" })
-        print("API checks passed: feed decoding, session validation, 401, 503, offline recovery, exchange, publish, logout, HTTPS.")
+        print("API checks passed: feed, sessions, recovery, exchange, publish, logout, engagement, query encoding, comments, reactions, groups, notices, HTTPS.")
     }
 }
