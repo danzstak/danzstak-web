@@ -19,7 +19,11 @@ for (const required of [
   '["crew", "The Crew"]',
   '"Invite as Elder"',
   '"Return to Crew"',
-  'renderTribePosts(group, feed)'
+  'renderTribePosts(group, feed)',
+  'addMediaPicker("Photo"',
+  'addMediaPicker("Video"',
+  'purpose: "post"',
+  'content: content || "Shared media"'
 ]) assert.ok(ui.includes(required), `Tribes experience is missing: ${required}`);
 
 for (const required of [
@@ -34,6 +38,6 @@ for (const required of [
   "@media(max-width:700px){.groups-discovery-controls"
 ]) assert.ok(css.includes(required), `Responsive Tribes styling is missing: ${required}`);
 
-assert.match(feed, /feed-enhancements\.css\?v=371/);
-assert.match(feed, /feed-enhancements\.js\?v=371/);
+assert.match(feed, /feed-enhancements\.css\?v=372/);
+assert.match(feed, /feed-enhancements\.js\?v=372/);
 console.log("Tribes experience checks passed: discovery, detail, discussion, Elders, The Crew, and responsive layout.");

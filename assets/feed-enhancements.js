@@ -648,20 +648,63 @@ function renderWorkspace(name) {
       if (saved.GroupsJoined?.[group.id]) {
         const composer = document.createElement("div"); composer.className = "tribe-composer";
         const input = document.createElement("textarea"); input.maxLength = 5000; input.placeholder = "Write something to " + group.name + "…"; input.setAttribute("aria-label", "Write a post to " + group.name);
+        const mediaTools = document.createElement("div"); mediaTools.className = "tribe-composer-media-tools";
+        const mediaPreview = document.createElement("div"); mediaPreview.className = "tribe-composer-media-preview"; mediaPreview.hidden = true;
+        let selectedMedia = null;
+        const clearSelectedMedia = () => {
+          if (selectedMedia?.url) URL.revokeObjectURL(selectedMedia.url);
+          selectedMedia = null; mediaPreview.hidden = true; mediaPreview.replaceChildren();
+          mediaTools.querySelectorAll('input[type="file"]').forEach(fileInput => { fileInput.value = ""; });
+        };
+        const addMediaPicker = (label, accept, kind) => {
+          const button = document.createElement("button"); button.type = "button"; button.className = "secondary"; button.textContent = label;
+          const fileInput = document.createElement("input"); fileInput.type = "file"; fileInput.accept = accept; fileInput.hidden = true;
+          button.addEventListener("click", () => fileInput.click());
+          fileInput.addEventListener("change", () => {
+            const file = fileInput.files?.[0]; if (!file) return;
+            if (!file.type.startsWith(kind + "/") || kind === "video" && file.size > 100 * 1024 * 1024) {
+              fileInput.value = ""; alert(kind === "video" ? "Video must be MP4, WebM, or MOV and smaller than 100 MB." : "Choose a supported photo."); return;
+            }
+            clearSelectedMedia();
+            selectedMedia = { file, kind, url: URL.createObjectURL(file) };
+            const media = document.createElement(kind === "image" ? "img" : "video"); media.src = selectedMedia.url; media.className = "tribe-composer-preview-media";
+            if (kind === "video") { media.controls = true; media.playsInline = true; }
+            const remove = document.createElement("button"); remove.type = "button"; remove.className = "tribe-composer-remove-media"; remove.textContent = "Remove"; remove.addEventListener("click", clearSelectedMedia);
+            mediaPreview.replaceChildren(media, remove); mediaPreview.hidden = false;
+          });
+          mediaTools.append(button, fileInput);
+        };
+        addMediaPicker("Photo", "image/jpeg,image/png,image/webp,image/gif", "image");
+        addMediaPicker("Video", "video/mp4,video/webm,video/quicktime", "video");
         const certify = document.createElement("label"); const checkbox = document.createElement("input"); checkbox.type = "checkbox"; certify.append(checkbox, document.createTextNode(" This is my original content."));
         const publish = document.createElement("button"); publish.type = "button"; publish.className = "primary"; publish.textContent = "Post";
         const status = document.createElement("p"); status.className = "muted"; status.setAttribute("role", "status");
         publish.addEventListener("click", async () => {
-          const content = input.value.trim(); if (!content) return input.focus(); if (!checkbox.checked) { status.textContent = "Confirm that this is your original content."; return checkbox.focus(); }
+          const content = input.value.trim(); if (!content && !selectedMedia) return input.focus(); if (!checkbox.checked) { status.textContent = "Confirm that this is your original content."; return checkbox.focus(); }
           publish.disabled = true; status.textContent = "Posting…";
+          let uploadedMediaKey = "";
           try {
-            const response = await postActionFetch("/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content, groupId: group.id, originalContentCertified: true }) });
+            let mediaKey = "", mediaType = "";
+            if (selectedMedia) {
+              const ticketResponse = await postActionFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: selectedMedia.file.type, purpose: "post" }) }, 15000);
+              const ticket = await ticketResponse.json().catch(() => ({})); if (!ticketResponse.ok || !ticket.uploadUrl) throw new Error(ticket.error || "Media upload could not start");
+              const uploadOptions = { method: "PUT", headers: { "Content-Type": selectedMedia.file.type }, body: selectedMedia.file };
+              const uploadResponse = typeof window.fetchWithDeadline === "function"
+                ? await window.fetchWithDeadline(ticket.uploadUrl, uploadOptions, typeof window.mediaUploadDeadline === "function" ? window.mediaUploadDeadline(selectedMedia.file) : 120000)
+                : await fetch(ticket.uploadUrl, uploadOptions);
+              if (!uploadResponse.ok) throw new Error("Media upload failed");
+              mediaKey = ticket.mediaKey; mediaType = ticket.mediaType; uploadedMediaKey = mediaKey;
+            }
+            const response = await postActionFetch("/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: content || "Shared media", groupId: group.id, mediaKey, mediaType, originalContentCertified: true }) });
             const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || "Post could not be shared with this Tribe");
-            input.value = ""; checkbox.checked = false; status.textContent = "Posted to " + group.name + ".";
+            uploadedMediaKey = ""; input.value = ""; checkbox.checked = false; clearSelectedMedia(); status.textContent = "Posted to " + group.name + ".";
             if (typeof window.loadPosts === "function") await window.loadPosts(); renderTribePosts(group, feed);
-          } catch (error) { status.textContent = error.message; } finally { publish.disabled = false; }
+          } catch (error) {
+            if (uploadedMediaKey && typeof window.discardUploadedMedia === "function") await window.discardUploadedMedia(uploadedMediaKey).catch(() => {});
+            status.textContent = error.message;
+          } finally { publish.disabled = false; }
         });
-        composer.append(input, certify, publish, status); discussion.appendChild(composer);
+        composer.append(input, mediaTools, mediaPreview, certify, publish, status); discussion.appendChild(composer);
       } else {
         const prompt = document.createElement("div"); prompt.className = "tribe-join-prompt"; prompt.textContent = "Join this Tribe to post, comment, and meet The Crew."; discussion.appendChild(prompt);
       }
