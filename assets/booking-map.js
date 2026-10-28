@@ -5,7 +5,6 @@
   const mapElement = document.getElementById("venueSearchMap");
   const searchAreaButton = document.getElementById("searchVisibleVenueArea");
   const clearAreaButton = document.getElementById("clearVenueArea");
-  const drawRouteButton = document.getElementById("drawVenueRoute");
   if (!status || !mapElement || !searchAreaButton || !window.L) {
     if (status) status.textContent = "The venue map could not load. Refresh and try again.";
     return;
@@ -57,56 +56,62 @@
       : "Map area selected. Press Search this area to find clubs visible on the map.";
   }
 
-  function finishRouteDrawing() {
-    if (routePoints.length >= 2) {
-      drawn.clearLayers();
-      routePreview = L.polyline(routePoints, { color: "#1769e0", weight: 5 }).addTo(drawn);
-      useBounds(routePreview.getBounds(), "drawn");
-      map.fitBounds(routePreview.getBounds(), { padding: [24, 24] });
-    } else {
-      status.textContent = "Tap at least two places on the map to draw your route.";
-    }
+  function setDrawControl(active) {
+    if (!mapDrawControl) return;
+    mapDrawControl.setAttribute("aria-pressed", String(active));
+    mapDrawControl.setAttribute("aria-label", active ? "Finish drawing route" : "Draw a route on the map");
+    mapDrawControl.title = active ? "Finish route" : "Draw a route";
+    mapDrawControl.innerHTML = active ? '<span aria-hidden="true">✓</span>' : '<span aria-hidden="true">✎</span>';
+  }
+
+  function stopRouteDrawing() {
     drawingRoute = false;
     routePoints = [];
-    drawRouteButton?.setAttribute("aria-pressed", "false");
-    if (drawRouteButton) drawRouteButton.innerHTML = '<span aria-hidden="true">✎</span> Draw a route';
-    if (mapDrawControl) {
-      mapDrawControl.setAttribute("aria-pressed", "false");
-      mapDrawControl.setAttribute("aria-label", "Draw a route on the map");
-      mapDrawControl.title = "Draw a route";
-    }
+    setDrawControl(false);
     document.querySelector(".booking-map-panel")?.classList.remove("is-drawing");
     map.dragging.enable();
     map.touchZoom.enable();
   }
-  drawRouteButton?.addEventListener("click", () => {
-    if (drawingRoute) {
-      finishRouteDrawing();
-      return;
-    }
+
+  function startRouteDrawing() {
     drawingRoute = true;
     routePoints = [];
     drawn.clearLayers();
     routePreview = null;
-    drawRouteButton.setAttribute("aria-pressed", "true");
-    drawRouteButton.textContent = "Finish route";
-    if (mapDrawControl) {
-      mapDrawControl.setAttribute("aria-pressed", "true");
-      mapDrawControl.setAttribute("aria-label", "Finish drawing route");
-      mapDrawControl.title = "Finish route";
-    }
+    searchBounds = null;
+    searchScope = "drawing";
+    setDrawControl(true);
     document.querySelector(".booking-map-panel")?.classList.add("is-drawing");
     map.dragging.disable();
     map.touchZoom.disable();
-    status.textContent = "Tap points on the map along your route, then press Finish route.";
-  });
+    status.textContent = "Tap at least two points along your route. The blue line appears as you tap; press the checkmark when finished.";
+  }
+
+  function finishRouteDrawing() {
+    if (routePoints.length < 2) {
+      status.textContent = "Add at least one more point so DanzStak can draw a route line.";
+      return false;
+    }
+    drawn.clearLayers();
+    routePreview = L.polyline(routePoints, { color: "#1769e0", weight: 6, opacity: 0.95, lineCap: "round", lineJoin: "round", interactive: false }).addTo(drawn);
+    useBounds(routePreview.getBounds(), "drawn");
+    map.fitBounds(routePreview.getBounds(), { padding: [24, 24] });
+    stopRouteDrawing();
+    status.textContent = "Route selected. Press Search this area to find clubs along it.";
+    return true;
+  }
+
+  function toggleRouteDrawing() {
+    if (drawingRoute) finishRouteDrawing();
+    else startRouteDrawing();
+  }
   function addRoutePoint(latlng) {
     routePoints.push(latlng);
     if (routePreview) drawn.removeLayer(routePreview);
     routePreview = routePoints.length === 1
       ? L.circleMarker(latlng, { radius: 7, color: "#fff", weight: 3, fillColor: "#1769e0", fillOpacity: 1, interactive: false }).addTo(drawn)
       : L.polyline(routePoints, { color: "#1769e0", weight: 6, opacity: 0.95, lineCap: "round", lineJoin: "round", interactive: false }).addTo(drawn);
-    status.textContent = `${routePoints.length} route point${routePoints.length === 1 ? "" : "s"} added. Keep tapping, then press Finish route.`;
+    status.textContent = `${routePoints.length} route point${routePoints.length === 1 ? "" : "s"} added. ${routePoints.length < 2 ? "Tap one more point to make the line." : "Keep tapping or press the checkmark to finish."}`;
   }
   map.on("click", event => { if (drawingRoute) addRoutePoint(event.latlng); });
 
@@ -121,7 +126,7 @@
       mapDrawControl.setAttribute("aria-label", "Draw a route on the map");
       mapDrawControl.setAttribute("aria-pressed", "false");
       L.DomEvent.disableClickPropagation(wrapper);
-      L.DomEvent.on(mapDrawControl, "click", () => drawRouteButton?.click());
+      L.DomEvent.on(mapDrawControl, "click", toggleRouteDrawing);
       return wrapper;
     }
   });
@@ -135,11 +140,19 @@
   });
 
   clearAreaButton?.addEventListener("click", () => {
-    if (drawingRoute) finishRouteDrawing();
+    if (drawingRoute) stopRouteDrawing();
     drawn.clearLayers();
     searchBounds = null;
     searchScope = "city";
     status.textContent = "Area filter cleared. Search by city, or move the map and press Search this area.";
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || !drawingRoute) return;
+    stopRouteDrawing();
+    drawn.clearLayers();
+    routePreview = null;
+    status.textContent = "Route drawing canceled. Move the map or use the pencil to try again.";
+    mapDrawControl?.focus();
   });
   searchAreaButton.addEventListener("click", () => {
     if (searchScope !== "drawn") {
