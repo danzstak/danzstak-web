@@ -54,9 +54,14 @@ assert.match(api, /pointLabel\.includes\("san francisco"\)/);
 assert.match(api, /curated\.length \|\| discovered\.length \? \[\] : curatedPool/);
 assert.match(api, /selectedGenre \? `\$\{selectedGenre\} live music club`/);
 assert.match(api, /searchBounds/);
+assert.match(api, /Filter: \{ BoundingBox:/);
+assert.match(api, /slice\(0, 24\)/);
 const mapClient = fs.readFileSync("assets/booking-map.js", "utf8");
 assert.match(mapClient, /new L\.Control\.Draw/);
 assert.match(mapClient, /body\.searchBounds = searchBounds/);
 assert.match(mapClient, /venueMarkers/);
+assert.match(mapClient, /searchVisibleVenueArea/);
+assert.match(mapClient, /map\.getBounds\(\)/);
+assert.match(mapClient, /Search different clubs/);
 
 console.log("Booking venue checks passed: positive music-room evidence is required and repeat searches request a different batch.");

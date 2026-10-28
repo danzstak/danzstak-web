@@ -1819,9 +1819,12 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   return [...matches.slice(offset), ...matches.slice(0, offset)].map(place => ({ ...place, venueKey: verifiedVenueKey(place), locality, distanceMiles: null, contactVerificationRequired: true, verifiedRoom: true }));
 }
 
-async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), variation = 0) {
+async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), variation = 0, searchBounds = null) {
   const search = async query => {
-    const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, BiasPosition: point.position, MaxResults: 20, AdditionalFeatures: ["Contact"] }));
+    const locationConstraint = searchBounds
+      ? { Filter: { BoundingBox: [searchBounds.west, searchBounds.south, searchBounds.east, searchBounds.north] } }
+      : { BiasPosition: point.position };
+    const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, ...locationConstraint, MaxResults: 50, AdditionalFeatures: ["Contact"] }));
     return (result.ResultItems || []).map(publicPlace);
   };
   const selectedGenre = String(genre || "").trim();
@@ -1843,7 +1846,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   }
   const venuePool = [...unique.values()];
   const offset = venuePool.length ? variation % venuePool.length : 0;
-  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 12);
+  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 24);
   const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }
@@ -1868,10 +1871,15 @@ async function planTourRoute(event) {
   if (start.length < 2 || start.length > 120 || end.length < 2 || end.length > 120 || stops.length > 8 || stops.some(stop => stop.length > 120)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Provide a home or starting city, a destination for tours, and no more than eight valid stops." }) };
   try {
     if (local) {
-      const point = await geocodeTourPlace(start), candidates = await tourCandidates(point, genre, excludedVenueKeys, variation);
+      const homePoint = await geocodeTourPlace(start);
+      const point = searchBounds ? {
+        label: `${homePoint.label} map area`,
+        position: [(searchBounds.east + searchBounds.west) / 2, (searchBounds.north + searchBounds.south) / 2]
+      } : homePoint;
+      const candidates = await tourCandidates(point, genre, excludedVenueKeys, variation, searchBounds);
       if (searchBounds) candidates.venues = candidates.venues.filter(place => Array.isArray(place.position) && place.position.length === 2 && place.position[1] <= searchBounds.north && place.position[1] >= searchBounds.south && place.position[0] <= searchBounds.east && place.position[0] >= searchBounds.west);
       if (requestedDepartOn) candidates.proposedDate = requestedDepartOn;
-      return { statusCode: 200, headers, body: JSON.stringify({ route: { start: point, end: point, stops: [], distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, requestedDays, departOn: requestedDepartOn, returnBy, provider: "Amazon Location Service", planningOnly: true, local: true }, candidates: [candidates] }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ route: { start: homePoint, end: homePoint, stops: [], distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, requestedDays, departOn: requestedDepartOn, returnBy, provider: "Amazon Location Service", planningOnly: true, local: true }, candidates: [candidates] }) };
     }
     const home = await geocodeTourPlace(start);
     const suggestedMarkets = directional ? await suggestDirectionalMarkets(home, direction, requestedDays, genre) : [];
