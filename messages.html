@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1">
 <script src="assets/display-preferences.js?v=342"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=362">
-<link rel="stylesheet" href="assets/chat.css?v=360">
+<link rel="stylesheet" href="assets/chat.css?v=365">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
 <title>Messages | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
@@ -23,7 +23,7 @@
 <header class="chat-header"><a href="feed.html" class="chat-brand"><img src="assets/danzstak-logo.png" alt="DanzStak"></a><div><a class="button" href="feed.html?view=feed">Back to Your Mix</a> <button class="button" type="button" data-logout>Logout</button></div></header>
 <main class="chat-shell">
   <section class="chat-sidebar" aria-labelledby="messagesTitle">
-    <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><button id="newChat" type="button" class="new-chat-button" aria-label="Start a new chat" title="Start a new chat">✎</button></div>
+    <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><div class="chat-heading-actions"><button id="enableRinging" type="button" class="chat-heading-button" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
     <label class="chat-search"><span aria-hidden="true">⌕</span><input id="chatSearch" type="search" placeholder="Search DanzStak messages" aria-label="Search messages"></label>
     <nav class="chat-filters" aria-label="Chat filters" role="tablist"><button type="button" class="active" data-chat-filter="all" role="tab" aria-selected="true">All</button><button type="button" data-chat-filter="unread" role="tab" aria-selected="false" tabindex="-1">Unread</button><button type="button" data-chat-filter="groups" role="tab" aria-selected="false" tabindex="-1">Tribes</button></nav>
     <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers"><p class="chat-note">Loading saved chats…</p></div></section>
@@ -36,11 +36,10 @@
       <button id="startVideo" type="button" class="primary" disabled>Video</button>
       </div>
     </div>
-    <button id="enableRinging" type="button" class="secondary answer-button">Enable call alerts</button>
     <section id="incomingCall" class="incoming-call" role="dialog" aria-modal="true" aria-labelledby="incomingLabel" hidden><strong id="incomingLabel">Incoming call</strong><div class="call-actions"><button id="acceptCall" type="button" class="primary">Accept</button><button id="declineCall" type="button" class="danger">Decline</button></div></section>
     <button id="receiverHangUp" type="button" class="danger receiver-hangup" hidden>📞 Hang Up</button>
-    <p id="callStatus" class="call-status" role="status">Ready to start a secure call.</p>
-    <button id="deleteChat" type="button" class="secondary delete-chat" disabled>Delete Chat</button>
+    <p id="callStatus" class="call-status sr-only" role="status">Ready to start a secure call.</p>
+    <button id="deleteChat" type="button" class="secondary delete-chat" disabled hidden>Delete Chat</button>
   </section>
   <section class="conversation" aria-label="Conversation">
     <header id="conversationHeader" class="conversation-header" hidden><span id="conversationAvatar" class="conversation-avatar" aria-hidden="true">D</span><strong id="conversationName">Select a chat</strong><span id="conversationPresence" class="conversation-presence" hidden>Online</span><div class="conversation-header-actions"><button id="headerPhone" type="button" title="Phone call" aria-label="Phone call">📞</button><button id="headerVideo" type="button" title="Video call" aria-label="Video call">📹</button><button id="minimizeConversation" type="button" title="Minimize chat" aria-label="Minimize chat">−</button><button id="conversationMore" type="button" title="More chat options" aria-label="More chat options" aria-expanded="false" aria-controls="conversationMenu">⋮</button><button id="closeConversation" type="button" title="Close chat" aria-label="Close chat">×</button></div><div id="conversationMenu" class="conversation-menu" role="menu" hidden><button id="headerDeleteChat" type="button" role="menuitem">Delete chat</button></div></header>
@@ -64,8 +63,8 @@
   </section>
 </main>
 <script src="assets/push-notifications.js?v=303" defer></script>
-<script src="assets/chat.js?v=284" defer></script>
-<script src="assets/direct-messages.js?v=360" defer></script>
+<script src="assets/chat.js?v=363" defer></script>
+<script src="assets/direct-messages.js?v=365" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
 <script src="assets/logout.js?v=308" defer></script>

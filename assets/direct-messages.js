@@ -184,10 +184,122 @@ function isReactionKeyboardShortcut(event) {
   return event.key === "ContextMenu" || (event.shiftKey && event.key === "F10");
 }
 
+function cancelMessageEditor(item, message) {
+  item.replaceWith(directMessageItem(message));
+}
+
+function openMessageEditor(item, message) {
+  if (message.senderEmail !== currentEmail || !message.content || item.querySelector(".message-edit-form")) return;
+  document.querySelector(".message-reaction-palette")?.remove();
+  const text = item.querySelector(".message-text");
+  const form = document.createElement("form");
+  const input = document.createElement("textarea");
+  const actions = document.createElement("div");
+  const cancel = document.createElement("button");
+  const save = document.createElement("button");
+  form.className = "message-edit-form";
+  input.value = message.content;
+  input.maxLength = 2000;
+  input.rows = Math.min(6, Math.max(2, String(message.content).split("\n").length));
+  input.setAttribute("aria-label", "Edit message text");
+  actions.className = "message-edit-actions";
+  cancel.type = "button";
+  cancel.textContent = "Cancel";
+  save.type = "submit";
+  save.textContent = "Save";
+  actions.append(cancel, save);
+  form.append(input, actions);
+  if (text) text.hidden = true;
+  item.insertBefore(form, item.querySelector(".message-meta"));
+  cancel.addEventListener("click", () => cancelMessageEditor(item, message));
+  input.addEventListener("keydown", event => {
+    if (event.key === "Escape") { event.preventDefault(); cancelMessageEditor(item, message); }
+  });
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const content = input.value.trim();
+    if (!content || content === message.content) {
+      if (!content) { input.setCustomValidity("Message text cannot be empty"); input.reportValidity(); }
+      else cancelMessageEditor(item, message);
+      return;
+    }
+    input.setCustomValidity("");
+    input.disabled = cancel.disabled = save.disabled = true;
+    try {
+      const response = await directFetch("/messages", {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "edit", contactEmail: directContact, messageId: message.messageId, content })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Message could not be edited");
+      Object.assign(message, data.message || {}, { content });
+      item.replaceWith(directMessageItem(message));
+    } catch (error) {
+      callStatus.textContent = error.message;
+      input.disabled = cancel.disabled = save.disabled = false;
+      input.focus();
+    }
+  });
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+
+async function deleteDirectMessage(item, message, scope) {
+  const response = await directFetch("/messages", {
+    method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "delete", contactEmail: directContact, messageId: message.messageId, scope })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "Message could not be deleted");
+  item.remove();
+  callStatus.textContent = scope === "everyone" ? "Message deleted for everyone." : "Message deleted for you.";
+}
+
+function openMessageDeleteChoices(item, message, palette) {
+  palette.replaceChildren();
+  palette.classList.add("message-delete-choices");
+  const addChoice = (label, scope, danger = false) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.className = danger ? "message-delete-danger" : "";
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try { await deleteDirectMessage(item, message, scope); palette.remove(); }
+      catch (error) { callStatus.textContent = error.message; button.disabled = false; }
+    });
+    palette.appendChild(button);
+  };
+  addChoice("Delete for me", "me");
+  if (message.senderEmail === currentEmail) addChoice("Delete for everyone", "everyone", true);
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "Cancel";
+  cancel.addEventListener("click", () => palette.remove());
+  palette.appendChild(cancel);
+  palette.querySelector("button")?.focus();
+}
+
 function openMessageReactions(item, message, x, y, focusFirst = false) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
   for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", (message.myReaction === emoji ? "Remove " : "React with ") + emoji); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
+  if (message.senderEmail === currentEmail && message.content) {
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "message-edit-choice";
+    edit.textContent = "✎ Edit";
+    edit.setAttribute("aria-label", "Edit message");
+    edit.addEventListener("click", () => openMessageEditor(item, message));
+    palette.appendChild(edit);
+  }
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "message-delete-choice";
+  remove.textContent = "⌫ Delete";
+  remove.setAttribute("aria-label", "Delete message");
+  remove.addEventListener("click", () => openMessageDeleteChoices(item, message, palette));
+  palette.appendChild(remove);
   palette.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); palette.remove(); item.focus(); } });
   document.body.appendChild(palette);
   if (focusFirst) palette.querySelector("button")?.focus();
@@ -249,18 +361,25 @@ function directMessageItem(message) {
   item.className = "message" + (mine ? " mine" : "");
   item.tabIndex = 0;
   item.dataset.messageId = message.messageId;
-  item.textContent = message.content;
+  if (message.content) {
+    const text = document.createElement("span");
+    text.className = "message-text";
+    text.textContent = message.content;
+    item.appendChild(text);
+  }
   if (message.mediaUrl && ["image", "video"].includes(message.mediaType)) {
     const media = document.createElement(message.mediaType === "video" ? "video" : "img");
     media.className = "message-attachment"; media.src = message.mediaUrl;
     if (message.mediaType === "image") { media.alt = mine ? "Photo you sent" : `Photo from ${activeContactName}`; media.loading = "lazy"; }
-    else { media.controls = true; media.playsInline = true; media.preload = "metadata"; }
+    else { media.controls = true; media.playsInline = true; media.preload = "metadata"; media.setAttribute("aria-label", mine ? "Video you sent" : `Video from ${activeContactName}`); }
     item.prepend(media);
   }
-  item.setAttribute("aria-label", `${mine ? "You" : activeContactName}: ${message.content}. Press Shift F10 for reactions.`);
+  const sharedUrl = firstSafeMessageUrl(message.content);
+  if (sharedUrl) item.appendChild(messageLinkPreview(sharedUrl));
+  item.setAttribute("aria-label", `${mine ? "You" : activeContactName}: ${message.content}. Long press or press Shift F10 for reactions${mine && message.content ? " and editing" : ""}.`);
   const meta = document.createElement("span");
   meta.className = "message-meta";
-  meta.textContent = (mine ? "You" : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  meta.textContent = (mine ? "You" : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · edited" : "");
   if (mine) {
     const receipt = document.createElement("span");
     receipt.className = message.read ? "message-receipt is-read" : "message-receipt";
@@ -273,8 +392,43 @@ function directMessageItem(message) {
   item.addEventListener("pointerdown", event => { reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
   item.addEventListener("contextmenu", event => { event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
-  item.addEventListener("keydown", event => { if (!isReactionKeyboardShortcut(event)) return; event.preventDefault(); const rect = item.getBoundingClientRect(); openMessageReactions(item, message, rect.left + rect.width / 2, rect.top, true); });
+  item.addEventListener("keydown", event => {
+    if (mine && message.content && event.key.toLowerCase() === "e" && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); openMessageEditor(item, message); return; }
+    if (!isReactionKeyboardShortcut(event)) return;
+    event.preventDefault(); const rect = item.getBoundingClientRect(); openMessageReactions(item, message, rect.left + rect.width / 2, rect.top, true);
+  });
   return item;
+}
+
+function firstSafeMessageUrl(content) {
+  const match = String(content || "").match(/\bhttps:\/\/[^\s<>"']+/i);
+  if (!match) return null;
+  const candidate = match[0].replace(/[),.!?;:]+$/, "");
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== "https:" || url.username || url.password) return null;
+    return url;
+  } catch { return null; }
+}
+
+function messageLinkPreview(url) {
+  const card = document.createElement("a");
+  const icon = document.createElement("span");
+  const copy = document.createElement("span");
+  const domain = document.createElement("strong");
+  const detail = document.createElement("small");
+  card.className = "message-link-preview";
+  card.href = url.href;
+  card.target = "_blank";
+  card.rel = "noopener noreferrer";
+  card.setAttribute("aria-label", `Open shared link on ${url.hostname}`);
+  icon.className = "message-link-icon";
+  icon.textContent = "🔗";
+  domain.textContent = url.hostname.replace(/^www\./, "");
+  detail.textContent = (url.pathname === "/" ? "Open shared link" : url.pathname.replace(/%20/gi, " ").replace(/\/+$/, "").split("/").filter(Boolean).slice(-2).join(" / ")) || "Open shared link";
+  copy.append(domain, detail);
+  card.append(icon, copy);
+  return card;
 }
 
 function pendingMessageItem(content, mediaFile) {
