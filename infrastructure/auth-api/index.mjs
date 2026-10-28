@@ -811,12 +811,50 @@ async function groupExists(groupId) {
   return Boolean(found.Item);
 }
 
+async function groupRecord(groupId) {
+  if (!/^[a-f0-9-]{36}$/.test(groupId)) return null;
+  const found = await db.send(new GetItemCommand({
+    TableName: groupsTable,
+    Key: { userEmail: { S: `GROUP#${groupId}` }, groupId: { S: "META" } },
+    ConsistentRead: true
+  }));
+  return found.Item || null;
+}
+
+async function groupMembership(groupId, userEmail) {
+  if (!userEmail || !defaultGroupIds.has(groupId) && !/^[a-f0-9-]{36}$/.test(groupId)) return null;
+  const found = await db.send(new GetItemCommand({
+    TableName: groupsTable,
+    Key: { userEmail: { S: userEmail }, groupId: { S: groupId } },
+    ConsistentRead: true
+  }));
+  return found.Item || null;
+}
+
+async function requireGroupMember(groupId, userId) {
+  if (!defaultGroupIds.has(groupId) && !/^[a-f0-9-]{36}$/.test(groupId)) return { error: "Invalid Tribe.", statusCode: 400 };
+  if (!(await groupExists(groupId))) return { error: "Tribe not found.", statusCode: 404 };
+  const userEmail = await accountForSub(userId);
+  if (!userEmail) return { error: "Account email could not be verified.", statusCode: 409 };
+  const membership = await groupMembership(groupId, userEmail);
+  if (!membership) return { error: "Join this Tribe to view or post in its discussion.", statusCode: 403 };
+  return { userEmail, membership };
+}
+
 async function listGroups(event) {
   const headers = corsHeaders(event.headers?.origin);
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
-  const items = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :meta", ExpressionAttributeValues: { ":meta": { S: "META" } } });
-  const groups = items.map(item => ({ id: item.userEmail.S.slice(6), name: item.name?.S || "Group", category: item.category?.S || "Creators", description: item.description?.S || "A DanzStak community group.", createdAt: item.createdAt?.S || "", isOwner: item.ownerId?.S === userId })).sort((a, b) => a.name.localeCompare(b.name));
+  const viewerEmail = await accountForSub(userId);
+  const items = await scanAll({ TableName: groupsTable, ConsistentRead: true });
+  const memberships = items.filter(item => item.groupId?.S && item.groupId.S !== "META" && !item.userEmail?.S?.startsWith("GROUP#"));
+  const counts = new Map();
+  for (const item of memberships) counts.set(item.groupId.S, (counts.get(item.groupId.S) || 0) + 1);
+  const viewerMemberships = new Map(memberships.filter(item => item.userEmail?.S === viewerEmail).map(item => [item.groupId.S, item]));
+  const groups = items.filter(item => item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#")).map(item => {
+    const id = item.userEmail.S.slice(6), isOwner = item.ownerId?.S === userId, membership = viewerMemberships.get(id);
+    return { id, name: item.name?.S || "Tribe", category: item.category?.S || "Creators", description: item.description?.S || "A DanzStak community.", createdAt: item.createdAt?.S || "", memberCount: counts.get(id) || 0, joined: Boolean(membership), isOwner, isElder: isOwner || membership?.role?.S === "elder" };
+  }).sort((a, b) => a.name.localeCompare(b.name));
   return { statusCode: 200, headers, body: JSON.stringify({ groups }) };
 }
 
@@ -832,8 +870,46 @@ async function createGroup(event) {
   if (!ownerEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
   const id = randomUUID(), createdAt = new Date().toISOString();
   await db.send(new PutItemCommand({ TableName: groupsTable, Item: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" }, ownerId: { S: userId }, name: { S: name }, category: { S: category }, description: { S: description }, createdAt: { S: createdAt } }, ConditionExpression: "attribute_not_exists(userEmail)" }));
-  await db.send(new PutItemCommand({ TableName: groupsTable, Item: { userEmail: { S: ownerEmail }, groupId: { S: id }, joinedAt: { S: createdAt } } }));
-  return { statusCode: 201, headers, body: JSON.stringify({ group: { id, name, category, description, createdAt, isOwner: true } }) };
+  await db.send(new PutItemCommand({ TableName: groupsTable, Item: { userEmail: { S: ownerEmail }, groupId: { S: id }, joinedAt: { S: createdAt }, role: { S: "elder" } } }));
+  return { statusCode: 201, headers, body: JSON.stringify({ group: { id, name, category, description, createdAt, memberCount: 1, joined: true, isOwner: true, isElder: true } }) };
+}
+
+async function listGroupMembers(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const access = await requireGroupMember(id, userId);
+  if (access.error) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
+  const meta = await groupRecord(id);
+  const rows = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ConsistentRead: true });
+  const emails = rows.map(item => item.userEmail?.S).filter(email => email && !email.startsWith("GROUP#"));
+  const profiles = await loadFeedAuthorProfiles(emails.map(email => ({ userEmail: { S: email } })));
+  const members = [];
+  for (const email of emails) {
+    const result = await cognito.send(new ListUsersCommand({ UserPoolId: userPoolId, Filter: `email = "${email.replace(/["\\]/g, "")}"`, Limit: 1 }));
+    const memberId = result.Users?.[0]?.Attributes?.find(attribute => attribute.Name === "sub")?.Value || "";
+    if (!memberId) continue;
+    const row = rows.find(item => item.userEmail?.S === email), profile = profiles.get(email) || {};
+    members.push({ memberId, name: profile.name || "DanzStak member", picture: profile.picture || "", role: meta?.ownerId?.S === memberId || row?.role?.S === "elder" ? "elder" : "member", isMe: memberId === userId });
+  }
+  members.sort((a, b) => Number(b.role === "elder") - Number(a.role === "elder") || a.name.localeCompare(b.name));
+  const callerIsElder = meta?.ownerId?.S === userId || access.membership?.role?.S === "elder";
+  return { statusCode: 200, headers, body: JSON.stringify({ members, canManageElders: callerIsElder }) };
+}
+
+async function manageGroupElder(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const meta = await groupRecord(id);
+  if (!meta) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
+  const callerEmail = await accountForSub(userId), callerMembership = await groupMembership(id, callerEmail);
+  if (meta.ownerId?.S !== userId && callerMembership?.role?.S !== "elder") return { statusCode: 403, headers, body: JSON.stringify({ error: "Only an Elder can invite or manage other Elders." }) };
+  const data = parseJsonBody(event), memberId = String(data?.memberId || ""), elder = data?.elder === true;
+  if (!/^[a-f0-9-]{36}$/.test(memberId) || memberId === userId || memberId === meta.ownerId?.S) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose another Crew member. The founding Elder cannot be changed." }) };
+  const memberEmail = await accountForSub(memberId);
+  if (!memberEmail || !(await groupMembership(id, memberEmail))) return { statusCode: 404, headers, body: JSON.stringify({ error: "That member is not in this Tribe." }) };
+  await db.send(new UpdateItemCommand({ TableName: groupsTable, Key: { userEmail: { S: memberEmail }, groupId: { S: id } }, UpdateExpression: elder ? "SET #role = :elder" : "REMOVE #role", ExpressionAttributeNames: { "#role": "role" }, ...(elder ? { ExpressionAttributeValues: { ":elder": { S: "elder" } } } : {}) }));
+  return { statusCode: 200, headers, body: JSON.stringify({ memberId, role: elder ? "elder" : "member" }) };
 }
 
 async function deleteGroup(event) {
@@ -1029,6 +1105,11 @@ async function getSecurePosts(event) {
     .filter(item => item.userId?.S !== userId && item.audience?.S === "friends" && item.userEmail?.S)
     .map(item => item.userEmail.S))];
   const friendEmails = new Set();
+  const viewerGroupIds = new Set();
+  const groupNames = new Map([
+    ["default-0", "Visual Artist"], ["default-1", "DJs & Producers"], ["default-2", "Fans"], ["default-3", "Venues"], ["default-4", "Events"],
+    ["default-5", "Scenes"], ["default-6", "Bands"], ["default-7", "Industry"], ["default-8", "Politics"], ["default-9", "Religion"]
+  ]);
 
   if (viewerEmail && friendAuthors.length) {
     const friendships = await batchGetFriendships(viewerEmail, friendAuthors);
@@ -1037,7 +1118,15 @@ async function getSecurePosts(event) {
     }
   }
 
-  const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S)));
+  if (viewerEmail && rawPosts.some(item => item.groupId?.S)) {
+    const groupItems = await scanAll({ TableName: groupsTable, ConsistentRead: true });
+    for (const item of groupItems) {
+      if (item.userEmail?.S === viewerEmail && item.groupId?.S && item.groupId.S !== "META") viewerGroupIds.add(item.groupId.S);
+      if (item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#")) groupNames.set(item.userEmail.S.slice(6), item.name?.S || "Tribe");
+    }
+  }
+
+  const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S))));
   const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));
   const authorProfiles = typeof loadFeedAuthorProfiles === "function" ? await loadFeedAuthorProfiles([...visiblePosts,...tagNames]) : new Map();
   const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
@@ -1063,6 +1152,8 @@ async function getSecurePosts(event) {
       sharedPostId:item.sharedPostId?.S || "",
       sharedPost:sharedPreview(visibleSources.get(item.sharedPostId?.S)),
       audience: item.audience?.S ?? "public",
+      groupId: item.groupId?.S || "",
+      groupName: item.groupId?.S ? groupNames.get(item.groupId.S) || "Tribe" : "",
       mediaKey: item.mediaKey?.S ?? "",
       mediaUrl: item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S, 3600) : "",
       mediaType: item.mediaType?.S ?? "",
@@ -1082,7 +1173,12 @@ async function postForEngagement(postId, userId) {
   const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
   const post = found.Item;
   if (!post) return { error: "Post not found.", statusCode: 404 };
-  if (post.userId?.S === userId || post.audience?.S === "public") return { post };
+  if (post.userId?.S === userId) return { post };
+  if (post.groupId?.S) {
+    const access = await requireGroupMember(post.groupId.S, userId);
+    return access.error ? access : { post };
+  }
+  if (post.audience?.S === "public") return { post };
   if (post.audience?.S !== "friends" || !post.userEmail?.S) return { error: "Post is not available.", statusCode: 403 };
   const viewerEmail = await accountForSub(userId);
   if (!viewerEmail) return { error: "Account email could not be verified.", statusCode: 409 };
@@ -1457,17 +1553,24 @@ async function createSecurePost(event) {
   if (location === null || location.length > 120) return {statusCode:400,headers,body:JSON.stringify({error:"Location must be at most 120 characters."})};
   const content = data.content.trim() || "Shared a post.";
   if (!sharedSource && data.originalContentCertified !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Original-content certification is required." }) };
-  const audience = ["public", "friends", "private"].includes(data.audience) ? data.audience : "public";
+  const requestedGroupId = data.groupId === undefined ? "" : String(data.groupId || "");
+  const audience = requestedGroupId ? "group" : ["public", "friends", "private"].includes(data.audience) ? data.audience : "public";
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
   const reel = mediaType === "video" && data.reel === true;
   if (sharedSource && (mediaKey || mediaType || reel)) return {statusCode:400,headers,body:JSON.stringify({error:"Shared posts reference the original media."})};
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  if (requestedGroupId) {
+    if (facebookImport) return { statusCode: 400, headers, body: JSON.stringify({ error: "Import posts to your feed before sharing them to a Tribe." }) };
+    const groupAccess = await requireGroupMember(requestedGroupId, userId);
+    if (groupAccess.error) return { statusCode: groupAccess.statusCode, headers, body: JSON.stringify({ error: groupAccess.error }) };
+  }
   const profileOwnerId = data.profileMemberId === undefined ? "" : String(data.profileMemberId || "");
   let profileOwnerEmail = "";
   let profilePermissionChecks = [];
   if (profileOwnerId) {
+    if (requestedGroupId) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose either a Tribe or a member profile, not both." }) };
     if (!/^[a-f0-9-]{36}$/.test(profileOwnerId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid profile." }) };
     profileOwnerEmail = await accountForSub(profileOwnerId);
     if (!profileOwnerEmail) return { statusCode: 404, headers, body: JSON.stringify({ error: "Profile not found." }) };
@@ -1505,6 +1608,7 @@ async function createSecurePost(event) {
       content: { S: content },
       ...(location ? {location:{S:location}} : {}),
       ...(sharedSource ? {sharedPostId:{S:sharedSource.postId.S}} : {}),
+      ...(requestedGroupId ? { groupId: { S: requestedGroupId } } : {}),
       createdAt: { S: createdAt },
       audience: { S: audience },
       ...(facebookImport ? { importSource: { S: "facebook" }, importKey: { S: data.importKey }, importedAt: { S: importedAt } } : {}),
@@ -1533,6 +1637,7 @@ async function createSecurePost(event) {
       profileOwnerMemberId: profileOwnerId,
       content,
       audience,
+      groupId: requestedGroupId,
       location,
       mediaKey,
       mediaType,
@@ -2273,6 +2378,14 @@ export const handler = async event => {
 
     if (method === "POST" && path.startsWith("/groups/") && path.endsWith("/everyone")) {
       return await broadcastGroup(event);
+    }
+
+    if (method === "GET" && path.startsWith("/groups/") && path.endsWith("/members")) {
+      return await listGroupMembers(event);
+    }
+
+    if (method === "POST" && path.startsWith("/groups/") && path.endsWith("/elders")) {
+      return await manageGroupElder(event);
     }
 
     if (method === "GET" && path === "/profile-video") {

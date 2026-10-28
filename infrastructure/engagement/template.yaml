@@ -215,6 +215,19 @@ Resources:
           - notify current members only; never return member email addresses
         mutable: change-with-constraints
     Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /groups/{groupId}/everyone', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GroupMembersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /groups/{groupId}/members', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GroupEldersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: lets Tribe Elders promote or remove additional moderators without exposing member email addresses
+        must:
+          - Elder authorization is enforced by the Auth API and the founding Elder cannot be demoted
+          - target must already be a Tribe member
+        mutable: change-with-constraints
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /groups/{groupId}/elders', Target: !Sub 'integrations/${AuthIntegrationId}'}
   GetProfileVideoRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /profile-video', Target: !Sub 'integrations/${AuthIntegrationId}'}

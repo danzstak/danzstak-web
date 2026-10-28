@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-p0Nq0qJGYbSOSJ35OsCeguetZWrutfyCRXAGVMVbJ/4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-9xNwTB5Q/aNCy+Ai7MACBnJEYgzaEcDrytBOYjvQzj0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -304,14 +304,14 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=370">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=371">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
   <link rel="stylesheet" href="assets/soft-ui.css?v=363">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=1" defer></script>
 <script src="assets/i18n.js?v=342" defer></script>
 <script src="assets/mobile-keyboard.js?v=231" defer></script>
-<script src="assets/post-sharing.js?v=306" defer></script>
+<script src="assets/post-sharing.js?v=371" defer></script>
 <script src="assets/media-tags.js?v=357" defer></script>
 </head>
 
@@ -630,7 +630,7 @@ async function loadFriends() {
 }
 
 // CREATE THE VISUAL DISPLAY OF A POST
-function createPostElement(content, author = "DanzStak member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorMemberId = "", commentPolicy = "everyone", editHistory = [], locationLabel = "", authorPicture = "") {
+function createPostElement(content, author = "DanzStak member", createdAt = null, audience = "public", mediaUrl = "", mediaType = "", postId = "", isOwner = null, authorMemberId = "", commentPolicy = "everyone", editHistory = [], locationLabel = "", authorPicture = "", groupId = "", groupName = "") {
 
   const article = document.createElement("article");
   article.className = "post";
@@ -643,6 +643,7 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   }
   if (typeof isOwner === "boolean") article.dataset.isOwner = String(isOwner);
   article.dataset.commentSetting = String(commentPolicy === "friends" ? 1 : commentPolicy === "off" ? 2 : 0);
+  if (groupId) { article.dataset.groupId = groupId; article.dataset.groupName = groupName || "Tribe"; }
   article.dataset.editHistory = JSON.stringify(Array.isArray(editHistory) ? editHistory : []);
 
   const header = document.createElement("div");
@@ -679,6 +680,15 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   audienceBadge.setAttribute("aria-label", "Post audience: " + audienceBadge.textContent.replace(/^[^ ]+ /, ""));
 
   authorDetails.append(authorLabel, time, audienceBadge);
+  if (groupId) {
+    const tribe = document.createElement("button");
+    tribe.type = "button";
+    tribe.className = "post-tribe-link";
+    tribe.textContent = "👥 " + (groupName || "Tribe");
+    tribe.setAttribute("aria-label", "Open Tribe " + (groupName || "Tribe"));
+    tribe.addEventListener("click", () => { window.danzstakPendingTribeId = groupId; location.hash = "groups"; setTimeout(() => window.dispatchEvent(new CustomEvent("danzstak:open-tribe", { detail: { groupId } })), 0); });
+    authorDetails.appendChild(tribe);
+  }
   header.append(avatar, authorDetails);
   if (locationLabel) { const place = document.createElement("span"); place.className = "post-location"; place.textContent = "Location: " + locationLabel; authorDetails.appendChild(place); }
 
@@ -947,7 +957,9 @@ async function loadPosts() {
         post.commentPolicy,
         post.editHistory,
         post.location,
-        post.authorPicture
+        post.authorPicture,
+        post.groupId,
+        post.groupName
       );
 
       if (!post.mediaUrl && post.mediaKey && post.mediaType) {
@@ -1326,7 +1338,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=370" defer></script>
+<script src="assets/feed-enhancements.js?v=371" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=295" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>

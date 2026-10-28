@@ -1,7 +1,7 @@
 {
   "name": "DanzStak",
   "short_name": "DanzStak",
-  "description": "A social network for music culture, creators, and fans.",
+  "description": "The digital clubhouse for music culture, creators, and fans.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

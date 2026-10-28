@@ -425,7 +425,7 @@ function renderWorkspace(name) {
     featurePanel.appendChild(workspace);
   }
   workspace.replaceChildren();
-  workspace.classList.remove("settings-workspace", "events-workspace");
+  workspace.classList.remove("settings-workspace", "events-workspace", "groups-workspace");
   const saved = readSections();
 
   if (name === "Saved") {
@@ -437,12 +437,68 @@ function renderWorkspace(name) {
   }
 
   if (name === "Groups") {
-    featureText.textContent = "Find communities by category, create a group, and connect with people who share your interests.";
+    workspace.classList.add("groups-workspace");
+    featureText.textContent = "Discover Tribes, keep up with communities you joined, and meet people who share your interests.";
     const groupCategoryName = category => ({Artists:"Visual Artist", Creators:"Bands", "Venues & Promoters":"Venues", "Local Scenes":"Scenes", "Industry Networking":"Industry"})[category] || category;
     const legacyCategoryOrder = ["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"];
     const categories = ["Artists", "Creators", "DJs & Producers", "Fans", "Venues & Promoters", "Local Scenes", "Industry Networking", "Events", "Politics", "Religion"];
+    const toolbar = document.createElement("div");
+    toolbar.className = "groups-toolbar";
+    const tabs = document.createElement("div");
+    tabs.className = "groups-tabs";
+    tabs.setAttribute("role", "tablist");
+    tabs.setAttribute("aria-label", "Tribe views");
+    let groupView = "discover";
+    const viewButtons = {};
+    for (const [value, label] of [["discover", "Discover"], ["joined", "Your Tribes"]]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "groups-tab";
+      button.textContent = label;
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-selected", String(value === groupView));
+      button.addEventListener("click", () => {
+        groupView = value;
+        Object.entries(viewButtons).forEach(([key, item]) => item.setAttribute("aria-selected", String(key === value)));
+        renderGroups();
+      });
+      viewButtons[value] = button;
+      tabs.appendChild(button);
+    }
+    const discoverControls = document.createElement("div");
+    discoverControls.className = "groups-discovery-controls";
+    const groupSearch = document.createElement("input");
+    groupSearch.type = "search";
+    groupSearch.placeholder = "Search Tribes";
+    groupSearch.setAttribute("aria-label", "Search Tribes");
+    const categoryFilter = document.createElement("select");
+    categoryFilter.setAttribute("aria-label", "Filter Tribes by category");
+    const allCategories = document.createElement("option");
+    allCategories.value = "";
+    allCategories.textContent = "All categories";
+    categoryFilter.appendChild(allCategories);
+    for (const category of categories) {
+      const option = document.createElement("option");
+      option.value = category;
+      option.textContent = groupCategoryName(category);
+      categoryFilter.appendChild(option);
+    }
+    const createToggle = document.createElement("button");
+    createToggle.type = "button";
+    createToggle.className = "primary groups-create-toggle";
+    createToggle.textContent = "+ Create Tribe";
+    createToggle.setAttribute("aria-expanded", "false");
+    discoverControls.append(groupSearch, categoryFilter, createToggle);
+    toolbar.append(tabs, discoverControls);
     const createBox = document.createElement("div");
     createBox.className = "group-create-box";
+    createBox.hidden = true;
+    createToggle.addEventListener("click", () => {
+      createBox.hidden = !createBox.hidden;
+      createToggle.setAttribute("aria-expanded", String(!createBox.hidden));
+      createToggle.textContent = createBox.hidden ? "+ Create Tribe" : "Close";
+      if (!createBox.hidden) groupName.input.focus();
+    });
     const groupName = field("Tribe name", "text", "Name your tribe");
     const categoryLabel = document.createElement("label");
     categoryLabel.textContent = "Category";
@@ -472,24 +528,193 @@ function renderWorkspace(name) {
     createBox.append(groupName.wrap, categoryLabel, standardsLabel, standardsError, createButton);
     const grid = document.createElement("div");
     grid.className = "groups-grid";
+    grid.setAttribute("aria-live", "polite");
     let customGroups = [...(saved.CustomGroups || [])];
     const membershipChanges = new Map();
+    const detail = document.createElement("section");
+    detail.className = "tribe-detail";
+    detail.hidden = true;
+    const groupIcon = category => ({ Artists:"🎨", Creators:"🎸", "DJs & Producers":"🎛️", Fans:"🤘", "Venues & Promoters":"🎟️", "Local Scenes":"📍", "Industry Networking":"🤝", Events:"📅", Politics:"💬", Religion:"🕊️" })[category] || "👥";
+
+    async function saveGroupMembership(group, nextJoined) {
+      const response = await groupFetch("/groups/membership", {
+        method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+        body: JSON.stringify({ groupId: group.id, joined: nextJoined })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Membership could not be saved");
+      saved.GroupsJoined = saved.GroupsJoined || {};
+      saved.GroupsJoined[group.id] = nextJoined;
+      membershipChanges.set(group.id, nextJoined);
+      group.joined = nextJoined;
+      writeSections(saved);
+    }
+
+    function showTribeDirectory() {
+      detail.hidden = true;
+      toolbar.hidden = false;
+      grid.hidden = false;
+      featureText.textContent = "Discover Tribes, keep up with communities you joined, and meet people who share your interests.";
+      renderGroups();
+    }
+
+    function renderTribePosts(group, target) {
+      target.replaceChildren();
+      const posts = (window.danzstakLoadedPosts || []).filter(post => post.groupId === group.id);
+      if (!posts.length) {
+        const empty = document.createElement("div"); empty.className = "tribe-feed-empty";
+        const title = document.createElement("strong"); title.textContent = "Start the conversation";
+        const copy = document.createElement("span"); copy.textContent = "The first post in this Tribe will appear here.";
+        empty.append(title, copy); target.appendChild(empty); return;
+      }
+      for (const post of posts) {
+        if (typeof window.createPostElement !== "function") continue;
+        const article = window.createPostElement(post.content, post.authorName, post.createdAt, post.audience, post.mediaUrl, post.mediaType, post.postId, post.isOwner, post.userId, post.commentPolicy, post.editHistory, post.location, post.authorPicture, post.groupId, post.groupName);
+        article.dataset.viewCount = String(post.viewCount || 0);
+        window.danzstakRenderSharedPost?.(article, post);
+        window.danzstakRenderMediaTags?.(article, post);
+        target.appendChild(article);
+      }
+    }
+
+    async function renderCrew(group, panel) {
+      panel.replaceChildren();
+      const loading = document.createElement("p"); loading.className = "muted"; loading.textContent = "Loading The Crew…"; panel.appendChild(loading);
+      try {
+        const response = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/members", { credentials: "include", cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !Array.isArray(data.members)) throw new Error(data.error || "The Crew could not be loaded");
+        panel.replaceChildren();
+        const heading = document.createElement("div"); heading.className = "tribe-crew-heading";
+        const title = document.createElement("strong"); title.textContent = "The Crew";
+        const count = document.createElement("span"); count.textContent = `${data.members.length} ${data.members.length === 1 ? "member" : "members"}`;
+        heading.append(title, count); panel.appendChild(heading);
+        for (const member of data.members) {
+          const row = document.createElement("div"); row.className = "tribe-crew-member";
+          const avatar = member.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "tribe-crew-avatar";
+          if (member.picture) { avatar.src = member.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+          else avatar.textContent = String(member.name || "D").charAt(0).toUpperCase();
+          const identity = document.createElement("div");
+          const name = document.createElement("strong"); name.textContent = member.name || "DanzStak member";
+          const role = document.createElement("span"); role.textContent = member.role === "elder" ? "Elder" : "The Crew";
+          identity.append(name, role); row.append(avatar, identity);
+          if (data.canManageElders && !member.isMe) {
+            const manage = document.createElement("button"); manage.type = "button"; manage.className = "secondary tribe-elder-toggle";
+            manage.textContent = member.role === "elder" ? "Return to Crew" : "Invite as Elder";
+            manage.addEventListener("click", async () => {
+              manage.disabled = true;
+              try {
+                const update = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/elders", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ memberId: member.memberId, elder: member.role !== "elder" }) });
+                const result = await update.json().catch(() => ({}));
+                if (!update.ok) throw new Error(result.error || "Elder role could not be updated");
+                await renderCrew(group, panel);
+              } catch (error) { alert(error.message); manage.disabled = false; }
+            });
+            row.appendChild(manage);
+          }
+          panel.appendChild(row);
+        }
+      } catch (error) { loading.textContent = error.message; }
+    }
+
+    function openTribe(group) {
+      toolbar.hidden = true; createBox.hidden = true; grid.hidden = true; detail.hidden = false; detail.replaceChildren();
+      featureText.textContent = group.name;
+      const back = document.createElement("button"); back.type = "button"; back.className = "tribe-back"; back.textContent = "← Back to Tribes"; back.addEventListener("click", showTribeDirectory);
+      const hero = document.createElement("header"); hero.className = "tribe-hero";
+      const cover = document.createElement("div"); cover.className = "tribe-hero-cover"; cover.textContent = groupIcon(group.category); cover.setAttribute("aria-hidden", "true");
+      const identity = document.createElement("div"); identity.className = "tribe-hero-identity";
+      const title = document.createElement("h4"); title.textContent = group.name;
+      const meta = document.createElement("p"); const count = Number(group.memberCount || 0); meta.textContent = `🔒 Tribe · ${count ? count + " in The Crew" : "The Crew"}`;
+      const elder = document.createElement("span"); elder.className = "tribe-elder-badge"; elder.textContent = group.isElder || group.isOwner ? "Elder" : groupCategoryName(group.category);
+      identity.append(title, meta, elder);
+      const membership = document.createElement("button"); membership.type = "button"; membership.className = "primary tribe-membership";
+      const paintMembership = () => { const joined = Boolean(saved.GroupsJoined?.[group.id]); membership.textContent = joined ? "✓ Joined" : "+ Join Tribe"; membership.classList.toggle("is-selected", joined); };
+      paintMembership();
+      membership.addEventListener("click", async () => { membership.disabled = true; try { await saveGroupMembership(group, !saved.GroupsJoined?.[group.id]); paintMembership(); openTribe(group); } catch (error) { alert(error.message); } finally { membership.disabled = false; } });
+      hero.append(cover, identity, membership);
+      const nav = document.createElement("div"); nav.className = "tribe-nav"; nav.setAttribute("role", "tablist"); nav.setAttribute("aria-label", group.name + " sections");
+      const panels = document.createElement("div"); panels.className = "tribe-panels";
+      const discussion = document.createElement("section"), about = document.createElement("section"), crew = document.createElement("section");
+      discussion.className = "tribe-panel"; about.className = "tribe-panel"; crew.className = "tribe-panel"; about.hidden = crew.hidden = true;
+      const switchPanel = value => {
+        discussion.hidden = value !== "discussion"; about.hidden = value !== "about"; crew.hidden = value !== "crew";
+        nav.querySelectorAll("button").forEach(button => button.setAttribute("aria-selected", String(button.dataset.panel === value)));
+        if (value === "crew" && !crew.dataset.loaded) { crew.dataset.loaded = "true"; renderCrew(group, crew); }
+      };
+      for (const [value, label] of [["discussion", "Discussion"], ["crew", "The Crew"], ["about", "About"]]) {
+        const button = document.createElement("button"); button.type = "button"; button.dataset.panel = value; button.textContent = label; button.setAttribute("role", "tab"); button.setAttribute("aria-selected", String(value === "discussion")); button.addEventListener("click", () => switchPanel(value)); nav.appendChild(button);
+      }
+      if (saved.GroupsJoined?.[group.id]) {
+        const composer = document.createElement("div"); composer.className = "tribe-composer";
+        const input = document.createElement("textarea"); input.maxLength = 5000; input.placeholder = "Write something to " + group.name + "…"; input.setAttribute("aria-label", "Write a post to " + group.name);
+        const certify = document.createElement("label"); const checkbox = document.createElement("input"); checkbox.type = "checkbox"; certify.append(checkbox, document.createTextNode(" This is my original content."));
+        const publish = document.createElement("button"); publish.type = "button"; publish.className = "primary"; publish.textContent = "Post";
+        const status = document.createElement("p"); status.className = "muted"; status.setAttribute("role", "status");
+        publish.addEventListener("click", async () => {
+          const content = input.value.trim(); if (!content) return input.focus(); if (!checkbox.checked) { status.textContent = "Confirm that this is your original content."; return checkbox.focus(); }
+          publish.disabled = true; status.textContent = "Posting…";
+          try {
+            const response = await postActionFetch("/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content, groupId: group.id, originalContentCertified: true }) });
+            const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || "Post could not be shared with this Tribe");
+            input.value = ""; checkbox.checked = false; status.textContent = "Posted to " + group.name + ".";
+            if (typeof window.loadPosts === "function") await window.loadPosts(); renderTribePosts(group, feed);
+          } catch (error) { status.textContent = error.message; } finally { publish.disabled = false; }
+        });
+        composer.append(input, certify, publish, status); discussion.appendChild(composer);
+      } else {
+        const prompt = document.createElement("div"); prompt.className = "tribe-join-prompt"; prompt.textContent = "Join this Tribe to post, comment, and meet The Crew."; discussion.appendChild(prompt);
+      }
+      const feed = document.createElement("div"); feed.className = "tribe-feed"; discussion.appendChild(feed); renderTribePosts(group, feed);
+      const aboutCard = document.createElement("div"); aboutCard.className = "tribe-about-card"; const aboutTitle = document.createElement("h5"); aboutTitle.textContent = "About this Tribe"; const description = document.createElement("p"); description.textContent = group.description; const standard = document.createElement("p"); standard.textContent = "Community standards: no hate speech, harassment, threats, or targeted abuse."; aboutCard.append(aboutTitle, description, standard); about.appendChild(aboutCard);
+      panels.append(discussion, crew, about); detail.append(back, hero, nav, panels); detail.scrollIntoView({ block: "start" });
+    }
+
+    if (window.danzstakOpenTribeHandler) window.removeEventListener("danzstak:open-tribe", window.danzstakOpenTribeHandler);
+    window.danzstakOpenTribeHandler = event => {
+      const group = customGroups.find(item => item.id === event.detail?.groupId);
+      if (group) { window.danzstakPendingTribeId = ""; openTribe(group); }
+    };
+    window.addEventListener("danzstak:open-tribe", window.danzstakOpenTribeHandler);
 
     function renderGroups() {
       grid.replaceChildren();
       const defaults = categories.map(category => ({ id: `default-${legacyCategoryOrder.indexOf(category)}`, name: groupCategoryName(category), category, description: `Connect in ${(groupCategoryName(category)).toLowerCase()}.`, custom: false }));
-      const groups = [...customGroups, ...defaults];
+      const query = groupSearch.value.trim().toLowerCase();
+      const groups = [...customGroups, ...defaults]
+        .filter(group => groupView !== "joined" || Boolean(saved.GroupsJoined?.[group.id]))
+        .filter(group => !categoryFilter.value || group.category === categoryFilter.value)
+        .filter(group => !query || `${group.name} ${group.description || ""} ${groupCategoryName(group.category)}`.toLowerCase().includes(query))
+        .sort((a, b) => Number(Boolean(saved.GroupsJoined?.[b.id])) - Number(Boolean(saved.GroupsJoined?.[a.id])) || Number(Boolean(b.custom)) - Number(Boolean(a.custom)) || String(a.name).localeCompare(String(b.name)));
+      if (!groups.length) {
+        const empty = document.createElement("div");
+        empty.className = "groups-empty";
+        const heading = document.createElement("strong");
+        heading.textContent = groupView === "joined" ? "You have not joined a Tribe yet" : "No Tribes match that search";
+        const copy = document.createElement("span");
+        copy.textContent = groupView === "joined" ? "Choose Discover to find communities." : "Try another name or category.";
+        empty.append(heading, copy);
+        grid.appendChild(empty);
+        return;
+      }
       for (const group of groups) {
         const isSensitiveDiscussion = ["Politics", "Religion"].includes(group.category);
         const card = document.createElement("article");
         card.className = "group-card" + (isSensitiveDiscussion ? " group-card--moderated" : "");
+        const cover = document.createElement("div");
+        cover.className = "group-card-cover";
+        cover.setAttribute("aria-hidden", "true");
+        cover.textContent = groupIcon(group.category);
         const title = document.createElement("h4");
-        title.textContent = group.name;
+        const open = document.createElement("button"); open.type = "button"; open.className = "group-open"; open.textContent = group.name; open.addEventListener("click", () => openTribe(group)); title.appendChild(open);
         const category = document.createElement("span");
         category.className = "group-category";
         category.textContent = groupCategoryName(group.category);
         const description = document.createElement("p");
         description.textContent = group.description;
+        const meta = document.createElement("div");
+        meta.className = "group-meta";
+        meta.textContent = `${Number(group.memberCount || 0) ? Number(group.memberCount) + " in The Crew · " : ""}${group.isElder || group.isOwner ? "Elder · " : ""}${groupCategoryName(group.category)}`;
         const join = document.createElement("button");
         join.type = "button";
         join.className = "primary";
@@ -503,32 +728,23 @@ function renderWorkspace(name) {
           const nextJoined = !saved.GroupsJoined?.[group.id];
           join.disabled = true;
           try {
-            const response = await groupFetch("/groups/membership", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ groupId: group.id, joined: nextJoined })
-            });
-            if (!response.ok) throw new Error("Membership could not be saved");
-            saved.GroupsJoined = saved.GroupsJoined || {};
-            saved.GroupsJoined[group.id] = nextJoined;
-            membershipChanges.set(group.id, nextJoined);
-            writeSections(saved);
+            await saveGroupMembership(group, nextJoined);
             join.textContent = nextJoined ? "Joined" : "Join Tribe";
             join.classList.toggle("is-selected", nextJoined);
+            renderGroups();
           } catch (error) {
             alert(error.message);
           } finally {
             join.disabled = false;
           }
         });
-        card.append(category, title, description);
+        card.append(cover, category, title, meta, description);
         const moderation = document.createElement("div");
         moderation.className = "group-moderation-notice";
         const moderationTitle = document.createElement("strong");
-        moderationTitle.textContent = isSensitiveDiscussion ? "Moderated discussion" : "Community Standards apply";
+        moderationTitle.textContent = isSensitiveDiscussion ? "Moderated discussion" : "Community standards";
         const moderationText = document.createElement("span");
-        moderationText.textContent = (isSensitiveDiscussion ? "Debate ideas freely. " : "") + "Hate speech, harassment, threats, and targeted abuse are not allowed.";
+        moderationText.textContent = isSensitiveDiscussion ? "Debate ideas, not people. No hate speech or harassment." : "Be respectful. No hate speech or harassment.";
         const report = document.createElement("button");
         report.type = "button";
         report.className = "group-report";
@@ -620,7 +836,9 @@ function renderWorkspace(name) {
       renderGroups();
       createButton.disabled = false;
     });
-    workspace.append(createBox, grid);
+    groupSearch.addEventListener("input", renderGroups);
+    categoryFilter.addEventListener("change", renderGroups);
+    workspace.append(toolbar, createBox, grid, detail);
     renderGroups();
     groupFetch("/groups", { credentials: "include", cache: "no-store" })
       .then(response => response.ok ? response.json() : null)
@@ -644,6 +862,10 @@ function renderWorkspace(name) {
         migration.joinedIds.forEach(id => { saved.GroupsJoined[id] = true; membershipChanges.set(id, true); });
         writeSections(saved);
         renderGroups();
+        if (window.danzstakPendingTribeId) {
+          const pendingGroup = customGroups.find(group => group.id === window.danzstakPendingTribeId);
+          if (pendingGroup) { window.danzstakPendingTribeId = ""; openTribe(pendingGroup); }
+        }
       })
       .catch(() => { createButton.textContent = "Retry Group Service"; createButton.dataset.mode = "retry"; createButton.disabled = false; });
     groupFetch("/groups/membership", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ action: "list" }) })

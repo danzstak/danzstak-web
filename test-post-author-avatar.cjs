@@ -10,7 +10,7 @@ assert.match(api, /ProjectionExpression: "profileName, profileAvatarKey"/, "Only
 assert.match(html, /avatar\.className = "post-avatar"/);
 assert.match(html, /if \(authorPicture\) \{ avatar\.src = authorPicture;/);
 assert.match(html, /else \{ avatar\.textContent = String\(author \|\| "D"\)\.charAt\(0\)\.toUpperCase\(\)/, "Posts without photos need an initials fallback");
-assert.match(html, /post\.authorPicture\s*\n\s*\);/, "Loaded post photos must reach the renderer");
+assert.match(html, /post\.authorPicture,\s*\n\s*post\.groupId,/, "Loaded post photos must reach the renderer");
 assert.match(css, /\.post-header\{[^}]*grid-template-columns:42px minmax\(0,1fr\)/);
 assert.match(css, /\.post-avatar\{[^}]*border-radius:50%/);
 
