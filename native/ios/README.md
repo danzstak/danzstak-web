@@ -26,7 +26,7 @@ The project uses Swift 5 language mode (not a Swift compiler version such as 5.1
 
 ## Native social interface
 
-The app now provides Home, People, Create, Alerts, and Profile tabs. Home includes searchable loaded posts, HTTPS image/video media, reactions, comments, native sharing, pull-to-refresh, and error recovery. The composer saves drafts when closed or when publishing fails and requires content-permission confirmation. People shows authors from the loaded feed, not a fabricated friends list. Profile shows the current user's loaded posts; Groups lists the community directory. Notifications support opening loaded posts and marking activity as read.
+The app now provides Home, People, Create, Alerts, and Menu tabs. The footer Menu opens profile, post creation, groups, header sizing, policy links, and logout. Home includes searchable loaded posts, HTTPS image/video media, reactions, comments, native sharing, pull-to-refresh, and error recovery. The composer saves drafts when closed or when publishing fails and requires content-permission confirmation. People shows authors from the loaded feed, not a fabricated friends list. Profile shows the current user's loaded posts; Groups lists the community directory. Notifications support opening loaded posts and marking activity as read.
 
 Existing authenticated endpoints power these screens. Native friend requests, direct messages, profile editing, group membership actions, media uploads, and push notifications are not implemented by this interface. Website functionality remains available separately.
 

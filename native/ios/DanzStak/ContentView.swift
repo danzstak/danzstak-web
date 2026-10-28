@@ -8,14 +8,14 @@ private enum SocialStyle {
 }
 
 private enum SocialTab: String, CaseIterable {
-    case home = "Home", people = "People", create = "Create", alerts = "Alerts", profile = "Profile"
+    case home = "Home", people = "People", create = "Create", alerts = "Alerts", menu = "Menu"
     var icon: String {
         switch self {
         case .home: "house.fill"
         case .people: "person.2.fill"
         case .create: "plus.app.fill"
         case .alerts: "bell.fill"
-        case .profile: "person.crop.circle"
+        case .menu: "line.3.horizontal"
         }
     }
 }
@@ -62,7 +62,7 @@ struct ContentView: View {
                     NavigationStack { composerLanding }.tag(SocialTab.create).tabItem { Label("Create", systemImage: "plus.app.fill") }
                     NavigationStack { alerts }.tag(SocialTab.alerts).tabItem { Label("Alerts", systemImage: "bell.fill") }
                         .badge(model.notices.filter(\.unread).count)
-                    NavigationStack { profile }.tag(SocialTab.profile).tabItem { Label("Profile", systemImage: "person.crop.circle") }
+                    NavigationStack { menu }.tag(SocialTab.menu).tabItem { Label("Menu", systemImage: "line.3.horizontal") }
                 }
                 .tint(SocialStyle.blue)
                 }
@@ -278,6 +278,46 @@ struct ContentView: View {
     }
 
     private var myPost: FeedPost? { model.posts.first { $0.isOwner == true } }
+
+    private var menu: some View {
+        List {
+            Section {
+                NavigationLink { profile } label: {
+                    HStack(spacing: 12) {
+                        Avatar(name: myPost?.author ?? "You", picture: myPost?.authorPicture, size: 48)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(myPost?.author ?? "Your profile").font(.headline)
+                            Text("View your profile and posts").font(.caption).foregroundStyle(.secondary)
+                        }.padding(.vertical, 6)
+                    }
+                }.accessibilityIdentifier("menu.profile")
+            }
+            Section("Community") {
+                Button { composer = true } label: { Label("Create a post", systemImage: "square.and.pencil") }
+                Button { showGroups = true } label: { Label("Groups", systemImage: "person.3.fill") }
+            }
+            Section("Appearance") {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label("Header size", systemImage: "rectangle.topthird.inset.filled")
+                        Spacer()
+                        Text("\(Int(headerPercent))%").foregroundStyle(.secondary)
+                    }
+                    Slider(value: $headerPercent, in: 4...10, step: 1).accessibilityLabel("Header size")
+                    Text("Compact 4% · Default 6% · Larger 10%").font(.caption).foregroundStyle(.secondary)
+                }.padding(.vertical, 6)
+            }
+            Section("About DanzStak") {
+                Link(destination: URL(string: "https://www.danzstak.com/privacy.html")!) { Label("Privacy policy", systemImage: "hand.raised") }
+                Link(destination: URL(string: "https://www.danzstak.com/terms.html")!) { Label("Terms of service", systemImage: "doc.text") }
+            }
+            Section {
+                Button(role: .destructive) { Task { await model.logout() } } label: {
+                    Label(model.isDemo ? "Exit demo" : "Log out", systemImage: "rectangle.portrait.and.arrow.right")
+                }
+            }
+        }.navigationTitle("Menu").toolbar(.visible, for: .navigationBar)
+    }
 
     private var groups: some View {
         List {

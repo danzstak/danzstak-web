@@ -1,6 +1,18 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testFooterMenu() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview"]
+        app.launch()
+        XCTAssertTrue(app.tabBars.buttons["Menu"].waitForExistence(timeout: 20))
+        app.tabBars.buttons["Menu"].tap()
+        XCTAssertTrue(app.navigationBars["Menu"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.sliders["Header size"].exists)
+        app.buttons["menu.profile"].tap()
+        XCTAssertTrue(app.staticTexts["Your posts"].waitForExistence(timeout: 5))
+    }
+
     func testCompactHeaderSearch() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview", "--header-percent", "4"]
@@ -58,7 +70,8 @@ final class SocialNavigationTests: XCTestCase {
         app.buttons["Done"].tap()
         app.tabBars.buttons["Alerts"].tap()
         XCTAssertTrue(app.staticTexts["New comment on your post"].exists)
-        app.tabBars.buttons["Profile"].tap()
+        app.tabBars.buttons["Menu"].tap()
+        app.buttons["menu.profile"].tap()
         XCTAssertTrue(app.staticTexts["Your posts"].exists)
         app.buttons["Exit demo"].tap()
         XCTAssertTrue(app.buttons["Log in to DanzStak"].waitForExistence(timeout: 5))
