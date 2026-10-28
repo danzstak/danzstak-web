@@ -1314,10 +1314,11 @@ document.querySelector('[data-route="home"]')?.addEventListener("click", () => c
 document.getElementById("messagesNav")?.addEventListener("click", () => closeNotificationDrawer(false), { capture: true });
 
 function restoreWorkspaceRoute() {
-  const name = workspaceRoutes.get(location.hash.slice(1).toLowerCase());
+  const requestedView = new URLSearchParams(location.search).get("view")?.trim().toLowerCase() || "";
+  const name = workspaceRoutes.get(location.hash.slice(1).toLowerCase()) || workspaceRoutes.get(requestedView);
   if (name) openWorkspaceRoute(name, false);
   else if (!location.hash || location.hash === "#feed" || location.hash.startsWith("#post-")) {
-    document.body.classList.toggle("content-only", new URLSearchParams(location.search).get("view") === "feed" || location.hash === "#feed" || location.hash.startsWith("#post-"));
+    document.body.classList.toggle("content-only", requestedView === "feed" || location.hash === "#feed" || location.hash.startsWith("#post-"));
     const home = document.querySelector('[data-route="home"]');
     home?.setAttribute("aria-pressed", "true");
     if (document.body.classList.contains("content-only")) home?.removeAttribute("aria-current");
