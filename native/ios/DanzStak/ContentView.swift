@@ -27,6 +27,21 @@ struct ContentView: View {
     @State private var searching = false
     @State private var query = ""
     @State private var showGroups = false
+    @AppStorage("danzstak.headerPercent") private var headerPercent = 6.0
+
+    private var effectiveHeaderPercent: Double {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--ui-preview"), let index = arguments.firstIndex(of: "--header-percent"),
+           arguments.indices.contains(index + 1), let value = Double(arguments[index + 1]) {
+            return min(10, max(4, value))
+        }
+        return min(10, max(4, headerPercent))
+    }
+
+    private var headerHeight: CGFloat {
+        let height = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.screen.bounds.height }.first ?? 874
+        return height * effectiveHeaderPercent / 100
+    }
 
     var body: some View {
         Group {
@@ -85,17 +100,17 @@ struct ContentView: View {
         VStack(spacing: 0) {
             HStack {
                 Image("DanzStakBrand")
-                    .resizable().scaledToFit().frame(width: 126, height: 84)
+                    .resizable().scaledToFit().frame(width: (headerHeight - 2) * 1.5, height: headerHeight - 2)
                     .accessibilityLabel("DanzStak")
                     .accessibilityIdentifier("danzstak.brand")
                 Spacer()
                 Button { searching.toggle(); if !searching { query = "" } } label: {
                     Image(systemName: "magnifyingglass").font(.title3.weight(.semibold))
-                        .foregroundStyle(.white).frame(width: 44, height: 44)
+                        .foregroundStyle(.white).frame(width: min(40, headerHeight - 4), height: min(40, headerHeight - 4))
                         .background(.white.opacity(0.12), in: Circle())
-                }.accessibilityLabel("Search feed")
+                }.frame(width: 44, height: 44).contentShape(Rectangle()).accessibilityLabel("Search feed")
             }
-            .padding(.horizontal, 18).padding(.vertical, 1)
+            .padding(.horizontal, 18).frame(height: headerHeight)
             .background(.black)
         ScrollView {
             LazyVStack(spacing: 12) {
@@ -243,6 +258,17 @@ struct ContentView: View {
                 }
                 ForEach(model.posts.filter { $0.isOwner == true }) { post in PostCard(post: post) }
                 VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Label("Header size", systemImage: "rectangle.topthird.inset.filled")
+                            Spacer()
+                            Text("\(Int(headerPercent))%") .foregroundStyle(.secondary)
+                        }
+                        Slider(value: $headerPercent, in: 4...10, step: 1)
+                            .accessibilityLabel("Header size")
+                        Text("Compact 4% · Default 6% · Larger 10%")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                     Link(destination: URL(string: "https://www.danzstak.com/privacy.html")!) { Label("Privacy policy", systemImage: "hand.raised") }
                     Link(destination: URL(string: "https://www.danzstak.com/terms.html")!) { Label("Terms of service", systemImage: "doc.text") }
                     Button(role: .destructive) { Task { await model.logout() } } label: { Label(model.isDemo ? "Exit demo" : "Log out", systemImage: "rectangle.portrait.and.arrow.right") }

@@ -1,6 +1,15 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testCompactHeaderSearch() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview", "--header-percent", "4"]
+        app.launch()
+        XCTAssertTrue(app.images["danzstak.brand"].waitForExistence(timeout: 20))
+        app.buttons["Search feed"].tap()
+        XCTAssertTrue(app.textFields["Search loaded posts and people"].waitForExistence(timeout: 5))
+    }
+
     func testBrandSearchAndGroups() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview"]
