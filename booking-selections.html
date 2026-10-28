@@ -7,7 +7,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
   <title>Selected Clubs | DanzStak Booking Agent</title>
   <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="assets/booking-selections.css?v=1">
+  <link rel="stylesheet" href="assets/booking-selections.css?v=2">
 </head>
 <body>
   <header><a href="booking.html">← Back to venue map</a><img src="assets/danzstak-logo.png" alt="DanzStak"></header>
@@ -15,9 +15,16 @@
     <p class="eyebrow">DanzStak Booking Agent</p>
     <h1>Your selected clubs</h1>
     <p class="intro">These are public booking leads, not confirmed shows. Verify the correct buyer, available date, age policy, capacity, deal, and load-in details before committing the route.</p>
-    <div id="selectionStatus" role="status"></div>
+    <div class="selection-toolbar" aria-label="Selected club actions">
+      <div id="selectionStatus" role="status" aria-live="polite"></div>
+      <div class="selection-actions">
+        <button type="button" id="printVenueSheet">Print contact sheet</button>
+        <button type="button" id="downloadVenueCsv">Download CSV</button>
+        <button type="button" id="clearVenueSelections" class="secondary">Clear list</button>
+      </div>
+    </div>
     <section id="selectedVenueCards" class="selected-venue-grid" aria-label="Selected venue contacts"></section>
   </main>
-  <script src="assets/booking-selections.js?v=1" defer></script>
+  <script src="assets/booking-selections.js?v=2" defer></script>
 </body>
 </html>
