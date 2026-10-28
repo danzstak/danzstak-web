@@ -29,6 +29,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     @Published var stories: [FeedStory] = []
     @Published var reels: [FeedReel] = []
     @Published var mediaActivity: [String: MediaActivity] = [:]
+    @Published var postShareCounts: [String: Int] = [:]
     @Published var storiesError = ""
     @Published var storiesLoading = false
     @Published var notices: [FeedNotice] = []
@@ -124,7 +125,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     }
 
     private func clearContent() {
-        posts = []; groups = []; stories = []; reels = []; mediaActivity = [:]; storiesError = ""; storiesLoading = false; notices = []; engagement = [:]
+        posts = []; groups = []; stories = []; reels = []; mediaActivity = [:]; postShareCounts = [:]; storiesError = ""; storiesLoading = false; notices = []; engagement = [:]
         postErrors = [:]; busyPosts = []; communityError = ""; noticesError = ""; isLoading = false
     }
 
@@ -259,6 +260,8 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         activity.shares.append(currentMediaResponder(text: "Shared"))
         mediaActivity[id] = activity
     }
+
+    func recordPostShare(_ id: String) { postShareCounts[id, default: 0] += 1 }
 
     func loadNotices() async {
         guard signedIn, !isDemo else { return }

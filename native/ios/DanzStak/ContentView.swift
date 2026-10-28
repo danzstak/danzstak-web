@@ -568,6 +568,9 @@ private struct MediaViewer: View {
                             .id(page.id)
                             .transition(.asymmetric(insertion: .move(edge: movingForward ? .bottom : .top), removal: .move(edge: movingForward ? .top : .bottom)))
                             .accessibilityElement(children: .contain).accessibilityIdentifier("media.page.\(page.id)")
+                            .simultaneousGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                commentFocused = false; pickingReaction = true
+                            })
                         VStack {
                             HStack {
                                 Text("\(index + 1) / \(pages.count)").font(.caption.monospacedDigit().bold())
@@ -590,12 +593,16 @@ private struct MediaViewer: View {
                                             if useDrawer { onOpenDrawer(page, kind) }
                                             else { responseKind = kind }
                                         } label: {
-                                            VStack(spacing: 5) {
+                                            HStack(spacing: 7) {
                                                 Image(systemName: kind.icon).font(.system(size: 24, weight: .semibold))
                                                 Text("\(count(kind, pageID: page.id))").font(.caption.bold())
-                                            }.frame(width: 48, height: 58)
+                                            }.frame(width: 64, height: 48)
                                         }.accessibilityLabel("\(kind.rawValue), \(count(kind, pageID: page.id))")
                                             .accessibilityIdentifier("media.\(kind.rawValue.lowercased())")
+                                            .simultaneousGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                                if useDrawer { onOpenDrawer(page, kind) }
+                                                else { responseKind = kind }
+                                            })
                                     }
                                 }
                             }.padding(.bottom, 16)
@@ -626,9 +633,6 @@ private struct MediaViewer: View {
                             movingForward = next > index
                             withAnimation(.easeOut(duration: 0.25)) { index = next }
                         })
-                    .simultaneousGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in
-                        commentFocused = false; pickingReaction = true
-                    })
                 }
             }
             if let page {
@@ -843,6 +847,8 @@ private struct PostCard: View {
     @EnvironmentObject private var model: AppModel
     let post: FeedPost
     @State private var comments = false
+    @State private var sharing = false
+    @State private var responseKind: MediaResponseKind?
     private var activity: Engagement? { model.engagement[post.id] }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -853,20 +859,13 @@ private struct PostCard: View {
                     HStack(spacing: 5) { PostDate(value: post.createdAt); Text("·").foregroundStyle(.secondary); Image(systemName: "person.2").font(.caption2).foregroundStyle(.secondary) }
                 }
                 Spacer()
-                ShareLink(item: post.text + "\n\nShared from DanzStak") { Image(systemName: "ellipsis").padding(8) }.accessibilityLabel("Share post")
+                Button { sharing = true } label: { Image(systemName: "ellipsis").padding(8) }.accessibilityLabel("Share post")
             }.padding(.horizontal, 18).padding(.top, 16)
             if !post.text.isEmpty { Text(post.text).font(.body).lineSpacing(4).textSelection(.enabled).padding(.horizontal, 18).fixedSize(horizontal: false, vertical: true) }
             if let value = post.mediaUrl, let url = URL(string: value), url.scheme == "https" {
                 if post.mediaType?.hasPrefix("image") == true {
                     AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView().frame(height: 180) }.frame(maxWidth: .infinity)
-                } else if post.mediaType?.hasPrefix("video") == true { PostVideo(url: url) }
-            }
-            if let activity {
-                HStack {
-                    Label("\(activity.total)", systemImage: "hand.thumbsup.fill").foregroundStyle(SocialStyle.blue)
-                    Spacer()
-                    Button("\(activity.comments.count) comments") { comments = true }.foregroundStyle(.secondary)
-                }.font(.caption).padding(.horizontal, 18)
+                } else if post.mediaType?.hasPrefix("video") == true { PostVideo(url: url, active: !comments && !sharing && responseKind == nil) }
             }
             if let error = model.postErrors[post.id] {
                 HStack {
@@ -878,15 +877,81 @@ private struct PostCard: View {
             Divider().padding(.horizontal, 18)
             HStack(spacing: 0) {
                 Button { Task { await model.react(post.id) } } label: {
-                    Label(activity?.myReaction == "Like" ? "Liked" : "Like", systemImage: activity?.myReaction == "Like" ? "hand.thumbsup.fill" : "hand.thumbsup")
-                        .frame(maxWidth: .infinity)
+                    HStack(spacing: 7) {
+                        Image(systemName: activity?.myReaction == "Like" ? "hand.thumbsup.fill" : "hand.thumbsup")
+                        Text("\(activity?.total ?? 0)").font(.caption.bold())
+                    }.frame(maxWidth: .infinity, minHeight: 44)
                 }.disabled(activity == nil || model.busyPosts.contains(post.id))
-                Button { comments = true } label: { Label("Comment", systemImage: "bubble.left").frame(maxWidth: .infinity) }
-                ShareLink(item: post.text + "\n\nShared from DanzStak") { Label("Share", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity) }
-            }.font(.subheadline.weight(.semibold)).padding(.horizontal, 10).padding(.bottom, 16)
+                    .accessibilityLabel(activity?.myReaction == "Like" ? "Liked" : "Like").accessibilityValue("\(activity?.total ?? 0)")
+                    .highPriorityGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in responseKind = .likes })
+                Button { comments = true } label: {
+                    HStack(spacing: 7) { Image(systemName: "bubble.left"); Text("\(activity?.comments.count ?? 0)").font(.caption.bold()) }
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }.accessibilityLabel("Comment").accessibilityValue("\(activity?.comments.count ?? 0)")
+                    .highPriorityGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in responseKind = .comments })
+                Button { sharing = true } label: {
+                    HStack(spacing: 7) { Image(systemName: "square.and.arrow.up"); Text("\(model.postShareCounts[post.id] ?? 0)").font(.caption.bold()) }
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }.accessibilityLabel("Share").accessibilityValue("\(model.postShareCounts[post.id] ?? 0) on this device")
+                    .highPriorityGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in responseKind = .shares })
+            }.font(.title3.weight(.semibold)).padding(.horizontal, 10).padding(.bottom, 8)
         }.background(SocialStyle.card).clipShape(RoundedRectangle(cornerRadius: 16)).padding(.horizontal, 12)
         .task { await model.loadEngagement(post.id) }
-        .sheet(isPresented: $comments) { CommentsView(post: post).environmentObject(model) }
+        .fullScreenCover(isPresented: $comments) { CommentsView(post: post).environmentObject(model) }
+        .fullScreenCover(item: $responseKind) { kind in
+            if kind == .comments { CommentsView(post: post).environmentObject(model) }
+            else { PostRespondersView(post: post, kind: kind).environmentObject(model) }
+        }
+        .sheet(isPresented: $sharing) {
+            NativeShareSheet(items: [post.text, URL(string: "https://www.danzstak.com/feed.html")!]) { completed in
+                if completed { model.recordPostShare(post.id) }
+            }
+        }
+    }
+}
+
+private struct PostRespondersView: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    let post: FeedPost
+    let kind: MediaResponseKind
+    private var activity: Engagement? { model.engagement[post.id] }
+    private var responders: [MediaResponder] {
+        let own = model.posts.first { $0.isOwner == true }
+        if kind == .shares {
+            let count = model.postShareCounts[post.id] ?? 0
+            return count > 0 ? [MediaResponder(id: "local-share", name: own?.author ?? "You", picture: own?.authorPicture, text: "\(count) completed shares on this device")] : []
+        }
+        if let people = activity?.reactors {
+            return people.enumerated().map { index, person in MediaResponder(id: "\(index)", name: person.name, picture: person.picture, text: person.reaction ?? "Like") }
+        }
+        if let reaction = activity?.myReaction, !reaction.isEmpty {
+            return [MediaResponder(id: "own-reaction", name: own?.author ?? "You", picture: own?.authorPicture, text: reaction)]
+        }
+        return []
+    }
+    var body: some View {
+        NavigationStack {
+            List {
+                if kind == .shares {
+                    Text("Share activity shown here is from this device. Community-wide share identities aren’t available yet.").font(.footnote).foregroundStyle(.secondary)
+                } else if !model.isDemo, activity?.reactors == nil {
+                    Text("The service provides reaction totals but not the full responder list yet. Only your own known reaction can be shown.").font(.footnote).foregroundStyle(.secondary)
+                }
+                if responders.isEmpty { Text("No responder details available.").foregroundStyle(.secondary) }
+                ForEach(responders) { person in
+                    HStack(alignment: .top, spacing: 12) {
+                        Avatar(name: person.name, picture: person.picture, size: 44)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(person.name).font(.headline).fixedSize(horizontal: false, vertical: true)
+                            Text(person.text).font(.subheadline).foregroundStyle(.secondary)
+                        }
+                    }.padding(.vertical, 8)
+                }
+            }.navigationTitle(kind.rawValue).navigationBarTitleDisplayMode(.inline)
+            .toolbar { Button("Done") { dismiss() } }
+            .task { await model.loadEngagement(post.id, force: true) }
+        }
     }
 }
 
@@ -943,7 +1008,7 @@ private struct CommentsView: View {
                     if detail.comments.isEmpty { Text("Be the first to comment.").foregroundStyle(.secondary) }
                     ForEach(detail.comments) { comment in
                         HStack(alignment: .top, spacing: 10) {
-                            Avatar(name: comment.authorName, size: 34)
+                            Avatar(name: comment.authorName, picture: comment.authorPicture, size: 34)
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(comment.authorName).font(.subheadline.bold())
                                 Text(comment.content)

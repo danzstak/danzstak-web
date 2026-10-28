@@ -22,6 +22,7 @@ struct FeedComment: Identifiable, Decodable {
     let authorName: String
     let content: String
     let createdAt: String
+    var authorPicture: String? = nil
     var id: String { commentId }
 }
 
@@ -51,7 +52,14 @@ struct Engagement: Decodable {
     var reactionCounts: [String: Int] = [:]
     var myReaction = ""
     var comments: [FeedComment] = []
+    var reactors: [FeedReactor]? = nil
     var total: Int { reactionCounts.values.reduce(0, +) }
+}
+
+struct FeedReactor: Decodable {
+    let name: String
+    var picture: String? = nil
+    var reaction: String? = nil
 }
 
 struct CommunityGroup: Identifiable, Decodable {

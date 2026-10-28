@@ -1,6 +1,23 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testLongPressPostResponders() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview"]
+        app.launch()
+        XCTAssertTrue(app.buttons["home.composer"].waitForExistence(timeout: 20))
+        let like = app.buttons["Like"].firstMatch
+        for _ in 0..<3 { if like.isHittable { break }; app.swipeUp() }
+        like.tap()
+        let liked = app.buttons["Liked"].firstMatch
+        XCTAssertTrue(liked.waitForExistence(timeout: 5))
+        liked.press(forDuration: 0.7)
+        XCTAssertTrue(app.navigationBars["Likes"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["You"].exists)
+        app.navigationBars.buttons["Done"].tap()
+        XCTAssertTrue(app.buttons["Liked"].firstMatch.waitForExistence(timeout: 5))
+    }
+
     func testLongResponderName() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview", "--response-style", "full", "--long-name-preview"]
