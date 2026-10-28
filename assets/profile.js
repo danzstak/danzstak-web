@@ -20,6 +20,26 @@ function firstString(source, keys) {
   return "";
 }
 
+function loadProfileImage(target, url, onReady) {
+  const nextUrl = String(url || "");
+  target.dataset.pendingImage = nextUrl;
+  target.classList.remove("has-photo");
+  if (!nextUrl) { target.style.backgroundImage = ""; return; }
+  const image = new Image();
+  image.onload = () => {
+    if (target.dataset.pendingImage !== nextUrl) return;
+    target.style.backgroundImage = `url("${nextUrl}")`;
+    target.classList.add("has-photo");
+    onReady?.();
+  };
+  image.onerror = () => {
+    if (target.dataset.pendingImage !== nextUrl) return;
+    target.style.backgroundImage = "";
+    target.classList.remove("has-photo");
+  };
+  image.src = nextUrl;
+}
+
 async function loadProfile() {
   try {
     const response = await profileFetch("/profiles" + (requestedMember ? "?member=" + encodeURIComponent(requestedMember) : requestedUser ? "?email=" + encodeURIComponent(requestedUser) : ""), {
@@ -49,16 +69,16 @@ async function loadProfile() {
     document.getElementById("profileEmail").textContent = isOther ? "Private" : (email || "Not available");
     const avatar = document.getElementById("profileInitial");
     avatar.textContent = name.charAt(0).toUpperCase() || "D";
-    if (profile.picture) { avatar.style.backgroundImage = `url("${profile.picture}")`; avatar.classList.add("has-photo"); avatar.textContent = ""; }
-    else { avatar.style.backgroundImage = ""; avatar.classList.remove("has-photo"); }
+    avatar.classList.remove("has-photo");
+    loadProfileImage(avatar, profile.picture, () => { avatar.textContent = ""; });
     const cover = document.querySelector(".cover");
+    cover.classList.remove("has-photo");
     if (profile.cover) {
-      cover.style.backgroundImage = `url("${profile.cover}")`;
       cover.style.backgroundPosition = `${profile.coverX ?? 50}% ${profile.coverY ?? 50}%`;
       cover.style.backgroundSize = profile.coverFit ? "contain" : "cover";
       cover.style.backgroundRepeat = "no-repeat";
-      cover.classList.add("has-photo");
-    } else { cover.style.backgroundImage = ""; cover.classList.remove("has-photo"); }
+    }
+    loadProfileImage(cover, profile.cover);
     const message = document.getElementById("profileMessage");
     const memberId = String(profile.memberId || "");
     if (isOther && /^[a-f0-9-]{36}$/.test(memberId)) { message.href = "feed.html?messageMember=" + encodeURIComponent(memberId); message.hidden = false; }
