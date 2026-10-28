@@ -49,6 +49,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var status: TextView
     private val executor = Executors.newFixedThreadPool(3)
     private val imageExecutor = Executors.newFixedThreadPool(2)
+    private val videoFrameExecutor = Executors.newFixedThreadPool(2)
     private val orange = Color.rgb(44, 82, 255)
     private val ink = Color.rgb(29, 34, 43)
     private val canvas = Color.rgb(242, 242, 248)
@@ -115,7 +116,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); handleDeepLink(intent) }
     override fun onPause() { alertHandler.removeCallbacks(alertPoll); video?.pause(); super.onPause() }
     override fun onResume() { super.onResume(); alertHandler.post(alertPoll); if (media != null) video?.start() }
-    override fun onDestroy() { video?.stopPlayback(); executor.shutdownNow(); imageExecutor.shutdownNow(); super.onDestroy() }
+    override fun onDestroy() { video?.stopPlayback(); executor.shutdownNow(); imageExecutor.shutdownNow(); videoFrameExecutor.shutdownNow(); super.onDestroy() }
     private fun goBack() { if (media != null) { stopMedia(); showApp() } else if (selectedChat != null) { chats() } else { tab = "Home"; showApp() } }
     private fun signedIn() = demo || store.get("session") != null
 
@@ -208,8 +209,13 @@ class MainActivity : ComponentActivity() {
     private fun people() {
         title("People")
         content.addView(label("People from your loaded posts", 14))
-        posts.distinctBy { it.author }.forEach { person ->
-            content.addView(button(person.author) { content.removeAllViews(); title(person.author); posts.filter { it.author == person.author }.forEach { content.addView(postCard(it)) } })
+        posts.distinctBy { it.userEmail.ifBlank { it.author } }.forEach { person ->
+            content.addView(row().apply {
+                addView(avatar(person.author, person.picture))
+                addView(label(person.author + "\nView profile", 16, true)); minimumHeight = dp(64)
+                contentDescription = "View profile of ${person.author}"
+                setOnClickListener { memberProfile(person) }
+            })
         }
     }
     private fun menu() {
@@ -250,11 +256,35 @@ class MainActivity : ComponentActivity() {
         content.addView(button("Import Facebook data") { importGuide() })
         content.addView(button("Enable message sounds") { messageAlerts.enable(); status.text = "Sounds follow Android notification settings." })
     }
-    private fun profile() {
-        title(posts.firstOrNull { it.owner }?.author ?: "Your profile")
-        content.addView(button("Edit Profile") { editProfile() })
-        content.addView(label("Your posts", 20, true)); posts.filter { it.owner }.forEach { content.addView(postCard(it)) }
+    private fun profile() { memberProfile(posts.firstOrNull { it.owner }, true) }
+    private fun memberProfile(person: FeedPost?, own: Boolean = false) {
+        content.removeAllViews(); title(if (own) "Your profile" else person?.author ?: "Profile")
+        content.addView(button("Back") { if (own) { tab = "Menu"; showApp() } else peopleAfterProfile() })
+        val body = column(); content.addView(body)
+        fun render(profile: JSONObject) {
+            body.removeAllViews()
+            val name = profile.optString("name").ifBlank { person?.author ?: "Your profile" }
+            val images = FrameLayout(this)
+            val cover = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; background = rounded(Color.rgb(31, 61, 94)); contentDescription = "Cover image of $name" }
+            images.addView(cover, FrameLayout.LayoutParams(-1, dp(190)))
+            if (profile.optString("cover").startsWith("https://")) loadImage(profile.getString("cover"), cover)
+            val photo = avatar(name, profile.optString("picture").ifBlank { person?.picture.orEmpty() })
+            photo.contentDescription = "Profile image of $name"
+            photo.background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.WHITE); setStroke(dp(4), Color.WHITE) }; photo.clipToOutline = true
+            images.addView(photo, FrameLayout.LayoutParams(dp(124), dp(124), Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL))
+            body.addView(images, LinearLayout.LayoutParams(-1, dp(252)))
+            body.addView(label(name, 24, true).apply { gravity = Gravity.CENTER })
+            listOf("handle", "bio", "location", "work").forEach { key -> profile.optString(key).takeIf { it.isNotBlank() }?.let { body.addView(label(if (key == "handle") "@$it" else it, 16)) } }
+            profile.optString("website").takeIf { it.startsWith("https://") }?.let { url -> body.addView(button(url) { openWeb(url) }) }
+            if (own) body.addView(button("Edit Profile") { editProfile() })
+            body.addView(label("Posts", 20, true))
+            posts.filter { if (own) it.owner else if (!person?.userEmail.isNullOrBlank()) it.userEmail == person?.userEmail else it.author == person?.author }.forEach { body.addView(postCard(it)) }
+        }
+        render(JSONObject())
+        if (!demo && (own || !person?.userEmail.isNullOrBlank())) work("Loading profile…", { api.profile(if (own) "" else person!!.userEmail) }, { render(it) })
+        else if (!demo) body.addView(label("This member’s full profile is not available from this post yet.", 14))
     }
+    private fun peopleAfterProfile() { content.removeAllViews(); people() }
     private fun editProfile() {
         fun show(settings: JSONObject) {
             val toggle = Switch(this).apply { text = "Allow people to tag me"; isChecked = settings.optBoolean("allowTags", true); setPadding(dp(12), dp(12), dp(12), dp(12)) }
@@ -399,7 +429,11 @@ class MainActivity : ComponentActivity() {
         val frame = FrameLayout(this)
         if (page.url.startsWith("https://") && (page.type.startsWith("video") || page.url.substringBefore('?').matches(Regex("(?i).*\\.(mp4|mov|m4v|m3u8|webm)$")))) {
             if (page.url.substringBefore('?').matches(Regex("(?i).*\\.(mp4|mov|m4v|m3u8|webm)$"))) {
-                video = VideoView(this).apply { setVideoURI(Uri.parse(page.url)); setOnPreparedListener { it.isLooping = true; start() }; setOnErrorListener { _, _, _ -> Toast.makeText(this@MainActivity, "This video could not be played.", Toast.LENGTH_LONG).show(); true } }
+                video = VideoView(this).apply { setVideoURI(Uri.parse(page.url)); setOnPreparedListener { player ->
+                    player.isLooping = true
+                    fun fillFrame() { if (frame.width > 0 && frame.height > 0 && player.videoWidth > 0 && player.videoHeight > 0) { val scale = maxOf(frame.width.toFloat() / player.videoWidth, frame.height.toFloat() / player.videoHeight); layoutParams = FrameLayout.LayoutParams((player.videoWidth * scale).toInt(), (player.videoHeight * scale).toInt(), Gravity.CENTER) } }
+                    frame.post { fillFrame() }; start()
+                }; setOnErrorListener { _, _, _ -> Toast.makeText(this@MainActivity, "This video could not be played.", Toast.LENGTH_LONG).show(); true } }
                 frame.addView(video, FrameLayout.LayoutParams(-1, -1))
             } else frame.addView(button("Watch original video") { video?.pause(); openWeb(page.url) })
         } else if (page.url.startsWith("https://")) {
@@ -420,11 +454,31 @@ class MainActivity : ComponentActivity() {
         frame.addView(details, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM or Gravity.START).apply { rightMargin = dp(72); bottomMargin = dp(16) })
         val rail = column()
         val state = localMedia.getOrPut(page.id) { JSONObject() }
+        page.post?.let { post -> engagement[post.id]?.let { activity -> val counts = activity.optJSONObject("reactionCounts"); state.put("likes", counts?.keys()?.asSequence()?.sumOf { counts.optInt(it) } ?: 0) } }
         listOf("likes" to "♡", "comments" to "☏", "shares" to "↗").forEach { (kind, glyph) ->
-            rail.addView(action(glyph, kind, state.optInt(kind), {
+            lateinit var control: CountAction
+            control = action(glyph, kind, state.optInt(kind), {
+                if (kind == "likes") {
+                    val post = page.post
+                    if (post != null && !demo) {
+                        control.isEnabled = false
+                        val next = if (engagement[post.id]?.optString("myReaction").isNullOrEmpty()) "Like" else ""
+                        work("Updating like…", { api.react(post.id, next); api.engagement(post.id) }, { result ->
+                            engagement[post.id] = result
+                            val counts = result.optJSONObject("reactionCounts")
+                            val total = counts?.keys()?.asSequence()?.sumOf { counts.optInt(it) } ?: 0
+                            state.put("likes", total); control.setCount(total, "likes"); control.setTextColor(if (next.isEmpty()) Color.WHITE else orange); control.isEnabled = true
+                        }, { control.isEnabled = true })
+                    } else {
+                        val liked = !state.optBoolean("liked"); state.put("liked", liked).put("likes", maxOf(0, state.optInt("likes") + if (liked) 1 else -1))
+                        control.setCount(state.optInt("likes"), "likes"); control.setTextColor(if (liked) orange else Color.WHITE)
+                    }
+                } else {
                 video?.pause()
                 responseList(kind.replaceFirstChar { it.uppercase() }, if (kind == "likes" && state.optInt(kind) > 0) listOf(Triple("You", "", state.optString("reaction", "Like"))) else if (kind == "comments") DanzStakApi.objects(state.optJSONArray("localComments")).map { Triple(it.optString("name"), "", it.optString("text")) } else emptyList(), "Preview activity on this device only. Community-wide Flashes and The Roll responses are not connected.")
-            }, { video?.pause(); responseList(kind, emptyList(), "Community-wide media response identities are not connected.") }).apply { setTextColor(Color.WHITE); setPadding(dp(3), dp(10), dp(3), dp(10)) })
+                }
+            }, { video?.pause(); if (page.post != null && kind == "likes") responders(page.post, "likes") else responseList(kind.replaceFirstChar { it.uppercase() }, if (kind == "likes" && state.optInt(kind) > 0) listOf(Triple("You", "", "Like")) else emptyList(), "Community-wide media response identities are not connected.") }).apply { setTextColor(Color.WHITE); setPadding(dp(3), dp(10), dp(3), dp(10)) }
+            rail.addView(control)
         }
         frame.addView(rail, FrameLayout.LayoutParams(dp(70), -2, Gravity.END or Gravity.CENTER_VERTICAL))
         root.addView(frame, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -454,9 +508,12 @@ class MainActivity : ComponentActivity() {
         status.setBackgroundColor(Color.rgb(32, 44, 51)); status.setTextColor(Color.LTGRAY)
     }
     private fun chats() {
-        showApp(); darkChat(); content.removeAllViews(); title("Chats"); content.addView(button("Done") { showApp() })
+        showApp(); darkChat(); content.removeAllViews(); title("Chats")
+        val chatActions = row()
+        chatActions.addView(button("Done") { showApp() }, LinearLayout.LayoutParams(0, -2, 1f))
+        chatActions.addView(button("New chat") { newChat() }, LinearLayout.LayoutParams(0, -2, 1f))
+        content.addView(chatActions)
         if (demo) content.addView(label("Preview chats · No messages are sent", 13))
-        content.addView(button("New chat") { newChat() })
         fun show(items: List<JSONObject>) {
             if (items.isEmpty()) content.addView(label("Your conversations start here. Start a chat with a friend or someone in your Tribes.", 16))
             items.forEach { chat ->
@@ -500,6 +557,17 @@ class MainActivity : ComponentActivity() {
                     setOnLongClickListener { messageActions(chat, message); true }
                 }
                 transcript.addView(bubble)
+                val reactions = message.optJSONObject("reactionCounts")
+                if (message.optString("deletedAt").isEmpty() && reactions != null && reactions.length() > 0) {
+                    val counts = reactions.keys().asSequence().filter { reactions.optInt(it) > 0 }.sorted().toList()
+                    if (counts.isNotEmpty()) transcript.addView(label(counts.joinToString("  ") { "$it ${reactions.optInt(it)}" }, 14).apply {
+                        contentDescription = "Message reactions"
+                        background = rounded(Color.rgb(32, 44, 51))
+                        layoutParams = LinearLayout.LayoutParams(-2, -2).apply { gravity = if (own) Gravity.END else Gravity.START; setMargins(dp(12), 0, dp(12), dp(5)) }
+                        setPadding(dp(8), dp(2), dp(8), dp(2))
+                        setOnClickListener { messageActions(chat, message) }
+                    })
+                }
                 val matcher = android.util.Patterns.WEB_URL.matcher(message.optString("content"))
                 var preview: String? = null
                 while (matcher.find()) { val candidate = matcher.group(); if (candidate.startsWith("https://")) { preview = candidate; break } }
@@ -512,8 +580,7 @@ class MainActivity : ComponentActivity() {
                     })
                 }
                 if (message.optString("editedAt").isNotEmpty()) transcript.addView(label("Edited", 11).apply { setTextColor(Color.LTGRAY) })
-                val reactions = message.optJSONObject("reactionCounts")
-                if (message.optString("deletedAt").isEmpty() && reactions != null && reactions.length() > 0) transcript.addView(label(reactions.keys().asSequence().joinToString(" ") { "$it ${reactions.optInt(it)}" }, 12))
+
             }
         }
         renderChatMessages = { render(it) }
@@ -557,7 +624,7 @@ class MainActivity : ComponentActivity() {
         val deleted = message.optString("deletedAt").isNotEmpty()
         val editable = own && !deleted
         val context = android.view.ContextThemeWrapper(this, android.R.style.Theme_Material_Dialog_Alert)
-        val box = column().apply { setPadding(dp(14), dp(8), dp(14), dp(8)) }
+        val box = column().apply { setPadding(dp(20), dp(12), dp(20), dp(12)) }
         lateinit var dialog: AlertDialog
         val reactions = row()
         listOf("👍", "❤️", "😂", "😮", "😢", "😡").forEach { emoji ->
@@ -569,13 +636,16 @@ class MainActivity : ComponentActivity() {
                 }
             }, LinearLayout.LayoutParams(0, dp(48), 1f))
         }
-        if (!deleted) box.addView(reactions)
-        val editor = EditText(context).apply { setText(message.optString("content")); minLines = 2; maxLines = 7; setTextColor(Color.WHITE); contentDescription = "Edit message" }
+        if (!deleted) box.addView(reactions.apply { background = rounded(Color.rgb(11, 20, 26)); setPadding(dp(4), dp(4), dp(4), dp(4)) })
+        val editFeedback = label("", 13).apply { visibility = View.GONE; setTextColor(Color.rgb(255, 142, 142)) }
+        val editor = EditText(context).apply { setText(message.optString("content")); minLines = 2; maxLines = 7; setTextColor(Color.WHITE); background = rounded(Color.rgb(11, 20, 26)); setPadding(dp(14), dp(12), dp(14), dp(12)); contentDescription = "Edit message" }
         if (editable) box.addView(editor) else box.addView(label(message.optString("content"), 16))
+        box.addView(editFeedback)
         val actions = row()
         actions.addView(button("Copy") { (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("DanzStak message", message.optString("content"))); dialog.dismiss() }, LinearLayout.LayoutParams(0, -2, 1f))
         actions.addView(button("Share") { dialog.dismiss(); share(message.optString("content")) }, LinearLayout.LayoutParams(0, -2, 1f))
         actions.addView(button("Forward") { dialog.dismiss(); newChat(message.optString("content")) }, LinearLayout.LayoutParams(0, -2, 1f))
+        for (i in 0 until actions.childCount) (actions.getChildAt(i) as TextView).setTextColor(Color.rgb(126, 200, 255))
         if (!deleted) box.addView(actions)
         fun delete(scope: String) {
             fun perform() {
@@ -590,17 +660,21 @@ class MainActivity : ComponentActivity() {
             if (scope == "everyone") AlertDialog.Builder(context).setTitle("Delete for everyone?").setMessage("Remove this message text for everyone in this conversation?").setNegativeButton("Cancel", null).setPositiveButton("Delete") { _, _ -> perform() }.show()
             else perform()
         }
-        box.addView(button("Delete for me") { delete("me") })
-        if (own && !deleted) box.addView(button("Delete for everyone") { delete("everyone") })
+        box.addView(button("Delete for me") { delete("me") }.apply { setTextColor(Color.rgb(255, 142, 142)) })
+        if (own && !deleted) box.addView(button("Delete for everyone") { delete("everyone") }.apply { setTextColor(Color.rgb(255, 142, 142)) })
         val builder = AlertDialog.Builder(context).setTitle(if (editable) "Edit message" else "Message").setView(ScrollView(context).apply { addView(box) }).setNegativeButton("Cancel", null)
         if (editable) builder.setPositiveButton("Save", null)
         dialog = builder.create()
         dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
-        dialog.setOnShowListener { if (editable) dialog.getButton(-1).setOnClickListener {
+        dialog.setOnShowListener {
+            dialog.window?.setBackgroundDrawable(rounded(Color.rgb(32, 44, 51)))
+            dialog.getButton(-2).setTextColor(Color.rgb(126, 200, 255))
+            dialog.getButton(-1)?.setTextColor(Color.rgb(126, 200, 255))
+            if (editable) dialog.getButton(-1).setOnClickListener {
             val text = editor.text.toString().trim()
             if (text.isEmpty() || text.length > 2000) { editor.error = "Enter 1–2,000 characters"; return@setOnClickListener }
             if (demo) { message.put("content", text).put("editedAt", java.time.Instant.now().toString()); dialog.dismiss(); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) }
-            else { dialog.getButton(-1).isEnabled = false; work("Saving message…", { api.editMessage(contact, message.getString("messageId"), text) }, { updated -> message.put("content", updated.getString("content")).put("editedAt", updated.optString("editedAt")); dialog.dismiss(); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) }, { dialog.getButton(-1).isEnabled = true }) }
+            else { editFeedback.visibility = View.VISIBLE; editFeedback.setTextColor(Color.LTGRAY); editFeedback.text = "Saving…"; dialog.getButton(-1).isEnabled = false; work("Saving message…", { api.editMessage(contact, message.getString("messageId"), text) }, { updated -> message.put("content", updated.getString("content")).put("editedAt", updated.optString("editedAt")); dialog.dismiss(); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) }, { dialog.getButton(-1).isEnabled = true; editFeedback.setTextColor(Color.rgb(255, 142, 142)); editFeedback.text = "Could not save. Your edit is still here; try again." }) }
         } }
         dialog.show()
     }
@@ -664,13 +738,27 @@ class MainActivity : ComponentActivity() {
     }
     private fun loadVideoFrame(url: String, image: ImageView) {
         if (!url.startsWith("https://")) return
-        imageExecutor.execute {
-            val retriever = android.media.MediaMetadataRetriever()
-            val frame = try {
-                retriever.setDataSource(url, emptyMap<String, String>())
-                if (Build.VERSION.SDK_INT >= 27) retriever.getScaledFrameAtTime(0, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC, 1024, 1024)
-                else retriever.getFrameAtTime(0, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
-            } catch (_: Exception) { null } finally { runCatching { retriever.release() } }
+        videoFrameExecutor.execute {
+            val key = java.security.MessageDigest.getInstance("SHA-256").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }
+            val folder = java.io.File(cacheDir, "video-previews").apply { mkdirs() }
+            val cached = java.io.File(folder, "$key.jpg")
+            val saved = if (cached.isFile) android.graphics.BitmapFactory.decodeFile(cached.path) else null
+            val frame = saved ?: run {
+                val retriever = android.media.MediaMetadataRetriever()
+                try {
+                    retriever.setDataSource(url, emptyMap<String, String>())
+                    var selected: android.graphics.Bitmap? = null
+                    for (time in listOf(0L, 100_000L, 500_000L, 1_000_000L)) {
+                        val candidate = if (Build.VERSION.SDK_INT >= 27) retriever.getScaledFrameAtTime(time, android.media.MediaMetadataRetriever.OPTION_CLOSEST, 720, 720) else retriever.getFrameAtTime(time, android.media.MediaMetadataRetriever.OPTION_CLOSEST)
+                        if (candidate != null) {
+                            selected?.recycle(); selected = candidate
+                            val visible = (1..5).any { x -> (1..5).any { y -> val pixel = candidate.getPixel(candidate.width * x / 6, candidate.height * y / 6); maxOf(Color.red(pixel), Color.green(pixel), Color.blue(pixel)) > 32 } }
+                            if (visible) break
+                        }
+                    }
+                    selected?.also { bitmap -> runCatching { cached.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, it) }; folder.listFiles()?.sortedByDescending { it.lastModified() }?.drop(80)?.forEach { it.delete() } } }
+                } catch (_: Exception) { null } finally { runCatching { retriever.release() } }
+            }
             runOnUiThread { if (!isDestroyed) { if (frame != null) image.setImageBitmap(frame); image.contentDescription = "Video preview. Tap to play." } }
         }
     }
@@ -701,6 +789,7 @@ class MainActivity : ComponentActivity() {
             number.text = count.toString(); number.textSize = 13f; number.setTypeface(number.typeface, Typeface.BOLD); number.setPadding(dp(7), 0, 0, 0)
             addView(number, LayoutParams(-2, -2)); setTextColor(orange)
         }
+        fun setCount(count: Int, description: String) { number.text = count.toString(); contentDescription = "$description, $count" }
         fun setTextColor(color: Int) { image.setColorFilter(color); number.setTextColor(color) }
     }
     private fun action(glyph: String, description: String, count: Int, click: () -> Unit, long: () -> Unit): CountAction {

@@ -63,9 +63,15 @@ class SocialNavigationTest {
         device.waitForIdle()
         device.findObject(By.res("android:id/button1")).click()
         val editorClosed = device.wait(Until.gone(By.desc("Edit message")), 5000)
-        if (!editorClosed) { val dump = java.io.ByteArrayOutputStream(); device.dumpWindowHierarchy(dump); println(dump.toString()) }
         assertTrue(editorClosed)
-        assertTrue(device.hasObject(By.text("Corrected message")))
+        assertTrue(device.wait(Until.hasObject(By.text("Corrected message")), 5000))
+        device.findObject(By.text("Corrected message")).longClick()
+        device.findObject(By.desc("React with 👍")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Message reactions")), 5000))
+        val bubble = device.findObject(By.text("Corrected message")).visibleBounds
+        val reaction = device.findObject(By.desc("Message reactions")).visibleBounds
+        assertTrue(reaction.top >= bubble.bottom)
+        assertTrue(reaction.centerX() > device.displayWidth / 2)
         device.findObject(By.text("Corrected message")).longClick()
         device.findObject(By.text("Delete for everyone")).click()
         assertTrue(device.wait(Until.hasObject(By.text("Delete for everyone?")), 5000))
@@ -92,6 +98,24 @@ class SocialNavigationTest {
         assertTrue(device.hasObject(By.text("Photos")))
         assertTrue(device.hasObject(By.text("Videos")))
         assertFalse(device.hasObject(By.textContains("Header size")))
+    }
+    @Test fun videoLikesToggleWithoutOpeningResponders() {
+        device.findObject(By.desc("Open Flashes from DanzStak")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("likes, 0")), 5000))
+        device.findObject(By.desc("likes, 0")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("likes, 1")), 5000))
+        assertTrue(device.hasObject(By.text("1 / 3")))
+        device.findObject(By.desc("likes, 1")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("likes, 0")), 5000))
+        device.findObject(By.desc("likes, 0")).longClick()
+        assertTrue(device.wait(Until.hasObject(By.text("Likes")), 5000))
+    }
+    @Test fun peopleOpenProfileWithCoverAndAvatar() {
+        device.findObject(By.desc("People").pkg("com.danzstak.app")).click()
+        assertTrue(device.wait(Until.hasObject(By.descStartsWith("View profile of ")), 5000))
+        device.findObjects(By.descStartsWith("View profile of ")).first().click()
+        assertTrue(device.wait(Until.hasObject(By.descStartsWith("Cover image of ")), 5000))
+        assertTrue(device.hasObject(By.descStartsWith("Profile image of ")))
     }
     @Test fun flashesUseFullScreenVerticalPaging() {
         device.findObject(By.desc("Open Flashes from DanzStak")).click()

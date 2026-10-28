@@ -9,7 +9,7 @@ import java.net.URLEncoder
 data class FeedPost(
     val id: String, val author: String, val text: String, val createdAt: String,
     val picture: String = "", val owner: Boolean = false, val mediaUrl: String = "",
-    val mediaType: String = "", val location: String = "", val tags: List<TaggedMember> = emptyList()
+    val mediaType: String = "", val location: String = "", val tags: List<TaggedMember> = emptyList(), val userEmail: String = ""
 )
 data class TaggedMember(val id: String, val name: String, val isMe: Boolean = false)
 data class TagFriend(val id: String, val name: String, val picture: String = "")
@@ -23,9 +23,10 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
     fun posts(): List<FeedPost> = objects(request("/secure-posts").optJSONArray("posts")).map { item ->
         FeedPost(item.getString("postId"), item.optString("authorName", "DanzStak member"), item.optString("content"), item.optString("createdAt"),
             item.optString("authorPicture"), item.optBoolean("isOwner"), item.optString("mediaUrl"), item.optString("mediaType"), item.optString("location"),
-            objects(item.optJSONArray("taggedUsers")).map { TaggedMember(it.getString("memberId"), it.optString("name"), it.optBoolean("isMe")) })
+            objects(item.optJSONArray("taggedUsers")).map { TaggedMember(it.getString("memberId"), it.optString("name"), it.optBoolean("isMe")) }, item.optString("userEmail"))
     }
     fun publish(text: String, location: String): String = request("/secure-posts", "POST", JSONObject().put("content", text).put("location", location).put("audience", "public").put("originalContentCertified", true)).getString("postId")
+    fun profile(email: String = ""): JSONObject = request("/profiles" + if (email.isBlank()) "" else "?email=" + URLEncoder.encode(email, "UTF-8")).getJSONObject("profile")
     fun logout() { request("/auth/logout", "POST", JSONObject()) }
     fun engagement(id: String): JSONObject = request("/engagement?postId=" + URLEncoder.encode(id, "UTF-8"))
     fun react(id: String, reaction: String) { request("/reactions", "POST", JSONObject().put("postId", id).put("reaction", reaction)) }

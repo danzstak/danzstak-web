@@ -140,6 +140,7 @@ private struct ChatThreadView: View {
                             let own = message.senderEmail.lowercased() != chat.contactEmail.lowercased()
                             HStack {
                                 if own { Spacer(minLength: 50) }
+                                VStack(alignment: own ? .trailing : .leading, spacing: 4) {
                                 VStack(alignment: .trailing, spacing: 5) {
                                     Text(message.content).frame(maxWidth: .infinity, alignment: .leading)
                                     if let url = chatLink(message.content) {
@@ -153,11 +154,16 @@ private struct ChatThreadView: View {
                                     HStack(spacing: 5) {
                                         if message.editedAt?.isEmpty == false { Text("Edited").font(.caption2).foregroundStyle(.secondary) }
                                         if let date = ISO8601DateFormatter().date(from: message.createdAt) { Text(date, style: .time).font(.caption2).foregroundStyle(.secondary) }
-                                        if let counts = message.reactionCounts { ForEach(counts.keys.sorted(), id: \.self) { emoji in Text("\(emoji) \(counts[emoji] ?? 0)").font(.caption) } }
                                     }
                                 }.foregroundStyle(.white).padding(12).background(own ? Color(red: 0.12, green: 0.24, blue: 0.37) : Color(red: 0.125, green: 0.17, blue: 0.20), in: RoundedRectangle(cornerRadius: 17))
                                     .contentShape(Rectangle()).highPriorityGesture(LongPressGesture(minimumDuration: 0.5, maximumDistance: 30).onEnded { _ in dictation.stop(); actions = message })
 
+                                    if let counts = message.reactionCounts, counts.values.contains(where: { $0 > 0 }) {
+                                        HStack(spacing: 8) {
+                                            ForEach(counts.keys.sorted().filter { (counts[$0] ?? 0) > 0 }, id: \.self) { emoji in Text("\(emoji) \(counts[emoji] ?? 0)").font(.caption) }
+                                        }.padding(.horizontal, 8).padding(.vertical, 3).background(Color(red: 0.125, green: 0.17, blue: 0.20), in: Capsule()).foregroundStyle(.white).accessibilityIdentifier("chat.reactions")
+                                    }
+                                }
                                 if !own { Spacer(minLength: 50) }
                             }.id(message.id).accessibilityIdentifier("chat.message")
                         }
@@ -322,6 +328,7 @@ private struct ChatMessagePanel: View {
     private var editable: Bool { own && message.deletedAt?.isEmpty != false }
     @State private var draft: String
     @State private var saving = false
+    @State private var saveError = ""
     init(message: ChatMessage, own: Bool, save: @escaping (String) async -> Bool, react: @escaping (String) async -> Void, share: @escaping () -> Void, forward: @escaping () -> Void, delete: @escaping (String) async -> Bool) {
         self.message = message; self.own = own; self.save = save; self.react = react; self.share = share; self.forward = forward; self.delete = delete
         _draft = State(initialValue: message.content)
@@ -332,8 +339,9 @@ private struct ChatMessagePanel: View {
                 if message.deletedAt?.isEmpty != false { HStack { ForEach(["👍", "❤️", "😂", "😮", "😢", "😡"], id: \.self) { emoji in
                     Button { Task { await react(emoji) } } label: { Text(emoji).font(.title2).frame(maxWidth: .infinity, minHeight: 44) }.accessibilityLabel("React with \(emoji)")
                 } }.padding(8).background(Color.white.opacity(0.07), in: Capsule()) }
-                if editable { TextEditor(text: $draft).frame(minHeight: 110, maxHeight: 220).padding(10).background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16)).accessibilityIdentifier("chat.edit") }
+                if editable { TextEditor(text: $draft).scrollContentBackground(.hidden).frame(minHeight: 110, maxHeight: 220).padding(10).background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16)).accessibilityIdentifier("chat.edit") }
                 else { Text(message.content).frame(maxWidth: .infinity, alignment: .leading) }
+                if !saveError.isEmpty { Text(saveError).font(.caption).foregroundStyle(.red) }
                 if message.deletedAt?.isEmpty != false { HStack(spacing: 22) {
                     Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = message.content; dismiss() }
                     Button("Share", systemImage: "square.and.arrow.up", action: share)
@@ -342,15 +350,15 @@ private struct ChatMessagePanel: View {
                 Button("Delete for me", role: .destructive) { saving = true; Task { if await delete("me") { dismiss() }; saving = false } }.disabled(saving)
                 if editable { Button("Delete for everyone", role: .destructive) { confirmDelete = true }.disabled(saving) }
                 Spacer(minLength: 0)
-            }.padding(18) }.navigationTitle(editable ? "Edit message" : "Message").navigationBarTitleDisplayMode(.inline)
+            }.padding(18) }.background(Color(red: 0.04, green: 0.08, blue: 0.10)).navigationTitle(editable ? "Edit message" : "Message").navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(saving) }
                     if editable { ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") { saving = true; Task { if await save(draft.trimmingCharacters(in: .whitespacesAndNewlines)) { dismiss() }; saving = false } }
+                        Button("Save") { saving = true; saveError = ""; Task { if await save(draft.trimmingCharacters(in: .whitespacesAndNewlines)) { dismiss() } else { saveError = "Could not save. Your edit is still here; try again." }; saving = false } }
                             .disabled(saving || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draft.count > 2000)
                     } }
                 }
-        }.preferredColorScheme(.dark).presentationDetents([.medium, .large]).interactiveDismissDisabled(saving)
+        }.tint(Color(red: 0.50, green: 0.79, blue: 1)).preferredColorScheme(.dark).presentationDetents([.medium, .large]).interactiveDismissDisabled(saving)
             .confirmationDialog("Delete this message for everyone?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Delete for everyone", role: .destructive) { saving = true; Task { if await delete("everyone") { dismiss() }; saving = false } }
             }

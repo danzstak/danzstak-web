@@ -287,7 +287,7 @@ struct ContentView: View {
     private var people: some View {
         List {
             Section {
-                Text("Discover the people sharing in Your Mix. Open a member to see their loaded posts.")
+                Text("Discover the people sharing in Your Mix. Open a member to view their profile.")
                     .foregroundStyle(.secondary).listRowBackground(Color.clear)
             }
             Section("People in Your Mix") {
@@ -295,7 +295,7 @@ struct ContentView: View {
                     NavigationLink {
                         ScrollView {
                             LazyVStack(spacing: 12) {
-                                ProfileHeader(name: person.author, picture: person.authorPicture, subtitle: "DanzStak community member")
+                                MemberProfileIdentity(name: person.author, picture: person.authorPicture, email: person.userEmail, isDemo: model.isDemo)
                                 ForEach(model.posts.filter { ($0.userEmail ?? $0.author) == (person.userEmail ?? person.author) }) { post in PostCard(post: post) }
                             }
                         }.background(SocialStyle.canvas).navigationTitle(person.author).navigationBarTitleDisplayMode(.inline)
@@ -304,7 +304,7 @@ struct ContentView: View {
                             Avatar(name: person.author, picture: person.authorPicture, size: 50)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(person.author).font(.headline)
-                                Text("View posts").font(.caption).foregroundStyle(.secondary)
+                                Text("View profile").font(.caption).foregroundStyle(.secondary)
                             }.padding(.vertical, 8)
                         }
                     }
@@ -358,7 +358,7 @@ struct ContentView: View {
     private var profile: some View {
         ScrollView {
             VStack(spacing: 16) {
-                ProfileHeader(name: myPost?.author ?? "Your profile", picture: myPost?.authorPicture, subtitle: "Part of the DanzStak community")
+                MemberProfileIdentity(name: myPost?.author ?? "Your profile", picture: myPost?.authorPicture, email: nil, isDemo: model.isDemo, own: true)
                 HStack(spacing: 12) {
                     Button { composer = true } label: { Label("Create post", systemImage: "plus") }.buttonStyle(.borderedProminent)
                     Button { showGroups = true } label: { Label("Tribes", systemImage: "person.3") }.buttonStyle(.bordered)
@@ -590,7 +590,8 @@ private struct MediaViewer: View {
                                 VStack(spacing: 18) {
                                     ForEach(MediaResponseKind.allCases) { kind in
                                         Button {
-                                            if useDrawer { onOpenDrawer(page, kind) }
+                                            if kind == .likes { model.reactToMedia(page.id, emoji: "👍") }
+                                            else if useDrawer { onOpenDrawer(page, kind) }
                                             else { responseKind = kind }
                                         } label: {
                                             HStack(spacing: 7) {
@@ -599,7 +600,7 @@ private struct MediaViewer: View {
                                             }.frame(width: 64, height: 48)
                                         }.accessibilityLabel("\(kind.rawValue), \(count(kind, pageID: page.id))")
                                             .accessibilityIdentifier("media.\(kind.rawValue.lowercased())")
-                                            .simultaneousGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                                            .highPriorityGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in
                                                 if useDrawer { onOpenDrawer(page, kind) }
                                                 else { responseKind = kind }
                                             })
@@ -988,7 +989,9 @@ private struct PostVideo: View {
     @State private var visible = false
     private var shouldPlay: Bool { active && visible && scenePhase == .active && (fullScreen || !viewerPresented) }
     var body: some View {
-        VideoPlayer(player: player)
+        Group {
+            if fullScreen { FillVideoPlayer(player: player) } else { VideoPlayer(player: player) }
+        }
             .frame(maxWidth: .infinity, maxHeight: fullScreen ? .infinity : 230)
             .frame(height: fullScreen ? nil : 230)
             .onGeometryChange(for: Bool.self) { proxy in
@@ -1128,5 +1131,52 @@ private struct EmptyState: View {
             Text(title).font(.headline)
             Text(detail).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }.padding(30).frame(maxWidth: .infinity)
+    }
+}
+
+private struct FillVideoPlayer: UIViewRepresentable {
+    let player: AVPlayer?
+    func makeUIView(context: Context) -> PlayerSurface { PlayerSurface() }
+    func updateUIView(_ view: PlayerSurface, context: Context) { view.layerPlayer.player = player; view.layerPlayer.videoGravity = .resizeAspectFill }
+    final class PlayerSurface: UIView {
+        override class var layerClass: AnyClass { AVPlayerLayer.self }
+        var layerPlayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    }
+}
+
+private struct MemberProfileIdentity: View {
+    let name: String
+    let picture: String?
+    let email: String?
+    let isDemo: Bool
+    var own = false
+    @State private var profile: MemberProfile?
+    @State private var error = ""
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ZStack(alignment: .bottom) {
+                Group {
+                    if let value = profile?.cover, let url = URL(string: value), url.scheme == "https" {
+                        AsyncImage(url: url) { image in image.resizable().scaledToFill() } placeholder: { SocialStyle.blue.opacity(0.25) }
+                    } else { LinearGradient(colors: [SocialStyle.blue.opacity(0.8), .black], startPoint: .topLeading, endPoint: .bottomTrailing) }
+                }.frame(height: 190).clipped().padding(.bottom, 62).accessibilityLabel("Cover image of \(profile?.name ?? name)")
+                Avatar(name: profile?.name ?? name, picture: profile?.picture ?? picture, size: 124).padding(5).background(SocialStyle.card, in: Circle()).accessibilityLabel("Profile image of \(profile?.name ?? name)")
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text(profile?.name ?? name).font(.title.bold()).frame(maxWidth: .infinity, alignment: .center)
+                if let handle = profile?.handle, !handle.isEmpty { Text("@" + handle).foregroundStyle(.secondary) }
+                if let bio = profile?.bio, !bio.isEmpty { Text(bio) }
+                if let location = profile?.location, !location.isEmpty { Label(location, systemImage: "mappin.and.ellipse") }
+                if let work = profile?.work, !work.isEmpty { Label(work, systemImage: "briefcase") }
+                if let value = profile?.website, let url = URL(string: value), url.scheme == "https" { Link(value, destination: url) }
+                if !error.isEmpty { Text(error).font(.caption).foregroundStyle(.secondary) }
+            }.padding(.horizontal, 18)
+        }.padding(.bottom, 12).background(SocialStyle.card)
+            .task {
+                guard !isDemo else { return }
+                guard own || email?.isEmpty == false else { error = "This member’s full profile is not available from this post yet."; return }
+                do { profile = try await APIClient().memberProfile(email: email) }
+                catch { self.error = "The full profile could not be loaded. Try again later." }
+            }
     }
 }

@@ -64,6 +64,14 @@ class DanzStakApiTest {
         body = JSONObject(connection.body.toString("UTF-8"))
         assertEquals("delete", body.getString("action")); assertEquals("me", body.getString("scope")); assertEquals("m1", body.getString("messageId"))
     }
+    @Test fun profileUsesSelectedMemberAndRetainsBothImages() {
+        lateinit var connection: Connection
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 200, """{"profile":{"name":"Friend","picture":"https://example.com/avatar.jpg","cover":"https://example.com/cover.jpg"}}""").also { connection = it } }) { "opaque" }
+        val profile = api.profile("friend+music@example.com")
+        assertEquals("email=friend%2Bmusic%40example.com", connection.url.query)
+        assertEquals("https://example.com/avatar.jpg", profile.getString("picture"))
+        assertEquals("https://example.com/cover.jpg", profile.getString("cover"))
+    }
     @Test fun chatContactQueryAndSendAreCorrect() {
         lateinit var connection: Connection
         var response = """{"messages":[],"canContact":true}"""

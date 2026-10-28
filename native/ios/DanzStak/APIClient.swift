@@ -1,5 +1,17 @@
 import Foundation
 
+struct MemberProfileResponse: Decodable { let profile: MemberProfile }
+struct MemberProfile: Decodable {
+    let name: String
+    let handle: String?
+    let bio: String?
+    let picture: String?
+    let cover: String?
+    let location: String?
+    let work: String?
+    let website: String?
+}
+
 struct FeedPost: Identifiable, Decodable {
     let id: String
     let author: String
@@ -135,6 +147,12 @@ struct APIClient {
         let _: EmptyResponse = try await send("/settings/presence", method: "POST", body: ["allowTags": settings.allowTags, "onlineVisible": settings.onlineVisible ?? true, "darkMode": settings.darkMode ?? false, "reduceMotion": settings.reduceMotion ?? false, "dataSaver": settings.dataSaver ?? false, "language": settings.language ?? "en"])
     }
 
+    func memberProfile(email: String? = nil) async throws -> MemberProfile {
+        var components = URLComponents()
+        if let email, !email.isEmpty { components.queryItems = [URLQueryItem(name: "email", value: email)] }
+        let response: MemberProfileResponse = try await send("/profiles" + (components.string ?? ""))
+        return response.profile
+    }
     func logout() async throws {
         let _: EmptyResponse = try await send("/auth/logout", method: "POST", body: [:])
     }
