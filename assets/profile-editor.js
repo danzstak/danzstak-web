@@ -751,7 +751,16 @@ if (!viewingOtherProfile) {
 }
 function applyLoadedProfile(profile = {}) {
   tabs.querySelector('[data-profile-tab="Memories"]').hidden = profile.isOwner !== true;
-  if (profile.isOwner === true) { viewingOtherProfile = false; editButton.hidden = false; mediaTools.hidden = false; }
+  if (profile.isOwner === true) {
+    viewingOtherProfile = false;
+    editButton.hidden = false;
+    mediaTools.hidden = false;
+    if (new URLSearchParams(location.search).get("edit") === "privacy" && panel.dataset.routeOpened !== "true") {
+      panel.dataset.routeOpened = "true";
+      editButton.click();
+      requestAnimationFrame(() => panel.elements.profilePostPermission.focus({ preventScroll: true }));
+    }
+  }
   applyProfile(profile.cloudProfile ? profile : savedProfile());
   if (profile.cloudProfile) {
     fitCoverButton.classList.toggle("active", Boolean(profile.coverFit));

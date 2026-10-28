@@ -1049,6 +1049,11 @@ function renderWorkspace(name) {
     activityButton.className = "secondary";
     activityButton.textContent = "View";
     activityButton.addEventListener("click", () => openAccountActivity(activityButton));
+    const profilePermissions = document.createElement("a");
+    profilePermissions.className = "secondary";
+    profilePermissions.href = "profile.html?edit=privacy";
+    profilePermissions.textContent = "Manage";
+    profilePermissions.setAttribute("aria-label", "Manage profile posting and tagging permissions");
     const exportButton = document.createElement("button");
     exportButton.type = "button";
     exportButton.className = "secondary";
@@ -1161,6 +1166,7 @@ function renderWorkspace(name) {
       heading,
       settingRow("👤", "Account settings", notifications),
       settingRow("🔒", "Privacy center", presence),
+      settingRow("🪪", "Profile posting and tagging", profilePermissions),
       settingRow("@", "Allow friends to tag me", tagsCheckbox),
       settingRow("🌙", "Dark mode", darkCheckbox),
       settingRow("✨", "Reduce motion", motionCheckbox),

@@ -6,11 +6,16 @@ const profile = fs.readFileSync("assets/profile-editor.js", "utf8");
 const collections = require("./assets/profile-collections.js");
 const auth = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 const signaling = fs.readFileSync("infrastructure/call-signaling/template.yaml", "utf8");
+const settings = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 
 assert.match(profile, /Who can post on your profile\?/);
 assert.match(profile, /Only me/);
 assert.match(profile, /Friends/);
 assert.match(profile, /Anyone on DanzStak/);
+assert.match(profile, /get\("edit"\) === "privacy"/);
+assert.match(profile, /panel\.elements\.profilePostPermission\.focus/);
+assert.match(settings, /profile\.html\?edit=privacy/);
+assert.match(settings, /Profile posting and tagging/);
 assert.match(profile, /Allow accepted friends to tag me in photos and videos/);
 assert.match(profile, /profile\.allowTags = panel\.elements\.allowTags\.checked/);
 assert.match(profile, /profileMemberId:\s*profile\.memberId/);
