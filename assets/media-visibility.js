@@ -17,7 +17,8 @@
   if(isFeedVideo(video)){
    video.preload='none';video.muted=true;video.autoplay=!dataSaverEnabled();video.loop=true;
    video.addEventListener('pointerdown',()=>manualPlayback.add(video),{passive:true});
-  }else if(!video.getAttribute?.('preload'))video.preload='metadata';
+  }else if(!video.autoplay)video.preload='none';
+  else if(!video.getAttribute?.('preload'))video.preload='metadata';
   if(video.autoplay)return;
   let previewTime=0,restored=false;
   const showFrame=()=>{
@@ -40,7 +41,7 @@
   element.src='about:blank';element.replaceWith(button);
   button.addEventListener('click',()=>{element.src=original;button.replaceWith(element);});
  }
- const observer=new IntersectionObserver(entries=>{for(const entry of entries){const inView=entry.isIntersecting&&entry.intersectionRatio>=0.15;visible.set(entry.target,inView);if(!inView){manualPlayback.delete(entry.target);pause(entry.target);}else if(isFeedVideo(entry.target)&&!document.hidden&&!dataSaverEnabled()){entry.target.preload='auto';if(entry.target.readyState===0)entry.target.load?.();entry.target.play().catch(()=>{});}}}, {threshold:[0,0.15,0.6]});
+ const observer=new IntersectionObserver(entries=>{for(const entry of entries){const inView=entry.isIntersecting&&entry.intersectionRatio>=0.15;visible.set(entry.target,inView);if(!inView){manualPlayback.delete(entry.target);pause(entry.target);continue;}if(entry.target.tagName!=='VIDEO'||document.hidden)continue;const feedVideo=isFeedVideo(entry.target);if(feedVideo&&dataSaverEnabled())continue;entry.target.preload=feedVideo?'auto':'metadata';if(entry.target.readyState===0)entry.target.load?.();if(feedVideo)entry.target.play().catch(()=>{});}}, {threshold:[0,0.15,0.6]});
  function track(element){if(!eligible(element)||tracked.has(element))return;tracked.add(element);observer.observe(element);if(element.tagName==='VIDEO'){prepareVideoPreview(element);element.addEventListener('play',()=>{if(document.hidden||(visible.get(element)===false&&!manualPlayback.has(element)))element.pause();});}}
  function added(root){if(eligible(root))track(root);root.querySelectorAll?.('video,iframe.reel-player').forEach(track);}
  function removed(root){for(const media of [...tracked])if(media===root||root.contains?.(media)){if(media.tagName==='VIDEO')media.pause();observer.unobserve(media);tracked.delete(media);}}
