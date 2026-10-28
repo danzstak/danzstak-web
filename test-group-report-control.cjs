@@ -7,7 +7,7 @@ const code = source.slice(source.indexOf('        report.addEventListener("click
 let click, response = { ok: false, json: async () => ({ error: 'Unavailable' }) };
 const requests = [], errors = [];
 const report = { disabled: false, textContent: 'Report a problem', addEventListener: (_, handler) => { click = handler; } };
-vm.runInNewContext(code, { report, group: { id: 'default-0' }, prompt: () => 'Concern to review', alert: message => errors.push(message),
+vm.runInNewContext(code, { report, group: { id: 'default-0' }, openTextActionDialog: async () => 'Concern to review', alert: message => errors.push(message),
   groupFetch: async (_, options) => { requests.push(JSON.parse(options.body)); return response; } });
 (async () => {
   await click();

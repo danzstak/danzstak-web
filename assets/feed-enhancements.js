@@ -93,6 +93,56 @@ function writeSections(value) {
   catch { transientSections = value; }
 }
 
+function openTextActionDialog({ title, description, label, placeholder = "", submitLabel, maxLength = 500 }) {
+  document.querySelector(".text-action-dialog")?.close();
+  return new Promise(resolve => {
+    const dialog = document.createElement("dialog");
+    dialog.className = "post-report-dialog text-action-dialog";
+    const form = document.createElement("form");
+    form.method = "dialog";
+    const heading = document.createElement("h2");
+    heading.textContent = title;
+    const copy = document.createElement("p");
+    copy.textContent = description;
+    const field = document.createElement("label");
+    field.append(document.createTextNode(label));
+    const textarea = document.createElement("textarea");
+    textarea.rows = 5;
+    textarea.maxLength = maxLength;
+    textarea.required = true;
+    textarea.placeholder = placeholder;
+    field.appendChild(textarea);
+    const status = document.createElement("p");
+    status.className = "post-report-status";
+    status.setAttribute("role", "status");
+    const actions = document.createElement("div");
+    actions.className = "post-report-actions";
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.className = "primary";
+    submit.textContent = submitLabel;
+    actions.append(cancel, submit);
+    form.append(heading, copy, field, status, actions);
+    dialog.appendChild(form);
+    document.body.appendChild(dialog);
+    let settled = false;
+    const finish = value => { if (settled) return; settled = true; resolve(value); dialog.close(); };
+    cancel.addEventListener("click", () => finish(null));
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const value = textarea.value.trim();
+      if (!value) { status.textContent = "Enter a message before continuing."; textarea.focus(); return; }
+      finish(value);
+    });
+    dialog.addEventListener("close", () => { if (!settled) { settled = true; resolve(null); } dialog.remove(); }, { once: true });
+    dialog.showModal();
+    textarea.focus();
+  });
+}
+
 function dataSaverEnabled() {
   try { return readDevicePreference("danzstak_data_saver") === "1"; }
   catch { return false; }
@@ -475,9 +525,8 @@ function renderWorkspace(name) {
         report.className = "group-report";
         report.textContent = "Report a problem";
         report.addEventListener("click", async () => {
-          const details = prompt("What should the moderators review?");
+          const details = await openTextActionDialog({ title: "Report this Tribe", description: "Tell DanzStak moderators what needs review. Do not include private information.", label: "What happened?", placeholder: "Describe the safety or community concern", submitLabel: "Submit report" });
           if (!details?.trim()) return;
-          if (details.trim().length > 500) { alert("Report details cannot exceed 500 characters."); return; }
           report.disabled = true;
           try {
             const response = await groupFetch("/reports", {
@@ -500,9 +549,8 @@ function renderWorkspace(name) {
             announce.textContent = "Notify @everyone";
             announce.title = "Send an in-app announcement to current Tribe members";
             announce.addEventListener("click", async () => {
-              const message = prompt("Announcement for everyone in " + group.name + " (500 characters maximum):");
+              const message = await openTextActionDialog({ title: "Notify everyone in " + group.name, description: "This sends one in-app announcement to every current Tribe member.", label: "Announcement", placeholder: "Share an update with the Tribe", submitLabel: "Send announcement" });
               if (!message?.trim()) return;
-              if (message.trim().length > 500) { alert("Announcement cannot exceed 500 characters."); return; }
               announce.disabled = true;
               try {
                 const response = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/everyone", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: message.trim() }) });
