@@ -33,6 +33,7 @@
   let searchScope = "city";
   let drawingRoute = false;
   let routePoints = [];
+  let finalizedRoutePoints = [];
   let routePreview = null;
   let mapDrawControl = null;
 
@@ -76,6 +77,7 @@
   function startRouteDrawing() {
     drawingRoute = true;
     routePoints = [];
+    finalizedRoutePoints = [];
     drawn.clearLayers();
     routePreview = null;
     searchBounds = null;
@@ -94,6 +96,7 @@
     }
     drawn.clearLayers();
     routePreview = L.polyline(routePoints, { color: "#1769e0", weight: 6, opacity: 0.95, lineCap: "round", lineJoin: "round", interactive: false }).addTo(drawn);
+    finalizedRoutePoints = routePoints.map(point => [point.lng, point.lat]);
     useBounds(routePreview.getBounds(), "drawn");
     map.fitBounds(routePreview.getBounds(), { padding: [24, 24] });
     stopRouteDrawing();
@@ -147,6 +150,7 @@
     drawn.clearLayers();
     searchBounds = null;
     searchScope = "city";
+    finalizedRoutePoints = [];
     status.textContent = "Area filter cleared. Search by city, or move the map and press Search this area.";
   });
   document.addEventListener("keydown", event => {
@@ -266,6 +270,7 @@
       try {
         const body = JSON.parse(String(options.body || "{}"));
         if (searchBounds) body.searchBounds = searchBounds;
+        if (searchScope === "drawn" && finalizedRoutePoints.length >= 2) body.searchPath = finalizedRoutePoints;
         nextOptions = { ...options, body: JSON.stringify(body) };
       } catch {}
     }

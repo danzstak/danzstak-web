@@ -9,7 +9,20 @@ or Web3 transactions. Those capabilities belong to the separate SFSCOOP
 product and must not be introduced into DanzStak.
 ## Migration objective
 
-The owner wants DanzStak to help users leave billionaire-owned social platforms. Data portability is a core product goal: users should be able to copy their own Facebook profile and content into DanzStak while keeping Facebook, or migrate and then close Facebook after verifying their imported data. Account closure must remain a separate user-controlled action on Facebook. The importer should preview supported content, preserve original dates where available, default imported material to private, and prevent duplicate imports. Facebook connections, likes, and comments must not be represented as actions taken by real DanzStak members.
+The owner wants DanzStak to help users leave billionaire-owned social platforms. Data portability is a core product goal: users should be able to copy their own Facebook profile and content into DanzStak while keeping Facebook, or migrate and then close Facebook after verifying their imported data. Account closure must remain a separate user-controlled action on Facebook. The importer should preview supported content, preserve original dates where available, let the user batch-select an audience with Public as the initial choice, and prevent duplicate imports. Facebook connections, likes, and comments must not be represented as actions taken by real DanzStak members.
+
+## Independence and sustainable operation
+
+DanzStak answers to its users. Product and monetization work must preserve these operating constraints:
+
+- never sell personal information or use it for cross-context behavioral advertising;
+- do not pursue funding rounds that give outside investors control over the platform;
+- keep ordinary social participation, friendship, and direct communication available without an attention-based paywall;
+- earn revenue from optional tools that create direct value, such as professional EPK features, tour-management workflows, verified venue or record-store tools, supporter memberships, and clearly disclosed fees on transactions DanzStak actually facilitates;
+- make pricing, notification controls, privacy controls, and cancellation understandable to ordinary users; and
+- design storage, media delivery, lifecycle cleanup, abuse controls, and rate limits so infrastructure cost grows responsibly with legitimate use.
+
+Growth must come from useful artist and community tools, not manipulative engagement loops. DanzStak should be rewarding to use while preserving user choice, quiet hours, chronological or user-controlled views, and the ability to leave.
 
 ## Production runtime configuration
 

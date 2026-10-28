@@ -1976,6 +1976,21 @@ function deduplicateVenues(places) {
   return [...unique.values()];
 }
 
+function distanceToSearchPathMiles(position, path) {
+  if (!Array.isArray(position) || position.length !== 2 || !Array.isArray(path) || path.length < 2) return Number.POSITIVE_INFINITY;
+  const longitudeScale = Math.max(0.2, Math.cos(Number(position[1]) * Math.PI / 180));
+  const point = [Number(position[0]) * 69 * longitudeScale, Number(position[1]) * 69];
+  let nearest = Number.POSITIVE_INFINITY;
+  for (let index = 1; index < path.length; index += 1) {
+    const start = [path[index - 1][0] * 69 * longitudeScale, path[index - 1][1] * 69];
+    const end = [path[index][0] * 69 * longitudeScale, path[index][1] * 69];
+    const dx = end[0] - start[0], dy = end[1] - start[1], lengthSquared = dx * dx + dy * dy;
+    const ratio = lengthSquared ? Math.max(0, Math.min(1, ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / lengthSquared)) : 0;
+    nearest = Math.min(nearest, Math.hypot(point[0] - (start[0] + ratio * dx), point[1] - (start[1] + ratio * dy)));
+  }
+  return nearest;
+}
+
 const tourDirections = new Set(["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]);
 const tourActTypes = new Set(["band", "dj", "solo", "duo", "electronic", "ensemble"]);
 const tourGenres = new Set(["DIY Punk", "Metal", "Rock", "DJ / Electronic", "Hip-Hop", "Jazz", "Orchestra / Classical", "Other"]);
@@ -2132,7 +2147,9 @@ async function planTourRoute(event) {
   const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), genre = cleanPlace(data.genre).slice(0, 80), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), requestedDepartOn = cleanPlace(data.departOn), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), suppliedStops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [], suppliedEnd = local || directional ? start : cleanPlace(data.end), end = suppliedEnd || suppliedStops.at(-1) || "", stops = suppliedEnd ? suppliedStops : suppliedStops.slice(0, -1);
   const rawBounds = data.searchBounds && typeof data.searchBounds === "object" ? data.searchBounds : null;
   const searchBounds = rawBounds ? { north: Number(rawBounds.north), south: Number(rawBounds.south), east: Number(rawBounds.east), west: Number(rawBounds.west) } : null;
+  const searchPath = Array.isArray(data.searchPath) ? data.searchPath.slice(0, 40).map(point => Array.isArray(point) ? [Number(point[0]), Number(point[1])] : []) : [];
   if (searchBounds && (!Object.values(searchBounds).every(Number.isFinite) || searchBounds.north <= searchBounds.south || searchBounds.east <= searchBounds.west || searchBounds.north - searchBounds.south > 8 || searchBounds.east - searchBounds.west > 8)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Draw a smaller valid map search area." }) };
+  if (searchPath.length && (searchPath.length < 2 || searchPath.some(point => point.length !== 2 || !Number.isFinite(point[0]) || !Number.isFinite(point[1]) || Math.abs(point[0]) > 180 || Math.abs(point[1]) > 90))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Draw a valid route on the map." }) };
   if (directional && (!tourDirections.has(direction) || !requestedDays)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a travel direction and provide 1–180 tour days." }) };
   if ((requestedDepartOn && !/^\d{4}-\d{2}-\d{2}$/.test(requestedDepartOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour dates must use YYYY-MM-DD." }) };
   if (requestedDepartOn && returnBy && requestedDepartOn > returnBy) return { statusCode: 400, headers, body: JSON.stringify({ error: "The home date must be on or after the first show date." }) };
@@ -2146,6 +2163,7 @@ async function planTourRoute(event) {
       } : homePoint;
       const candidates = await tourCandidates(point, genre, excludedVenueKeys, variation, searchBounds);
       if (searchBounds) candidates.venues = candidates.venues.filter(place => Array.isArray(place.position) && place.position.length === 2 && place.position[1] <= searchBounds.north && place.position[1] >= searchBounds.south && place.position[0] <= searchBounds.east && place.position[0] >= searchBounds.west);
+      if (searchPath.length >= 2) candidates.venues = candidates.venues.filter(place => distanceToSearchPathMiles(place.position, searchPath) <= 25);
       if (requestedDepartOn) candidates.proposedDate = requestedDepartOn;
       return { statusCode: 200, headers, body: JSON.stringify({ route: { start: homePoint, end: homePoint, stops: [], distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, requestedDays, departOn: requestedDepartOn, returnBy, provider: "Amazon Location Service", planningOnly: true, local: true }, candidates: [candidates] }) };
     }
