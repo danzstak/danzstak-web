@@ -297,7 +297,9 @@ class MainActivity : ComponentActivity() {
     private fun people() {
         title("People")
         content.addView(label("People from your loaded posts", 14))
-        posts.distinctBy { it.userEmail.ifBlank { it.author } }.forEach { person ->
+        fun identity(post: FeedPost) = post.userEmail.takeIf { it.isNotBlank() }?.lowercase() ?: post.author
+        val ownIdentities = posts.filter { it.owner }.map(::identity).toSet()
+        posts.filter { !it.owner && identity(it) !in ownIdentities }.distinctBy(::identity).forEach { person ->
             content.addView(row().apply {
                 addView(avatar(person.author, person.picture))
                 addView(label(person.author + "\nView profile", 16, true)); minimumHeight = dp(64)

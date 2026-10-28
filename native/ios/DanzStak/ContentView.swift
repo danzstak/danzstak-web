@@ -292,10 +292,12 @@ struct ContentView: View {
     }
 
     private var peoplePosts: [FeedPost] {
+        func identity(_ post: FeedPost) -> String { if let email = post.userEmail, !email.isEmpty { return email.lowercased() }; return post.author }
+        let ownIdentities = Set(model.posts.filter { $0.isOwner == true }.map(identity))
         var seen = Set<String>()
         return model.posts.filter { post in
-            let key = post.userEmail ?? post.author
-            return post.isOwner != true && seen.insert(key).inserted
+            let key = identity(post)
+            return post.isOwner != true && !ownIdentities.contains(key) && seen.insert(key).inserted
         }
     }
 

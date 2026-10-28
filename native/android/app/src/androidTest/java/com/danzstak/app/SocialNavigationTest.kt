@@ -252,6 +252,7 @@ class SocialNavigationTest {
     @Test fun peopleOpenProfileWithCoverAndAvatar() {
         device.findObject(By.desc("People").pkg("com.danzstak.app")).click()
         assertTrue(device.wait(Until.hasObject(By.descStartsWith("View profile of ")), 5000))
+        assertFalse("Your own profile should not be listed among friends", device.hasObject(By.desc("View profile of You")))
         device.findObjects(By.descStartsWith("View profile of ")).first().click()
         assertTrue(device.wait(Until.hasObject(By.descStartsWith("Cover image of ")), 5000))
         assertTrue(device.hasObject(By.descStartsWith("Profile image of ")))
