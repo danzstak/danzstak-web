@@ -68,6 +68,7 @@ struct MessagesView: View {
             }.listStyle(.plain).navigationTitle("Chats").searchable(text: $query, prompt: "Search chats")
                 .tint(.orange)
                 .toolbar {
+                    ToolbarItem(placement: .principal) { HStack { Image("DanzStakMark").resizable().scaledToFit().frame(width: 38, height: 38).accessibilityLabel("DanzStak brand"); Text("Chats").font(.headline) } }
                     ToolbarItem(placement: .topBarLeading) { Button("Done") { dismiss() } }
                     ToolbarItem(placement: .topBarTrailing) { Button("New chat", systemImage: "square.and.pencil") { newChat = true }.accessibilityIdentifier("chats.new") }
                 }
@@ -175,7 +176,7 @@ private struct ChatThreadView: View {
             if !canContact { Text("You can read this conversation. Sending requires an accepted friendship or a shared Tribe.").font(.footnote).padding() }
             if !dictation.error.isEmpty { Text(dictation.error).font(.caption).foregroundStyle(.orange).padding(.horizontal) }
             HStack(alignment: .bottom, spacing: 10) {
-                TextField("Message", text: $draft, axis: .vertical).lineLimit(1...5).padding(12).background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 24)).accessibilityIdentifier("chat.composer")
+                TextField("Message", text: Binding(get: { draft }, set: { draft = limitedChatText($0) }), axis: .vertical).lineLimit(1...5).padding(12).background(Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 24)).accessibilityIdentifier("chat.composer")
                 Button {
                     if dictation.listening { dictation.stop() }
                     else {
@@ -190,13 +191,13 @@ private struct ChatThreadView: View {
                 Button { Task { await send() } } label: { Image(systemName: "arrow.up").font(.title3.bold()).foregroundStyle(.white).frame(width: 44, height: 44).background(.orange, in: Circle()) }
                     .disabled(sending || !canContact || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draft.count > 2000).accessibilityLabel("Send message")
             }.padding(12).background(.bar)
-        }.navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .principal) { HStack(spacing: 10) { ChatAvatar(name: chat.name, picture: chat.picture).scaleEffect(0.7).frame(width: 36, height: 36); Text(chat.name).font(.headline).lineLimit(1) } } }
+        }.navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .principal) { HStack(spacing: 10) { ChatAvatar(name: chat.name, picture: chat.picture).scaleEffect(0.7).frame(width: 36, height: 36); Text(chat.name).font(.headline).lineLimit(1) } }; ToolbarItem(placement: .topBarTrailing) { Image("DanzStakMark").resizable().scaledToFit().frame(width: 30, height: 30).accessibilityLabel("DanzStak brand") } }
             .task {
                 draft = UserDefaults.standard.string(forKey: draftKey) ?? ""
                 if !appliedForward, let forwardedDraft { draft = draft.isEmpty ? forwardedDraft : draft + "\n" + forwardedDraft; appliedForward = true }
                 await load()
                 while !Task.isCancelled { try? await Task.sleep(for: .seconds(10)); if phase == .active && !Task.isCancelled { await load() } }
-            }.onChange(of: draft) { _, text in UserDefaults.standard.set(text, forKey: draftKey) }
+            }.onChange(of: draft) { _, text in let limited = limitedChatText(text); if limited != text { draft = limited }; UserDefaults.standard.set(limited, forKey: draftKey) }
             .onChange(of: phase) { _, phase in if phase == .background { dictation.stop() } }
             .onDisappear { dictation.stop() }
             .sheet(item: $actions, onDismiss: {
@@ -339,7 +340,7 @@ private struct ChatMessagePanel: View {
                 if message.deletedAt?.isEmpty != false { HStack { ForEach(["👍", "❤️", "😂", "😮", "😢", "😡"], id: \.self) { emoji in
                     Button { Task { await react(emoji) } } label: { Text(emoji).font(.title2).frame(maxWidth: .infinity, minHeight: 44) }.accessibilityLabel("React with \(emoji)")
                 } }.padding(8).background(Color.white.opacity(0.07), in: Capsule()) }
-                if editable { TextEditor(text: $draft).scrollContentBackground(.hidden).frame(minHeight: 110, maxHeight: 220).padding(10).background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16)).accessibilityIdentifier("chat.edit") }
+                if editable { TextEditor(text: Binding(get: { draft }, set: { draft = limitedChatText($0) })).scrollContentBackground(.hidden).frame(minHeight: 110, maxHeight: 220).padding(10).background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16)).accessibilityIdentifier("chat.edit") }
                 else { Text(message.content).frame(maxWidth: .infinity, alignment: .leading) }
                 if !saveError.isEmpty { Text(saveError).font(.caption).foregroundStyle(.red) }
                 if message.deletedAt?.isEmpty != false { HStack(spacing: 22) {
@@ -363,4 +364,14 @@ private struct ChatMessagePanel: View {
                 Button("Delete for everyone", role: .destructive) { saving = true; Task { if await delete("everyone") { dismiss() }; saving = false } }
             }
     }
+}
+
+private func limitedChatText(_ text: String) -> String {
+    var units = 0
+    return String(text.prefix { character in
+        let count = String(character).utf16.count
+        guard units + count <= 2000 else { return false }
+        units += count
+        return true
+    })
 }

@@ -53,6 +53,8 @@ class SocialNavigationTest {
         assertTrue(device.wait(Until.hasObject(By.text("Chats")), 5000))
         device.findObject(By.text("Jamie Rivera")).click()
         assertTrue(device.wait(Until.hasObject(By.desc("Message")), 5000))
+        device.findObject(By.desc("Message")).text = "x".repeat(2001)
+        assertEquals(2000, device.findObject(By.desc("Message")).text.length)
         device.findObject(By.desc("Message")).text = "Text before edit"
         device.findObject(By.desc("Send message")).click()
         assertTrue(device.wait(Until.hasObject(By.text("Text before edit")), 5000))
@@ -98,6 +100,17 @@ class SocialNavigationTest {
         assertTrue(device.hasObject(By.text("Photos")))
         assertTrue(device.hasObject(By.text("Videos")))
         assertFalse(device.hasObject(By.textContains("Header size")))
+    }
+    @Test fun emptyMediaKeepsBothPlaceholderRails() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!.apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK); putExtra("preview", true); putExtra("empty_media", true)
+        })
+        assertTrue(device.wait(Until.hasObject(By.desc("Flashes placeholder 1")), 10000))
+        repeat(6) {
+            if (!device.hasObject(By.desc("The Roll placeholder 1"))) device.swipe(device.displayWidth / 2, device.displayHeight * 4 / 5, device.displayWidth / 2, device.displayHeight / 4, 20)
+        }
+        assertTrue(device.wait(Until.hasObject(By.desc("The Roll placeholder 1")), 5000))
     }
     @Test fun videoLikesToggleWithoutOpeningResponders() {
         device.findObject(By.desc("Open Flashes from DanzStak")).click()

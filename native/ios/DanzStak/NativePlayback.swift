@@ -15,7 +15,6 @@ final class NativePlayback {
             try? AVAudioSession.sharedInstance().setActive(true)
             #endif
         }
-        player.isMuted = false
         player.play()
     }
 

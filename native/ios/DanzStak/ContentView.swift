@@ -228,10 +228,7 @@ struct ContentView: View {
                     Button("Retry") { Task { await model.loadStories() } }.font(.caption.bold())
                 }.padding(.horizontal, 18)
             }
-            if model.stories.isEmpty, !model.storiesLoading, model.storiesError.isEmpty {
-                Text("No flashes right now. Check back for moments from your community.")
-                    .font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 18)
-            }
+            if model.stories.isEmpty { mediaPlaceholders(name: "Flashes", icon: "camera", emptyLabel: "No flashes yet") }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(Array(model.stories.enumerated()), id: \.element.id) { index, story in
@@ -246,7 +243,7 @@ struct ContentView: View {
                                 }
                                 LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom)
                                 Text(story.displayName ?? "DanzStak member").font(.caption.bold()).foregroundStyle(.white).lineLimit(2).padding(10)
-                            }.frame(width: 105, height: 140).clipShape(RoundedRectangle(cornerRadius: 14))
+                            }.frame(width: 118, height: 164).clipShape(RoundedRectangle(cornerRadius: 14))
                         }.buttonStyle(.plain).accessibilityLabel("Open flash from \(story.displayName ?? "DanzStak member")").accessibilityIdentifier("story.\(story.id)")
                     }
                 }.padding(.horizontal, 16)
@@ -258,8 +255,7 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("The Roll", systemImage: "play.rectangle.fill").font(.title3.bold()).padding(.horizontal, 18)
             if model.reels.isEmpty {
-                Text(model.storiesError.isEmpty ? "Nothing on The Roll right now." : "The Roll couldn’t be loaded. Refresh to try again.")
-                    .font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 18)
+                mediaPlaceholders(name: "The Roll", icon: "video", emptyLabel: "No videos yet")
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -274,6 +270,21 @@ struct ContentView: View {
                 }.padding(.horizontal, 16)
             }
         }.padding(.vertical, 12).accessibilityIdentifier("home.reels")
+    }
+
+    private func mediaPlaceholders(name: String, icon: String, emptyLabel: String) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(0..<3) { index in
+                    VStack(spacing: 12) {
+                        Image(systemName: icon).font(.system(size: 28))
+                        Text(index == 0 ? emptyLabel : "Coming into view").font(.caption).multilineTextAlignment(.center)
+                    }.padding(10).frame(width: name == "Flashes" ? 118 : 210, height: name == "Flashes" ? 164 : 374).foregroundStyle(.white.opacity(0.75))
+                        .background(LinearGradient(colors: [Color(red: 0.17, green: 0.23, blue: 0.33), Color(red: 0.07, green: 0.09, blue: 0.13)], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 14))
+                        .accessibilityLabel("\(name) placeholder \(index + 1)")
+                }
+            }.padding(.horizontal, 16)
+        }
     }
 
     private var peoplePosts: [FeedPost] {
@@ -458,7 +469,7 @@ private struct ReelTile: View {
                 Text(reel.caption ?? "Watch The Roll").font(.subheadline.bold()).lineLimit(3)
                 Text(reel.displayName ?? "DanzStak").font(.caption).opacity(0.8)
             }.foregroundStyle(.white).padding(12)
-        }.frame(width: 145, height: 210).clipShape(RoundedRectangle(cornerRadius: 16))
+        }.frame(width: 210, height: 374).clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 
@@ -558,7 +569,7 @@ private struct MediaViewer: View {
     private var playing: Bool { !swiping && !pickingReaction && responseKind == nil && !commentFocused }
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .bottom) {
             GeometryReader { geometry in
                 if let page {
                     ZStack {
@@ -606,7 +617,7 @@ private struct MediaViewer: View {
                                             })
                                     }
                                 }
-                            }.padding(.bottom, 16)
+                            }.padding(.bottom, 76)
                         }.foregroundStyle(.white).padding(.horizontal, 18)
                         if pickingReaction {
                             VStack(spacing: 12) {
@@ -877,7 +888,7 @@ private struct PostCard: View {
             if let value = post.mediaUrl, let url = URL(string: value), url.scheme == "https" {
                 Group {
                 if post.mediaType?.hasPrefix("image") == true {
-                    AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView().frame(height: 180) }.frame(maxWidth: .infinity)
+                    AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView().frame(height: 180) }.frame(maxWidth: .infinity, maxHeight: 560)
                 } else if post.mediaType?.hasPrefix("video") == true { PostVideo(url: url, active: !comments && !sharing && !editingTags && responseKind == nil) }
                 }.accessibilityIdentifier("post.media.\(post.id)").contextMenu {
                     if post.taggedUsers?.contains(where: { $0.isMe == true }) == true { Button("Remove my tag", role: .destructive) { removeTag() } }
@@ -987,20 +998,35 @@ private struct PostVideo: View {
     var fullScreen = false
     @State private var player: AVPlayer?
     @State private var visible = false
+    @State private var mediaWidth: CGFloat = 360
+    @State private var videoAspect: CGFloat = 16.0 / 9.0
     private var shouldPlay: Bool { active && visible && scenePhase == .active && (fullScreen || !viewerPresented) }
     var body: some View {
         Group {
-            if fullScreen { FillVideoPlayer(player: player) } else { VideoPlayer(player: player) }
+            if fullScreen { FitVideoPlayer(player: player) } else { VideoPlayer(player: player) }
         }
-            .frame(maxWidth: .infinity, maxHeight: fullScreen ? .infinity : 230)
-            .frame(height: fullScreen ? nil : 230)
+            .frame(maxWidth: .infinity, maxHeight: fullScreen ? .infinity : 560)
+            .frame(height: fullScreen ? nil : min(560, mediaWidth / videoAspect))
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { if $0 > 0 { mediaWidth = $0 } }
             .onGeometryChange(for: Bool.self) { proxy in
                 let frame = proxy.frame(in: .global)
                 let bounds = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.screen.bounds }.first ?? .zero
                 let visibleArea = frame.intersection(bounds)
                 return frame.height > 0 && !visibleArea.isNull && visibleArea.height / frame.height >= 0.65
             } action: { visible = $0; updatePlayback() }
-            .onAppear { player = AVPlayer(url: url); updatePlayback() }
+            .onAppear { let next = AVPlayer(url: url); next.isMuted = !fullScreen; player = next; updatePlayback() }
+            .task(id: url) {
+                guard !fullScreen else { return }
+                do {
+                    let asset = player?.currentItem?.asset ?? AVURLAsset(url: url)
+                    if let track = try await asset.loadTracks(withMediaType: .video).first {
+                        let size = try await track.load(.naturalSize)
+                        let transform = try await track.load(.preferredTransform)
+                        let displayed = size.applying(transform)
+                        if !Task.isCancelled, abs(displayed.height) > 0, abs(displayed.width) > 0 { videoAspect = abs(displayed.width / displayed.height) }
+                    }
+                } catch { /* The player retains its own loading and error handling. */ }
+            }
             .onChange(of: shouldPlay) { _, _ in updatePlayback() }
             .onDisappear {
                 if let player { NativePlayback.shared.pause(player) }
@@ -1134,10 +1160,10 @@ private struct EmptyState: View {
     }
 }
 
-private struct FillVideoPlayer: UIViewRepresentable {
+private struct FitVideoPlayer: UIViewRepresentable {
     let player: AVPlayer?
     func makeUIView(context: Context) -> PlayerSurface { PlayerSurface() }
-    func updateUIView(_ view: PlayerSurface, context: Context) { view.layerPlayer.player = player; view.layerPlayer.videoGravity = .resizeAspectFill }
+    func updateUIView(_ view: PlayerSurface, context: Context) { view.layerPlayer.player = player; view.layerPlayer.videoGravity = .resizeAspect }
     final class PlayerSurface: UIView {
         override class var layerClass: AnyClass { AVPlayerLayer.self }
         var layerPlayer: AVPlayerLayer { layer as! AVPlayerLayer }
