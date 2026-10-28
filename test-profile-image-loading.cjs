@@ -3,6 +3,8 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const source = fs.readFileSync("assets/profile.js", "utf8");
+const editor = fs.readFileSync("assets/profile-editor.js", "utf8");
+assert.match(editor, /if \(window\.danzstakCurrentProfile\) applyLoadedProfile\(window\.danzstakCurrentProfile\)/, "fast profile responses must be applied after editor initialization");
 const start = source.indexOf("function loadProfileImage(");
 const end = source.indexOf("async function loadProfile()", start);
 assert.ok(start >= 0 && end > start, "profile image preloader must exist");

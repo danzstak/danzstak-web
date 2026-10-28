@@ -746,9 +746,8 @@ if (!viewingOtherProfile) {
   applyProfile(savedProfile());
   try { applyProfileMedia(JSON.parse(localStorage.getItem(profileMediaKey) || "{}")); } catch { /* Ignore corrupt local drafts. */ }
 }
-window.addEventListener("danzstak:profile-loaded", event => {
-  tabs.querySelector('[data-profile-tab="Memories"]').hidden = event.detail?.isOwner !== true;
-  const profile = event.detail || {};
+function applyLoadedProfile(profile = {}) {
+  tabs.querySelector('[data-profile-tab="Memories"]').hidden = profile.isOwner !== true;
   if (profile.isOwner === true) { viewingOtherProfile = false; editButton.hidden = false; mediaTools.hidden = false; }
   applyProfile(profile.cloudProfile ? profile : savedProfile());
   if (profile.cloudProfile) {
@@ -756,4 +755,6 @@ window.addEventListener("danzstak:profile-loaded", event => {
     fitCoverButton.textContent = profile.coverFit ? "Fill Cover Box" : "Fit Entire Cover";
     if (!viewingOtherProfile) revealProfileVideoControls();
   }
-});
+}
+window.addEventListener("danzstak:profile-loaded", event => applyLoadedProfile(event.detail || {}));
+if (window.danzstakCurrentProfile) applyLoadedProfile(window.danzstakCurrentProfile);
