@@ -1730,13 +1730,26 @@ function publicPlace(place) {
 function isBookableClub(place, genre = "") {
   const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
   const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|symphony|orchestra|opera house|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
-  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|orchestra|ensemble|workshop|clinic|promoter|promotion|productions?|entertainment company|event consultant|entertainment consultant|event planner|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|music store|record store|instrument store|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office)\b/;
+  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|orchestra|ensemble|workshop|clinic|promoter|promotion|productions?|entertainment company|event consultant|entertainment consultant|event planner|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|music store|record store|instrument store|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office)\b/;
   const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival|festival office|jazzfest|walking tour|history tour|guided tour)\b/;
   const selectedGenre = genre.toLowerCase(), wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
+  const genreEvidence = selectedGenre.includes("punk")
+    ? /\b(punk|hardcore|diy)\b/.test(description)
+    : selectedGenre.includes("metal")
+      ? /\b(metal|hardcore)\b/.test(description)
+      : selectedGenre === "rock"
+        ? /\b(rock|punk|metal|live music|music venue)\b/.test(description)
+        : selectedGenre.includes("dj") || selectedGenre.includes("electronic")
+          ? /\b(dj|electronic|techno|house|night ?club)\b/.test(description)
+          : selectedGenre.includes("hip-hop")
+            ? /\b(hip[- ]?hop|rap)\b/.test(description)
+            : selectedGenre.includes("jazz")
+              ? /\bjazz\b/.test(description)
+              : true;
   const strongVenue = /\b(live music|music venue|rock club|punk club|metal club|night ?club|concert venue|concert hall)\b/.test(description);
   const plausibleRoom = /\b(club|bar|pub|tavern|lounge|music hall|social hall|taproom|brewery|roadhouse)\b/.test(description);
   const musicSignal = /\b(music|concert|live|rock|punk|metal|electronic|dj|hip[- ]?hop|jazz)\b/.test(description);
-  return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre && (strongVenue || (plausibleRoom && musicSignal));
+  return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre && genreEvidence && (strongVenue || (plausibleRoom && musicSignal));
 }
 
 function venueSuitability(place, genre = "") {

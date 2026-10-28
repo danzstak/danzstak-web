@@ -41,6 +41,7 @@
   const boundsPayload = bounds => ({
     north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest()
   });
+  const isSearchableBounds = bounds => bounds.getNorth() - bounds.getSouth() <= 8 && bounds.getEast() - bounds.getWest() <= 8;
 
   function updateSelectionUi() {
     const count = selectedVenues.size;
@@ -120,7 +121,16 @@
     status.textContent = "Area filter cleared. Search by city, or move the map and press Search this area.";
   });
   searchAreaButton.addEventListener("click", () => {
-    if (searchScope !== "drawn") useBounds(map.getBounds(), "viewport");
+    if (searchScope !== "drawn") {
+      const visibleBounds = map.getBounds();
+      if (!isSearchableBounds(visibleBounds)) {
+        searchBounds = null;
+        searchScope = "city";
+        status.textContent = "Zoom closer to a city or region, then press Search this area. Your normal home-city search is still available below.";
+        return;
+      }
+      useBounds(visibleBounds, "viewport");
+    }
     const search = document.getElementById("routeSearchAction") || document.querySelector(".primary-route");
     if (!search) {
       status.textContent = "Enter an act and home city below first.";
