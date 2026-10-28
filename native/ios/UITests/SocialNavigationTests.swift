@@ -1,6 +1,23 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testBrandSearchAndGroups() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview"]
+        app.launch()
+        XCTAssertTrue(app.images["danzstak.brand"].waitForExistence(timeout: 20))
+        app.buttons["Search feed"].tap()
+        let search = app.textFields["Search loaded posts and people"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText("no-matching-member-or-post")
+        XCTAssertTrue(app.staticTexts["No matching posts"].waitForExistence(timeout: 5))
+        app.buttons["Search feed"].tap()
+        XCTAssertTrue(app.staticTexts["DanzStak Community"].waitForExistence(timeout: 5))
+        app.buttons["Groups"].tap()
+        XCTAssertTrue(app.staticTexts["DJs & Producers"].waitForExistence(timeout: 5))
+    }
+
     func testDemoNavigationAndPosting() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview"]

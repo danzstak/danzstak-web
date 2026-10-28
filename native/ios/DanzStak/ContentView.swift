@@ -82,6 +82,21 @@ struct ContentView: View {
     }
 
     private var home: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Image("DanzStakBrand")
+                    .resizable().scaledToFit().frame(width: 168, height: 112)
+                    .accessibilityLabel("DanzStak")
+                    .accessibilityIdentifier("danzstak.brand")
+                Spacer()
+                Button { searching.toggle(); if !searching { query = "" } } label: {
+                    Image(systemName: "magnifyingglass").font(.title3.weight(.semibold))
+                        .foregroundStyle(.white).frame(width: 44, height: 44)
+                        .background(.white.opacity(0.12), in: Circle())
+                }.accessibilityLabel("Search feed")
+            }
+            .padding(.horizontal, 18).padding(.vertical, 2)
+            .background(.black)
         ScrollView {
             LazyVStack(spacing: 12) {
                 if searching {
@@ -127,13 +142,8 @@ struct ContentView: View {
             }.padding(.bottom, 16).frame(maxWidth: 760).frame(maxWidth: .infinity)
         }
         .background(SocialStyle.canvas).refreshable { await model.refresh() }
-        .navigationTitle("danzstak").navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) { Image(systemName: "waveform.path").foregroundStyle(SocialStyle.blue).accessibilityHidden(true) }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { searching.toggle() } label: { Image(systemName: "magnifyingglass") }.accessibilityLabel("Search feed")
-            }
         }
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     private var filteredPosts: [FeedPost] {
