@@ -126,7 +126,10 @@
       mapDrawControl.setAttribute("aria-label", "Draw a route on the map");
       mapDrawControl.setAttribute("aria-pressed", "false");
       L.DomEvent.disableClickPropagation(wrapper);
-      L.DomEvent.on(mapDrawControl, "click", toggleRouteDrawing);
+      L.DomEvent.on(mapDrawControl, "click", event => {
+        L.DomEvent.stop(event);
+        toggleRouteDrawing();
+      });
       return wrapper;
     }
   });

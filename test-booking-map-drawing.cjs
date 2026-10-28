@@ -8,7 +8,7 @@ const css = fs.readFileSync("assets/booking-agent-driver.css", "utf8");
 
 assert.doesNotMatch(html, /id="drawVenueRoute"/, "the redundant page-level Draw route button should be removed");
 assert.match(html, /use\s+the pencil on the map/i, "map instructions should point users to the pencil control");
-assert.match(script, /L\.DomEvent\.on\(mapDrawControl, "click", toggleRouteDrawing\)/, "the pencil must invoke drawing directly");
+assert.match(script, /L\.DomEvent\.on\(mapDrawControl, "click", event => \{\s*L\.DomEvent\.stop\(event\);\s*toggleRouteDrawing\(\);/, "the pencil must start drawing without placing an accidental map point");
 assert.match(script, /mapDrawControl\.innerHTML = active \? '<span aria-hidden="true">✓<\/span>'/, "the pencil should become a clear finish control");
 assert.match(script, /L\.polyline\(routePoints, \{ color: "#1769e0", weight: 6/, "two points must create a visible route line");
 assert.match(script, /if \(routePoints\.length < 2\)/, "a route cannot finish without a line");
