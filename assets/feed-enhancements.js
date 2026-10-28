@@ -2418,7 +2418,7 @@ if (Array.isArray(window.danzstakLoadedPosts)) loadInternalReels(window.danzstak
 function placeReelsRail() {
   const feedElement = document.getElementById("feed");
   const posts = [...feedElement.children].filter(child => child.classList.contains("post") && child !== reelsRail);
-  if (posts.length >= 3) posts[2].insertAdjacentElement("afterend", reelsRail);
+  if (posts.length >= 4) posts[3].insertAdjacentElement("afterend", reelsRail);
   else feedElement.appendChild(reelsRail);
 }
 

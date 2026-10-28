@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-bAWgUOuXSd/rMrzcWpsgkBskIbJ2xa2tV2E0pHDlND4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-v+vDo99rpcHJIqbtLItBgDNurUQ3xEbdrNLfrfyVFWU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -238,6 +238,8 @@ textarea {
 .story:nth-child(3) { background: linear-gradient(160deg,#111827,#1769e0); }
 .story::before { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent,#0008); }
 .story span { position: relative; z-index: 1; }
+.story-empty span { display: grid; gap: 4px; }
+.story-empty small { font-size: .82rem; font-weight: 650; color: #eef4ff; }
 .story video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
 .story-create { min-height: 104px; align-self: start; }
 .post-media { display:block; width:100%; max-height:560px; object-fit:contain; border-radius:10px; background:#0c111b; }
@@ -341,10 +343,6 @@ textarea {
     </section>
 
     <div id="newsFeedView">
-    <section id="storiesRail" class="stories" aria-label="Flashes">
-      <button type="button" class="story story-create" aria-label="Add a photo or video to Flashes"><span class="story-create-art" aria-hidden="true"><img src="assets/story-book.svg" alt=""></span><span class="story-create-caption"><b aria-hidden="true">+</b><span class="story-create-label">Flashes</span></span></button>
-      <div id="storiesLoading" class="story"><span>Loading Flashes</span></div>
-    </section>
     <section class="panel">
       <h3 class="composer-title"><span class="composer-avatar" aria-hidden="true">D</span><span>Create a Post</span></h3>
 
@@ -371,6 +369,11 @@ textarea {
           Post
         </button>
       </div>
+    </section>
+
+    <section id="storiesRail" class="stories" aria-label="Flashes">
+      <button type="button" class="story story-create" aria-label="Add a photo or video to Flashes"><span class="story-create-art" aria-hidden="true"><img src="assets/story-book.svg" alt=""></span><span class="story-create-caption"><b aria-hidden="true">+</b><span class="story-create-label">Flashes</span></span></button>
+      <div id="storiesLoading" class="story"><span>Loading Flashes</span></div>
     </section>
 
     <p id="feedStatus" class="muted" role="status">
@@ -732,8 +735,10 @@ async function loadStories() {
     const data = await response.json();
     lastStoriesLoad = Date.now();
     document.getElementById("storiesLoading")?.remove();
+    storiesRail.querySelector(".story-empty")?.remove();
     storiesRail.querySelectorAll(".story[data-story-id]").forEach(item => item.remove());
-    for (const story of (data.stories || []).slice(0, 12)) {
+    const visibleStories = (data.stories || []).slice(0, 12);
+    for (const story of visibleStories) {
       const item = document.createElement("article");
       item.className = "story";
       item.dataset.storyId = story.storyId;
@@ -791,6 +796,13 @@ async function loadStories() {
         item.appendChild(remove);
       }
       storiesRail.appendChild(item);
+    }
+    if (!visibleStories.length) {
+      const empty = document.createElement("div");
+      empty.className = "story story-empty";
+      empty.setAttribute("role", "status");
+      empty.innerHTML = "<span><strong>No Flashes yet</strong><small>Add a photo or video to start.</small></span>";
+      storiesRail.appendChild(empty);
     }
   } catch { /* Feed still works if stories are temporarily unavailable. */ }
   finally { document.getElementById("storiesLoading")?.remove(); }
@@ -1288,7 +1300,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=359" defer></script>
+<script src="assets/feed-enhancements.js?v=360" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=295" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
