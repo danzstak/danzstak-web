@@ -66,7 +66,7 @@ foreach ($feedPaginationControl in @('async function scanAll(request, maximumIte
 foreach ($completeCleanupControl in @('async function queryAll(request, maximumItems = 5000)', 'const members = await scanAll({ TableName: groupsTable', 'const memberships = await scanAll({', 'queryAll({ TableName: reactionsTable', 'queryAll({ TableName: commentsTable', 'linkedStories = await scanAll({', 'const items = await queryAll({ TableName: engagementNotificationsTable')) {
   if (-not $authApi.Contains($completeCleanupControl)) { throw "Engagement, profile authorization, or deletion cleanup stops at one DynamoDB page: $completeCleanupControl" }
 }
-foreach ($diyBookingControl in @('genre ? `${genre} music club` : "DIY punk metal rock music club"', 'function isBookableClub(place, genre = "")', 'function hasBookingContact(place)', 'const wrongScale =', 'const wrongFormat =', 'const eventNotRoom =', 'MaxResults: 20')) {
+foreach ($diyBookingControl in @('genre ? `${genre} music club` : "DIY punk metal rock music club"', 'function isBookableClub(place, genre = "")', 'function hasBookingContact(place)', 'const wrongScale =', 'const wrongFormat =', 'const eventNotRoom =', 'MaxResults: 50', 'slice(0, 24)', 'Filter: { BoundingBox:')) {
   if (-not $authApi.Contains($diyBookingControl)) { throw "Booking Agent DIY venue filter is missing: $diyBookingControl" }
 }
 $directionalMarketSearch = [regex]::Match($authApi, 'async function suggestDirectionalMarkets[\s\S]*?async function geocodeTourPlace').Value
@@ -79,7 +79,7 @@ if ($directionalMarketSearch.Contains('BiasPosition: bias')) {
 foreach ($nonVenueFilter in @('table\s*dance', 'adult entertainment', 'studio', 'event consultant', 'walking tour', 'gospel\w*')) {
   if (-not $authApi.Contains($nonVenueFilter)) { throw "Booking Agent can still recommend a non-bookable venue type: $nonVenueFilter" }
 }
-foreach ($venueQualityControl in @('!selectedGenre.includes("jazz") && /\bjazz\w*/.test(description)', 'hasBookingContact(place)', 'const key = (place.address || place.name).toLowerCase()')) {
+foreach ($venueQualityControl in @('!selectedGenre.includes("jazz") && /\bjazz\w*/.test(description)', 'hasBookingContact(place)', 'if (!unique.has(place.venueKey)) unique.set(place.venueKey, place)')) {
   if (-not $authApi.Contains($venueQualityControl)) { throw "Booking Agent venue quality safeguard is missing: $venueQualityControl" }
 }
 $directionalRouteCalculation = [regex]::Match($authApi, 'let points = directional[\s\S]*?const summary = route\?\.Routes').Value
