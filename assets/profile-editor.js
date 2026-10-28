@@ -649,6 +649,7 @@ panel.innerHTML = '<h2>Edit Profile</h2>' +
   '<label>Website<input name="website" type="url" maxlength="200" placeholder="https://"></label>' +
   '<label>DanzStak language<select name="language" data-profile-language></select></label>' +
   '<label>Who can post on your profile?<select name="profilePostPermission"><option value="owner">Only me</option><option value="friends">Friends</option><option value="anyone">Anyone on DanzStak</option></select></label>' +
+  '<label class="profile-tag-setting"><input name="allowTags" type="checkbox">Allow accepted friends to tag me in photos and videos</label>' +
   '<p class="edit-note">Share only information you want members to see. Profile text must be your original content.</p>' +
   '<div class="edit-actions"><button class="secondary" type="button" data-cancel>Cancel</button><button class="button" type="submit">Save Changes</button></div>' +
   '<div class="profile-import"><button type="button" data-facebook-import>Import from Facebook</button><p>Preview your export, set Public, Friends, or Only me in batches, and review shared-source posts before copying them.</p></div>';
@@ -708,6 +709,7 @@ editButton.addEventListener("click", () => {
   panel.elements.work.value = profile.work || "";
   panel.elements.website.value = profile.website || "";
   panel.elements.profilePostPermission.value = profile.profilePostPermission || "owner";
+  panel.elements.allowTags.checked = profile.allowTags !== false;
   panel.elements.language.value = (() => { try { return localStorage.getItem("danzstak_language") || document.documentElement.lang || "en"; } catch { return document.documentElement.lang || "en"; } })();
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -718,6 +720,7 @@ panel.addEventListener("submit", async event => {
   event.preventDefault();
   if (!panel.reportValidity()) return;
   const profile = Object.fromEntries(new FormData(panel).entries());
+  profile.allowTags = panel.elements.allowTags.checked;
   profile.handle = profile.handle.replace(/^@/, "");
   const language = profile.language;
   delete profile.language;

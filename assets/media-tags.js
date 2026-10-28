@@ -14,8 +14,9 @@
   }
   window.danzstakRenderMediaTags = (article, post) => {
     article.querySelector('.post-tags')?.remove();
+    const media = article.querySelector('.post-media,.profile-post-media');
     const tags = (post.taggedUsers || []).filter(tag => memberId(tag.memberId)); article.dataset.taggedUsers = JSON.stringify(tags);
-    if (!tags.length) return;
+    if (!tags.length) { if (media) media._danzstakRemoveOwnTag = null; return; }
     const row = document.createElement('div'); row.className = 'post-tags'; row.appendChild(document.createTextNode('Tagged: '));
     tags.forEach((tag,index) => { if (index) row.appendChild(document.createTextNode(', ')); const link = document.createElement('a'); link.href = tag.isMe ? 'profile.html' : 'profile.html?member=' + encodeURIComponent(tag.memberId); link.textContent = tag.name; link.setAttribute('data-no-translate',''); row.appendChild(link); });
     if (tags.some(tag => tag.isMe)) {
@@ -26,6 +27,23 @@
         try { await patch(post.postId,{removeOwnTag:true}); post.taggedUsers = tags.filter(tag => !tag.isMe); window.danzstakRenderMediaTags(article,post); }
         catch (error) { remove.disabled = false; let status = row.querySelector('[role="status"]'); if (!status) { status = document.createElement('span'); status.setAttribute('role','status'); row.appendChild(status); } status.textContent = error.message; }
       }); row.appendChild(remove);
+      if (media) {
+        media._danzstakRemoveOwnTag = () => remove.click();
+        media.title = 'Press and hold to remove your tag';
+        if (!media.dataset.tagLongPressBound) {
+          media.dataset.tagLongPressBound = 'true';
+          let timer = 0, startX = 0, startY = 0, activated = false;
+          const cancel = () => { clearTimeout(timer); timer = 0; };
+          media.addEventListener('pointerdown', event => {
+            if (event.button !== 0 || !media._danzstakRemoveOwnTag) return;
+            activated = false; startX = event.clientX; startY = event.clientY; cancel();
+            timer = setTimeout(() => { timer = 0; activated = true; navigator.vibrate?.(20); media._danzstakRemoveOwnTag?.(); }, 650);
+          });
+          media.addEventListener('pointermove', event => { if (Math.hypot(event.clientX-startX,event.clientY-startY) > 10) cancel(); });
+          media.addEventListener('pointerup', cancel); media.addEventListener('pointercancel', cancel); media.addEventListener('lostpointercapture', cancel);
+          media.addEventListener('contextmenu', event => { if (activated) { event.preventDefault(); activated = false; } });
+        }
+      }
     }
     const header = article.querySelector('.post-header'); if (header) header.appendChild(row); else article.appendChild(row);
   };

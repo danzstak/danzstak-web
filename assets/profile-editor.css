@@ -8,6 +8,7 @@
 
 .profile-post-open{display:inline-block;margin-top:12px;text-decoration:none}.profile-post-open:hover,.profile-post-open:focus-visible{background:#dbeafe;color:#0757c5}
 .profile-wall-composer{margin:0 0 16px;padding:14px;border:1px solid #d9dee7;border-radius:12px;background:#f7f9fc}.profile-wall-composer:empty{display:none}.profile-wall-composer h3{margin:0 0 10px;font-size:18px}.profile-wall-composer textarea{width:100%;min-height:92px;padding:11px;border:1px solid #ccd0d5;border-radius:9px;background:#fff;color:#1c1e21;font:inherit;resize:vertical}.profile-wall-certify{display:flex!important;align-items:flex-start;gap:9px;margin:10px 0!important;font-size:13px;font-weight:600!important;line-height:1.4}.profile-wall-certify input{flex:0 0 20px;width:20px!important;height:20px;margin:0}.profile-wall-composer .button{border:0}.profile-wall-remove{margin-left:8px}.dark-mode .profile-wall-composer{background:#172033;border-color:#3b4658}.dark-mode .profile-wall-composer textarea{background:#111827;color:#f5f7fb;border-color:#526074}
+.edit-profile-panel .profile-tag-setting{display:flex;align-items:flex-start;grid-template-columns:none;gap:9px}.edit-profile-panel .profile-tag-setting input{flex:0 0 20px;width:20px;height:20px;margin:0}
 
 .edit-profile-panel{scroll-margin-top:86px}@media(max-width:600px){.edit-profile-panel{scroll-margin-top:12px}}
 
