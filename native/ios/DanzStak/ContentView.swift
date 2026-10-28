@@ -7,6 +7,14 @@ private enum SocialStyle {
     static let card = Color(uiColor: .secondarySystemGroupedBackground)
 }
 
+private struct MediaViewerPresentedKey: EnvironmentKey { static let defaultValue = false }
+private extension EnvironmentValues {
+    var mediaViewerPresented: Bool {
+        get { self[MediaViewerPresentedKey.self] }
+        set { self[MediaViewerPresentedKey.self] = newValue }
+    }
+}
+
 private enum SocialTab: String, CaseIterable {
     case home = "Home", people = "People", create = "Create", alerts = "Alerts", menu = "Menu"
     var icon: String {
@@ -28,6 +36,11 @@ struct ContentView: View {
     @State private var query = ""
     @State private var showGroups = false
     @State private var selectedStory: FeedStory?
+    @State private var viewingReels = false
+    @State private var showFacebookImport = false
+    @State private var pendingResponse: MediaResponsePresentation?
+    @State private var drawerResponse: MediaResponsePresentation?
+    @AppStorage("danzstak.responseStyle") private var responseStyle = "full"
     @AppStorage("danzstak.headerPercent") private var headerPercent = 6.0
 
     private var effectiveHeaderPercent: Double {
@@ -42,6 +55,12 @@ struct ContentView: View {
     private var headerHeight: CGFloat {
         let height = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.screen.bounds.height }.first ?? 874
         return height * effectiveHeaderPercent / 100
+    }
+
+    private var effectiveResponseStyle: String {
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("--ui-preview"), let index = args.firstIndex(of: "--response-style"), args.indices.contains(index + 1) { return args[index + 1] }
+        return responseStyle
     }
 
     var body: some View {
@@ -69,13 +88,36 @@ struct ContentView: View {
                 }
                 .sheet(isPresented: $composer) { ComposerView(isDemo: model.isDemo).environmentObject(model) }
                 .sheet(isPresented: $showGroups) { NavigationStack { groups }.environmentObject(model) }
-                .sheet(item: $selectedStory) { StoryViewer(story: $0) }
+                .fullScreenCover(item: $selectedStory, onDismiss: {
+                    if let response = pendingResponse { withAnimation { drawerResponse = response }; pendingResponse = nil }
+                }) { story in
+                    MediaViewer(pages: viewingReels ? model.reels.map(ViewerPage.init(reel:)) : model.stories.map(ViewerPage.init(story:)), initialID: story.id, useDrawer: effectiveResponseStyle == "drawer", onOpenDrawer: { page, kind in
+                        pendingResponse = MediaResponsePresentation(page: page, kind: kind)
+                        selectedStory = nil
+                    })
+                        .id("\(viewingReels ? "reels" : "stories").\(story.id)")
+                }
+                .sheet(isPresented: $showFacebookImport) { FacebookImportView() }
             } else { welcome }
         }
         .tint(SocialStyle.blue)
+        .environment(\.mediaViewerPresented, selectedStory != nil || drawerResponse != nil || pendingResponse != nil)
+        .overlay(alignment: .leading) {
+            if let response = drawerResponse {
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Color.black.opacity(0.28).ignoresSafeArea().onTapGesture { withAnimation { drawerResponse = nil } }
+                        MediaResponsesView(page: response.page, kind: response.kind, compact: true, onClose: { withAnimation { drawerResponse = nil } })
+                            .environmentObject(model).frame(width: geometry.size.width * 0.30)
+                            .shadow(radius: 18).transition(.move(edge: .leading))
+                            .accessibilityElement(children: .contain).accessibilityIdentifier("media.responseDrawer")
+                    }
+                }
+            }
+        }
         .task { await model.start() }
         .onChange(of: model.signedIn) { _, signedIn in
-            if !signedIn { selection = .home; composer = false; showGroups = false; query = "" }
+            if !signedIn { selection = .home; composer = false; showGroups = false; query = ""; drawerResponse = nil; pendingResponse = nil; selectedStory = nil }
         }
     }
 
@@ -106,11 +148,19 @@ struct ContentView: View {
                     .accessibilityLabel("DanzStak")
                     .accessibilityIdentifier("danzstak.brand")
                 Spacer()
+                Button { showFacebookImport = true } label: {
+                    Image(systemName: "arrow.down.doc").font(.title3.weight(.semibold))
+                        .foregroundStyle(.white).frame(width: 44, height: 44)
+                }.accessibilityLabel("Import Facebook data").accessibilityIdentifier("header.facebookImport")
                 Button { searching.toggle(); if !searching { query = "" } } label: {
                     Image(systemName: "magnifyingglass").font(.title3.weight(.semibold))
                         .foregroundStyle(.white).frame(width: min(40, headerHeight - 4), height: min(40, headerHeight - 4))
                         .background(.white.opacity(0.12), in: Circle())
-                }.frame(width: 44, height: 44).contentShape(Rectangle()).accessibilityLabel("Search feed")
+                }.frame(width: 44, height: 44).contentShape(Rectangle()).accessibilityLabel("Search Your Mix")
+                Link(destination: URL(string: "https://www.danzstak.com/messages.html")!) {
+                    Image(systemName: "bubble.left.and.bubble.right.fill").font(.title3.weight(.semibold))
+                        .foregroundStyle(.white).frame(width: 44, height: 44)
+                }.accessibilityLabel("Messages").accessibilityIdentifier("header.messages")
             }
             .padding(.horizontal, 18).frame(height: headerHeight)
             .background(.black)
@@ -133,7 +183,7 @@ struct ContentView: View {
                 }.buttonStyle(.plain).padding(.horizontal, 16).padding(.top, 8).accessibilityIdentifier("home.composer")
                 if query.isEmpty { storiesRail }
                 HStack {
-                    Text(query.isEmpty ? "Your feed" : "Search results").font(.headline)
+                    Text(query.isEmpty ? "Your Mix" : "Search results").font(.headline)
                     Spacer()
                     if model.isLoading { ProgressView() }
                     else { Label("Latest", systemImage: "line.3.horizontal.decrease").font(.caption).foregroundStyle(.secondary) }
@@ -145,7 +195,7 @@ struct ContentView: View {
                     }.padding().frame(maxWidth: .infinity).background(SocialStyle.card)
                 }
                 if filteredPosts.isEmpty, !model.isLoading {
-                    EmptyState(icon: query.isEmpty ? "text.bubble" : "magnifyingglass", title: query.isEmpty ? "Start the conversation" : "No matching posts", detail: query.isEmpty ? "Share a thought, a track, or a moment with your community." : "Try another name or phrase. Search covers the posts loaded in your feed.")
+                    EmptyState(icon: query.isEmpty ? "text.bubble" : "magnifyingglass", title: query.isEmpty ? "Start the conversation" : "No matching posts", detail: query.isEmpty ? "Share a thought, a track, or a moment with your community." : "Try another name or phrase. Search covers the posts loaded in Your Mix.")
                 }
                 ForEach(Array(filteredPosts.enumerated()), id: \.element.id) { index, post in
                     PostCard(post: post)
@@ -166,7 +216,7 @@ struct ContentView: View {
     private var storiesRail: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Stories").font(.headline)
+                Text("Flashes").font(.headline)
                 Spacer()
                 if model.storiesLoading { ProgressView() }
             }.padding(.horizontal, 18)
@@ -177,13 +227,13 @@ struct ContentView: View {
                 }.padding(.horizontal, 18)
             }
             if model.stories.isEmpty, !model.storiesLoading, model.storiesError.isEmpty {
-                Text("No stories right now. Check back for moments from your community.")
+                Text("No flashes right now. Check back for moments from your community.")
                     .font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 18)
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(Array(model.stories.enumerated()), id: \.element.id) { index, story in
-                        Button { selectedStory = story } label: {
+                        Button { viewingReels = false; selectedStory = story } label: {
                             ZStack(alignment: .bottomLeading) {
                                 LinearGradient(colors: [index.isMultiple(of: 2) ? SocialStyle.blue : .purple, .black], startPoint: .topLeading, endPoint: .bottomTrailing)
                                 if let value = story.mediaUrl, let url = URL(string: value), url.scheme == "https", story.mediaType == "image" {
@@ -195,7 +245,7 @@ struct ContentView: View {
                                 LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom)
                                 Text(story.displayName ?? "DanzStak member").font(.caption.bold()).foregroundStyle(.white).lineLimit(2).padding(10)
                             }.frame(width: 105, height: 140).clipShape(RoundedRectangle(cornerRadius: 14))
-                        }.buttonStyle(.plain).accessibilityLabel("Open story from \(story.displayName ?? "DanzStak member")").accessibilityIdentifier("story.\(story.id)")
+                        }.buttonStyle(.plain).accessibilityLabel("Open flash from \(story.displayName ?? "DanzStak member")").accessibilityIdentifier("story.\(story.id)")
                     }
                 }.padding(.horizontal, 16)
             }
@@ -204,22 +254,20 @@ struct ContentView: View {
 
     private var reelsRail: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Reels", systemImage: "play.rectangle.fill").font(.title3.bold()).padding(.horizontal, 18)
+            Label("The Roll", systemImage: "play.rectangle.fill").font(.title3.bold()).padding(.horizontal, 18)
             if model.reels.isEmpty {
-                Text(model.storiesError.isEmpty ? "No reels available right now." : "Reels couldn’t be loaded. Refresh to try again.")
+                Text(model.storiesError.isEmpty ? "Nothing on The Roll right now." : "The Roll couldn’t be loaded. Refresh to try again.")
                     .font(.subheadline).foregroundStyle(.secondary).padding(.horizontal, 18)
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(model.reels) { reel in
-                        if let value = reel.url, let url = URL(string: value), url.scheme == "https" {
-                            Link(destination: url) { ReelTile(reel: reel) }
-                                .accessibilityLabel("Watch reel: \(reel.caption ?? "DanzStak reel")")
-                        } else if model.isDemo {
-                            Button {
-                                selectedStory = FeedStory(storyId: reel.id, displayName: reel.displayName, caption: "\(reel.caption ?? "Reel")\n\nDemo preview — no video is attached.")
-                            } label: { ReelTile(reel: reel) }
-                        }
+                        Button {
+                            viewingReels = true
+                            selectedStory = FeedStory(storyId: reel.id)
+                        } label: { ReelTile(reel: reel) }
+                        .accessibilityLabel("Watch The Roll: \(reel.caption ?? "DanzStak video")")
+                        .accessibilityIdentifier("reel.\(reel.id)")
                     }
                 }.padding(.horizontal, 16)
             }
@@ -237,10 +285,10 @@ struct ContentView: View {
     private var people: some View {
         List {
             Section {
-                Text("Discover the people sharing in your feed. Open a member to see their loaded posts.")
+                Text("Discover the people sharing in Your Mix. Open a member to see their loaded posts.")
                     .foregroundStyle(.secondary).listRowBackground(Color.clear)
             }
-            Section("People in your feed") {
+            Section("People in Your Mix") {
                 ForEach(peoplePosts) { person in
                     NavigationLink {
                         ScrollView {
@@ -259,10 +307,10 @@ struct ContentView: View {
                         }
                     }
                 }
-                if peoplePosts.isEmpty { Text("People will appear here when your feed loads.").foregroundStyle(.secondary) }
+                if peoplePosts.isEmpty { Text("People will appear here when Your Mix loads.").foregroundStyle(.secondary) }
             }
             Section {
-                Button { showGroups = true } label: { Label("Explore community groups", systemImage: "person.3.fill") }
+                Button { showGroups = true } label: { Label("Explore community tribes", systemImage: "person.3.fill") }
             }
         }.navigationTitle("People")
     }
@@ -286,7 +334,7 @@ struct ContentView: View {
                 NavigationLink {
                     ScrollView {
                         if let post = model.posts.first(where: { $0.id == notice.postId }) { PostCard(post: post) }
-                        else { EmptyState(icon: "text.bubble", title: "Post isn’t in your feed", detail: "Refresh Home to load recent posts. The post may also have been removed or made private.") }
+                        else { EmptyState(icon: "text.bubble", title: "Post isn’t in Your Mix", detail: "Refresh Your Mix to load recent posts. The post may also have been removed or made private.") }
                     }.background(SocialStyle.canvas).navigationTitle("Post")
                 } label: {
                     HStack(spacing: 12) {
@@ -311,11 +359,11 @@ struct ContentView: View {
                 ProfileHeader(name: myPost?.author ?? "Your profile", picture: myPost?.authorPicture, subtitle: "Part of the DanzStak community")
                 HStack(spacing: 12) {
                     Button { composer = true } label: { Label("Create post", systemImage: "plus") }.buttonStyle(.borderedProminent)
-                    Button { showGroups = true } label: { Label("Groups", systemImage: "person.3") }.buttonStyle(.bordered)
+                    Button { showGroups = true } label: { Label("Tribes", systemImage: "person.3") }.buttonStyle(.bordered)
                 }
                 HStack { Text("Your posts").font(.title3.bold()); Spacer() }.padding(.horizontal, 18)
                 if model.posts.filter({ $0.isOwner == true }).isEmpty {
-                    EmptyState(icon: "square.and.pencil", title: "Make your first post", detail: "Your posts from the loaded feed appear here.")
+                    EmptyState(icon: "square.and.pencil", title: "Make your first post", detail: "Your loaded posts appear here.")
                 }
                 ForEach(model.posts.filter { $0.isOwner == true }) { post in PostCard(post: post) }
                 VStack(alignment: .leading, spacing: 18) {
@@ -355,9 +403,13 @@ struct ContentView: View {
             }
             Section("Community") {
                 Button { composer = true } label: { Label("Create a post", systemImage: "square.and.pencil") }
-                Button { showGroups = true } label: { Label("Groups", systemImage: "person.3.fill") }
+                Button { showGroups = true } label: { Label("Tribes", systemImage: "person.3.fill") }
             }
             Section("Appearance") {
+                Picker("Response lists", selection: $responseStyle) {
+                    Text("Slide out").tag("drawer")
+                    Text("Full screen").tag("full")
+                }.pickerStyle(.segmented)
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Label("Header size", systemImage: "rectangle.topthird.inset.filled")
@@ -383,7 +435,7 @@ struct ContentView: View {
     private var groups: some View {
         List {
             if !model.communityError.isEmpty { Text(model.communityError).foregroundStyle(.secondary) }
-            if model.groups.isEmpty { EmptyState(icon: "person.3", title: "Find your community", detail: "Available DanzStak groups will appear here.") }
+            if model.groups.isEmpty { EmptyState(icon: "person.3", title: "Find your community", detail: "Available DanzStak tribes will appear here.") }
             ForEach(model.groups) { group in
                 VStack(alignment: .leading, spacing: 10) {
                     Label(group.category, systemImage: "waveform").font(.caption.weight(.semibold)).foregroundStyle(SocialStyle.blue)
@@ -391,7 +443,7 @@ struct ContentView: View {
                     Text(group.description).font(.subheadline).foregroundStyle(.secondary)
                 }.padding(.vertical, 12)
             }
-        }.navigationTitle("Groups").task { await model.loadGroups() }.refreshable { await model.loadGroups() }
+        }.navigationTitle("Tribes").task { await model.loadGroups() }.refreshable { await model.loadGroups() }
         .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { showGroups = false } } }
     }
 }
@@ -403,32 +455,339 @@ private struct ReelTile: View {
             LinearGradient(colors: [.purple, SocialStyle.blue, .black], startPoint: .topLeading, endPoint: .bottomTrailing)
             Image(systemName: "play.circle.fill").font(.system(size: 42)).foregroundStyle(.white.opacity(0.85)).frame(maxWidth: .infinity, maxHeight: .infinity)
             VStack(alignment: .leading, spacing: 5) {
-                Text(reel.caption ?? "Watch reel").font(.subheadline.bold()).lineLimit(3)
+                Text(reel.caption ?? "Watch The Roll").font(.subheadline.bold()).lineLimit(3)
                 Text(reel.displayName ?? "DanzStak").font(.caption).opacity(0.8)
             }.foregroundStyle(.white).padding(12)
         }.frame(width: 145, height: 210).clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 
-private struct StoryViewer: View {
+private struct FacebookImportView: View {
     @Environment(\.dismiss) private var dismiss
-    let story: FeedStory
     var body: some View {
         NavigationStack {
-            ZStack {
-                LinearGradient(colors: [SocialStyle.blue, .black], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea()
-                VStack(spacing: 22) {
-                    if let value = story.mediaUrl, let url = URL(string: value), url.scheme == "https" {
-                        if story.mediaType == "video" { PostVideo(url: url) }
-                        else { AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView().tint(.white) } }
-                    } else { Image(systemName: "waveform").font(.system(size: 70)).foregroundStyle(.white.opacity(0.6)) }
-                    if let caption = story.caption, !caption.isEmpty { Text(caption).font(.title2.weight(.semibold)).multilineTextAlignment(.center).foregroundStyle(.white) }
-                }.padding(24)
+            List {
+                Section {
+                    Text("1. Download your information").font(.headline)
+                    Text("In Facebook, open Settings → Accounts Center → Your information and permissions. Choose Download your information or Export your information, then choose your Facebook profile and export to your device.")
+                    Link("Open Facebook Accounts Center", destination: URL(string: "https://accountscenter.facebook.com/")!)
+                }
+                Section {
+                    Text("2. Choose JSON format").font(.headline)
+                    Text("Select JSON, the date range you want, and your posts, profile, photos, and videos. Request the export. When Facebook says it’s ready, download the ZIP file to your device.")
+                }
+                Section {
+                    Text("3. Open the DanzStak importer").font(.headline)
+                    Text("Open DanzStak’s website and sign in if asked. Open its menu and choose Import from Facebook. Select the ZIP or JSON file you downloaded.")
+                    Link(destination: URL(string: "https://www.danzstak.com/feed.html")!) {
+                        Label("Open DanzStak import tools", systemImage: "arrow.up.right.square")
+                    }
+                }
+                Section {
+                    Text("4. Review, then import").font(.headline)
+                    Text("Choose the items and profile details to bring over, set the audience, and confirm you have permission to share the content. Tap Import selected when you’re ready. Imported posts default to Public, so check the audience first.")
+                    Text("Your Facebook password is not needed. Nothing is uploaded from this screen.").font(.footnote).foregroundStyle(.secondary)
+                }
             }
-            .navigationTitle(story.displayName ?? "Story").navigationBarTitleDisplayMode(.inline)
-            .toolbar { Button("Done") { dismiss() } }.toolbarColorScheme(.dark, for: .navigationBar)
+            .navigationTitle("Import Facebook data").navigationBarTitleDisplayMode(.inline)
+            .toolbar { Button("Done") { dismiss() } }
         }
     }
+}
+
+private struct ViewerPage: Identifiable {
+    let id: String
+    let name: String
+    let caption: String
+    let url: URL?
+    let kind: String
+
+    init(story: FeedStory) {
+        id = story.id; name = story.displayName ?? "DanzStak member"; caption = story.caption ?? story.content ?? ""
+        let candidate = story.mediaUrl.flatMap(URL.init(string:))
+        url = candidate?.scheme == "https" ? candidate : nil
+        kind = story.mediaType ?? "image"
+    }
+
+    init(reel: FeedReel) {
+        id = reel.id; name = reel.displayName ?? "DanzStak"; caption = reel.caption ?? "The Roll"
+        let candidate = reel.url.flatMap(URL.init(string:))
+        url = candidate?.scheme == "https" ? candidate : nil
+        kind = ["mp4", "mov", "m4v", "m3u8"].contains(url?.pathExtension.lowercased() ?? "") ? "video" : "external"
+    }
+}
+
+private enum MediaResponseKind: String, Identifiable, CaseIterable {
+    case likes = "Likes", comments = "Comments", shares = "Shares"
+    var id: String { rawValue }
+    var singular: String {
+        switch self { case .likes: "like"; case .comments: "comment"; case .shares: "share" }
+    }
+    var icon: String {
+        switch self { case .likes: "hand.thumbsup.fill"; case .comments: "bubble.left.fill"; case .shares: "arrowshape.turn.up.right.fill" }
+    }
+}
+
+private struct MediaResponsePresentation: Identifiable {
+    let page: ViewerPage
+    let kind: MediaResponseKind
+    var id: String { page.id + kind.rawValue }
+}
+
+private struct MediaViewer: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var model: AppModel
+    let pages: [ViewerPage]
+    let useDrawer: Bool
+    let onOpenDrawer: (ViewerPage, MediaResponseKind) -> Void
+    @State private var index: Int
+    @State private var movingForward = true
+    @State private var swiping = false
+    @State private var pickingReaction = false
+    @State private var responseKind: MediaResponseKind?
+    @State private var drafts: [String: String] = [:]
+    @FocusState private var commentFocused: Bool
+
+    init(pages: [ViewerPage], initialID: String, useDrawer: Bool = false, onOpenDrawer: @escaping (ViewerPage, MediaResponseKind) -> Void = { _, _ in }) {
+        self.pages = pages
+        self.useDrawer = useDrawer
+        self.onOpenDrawer = onOpenDrawer
+        _index = State(initialValue: pages.firstIndex { $0.id == initialID } ?? 0)
+    }
+    private var page: ViewerPage? { pages.indices.contains(index) ? pages[index] : nil }
+    private var playing: Bool { !swiping && !pickingReaction && responseKind == nil && !commentFocused }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            GeometryReader { geometry in
+                if let page {
+                    ZStack {
+                        media(page: page)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .clipped().contentShape(Rectangle())
+                            .id(page.id)
+                            .transition(.asymmetric(insertion: .move(edge: movingForward ? .bottom : .top), removal: .move(edge: movingForward ? .top : .bottom)))
+                            .accessibilityElement(children: .contain).accessibilityIdentifier("media.page.\(page.id)")
+                        VStack {
+                            HStack {
+                                Text("\(index + 1) / \(pages.count)").font(.caption.monospacedDigit().bold())
+                                    .padding(12).background(.black.opacity(0.5), in: Capsule()).accessibilityIdentifier("media.position")
+                                Spacer()
+                                Button("Done", systemImage: "xmark") { dismiss() }
+                                    .labelStyle(.iconOnly).font(.title3.bold()).frame(width: 48, height: 48)
+                                    .background(.black.opacity(0.5), in: Circle()).accessibilityLabel("Done")
+                            }.padding(.top, 12)
+                            Spacer()
+                            HStack(alignment: .bottom) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(page.name).font(.headline)
+                                    if page.url != nil { Text(page.caption).font(.subheadline).lineLimit(3).accessibilityIdentifier("viewer.caption.\(page.id)") }
+                                    Text("Swipe up for next").font(.caption).foregroundStyle(.white.opacity(0.65))
+                                }.frame(maxWidth: .infinity, alignment: .leading)
+                                VStack(spacing: 18) {
+                                    ForEach(MediaResponseKind.allCases) { kind in
+                                        Button {
+                                            if useDrawer { onOpenDrawer(page, kind) }
+                                            else { responseKind = kind }
+                                        } label: {
+                                            VStack(spacing: 5) {
+                                                Image(systemName: kind.icon).font(.system(size: 24, weight: .semibold))
+                                                Text("\(count(kind, pageID: page.id))").font(.caption.bold())
+                                            }.frame(width: 48, height: 58)
+                                        }.accessibilityLabel("\(kind.rawValue), \(count(kind, pageID: page.id))")
+                                            .accessibilityIdentifier("media.\(kind.rawValue.lowercased())")
+                                    }
+                                }
+                            }.padding(.bottom, 16)
+                        }.foregroundStyle(.white).padding(.horizontal, 18)
+                        if pickingReaction {
+                            VStack(spacing: 12) {
+                                HStack(spacing: 0) {
+                                    ForEach(["👍", "❤️", "😂", "😮", "😢", "🔥"], id: \.self) { emoji in
+                                        Button { model.reactToMedia(page.id, emoji: emoji); pickingReaction = false } label: {
+                                            Text(emoji).font(.system(size: 28)).frame(width: 46, height: 48)
+                                        }.accessibilityLabel("React \(emoji)")
+                                    }
+                                }
+                                Button("Cancel") { pickingReaction = false }.font(.caption.bold())
+                            }.padding(14).background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
+                                .accessibilityIdentifier("media.reactionPicker")
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(DragGesture(minimumDistance: 20)
+                        .onChanged { value in if abs(value.translation.height) > abs(value.translation.width) { swiping = true } }
+                        .onEnded { value in
+                            defer { swiping = false }
+                            guard !pickingReaction, abs(value.translation.height) > 50,
+                                  abs(value.translation.height) > abs(value.translation.width) else { return }
+                            let next = min(pages.count - 1, max(0, index + (value.translation.height < 0 ? 1 : -1)))
+                            commentFocused = false
+                            movingForward = next > index
+                            withAnimation(.easeOut(duration: 0.25)) { index = next }
+                        })
+                    .simultaneousGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in
+                        commentFocused = false; pickingReaction = true
+                    })
+                }
+            }
+            if let page {
+                HStack(spacing: 10) {
+                    TextField("Write a comment…", text: Binding(get: { drafts[page.id] ?? "" }, set: { drafts[page.id] = $0 }), axis: .vertical)
+                        .lineLimit(1...3).focused($commentFocused).padding(12).background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 22))
+                    Button {
+                        if model.commentOnMedia(page.id, text: drafts[page.id] ?? "") { drafts[page.id] = ""; commentFocused = false }
+                    } label: { Image(systemName: "paperplane.fill").font(.title3).frame(width: 44, height: 44) }
+                        .disabled((drafts[page.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (drafts[page.id]?.count ?? 0) > 1000)
+                        .accessibilityLabel("Send media comment")
+                }.foregroundStyle(.white).padding(.horizontal, 14).padding(.vertical, 8).background(.black)
+            }
+        }
+        .background(.black).ignoresSafeArea(edges: .top).preferredColorScheme(.dark).statusBarHidden()
+        .fullScreenCover(item: $responseKind) { kind in
+            if let page { MediaResponsesView(page: page, kind: kind).environmentObject(model) }
+        }
+        .onDisappear { NativePlayback.shared.stop() }
+    }
+
+    private func count(_ kind: MediaResponseKind, pageID: String) -> Int {
+        let activity = model.mediaActivity[pageID] ?? MediaActivity()
+        switch kind { case .likes: return activity.likes.count; case .comments: return activity.comments.count; case .shares: return activity.shares.count }
+    }
+
+    @ViewBuilder private func media(page: ViewerPage) -> some View {
+        ZStack {
+            LinearGradient(colors: [SocialStyle.blue.opacity(0.4), .black], startPoint: .topLeading, endPoint: .bottomTrailing)
+            if let url = page.url {
+                if page.kind == "video" { PostVideo(url: url, active: playing, fullScreen: true) }
+                else if page.kind == "external" {
+                    VStack(spacing: 20) {
+                        Image(systemName: "play.rectangle").font(.system(size: 70))
+                        Text("This video is hosted by \(url.host ?? "an external provider").").multilineTextAlignment(.center)
+                        Link("Watch original video", destination: url).buttonStyle(.borderedProminent)
+                    }.foregroundStyle(.white).padding(30)
+                } else {
+                    AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView().tint(.white) }
+                }
+            } else {
+                VStack(spacing: 22) {
+                    Image(systemName: "waveform").font(.system(size: 70)).foregroundStyle(.white.opacity(0.6))
+                    Text(page.caption).font(.title2.bold()).multilineTextAlignment(.center).accessibilityIdentifier("viewer.caption.\(page.id)")
+                    Text("Demo preview").font(.caption).foregroundStyle(.white.opacity(0.6))
+                }.foregroundStyle(.white).padding(30)
+            }
+        }
+    }
+}
+
+private struct MediaResponsesView: View {
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    let page: ViewerPage
+    let kind: MediaResponseKind
+    var compact = false
+    var onClose: (() -> Void)? = nil
+    @State private var draft = ""
+    @State private var sharing = false
+    private var responders: [MediaResponder] {
+        let activity = model.mediaActivity[page.id] ?? MediaActivity()
+        switch kind { case .likes: return activity.likes; case .comments: return activity.comments; case .shares: return activity.shares }
+    }
+    var body: some View {
+        if compact { compactPanel }
+        else {
+        NavigationStack {
+            List {
+                Section {
+                    Text("Activity in this preview is saved on this device only. Community-wide responses aren’t connected yet.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+                Section("\(responders.count) \(responders.count == 1 ? kind.singular : kind.rawValue.lowercased())") {
+                    if responders.isEmpty { Text("No \(kind.rawValue.lowercased()) yet.").foregroundStyle(.secondary) }
+                    ForEach(responders) { person in
+                        HStack(alignment: .top, spacing: 12) {
+                            Avatar(name: person.name, picture: person.picture, size: 44)
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(person.name).font(.headline).fixedSize(horizontal: false, vertical: true).accessibilityIdentifier("response.name")
+                                Text(person.text).font(.body)
+                            }
+                        }.padding(.vertical, 6)
+                    }
+                }
+            }
+            .navigationTitle(kind.rawValue).navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) { Button("Done") { if let onClose { onClose() } else { dismiss() } } }
+                ToolbarItem(placement: .topBarLeading) {
+                    if kind == .likes { Button("Like", systemImage: "hand.thumbsup") { model.reactToMedia(page.id, emoji: "👍") } }
+                    else if kind == .shares { Button("Share", systemImage: "square.and.arrow.up") { sharing = true } }
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if kind == .comments {
+                    HStack {
+                        TextField("Write a comment…", text: $draft, axis: .vertical).lineLimit(1...4).textFieldStyle(.roundedBorder)
+                        Button("Send") { if model.commentOnMedia(page.id, text: draft) { draft = "" } }
+                            .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draft.count > 1000)
+                    }.padding().background(.bar)
+                }
+            }
+            .sheet(isPresented: $sharing) {
+                NativeShareSheet(items: [page.caption, URL(string: "https://www.danzstak.com/feed.html")!]) { completed in
+                    if completed { model.recordMediaShare(page.id) }
+                }
+            }
+        }
+        }
+    }
+
+    private var compactPanel: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text(kind.rawValue).font(.caption.bold()).lineLimit(1)
+                Spacer(minLength: 0)
+                Button { onClose?() } label: { Image(systemName: "xmark").font(.caption.bold()).frame(width: 28, height: 32) }.accessibilityLabel("Done")
+            }.padding(.horizontal, 8)
+            Text("\(responders.count)").font(.headline)
+            Text("On-device preview").font(.system(size: 10)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            Divider()
+            ScrollView {
+                LazyVStack(spacing: 18) {
+                    if responders.isEmpty { Text("No responses yet").font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center) }
+                    ForEach(responders) { person in
+                        VStack(spacing: 6) {
+                            Avatar(name: person.name, picture: person.picture, size: 34)
+                            Text(person.name).font(.caption.weight(.semibold)).lineLimit(3).multilineTextAlignment(.center)
+                            Text(person.text).font(.caption2).lineLimit(4).multilineTextAlignment(.center)
+                        }.frame(maxWidth: .infinity)
+                    }
+                }.padding(8)
+            }
+            if kind == .likes { Button { model.reactToMedia(page.id, emoji: "👍") } label: { Image(systemName: "hand.thumbsup").frame(width: 44, height: 44) }.accessibilityLabel("Like") }
+            else if kind == .shares { Button { sharing = true } label: { Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44) }.accessibilityLabel("Share") }
+            else {
+                TextField("Comment", text: $draft, axis: .vertical).font(.caption).lineLimit(1...3).textFieldStyle(.roundedBorder).padding(.horizontal, 6)
+                Button("Send") { if model.commentOnMedia(page.id, text: draft) { draft = "" } }.font(.caption.bold())
+                    .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draft.count > 1000)
+            }
+        }.padding(.top, 8).padding(.bottom, 12).frame(maxHeight: .infinity).background(SocialStyle.card)
+        .sheet(isPresented: $sharing) {
+            NativeShareSheet(items: [page.caption, URL(string: "https://www.danzstak.com/feed.html")!]) { completed in
+                if completed { model.recordMediaShare(page.id) }
+            }
+        }
+    }
+}
+
+private struct NativeShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    let completion: (Bool) -> Void
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        controller.completionWithItemsHandler = { _, completed, _, _ in DispatchQueue.main.async { completion(completed) } }
+        return controller
+    }
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 private struct Avatar: View {
@@ -532,11 +891,41 @@ private struct PostCard: View {
 }
 
 private struct PostVideo: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.mediaViewerPresented) private var viewerPresented
     let url: URL
+    var active = true
+    var fullScreen = false
     @State private var player: AVPlayer?
+    @State private var visible = false
+    private var shouldPlay: Bool { active && visible && scenePhase == .active && (fullScreen || !viewerPresented) }
     var body: some View {
-        VideoPlayer(player: player).frame(height: 230)
-            .onAppear { player = AVPlayer(url: url) }.onDisappear { player?.pause(); player = nil }
+        VideoPlayer(player: player)
+            .frame(maxWidth: .infinity, maxHeight: fullScreen ? .infinity : 230)
+            .frame(height: fullScreen ? nil : 230)
+            .onGeometryChange(for: Bool.self) { proxy in
+                let frame = proxy.frame(in: .global)
+                let bounds = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.screen.bounds }.first ?? .zero
+                let visibleArea = frame.intersection(bounds)
+                return frame.height > 0 && !visibleArea.isNull && visibleArea.height / frame.height >= 0.65
+            } action: { visible = $0; updatePlayback() }
+            .onAppear { player = AVPlayer(url: url); updatePlayback() }
+            .onChange(of: shouldPlay) { _, _ in updatePlayback() }
+            .onDisappear {
+                if let player { NativePlayback.shared.pause(player) }
+                player = nil; visible = false
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)) { notification in
+                guard let player, let item = notification.object as? AVPlayerItem, item === player.currentItem, shouldPlay else { return }
+                player.seek(to: .zero)
+                NativePlayback.shared.play(player)
+            }
+    }
+
+    private func updatePlayback() {
+        guard let player else { return }
+        if shouldPlay { NativePlayback.shared.play(player) }
+        else { NativePlayback.shared.pause(player) }
     }
 }
 

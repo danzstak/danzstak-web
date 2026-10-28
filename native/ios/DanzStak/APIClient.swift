@@ -29,6 +29,7 @@ struct FeedStory: Identifiable, Decodable {
     let storyId: String
     var displayName: String? = nil
     var caption: String? = nil
+    var content: String? = nil
     var mediaUrl: String? = nil
     var mediaType: String? = nil
     var id: String { storyId }

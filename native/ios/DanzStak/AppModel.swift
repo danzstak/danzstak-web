@@ -4,6 +4,20 @@ import CryptoKit
 import Foundation
 import UIKit
 
+struct MediaResponder: Identifiable {
+    let id: String
+    let name: String
+    let picture: String?
+    let text: String
+}
+
+struct MediaActivity {
+    var reaction: String?
+    var likes: [MediaResponder] = []
+    var comments: [MediaResponder] = []
+    var shares: [MediaResponder] = []
+}
+
 @MainActor
 final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentationContextProviding {
     @Published var posts: [FeedPost] = []
@@ -14,6 +28,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     @Published var groups: [CommunityGroup] = []
     @Published var stories: [FeedStory] = []
     @Published var reels: [FeedReel] = []
+    @Published var mediaActivity: [String: MediaActivity] = [:]
     @Published var storiesError = ""
     @Published var storiesLoading = false
     @Published var notices: [FeedNotice] = []
@@ -28,7 +43,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
 
     func start() async {
         if ProcessInfo.processInfo.arguments.contains("--ui-preview"), !signedIn { enterDemo(); return }
-        guard signedIn else { status = "Log in to see your DanzStak feed."; return }
+        guard signedIn else { status = "Log in to see Your Mix."; return }
         await refresh()
     }
 
@@ -54,16 +69,16 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         let epoch = sessionEpoch
         isLoading = true
         defer { if epoch == sessionEpoch { isLoading = false } }
-        status = "Loading feed…"
+        status = "Loading Your Mix…"
         do {
             guard try await api.validSession() else { throw APIClient.Failure.sessionExpired }
             let loaded = try await api.posts()
             guard epoch == sessionEpoch else { return }
             posts = loaded
-            status = posts.isEmpty ? "Your feed is ready. Be the first to post." : "\(posts.count) posts"
+            status = posts.isEmpty ? "Your Mix is ready. Be the first to post." : "\(posts.count) posts"
         } catch APIClient.Failure.sessionExpired {
             if epoch == sessionEpoch { expireSession() }
-        } catch { if epoch == sessionEpoch { status = "Feed could not be loaded. Please try again." } }
+        } catch { if epoch == sessionEpoch { status = "Your Mix could not be loaded. Please try again." } }
     }
 
     func publish(_ text: String) async -> Bool {
@@ -109,7 +124,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     }
 
     private func clearContent() {
-        posts = []; groups = []; stories = []; reels = []; storiesError = ""; storiesLoading = false; notices = []; engagement = [:]
+        posts = []; groups = []; stories = []; reels = []; mediaActivity = [:]; storiesError = ""; storiesLoading = false; notices = []; engagement = [:]
         postErrors = [:]; busyPosts = []; communityError = ""; noticesError = ""; isLoading = false
     }
 
@@ -121,10 +136,11 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         isDemo = true
         signedIn = true
         let now = ISO8601DateFormatter().string(from: Date())
+        let previewName = ProcessInfo.processInfo.arguments.contains("--long-name-preview") ? "Alexandra Christine Montgomery-Williams" : "You"
         posts = [
             FeedPost(id: "demo-1", author: "DanzStak Community", text: "A place for the people who move music forward.\n\nShare your next set, find your scene, and make something worth showing up for.", createdAt: now),
             FeedPost(id: "demo-2", author: "The Night Shift", text: "What’s the one track you always come back to? Drop it in the comments. 🎧", createdAt: now),
-            FeedPost(id: "demo-3", author: "You", text: "Ready to find my people. See you on the dance floor. ✨", createdAt: now, isOwner: true),
+            FeedPost(id: "demo-3", author: previewName, text: "Ready to find my people. See you on the dance floor. ✨", createdAt: now, isOwner: true),
             FeedPost(id: "demo-4", author: "Studio Notes", text: "A little practice, a fresh idea, and a track that won’t leave your head. What are you working on today?", createdAt: now),
             FeedPost(id: "demo-5", author: "Local Scenes", text: "Support the people building something in your city. The next great night starts with your community.", createdAt: now)
         ]
@@ -198,7 +214,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
         communityError = ""
         do { let result = try await api.groups(); if epoch == sessionEpoch { groups = result } }
         catch APIClient.Failure.sessionExpired { if epoch == sessionEpoch { expireSession() } }
-        catch { if epoch == sessionEpoch { communityError = "Groups could not be loaded. Pull down to retry." } }
+        catch { if epoch == sessionEpoch { communityError = "Tribes could not be loaded. Pull down to retry." } }
     }
 
     func loadStories() async {
@@ -212,8 +228,36 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
             if epoch == sessionEpoch { stories = result.stories; reels = result.reels ?? [] }
         } catch {
             // Optional story-service failures must not invalidate a healthy feed session.
-            if epoch == sessionEpoch { storiesError = "Stories couldn’t be loaded. Tap Retry." }
+            if epoch == sessionEpoch { storiesError = "Flashes couldn’t be loaded. Tap Retry." }
         }
+    }
+
+    private func currentMediaResponder(text: String) -> MediaResponder {
+        let profile = posts.first { $0.isOwner == true }
+        return MediaResponder(id: UUID().uuidString, name: profile?.author ?? "You", picture: profile?.authorPicture, text: text)
+    }
+
+    func reactToMedia(_ id: String, emoji: String) {
+        var activity = mediaActivity[id] ?? MediaActivity()
+        let newReaction = activity.reaction == emoji ? nil : emoji
+        activity.reaction = newReaction
+        activity.likes = newReaction.map { [currentMediaResponder(text: $0)] } ?? []
+        mediaActivity[id] = activity
+    }
+
+    func commentOnMedia(_ id: String, text: String) -> Bool {
+        let content = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !content.isEmpty, content.count <= 1000 else { return false }
+        var activity = mediaActivity[id] ?? MediaActivity()
+        activity.comments.append(currentMediaResponder(text: content))
+        mediaActivity[id] = activity
+        return true
+    }
+
+    func recordMediaShare(_ id: String) {
+        var activity = mediaActivity[id] ?? MediaActivity()
+        activity.shares.append(currentMediaResponder(text: "Shared"))
+        mediaActivity[id] = activity
     }
 
     func loadNotices() async {

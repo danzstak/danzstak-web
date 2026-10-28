@@ -1,6 +1,48 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testLongResponderName() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview", "--response-style", "full", "--long-name-preview"]
+        app.launch()
+        let story = app.buttons["story.demo-s1"]
+        XCTAssertTrue(story.waitForExistence(timeout: 20))
+        story.tap()
+        let caption = app.staticTexts["viewer.caption.demo-s1"]
+        XCTAssertTrue(caption.waitForExistence(timeout: 5))
+        caption.press(forDuration: 0.7)
+        app.buttons["React 👍"].tap()
+        app.buttons["media.likes"].tap()
+        let name = app.staticTexts["response.name"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        XCTAssertEqual(name.label, "Alexandra Christine Montgomery-Williams")
+        XCTAssertGreaterThan(name.frame.height, 25)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Full-screen-long-name"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
+    func testMediaCommentCounts() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview", "--response-style", "drawer"]
+        app.launch()
+        let story = app.buttons["story.demo-s1"]
+        XCTAssertTrue(story.waitForExistence(timeout: 20))
+        story.tap()
+        let field = app.textFields["Write a comment…"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        for text in ["First comment", "Second comment"] {
+            field.tap(); field.typeText(text)
+            app.buttons["Send media comment"].tap()
+        }
+        XCTAssertTrue(app.buttons["media.comments"].label.contains("2"))
+        app.buttons["media.comments"].tap()
+        XCTAssertTrue(app.staticTexts["Comments"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["First comment"].exists)
+        XCTAssertTrue(app.staticTexts["Second comment"].exists)
+    }
+
     func testStoriesAndReels() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview"]
@@ -14,8 +56,13 @@ final class SocialNavigationTests: XCTestCase {
         XCTAssertGreaterThan(story.frame.minY, composer.frame.maxY)
         story.tap()
         XCTAssertTrue(app.staticTexts["Find your people. Feel your scene."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.tabBars.firstMatch.isHittable)
+        XCTAssertGreaterThanOrEqual(app.otherElements["media.page.demo-s1"].frame.height, app.frame.height * 0.8)
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["One more track. One more moment."].waitForExistence(timeout: 5))
+        waitUntilVisible(app.staticTexts["One more track. One more moment."])
         app.buttons["Done"].tap()
-        let reels = app.staticTexts["Reels"]
+        let reels = app.staticTexts["The Roll"]
         for _ in 0..<8 {
             if reels.isHittable { break }
             app.swipeUp()
@@ -24,6 +71,47 @@ final class SocialNavigationTests: XCTestCase {
         let fourth = app.staticTexts["A little practice, a fresh idea, and a track that won’t leave your head. What are you working on today?"]
         XCTAssertTrue(fourth.exists)
         XCTAssertLessThan(fourth.frame.maxY, reels.frame.minY)
+        app.buttons["reel.demo-r1"].tap()
+        XCTAssertTrue(app.staticTexts["In the mix"].waitForExistence(timeout: 5))
+        waitUntilVisible(app.staticTexts["viewer.caption.demo-r1"])
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Behind the sound"].waitForExistence(timeout: 5))
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Reels after swipe"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        waitUntilVisible(app.staticTexts["viewer.caption.demo-r2"])
+        app.buttons["Done"].tap()
+    }
+
+    func testFullScreenResponseList() { checkResponseList(style: "full") }
+    func testSlideOutResponseList() { checkResponseList(style: "drawer") }
+
+    private func checkResponseList(style: String) {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview", "--response-style", style]
+        app.launch()
+        let story = app.buttons["story.demo-s1"]
+        XCTAssertTrue(story.waitForExistence(timeout: 20))
+        story.tap()
+        let caption = app.staticTexts["Find your people. Feel your scene."]
+        XCTAssertTrue(caption.waitForExistence(timeout: 5))
+        caption.press(forDuration: 0.7)
+        XCTAssertTrue(app.buttons["React 👍"].waitForExistence(timeout: 5))
+        app.buttons["React 👍"].tap()
+        XCTAssertTrue(app.buttons["media.likes"].label.contains("1"))
+        app.buttons["media.likes"].tap()
+        if style == "drawer" {
+            XCTAssertTrue(app.staticTexts["Likes"].waitForExistence(timeout: 5))
+            XCTAssertLessThan(app.otherElements["media.responseDrawer"].frame.width, app.frame.width / 3)
+        } else { XCTAssertTrue(app.navigationBars["Likes"].waitForExistence(timeout: 5)) }
+        XCTAssertTrue(app.staticTexts["You"].exists)
+        if style == "drawer" { XCTAssertTrue(app.tabBars.firstMatch.exists) }
+        else { XCTAssertFalse(app.tabBars.firstMatch.isHittable) }
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Responses-\(style)"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
     }
 
     func testFooterMenu() {
@@ -43,8 +131,29 @@ final class SocialNavigationTests: XCTestCase {
         app.launchArguments = ["--ui-preview", "--header-percent", "4"]
         app.launch()
         XCTAssertTrue(app.images["danzstak.brand"].waitForExistence(timeout: 20))
-        app.buttons["Search feed"].tap()
+        let messages = app.buttons["header.messages"]
+        XCTAssertTrue(messages.exists)
+        XCTAssertGreaterThan(messages.frame.minX, app.buttons["Search Your Mix"].frame.minX)
+        XCTAssertLessThan(app.buttons["header.facebookImport"].frame.maxX, app.buttons["Search Your Mix"].frame.maxX)
+        app.buttons["Search Your Mix"].tap()
         XCTAssertTrue(app.textFields["Search loaded posts and people"].waitForExistence(timeout: 5))
+    }
+
+    private func waitUntilVisible(_ element: XCUIElement) {
+        let condition = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in element.isHittable }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [condition], timeout: 5), .completed)
+    }
+
+    func testImportInstructions() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-preview"]
+        app.launch()
+        let button = app.buttons["header.facebookImport"]
+        XCTAssertTrue(button.waitForExistence(timeout: 20))
+        button.tap()
+        XCTAssertTrue(app.navigationBars["Import Facebook data"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["1. Download your information"].exists)
+        XCTAssertTrue(app.staticTexts["2. Choose JSON format"].exists)
     }
 
     func testBrandSearchAndGroups() {
@@ -52,16 +161,16 @@ final class SocialNavigationTests: XCTestCase {
         app.launchArguments = ["--ui-preview"]
         app.launch()
         XCTAssertTrue(app.images["danzstak.brand"].waitForExistence(timeout: 20))
-        app.buttons["Search feed"].tap()
+        app.buttons["Search Your Mix"].tap()
         let search = app.textFields["Search loaded posts and people"]
         XCTAssertTrue(search.waitForExistence(timeout: 5))
         search.tap()
         search.typeText("no-matching-member-or-post")
         XCTAssertTrue(app.staticTexts["No matching posts"].waitForExistence(timeout: 5))
-        app.buttons["Search feed"].tap()
+        app.buttons["Search Your Mix"].tap()
         XCTAssertTrue(app.staticTexts["DanzStak Community"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Menu"].tap()
-        app.buttons["Groups"].tap()
+        app.buttons["Tribes"].tap()
         XCTAssertTrue(app.staticTexts["DJs & Producers"].waitForExistence(timeout: 5))
     }
 
@@ -72,7 +181,7 @@ final class SocialNavigationTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["DEMO · Sample content"].waitForExistence(timeout: 20))
         XCTAssertTrue(app.buttons["home.composer"].exists)
         app.tabBars.buttons["People"].tap()
-        XCTAssertTrue(app.staticTexts["People in your feed"].exists)
+        XCTAssertTrue(app.staticTexts["People in Your Mix"].exists)
         app.tabBars.buttons["Create"].tap()
         app.buttons["Create a post"].tap()
         let editor = app.textViews.firstMatch

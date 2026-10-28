@@ -96,6 +96,9 @@ struct APIClientChecks {
         precondition(mediaFeed.stories.first?.caption == "Tonight")
         precondition(mediaFeed.reels?.first?.id == "r1")
         precondition(StubProtocol.requests.last?.url?.path == "/stories")
+        StubProtocol.payload = #"{"stories":[{"storyId":"s2","content":"API flash caption"}]}"#
+        let flashes = try await api.stories()
+        precondition(flashes.stories.first?.content == "API flash caption")
 
         let noSession = APIClient(session: session, sessionToken: { nil })
         let count = StubProtocol.requests.count

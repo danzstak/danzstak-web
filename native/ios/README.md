@@ -26,11 +26,26 @@ The project uses Swift 5 language mode (not a Swift compiler version such as 5.1
 
 ## Native social interface
 
-The app now provides Home, People, Create, Alerts, and Menu tabs. The footer Menu opens profile, post creation, groups, header sizing, policy links, and logout. Home includes searchable loaded posts, HTTPS image/video media, reactions, comments, native sharing, pull-to-refresh, and error recovery. The composer saves drafts when closed or when publishing fails and requires content-permission confirmation. People shows authors from the loaded feed, not a fabricated friends list. Profile shows the current user's loaded posts; Groups lists the community directory. Notifications support opening loaded posts and marking activity as read.
+The app now provides Home, People, Create, Alerts, and Menu tabs. The footer Menu opens profile, post creation, groups, header sizing, policy links, and logout. Your Mix (Home) includes searchable loaded posts, HTTPS image/video media, reactions, comments, native sharing, pull-to-refresh, and error recovery. The composer saves drafts when closed or when publishing fails and requires content-permission confirmation. People shows authors from the loaded feed, not a fabricated friends list. Profile shows the current user's loaded posts; Tribes lists the community directory. Notifications support opening loaded posts and marking activity as read.
 
 Existing authenticated endpoints power these screens. Native friend requests, direct messages, profile editing, group membership actions, media uploads, and push notifications are not implemented by this interface. Website functionality remains available separately.
 
-Home places a compact post composer directly below the branded header, with a horizontal Stories rail beneath it. Stories open a native image/video/caption viewer. A Reels rail appears after the fourth feed post (and is omitted from filtered search results). The `/stories` response supplies stories and optional reel links; HTTPS reel links open their source. Demo reels explicitly identify themselves as previews without attached videos. Story/reel publishing is not implemented, and optional media-service failures leave the main feed usable.
+Home places a compact post composer directly below the branded header, with a horizontal Flashes rail (served by the existing `/stories` API) beneath it. Flashes open a native image/video/caption viewer. The Roll rail appears after the fourth feed post (and is omitted from filtered search results). The `/stories` response supplies stories and optional reel links; HTTPS reel links open their source. Demo reels explicitly identify themselves as previews without attached videos. Story/reel publishing is not implemented, and optional media-service failures leave the main feed usable.
+
+Flashes and The Roll use a full-screen vertical pager: swipe up for the next item and close with the top-right button. Native videos autoplay only while active and at least 65% visible; one shared coordinator pauses the previous player, releases audio when a video leaves view, and stops playback on dismissal/backgrounding. Direct HTTPS MP4/MOV/M4V/HLS reel URLs play natively. Provider webpage URLs show an explicit **Watch original video** link; autoplay and audio in an external browser are controlled by that provider, not this app.
+
+The header places **Import Facebook data** to the left of Search and **Messages** at the far right. Import opens a numbered guide to exporting JSON from Facebook and using DanzStak's existing web importer, with audience review before uploading. Messages opens the existing DanzStak messages website. Neither shortcut exposes the native session token or uploads data automatically.
+
+Playback-coordinator regression checks can also run without a simulator:
+
+```sh
+swiftc -swift-version 5 DanzStak/NativePlayback.swift Tests/PlaybackChecks.swift -o /tmp/danzstak-playback-checks
+/tmp/danzstak-playback-checks
+```
+
+These checks validate exclusive-player ownership and stop/cleanup behavior, not physical-device sound output or third-party provider playback.
+
+The full-screen media viewer shows a vertical Like / Reply / Share icon rail with counts, the poster's name at bottom left, and a comment field at the bottom. Long-pressing media opens an emoji picker. Response icons open vertical name/avatar lists; **Menu → Response lists** switches between a full-screen list and a left drawer over the feed. Full screen is the default so long names have room to wrap; the optional drawer occupies 30% of the screen. Current Flashes/The Roll response activity starts at zero and is local preview state, explicitly labeled in the lists: repeated likes toggle rather than accumulating, submitted comments add one, and shares add one only after the native share flow reports completion. This is not a community-wide responder backend. No other users or totals are fabricated. Activity resets with the app session. Native post reactions/comments continue using their existing API.
 
 Use **Explore the demo** on the login screen to inspect sample content without an account. The banner identifies demo mode, and its posts, comments, and reactions remain in memory; no API writes occur. Demo composer drafts use separate local storage from real posts. Production login continues to use the device-bound system authentication flow and Keychain session.
 
