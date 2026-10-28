@@ -12,7 +12,7 @@ const context = vm.createContext({ list, readPostPreferences: () => ({ saved1: {
 vm.runInContext(code, context);
 vm.runInContext('renderSavedPosts(list)', context);
 assert.match(list.children[0].textContent, /No saved posts available/);
-posts = ['saved1', 'notSaved'].map(id => ({ dataset: { postId: id }, querySelector: selector => ({ textContent: selector === '.post-content' ? 'Saved content' : 'Author' }) }));
+posts = ['saved1', 'notSaved'].map(id => ({ dataset: { postId: id }, querySelector: selector => selector === '.post-media' ? null : ({ textContent: selector === '.post-content' ? 'Saved content' : 'Author' }) }));
 vm.runInContext('renderSavedPosts(list)', context);
 assert.equal(list.children.length, 1, 'only saved posts from the authorized feed are exposed');
 assert.equal(list.children[0].children[0].textContent, 'Saved content');
@@ -20,4 +20,7 @@ list.children[0].children[2].click();
 assert.equal(opened, posts[0]);
 posts = []; vm.runInContext('renderSavedPosts(list)', context);
 assert.match(list.children[0].textContent, /No saved posts available/, 'removed or no-longer-visible posts disappear');
+assert.match(source, /function addSaveButton\(post\)/, 'every post should expose a direct Saved control');
+assert.match(source, /Post saved\. Find it under Saved\./, 'saving should confirm where the post went');
+assert.match(source, /preview\.className = "saved-post-media"/, 'saved photos and videos should remain visible in the Saved collection');
 console.log('Saved post checks passed: empty state, authorized posts only, and opening the source post.');

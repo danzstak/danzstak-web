@@ -221,7 +221,16 @@ function renderSavedPosts(list) {
     const author = document.createElement("small"); author.textContent = post.querySelector(".post-header a")?.textContent || "DanzStak post";
     const view = document.createElement("button"); view.type = "button"; view.className = "secondary"; view.textContent = "View post";
     view.addEventListener("click", () => openPostInFeed(post));
-    card.append(content, author, view); list.appendChild(card);
+    card.append(content, author);
+    const media = post.querySelector(".post-media");
+    if (media) {
+      const preview = media.cloneNode(false);
+      preview.removeAttribute("id");
+      preview.className = "saved-post-media";
+      if (preview.tagName === "VIDEO") { preview.controls = true; preview.autoplay = false; preview.muted = false; preview.preload = "metadata"; }
+      card.appendChild(preview);
+    }
+    card.appendChild(view); list.appendChild(card);
   }
 }
 
@@ -1631,6 +1640,47 @@ function addShareButton(post) {
   actions.appendChild(button);
 }
 
+function paintPostSaveButton(post) {
+  const button = post.querySelector(".saveBtn");
+  if (!button) return;
+  const saved = post.dataset.saved === "true";
+  button.textContent = "🔖";
+  button.setAttribute("aria-label", saved ? "Remove post from Saved" : "Save post");
+  button.setAttribute("aria-pressed", String(saved));
+  button.title = saved ? "Remove from Saved" : "Save post";
+}
+
+function addSaveButton(post) {
+  const actions = post.querySelector(".post-actions");
+  if (!actions || actions.querySelector(".saveBtn")) return;
+  const preferences = readPostPreferences()[String(post.dataset.postId || "")] || {};
+  post.dataset.saved = String(preferences.saved === true);
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "saveBtn";
+  button.addEventListener("click", async () => {
+    if (button.disabled) return;
+    const next = post.dataset.saved !== "true";
+    button.disabled = true;
+    try {
+      await updatePostPreference(post, { saved: next });
+      post.dataset.saved = String(next);
+      paintPostSaveButton(post);
+      const savedList = featurePanel.querySelector(".saved-posts");
+      if (!featurePanel.hidden && savedList) renderSavedPosts(savedList);
+      let status = post.querySelector(".post-save-status");
+      if (!status) { status = document.createElement("p"); status.className = "post-save-status"; status.setAttribute("role", "status"); actions.after(status); }
+      status.textContent = next ? "Post saved. Find it under Saved." : "Post removed from Saved.";
+    } catch (error) {
+      let status = post.querySelector(".post-save-status");
+      if (!status) { status = document.createElement("p"); status.className = "post-save-status"; status.setAttribute("role", "status"); actions.after(status); }
+      status.textContent = error.message || "This post could not be saved. Try again.";
+    } finally { button.disabled = false; }
+  });
+  actions.appendChild(button);
+  paintPostSaveButton(post);
+}
+
 function postPermalink(post) {
   const url = new URL("feed.html", location.href);
   url.search = "";
@@ -1825,6 +1875,7 @@ function addPostDeleteButton(post) {
     post.dataset.privacySetting = String(/Friends/i.test(audienceText) ? 1 : /Only me/i.test(audienceText) ? 2 : 0);
   post.dataset.pinned = String(preferences.pinned === true);
   post.dataset.saved = String(preferences.saved === true);
+  paintPostSaveButton(post);
   post.dataset.notificationsOff = String(preferences.notificationsOff === true);
   const serverCommentSetting = Number(post.dataset.commentSetting);
   post.dataset.commentSetting = String(Number.isInteger(serverCommentSetting) ? serverCommentSetting : Number(preferences.commentSetting) || 0);
@@ -1888,6 +1939,7 @@ function addPostDeleteButton(post) {
     await updatePostPreference(post, { saved: !saved });
     post.dataset.saved = String(!saved);
     button.querySelector("strong").textContent = saved ? "Save post" : "Unsave post";
+    paintPostSaveButton(post);
   });
   if (preferences.pinned === true) pinOption.querySelector("strong").textContent = "Unpin post";
   if (preferences.saved === true) saveOption.querySelector("strong").textContent = "Unsave post";
@@ -2597,7 +2649,7 @@ document.getElementById("feed").addEventListener("keydown", event => {
   event.stopImmediatePropagation();
   saveComment(post, event.target);
 }, true);
-document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
+document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addSaveButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
 function refreshFeedMediaWorkspace(records) {
   const workspaceName = featurePanel.dataset?.workspaceName || featureHeading.textContent;
   if (featurePanel.hidden || !["Photos", "Videos", "Events", "Saved"].includes(workspaceName)) return;
@@ -2615,7 +2667,7 @@ function refreshFeedMediaWorkspace(records) {
 new MutationObserver(records => {
   for (const record of records) {
     record.addedNodes.forEach(node => {
-      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { if (hiddenPostIds.has(String(node.dataset.postId || ""))) { node.remove(); return; } addReactionButton(node); addShareButton(node); addPostDeleteButton(node); placeReelsRail(); }
+      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { if (hiddenPostIds.has(String(node.dataset.postId || ""))) { node.remove(); return; } addReactionButton(node); addShareButton(node); addSaveButton(node); addPostDeleteButton(node); placeReelsRail(); }
       if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".comment")) addCommentDelete(node);
       if (node.nodeType === Node.ELEMENT_NODE) node.querySelectorAll?.(".comment").forEach(addCommentDelete);
     });
