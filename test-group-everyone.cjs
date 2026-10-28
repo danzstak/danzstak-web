@@ -12,6 +12,6 @@ const event=(message='Load-in moved to 6 PM',origin='https://danzstak.com')=>({h
  owner='other';assert.equal((await vm.runInContext('broadcastGroup(event)',context)).statusCode,403);assert.equal(writes.length,0);owner='owner';
  assert.equal((await vm.runInContext('broadcastGroup(event)',context)).statusCode,200);assert.equal(writes.length,1,'only the other current member is notified');
  assert.equal(writes[0].Item.type.S,'group_everyone');assert.equal(writes[0].Item.userEmail.S,'member@example.com');assert.equal(writes[0].Item.preview.S,'Load-in moved to 6 PM');
- const client=fs.readFileSync('assets/feed-enhancements.js','utf8');assert.match(client,/Notify @everyone/);assert.match(client,/notice\.type === "group_everyone"/);assert.doesNotMatch(client,/result\.members/,'client must not receive a member-address list');
+ const client=fs.readFileSync('assets/feed-enhancements.js','utf8');assert.match(client,/group\.cloud && group\.isOwner === true/,'only a synced server-confirmed owner sees the broadcast control');assert.match(client,/Notify @everyone/);assert.match(client,/notice\.type === "group_everyone"/);assert.doesNotMatch(client,/result\.members/,'client must not receive a member-address list');
  console.log('Tribe @everyone checks passed: creator-only fanout, current members, durable notices, and no client member-address exposure.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

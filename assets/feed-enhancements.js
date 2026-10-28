@@ -493,26 +493,28 @@ function renderWorkspace(name) {
         card.appendChild(moderation);
         card.appendChild(join);
         if (group.custom && group.isOwner !== false) {
-          const announce = document.createElement("button");
-          announce.type = "button";
-          announce.className = "group-everyone";
-          announce.textContent = "Notify @everyone";
-          announce.title = "Send an in-app announcement to current Tribe members";
-          announce.addEventListener("click", async () => {
-            const message = prompt("Announcement for everyone in " + group.name + " (500 characters maximum):");
-            if (!message?.trim()) return;
-            if (message.trim().length > 500) { alert("Announcement cannot exceed 500 characters."); return; }
-            announce.disabled = true;
-            try {
-              const response = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/everyone", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: message.trim() }) });
-              const result = await response.json().catch(() => ({}));
-              if (!response.ok) throw new Error(result.error || "Announcement could not be sent.");
-              announce.textContent = `Notified ${result.notified || 0}`;
-              setTimeout(() => { announce.textContent = "Notify @everyone"; }, 3000);
-            } catch (error) { alert(error.message); }
-            finally { announce.disabled = false; }
-          });
-          card.appendChild(announce);
+          if (group.cloud && group.isOwner === true) {
+            const announce = document.createElement("button");
+            announce.type = "button";
+            announce.className = "group-everyone";
+            announce.textContent = "Notify @everyone";
+            announce.title = "Send an in-app announcement to current Tribe members";
+            announce.addEventListener("click", async () => {
+              const message = prompt("Announcement for everyone in " + group.name + " (500 characters maximum):");
+              if (!message?.trim()) return;
+              if (message.trim().length > 500) { alert("Announcement cannot exceed 500 characters."); return; }
+              announce.disabled = true;
+              try {
+                const response = await groupFetch("/groups/" + encodeURIComponent(group.id) + "/everyone", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: message.trim() }) });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.error || "Announcement could not be sent.");
+                announce.textContent = `Notified ${result.notified || 0}`;
+                setTimeout(() => { announce.textContent = "Notify @everyone"; }, 3000);
+              } catch (error) { alert(error.message); }
+              finally { announce.disabled = false; }
+            });
+            card.appendChild(announce);
+          }
           const remove = document.createElement("button");
           remove.type = "button";
           remove.className = "group-delete";
