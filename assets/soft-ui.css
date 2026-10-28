@@ -1,5 +1,6 @@
 :root{--ui-blue:#0866ff;--ui-ink:#1c1e21;--ui-border:#d7dce2;--ui-muted:#f0f2f5}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}img,video{max-width:100%}button,.button,input,textarea,select{box-sizing:border-box;max-width:100%}
+video::-webkit-media-controls-overlay-play-button,video::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none!important}
 button,.button{min-height:40px;padding:8px 12px;border:1px solid var(--ui-border);border-radius:8px;background:#f0f2f5;box-shadow:none;color:var(--ui-ink);font-family:inherit;font-size:.9375rem;font-weight:700;line-height:1.25;text-shadow:none;cursor:pointer;transition:background-color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}.button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 button:hover,.button:hover{background:#e4e6eb;box-shadow:none;filter:none;transform:none}button:active,.button:active{background:#d8dade;transform:none}
 button:focus-visible,.button:focus-visible{outline:3px solid #0866ff80;outline-offset:3px}a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #0866ff80;outline-offset:3px}
