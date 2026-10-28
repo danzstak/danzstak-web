@@ -240,6 +240,19 @@ function directMessageItem(message) {
   return item;
 }
 
+function pendingMessageItem(content, mediaFile) {
+  const item = document.createElement("div");
+  const text = content || (mediaFile?.type.startsWith("video/") ? "Video" : "Photo");
+  const meta = document.createElement("span");
+  item.className = "message mine message-pending";
+  item.textContent = text;
+  item.setAttribute("aria-label", `You: ${text}. Sending.`);
+  meta.className = "message-meta";
+  meta.textContent = "Sending…";
+  item.appendChild(meta);
+  return item;
+}
+
 function renderEarlierMessagesButton() {
   messageList.querySelector(".load-earlier-messages")?.remove();
   if (!nextMessageCursor) return;
@@ -474,8 +487,12 @@ messageForm?.addEventListener("submit", async event => {
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
   const version = conversationVersion;
   const mediaFile = selectedMessageMedia;
+  const pendingItem = pendingMessageItem(content, mediaFile);
   pendingMessageSends.add(version);
   sendButton.disabled = true;
+  messageList.appendChild(pendingItem);
+  messageList.scrollTop = messageList.scrollHeight;
+  if (content && messageInput.value.trim() === content) messageInput.value = "";
   try {
     if (mediaFile) callStatus.textContent = "Uploading attachment…";
     const attachment = mediaFile ? await uploadSelectedMessageMedia(mediaFile) : {};
@@ -483,11 +500,22 @@ messageForm?.addEventListener("submit", async event => {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Message could not be sent");
     if (version !== conversationVersion) { await loadConversations(); return; }
-    if (messageInput.value.trim() === content) messageInput.value = "";
+    if (data.message?.messageId) {
+      shownMessages.add(data.message.messageId);
+      pendingItem.replaceWith(directMessageItem(data.message));
+    } else {
+      pendingItem.remove();
+    }
     if (selectedMessageMedia === mediaFile) clearSelectedMessageMedia();
-    await loadDirectMessages();
     await loadConversations();
-  } catch (error) { if (version === conversationVersion) callStatus.textContent = error.message; }
+  } catch (error) {
+    pendingItem.remove();
+    if (version === conversationVersion) {
+      if (content && !messageInput.value.trim()) messageInput.value = content;
+      callStatus.textContent = `${error.message}. Your message is still in the composer.`;
+      messageInput.focus();
+    }
+  }
   finally { pendingMessageSends.delete(version); if (version === conversationVersion) sendButton.disabled = !activeCanContact; }
 }, true);
 

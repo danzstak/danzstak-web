@@ -8,8 +8,8 @@ const fullSource = readFileSync(join(__dirname, 'assets/direct-messages.js'), 'u
 const source = fullSource.split('async function loadConversations()')[0];
 function setup() {
   const elements = new Map();
-  const element = () => ({ value: '', textContent: '', hidden: false, disabled: false, style: {}, scrollHeight: 0, scrollTop: 0, clientHeight: 0,
-    querySelector: () => null, querySelectorAll: () => [], replaceChildren() {}, appendChild() {}, prepend() {} });
+  const element = () => ({ value: '', textContent: '', className: '', hidden: false, disabled: false, style: {}, scrollHeight: 0, scrollTop: 0, clientHeight: 0,
+    querySelector: () => null, querySelectorAll: () => [], replaceChildren() {}, appendChild() {}, prepend() {}, setAttribute() {}, replaceWith() {}, remove() {}, focus() {} });
   for (const id of ['contactEmail', 'messageForm', 'messageInput', 'messageList', 'callStatus', 'conversationHeader', 'conversationName', 'conversationAvatar']) elements.set(id, element());
   const send = element();
   elements.get('messageForm').querySelector = () => send;
@@ -18,7 +18,7 @@ function setup() {
   const context = vm.createContext({ URLSearchParams, AbortController, setTimeout, clearTimeout,
     location: { search: '', origin: 'https://danzstak.com' }, window: {},
     localStorage: { getItem: () => '{}', setItem() {} },
-    document: { hidden: false, getElementById: id => elements.get(id) || null, querySelector: () => null,
+    document: { hidden: false, getElementById: id => elements.get(id) || null, querySelector: () => null, createElement: element,
       body: { classList: { add: c => classes.add(c), remove: c => classes.delete(c), contains: c => classes.has(c) } } },
     fetch: url => new Promise((resolve, reject) => requests.push({ url, resolve, reject })) });
   vm.runInContext('window.parent = window', context);

@@ -63,6 +63,7 @@ body.is-conversation-open>.install-app-button,body.is-conversation-open>.app-upd
 /* Keep the text field and send action on one row; emoji choices open by long press. */
 .message-form{grid-template-columns:minmax(0,1fr) auto!important}
 .dark-mode .message.mine{background:#164f86;border-color:#2575ba;color:#f5f7fb}
+.message-pending{opacity:.72}.message-pending .message-meta{font-style:italic}
 
 /* Avatar and actions span both name/status rows so the call controls never wrap below. */
 .conversation-avatar{grid-column:1;grid-row:1/3;align-self:center}
