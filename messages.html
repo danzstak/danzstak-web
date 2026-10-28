@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1">
 <script src="assets/display-preferences.js?v=342"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=362">
-<link rel="stylesheet" href="assets/chat.css?v=366">
+<link rel="stylesheet" href="assets/chat.css?v=367">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
 <title>Messages | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
@@ -55,16 +55,19 @@
     <div id="messageList" class="message-list" aria-live="polite"><p class="system-message">Select a saved chat or an available friend to begin messaging.</p></div>
     <form id="messageForm" class="message-form">
       <div id="messageMediaPreview" class="message-media-preview" hidden></div>
-      <label class="message-attach" title="Attach photo or video"><span aria-hidden="true">＋</span><span class="sr-only">Attach photo or video</span><input id="messageMedia" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" disabled></label>
-      <label class="sr-only" for="messageInput">Message</label>
-      <input id="messageInput" type="text" enterkeyhint="enter" maxlength="2000" autocomplete="off" placeholder="Write a message" disabled>
+      <div class="message-input-shell">
+        <label class="message-attach" title="Attach photo or video"><span aria-hidden="true">＋</span><span class="sr-only">Attach photo or video</span><input id="messageMedia" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" disabled></label>
+        <label class="message-camera" title="Take a photo or video"><span aria-hidden="true">📷</span><span class="sr-only">Open camera to take a photo or video</span><input id="messageCamera" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" capture="environment" disabled></label>
+        <label class="sr-only" for="messageInput">Message</label>
+        <input id="messageInput" type="text" enterkeyhint="enter" maxlength="2000" autocomplete="off" placeholder="Write a message" disabled>
+      </div>
       <button type="submit" class="message-send" disabled aria-label="Send message" title="Send message">➤</button>
     </form>
   </section>
 </main>
 <script src="assets/push-notifications.js?v=303" defer></script>
 <script src="assets/chat.js?v=363" defer></script>
-<script src="assets/direct-messages.js?v=365" defer></script>
+<script src="assets/direct-messages.js?v=366" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
 <script src="assets/logout.js?v=308" defer></script>

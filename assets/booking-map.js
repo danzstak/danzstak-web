@@ -20,7 +20,7 @@
     touchZoom: true,
     bounceAtZoomLimits: false
   }).setView([39.5, -98.35], 4);
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+  const baseTiles = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
     maxZoom: 19,
     attribution: "Tiles &copy; Esri"
   }).addTo(map);
@@ -35,7 +35,7 @@
   let drawingRoute = false;
   let routePoints = [];
   let routePreview = null;
-  let drawPointerStart = null;
+  let mapDrawControl = null;
 
   const venueIdentity = place => String(place.venueKey || `${place.name || ""}|${place.address || ""}`);
   const boundsPayload = bounds => ({
@@ -70,6 +70,11 @@
     routePoints = [];
     drawRouteButton?.setAttribute("aria-pressed", "false");
     if (drawRouteButton) drawRouteButton.innerHTML = '<span aria-hidden="true">✎</span> Draw a route';
+    if (mapDrawControl) {
+      mapDrawControl.setAttribute("aria-pressed", "false");
+      mapDrawControl.setAttribute("aria-label", "Draw a route on the map");
+      mapDrawControl.title = "Draw a route";
+    }
     document.querySelector(".booking-map-panel")?.classList.remove("is-drawing");
     map.dragging.enable();
     map.touchZoom.enable();
@@ -85,6 +90,11 @@
     routePreview = null;
     drawRouteButton.setAttribute("aria-pressed", "true");
     drawRouteButton.textContent = "Finish route";
+    if (mapDrawControl) {
+      mapDrawControl.setAttribute("aria-pressed", "true");
+      mapDrawControl.setAttribute("aria-label", "Finish drawing route");
+      mapDrawControl.title = "Finish route";
+    }
     document.querySelector(".booking-map-panel")?.classList.add("is-drawing");
     map.dragging.disable();
     map.touchZoom.disable();
@@ -93,18 +103,29 @@
   function addRoutePoint(latlng) {
     routePoints.push(latlng);
     if (routePreview) drawn.removeLayer(routePreview);
-    routePreview = L.polyline(routePoints, { color: "#1769e0", weight: 5 }).addTo(drawn);
+    routePreview = routePoints.length === 1
+      ? L.circleMarker(latlng, { radius: 7, color: "#fff", weight: 3, fillColor: "#1769e0", fillOpacity: 1, interactive: false }).addTo(drawn)
+      : L.polyline(routePoints, { color: "#1769e0", weight: 6, opacity: 0.95, lineCap: "round", lineJoin: "round", interactive: false }).addTo(drawn);
     status.textContent = `${routePoints.length} route point${routePoints.length === 1 ? "" : "s"} added. Keep tapping, then press Finish route.`;
   }
-  mapElement.addEventListener("pointerdown", event => {
-    if (drawingRoute) drawPointerStart = { x: event.clientX, y: event.clientY };
+  map.on("click", event => { if (drawingRoute) addRoutePoint(event.latlng); });
+
+  const DrawRouteControl = L.Control.extend({
+    options: { position: "topleft" },
+    onAdd() {
+      const wrapper = L.DomUtil.create("div", "leaflet-bar map-draw-control-wrap");
+      mapDrawControl = L.DomUtil.create("button", "map-draw-control", wrapper);
+      mapDrawControl.type = "button";
+      mapDrawControl.innerHTML = '<span aria-hidden="true">✎</span>';
+      mapDrawControl.title = "Draw a route";
+      mapDrawControl.setAttribute("aria-label", "Draw a route on the map");
+      mapDrawControl.setAttribute("aria-pressed", "false");
+      L.DomEvent.disableClickPropagation(wrapper);
+      L.DomEvent.on(mapDrawControl, "click", () => drawRouteButton?.click());
+      return wrapper;
+    }
   });
-  mapElement.addEventListener("pointerup", event => {
-    if (!drawingRoute || !drawPointerStart) return;
-    const distance = Math.hypot(event.clientX - drawPointerStart.x, event.clientY - drawPointerStart.y);
-    drawPointerStart = null;
-    if (distance <= 14) addRoutePoint(map.mouseEventToLatLng(event));
-  });
+  map.addControl(new DrawRouteControl());
   map.on("moveend zoomend", () => {
     if (searchScope !== "drawn") {
       searchBounds = null;
@@ -237,11 +258,25 @@
     return response;
   };
 
-  const resizeMap = () => window.requestAnimationFrame(() => map.invalidateSize());
+  let resizeFrame = 0;
+  const resizeMap = () => {
+    window.cancelAnimationFrame(resizeFrame);
+    resizeFrame = window.requestAnimationFrame(() => {
+      map.invalidateSize({ animate: false, pan: false });
+      baseTiles.redraw();
+    });
+  };
   window.addEventListener("resize", resizeMap);
   window.addEventListener("orientationchange", resizeMap);
+  window.addEventListener("load", resizeMap, { once: true });
   window.addEventListener("pageshow", resizeMap);
-  if (window.ResizeObserver) new ResizeObserver(resizeMap).observe(mapElement);
+  const mapResizeObserver = window.ResizeObserver ? new ResizeObserver(resizeMap) : null;
+  mapResizeObserver?.observe(mapElement);
+  const mapVisibilityObserver = window.IntersectionObserver ? new IntersectionObserver(entries => {
+    if (entries.some(entry => entry.isIntersecting)) resizeMap();
+  }, { threshold: [0, 0.01] }) : null;
+  mapVisibilityObserver?.observe(mapElement);
+  document.fonts?.ready.then(resizeMap).catch(() => {});
   window.setTimeout(resizeMap, 100);
   window.setTimeout(resizeMap, 500);
   openSelections?.addEventListener("click", () => {

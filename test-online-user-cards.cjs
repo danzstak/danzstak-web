@@ -12,6 +12,6 @@ assert.match(html, /if \(user\.picture\) \{ avatar\.src = user\.picture;/);
 assert.match(html, /row\.append\(avatarWrap, name, action\)/);
 assert.match(css, /\.feed-online-row\{[^}]*grid-template-columns:34px minmax\(0,1fr\) auto/);
 assert.match(css, /\.feed-online-dot\{[^}]*background:#20b15a/);
-assert.match(html, /assets\/feed-enhancements\.css\?v=357/);
+assert.match(html, /assets\/feed-enhancements\.css\?v=358/);
 
 console.log("Online user card checks passed: photos, names, green presence dots, and actions share one compact row.");

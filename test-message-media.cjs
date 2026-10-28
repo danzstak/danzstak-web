@@ -9,6 +9,9 @@ const styles = fs.readFileSync("assets/chat.css", "utf8");
 const template = fs.readFileSync("infrastructure/call-signaling/template.yaml", "utf8");
 
 assert.match(page, /id="messageMedia"[^>]+accept="image\/jpeg,image\/png,image\/webp,image\/gif,video\/mp4,video\/webm,video\/quicktime"/);
+assert.match(page, /id="messageCamera"[^>]+accept="image\/jpeg,image\/png,image\/webp,video\/mp4,video\/webm,video\/quicktime"[^>]+capture="environment"/, "the composer needs a camera capture control for a new photo or video");
+assert.match(page, /<div class="message-input-shell">[\s\S]*class="message-attach"[\s\S]*class="message-camera"[\s\S]*id="messageInput"/, "attachment and camera controls should live inside the message field");
+assert.match(client, /messageCamera\?\.addEventListener\("change"/, "camera captures must use the existing secure attachment preview and upload path");
 assert.match(page, /media-src[^;]+danzstak-call-signaling-mediabucket/);
 assert.match(client, /Standalone audio files are not supported/);
 assert.match(client, /purpose: "message"/);

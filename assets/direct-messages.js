@@ -10,6 +10,7 @@ const onlineUsers = document.getElementById("onlineUsers");
 const messageForm = document.getElementById("messageForm");
 const messageInput = document.getElementById("messageInput");
 const messageMedia = document.getElementById("messageMedia");
+const messageCamera = document.getElementById("messageCamera");
 const messageMediaPreview = document.getElementById("messageMediaPreview");
 const messageList = document.getElementById("messageList");
 const sendButton = messageForm?.querySelector('button[type="submit"]');
@@ -48,11 +49,13 @@ let selectedMessageMediaUrl = "";
 function setConversationActionsEnabled(enabled) {
   for (const button of conversationActions) button.disabled = !enabled;
   if (messageMedia) messageMedia.disabled = !enabled;
+  if (messageCamera) messageCamera.disabled = !enabled;
 }
 
 function clearSelectedMessageMedia() {
   selectedMessageMedia = null;
   if (messageMedia) messageMedia.value = "";
+  if (messageCamera) messageCamera.value = "";
   if (selectedMessageMediaUrl) URL.revokeObjectURL(selectedMessageMediaUrl);
   selectedMessageMediaUrl = "";
   if (messageMediaPreview) { messageMediaPreview.replaceChildren(); messageMediaPreview.hidden = true; }
@@ -746,6 +749,7 @@ messageForm?.addEventListener("submit", async event => {
 }, true);
 
 messageMedia?.addEventListener("change", () => previewSelectedMessageMedia(messageMedia.files?.[0]));
+messageCamera?.addEventListener("change", () => previewSelectedMessageMedia(messageCamera.files?.[0]));
 
 deleteChat?.addEventListener("click", async () => {
   const contact = contactInput.value.trim().toLowerCase();

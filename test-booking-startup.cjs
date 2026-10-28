@@ -10,5 +10,12 @@ assert.match(agent, /const routeFieldset = \$\("tourForm"\)\.querySelector\("fie
 assert.doesNotMatch(agent, /\$\("startCity"\)\.closest\("fieldset"\)/, "startup must not look for a fieldset around the external Home field");
 assert.match(agent, /routeAction\.id = "routeSearchAction"/, "the map must have a stable route-search target");
 assert.match(map, /document\.getElementById\("routeSearchAction"\)/, "Search this area must invoke the stable route action");
+assert.match(map, /map\.on\("click", event => \{ if \(drawingRoute\) addRoutePoint\(event\.latlng\); \}\)/, "route drawing must use Leaflet's mobile-safe map click event");
+assert.match(map, /L\.circleMarker\(latlng/, "the first route tap should leave a visible starting point");
+assert.match(map, /L\.polyline\(routePoints, \{ color: "#1769e0", weight: 6/, "two or more route points should draw a clearly visible line");
+assert.match(map, /L\.DomUtil\.create\("button", "map-draw-control"/, "the map must expose its own visible pencil control");
+assert.match(map, /map\.invalidateSize\(\{ animate: false, pan: false \}\)/, "responsive map resizing must not leave a stale tile grid");
+assert.match(map, /baseTiles\.redraw\(\)/, "map tiles must redraw after responsive resizing");
+assert.match(map, /new IntersectionObserver/, "the map must repair its tile grid when it becomes visible");
 
 console.log("Booking startup checks passed: moved Act/Home fields no longer crash route controls and map search has a stable action target.");
