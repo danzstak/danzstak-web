@@ -44,9 +44,10 @@ struct APIClientChecks {
         defer { session.invalidateAndCancel() }
         let api = APIClient(session: session, sessionToken: { "opaque-test-session" })
 
-        StubProtocol.payload = #"{"posts":[{"postId":"1","authorName":"Test","content":"Hello","createdAt":"2026-10-27"}]}"#
+        StubProtocol.payload = #"{"posts":[{"postId":"1","authorName":"Test","content":"Hello","createdAt":"2026-10-27","location":"Berlin","taggedUsers":[{"memberId":"member-1","name":"Friend","isMe":true}]}]}"#
         let posts = try await api.posts()
         precondition(posts.count == 1 && posts[0].text == "Hello")
+        precondition(posts[0].location == "Berlin" && posts[0].taggedUsers?.first?.isMe == true)
         precondition(StubProtocol.requests.last?.value(forHTTPHeaderField: "Authorization") == "Bearer opaque-test-session")
 
         StubProtocol.payload = #"{"authenticated":false}"#
