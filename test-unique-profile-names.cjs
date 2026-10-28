@@ -13,7 +13,9 @@ assert.match(template, /normalize\('NFKC'\)[\s\S]*?replace\(\/\\s\+\/g,' '\)[\s\
 assert.match(template, /\['name','name#'\],\['handle','handle#'\]/);
 assert.match(template, /attribute_not_exists\(#claim\) OR #owner = :owner/);
 assert.match(template, /scanAll\(\{TableName:process\.env\.SETTINGS_TABLE,ProjectionExpression:'userEmail, profileName, profileHandle'\}\)/);
-assert.match(template, /return json\(409,\{error:`That \$\{field==='name'[\s\S]*?Try \$\{requested\[field\]\}\.2/);
+assert.match(template, /async function availableProfileSuggestion\(field,value\)/);
+assert.match(template, /for\(let number=2;number<=99;number\+\+\)/);
+assert.match(template, /return json\(409,\{error:`That \$\{field==='name'[\s\S]*?,suggestion\}\)/);
 assert.match(template, /async function updateProfile\(event,user\)\{return updateProfileUnique\(event,user\);\}/);
 assert.match(editor, /display name and username must each be unique/i);
 assert.match(editor, /name="handle" minlength="3"/);
