@@ -107,6 +107,30 @@ async function directFetch(path, options = {}, timeoutMs = 10000) {
 }
 let activeFilter = "all";
 const chatReadKey = "danzstak_chat_read";
+const chatDraftKey = "danzstak_chat_drafts";
+let memoryChatDrafts = {};
+
+function readChatDrafts() {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(chatDraftKey) || "{}");
+    return stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
+  } catch { return { ...memoryChatDrafts }; }
+}
+
+function saveChatDraft(email, content) {
+  if (!email) return;
+  const drafts = readChatDrafts();
+  const draft = String(content || "").slice(0, 2000);
+  if (draft.trim()) drafts[email] = draft;
+  else delete drafts[email];
+  memoryChatDrafts = { ...drafts };
+  try { sessionStorage.setItem(chatDraftKey, JSON.stringify(drafts)); }
+  catch { /* Drafts remain available in memory when storage is blocked. */ }
+}
+
+function restoreChatDraft(email) {
+  messageInput.value = String(readChatDrafts()[email] || "");
+}
 
 function readChatTimes() {
   try { return JSON.parse(localStorage.getItem(chatReadKey) || "{}"); }
@@ -178,10 +202,13 @@ function openConversation(conversation) {
   conversationAvatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
   if (conversation.picture) { conversationAvatar.style.backgroundImage = `url("${conversation.picture}")`; conversationAvatar.textContent = ""; }
   else conversationAvatar.style.backgroundImage = "";
+  restoreChatDraft(contactInput.value);
   loadDirectMessages(true);
 }
 
-function closeConversation({ focusList = false } = {}) {
+function closeConversation({ focusList = false, preserveDraft = true } = {}) {
+  const closingContact = contactInput.value.trim().toLowerCase();
+  if (closingContact && preserveDraft) saveChatDraft(closingContact, messageInput.value);
   conversationVersion += 1;
   loadingMessages = false;
   document.querySelector(".message-reaction-palette")?.remove();
@@ -480,6 +507,8 @@ window.addEventListener("danzstak-contact-selected", event => {
   openConversation(selected);
 });
 
+messageInput?.addEventListener("input", () => saveChatDraft(contactInput.value.trim().toLowerCase(), messageInput.value));
+
 // Mobile Return and physical Enter use the same guarded send path.
 messageInput?.addEventListener("keydown", event => {
   if (event.key !== "Enter" || event.isComposing || event.keyCode === 229 || event.shiftKey) return;
@@ -515,6 +544,7 @@ messageForm?.addEventListener("submit", async event => {
     } else {
       pendingItem.remove();
     }
+    saveChatDraft(recipientEmail, "");
     if (selectedMessageMedia === mediaFile) clearSelectedMessageMedia();
     await loadConversations();
   } catch (error) {
@@ -539,7 +569,8 @@ deleteChat?.addEventListener("click", async () => {
     const response = await directFetch("/messages/delete?contact=" + encodeURIComponent(contact), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
     if (!response.ok) throw new Error("Chat could not be deleted");
     if (version === conversationVersion) {
-      closeConversation({ focusList: true });
+      saveChatDraft(contact, "");
+      closeConversation({ focusList: true, preserveDraft: false });
       callStatus.textContent = "Chat deleted from your account.";
     }
     await loadConversations();
