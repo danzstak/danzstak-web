@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 import AVKit
+import ImageIO
 
 @MainActor
 final class ChatsModel: ObservableObject {
@@ -125,6 +126,7 @@ private struct ChatThreadView: View {
     @State private var messages: [ChatMessage] = []
     @State private var locallyDeletedMessages: Set<String> = []
     @State private var draft = ""
+    @State private var mediaSendStatus = ""
     @State private var sending = false
     @State private var loading = false
     @State private var error = ""
@@ -206,6 +208,7 @@ private struct ChatThreadView: View {
             }
             if !copyNotice.isEmpty { Text(copyNotice).font(.caption) }
             if timer > 0 { Text("New messages disappear after " + (timer == 86400 ? "24 hours" : timer == 604800 ? "7 days" : "90 days")).font(.caption).foregroundStyle(.secondary) }
+            if sending && !mediaSendStatus.isEmpty { Text(mediaSendStatus).font(.caption) }
             if attachmentLoading { ProgressView("Preparing attachment…").font(.caption) }
             if let attachment {
                 HStack { Label(attachment.contentType.hasPrefix("video") ? "Video attached" : "Photo attached", systemImage: "paperclip"); Spacer(); Button("Remove") { try? FileManager.default.removeItem(at: attachment.url); self.attachment = nil; attachmentItem = nil }.disabled(sending) }.font(.caption).padding(.horizontal, 14)
@@ -335,14 +338,18 @@ private struct ChatThreadView: View {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !sending, !attachmentLoading, canContact, !text.isEmpty || attachment != nil, text.count <= 2000 else { return }
         dictation.stop(); sending = true; error = ""
-        defer { sending = false }
+        defer { sending = false; mediaSendStatus = "" }
         do {
             var message: ChatMessage
             if isDemo {
                 message = ChatMessage(messageId: UUID().uuidString, senderEmail: "preview-you", recipientEmail: chat.contactEmail, content: text, createdAt: ISO8601DateFormatter().string(from: Date()), mediaType: attachment.map { $0.contentType.hasPrefix("video") ? "video" : "image" }, mediaUrl: attachment?.url.absoluteString)
                 if let file = attachment { sentAttachmentFiles.append(file.url) }
             } else if let file = attachment {
-                let ticket = try await api.uploadMessageMedia(file: file.url, contentType: file.contentType)
+                mediaSendStatus = file.contentType.hasPrefix("video/") ? "Preparing 720p video…" : "Uploading photo…"
+                let prepared = file.contentType.hasPrefix("video/") ? try await prepareChatVideo720(file) : file
+                defer { if prepared.url != file.url { try? FileManager.default.removeItem(at: prepared.url) } }
+                mediaSendStatus = "Uploading attachment…"
+                let ticket = try await api.uploadMessageMedia(file: prepared.url, contentType: prepared.contentType)
                 message = try await api.sendMessage(to: chat.contactEmail, text: text, mediaKey: ticket.mediaKey, mediaType: ticket.mediaType)
                 try? FileManager.default.removeItem(at: file.url)
             } else { message = try await api.sendMessage(to: chat.contactEmail, text: text) }
@@ -504,10 +511,10 @@ private struct ChatAttachmentView: View {
     var body: some View {
         if let value = message.mediaUrl, let url = URL(string: value), url.scheme == "https" || allowLocal && url.isFileURL {
             if message.mediaType == "video" {
-                VideoPlayer(player: player).frame(height: 200).onAppear { player = AVPlayer(url: url) }.onDisappear { player?.pause(); player = nil }.onChange(of: phase) { _, state in if state != .active { player?.pause() } }.accessibilityLabel("Attached video")
+                PostVideo(url: url, fullScreen: true, autoplay: false).frame(height: 240).accessibilityLabel("Attached video")
             } else {
                 if url.isFileURL, let image = UIImage(contentsOfFile: url.path) { Image(uiImage: image).resizable().scaledToFit().frame(maxHeight: 200) }
-                else { AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView() }.frame(maxHeight: 200) }
+                else { ChatPhoto(url: url) }
             }
         }
     }
@@ -542,4 +549,41 @@ private struct ChatCameraPicker: UIViewControllerRepresentable {
             } catch { completion(.failure(error)) }
         }
     }
+}
+
+private struct ChatPhoto: View {
+    let url: URL
+    @State private var image: UIImage?
+    @State private var failed = false
+    @State private var retry = 0
+    private var key: String { (url.host ?? "") + url.path + "#" + String(retry) }
+    var body: some View {
+        Group {
+            if let image { Image(uiImage: image).resizable().scaledToFit().accessibilityLabel("Attached photo loaded") }
+            else if failed { Button("Photo could not load. Retry") { failed = false; retry += 1 } }
+            else { ProgressView("Loading photo…").frame(minHeight: 120) }
+        }.task(id: key) {
+            guard image == nil else { return }
+            do {
+                let (data, response) = try await URLSession.shared.data(from: url)
+                guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode, data.count <= 100 * 1024 * 1024,
+                      let source = CGImageSourceCreateWithData(data as CFData, nil),
+                      let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 1600, kCGImageSourceCreateThumbnailWithTransform: true] as CFDictionary) else { throw URLError(.cannotDecodeContentData) }
+                image = UIImage(cgImage: thumbnail)
+            } catch { if !Task.isCancelled { failed = true } }
+        }
+    }
+}
+
+private func prepareChatVideo720(_ source: ChatPickedFile) async throws -> ChatPickedFile {
+    let asset = AVURLAsset(url: source.url)
+    guard let export = AVAssetExportSession(asset: asset, presetName: AVAssetExportPreset1280x720) else { throw URLError(.cannotDecodeContentData) }
+    let output = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("mp4")
+    export.outputURL = output; export.outputFileType = .mp4; export.shouldOptimizeForNetworkUse = true
+    do {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            export.exportAsynchronously { if export.status == .completed { continuation.resume() } else { continuation.resume(throwing: export.error ?? URLError(.cannotCreateFile)) } }
+        }
+        return ChatPickedFile(url: output, contentType: "video/mp4")
+    } catch { try? FileManager.default.removeItem(at: output); throw error }
 }

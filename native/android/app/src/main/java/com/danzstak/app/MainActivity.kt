@@ -74,6 +74,12 @@ class MainActivity : ComponentActivity() {
     private lateinit var status: TextView
     private val executor = Executors.newFixedThreadPool(3)
     private val imageExecutor = Executors.newFixedThreadPool(2)
+    private val deferredImages = mutableMapOf<ImageView, String>()
+    private val feedImageMemory = object : android.util.LruCache<String, android.graphics.Bitmap>(12 * 1024) { override fun sizeOf(key: String, value: android.graphics.Bitmap): Int = maxOf(1, value.allocationByteCount / 1024) }
+    private var imageGeneration = 0
+    private val activeFeedImages = java.util.concurrent.ConcurrentHashMap.newKeySet<java.net.HttpURLConnection>()
+    private val chatImageExecutor = Executors.newFixedThreadPool(2)
+    private val pendingChatImages = mutableMapOf<String, MutableList<ImageView>>()
     private val videoFrameExecutor = Executors.newFixedThreadPool(2)
     private val orange = Color.rgb(44, 82, 255)
     private val ink = Color.rgb(29, 34, 43)
@@ -120,7 +126,9 @@ class MainActivity : ComponentActivity() {
     private var media: List<MediaPage>? = null
     private var mediaIndex = 0
     private var video: VideoView? = null
-    private var chatVideo: VideoView? = null
+    private var chatVideo: androidx.media3.exoplayer.ExoPlayer? = null
+    private val compactControls = mutableSetOf<CompactVideoControls>()
+    private var fullMediaControls: CompactVideoControls? = null
     private data class FeedVideoPreview(val frame: FrameLayout, val poster: ImageView, val url: String)
     private val feedVideoPreviews = mutableListOf<FeedVideoPreview>()
     private var activeFeedVideo: FeedVideoPreview? = null
@@ -145,13 +153,16 @@ class MainActivity : ComponentActivity() {
     }
     override fun onSaveInstanceState(outState: Bundle) { outState.putBoolean("preview", demo); super.onSaveInstanceState(outState) }
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); handleDeepLink(intent) }
-    override fun onPause() { appForeground = false; stopFeedVideo(); alertHandler.removeCallbacks(alertPoll); video?.pause(); chatVideo?.pause(); super.onPause() }
-    override fun onResume() { super.onResume(); appForeground = true; updateFeedVideo(); alertHandler.post(alertPoll); if (media != null) video?.start() }
-    override fun onDestroy() { stopFeedVideo(); chatVideo?.stopPlayback(); video?.stopPlayback(); executor.shutdownNow(); imageExecutor.shutdownNow(); videoFrameExecutor.shutdownNow(); super.onDestroy() }
+    override fun onPause() { saveFeedPosition(); appForeground = false; compactControls.toList().forEach { it.suspend() }; stopFeedVideo(); alertHandler.removeCallbacks(alertPoll); video?.pause(); chatVideo?.pause(); super.onPause() }
+    override fun onResume() { super.onResume(); appForeground = true; compactControls.toList().forEach { it.resume() }; updateFeedVideo(); alertHandler.post(alertPoll); if (media != null) video?.start() }
+    override fun onDestroy() { stopFeedVideo(); chatVideo?.release(); video?.stopPlayback(); executor.shutdownNow(); imageExecutor.shutdownNow(); chatImageExecutor.shutdownNow(); videoFrameExecutor.shutdownNow(); super.onDestroy() }
     private fun goBack() { if (media != null) { stopMedia(); showApp() } else if (selectedChat != null) { chats() } else { tab = "Home"; showApp() } }
     private fun signedIn() = demo || store.get("session") != null
 
     private fun showApp() {
+        pendingChatReveal = null; pendingChatReadAnchor = null
+        cancelFeedImages()
+        saveFeedPosition()
         stopFeedVideo(); feedVideoPreviews.clear()
         chatDark = false; footerView = null; brandedHeader = null
         window.navigationBarColor = canvas
@@ -177,7 +188,8 @@ class MainActivity : ComponentActivity() {
         status = label(if (demo) "Preview · Changes stay on this device" else if (!signedIn()) "Log in to find your people." else "", 12).apply { setPadding(dp(16), dp(3), dp(16), dp(3)) }
         if (demo) { root.removeView(header); status.setBackgroundColor(Color.rgb(255, 246, 206)); root.addView(status); root.addView(header) } else root.addView(status)
         content = column()
-        root.addView(ScrollView(this).apply { isFillViewport = true; addView(content); viewTreeObserver.addOnScrollChangedListener { updateFeedVideo() }; addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> updateFeedVideo() } }, LinearLayout.LayoutParams(-1, 0, 1f))
+        rootScroll = FeedScroll().apply { isFillViewport = true; addView(content); viewTreeObserver.addOnScrollChangedListener { if (pendingFeedAnchor == null && !restoringFeed) lastFeedAnchor = feedAnchor(); processVisibleImages(); updateFeedVideo() }; addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> processVisibleImages(); updateFeedVideo() } }
+        root.addView(rootScroll, LinearLayout.LayoutParams(-1, 0, 1f))
         if (!signedIn()) {
             val box = card(); box.addView(label("Find your people. Feel your scene.", 25, true)); box.addView(label("Your music. Your community. Your Mix.", 17)); box.addView(button("Log in") { startLogin() }); box.addView(button("Explore the demo") { enterDemo() }); content.addView(box)
         } else {
@@ -195,9 +207,15 @@ class MainActivity : ComponentActivity() {
             root.addView(footer, LinearLayout.LayoutParams(-1, dp(58)).apply { setMargins(dp(16), dp(6), dp(16), dp(8)) })
         }
         setContentView(root)
+        if (tab == "Home" && !chatDark && signedIn()) {
+            if (pendingFeedAnchor == null && (!demo || BuildConfig.DEBUG && intent.getBooleanExtra("remember_feed", false))) pendingFeedAnchor = prefs.getString("feed.position." + feedIdentity(), null)?.let { runCatching { JSONObject(it) }.getOrNull() }
+            rootScroll.viewTreeObserver.addOnGlobalLayoutListener { restoreFeedPosition() }
+            rootScroll.post { restoreFeedPosition() }
+        }
     }
     private fun home() {
         val compose = row().apply {
+            tag = "composer"
             background = rounded(Color.WHITE); setPadding(dp(12), dp(9), dp(12), dp(9))
             val own = avatar("You", ""); own.layoutParams = LinearLayout.LayoutParams(dp(32), dp(32)); addView(own)
             addView(label("What’s on your mind?", 14).apply { setTextColor(Color.GRAY) }, LinearLayout.LayoutParams(0, -2, 1f))
@@ -205,7 +223,7 @@ class MainActivity : ComponentActivity() {
             setOnClickListener { tab = "Create"; showApp() }; contentDescription = "Create post"
         }
         content.addView(compose, LinearLayout.LayoutParams(-1, dp(50)).apply { setMargins(dp(16), dp(8), dp(16), dp(8)) })
-        val mixHeading = row(); mixHeading.addView(label(if (query.isBlank()) "Your Mix" else "Search results", 17, true), LinearLayout.LayoutParams(0, -2, 1f)); mixHeading.addView(label("≡ Latest", 12).apply { setTextColor(Color.GRAY) }); mixHeading.setPadding(dp(6), dp(4), dp(6), dp(4)); content.addView(mixHeading)
+        val mixHeading = row().apply { tag = "mix-heading" }; mixHeading.addView(label(if (query.isBlank()) "Your Mix" else "Search results", 17, true), LinearLayout.LayoutParams(0, -2, 1f)); mixHeading.addView(label("≡ Latest", 12).apply { setTextColor(Color.GRAY) }); mixHeading.setPadding(dp(6), dp(4), dp(6), dp(4)); content.addView(mixHeading)
         if (query.isNotEmpty()) content.addView(label("Search: $query", 15))
         val filtered = posts.filter { query.isBlank() || (it.text + it.author + it.location).contains(query, true) }
         filtered.forEachIndexed { index, post -> content.addView(postCard(post)); if (index == 0 && query.isBlank()) rail("Flashes", flashes); if (index == 3 && query.isBlank()) rail("The Roll", roll) }
@@ -215,34 +233,55 @@ class MainActivity : ComponentActivity() {
         content.addView(button("Refresh Your Mix") { refresh() })
     }
     private fun postCard(post: FeedPost): LinearLayout {
-        val box = card()
-        val heading = row(); heading.addView(avatar(post.author, post.picture)); heading.addView(column().apply { addView(label(post.author, 16, true).apply { setPadding(dp(10), 0, dp(10), dp(2)) }); addView(label(post.createdAt.ifBlank { "Recent post" } + " · ♧", 12).apply { setTextColor(Color.GRAY); setPadding(dp(10), 0, dp(10), 0) }) }, LinearLayout.LayoutParams(0, -2, 1f))
+        val box = card().apply { tag = "post:" + post.id; setPadding(0, dp(8), 0, dp(8)); layoutParams = LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, dp(6), 0, dp(6)) } }
+        val heading = row().apply { setPadding(dp(12), 0, dp(12), 0) }; heading.addView(avatar(post.author, post.picture)); heading.addView(column().apply { addView(label(post.author, 16, true).apply { setPadding(dp(10), 0, dp(10), dp(2)) }); addView(label(post.createdAt.ifBlank { "Recent post" } + " · ♧", 12).apply { setTextColor(Color.GRAY); setPadding(dp(10), 0, dp(10), 0) }) }, LinearLayout.LayoutParams(0, -2, 1f))
         heading.addView(icon("⋯", "Post options") { postOptions(post) }); box.addView(heading)
         if (post.tags.isNotEmpty()) box.addView(label("With " + post.tags.joinToString { it.name }, 13))
         if (post.location.isNotEmpty()) box.addView(label("⌖ ${post.location}", 13))
         if (post.text.isNotEmpty()) box.addView(label(post.text, 17).apply { setLineSpacing(dp(3).toFloat(), 1f) })
         if (post.mediaUrl.startsWith("https://")) {
             val page = MediaPage(post.id, post.author, post.text, post.mediaUrl, post.mediaType, post)
-            val image = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; setBackgroundColor(Color.rgb(33, 36, 43)); contentDescription = "Photo or video by ${post.author}"; setOnClickListener { openMedia(listOf(page), 0) }; setOnLongClickListener { mediaOptions(page); true } }
+            val image = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; setBackgroundColor(Color.rgb(33, 36, 43)); contentDescription = "Photo or video by ${post.author}"; setOnClickListener { openPostMedia(post) }; setOnLongClickListener { mediaOptions(page); true } }
+            image.addOnLayoutChangeListener { view, left, _, right, _, oldLeft, _, oldRight, _ -> if (post.mediaType.startsWith("image") && right - left != oldRight - oldLeft) { val drawable = image.drawable; if (drawable != null && drawable.intrinsicWidth > 0) view.layoutParams = view.layoutParams.apply { height = ((right - left).toFloat() * drawable.intrinsicHeight / drawable.intrinsicWidth).toInt().coerceAtLeast(1) } } }
             if (post.mediaType.startsWith("image")) { image.scaleType = ImageView.ScaleType.FIT_CENTER; box.addView(image, LinearLayout.LayoutParams(-1, dp(230))); loadImage(post.mediaUrl, image, true) }
             else {
-                val preview = FrameLayout(this).apply { clipChildren = true; setBackgroundColor(Color.BLACK); contentDescription = "Autoplay video by ${post.author}"; setOnClickListener { openMedia(listOf(page), 0) }; setOnLongClickListener { mediaOptions(page); true } }
+                val preview = FrameLayout(this).apply { clipChildren = true; setBackgroundColor(Color.BLACK); contentDescription = "Autoplay video by ${post.author}"; setOnClickListener { openPostMedia(post) }; setOnLongClickListener { mediaOptions(page); true } }
                 image.scaleType = ImageView.ScaleType.FIT_CENTER; image.isClickable = false; image.isLongClickable = false
+                preview.addOnLayoutChangeListener { view, left, _, right, _, oldLeft, _, oldRight, _ -> if (right - left != oldRight - oldLeft) { val drawable = image.drawable; if (drawable != null && drawable.intrinsicWidth > 0 && drawable.intrinsicHeight > 0) view.layoutParams = view.layoutParams.apply { height = ((right - left).toFloat() * drawable.intrinsicHeight / drawable.intrinsicWidth).toInt().coerceAtLeast(1) } } }
                 preview.addView(image, FrameLayout.LayoutParams(-1, -1))
                 box.addView(preview, LinearLayout.LayoutParams(-1, dp(230)))
-                feedVideoPreviews.add(FeedVideoPreview(preview, image, post.mediaUrl)); loadVideoFrame(post.mediaUrl, image)
+                feedVideoPreviews.add(FeedVideoPreview(preview, image, post.mediaUrl)); loadVideoFrame(post.mediaUrl, image, false)
                 preview.post { updateFeedVideo() }
             }
         }
         val state = engagement[post.id]
         val counts = state?.optJSONObject("reactionCounts")
         val total = counts?.keys()?.asSequence()?.sumOf { counts.optInt(it) } ?: 0
+        val preview = column()
+        lateinit var commentControl: CountAction
+        fun updateCommentPreview() {
+            val all = DanzStakApi.objects(engagement[post.id]?.optJSONArray("comments"))
+            preview.removeAllViews(); commentControl.setCount(all.size, "Comments")
+            all.take(2).forEach { comment ->
+                preview.addView(row().apply {
+                    setPadding(dp(8), dp(4), dp(8), dp(4))
+                    addView(avatar(comment.optString("authorName", "Member"), comment.optString("authorPicture")))
+                    addView(column().apply {
+                        addView(label(comment.optString("authorName", "Member"), 13, true).apply { setPadding(dp(8), 0, dp(8), dp(2)) })
+                        addView(label(comment.optString("content"), 14).apply { maxLines = 3; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(dp(8), 0, dp(8), dp(4)) })
+                    }, LinearLayout.LayoutParams(0, -2, 1f))
+                    setOnClickListener { comments(post) { updateCommentPreview() } }
+                })
+            }
+            if (all.size > 2) preview.addView(button("View all ${all.size} comments") { comments(post) { updateCommentPreview() } })
+        }
         val controls = row()
         controls.addView(action(if (state?.optString("myReaction").isNullOrEmpty()) "♡" else "♥", "Like", total, { react(post) }, { responders(post, "likes") }), LinearLayout.LayoutParams(0, dp(48), 1f))
-        controls.addView(action("💬", "Comments", state?.optJSONArray("comments")?.length() ?: 0, { comments(post) }, { comments(post) }), LinearLayout.LayoutParams(0, dp(48), 1f))
+        commentControl = action("💬", "Comments", state?.optJSONArray("comments")?.length() ?: 0, { comments(post) { updateCommentPreview() } }, { comments(post) { updateCommentPreview() } })
+        controls.addView(commentControl, LinearLayout.LayoutParams(0, dp(48), 1f))
         controls.addView(action("↗", "Share", 0, { share(post.text) }, { responseList("Shares", emptyList(), "Completed share identities are not supplied by the server.") }), LinearLayout.LayoutParams(0, dp(48), 1f))
         box.addView(View(this).apply { setBackgroundColor(Color.rgb(230, 230, 234)) }, LinearLayout.LayoutParams(-1, dp(1)).apply { setMargins(dp(10), dp(8), dp(10), 0) })
-        box.addView(controls)
+        box.addView(controls); box.addView(preview); updateCommentPreview()
         return box
     }
     private fun people() {
@@ -477,7 +516,7 @@ class MainActivity : ComponentActivity() {
         if (demo) { engagement[post.id] = state.put("myReaction", next).put("reactionCounts", JSONObject().put("Like", if (next.isEmpty()) 0 else 1)); showApp() }
         else work("Updating reaction…", { api.react(post.id, next); api.engagement(post.id) }, { engagement[post.id] = it; showApp() })
     }
-    private fun comments(post: FeedPost) {
+    private fun comments(post: FeedPost, onChanged: () -> Unit = {}) {
         fun show(state: JSONObject) {
             val box = column()
             DanzStakApi.objects(state.optJSONArray("comments")).forEach { comment -> box.addView(label("${comment.optString("authorName")}\n${comment.optString("content")}", 15)) }
@@ -485,8 +524,8 @@ class MainActivity : ComponentActivity() {
             val dialog = AlertDialog.Builder(this).setTitle("Comments").setView(ScrollView(this).apply { addView(box) }).setNegativeButton("Done", null).setPositiveButton("Send", null).create()
             dialog.setOnShowListener { dialog.getButton(-1).setOnClickListener {
                 val text = input.text.toString().trim(); if (text.isBlank() || text.length > 2000) { input.error = "Enter 1–2,000 characters"; return@setOnClickListener }
-                if (demo) { val comments = state.optJSONArray("comments") ?: org.json.JSONArray(); comments.put(JSONObject().put("authorName", "You").put("content", text)); engagement[post.id] = state.put("comments", comments); dialog.dismiss(); comments(post) }
-                else { dialog.getButton(-1).isEnabled = false; work("Sending comment…", { api.comment(post.id, text); api.engagement(post.id) }, { engagement[post.id] = it; dialog.dismiss(); comments(post) }, { dialog.getButton(-1).isEnabled = true }) }
+                if (demo) { val comments = state.optJSONArray("comments") ?: org.json.JSONArray(); comments.put(JSONObject().put("authorName", "You").put("content", text)); engagement[post.id] = state.put("comments", comments); onChanged(); dialog.dismiss(); comments(post, onChanged) }
+                else { dialog.getButton(-1).isEnabled = false; work("Sending comment…", { api.comment(post.id, text); api.engagement(post.id) }, { engagement[post.id] = it; onChanged(); dialog.dismiss(); comments(post, onChanged) }, { dialog.getButton(-1).isEnabled = true }) }
             } }; dialog.show()
         }
         if (demo) show(engagement.getOrPut(post.id) { JSONObject() }) else work("Loading comments…", { api.engagement(post.id) }, { engagement[post.id] = it; show(it) })
@@ -506,7 +545,7 @@ class MainActivity : ComponentActivity() {
     private fun rail(name: String, pages: List<MediaPage>) {
         val tileWidth = if (name == "Flashes") 118 else 210
         val tileHeight = if (name == "Flashes") 164 else 374
-        content.addView(label(name, 17, true).apply { setPadding(dp(18), dp(9), dp(18), dp(9)) })
+        content.addView(label(name, 17, true).apply { tag = "rail:" + name; setPadding(dp(18), dp(9), dp(18), dp(9)) })
         if (pages.isEmpty()) {
             val placeholders = row().apply { setPadding(dp(16), 0, dp(16), dp(8)) }
             repeat(3) { index ->
@@ -537,18 +576,25 @@ class MainActivity : ComponentActivity() {
         }
         content.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(items) })
     }
+    private fun openPostMedia(post: FeedPost) {
+        val videos = if (post.mediaType.startsWith("video")) posts.filter { it.mediaType.startsWith("video") && if (post.userEmail.isNotBlank()) it.userEmail == post.userEmail else it.author == post.author && it.picture == post.picture } else listOf(post)
+        val pages = videos.map { MediaPage(it.id, it.author, it.text, it.mediaUrl, it.mediaType, it) }
+        if (pages.isNotEmpty()) openMedia(pages, pages.indexOfFirst { it.id == post.id }.coerceAtLeast(0))
+    }
     private fun openMedia(pages: List<MediaPage>, index: Int) {
+        saveFeedPosition()
         stopFeedVideo()
-        video?.stopPlayback(); video = null; media = pages; mediaIndex = index
+        video?.stopPlayback(); video = null; fullMediaControls = null; media = pages; mediaIndex = index
         val page = pages[index]
         root.removeAllViews(); root.setBackgroundColor(Color.BLACK)
         val top = row(); top.addView(label("${index + 1} / ${pages.size}", 14).apply { setTextColor(Color.WHITE) }, LinearLayout.LayoutParams(0, dp(48), 1f)); top.addView(button("Done") { stopMedia(); showApp() }); top.setBackgroundColor(Color.argb(100, 0, 0, 0))
         val frame = FrameLayout(this)
         if (page.url.startsWith("https://") && (page.type.startsWith("video") || page.url.substringBefore('?').matches(Regex("(?i).*\\.(mp4|mov|m4v|m3u8|webm)$")))) {
-            if (page.url.substringBefore('?').matches(Regex("(?i).*\\.(mp4|mov|m4v|m3u8|webm)$"))) {
+            if (page.type.startsWith("video") || page.url.substringBefore('?').matches(Regex("(?i).*\\.(mp4|mov|m4v|m3u8|webm)$"))) {
                 video = VideoView(this).apply { setVideoURI(Uri.parse(page.url)); setOnPreparedListener { player ->
                     player.isLooping = true
                     fun fillFrame() { if (frame.width > 0 && frame.height > 0 && player.videoWidth > 0 && player.videoHeight > 0) { val scale = minOf(frame.width.toFloat() / player.videoWidth, frame.height.toFloat() / player.videoHeight); layoutParams = FrameLayout.LayoutParams((player.videoWidth * scale).toInt(), (player.videoHeight * scale).toInt(), Gravity.CENTER) } }
+                    frame.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom -> if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) fillFrame() }
                     frame.post { fillFrame() }; start()
                 }; setOnErrorListener { _, _, _ -> Toast.makeText(this@MainActivity, "This video could not be played.", Toast.LENGTH_LONG).show(); true } }
                 frame.addView(video, FrameLayout.LayoutParams(-1, -1))
@@ -561,14 +607,15 @@ class MainActivity : ComponentActivity() {
         touch.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> { mediaStartY = event.y; lastDown = System.currentTimeMillis(); touch.postDelayed({ if (lastDown > 0 && System.currentTimeMillis() - lastDown >= 500) { lastDown = 0; mediaOptions(page) } }, 550); true }
-                MotionEvent.ACTION_UP -> { val dy = event.y - mediaStartY; if (lastDown > 0 && kotlin.math.abs(dy) > dp(60)) { val next = (index + if (dy < 0) 1 else -1).coerceIn(0, pages.lastIndex); if (next != index) openMedia(pages, next) } else if (lastDown > 0) touch.performClick(); lastDown = 0; true }
+                MotionEvent.ACTION_UP -> { val dy = event.y - mediaStartY; if (lastDown > 0 && kotlin.math.abs(dy) > dp(60)) { val next = (index + if (dy < 0) 1 else -1).coerceIn(0, pages.lastIndex); if (next != index) openMedia(pages, next) } else if (lastDown > 0) { if (video != null) fullMediaControls?.toggle() else touch.performClick() }; lastDown = 0; true }
                 MotionEvent.ACTION_CANCEL -> { lastDown = 0; true }
                 else -> true
             }
         }
         frame.addView(touch, FrameLayout.LayoutParams(-1, -1))
+        video?.let { fullMediaControls = CompactVideoControls(frame, it, dp(64)) }
         val details = column(); details.addView(label(page.author, 18, true).apply { setTextColor(Color.WHITE) }); details.addView(label(page.caption, 15).apply { setTextColor(Color.WHITE) })
-        frame.addView(details, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM or Gravity.START).apply { rightMargin = dp(72); bottomMargin = dp(76) })
+        frame.addView(details, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM or Gravity.START).apply { rightMargin = dp(72); bottomMargin = dp(108) })
         val rail = column()
         val state = localMedia.getOrPut(page.id) { JSONObject() }
         page.post?.let { post -> engagement[post.id]?.let { activity -> val counts = activity.optJSONObject("reactionCounts"); state.put("likes", counts?.keys()?.asSequence()?.sumOf { counts.optInt(it) } ?: 0) } }
@@ -628,6 +675,7 @@ class MainActivity : ComponentActivity() {
     private var chatSettingsReady = false
     private val deletedDemoChats = mutableSetOf<String>()
     private fun darkChat() {
+        cancelFeedImages()
         stopFeedVideo(); feedVideoPreviews.clear()
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply { isAppearanceLightStatusBars = false; isAppearanceLightNavigationBars = false }
         chatDark = true; root.setBackgroundColor(Color.rgb(11, 20, 26)); footerView?.visibility = View.GONE; brandedHeader?.visibility = View.GONE
@@ -692,6 +740,7 @@ class MainActivity : ComponentActivity() {
             if (type !in setOf("image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm", "video/quicktime")) status.text = "Choose a JPEG, PNG, WebP, GIF, MP4, WebM or MOV file."
             else { attachment = Pair(uri, type); attachmentLabel.text = if (type.startsWith("video")) "Video attached · Tap Send when ready" else "Photo attached · Tap Send when ready"; attachmentRow.visibility = View.VISIBLE }
         }
+        var lastChatRender = ""
         var chatQuery = ""
         val selectionBar = row().apply { visibility = View.GONE; setBackgroundColor(Color.rgb(32, 44, 51)) }
         val selectionLabel = label("", 13); selectionBar.addView(selectionLabel, LinearLayout.LayoutParams(0, -2, 1f))
@@ -702,11 +751,26 @@ class MainActivity : ComponentActivity() {
         })
         selectionBar.addView(button("Done") { selectingMessages = false; selectedMessageIds.clear(); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) })
         fun render(items: List<JSONObject>) {
+            val fingerprint = items.filter { it.optLong("expiresAt") == 0L || it.optLong("expiresAt") > System.currentTimeMillis() / 1000 }.joinToString { message -> val stable = JSONObject(message.toString()); val uri = Uri.parse(stable.optString("mediaUrl")); stable.put("mediaUrl", uri.host.orEmpty() + uri.path.orEmpty()); stable.toString() } + chatQuery + selectingMessages + selectedMessageIds.sorted().joinToString()
+            if (fingerprint == lastChatRender) return
+            lastChatRender = fingerprint
+            if (pendingChatReveal == null) (0 until transcript.childCount).map { transcript.getChildAt(it) }.firstOrNull { it.getTag(R.id.chat_message_anchor) != null && transcript.top + it.bottom > rootScroll.scrollY }?.let { item -> pendingChatReadAnchor = JSONObject().put("id", item.getTag(R.id.chat_message_anchor).toString()).put("fraction", ((rootScroll.scrollY - transcript.top - item.top).toFloat() / maxOf(1, item.height)).coerceIn(0f, 0.99f).toDouble()) }
             transcript.removeAllViews()
             selectedMessageIds.retainAll(items.filter { it.optLong("expiresAt") == 0L || it.optLong("expiresAt") > System.currentTimeMillis() / 1000 }.map { it.optString("messageId") }.toSet())
             selectionBar.visibility = if (selectingMessages) View.VISIBLE else View.GONE; selectionLabel.text = "${selectedMessageIds.size} selected"
             items.filter { (it.optLong("expiresAt") == 0L || it.optLong("expiresAt") > System.currentTimeMillis() / 1000) && (chatQuery.isBlank() || it.optString("content").contains(chatQuery, true)) }.forEach { message ->
                 val own = !message.optString("senderEmail").equals(contact, true)
+                val mediaUrl = message.optString("mediaUrl")
+                if (mediaUrl.startsWith("https://") || demo && mediaUrl.startsWith("content://")) {
+                    val type = message.optString("mediaType")
+                    val preview = ImageView(this).apply { scaleType = ImageView.ScaleType.FIT_CENTER; setBackgroundColor(Color.BLACK); contentDescription = if (type == "video") "Play attached video" else "View attached photo"; setOnLongClickListener { messageActions(chat, message); true }; setOnClickListener { chatMedia(chatMessages[contact]?.firstOrNull { it.optString("messageId") == message.optString("messageId") }?.optString("mediaUrl")?.takeIf { it.isNotBlank() } ?: mediaUrl, type, this@apply) } }
+                    preview.setTag(R.id.chat_message_anchor, message.optString("messageId"))
+                    val holder = FrameLayout(this).apply { tag = "chat-attachment"; setTag(R.id.chat_message_anchor, message.optString("messageId")) }
+                    holder.addView(preview, FrameLayout.LayoutParams(-1, -1))
+                    if (type == "image") holder.addView(ProgressBar(this).apply { tag = "media-loading"; contentDescription = "Loading attached photo" }, FrameLayout.LayoutParams(dp(32), dp(32), Gravity.CENTER))
+                    transcript.addView(holder, LinearLayout.LayoutParams(-1, dp(200)))
+                    if (mediaUrl.startsWith("content://")) preview.setImageURI(Uri.parse(mediaUrl)) else if (type == "video") { preview.setImageResource(android.R.drawable.ic_media_play); preview.scaleType = ImageView.ScaleType.CENTER; loadVideoFrame(mediaUrl, preview, false) } else loadChatImage(mediaUrl, preview)
+                }
                 val bubble = label(message.optString("content"), 16).apply {
                     background = rounded(if (message.optString("messageId") in selectedMessageIds) Color.rgb(44, 89, 130) else if (own) Color.rgb(31, 61, 94) else Color.rgb(32, 44, 51))
                     layoutParams = LinearLayout.LayoutParams(-2, -2).apply { gravity = if (own) Gravity.END else Gravity.START; setMargins(if (own) dp(44) else dp(8), dp(5), if (own) dp(8) else dp(44), dp(5)) }
@@ -714,6 +778,7 @@ class MainActivity : ComponentActivity() {
                     setOnClickListener { if (selectingMessages) { val id = message.optString("messageId"); if (!selectedMessageIds.add(id)) selectedMessageIds.remove(id); renderChatMessages?.invoke(chatMessages[contact].orEmpty()) } }
                     setOnLongClickListener { messageActions(chat, message); true }
                 }
+                bubble.setTag(R.id.chat_message_anchor, message.optString("messageId"))
                 transcript.addView(bubble)
                 val reactions = message.optJSONObject("reactionCounts")
                 if (message.optString("deletedAt").isEmpty() && reactions != null && reactions.length() > 0) {
@@ -725,13 +790,6 @@ class MainActivity : ComponentActivity() {
                         setPadding(dp(8), dp(2), dp(8), dp(2))
                         setOnClickListener { messageActions(chat, message) }
                     })
-                }
-                val mediaUrl = message.optString("mediaUrl")
-                if (mediaUrl.startsWith("https://") || demo && mediaUrl.startsWith("content://")) {
-                    val type = message.optString("mediaType")
-                    val preview = ImageView(this).apply { scaleType = ImageView.ScaleType.FIT_CENTER; setBackgroundColor(Color.BLACK); contentDescription = if (type == "video") "Play attached video" else "View attached photo"; setOnLongClickListener { messageActions(chat, message); true }; setOnClickListener { chatMedia(mediaUrl, type) } }
-                    transcript.addView(preview, LinearLayout.LayoutParams(-1, dp(200)))
-                    if (mediaUrl.startsWith("content://")) preview.setImageURI(Uri.parse(mediaUrl)) else if (type == "video") loadVideoFrame(mediaUrl, preview) else loadImage(mediaUrl, preview)
                 }
                 val matcher = android.util.Patterns.WEB_URL.matcher(message.optString("content"))
                 var preview: String? = null
@@ -748,6 +806,10 @@ class MainActivity : ComponentActivity() {
 
             }
         }
+        rootScroll.viewTreeObserver.addOnGlobalLayoutListener {
+            val id = pendingChatReveal ?: pendingChatReadAnchor?.optString("id")
+            if (id != null) (0 until transcript.childCount).map { transcript.getChildAt(it) }.firstOrNull { it.getTag(R.id.chat_message_anchor) == id }?.let { rootScroll.scrollTo(0, transcript.top + it.top + if (pendingChatReveal == null) (it.height * (pendingChatReadAnchor?.optDouble("fraction") ?: 0.0)).toInt() else 0) }
+        }
         renderChatMessages = { render(it) }
         filterChat = { query -> chatQuery = query; render(chatMessages[contact].orEmpty()); status.text = if (query.isBlank()) "" else "Searching loaded messages" }
         val send = button("➤") {}.apply { contentDescription = "Send message"; minimumWidth = dp(44); minWidth = dp(44); textSize = 20f; setTextColor(Color.WHITE); setPadding(0, 0, 0, 0); background = rounded(orange); layoutParams = LinearLayout.LayoutParams(dp(44), dp(44)) }
@@ -755,7 +817,7 @@ class MainActivity : ComponentActivity() {
             val text = input.text.toString().trim(); val chosen = attachment; if (!allowed || text.isBlank() && chosen == null) return@setOnClickListener
             if (text.length > 2000) { input.error = "Shorten this message before sending."; return@setOnClickListener }
             send.isEnabled = false; send.text = "…"
-            fun append(message: JSONObject) { val items = chatMessages.getOrPut(contact) { mutableListOf() }; items.add(message); render(items); if (input.text.toString().trim() == text) input.text.clear(); if (attachment == chosen) { attachment = null; attachmentRow.visibility = View.GONE }; send.isEnabled = true; send.text = "➤"; status.text = if (demo) "Preview · Messages stay on this device" else "Sent" }
+            fun append(message: JSONObject) { val items = chatMessages.getOrPut(contact) { mutableListOf() }; items.add(message); pendingChatReveal = message.optString("messageId"); render(items); if (input.text.toString().trim() == text) input.text.clear(); if (attachment == chosen) { attachment = null; attachmentRow.visibility = View.GONE }; send.isEnabled = true; send.text = "➤"; status.text = if (demo) "Preview · Messages stay on this device" else "Sent" }
             if (demo) append(JSONObject().put("messageId", "preview-${System.nanoTime()}").put("senderEmail", "preview-you").put("content", text).put("mediaType", if (chosen?.second?.startsWith("video") == true) "video" else if (chosen != null) "image" else "").put("mediaUrl", chosen?.first?.toString().orEmpty()))
             else work("Sending message…", { if (chosen == null) api.sendMessage(contact, text) else sendChatAttachment(contact, text, chosen.first, chosen.second) }, { append(it) }, { send.isEnabled = true; send.text = "➤" })
         }
@@ -786,7 +848,7 @@ class MainActivity : ComponentActivity() {
             val items = chatMessages.getOrPut(contact) { if (contact in deletedDemoChats) mutableListOf() else mutableListOf(JSONObject().put("messageId", "preview-first").put("senderEmail", contact).put("content", chat.optString("preview", "Hey! What are you working on?"))) }; render(items); status.text = "Preview · Messages stay on this device"
         } else work("Loading conversation…", { api.messages(contact) }, { result ->
             allowed = result.optBoolean("canContact", true); input.isEnabled = allowed; send.isEnabled = allowed; attach.isEnabled = allowed; camera.isEnabled = allowed
-            val items = DanzStakApi.objects(result.optJSONArray("messages")).filter { "$contact:${it.optString("messageId")}" !in locallyDeletedMessages }; chatMessages[contact] = items.toMutableList(); render(items)
+            val items = DanzStakApi.objects(result.optJSONArray("messages")).filter { "$contact:${it.optString("messageId")}" !in locallyDeletedMessages }; chatMessages[contact] = items.toMutableList(); pendingChatReveal = items.lastOrNull()?.optString("messageId"); render(items)
             if (!allowed) status.text = "You can read this conversation. Sending requires friendship or a shared Tribe."
             val cursor = result.optString("nextCursor")
             if (cursor.isNotEmpty()) transcript.addView(button("Load earlier messages") { work("Loading earlier messages…", { api.messages(contact, cursor) }, { older -> val combined = (DanzStakApi.objects(older.optJSONArray("messages")) + chatMessages[contact].orEmpty()).distinctBy { it.optString("messageId") }; chatMessages[contact] = combined.toMutableList(); render(combined) }) }, 0)
@@ -823,7 +885,7 @@ class MainActivity : ComponentActivity() {
                 }
                 5 -> { selectingMessages = true; renderChatMessages?.invoke(chatMessages[contact].orEmpty()) }
                 6 -> AlertDialog.Builder(android.view.ContextThemeWrapper(this, android.R.style.Theme_Material_Dialog_Alert)).setTitle("Delete chat and your sent media?").setMessage("Clear this chat for you and remove your sent attachments from both sides. The other person’s sent media is preserved. This cannot be undone.").setNegativeButton("Cancel", null).setPositiveButton("Delete") { _, _ ->
-                    fun clear() { if (demo) deletedDemoChats.add(contact); chatVideo?.stopPlayback(); chatMessages.remove(contact); prefs.edit().remove("chat.$demo.$contact").apply(); java.io.File(cacheDir, "video-previews").deleteRecursively(); java.io.File(cacheDir, "chat-camera").deleteRecursively(); selectedChat = null; chats() }
+                    fun clear() { if (demo) deletedDemoChats.add(contact); chatVideo?.release(); chatMessages.remove(contact); prefs.edit().remove("chat.$demo.$contact").apply(); java.io.File(cacheDir, "video-previews").deleteRecursively(); java.io.File(cacheDir, "chat-camera").deleteRecursively(); java.io.File(cacheDir, "chat-media").deleteRecursively(); selectedChat = null; chats() }
                     if (demo) clear() else work("Deleting chat and sent media…", { api.deleteChat(contact) }, { clear() })
                 }.showChat()
             }
@@ -836,20 +898,76 @@ class MainActivity : ComponentActivity() {
                 val bytes = ByteArray(65536); var total = 0L
                 while (true) { val count = input.read(bytes); if (count < 0) break; total += count; require(total <= 100L * 1024 * 1024) { "Choose a file smaller than 100 MB." }; output.write(bytes, 0, count) }
             } } ?: throw IllegalStateException("This attachment is no longer available. Choose it again.")
-            val ticket = api.uploadMessageMedia(file, contentType)
-            return api.sendMessage(contact, text, ticket.getString("mediaKey"), ticket.getString("mediaType"))
+            val optimized = if (contentType.startsWith("video/")) prepare720pVideo(file) else null
+            try { val ticket = api.uploadMessageMedia(optimized ?: file, if (optimized != null) "video/mp4" else contentType)
+                return api.sendMessage(contact, text, ticket.getString("mediaKey"), ticket.getString("mediaType"))
+            } finally { optimized?.delete() }
         } finally { file.delete() }
     }
-    private fun chatMedia(url: String, type: String) {
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun prepare720pVideo(input: java.io.File): java.io.File {
+        val metadata = android.media.MediaMetadataRetriever()
+        var width = 1280; var height = 720
+        try { metadata.setDataSource(input.path); width = metadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: width; height = metadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: height
+            if ((metadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0) % 180 != 0) { val old = width; width = height; height = old }
+        } finally { metadata.release() }
+        val scale = minOf(1f, (if (width >= height) 1280f else 720f) / width, (if (width >= height) 720f else 1280f) / height)
+        val outputHeight = maxOf(2, ((height * scale).toInt() / 2) * 2)
+        val output = java.io.File(cacheDir, "chat-720-" + java.util.UUID.randomUUID() + ".mp4")
+        val latch = java.util.concurrent.CountDownLatch(1); var failure: Throwable? = null
+        var transformer: androidx.media3.transformer.Transformer? = null
+        runOnUiThread {
+            status.text = "Preparing 720p video…"
+            transformer = androidx.media3.transformer.Transformer.Builder(this).setVideoMimeType(androidx.media3.common.MimeTypes.VIDEO_H264).setAudioMimeType(androidx.media3.common.MimeTypes.AUDIO_AAC).addListener(object : androidx.media3.transformer.Transformer.Listener {
+                override fun onCompleted(composition: androidx.media3.transformer.Composition, result: androidx.media3.transformer.ExportResult) { latch.countDown() }
+                override fun onError(composition: androidx.media3.transformer.Composition, result: androidx.media3.transformer.ExportResult, exception: androidx.media3.transformer.ExportException) { failure = exception; latch.countDown() }
+            }).build()
+            try {
+                val edited = androidx.media3.transformer.EditedMediaItem.Builder(androidx.media3.common.MediaItem.fromUri(Uri.fromFile(input))).setEffects(androidx.media3.transformer.Effects(emptyList(), listOf(androidx.media3.effect.Presentation.createForHeight(outputHeight)))).build()
+                transformer!!.start(edited, output.path)
+            } catch (error: Exception) { failure = error; latch.countDown() }
+        }
+        if (!latch.await(180, java.util.concurrent.TimeUnit.SECONDS)) { runOnUiThread { transformer?.cancel() }; output.delete(); throw IllegalStateException("Video preparation timed out. Your attachment is saved; try a shorter video.") }
+        failure?.let { output.delete(); throw IllegalStateException("This video could not be prepared. Your attachment is still selected.", it) }
+        check(output.length() > 0) { "Video preparation produced no data. Choose the video again." }
+        runOnUiThread { status.text = "Uploading video…" }
+        return output
+    }
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun chatMedia(url: String, type: String, poster: ImageView? = null) {
         stopFeedVideo()
         val frame = FrameLayout(this).apply { setBackgroundColor(Color.BLACK) }
-        var player: VideoView? = null
+        var player: androidx.media3.exoplayer.ExoPlayer? = null
         if (type == "video") {
-            player = VideoView(this).apply { setVideoURI(Uri.parse(url)); setMediaController(MediaController(this@MainActivity)); setOnPreparedListener { start() }; setOnErrorListener { _, _, _ -> Toast.makeText(this@MainActivity, "Video could not be loaded. Reopen the conversation to refresh it.", Toast.LENGTH_LONG).show(); true } }
-            frame.addView(player, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
-        } else { val image = ImageView(this).apply { scaleType = ImageView.ScaleType.FIT_CENTER }; frame.addView(image, FrameLayout.LayoutParams(-1, -1)); if (url.startsWith("content://")) image.setImageURI(Uri.parse(url)) else loadImage(url, image) }
+            val surface = android.view.SurfaceView(this)
+            frame.addView(surface, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
+            val loading = ProgressBar(this).apply { contentDescription = "Loading chat video" }
+            frame.addView(loading, FrameLayout.LayoutParams(dp(32), dp(32), Gravity.CENTER))
+            player = androidx.media3.exoplayer.ExoPlayer.Builder(this).setLoadControl(androidx.media3.exoplayer.DefaultLoadControl.Builder().setBufferDurationsMs(1000, 5000, 250, 500).setPrioritizeTimeOverSizeThresholds(true).build()).build()
+            val actualPlayer = player
+            actualPlayer.setVideoSurfaceView(surface)
+            var videoWidth = 0; var videoHeight = 0
+            fun fitVideo() { if (frame.width > 0 && frame.height > 0 && videoWidth > 0 && videoHeight > 0) { val scale = minOf(frame.width.toFloat() / videoWidth, frame.height.toFloat() / videoHeight); surface.layoutParams = FrameLayout.LayoutParams((videoWidth * scale).toInt(), (videoHeight * scale).toInt(), Gravity.CENTER) } }
+            frame.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> fitVideo() }
+            actualPlayer.addListener(object : androidx.media3.common.Player.Listener {
+                override fun onPlaybackStateChanged(state: Int) { loading.visibility = if (state == androidx.media3.common.Player.STATE_BUFFERING) View.VISIBLE else View.GONE; if (state == androidx.media3.common.Player.STATE_READY) frame.contentDescription = "Chat video ready" }
+                override fun onVideoSizeChanged(size: androidx.media3.common.VideoSize) { videoWidth = size.width; videoHeight = size.height; fitVideo() }
+                override fun onRenderedFirstFrame() { if (poster != null) cacheRenderedFrame(FeedVideoPreview(frame, poster, url), surface) }
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) { loading.visibility = View.GONE; frame.contentDescription = "Chat video failed to load"; Toast.makeText(this@MainActivity, "Video could not be loaded. Reopen the conversation to refresh it.", Toast.LENGTH_LONG).show() }
+            })
+            val controls = CompactVideoControls(frame, object : VideoControlPlayer {
+                override val isPlaying get() = actualPlayer.isPlaying
+                override val duration get() = actualPlayer.duration.coerceAtLeast(0).toInt()
+                override val currentPosition get() = actualPlayer.currentPosition.toInt()
+                override fun pause() = actualPlayer.pause()
+                override fun start() = actualPlayer.play()
+                override fun seekTo(position: Int) = actualPlayer.seekTo(position.toLong())
+            })
+            surface.setOnClickListener { controls.toggle() }
+            actualPlayer.setMediaItem(androidx.media3.common.MediaItem.fromUri(url)); actualPlayer.prepare(); actualPlayer.playWhenReady = true
+        } else { val image = ImageView(this).apply { scaleType = ImageView.ScaleType.FIT_CENTER }; frame.addView(image, FrameLayout.LayoutParams(-1, -1)); if (url.startsWith("content://")) image.setImageURI(Uri.parse(url)) else loadChatImage(url, image) }
         val dialog = AlertDialog.Builder(this).setView(frame).setPositiveButton("Done", null).create()
-        chatVideo = player; dialog.setOnDismissListener { player?.stopPlayback(); if (chatVideo === player) chatVideo = null }; dialog.show(); dialog.window?.setLayout(-1, -1)
+        chatVideo = player; dialog.setOnDismissListener { player?.release(); if (chatVideo === player) chatVideo = null }; dialog.show(); dialog.window?.setLayout(-1, -1)
     }
     private fun messageActions(chat: JSONObject, message: JSONObject) {
         (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).hideSoftInputFromWindow(root.windowToken, 0)
@@ -918,7 +1036,7 @@ class MainActivity : ComponentActivity() {
     private fun search() { val input = EditText(this).apply { hint = "Search Your Mix"; setText(query) }; AlertDialog.Builder(this).setTitle("Search").setView(input).setPositiveButton("Search") { _, _ -> query = input.text.toString(); tab = "Home"; showApp() }.setNeutralButton("Clear") { _, _ -> query = ""; tab = "Home"; showApp() }.setNegativeButton("Cancel", null).show() }
     private fun refresh() {
         if (demo) { showApp(); return }
-        work("Loading Your Mix…", { if (!api.sessionValid()) throw SessionExpired(); api.posts() }, { posts = it; showApp(); loadExtras() })
+        work("Loading Your Mix…", { if (!api.sessionValid()) throw SessionExpired(); api.posts() }, { posts = it; saveFeedSnapshot(); showApp(); loadExtras() })
     }
     private fun loadExtras() {
         val current = epoch
@@ -949,7 +1067,7 @@ class MainActivity : ComponentActivity() {
     }
     private fun signOut() {
         val token = store.get("session"); val wasDemo = demo
-        epoch++; messageAlerts.reset(); demo = false; store.clear(); posts = emptyList(); flashes = emptyList(); roll = emptyList(); engagement.clear(); localMedia.clear(); chatMessages.clear(); locallyDeletedMessages.clear(); selectedChat = null; composerTags = emptyList(); composerLocation = ""; tab = "Home"; showApp()
+        epoch++; cacheDir.listFiles()?.filter { it.name.startsWith("feed-") || it.name == "chat-media" }?.forEach { it.deleteRecursively() }; pendingChatImages.clear(); feedImageMemory.evictAll(); messageAlerts.reset(); demo = false; store.clear(); posts = emptyList(); flashes = emptyList(); roll = emptyList(); engagement.clear(); localMedia.clear(); chatMessages.clear(); locallyDeletedMessages.clear(); selectedChat = null; composerTags = emptyList(); composerLocation = ""; tab = "Home"; showApp()
         if (!wasDemo && token != null) executor.execute { runCatching { DanzStakApi { token }.logout() } }
     }
     private fun enterDemo() {
@@ -962,6 +1080,12 @@ class MainActivity : ComponentActivity() {
             FeedPost("demo-5", "Local Scenes", "Support the people building something in your city.", "Today"))
         flashes = listOf(MediaPage("demo-s1", "DanzStak", "Find your people. Feel your scene."), MediaPage("demo-s2", "The Night Shift", "One more track. One more moment."), MediaPage("demo-s3", "Local Scenes", "Your next great night starts here."))
         roll = listOf(MediaPage("demo-r1", "DanzStak", "In the mix"), MediaPage("demo-r2", "Studio Notes", "Behind the sound"))
+        if (BuildConfig.DEBUG && intent.getBooleanExtra("profile_video_fixture", false)) runCatching {
+            val rows = DanzStakApi.objects(JSONObject(java.io.File(cacheDir, "attachment-fixture.json").readText()).optJSONArray("messages")); val videoUrl = rows.first { it.optString("mediaType") == "video" }.getString("mediaUrl")
+            posts = listOf(FeedPost("v1", "Profile A", "First profile video", "Today", mediaUrl = videoUrl, mediaType = "video", userEmail = "a@example.invalid"), FeedPost("v2", "Profile A", "Second profile video", "Today", mediaUrl = videoUrl, mediaType = "video", userEmail = "a@example.invalid"), FeedPost("v3", "Profile B", "Other profile video", "Today", mediaUrl = videoUrl, mediaType = "video", userEmail = "b@example.invalid"))
+        }
+        if (BuildConfig.DEBUG && intent.getBooleanExtra("comments_fixture", false)) engagement["demo-1"] = JSONObject().put("comments", org.json.JSONArray((1..3).map { JSONObject().put("commentId", "c$it").put("authorName", "Commenter $it").put("content", "Preview comment $it").put("createdAt", "2026-10-28T00:00:0${it}Z") }))
+        if (BuildConfig.DEBUG && intent.getBooleanExtra("attachment_fixture", false)) runCatching { val data = JSONObject(java.io.File(cacheDir, "attachment-fixture.json").readText()); chatMessages["preview-jamie"] = DanzStakApi.objects(data.optJSONArray("messages")).toMutableList() }
         if (BuildConfig.DEBUG && intent.getBooleanExtra("empty_media", false)) { flashes = emptyList(); roll = emptyList() }
         tab = "Home"; showApp()
     }
@@ -985,7 +1109,7 @@ class MainActivity : ComponentActivity() {
         if (!::content.isInitialized || (content.parent as? View)?.getGlobalVisibleRect(viewport) != true) { stopFeedVideo(); return }
         val next = feedVideoPreviews.filter { candidate ->
             val rect = android.graphics.Rect()
-            candidate.frame.isAttachedToWindow && candidate.frame.height > 0 && candidate.frame.getGlobalVisibleRect(rect) && rect.intersect(viewport) && rect.height().toFloat() / candidate.frame.height >= 0.65f
+            candidate.frame.isAttachedToWindow && candidate.frame.height > 0 && candidate.frame.getGlobalVisibleRect(rect) && rect.intersect(viewport) && rect.height().toFloat() / minOf(candidate.frame.height, viewport.height()) >= 0.65f
         }.minByOrNull { candidate -> val rect = android.graphics.Rect(); candidate.frame.getGlobalVisibleRect(rect); kotlin.math.abs(rect.centerY() - viewport.centerY()) }
         if (next === activeFeedVideo) return
         stopFeedVideo()
@@ -996,10 +1120,10 @@ class MainActivity : ComponentActivity() {
             setOnPreparedListener { prepared ->
                 if (activeFeedVideo !== next || !appForeground) return@setOnPreparedListener
                 prepared.isLooping = true; prepared.setVolume(0f, 0f)
-                if (prepared.videoWidth > 0 && prepared.videoHeight > 0 && next.frame.width > 0) next.frame.layoutParams = next.frame.layoutParams.apply { height = minOf(dp(560), (next.frame.width.toFloat() * prepared.videoHeight / prepared.videoWidth).toInt()).coerceAtLeast(1) }
+                if (prepared.videoWidth > 0 && prepared.videoHeight > 0 && next.frame.width > 0) next.frame.layoutParams = next.frame.layoutParams.apply { height = (next.frame.width.toFloat() * prepared.videoHeight / prepared.videoWidth).toInt().coerceAtLeast(1) }
                 start()
             }
-            setOnInfoListener { _, what, _ -> if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START && activeFeedVideo === next) next.poster.visibility = View.INVISIBLE; false }
+            setOnInfoListener { _, what, _ -> if (what == android.media.MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START && activeFeedVideo === next) { next.poster.visibility = View.INVISIBLE; cacheRenderedFrame(next, this) }; false }
             setOnErrorListener { _, _, _ -> next.poster.visibility = View.VISIBLE; true }
         }
         feedVideoPlayer = player
@@ -1007,14 +1131,144 @@ class MainActivity : ComponentActivity() {
         player.setVideoURI(Uri.parse(next.url))
     }
 
-    private fun loadVideoFrame(url: String, image: ImageView) {
+    private interface VideoControlPlayer {
+        val isPlaying: Boolean; val duration: Int; val currentPosition: Int
+        fun pause(); fun start(); fun seekTo(position: Int)
+    }
+    private inner class CompactVideoControls(frame: FrameLayout, private val player: VideoControlPlayer, bottomInset: Int = 0) {
+        constructor(frame: FrameLayout, video: VideoView, bottomInset: Int = 0) : this(frame, object : VideoControlPlayer {
+            override val isPlaying get() = video.isPlaying
+            override val duration get() = video.duration
+            override val currentPosition get() = video.currentPosition
+            override fun pause() = video.pause()
+            override fun start() = video.start()
+            override fun seekTo(position: Int) = video.seekTo(position)
+        }, bottomInset)
+        private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        private val overlay = FrameLayout(this@MainActivity)
+        private val play = ImageButton(this@MainActivity).apply { setColorFilter(Color.WHITE); setPadding(dp(10), dp(10), dp(10), dp(10)); background = rounded(Color.argb(110, 0, 0, 0)) }
+        private val progress = SeekBar(this@MainActivity).apply { max = 1000; progressTintList = android.content.res.ColorStateList.valueOf(Color.WHITE); thumbTintList = android.content.res.ColorStateList.valueOf(Color.WHITE); contentDescription = "Video progress" }
+        private var scrubbing = false
+        private var resumeAfterScrub = false
+        private val hide = Runnable { if (player.isPlaying) overlay.visibility = View.GONE }
+        private val tick = object : Runnable { override fun run() {
+            if (!appForeground || !overlay.isAttachedToWindow) return
+            play.setImageResource(if (player.isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play)
+            play.contentDescription = if (player.isPlaying) "Pause video" else "Play video"
+            val duration = player.duration
+            if (!scrubbing && duration > 0) progress.progress = (player.currentPosition.toLong() * 1000 / duration).toInt()
+            progress.isEnabled = duration > 0
+            handler.postDelayed(this, 350)
+        } }
+        init {
+            overlay.addView(play, FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER))
+            overlay.addView(progress, FrameLayout.LayoutParams(-1, dp(32), Gravity.BOTTOM).apply { leftMargin = dp(8); rightMargin = dp(8); bottomMargin = bottomInset })
+            frame.addView(overlay, FrameLayout.LayoutParams(-1, -1))
+            play.setOnClickListener { if (player.isPlaying) player.pause() else player.start(); overlay.visibility = View.VISIBLE; scheduleHide() }
+            progress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(bar: SeekBar?, value: Int, fromUser: Boolean) { if (fromUser && player.duration > 0) player.seekTo((player.duration.toLong() * value / 1000).toInt()) }
+                override fun onStartTrackingTouch(bar: SeekBar?) { scrubbing = true; resumeAfterScrub = player.isPlaying; player.pause(); handler.removeCallbacks(hide) }
+                override fun onStopTrackingTouch(bar: SeekBar?) { scrubbing = false; if (resumeAfterScrub) player.start(); scheduleHide() }
+            })
+            overlay.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(view: View) { compactControls.add(this@CompactVideoControls); resume() }
+                override fun onViewDetachedFromWindow(view: View) { suspend(); compactControls.remove(this@CompactVideoControls) }
+            })
+        }
+        private fun scheduleHide() { handler.removeCallbacks(hide); handler.postDelayed(hide, 2200) }
+        fun toggle() { overlay.visibility = if (overlay.visibility == View.VISIBLE) View.GONE else View.VISIBLE; if (overlay.visibility == View.VISIBLE) scheduleHide() }
+        fun suspend() { handler.removeCallbacksAndMessages(null) }
+        fun resume() { handler.removeCallbacks(tick); handler.post(tick); scheduleHide() }
+    }
+    private lateinit var rootScroll: FeedScroll
+    private var pendingChatReadAnchor: JSONObject? = null
+    private var pendingChatReveal: String? = null
+    private var pendingFeedAnchor: JSONObject? = null
+    private var lastFeedAnchor: JSONObject? = null
+    private var restoringFeed = false
+    private inner class FeedScroll : ScrollView(this@MainActivity) {
+        override fun dispatchTouchEvent(event: MotionEvent): Boolean { if (event.action == MotionEvent.ACTION_DOWN) { pendingFeedAnchor = null; pendingChatReveal = null; pendingChatReadAnchor = null }; return super.dispatchTouchEvent(event) }
+    }
+    private fun feedIdentity(): String = if (demo) "preview" else MessageDigest.getInstance("SHA-256").digest(store.get("session").orEmpty().toByteArray()).joinToString("") { "%02x".format(it) }.take(16)
+    private fun feedAnchor(): JSONObject? {
+        if (!::rootScroll.isInitialized || !::content.isInitialized || chatDark || tab != "Home" || media != null || !rootScroll.isAttachedToWindow) return null
+        val y = rootScroll.scrollY
+        val child = (0 until content.childCount).map { content.getChildAt(it) }.firstOrNull { it.tag is String && it.bottom > y } ?: return null
+        return JSONObject().put("tag", child.tag.toString()).put("fraction", ((y - child.top).toFloat() / maxOf(1, child.height)).coerceIn(0f, 0.99f).toDouble())
+    }
+    private fun saveFeedPosition() { if (!::store.isInitialized || !signedIn()) return; val current = feedAnchor() ?: return; val anchor = pendingFeedAnchor ?: current; if ((!demo || BuildConfig.DEBUG && intent.getBooleanExtra("remember_feed", false)) && posts.isNotEmpty()) prefs.edit().putString("feed.position." + feedIdentity(), anchor.toString()).apply() }
+    private fun restoreFeedPosition() {
+        if (restoringFeed || chatDark || tab != "Home" || media != null) return
+        val anchor = pendingFeedAnchor ?: return
+        val child = (0 until content.childCount).map { content.getChildAt(it) }.firstOrNull { it.tag == anchor.optString("tag") } ?: return
+        if (child.height == 0) return
+        restoringFeed = true
+        rootScroll.scrollTo(0, child.top + (child.height * anchor.optDouble("fraction")).toInt()); restoringFeed = false
+    }
+    override fun onConfigurationChanged(configuration: android.content.res.Configuration) {
+        val anchor = pendingFeedAnchor ?: lastFeedAnchor ?: feedAnchor(); super.onConfigurationChanged(configuration)
+        if (anchor != null) { pendingFeedAnchor = anchor; rootScroll.post { restoreFeedPosition() } }
+        brandedHeader?.layoutParams = brandedHeader?.layoutParams?.apply { height = maxOf(dp(48), resources.displayMetrics.heightPixels * headerPercent / 100) }
+    }
+    private fun saveFeedSnapshot() {
+        if (demo || store.get("session") == null) return
+        val rows = posts.take(40).map { post -> JSONObject().put("postId", post.id).put("authorName", post.author).put("content", post.text).put("createdAt", post.createdAt).put("authorPicture", post.picture).put("isOwner", post.owner).put("mediaUrl", post.mediaUrl).put("mediaType", post.mediaType).put("location", post.location).put("userEmail", post.userEmail).put("taggedUsers", org.json.JSONArray(post.tags.map { JSONObject().put("memberId", it.id).put("name", it.name).put("isMe", it.isMe) })) }
+        runCatching { java.io.File(cacheDir, "feed-" + feedIdentity() + ".json").writeText(JSONObject().put("savedAt", System.currentTimeMillis()).put("posts", org.json.JSONArray(rows)).toString()) }
+    }
+    private fun loadCachedFeed() {
+        runCatching { val file = java.io.File(cacheDir, "feed-" + feedIdentity() + ".json"); val data = JSONObject(file.readText()); if (System.currentTimeMillis() - data.getLong("savedAt") < 15 * 60 * 1000) posts = api.decodePosts(data) }
+    }
+    private fun loadChatImage(url: String, image: ImageView) {
+        if (!url.startsWith("https://")) return
+        val uri = Uri.parse(url); val key = MessageDigest.getInstance("SHA-256").digest((uri.host.orEmpty() + uri.path.orEmpty()).toByteArray()).joinToString("") { "%02x".format(it) }
+        image.tag = key
+        pendingChatImages[key]?.let { it.add(image); return }
+        pendingChatImages[key] = mutableListOf(image)
+        val current = epoch
+        chatImageExecutor.execute {
+            val folder = java.io.File(cacheDir, "chat-media").apply { mkdirs() }; val cached = java.io.File(folder, "$key.image")
+            val bitmap = runCatching {
+                if (!cached.isFile) {
+                    val temporary = java.io.File.createTempFile("image-", ".tmp", folder)
+                    try {
+                        val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                        try { connection.instanceFollowRedirects = false; connection.connectTimeout = 10000; connection.readTimeout = 20000; check(connection.responseCode in 200..299)
+                            connection.inputStream.use { input -> temporary.outputStream().use { output -> val buffer = ByteArray(65536); var size = 0L; while (true) { val count = input.read(buffer); if (count < 0) break; size += count; require(size <= 100L * 1024 * 1024); output.write(buffer, 0, count) } } }
+                            if (current == epoch) check(temporary.renameTo(cached))
+                        } finally { connection.disconnect() }
+                    } finally { temporary.delete() }
+                }
+                check(current == epoch)
+                if (Build.VERSION.SDK_INT >= 28) android.graphics.ImageDecoder.decodeBitmap(android.graphics.ImageDecoder.createSource(cached)) { decoder, info, _ -> decoder.setTargetSampleSize(maxOf(1, maxOf(info.size.width, info.size.height) / 1600)); decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE }
+                else android.graphics.BitmapFactory.decodeFile(cached.path, android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 })
+            }.getOrNull()
+            runOnUiThread {
+                val targets = pendingChatImages.remove(key).orEmpty()
+                if (current == epoch) targets.filter { it.tag == key }.forEach { target -> if (bitmap != null) { target.setImageBitmap(bitmap); target.contentDescription = "Attached photo loaded"; (target.parent as? FrameLayout)?.let { holder -> holder.findViewWithTag<View>("media-loading")?.visibility = View.GONE; if (holder.tag == "chat-attachment") holder.post { if (holder.width > 0 && bitmap.width > 0) holder.layoutParams = holder.layoutParams.apply { height = (holder.width.toFloat() * bitmap.height / bitmap.width).toInt().coerceAtLeast(1) } } } } else { (target.parent as? FrameLayout)?.findViewWithTag<View>("media-loading")?.visibility = View.GONE; target.setImageResource(android.R.drawable.ic_menu_report_image); target.contentDescription = "Photo could not load. Tap to retry."; if (!target.hasOnClickListeners()) target.setOnClickListener { loadChatImage(url, target) } } }
+            }
+        }
+    }
+    private fun cacheRenderedFrame(preview: FeedVideoPreview, player: android.view.SurfaceView) {
+        if (player.width <= 0 || player.height <= 0) return
+        val scale = minOf(1f, 720f / maxOf(player.width, player.height))
+        val bitmap = android.graphics.Bitmap.createBitmap(maxOf(1, (player.width * scale).toInt()), maxOf(1, (player.height * scale).toInt()), android.graphics.Bitmap.Config.ARGB_8888)
+        runCatching { android.view.PixelCopy.request(player, bitmap, { result ->
+            if (result == android.view.PixelCopy.SUCCESS) videoFrameExecutor.execute { runCatching { videoPreviewFile(preview.url).outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, it) } }; runOnUiThread { if (!isDestroyed) { preview.poster.scaleType = ImageView.ScaleType.FIT_CENTER; preview.poster.setImageBitmap(bitmap); (preview.poster.parent as? FrameLayout)?.takeIf { it.tag == "chat-attachment" }?.let { holder -> if (holder.width > 0) holder.layoutParams = holder.layoutParams.apply { height = (holder.width.toFloat() * bitmap.height / bitmap.width).toInt().coerceAtLeast(1) } } } else bitmap.recycle() } } else bitmap.recycle()
+        }, android.os.Handler(android.os.Looper.getMainLooper())) }.onFailure { bitmap.recycle() }
+    }
+    private fun videoPreviewFile(url: String): java.io.File {
+        val uri = Uri.parse(url)
+        val stable = uri.host.orEmpty() + uri.path.orEmpty()
+        val key = java.security.MessageDigest.getInstance("SHA-256").digest(stable.toByteArray()).joinToString("") { "%02x".format(it) }
+        return java.io.File(java.io.File(cacheDir, "video-previews").apply { mkdirs() }, "$key.jpg")
+    }
+    private fun loadVideoFrame(url: String, image: ImageView, allowNetwork: Boolean = true) {
         if (!url.startsWith("https://")) return
         videoFrameExecutor.execute {
-            val key = java.security.MessageDigest.getInstance("SHA-256").digest(url.toByteArray()).joinToString("") { "%02x".format(it) }
-            val folder = java.io.File(cacheDir, "video-previews").apply { mkdirs() }
-            val cached = java.io.File(folder, "$key.jpg")
+            val cached = videoPreviewFile(url)
+            val folder = cached.parentFile!!
             val saved = if (cached.isFile) android.graphics.BitmapFactory.decodeFile(cached.path) else null
-            val frame = saved ?: run {
+            val frame = saved ?: if (!allowNetwork) null else run {
                 val retriever = android.media.MediaMetadataRetriever()
                 try {
                     retriever.setDataSource(url, emptyMap<String, String>())
@@ -1030,16 +1284,30 @@ class MainActivity : ComponentActivity() {
                     selected?.also { bitmap -> runCatching { cached.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, it) }; folder.listFiles()?.sortedByDescending { it.lastModified() }?.drop(80)?.forEach { it.delete() } } }
                 } catch (_: Exception) { null } finally { runCatching { retriever.release() } }
             }
-            runOnUiThread { if (!isDestroyed) { if (frame != null) image.setImageBitmap(frame); image.contentDescription = "Video preview. Tap to play." } }
+            runOnUiThread { if (!isDestroyed) { if (frame != null) { image.scaleType = ImageView.ScaleType.FIT_CENTER; image.setImageBitmap(frame); if (!allowNetwork) (image.parent as? FrameLayout)?.let { holder -> if (holder.width > 0 && frame.width > 0) holder.layoutParams = holder.layoutParams.apply { height = (holder.width.toFloat() * frame.height / frame.width).toInt().coerceAtLeast(1) } } }; if (image.contentDescription != "Play attached video") image.contentDescription = "Video preview. Tap to play." } }
         }
     }
+    private fun cancelFeedImages() { deferredImages.clear(); imageGeneration++; (imageExecutor as? java.util.concurrent.ThreadPoolExecutor)?.queue?.clear(); activeFeedImages.forEach { it.disconnect() }; activeFeedImages.clear() }
+    private fun processVisibleImages() {
+        deferredImages.toList().forEach { (image, url) -> if (image.isAttachedToWindow && image.getGlobalVisibleRect(android.graphics.Rect())) { deferredImages.remove(image); loadImage(url, image, image.getTag(R.id.fit_post_media) == true) } }
+    }
     private fun loadImage(url: String, image: ImageView, fitPost: Boolean = false) {
+        image.setTag(R.id.fit_post_media, fitPost)
+        val parsed = Uri.parse(url); val memoryKey = parsed.host.orEmpty() + parsed.path.orEmpty()
+        feedImageMemory.get(memoryKey)?.let { bitmap -> image.setImageBitmap(bitmap); if (fitPost) image.post { if (image.width > 0) image.layoutParams = image.layoutParams.apply { height = (image.width.toFloat() * bitmap.height / bitmap.width).toInt().coerceAtLeast(1) } }; return }
+        if (!image.isAttachedToWindow || !image.getGlobalVisibleRect(android.graphics.Rect())) {
+            if (!deferredImages.containsKey(image)) image.addOnLayoutChangeListener(object : View.OnLayoutChangeListener { override fun onLayoutChange(view: View, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int) { image.removeOnLayoutChangeListener(this); processVisibleImages() } })
+            deferredImages[image] = url; return
+        }
+        val generation = imageGeneration
         imageExecutor.execute {
+            if (generation != imageGeneration) return@execute
             val bitmap = runCatching {
                 val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                try { connection.instanceFollowRedirects = false; connection.connectTimeout = 10000; connection.readTimeout = 15000; require(connection.responseCode == 200); val bytes = connection.inputStream.use { stream -> val out = java.io.ByteArrayOutputStream(); val buffer = ByteArray(8192); var total = 0; while (true) { val count = stream.read(buffer); if (count < 0) break; total += count; require(total <= 8 * 1024 * 1024); out.write(buffer, 0, count) }; out.toByteArray() }; val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }; android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options); options.inSampleSize = maxOf(1, maxOf(options.outWidth, options.outHeight) / 1200); options.inJustDecodeBounds = false; android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) } finally { connection.disconnect() }
+                activeFeedImages.add(connection)
+                try { connection.instanceFollowRedirects = false; connection.connectTimeout = 10000; connection.readTimeout = 15000; require(connection.responseCode == 200); val bytes = connection.inputStream.use { stream -> val out = java.io.ByteArrayOutputStream(); val buffer = ByteArray(8192); var total = 0; while (true) { check(generation == imageGeneration); val count = stream.read(buffer); if (count < 0) break; total += count; require(total <= 8 * 1024 * 1024); out.write(buffer, 0, count) }; out.toByteArray() }; val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }; android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options); options.inSampleSize = maxOf(1, maxOf(options.outWidth, options.outHeight) / 1200); options.inJustDecodeBounds = false; android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options) } finally { connection.disconnect(); activeFeedImages.remove(connection) }
             }.getOrNull()
-            runOnUiThread { if (!isDestroyed && bitmap != null) { image.setImageBitmap(bitmap); if (fitPost) image.post { if (image.width > 0 && bitmap.width > 0) image.layoutParams = image.layoutParams.apply { height = minOf(dp(560), (image.width.toFloat() * bitmap.height / bitmap.width).toInt()).coerceAtLeast(1) } } } }
+            runOnUiThread { if (!isDestroyed && generation == imageGeneration && bitmap != null) { feedImageMemory.put(memoryKey, bitmap); image.setImageBitmap(bitmap); if (fitPost) image.post { if (image.width > 0 && bitmap.width > 0) image.layoutParams = image.layoutParams.apply { height = (image.width.toFloat() * bitmap.height / bitmap.width).toInt().coerceAtLeast(1) } } } }
         }
     }
     private fun openWeb(url: String) { if (!url.startsWith("https://")) return; runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }.onFailure { status.text = "Install a browser to open this link." } }

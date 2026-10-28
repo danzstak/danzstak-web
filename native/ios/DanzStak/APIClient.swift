@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 struct MemberProfileResponse: Decodable { let profile: MemberProfile }
 struct MemberProfile: Decodable {
@@ -130,6 +131,19 @@ struct APIClient {
         return response.authenticated
     }
 
+    private var feedCacheURL: URL? {
+        guard session === URLSession.shared, let token = sessionToken(), let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return nil }
+        let key = SHA256.hash(data: Data(token.utf8)).map { String(format: "%02x", $0) }.joined().prefix(16)
+        return directory.appendingPathComponent("native-feed-" + key + ".json")
+    }
+    func cachedPosts() -> [FeedPost] {
+        guard let url = feedCacheURL, let stamp = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate, Date().timeIntervalSince(stamp) < 900, let data = try? Data(contentsOf: url) else { return [] }
+        return (try? JSONDecoder().decode(FeedResponse.self, from: data).posts) ?? []
+    }
+    static func clearFeedCache() {
+        guard let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first, let files = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) else { return }
+        files.filter { $0.lastPathComponent.hasPrefix("native-feed-") }.forEach { try? FileManager.default.removeItem(at: $0) }
+    }
     func posts() async throws -> [FeedPost] {
         let response: FeedResponse = try await send("/secure-posts")
         return response.posts
@@ -294,7 +308,9 @@ struct APIClient {
         if authenticated && http.statusCode == 401 { throw Failure.sessionExpired }
         guard 200..<300 ~= http.statusCode else { throw URLError(.badServerResponse) }
         if data.isEmpty, Response.self == EmptyResponse.self { return EmptyResponse() as! Response }
-        return try JSONDecoder().decode(Response.self, from: data)
+        let decoded = try JSONDecoder().decode(Response.self, from: data)
+        if path == "/secure-posts", method == "GET", let cache = feedCacheURL { try? data.write(to: cache, options: .atomic) }
+        return decoded
     }
 }
 

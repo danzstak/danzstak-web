@@ -45,6 +45,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     func start() async {
         if ProcessInfo.processInfo.arguments.contains("--ui-preview"), !signedIn { enterDemo(); return }
         guard signedIn else { status = "Log in to see Your Mix."; return }
+        if posts.isEmpty { posts = api.cachedPosts() }
         await refresh()
     }
 
@@ -130,6 +131,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     }
 
     func expireSession() {
+        APIClient.clearFeedCache()
         sessionEpoch += 1
         signedIn = false
         SessionStore.clear()
@@ -138,6 +140,7 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     }
 
     func logout() async {
+        APIClient.clearFeedCache()
         webSession?.cancel()
         let demo = isDemo
         sessionEpoch += 1

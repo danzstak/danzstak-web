@@ -20,7 +20,8 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
     private val base = "https://api.danzstak.com"
     fun exchange(code: String, verifier: String): String = request("/auth/mobile-session", "POST", JSONObject().put("code", code).put("verifier", verifier).put("platform", "android"), false).getString("sessionToken")
     fun sessionValid(): Boolean = request("/auth/session").optBoolean("authenticated", false)
-    fun posts(): List<FeedPost> = objects(request("/secure-posts").optJSONArray("posts")).map { item ->
+    fun posts(): List<FeedPost> = decodePosts(request("/secure-posts"))
+    fun decodePosts(data: JSONObject): List<FeedPost> = objects(data.optJSONArray("posts")).map { item ->
         FeedPost(item.getString("postId"), item.optString("authorName", "DanzStak member"), item.optString("content"), item.optString("createdAt"),
             item.optString("authorPicture"), item.optBoolean("isOwner"), item.optString("mediaUrl"), item.optString("mediaType"), item.optString("location"),
             objects(item.optJSONArray("taggedUsers")).map { TaggedMember(it.getString("memberId"), it.optString("name"), it.optBoolean("isMe")) }, item.optString("userEmail"))

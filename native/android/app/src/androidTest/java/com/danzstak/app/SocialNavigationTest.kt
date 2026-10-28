@@ -101,6 +101,69 @@ class SocialNavigationTest {
         assertTrue(device.hasObject(By.text("Videos")))
         assertFalse(device.hasObject(By.textContains("Header size")))
     }
+    @Test fun privateAttachmentPlaybackAnd720pExport() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation(); val context = instrumentation.targetContext
+        val input = java.io.File(context.cacheDir, "fixture-video.mp4")
+        org.junit.Assume.assumeTrue("Read-only attachment fixture is not installed", input.isFile && java.io.File(context.cacheDir, "attachment-fixture.json").isFile)
+        val monitor = instrumentation.addMonitor(MainActivity::class.java.name, null, false)
+        context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK); putExtra("preview", true); putExtra("attachment_fixture", true) })
+        val activity = instrumentation.waitForMonitorWithTimeout(monitor, 10000) as MainActivity
+        instrumentation.removeMonitor(monitor)
+        instrumentation.waitForIdleSync(); device.waitForIdle()
+        assertTrue(device.wait(Until.hasObject(By.desc("Messages")), 10000)); device.findObject(By.desc("Messages")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Jamie Rivera")), 5000)); device.findObject(By.text("Jamie Rivera")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Attached photo loaded")), 60000))
+        val scroll = androidx.test.uiautomator.UiScrollable(androidx.test.uiautomator.UiSelector().scrollable(true))
+        assertTrue(scroll.scrollIntoView(androidx.test.uiautomator.UiSelector().description("Play attached video")))
+        device.findObject(By.desc("Play attached video")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Chat video ready")), 60000)); assertEquals("com.danzstak.app", device.currentPackageName)
+        assertTrue(device.hasObject(By.desc("Video progress"))); device.pressBack()
+        val method = MainActivity::class.java.getDeclaredMethod("prepare720pVideo", java.io.File::class.java).apply { isAccessible = true }
+        val output = method.invoke(activity, input) as java.io.File
+        val extractor = android.media.MediaExtractor()
+        try {
+            extractor.setDataSource(output.path)
+            val format = (0 until extractor.trackCount).map { extractor.getTrackFormat(it) }.first { it.getString(android.media.MediaFormat.KEY_MIME)?.startsWith("video/") == true }
+            val width = format.getInteger(android.media.MediaFormat.KEY_WIDTH); val height = format.getInteger(android.media.MediaFormat.KEY_HEIGHT)
+            assertEquals("video/avc", format.getString(android.media.MediaFormat.KEY_MIME)); assertTrue(width <= 1280 && height <= 720 || width <= 720 && height <= 1280)
+        } finally { extractor.release(); output.delete() }
+    }
+    @Test fun profileVideosPageOnlyWithinTheSameProfile() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        org.junit.Assume.assumeTrue(java.io.File(context.cacheDir, "attachment-fixture.json").isFile)
+        context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK); putExtra("preview", true); putExtra("profile_video_fixture", true) })
+        assertTrue(device.wait(Until.hasObject(By.desc("Autoplay video by Profile A")), 10000))
+        device.findObjects(By.desc("Autoplay video by Profile A")).first().click()
+        assertTrue(device.wait(Until.hasObject(By.text("1 / 2")), 5000))
+        device.swipe(device.displayWidth / 2, device.displayHeight * 3 / 4, device.displayWidth / 2, device.displayHeight / 4, 18)
+        assertTrue(device.wait(Until.hasObject(By.text("2 / 2")), 5000)); assertFalse(device.hasObject(By.text("Other profile video")))
+    }
+    @Test fun onlyTwoCommentsAppearInline() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK); putExtra("preview", true); putExtra("comments_fixture", true) })
+        assertTrue(device.wait(Until.hasObject(By.text("Preview comment 1")), 10000))
+        val scroll = androidx.test.uiautomator.UiScrollable(androidx.test.uiautomator.UiSelector().scrollable(true))
+        assertTrue(scroll.scrollIntoView(androidx.test.uiautomator.UiSelector().text("View all 3 comments")))
+        assertTrue(device.hasObject(By.text("Preview comment 2"))); assertFalse(device.hasObject(By.text("Preview comment 3")))
+        device.findObject(By.text("View all 3 comments")).click()
+        assertTrue(device.wait(Until.hasObject(By.textContains("Preview comment 3")), 5000))
+    }
+    @Test fun feedSurvivesFumblingAndReopening() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("danzstak_drafts", android.content.Context.MODE_PRIVATE).edit().remove("feed.position.preview").commit()
+        fun reopen() { context.startActivity(context.packageManager.getLaunchIntentForPackage(context.packageName)!!.apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK); putExtra("preview", true); putExtra("remember_feed", true) }) }
+        reopen(); assertTrue(device.wait(Until.hasObject(By.text("Your Mix")), 10000))
+        val scroll = androidx.test.uiautomator.UiScrollable(androidx.test.uiautomator.UiSelector().scrollable(true))
+        assertTrue(scroll.scrollIntoView(androidx.test.uiautomator.UiSelector().text("The Night Shift")))
+        val viewport = device.findObject(By.scrollable(true)).visibleBounds
+        val row = device.findObject(By.text("The Night Shift")).visibleBounds
+        val delta = row.top - viewport.top - 35
+        if (delta > 0) device.swipe(device.displayWidth / 2, viewport.bottom - 30, device.displayWidth / 2, viewport.bottom - 30 - delta, 20)
+        try {
+            repeat(3) { cycle -> device.setOrientationLeft(); device.waitForIdle(); assertTrue("Landscape cycle $cycle lost feed anchor", device.wait(Until.hasObject(By.text("The Night Shift")), 5000)); device.setOrientationNatural(); device.waitForIdle(); assertTrue("Portrait cycle $cycle lost feed anchor", device.wait(Until.hasObject(By.text("The Night Shift")), 5000)) }
+            reopen(); assertTrue(device.wait(Until.hasObject(By.text("The Night Shift")), 10000))
+        } finally { device.setOrientationNatural(); device.unfreezeRotation() }
+    }
     @Test fun chatOptionsAndMultiMessageCopy() {
         device.findObject(By.desc("Messages")).click()
         assertTrue(device.wait(Until.hasObject(By.text("Jamie Rivera")), 5000)); device.findObject(By.text("Jamie Rivera")).click()

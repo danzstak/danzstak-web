@@ -46,7 +46,7 @@ Profiles load the selected member's saved cover and avatar from `/profiles`, usi
 
 The live message-edit error was traced to the signaling role missing `dynamodb:UpdateItem` on the Messages table. A table-scoped inline policy was added and IAM simulation returned allowed. The infrastructure template includes the matching permission for future deployments. No backend code was replaced and no real user messages were edited during agent verification.
 
-Empty Flashes and The Roll rails retain three labeled placeholder cards, after the first and fourth feed posts respectively. Video playback starts muted in the feed, pauses offscreen or in the background, and fits its original proportions. Post media uses the PWA's full width and 560-point/dp height cap; viewer controls overlay a full-page video area. Chat headers use the approved orange D mark. Composer and message editor input stops at the server's 2,000 UTF-16-unit limit without a numeric range prompt.
+Empty Flashes and The Roll rails retain three labeled placeholder cards, after the first and fourth feed posts respectively. Video playback starts muted in the feed, pauses offscreen or in the background, and fits its original proportions. Post media uses the full width at its natural portrait or landscape aspect ratio, without added borders or a fixed height cap. Compact playback controls provide a small central play/pause button and bottom progress bar; tapping toggles them. Chat headers use the approved orange D mark. Composer and message editor input stops at the server's 2,000 UTF-16-unit limit without a numeric range prompt.
 
 ### Tribes parity with the PWA
 
@@ -61,3 +61,10 @@ Flashes now follows the first feed post, and The Roll follows the fourth. Empty 
 ### Chat menu and copying
 
 Chat options include View contact, Search (loaded messages), Media (loaded attachments), Mute/Unmute, Disappearing messages, Select messages and Delete chat. Multiple selected messages copy as chronological plain text separated by blank lines, suitable for pasting into a translator. No translation provider receives data automatically. Delete confirmation explicitly removes the actor's sent media for both participants while preserving the other's uploads. Message expiration applies to new messages; server visibility stops at the deadline, with physical attachment cleanup on the next conversation read. Preserve the scoped patch under `native/backend` in future backend deployments.
+
+
+### Native media update 0.1.6
+
+Posts show their first two comments inline, with the remaining comments in the comment view. Opening a post video builds a vertical sequence of the available videos from that same profile, starting at the selected video; changing pages stops the previous player. New chat video uploads export to an aspect-preserving 720p MP4 before upload. Existing server originals are unchanged. Chat captions follow attachments. Android keeps unchanged attachment views during polling, uses a separate image download queue with visible loading/retry, and plays chat videos inside the app. Cached feed data is private to the signed-in session and expires after 15 minutes.
+
+Validation: Android 0.1.6 assembles successfully, passes lint, 10 API unit tests and all 15 emulator UI checks. The optional private fixture checks were run with read-only copies of the already-sent photo/video: photo decoding, in-app video playback, H.264 export within 720p bounds, and same-profile paging passed. Three rotation cycles and activity reopening retain the visible feed post. iOS simulator build and targeted native chat/menu UI tests pass; API mocks and root native/auth checks pass. No messages were sent, edited or deleted by the fixture checks. Temporary signed URLs and copied private media are removed after verification. These emulator checks do not replace testing the new APK on a physical phone.

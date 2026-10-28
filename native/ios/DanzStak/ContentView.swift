@@ -34,6 +34,7 @@ struct ContentView: View {
     @State private var composer = false
     @State private var searching = false
     @State private var query = ""
+    @SceneStorage("danzstak.feed.position") private var feedPosition: String?
     @State private var showGroups = false
     @State private var selectedStory: FeedStory?
     @State private var viewingReels = false
@@ -119,7 +120,7 @@ struct ContentView: View {
         }
         .task { await model.start() }
         .onChange(of: model.signedIn) { _, signedIn in
-            if !signedIn { showMessages = false; selection = .home; composer = false; showGroups = false; query = ""; drawerResponse = nil; pendingResponse = nil; selectedStory = nil }
+            if !signedIn { feedPosition = nil; showMessages = false; selection = .home; composer = false; showGroups = false; query = ""; drawerResponse = nil; pendingResponse = nil; selectedStory = nil }
         }
     }
 
@@ -199,14 +200,15 @@ struct ContentView: View {
                     EmptyState(icon: query.isEmpty ? "text.bubble" : "magnifyingglass", title: query.isEmpty ? "Start the conversation" : "No matching posts", detail: query.isEmpty ? "Share a thought, a track, or a moment with your community." : "Try another name or phrase. Search covers the posts loaded in Your Mix.")
                 }
                 ForEach(Array(filteredPosts.enumerated()), id: \.element.id) { index, post in
-                    PostCard(post: post)
+                    PostCard(post: post).id(post.id)
                     if index == 0, query.isEmpty { storiesRail }
                     if index == 3, query.isEmpty { reelsRail }
                 }
                 if query.isEmpty, filteredPosts.isEmpty { storiesRail }
                 if query.isEmpty, filteredPosts.count < 4 { reelsRail }
-            }.padding(.bottom, 16).frame(maxWidth: 760).frame(maxWidth: .infinity)
+            }.scrollTargetLayout().padding(.bottom, 16).frame(maxWidth: 760).frame(maxWidth: .infinity)
         }
+        .scrollPosition(id: Binding(get: { feedPosition }, set: { if let value = $0 { feedPosition = value } }), anchor: .top)
         .background(SocialStyle.canvas).refreshable { await model.refresh(); await model.loadStories() }
         .task { await model.loadStories() }
         }
@@ -505,6 +507,9 @@ private struct ViewerPage: Identifiable {
     let caption: String
     let url: URL?
     let kind: String
+    var post: FeedPost? = nil
+
+    init(post: FeedPost) { id = post.id; name = post.author; caption = post.text; let candidate = post.mediaUrl.flatMap(URL.init(string:)); url = candidate?.scheme == "https" ? candidate : nil; kind = "video"; self.post = post }
 
     init(story: FeedStory) {
         id = story.id; name = story.displayName ?? "DanzStak member"; caption = story.caption ?? story.content ?? ""
@@ -594,7 +599,7 @@ private struct MediaViewer: View {
                                 VStack(spacing: 18) {
                                     ForEach(MediaResponseKind.allCases) { kind in
                                         Button {
-                                            if kind == .likes { model.reactToMedia(page.id, emoji: "👍") }
+                                            if kind == .likes { if let post = page.post { Task { await model.react(post.id) } } else { model.reactToMedia(page.id, emoji: "👍") } }
                                             else if useDrawer { onOpenDrawer(page, kind) }
                                             else { responseKind = kind }
                                         } label: {
@@ -645,7 +650,8 @@ private struct MediaViewer: View {
                     TextField("Write a comment…", text: Binding(get: { drafts[page.id] ?? "" }, set: { drafts[page.id] = $0 }), axis: .vertical)
                         .lineLimit(1...3).focused($commentFocused).padding(12).background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 22))
                     Button {
-                        if model.commentOnMedia(page.id, text: drafts[page.id] ?? "") { drafts[page.id] = ""; commentFocused = false }
+                        if let post = page.post { let text = drafts[page.id] ?? ""; Task { if await model.comment(post.id, text: text) { drafts[page.id] = ""; commentFocused = false } } }
+                        else if model.commentOnMedia(page.id, text: drafts[page.id] ?? "") { drafts[page.id] = ""; commentFocused = false }
                     } label: { Image(systemName: "paperplane.fill").font(.title3).frame(width: 44, height: 44) }
                         .disabled((drafts[page.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (drafts[page.id]?.count ?? 0) > 1000)
                         .accessibilityLabel("Send media comment")
@@ -654,12 +660,19 @@ private struct MediaViewer: View {
         }
         .background(.black).ignoresSafeArea(edges: .top).preferredColorScheme(.dark).statusBarHidden()
         .fullScreenCover(item: $responseKind) { kind in
-            if let page { MediaResponsesView(page: page, kind: kind).environmentObject(model) }
+            if let page {
+                if let post = page.post { if kind == .comments { CommentsView(post: post).environmentObject(model) } else { PostRespondersView(post: post, kind: kind).environmentObject(model) } }
+                else { MediaResponsesView(page: page, kind: kind).environmentObject(model) }
+            }
         }
+        .task(id: page?.id) { if let post = page?.post { await model.loadEngagement(post.id) } }
         .onDisappear { NativePlayback.shared.stop() }
     }
 
     private func count(_ kind: MediaResponseKind, pageID: String) -> Int {
+        if let post = pages.first(where: { $0.id == pageID })?.post {
+            switch kind { case .likes: return model.engagement[post.id]?.total ?? 0; case .comments: return model.engagement[post.id]?.comments.count ?? 0; case .shares: return model.postShareCounts[post.id] ?? 0 }
+        }
         let activity = model.mediaActivity[pageID] ?? MediaActivity()
         switch kind { case .likes: return activity.likes.count; case .comments: return activity.comments.count; case .shares: return activity.shares.count }
     }
@@ -668,7 +681,7 @@ private struct MediaViewer: View {
         ZStack {
             LinearGradient(colors: [SocialStyle.blue.opacity(0.4), .black], startPoint: .topLeading, endPoint: .bottomTrailing)
             if let url = page.url {
-                if page.kind == "video" { PostVideo(url: url, active: playing, fullScreen: true) }
+                if page.kind == "video" { PostVideo(url: url, active: playing, fullScreen: true, controlsBottomInset: 64) }
                 else if page.kind == "external" {
                     VStack(spacing: 20) {
                         Image(systemName: "play.rectangle").font(.system(size: 70))
@@ -856,6 +869,8 @@ private struct PostCard: View {
     @State private var responseKind: MediaResponseKind?
     @State private var editingTags = false
     @State private var tagError = ""
+    @State private var showingVideos = false
+    private var profileVideos: [ViewerPage] { model.posts.filter { $0.mediaType?.hasPrefix("video") == true && (($0.userEmail?.isEmpty == false && post.userEmail?.isEmpty == false) ? $0.userEmail == post.userEmail : $0.author == post.author && $0.authorPicture == post.authorPicture) }.map(ViewerPage.init(post:)) }
     private var activity: Engagement? { model.engagement[post.id] }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -881,8 +896,8 @@ private struct PostCard: View {
             if let value = post.mediaUrl, let url = URL(string: value), url.scheme == "https" {
                 Group {
                 if post.mediaType?.hasPrefix("image") == true {
-                    AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView().frame(height: 180) }.frame(maxWidth: .infinity, maxHeight: 560)
-                } else if post.mediaType?.hasPrefix("video") == true { PostVideo(url: url, active: !comments && !sharing && !editingTags && responseKind == nil) }
+                    AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView().frame(height: 180) }.frame(maxWidth: .infinity)
+                } else if post.mediaType?.hasPrefix("video") == true { PostVideo(url: url, active: !comments && !sharing && !editingTags && !showingVideos && responseKind == nil, onOpen: { showingVideos = true }) }
                 }.accessibilityIdentifier("post.media.\(post.id)").contextMenu {
                     if post.taggedUsers?.contains(where: { $0.isMe == true }) == true { Button("Remove my tag", role: .destructive) { removeTag() } }
                     if post.isOwner == true { Button("Tags & location") { editingTags = true } }
@@ -916,7 +931,24 @@ private struct PostCard: View {
                 }.accessibilityLabel("Share").accessibilityValue("\(model.postShareCounts[post.id] ?? 0) on this device")
                     .highPriorityGesture(LongPressGesture(minimumDuration: 0.5).onEnded { _ in responseKind = .shares })
             }.font(.title3.weight(.semibold)).padding(.horizontal, 10).padding(.bottom, 8)
-        }.background(SocialStyle.card).clipShape(RoundedRectangle(cornerRadius: 16)).padding(.horizontal, 12)
+            if let entries = activity?.comments, !entries.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(entries.prefix(2))) { comment in
+                        Button { comments = true } label: {
+                            HStack(alignment: .top, spacing: 9) {
+                                Avatar(name: comment.authorName, picture: comment.authorPicture, size: 32)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(comment.authorName).font(.caption.bold())
+                                    Text(comment.content).font(.subheadline).lineLimit(3).multilineTextAlignment(.leading)
+                                }.frame(maxWidth: .infinity, alignment: .leading)
+                            }.foregroundStyle(.primary)
+                        }.buttonStyle(.plain)
+                    }
+                    if entries.count > 2 { Button("View all \(entries.count) comments") { comments = true }.font(.subheadline.weight(.semibold)) }
+                }.padding(.horizontal, 18).padding(.bottom, 14)
+            }
+        }.background(SocialStyle.card).clipShape(RoundedRectangle(cornerRadius: 16))
+        .fullScreenCover(isPresented: $showingVideos) { MediaViewer(pages: profileVideos, initialID: post.id).environmentObject(model) }
         .sheet(isPresented: $editingTags) { PostTagEditor(post: post).environmentObject(model) }
         .task { await model.loadEngagement(post.id) }
         .fullScreenCover(isPresented: $comments) { CommentsView(post: post).environmentObject(model) }
@@ -983,31 +1015,65 @@ private struct PostRespondersView: View {
     }
 }
 
-private struct PostVideo: View {
+struct PostVideo: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.mediaViewerPresented) private var viewerPresented
     let url: URL
     var active = true
     var fullScreen = false
+    var autoplay = true
+    var controlsBottomInset: CGFloat = 0
+    var onOpen: (() -> Void)? = nil
+    @State private var controlsVisible = true
+    @State private var pausedByUser = false
+    @State private var isPlaying = false
+    @State private var progress = 0.0
+    @State private var duration = 1.0
+    @State private var scrubbing = false
+    @State private var resumeAfterScrub = false
+    @State private var observer: Any?
+    @State private var hideTask: Task<Void, Never>?
     @State private var player: AVPlayer?
     @State private var visible = false
     @State private var mediaWidth: CGFloat = 360
     @State private var videoAspect: CGFloat = 16.0 / 9.0
-    private var shouldPlay: Bool { active && visible && scenePhase == .active && (fullScreen || !viewerPresented) }
+    private var shouldPlay: Bool { !pausedByUser && active && visible && scenePhase == .active && (fullScreen || !viewerPresented) }
     var body: some View {
-        Group {
-            if fullScreen { FitVideoPlayer(player: player) } else { VideoPlayer(player: player) }
+        ZStack {
+            FitVideoPlayer(player: player).contentShape(Rectangle()).onTapGesture { if let onOpen { onOpen() } else { controlsVisible.toggle(); scheduleControlsHide() } }
+            if controlsVisible {
+                Button {
+                    guard let player else { return }
+                    pausedByUser = player.rate > 0
+                    if pausedByUser { NativePlayback.shared.pause(player) } else { updatePlayback() }
+                    isPlaying = !pausedByUser; scheduleControlsHide()
+                } label: { Image(systemName: isPlaying ? "pause.fill" : "play.fill").font(.system(size: 18)).foregroundStyle(.white).frame(width: 44, height: 44).background(.black.opacity(0.4), in: Circle()) }.accessibilityLabel(isPlaying ? "Pause video" : "Play video")
+                VStack { Spacer(); Slider(value: $progress, in: 0...max(1, duration), onEditingChanged: { editing in
+                    guard let player else { return }
+                    scrubbing = editing
+                    if editing { resumeAfterScrub = player.rate > 0; player.pause(); hideTask?.cancel() }
+                    else { player.seek(to: CMTime(seconds: progress, preferredTimescale: 600)); if resumeAfterScrub { pausedByUser = false; updatePlayback() }; scheduleControlsHide() }
+                }).tint(.white).accessibilityLabel("Video progress").padding(.horizontal, 12).padding(.bottom, controlsBottomInset) }
+            }
         }
-            .frame(maxWidth: .infinity, maxHeight: fullScreen ? .infinity : 560)
-            .frame(height: fullScreen ? nil : min(560, mediaWidth / videoAspect))
+            .frame(maxWidth: .infinity, maxHeight: fullScreen ? .infinity : nil)
+            .frame(height: fullScreen ? nil : mediaWidth / videoAspect)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { if $0 > 0 { mediaWidth = $0 } }
             .onGeometryChange(for: Bool.self) { proxy in
                 let frame = proxy.frame(in: .global)
                 let bounds = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.screen.bounds }.first ?? .zero
                 let visibleArea = frame.intersection(bounds)
-                return frame.height > 0 && !visibleArea.isNull && visibleArea.height / frame.height >= 0.65
+                return frame.height > 0 && !visibleArea.isNull && visibleArea.height / min(frame.height, bounds.height) >= 0.65
             } action: { visible = $0; updatePlayback() }
-            .onAppear { let next = AVPlayer(url: url); next.isMuted = !fullScreen; player = next; updatePlayback() }
+            .onAppear {
+                guard player == nil else { return }
+                let item = AVPlayerItem(url: url); item.preferredForwardBufferDuration = 2; item.preferredPeakBitRate = 2_500_000; item.preferredMaximumResolution = CGSize(width: 1280, height: 720)
+                let next = AVPlayer(playerItem: item); next.automaticallyWaitsToMinimizeStalling = false; next.isMuted = !fullScreen; player = next; pausedByUser = !autoplay
+                observer = next.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main) { time in
+                    Task { @MainActor in guard player === next else { return }; let seconds = next.currentItem?.duration.seconds ?? 0; if seconds.isFinite && seconds > 0 { duration = seconds }; if !scrubbing && time.seconds.isFinite { progress = min(max(0, time.seconds), duration) }; isPlaying = next.rate > 0 }
+                }
+                updatePlayback(); scheduleControlsHide()
+            }
             .task(id: url) {
                 guard !fullScreen else { return }
                 do {
@@ -1022,8 +1088,9 @@ private struct PostVideo: View {
             }
             .onChange(of: shouldPlay) { _, _ in updatePlayback() }
             .onDisappear {
-                if let player { NativePlayback.shared.pause(player) }
-                player = nil; visible = false
+                hideTask?.cancel()
+                if let player { if let observer { player.removeTimeObserver(observer) }; NativePlayback.shared.pause(player) }
+                observer = nil; player = nil; visible = false
             }
             .onReceive(NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)) { notification in
                 guard let player, let item = notification.object as? AVPlayerItem, item === player.currentItem, shouldPlay else { return }
@@ -1032,6 +1099,10 @@ private struct PostVideo: View {
             }
     }
 
+    private func scheduleControlsHide() {
+        hideTask?.cancel()
+        hideTask = Task { try? await Task.sleep(for: .seconds(2.2)); if !Task.isCancelled && !pausedByUser && !scrubbing { controlsVisible = false } }
+    }
     private func updatePlayback() {
         guard let player else { return }
         if shouldPlay { NativePlayback.shared.play(player) }
