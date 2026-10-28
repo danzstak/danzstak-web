@@ -58,6 +58,38 @@ The owner confirmed this next-feature order after the current site stabilization
 4. An admin dashboard for site monitoring and management, including review of post and group reports.
 5. Native Android Studio/Kotlin and Xcode/Swift apps as the final phase. The website is the requested distribution hub; direct Android APK distribution and Apple-eligible distribution routes must be evaluated before implementation. Native call integration belongs here, including reliable incoming voice/video ringing from push.
 
+## Artist growth products
+
+Two additional products are planned after the core social and Booking Agent
+work is stable. They must share DanzStak's account, accessibility, privacy, and
+security standards, but remain distinct experiences with their own data
+boundaries.
+
+### DanzStak EPK Builder
+
+Artists will be able to create an electronic press kit from their DanzStak
+profile without retyping public profile information. A kit must support an
+artist photo and logo, short pitch, biography, hometown, genres, lineup,
+notable shows, press quotes with sources, music and video links, stage and
+technical information, booking contact, downloadable/printable output, and a
+stable public link. Drafts remain private until the owner explicitly publishes
+them. Owners can unpublish, update, or permanently delete a kit, and public
+pages must never expose the account email unless the owner deliberately uses
+it as the booking contact.
+
+### recordstores.love
+
+`recordstores.love` will be a worldwide map and directory of active physical
+record shops. Discovery must support map-area search, city and distance search,
+genres and store specialties, current-activity evidence, public website and
+contact links, source attribution, deduplication, and store-submitted
+corrections. The directory must distinguish record shops from general retail,
+music venues, rehearsal rooms, and online-only sellers. Listings are
+periodically re-verified and stale or closed shops are removed only with
+evidence. The existing production domain must not be replaced until its new
+implementation has passed functional, mobile, accessibility, security, and
+data-quality verification.
+
 ## Database recovery protection
 
 Durable DynamoDB tables in the social and engagement stacks enable point-in-time recovery. Call signals and online presence are intentionally excluded because they expire and must not be restored as current activity. The existing Posts table is managed outside those stacks; `./aws-configure-data-recovery.ps1` enables and verifies its recovery protection in the configured production account. The complete production deployment runs this step automatically. Enabling recovery does not restore or replace a table; any actual restore requires a separate recovery workflow.
