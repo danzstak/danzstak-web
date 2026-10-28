@@ -23,6 +23,41 @@ class SocialNavigationTest {
         })
         assertTrue(device.wait(Until.hasObject(By.text("Flashes").pkg("com.danzstak.app")), 20000))
     }
+    @Test fun nativeSectionsAndChatLinksDoNotOpenTheWebsite() {
+        InstrumentationRegistry.getInstrumentation().targetContext.getSharedPreferences("danzstak_drafts", android.content.Context.MODE_PRIVATE).edit().remove("saved.posts.preview").commit()
+        fun menuItem(name: String) {
+            val menu = device.wait(Until.findObject(By.desc("Menu").pkg("com.danzstak.app")), 5000)
+            assertNotNull(menu); menu.click()
+            assertTrue(device.wait(Until.hasObject(By.desc(name)), 5000)); device.findObject(By.desc(name)).click()
+            assertEquals("com.danzstak.app", device.currentPackageName)
+        }
+        device.findObjects(By.desc("Post options")).first().click()
+        assertTrue(device.wait(Until.hasObject(By.text("Save post")), 5000)); device.findObject(By.text("Save post")).click()
+        menuItem("Saved")
+        assertTrue(device.wait(Until.hasObject(By.textContains("Saved on this device")), 5000))
+        device.findObjects(By.desc("Post options")).first().click()
+        assertTrue(device.wait(Until.hasObject(By.text("Unsave post")), 5000)); device.findObject(By.text("Unsave post")).click()
+        assertTrue(device.wait(Until.hasObject(By.textContains("No saved posts available")), 5000))
+        menuItem("Events")
+        assertTrue(device.wait(Until.hasObject(By.text("No published events in your loaded feed.")), 5000))
+        menuItem("Booking Agent")
+        assertTrue(device.wait(Until.hasObject(By.desc("Act name")), 5000))
+        device.findObject(By.desc("Act name")).text = "Preview act"; device.findObject(By.desc("Home city")).text = "Oakland"
+        val scroll = androidx.test.uiautomator.UiScrollable(androidx.test.uiautomator.UiSelector().scrollable(true))
+        assertTrue(scroll.scrollIntoView(androidx.test.uiautomator.UiSelector().text("Find venue leads"))); device.findObject(By.text("Find venue leads")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Preview · Sample leads, not real search results")), 5000))
+        assertTrue(scroll.scrollIntoView(androidx.test.uiautomator.UiSelector().description("Name this tour"))); device.findObject(By.desc("Name this tour")).text = "Preview native tour"
+        assertTrue(scroll.scrollIntoView(androidx.test.uiautomator.UiSelector().text("Save tour"))); device.findObject(By.text("Save tour")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Preview · Tour saved on this device")), 5000))
+        device.findObject(By.desc("Messages")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Jamie Rivera")), 5000)); device.findObject(By.text("Jamie Rivera")).click()
+        val link = "https://www.danzstak.com/feed.html#events"
+        device.findObject(By.desc("Message")).text = link; device.findObject(By.desc("Send message")).click()
+        assertTrue(device.wait(Until.hasObject(By.desc("Open link $link")), 5000)); device.findObject(By.desc("Open link $link")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("No published events in your loaded feed.")), 5000)); assertEquals("com.danzstak.app", device.currentPackageName)
+        device.findObject(By.desc("Messages")).click()
+        assertTrue(device.wait(Until.hasObject(By.text("Chats")), 5000)); assertEquals("com.danzstak.app", device.currentPackageName)
+    }
     @Test fun homeAndNativeChat() {
         assertTrue(device.hasObject(By.text("Flashes")))
         assertTrue(device.hasObject(By.text("Your Mix")))

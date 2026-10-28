@@ -12,8 +12,8 @@ android {
         applicationId = "com.danzstak.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.1.8"
+        versionCode = 10
+        versionName = "0.1.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -34,6 +34,7 @@ android {
 
 dependencies {
     implementation("androidx.activity:activity:1.10.1")
+    implementation("androidx.browser:browser:1.8.0")
     implementation("androidx.media3:media3-transformer:1.5.1")
     implementation("androidx.media3:media3-exoplayer:1.5.1")
     implementation("androidx.media3:media3-effect:1.5.1")

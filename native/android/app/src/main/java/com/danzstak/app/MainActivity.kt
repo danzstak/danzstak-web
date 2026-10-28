@@ -194,7 +194,7 @@ class MainActivity : ComponentActivity() {
         if (!signedIn()) {
             val box = card(); box.addView(label("Find your people. Feel your scene.", 25, true)); box.addView(label("Your music. Your community. Your Mix.", 17)); box.addView(button("Log in") { startLogin() }); box.addView(button("Explore the demo") { enterDemo() }); content.addView(box)
         } else {
-            when (tab) { "Home" -> home(); "People" -> people(); "Create" -> composer(); "Alerts" -> alerts(); "Menu" -> menu(); "Profile" -> profile(); "Tribes" -> tribes() }
+            when (tab) { "Home" -> home(); "People" -> people(); "Create" -> composer(); "Alerts" -> alerts(); "Menu" -> menu(); "Profile" -> profile(); "Tribes" -> tribes(); "Events" -> eventPosts(); "Saved" -> savedPosts(); "Booking Agent" -> bookingAgent() }
             val footer = row().apply { background = rounded(Color.WHITE); elevation = dp(6).toFloat() }
             listOf("Home" to R.drawable.home, "People" to R.drawable.people, "Create" to R.drawable.create, "Alerts" to R.drawable.alerts, "Menu" to R.drawable.menu).forEach { (name, resource) ->
                 footer.addView(column().apply {
@@ -324,15 +324,84 @@ class MainActivity : ComponentActivity() {
         item("Tribes", R.drawable.tribes) { tab = "Tribes"; showApp() }
         item("Photos", R.drawable.camera) { showMediaPosts("image", "Photos") }
         item("Videos", R.drawable.video) { showMediaPosts("video", "Videos") }
-        item("Events", R.drawable.mic) { openWeb("https://www.danzstak.com/feed.html#events") }
-        item("Booking Agent", R.drawable.bus) { openWeb("https://www.danzstak.com/booking.html") }
-        item("Saved", R.drawable.bookmark) { openWeb("https://www.danzstak.com/feed.html#saved") }
+        item("Events", R.drawable.mic) { tab = "Events"; showApp() }
+        item("Booking Agent", R.drawable.bus) { tab = "Booking Agent"; showApp() }
+        item("Saved", R.drawable.bookmark) { tab = "Saved"; showApp() }
         item("Settings", R.drawable.settings) { settingsMenu() }
         item("Support", R.drawable.support) { openWeb("https://www.danzstak.com/support.html") }
         item("Privacy Policy", R.drawable.lock) { openWeb("https://www.danzstak.com/privacy.html") }
         item("Terms of Service", R.drawable.document) { openWeb("https://www.danzstak.com/terms.html") }
         item(if (demo) "Exit demo" else "Logout", R.drawable.logout) { signOut() }
         content.addView(items)
+    }
+    private fun savedPostIds(): Set<String> = prefs.getStringSet("saved.posts." + feedIdentity(), emptySet()).orEmpty()
+    private fun savedPosts() {
+        title("Saved")
+        content.addView(button("Back to Menu") { tab = "Menu"; showApp() })
+        content.addView(label("Saved on this device for this sign-in. Only posts in your loaded feed are shown.", 14))
+        val selected = posts.filter { it.id in savedPostIds() }
+        if (selected.isEmpty()) content.addView(label("No saved posts available. Use Post options → Save post.", 16))
+        selected.forEach { content.addView(postCard(it)) }
+    }
+    private fun eventPosts() {
+        title("Events")
+        content.addView(button("Back to Menu") { tab = "Menu"; showApp() })
+        val events = posts.filter { it.text.startsWith("📅 Event:") }
+        if (events.isEmpty()) content.addView(label("No published events in your loaded feed.", 16))
+        events.forEach { content.addView(postCard(it)) }
+    }
+    private val demoTours = mutableListOf<JSONObject>()
+    private fun bookingAgent() {
+        title("Booking Agent")
+        content.addView(button("Back to Menu") { tab = "Menu"; showApp() })
+        content.addView(label("Plan shows and save proposed routes. Venue leads are not confirmed bookings.", 15))
+        if (!demo) { content.addView(label("Native booking is waiting for the website/backend handoff. Planning and saving are not connected in this version.", 16)); return }
+        val form = card()
+        fun field(hint: String, value: String = "") = EditText(this).apply { this.hint = hint; contentDescription = hint; setText(value); filters = arrayOf(android.text.InputFilter.LengthFilter(120)); form.addView(this) }
+        val artist = field("Act name"); val home = field("Home city"); val destination = field("Turnaround city · optional for local shows")
+        val genre = Spinner(this).apply { adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, listOf("DIY Punk", "Metal", "Rock", "DJ / Electronic", "Hip-Hop", "Jazz", "Orchestra / Classical", "Other")); contentDescription = "Music genre" }; form.addView(genre)
+        val local = CheckBox(this).apply { text = "Find shows near home"; isChecked = true }; form.addView(local)
+        val first = field("First show date · YYYY-MM-DD", java.time.LocalDate.now().toString()); val last = field("Home by · YYYY-MM-DD", java.time.LocalDate.now().plusDays(7).toString())
+        val results = column(); val tourName = field("Name this tour")
+        var planned: JSONObject? = null; var submitted: JSONObject? = null
+        val feedback = label("", 14); form.addView(feedback)
+        val build = button("Find venue leads") {}; val save = button("Save tour") {}; save.isEnabled = false
+        form.addView(build); form.addView(save); content.addView(form); content.addView(results)
+        val savedList = column(); content.addView(label("Saved tours", 20, true)); content.addView(savedList)
+        fun renderTours(tours: List<JSONObject>) {
+            savedList.removeAllViews()
+            if (tours.isEmpty()) savedList.addView(label("No saved tours yet.", 15))
+            tours.forEach { tour -> savedList.addView(button(tour.optString("name", "Tour")) { val plan = tour.optJSONObject("plan") ?: JSONObject(); AlertDialog.Builder(this).setTitle(tour.optString("name")).setMessage(listOf(plan.optString("artist"), plan.optString("start"), plan.optString("departOn") + " → " + plan.optString("returnBy"), DanzStakApi.objects(plan.optJSONArray("markets")).joinToString("\n") { it.optString("stop") }).filter { it.isNotBlank() }.joinToString("\n")).setPositiveButton("Done", null).show() }) }
+        }
+        fun reload() { if (demo) renderTours(demoTours) else work("Loading saved tours…", { api.tours() }, { if (tab == "Booking Agent") renderTours(it) }, { feedback.text = "Saved tours could not load. Try again." }) }
+        build.setOnClickListener {
+            val depart = runCatching { java.time.LocalDate.parse(first.text.toString().trim()) }.getOrNull(); val finish = runCatching { java.time.LocalDate.parse(last.text.toString().trim()) }.getOrNull()
+            if (artist.text.isBlank() || home.text.length < 2 || !local.isChecked && destination.text.length < 2 || depart == null || finish == null || finish < depart) { feedback.text = "Enter an act, home city, valid dates, and a turnaround city for a tour."; return@setOnClickListener }
+            val body = JSONObject().put("artist", artist.text.toString().trim()).put("actType", "band").put("genre", genre.selectedItem.toString()).put("mode", if (local.isChecked) "local" else "tour").put("start", home.text.toString().trim()).put("end", destination.text.toString().trim()).put("days", (java.time.temporal.ChronoUnit.DAYS.between(depart, finish) + 1).coerceIn(1, 180)).put("departOn", depart.toString()).put("returnBy", finish.toString()).put("stops", org.json.JSONArray())
+            build.isEnabled = false; save.isEnabled = false; planned = null; submitted = null; results.removeAllViews()
+            fun display(data: JSONObject) {
+                planned = data; submitted = body; build.isEnabled = true; save.isEnabled = true
+                feedback.text = if (demo) "Preview · Sample leads, not real search results" else "Proposed leads. Verify contacts before treating a date as booked."
+                val route = data.optJSONObject("route"); results.addView(label("${route?.optInt("distanceMiles") ?: 0} miles · Proposed route", 18, true))
+                DanzStakApi.objects(data.optJSONArray("candidates")).forEach { market ->
+                    results.addView(label(market.optString("stop"), 19, true))
+                    val venues = DanzStakApi.objects(market.optJSONArray("venues"))
+                    if (venues.isEmpty()) results.addView(label("No venue leads returned for this stop.", 14))
+                    venues.forEach { venue -> val box = card(); box.addView(label(venue.optString("name"), 17, true)); box.addView(label(venue.optString("address"), 14)); listOf("emails", "phones").forEach { key -> val values = venue.optJSONArray(key); if (values != null) for (n in 0 until values.length()) box.addView(label(values.optString(n), 14).apply { setTextIsSelectable(true) }) }; val links = venue.optJSONArray("websites"); if (links != null) for (n in 0 until links.length()) { val url = links.optString(n); if (url.startsWith("https://")) box.addView(button("Venue website") { openWeb(url) }) }; results.addView(box) }
+                }
+            }
+            if (demo) display(JSONObject().put("route", JSONObject().put("distanceMiles", 0)).put("candidates", org.json.JSONArray().put(JSONObject().put("stop", body.getString("start")).put("venues", org.json.JSONArray()))))
+            else work("Finding venue leads…", { api.planTour(body) }, { if (tab == "Booking Agent") display(it) }, { build.isEnabled = true; feedback.text = "The route service could not complete the search. Your form is preserved; try again." })
+        }
+        save.setOnClickListener {
+            val data = planned ?: return@setOnClickListener; val request = submitted ?: return@setOnClickListener
+            if (tourName.text.isBlank()) { feedback.text = "Give this tour a name first."; return@setOnClickListener }
+            val body = JSONObject(request.toString()).put("name", tourName.text.toString().trim()).put("direction", "custom").put("distanceMiles", data.optJSONObject("route")?.optInt("distanceMiles") ?: 0).put("markets", org.json.JSONArray(DanzStakApi.objects(data.optJSONArray("candidates")).map { JSONObject().put("stop", it.optString("stop")).put("proposedDate", it.optString("proposedDate")).put("confirmed", false) }))
+            save.isEnabled = false
+            if (demo) { demoTours.add(JSONObject().put("name", body.getString("name")).put("plan", body)); feedback.text = "Preview · Tour saved on this device"; renderTours(demoTours) }
+            else work("Saving tour…", { api.saveTour(body) }, { feedback.text = "Tour saved to your account."; reload() }, { save.isEnabled = true; feedback.text = "Save was not confirmed. Refresh saved tours before trying again." })
+        }
+        content.addView(button("Refresh saved tours") { reload() }); reload()
     }
     private fun showMediaPosts(type: String, name: String) {
         content.removeAllViews(); title(name)
@@ -442,10 +511,12 @@ class MainActivity : ComponentActivity() {
         if (demo) show(listOf(TagFriend("demo-friend", "Jamie Rivera"))) else work("Loading friends…", { api.tagFriends() }, { friends = it; show(it) })
     }
     private fun postOptions(post: FeedPost) {
-        val options = mutableListOf("Share")
+        val saveLabel = if (post.id in savedPostIds()) "Unsave post" else "Save post"
+        val options = mutableListOf("Share", saveLabel)
         if (post.owner) options.add("Tags & location")
         if (post.tags.any { it.isMe }) options.add("Remove my tag")
         AlertDialog.Builder(this).setTitle("Post options").setItems(options.toTypedArray()) { _, which -> when (options[which]) {
+            "Save post", "Unsave post" -> { val ids = savedPostIds().toMutableSet(); if (!ids.add(post.id)) ids.remove(post.id); prefs.edit().putStringSet("saved.posts." + feedIdentity(), ids).apply(); if (tab == "Saved") showApp() else status.text = if (post.id in ids) "Post saved on this device" else "Post removed from Saved" }
             "Share" -> share(post.text); "Tags & location" -> tagEditor(post) { _, _ -> }; "Remove my tag" -> removeTag(post)
         } }.show()
     }
@@ -1326,7 +1397,27 @@ class MainActivity : ComponentActivity() {
             runOnUiThread { if (!isDestroyed && generation == imageGeneration && bitmap != null) { feedImageMemory.put(memoryKey, bitmap); image.setImageBitmap(bitmap); if (fitPost) image.post { if (image.width > 0 && bitmap.width > 0) image.layoutParams = image.layoutParams.apply { height = (image.width.toFloat() * bitmap.height / bitmap.width).toInt().coerceAtLeast(1) } } } }
         }
     }
-    private fun openWeb(url: String) { if (!url.startsWith("https://")) return; runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }.onFailure { status.text = "Install a browser to open this link." } }
+    private fun openWeb(url: String) {
+        val uri = Uri.parse(url)
+        if (uri.scheme != "https") return
+        if (uri.host?.lowercase() in setOf("danzstak.com", "www.danzstak.com")) {
+            val target = when (uri.path) {
+                "/booking.html" -> "Booking Agent"
+                "/messages.html", "/chat.html" -> "Messages"
+                "", "/", "/feed.html" -> when (uri.fragment?.lowercase()) { "events" -> "Events"; "saved" -> "Saved"; "messages", "messenger", "chat" -> "Messages"; else -> "Home" }
+                else -> null
+            }
+            if (target != null && signedIn()) { tab = if (target == "Messages") "Home" else target; showApp(); if (target == "Messages") chats(); return }
+        }
+        val provider = androidx.browser.customtabs.CustomTabsClient.getPackageName(this, null)
+            ?: packageManager.queryIntentActivities(Intent(Intent.ACTION_VIEW, Uri.parse("https://example.invalid")).addCategory(Intent.CATEGORY_BROWSABLE), android.content.pm.PackageManager.MATCH_DEFAULT_ONLY).firstOrNull { it.activityInfo.exported && it.activityInfo.packageName != packageName }?.activityInfo?.packageName
+        if (provider == null) { status.text = "Install a browser to open outside links."; return }
+        runCatching {
+            val panel = androidx.browser.customtabs.CustomTabsIntent.Builder().setShowTitle(true).setShareState(androidx.browser.customtabs.CustomTabsIntent.SHARE_STATE_OFF).build()
+            panel.intent.setPackage(provider)
+            panel.launchUrl(this, uri)
+        }.onFailure { status.text = "The browser could not open this link." }
+    }
     private fun share(text: String) { video?.pause(); startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }, "Share")) }
     private fun column() = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     private fun row() = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }

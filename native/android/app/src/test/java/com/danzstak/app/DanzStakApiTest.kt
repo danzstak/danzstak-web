@@ -118,4 +118,17 @@ class DanzStakApiTest {
         assertEquals("Hey", api.sendMessage("friend@example.com", "Hey").getString("content"))
         assertEquals("friend@example.com", JSONObject(connection.body.toString("UTF-8")).getString("recipientEmail"))
     }
+    @Test fun tourRequestsUseExistingOpaqueSessionAndPreservePlanPayload() {
+        val requests = mutableListOf<Connection>()
+        val api = DanzStakApi(openConnection = { url -> Connection(url, 200, if (url.path == "/tour/route") """{"route":{"distanceMiles":12},"candidates":[]}""" else if (url.path == "/tours") """{"tours":[]}""" else "{}").also { requests.add(it) } }) { "opaque-native-session" }
+        assertTrue(api.tours().isEmpty())
+        val plan = JSONObject().put("artist", "Test act").put("start", "Test city").put("mode", "local")
+        assertEquals(12, api.planTour(plan).getJSONObject("route").getInt("distanceMiles"))
+        assertEquals(35000, requests.last().readTimeout)
+        api.saveTour(plan.put("name", "Test plan"))
+        assertEquals(listOf("/tours", "/tour/route", "/tours"), requests.map { it.url.path })
+        assertEquals("POST", requests.last().requestMethod)
+        assertEquals("Test plan", JSONObject(requests.last().body.toString("UTF-8")).getString("name"))
+        assertTrue(requests.all { it.getRequestProperty("Authorization") == "Bearer opaque-native-session" && it.getRequestProperty("Origin") == "https://www.danzstak.com" && !it.instanceFollowRedirects && it.closed })
+    }
 }

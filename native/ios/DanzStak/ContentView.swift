@@ -36,6 +36,8 @@ struct ContentView: View {
     @State private var query = ""
     @SceneStorage("danzstak.feed.position") private var feedPosition: String?
     @State private var showGroups = false
+    @State private var linkedSection: String?
+    @State private var pendingLinkedSection: String?
     @State private var selectedStory: FeedStory?
     @State private var viewingReels = false
     @State private var showFacebookImport = false
@@ -88,7 +90,7 @@ struct ContentView: View {
                 }
                 .tint(SocialStyle.blue)
                 }
-                .fullScreenCover(isPresented: $showMessages) { MessagesView(isDemo: model.isDemo).environmentObject(model) }
+                .fullScreenCover(isPresented: $showMessages, onDismiss: { if let section = pendingLinkedSection { pendingLinkedSection = nil; linkedSection = section } }) { MessagesView(isDemo: model.isDemo).environmentObject(model) }
                 .sheet(isPresented: $composer) { ComposerView(isDemo: model.isDemo).environmentObject(model) }
                 .sheet(isPresented: $showGroups) { NavigationStack { groups }.environmentObject(model) }
                 .fullScreenCover(item: $selectedStory, onDismiss: {
@@ -101,9 +103,26 @@ struct ContentView: View {
                         .id("\(viewingReels ? "reels" : "stories").\(story.id)")
                 }
                 .sheet(isPresented: $showFacebookImport) { FacebookImportView() }
+                .sheet(item: Binding(get: { linkedSection.map(NativeLinkedSection.init) }, set: { linkedSection = $0?.id })) { section in
+                    NavigationStack {
+                        Group { if section.id == "Booking Agent" { NativeBookingView() } else { NativePostCollection(saved: section.id == "Saved") } }
+                            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { linkedSection = nil } } }
+                    }.environmentObject(model)
+                }
             } else { welcome }
         }
         .tint(SocialStyle.blue)
+        .environment(\.openURL, OpenURLAction { url in
+            guard model.signedIn, ["www.danzstak.com", "danzstak.com"].contains(url.host?.lowercased() ?? ""), url.scheme == "https" else { return .systemAction }
+            if url.path == "/booking.html" { openNativeSection("Booking Agent"); return .handled }
+            if ["", "/", "/feed.html", "/messages.html", "/chat.html"].contains(url.path) {
+                if ["messages", "messenger", "chat"].contains(url.fragment?.lowercased() ?? "") || ["/messages.html", "/chat.html"].contains(url.path) { showMessages = true }
+                else if ["events", "saved"].contains(url.fragment?.lowercased() ?? "") { openNativeSection(url.fragment?.lowercased() == "events" ? "Events" : "Saved") }
+                else { showMessages = false; selection = .home }
+                return .handled
+            }
+            return .systemAction
+        })
         .environment(\.mediaViewerPresented, selectedStory != nil || drawerResponse != nil || pendingResponse != nil)
         .overlay(alignment: .leading) {
             if let response = drawerResponse {
@@ -120,8 +139,13 @@ struct ContentView: View {
         }
         .task { await model.start() }
         .onChange(of: model.signedIn) { _, signedIn in
-            if !signedIn { feedPosition = nil; showMessages = false; selection = .home; composer = false; showGroups = false; query = ""; drawerResponse = nil; pendingResponse = nil; selectedStory = nil }
+            if !signedIn { linkedSection = nil; pendingLinkedSection = nil; feedPosition = nil; showMessages = false; selection = .home; composer = false; showGroups = false; query = ""; drawerResponse = nil; pendingResponse = nil; selectedStory = nil }
         }
+    }
+
+    private func openNativeSection(_ section: String) {
+        if showMessages { pendingLinkedSection = section; showMessages = false }
+        else { linkedSection = section }
     }
 
     private var welcome: some View {
@@ -410,9 +434,9 @@ struct ContentView: View {
                 menuRow("Tribes", icon: "person.3.fill") { showGroups = true }
                 NavigationLink { mediaPosts(kind: "image", title: "Photos") } label: { menuLabel("Photos", icon: "camera.fill") }
                 NavigationLink { mediaPosts(kind: "video", title: "Videos") } label: { menuLabel("Videos", icon: "play.rectangle.fill") }
-                menuWebRow("Events", icon: "mic.fill", path: "feed.html#events")
-                menuWebRow("Booking Agent", icon: "bus.fill", path: "booking.html")
-                menuWebRow("Saved", icon: "bookmark.fill", path: "feed.html#saved")
+                NavigationLink { NativePostCollection(saved: false) } label: { menuLabel("Events", icon: "mic.fill") }
+                NavigationLink { NativeBookingView() } label: { menuLabel("Booking Agent", icon: "bus.fill") }
+                NavigationLink { NativePostCollection(saved: true) } label: { menuLabel("Saved", icon: "bookmark.fill") }
                 NavigationLink { nativeSettings } label: { menuLabel("Settings", icon: "gearshape.fill") }
                 menuWebRow("Support", icon: "questionmark.circle.fill", path: "support.html")
                 menuWebRow("Privacy Policy", icon: "lock.fill", path: "privacy.html")
@@ -888,6 +912,7 @@ private struct PostCard: View {
                 }
                 Spacer()
                 Menu {
+                    Button(model.isPostSaved(post.id) ? "Unsave post" : "Save post") { model.toggleSavedPost(post.id) }
                     Button("Share") { sharing = true }
                     if post.isOwner == true { Button("Tags & location") { editingTags = true } }
                     if post.taggedUsers?.contains(where: { $0.isMe == true }) == true { Button("Remove my tag", role: .destructive) { removeTag() } }
@@ -1388,5 +1413,113 @@ private struct NativeTribesView: View {
         do { if !model.isDemo { try await api.reportGroup(group.id, details: reportDetails.trimmingCharacters(in: .whitespacesAndNewlines)) }; reporting = nil; feedback = model.isDemo ? "Preview · No report was sent" : "Report submitted" }
         catch APIClient.Failure.sessionExpired { model.expireSession() }
         catch { feedback = "The report could not be submitted. Your text is saved here; try again." }
+    }
+}
+
+private struct NativeLinkedSection: Identifiable { let id: String; init(_ id: String) { self.id = id } }
+private struct NativePostCollection: View {
+    @EnvironmentObject private var model: AppModel
+    let saved: Bool
+    private var posts: [FeedPost] { model.posts.filter { saved ? model.isPostSaved($0.id) : $0.text.hasPrefix("📅 Event:") } }
+    var body: some View {
+        ScrollView { LazyVStack(spacing: 12) {
+            if saved { Text("Saved on this device for this sign-in. Only posts in your loaded feed are shown.").font(.subheadline).foregroundStyle(.secondary).padding() }
+            if posts.isEmpty { Text(saved ? "No saved posts available. Use Post options → Save post." : "No published events in your loaded feed.").padding() }
+            ForEach(posts) { PostCard(post: $0) }
+        } }.background(SocialStyle.canvas).navigationTitle(saved ? "Saved" : "Events").navigationBarTitleDisplayMode(.inline)
+    }
+}
+private struct NativeBookingView: View {
+    @EnvironmentObject private var model: AppModel
+    @State private var artist = ""
+    @State private var home = ""
+    @State private var destination = ""
+    @State private var genre = "DIY Punk"
+    @State private var local = true
+    @State private var depart = Date()
+    @State private var returnBy = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
+    @State private var name = ""
+    @State private var busy = false
+    @State private var feedback = ""
+    @State private var route: NativeTourRoute?
+    @State private var submitted: [String: Any] = [:]
+    @State private var tours: [NativeTour] = []
+    @State private var demoSavedNames: [String] = []
+    private let api = APIClient()
+    private func date(_ value: Date) -> String { let format = DateFormatter(); format.locale = Locale(identifier: "en_US_POSIX"); format.dateFormat = "yyyy-MM-dd"; return format.string(from: value) }
+    var body: some View {
+        Group {
+        if !model.isDemo {
+            ScrollView { VStack(alignment: .leading, spacing: 16) {
+                Text("Native booking is waiting for the website/backend handoff.").font(.headline)
+                Text("Planning and saving are not connected in this version.")
+            }.padding() }
+        } else {
+        Form {
+            Section { Text("Plan shows and save proposed routes. Venue leads are not confirmed bookings.") }
+            Section("Plan your shows") {
+                TextField("Act name", text: $artist).accessibilityIdentifier("booking.artist")
+                TextField("Home city", text: $home).accessibilityIdentifier("booking.home")
+                Toggle("Find shows near home", isOn: $local)
+                if !local { TextField("Turnaround city", text: $destination) }
+                Picker("Music genre", selection: $genre) { ForEach(["DIY Punk", "Metal", "Rock", "DJ / Electronic", "Hip-Hop", "Jazz", "Orchestra / Classical", "Other"], id: \.self) { Text($0) } }
+                DatePicker("First show date", selection: $depart, displayedComponents: .date).onChange(of: depart) { _, value in if returnBy < value { returnBy = value } }
+                DatePicker("Home by", selection: $returnBy, in: depart..., displayedComponents: .date)
+                Button("Find venue leads") { Task { await findLeads() } }.disabled(busy)
+            }
+            if busy { ProgressView("Working…") }
+            if !feedback.isEmpty { Text(feedback).font(.subheadline) }
+            if let route {
+                Section("Proposed route · \(Int(route.route.distanceMiles ?? 0)) miles") {
+                    ForEach(Array(route.candidates.enumerated()), id: \.offset) { _, market in
+                        Text(market.stop).font(.headline)
+                        if market.venues?.isEmpty != false { Text("No venue leads returned for this stop.") }
+                        ForEach(Array((market.venues ?? []).enumerated()), id: \.offset) { _, venue in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(venue.name).font(.headline)
+                                if let address = venue.address { Text(address) }
+                                ForEach((venue.emails ?? []) + (venue.phones ?? []), id: \.self) { Text($0).textSelection(.enabled) }
+                                ForEach(venue.websites ?? [], id: \.self) { value in if let url = URL(string: value), url.scheme == "https" { Link("Venue website", destination: url) } }
+                            }
+                        }
+                    }
+                }
+                Section("Save this plan") { TextField("Name this tour", text: $name); Button("Save tour") { Task { await save() } }.disabled(busy || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) }
+            }
+            Section("Saved tours") {
+                if tours.isEmpty && demoSavedNames.isEmpty { Text("No saved tours yet.") }
+                ForEach(demoSavedNames, id: \.self) { Text($0 + " · Preview") }
+                ForEach(tours) { tour in NavigationLink(tour.name) { List {
+                    Text(tour.plan.artist ?? ""); Text(tour.plan.start ?? ""); Text((tour.plan.departOn ?? "") + " → " + (tour.plan.returnBy ?? ""))
+                    ForEach(Array((tour.plan.markets ?? []).enumerated()), id: \.offset) { _, market in Text(market.stop) }
+                }.navigationTitle(tour.name) } }
+                Button("Refresh saved tours") { Task { await load() } }.disabled(busy)
+            }
+        }
+        }
+        }.navigationTitle("Booking Agent").navigationBarTitleDisplayMode(.inline).task { if model.isDemo { await load() } }
+    }
+    private func load() async {
+        guard !model.isDemo else { return }
+        do { tours = try await api.tours() } catch APIClient.Failure.sessionExpired { await model.logout() } catch { feedback = "Saved tours could not load. Try again." }
+    }
+    private func findLeads() async {
+        guard !artist.trimmingCharacters(in: .whitespaces).isEmpty, home.trimmingCharacters(in: .whitespaces).count >= 2, local || destination.trimmingCharacters(in: .whitespaces).count >= 2, returnBy >= depart else { feedback = "Enter an act, home city, valid dates, and a turnaround city for a tour."; return }
+        busy = true; route = nil; defer { busy = false }
+        let body: [String: Any] = ["artist": String(artist.prefix(100)), "actType": "band", "genre": genre, "mode": local ? "local" : "tour", "start": String(home.prefix(120)), "end": String(destination.prefix(120)), "stops": [String](), "days": min(180, max(1, (Calendar.current.dateComponents([.day], from: depart, to: returnBy).day ?? 0) + 1)), "departOn": date(depart), "returnBy": date(returnBy)]
+        do {
+            if model.isDemo { route = NativeTourRoute(route: .init(distanceMiles: 0), candidates: [.init(stop: home, proposedDate: date(depart), venues: [])]); feedback = "Preview · Sample leads, not real search results" }
+            else { route = try await api.planTour(body); feedback = "Proposed leads. Verify contacts before treating a date as booked." }
+            submitted = body
+        } catch APIClient.Failure.sessionExpired { await model.logout() } catch { feedback = "The route service could not complete the search. Your form is preserved; try again." }
+    }
+    private func save() async {
+        guard let route, !busy else { return }; busy = true; defer { busy = false }
+        var body = submitted; body["name"] = String(name.prefix(100)); body["direction"] = "custom"; body["distanceMiles"] = route.route.distanceMiles ?? 0
+        body["markets"] = route.candidates.map { ["stop": $0.stop, "proposedDate": $0.proposedDate ?? "", "confirmed": false] as [String: Any] }
+        do {
+            if model.isDemo { demoSavedNames.append(name); feedback = "Preview · Tour saved on this device" }
+            else { try await api.saveTour(body); feedback = "Tour saved to your account."; await load() }
+        } catch APIClient.Failure.sessionExpired { await model.logout() } catch { feedback = "Save was not confirmed. Refresh saved tours before trying again." }
     }
 }

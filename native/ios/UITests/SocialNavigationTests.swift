@@ -1,6 +1,20 @@
 import XCTest
 
 final class SocialNavigationTests: XCTestCase {
+    func testNativeMenuSectionsAndChatLink() {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-preview"]; app.launch()
+        XCTAssertTrue(app.tabBars.buttons["Menu"].waitForExistence(timeout: 20)); app.tabBars.buttons["Menu"].tap()
+        app.buttons["Events"].tap(); XCTAssertTrue(app.navigationBars["Events"].waitForExistence(timeout: 5)); XCTAssertTrue(app.staticTexts["No published events in your loaded feed."].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["Saved"].tap(); XCTAssertTrue(app.navigationBars["Saved"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["Booking Agent"].tap(); XCTAssertTrue(app.textFields["booking.artist"].waitForExistence(timeout: 5)); XCTAssertTrue(app.textFields["booking.home"].exists)
+        app.tabBars.buttons["Home"].tap()
+        app.buttons["header.messages"].tap(); XCTAssertTrue(app.buttons["chat.preview-jamie"].waitForExistence(timeout: 5)); app.buttons["chat.preview-jamie"].tap()
+        let composer = app.textFields["chat.composer"]; composer.tap(); composer.typeText("https://www.danzstak.com/feed.html#events"); app.buttons["Send message"].tap()
+        let link = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "https://www.danzstak.com/feed.html#events")).firstMatch; XCTAssertTrue(link.waitForExistence(timeout: 5)); link.tap()
+        XCTAssertTrue(app.navigationBars["Events"].waitForExistence(timeout: 8))
+    }
     func testNativeChatPreview() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-preview"]

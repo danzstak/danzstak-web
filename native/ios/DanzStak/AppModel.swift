@@ -42,6 +42,13 @@ final class AppModel: NSObject, ObservableObject, ASWebAuthenticationPresentatio
     private let api = APIClient()
     private var webSession: ASWebAuthenticationSession?
 
+    private var savedPostsKey: String { "native.saved." + (isDemo ? "preview" : SHA256.hash(data: Data((SessionStore.load() ?? "signed-out").utf8)).map { String(format: "%02x", $0) }.joined()) }
+    func isPostSaved(_ id: String) -> Bool { (UserDefaults.standard.stringArray(forKey: savedPostsKey) ?? []).contains(id) }
+    func toggleSavedPost(_ id: String) {
+        var ids = Set(UserDefaults.standard.stringArray(forKey: savedPostsKey) ?? [])
+        if ids.contains(id) { ids.remove(id) } else { ids.insert(id) }
+        objectWillChange.send(); UserDefaults.standard.set(ids.sorted(), forKey: savedPostsKey)
+    }
     func start() async {
         if ProcessInfo.processInfo.arguments.contains("--ui-preview"), !signedIn { enterDemo(); return }
         guard signedIn else { status = "Log in to see Your Mix."; return }

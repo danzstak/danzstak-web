@@ -28,6 +28,9 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
     }
     fun publish(text: String, location: String): String = request("/secure-posts", "POST", JSONObject().put("content", text).put("location", location).put("audience", "public").put("originalContentCertified", true)).getString("postId")
     fun profile(email: String = ""): JSONObject = request("/profiles" + if (email.isBlank()) "" else "?email=" + URLEncoder.encode(email, "UTF-8")).getJSONObject("profile")
+    fun tours(): List<JSONObject> = objects(request("/tours").optJSONArray("tours"))
+    fun planTour(body: JSONObject): JSONObject = request("/tour/route", "POST", body, readTimeout = 35_000)
+    fun saveTour(body: JSONObject) { request("/tours", "POST", body) }
     fun logout() { request("/auth/logout", "POST", JSONObject()) }
     fun engagement(id: String): JSONObject = request("/engagement?postId=" + URLEncoder.encode(id, "UTF-8"))
     fun react(id: String, reaction: String) { request("/reactions", "POST", JSONObject().put("postId", id).put("reaction", reaction)) }
@@ -83,7 +86,7 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
     fun editMessage(contact: String, message: String, text: String): JSONObject = request("/messages", "POST", JSONObject().put("action", "edit").put("contactEmail", contact).put("messageId", message).put("content", text)).getJSONObject("message")
     fun reactMessage(contact: String, message: String, reaction: String) { request("/messages", "POST", JSONObject().put("action", "reaction").put("contactEmail", contact).put("messageId", message).put("reaction", reaction)) }
     private fun postID(value: String): String { require(value.matches(Regex("[a-fA-F0-9-]{36}"))); return value }
-    private fun request(path: String, method: String = "GET", body: JSONObject? = null, authenticated: Boolean = true): JSONObject {
+    private fun request(path: String, method: String = "GET", body: JSONObject? = null, authenticated: Boolean = true, readTimeout: Int = 15_000): JSONObject {
         val url = URL(base + path)
         require(url.protocol == "https" && url.host == "api.danzstak.com")
         val token = if (authenticated) session() ?: throw SessionExpired() else null
@@ -91,7 +94,7 @@ class DanzStakApi(private val openConnection: (URL) -> HttpURLConnection = { it.
         try {
             connection.instanceFollowRedirects = false
             connection.requestMethod = method
-            connection.connectTimeout = 10_000; connection.readTimeout = 15_000
+            connection.connectTimeout = 10_000; connection.readTimeout = readTimeout
             connection.setRequestProperty("Accept", "application/json")
             connection.setRequestProperty("Origin", "https://www.danzstak.com")
             if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")

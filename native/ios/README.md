@@ -118,3 +118,10 @@ Validation: Android 0.1.6 assembles successfully, passes lint, 10 API unit tests
 Feed video audio: a persistent speaker button in the top-right corner toggles sound independently of opening the full-screen viewer. Feed playback starts muted and resets to muted after leaving view/backgrounding. Android APK version 0.1.7 includes this control.
 
 Profile covers start at the top of the profile viewport without a duplicate name/title row. Android retains Back as a small overlay on the cover; the member name stays below their avatar. Post video sound controls are shared by Your Mix and profiles.
+
+
+### Native navigation and website handoff (0.1.9)
+
+Events uses the same `📅 Event:` post convention as the PWA, rendered with native post cards. Saved uses a private, current-sign-in collection on this device; it is not synchronized with browser storage or other devices. Post options adds Save/Unsave. Both sections stay native. DanzStak feed, Events, Saved, Booking and chat links route to the native screens; Android outside links use an explicitly selected browser Custom Tab/provider instead of allowing the installed PWA to claim the initial link. External provider pages still contain their own website navigation. No website assets or backend deployments were changed.
+
+Live Booking planning/saving is on hold for the PC handoff. The native Booking screen states this clearly and makes no production tour requests. The demo planner and API transport mocks are preparatory only. Local source includes `/tour/route` and `/tours` handlers, and unauthenticated live probes returned 401; these checks do not establish authenticated planning, permissions, or persistence. Record Store Locator and artist EPK remain PC-owned, pending stable interfaces before native integration.

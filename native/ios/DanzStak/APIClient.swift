@@ -13,6 +13,19 @@ struct MemberProfile: Decodable {
     let website: String?
 }
 
+struct NativeTour: Decodable, Identifiable {
+    let tourId: String; let name: String; let plan: Plan
+    var id: String { tourId }
+    struct Plan: Decodable { let artist: String?; let start: String?; let departOn: String?; let returnBy: String?; let markets: [Market]? }
+    struct Market: Decodable { let stop: String; let proposedDate: String? }
+}
+struct NativeTourRoute: Decodable {
+    let route: Route; let candidates: [Candidate]
+    struct Route: Decodable { let distanceMiles: Double? }
+    struct Candidate: Decodable { let stop: String; let proposedDate: String?; let venues: [Venue]? }
+    struct Venue: Decodable { let name: String; let address: String?; let websites: [String]?; let emails: [String]?; let phones: [String]? }
+}
+
 struct FeedPost: Identifiable, Decodable {
     let id: String
     let author: String
@@ -170,6 +183,9 @@ struct APIClient {
         let _: EmptyResponse = try await send("/settings/presence", method: "POST", body: ["allowTags": settings.allowTags, "onlineVisible": settings.onlineVisible ?? true, "darkMode": settings.darkMode ?? false, "reduceMotion": settings.reduceMotion ?? false, "dataSaver": settings.dataSaver ?? false, "language": settings.language ?? "en"])
     }
 
+    func tours() async throws -> [NativeTour] { struct Response: Decodable { let tours: [NativeTour] }; let response: Response = try await send("/tours"); return response.tours }
+    func planTour(_ body: [String: Any]) async throws -> NativeTourRoute { try await send("/tour/route", method: "POST", body: body, timeout: 35) }
+    func saveTour(_ body: [String: Any]) async throws { let _: EmptyResponse = try await send("/tours", method: "POST", body: body) }
     func memberProfile(email: String? = nil) async throws -> MemberProfile {
         var components = URLComponents()
         if let email, !email.isEmpty { components.queryItems = [URLQueryItem(name: "email", value: email)] }
@@ -287,12 +303,12 @@ struct APIClient {
 
     private struct EmptyResponse: Decodable {}
 
-    private func send<Response: Decodable>(_ path: String, method: String = "GET", body: [String: Any]? = nil, authenticated: Bool = true) async throws -> Response {
+    private func send<Response: Decodable>(_ path: String, method: String = "GET", body: [String: Any]? = nil, authenticated: Bool = true, timeout: TimeInterval = 15) async throws -> Response {
         guard let url = URL(string: path, relativeTo: base)?.absoluteURL,
               url.scheme == "https", url.host == base.host else { throw URLError(.badURL) }
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.timeoutInterval = 15
+        request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("https://www.danzstak.com", forHTTPHeaderField: "Origin")
         if authenticated {
