@@ -113,7 +113,7 @@ if (-not $feed.Contains("frame-src 'self' https://www.youtube-nocookie.com")) {
 foreach ($uploadCleanupControl in @('async function discardUploadedMedia(mediaKey)', 'await discardUploadedMedia(uploadedStoryKey)', 'await discardUploadedMedia(uploadedPostKey)')) {
   if (-not $feed.Contains($uploadCleanupControl)) { Add-Failure "Media: failed publication leaves an orphaned upload: $uploadCleanupControl" }
 }
-foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Story from "', 'open.addEventListener("click", () => openStoryViewer(story))')) {
+foreach ($storyAccessibilityControl in @('open.className = "story-open"', 'open.setAttribute("aria-label", "Open Flash from "', 'open.addEventListener("click", () => openStoryViewer(story))')) {
   if (-not $feed.Contains($storyAccessibilityControl)) { Add-Failure "Stories: open and delete controls are not separately accessible: $storyAccessibilityControl" }
 }
 $feedEnhancementCss = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.css') -Raw -Encoding utf8
@@ -127,7 +127,7 @@ if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTick
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }
 }
-foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()', 'Do you certify that you created this Story')) {
+foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()', 'Do you certify that you created this Flash')) {
   if (-not $feed.Contains($preUploadCertification)) { Add-Failure "Copyright: upload can begin before explicit certification: $preUploadCertification" }
 }
 foreach ($drawerAccessibility in @('aria-controls="messageDrawer"', 'aria-expanded="false"', 'drawer.setAttribute("role", "dialog")', 'event.key === "Escape"', 'launcher.setAttribute("aria-expanded", "true")')) {
@@ -196,7 +196,7 @@ foreach ($eventBehavior in @('Event audience', 'Publishing event', '/secure-post
 foreach ($eventListingBehavior in @('Published events', 'published-event-card', 'View in Your Mix', 'scrollIntoView')) {
   if (-not $feedEnhancements.Contains($eventListingBehavior)) { Add-Failure "Events: published-event listing is missing: $eventListingBehavior" }
 }
-foreach ($groupRolloutBehavior in @('Checking group service', 'Create Group (updating)', 'createButton.disabled = false')) {
+foreach ($groupRolloutBehavior in @('Checking group service', 'Create Tribe (updating)', 'createButton.disabled = false')) {
   if (-not $feedEnhancements.Contains($groupRolloutBehavior)) { Add-Failure "Groups: staged backend rollout behavior is missing: $groupRolloutBehavior" }
 }
 if ($feedEnhancements.Contains('Event saved locally:') -or $feedEnhancements.Contains('Draft saved privately in this browser')) {
@@ -276,7 +276,7 @@ $requiredStoryUploadSteps = @(
   'const storyTicketResponse = await fetchWithDeadline("https://api.danzstak.com/stories"',
   'const storyUploadResponse = await fetchWithDeadline(storyTicket.uploadUrl',
   'dedicatedMedia: true',
-  'alert("Your post was saved, but the Story could not be published.")'
+  'alert("Your post was saved, but the Flash could not be published.")'
 )
 foreach ($step in $requiredStoryUploadSteps) {
   if (-not $feed.Contains($step)) {

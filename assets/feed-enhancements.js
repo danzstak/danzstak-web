@@ -384,7 +384,7 @@ function renderWorkspace(name) {
     const categories = ["Artists", "Creators", "DJs & Producers", "Fans", "Venues & Promoters", "Local Scenes", "Industry Networking", "Events", "Politics", "Religion"];
     const createBox = document.createElement("div");
     createBox.className = "group-create-box";
-    const groupName = field("Group name", "text", "Name your group");
+    const groupName = field("Tribe name", "text", "Name your tribe");
     const categoryLabel = document.createElement("label");
     categoryLabel.textContent = "Category";
     const categorySelect = document.createElement("select");
@@ -436,9 +436,9 @@ function renderWorkspace(name) {
         join.className = "primary";
         const joined = Boolean(saved.GroupsJoined?.[group.id]);
         const pendingSync = group.custom && !group.cloud;
-        join.textContent = pendingSync ? "Waiting to sync" : joined ? "Joined" : "Join Group";
+        join.textContent = pendingSync ? "Waiting to sync" : joined ? "Joined" : "Join Tribe";
         join.disabled = pendingSync;
-        if (pendingSync) join.title = "This group is saved on this device. Reopen Groups when connected to retry syncing it.";
+        if (pendingSync) join.title = "This tribe is saved on this device. Reopen Tribes when connected to retry syncing it.";
         join.classList.toggle("is-selected", joined);
         join.addEventListener("click", async () => {
           const nextJoined = !saved.GroupsJoined?.[group.id];
@@ -455,7 +455,7 @@ function renderWorkspace(name) {
             saved.GroupsJoined[group.id] = nextJoined;
             membershipChanges.set(group.id, nextJoined);
             writeSections(saved);
-            join.textContent = nextJoined ? "Joined" : "Join Group";
+            join.textContent = nextJoined ? "Joined" : "Join Tribe";
             join.classList.toggle("is-selected", nextJoined);
           } catch (error) {
             alert(error.message);
@@ -496,7 +496,7 @@ function renderWorkspace(name) {
           const remove = document.createElement("button");
           remove.type = "button";
           remove.className = "group-delete";
-          remove.textContent = "Delete Group";
+          remove.textContent = "Delete Tribe";
           remove.addEventListener("click", async () => {
             if (!confirm("Delete this group?")) return;
             remove.disabled = true;
@@ -547,11 +547,11 @@ function renderWorkspace(name) {
       .then(response => response.ok ? response.json() : null)
       .then(async data => {
         if (!Array.isArray(data?.groups)) {
-          createButton.textContent = "Create Group (updating)";
+          createButton.textContent = "Create Tribe (updating)";
           createButton.title = "Group creation will be available after the current backend update.";
           return;
         }
-        createButton.textContent = "Create Group";
+        createButton.textContent = "Create Tribe";
         createButton.title = "";
         delete createButton.dataset.mode;
         createButton.disabled = false;
@@ -2236,7 +2236,7 @@ reelPermission.append(reelPermissionCheck, document.createTextNode("I own this v
 const addReel = document.createElement("button");
 addReel.type = "button";
 addReel.className = "primary";
-addReel.textContent = "Add Reel";
+addReel.textContent = "Add to The Roll";
 const reelStatus = document.createElement("p");
 reelStatus.className = "muted reel-status";
 reelForm.append(reelUrl, reelPermission, addReel, reelStatus);
@@ -2395,12 +2395,12 @@ function renderPlayableReels() {
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "reel-delete";
-      remove.textContent = "Delete Reel";
+      remove.textContent = "Delete from The Roll";
       remove.addEventListener("click", async () => {
         remove.disabled = true;
         if (Array.isArray(cloudReels)) {
           const response = await reelFetch("/stories/" + encodeURIComponent(reel.id), { method: "DELETE", credentials: "include" }).catch(() => null);
-          if (!response?.ok) { remove.disabled = false; reelStatus.textContent = "Reel could not be deleted."; return; }
+          if (!response?.ok) { remove.disabled = false; reelStatus.textContent = "Video could not be removed from The Roll."; return; }
           cloudReels = cloudReels.filter(item => item.id !== reel.id);
         } else localStorage.setItem(reelsStorageKey, JSON.stringify(getLocalReels().filter(item => item.id !== reel.id)));
         renderPlayableReels();
@@ -2433,16 +2433,16 @@ addReel.addEventListener("click", async () => {
   try {
     const response = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: parsed.href, rightsCertified: true }) });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.reel) throw new Error(result.error || "Reel could not be saved to DanzStak.");
+    if (!response.ok || !result.reel) throw new Error(result.error || "Video could not be saved to The Roll.");
     const reel = result.reel;
     cloudReels = Array.isArray(cloudReels) ? cloudReels : [];
     cloudReels.unshift({ ...reel, platform: reelPlatform(new URL(reel.url).hostname) });
     reelUrl.value = "";
     reelPermissionCheck.checked = false;
-    reelStatus.textContent = "Reel saved to DanzStak.";
+    reelStatus.textContent = "Video saved to The Roll.";
     renderPlayableReels();
   } catch (error) {
-    reelStatus.textContent = error.message || "Reel could not be saved to DanzStak.";
+    reelStatus.textContent = error.message || "Video could not be saved to The Roll.";
   } finally {
     addReel.disabled = false;
   }

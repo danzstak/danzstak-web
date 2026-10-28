@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-D2LHqjMhq+sPtOgNh+APjgbJ0wC4uFlETYoEuhq4laE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-bAWgUOuXSd/rMrzcWpsgkBskIbJ2xa2tV2E0pHDlND4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -283,6 +283,7 @@ textarea {
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
   <link rel="stylesheet" href="assets/soft-ui.css?v=277">
 <script src="assets/languages.js?v=231" defer></script>
+<script src="assets/brand-language-aliases.js?v=1" defer></script>
 <script src="assets/i18n.js?v=342" defer></script>
 <script src="assets/mobile-keyboard.js?v=231" defer></script>
 <script src="assets/post-sharing.js?v=306" defer></script>
@@ -363,7 +364,7 @@ textarea {
             <option value="private">Only me</option>
           </select>
         </div>
-        <label class="story-share-control story-option" title="Add a photo or video to share this post to Story"><input id="shareToStory" type="checkbox" disabled><span>Story</span></label>
+        <label class="story-share-control story-option" title="Add a photo or video to share this post to Flashes"><input id="shareToStory" type="checkbox" disabled><span>Flashes</span></label>
         <label class="story-share-control reels-option" title="Add a video before sharing it to The Roll"><input id="shareToReels" type="checkbox" disabled><span>The Roll</span></label>
 
         <button class="primary" id="publishBtn">
@@ -695,7 +696,7 @@ function storyDisplayCaption(story) {
   const content = String(story?.content || "").trim();
   const uploadedFileName = /^[^/\\]{1,180}\.(?:avif|gif|heic|jpe?g|png|webp|m4v|mov|mp4|webm)$/i.test(content);
   if (content && !uploadedFileName) return content;
-  return story?.mediaType === "video" ? "Video Story" : "Photo Story";
+  return story?.mediaType === "video" ? "Video Flash" : "Photo Flash";
 }
 
 function openStoryViewer(story) {
@@ -705,7 +706,7 @@ function openStoryViewer(story) {
     viewer.id = "storyViewer";
     viewer.className = "story-viewer";
     viewer.setAttribute("aria-labelledby", "storyViewerCaption");
-    viewer.innerHTML = '<button type="button" class="story-viewer-close" aria-label="Close Story">×</button><div class="story-viewer-media"></div><p class="story-viewer-caption" id="storyViewerCaption"></p>';
+    viewer.innerHTML = '<button type="button" class="story-viewer-close" aria-label="Close Flash">×</button><div class="story-viewer-media"></div><p class="story-viewer-caption" id="storyViewerCaption"></p>';
     viewer.querySelector(".story-viewer-close").addEventListener("click", () => viewer.close());
     viewer.addEventListener("click", event => { if (event.target === viewer) viewer.close(); });
     viewer.addEventListener("close", () => { const video = viewer.querySelector("video"); if (video) video.pause(); storyViewerPreviousFocus?.focus({ preventScroll: true }); storyViewerPreviousFocus = null; });
@@ -741,7 +742,7 @@ async function loadStories() {
       open.type = "button";
       open.className = "story-open";
       const storyAuthor = story.displayName || "DanzStak member";
-      open.setAttribute("aria-label", "Open Story from " + storyAuthor + ": " + storyDisplayCaption(story));
+      open.setAttribute("aria-label", "Open Flash from " + storyAuthor + ": " + storyDisplayCaption(story));
       const storyCopy = document.createElement("span");
       storyCopy.className = "story-card-copy";
       const author = document.createElement("strong");
@@ -771,20 +772,20 @@ async function loadStories() {
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "story-delete";
-        remove.setAttribute("aria-label", "Delete Story");
+        remove.setAttribute("aria-label", "Delete Flash");
         remove.textContent = "×";
         remove.addEventListener("keydown", event => event.stopPropagation());
         remove.addEventListener("click", async event => {
           event.stopPropagation();
-          if (!confirm("Delete this Story now?")) return;
+          if (!confirm("Delete this Flash now?")) return;
           remove.disabled = true;
           try {
             const deleted = await fetchWithDeadline("https://api.danzstak.com/stories/" + encodeURIComponent(story.storyId), { method: "DELETE", credentials: "include" });
-            if (!deleted.ok) throw new Error("Story could not be deleted.");
+            if (!deleted.ok) throw new Error("Flash could not be deleted.");
             item.remove();
           } catch (error) {
             remove.disabled = false;
-            alert(error.message || "Story could not be deleted.");
+            alert(error.message || "Flash could not be deleted.");
           }
         });
         item.appendChild(remove);
@@ -813,7 +814,7 @@ createStoryInput.addEventListener("change", async () => {
     createStoryInput.value = "";
     return;
   }
-  if (!confirm("Do you certify that you created this Story and own all material in it, including any music inside a video?")) {
+  if (!confirm("Do you certify that you created this Flash and own all material in it, including any music inside a video?")) {
     createStoryInput.value = "";
     return;
   }
@@ -825,21 +826,21 @@ createStoryInput.addEventListener("change", async () => {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contentType: file.type })
     });
-    if (!ticketResponse.ok) throw new Error("Story upload could not start.");
+    if (!ticketResponse.ok) throw new Error("Flash upload could not start.");
     const ticket = await ticketResponse.json();
     const uploadResponse = await fetchWithDeadline(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file }, mediaUploadDeadline(file));
-    if (!uploadResponse.ok) throw new Error("Story media could not be uploaded.");
+    if (!uploadResponse.ok) throw new Error("Flash media could not be uploaded.");
     uploadedStoryKey = ticket.mediaKey;
     const publishResponse = await fetchWithDeadline("https://api.danzstak.com/stories", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: file.name || "Your Flash", audience: postAudience.value, mediaKey: ticket.mediaKey, mediaType: ticket.mediaType, dedicatedMedia: true, originalContentCertified: true })
     });
-    if (!publishResponse.ok) throw new Error("Story could not be published.");
+    if (!publishResponse.ok) throw new Error("Flash could not be published.");
     uploadedStoryKey = "";
     await loadStories();
   } catch (error) {
     await discardUploadedMedia(uploadedStoryKey);
-    alert(error.message || "Story could not be published.");
+    alert(error.message || "Flash could not be published.");
   } finally {
     createStoryInput.value = "";
     createStoryButton.disabled = false;
@@ -1041,10 +1042,10 @@ publishBtn.addEventListener("click", async () => {
           method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
           body: JSON.stringify({ contentType: selectedMedia.file.type })
         });
-        if (!storyTicketResponse.ok) throw new Error("Story upload could not start");
+        if (!storyTicketResponse.ok) throw new Error("Flash upload could not start");
         const storyTicket = await storyTicketResponse.json();
         const storyUploadResponse = await fetchWithDeadline(storyTicket.uploadUrl, { method: "PUT", headers: { "Content-Type": selectedMedia.file.type }, body: selectedMedia.file }, mediaUploadDeadline(selectedMedia.file));
-        if (!storyUploadResponse.ok) throw new Error("Story media upload failed");
+        if (!storyUploadResponse.ok) throw new Error("Flash media upload failed");
         uploadedStoryKey = storyTicket.mediaKey;
         const storyResponse = await fetchWithDeadline("https://api.danzstak.com/stories", {
           method: "POST",
@@ -1052,13 +1053,13 @@ publishBtn.addEventListener("click", async () => {
           credentials: "include",
           body: JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey, mediaType: storyTicket.mediaType, dedicatedMedia: true, originalContentCertified: true })
         });
-        if (!storyResponse.ok) throw new Error("Story could not be published");
+        if (!storyResponse.ok) throw new Error("Flash could not be published");
         uploadedStoryKey = "";
         await loadStories();
       } catch (storyError) {
         await discardUploadedMedia(uploadedStoryKey);
         console.error("DanzStak Story error:", storyError);
-        alert("Your post was saved, but the Story could not be published.");
+        alert("Your post was saved, but the Flash could not be published.");
       }
     }
 
@@ -1287,7 +1288,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=358" defer></script>
+<script src="assets/feed-enhancements.js?v=359" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=295" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
