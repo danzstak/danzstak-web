@@ -2127,9 +2127,10 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const discovered = venueBatches.flat()
     .filter(place => nearby(place, 60) && isBookableClub(place, genre) && hasBookingContact(place) && !excludedVenueKeys.has(place.venueKey))
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre));
-  const venuePool = deduplicateVenues([...curated, ...discovered, ...(curated.length || discovered.length ? [] : curatedPool)]);
+  const initialFallback = excludedVenueKeys.size || curated.length || discovered.length ? [] : curatedPool;
+  const venuePool = deduplicateVenues([...curated, ...discovered, ...initialFallback]);
   const offset = venuePool.length ? variation % venuePool.length : 0;
-  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 24);
+  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 8);
   const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }
