@@ -1026,6 +1026,8 @@ async function getSecurePosts(event) {
       isOwner: item.userId?.S === userId,
       featured: item.featured?.BOOL === true,
       userEmail: item.userEmail?.S ?? "",
+      profileOwnerMemberId: item.profileOwnerId?.S ?? "",
+      canRemoveFromProfile: item.profileOwnerId?.S === userId && item.userId?.S !== userId,
       authorName: authorName(item.userEmail?.S),
       authorPicture: authorPicture(item.userEmail?.S),
       importSource: item.importSource?.S || "",
@@ -1415,6 +1417,29 @@ async function createSecurePost(event) {
   if (sharedSource && (mediaKey || mediaType || reel)) return {statusCode:400,headers,body:JSON.stringify({error:"Shared posts reference the original media."})};
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
+  const profileOwnerId = data.profileMemberId === undefined ? "" : String(data.profileMemberId || "");
+  let profileOwnerEmail = "";
+  let profilePermissionChecks = [];
+  if (profileOwnerId) {
+    if (!/^[a-f0-9-]{36}$/.test(profileOwnerId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid profile." }) };
+    profileOwnerEmail = await accountForSub(profileOwnerId);
+    if (!profileOwnerEmail) return { statusCode: 404, headers, body: JSON.stringify({ error: "Profile not found." }) };
+    if (profileOwnerId !== userId) {
+      if (facebookImport || sharedSource) return { statusCode: 400, headers, body: JSON.stringify({ error: "Create a new post when posting on another profile." }) };
+      if (audience !== "public") return { statusCode: 400, headers, body: JSON.stringify({ error: "Posts on another profile must be Public." }) };
+      const [setting, friendship] = await Promise.all([
+        db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: profileOwnerEmail } }, ConsistentRead: true, ProjectionExpression: "profilePostPermission" })),
+        db.send(new GetItemCommand({ TableName: friendsTable, Key: { userEmail: { S: profileOwnerEmail }, friendEmail: { S: userEmail } }, ConsistentRead: true, ProjectionExpression: "#status", ExpressionAttributeNames: { "#status": "status" } }))
+      ]);
+      const permission = setting.Item?.profilePostPermission?.S || "owner";
+      const allowed = permission === "anyone" || (permission === "friends" && friendship.Item?.status?.S === "friends");
+      if (!allowed) return { statusCode: 403, headers, body: JSON.stringify({ error: permission === "friends" ? "Only accepted friends can post on this profile." : "Only this member can post on their profile." }) };
+      profilePermissionChecks = [
+        { ConditionCheck: { TableName: settingsTable, Key: { userEmail: { S: profileOwnerEmail } }, ConditionExpression: "profilePostPermission = :permission", ExpressionAttributeValues: { ":permission": { S: permission } } } },
+        ...(permission === "friends" ? [{ ConditionCheck: { TableName: friendsTable, Key: { userEmail: { S: profileOwnerEmail }, friendEmail: { S: userEmail } }, ConditionExpression: "#status = :friends", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":friends": { S: "friends" } } } }] : [])
+      ];
+    }
+  }
   const ownerPrefix = sha256(userEmail).slice(0, 24);
   if ((mediaKey && (!/^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif|mp4|webm|mov)$/.test(mediaKey) || !mediaKey.startsWith(`users/${ownerPrefix}/`))) || Boolean(mediaKey) !== Boolean(mediaType)) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid media reference." }) };
@@ -1423,12 +1448,13 @@ async function createSecurePost(event) {
   const importedAt = new Date().toISOString();
   const createdAt = facebookImport ? importedDate.toISOString() : importedAt;
 
-  try { await db.send(new PutItemCommand({
+  const putPost = {
     TableName: postsTable,
     Item: {
       postId: { S: postId },
       userId: { S: userId },
       userEmail: { S: userEmail },
+      ...(profileOwnerId ? { profileOwnerId: { S: profileOwnerId }, profileOwnerEmail: { S: profileOwnerEmail } } : {}),
       content: { S: content },
       ...(location ? {location:{S:location}} : {}),
       ...(sharedSource ? {sharedPostId:{S:sharedSource.postId.S}} : {}),
@@ -1438,7 +1464,12 @@ async function createSecurePost(event) {
       ...(mediaKey ? { mediaKey: { S: mediaKey }, mediaType: { S: mediaType }, ...(reel ? { reel: { BOOL: true } } : {}) } : {})
     },
     ConditionExpression: "attribute_not_exists(postId)"
-  })); } catch (error) {
+  };
+  try {
+    if (profilePermissionChecks.length) await db.send(new TransactWriteItemsCommand({ TransactItems: [...profilePermissionChecks, { Put: putPost }] }));
+    else await db.send(new PutItemCommand(putPost));
+  } catch (error) {
+    if (profilePermissionChecks.length && ["TransactionCanceledException", "ConditionalCheckFailedException"].includes(error.name)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Profile posting permission changed. Reload the profile and try again." }) };
     if (!facebookImport || error.name !== "ConditionalCheckFailedException") throw error;
     const existing = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
     if (existing.Item?.userId?.S !== userId || existing.Item?.importKey?.S !== data.importKey) throw error;
@@ -1452,6 +1483,7 @@ async function createSecurePost(event) {
       postId,
       userId,
       userEmail,
+      profileOwnerMemberId: profileOwnerId,
       content,
       audience,
       location,
@@ -1473,7 +1505,9 @@ async function deleteSecurePost(event) {
   if (!/^[a-f0-9-]{36}$/.test(postId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid post." }) };
   const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Post not found." }) };
-  if (found.Item.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the owner can delete this post." }) };
+  const isAuthor = found.Item.userId?.S === userId;
+  const isProfileOwner = found.Item.profileOwnerId?.S === userId;
+  if (!isAuthor && !isProfileOwner) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the author or profile owner can remove this post." }) };
   let linkedStories = [];
   let mediaKey = "";
   if (found.Item.mediaKey?.S) {

@@ -447,7 +447,68 @@ function profilePostCard(post) {
     });
     article.appendChild(feature);
   }
+  if (post.canRemoveFromProfile === true && post.postId) {
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "secondary profile-wall-remove";
+    remove.textContent = "Remove from my profile";
+    remove.addEventListener("click", async () => {
+      if (!confirm("Remove this post from your profile?")) return;
+      remove.disabled = true;
+      try {
+        const response = await profileFetch(profileApi + "/secure-posts/" + encodeURIComponent(post.postId), { method: "DELETE", credentials: "include" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "The post could not be removed.");
+        article.remove();
+      } catch (error) { alert(error.message); }
+      finally { remove.disabled = false; }
+    });
+    article.appendChild(remove);
+  }
   return article;
+}
+
+function profileWallComposer(profile) {
+  const section = document.createElement("section");
+  section.className = "profile-wall-composer";
+  if (!profile.canPostToProfile) {
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.textContent = profile.profilePostPermission === "friends" ? "Only accepted friends can post on this profile." : "Only this member can post on their profile.";
+    section.appendChild(note);
+    return section;
+  }
+  if (profile.isOwner) return section;
+  const form = document.createElement("form");
+  const heading = document.createElement("h3");
+  const textarea = document.createElement("textarea");
+  const certifyLabel = document.createElement("label");
+  const certify = document.createElement("input");
+  const submit = document.createElement("button");
+  const status = document.createElement("p");
+  heading.textContent = `Post on ${profile.name || "this member"}’s profile`;
+  textarea.name = "content"; textarea.maxLength = 5000; textarea.required = true; textarea.placeholder = "Write something…";
+  certify.type = "checkbox"; certify.required = true;
+  certifyLabel.className = "profile-wall-certify";
+  certifyLabel.append(certify, document.createTextNode("This is my original content and may be shared on DanzStak."));
+  submit.type = "submit"; submit.className = "button"; submit.textContent = "Post";
+  status.className = "muted"; status.setAttribute("role", "status");
+  form.append(heading, textarea, certifyLabel, submit, status);
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+    submit.disabled = true; status.textContent = "Posting…";
+    try {
+      const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: textarea.value, audience: "public", originalContentCertified: true, profileMemberId: profile.memberId }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "The post could not be published.");
+      textarea.value = ""; certify.checked = false; status.textContent = "Posted to this profile.";
+      await loadProfilePosts(false);
+    } catch (error) { status.textContent = error.message; }
+    finally { submit.disabled = false; }
+  });
+  section.appendChild(form);
+  return section;
 }
 
 let profileTabVersion = 0;
@@ -460,9 +521,11 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
     const data = await response.json();
     if (version !== profileTabVersion) return;
     const profileEmail = String(window.danzstakCurrentProfile?.email || "").toLowerCase();
-    let posts = window.danzstakProfileCollections.select(data.posts || [], collection, profileEmail, !viewingOtherProfile);
+    const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
+    let posts = window.danzstakProfileCollections.select(data.posts || [], collection, profileEmail, !viewingOtherProfile, new Date(), profileMemberId);
     if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType));
     tabMessage.replaceChildren();
+    if (collection === "posts" && !mediaOnly && window.danzstakCurrentProfile && typeof profileWallComposer === "function") tabMessage.appendChild(profileWallComposer(window.danzstakCurrentProfile));
     if (collection !== "posts") {
       const note = document.createElement("p"); note.className = "muted";
       note.textContent = collection === "memories" ? "Only you can see this Memories view. These are your posts from this day in previous years; their original audiences stay unchanged." : "Featured posts keep their original audience. Highlighting a post does not make it public.";
@@ -585,6 +648,7 @@ panel.innerHTML = '<h2>Edit Profile</h2>' +
   '<label>Work<input name="work" maxlength="100"></label>' +
   '<label>Website<input name="website" type="url" maxlength="200" placeholder="https://"></label>' +
   '<label>DanzStak language<select name="language" data-profile-language></select></label>' +
+  '<label>Who can post on your profile?<select name="profilePostPermission"><option value="owner">Only me</option><option value="friends">Friends</option><option value="anyone">Anyone on DanzStak</option></select></label>' +
   '<p class="edit-note">Share only information you want members to see. Profile text must be your original content.</p>' +
   '<div class="edit-actions"><button class="secondary" type="button" data-cancel>Cancel</button><button class="button" type="submit">Save Changes</button></div>' +
   '<div class="profile-import"><button type="button" data-facebook-import>Import from Facebook</button><p>Preview your export, set Public, Friends, or Only me in batches, and review shared-source posts before copying them.</p></div>';
@@ -643,6 +707,7 @@ editButton.addEventListener("click", () => {
   panel.elements.location.value = profile.location || "";
   panel.elements.work.value = profile.work || "";
   panel.elements.website.value = profile.website || "";
+  panel.elements.profilePostPermission.value = profile.profilePostPermission || "owner";
   panel.elements.language.value = (() => { try { return localStorage.getItem("danzstak_language") || document.documentElement.lang || "en"; } catch { return document.documentElement.lang || "en"; } })();
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
