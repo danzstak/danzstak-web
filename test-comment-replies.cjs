@@ -16,6 +16,8 @@ for (const required of [
   'send.setAttribute("aria-label", "Post comment")'
 ]) assert.ok(ui.includes(required), `Comment reply UI is missing: ${required}`);
 assert.ok(ui.includes('comment.authorPicture ? document.createElement("img")'), "Comments must use the member's profile photo when available");
+assert.ok(ui.includes('engagementFetch("/profiles", { credentials: "include", cache: "no-store" })'), "The comment composer must load the signed-in member profile through the guarded API helper");
+assert.ok(ui.includes('image.className = "comment-composer-avatar"'), "The comment composer must render the signed-in member photo");
 
 for (const required of [
   "parentCommentId = String(data?.parentCommentId",
@@ -33,5 +35,5 @@ for (const required of [".comment-composer{", ".comment-bubble{", ".comment-repl
   assert.ok(css.includes(required), `Compact comment styling is missing: ${required}`);
 
 assert.match(feed, /feed-enhancements\.css\?v=365/);
-assert.match(feed, /feed-enhancements\.js\?v=368/);
+assert.match(feed, /feed-enhancements\.js\?v=369/);
 console.log("Comment reply checks passed: named reply targeting, durable parent validation, threaded ordering, accessible controls, and compact composer styling.");

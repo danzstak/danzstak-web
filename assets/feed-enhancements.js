@@ -2263,6 +2263,14 @@ function beginCommentReply(post, comment, item) {
   input.focus();
 }
 
+let commentViewerProfilePromise = null;
+function loadCommentViewerProfile() {
+  if (!commentViewerProfilePromise) commentViewerProfilePromise = engagementFetch("/profiles", { credentials: "include", cache: "no-store" })
+    .then(async response => response.ok ? (await response.json()).profile || {} : {})
+    .catch(() => ({}));
+  return commentViewerProfilePromise;
+}
+
 function ensureCommentComposer(post) {
   const comments = post.querySelector(".comments"), input = comments?.querySelector(":scope > input, .comment-composer input");
   if (!comments || !input || input.closest(".comment-composer")) return;
@@ -2273,6 +2281,12 @@ function ensureCommentComposer(post) {
   avatar.className = "comment-composer-avatar";
   avatar.textContent = "D";
   avatar.setAttribute("aria-hidden", "true");
+  loadCommentViewerProfile().then(profile => {
+    if (!avatar.isConnected) return;
+    if (profile.picture) {
+      const image = document.createElement("img"); image.className = "comment-composer-avatar"; image.src = profile.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.replaceWith(image);
+    } else avatar.textContent = String(profile.name || "D").charAt(0).toUpperCase();
+  });
   const field = document.createElement("div");
   field.className = "comment-composer-field";
   const send = document.createElement("button");
