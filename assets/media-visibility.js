@@ -1,11 +1,24 @@
 "use strict";
 (() => {
- const tracked=new Set(),visible=new WeakMap();
+ const tracked=new Set(),visible=new WeakMap(),manualPlayback=new WeakSet();
  const eligible=element=>element?.matches?.('video,iframe.reel-player')&&!element.closest('.video-grid');
+ const dataSaverEnabled=()=>document.documentElement?.classList?.contains('data-saver')||(()=>{try{return localStorage.getItem('danzstak_data_saver')==='1';}catch{return false;}})();
+ const isFeedVideo=video=>video?.matches?.('video.post-media');
  function prepareVideoPreview(video){
-  if(video.autoplay)return;
   video.playsInline=true;
-  if(!video.getAttribute?.('preload'))video.preload='metadata';
+  const setLayout=()=>{
+   if(!video.videoWidth||!video.videoHeight)return;
+   const layout=video.videoHeight>video.videoWidth?'portrait':'landscape';
+   video.dataset.videoLayout=layout;
+   video.style.setProperty('--video-aspect',layout==='portrait'?'9 / 16':'16 / 9');
+  };
+  video.addEventListener('loadedmetadata',setLayout);
+  if(video.readyState>=1)setLayout();
+  if(isFeedVideo(video)){
+   video.preload='none';video.muted=true;video.autoplay=!dataSaverEnabled();video.loop=true;
+   video.addEventListener('pointerdown',()=>manualPlayback.add(video),{passive:true});
+  }else if(!video.getAttribute?.('preload'))video.preload='metadata';
+  if(video.autoplay)return;
   let previewTime=0,restored=false;
   const showFrame=()=>{
    if(!Number.isFinite(video.duration)||video.duration<=.12||video.currentTime>.02)return;
@@ -27,8 +40,8 @@
   element.src='about:blank';element.replaceWith(button);
   button.addEventListener('click',()=>{element.src=original;button.replaceWith(element);});
  }
- const observer=new IntersectionObserver(entries=>{for(const entry of entries){const inView=entry.isIntersecting&&entry.intersectionRatio>=0.15;visible.set(entry.target,inView);if(!inView)pause(entry.target);}}, {threshold:[0,0.15]});
- function track(element){if(!eligible(element)||tracked.has(element))return;tracked.add(element);observer.observe(element);if(element.tagName==='VIDEO'){prepareVideoPreview(element);element.addEventListener('play',()=>{if(document.hidden||visible.get(element)===false)element.pause();});}}
+ const observer=new IntersectionObserver(entries=>{for(const entry of entries){const inView=entry.isIntersecting&&entry.intersectionRatio>=0.15;visible.set(entry.target,inView);if(!inView){manualPlayback.delete(entry.target);pause(entry.target);}else if(isFeedVideo(entry.target)&&!document.hidden&&!dataSaverEnabled()){entry.target.preload='auto';if(entry.target.readyState===0)entry.target.load?.();entry.target.play().catch(()=>{});}}}, {threshold:[0,0.15,0.6]});
+ function track(element){if(!eligible(element)||tracked.has(element))return;tracked.add(element);observer.observe(element);if(element.tagName==='VIDEO'){prepareVideoPreview(element);element.addEventListener('play',()=>{if(document.hidden||(visible.get(element)===false&&!manualPlayback.has(element)))element.pause();});}}
  function added(root){if(eligible(root))track(root);root.querySelectorAll?.('video,iframe.reel-player').forEach(track);}
  function removed(root){for(const media of [...tracked])if(media===root||root.contains?.(media)){if(media.tagName==='VIDEO')media.pause();observer.unobserve(media);tracked.delete(media);}}
  added(document.body);

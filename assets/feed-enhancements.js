@@ -2242,7 +2242,31 @@ const reelsTitle = document.createElement("h3");
 reelsTitle.textContent = "The Roll";
 const reelsSourceNote = document.createElement("span");
 reelsSourceNote.textContent = "Externally hosted videos";
-reelsHeading.append(reelsTitle, reelsSourceNote);
+const rollOpen = document.createElement("button");
+rollOpen.type = "button";
+rollOpen.className = "roll-open";
+rollOpen.textContent = "Open fullscreen";
+rollOpen.setAttribute("aria-label", "Open The Roll fullscreen");
+const rollClose = document.createElement("button");
+rollClose.type = "button";
+rollClose.className = "roll-close";
+rollClose.textContent = "Close";
+rollClose.setAttribute("aria-label", "Close The Roll fullscreen");
+function setRollFullscreen(open) {
+  reelsRail.classList.toggle("roll-fullscreen", open);
+  document.body.classList.toggle("roll-view-open", open);
+  rollOpen.setAttribute("aria-expanded", String(open));
+  if (open) {
+    reelsList.scrollTop = 0;
+    rollClose.focus({ preventScroll: true });
+    const first = reelsList.querySelector("video.reel-player");
+    if (first && !dataSaverEnabled()) first.play().catch(() => {});
+  } else rollOpen.focus({ preventScroll: true });
+}
+rollOpen.addEventListener("click", () => setRollFullscreen(true));
+rollClose.addEventListener("click", () => setRollFullscreen(false));
+document.addEventListener("keydown", event => { if (event.key === "Escape" && reelsRail.classList.contains("roll-fullscreen")) { event.preventDefault(); setRollFullscreen(false); } });
+reelsHeading.append(reelsTitle, reelsSourceNote, rollOpen, rollClose);
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
 const reelPlaybackObserver = new IntersectionObserver(entries => {
@@ -2372,7 +2396,7 @@ function renderPlayableReels() {
       video.autoplay = !dataSaverEnabled();
       video.muted = true;
       video.loop = true;
-      video.preload = dataSaverEnabled() ? "none" : "metadata";
+      video.preload = "none";
       reelPlaybackObserver.observe(video);
       card.appendChild(video);
     } else if (playerInfo?.kind === "iframe") {

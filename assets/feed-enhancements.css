@@ -89,6 +89,22 @@
 
 .dark-mode .message-drawer-close{color:#f5f7fb}.dark-mode .message-drawer-close:hover{background:#35455e}
 
+/* Keep feed media centered and flush with the current responsive post padding. */
+@media(max-width:700px){.post{--post-inline-padding:12px}}
+@media(max-width:360px){.post{--post-inline-padding:8px}}
+@media(max-width:700px){.content-only .post{--post-inline-padding:16px}}
+
+/* Disapproval is always red; selection adds emphasis without changing its meaning. */
+.post-actions .dislikeBtn{color:#b42318!important}.post-actions .dislikeBtn[data-selected=true]{color:#8f1712!important;background:#fde8e7!important}
+
+/* The Roll expands into a swipeable, one-video-at-a-time viewer. */
+.roll-open,.roll-close{min-height:36px;padding:7px 11px;border:1px solid #ccd5e2;border-radius:10px;background:#fff;color:#1769e0;font:inherit;font-weight:800}.roll-close{display:none}.reels-rail.roll-fullscreen{position:fixed!important;z-index:40000;inset:0;margin:0!important;padding:10px!important;border-radius:0!important;background:#050508!important;color:#fff;overflow:hidden}.roll-fullscreen .reels-heading{min-height:46px;margin:0;padding:0 4px}.roll-fullscreen .reels-heading span{color:#d0d5dd}.roll-fullscreen .roll-open{display:none}.roll-fullscreen .roll-close{display:inline-flex;align-items:center}.roll-fullscreen .reels-list{height:calc(100dvh - 66px);padding:0;flex-direction:column;overflow-x:hidden;overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain}.roll-fullscreen .reel-card{flex:0 0 100%;width:100%;height:100%;min-height:100%;border-radius:0;scroll-snap-align:start;scroll-snap-stop:always}.roll-fullscreen .reel-player{flex:1;min-height:0;max-height:calc(100% - 74px);object-fit:contain}.roll-fullscreen .reel-details{min-height:68px;background:#111}.roll-view-open{overflow:hidden}.dark-mode .roll-open,.dark-mode .roll-close{border-color:#526074;background:#1f2937;color:#8ed4ff}
+
+/* Logout is an action, not a fake destination, but retains the navigation rhythm. */
+.menu .menu-action{display:grid;grid-template-columns:24px minmax(0,1fr);align-items:center;gap:8px;min-height:48px;padding:8px;border:0;border-radius:8px;background:transparent;color:#333;font:inherit;font-weight:600;text-align:left;cursor:pointer}.menu .menu-action:hover,.menu .menu-action:focus-visible{background:#e7f3ff}.dark-mode .menu .menu-action{color:#f5f7fb}.dark-mode .menu .menu-action:hover,.dark-mode .menu .menu-action:focus-visible{background:#2b3749}
+@media(max-width:700px){.menu .menu-action{grid-template-columns:18px minmax(0,1fr);gap:4px;min-height:44px;padding:8px 4px;font-size:11px}}
+@media(max-width:360px){.menu .menu-action{grid-template-columns:16px minmax(0,1fr);gap:4px;padding-inline:2px;font-size:10px}}
+
 /* Tablet navigation uses two rows before the phone layout takes over. */
 @media(min-width:701px) and (max-width:1050px){.topbar{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;padding:10px 18px}.topbar .search{width:100%;min-width:0}.topbar .topnav{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.topbar .topnav button{min-width:0}#featureView{scroll-margin-top:132px}}
 .settings-workspace{container-type:inline-size;container-name:account-settings}
@@ -139,6 +155,14 @@
 .reels-list .reel-player{width:100%;object-fit:contain}
 .reels-list video.reel-player{height:auto;max-height:none;aspect-ratio:auto}
 .reels-list .reel-player-fallback{width:100%;min-height:320px;height:min(72vh,680px);aspect-ratio:auto}
+
+/* Standard display canvases: 1280x720 landscape and 720x1280 portrait. */
+video.post-media{display:block;width:100%;aspect-ratio:var(--video-aspect,16 / 9);height:auto;max-height:min(82dvh,1280px);object-fit:contain;object-position:center;background:#050508}
+video.post-media[data-video-layout="portrait"]{width:min(100%,720px);aspect-ratio:9 / 16;margin-inline:auto}
+video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
+.reel-player[data-video-layout="portrait"]{aspect-ratio:9 / 16}
+.reel-player[data-video-layout="landscape"]{aspect-ratio:16 / 9}
+@media(max-width:700px){video.post-media{max-height:88dvh}video.post-media[data-video-layout="portrait"]{width:min(100%,calc(88dvh * 9 / 16))}}
 
 /* Universal go/stop reaction colors: green approves, red disapproves. */
 .post-actions .likeBtn[data-reaction=""],.post-actions .likeBtn[data-reaction="Like"],.comment-like{color:#14804a!important}

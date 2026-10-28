@@ -673,7 +673,7 @@ foreach ($workspaceDestination in @('href="#friends"', 'href="#photos"', 'href="
 $termsMenuIndex = $feed.IndexOf('<a href="terms.html"><span class="menu-icon"')
 $androidMenuIndex = $feed.IndexOf('data-app-platform="android"')
 $appleMenuIndex = $feed.IndexOf('data-app-platform="apple"')
-$logoutMenuIndex = $feed.IndexOf('<a href="#" data-logout><span class="menu-icon"')
+$logoutMenuIndex = $feed.IndexOf('<button type="button" class="menu-action logout-menu-link" data-logout><span class="menu-icon"')
 if ($termsMenuIndex -lt 0 -or $androidMenuIndex -lt $termsMenuIndex -or $appleMenuIndex -lt $androidMenuIndex -or $logoutMenuIndex -lt $appleMenuIndex) {
   Add-Failure 'Feed navigation: Android and Apple app links are not stacked beneath Terms of Service and above Logout'
 }

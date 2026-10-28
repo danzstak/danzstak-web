@@ -23,7 +23,7 @@ assert.match(
 );
 assert.match(
   feed,
-  /Terms of Service<\/span><\/a>\s*<a class="app-menu-link"[^>]*href="downloads\/danzstak-android-test\.apk"[^>]*data-app-platform="android"[^>]*download[\s\S]*?Android Test App[\s\S]*?<a class="app-menu-link"[^>]*data-app-platform="apple"[\s\S]*?Apple App[\s\S]*?<a href="#" data-logout>/,
+  /Terms of Service<\/span><\/a>\s*<a class="app-menu-link"[^>]*href="downloads\/danzstak-android-test\.apk"[^>]*data-app-platform="android"[^>]*download[\s\S]*?Android Test App[\s\S]*?<a class="app-menu-link"[^>]*data-app-platform="apple"[\s\S]*?Apple App[\s\S]*?<button type="button" class="menu-action logout-menu-link" data-logout>/,
   "the left menu stacks Android then Apple directly under Terms of Service and above Logout"
 );
 assert.match(home, /href="downloads\/danzstak-android-test\.apk"[^>]*download/, "the homepage links directly to the Android test APK");
