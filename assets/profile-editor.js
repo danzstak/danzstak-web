@@ -641,8 +641,8 @@ const panel = document.createElement("form");
 panel.className = "edit-profile-panel";
 panel.hidden = true;
 panel.innerHTML = '<h2>Edit Profile</h2>' +
-  '<label>Display name<input name="name" maxlength="80" autocomplete="name" required></label>' +
-  '<label>Username<input name="handle" maxlength="24" pattern="[A-Za-z0-9._]+" required></label>' +
+  '<label>Display name<input name="name" minlength="2" maxlength="80" autocomplete="name" required></label>' +
+  '<label>Username<input name="handle" minlength="3" maxlength="24" pattern="[A-Za-z0-9._]+" required></label>' +
   '<label>Bio<textarea name="bio" maxlength="160"></textarea></label>' +
   '<label>Location<input name="location" maxlength="80"></label>' +
   '<label>Work<input name="work" maxlength="100"></label>' +
@@ -650,7 +650,7 @@ panel.innerHTML = '<h2>Edit Profile</h2>' +
   '<label>DanzStak language<select name="language" data-profile-language></select></label>' +
   '<label>Who can post on your profile?<select name="profilePostPermission"><option value="owner">Only me</option><option value="friends">Friends</option><option value="anyone">Anyone on DanzStak</option></select></label>' +
   '<label class="profile-tag-setting"><input name="allowTags" type="checkbox">Allow accepted friends to tag me in photos and videos</label>' +
-  '<p class="edit-note">Share only information you want members to see. Profile text must be your original content.</p>' +
+  '<p class="edit-note">Your display name and username must each be unique. If a name is taken, DanzStak will suggest a numbered alternative. Share only information you want members to see.</p>' +
   '<div class="edit-actions"><button class="secondary" type="button" data-cancel>Cancel</button><button class="button" type="submit">Save Changes</button></div>' +
   '<div class="profile-import"><button type="button" data-facebook-import>Import from Facebook</button><p>Preview your export, set Public, Friends, or Only me in batches, and review shared-source posts before copying them.</p></div>';
 profileCard.appendChild(panel);

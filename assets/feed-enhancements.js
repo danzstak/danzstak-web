@@ -2650,6 +2650,65 @@ document.getElementById("feed").addEventListener("keydown", event => {
   saveComment(post, event.target);
 }, true);
 document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addSaveButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
+function linkifyUserText(element) {
+  if (element?.nodeType !== 1) return;
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (!node.nodeValue?.match(/(?:https?:\/\/|www\.)/i)) continue;
+    if (node.parentElement?.closest("a, button, input, textarea, script, style")) continue;
+    textNodes.push(node);
+  }
+  for (const node of textNodes) {
+    const text = node.nodeValue;
+    const pattern = /(?:https?:\/\/|www\.)[^\s<>]+/gi;
+    const fragment = document.createDocumentFragment();
+    let cursor = 0;
+    for (const match of text.matchAll(pattern)) {
+      if (match.index > cursor) fragment.append(document.createTextNode(text.slice(cursor, match.index)));
+      let visible = match[0];
+      let trailing = "";
+      while (/[),.!?;:]$/.test(visible)) {
+        trailing = visible.slice(-1) + trailing;
+        visible = visible.slice(0, -1);
+      }
+      try {
+        const href = new URL(visible.startsWith("www.") ? "https://" + visible : visible);
+        if (href.protocol !== "https:" && href.protocol !== "http:") throw new Error("Unsupported link");
+        const link = document.createElement("a");
+        link.className = "user-content-link";
+        link.href = href.href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer nofollow ugc";
+        link.textContent = visible;
+        fragment.append(link);
+      } catch {
+        fragment.append(document.createTextNode(visible));
+      }
+      if (trailing) fragment.append(document.createTextNode(trailing));
+      cursor = match.index + match[0].length;
+    }
+    if (!cursor) continue;
+    if (cursor < text.length) fragment.append(document.createTextNode(text.slice(cursor)));
+    node.replaceWith(fragment);
+  }
+}
+
+function linkifyFeedContent(root = document) {
+  if (root?.nodeType === 1 && root.matches(".post-content, .comment-content, .comment")) linkifyUserText(root);
+  root.querySelectorAll?.(".post-content, .comment-content, .comment").forEach(linkifyUserText);
+}
+
+linkifyFeedContent();
+new MutationObserver(records => {
+  for (const record of records) {
+    for (const node of record.addedNodes) {
+      if (node.nodeType === 1) linkifyFeedContent(node);
+    }
+  }
+}).observe(document.getElementById("feed") || document.body, { childList: true, subtree: true });
+
 function refreshFeedMediaWorkspace(records) {
   const workspaceName = featurePanel.dataset?.workspaceName || featureHeading.textContent;
   if (featurePanel.hidden || !["Photos", "Videos", "Events", "Saved"].includes(workspaceName)) return;

@@ -170,3 +170,4 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
 .post-actions .dislikeBtn,.comment-dislike{color:#c62828!important}
 .post-actions .likeBtn[data-liked="true"]{color:#08783c!important}
 .post-actions .dislikeBtn[data-selected="true"]{color:#a41111!important;background:#fff0ef}
+.user-content-link{color:#075fcb;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;overflow-wrap:anywhere}.user-content-link:visited{color:#6542a6}.user-content-link:focus-visible{outline:3px solid #1769e066;outline-offset:2px;border-radius:2px}.dark-mode .user-content-link{color:#8ec5ff}.dark-mode .user-content-link:visited{color:#c8a8ff}

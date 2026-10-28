@@ -3,16 +3,18 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const template = fs.readFileSync('infrastructure/call-signaling/template.yaml', 'utf8');
 const extract = name => template.match(new RegExp('          async function '+name+'[^\\n]+'))[0].trim();
+const extractBlock = (start, end) => template.slice(template.indexOf('          '+start), template.indexOf('          '+end)).trim();
 let deleted = 0;
 const context = vm.createContext({
   json: (statusCode, body) => ({statusCode, body}), ownerPrefix: () => 'owner', randomUUID: () => 'upload',
   mediaTypes: {'image/png':['image','png'], 'video/mp4':['video','mp4']}, signedMediaUrl: (_, key) => key,
-  db: {send: async () => ({Item:{profileAvatarKey:{S:'users/owner/old.png'}}})},
-  GetItemCommand: class {}, UpdateItemCommand: class {}, DeleteObjectCommand: class {},
+  db: {send: async command => command.constructor.name === 'GetItemCommand' ? ({Item:{profileAvatarKey:{S:'users/owner/old.png'}}}) : ({})},
+  scanAll: async () => [],
+  GetItemCommand: class GetItemCommand {}, UpdateItemCommand: class {}, DeleteItemCommand: class {}, TransactWriteItemsCommand: class {}, DeleteObjectCommand: class {},
   s3: {send: async () => { deleted++; throw new Error('cleanup unavailable'); }},
   process: {env:{}}, console: {error:()=>{}}, getProfile: async () => ({statusCode:200}),
 });
-vm.runInContext(extract('mediaUpload')+'\n'+extract('updateProfile'), context);
+vm.runInContext(extract('mediaUpload')+'\n'+extractBlock('const normalizeProfileClaim', 'async function sendMessage'), context);
 async function upload(purpose) {
   context.event={body:JSON.stringify({contentType:'image/png', ...(purpose ? {purpose}: {})})};
   return vm.runInContext('mediaUpload(event,{email:"owner@example.com"})', context);
@@ -22,10 +24,10 @@ async function upload(purpose) {
   for(const purpose of ['post','profile']) assert.equal((await upload(purpose)).body.mediaKey,'users/owner/upload.png');
   assert.equal((await upload('../other')).statusCode,400);
   context.event={body:JSON.stringify({avatarKey:'users/owner/new.png'})};
-  assert.equal((await vm.runInContext('updateProfile(event,{email:"owner@example.com"})',context)).statusCode,200);
+  assert.equal((await vm.runInContext('updateProfileUnique(event,{email:"owner@example.com"})',context)).statusCode,200);
   assert.equal(deleted,1,'cleanup failure does not undo a committed profile');
   context.event={body:JSON.stringify({avatarKey:'users/another/new.png'})};
-  assert.equal((await vm.runInContext('updateProfile(event,{email:"owner@example.com"})',context)).statusCode,403);
+  assert.equal((await vm.runInContext('updateProfileUnique(event,{email:"owner@example.com"})',context)).statusCode,403);
   const auth = fs.readFileSync('infrastructure/auth-api/index.mjs','utf8');
   const videoCode = auth.slice(auth.indexOf('async function setProfileVideo(event)'), auth.indexOf('// CHECK SESSION'));
   const videoContext = vm.createContext({
