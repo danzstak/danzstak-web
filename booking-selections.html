@@ -5,17 +5,30 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; img-src 'self' data: https:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
   <title>Selected Clubs | DanzStak Booking Agent</title>
   <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="assets/booking-selections.css?v=2">
+  <link rel="stylesheet" href="assets/booking-selections.css?v=4">
 </head>
 <body>
   <header><a href="booking.html">← Back to venue map</a><img src="assets/danzstak-logo.png" alt="DanzStak"></header>
   <main>
     <p class="eyebrow">DanzStak Booking Agent</p>
-    <h1>Your selected clubs</h1>
+    <h1>Your booking pipeline</h1>
     <p class="intro">These are public booking leads, not confirmed shows. Verify the correct buyer, available date, age policy, capacity, deal, and load-in details before committing the route.</p>
+    <section class="artist-workspace" aria-labelledby="artistWorkspaceTitle">
+      <h2 id="artistWorkspaceTitle">Your act, ready to pitch</h2>
+      <div class="artist-fields">
+        <label>Act name<input id="pitchArtist" maxlength="100" autocomplete="off"></label>
+        <label>Genres (comma separated)<input id="pitchGenre" maxlength="100" placeholder="Punk, rock"></label>
+        <label>Home town<input id="pitchHometown" maxlength="160"></label>
+        <label>Public EPK link<input id="pitchEpk" type="url" maxlength="600" placeholder="https://"></label>
+        <label>Short pitch<textarea id="pitchSummary" maxlength="1000" placeholder="Describe your live show and relevant experience."></textarea></label>
+      </div>
+      <p>Match guidance uses your genres and the venue's listed categories. It does not establish availability or audience demand.</p>
+      <div class="selection-actions"><button id="saveBookingAccount" type="button" disabled>Save to account</button><button id="loadBookingAccount" type="button">Reload account workspace</button></div>
+      <p id="bookingAccountStatus" role="status" aria-live="polite">Loading your private account workspace…</p>
+    </section>
     <div class="selection-toolbar" aria-label="Selected club actions">
       <div id="selectionStatus" role="status" aria-live="polite"></div>
       <div class="selection-actions">
@@ -26,6 +39,6 @@
     </div>
     <section id="selectedVenueCards" class="selected-venue-grid" aria-label="Selected venue contacts"></section>
   </main>
-  <script src="assets/booking-selections.js?v=2" defer></script>
+  <script src="assets/booking-selections.js?v=4" defer></script>
 </body>
 </html>

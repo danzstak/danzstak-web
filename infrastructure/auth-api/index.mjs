@@ -2282,6 +2282,44 @@ function cleanTourMarket(value) {
   return { stop, proposedDate, confirmed: value.confirmed === true, venue };
 }
 
+const bookingWorkspaceId = "booking-workspace-v1";
+async function bookingWorkspace(event, method) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const Key = { userId: { S: userId }, tourId: { S: bookingWorkspaceId } };
+  if (method === "GET") {
+    const result = await db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true }));
+    return reply(200, result.Item ? { ...JSON.parse(result.Item.plan.S), revision: result.Item.revision?.S || "" } : { venues: [], artist: {}, revision: "" });
+  }
+  const data = parseJsonBody(event);
+  if (!data || !Array.isArray(data.venues) || data.venues.length > 100 || typeof data.revision !== "string") return reply(400, { error: "Provide up to 100 venues and the loaded revision." });
+  const text = (value, max = 300) => typeof value === "string" ? value.trim().slice(0, max) : "";
+  const https = value => /^https:\/\//i.test(text(value, 600)) ? text(value, 600) : "";
+  const list = (value, clean) => Array.isArray(value) ? value.slice(0, 8).map(clean).filter(Boolean) : [];
+  const date = value => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value ? value : "";
+  const stages = new Set(["Research", "Ready to pitch", "Contacted", "In conversation", "Hold", "Confirmed", "Declined"]);
+  const venues = data.venues.map(v => {
+    if (!v || typeof v !== "object" || !text(v.name)) return null;
+    const b = v.booking || {};
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), activityEvidence: text(v.activityEvidence, 1000), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { stage: stages.has(b.stage) ? b.stage : "Research", showDate: date(b.showDate), followUp: date(b.followUp), deal: text(b.deal, 2000), notes: text(b.notes, 2000) } };
+  });
+  if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
+  const a = data.artist || {};
+  const plan = JSON.stringify({ venues, artist: { name: text(a.name, 100), genre: text(a.genre, 100), hometown: text(a.hometown, 160), epk: https(a.epk), pitch: text(a.pitch, 1000) } });
+  if (Buffer.byteLength(plan, "utf8") > 250000) return reply(400, { error: "Workspace is too large. Export a copy and reduce the list." });
+  const revision = randomUUID();
+  try {
+    await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...Key, name: { S: "Booking workspace" }, plan: { S: plan }, revision: { S: revision }, updatedAt: { S: new Date().toISOString() } }, ConditionExpression: data.revision ? "revision = :revision" : "attribute_not_exists(userId)", ...(data.revision ? { ExpressionAttributeValues: { ":revision": { S: data.revision } } } : {}) }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return reply(409, { error: "Another device saved changes. Export your work, then reload the account workspace before saving." });
+    throw error;
+  }
+  return reply(200, { revision });
+}
+
 async function saveTourPlan(event) {
   const headers = corsHeaders(event.headers?.origin);
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -2307,7 +2345,7 @@ async function listTourPlans(event) {
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId", ExpressionAttributeValues: { ":userId": { S: userId } }, ProjectionExpression: "tourId, #name, #plan, updatedAt", ExpressionAttributeNames: { "#name": "name", "#plan": "plan" }, Limit: 50, ScanIndexForward: false }));
-  const tours = (result.Items || []).map(item => { let plan = {}; try { plan = JSON.parse(item.plan?.S || "{}"); } catch { /* Ignore malformed legacy data. */ } return { tourId: item.tourId?.S || "", name: item.name?.S || "Tour", updatedAt: item.updatedAt?.S || "", plan }; });
+  const tours = (result.Items || []).filter(item => item.tourId?.S !== bookingWorkspaceId).map(item => { let plan = {}; try { plan = JSON.parse(item.plan?.S || "{}"); } catch { /* Ignore malformed legacy data. */ } return { tourId: item.tourId?.S || "", name: item.name?.S || "Tour", updatedAt: item.updatedAt?.S || "", plan }; });
   return { statusCode: 200, headers, body: JSON.stringify({ tours }) };
 }
 
@@ -2523,6 +2561,7 @@ export const handler = async event => {
       return await planTourRoute(event);
     }
 
+    if ((method === "GET" || method === "POST") && path === "/booking-pipeline") return await bookingWorkspace(event, method);
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
     if (method === "POST" && path === "/tours") return await saveTourPlan(event);
     if (method === "DELETE" && path.startsWith("/tours/")) return await deleteTourPlan(event, decodeURIComponent(path.slice(7)));

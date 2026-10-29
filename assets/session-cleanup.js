@@ -17,6 +17,8 @@
     catch { /* Server logout remains authoritative when browser storage is unavailable. */ }
     try {
       sessionStorage.removeItem("danzstak_install_prompt_shown");
+      sessionStorage.removeItem("danzstakBookingVenueSelections");
+      sessionStorage.removeItem("danzstakBookingMapAdditions");
       sessionStorage.removeItem("danzstak_push_synced");
       sessionStorage.removeItem("danzstak_push_prompt_dismissed");
     }

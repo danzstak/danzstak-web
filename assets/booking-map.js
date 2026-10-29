@@ -374,6 +374,7 @@
   openSelections?.addEventListener("click", () => {
     if (!selectedVenues.size) return;
     sessionStorage.setItem("danzstakBookingVenueSelections", JSON.stringify([...selectedVenues.values()]));
+    sessionStorage.setItem("danzstakBookingMapAdditions", "true");
     window.location.assign("booking-selections.html");
   });
   updateSelectionUi();
