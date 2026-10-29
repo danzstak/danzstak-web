@@ -15,6 +15,7 @@ vm.runInContext(code + '\ncreateFriendRequestForm();', context);
 const form = nodes.find(item => item.tag === 'form'), send = nodes.find(item => item.tag === 'button'), status = nodes.find(item => item.tag === 'p');
 const event = { preventDefault() {} };
 assert.match(css, /\.friend-request-form\{display:grid;grid-template-columns:minmax\(220px,460px\) auto/, 'desktop friend requests use a compact input and action row');
+assert.match(css, /\.friend-request-form button\{width:auto;min-width:170px;[^}]*justify-self:start/, 'the global primary action style cannot stretch the friend request button');
 assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.friend-request-form\{grid-template-columns:1fr/, 'mobile friend requests stack without squeezing the email field');
 assert.match(feed, /assets\/feed-enhancements\.css\?v=\d+/, 'the feed loads versioned friend workspace styling');
 (async () => {
