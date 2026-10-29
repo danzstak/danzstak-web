@@ -35,9 +35,11 @@ for (const required of [
   ".tribe-hero{",
   ".tribe-nav{",
   ".tribe-crew-member{",
+  ".tribe-detail{scroll-margin-top:90px}",
+  "@media(max-width:700px){.tribe-detail{scroll-margin-top:122px}",
   "@media(max-width:700px){.groups-discovery-controls"
 ]) assert.ok(css.includes(required), `Responsive Tribes styling is missing: ${required}`);
 
-assert.match(feed, /feed-enhancements\.css\?v=374/);
+assert.match(feed, /feed-enhancements\.css\?v=375/);
 assert.match(feed, /feed-enhancements\.js\?v=377/);
 console.log("Tribes experience checks passed: discovery, detail, discussion, Elders, The Crew, and responsive layout.");
