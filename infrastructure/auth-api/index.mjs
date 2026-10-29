@@ -1690,6 +1690,16 @@ async function deleteSecurePost(event) {
   const isAuthor = found.Item.userId?.S === userId;
   const isProfileOwner = found.Item.profileOwnerId?.S === userId;
   if (!isAuthor && !isProfileOwner) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the author or profile owner can remove this post." }) };
+  if (isProfileOwner && !isAuthor) {
+    await db.send(new UpdateItemCommand({
+      TableName: postsTable,
+      Key: { postId: { S: postId } },
+      UpdateExpression: "REMOVE profileOwnerId, profileOwnerEmail",
+      ConditionExpression: "profileOwnerId = :owner AND userId <> :owner",
+      ExpressionAttributeValues: { ":owner": { S: userId } }
+    }));
+    return { statusCode: 200, headers, body: JSON.stringify({ deleted: false, removedFromProfile: true }) };
+  }
   let linkedStories = [];
   let mediaKey = "";
   if (found.Item.mediaKey?.S) {

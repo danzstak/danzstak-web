@@ -39,7 +39,7 @@ try {
       @{
         Sid = "PostRecords"
         Effect = "Allow"
-        Action = @("dynamodb:Scan", "dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:DeleteItem")
+        Action = @("dynamodb:Scan", "dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Posts"
       },
       @{
