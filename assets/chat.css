@@ -89,3 +89,13 @@ body.is-conversation-open>.install-app-button,body.is-conversation-open>.app-upd
   .conversation-call,.conversation-header-actions button,.chat-filters button,#newChat,.message-attach,.message-camera,.message-reaction-palette button,.emoji-palette button{min-width:44px;min-height:44px}
   .conversation-user{min-height:56px}
 }
+
+/* Keep phone navigation on one row so the conversation owns the viewport. */
+@media(max-width:560px){
+  .chat-header{height:60px;min-height:60px;flex-wrap:nowrap;gap:5px;padding:6px 8px}
+  .chat-header .chat-brand{flex:0 0 54px}
+  .chat-header .chat-brand img{width:54px;height:40px}
+  .chat-header>div{min-width:0;gap:4px;margin-left:auto}
+  .chat-header .button{min-height:40px;padding:6px 8px;font-size:12px;white-space:nowrap}
+  body:not(.is-conversation-open) .chat-sidebar{min-height:calc(100dvh - 60px)}
+}
