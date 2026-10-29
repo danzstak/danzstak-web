@@ -3078,6 +3078,7 @@ function renderPlayableReels() {
       video.src = playerInfo.src;
       video.controls = true;
       video.playsInline = true;
+      video.setAttribute("aria-label", "Video in The Roll from " + (reel.authorName || "a DanzStak member"));
       video.autoplay = !dataSaverEnabled();
       video.muted = true;
       video.loop = true;

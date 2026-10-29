@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-+v7k79lCETE0lx8xt5/T5Iv6qqx1yzDCaKWP+VpwXL8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-2TkWhB26prxim0warH2qQjeLAzZFBI2iQd9PJjmwwbE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -724,7 +724,7 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
     media.className = "post-media";
     media.loading = "lazy";
     if (mediaType === "image") media.alt = "Photo shared by " + author;
-    if (mediaType === "video") { media.controls = true; media.playsInline = true; }
+    if (mediaType === "video") { media.controls = true; media.playsInline = true; media.setAttribute("aria-label", "Video shared by " + author); }
     article.appendChild(media);
   }
   article.append(actions, comments);
@@ -759,7 +759,7 @@ function openStoryViewer(story) {
   mediaBox.replaceChildren();
   const media = document.createElement(story.mediaType === "video" ? "video" : "img");
   media.src = story.mediaUrl;
-  if (story.mediaType === "video") { media.controls = true; media.autoplay = true; media.muted = true; media.playsInline = true; }
+  if (story.mediaType === "video") { media.controls = true; media.autoplay = true; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", storyDisplayCaption(story)); }
   else media.alt = storyDisplayCaption(story);
   mediaBox.appendChild(media);
   viewer.querySelector(".story-viewer-caption").textContent = storyDisplayCaption(story);
@@ -827,6 +827,7 @@ async function loadStories() {
         video.loop = true;
         video.playsInline = true;
         video.preload = localStorage.getItem("danzstak_data_saver") === "1" ? "none" : "metadata";
+        video.setAttribute("aria-label", "Video Flash from " + storyAuthor + ": " + storyDisplayCaption(story));
         item.appendChild(video);
       }
       open.addEventListener("click", () => openStoryViewer(story));
@@ -996,7 +997,7 @@ async function loadPosts() {
           media.className = "post-media";
           media.loading = "lazy";
           if (post.mediaType === "image") media.alt = "Photo shared by " + authorName;
-          if (post.mediaType === "video") { media.controls = true; media.playsInline = true; }
+          if (post.mediaType === "video") { media.controls = true; media.playsInline = true; media.setAttribute("aria-label", "Video shared by " + authorName); }
           article.querySelector(".post-content")?.insertAdjacentElement("afterend", media);
         }).catch(() => {});
       }
