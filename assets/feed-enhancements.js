@@ -1024,10 +1024,24 @@ function renderWorkspace(name) {
           const row = document.createElement("article");
           row.className = "notification-row";
           row.classList.toggle("is-read", notice.unread === false);
-          const avatar = person?.picture ? document.createElement("img") : document.createElement("span");
+          const memberId = String(person?.memberId || "").trim();
+          const avatar = document.createElement(memberId ? "a" : "span");
           avatar.className = "notification-avatar";
-          if (person?.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
-          else { avatar.textContent = displayName.charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+          if (memberId) {
+            avatar.href = `profile.html?member=${encodeURIComponent(memberId)}`;
+            avatar.setAttribute("aria-label", "Open " + displayName + " profile");
+          }
+          if (person?.picture) {
+            const picture = document.createElement("img");
+            picture.src = person.picture;
+            picture.alt = "";
+            picture.referrerPolicy = "no-referrer";
+            avatar.appendChild(picture);
+          }
+          else {
+            avatar.textContent = displayName.charAt(0).toUpperCase();
+            if (!memberId) avatar.setAttribute("aria-hidden", "true");
+          }
           const message = document.createElement("p");
           message.textContent = notice.type === "message"
             ? `${displayName}: ${notice.preview || "New message"}`
