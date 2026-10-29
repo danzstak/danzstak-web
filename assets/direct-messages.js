@@ -631,6 +631,8 @@ async function loadConversations() {
       });
     }
     cachedConversations = [...contacts.values()];
+    const focusedContact = document.activeElement?.closest?.(".conversation-user")?.dataset.contactEmail || "";
+    const activeContact = String(contactInput?.value || "").trim().toLowerCase();
     conversationUsers.replaceChildren();
     const query = chatSearch?.value.trim().toLowerCase() || "";
     const visible = cachedConversations.filter(item => {
@@ -643,6 +645,10 @@ async function loadConversations() {
     for (const conversation of visible) {
       const row = document.createElement("div"); row.className = "conversation-row";
       const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
+      button.dataset.contactEmail = conversation.contactEmail;
+      const isActiveContact = activeContact && conversation.contactEmail === activeContact && !conversationHeader.hidden;
+      button.classList.toggle("is-active", Boolean(isActiveContact));
+      if (isActiveContact) button.setAttribute("aria-current", "true");
       const avatarWrap = document.createElement("span"); avatarWrap.className = "conversation-avatar-wrap";
       const avatar = conversation.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "conversation-list-avatar";
       if (conversation.picture) {
@@ -684,6 +690,10 @@ async function loadConversations() {
         calls.appendChild(call);
       }
       row.append(button, calls); conversationUsers.appendChild(row);
+    }
+    if (focusedContact) {
+      const focusTarget = [...conversationUsers.querySelectorAll(".conversation-user")].find(button => button.dataset.contactEmail === focusedContact);
+      focusTarget?.focus({ preventScroll: true });
     }
     const requested = contactInput.value.trim().toLowerCase();
     if (requested && conversationHeader.hidden) openConversation(cachedConversations.find(item => item.contactEmail === requested) || { contactEmail: requested, name: "DanzStak member", picture: "" });
