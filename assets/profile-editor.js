@@ -512,6 +512,14 @@ function profileWallComposer(profile) {
   return section;
 }
 
+const profileTabRoutes = new Map([
+  ["posts", "Posts"], ["featured", "Featured"], ["memories", "Memories"],
+  ["about", "About"], ["friends", "Friends"], ["media", "Media"]
+]);
+function requestedProfileTab() {
+  return profileTabRoutes.get(String(window.location?.hash || "").replace(/^#/, "").toLowerCase()) || "Posts";
+}
+
 let profileTabVersion = 0;
 async function loadProfilePosts(mediaOnly = false, collection = "posts") {
   const version = profileTabVersion;
@@ -618,6 +626,7 @@ tabs.addEventListener("click", async event => {
   profileTabVersion += 1;
   tabs.querySelectorAll("button").forEach(button => { const selected = button === tab; button.classList.toggle("active", selected); button.setAttribute("aria-selected", String(selected)); button.tabIndex = selected ? 0 : -1; });
   const name = tab.dataset.profileTab;
+  window.history?.replaceState?.(null, "", "#" + name.toLowerCase());
   details.hidden = name !== "About";
   tabMessage.hidden = name === "About";
   if (name === "Posts") await loadProfilePosts(false);
@@ -787,7 +796,9 @@ function applyLoadedProfile(profile = {}) {
   }
   if (tabs.dataset.initialized !== "true") {
     tabs.dataset.initialized = "true";
-    tabs.querySelector('[data-profile-tab="Posts"]').click();
+    const requested = requestedProfileTab();
+    const target = requested === "Memories" && profile.isOwner !== true ? "Posts" : requested;
+    tabs.querySelector(`[data-profile-tab="${target}"]`).click();
   }
 }
 window.addEventListener("danzstak:profile-loaded", event => applyLoadedProfile(event.detail || {}));

@@ -11,7 +11,7 @@ assert.match(source, /tab\.tabIndex = name === "Posts" \? 0 : -1/,
   'fresh profiles put Posts in the keyboard tab order');
 assert.match(source, /tabMessage\.hidden = false;[\s\S]*details\.hidden = true;/,
   'fresh profiles show the post panel instead of About details');
-assert.match(source, /tabs\.dataset\.initialized !== "true"[\s\S]*\[data-profile-tab="Posts"\][\s\S]*\.click\(\)/,
+assert.match(source, /tabs\.dataset\.initialized !== "true"[\s\S]*requestedProfileTab\(\)[\s\S]*\[data-profile-tab="\$\{target\}"\][\s\S]*\.click\(\)/,
   'profile posts load once the authoritative profile is available');
 
 console.log('Profile default-tab checks passed: fresh visits open Posts and load the member timeline.');
