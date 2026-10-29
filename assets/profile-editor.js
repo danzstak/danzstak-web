@@ -534,8 +534,8 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
     for (const post of posts) tabMessage.appendChild(profilePostCard(post));
     if (mediaOnly) {
       const params = new URLSearchParams();
-      const profileEmail = String(window.danzstakCurrentProfile?.email || "");
-      if (profileEmail) params.set("email", profileEmail);
+      const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
+      if (viewingOtherProfile && /^[a-f0-9-]{36}$/.test(profileMemberId)) params.set("member", profileMemberId);
       const videoResponse = await profileFetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
       if (version !== profileTabVersion) return;
       if (!videoResponse.ok && videoResponse.status !== 404) throw new Error("Profile video is temporarily unavailable.");

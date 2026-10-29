@@ -1008,7 +1008,9 @@ async function getProfileVideo(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const viewerEmail = await accountForSub(userId);
   if (!viewerEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
-  const profileEmail = String(event.queryStringParameters?.email || viewerEmail).trim().toLowerCase();
+  const memberId = String(event.queryStringParameters?.member || "");
+  if (memberId && !/^[a-f0-9-]{36}$/.test(memberId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid member required." }) };
+  const profileEmail = memberId ? await accountForSub(memberId) : String(event.queryStringParameters?.email || viewerEmail).trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileEmail)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid profile required." }) };
   if (!(await canViewProfileMedia(viewerEmail, profileEmail))) return { statusCode: 403, headers, body: JSON.stringify({ error: "Profile media is available to friends and group members." }) };
   const found = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: profileEmail } }, ConsistentRead: true }));
