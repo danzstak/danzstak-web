@@ -21,6 +21,7 @@ assert.match(pwa, /document\.querySelector\("body > header"\)/, "install prompts
 assert.match(pwa, /insertAdjacentElement\("afterend", installButton\)/, "the install action must not be appended over page controls");
 const softUi = fs.readFileSync("assets/soft-ui.css", "utf8");
 assert.match(softUi, /\.install-app-button,\.app-update-button\{position:relative/, "install and update prompts must not cover composer or message controls");
+assert.match(softUi, /\.install-app-button,\.app-update-button\{position:relative;z-index:1;/, "scrolling prompts must remain below sticky navigation");
 assert.doesNotMatch(softUi, /\.install-app-button,\.app-update-button\{position:fixed/, "app prompts must not use a blocking fixed overlay");
 
 console.log("Installed-app checks passed: PWA, Android relationship, and prompt suppression are connected.");
