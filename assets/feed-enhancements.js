@@ -1333,14 +1333,18 @@ function renderWorkspace(name) {
   if (name === "Settings") {
     featureText.textContent = "Manage account privacy, device preferences, and notifications.";
     workspace.classList.add("settings-workspace");
-    async function settingsFetch(options = {}) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-      try { return await fetch("https://api.danzstak.com/settings/presence", { ...options, signal: controller.signal }); }
-      catch (error) {
-        if (error.name === "AbortError") throw new Error("Account settings took too long to respond.");
-        throw error;
-      } finally { clearTimeout(timeout); }
+    async function settingsFetch(options = {}, retryColdStart = false) {
+      const attempts = retryColdStart ? 2 : 1;
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        try { return await fetch("https://api.danzstak.com/settings/presence", { ...options, signal: controller.signal }); }
+        catch (error) {
+          if (error.name !== "AbortError") throw error;
+          if (attempt + 1 >= attempts) throw new Error("Account settings took too long to respond.");
+        } finally { clearTimeout(timeout); }
+      }
+      throw new Error("Account settings could not be loaded.");
     }
     const heading = document.createElement("h3");
     heading.className = "settings-heading";
@@ -1465,7 +1469,7 @@ function renderWorkspace(name) {
     button.textContent = "Loading Settings…";
     const preferenceControls = [presenceCheckbox, tagsCheckbox, darkCheckbox, motionCheckbox, dataSaverCheckbox, language];
     preferenceControls.forEach(control => { control.disabled = true; });
-    settingsFetch({ credentials: "include", cache: "no-store" })
+    settingsFetch({ credentials: "include", cache: "no-store" }, true)
       .then(response => {
         if (!response.ok) throw new Error("Account settings could not be loaded.");
         return response.json();
