@@ -12,7 +12,11 @@ assert.match(html, /use\s+the pencil on the map/i, "map instructions should poin
 assert.match(script, /L\.DomEvent\.on\(mapDrawControl, "click", event => \{\s*L\.DomEvent\.stop\(event\);\s*toggleRouteDrawing\(\);/, "the pencil must start drawing without placing an accidental map point");
 assert.match(script, /mapDrawControl\.innerHTML = active \? '<span aria-hidden="true">✓<\/span>'/, "the pencil should become a clear finish control");
 assert.match(script, /L\.polyline\(routePoints, \{ color: "#1769e0", weight: 6/, "two points must create a visible route line");
-assert.match(script, /finalizedRoutePoints = routePoints\.map\(point => \[point\.lng, point\.lat\]\)/, "the finished line must retain its geographic path");
+assert.match(script, /mapElement\.addEventListener\("pointerdown"/, "the pencil must support starting a freehand route stroke");
+assert.match(script, /mapElement\.addEventListener\("pointermove"/, "dragging across the map must add the real path instead of one straight endpoint line");
+assert.match(script, /pixel\.distanceTo\(lastDrawPixel\) < 7/, "freehand capture must retain useful bends without flooding the route request");
+assert.match(script, /Array\.from\(\{ length: maximumPathPoints \}/, "long freehand routes must be sampled safely for the API");
+assert.match(script, /finalizedRoutePoints = sampledPoints\.map\(point => \[point\.lng, point\.lat\]\)/, "the finished line must retain its sampled geographic path");
 assert.match(script, /body\.searchPath = finalizedRoutePoints/, "the venue request must send the finished path");
 assert.match(script, /search\.dataset\.mapSearchSignature = JSON\.stringify/, "changing the visible or drawn map area must identify a fresh search scope");
 assert.match(script, /delete search\.dataset\.mapSearchSignature/, "clearing the map area must restore a fresh home-city search");
@@ -27,4 +31,4 @@ assert.match(script, /The club search took too long\. Zoom closer or draw a shor
 assert.match(script, /The club search could not connect\. Check the connection and try again\./, "a failed map request must report a connection problem");
 assert.match(script, /alt: `\$\{venueName\} venue marker`/, "venue pins must announce the venue name instead of a generic marker label");
 
-console.log("Booking map drawing checks passed: one pencil toggles drawing, creates a route line, finishes with a checkmark, and supports cancellation.");
+console.log("Booking map drawing checks passed: the pencil captures a freehand path, finishes with a checkmark, samples safely, and supports cancellation.");

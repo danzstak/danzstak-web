@@ -27,6 +27,7 @@ assert.equal(isBookableClub({ name: "The Royale", categories: ["Bar or Pub", "Li
 assert.equal(isBookableClub({ name: "Public Works", categories: ["Nightclub", "DJ", "Electronic"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "Public Works", categories: ["Nightclub", "DJ", "Electronic"] }, "DJ / Electronic"), true);
 assert.equal(isBookableClub({ name: "The Knockout", categories: ["Live Music Venue", "Punk", "Rock"] }, "DIY Punk"), true);
+assert.equal(isBookableClub({ name: "Small Room", categories: ["Live Entertainment-Music", "Bar or Pub"] }, "DIY Punk"), true, "genre searches must retain real music rooms whose public category is generic");
 assert.equal(isBookableClub({ name: "Clusterfest", categories: ["Festival"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "SFJAZZ Center", categories: ["Jazz Workshop"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "PDE", categories: ["Orchestra"] }, "DIY Punk"), false);
@@ -65,7 +66,11 @@ assert.match(api, /excludedVenueKeys\.size \|\| curated\.length \|\| discovered\
 assert.match(api, /selectedGenre \? `\$\{selectedGenre\} live music club`/);
 assert.match(api, /searchBounds/);
 assert.match(api, /Filter: \{ BoundingBox:/);
-assert.match(api, /slice\(0, 8\)/);
+assert.match(api, /slice\(0, 12\)/);
+assert.match(api, /searchPath\.length >= 2[\s\S]*sampleCount = Math\.min\(5, searchPath\.length\)[\s\S]*Promise\.all\(samplePoints\.map/, "drawn routes must search several areas along the path instead of only its midpoint");
+assert.match(api, /distanceToSearchPathMiles\(place\.position, searchPath\) <= 25/, "drawn-route results must stay close to the path");
+const tourCandidateSource = api.slice(api.indexOf("async function tourCandidates"), api.indexOf("async function planTourRoute"));
+assert.doesNotMatch(tourCandidateSource, /hasBookingContact\(place\)/, "real music rooms without a published booking contact must still appear for later verification");
 assert.match(api, /sourceName: "AWS Places public listing"/);
 assert.match(api, /sourceName: "DanzStak curated public venue directory"/);
 assert.match(api, /activityEvidence:/);

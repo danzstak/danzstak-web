@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v428";
+const CACHE = "danzstak-shell-v429";
 const SHELL = [
   "/assets/media-tags.js",
   "/assets/post-sharing.js", "/assets/post-views.js",
@@ -13,7 +13,7 @@ const SHELL = [
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-apps-v3.png",
   "/assets/media-visibility.js", "/assets/text-emojis.js", "/assets/story-book.svg", "/assets/device-settings.js", "/assets/home.js", "/assets/pwa.js", "/assets/app-downloads.js", "/assets/logout.js", "/assets/session-cleanup.js", "/assets/session-activity.js", "/assets/profile.js", "/assets/profile-editor.js",
   "/assets/profile-collections.js", "/assets/activity-history-core.js", "/assets/account-export-core.js", "/assets/account-export.js",
-  "/assets/support.css", "/assets/support.js", "/assets/booking-agent.css", "/assets/booking-agent-driver.css", "/assets/booking-agent.js",
+  "/assets/support.css", "/assets/support.js", "/assets/booking-agent.css", "/assets/booking-agent-driver.css", "/assets/booking-agent.js", "/assets/booking-map.js",
   "/assets/profile-editor.css", "/assets/display-preferences.js", "/assets/feed-enhancements.js", "/assets/push-notifications.js", "/assets/direct-messages.js", "/assets/incoming-calls.js", "/assets/incoming-calls.css",
   "/assets/feed-enhancements.css", "/assets/chat.js", "/assets/chat.css", "/assets/legal.css", "/assets/soft-ui.css", "/assets/accessibility.css",
   "/assets/notification-badge.png"

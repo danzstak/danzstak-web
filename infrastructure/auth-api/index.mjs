@@ -1957,12 +1957,14 @@ function isBookableClub(place, genre = "") {
   const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|orchestra|ensemble|workshop|clinic|promoter|promotion|productions?|entertainment company|event consultant|entertainment consultant|event planner|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|music store|record store|instrument store|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office)\b/;
   const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival|festspiele|festival office|jazzfest|walking tour|history tour|guided tour|tourist information|tourismus|ostseebad)\b/;
   const selectedGenre = genre.toLowerCase(), wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
+  const strongVenue = /\b(live music|live entertainment[- ]?music|music venue|rock club|punk club|metal club|night ?club|concert venue|concert hall)\b/.test(description);
+  const electronicOnly = /\b(dj|electronic|techno|house|night ?club)\b/.test(description) && !/\b(live music|live entertainment[- ]?music|rock|punk|metal|hardcore|diy)\b/.test(description);
   const genreEvidence = selectedGenre.includes("punk")
-    ? /\b(punk|hardcore|diy)\b/.test(description)
+    ? /\b(punk|hardcore|diy)\b/.test(description) || (strongVenue && !electronicOnly)
     : selectedGenre.includes("metal")
-      ? /\b(metal|hardcore)\b/.test(description)
+      ? /\b(metal|hardcore)\b/.test(description) || (strongVenue && !electronicOnly)
       : selectedGenre === "rock"
-        ? /\b(rock|punk|metal|live music|music venue)\b/.test(description)
+        ? /\b(rock|punk|metal)\b/.test(description) || (strongVenue && !electronicOnly)
         : selectedGenre.includes("dj") || selectedGenre.includes("electronic")
           ? /\b(dj|electronic|techno|house|night ?club)\b/.test(description)
           : selectedGenre.includes("hip-hop")
@@ -1970,7 +1972,6 @@ function isBookableClub(place, genre = "") {
             : selectedGenre.includes("jazz")
               ? /\bjazz\b/.test(description)
               : true;
-  const strongVenue = /\b(live music|music venue|rock club|punk club|metal club|night ?club|concert venue|concert hall)\b/.test(description);
   const plausibleRoom = /\b(club|bar|pub|tavern|lounge|music hall|social hall|taproom|brewery|roadhouse)\b/.test(description);
   const musicSignal = /\b(music|concert|live|rock|punk|metal|electronic|dj|hip[- ]?hop|jazz)\b/.test(description);
   return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre && genreEvidence && (strongVenue || (plausibleRoom && musicSignal));
@@ -2166,12 +2167,12 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const curatedPool = curatedVenueLeads(point, genre, variation);
   const curated = curatedPool.filter(place => !excludedVenueKeys.has(place.venueKey));
   const discovered = venueBatches.flat()
-    .filter(place => nearby(place, 60) && isBookableClub(place, genre) && hasBookingContact(place) && !excludedVenueKeys.has(place.venueKey))
+    .filter(place => nearby(place, 60) && isBookableClub(place, genre) && !excludedVenueKeys.has(place.venueKey))
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre));
   const initialFallback = excludedVenueKeys.size || curated.length || discovered.length ? [] : curatedPool;
   const venuePool = deduplicateVenues([...curated, ...discovered, ...initialFallback]);
   const offset = venuePool.length ? variation % venuePool.length : 0;
-  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 8);
+  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 12);
   const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }
@@ -2190,7 +2191,7 @@ async function planTourRoute(event) {
   const rawBounds = data.searchBounds && typeof data.searchBounds === "object" ? data.searchBounds : null;
   const searchBounds = rawBounds ? { north: Number(rawBounds.north), south: Number(rawBounds.south), east: Number(rawBounds.east), west: Number(rawBounds.west) } : null;
   const searchPath = Array.isArray(data.searchPath) ? data.searchPath.slice(0, 40).map(point => Array.isArray(point) ? [Number(point[0]), Number(point[1])] : []) : [];
-  if (searchBounds && (!Object.values(searchBounds).every(Number.isFinite) || searchBounds.north <= searchBounds.south || searchBounds.east <= searchBounds.west || searchBounds.north - searchBounds.south > 8 || searchBounds.east - searchBounds.west > 8)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Draw a smaller valid map search area." }) };
+  if (searchBounds && (!Object.values(searchBounds).every(Number.isFinite) || searchBounds.north <= searchBounds.south || searchBounds.east <= searchBounds.west || (searchPath.length < 2 && (searchBounds.north - searchBounds.south > 8 || searchBounds.east - searchBounds.west > 8)))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Draw a smaller valid map search area." }) };
   if (searchPath.length && (searchPath.length < 2 || searchPath.some(point => point.length !== 2 || !Number.isFinite(point[0]) || !Number.isFinite(point[1]) || Math.abs(point[0]) > 180 || Math.abs(point[1]) > 90))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Draw a valid route on the map." }) };
   if (directional && (!tourDirections.has(direction) || !requestedDays)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a travel direction and provide 1–180 tour days." }) };
   if ((requestedDepartOn && !/^\d{4}-\d{2}-\d{2}$/.test(requestedDepartOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour dates must use YYYY-MM-DD." }) };
@@ -2199,6 +2200,18 @@ async function planTourRoute(event) {
   try {
     if (local) {
       const homePoint = await geocodeTourPlace(start);
+      if (searchPath.length >= 2) {
+        const sampleCount = Math.min(5, searchPath.length);
+        const samplePoints = Array.from({ length: sampleCount }, (_, index) => searchPath[Math.round(index * (searchPath.length - 1) / Math.max(1, sampleCount - 1))]);
+        const batches = await Promise.all(samplePoints.map((position, index) => tourCandidates({ label: `Drawn route area ${index + 1}`, position }, genre, excludedVenueKeys, variation + index, null)));
+        const venues = deduplicateVenues(batches.flatMap(batch => batch.venues || []))
+          .filter(place => distanceToSearchPathMiles(place.position, searchPath) <= 25)
+          .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre))
+          .slice(0, 30);
+        const hotels = deduplicateVenues(batches.flatMap(batch => batch.hotels || [])).slice(0, 20);
+        if (requestedDepartOn) batches.forEach(batch => { batch.proposedDate = requestedDepartOn; });
+        return { statusCode: 200, headers, body: JSON.stringify({ route: { start: homePoint, end: homePoint, stops: samplePoints.map((position, index) => ({ label: `Drawn route area ${index + 1}`, position })), distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, requestedDays, departOn: requestedDepartOn, returnBy, provider: "Amazon Location Service", planningOnly: true, local: true, drawn: true }, candidates: [{ stop: "Clubs along your drawn route", position: samplePoints[0], venues, hotels, ...(requestedDepartOn ? { proposedDate: requestedDepartOn } : {}) }] }) };
+      }
       const point = searchBounds ? {
         label: `${homePoint.label} map area`,
         position: [(searchBounds.east + searchBounds.west) / 2, (searchBounds.north + searchBounds.south) / 2]

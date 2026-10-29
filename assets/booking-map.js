@@ -36,6 +36,9 @@
   let finalizedRoutePoints = [];
   let routePreview = null;
   let mapDrawControl = null;
+  let activeDrawPointer = null;
+  let lastDrawPixel = null;
+  let suppressMapClickUntil = 0;
 
   const venueIdentity = place => String(place.venueKey || `${place.name || ""}|${place.address || ""}`);
   const boundsPayload = bounds => ({
@@ -67,6 +70,8 @@
 
   function stopRouteDrawing() {
     drawingRoute = false;
+    activeDrawPointer = null;
+    lastDrawPixel = null;
     routePoints = [];
     setDrawControl(false);
     document.querySelector(".booking-map-panel")?.classList.remove("is-drawing");
@@ -86,7 +91,7 @@
     document.querySelector(".booking-map-panel")?.classList.add("is-drawing");
     map.dragging.disable();
     map.touchZoom.disable();
-    status.textContent = "Tap at least two points along your route. The blue line appears as you tap; press the checkmark when finished.";
+    status.textContent = "Drag across the map to draw your route. The blue line follows your path; press the checkmark when finished.";
   }
 
   function finishRouteDrawing() {
@@ -96,7 +101,11 @@
     }
     drawn.clearLayers();
     routePreview = L.polyline(routePoints, { color: "#1769e0", weight: 6, opacity: 0.95, lineCap: "round", lineJoin: "round", interactive: false }).addTo(drawn);
-    finalizedRoutePoints = routePoints.map(point => [point.lng, point.lat]);
+    const maximumPathPoints = 40;
+    const sampledPoints = routePoints.length <= maximumPathPoints
+      ? routePoints
+      : Array.from({ length: maximumPathPoints }, (_, index) => routePoints[Math.round(index * (routePoints.length - 1) / (maximumPathPoints - 1))]);
+    finalizedRoutePoints = sampledPoints.map(point => [point.lng, point.lat]);
     useBounds(routePreview.getBounds(), "drawn");
     map.fitBounds(routePreview.getBounds(), { padding: [24, 24] });
     stopRouteDrawing();
@@ -108,15 +117,52 @@
     if (drawingRoute) finishRouteDrawing();
     else startRouteDrawing();
   }
-  function addRoutePoint(latlng) {
+  function addRoutePoint(latlng, announce = true) {
     routePoints.push(latlng);
     if (routePreview) drawn.removeLayer(routePreview);
     routePreview = routePoints.length === 1
       ? L.circleMarker(latlng, { radius: 7, color: "#fff", weight: 3, fillColor: "#1769e0", fillOpacity: 1, interactive: false }).addTo(drawn)
       : L.polyline(routePoints, { color: "#1769e0", weight: 6, opacity: 0.95, lineCap: "round", lineJoin: "round", interactive: false }).addTo(drawn);
-    status.textContent = `${routePoints.length} route point${routePoints.length === 1 ? "" : "s"} added. ${routePoints.length < 2 ? "Tap one more point to make the line." : "Keep tapping or press the checkmark to finish."}`;
+    if (announce) status.textContent = `${routePoints.length} route point${routePoints.length === 1 ? "" : "s"} added. ${routePoints.length < 2 ? "Draw farther or tap one more point to make the line." : "Keep drawing or press the checkmark to finish."}`;
   }
-  map.on("click", event => { if (drawingRoute) addRoutePoint(event.latlng); });
+  map.on("click", event => {
+    if (drawingRoute && Date.now() > suppressMapClickUntil) addRoutePoint(event.latlng);
+  });
+
+  const isMapControl = target => target instanceof Element && Boolean(target.closest(".leaflet-control, .leaflet-popup"));
+  mapElement.addEventListener("pointerdown", event => {
+    if (!drawingRoute || activeDrawPointer !== null || isMapControl(event.target) || (event.button !== undefined && event.button !== 0)) return;
+    event.preventDefault();
+    activeDrawPointer = event.pointerId;
+    mapElement.setPointerCapture?.(event.pointerId);
+    const latlng = map.mouseEventToLatLng(event);
+    lastDrawPixel = map.latLngToContainerPoint(latlng);
+    addRoutePoint(latlng, false);
+    suppressMapClickUntil = Date.now() + 500;
+    status.textContent = "Drawing route… drag through the places you want to travel, then press the checkmark.";
+  }, { passive: false });
+  mapElement.addEventListener("pointermove", event => {
+    if (!drawingRoute || activeDrawPointer !== event.pointerId) return;
+    event.preventDefault();
+    const latlng = map.mouseEventToLatLng(event);
+    const pixel = map.latLngToContainerPoint(latlng);
+    if (lastDrawPixel && pixel.distanceTo(lastDrawPixel) < 7) return;
+    lastDrawPixel = pixel;
+    addRoutePoint(latlng, false);
+  }, { passive: false });
+  const endDrawStroke = event => {
+    if (activeDrawPointer !== event.pointerId) return;
+    event.preventDefault();
+    try { mapElement.releasePointerCapture?.(event.pointerId); } catch {}
+    activeDrawPointer = null;
+    lastDrawPixel = null;
+    suppressMapClickUntil = Date.now() + 500;
+    status.textContent = routePoints.length >= 2
+      ? `Route drawn with ${routePoints.length} points. Press the checkmark to finish, or draw again to extend it.`
+      : "Draw farther across the map, or tap another point, to create a route.";
+  };
+  mapElement.addEventListener("pointerup", endDrawStroke, { passive: false });
+  mapElement.addEventListener("pointercancel", endDrawStroke, { passive: false });
 
   const DrawRouteControl = L.Control.extend({
     options: { position: "topleft" },

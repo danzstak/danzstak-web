@@ -14,7 +14,9 @@ assert.match(agent, /const routeFieldset = \$\("tourForm"\)\.querySelector\("fie
 assert.doesNotMatch(agent, /\$\("startCity"\)\.closest\("fieldset"\)/, "startup must not look for a fieldset around the external Home field");
 assert.match(agent, /routeAction\.id = "routeSearchAction"/, "the map must have a stable route-search target");
 assert.match(map, /document\.getElementById\("routeSearchAction"\)/, "Search this area must invoke the stable route action");
-assert.match(map, /map\.on\("click", event => \{ if \(drawingRoute\) addRoutePoint\(event\.latlng\); \}\)/, "route drawing must use Leaflet's mobile-safe map click event");
+assert.match(map, /mapElement\.addEventListener\("pointerdown"/, "route drawing must begin from mobile-safe pointer input");
+assert.match(map, /mapElement\.addEventListener\("pointermove"/, "route drawing must follow the user's freehand path");
+assert.match(map, /map\.on\("click", event =>/, "route drawing must retain a tap fallback for mobile browsers");
 assert.match(map, /L\.circleMarker\(latlng/, "the first route tap should leave a visible starting point");
 assert.match(map, /L\.polyline\(routePoints, \{ color: "#1769e0", weight: 6/, "two or more route points should draw a clearly visible line");
 assert.match(map, /L\.DomUtil\.create\("button", "map-draw-control"/, "the map must expose its own visible pencil control");
