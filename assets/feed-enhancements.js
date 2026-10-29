@@ -1670,6 +1670,12 @@ function openNotificationDrawer(opener) {
   requestAnimationFrame(() => notificationDrawer.querySelector(".notification-drawer-close")?.focus({ preventScroll: true }));
 }
 
+document.addEventListener("click", event => {
+  if (!notificationDrawer || notificationDrawer.hidden) return;
+  if (notificationDrawer.contains(event.target) || notificationControls.some(control => control.contains(event.target))) return;
+  closeNotificationDrawer(false);
+});
+
 function openWorkspaceRoute(name, pushHistory = true) {
   if (!workspaceRoutes.has(String(name).toLowerCase())) return false;
   const canonicalName = workspaceRoutes.get(String(name).toLowerCase());
