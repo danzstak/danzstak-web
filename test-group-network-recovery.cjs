@@ -31,10 +31,10 @@ vm.runInContext(source.slice(start, end), context);
 (async () => {
   const request = vm.runInContext('groupFetch("/groups")', context);
   deadline();
-  await assert.rejects(request, /group service took too long/);
+  await assert.rejects(request, /Tribe service took too long/);
   assert.equal(cleared, 1, 'group deadline must be cleared after failure');
-  for (const required of ['groupFetch("/groups"', 'groupFetch("/groups/membership"', 'groupFetch("/reports"', 'Retry Group Service', 'createButton.dataset.mode === "retry"']) {
+  for (const required of ['groupFetch("/groups"', 'groupFetch("/groups/membership"', 'groupFetch("/reports"', 'Retry Tribe Service', 'createButton.dataset.mode === "retry"']) {
     assert.ok(source.includes(required), `Group operation bypasses recovery: ${required}`);
   }
-  console.log('Group network checks passed: group actions are bounded and failed initial loading exposes Retry Group Service.');
+  console.log('Tribe network checks passed: Tribe actions are bounded and failed initial loading exposes Retry Tribe Service.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -196,7 +196,7 @@ foreach ($eventBehavior in @('Event audience', 'Publishing event', '/secure-post
 foreach ($eventListingBehavior in @('Published events', 'published-event-card', 'View in Your Mix', 'scrollIntoView')) {
   if (-not $feedEnhancements.Contains($eventListingBehavior)) { Add-Failure "Events: published-event listing is missing: $eventListingBehavior" }
 }
-foreach ($groupRolloutBehavior in @('Checking group service', 'Create Tribe (updating)', 'createButton.disabled = false')) {
+foreach ($groupRolloutBehavior in @('Checking Tribe service', 'Create Tribe (updating)', 'createButton.disabled = false')) {
   if (-not $feedEnhancements.Contains($groupRolloutBehavior)) { Add-Failure "Groups: staged backend rollout behavior is missing: $groupRolloutBehavior" }
 }
 if ($feedEnhancements.Contains('Event saved locally:') -or $feedEnhancements.Contains('Draft saved privately in this browser')) {
@@ -646,7 +646,7 @@ if (-not $directMessagesJs.Contains('Promise.allSettled([') -or
     -not $directMessagesJs.Contains('online: member.online === true')) {
   Add-Failure 'Messaging: partial API failures or friend presence can empty or stale the chat list'
 }
-foreach ($savedChatBehavior in @('let activeCanContact = false', 'conversation.canContact !== false', 'data.canContact !== false', 'Saved chat. Become friends or join the same group', 'call.disabled = conversation.canContact === false')) {
+foreach ($savedChatBehavior in @('let activeCanContact = false', 'conversation.canContact !== false', 'data.canContact !== false', 'Saved chat. Become friends or join the same Tribe', 'call.disabled = conversation.canContact === false')) {
   if (-not $directMessagesJs.Contains($savedChatBehavior)) { Add-Failure "Messages: saved history or disabled contact actions are incomplete: $savedChatBehavior" }
 }
 if (-not $feed.Contains('const [friendsResult, directoryResult] = await Promise.allSettled([') -or

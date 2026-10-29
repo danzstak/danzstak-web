@@ -5,6 +5,10 @@ const feed = fs.readFileSync("feed.html", "utf8");
 const messages = fs.readFileSync("messages.html", "utf8");
 const enhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const aliases = fs.readFileSync("assets/brand-language-aliases.js", "utf8");
+const profile = fs.readFileSync("assets/profile.js", "utf8");
+const profileSharing = fs.readFileSync("assets/profile-sharing.js", "utf8");
+const directMessages = fs.readFileSync("assets/direct-messages.js", "utf8");
+const calls = fs.readFileSync("assets/chat.js", "utf8");
 
 assert.match(feed, /<span>Flashes<\/span>/, "composer should use Flashes");
 assert.doesNotMatch(feed, /<span>Story<\/span>/, "composer should not expose the old Story label");
@@ -14,6 +18,10 @@ assert.match(enhancements, /Add to The Roll/, "Roll action should use DanzStak b
 assert.match(enhancements, /Create Tribe/, "group creation should use Tribes branding");
 assert.match(aliases, /dictionary\.Flashes/, "localized Flashes alias should exist");
 assert.match(aliases, /dictionary\.Tribes/, "localized Tribes alias should exist");
+for (const [name, content] of Object.entries({ feed, messages, profile, profileSharing, directMessages, calls })) {
+  assert.doesNotMatch(content, /Group Message|group members|group member|same group|shared-group/i,
+    `${name} should present Tribe terminology to members`);
+}
 
 // Compatibility contract: branding must not rename established API/storage hooks.
 assert.match(feed, /id="shareToStory"/, "story compatibility hook must remain");

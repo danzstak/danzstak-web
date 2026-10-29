@@ -295,7 +295,7 @@ async function groupFetch(path, options = {}, timeoutMs = 12000) {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
   catch (error) {
-    if (error.name === "AbortError") throw new Error("The group service took too long to respond. Try again.");
+    if (error.name === "AbortError") throw new Error("The Tribe service took too long to respond. Try again.");
     throw error;
   } finally { clearTimeout(timeout); }
 }
@@ -527,7 +527,7 @@ function renderWorkspace(name) {
     const createButton = document.createElement("button");
     createButton.type = "button";
     createButton.className = "primary";
-    createButton.textContent = "Checking group service…";
+    createButton.textContent = "Checking Tribe service…";
     createButton.disabled = true;
     const standardsLabel = document.createElement("label");
     standardsLabel.className = "group-standards-agreement";
@@ -536,7 +536,7 @@ function renderWorkspace(name) {
     standardsLabel.append(standardsCheckbox, document.createTextNode("I agree to enforce DanzStak Community Standards: no hate speech, harassment, threats, or targeted abuse."));
     const standardsError = document.createElement("p");
     standardsError.className = "group-standards-error";
-    standardsError.textContent = "You must agree to the Community Standards before creating a group.";
+    standardsError.textContent = "You must agree to the Community Standards before creating a Tribe.";
     standardsError.hidden = true;
     standardsCheckbox.addEventListener("change", () => { standardsError.hidden = standardsCheckbox.checked; });
     createBox.append(groupName.wrap, categoryLabel, standardsLabel, standardsError, createButton);
@@ -878,11 +878,11 @@ function renderWorkspace(name) {
           remove.className = "group-delete";
           remove.textContent = "Delete Tribe";
           remove.addEventListener("click", async () => {
-            if (!confirm("Delete this group?")) return;
+            if (!confirm("Delete this Tribe?")) return;
             remove.disabled = true;
             if (group.cloud) {
               const response = await groupFetch("/groups/" + encodeURIComponent(group.id), { method: "DELETE", credentials: "include" }).catch(() => null);
-              if (!response?.ok) { remove.disabled = false; alert("Group could not be deleted."); return; }
+              if (!response?.ok) { remove.disabled = false; alert("Tribe could not be deleted."); return; }
             }
             customGroups = customGroups.filter(item => item.id !== group.id);
             saved.CustomGroups = customGroups.filter(item => !item.cloud);
@@ -906,9 +906,9 @@ function renderWorkspace(name) {
       }
       createButton.disabled = true;
       try {
-        const response = await groupFetch("/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: value, category: categorySelect.value, description: "A new DanzStak community group.", communityStandards: true }) });
+        const response = await groupFetch("/groups", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ name: value, category: categorySelect.value, description: "A new DanzStak Tribe.", communityStandards: true }) });
         const result = await response.json().catch(() => ({}));
-        if (!response.ok || !result.group) throw new Error(result.error || "Group could not be created");
+        if (!response.ok || !result.group) throw new Error(result.error || "Tribe could not be created");
         customGroups.unshift({ ...result.group, custom: true, cloud: true });
         saved.GroupsJoined = saved.GroupsJoined || {};
         saved.GroupsJoined[result.group.id] = true;
@@ -930,7 +930,7 @@ function renderWorkspace(name) {
       .then(async data => {
         if (!Array.isArray(data?.groups)) {
           createButton.textContent = "Create Tribe (updating)";
-          createButton.title = "Group creation will be available after the current backend update.";
+          createButton.title = "Tribe creation will be available after the current backend update.";
           return;
         }
         createButton.textContent = "Create Tribe";
@@ -952,7 +952,7 @@ function renderWorkspace(name) {
           if (pendingGroup) { window.danzstakPendingTribeId = ""; openTribe(pendingGroup); }
         }
       })
-      .catch(() => { createButton.textContent = "Retry Group Service"; createButton.dataset.mode = "retry"; createButton.disabled = false; });
+      .catch(() => { createButton.textContent = "Retry Tribe Service"; createButton.dataset.mode = "retry"; createButton.disabled = false; });
     groupFetch("/groups/membership", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ action: "list" }) })
       .then(response => response.ok ? response.json() : null)
       .then(data => {

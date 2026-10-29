@@ -572,7 +572,7 @@ async function loadDirectMessages(reset = false) {
     setConversationActionsEnabled(activeCanContact);
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
-    callStatus.textContent = activeCanContact ? "You can message " + activeContactName + " directly." : "Saved chat. Become friends or join the same group to send new messages or call.";
+    callStatus.textContent = activeCanContact ? "You can message " + activeContactName + " directly." : "Saved chat. Become friends or join the same Tribe to send new messages or call.";
   } catch (error) {
     if (version === conversationVersion) callStatus.textContent = error.message || "Messages could not be loaded";
   } finally { if (version === conversationVersion) loadingMessages = false; }
@@ -632,7 +632,7 @@ async function loadConversations() {
         name: existing?.name || member.name || "DanzStak member",
         memberId: existing?.memberId || member.memberId || "",
         picture: member.picture || existing?.picture || "",
-        preview: existing?.preview || "Shared group member",
+        preview: existing?.preview || "Shared Tribe member",
         updatedAt: existing?.updatedAt || "",
         sharedGroup: existing?.sharedGroup === true || member.sharedGroup === true,
         online: member.online === true
@@ -762,7 +762,7 @@ onlineUsers?.addEventListener("click", event => {
 textButton?.addEventListener("click", event => {
   event.stopImmediatePropagation();
   const email = contactInput.value.trim().toLowerCase();
-  if (!email) { callStatus.textContent = "Select a friend or group member first."; return; }
+  if (!email) { callStatus.textContent = "Select a friend or Tribe member first."; return; }
   openConversation(cachedConversations.find(item => item.contactEmail === email) || { contactEmail: email, name: "DanzStak member", picture: "" });
 }, true);
 

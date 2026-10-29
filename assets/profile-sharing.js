@@ -27,7 +27,7 @@
     share.addEventListener('click', () => {
       const member = window.danzstakCurrentProfile?.memberId; if (!/^[a-f0-9-]{36}$/.test(member || '')) return;
       const url = new URL('profile.html', location.href); url.search = ''; url.searchParams.set('member', member);
-      show('Share Profile', url.href, 'Share this profile with friends and shared-group members on DanzStak.', share);
+      show('Share Profile', url.href, 'Share this profile with friends and people in your Tribes on DanzStak.', share);
     });
     const invite = document.createElement('button'); invite.type = 'button'; invite.textContent = 'Invite People';
     invite.hidden = Boolean(new URLSearchParams(location.search).get('user') || new URLSearchParams(location.search).get('member'));
