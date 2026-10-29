@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-+B4lNke6ubGU8JEQtGg0VSKiS7zQZTi6r32BqmMDsO8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-JjLKvg0B7awlgrQL77NkrINcDk9YwS+VrhI9p8XR/AM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -307,7 +307,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=402">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=403">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
   <link rel="stylesheet" href="assets/soft-ui.css?v=363">
 <script src="assets/languages.js?v=231" defer></script>
@@ -795,6 +795,24 @@ async function loadStories() {
       caption.textContent = storyDisplayCaption(story);
       storyCopy.append(author, caption);
       open.appendChild(storyCopy);
+      const storyMemberId = String(story.memberId || "");
+      if (!story.isOwner && /^[a-f0-9-]{36}$/.test(storyMemberId)) {
+        const profile = document.createElement("a");
+        profile.className = "story-author-link";
+        profile.href = "profile.html?member=" + encodeURIComponent(storyMemberId);
+        profile.textContent = storyAuthor;
+        profile.setAttribute("aria-label", "Open " + storyAuthor + " profile");
+        item.appendChild(profile);
+        author.hidden = true;
+      } else if (story.isOwner) {
+        const profile = document.createElement("a");
+        profile.className = "story-author-link";
+        profile.href = "profile.html";
+        profile.textContent = storyAuthor;
+        profile.setAttribute("aria-label", "Open your profile");
+        item.appendChild(profile);
+        author.hidden = true;
+      }
       if (story.mediaType === "image" && story.mediaUrl) {
         item.style.backgroundImage = `linear-gradient(transparent,#0009),url("${story.mediaUrl}")`;
         item.style.backgroundSize = "cover";
@@ -1342,7 +1360,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=402" defer></script>
+<script src="assets/feed-enhancements.js?v=403" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=295" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
