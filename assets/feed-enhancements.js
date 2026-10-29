@@ -1543,13 +1543,23 @@ if (desktopMenuQuery.addEventListener) desktopMenuQuery.addEventListener("change
 else desktopMenuQuery.addListener(closeMobileMenuOnDesktop);
 let notificationDrawerPreviousFocus = null;
 let notificationDrawer = null;
+let notificationUnderlyingWorkspace = "";
+let notificationWorkspacePlaceholder = null;
 const notificationFeedView = document.getElementById("newsFeedView");
 
 function closeNotificationDrawer(restoreFocus = true) {
   if (!notificationDrawer || notificationDrawer.hidden) return false;
   notificationDrawer.hidden = true;
-  featurePanel.hidden = true;
   notificationFeedView.before(featurePanel);
+  notificationWorkspacePlaceholder?.remove();
+  notificationWorkspacePlaceholder = null;
+  const workspaceToRestore = notificationUnderlyingWorkspace;
+  notificationUnderlyingWorkspace = "";
+  if (workspaceToRestore) openWorkspaceRoute(workspaceToRestore, false);
+  else {
+    featurePanel.hidden = true;
+    notificationFeedView.hidden = false;
+  }
   notificationControls.forEach(control => {
     control.setAttribute("aria-expanded", "false");
     control.setAttribute("aria-pressed", "false");
@@ -1564,7 +1574,18 @@ function openNotificationDrawer(opener) {
   document.getElementById("messageDrawer")?.querySelector(".message-drawer-close")?.click();
   setMobileMenu(false);
   document.body.classList.remove("content-only");
-  notificationFeedView.hidden = false;
+  notificationUnderlyingWorkspace = !featurePanel.hidden && featurePanel.dataset.workspaceName !== "Notifications"
+    ? featurePanel.dataset.workspaceName || ""
+    : "";
+  if (notificationUnderlyingWorkspace) {
+    notificationWorkspacePlaceholder = featurePanel.cloneNode(true);
+    notificationWorkspacePlaceholder.id = "notificationWorkspacePlaceholder";
+    notificationWorkspacePlaceholder.setAttribute("aria-hidden", "true");
+    notificationWorkspacePlaceholder.setAttribute("inert", "");
+    notificationWorkspacePlaceholder.querySelectorAll("[id]").forEach(element => element.removeAttribute("id"));
+    featurePanel.before(notificationWorkspacePlaceholder);
+    notificationFeedView.hidden = true;
+  } else notificationFeedView.hidden = false;
   if (!notificationDrawer) {
     notificationDrawer = document.createElement("section");
     notificationDrawer.id = "notificationDrawer";

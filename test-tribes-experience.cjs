@@ -41,5 +41,5 @@ for (const required of [
 ]) assert.ok(css.includes(required), `Responsive Tribes styling is missing: ${required}`);
 
 assert.match(feed, /feed-enhancements\.css\?v=375/);
-assert.match(feed, /feed-enhancements\.js\?v=377/);
+assert.match(feed, /feed-enhancements\.js\?v=382/);
 console.log("Tribes experience checks passed: discovery, detail, discussion, Elders, The Crew, and responsive layout.");

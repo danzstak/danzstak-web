@@ -24,7 +24,7 @@ assert.match(enhancements, /purpose: "post"/);
 assert.match(enhancements, /\/cover"/);
 assert.match(enhancements, /discardUploadedMedia/);
 assert.match(styles, /\.tribe-hero-cover\{position:relative;background-position:center;background-size:cover\}/);
-assert.match(feed, /feed-enhancements\.js\?v=377/);
+assert.match(feed, /feed-enhancements\.js\?v=382/);
 assert.match(feed, /feed-enhancements\.css\?v=375/);
 
 console.log("Elder-managed Tribe cover behavior verified");

@@ -12,9 +12,12 @@ assert.doesNotMatch(source, /name === "Notifications" && !notificationDrawer\?\.
 assert.match(source, /event\.key === "Escape"[\s\S]*?closeNotificationDrawer\(\)/, "Escape closes the notification drawer");
 assert.match(source, /messageDrawer[\s\S]*?message-drawer-close[\s\S]*?openNotificationDrawer/, "opening notifications closes Messages first");
 assert.match(source, /getElementById\("messagesNav"\)[\s\S]*?closeNotificationDrawer\(false\)/, "opening Messages closes Notifications first");
-assert.match(source, /notificationFeedView\.hidden = false/, "opening notifications preserves the feed");
+assert.match(source, /notificationUnderlyingWorkspace = !featurePanel\.hidden/, "the drawer remembers an open workspace");
+assert.match(source, /notificationWorkspacePlaceholder = featurePanel\.cloneNode\(true\)/, "an inert visual placeholder keeps the current workspace behind the drawer");
+assert.match(source, /if \(workspaceToRestore\) openWorkspaceRoute\(workspaceToRestore, false\)/, "closing notifications restores the exact workspace that was open");
+assert.match(source, /else notificationFeedView\.hidden = false/, "opening notifications preserves the feed when no workspace is active");
 assert.match(source, /location\.hash\.toLowerCase\(\) === "#notifications"[\s\S]*?history\.replaceState/, "closing a legacy notification route prevents refresh from reopening it");
 assert.match(css, /\.notification-drawer\{position:fixed/, "the notification panel overlays rather than replaces the feed");
 assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-drawer\{top:58px;right:8px;left:8px/, "the drawer fits phone screens");
 
-console.log("Notification drawer checks passed: toggle, focus-safe dismissal, feed preservation, and responsive layout.");
+console.log("Notification drawer checks passed: toggle, focus-safe dismissal, workspace/feed preservation, and responsive layout.");
