@@ -50,6 +50,8 @@ vm.runInContext(line.trim(),ctx);
   assert.equal(result.stories.find(value=>value.storyId==='public').displayName,'Public Story Author');
   assert.equal(result.stories.find(value=>value.storyId==='friend').displayName,'Friend Story Author');
   assert.equal(result.stories.find(value=>value.storyId==='public').memberId,'member-someone@example.com');
+  assert.equal(Object.hasOwn(result.stories.find(value=>value.storyId==='public'),'userEmail'),false,'Flash responses must not expose account email addresses');
+  assert.equal(Object.hasOwn(result.reels[0],'userEmail'),false,'Roll responses must not expose account email addresses');
   assert.equal(result.reels[0].displayName,'Current Member');
   console.log('Story visibility checks passed: 24h expiry, legacy cleanup, durable Reels, audience privacy, and public display names.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

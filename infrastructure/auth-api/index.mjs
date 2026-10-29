@@ -1464,7 +1464,24 @@ async function getEngagementNotifications(event) {
   const userEmail = await accountForSub(userId);
   if (!userEmail) return { statusCode: 200, headers, body: JSON.stringify({ notifications: [] }) };
   const items = await queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: userEmail } }, ConsistentRead: true });
-  const notifications = items.map(item => ({ type: item.type.S, email: item.actorEmail.S, ...(item.postId?.S ? { postId: item.postId.S } : {}), ...(item.groupId?.S ? { groupId: item.groupId.S, groupName: item.groupName?.S || "Tribe" } : {}), preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true }))
+  const actorEmails = [...new Set(items.map(item => item.actorEmail?.S).filter(Boolean))];
+  const [actorProfiles, actorMemberEntries] = await Promise.all([
+    loadFeedAuthorProfiles(actorEmails.map(email => ({ userEmail: { S: email } }))),
+    mapLimit(actorEmails, 8, async email => {
+      try {
+        const result = await cognito.send(new ListUsersCommand({ UserPoolId: userPoolId, Filter: `email = "${email.replace(/["\\]/g, "")}"`, Limit: 1 }));
+        return [email, result.Users?.[0]?.Attributes?.find(attribute => attribute.Name === "sub")?.Value || ""];
+      } catch (error) {
+        console.warn("Notification member lookup failed", error.name || "UnknownError");
+        return [email, ""];
+      }
+    })
+  ]);
+  const actorMembers = new Map(actorMemberEntries);
+  const notifications = items.map(item => {
+    const profile = actorProfiles.get(item.actorEmail?.S || "") || {};
+    return { type: item.type.S, memberId: actorMembers.get(item.actorEmail?.S || "") || "", name: profile.name || "DanzStak member", picture: profile.picture || "", ...(item.postId?.S ? { postId: item.postId.S } : {}), ...(item.groupId?.S ? { groupId: item.groupId.S, groupName: item.groupName?.S || "Tribe" } : {}), preview: item.preview?.S || "", createdAt: item.createdAt.S, unread: item.read?.BOOL !== true };
+  })
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 100);
   return { statusCode: 200, headers, body: JSON.stringify({ notifications }) };

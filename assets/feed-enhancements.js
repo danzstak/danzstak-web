@@ -1033,7 +1033,9 @@ function renderWorkspace(name) {
           return;
         }
         for (const notice of data.notifications) {
-          const person = people.get(String(notice.email || "").toLowerCase());
+          const person = notice.memberId
+            ? { memberId: notice.memberId, name: notice.name, picture: notice.picture }
+            : people.get(String(notice.email || "").toLowerCase());
           const displayName = person?.name || "DanzStak member";
           const row = document.createElement("article");
           row.className = "notification-row";
