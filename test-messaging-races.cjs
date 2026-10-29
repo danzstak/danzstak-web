@@ -9,7 +9,7 @@ const source = fullSource.split('async function loadConversations()')[0];
 function setup() {
   const elements = new Map();
   const element = () => ({ value: '', textContent: '', className: '', hidden: false, disabled: false, style: {}, scrollHeight: 0, scrollTop: 0, clientHeight: 0,
-    querySelector: () => null, querySelectorAll: () => [], replaceChildren() {}, appendChild() {}, prepend() {}, setAttribute() {}, replaceWith() {}, remove() {}, focus() {} });
+    querySelector: () => null, querySelectorAll: () => [], replaceChildren() {}, append() {}, appendChild() {}, prepend() {}, setAttribute() {}, replaceWith() {}, remove() {}, focus() {}, addEventListener() {} });
   for (const id of ['contactEmail', 'messageForm', 'messageInput', 'messageList', 'callStatus', 'conversationHeader', 'conversationName', 'conversationAvatar']) elements.set(id, element());
   const send = element();
   elements.get('messageForm').querySelector = () => send;

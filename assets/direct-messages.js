@@ -385,6 +385,7 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   nextMessageCursor = "";
   shownMessages.clear();
   messageList.replaceChildren();
+  messageList.setAttribute("aria-busy", "false");
   messageInput.value = "";
   clearSelectedMessageMedia();
   messageInput.disabled = true;
@@ -393,6 +394,30 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   document.body.classList.remove("is-conversation-open");
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: false }, location.origin);
   if (focusList) conversationUsers?.querySelector(".conversation-user")?.focus();
+}
+
+function renderMessageLoadingState() {
+  const status = document.createElement("p");
+  status.className = "system-message message-loading-state";
+  status.setAttribute("role", "status");
+  status.textContent = `Loading messages with ${activeContactName}…`;
+  messageList.replaceChildren(status);
+}
+
+function renderMessageLoadError(message) {
+  const panel = document.createElement("div");
+  const status = document.createElement("p");
+  const retry = document.createElement("button");
+  panel.className = "message-load-error";
+  status.className = "system-message";
+  status.setAttribute("role", "alert");
+  status.textContent = message || "Messages could not be loaded";
+  retry.type = "button";
+  retry.className = "message-load-retry";
+  retry.textContent = "Try loading messages again";
+  retry.addEventListener?.("click", () => loadDirectMessages(true));
+  panel.append(status, retry);
+  messageList.replaceChildren(panel);
 }
 
 function messageAccessibleSummary(message, mine) {
@@ -543,6 +568,8 @@ async function loadDirectMessages(reset = false) {
   if (!contact || loadingMessages) return;
   if (contact !== directContact) { directContact = contact; reset = true; }
   loadingMessages = true;
+  messageList.setAttribute("aria-busy", "true");
+  if (reset) renderMessageLoadingState();
   try {
     const response = await directFetch("/messages?read=1&contact=" + encodeURIComponent(contact), { credentials: "include", cache: "no-store" });
     const data = await response.json();
@@ -574,8 +601,17 @@ async function loadDirectMessages(reset = false) {
     sendButton.disabled = !activeCanContact;
     callStatus.textContent = activeCanContact ? "You can message " + activeContactName + " directly." : "Saved chat. Become friends or join the same Tribe to send new messages or call.";
   } catch (error) {
-    if (version === conversationVersion) callStatus.textContent = error.message || "Messages could not be loaded";
-  } finally { if (version === conversationVersion) loadingMessages = false; }
+    if (version === conversationVersion) {
+      const message = error.message || "Messages could not be loaded";
+      callStatus.textContent = message;
+      if (reset) renderMessageLoadError(message);
+    }
+  } finally {
+    if (version === conversationVersion) {
+      loadingMessages = false;
+      messageList.setAttribute("aria-busy", "false");
+    }
+  }
 }
 
 let loadingConversations = false;
