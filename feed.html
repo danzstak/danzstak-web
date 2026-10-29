@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-JjLKvg0B7awlgrQL77NkrINcDk9YwS+VrhI9p8XR/AM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-+v7k79lCETE0lx8xt5/T5Iv6qqx1yzDCaKWP+VpwXL8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -272,6 +272,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 .message-drawer.is-conversation:not(.is-video-call) .message-drawer-bar{display:none}
 .message-drawer.is-conversation:not(.is-video-call) iframe{height:100%}
 .message-drawer.is-video-call{inset:12px;width:auto;height:auto;border-radius:18px}.message-drawer.is-video-call iframe{height:calc(100% - 46px)}
+.message-drawer-loading{position:absolute;inset:46px 0 0;z-index:2;display:grid;place-items:center;background:#f3f5f8;color:#667085;font-size:14px;font-weight:750}.message-drawer-loading[hidden]{display:none}.message-drawer.is-loading iframe{visibility:hidden}
 @media(max-width:560px){.message-drawer.is-video-call{inset:0;width:100vw;height:100dvh;border-radius:0}.message-drawer.is-video-call .message-drawer-bar{height:42px}.message-drawer.is-video-call iframe{height:calc(100dvh - 42px)}}
 .composer-title { display: flex; align-items: center; gap: 12px; }
 .composer-avatar { width: 42px; height: 42px; flex:0 0 42px; border-radius: 50%; display: grid; place-items: center; background:#1769e0 center/cover no-repeat; color: white; font-weight: 900; }
@@ -1279,11 +1280,16 @@ function openMessageDrawer(contact = "", answerCall = false, callId = "") {
     drawer.className = "message-drawer";
     drawer.setAttribute("role", "dialog");
     drawer.setAttribute("aria-label", "Messages");
-    drawer.innerHTML = '<div class="message-drawer-bar"><span>Chats</span><button type="button" class="message-drawer-close" aria-label="Close messages">×</button></div><iframe title="DanzStak messages"></iframe>';
+    drawer.innerHTML = '<div class="message-drawer-bar"><span>Chats</span><button type="button" class="message-drawer-close" aria-label="Close messages">×</button></div><div class="message-drawer-loading" role="status">Loading chats…</div><iframe title="DanzStak messages"></iframe>';
     drawer.querySelector(".message-drawer-close").addEventListener("click", () => { drawer.hidden = true; drawer.querySelector("iframe")?.contentWindow?.postMessage({ type: "danzstak-chat-hidden" }, location.origin); });
     drawer.querySelector(".message-drawer-close").addEventListener("click", () => { launcher.setAttribute("aria-expanded", "false"); (messageDrawerPreviousFocus || launcher).focus(); messageDrawerPreviousFocus = null; });
     drawer.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); drawer.querySelector(".message-drawer-close").click(); } });
     document.body.appendChild(drawer);
+    drawer.querySelector("iframe").addEventListener("load", event => {
+      if (!event.currentTarget.src.includes("messages.html")) return;
+      drawer.classList.remove("is-loading");
+      drawer.querySelector(".message-drawer-loading").hidden = true;
+    });
   }
   const frame = drawer.querySelector("iframe");
   const target = new URL("messages.html", location.href);
@@ -1291,7 +1297,11 @@ function openMessageDrawer(contact = "", answerCall = false, callId = "") {
   if (contact) target.searchParams.set("contact", contact);
   if (answerCall) target.searchParams.set("answer", "1");
   if (answerCall && callId) target.searchParams.set("callId", callId);
-  if (!frame.src || contact || answerCall) frame.src = target.href;
+  if (!frame.src || contact || answerCall) {
+    drawer.classList.add("is-loading");
+    drawer.querySelector(".message-drawer-loading").hidden = false;
+    frame.src = target.href;
+  }
   drawer.hidden = false;
   launcher.setAttribute("aria-expanded", "true");
   drawer.querySelector(".message-drawer-close").focus();
