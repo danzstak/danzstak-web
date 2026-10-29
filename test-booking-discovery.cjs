@@ -1,0 +1,36 @@
+const fs = require("node:fs");
+const vm = require("node:vm");
+const assert = require("node:assert/strict");
+const source = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
+const functionSource = source.slice(source.indexOf("async function tourCandidates("), source.indexOf("async function planTourRoute("));
+
+async function run(fail) {
+  const queries = [];
+  const context = vm.createContext({
+    SearchTextCommand: class { constructor(input) { this.input = input; } },
+    geoPlaces: { async send({ input }) {
+      queries.push(input.QueryText);
+      if (fail(input.QueryText)) throw new Error("lookup unavailable");
+      return { ResultItems: Array.from({ length: 50 }, (_, index) => ({
+        venueKey: `${input.QueryText}-${index}`, name: `Room ${index}`, distanceMiles: 1
+      })) };
+    } },
+    publicPlace: place => place,
+    curatedVenueLeads: () => [],
+    isBookableClub: () => true,
+    venueSuitability: () => 1,
+    deduplicateVenues: places => [...new Map(places.map(place => [place.venueKey, place])).values()]
+  });
+  vm.runInContext(functionSource, context);
+  const result = await context.tourCandidates({ label: "Test city", position: [0, 0] }, "DIY Punk");
+  return { result, queries };
+}
+
+(async () => {
+  const { result, queries } = await run(query => query === "hotel" || query === "Punk live music venue");
+  assert.equal(result.venues.length, 60, "dense discovery must retain more than 24 clubs");
+  assert.equal(result.hotels.length, 0, "hotel failure must not break venue discovery");
+  for (const query of ["live music pub", "music hall", "concert venue"]) assert.ok(queries.includes(query));
+  await assert.rejects(run(() => true), /lookup unavailable/, "total provider failure must remain visible");
+  console.log("Booking discovery checks passed.");
+})().catch(error => { console.error(error); process.exitCode = 1; });

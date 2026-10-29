@@ -2169,9 +2169,17 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     discoveryGenre ? `${discoveryGenre} concert club` : "concert club",
     "independent live music venue",
     "live music bar",
+    "live music pub",
+    "music hall",
+    "concert venue",
     selectedGenre.includes("DJ") || selectedGenre.includes("Electronic") ? "nightclub DJ electronic music" : "rock punk metal music venue"
   ])];
-  const [hotelResults, ...venueBatches] = await Promise.all([search("hotel"), ...venueQueries.map(search)]);
+  const searchResults = await Promise.allSettled([search("hotel"), ...venueQueries.map(search)]);
+  const [hotelSearch, ...venueSearches] = searchResults;
+  // A failed category lookup must not discard clubs found by the other searches.
+  if (venueSearches.every(result => result.status === "rejected")) throw venueSearches[0].reason;
+  const hotelResults = hotelSearch.status === "fulfilled" ? hotelSearch.value : [];
+  const venueBatches = venueSearches.filter(result => result.status === "fulfilled").map(result => result.value);
   const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
   const curatedPool = curatedVenueLeads(point, genre, variation);
   const curated = curatedPool.filter(place => !excludedVenueKeys.has(place.venueKey));
@@ -2183,7 +2191,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   // must never crowd newly discovered rooms out of the first results.
   const venuePool = deduplicateVenues([...discovered, ...curated, ...initialFallback]);
   const offset = venuePool.length ? variation % venuePool.length : 0;
-  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 24);
+  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60);
   const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }

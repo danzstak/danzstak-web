@@ -21,6 +21,8 @@ assert.match(script, /body\.searchPath = finalizedRoutePoints/, "the venue reque
 assert.match(script, /search\.dataset\.mapSearchSignature = JSON\.stringify/, "changing the visible or drawn map area must identify a fresh search scope");
 assert.match(script, /delete search\.dataset\.mapSearchSignature/, "clearing the map area must restore a fresh home-city search");
 assert.match(fs.readFileSync("assets/booking-agent.js", "utf8"), /mapScope: routeAction\.dataset\.mapSearchSignature \|\| ""/, "map scope changes must reset old venue exclusions");
+assert.match(fs.readFileSync("assets/booking-agent.js", "utf8"), /mode = routeAction\.dataset\.mapSearchSignature \? "local" : bookingMode\.value/, "a visible-area map search must not require a tour destination");
+assert.match(script, /if \(routeStatus\) status\.textContent = routeStatus\.textContent/, "map searches must surface form validation instead of staying stuck on Searching");
 assert.match(api, /function distanceToSearchPathMiles\(position, path\)/, "the API must measure venue distance from the drawn route");
 assert.match(api, /distanceToSearchPathMiles\(place\.position, searchPath\) <= 25/, "drawn-route results must stay inside a practical corridor");
 assert.match(api, /searchPath\.some\(point => point\.length !== 2/, "malformed route coordinates must be rejected");

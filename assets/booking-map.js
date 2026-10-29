@@ -233,6 +233,8 @@
     });
     status.textContent = "Searching the visible map area for live-music clubs…";
     search.click();
+    const routeStatus = document.getElementById("routeSearchStatus");
+    if (routeStatus) status.textContent = routeStatus.textContent;
   });
 
   function popupFor(place) {

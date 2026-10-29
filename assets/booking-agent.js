@@ -1139,7 +1139,7 @@
     const artist = artistInput.value.trim(),
       genre = genreInput.value,
       actType = performerType.value,
-      mode = bookingMode.value,
+      mode = routeAction.dataset.mapSearchSignature ? "local" : bookingMode.value,
       start = $("startCity").value.trim(),
       end = $("endCity").value.trim(),
       stops = $("tourStops")
