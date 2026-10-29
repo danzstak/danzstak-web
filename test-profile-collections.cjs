@@ -9,4 +9,6 @@ assert.equal(select([post],'memories','owner@example.com',true,now).length,1);
 assert.equal(post.audience,'private');
 assert.equal(select([{...post,createdAt:new Date(2026,9,26,10).toISOString()}],'memories','owner@example.com',true,now).length,0);
 assert.equal(select([{...post,createdAt:'invalid'}],'memories','owner@example.com',true,now).length,0);
+const privateIdentityPost = {userId:'opaque-member-id',createdAt:post.createdAt,isOwner:true,featured:true,audience:'private'};
+assert.equal(select([privateIdentityPost],'featured','',true,now,'opaque-member-id').length,1,'opaque member IDs replace email matching for profile collections');
 console.log('Profile collection checks passed: author boundaries, private Memories, anniversary dates, and unchanged audience.');

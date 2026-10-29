@@ -31,9 +31,9 @@ assert.match(signaling, /Valid tagging permission required/);
 assert.match(signaling, /\['owner','friends','anyone'\]/);
 
 const posts = [
-  { postId: "own", userEmail: "owner@example.com" },
-  { postId: "wall", userEmail: "friend@example.com", profileOwnerMemberId: "member-1" },
-  { postId: "elsewhere", userEmail: "owner@example.com", profileOwnerMemberId: "member-2" }
+  { postId: "own", userId: "member-1" },
+  { postId: "wall", userId: "friend-member", profileOwnerMemberId: "member-1" },
+  { postId: "elsewhere", userId: "member-1", profileOwnerMemberId: "member-2" }
 ];
 assert.deepEqual(collections.select(posts, "posts", "owner@example.com", true, new Date(), "member-1").map(post => post.postId), ["own", "wall"]);
 

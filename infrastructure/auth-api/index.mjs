@@ -1170,7 +1170,6 @@ async function getSecurePosts(event) {
       userId: item.userId?.S ?? null,
       isOwner: item.userId?.S === userId,
       featured: item.featured?.BOOL === true,
-      userEmail: item.userEmail?.S ?? "",
       profileOwnerMemberId: item.profileOwnerId?.S ?? "",
       canRemoveFromProfile: item.profileOwnerId?.S === userId && item.userId?.S !== userId,
       authorName: authorName(item.userEmail?.S),

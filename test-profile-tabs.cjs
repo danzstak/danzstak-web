@@ -8,7 +8,7 @@ function setup() {
   const requests = [], handlers = {};
   const panel = { textContent: '', childElementCount: 0, replaceChildren() { this.textContent = ''; this.childElementCount = 0; }, appendChild() { this.childElementCount++; } };
   const context = vm.createContext({ URLSearchParams, tabMessage: panel, details: {}, profileApi: 'https://api.danzstak.com', viewingOtherProfile: false,
-    window: { danzstakCurrentProfile: { email: 'me@example.com' }, danzstakProfileCollections: require('./assets/profile-collections.js') },
+    window: { danzstakCurrentProfile: { email: 'me@example.com', memberId: 'member-1' }, danzstakProfileCollections: require('./assets/profile-collections.js') },
     tabs: { addEventListener: (type, handler) => { handlers[type] = handler; }, querySelectorAll: () => [] },
     profileFetch: url => new Promise((resolve, reject) => requests.push({ url, resolve, reject })),
     profilePostCard: () => ({}), document: { createElement: () => ({ append() {}, appendChild() {} }) } });
@@ -46,7 +46,7 @@ function setup() {
   await oldFriends;
   assert.equal(h.panel.textContent, 'No posts to show yet.', 'old friends cannot overwrite posts');
   const mediaWithPhotos = h.select('Media');
-  await h.resolve(8, { posts: [{ authorEmail: 'me@example.com', mediaType: 'image', mediaUrl: 'https://example.com/photo.jpg' }] });
+  await h.resolve(8, { posts: [{ userId: 'member-1', mediaType: 'image', mediaUrl: 'https://example.com/photo.jpg' }] });
   assert.equal(h.panel.childElementCount, 1, 'photos render before the optional profile video returns');
   h.requests[9].reject(new Error('Video service offline'));
   await mediaWithPhotos;

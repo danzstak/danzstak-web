@@ -520,9 +520,8 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
     if (!response.ok) throw new Error("Profile posts could not be loaded");
     const data = await response.json();
     if (version !== profileTabVersion) return;
-    const profileEmail = String(window.danzstakCurrentProfile?.email || "").toLowerCase();
     const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
-    let posts = window.danzstakProfileCollections.select(data.posts || [], collection, profileEmail, !viewingOtherProfile, new Date(), profileMemberId);
+    let posts = window.danzstakProfileCollections.select(data.posts || [], collection, "", !viewingOtherProfile, new Date(), profileMemberId);
     if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType));
     tabMessage.replaceChildren();
     if (collection === "posts" && !mediaOnly && window.danzstakCurrentProfile && typeof profileWallComposer === "function") tabMessage.appendChild(profileWallComposer(window.danzstakCurrentProfile));

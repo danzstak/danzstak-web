@@ -2,9 +2,12 @@
 (() => {
   function select(posts, mode, email, ownProfile, now = new Date(), memberId = "") {
     const normalizedEmail = String(email).toLowerCase();
-    const authored = posts.filter(post => String(post.userEmail || post.authorEmail || "").toLowerCase() === normalizedEmail && !post.profileOwnerMemberId);
+    const authoredByProfile = post => memberId
+      ? String(post.userId || "") === String(memberId)
+      : String(post.userEmail || post.authorEmail || "").toLowerCase() === normalizedEmail;
+    const authored = posts.filter(post => authoredByProfile(post) && !post.profileOwnerMemberId);
     const own = posts.filter(post => {
-      const authorMatches = String(post.userEmail || post.authorEmail || "").toLowerCase() === normalizedEmail;
+      const authorMatches = authoredByProfile(post);
       const wallMatches = memberId && String(post.profileOwnerMemberId || "") === String(memberId);
       return wallMatches || (authorMatches && !post.profileOwnerMemberId);
     });
