@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v414";
+const CACHE = "danzstak-shell-v415";
 const SHELL = [
   "/assets/media-tags.js",
   "/assets/post-sharing.js", "/assets/post-views.js",
@@ -55,8 +55,20 @@ self.addEventListener("fetch", event => {
   })));
 });
 
+let lastShellRefresh = 0;
+async function refreshAppShell() {
+  if (Date.now() - lastShellRefresh < 60 * 60 * 1000) return;
+  lastShellRefresh = Date.now();
+  const cache = await caches.open(CACHE);
+  await Promise.allSettled(SHELL.map(async path => {
+    const response = await fetch(path, { cache: "no-store" });
+    if (response.ok) await cache.put(path, response.clone());
+  }));
+}
+
 self.addEventListener("message", event => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data?.type === "REFRESH_SHELL" && event.data?.allow !== false) event.waitUntil(refreshAppShell());
 });
 
 self.addEventListener("push", event => {

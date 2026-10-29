@@ -130,11 +130,17 @@ if ("serviceWorker" in navigator) {
         });
       });
       const checkForUpdate = () => registration.update().catch(() => {});
+      const refreshOfflineShell = () => navigator.serviceWorker.controller?.postMessage({
+        type: "REFRESH_SHELL",
+        allow: navigator.connection?.saveData !== true
+      });
       checkForUpdate();
+      refreshOfflineShell();
       setInterval(checkForUpdate, 60 * 60 * 1000);
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
           checkForUpdate();
+          refreshOfflineShell();
           if (waitingWorker) scheduleSafeUpdate(waitingWorker);
         }
       });
