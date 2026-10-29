@@ -1423,6 +1423,7 @@ function renderWorkspace(name) {
     appSettings.type = "button";
     appSettings.className = "secondary";
     appSettings.textContent = "Manage";
+    appSettings.setAttribute("aria-label", "Manage app and device settings");
     appSettings.addEventListener("click", () => {
       window.danzstakOpenDeviceSettings(appSettings);
     });
@@ -1430,6 +1431,7 @@ function renderWorkspace(name) {
     activityButton.type = "button";
     activityButton.className = "secondary";
     activityButton.textContent = "View";
+    activityButton.setAttribute("aria-label", "View your DanzStak activity");
     activityButton.addEventListener("click", () => openAccountActivity(activityButton));
     const profilePermissions = document.createElement("a");
     profilePermissions.className = "secondary";
@@ -1440,6 +1442,7 @@ function renderWorkspace(name) {
     exportButton.type = "button";
     exportButton.className = "secondary";
     exportButton.textContent = "Download";
+    exportButton.setAttribute("aria-label", "Download my DanzStak data");
     exportButton.addEventListener("click", async () => {
       exportButton.disabled = true;
       const original = exportButton.textContent;
@@ -1457,6 +1460,7 @@ function renderWorkspace(name) {
       try {
         const state = await window.danzstakPushState?.();
         alertSettings.textContent = state === "enabled" ? "Enabled" : state === "blocked" ? "Blocked" : state === "unsupported" ? "Unavailable" : state === "incomplete" ? "Finish setup" : "Enable";
+        alertSettings.setAttribute("aria-label", `${alertSettings.textContent} call and message alerts`);
       } catch { alertSettings.textContent = "Try again"; }
       finally { alertSettings.disabled = alertSettings.textContent === "Enabled" || alertSettings.textContent === "Unavailable"; }
     };
@@ -1481,7 +1485,7 @@ function renderWorkspace(name) {
     sessionInfo.className = "settings-detail";
     sessionInfo.textContent = "Stay signed in until you sign out";
     const logout = document.createElement("button");
-    logout.type = "button"; logout.className = "secondary"; logout.dataset.logout = ""; logout.textContent = "Logout";
+    logout.type = "button"; logout.className = "secondary"; logout.dataset.logout = ""; logout.textContent = "Logout"; logout.setAttribute("aria-label", "Log out of DanzStak");
     const button = document.createElement("button");
     button.className = "primary";
     button.type = "button";
