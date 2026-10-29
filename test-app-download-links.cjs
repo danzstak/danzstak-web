@@ -23,10 +23,11 @@ assert.match(
 );
 assert.match(
   feed,
-  /Terms of Service<\/span><\/a>\s*<a class="app-menu-link"[^>]*href="downloads\/danzstak-android-test\.apk"[^>]*data-app-platform="android"[^>]*download[\s\S]*?Android Test App[\s\S]*?<a class="app-menu-link"[^>]*data-app-platform="apple"[\s\S]*?Apple App[\s\S]*?<button type="button" class="menu-action logout-menu-link" data-logout>/,
+  /Terms of Service<\/span><\/a>\s*<a class="app-menu-link"[^>]*href="downloads\/danzstak-android-test\.apk"[^>]*data-app-platform="android"[^>]*download[\s\S]*?Android Preview[\s\S]*?<a class="app-menu-link"[^>]*data-app-platform="apple"[\s\S]*?Apple App[\s\S]*?<button type="button" class="menu-action logout-menu-link" data-logout>/,
   "the left menu stacks Android then Apple directly under Terms of Service and above Logout"
 );
 assert.match(home, /href="downloads\/danzstak-android-test\.apk"[^>]*download/, "the homepage links directly to the Android test APK");
+assert.match(home, /Download preview<\/small><strong>Android<\/strong>/, "the public label is honest without presenting development terminology");
 assert.match(appDownloads, /if \(link\.dataset\.appPlatform === "android"\) return;/, "Android APK links are not intercepted by the PWA install helper");
 assert.ok(fs.existsSync(apkPath), "the Android test APK is present in the website package");
 assert.deepEqual([...fs.readFileSync(apkPath).subarray(0, 2)], [0x50, 0x4b], "the Android test download is a ZIP-based APK");
