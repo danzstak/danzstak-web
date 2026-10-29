@@ -3,6 +3,8 @@ const { join } = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
+const css = readFileSync(join(__dirname, 'assets/feed-enhancements.css'), 'utf8');
+const feed = readFileSync(join(__dirname, 'feed.html'), 'utf8');
 const code = source.slice(source.indexOf('function createFriendRequestForm()'), source.indexOf('async function migrateLocalGroups('));
 const nodes = [], requests = [];
 const node = tag => { const item = { tag, value: '', children: [], setAttribute() {}, reportValidity: () => true, addEventListener(_, handler) { this.submit = handler; }, append(...items) { this.children.push(...items); } }; nodes.push(item); return item; };
@@ -12,6 +14,9 @@ const context = vm.createContext({ document: { createElement: node }, field: () 
 vm.runInContext(code + '\ncreateFriendRequestForm();', context);
 const form = nodes.find(item => item.tag === 'form'), send = nodes.find(item => item.tag === 'button'), status = nodes.find(item => item.tag === 'p');
 const event = { preventDefault() {} };
+assert.match(css, /\.friend-request-form\{display:grid;grid-template-columns:minmax\(220px,460px\) auto/, 'desktop friend requests use a compact input and action row');
+assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.friend-request-form\{grid-template-columns:1fr/, 'mobile friend requests stack without squeezing the email field');
+assert.match(feed, /assets\/feed-enhancements\.css\?v=\d+/, 'the feed loads versioned friend workspace styling');
 (async () => {
   input.value = ' Friend@Example.com ';
   const pending = form.submit(event);
