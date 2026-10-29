@@ -2157,10 +2157,19 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     return (result.ResultItems || []).map(publicPlace);
   };
   const selectedGenre = String(genre || "").trim();
+  const discoveryGenre = selectedGenre
+    .replace(/DIY/gi, "")
+    .replace(/\s*\/\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   const venueQueries = [...new Set([
-    selectedGenre ? `${selectedGenre} live music club` : "live music club",
-    selectedGenre ? `${selectedGenre} music venue` : "independent music venue",
-    "live music venue"
+    discoveryGenre ? `${discoveryGenre} live music venue` : "live music venue",
+    discoveryGenre ? `${discoveryGenre} music club` : "independent music club",
+    discoveryGenre ? `${discoveryGenre} bar live music` : "bar live music",
+    discoveryGenre ? `${discoveryGenre} concert club` : "concert club",
+    "independent live music venue",
+    "live music bar",
+    selectedGenre.includes("DJ") || selectedGenre.includes("Electronic") ? "nightclub DJ electronic music" : "rock punk metal music venue"
   ])];
   const [hotelResults, ...venueBatches] = await Promise.all([search("hotel"), ...venueQueries.map(search)]);
   const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
@@ -2170,9 +2179,11 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     .filter(place => nearby(place, 60) && isBookableClub(place, genre) && !excludedVenueKeys.has(place.venueKey))
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre));
   const initialFallback = excludedVenueKeys.size || curated.length || discovered.length ? [] : curatedPool;
-  const venuePool = deduplicateVenues([...curated, ...discovered, ...initialFallback]);
+  // Live map discovery is the product. Curated records only fill genuine gaps and
+  // must never crowd newly discovered rooms out of the first results.
+  const venuePool = deduplicateVenues([...discovered, ...curated, ...initialFallback]);
   const offset = venuePool.length ? variation % venuePool.length : 0;
-  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 12);
+  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 24);
   const hotels = hotelResults.filter(place => nearby(place, 35));
   return { stop: point.label, position: point.position, venues, hotels };
 }
