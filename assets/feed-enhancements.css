@@ -190,3 +190,4 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
 .tribe-detail{scroll-margin-top:90px}
 @media(max-width:700px){.tribe-detail{scroll-margin-top:122px}}
 .topbar .logo{text-decoration:none}
+.comment-avatar[href]{overflow:hidden;text-decoration:none}.comment-avatar[href]>img{display:block;width:100%;height:100%;object-fit:cover}.comment-avatar[href]:focus-visible{outline:3px solid #1769e0;outline-offset:2px}.comment-author[href]{color:inherit;font-weight:700;text-decoration:none}.comment-author[href]:hover,.comment-author[href]:focus{text-decoration:underline}

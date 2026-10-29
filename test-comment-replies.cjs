@@ -15,7 +15,8 @@ for (const required of [
   "ensureCommentComposer(post)",
   'send.setAttribute("aria-label", "Post comment")'
 ]) assert.ok(ui.includes(required), `Comment reply UI is missing: ${required}`);
-assert.ok(ui.includes('comment.authorPicture ? document.createElement("img")'), "Comments must use the member's profile photo when available");
+assert.ok(ui.includes('if (comment.authorPicture) { const image = document.createElement("img")'), "Comments must use the member's profile photo when available");
+assert.ok(ui.includes('profile.html?member=${encodeURIComponent(memberId)}'), "Comment authors must link to an opaque member profile URL");
 assert.ok(ui.includes('engagementFetch("/profiles", { credentials: "include", cache: "no-store" })'), "The comment composer must load the signed-in member profile through the guarded API helper");
 assert.ok(ui.includes('image.className = "comment-composer-avatar"'), "The comment composer must render the signed-in member photo");
 const replyContractCheck = ui.indexOf('if (parentCommentId && data.comment?.parentCommentId !== parentCommentId)');
@@ -35,6 +36,9 @@ for (const required of [
 ]) assert.ok(api.includes(required), `Durable reply handling is missing: ${required}`);
 assert.ok(api.includes("authorPicture:authorProfiles.get("), "Loaded comments must include signed member profile photos");
 assert.ok(api.includes('authorPicture: actorProfile.picture || ""'), "A newly posted comment must render with the current member photo immediately");
+assert.ok(api.includes('authorMemberId:item.userId?.S || ""'), "Loaded comments must expose only the opaque member ID for profile navigation");
+assert.ok(api.includes('authorMemberId:userId'), "New comments must expose the opaque member ID immediately");
+assert.doesNotMatch(api.slice(api.indexOf("const commentRecords"), api.indexOf("const commentById")), /userEmail:/, "Comment responses must not expose account email addresses");
 
 for (const required of [".comment-composer{", ".comment-bubble{", ".comment-reply-button", ".comment-replying{"])
   assert.ok(css.includes(required), `Compact comment styling is missing: ${required}`);

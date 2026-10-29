@@ -1293,7 +1293,7 @@ async function getEngagement(event) {
     ...(commentReactions.get(item.commentId.S) || {reactionCounts:{}, myReaction:"", reactionTotal:0}),
     authorName:authorNames.get(item.userEmail?.S) || "DanzStak member",
     authorPicture:authorProfiles.get(String(item.userEmail?.S || "").trim().toLowerCase())?.picture || "",
-    commentId: item.commentId.S, userEmail: item.userEmail?.S || "DanzStak member", content: item.content.S,
+    authorMemberId:item.userId?.S || "", commentId:item.commentId.S, content:item.content.S,
     createdAt: item.createdAt.S, isOwner: item.userId?.S === userId, canDelete: item.userId?.S === userId || access.post.userId?.S === userId,
     ...(item.parentCommentId?.S ? { parentCommentId: item.parentCommentId.S, replyToName: item.replyToName?.S || "DanzStak member" } : {})
   }));
@@ -1401,7 +1401,7 @@ async function addComment(event) {
   await db.send(new PutItemCommand({ TableName: commentsTable, Item: { postId: { S: postId }, commentId: { S: commentId }, userId: { S: userId }, userEmail: { S: userEmail }, content: { S: content }, createdAt: { S: createdAt }, ...(parentComment ? { parentCommentId: { S: parentCommentId }, replyToName: { S: replyToName } } : {}) } }));
   await notifyPostOwner(access.post, `comment#${commentId}`, "comment", userEmail, content);
   if (parentComment?.userEmail?.S && parentComment.userEmail.S !== access.post.userEmail?.S) await notifyPostOwner({ ...access.post, userEmail: parentComment.userEmail }, `reply#${commentId}`, "reply", userEmail, content);
-  return { statusCode: 201, headers, body: JSON.stringify({ comment: { commentId, userEmail, content, createdAt, authorName: actorProfile.name || "DanzStak member", authorPicture: actorProfile.picture || "", isOwner: true, canDelete: true, ...(parentComment ? { parentCommentId, replyToName } : {}) } }) };
+  return { statusCode: 201, headers, body: JSON.stringify({ comment: { commentId, authorMemberId:userId, content, createdAt, authorName: actorProfile.name || "DanzStak member", authorPicture: actorProfile.picture || "", isOwner: true, canDelete: true, ...(parentComment ? { parentCommentId, replyToName } : {}) } }) };
 }
 
 async function reportPost(event) {

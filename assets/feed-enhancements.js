@@ -2748,13 +2748,17 @@ function renderPersistentComment(post, comment) {
   item.dataset.commentId = comment.commentId;
   item.dataset.canDelete = String(comment.canDelete === true);
   if (comment.parentCommentId) { item.dataset.parentCommentId = comment.parentCommentId; item.classList.add("comment-reply"); }
-  const avatar = comment.authorPicture ? document.createElement("img") : document.createElement("span");
+  const memberId = String(comment.authorMemberId || "").trim();
+  const profileUrl = memberId ? `profile.html?member=${encodeURIComponent(memberId)}` : "";
+  const avatar = document.createElement(memberId ? "a" : "span");
   avatar.className = "comment-avatar";
-  if (comment.authorPicture) { avatar.src = comment.authorPicture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
-  else { avatar.textContent = String(comment.authorName || "D").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+  if (memberId) { avatar.href = profileUrl; avatar.setAttribute("aria-label", "Open " + (comment.authorName || "member") + " profile"); }
+  if (comment.authorPicture) { const image = document.createElement("img"); image.src = comment.authorPicture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.appendChild(image); }
+  else { avatar.textContent = String(comment.authorName || "D").charAt(0).toUpperCase(); if (!memberId) avatar.setAttribute("aria-hidden", "true"); }
   const bubble = document.createElement("div"); bubble.className = "comment-bubble";
-  const author = document.createElement("strong");
+  const author = document.createElement(memberId ? "a" : "strong");
   author.className = "comment-author";
+  if (memberId) author.href = profileUrl;
   author.textContent = comment.authorName || "DanzStak member";
   const time = document.createElement("time"); time.className = "comment-time"; time.dateTime = comment.createdAt || "";
   const parsed = comment.createdAt ? new Date(comment.createdAt) : null;
