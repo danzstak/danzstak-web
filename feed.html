@@ -269,6 +269,8 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 #feed > .post { width:100%; margin-left:auto; margin-right:auto; }
 .message-drawer{position:fixed;right:18px;bottom:18px;width:min(430px,calc(100vw - 24px));height:min(690px,calc(100vh - 84px));z-index:10000;background:#fff;border:1px solid #dce3ec;border-radius:18px;box-shadow:0 18px 60px #10182840;overflow:hidden}.message-drawer[hidden]{display:none}.message-drawer-bar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid #e5e9ef;font-weight:850}.message-drawer-close{min-width:34px;min-height:34px;padding:4px;border:0;background:transparent;font-size:1.35rem}.message-drawer iframe{display:block;width:100%;height:calc(100% - 46px);border:0;background:#f3f5f8}@media(max-width:560px){.message-drawer{right:6px;bottom:6px;width:calc(100vw - 12px);height:min(72vh,700px);border-radius:16px}}
 .message-drawer.is-conversation{width:min(360px,calc(100vw - 18px));height:min(540px,calc(100vh - 70px))}
+.message-drawer.is-conversation:not(.is-video-call) .message-drawer-bar{display:none}
+.message-drawer.is-conversation:not(.is-video-call) iframe{height:100%}
 .message-drawer.is-video-call{inset:12px;width:auto;height:auto;border-radius:18px}.message-drawer.is-video-call iframe{height:calc(100% - 46px)}
 @media(max-width:560px){.message-drawer.is-video-call{inset:0;width:100vw;height:100dvh;border-radius:0}.message-drawer.is-video-call .message-drawer-bar{height:42px}.message-drawer.is-video-call iframe{height:calc(100dvh - 42px)}}
 .composer-title { display: flex; align-items: center; gap: 12px; }

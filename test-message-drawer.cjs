@@ -10,6 +10,8 @@ assert.match(feed, /drawer\.className = "message-drawer"/, "messages open in the
 assert.match(feed, /if \(drawer && !drawer\.hidden\)[\s\S]*?message-drawer-close[\s\S]*?return;[\s\S]*?openMessageDrawer\(\)/, "the Messages icon toggles an open drawer closed");
 assert.match(feed, /event\.data\?\.type === "danzstak-call-mode"\) drawer\.classList\.toggle\("is-video-call", event\.data\.mode === "video"\)/, "only a video call expands the drawer to full screen");
 assert.match(feed, /event\.data\?\.type === "danzstak-chat-view"\) drawer\.classList\.toggle\("is-conversation", event\.data\.open === true\)/, "ordinary conversations stay in the compact conversation drawer");
+assert.match(feed, /\.message-drawer\.is-conversation:not\(\.is-video-call\) \.message-drawer-bar\{display:none\}/, "an open conversation must not waste space on a second Chats header");
+assert.match(feed, /\.message-drawer\.is-conversation:not\(\.is-video-call\) iframe\{height:100%\}/, "the conversation frame must reclaim the removed header space");
 assert.match(messages, /aria-label="Phone call">📞<\/button>/, "conversation header exposes a recognizable phone action");
 assert.match(messages, /aria-label="Video call">📹<\/button>/, "conversation header exposes a recognizable video action");
 assert.match(directMessages, /\[\["📞", "startPhone"\], \["📹", "startVideo"\]\]/, "chat list call actions use the same recognizable icons");
