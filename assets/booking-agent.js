@@ -1162,6 +1162,7 @@
       days: days,
       departOn: departOn,
       returnBy: returnBy,
+      mapScope: routeAction.dataset.mapSearchSignature || "",
     });
     if (searchSignature === lastSearchSignature) searchVariation += 1;
     else {

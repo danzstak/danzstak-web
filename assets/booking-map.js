@@ -151,6 +151,8 @@
     searchBounds = null;
     searchScope = "city";
     finalizedRoutePoints = [];
+    const search = document.getElementById("routeSearchAction") || document.querySelector(".primary-route");
+    if (search) delete search.dataset.mapSearchSignature;
     status.textContent = "Area filter cleared. Search by city, or move the map and press Search this area.";
   });
   document.addEventListener("keydown", event => {
@@ -178,6 +180,11 @@
       document.getElementById("bandName")?.focus();
       return;
     }
+    search.dataset.mapSearchSignature = JSON.stringify({
+      scope: searchScope,
+      bounds: searchBounds,
+      path: searchScope === "drawn" ? finalizedRoutePoints : []
+    });
     status.textContent = "Searching the visible map area for live-music clubs…";
     search.click();
   });
