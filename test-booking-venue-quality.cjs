@@ -32,6 +32,11 @@ assert.equal(isBookableClub({ name: "SFJAZZ Center", categories: ["Jazz Workshop
 assert.equal(isBookableClub({ name: "PDE", categories: ["Orchestra"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "Musicians Entrance", categories: ["San Francisco Symphony", "Orchestra Facility"] }, "Rock"), false);
 assert.equal(isBookableClub({ name: "Club Passport", categories: ["Passport Service", "Government Office"] }, "DJ / Electronic"), false);
+assert.equal(isBookableClub({ name: "Störtebeker Festspiele", categories: ["Concert Venue", "Live Music"] }, "Rock"), false);
+assert.equal(isBookableClub({ name: "Kurpavillon", categories: ["Concert Venue", "Live Music"] }, "Rock"), false);
+assert.equal(isBookableClub({ name: "Stadthalle", categories: ["Concert Hall", "Live Music"] }, "Rock"), false);
+assert.equal(isBookableClub({ name: "Konzertmuschel Heringsdorf", categories: ["Concert Venue", "Live Music"] }, "Rock"), false);
+assert.equal(isBookableClub({ name: "Ostseebad Ahrenshoop", categories: ["Live Music Venue"] }, "Rock"), false);
 
 const client = fs.readFileSync("assets/booking-agent.js", "utf8");
 assert.match(client, /Search again for different clubs/);
