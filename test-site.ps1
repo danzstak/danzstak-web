@@ -473,7 +473,7 @@ if (-not $profileJs.Contains('feed.html?messageMember=') -or $profileJs.Contains
 foreach ($opaqueMessageHandoff in @('get("messageMember")', 'profiles?member=', 'openMessageDrawer(data.profile.email)')) {
   if (-not $feed.Contains($opaqueMessageHandoff)) { Add-Failure "Messages: opaque profile handoff is missing: $opaqueMessageHandoff" }
 }
-if (-not $feed.Contains('authorLabel.href = isOwner === true ? "profile.html" : "profile.html?member=" + encodeURIComponent(authorMemberId);')) {
+if (-not $feed.Contains('const authorProfileUrl = isOwner === true ? "profile.html" : validAuthorMember ? "profile.html?member=" + encodeURIComponent(authorMemberId) : "";') -or -not $feed.Contains('authorLabel.href = authorProfileUrl;')) {
   Add-Failure 'Profiles: an owner post routes the author back to a non-editable other-user profile'
 }
 foreach ($privateProfileLinkSource in @($feed, $feedEnhancements, $profileEditorJs, (Get-Content -LiteralPath (Join-Path $root 'assets\people-search.js') -Raw -Encoding utf8))) {

@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-qcblTbYN/J7dw3OZtxnc6S9/KkbbQguUq7bJmVd5xvw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-qqlgwgUdH0y9LNWLu1l9VJDqj4aIS6FZbyoz2dFyR5Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -307,14 +307,14 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=398">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=399">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
   <link rel="stylesheet" href="assets/soft-ui.css?v=363">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=1" defer></script>
 <script src="assets/i18n.js?v=342" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
-<script src="assets/post-sharing.js?v=371" defer></script>
+<script src="assets/post-sharing.js?v=399" defer></script>
 <script src="assets/media-tags.js?v=357" defer></script>
 </head>
 
@@ -651,16 +651,18 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
 
   const header = document.createElement("div");
   header.className = "post-header";
-  const avatar = authorPicture ? document.createElement("img") : document.createElement("span");
-  avatar.className = "post-avatar";
-  if (authorPicture) { avatar.src = authorPicture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
-  else { avatar.textContent = String(author || "D").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
-  const authorDetails = document.createElement("div"); authorDetails.className = "post-author-details";
   const validAuthorMember = /^[a-f0-9-]{36}$/.test(String(authorMemberId || ""));
+  const authorProfileUrl = isOwner === true ? "profile.html" : validAuthorMember ? "profile.html?member=" + encodeURIComponent(authorMemberId) : "";
+  const avatar = document.createElement(authorProfileUrl ? "a" : "span");
+  avatar.className = "post-avatar";
+  if (authorProfileUrl) { avatar.href = authorProfileUrl; avatar.setAttribute("aria-label", "Open " + (author || "member") + " profile"); }
+  if (authorPicture) { const image = document.createElement("img"); image.src = authorPicture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.appendChild(image); }
+  else { avatar.textContent = String(author || "D").charAt(0).toUpperCase(); if (!authorProfileUrl) avatar.setAttribute("aria-hidden", "true"); }
+  const authorDetails = document.createElement("div"); authorDetails.className = "post-author-details";
   const authorLabel = isOwner === true || validAuthorMember ? document.createElement("a") : document.createElement("span");
   authorLabel.className = "post-author";
   authorLabel.textContent = author;
-  if (authorLabel.tagName === "A") authorLabel.href = isOwner === true ? "profile.html" : "profile.html?member=" + encodeURIComponent(authorMemberId);
+  if (authorLabel.tagName === "A") authorLabel.href = authorProfileUrl;
 
   const time = document.createElement("div");
   time.className = "post-time";
@@ -1341,7 +1343,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=398" defer></script>
+<script src="assets/feed-enhancements.js?v=399" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=295" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>

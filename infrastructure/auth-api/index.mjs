@@ -1164,7 +1164,7 @@ async function getSecurePosts(event) {
   const authorName = email => authorNames.get(String(email || "").trim().toLowerCase()) || "DanzStak member";
   const authorPicture = email => authorProfiles.get(String(email || "").trim().toLowerCase())?.picture || "";
   const visibleSources = new Map(visiblePosts.map(item => [item.postId.S,item]));
-  const sharedPreview = item => item ? ({postId:item.postId.S,content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),authorEmail:item.userEmail?.S || "",createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
+  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,

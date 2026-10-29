@@ -8,10 +8,12 @@ const api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 assert.match(api, /authorPicture: authorPicture\(item\.userEmail\?\.S\)/, "Post API must return the signed author photo");
 assert.match(api, /ProjectionExpression: "profileName, profileAvatarKey"/, "Only public identity fields should be loaded for feed authors");
 assert.match(html, /avatar\.className = "post-avatar"/);
-assert.match(html, /if \(authorPicture\) \{ avatar\.src = authorPicture;/);
+assert.match(html, /const avatar = document\.createElement\(authorProfileUrl \? "a" : "span"\)/, "Post avatars must become profile links when a public member ID exists");
+assert.match(html, /if \(authorPicture\) \{ const image = document\.createElement\("img"\)/);
 assert.match(html, /else \{ avatar\.textContent = String\(author \|\| "D"\)\.charAt\(0\)\.toUpperCase\(\)/, "Posts without photos need an initials fallback");
 assert.match(html, /post\.authorPicture,\s*\n\s*post\.groupId,/, "Loaded post photos must reach the renderer");
 assert.match(css, /\.post-header\{[^}]*grid-template-columns:42px minmax\(0,1fr\)/);
 assert.match(css, /\.post-avatar\{[^}]*border-radius:50%/);
+assert.match(css, /\.post-avatar\[href\]>img/, "Linked post avatars must preserve circular image framing");
 
 console.log("Post author avatar checks passed: signed profile photos and initials render in Facebook-familiar headers.");

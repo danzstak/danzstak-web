@@ -72,7 +72,8 @@
     const card = document.createElement('div'); card.className = 'shared-post-card';
     if (!post.sharedPost) card.textContent = 'The original post is no longer available to you.';
     else {
-      const source = post.sharedPost, name = document.createElement('strong'); name.textContent = source.authorName;
+      const source = post.sharedPost, memberId = String(source.authorMemberId || ''), validMemberId = /^[a-f0-9-]{36}$/.test(memberId), name = document.createElement(validMemberId ? 'a' : 'strong'); name.textContent = source.authorName;
+      if (validMemberId) { name.href = 'profile.html?member=' + encodeURIComponent(memberId); name.className = 'shared-post-author'; }
       const body = document.createElement('p'); body.textContent = source.content; card.append(name,body);
       if (source.mediaUrl && ['image','video'].includes(source.mediaType)) { const media = document.createElement(source.mediaType === 'image' ? 'img' : 'video'); media.src = source.mediaUrl; media.className = 'shared-post-media'; if (source.mediaType === 'image') { media.alt = 'Photo by ' + source.authorName; media.loading = 'lazy'; } else { media.controls = true; media.playsInline = true; media.preload = 'metadata'; } card.appendChild(media); }
       const original = document.createElement('a'); original.href = 'feed.html#post-' + encodeURIComponent(source.postId); original.textContent = 'View original post'; card.appendChild(original);
