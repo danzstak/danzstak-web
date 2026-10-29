@@ -968,11 +968,13 @@ function renderWorkspace(name) {
     Promise.allSettled([
       fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
       fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
-      fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store", signal: notificationController.signal })
+      fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
+      fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store", signal: notificationController.signal })
     ]).then(async results => {
         const response = results[0].status === "fulfilled" ? results[0].value : null;
         const directoryResponse = results[1].status === "fulfilled" ? results[1].value : null;
         const engagementResponse = results[2].status === "fulfilled" ? results[2].value : null;
+        const friendsResponse = results[3].status === "fulfilled" ? results[3].value : null;
         if (!response?.ok && !engagementResponse?.ok) throw new Error("Notifications could not be loaded");
         const data = response?.ok ? await response.json() : { notifications: [] };
         const engagement = engagementResponse?.ok ? (await engagementResponse.json()).notifications || [] : [];
@@ -980,7 +982,18 @@ function renderWorkspace(name) {
         notificationSourceCounts.engagement = engagementResponse?.ok ? engagement.filter(notice => notice.unread !== false).length : notificationSourceCounts.engagement;
         data.notifications = [...(data.notifications || []), ...engagement].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
         const directory = directoryResponse?.ok ? (await directoryResponse.json()).users || [] : [];
-        const people = new Map(directory.map(person => [String(person.email || "").toLowerCase(), person]));
+        const friends = friendsResponse?.ok ? (await friendsResponse.json()).friends || [] : [];
+        const people = new Map();
+        for (const friend of friends) {
+          const email = String(friend.email || "").toLowerCase();
+          if (email) people.set(email, friend);
+        }
+        for (const person of directory) {
+          const email = String(person.email || "").toLowerCase();
+          if (!email) continue;
+          const known = people.get(email) || {};
+          people.set(email, { ...known, ...person, name: person.name || known.name, picture: person.picture || known.picture });
+        }
         updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
         list.replaceChildren();
         list.setAttribute("aria-busy", "false");
