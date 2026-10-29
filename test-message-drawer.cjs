@@ -19,6 +19,7 @@ assert.match(chatCss, /\.message-form\{grid-template-columns:minmax\(0,1fr\) aut
 assert.match(chatCss, /\.conversation-header-actions\{grid-column:3;grid-row:1\/3;align-self:center\}/, "call actions stay aligned beside the contact name and presence");
 assert.match(chatCss, /\.embedded-messages>\.site-ownership\{display:none\}/, "the embedded chat hides the standalone legal footer");
 assert.match(chatCss, /\.embedded-messages \.chats-heading h1\{position:absolute;width:1px;height:1px/, "the embedded drawer keeps one visible Chats heading while preserving the iframe heading for assistive technology");
-assert.match(chatCss, /\.embedded-messages \.chats-heading\{min-height:38px;justify-content:flex-end/, "the embedded compose action remains aligned without an empty title row");
+assert.match(chatCss, /\.embedded-messages \.chats-heading\{position:static;min-height:0;height:0/, "the embedded list must not reserve an empty heading row");
+assert.match(chatCss, /\.embedded-messages \.chat-heading-actions\{position:fixed;right:18px;bottom:18px/, "the embedded compose action floats above the chat list like a familiar mobile messenger");
 
 console.log("Message drawer checks passed: feed popup, icon toggle, compact chat, and video-only full screen.");

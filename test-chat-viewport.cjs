@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const css = fs.readFileSync("assets/chat.css", "utf8");
 const html = fs.readFileSync("messages.html", "utf8");
 
-assert.match(html, /assets\/chat\.css\?v=370/, "Messages must load the viewport-constrained chat layout");
+assert.match(html, /assets\/chat\.css\?v=384/, "Messages must load the viewport-constrained chat layout");
 assert.match(css, /@media\(min-width:761px\)\{\.chat-shell\{height:calc\(100dvh - 100px\);min-height:520px\}/, "desktop chat should fit the available viewport instead of growing with message history");
 assert.match(css, /\.chat-sidebar,\.conversation\{min-height:0\}/, "chat grid children must be allowed to shrink so their own content can scroll");
 assert.match(css, /\.chat-sidebar\{overflow:auto\}/, "a long conversation directory should scroll without moving the composer off screen");
