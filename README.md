@@ -47,6 +47,21 @@ The browser receives only the opaque `__Host-danzstak_session` cookie. Cognito t
 
 ## Local verification
 
+The Booking Agent's selected-club page includes a private account workspace,
+artist pitch details, listed-genre match guidance, proposed dates, booking
+stages, deals, notes, and follow-up counts. `GET /booking-pipeline` loads the
+authenticated owner's workspace; `POST /booking-pipeline` saves a bounded,
+validated snapshot using a revision condition to prevent cross-device
+overwrites. The workspace uses a reserved item in the existing Tours table
+and is excluded from the saved-tour list. New map selections merge into the
+account workspace without replacing existing booking notes. Saving is
+explicit; a tab copy is a fallback, not a cross-device source of truth.
+Pitch review opens the artist's email client and does not send email or
+automatically mark a lead contacted. Public contacts and genre categories
+must not be presented as independently verified availability or demand.
+Deploy the Auth API's new routes and narrow table read permission before
+publishing the updated frontend.
+
 Run `./test-regressions.ps1` for the complete local regression check: the JavaScript behavior tests, release-verification tests, site checks, and infrastructure checks. It stops on the first failure. This command does not publish content or call live user accounts.
 
 Run `node ./test-messaging-races.cjs` to check that delayed requests cannot mix conversations, erase another chat's draft, or re-enable its composer.

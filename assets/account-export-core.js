@@ -46,6 +46,7 @@
         engagement: sources.engagementNotifications?.notifications || []
       },
       tours: sources.tours?.tours || [],
+      bookingWorkspace: sources.bookingWorkspace || { venues: [], artist: {} },
       incompleteSources: Array.isArray(sources.incompleteSources) ? sources.incompleteSources : []
     };
   }
