@@ -395,6 +395,14 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   if (focusList) conversationUsers?.querySelector(".conversation-user")?.focus();
 }
 
+function messageAccessibleSummary(message, mine) {
+  const actor = mine ? "You" : activeContactName;
+  const content = String(message.content || "").trim();
+  const media = message.mediaType === "video" ? "video" : message.mediaType === "image" ? "photo" : "";
+  const lead = content ? `${actor}: ${content}.` : media ? `${actor} sent a ${media}.` : `${actor} sent a message.`;
+  return `${lead} Long press or press Shift F10 for reactions${mine && content ? " and editing" : ""}.`;
+}
+
 function directMessageItem(message) {
   const mine = message.senderEmail === currentEmail;
   const item = document.createElement("div");
@@ -416,7 +424,7 @@ function directMessageItem(message) {
   }
   const sharedUrl = firstSafeMessageUrl(message.content);
   if (sharedUrl) item.appendChild(messageLinkPreview(sharedUrl));
-  item.setAttribute("aria-label", `${mine ? "You" : activeContactName}: ${message.content}. Long press or press Shift F10 for reactions${mine && message.content ? " and editing" : ""}.`);
+  item.setAttribute("aria-label", messageAccessibleSummary(message, mine));
   const meta = document.createElement("span");
   meta.className = "message-meta";
   meta.textContent = (mine ? "You" : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · edited" : "");
