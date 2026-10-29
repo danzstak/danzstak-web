@@ -46,6 +46,20 @@ function formatNotificationTimestamp(value) {
   return created.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 }
 
+function formatReactionNotification(displayName, reaction) {
+  const label = String(reaction || "").trim();
+  const phrases = {
+    Like: "liked your post.",
+    Dislike: "disliked your post.",
+    Love: "loved your post.",
+    Laugh: "laughed at your post.",
+    Wow: "reacted Wow to your post.",
+    Sad: "reacted Sad to your post.",
+    Fire: "reacted Fire to your post."
+  };
+  return `${displayName} ${phrases[label] || "reacted to your post."}`;
+}
+
 async function refreshNotificationCount() {
   if (document.hidden || notificationCountLoading) return;
   if (readSections().Settings?.notifications === false) {
@@ -1020,7 +1034,7 @@ function renderWorkspace(name) {
             : notice.type === "group_everyone"
               ? `${displayName} notified @everyone in ${notice.groupName || "your Tribe"}: ${notice.preview || "New announcement"}`
             : notice.type === "reaction"
-              ? `${displayName} reacted ${notice.preview || "to your post"}.`
+              ? formatReactionNotification(displayName, notice.preview)
               : notice.type === "tag"
                 ? `${displayName} tagged you in a post.`
                 : notice.type === "reply"
