@@ -1209,7 +1209,6 @@ function renderWorkspace(name) {
         link.className = "friend-card friend-card-large";
         if (hasProfileRoute) {
           link.href = "profile.html?member=" + encodeURIComponent(friendMemberId);
-          link.setAttribute("aria-label", "Open " + (person.name || "DanzStak member") + " profile");
         }
         const avatar = person.picture ? document.createElement("img") : document.createElement("span");
         avatar.className = "friend-avatar";
@@ -1222,6 +1221,10 @@ function renderWorkspace(name) {
         const status = document.createElement("small");
         const friendIsOnline = directoryFriend.online === true;
         status.textContent = friendIsOnline ? "Online" : presenceAvailable ? "Offline" : "Status unavailable";
+        if (hasProfileRoute) {
+          link.dataset.friendName = displayName.textContent;
+          link.setAttribute("aria-label", `${displayName.textContent}, ${status.textContent}. Open profile`);
+        }
         details.append(displayName, status);
         const presence = document.createElement("span");
         presence.className = friendIsOnline ? "friend-presence online" : "friend-presence";
@@ -3277,6 +3280,8 @@ window.addEventListener("message", event => {
     const status = row.querySelector(".friend-details small");
     const dot = row.querySelector(".friend-presence");
     if (status) status.textContent = online ? "Online" : "Offline";
+    const profileLink = row.querySelector("a.friend-card-large");
+    if (profileLink) profileLink.setAttribute("aria-label", `${profileLink.dataset.friendName || "DanzStak member"}, ${online ? "Online" : "Offline"}. Open profile`);
     if (dot) {
       dot.classList.toggle("online", online);
       dot.title = online ? "Online" : "Offline";
