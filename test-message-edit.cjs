@@ -24,6 +24,7 @@ assert.match(backend, /if\(body\.action==='edit'\)return editMessage\(body,user\
 assert.match(backend, /async function editMessage\(body,user\)/, "message edit backend exists");
 assert.match(backend, /found\.Item\.senderEmail\?\.S!==user\.email/, "backend enforces sender ownership");
 assert.match(backend, /UpdateExpression:'SET content = :c, editedAt = :e'/, "backend durably stores edited text and timestamp");
+assert.match(backend, /Action: \[dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem\]\s+Resource: !GetAtt MessagesTable\.Arn/, "the deployed role can update message text without a separate manual policy");
 assert.match(backend, /editedAt:x\.editedAt\?\.S\|\|''/, "message reads return edit state");
 assert.match(backend, /if\(body\.action==='delete'\)return deleteMessage\(body,user\)/, "message API routes deletions");
 assert.match(backend, /async function deleteMessage\(body,user\)/, "message deletion backend exists");
