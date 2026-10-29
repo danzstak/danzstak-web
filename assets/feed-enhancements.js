@@ -2579,6 +2579,27 @@ function engagementPostId(post) {
   return /^[a-f0-9-]{36}$/.test(value) ? value : "";
 }
 
+function describePostControls(post) {
+  const postId = engagementPostId(post);
+  if (!postId) return;
+  const author = post.querySelector(".post-author");
+  const content = post.querySelector(".post-content");
+  const descriptionIds = [];
+  if (author) {
+    author.id ||= `post-${postId}-author`;
+    descriptionIds.push(author.id);
+  }
+  if (content?.textContent.trim()) {
+    content.id ||= `post-${postId}-content`;
+    descriptionIds.push(content.id);
+  }
+  if (!descriptionIds.length) return;
+  const describedBy = descriptionIds.join(" ");
+  post.querySelectorAll(".post-actions button, .post-menu-toggle, .comments input").forEach(control => {
+    control.setAttribute("aria-describedby", describedBy);
+  });
+}
+
 function paintReactionControls(up, down, reaction, counts = {}, noun = "post") {
   const positive = Boolean(reaction) && reaction !== "Dislike";
   const total = Object.entries(counts).filter(([kind]) => kind !== "Dislike").reduce((sum, [, count]) => sum + Number(count || 0), 0);
@@ -3271,7 +3292,7 @@ document.getElementById("feed").addEventListener("keydown", event => {
   event.stopImmediatePropagation();
   saveComment(post, event.target);
 }, true);
-document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addSaveButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
+document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addSaveButton(post); addPostDeleteButton(post); describePostControls(post); } else if (post !== reelsRail) post.remove(); });
 
 window.addEventListener("message", event => {
   if (event.origin !== location.origin || event.source === window || event.data?.type !== "danzstak-presence-update" || !Array.isArray(event.data.users)) return;
@@ -3368,7 +3389,7 @@ function refreshFeedMediaWorkspace(records) {
 new MutationObserver(records => {
   for (const record of records) {
     record.addedNodes.forEach(node => {
-      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { if (hiddenPostIds.has(String(node.dataset.postId || ""))) { node.remove(); return; } addReactionButton(node); addShareButton(node); addSaveButton(node); addPostDeleteButton(node); placeReelsRail(); }
+      if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".post") && node !== reelsRail) { if (hiddenPostIds.has(String(node.dataset.postId || ""))) { node.remove(); return; } addReactionButton(node); addShareButton(node); addSaveButton(node); addPostDeleteButton(node); describePostControls(node); placeReelsRail(); }
       if (node.nodeType === Node.ELEMENT_NODE && node.matches?.(".comment")) addCommentDelete(node);
       if (node.nodeType === Node.ELEMENT_NODE) node.querySelectorAll?.(".comment").forEach(addCommentDelete);
     });
