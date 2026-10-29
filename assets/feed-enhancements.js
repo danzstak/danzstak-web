@@ -1488,7 +1488,7 @@ function renderWorkspace(name) {
       heading,
       settingRow("👤", "Account settings", notifications),
       settingRow("🔒", "Privacy center", presence),
-      settingRow("🪪", "Profile posting and tagging", profilePermissions),
+      settingRow("✎", "Profile posting and tagging", profilePermissions),
       settingRow("@", "Allow friends to tag me", tagsCheckbox),
       settingRow("🌙", "Dark mode", darkCheckbox),
       settingRow("✨", "Reduce motion", motionCheckbox),

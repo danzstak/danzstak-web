@@ -16,6 +16,7 @@ assert.match(profile, /get\("edit"\) === "privacy"/);
 assert.match(profile, /panel\.elements\.profilePostPermission\.focus/);
 assert.match(settings, /profile\.html\?edit=privacy/);
 assert.match(settings, /Profile posting and tagging/);
+assert.match(settings, /settingRow\("✎", "Profile posting and tagging"/, "the settings row uses a widely supported symbol instead of a missing-glyph emoji");
 assert.match(profile, /Allow accepted friends to tag me in photos and videos/);
 assert.match(profile, /profile\.allowTags = panel\.elements\.allowTags\.checked/);
 assert.match(profile, /profileMemberId:\s*profile\.memberId/);
