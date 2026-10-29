@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const feed = fs.readFileSync("feed.html", "utf8");
 const messages = fs.readFileSync("messages.html", "utf8");
 const directMessages = fs.readFileSync("assets/direct-messages.js", "utf8");
+const enhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const chatCss = fs.readFileSync("assets/chat.css", "utf8");
 
 assert.match(feed, /drawer\.className = "message-drawer"/, "messages open in the feed drawer");
@@ -12,6 +13,10 @@ assert.match(feed, /\.message-drawer\.is-loading iframe\{visibility:hidden\}/, "
 assert.match(feed, /event\.currentTarget\.src\.includes\("messages\.html"\)/, "an unrelated initial frame load cannot dismiss the loading state");
 assert.match(feed, /drawer\.querySelector\("\.message-drawer-loading"\)\.hidden = true/, "the loading state clears when Messages is ready");
 assert.match(feed, /if \(drawer && !drawer\.hidden\)[\s\S]*?message-drawer-close[\s\S]*?return;[\s\S]*?openMessageDrawer\(\)/, "the Messages icon toggles an open drawer closed");
+assert.match(enhancements, /drawer\.classList\.contains\("is-video-call"\)[\s\S]*?drawer\.contains\(event\.target\)[\s\S]*?launcher\?\.contains\(event\.target\)[\s\S]*?message-drawer-close/,
+  "clicking back into the page dismisses compact Messages without interrupting a video call");
+assert.match(enhancements, /clickedControl instanceof HTMLElement\) messageDrawerPreviousFocus = clickedControl/,
+  "click-outside dismissal must preserve the page control the member chose");
 assert.match(feed, /event\.data\?\.type === "danzstak-call-mode"\) drawer\.classList\.toggle\("is-video-call", event\.data\.mode === "video"\)/, "only a video call expands the drawer to full screen");
 assert.match(feed, /event\.data\?\.type === "danzstak-chat-view"\) drawer\.classList\.toggle\("is-conversation", event\.data\.open === true\)/, "ordinary conversations stay in the compact conversation drawer");
 assert.match(feed, /\.message-drawer\.is-conversation:not\(\.is-video-call\) \.message-drawer-bar\{display:none\}/, "an open conversation must not waste space on a second Chats header");

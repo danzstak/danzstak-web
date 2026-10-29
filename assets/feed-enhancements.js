@@ -1676,6 +1676,16 @@ document.addEventListener("click", event => {
   closeNotificationDrawer(false);
 });
 
+document.addEventListener("click", event => {
+  const drawer = document.getElementById("messageDrawer");
+  const launcher = document.getElementById("messagesNav");
+  if (!drawer || drawer.hidden || drawer.classList.contains("is-video-call")) return;
+  if (drawer.contains(event.target) || launcher?.contains(event.target)) return;
+  const clickedControl = event.target.closest?.("a,button,input,select,textarea,[tabindex]");
+  if (clickedControl instanceof HTMLElement) messageDrawerPreviousFocus = clickedControl;
+  drawer.querySelector(".message-drawer-close")?.click();
+});
+
 function openWorkspaceRoute(name, pushHistory = true) {
   if (!workspaceRoutes.has(String(name).toLowerCase())) return false;
   const canonicalName = workspaceRoutes.get(String(name).toLowerCase());
