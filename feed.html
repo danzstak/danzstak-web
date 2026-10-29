@@ -274,7 +274,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 .message-drawer.is-video-call{inset:12px;width:auto;height:auto;border-radius:18px}.message-drawer.is-video-call iframe{height:calc(100% - 46px)}
 @media(max-width:560px){.message-drawer.is-video-call{inset:0;width:100vw;height:100dvh;border-radius:0}.message-drawer.is-video-call .message-drawer-bar{height:42px}.message-drawer.is-video-call iframe{height:calc(100dvh - 42px)}}
 .composer-title { display: flex; align-items: center; gap: 12px; }
-.composer-avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #1769e0; color: white; font-weight: 900; }
+.composer-avatar { width: 42px; height: 42px; flex:0 0 42px; border-radius: 50%; display: grid; place-items: center; background:#1769e0 center/cover no-repeat; color: white; font-weight: 900; }
 
 @media(max-width: 1050px) {
   .layout {
@@ -1341,7 +1341,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=387" defer></script>
+<script src="assets/feed-enhancements.js?v=389" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=295" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>

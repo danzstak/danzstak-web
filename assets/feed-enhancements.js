@@ -2627,6 +2627,27 @@ function loadCommentViewerProfile() {
   return commentViewerProfilePromise;
 }
 
+function hydratePostComposerAvatar() {
+  const avatar = document.querySelector(".composer-avatar");
+  if (!avatar) return;
+  loadCommentViewerProfile().then(profile => {
+    if (!avatar.isConnected) return;
+    avatar.textContent = String(profile.name || "D").trim().charAt(0).toUpperCase() || "D";
+    avatar.style.backgroundImage = "";
+    if (!profile.picture) return;
+    const image = new Image();
+    image.referrerPolicy = "no-referrer";
+    image.onload = () => {
+      if (!avatar.isConnected) return;
+      avatar.style.backgroundImage = `url("${profile.picture}")`;
+      avatar.textContent = "";
+    };
+    image.src = profile.picture;
+  });
+}
+
+hydratePostComposerAvatar();
+
 function ensureCommentComposer(post) {
   const comments = post.querySelector(".comments"), input = comments?.querySelector(":scope > input, .comment-composer input");
   if (!comments || !input || input.closest(".comment-composer")) return;
