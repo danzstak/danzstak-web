@@ -24,5 +24,7 @@ assert.match(source, /if \(socialReady \|\| engagementReady\) break/, "a usable 
 assert.match(source, /loadNotificationSources\(\)\.then/, "the notification drawer uses the resilient source loader");
 assert.match(css, /\.notification-drawer\{position:fixed/, "the notification panel overlays rather than replaces the feed");
 assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-drawer\{top:58px;right:8px;left:8px/, "the drawer fits phone screens");
+assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-row\{display:grid;grid-template-columns:42px minmax\(0,1fr\)/, "phone notifications reserve a readable message column");
+assert.match(css, /\.notification-actions\{grid-column:2;grid-row:2;justify-content:flex-start;margin-left:0\}/, "phone notification actions sit below the message instead of squeezing it");
 
 console.log("Notification drawer checks passed: toggle, focus-safe dismissal, workspace/feed preservation, and responsive layout.");
