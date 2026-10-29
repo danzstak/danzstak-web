@@ -9,7 +9,7 @@ const read = file => fs.readFileSync(path.join(root, file), "utf8");
 const serviceWorker = read("service-worker.js");
 const pwa = read("assets/pwa.js");
 
-assert.match(serviceWorker, /danzstak-shell-v423/, "service-worker cache version must be current");
+assert.match(serviceWorker, /danzstak-shell-v424/, "service-worker cache version must be current");
 assert.match(serviceWorker, /async function refreshAppShell\(\)/, "service worker must refresh its app shell");
 assert.match(serviceWorker, /Promise\.allSettled\(SHELL\.map/, "one failed shell request must not cancel the refresh");
 assert.match(serviceWorker, /fetch\(path, \{ cache: "no-store" \}\)/, "shell refresh must bypass stale browser cache");
