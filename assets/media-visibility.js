@@ -16,7 +16,13 @@
   if(video.readyState>=1)setLayout();
   if(isFeedVideo(video)){
    video.preload='none';video.muted=true;video.autoplay=!dataSaverEnabled();video.loop=true;
-   video.addEventListener('pointerdown',()=>manualPlayback.add(video),{passive:true});
+   let pointerStartedPaused=false;
+   video.addEventListener('pointerdown',()=>{pointerStartedPaused=video.paused;manualPlayback.add(video);},{passive:true});
+   // Some mobile/WebView builds expose native controls but fail to complete the
+   // first play gesture while an IntersectionObserver is also changing preload.
+   // Preserve native pause behaviour, but finish an attempted play when the
+   // browser leaves the video paused after the click.
+   video.addEventListener('click',()=>{if(!pointerStartedPaused)return;requestAnimationFrame(()=>{if(video.paused)video.play().catch(()=>{});});});
   }else if(!video.autoplay)video.preload='none';
   else if(!video.getAttribute?.('preload'))video.preload='metadata';
   if(video.autoplay)return;
