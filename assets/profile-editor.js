@@ -675,13 +675,31 @@ function savedProfile() {
   catch { return {}; }
 }
 
+function renderProfileWebsite(value) {
+  const target = document.getElementById("profileWebsite");
+  const text = String(value || "").trim();
+  target.replaceChildren();
+  if (!text) { target.textContent = "Not added"; return; }
+  try {
+    const url = new URL(text);
+    if (!["http:", "https:"].includes(url.protocol)) throw new Error("Unsupported website scheme");
+    const link = document.createElement("a");
+    link.href = url.href;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = text;
+    link.setAttribute("aria-label", "Open " + text + " in a new tab");
+    target.appendChild(link);
+  } catch { target.textContent = text; }
+}
+
 function applyProfile(profile) {
   if (profile.name) document.getElementById("profileName").textContent = profile.name;
   if (profile.handle) handleElement.textContent = "@" + profile.handle;
   bioElement.textContent = profile.bio || "Add a short bio so people know more about you.";
   document.getElementById("profileLocation").textContent = profile.location || "Not added";
   document.getElementById("profileWork").textContent = profile.work || "Not added";
-  document.getElementById("profileWebsite").textContent = profile.website || "Not added";
+  renderProfileWebsite(profile.website);
   const name = document.getElementById("profileName").textContent.trim();
   const avatar = document.getElementById("profileInitial");
   if (profile.picture) { avatar.style.backgroundImage = `url("${profile.picture}")`; avatar.classList.add("has-photo"); avatar.textContent = ""; }
