@@ -979,14 +979,26 @@ function renderWorkspace(name) {
     loading.textContent = "Loading notifications…";
     list.appendChild(loading);
     workspace.appendChild(list);
-    const notificationController = new AbortController();
-    const notificationTimeout = setTimeout(() => notificationController.abort(), 10000);
-    Promise.allSettled([
-      fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
-      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
-      fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
-      fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store", signal: notificationController.signal })
-    ]).then(async results => {
+    async function loadNotificationSources() {
+      let results = [];
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const notificationController = new AbortController();
+        const notificationTimeout = setTimeout(() => notificationController.abort(), 10000);
+        try {
+          results = await Promise.allSettled([
+            fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
+            fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
+            fetch("https://api.danzstak.com/engagement-notifications", { credentials: "include", cache: "no-store", signal: notificationController.signal }),
+            fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store", signal: notificationController.signal })
+          ]);
+        } finally { clearTimeout(notificationTimeout); }
+        const socialReady = results[0]?.status === "fulfilled" && results[0].value.ok;
+        const engagementReady = results[2]?.status === "fulfilled" && results[2].value.ok;
+        if (socialReady || engagementReady) break;
+      }
+      return results;
+    }
+    loadNotificationSources().then(async results => {
         const response = results[0].status === "fulfilled" ? results[0].value : null;
         const directoryResponse = results[1].status === "fulfilled" ? results[1].value : null;
         const engagementResponse = results[2].status === "fulfilled" ? results[2].value : null;
@@ -1130,8 +1142,7 @@ function renderWorkspace(name) {
         retry.textContent = "Retry";
         retry.addEventListener("click", () => renderWorkspace("Notifications"));
         list.append(error, retry);
-      })
-      .finally(() => clearTimeout(notificationTimeout));
+      });
     return;
   }
 

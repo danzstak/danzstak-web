@@ -17,6 +17,9 @@ assert.match(source, /notificationWorkspacePlaceholder = featurePanel\.cloneNode
 assert.match(source, /if \(workspaceToRestore\) openWorkspaceRoute\(workspaceToRestore, false\)/, "closing notifications restores the exact workspace that was open");
 assert.match(source, /else notificationFeedView\.hidden = false/, "opening notifications preserves the feed when no workspace is active");
 assert.match(source, /location\.hash\.toLowerCase\(\) === "#notifications"[\s\S]*?history\.replaceState/, "closing a legacy notification route prevents refresh from reopening it");
+assert.match(source, /async function loadNotificationSources\(\)[\s\S]*?attempt < 2[\s\S]*?new AbortController\(\)[\s\S]*?Promise\.allSettled/, "notification loading retries one cold start with a fresh bounded request batch");
+assert.match(source, /if \(socialReady \|\| engagementReady\) break/, "a usable notification source prevents an unnecessary retry");
+assert.match(source, /loadNotificationSources\(\)\.then/, "the notification drawer uses the resilient source loader");
 assert.match(css, /\.notification-drawer\{position:fixed/, "the notification panel overlays rather than replaces the feed");
 assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-drawer\{top:58px;right:8px;left:8px/, "the drawer fits phone screens");
 
