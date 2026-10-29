@@ -17,6 +17,25 @@ const sendButton = messageForm?.querySelector('button[type="submit"]');
 const textButton = document.getElementById("startText");
 const conversationActions = [textButton, document.getElementById("startPhone"), document.getElementById("startVideo")].filter(Boolean);
 const callStatus = document.getElementById("callStatus");
+
+function createCallActionIcon(kind) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "call-action-icon");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  if (kind === "phone") {
+    const path = document.createElementNS(svg.namespaceURI, "path");
+    path.setAttribute("d", "M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1.5 1.5 0 0 1 1.5-.36c1.1.36 2.28.56 3.5.56a1.5 1.5 0 0 1 1.5 1.5v3.5a1.5 1.5 0 0 1-1.5 1.5A18.3 18.3 0 0 1 2.1 3.6a1.5 1.5 0 0 1 1.5-1.5h3.5a1.5 1.5 0 0 1 1.5 1.5c0 1.23.2 2.4.56 3.5.17.54.04 1.13-.36 1.53z");
+    svg.appendChild(path);
+  } else {
+    const body = document.createElementNS(svg.namespaceURI, "rect");
+    body.setAttribute("x", "2.5"); body.setAttribute("y", "5"); body.setAttribute("width", "13"); body.setAttribute("height", "14"); body.setAttribute("rx", "2.5");
+    const lens = document.createElementNS(svg.namespaceURI, "path");
+    lens.setAttribute("d", "m15.5 10 5-3v10l-5-3z");
+    svg.append(body, lens);
+  }
+  return svg;
+}
 const conversationUsers = document.getElementById("conversationUsers");
 const deleteChat = document.getElementById("deleteChat");
 const chatSearch = document.getElementById("chatSearch");
@@ -620,8 +639,8 @@ async function loadConversations() {
       copy.append(name, preview); button.append(avatarWrap, copy, meta);
       button.addEventListener("click", () => { conversation.unread = 0; markChatRead(conversation.contactEmail, conversation.updatedAt || new Date().toISOString()); openConversation(conversation); });
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
-      for (const [label, targetId] of [["📞", "startPhone"], ["📹", "startVideo"]]) {
-        const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.textContent = label; call.title = `${targetId === "startPhone" ? "Phone" : "Video"} call with ${publicName}`; call.setAttribute("aria-label", call.title);
+      for (const [kind, targetId] of [["phone", "startPhone"], ["video", "startVideo"]]) {
+        const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.appendChild(createCallActionIcon(kind)); call.title = `${targetId === "startPhone" ? "Phone" : "Video"} call with ${publicName}`; call.setAttribute("aria-label", call.title);
         call.disabled = conversation.canContact === false;
         call.addEventListener("click", () => { openConversation(conversation); document.getElementById(targetId)?.click(); });
         calls.appendChild(call);

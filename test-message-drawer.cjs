@@ -12,9 +12,11 @@ assert.match(feed, /event\.data\?\.type === "danzstak-call-mode"\) drawer\.class
 assert.match(feed, /event\.data\?\.type === "danzstak-chat-view"\) drawer\.classList\.toggle\("is-conversation", event\.data\.open === true\)/, "ordinary conversations stay in the compact conversation drawer");
 assert.match(feed, /\.message-drawer\.is-conversation:not\(\.is-video-call\) \.message-drawer-bar\{display:none\}/, "an open conversation must not waste space on a second Chats header");
 assert.match(feed, /\.message-drawer\.is-conversation:not\(\.is-video-call\) iframe\{height:100%\}/, "the conversation frame must reclaim the removed header space");
-assert.match(messages, /aria-label="Phone call">📞<\/button>/, "conversation header exposes a recognizable phone action");
-assert.match(messages, /aria-label="Video call">📹<\/button>/, "conversation header exposes a recognizable video action");
-assert.match(directMessages, /\[\["📞", "startPhone"\], \["📹", "startVideo"\]\]/, "chat list call actions use the same recognizable icons");
+assert.match(messages, /aria-label="Phone call"><svg class="call-action-icon"/, "conversation header exposes a consistent phone action");
+assert.match(messages, /aria-label="Video call"><svg class="call-action-icon"/, "conversation header exposes a consistent video action");
+assert.match(directMessages, /function createCallActionIcon\(kind\)/, "chat list call actions use the same consistent icons");
+assert.match(directMessages, /\[\["phone", "startPhone"\], \["video", "startVideo"\]\]/, "chat list call actions distinguish phone and video calls");
+assert.match(chatCss, /\.call-action-icon\{[^}]*stroke:currentColor/, "call icons inherit the surrounding interface color");
 assert.match(chatCss, /\.message-form\{grid-template-columns:minmax\(0,1fr\) auto!important\}/, "message text and send stay on one composer row");
 assert.match(chatCss, /\.conversation-header-actions\{grid-column:3;grid-row:1\/3;align-self:center\}/, "call actions stay aligned beside the contact name and presence");
 assert.match(chatCss, /\.embedded-messages>\.site-ownership\{display:none\}/, "the embedded chat hides the standalone legal footer");
