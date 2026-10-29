@@ -1185,9 +1185,14 @@ function renderWorkspace(name) {
         };
         const row = document.createElement("div");
         row.className = "friend-workspace-row";
-        const link = document.createElement("a");
+        const friendMemberId = String(person.memberId || "");
+        const hasProfileRoute = /^[a-f0-9-]{36}$/.test(friendMemberId);
+        const link = document.createElement(hasProfileRoute ? "a" : "div");
         link.className = "friend-card friend-card-large";
-        link.href = "profile.html?member=" + encodeURIComponent(person.memberId);
+        if (hasProfileRoute) {
+          link.href = "profile.html?member=" + encodeURIComponent(friendMemberId);
+          link.setAttribute("aria-label", "Open " + (person.name || "DanzStak member") + " profile");
+        }
         const avatar = person.picture ? document.createElement("img") : document.createElement("span");
         avatar.className = "friend-avatar";
         if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
