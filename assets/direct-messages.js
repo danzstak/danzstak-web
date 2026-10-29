@@ -582,6 +582,7 @@ let loadingConversations = false;
 async function loadConversations() {
   if (document.hidden || loadingConversations) return;
   loadingConversations = true;
+  conversationUsers?.setAttribute?.("aria-busy", "true");
   try {
     const results = await Promise.allSettled([
       directFetch("/conversations", { credentials: "include", cache: "no-store" }),
@@ -710,7 +711,10 @@ async function loadConversations() {
       conversationUsers.replaceChildren();
       const unavailable = document.createElement("p"); unavailable.className = "chat-note"; unavailable.textContent = "Contacts are temporarily unavailable. Retrying automatically…"; conversationUsers.appendChild(unavailable);
     }
-  } finally { loadingConversations = false; }
+  } finally {
+    loadingConversations = false;
+    conversationUsers?.setAttribute?.("aria-busy", "false");
+  }
 }
 
 chatSearch?.addEventListener("input", loadConversations);

@@ -28,7 +28,7 @@
     <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><div class="chat-heading-actions"><button id="enableRinging" type="button" class="chat-heading-button" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
     <label class="chat-search"><span aria-hidden="true">⌕</span><input id="chatSearch" type="search" placeholder="Search DanzStak messages" aria-label="Search messages"></label>
     <nav class="chat-filters" aria-label="Chat filters" role="tablist"><button type="button" class="active" data-chat-filter="all" role="tab" aria-selected="true">All</button><button type="button" data-chat-filter="unread" role="tab" aria-selected="false" tabindex="-1">Unread</button><button type="button" data-chat-filter="groups" role="tab" aria-selected="false" tabindex="-1">Tribes</button></nav>
-    <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers"><p class="chat-note">Loading saved chats…</p></div></section>
+    <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers" aria-busy="true"><p class="chat-note">Loading saved chats…</p></div></section>
     <input id="contactEmail" type="hidden">
     <div class="chat-compat-controls" hidden aria-hidden="true">
       <section class="online-panel" aria-labelledby="onlineTitle"><h2 id="onlineTitle">Friends and Tribe members</h2><div id="onlineUsers"><p class="chat-note">Loading contacts…</p></div></section>
@@ -69,7 +69,7 @@
 </main>
 <script src="assets/push-notifications.js?v=303" defer></script>
 <script src="assets/chat.js?v=415" defer></script>
-<script src="assets/direct-messages.js?v=415" defer></script>
+<script src="assets/direct-messages.js?v=432" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
 <script src="assets/logout.js?v=308" defer></script>
