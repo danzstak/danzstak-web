@@ -579,6 +579,13 @@ async function loadConversations() {
     const data = conversationResponse ? await conversationResponse.json() : { conversations: [] };
     const friendsData = friendsResponse ? await friendsResponse.json() : { friends: [] };
     const directoryData = directoryResponse ? await directoryResponse.json() : { users: [] };
+    if (typeof window !== "undefined" && window.parent !== window && directoryResponse) {
+      const users = (directoryData.users || []).map(member => ({
+        memberId: String(member.memberId || ""),
+        online: member.online === true
+      })).filter(member => /^[a-f0-9-]{36}$/.test(member.memberId));
+      window.parent.postMessage({ type: "danzstak-presence-update", users }, location.origin);
+    }
     const contacts = new Map();
     for (const conversation of data.conversations || []) {
       if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), conversation);

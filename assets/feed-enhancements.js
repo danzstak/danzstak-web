@@ -1187,6 +1187,7 @@ function renderWorkspace(name) {
         row.className = "friend-workspace-row";
         const friendMemberId = String(person.memberId || "");
         const hasProfileRoute = /^[a-f0-9-]{36}$/.test(friendMemberId);
+        if (hasProfileRoute) row.setAttribute("data-member-id", friendMemberId);
         const link = document.createElement(hasProfileRoute ? "a" : "div");
         link.className = "friend-card friend-card-large";
         if (hasProfileRoute) {
@@ -3221,6 +3222,24 @@ document.getElementById("feed").addEventListener("keydown", event => {
   saveComment(post, event.target);
 }, true);
 document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addSaveButton(post); addPostDeleteButton(post); } else if (post !== reelsRail) post.remove(); });
+
+window.addEventListener("message", event => {
+  if (event.origin !== location.origin || event.source === window || event.data?.type !== "danzstak-presence-update" || !Array.isArray(event.data.users)) return;
+  const states = new Map(event.data.users
+    .filter(member => /^[a-f0-9-]{36}$/.test(String(member?.memberId || "")))
+    .map(member => [String(member.memberId), member.online === true]));
+  document.querySelectorAll(".friend-workspace-row[data-member-id]").forEach(row => {
+    if (!states.has(row.dataset.memberId)) return;
+    const online = states.get(row.dataset.memberId);
+    const status = row.querySelector(".friend-details small");
+    const dot = row.querySelector(".friend-presence");
+    if (status) status.textContent = online ? "Online" : "Offline";
+    if (dot) {
+      dot.classList.toggle("online", online);
+      dot.title = online ? "Online" : "Offline";
+    }
+  });
+});
 function linkifyUserText(element) {
   if (element?.nodeType !== 1) return;
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
