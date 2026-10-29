@@ -1132,10 +1132,10 @@ function renderWorkspace(name) {
       if (!friendsResponse?.ok) throw new Error("Friends could not be loaded");
       const friends = (await friendsResponse.json()).friends || [];
       const presenceAvailable = directoryResponse?.ok === true;
-      const online = new Set(presenceAvailable
+      const directoryPeople = new Map(presenceAvailable
         ? ((await directoryResponse.json()).users || [])
-          .filter(user => user.online === true)
-          .map(user => String(user.email || "").toLowerCase())
+          .filter(user => user.email)
+          .map(user => [String(user.email).toLowerCase(), user])
         : []);
       list.replaceChildren();
       list.setAttribute("aria-busy", "false");
@@ -1146,21 +1146,28 @@ function renderWorkspace(name) {
         list.appendChild(empty);
       }
       for (const friend of friends) {
+        const directoryFriend = directoryPeople.get(String(friend.email || "").toLowerCase()) || {};
+        const person = {
+          ...directoryFriend,
+          ...friend,
+          name: friend.name || directoryFriend.name,
+          picture: friend.picture || directoryFriend.picture
+        };
         const row = document.createElement("div");
         row.className = "friend-workspace-row";
         const link = document.createElement("a");
         link.className = "friend-card friend-card-large";
-        link.href = "profile.html?member=" + encodeURIComponent(friend.memberId);
-        const avatar = friend.picture ? document.createElement("img") : document.createElement("span");
+        link.href = "profile.html?member=" + encodeURIComponent(person.memberId);
+        const avatar = person.picture ? document.createElement("img") : document.createElement("span");
         avatar.className = "friend-avatar";
-        if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
-        else { avatar.textContent = (friend.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+        if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+        else { avatar.textContent = (person.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
         const details = document.createElement("span");
         details.className = "friend-details";
         const displayName = document.createElement("strong");
-        displayName.textContent = friend.name || "DanzStak member";
+        displayName.textContent = person.name || "DanzStak member";
         const status = document.createElement("small");
-        const friendIsOnline = online.has(String(friend.email || "").toLowerCase());
+        const friendIsOnline = directoryFriend.online === true;
         status.textContent = friendIsOnline ? "Online" : presenceAvailable ? "Offline" : "Status unavailable";
         details.append(displayName, status);
         const presence = document.createElement("span");
@@ -1173,7 +1180,7 @@ function renderWorkspace(name) {
         message.className = "friend-message-action";
         message.textContent = "Message";
         message.setAttribute("aria-label", "Message " + displayName.textContent);
-        message.addEventListener("click", () => openMessageDrawer(friend.email));
+        message.addEventListener("click", () => openMessageDrawer(person.email));
         row.append(link, message);
         list.appendChild(row);
       }

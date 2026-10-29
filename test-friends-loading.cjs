@@ -22,6 +22,21 @@ setImmediate(async () => {
     assert.equal(nodes.find(item => item.tag === 'a').href, 'profile.html?member=44444444-4444-4444-4444-444444444444');
     assert.doesNotMatch(nodes.find(item => item.tag === 'a').href, /@|%40/);
     assert.ok(nodes.some(item => item.tag === 'small' && item.textContent === 'Status unavailable'), 'presence failure must not falsely label a friend offline');
+    const mergedNodes = [];
+    function mergedNode(tag) {
+      const item = { tag, children: [], append(...items) { this.children.push(...items); }, appendChild(child) { this.children.push(child); }, replaceChildren() { this.children = []; }, setAttribute() {}, addEventListener() {} };
+      mergedNodes.push(item); return item;
+    }
+    vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
+      document: { createElement: mergedNode }, workspace: mergedNode('workspace'), featureText: {}, createFriendRequestForm: () => mergedNode('form'), AbortController, setTimeout, clearTimeout,
+      fetch: async url => url.endsWith('/calls/directory')
+        ? { ok: true, json: async () => ({ users: [{ email: 'friend@example.com', name: 'Directory Friend', picture: 'https://cdn.example/friend.jpg', online: true }] }) }
+        : { ok: true, json: async () => ({ friends: [{ email: 'friend@example.com', memberId: '44444444-4444-4444-4444-444444444444', name: 'Existing Friend' }] }) }
+    });
+    await new Promise(resolve => setImmediate(resolve));
+    const mergedAvatar = mergedNodes.find(item => item.tag === 'img');
+    assert.equal(mergedAvatar?.src, 'https://cdn.example/friend.jpg', 'friend cards should use the directory picture when the friends response omits it');
+    assert.ok(mergedNodes.some(item => item.tag === 'small' && item.textContent === 'Online'), 'friend cards should use the matching directory presence');
     const timeoutNodes = [];
     let deadline;
     let retries = 0;
