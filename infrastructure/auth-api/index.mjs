@@ -106,6 +106,19 @@ async function queryAll(request, maximumItems = 5000) {
   return items.slice(0, maximumItems);
 }
 
+async function mapLimit(items, limit, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  async function run() {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await worker(items[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run));
+  return results;
+}
+
 async function runCleanup(tasks, attempts = 3) {
   let pending = tasks;
   for (let attempt = 0; pending.length && attempt < attempts; attempt += 1) {
@@ -2497,7 +2510,12 @@ export const handler = async event => {
     return errorResponse(404, "Not found");
 
   } catch (error) {
-    console.error("Authentication error:", error.name);
+    console.error("Authentication request failed", {
+      method: method || "UNKNOWN",
+      path: path || "UNKNOWN",
+      errorName: error?.name || "Error",
+      errorMessage: error?.message || "Unknown error"
+    });
 
     return errorResponse(
       500,

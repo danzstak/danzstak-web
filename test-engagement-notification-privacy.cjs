@@ -3,6 +3,7 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
 const source = readFileSync('infrastructure/auth-api/index.mjs', 'utf8');
+assert.match(source, /async function mapLimit\(items, limit, worker\)/, 'notification lookups require the bounded-concurrency helper');
 const start = source.indexOf('async function getEngagementNotifications(');
 const end = source.indexOf('async function clearEngagementNotifications(', start);
 assert.notEqual(start, -1);
