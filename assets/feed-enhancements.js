@@ -2317,6 +2317,7 @@ function addPostDeleteButton(post) {
         await handler(button);
         menu.hidden = true;
         toggle.setAttribute("aria-expanded", "false");
+        if (menu.contains(document.activeElement)) toggle.focus({ preventScroll: true });
       } catch (error) { alert(error.message || "This action could not be saved. Please try again."); }
       finally { button.disabled = false; }
     });
