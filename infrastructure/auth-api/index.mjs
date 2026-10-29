@@ -1953,10 +1953,13 @@ function publicPlace(place) {
 
 function isBookableClub(place, genre = "") {
   const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
-  const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|pavillon|kurpavillon|stadthalle|konzertmuschel|band shell|symphony|orchestra|opera house|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
-  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|orchestra|ensemble|workshop|clinic|promoter|promotion|productions?|entertainment company|event consultant|entertainment consultant|event planner|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|music store|record store|instrument store|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office)\b/;
+  const selectedGenre = genre.toLowerCase();
+  const classicalSearch = selectedGenre.includes("orchestra") || selectedGenre.includes("classical");
+  const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|pavillon|kurpavillon|stadthalle|konzertmuschel|band shell|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
+  const nonClassicalInstitution = /\b(symphony|orchestra|opera house)\b/;
+  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|workshop|clinic|promoter|promotion|productions?|entertainment company|event consultant|entertainment consultant|event planner|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|music store|record store|instrument store|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office)\b/;
   const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival|festspiele|festival office|jazzfest|walking tour|history tour|guided tour|tourist information|tourismus|ostseebad)\b/;
-  const selectedGenre = genre.toLowerCase(), wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
+  const wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
   const strongVenue = /\b(live music|live entertainment[- ]?music|music venue|rock club|punk club|metal club|night ?club|concert venue|concert hall)\b/.test(description);
   const electronicOnly = /\b(dj|electronic|techno|house|night ?club)\b/.test(description) && !/\b(live music|live entertainment[- ]?music|rock|punk|metal|hardcore|diy)\b/.test(description);
   const genreEvidence = selectedGenre.includes("punk")
@@ -1971,10 +1974,13 @@ function isBookableClub(place, genre = "") {
             ? /\b(hip[- ]?hop|rap)\b/.test(description)
             : selectedGenre.includes("jazz")
               ? /\bjazz\b/.test(description)
-              : true;
+              : classicalSearch
+                ? /\b(classical|orchestra|symphony|chamber|opera|concert hall|recital)\b/.test(description)
+                : true;
   const plausibleRoom = /\b(club|bar|pub|tavern|lounge|music hall|social hall|taproom|brewery|roadhouse)\b/.test(description);
   const musicSignal = /\b(music|concert|live|rock|punk|metal|electronic|dj|hip[- ]?hop|jazz)\b/.test(description);
-  return !wrongScale.test(description) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre && genreEvidence && (strongVenue || (plausibleRoom && musicSignal));
+  const classicalRoom = classicalSearch && /\b(symphony|orchestra|opera house|concert hall|recital hall|chamber music)\b/.test(description);
+  return !wrongScale.test(description) && (classicalSearch || !nonClassicalInstitution.test(description)) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre && genreEvidence && (strongVenue || classicalRoom || (plausibleRoom && musicSignal));
 }
 
 function venueSuitability(place, genre = "") {
@@ -2172,7 +2178,11 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     "live music pub",
     "music hall",
     "concert venue",
-    selectedGenre.includes("DJ") || selectedGenre.includes("Electronic") ? "nightclub DJ electronic music" : "rock punk metal music venue"
+    selectedGenre.includes("DJ") || selectedGenre.includes("Electronic")
+      ? "nightclub DJ electronic music"
+      : selectedGenre.includes("Orchestra") || selectedGenre.includes("Classical")
+        ? "classical concert hall orchestra venue"
+        : "rock punk metal music venue"
   ])];
   const searchResults = await Promise.allSettled([search("hotel"), ...venueQueries.map(search)]);
   const [hotelSearch, ...venueSearches] = searchResults;

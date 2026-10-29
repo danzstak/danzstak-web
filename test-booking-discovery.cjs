@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const source = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 const functionSource = source.slice(source.indexOf("async function tourCandidates("), source.indexOf("async function planTourRoute("));
 
-async function run(fail) {
+async function run(fail, genre = "DIY Punk") {
   const queries = [];
   const context = vm.createContext({
     SearchTextCommand: class { constructor(input) { this.input = input; } },
@@ -22,7 +22,7 @@ async function run(fail) {
     deduplicateVenues: places => [...new Map(places.map(place => [place.venueKey, place])).values()]
   });
   vm.runInContext(functionSource, context);
-  const result = await context.tourCandidates({ label: "Test city", position: [0, 0] }, "DIY Punk");
+  const result = await context.tourCandidates({ label: "Test city", position: [0, 0] }, genre);
   return { result, queries };
 }
 
@@ -31,6 +31,9 @@ async function run(fail) {
   assert.equal(result.venues.length, 60, "dense discovery must retain more than 24 clubs");
   assert.equal(result.hotels.length, 0, "hotel failure must not break venue discovery");
   for (const query of ["live music pub", "music hall", "concert venue"]) assert.ok(queries.includes(query));
+  const classical = await run(() => false, "Orchestra / Classical");
+  assert.ok(classical.queries.includes("classical concert hall orchestra venue"), "classical acts need a genre-appropriate discovery query");
+  assert.ok(classical.result.venues.length > 0);
   await assert.rejects(run(() => true), /lookup unavailable/, "total provider failure must remain visible");
   console.log("Booking discovery checks passed.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
