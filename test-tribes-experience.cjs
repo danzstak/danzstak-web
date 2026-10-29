@@ -38,6 +38,6 @@ for (const required of [
   "@media(max-width:700px){.groups-discovery-controls"
 ]) assert.ok(css.includes(required), `Responsive Tribes styling is missing: ${required}`);
 
-assert.match(feed, /feed-enhancements\.css\?v=373/);
+assert.match(feed, /feed-enhancements\.css\?v=374/);
 assert.match(feed, /feed-enhancements\.js\?v=374/);
 console.log("Tribes experience checks passed: discovery, detail, discussion, Elders, The Crew, and responsive layout.");

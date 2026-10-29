@@ -15,6 +15,6 @@ assert.match(source, /new MutationObserver/, "new and asynchronously loaded post
 assert.doesNotMatch(source.slice(source.indexOf("function linkifyUserText"), source.indexOf("function linkifyFeedContent")), /innerHTML/, "user text must never be converted with unsafe HTML parsing");
 assert.match(css, /\.user-content-link\{/, "clickable user links need a visible treatment");
 assert.match(feed, /feed-enhancements\.js\?v=374/, "the new link behavior must bypass old browser caches");
-assert.match(feed, /feed-enhancements\.css\?v=373/, "the link style must bypass old browser caches");
+assert.match(feed, /feed-enhancements\.css\?v=374/, "the link style must bypass old browser caches");
 
 console.log("Clickable-link checks passed: post/comment URLs are safe, visible, asynchronous, and cache-busted.");
