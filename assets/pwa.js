@@ -43,13 +43,19 @@ installButton.type = "button";
 installButton.className = "install-app-button";
 installButton.textContent = "Install DanzStak";
 installButton.hidden = true;
-document.body.appendChild(installButton);
 const updateButton = document.createElement("button");
 updateButton.type = "button";
 updateButton.className = "app-update-button";
 updateButton.textContent = "Update DanzStak";
 updateButton.hidden = true;
-document.body.appendChild(updateButton);
+const appPromptAnchor = document.querySelector("body > header");
+if (appPromptAnchor) {
+  appPromptAnchor.insertAdjacentElement("afterend", updateButton);
+  appPromptAnchor.insertAdjacentElement("afterend", installButton);
+} else {
+  document.body.prepend(updateButton);
+  document.body.prepend(installButton);
+}
 let waitingWorker = null;
 let safeUpdateTimer = null;
 

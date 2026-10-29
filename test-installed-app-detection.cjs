@@ -17,5 +17,10 @@ assert.match(pwa, /app\?\.id === "com\.danzstak\.app"/, "native-app detection mu
 assert.match(pwa, /detectInstalledDanzStak\(true\)/, "a browser install event must recheck and clear stale installed state");
 assert.match(pwa, /knownInstalled \|\| await detectInstalledDanzStak\(\)/, "manual install requests must also suppress prompts for an installed app");
 assert.match(pwa, /if \(!installed\) showInstallButtonTemporarily\(\)/, "automatic prompts must wait for installed-app detection");
+assert.match(pwa, /document\.querySelector\("body > header"\)/, "install prompts must be placed in page flow after the primary header");
+assert.match(pwa, /insertAdjacentElement\("afterend", installButton\)/, "the install action must not be appended over page controls");
+const softUi = fs.readFileSync("assets/soft-ui.css", "utf8");
+assert.match(softUi, /\.install-app-button,\.app-update-button\{position:relative/, "install and update prompts must not cover composer or message controls");
+assert.doesNotMatch(softUi, /\.install-app-button,\.app-update-button\{position:fixed/, "app prompts must not use a blocking fixed overlay");
 
 console.log("Installed-app checks passed: PWA, Android relationship, and prompt suppression are connected.");
