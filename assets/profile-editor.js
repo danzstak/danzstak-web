@@ -383,19 +383,20 @@ for (const name of ["Posts", "Featured", "Memories", "About", "Friends", "Media"
   tab.textContent = name;
   tab.dataset.profileTab = name;
   if (name === "Memories") tab.hidden = true;
-  tab.classList.toggle("active", name === "About");
+  tab.classList.toggle("active", name === "Posts");
   tab.setAttribute("role", "tab");
-  tab.setAttribute("aria-selected", String(name === "About"));
-  tab.tabIndex = name === "About" ? 0 : -1;
+  tab.setAttribute("aria-selected", String(name === "Posts"));
+  tab.tabIndex = name === "Posts" ? 0 : -1;
   tabs.appendChild(tab);
 }
 const tabMessage = document.createElement("div");
 tabMessage.className = "profile-tab-message";
-tabMessage.hidden = true;
+tabMessage.hidden = false;
 tabMessage.setAttribute("role", "tabpanel");
 tabMessage.setAttribute("aria-live", "polite");
 details.insertAdjacentElement("beforebegin", tabs);
 details.insertAdjacentElement("afterend", tabMessage);
+details.hidden = true;
 
 function profilePostCard(post) {
   const article = document.createElement("article");
@@ -783,6 +784,10 @@ function applyLoadedProfile(profile = {}) {
     fitCoverButton.classList.toggle("active", Boolean(profile.coverFit));
     fitCoverButton.textContent = profile.coverFit ? "Fill Cover Box" : "Fit Entire Cover";
     if (!viewingOtherProfile) revealProfileVideoControls();
+  }
+  if (tabs.dataset.initialized !== "true") {
+    tabs.dataset.initialized = "true";
+    tabs.querySelector('[data-profile-tab="Posts"]').click();
   }
 }
 window.addEventListener("danzstak:profile-loaded", event => applyLoadedProfile(event.detail || {}));
