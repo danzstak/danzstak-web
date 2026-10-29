@@ -189,3 +189,4 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
 /* Keep the first detail action below the sticky app header after opening a Tribe. */
 .tribe-detail{scroll-margin-top:90px}
 @media(max-width:700px){.tribe-detail{scroll-margin-top:122px}}
+.topbar .logo{text-decoration:none}
