@@ -348,8 +348,17 @@ function openConversation(conversation) {
   activeContactName = conversation.name || "Contact";
   if (deleteChat) deleteChat.disabled = false;
   conversationAvatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
-  if (conversation.picture) { conversationAvatar.style.backgroundImage = `url("${conversation.picture}")`; conversationAvatar.textContent = ""; }
-  else conversationAvatar.style.backgroundImage = "";
+  conversationAvatar.style.backgroundImage = "";
+  if (conversation.picture) {
+    const avatarContact = conversation.contactEmail;
+    const image = new Image();
+    image.addEventListener("load", () => {
+      if (contactInput.value !== avatarContact) return;
+      conversationAvatar.style.backgroundImage = `url("${conversation.picture}")`;
+      conversationAvatar.textContent = "";
+    }, { once: true });
+    image.src = conversation.picture;
+  }
   restoreChatDraft(contactInput.value);
   loadDirectMessages(true);
 }
@@ -614,7 +623,7 @@ async function loadConversations() {
         contactEmail: email,
         name: existing?.name || member.name || "DanzStak member",
         memberId: existing?.memberId || member.memberId || "",
-        picture: existing?.picture || member.picture || "",
+        picture: member.picture || existing?.picture || "",
         preview: existing?.preview || "Shared group member",
         updatedAt: existing?.updatedAt || "",
         sharedGroup: existing?.sharedGroup === true || member.sharedGroup === true,
@@ -636,7 +645,16 @@ async function loadConversations() {
       const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
       const avatarWrap = document.createElement("span"); avatarWrap.className = "conversation-avatar-wrap";
       const avatar = conversation.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "conversation-list-avatar";
-      if (conversation.picture) { avatar.src = conversation.picture; avatar.alt = ""; } else { avatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase(); }
+      if (conversation.picture) {
+        avatar.src = conversation.picture;
+        avatar.alt = "";
+        avatar.addEventListener("error", () => {
+          const fallback = document.createElement("span");
+          fallback.className = "conversation-list-avatar";
+          fallback.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
+          avatar.replaceWith(fallback);
+        }, { once: true });
+      } else avatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
       avatarWrap.appendChild(avatar);
       if (conversation.online === true) {
         const onlineDot = document.createElement("span"); onlineDot.className = "conversation-online-dot"; onlineDot.setAttribute("role", "img"); onlineDot.setAttribute("aria-label", "Online"); onlineDot.title = "Online"; avatarWrap.appendChild(onlineDot);
