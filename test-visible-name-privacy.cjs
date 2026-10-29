@@ -14,7 +14,7 @@ for (const [name, source] of Object.entries({ feed, enhancements, messages, prof
 }
 assert.match(feed, /const storyAuthor = story\.displayName \|\| "DanzStak member"/);
 assert.match(enhancements, /author\.textContent = comment\.authorName \|\| "DanzStak member"/);
-assert.match(messages, /name: friend\.name \|\| "DanzStak member"/);
+assert.match(messages, /name: friend\.name \|\| existing\.name \|\| "DanzStak member"/);
 assert.match(profile, /\|\| "DanzStak member"/);
 assert.match(editor, /friend\.name \|\| "DanzStak member"/);
 assert.doesNotMatch(authApi, /(?:authorName|actorName|name)[^;\n]{0,180}split\("@"\)\[0\]/, 'Auth API must not derive public display names from account email');

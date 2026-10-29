@@ -363,7 +363,7 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   closeConversationMenu();
   conversationHeader.hidden = true;
   conversationName.href = "profile.html";
-  conversationName.removeAttribute("aria-label");
+  conversationName.setAttribute("aria-label", "Open contact profile");
   conversationAvatar.href = "profile.html";
   conversationAvatar.setAttribute("aria-label", "Open contact profile");
   labelConversationHeaderActions();
