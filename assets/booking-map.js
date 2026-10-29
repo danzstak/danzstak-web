@@ -249,7 +249,11 @@
     const venues = (data.candidates || []).flatMap(market => market.venues || [])
       .filter(place => Array.isArray(place.position) && place.position.length === 2);
     for (const place of venues) {
-      L.marker([place.position[1], place.position[0]], { title: place.name }).bindPopup(popupFor(place)).addTo(venueMarkers);
+      const venueName = String(place.name || "Live music venue").trim();
+      L.marker([place.position[1], place.position[0]], {
+        title: venueName,
+        alt: `${venueName} venue marker`
+      }).bindPopup(popupFor(place)).addTo(venueMarkers);
     }
     const coordinates = venues.length
       ? venues.map(place => [place.position[1], place.position[0]])
