@@ -417,7 +417,7 @@ function profilePostCard(post) {
     media.className = "profile-post-media";
     media.src = post.mediaUrl;
     if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
-    else { media.controls = true; media.preload = "metadata"; }
+    else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
     article.appendChild(media);
   }
   if (/^[a-f0-9-]{36}$/.test(String(post.postId || ""))) {
