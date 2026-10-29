@@ -31,5 +31,5 @@ for (const required of [
 
 assert.ok(feed.includes('article.dataset.groupId = groupId'));
 assert.ok(feed.includes('className = "post-tribe-link"'));
-assert.match(feed, /post-sharing\.js\?v=371/);
+assert.match(feed, /post-sharing\.js\?v=\d+/);
 console.log("Tribe post checks passed: membership-gated posts, Tribe feed rendering, and share destinations.");

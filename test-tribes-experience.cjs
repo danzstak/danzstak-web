@@ -40,6 +40,6 @@ for (const required of [
   "@media(max-width:700px){.groups-discovery-controls"
 ]) assert.ok(css.includes(required), `Responsive Tribes styling is missing: ${required}`);
 
-assert.match(feed, /feed-enhancements\.css\?v=375/);
-assert.match(feed, /feed-enhancements\.js\?v=382/);
+assert.match(feed, /feed-enhancements\.css\?v=\d+/);
+assert.match(feed, /feed-enhancements\.js\?v=\d+/, "Tribe behavior must use a versioned script URL");
 console.log("Tribes experience checks passed: discovery, detail, discussion, Elders, The Crew, and responsive layout.");

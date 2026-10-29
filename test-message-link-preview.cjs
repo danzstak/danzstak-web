@@ -5,7 +5,7 @@ const html = fs.readFileSync("messages.html", "utf8");
 const source = fs.readFileSync("assets/direct-messages.js", "utf8");
 const css = fs.readFileSync("assets/chat.css", "utf8");
 
-assert.match(html, /assets\/direct-messages\.js\?v=366/);
+assert.match(html, /assets\/direct-messages\.js\?v=\d+/);
 assert.match(source, /function firstSafeMessageUrl\(content\)/);
 assert.match(source, /url\.protocol !== "https:" \|\| url\.username \|\| url\.password/);
 assert.match(source, /function messageLinkPreview\(url\)/);

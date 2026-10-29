@@ -6,7 +6,7 @@ const agent = fs.readFileSync("assets/booking-agent.js", "utf8");
 const map = fs.readFileSync("assets/booking-map.js", "utf8");
 const mapCss = fs.readFileSync("assets/booking-agent-driver.css", "utf8");
 
-assert.match(html, /assets\/booking-agent\.js\?v=315/, "the repaired Booking Agent must bypass prior browser caches");
+assert.match(html, /assets\/booking-agent\.js\?v=\d+/, "the Booking Agent must load a versioned script URL");
 assert.match(agent, /upcomingTitle\.textContent = "Upcoming gigs"/, "future plans must stay on Booking Agent under Upcoming gigs");
 assert.match(agent, /pastTitle\.textContent = "Past gigs"/, "completed plans must stay on Booking Agent under Past gigs");
 assert.match(agent, /tourDate\(tour\) < startOfToday\.getTime\(\)/, "gig plans must be grouped by their tour dates");

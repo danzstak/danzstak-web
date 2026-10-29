@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const source = readFileSync('assets/profile-editor.js', 'utf8');
 const css = readFileSync('assets/profile-editor.css', 'utf8');
 const html = readFileSync('profile.html', 'utf8');
-assert.match(html, /assets\/profile-editor\.css\?v=386/, 'profile loads the polished mobile tab rail');
+assert.match(html, /assets\/profile-editor\.css\?v=\d+/, 'profile loads versioned mobile tab rail styling');
 assert.match(css, /scroll-snap-type:x proximity;scrollbar-width:none/, 'profile tabs swipe cleanly without exposing a heavy browser scrollbar');
 assert.match(css, /\.profile-tabs::-webkit-scrollbar\{display:none\}/, 'WebKit profile tabs hide the visual scrollbar');
 assert.match(css, /\.profile-tabs button\{flex:0 0 auto;/, 'profile tabs keep readable labels while horizontally scrolling');

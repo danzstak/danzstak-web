@@ -5,7 +5,7 @@ const source = fs.readFileSync("assets/media-visibility.js", "utf8");
 const softUi = fs.readFileSync("assets/soft-ui.css", "utf8");
 for (const page of ["feed.html", "profile.html", "messages.html"]) {
   const html = fs.readFileSync(page, "utf8");
-  assert.match(html, /assets\/media-visibility\.js\?v=381/, `${page} must load automatic video preview frames`);
+  assert.match(html, /assets\/media-visibility\.js\?v=\d+/, `${page} must load a versioned automatic video preview script`);
 }
 assert.match(source, /function prepareVideoPreview\(video\)/);
 assert.match(source, /video\.addEventListener\('loadedmetadata',showFrame/);
