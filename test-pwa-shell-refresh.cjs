@@ -9,7 +9,7 @@ const read = file => fs.readFileSync(path.join(root, file), "utf8");
 const serviceWorker = read("service-worker.js");
 const pwa = read("assets/pwa.js");
 
-assert.match(serviceWorker, /danzstak-shell-v426/, "service-worker cache version must be current");
+assert.match(serviceWorker, /danzstak-shell-v427/, "service-worker cache version must be current");
 assert.match(serviceWorker, /async function refreshAppShell\(\)/, "service worker must refresh its app shell");
 assert.match(serviceWorker, /Promise\.allSettled\(SHELL\.map/, "one failed shell request must not cancel the refresh");
 assert.match(serviceWorker, /fetch\(path, \{ cache: "no-store" \}\)/, "shell refresh must bypass stale browser cache");
@@ -29,7 +29,7 @@ for (const [file, expected] of [
   ["feed.html", "assets/post-sharing.js?v=416"],
   ["feed.html", "assets/people-search.js?v=416"],
   ["messages.html", "assets/chat.js?v=415"],
-  ["messages.html", "assets/chat.css?v=422"],
+  ["messages.html", "assets/chat.css?v=427"],
   ["messages.html", "assets/direct-messages.js?v=415"],
   ["profile.html", "assets/profile-sharing.js?v=415"],
   ["profile.html", "assets/post-sharing.js?v=416"],
