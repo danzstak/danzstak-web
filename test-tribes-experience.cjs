@@ -19,6 +19,8 @@ for (const required of [
   '["crew", "The Crew"]',
   '"Invite as Elder"',
   '"Return to Crew"',
+  '"Open " + (member.name || "member") + " profile"',
+  'profile.html?member=" + encodeURIComponent(memberId)',
   'renderTribePosts(group, feed)',
   'addMediaPicker("Photo"',
   'addMediaPicker("Video"',
@@ -35,6 +37,7 @@ for (const required of [
   ".tribe-hero{",
   ".tribe-nav{",
   ".tribe-crew-member{",
+  ".tribe-crew-avatar[href]",
   ".tribe-detail{scroll-margin-top:90px}",
   "@media(max-width:700px){.tribe-detail{scroll-margin-top:122px}",
   "@media(max-width:700px){.groups-discovery-controls"

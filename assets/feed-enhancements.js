@@ -605,11 +605,13 @@ function renderWorkspace(name) {
         heading.append(title, count); panel.appendChild(heading);
         for (const member of data.members) {
           const row = document.createElement("div"); row.className = "tribe-crew-member";
-          const avatar = member.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "tribe-crew-avatar";
-          if (member.picture) { avatar.src = member.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+          const memberId = String(member.memberId || ""), validMemberId = /^[a-f0-9-]{36}$/.test(memberId), profileUrl = member.isMe ? "profile.html" : validMemberId ? "profile.html?member=" + encodeURIComponent(memberId) : "";
+          const avatar = document.createElement(profileUrl ? "a" : "span"); avatar.className = "tribe-crew-avatar";
+          if (profileUrl) { avatar.href = profileUrl; avatar.setAttribute("aria-label", "Open " + (member.name || "member") + " profile"); }
+          if (member.picture) { const image = document.createElement("img"); image.src = member.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.appendChild(image); }
           else avatar.textContent = String(member.name || "D").charAt(0).toUpperCase();
           const identity = document.createElement("div");
-          const name = document.createElement("strong"); name.textContent = member.name || "DanzStak member";
+          const name = document.createElement(profileUrl ? "a" : "strong"); name.textContent = member.name || "DanzStak member"; name.className = "tribe-crew-name"; if (profileUrl) name.href = profileUrl;
           const role = document.createElement("span"); role.textContent = member.role === "elder" ? "Elder" : "The Crew";
           identity.append(name, role); row.append(avatar, identity);
           if (data.canManageElders && !member.isMe) {
