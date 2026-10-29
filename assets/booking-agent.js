@@ -854,6 +854,11 @@
     link.className = "navigation-link";
     return link;
   }
+  function listingCheckedText(value) {
+    const checked = new Date(value || "");
+    if (Number.isNaN(checked.getTime())) return "";
+    return `Public listing checked ${new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(checked)}`;
+  }
   function placeCard(place, placeType = "place") {
     const card = document.createElement("article"),
       heading = document.createElement("h4"),
@@ -872,6 +877,7 @@
     evidence.textContent = [
       (place.categories || []).slice(0, 4).join(" · "),
       place.activityEvidence,
+      listingCheckedText(place.discoveredAt),
     ]
       .filter(Boolean)
       .join(" — ");

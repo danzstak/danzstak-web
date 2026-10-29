@@ -18,6 +18,10 @@
   const artistInputs = { name: "pitchArtist", genre: "pitchGenre", hometown: "pitchHometown", epk: "pitchEpk", pitch: "pitchSummary" };
   const artist = () => Object.fromEntries(Object.entries(artistInputs).map(([key, id]) => [key, document.getElementById(id).value.trim()]));
   const identity = v => String(v.venueKey || `${v.name || ""}|${v.address || ""}`);
+  const listingCheckedText = value => {
+    const checked = new Date(value || "");
+    return Number.isNaN(checked.getTime()) ? "" : `Public listing checked ${new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(checked)}`;
+  };
   try {
     const parsed = JSON.parse(sessionStorage.getItem(storageKey) || "[]");
     if (Array.isArray(parsed)) venues = parsed.slice(0, 100);
@@ -119,7 +123,8 @@
     evidence.className = "venue-evidence";
     evidence.textContent = [
       Array.isArray(venue.categories) ? venue.categories.slice(0, 4).join(" · ") : "",
-      String(venue.activityEvidence || "")
+      String(venue.activityEvidence || ""),
+      listingCheckedText(venue.discoveredAt)
     ].filter(Boolean).join(" — ");
     links.className = "venue-links";
     if (typeof venue.imageUrl === "string" && /^https:\/\//.test(venue.imageUrl)) {

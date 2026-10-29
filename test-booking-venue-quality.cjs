@@ -108,6 +108,9 @@ assert.match(mapClient, /Search different clubs/);
 assert.match(mapClient, /Source: \$\{place\.sourceName\}/);
 assert.match(mapClient, /place\.activityEvidence/);
 assert.match(client, /place\.activityEvidence/);
+assert.match(client, /listingCheckedText\(place\.discoveredAt\)/, "search cards must say when a public listing was checked");
+assert.match(mapClient, /place\.discoveredAt/, "map pins must say when a public listing was checked");
+assert.match(api, /discoveredAt: timestamp\(v\.discoveredAt\)/, "saved booking workspaces must preserve a validated listing-check timestamp");
 assert.match(client, /Source: \$\{place\.sourceName\}/);
 
 console.log("Booking venue checks passed: positive music-room evidence is required and repeat searches request a different batch.");

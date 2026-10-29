@@ -2318,11 +2318,12 @@ async function bookingWorkspace(event, method) {
   const https = value => /^https:\/\//i.test(text(value, 600)) ? text(value, 600) : "";
   const list = (value, clean) => Array.isArray(value) ? value.slice(0, 8).map(clean).filter(Boolean) : [];
   const date = value => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value ? value : "";
+  const timestamp = value => typeof value === "string" && /^\d{4}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value) && !Number.isNaN(Date.parse(value)) ? new Date(value).toISOString() : "";
   const stages = new Set(["Research", "Ready to pitch", "Contacted", "In conversation", "Hold", "Confirmed", "Declined"]);
   const venues = data.venues.map(v => {
     if (!v || typeof v !== "object" || !text(v.name)) return null;
     const b = v.booking || {};
-    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), activityEvidence: text(v.activityEvidence, 1000), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { stage: stages.has(b.stage) ? b.stage : "Research", showDate: date(b.showDate), followUp: date(b.followUp), deal: text(b.deal, 2000), notes: text(b.notes, 2000) } };
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { stage: stages.has(b.stage) ? b.stage : "Research", showDate: date(b.showDate), followUp: date(b.followUp), deal: text(b.deal, 2000), notes: text(b.notes, 2000) } };
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
   const a = data.artist || {};

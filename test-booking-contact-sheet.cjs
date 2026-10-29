@@ -14,6 +14,7 @@ assert.match(client, /window\.confirm\("Clear every selected club/, "clearing ev
 assert.match(client, /window\.print\(\)/, "the contact sheet must be printable");
 assert.match(client, /text\/csv;charset=utf-8/, "the contact sheet must export CSV");
 assert.match(client, /venue\.activityEvidence/, "current-activity evidence must remain visible");
+assert.match(client, /listingCheckedText\(venue\.discoveredAt\)/, "the discovery date must remain visible on the saved contact sheet");
 assert.match(client, /venue\.sourceUrl/, "source attribution must remain visible");
 assert.match(client, /\^https:\\\/\\\//, "only HTTPS venue and source links may open externally");
 assert.match(styles, /@media print/, "the printed contact sheet needs a dedicated layout");

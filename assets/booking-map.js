@@ -246,7 +246,9 @@
     address.textContent = place.address || "Address unavailable";
     box.append(name, address);
     evidence.className = "venue-evidence";
-    evidence.textContent = [place.categories?.slice(0, 3).join(" · "), place.activityEvidence].filter(Boolean).join(" — ");
+    const checked = new Date(place.discoveredAt || "");
+    const checkedText = Number.isNaN(checked.getTime()) ? "" : `Public listing checked ${new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(checked)}`;
+    evidence.textContent = [place.categories?.slice(0, 3).join(" · "), place.activityEvidence, checkedText].filter(Boolean).join(" — ");
     if (evidence.textContent) box.append(evidence);
     for (const website of place.websites || []) {
       const link = document.createElement("a");
