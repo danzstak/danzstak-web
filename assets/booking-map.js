@@ -274,9 +274,23 @@
         nextOptions = { ...options, body: JSON.stringify(body) };
       } catch {}
     }
-    const response = await nativeFetch(resource, nextOptions);
-    if (url.includes("/tour/route") && response.ok) response.clone().json().then(showResults).catch(() => {});
-    return response;
+    try {
+      const response = await nativeFetch(resource, nextOptions);
+      if (url.includes("/tour/route")) {
+        if (response.ok) response.clone().json().then(showResults).catch(() => {
+          status.textContent = "The club results could not be displayed. Try the search again.";
+        });
+        else response.clone().json().catch(() => ({})).then(data => {
+          status.textContent = data.error || "The club search did not complete. Move the map or change the search and try again.";
+        });
+      }
+      return response;
+    } catch (error) {
+      if (url.includes("/tour/route")) status.textContent = error?.name === "AbortError"
+        ? "The club search took too long. Zoom closer or draw a shorter route and try again."
+        : "The club search could not connect. Check the connection and try again.";
+      throw error;
+    }
   };
 
   let resizeFrame = 0;

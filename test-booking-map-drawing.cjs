@@ -20,5 +20,7 @@ assert.match(api, /searchPath\.some\(point => point\.length !== 2/, "malformed r
 assert.match(script, /if \(routePoints\.length < 2\)/, "a route cannot finish without a line");
 assert.match(script, /event\.key !== "Escape" \|\| !drawingRoute/, "keyboard users can cancel drawing");
 assert.match(css, /\.map-draw-control\[aria-pressed="true"\]/, "active drawing state must be visible");
+assert.match(script, /The club search took too long\. Zoom closer or draw a shorter route and try again\./, "a timed-out map search must leave the searching state with useful recovery guidance");
+assert.match(script, /The club search could not connect\. Check the connection and try again\./, "a failed map request must report a connection problem");
 
 console.log("Booking map drawing checks passed: one pencil toggles drawing, creates a route line, finishes with a checkmark, and supports cancellation.");
