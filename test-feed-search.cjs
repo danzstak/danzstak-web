@@ -27,7 +27,7 @@ assert.equal(posts[2].hidden, false);
 assert.equal(posts[3].hidden, true, 'refreshed posts must respect active search');
 assert.match(feedback.textContent, /2 matching/);
 search.value = 'no such result'; search.input();
-assert.match(feedback.textContent, /No matching feed posts/);
+assert.match(feedback.textContent, /No matching posts in Your Mix/);
 search.value = 'like'; search.input();
 assert.equal(posts.every(item => item.hidden), true, 'action button text does not count as content');
 search.value = ''; search.input();

@@ -1251,13 +1251,13 @@ function renderWorkspace(name) {
   }
 
   if (["Photos", "Videos"].includes(name)) {
-    featureText.textContent = name === "Photos" ? "Photos shared in your DanzStak feed." : "Videos shared in your DanzStak feed.";
+    featureText.textContent = name === "Photos" ? "Photos shared in Your Mix." : "Videos shared in Your Mix.";
     const wantedTag = name === "Photos" ? "IMG" : "VIDEO";
     const media = [...document.querySelectorAll("#feed .post .post-media")].filter(item => item.tagName === wantedTag);
     if (!media.length) {
       const message = document.createElement("p");
       message.className = "muted";
-      message.textContent = `No ${name.toLowerCase()} are available in your feed yet.`;
+      message.textContent = `No ${name.toLowerCase()} are available in Your Mix yet.`;
       workspace.appendChild(message);
       return;
     }
@@ -1285,7 +1285,7 @@ function renderWorkspace(name) {
   }
 
   if (name === "Events") {
-    featureText.textContent = "Create event announcements and find events shared in your feed.";
+    featureText.textContent = "Create event announcements and find events shared in Your Mix.";
     workspace.classList.add("events-workspace");
     const title = field("Event name", "text", "Show or performance");
     const date = field("Date", "date", "");
@@ -1763,7 +1763,7 @@ function filterFeedPosts() {
   });
   searchFeedback.hidden = !query;
   searchFeedback.textContent = query
-    ? matchingPosts ? `${matchingPosts} matching feed result${matchingPosts === 1 ? "" : "s"}.` : "No matching feed posts. Try another search or clear the search box."
+    ? matchingPosts ? `${matchingPosts} matching result${matchingPosts === 1 ? "" : "s"} in Your Mix.` : "No matching posts in Your Mix. Try another search or clear the search box."
     : "";
 }
 search.addEventListener("input", filterFeedPosts);
@@ -2316,7 +2316,7 @@ function addPostDeleteButton(post) {
     return button;
   }
 
-  const pinOption = option("Pin post", "Keep this post at the top of your feed.", async button => {
+  const pinOption = option("Pin post", "Keep this post at the top of Your Mix.", async button => {
     const pinned = post.dataset.pinned === "true";
     await updatePostPreference(post, { pinned: !pinned });
     post.dataset.pinned = String(!pinned);
@@ -2454,10 +2454,10 @@ function addPostDeleteButton(post) {
       button.disabled = false;
     });
     option("Move to archive", "Hide this post from your account.", () => hidePostForAccount(post));
-  option("Delete post", "Delete your post or remove another user's post from your feed.", async () => {
+  option("Delete post", "Delete your post or remove another user's post from Your Mix.", async () => {
     const postId = post.dataset.postId;
     if (post.dataset.isOwner !== "true") {
-      if (confirm("You did not post this. Do you want to delete it from your feed?")) await removePostFromThisFeed();
+      if (confirm("You did not post this. Do you want to remove it from Your Mix?")) await removePostFromThisFeed();
       return;
     }
     if (!postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
@@ -2470,7 +2470,7 @@ function addPostDeleteButton(post) {
         const response = await postActionFetch("/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
         if (response.status === 403) {
           post.dataset.isOwner = "false";
-          if (confirm("You did not post this. Do you want to delete it from your feed?")) await removePostFromThisFeed();
+          if (confirm("You did not post this. Do you want to remove it from Your Mix?")) await removePostFromThisFeed();
           return;
         }
         if (!response.ok) throw new Error();
@@ -2920,7 +2920,7 @@ let cloudReels = null;
 let internalReels = [];
 const reelsRail = document.createElement("section");
 reelsRail.className = "reels-rail post";
-reelsRail.setAttribute("aria-label", "External video reels");
+reelsRail.setAttribute("aria-label", "The Roll");
 const reelsHeading = document.createElement("div");
 reelsHeading.className = "reels-heading";
 const reelsTitle = document.createElement("h3");

@@ -30,18 +30,18 @@
     const comment = document.createElement('textarea'); comment.maxLength = 5000; comment.placeholder = 'Add your own comment (optional)'; comment.setAttribute('aria-label', 'Your comment on the shared post');
     const destinationLabel = document.createElement('label'); destinationLabel.textContent = 'Share to';
     const destination = document.createElement('select'); destination.setAttribute('aria-label', 'Share destination');
-    const ownFeed = document.createElement('option'); ownFeed.value = ''; ownFeed.textContent = 'Your DanzStak feed'; destination.appendChild(ownFeed);
+    const ownFeed = document.createElement('option'); ownFeed.value = ''; ownFeed.textContent = 'Your Mix'; destination.appendChild(ownFeed);
     destinationLabel.appendChild(destination);
-    const audienceLabel = document.createElement('label'); audienceLabel.textContent = 'Who can see this on your feed';
+    const audienceLabel = document.createElement('label'); audienceLabel.textContent = 'Who can see this in Your Mix';
     const audience = document.createElement('select'); audience.setAttribute('aria-label', 'Shared post audience');
     for (const [value,label] of [['friends','Friends'],['public','Public'],['private','Only me']]) { const option = document.createElement('option'); option.value = value; option.textContent = label; audience.appendChild(option); }
     audienceLabel.appendChild(audience);
     const feedback = document.createElement('p'); feedback.setAttribute('role', 'status');
-    const publish = document.createElement('button'); publish.type = 'button'; publish.className = 'primary'; publish.textContent = 'Share to your DanzStak feed';
+    const publish = document.createElement('button'); publish.type = 'button'; publish.className = 'primary'; publish.textContent = 'Share to Your Mix';
     destination.addEventListener('change', () => {
       const tribe = destination.selectedOptions[0]?.dataset.tribeName || '';
       audienceLabel.hidden = Boolean(destination.value);
-      publish.textContent = tribe ? `Share to ${tribe}` : 'Share to your DanzStak feed';
+      publish.textContent = tribe ? `Share to ${tribe}` : 'Share to Your Mix';
     });
     publish.addEventListener('click', async () => {
       publish.disabled = true; comment.disabled = true; audience.disabled = true; destination.disabled = true; feedback.textContent = 'Sharing…';
@@ -49,7 +49,7 @@
         const tribe = destination.selectedOptions[0]?.dataset.tribeName || '';
         const response = await shareFetch('/secure-posts', {method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:comment.value.trim(),sharedPostId:post.dataset.postId,...(destination.value ? {groupId:destination.value} : {audience:audience.value})})});
         const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'The post could not be shared.');
-        feedback.textContent = tribe ? `Shared to ${tribe}.` : 'Shared to your feed.'; if (typeof window.loadPosts === 'function') await window.loadPosts();
+        feedback.textContent = tribe ? `Shared to ${tribe}.` : 'Shared to Your Mix.'; if (typeof window.loadPosts === 'function') await window.loadPosts();
       } catch (error) { feedback.textContent = error.message; publish.disabled = false; comment.disabled = false; audience.disabled = false; destination.disabled = false; }
     });
     const url = new URL('feed.html', location.href); url.search = ''; url.hash = 'post-' + post.dataset.postId;
@@ -63,8 +63,8 @@
     try {
       const tribes = await joinedTribes();
       for (const tribe of tribes) { const option = document.createElement('option'); option.value = tribe.id; option.textContent = tribe.name; option.dataset.tribeName = tribe.name; destination.appendChild(option); }
-      feedback.textContent = tribes.length ? 'Choose your feed or one of your Tribes.' : 'Your joined Tribes will appear here.';
-    } catch { feedback.textContent = 'Your feed is ready. Tribes could not be loaded right now.'; }
+      feedback.textContent = tribes.length ? 'Choose Your Mix or one of your Tribes.' : 'Your joined Tribes will appear here.';
+    } catch { feedback.textContent = 'Your Mix is ready. Tribes could not be loaded right now.'; }
   }
   window.danzstakSharePost = post => { void openShareDialog(post); };
   window.danzstakRenderSharedPost = (article, post) => {

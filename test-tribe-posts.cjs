@@ -24,7 +24,7 @@ for (const required of [
 
 for (const required of [
   "joinedTribes()",
-  "Your DanzStak feed",
+  "Your Mix",
   "destination.value ? {groupId:destination.value}",
   "Share to ${tribe}"
 ]) assert.ok(sharing.includes(required), `Share-to-Tribe flow missing: ${required}`);

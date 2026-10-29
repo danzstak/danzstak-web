@@ -59,7 +59,7 @@
         const name = document.createElement('strong'); name.textContent = person.name;
         link.appendChild(name); list.appendChild(link);
       }
-      status.textContent = matches.length ? `${matches.length} matching user${matches.length === 1 ? '' : 's'}.` : failed ? 'User directory unavailable. Showing matching post authors when available.' : 'No matching users in your feed or contacts.';
+      status.textContent = matches.length ? `${matches.length} matching user${matches.length === 1 ? '' : 's'}.` : failed ? 'User directory unavailable. Showing matching post authors when available.' : 'No matching users in Your Mix or contacts.';
     }, 250);
   }
   input.addEventListener('input', searchPeople);

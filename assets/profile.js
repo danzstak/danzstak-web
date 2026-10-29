@@ -87,7 +87,7 @@ async function loadProfile() {
     window.danzstakCurrentProfile = profile;
     window.dispatchEvent(new CustomEvent("danzstak:profile-loaded", { detail: profile }));
   } catch (error) {
-    status.textContent = error.message || "Unable to load your profile. Please return to the feed and try again.";
+    status.textContent = error.message || "Unable to load your profile. Please return to Your Mix and try again.";
   }
 }
 
