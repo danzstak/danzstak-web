@@ -2988,7 +2988,7 @@ async function loadInternalReels(posts = []) {
       const response = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: "video" }) }).catch(() => null);
       if (response?.ok) mediaUrl = (await response.json().catch(() => ({}))).mediaUrl || "";
     }
-    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", authorName: post.authorName || "DanzStak member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
+    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", memberId: post.userId || "", authorName: post.authorName || "DanzStak member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
   }));
   if (version !== internalReelsVersion) return;
   internalReels = resolved.filter(Boolean);
@@ -3095,6 +3095,17 @@ function renderPlayableReels() {
     const source = document.createElement("small");
     source.textContent = reel.internal ? reel.content : reelUrlValue.hostname;
     details.append(platform, source);
+    const reelMemberId = String(reel.memberId || "");
+    const reelAuthorName = String(reel.authorName || reel.displayName || "").trim();
+    if (reelAuthorName && (reel.isOwner === true || /^[a-f0-9-]{36}$/.test(reelMemberId))) {
+      const author = document.createElement("a");
+      author.className = "reel-author-link";
+      author.href = reel.isOwner === true ? "profile.html" : "profile.html?member=" + encodeURIComponent(reelMemberId);
+      author.textContent = reel.internal ? "Open " + reelAuthorName + " profile" : "Shared by " + reelAuthorName;
+      author.setAttribute("aria-label", "Open " + reelAuthorName + " profile");
+      details.insertBefore(author, source);
+      if (reel.internal) platform.hidden = true;
+    }
     if (reel.internal) {
       const open = document.createElement("a"); open.href = "#post-" + encodeURIComponent(reel.postId); open.textContent = "View post";
       open.addEventListener("click", event => {
