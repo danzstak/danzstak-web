@@ -58,6 +58,7 @@ body[data-call-mode="video"] .video-grid{min-height:clamp(320px,58vh,680px)}
 @media(max-width:560px){body:not(.embedded-messages) #minimizeConversation{display:none}}
 @media(min-width:761px){.chat-shell{height:calc(100dvh - 100px);min-height:520px}.chat-sidebar,.conversation{min-height:0}.chat-sidebar{overflow:auto}}
 @media(min-width:761px){body:has(>.install-app-button:not([hidden])) .chat-shell,body:has(>.app-update-button:not([hidden])) .chat-shell{height:calc(100dvh - 148px);min-height:min(520px,calc(100dvh - 148px))}}
+@media(min-width:761px){body.messages-page{height:100dvh;overflow:hidden}.messages-page>.site-ownership{display:none}}
 
 #conversationName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conversation-header-actions{flex:0 0 auto}.dark-mode .chat-filters button.active{background:#253c60!important;color:#dceaff!important}.dark-mode .emoji-control>button{background:#303c4f;color:#f5f7fb}body.embedded-messages{padding-bottom:0!important}
 
