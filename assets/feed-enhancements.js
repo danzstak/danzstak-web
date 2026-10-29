@@ -110,11 +110,15 @@ function writeSections(value) {
 function openTextActionDialog({ title, description, label, placeholder = "", submitLabel, maxLength = 500 }) {
   document.querySelector(".text-action-dialog")?.close();
   return new Promise(resolve => {
+    const opener = document.activeElement;
     const dialog = document.createElement("dialog");
     dialog.className = "post-report-dialog text-action-dialog";
+    const titleId = "textActionDialogTitle-" + crypto.randomUUID();
+    dialog.setAttribute("aria-labelledby", titleId);
     const form = document.createElement("form");
     form.method = "dialog";
     const heading = document.createElement("h2");
+    heading.id = titleId;
     heading.textContent = title;
     const copy = document.createElement("p");
     copy.textContent = description;
@@ -151,7 +155,7 @@ function openTextActionDialog({ title, description, label, placeholder = "", sub
       if (!value) { status.textContent = "Enter a message before continuing."; textarea.focus(); return; }
       finish(value);
     });
-    dialog.addEventListener("close", () => { if (!settled) { settled = true; resolve(null); } dialog.remove(); }, { once: true });
+    dialog.addEventListener("close", () => { if (!settled) { settled = true; resolve(null); } dialog.remove(); if (opener?.isConnected) opener.focus({ preventScroll: true }); }, { once: true });
     dialog.showModal();
     textarea.focus();
   });
@@ -2184,13 +2188,15 @@ if (!isLocalHost()) postActionFetch("/settings/posts", { credentials: "include",
   })
   .catch(() => {});
 
-function openPostReportDialog(post) {
+function openPostReportDialog(post, opener) {
   document.querySelector(".post-report-dialog")?.remove();
   const dialog = document.createElement("dialog");
   dialog.className = "post-report-dialog";
+  const titleId = "postReportTitle-" + crypto.randomUUID();
+  dialog.setAttribute("aria-labelledby", titleId);
   dialog.innerHTML = `
     <form method="dialog">
-      <h2>Report post</h2>
+      <h2 id="${titleId}">Report post</h2>
       <p>Tell DanzStak about a copyright or safety concern. Reports are saved for moderation review.</p>
       <label>Reason
         <select name="reason" required>
@@ -2209,7 +2215,7 @@ function openPostReportDialog(post) {
       <div class="post-report-actions"><button value="cancel">Cancel</button><button type="button" class="primary post-report-submit">Submit report</button></div>
     </form>`;
   document.body.appendChild(dialog);
-  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.addEventListener("close", () => { dialog.remove(); if (opener?.isConnected) opener.focus({ preventScroll: true }); }, { once: true });
   dialog.querySelector(".post-report-submit").addEventListener("click", async event => {
     const button = event.currentTarget, status = dialog.querySelector(".post-report-status");
     button.disabled = true;
@@ -2221,13 +2227,15 @@ function openPostReportDialog(post) {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "The report could not be submitted.");
-      dialog.querySelector("form").innerHTML = `<h2>Report submitted</h2><p>Thank you. DanzStak saved your report for moderation review.</p><div class="post-report-actions"><button value="done" class="primary">Done</button></div>`;
+      dialog.querySelector("form").innerHTML = `<h2 id="${titleId}">Report submitted</h2><p>Thank you. DanzStak saved your report for moderation review.</p><div class="post-report-actions"><button value="done" class="primary">Done</button></div>`;
+      dialog.querySelector("button[value=done]").focus();
     } catch (error) {
       status.textContent = error.message;
       button.disabled = false;
     }
   });
   dialog.showModal();
+  dialog.querySelector('[name="reason"]').focus();
 }
 
 function updateLoadedPost(postId, changes) {
@@ -2499,7 +2507,7 @@ function addPostDeleteButton(post) {
     for (const row of menu.querySelectorAll(".post-option-row")) {
       if (["Edit post", "Who can comment?", "Edit privacy"].includes(row.querySelector("strong")?.textContent || "")) row.remove();
     }
-    option("Report post", "Tell DanzStak about copyright or safety concerns.", () => openPostReportDialog(post));
+    option("Report post", "Tell DanzStak about copyright or safety concerns.", () => openPostReportDialog(post, toggle));
   }
 
   toggle.addEventListener("click", () => {
