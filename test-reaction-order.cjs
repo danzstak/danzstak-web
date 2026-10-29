@@ -3,6 +3,7 @@ const { join } = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
+assert.match(source, /Like:"\\uD83D\\uDC4D\\uFE0E", Dislike:"\\uD83D\\uDC4E\\uFE0E"/, 'approve and disapprove thumbs must use text presentation so CSS can render them green and red');
 const code = source.slice(source.indexOf('const pendingReactionSaves = new WeakMap();'), source.indexOf('async function saveComment(post, input)'));
 const requests = [], saved = [];
 const context = vm.createContext({ post: { dataset: {} }, engagementApi: 'https://api.danzstak.com', engagementPostId: () => 'p1', loadEngagement: async () => {},

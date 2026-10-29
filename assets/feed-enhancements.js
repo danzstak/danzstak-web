@@ -2501,7 +2501,7 @@ document.addEventListener("click", event => {
 });
 
 const engagementApi = "https://api.danzstak.com";
-const reactionEmoji = { Like:"\uD83D\uDC4D", Dislike:"\uD83D\uDC4E", Love:"\u2764\uFE0F", Laugh:"\uD83D\uDE02", Wow:"\uD83D\uDE2E", Sad:"\uD83D\uDE22", Fire:"\uD83D\uDD25" };
+const reactionEmoji = { Like:"\uD83D\uDC4D\uFE0E", Dislike:"\uD83D\uDC4E\uFE0E", Love:"\u2764\uFE0F", Laugh:"\uD83D\uDE02", Wow:"\uD83D\uDE2E", Sad:"\uD83D\uDE22", Fire:"\uD83D\uDD25" };
 
 function engagementPostId(post) {
   const value = String(post?.dataset.postId || "");
@@ -2628,6 +2628,7 @@ function loadCommentViewerProfile() {
 }
 
 function hydratePostComposerAvatar() {
+  if (typeof document.querySelector !== "function") return;
   const avatar = document.querySelector(".composer-avatar");
   if (!avatar) return;
   loadCommentViewerProfile().then(profile => {
