@@ -2586,7 +2586,7 @@ function createCommentReactions(post, item, comment) {
     const prefix = onlyLikes ? "Liked by " : reactors.length === 1 ? "Reaction from " : "Reactions from ";
     summary.textContent = prefix + reactors.slice(0,2).map(person => person.name + (person.isFriend ? " (Friend)" : "")).join(", ") + (reactors.length > 2 ? " and " + (reactors.length-2) + " others" : "");
     names.appendChild(summary);
-    for (const person of reactors) { const name = document.createElement("div"); name.textContent = (reactionEmoji[person.reaction] || "") + " " + person.name + (person.isFriend ? " (Friend)" : ""); name.setAttribute("data-no-translate", ""); names.appendChild(name); }
+    for (const person of reactors) { const memberId = String(person.memberId || ""), linked = /^[a-f0-9-]{36}$/.test(memberId), name = document.createElement(linked ? "a" : "div"); if (linked) name.href = `profile.html?member=${encodeURIComponent(memberId)}`; name.textContent = (reactionEmoji[person.reaction] || "") + " " + person.name + (person.isFriend ? " (Friend)" : ""); name.setAttribute("data-no-translate", ""); names.appendChild(name); }
     controls.appendChild(names);
   }
   item.appendChild(controls);

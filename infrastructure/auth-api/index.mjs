@@ -1282,7 +1282,7 @@ async function getEngagement(event) {
       const id = item.commentId.S, summary = commentReactions.get(id) || {reactionCounts:{}, myReaction:"", reactionTotal:0, reactors:[]};
       summary.reactionCounts[reaction] = (summary.reactionCounts[reaction] || 0) + 1; summary.reactionTotal++;
       if (item.actorUserId?.S === userId) summary.myReaction = reaction;
-      summary.reactors.push({name:authorNames.get(item.userEmail?.S) || "DanzStak member",reaction,isFriend:friends.has(item.userEmail?.S)});
+      summary.reactors.push({memberId:item.actorUserId?.S || "",name:authorNames.get(item.userEmail?.S) || "DanzStak member",reaction,isFriend:friends.has(item.userEmail?.S)});
       commentReactions.set(id, summary); continue;
     }
     reactionCounts[reaction] = (reactionCounts[reaction] || 0) + 1;
