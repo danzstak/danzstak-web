@@ -23,19 +23,20 @@
     dialog.querySelector('[data-stop]').addEventListener('click',stop);
   }
   const status=message=>{dialog.querySelector('.facebook-import-status').textContent=message;};
+  function allowFileRetry(){const input=dialog?.querySelector('input[type=file]');if(input)input.value='';}
   function close(){if(running){stop();return;}dialog.close();}
   function stop(){stopping=true;dialog.querySelector('[data-stop]').disabled=true;status('Stopping after the current item finishes. Completed imports are kept.');}
   function update(){const n=selected.size+profileFields.size,unapproved=[...selected].filter(i=>loaded?.items[i]?.sharedSource&&!sharedApprovals.has(i)).length;dialog.querySelector('[data-import]').disabled=running||!n||!dialog.querySelector('[data-cert]').checked||unapproved>0;dialog.querySelector('[data-count]').textContent=selected.size+' posts selected'+(unapproved?' · review '+unapproved+' shared source'+(unapproved===1?'':'s'):'');}
   async function read(file){
     if(!file||running)return;activeWorker?.terminate();selected.clear();profileFields.clear();sharedApprovals.clear();itemAudiences.clear();loaded=null;
     dialog.querySelector('.facebook-import-preview').hidden=true;dialog.querySelector('[data-cert]').checked=false;
-    if(file.size>200*1024*1024){status('Choose an export smaller than 200 MB. Export a shorter date range if needed.');return;}
+    if(file.size>200*1024*1024){allowFileRetry();status('Choose an export smaller than 200 MB. Export a shorter date range, then choose the export again.');return;}
     status('Reading your export on this device. Nothing has been uploaded.');
     const worker=activeWorker=new Worker('assets/facebook-import-worker.js');
-    const timeout=setTimeout(()=>{if(activeWorker===worker){worker.terminate();activeWorker=null;status('Reading took too long. Try a smaller export.');}},30000);
-    worker.onerror=()=>{clearTimeout(timeout);if(activeWorker!==worker)return;worker.terminate();activeWorker=null;status('The export reader could not start. Update DanzStak and try again.');};
-    worker.onmessage=event=>{clearTimeout(timeout);if(activeWorker!==worker)return;worker.terminate();activeWorker=null;if(!event.data.ok){status(event.data.error);return;}loaded=event.data.result;render();};
-    try{const buffer=await file.arrayBuffer();if(activeWorker===worker)worker.postMessage({name:file.name,buffer},[buffer]);}catch{clearTimeout(timeout);worker.terminate();activeWorker=null;status('The selected file could not be read.');}
+    const timeout=setTimeout(()=>{if(activeWorker===worker){worker.terminate();activeWorker=null;allowFileRetry();status('Reading took too long. Try a smaller export, then choose it again.');}},30000);
+    worker.onerror=()=>{clearTimeout(timeout);if(activeWorker!==worker)return;worker.terminate();activeWorker=null;allowFileRetry();status('The export reader could not start. Update DanzStak, then choose the export again.');};
+    worker.onmessage=event=>{clearTimeout(timeout);if(activeWorker!==worker)return;worker.terminate();activeWorker=null;if(!event.data.ok){allowFileRetry();status(event.data.error+' Choose the export again after fixing it.');return;}loaded=event.data.result;render();};
+    try{const buffer=await file.arrayBuffer();if(activeWorker===worker)worker.postMessage({name:file.name,buffer},[buffer]);}catch{clearTimeout(timeout);worker.terminate();activeWorker=null;allowFileRetry();status('The selected file could not be read. Choose the export again.');}
   }
   function render(){
     dialog.querySelector('.facebook-import-preview').hidden=false;
