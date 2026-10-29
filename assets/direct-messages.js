@@ -338,6 +338,11 @@ function openConversation(conversation) {
   directContact = "";
   conversationHeader.hidden = false;
   conversationName.textContent = conversation.name || "DanzStak member";
+  const profileHref = conversation.memberId ? "profile.html?member=" + encodeURIComponent(conversation.memberId) : "profile.html";
+  conversationName.href = profileHref;
+  conversationName.setAttribute("aria-label", "Open " + conversationName.textContent + " profile");
+  conversationAvatar.href = profileHref;
+  conversationAvatar.setAttribute("aria-label", "Open " + conversationName.textContent + " profile");
   labelConversationHeaderActions(conversationName.textContent);
   if (conversationPresence) conversationPresence.hidden = conversation.online !== true;
   activeContactName = conversation.name || "Contact";
@@ -357,6 +362,10 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   document.querySelector(".message-reaction-palette")?.remove();
   closeConversationMenu();
   conversationHeader.hidden = true;
+  conversationName.href = "profile.html";
+  conversationName.removeAttribute("aria-label");
+  conversationAvatar.href = "profile.html";
+  conversationAvatar.setAttribute("aria-label", "Open contact profile");
   labelConversationHeaderActions();
   if (conversationPresence) conversationPresence.hidden = true;
   contactInput.value = "";
@@ -576,13 +585,16 @@ async function loadConversations() {
     }
     for (const friend of friendsData.friends || []) {
       const email = String(friend.email || "").toLowerCase();
-      if (!email || contacts.has(email)) continue;
+      if (!email) continue;
+      const existing = contacts.get(email) || {};
       contacts.set(email, {
+        ...existing,
         contactEmail: email,
-        name: friend.name || "DanzStak member",
-        picture: friend.picture || "",
-        preview: "Start a conversation",
-        updatedAt: "",
+        memberId: friend.memberId || existing.memberId || "",
+        name: friend.name || existing.name || "DanzStak member",
+        picture: friend.picture || existing.picture || "",
+        preview: existing.preview || "Start a conversation",
+        updatedAt: existing.updatedAt || "",
         isFriend: true
       });
     }
@@ -594,6 +606,7 @@ async function loadConversations() {
         ...(existing || {}),
         contactEmail: email,
         name: existing?.name || member.name || "DanzStak member",
+        memberId: existing?.memberId || member.memberId || "",
         picture: existing?.picture || member.picture || "",
         preview: existing?.preview || "Shared group member",
         updatedAt: existing?.updatedAt || "",
