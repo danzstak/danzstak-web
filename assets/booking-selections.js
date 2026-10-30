@@ -138,13 +138,13 @@
     for (const email of venue.emails || []) if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) links.append(link("Email", `mailto:${email}`));
     for (const phone of venue.phones || []) links.append(link("Call", `tel:${String(phone).replace(/[^+0-9]/g, "")}`));
     if (Array.isArray(venue.position) && venue.position.length === 2) links.append(link("Map", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${venue.position[1]},${venue.position[0]}`)}`));
-    if (venue.sourceName) {
-      if (typeof venue.sourceUrl === "string" && /^https:\/\//.test(venue.sourceUrl)) {
-        links.append(link(`Source: ${String(venue.sourceName)}`, venue.sourceUrl));
+    for (const evidence of venueSources(venue)) {
+      if (typeof evidence.url === "string" && /^https:\/\//.test(evidence.url)) {
+        links.append(link(`Source: ${String(evidence.name)}`, evidence.url));
       } else {
         const source = document.createElement("span");
         source.className = "venue-source";
-        source.textContent = `Source: ${String(venue.sourceName)}`;
+        source.textContent = `Source: ${String(evidence.name)}`;
         links.append(source);
       }
     }
@@ -284,6 +284,11 @@
     return `"${(/^[\s]*[=+@-]/.test(text) ? "'" + text : text).replace(/"/g, '""')}"`;
   }
 
+  function venueSources(venue) {
+    if (Array.isArray(venue.sources) && venue.sources.length) return venue.sources.filter(source => source?.name);
+    return venue.sourceName ? [{ name: venue.sourceName, url: venue.sourceUrl || "" }] : [];
+  }
+
   function downloadCsv() {
     const rows = [["Venue", "Address", "Website", "Email", "Phone", "Categories", "Evidence", "Source name", "Source URL", "Listing checked", "Stage", "Proposed show date", "Follow-up date", "Deal", "Notes"]];
     for (const venue of venues) rows.push([
@@ -294,8 +299,8 @@
       (venue.phones || []).join(" | "),
       (venue.categories || []).join(" | "),
       venue.activityEvidence,
-      venue.sourceName,
-      venue.sourceUrl,
+      venueSources(venue).map(source => source.name).join(" | "),
+      venueSources(venue).map(source => source.url).filter(url => /^https:\/\//.test(url)).join(" | "),
       listingCheckedText(venue.discoveredAt),
       venue.booking?.stage || "Research",
       venue.booking?.showDate,

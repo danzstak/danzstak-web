@@ -860,6 +860,10 @@
     if (Number.isNaN(checked.getTime())) return "";
     return `Public listing checked ${new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(checked)}`;
   }
+  function venueSources(place) {
+    if (Array.isArray(place.sources) && place.sources.length) return place.sources.filter(source => source?.name);
+    return place.sourceName ? [{ name: place.sourceName, url: place.sourceUrl || "" }] : [];
+  }
   function placeCard(place, placeType = "place") {
     const card = document.createElement("article"),
       heading = document.createElement("h4"),
@@ -893,12 +897,13 @@
         contactLink("Phone", value, "tel:" + value.replace(/[^+0-9]/g, "")),
       ),
     );
-    if (place.sourceName) {
-      const source = document.createElement(place.sourceUrl ? "a" : "span");
-      source.textContent = `Source: ${place.sourceName}`;
+    for (const evidence of venueSources(place)) {
+      const safeUrl = typeof evidence.url === "string" && /^https:\/\//.test(evidence.url) ? evidence.url : "";
+      const source = document.createElement(safeUrl ? "a" : "span");
+      source.textContent = `Source: ${evidence.name}`;
       source.className = "venue-source";
-      if (place.sourceUrl) {
-        source.href = place.sourceUrl;
+      if (safeUrl) {
+        source.href = safeUrl;
         source.target = "_blank";
         source.rel = "noopener noreferrer";
       }

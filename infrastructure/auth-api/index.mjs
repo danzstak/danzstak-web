@@ -1942,6 +1942,7 @@ function publicPlace(place) {
     contactVerificationRequired: true,
     sourceName: "AWS Places public listing",
     sourceUrl: websites[0] || "",
+    sources: [{ name: "AWS Places public listing", url: websites[0] || "" }],
     discoveredAt,
     activityEvidence: websites.length
       ? "A public venue website was returned by the current place search."
@@ -2028,6 +2029,11 @@ function deduplicateVenues(places) {
     current.emails = merge("emails").slice(0, 2);
     current.phones = merge("phones").slice(0, 2);
     current.categories = merge("categories").slice(0, 8);
+    const sources = [...(current.sources || [{ name: current.sourceName, url: current.sourceUrl }]), ...(place.sources || [{ name: place.sourceName, url: place.sourceUrl }])]
+      .filter(source => source?.name)
+      .filter((source, index, all) => all.findIndex(candidate => candidate.name === source.name && candidate.url === source.url) === index)
+      .slice(0, 6);
+    current.sources = sources;
     if (!current.sourceUrl && place.sourceUrl) current.sourceUrl = place.sourceUrl;
     if (!current.activityEvidence && place.activityEvidence) current.activityEvidence = place.activityEvidence;
   }
@@ -2160,6 +2166,7 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
     verifiedRoom: true,
     sourceName: "DanzStak curated public venue directory",
     sourceUrl: place.websites?.[0] || "",
+    sources: [{ name: "DanzStak curated public venue directory", url: place.websites?.[0] || "" }],
     activityEvidence: "A public venue or booking page is available; confirm the current calendar before pitching."
   }));
 }
@@ -2334,7 +2341,8 @@ async function bookingWorkspace(event, method) {
   const venues = data.venues.map(v => {
     if (!v || typeof v !== "object" || !text(v.name)) return null;
     const b = v.booking || {};
-    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { stage: stages.has(b.stage) ? b.stage : "Research", showDate: date(b.showDate), followUp: date(b.followUp), deal: text(b.deal, 2000), notes: text(b.notes, 2000) } };
+    const sources = Array.isArray(v.sources) ? v.sources.slice(0, 6).map(source => source && typeof source === "object" ? { name: text(source.name, 120), url: https(source.url) } : null).filter(source => source?.name) : [];
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { stage: stages.has(b.stage) ? b.stage : "Research", showDate: date(b.showDate), followUp: date(b.followUp), deal: text(b.deal, 2000), notes: text(b.notes, 2000) } };
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
   const a = data.artist || {};

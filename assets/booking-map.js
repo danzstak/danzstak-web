@@ -41,6 +41,9 @@
   let suppressMapClickUntil = 0;
 
   const venueIdentity = place => String(place.venueKey || `${place.name || ""}|${place.address || ""}`);
+  const venueSources = place => Array.isArray(place.sources) && place.sources.length
+    ? place.sources.filter(source => source?.name)
+    : place.sourceName ? [{ name: place.sourceName, url: place.sourceUrl || "" }] : [];
   const boundsPayload = bounds => ({
     north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest()
   });
@@ -258,11 +261,12 @@
       link.textContent = "Venue / booking website";
       box.append(link);
     }
-    if (place.sourceName) {
-      const source = document.createElement(place.sourceUrl ? "a" : "small");
-      source.textContent = `Source: ${place.sourceName}`;
-      if (place.sourceUrl) {
-        source.href = place.sourceUrl;
+    for (const evidence of venueSources(place)) {
+      const safeUrl = typeof evidence.url === "string" && /^https:\/\//.test(evidence.url) ? evidence.url : "";
+      const source = document.createElement(safeUrl ? "a" : "small");
+      source.textContent = `Source: ${evidence.name}`;
+      if (safeUrl) {
+        source.href = safeUrl;
         source.target = "_blank";
         source.rel = "noopener noreferrer";
       }

@@ -95,11 +95,12 @@ const dedupeContext = vm.createContext({});
 vm.runInContext(api.slice(dedupeStart, dedupeEnd), dedupeContext);
 const deduplicateVenues = vm.runInContext("deduplicateVenues", dedupeContext);
 const deduped = deduplicateVenues([
-  { venueKey: "a", name: "The Test Club", address: "123 Main St", locality: "Portland", websites: ["https://one.example"], emails: [], phones: [], categories: ["Punk"] },
-  { venueKey: "b", name: "Test", address: "123 Main Street", locality: "Portland", websites: [], emails: ["book@test.example"], phones: [], categories: ["Live Music Venue"] }
+  { venueKey: "a", name: "The Test Club", address: "123 Main St", locality: "Portland", websites: ["https://one.example"], emails: [], phones: [], categories: ["Punk"], sources: [{ name: "Public directory", url: "https://one.example" }] },
+  { venueKey: "b", name: "Test", address: "123 Main Street", locality: "Portland", websites: [], emails: ["book@test.example"], phones: [], categories: ["Live Music Venue"], sources: [{ name: "Venue website", url: "https://venue.example" }] }
 ]);
 assert.equal(deduped.length, 1, "minor name/address variations must not create duplicate venue leads");
 assert.deepEqual(Array.from(deduped[0].emails), ["book@test.example"]);
+assert.deepEqual(Array.from(deduped[0].sources, source => source.name), ["Public directory", "Venue website"], "deduplication must preserve evidence from every discovery source");
 const mapClient = fs.readFileSync("assets/booking-map.js", "utf8");
 assert.match(mapClient, /mapElement\.dataset\.mapInitialized/);
 assert.match(mapClient, /toggleRouteDrawing/);
@@ -112,7 +113,7 @@ assert.match(mapClient, /map\.getBounds\(\)/);
 assert.match(mapClient, /isSearchableBounds/);
 assert.match(mapClient, /Your normal home-city search is still available below/);
 assert.match(mapClient, /Search different clubs/);
-assert.match(mapClient, /Source: \$\{place\.sourceName\}/);
+assert.match(mapClient, /venueSources\(place\)/);
 assert.match(mapClient, /place\.activityEvidence/);
 assert.match(client, /place\.activityEvidence/);
 assert.match(client, /listingCheckedText\(place\.discoveredAt\)/, "search cards must say when a public listing was checked");
@@ -120,6 +121,9 @@ assert.match(mapClient, /place\.discoveredAt/, "map pins must say when a public 
 assert.match(api, /discoveredAt: timestamp\(v\.discoveredAt\)/, "saved booking workspaces must preserve a validated listing-check timestamp");
 assert.match(client, /venueType: venueType/, "the selected venue type must be sent with venue searches");
 assert.match(api, /isVenueTypeMatch\(place, venueType\)/, "discovery must apply venue-type filtering to live and curated results");
-assert.match(client, /Source: \$\{place\.sourceName\}/);
+assert.match(client, /venueSources\(place\)/);
+assert.match(api, /sources: \[\{ name: "AWS Places public listing"/);
+assert.match(api, /sources: \[\{ name: "DanzStak curated public venue directory"/);
+assert.match(api, /sources, activityEvidence:/, "saved booking workspaces must preserve validated multi-source evidence");
 
 console.log("Booking venue checks passed: positive music-room evidence is required and repeat searches request a different batch.");
