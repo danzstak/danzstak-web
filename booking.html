@@ -25,7 +25,7 @@
       sizes="180x180"
     />
     <link rel="stylesheet" href="assets/booking-agent.css?v=311" />
-    <link rel="stylesheet" href="assets/booking-agent-driver.css?v=317" />
+    <link rel="stylesheet" href="assets/booking-agent-driver.css?v=448" />
     <link rel="stylesheet" href="assets/accessibility.css?v=364" />
   </head>
   <body>
@@ -47,6 +47,19 @@
           Enter your act and home town. Then search the map or use the pencil
           to sketch the route you want to travel.
         </p>
+      </section>
+      <section class="booking-brief" aria-labelledby="bookingBriefTitle">
+        <div>
+          <p class="eyebrow">Ask the Booking Agent</p>
+          <h2 id="bookingBriefTitle">Describe the run in one sentence</h2>
+          <p>Use normal words. DanzStak will fill the route controls, then find practical rooms and public booking contacts.</p>
+        </div>
+        <form id="bookingBriefForm">
+          <label for="bookingBrief">Tour request</label>
+          <textarea id="bookingBrief" rows="3" maxlength="600" placeholder="Plan a 10-day DIY punk tour for The Rats from Momo to Berlin and back home."></textarea>
+          <div class="booking-brief-actions"><button type="submit" class="primary">Plan my tour</button><button type="button" class="secondary" id="bookingBriefExample">Use example</button></div>
+          <p id="bookingBriefStatus" role="status" aria-live="polite"></p>
+        </form>
       </section>
       <section class="booking-start" aria-labelledby="bookingStartTitle">
         <h2 id="bookingStartTitle">Start here</h2>
@@ -654,5 +667,6 @@
     <script src="assets/session-activity.js?v=270" defer></script>
     <script src="assets/logout.js?v=308" defer></script>
     <script src="assets/booking-agent.js?v=320" defer></script>
+    <script src="assets/booking-conversation.js?v=448" defer></script>
   </body>
 </html>

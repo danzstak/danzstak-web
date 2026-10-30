@@ -54,7 +54,12 @@ authenticated owner's workspace; `POST /booking-pipeline` saves a bounded,
 validated snapshot using a revision condition to prevent cross-device
 overwrites. The workspace uses a reserved item in the existing Tours table
 and is excluded from the saved-tour list. New map selections merge into the
-workspace. Members can also add a missing public club to their private booking
+workspace. A conversational brief is the primary fast path: members can type a
+plain request such as “Plan a 10-day DIY punk tour for The Rats from Momo to
+Berlin and back home,” and DanzStak fills the structured route controls before
+running the same verified club search. The map and detailed controls remain
+available for correction and refinement.
+Members can also add a missing public club to their private booking
 list. An explicit, certified opt-in can place that lead into a moderation queue;
 it is never published automatically and private homes, secret DIY spaces, and
 personal contacts are prohibited. A required genre and room type travel with
