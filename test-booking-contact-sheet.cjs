@@ -13,6 +13,8 @@ assert.match(client, /venues\.splice\(index, 1\)/, "individual leads must be rem
 assert.match(client, /window\.confirm\("Clear every selected club/, "clearing every lead must be confirmed");
 assert.match(client, /window\.print\(\)/, "the contact sheet must be printable");
 assert.match(client, /text\/csv;charset=utf-8/, "the contact sheet must export CSV");
+assert.match(client, /booking\.outreachDraft = draft\.value/, "edited outreach drafts must survive rerenders and tab refreshes");
+assert.match(client, /venue\.booking\?\.outreachDraft/, "CSV exports must include the reviewed outreach draft");
 assert.match(client, /venue\.activityEvidence/, "current-activity evidence must remain visible");
 assert.match(client, /listingCheckedText\(venue\.discoveredAt\)/, "the discovery date must remain visible on the saved contact sheet");
 assert.match(client, /source\.textContent = `Source: \$\{String\(evidence\.name\)\}`/, "sources without an external URL must remain visible");

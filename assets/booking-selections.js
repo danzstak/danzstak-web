@@ -185,9 +185,15 @@
     label.textContent = "Review your booking pitch";
     const draft = document.createElement("textarea");
     draft.rows = 9;
+    draft.maxLength = 5000;
     draft.setAttribute("aria-label", `Booking pitch for ${venue.name}`);
     const a = artist();
-    draft.value = `Hello ${venue.name} booking team,\n\nI'm reaching out about ${a.name || "[act name]"}${a.hometown ? ` from ${a.hometown}` : ""}${a.genre ? ` (${a.genre})` : ""}. We're interested in playing ${venue.name}${venue.booking?.showDate ? ` on ${venue.booking.showDate}` : " on [proposed date]"}.\n\n${a.pitch || "[Add a short introduction and relevant live experience.]"}\n${a.epk ? `\nEPK: ${a.epk}\n` : "\n[Add a public EPK or live performance link.]\n"}\nAre you accepting bookings for this date? Please share your submission requirements, available slots, and deal terms.\n\nThank you,\n${a.name || "[your name]"}`;
+    const generatedDraft = `Hello ${venue.name} booking team,\n\nI'm reaching out about ${a.name || "[act name]"}${a.hometown ? ` from ${a.hometown}` : ""}${a.genre ? ` (${a.genre})` : ""}. We're interested in playing ${venue.name}${venue.booking?.showDate ? ` on ${venue.booking.showDate}` : " on [proposed date]"}.\n\n${a.pitch || "[Add a short introduction and relevant live experience.]"}\n${a.epk ? `\nEPK: ${a.epk}\n` : "\n[Add a public EPK or live performance link.]\n"}\nAre you accepting bookings for this date? Please share your submission requirements, available slots, and deal terms.\n\nThank you,\n${a.name || "[your name]"}`;
+    draft.value = typeof venue.booking?.outreachDraft === "string" ? venue.booking.outreachDraft : generatedDraft;
+    draft.addEventListener("input", () => {
+      venue.booking.outreachDraft = draft.value;
+      persist();
+    });
     label.append(draft);
     const button = document.createElement("button");
     button.type = "button";
@@ -202,7 +208,7 @@
       window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`${a.name} — booking enquiry for ${venue.booking.showDate}`)}&body=${encodeURIComponent(draft.value)}`;
     });
     const note = document.createElement("small");
-    note.textContent = email ? "Public contact, not independently verified. Check official booking instructions. Draft edits last until this list refreshes. Your email app sends the message." : "No public booking email listed. Use the venue website to find its submission form.";
+    note.textContent = email ? "Public contact, not independently verified. Check official booking instructions. Draft edits are kept in this tab and in your private account after you save. Your email app sends the message." : "No public booking email listed. Use the venue website to find its submission form.";
     section.append(fit, label, button, note);
     return section;
   }
@@ -290,7 +296,7 @@
   }
 
   function downloadCsv() {
-    const rows = [["Venue", "Address", "Website", "Email", "Phone", "Categories", "Evidence", "Source name", "Source URL", "Listing checked", "Stage", "Proposed show date", "Follow-up date", "Deal", "Notes"]];
+    const rows = [["Venue", "Address", "Website", "Email", "Phone", "Categories", "Evidence", "Source name", "Source URL", "Listing checked", "Stage", "Proposed show date", "Follow-up date", "Deal", "Notes", "Outreach draft"]];
     for (const venue of venues) rows.push([
       venue.name,
       venue.address,
@@ -306,7 +312,8 @@
       venue.booking?.showDate,
       venue.booking?.followUp,
       venue.booking?.deal,
-      venue.booking?.notes
+      venue.booking?.notes,
+      venue.booking?.outreachDraft
     ]);
     const blob = new Blob(["\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);

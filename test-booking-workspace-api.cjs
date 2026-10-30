@@ -25,7 +25,7 @@ const request = (method, body, origin='https://danzstak.com') => context.booking
   assert.equal(calls.at(-1).Key.userId.S,'owner-a');
   assert.equal(calls.at(-1).ConsistentRead,true);
   assert.equal((await request('POST',{venues:Array(101).fill({name:'x'}),revision:''})).statusCode,400);
-  const body = {revision:'old', artist:{name:'The Act',epk:'javascript:alert(1)'}, venues:[{name:'The Room',websites:['javascript:alert(1)','https://room.example'],booking:{stage:'made-up',showDate:'2026-02-31',notes:'x'.repeat(2500)}}]};
+  const body = {revision:'old', artist:{name:'The Act',epk:'javascript:alert(1)'}, venues:[{name:'The Room',websites:['javascript:alert(1)','https://room.example'],booking:{stage:'made-up',showDate:'2026-02-31',notes:'x'.repeat(2500),outreachDraft:'d'.repeat(6000)}}]};
   assert.equal((await request('POST',body)).statusCode,200);
   const write = calls.at(-1), plan = JSON.parse(write.Item.plan.S);
   assert.equal(write.Item.userId.S,'owner-a');
@@ -36,6 +36,7 @@ const request = (method, body, origin='https://danzstak.com') => context.booking
   assert.equal(plan.venues[0].booking.stage,'Research');
   assert.equal(plan.venues[0].booking.showDate,'');
   assert.equal(plan.venues[0].booking.notes.length,2000);
+  assert.equal(plan.venues[0].booking.outreachDraft.length,5000);
   await request('POST',{venues:[],revision:''});
   assert.equal(calls.at(-1).ConditionExpression,'attribute_not_exists(userId)');
   conflict=true;
