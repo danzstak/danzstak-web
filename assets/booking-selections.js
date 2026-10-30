@@ -138,7 +138,16 @@
     for (const email of venue.emails || []) if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) links.append(link("Email", `mailto:${email}`));
     for (const phone of venue.phones || []) links.append(link("Call", `tel:${String(phone).replace(/[^+0-9]/g, "")}`));
     if (Array.isArray(venue.position) && venue.position.length === 2) links.append(link("Map", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${venue.position[1]},${venue.position[0]}`)}`));
-    if (typeof venue.sourceUrl === "string" && /^https:\/\//.test(venue.sourceUrl)) links.append(link(`Source: ${String(venue.sourceName || "public listing")}`, venue.sourceUrl));
+    if (venue.sourceName) {
+      if (typeof venue.sourceUrl === "string" && /^https:\/\//.test(venue.sourceUrl)) {
+        links.append(link(`Source: ${String(venue.sourceName)}`, venue.sourceUrl));
+      } else {
+        const source = document.createElement("span");
+        source.className = "venue-source";
+        source.textContent = `Source: ${String(venue.sourceName)}`;
+        links.append(source);
+      }
+    }
     note.className = "venue-note";
     note.textContent = "Verify the booking contact and availability before outreach.";
     remove.type = "button";
@@ -276,7 +285,7 @@
   }
 
   function downloadCsv() {
-    const rows = [["Venue", "Address", "Website", "Email", "Phone", "Categories", "Evidence", "Source", "Stage", "Proposed show date", "Follow-up date", "Deal", "Notes"]];
+    const rows = [["Venue", "Address", "Website", "Email", "Phone", "Categories", "Evidence", "Source name", "Source URL", "Listing checked", "Stage", "Proposed show date", "Follow-up date", "Deal", "Notes"]];
     for (const venue of venues) rows.push([
       venue.name,
       venue.address,
@@ -285,7 +294,9 @@
       (venue.phones || []).join(" | "),
       (venue.categories || []).join(" | "),
       venue.activityEvidence,
-      venue.sourceUrl || venue.sourceName,
+      venue.sourceName,
+      venue.sourceUrl,
+      listingCheckedText(venue.discoveredAt),
       venue.booking?.stage || "Research",
       venue.booking?.showDate,
       venue.booking?.followUp,
