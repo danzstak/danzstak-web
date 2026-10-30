@@ -5,11 +5,12 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
-const helper = api.slice(api.indexOf("function approximateMilesBetween("), api.indexOf("function distanceToSearchPathMiles("));
-let fail = false;
+const helper = api.slice(api.indexOf("let reviewedVenueCache"), api.indexOf("function distanceToSearchPathMiles("));
+let fail = false, scans = 0;
 const context = vm.createContext({
   console: { error() {} }, venueDirectoryTable: "DANZSTAK-VenueDirectory",
   scanAll: async request => {
+    scans += 1;
     assert.equal(request.TableName, "DANZSTAK-VenueDirectory");
     if (fail) throw Object.assign(new Error("unavailable"), { name: "ServiceUnavailable" });
     return [{
@@ -29,7 +30,9 @@ vm.runInContext(helper, context);
   assert.ok(leads[0].distanceMiles < 2);
   assert.equal((await context.approvedMemberVenueLeads({ position: [-122.68, 45.53] }, { west: -123, east: -122, south: 45, north: 46 })).length, 1);
   assert.equal((await context.approvedMemberVenueLeads({ position: [-122.68, 45.53] }, { west: -80, east: -70, south: 30, north: 40 })).length, 0);
+  assert.equal(scans, 1, "several route points must share one bounded directory read");
   fail = true;
+  vm.runInContext("reviewedVenueCache = { expiresAt: 0, records: [] }; reviewedVenueLoad = null", context);
   assert.deepEqual(Array.from(await context.approvedMemberVenueLeads({ position: [-122.68, 45.53] })), [], "directory outages must not block live map discovery");
   const deployment = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8");
   const moderation = fs.readFileSync("moderate-venue-directory.ps1", "utf8");

@@ -61,7 +61,9 @@ personal contacts are prohibited.
 Approved suggestions move through `moderate-venue-directory.ps1` into a
 separate point-in-time-recovery-protected directory table. Only approved public
 business data is read by venue discovery, and a directory outage falls back to
-the other discovery sources instead of blocking a tour search.
+the other discovery sources instead of blocking a tour search. A short-lived
+server cache prevents multi-stop route searches from repeatedly scanning the
+same reviewed directory.
 New selections merge into the account workspace without replacing existing
 booking notes. Saving is
 explicit; a tab copy is a fallback, not a cross-device source of truth.

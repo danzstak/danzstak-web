@@ -2041,6 +2041,25 @@ function deduplicateVenues(places) {
   return [...unique.values()];
 }
 
+let reviewedVenueCache = { expiresAt: 0, records: [] };
+let reviewedVenueLoad = null;
+
+async function reviewedVenueDirectoryRecords() {
+  if (reviewedVenueCache.expiresAt > Date.now()) return reviewedVenueCache.records;
+  if (reviewedVenueLoad) return reviewedVenueLoad;
+  reviewedVenueLoad = scanAll({
+    TableName: venueDirectoryTable,
+    FilterExpression: "#status = :approved",
+    ExpressionAttributeNames: { "#status": "status" },
+    ExpressionAttributeValues: { ":approved": { S: "approved" } },
+    Limit: 500
+  }, 500).then(records => {
+    reviewedVenueCache = { records, expiresAt: Date.now() + 300000 };
+    return records;
+  }).finally(() => { reviewedVenueLoad = null; });
+  return reviewedVenueLoad;
+}
+
 function approximateMilesBetween(left, right) {
   if (!Array.isArray(left) || !Array.isArray(right) || left.length !== 2 || right.length !== 2) return Number.POSITIVE_INFINITY;
   const meanLatitude = (Number(left[1]) + Number(right[1])) / 2 * Math.PI / 180;
@@ -2051,13 +2070,7 @@ function approximateMilesBetween(left, right) {
 
 async function approvedMemberVenueLeads(point, searchBounds = null) {
   try {
-    const records = await scanAll({
-      TableName: venueDirectoryTable,
-      FilterExpression: "#status = :approved",
-      ExpressionAttributeNames: { "#status": "status" },
-      ExpressionAttributeValues: { ":approved": { S: "approved" } },
-      Limit: 500
-    }, 500);
+    const records = await reviewedVenueDirectoryRecords();
     return records.map(item => {
       const position = [Number(item.longitude?.N), Number(item.latitude?.N)];
       const websites = item.website?.S ? [item.website.S] : [];
