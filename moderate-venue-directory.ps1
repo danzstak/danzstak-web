@@ -41,10 +41,12 @@ try {
   if ($Action -eq "Approve") {
     $venue = $record.Item.message.S | ConvertFrom-Json
     if (-not $venue.venueKey -or -not $venue.name -or -not $venue.address -or $venue.position.Count -ne 2) { throw "Venue review data is incomplete." }
+    $categories = @($venue.categories | ForEach-Object { [string]$_ } | Where-Object { $_ -and $_.Length -le 80 } | Select-Object -First 8)
+    if (-not $categories.Count) { $categories = @("Member-verified public live music venue") }
     $item = @{
       venueKey = @{ S = [string]$venue.venueKey }; name = @{ S = [string]$venue.name }; address = @{ S = [string]$venue.address }
       locality = @{ S = [string]$venue.locality }; longitude = @{ N = [string]$venue.position[0] }; latitude = @{ N = [string]$venue.position[1] }
-      categories = @{ SS = @("Member-verified public live music venue") }; status = @{ S = "approved" }
+      categories = @{ SS = $categories }; status = @{ S = "approved" }
       createdAt = @{ S = [string]$record.Item.createdAt.S }; approvedAt = @{ S = [DateTime]::UtcNow.ToString("o") }; sourceTicketId = @{ S = $TicketId }
     }
     if ($venue.website) { $item.website = @{ S = [string]$venue.website } }

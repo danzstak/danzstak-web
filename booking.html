@@ -106,6 +106,10 @@
               <label>Public booking email<input id="manualVenueEmail" type="email" maxlength="254"></label>
               <label>Public phone<input id="manualVenuePhone" type="tel" maxlength="30"></label>
             </div>
+            <div class="two">
+              <label>Music style<select id="manualVenueGenre" required><option>DIY Punk</option><option>Metal</option><option>Rock</option><option>DJ / Electronic</option><option>Hip-Hop</option><option>Jazz</option><option>Orchestra / Classical</option><option>Other</option></select></label>
+              <label>Room type<select id="manualVenueType" required><option value="live">Live-music room</option><option value="diy">DIY / all ages</option><option value="bar">Bar / pub</option><option value="club">Club / nightclub</option><option value="hall">Music / concert hall</option></select></label>
+            </div>
             <label class="manual-venue-review"><input id="manualVenueReview" type="checkbox"> Submit this club for the shared directory review queue.</label>
             <label class="manual-venue-certification" hidden><input id="manualVenueCertification" type="checkbox"> I confirm this is a public venue address and public business contact—not a private home, secret DIY space, or personal contact.</label>
             <button type="submit">Add club to booking list</button>
@@ -646,7 +650,7 @@
       crossorigin="anonymous"
       defer
     ></script>
-    <script src="assets/booking-map.js?v=446" defer></script>
+    <script src="assets/booking-map.js?v=447" defer></script>
     <script src="assets/session-activity.js?v=270" defer></script>
     <script src="assets/logout.js?v=308" defer></script>
     <script src="assets/booking-agent.js?v=320" defer></script>

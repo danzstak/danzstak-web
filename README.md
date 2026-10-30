@@ -57,7 +57,8 @@ and is excluded from the saved-tour list. New map selections merge into the
 workspace. Members can also add a missing public club to their private booking
 list. An explicit, certified opt-in can place that lead into a moderation queue;
 it is never published automatically and private homes, secret DIY spaces, and
-personal contacts are prohibited.
+personal contacts are prohibited. A required genre and room type travel with
+the suggestion so approved clubs appear only in relevant searches.
 Approved suggestions move through `moderate-venue-directory.ps1` into a
 separate point-in-time-recovery-protected directory table. Only approved public
 business data is read by venue discovery, and a directory outage falls back to

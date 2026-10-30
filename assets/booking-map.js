@@ -336,6 +336,8 @@
       website: document.getElementById("manualVenueWebsite")?.value.trim() || "",
       email: document.getElementById("manualVenueEmail")?.value.trim() || "",
       phone: document.getElementById("manualVenuePhone")?.value.trim() || "",
+      genre: document.getElementById("manualVenueGenre")?.value || "",
+      venueType: document.getElementById("manualVenueType")?.value || "",
       submitForReview: Boolean(manualVenueReview?.checked),
       publicVenueCertified: Boolean(manualVenueCertification?.checked)
     };

@@ -17,6 +17,7 @@ const context = vm.createContext({
   corsHeaders: () => ({}), allowedOrigins: new Set(["https://danzstak.com"]),
   getAuthenticatedUser: async () => authenticated,
   parseJsonBody: event => event.body,
+  tourGenres: new Set(["DIY Punk", "Metal", "Rock", "DJ / Electronic", "Hip-Hop", "Jazz", "Orchestra / Classical", "Other"]),
   supportTicketsTable: "DANZSTAK-SupportTickets",
   db: { send: async command => { savedReview = command.input; return {}; } },
   geoPlaces: { send: async command => {
@@ -32,9 +33,11 @@ const request = (body, origin = "https://danzstak.com") => context.addManualBook
   authenticated = "";
   assert.equal((await request({})).statusCode, 401);
   authenticated = "owner-a";
-  assert.equal((await request({ name: "Room", address: "100 Music St" })).statusCode, 400, "a public contact is required");
-  assert.equal((await request({ name: "Room", address: "100 Music St", website: "http://insecure.example" })).statusCode, 400, "websites must use HTTPS");
-  const response = await request({ name: "The Room", address: "100 Music St, San Francisco", website: "https://room.example/book", email: "BOOKING@ROOM.EXAMPLE", phone: "+1 415 555 1212" });
+  const classification = { genre: "DIY Punk", venueType: "diy" };
+  assert.equal((await request({ name: "Room", address: "100 Music St", ...classification })).statusCode, 400, "a public contact is required");
+  assert.equal((await request({ name: "Room", address: "100 Music St", website: "http://insecure.example", ...classification })).statusCode, 400, "websites must use HTTPS");
+  assert.equal((await request({ name: "Room", address: "100 Music St", website: "https://room.example", genre: "Comedy", venueType: "club" })).statusCode, 400, "unsupported classifications must be rejected");
+  const response = await request({ name: "The Room", address: "100 Music St, San Francisco", website: "https://room.example/book", email: "BOOKING@ROOM.EXAMPLE", phone: "+1 415 555 1212", ...classification });
   assert.equal(response.statusCode, 200);
   const venue = JSON.parse(response.body).venue;
   assert.equal(lookup.QueryText, "100 Music St, San Francisco");
@@ -42,10 +45,12 @@ const request = (body, origin = "https://danzstak.com") => context.addManualBook
   assert.deepEqual(Array.from(venue.emails), ["booking@room.example"]);
   assert.equal(venue.sourceName, "Member-added public booking lead");
   assert.equal(venue.contactVerificationRequired, true);
+  assert.ok(venue.categories.includes("DIY Punk"));
+  assert.ok(venue.categories.includes("diy"));
   assert.match(venue.activityEvidence, /Verify the official website/);
-  const uncertified = await request({ name: "The Room", address: "100 Music St", website: "https://room.example", submitForReview: true });
+  const uncertified = await request({ name: "The Room", address: "100 Music St", website: "https://room.example", submitForReview: true, ...classification });
   assert.equal(uncertified.statusCode, 400, "directory review requires public-venue certification");
-  const reviewed = await request({ name: "The Room", address: "100 Music St", website: "https://room.example", submitForReview: true, publicVenueCertified: true });
+  const reviewed = await request({ name: "The Room", address: "100 Music St", website: "https://room.example", submitForReview: true, publicVenueCertified: true, ...classification });
   assert.equal(JSON.parse(reviewed.body).reviewSubmitted, true);
   assert.equal(savedReview.Item.status.S, "pending-review");
   assert.equal(savedReview.Item.category.S, "venue-directory");
@@ -54,7 +59,7 @@ const request = (body, origin = "https://danzstak.com") => context.addManualBook
 
   const markup = fs.readFileSync("booking.html", "utf8");
   const client = fs.readFileSync("assets/booking-map.js", "utf8");
-  for (const id of ["manualVenueForm", "manualVenueName", "manualVenueAddress", "manualVenueWebsite", "manualVenueEmail", "manualVenuePhone", "manualVenueReview", "manualVenueCertification", "manualVenueStatus"]) {
+  for (const id of ["manualVenueForm", "manualVenueName", "manualVenueAddress", "manualVenueWebsite", "manualVenueEmail", "manualVenuePhone", "manualVenueGenre", "manualVenueType", "manualVenueReview", "manualVenueCertification", "manualVenueStatus"]) {
     assert.match(markup, new RegExp(`id=["']${id}["']`), `${id} must be present`);
   }
   assert.match(client, /\/tour\/manual-venue/, "the missing-club form must use the authenticated geocoder");

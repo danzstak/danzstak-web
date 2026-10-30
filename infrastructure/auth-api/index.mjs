@@ -2161,10 +2161,12 @@ async function addManualBookingVenue(event) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return reply(400, { error: "Invalid venue details." });
   const clean = (value, maximum) => String(value || "").trim().slice(0, maximum);
   const name = clean(data.name, 160), address = clean(data.address, 300);
+  const genre = clean(data.genre, 80), venueType = clean(data.venueType, 20).toLowerCase();
   const submitForReview = data.submitForReview === true;
   const publicVenueCertified = data.publicVenueCertified === true;
   let website = clean(data.website, 600), email = clean(data.email, 254).toLowerCase(), phone = clean(data.phone, 30);
   if (!name || !address) return reply(400, { error: "Add the club name and public street address." });
+  if (!tourGenres.has(genre) || !new Set(["live", "diy", "bar", "club", "hall"]).has(venueType)) return reply(400, { error: "Choose the club's music style and room type." });
   if (website) {
     try { const url = new URL(website); website = url.protocol === "https:" ? url.href : ""; } catch { website = ""; }
     if (!website) return reply(400, { error: "The club website must be a complete HTTPS link." });
@@ -2187,7 +2189,7 @@ async function addManualBookingVenue(event) {
         Item: {
           ticketId: { S: ticketId }, userId: { S: userId },
           category: { S: "venue-directory" }, subject: { S: `Review public venue: ${name}` },
-          message: { S: JSON.stringify({ venueKey, name, address, locality, position, website, email, phone }) },
+          message: { S: JSON.stringify({ venueKey, name, address, locality, position, website, email, phone, genre, venueType, categories: ["Live Music Venue", genre, venueType] }) },
           createdAt: { S: discoveredAt }, status: { S: "pending-review" },
           publicVenueCertified: { BOOL: true }, expiresAt: { N: String(now() + 31536000) }
         },
@@ -2201,7 +2203,7 @@ async function addManualBookingVenue(event) {
     venueKey, name, address, locality, position,
     distanceMiles: null,
     websites: website ? [website] : [], emails: email ? [email] : [], phones: phone ? [phone] : [],
-    categories: ["Member-added public live music venue"],
+    categories: ["Member-added public live music venue", genre, venueType],
     contactVerificationRequired: true,
     sourceName: "Member-added public booking lead",
     sourceUrl: website,
