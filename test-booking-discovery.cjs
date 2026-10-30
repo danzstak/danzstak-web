@@ -18,6 +18,7 @@ async function run(fail, genre = "DIY Punk") {
     publicPlace: place => place,
     curatedVenueLeads: () => [],
     isBookableClub: () => true,
+    isVenueTypeMatch: () => true,
     venueSuitability: () => 1,
     deduplicateVenues: places => [...new Map(places.map(place => [place.venueKey, place])).values()]
   });

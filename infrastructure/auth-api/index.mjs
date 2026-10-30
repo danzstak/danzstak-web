@@ -1997,6 +1997,16 @@ function venueSuitability(place, genre = "") {
   return score;
 }
 
+function isVenueTypeMatch(place, venueType = "any") {
+  if (venueType === "any") return true;
+  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
+  if (venueType === "diy") return /\b(diy|all ages|all-ages|community music|independent)\b/.test(description);
+  if (venueType === "bar") return /\b(bar|pub|tavern|taproom|brewery|roadhouse)\b/.test(description);
+  if (venueType === "club") return /\b(club|night ?club|lounge)\b/.test(description);
+  if (venueType === "hall") return /\b(music hall|concert hall|concert venue|recital hall)\b/.test(description);
+  return false;
+}
+
 function hasBookingContact(place) {
   return Boolean(place.websites?.length || place.emails?.length || place.phones?.length);
 }
@@ -2154,7 +2164,7 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   }));
 }
 
-async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), variation = 0, searchBounds = null) {
+async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), variation = 0, searchBounds = null, venueType = "any") {
   const search = async query => {
     const locationConstraint = searchBounds
       ? { Filter: { BoundingBox: [searchBounds.west, searchBounds.south, searchBounds.east, searchBounds.north] } }
@@ -2192,9 +2202,9 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const venueBatches = venueSearches.filter(result => result.status === "fulfilled").map(result => result.value);
   const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
   const curatedPool = curatedVenueLeads(point, genre, variation);
-  const curated = curatedPool.filter(place => !excludedVenueKeys.has(place.venueKey));
+  const curated = curatedPool.filter(place => isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
   const discovered = venueBatches.flat()
-    .filter(place => nearby(place, 60) && isBookableClub(place, genre) && !excludedVenueKeys.has(place.venueKey))
+    .filter(place => nearby(place, 60) && isBookableClub(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey))
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre));
   const initialFallback = excludedVenueKeys.size || curated.length || discovered.length ? [] : curatedPool;
   // Live map discovery is the product. Curated records only fill genuine gaps and
@@ -2216,12 +2226,13 @@ async function planTourRoute(event) {
   const cleanPlace = value => String(value || "").trim();
   const excludedVenueKeys = new Set((Array.isArray(data.excludeVenueKeys) ? data.excludeVenueKeys : []).slice(0, 120).map(value => String(value || "").trim()).filter(value => /^[a-f0-9]{20}$/.test(value)));
   const variation = Math.max(0, Math.min(1000, Math.trunc(Number(data.variation) || 0)));
-  const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), genre = cleanPlace(data.genre).slice(0, 80), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), requestedDepartOn = cleanPlace(data.departOn), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), suppliedStops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [], suppliedEnd = local || directional ? start : cleanPlace(data.end), end = suppliedEnd || suppliedStops.at(-1) || "", stops = suppliedEnd ? suppliedStops : suppliedStops.slice(0, -1);
+  const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), genre = cleanPlace(data.genre).slice(0, 80), venueType = cleanPlace(data.venueType || "any").toLowerCase(), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), requestedDepartOn = cleanPlace(data.departOn), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), suppliedStops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [], suppliedEnd = local || directional ? start : cleanPlace(data.end), end = suppliedEnd || suppliedStops.at(-1) || "", stops = suppliedEnd ? suppliedStops : suppliedStops.slice(0, -1);
   const rawBounds = data.searchBounds && typeof data.searchBounds === "object" ? data.searchBounds : null;
   const searchBounds = rawBounds ? { north: Number(rawBounds.north), south: Number(rawBounds.south), east: Number(rawBounds.east), west: Number(rawBounds.west) } : null;
   const searchPath = Array.isArray(data.searchPath) ? data.searchPath.slice(0, 40).map(point => Array.isArray(point) ? [Number(point[0]), Number(point[1])] : []) : [];
   if (searchBounds && (!Object.values(searchBounds).every(Number.isFinite) || searchBounds.north <= searchBounds.south || searchBounds.east <= searchBounds.west || (searchPath.length < 2 && (searchBounds.north - searchBounds.south > 8 || searchBounds.east - searchBounds.west > 8)))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Draw a smaller valid map search area." }) };
   if (searchPath.length && (searchPath.length < 2 || searchPath.some(point => point.length !== 2 || !Number.isFinite(point[0]) || !Number.isFinite(point[1]) || Math.abs(point[0]) > 180 || Math.abs(point[1]) > 90))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Draw a valid route on the map." }) };
+  if (!new Set(["any", "diy", "bar", "club", "hall"]).has(venueType)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a valid venue type." }) };
   if (directional && (!tourDirections.has(direction) || !requestedDays)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a travel direction and provide 1–180 tour days." }) };
   if ((requestedDepartOn && !/^\d{4}-\d{2}-\d{2}$/.test(requestedDepartOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour dates must use YYYY-MM-DD." }) };
   if (requestedDepartOn && returnBy && requestedDepartOn > returnBy) return { statusCode: 400, headers, body: JSON.stringify({ error: "The home date must be on or after the first show date." }) };
@@ -2232,7 +2243,7 @@ async function planTourRoute(event) {
       if (searchPath.length >= 2) {
         const sampleCount = Math.min(5, searchPath.length);
         const samplePoints = Array.from({ length: sampleCount }, (_, index) => searchPath[Math.round(index * (searchPath.length - 1) / Math.max(1, sampleCount - 1))]);
-        const batches = await Promise.all(samplePoints.map((position, index) => tourCandidates({ label: `Drawn route area ${index + 1}`, position }, genre, excludedVenueKeys, variation + index, null)));
+        const batches = await Promise.all(samplePoints.map((position, index) => tourCandidates({ label: `Drawn route area ${index + 1}`, position }, genre, excludedVenueKeys, variation + index, null, venueType)));
         const venues = deduplicateVenues(batches.flatMap(batch => batch.venues || []))
           .filter(place => distanceToSearchPathMiles(place.position, searchPath) <= 25)
           .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre))
@@ -2245,7 +2256,7 @@ async function planTourRoute(event) {
         label: `${homePoint.label} map area`,
         position: [(searchBounds.east + searchBounds.west) / 2, (searchBounds.north + searchBounds.south) / 2]
       } : homePoint;
-      const candidates = await tourCandidates(point, genre, excludedVenueKeys, variation, searchBounds);
+      const candidates = await tourCandidates(point, genre, excludedVenueKeys, variation, searchBounds, venueType);
       if (searchBounds) candidates.venues = candidates.venues.filter(place => Array.isArray(place.position) && place.position.length === 2 && place.position[1] <= searchBounds.north && place.position[1] >= searchBounds.south && place.position[0] <= searchBounds.east && place.position[0] >= searchBounds.west);
       if (searchPath.length >= 2) candidates.venues = candidates.venues.filter(place => distanceToSearchPathMiles(place.position, searchPath) <= 25);
       if (requestedDepartOn) candidates.proposedDate = requestedDepartOn;
@@ -2267,7 +2278,7 @@ async function planTourRoute(event) {
     }
     const summary = route?.Routes?.[0]?.Summary;
     if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
-    const markets = points.slice(1, -1), selected = markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]), candidates = await Promise.all(selected.map(point => tourCandidates(point, genre, excludedVenueKeys, variation)));
+    const markets = points.slice(1, -1), selected = markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]), candidates = await Promise.all(selected.map(point => tourCandidates(point, genre, excludedVenueKeys, variation, null, venueType)));
     const distanceMiles = Math.round(Number(summary.Distance || 0) / 1609.344), durationHours = Math.round(Number(summary.Duration || 0) / 360) / 10;
     const minimumDrivingDays = Math.max(1, Math.ceil(durationHours / 8));
     if (directional && minimumDrivingDays >= requestedDays) return { statusCode: 422, headers, body: JSON.stringify({ error: `That ${direction} loop needs at least ${minimumDrivingDays} full driving days. Add days or choose a shorter direction-based plan.` }) };
@@ -2347,13 +2358,13 @@ async function saveTourPlan(event) {
   const data = parseJsonBody(event);
   if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
   const name = String(data.name || "").trim().slice(0, 100), artist = String(data.artist || "").trim().slice(0, 100), tourId = /^[0-9a-f-]{36}$/i.test(String(data.tourId || "")) ? String(data.tourId) : randomUUID();
-  const requestedActType = String(data.actType || "").trim().toLowerCase(), requestedGenre = String(data.genre || "").trim();
-  const actType = tourActTypes.has(requestedActType) ? requestedActType : "band", genre = tourGenres.has(requestedGenre) ? requestedGenre : "DIY Punk";
+  const requestedActType = String(data.actType || "").trim().toLowerCase(), requestedGenre = String(data.genre || "").trim(), requestedVenueType = String(data.venueType || "any").trim().toLowerCase();
+  const actType = tourActTypes.has(requestedActType) ? requestedActType : "band", genre = tourGenres.has(requestedGenre) ? requestedGenre : "DIY Punk", venueType = new Set(["any", "diy", "bar", "club", "hall"]).has(requestedVenueType) ? requestedVenueType : "any";
   const start = String(data.start || "").trim().slice(0, 160), direction = String(data.direction || "").trim().toLowerCase(), departOn = String(data.departOn || "").trim(), returnBy = String(data.returnBy || "").trim();
   const days = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), distanceMiles = Math.max(0, Math.min(100000, Math.round(Number(data.distanceMiles) || 0)));
   const markets = Array.isArray(data.markets) ? data.markets.slice(0, 24).map(cleanTourMarket) : [];
   if (!name || !start || !days || markets.some(market => !market) || (departOn && !/^\d{4}-\d{2}-\d{2}$/.test(departOn)) || (returnBy && !/^\d{4}-\d{2}-\d{2}$/.test(returnBy))) return { statusCode: 400, headers, body: JSON.stringify({ error: "Tour name, starting city, dates, and stops must be valid." }) };
-  const nowIso = new Date().toISOString(), plan = { name, artist, actType, genre, start, direction: tourDirections.has(direction) ? direction : "custom", departOn, returnBy, days, distanceMiles, markets };
+  const nowIso = new Date().toISOString(), plan = { name, artist, actType, genre, venueType, start, direction: tourDirections.has(direction) ? direction : "custom", departOn, returnBy, days, distanceMiles, markets };
   await db.send(new PutItemCommand({ TableName: toursTable, Item: { userId: { S: userId }, tourId: { S: tourId }, name: { S: name }, plan: { S: JSON.stringify(plan) }, createdAt: { S: nowIso }, updatedAt: { S: nowIso } } }));
   return { statusCode: 200, headers, body: JSON.stringify({ tourId, updatedAt: nowIso }) };
 }

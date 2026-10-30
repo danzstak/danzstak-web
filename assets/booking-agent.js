@@ -252,7 +252,8 @@
     "Turnaround city (only if known)";
   const performerType = $("performerType"),
     artistInput = $("bandName"),
-    genreInput = $("musicGenre");
+    genreInput = $("musicGenre"),
+    venueTypeInput = $("venueType");
   performerType.addEventListener("change", () => {
     const suggestedGenre = {
       dj: "DJ / Electronic",
@@ -1144,6 +1145,7 @@
   routeAction.addEventListener("click", async () => {
     const artist = artistInput.value.trim(),
       genre = genreInput.value,
+      venueType = venueTypeInput.value,
       actType = performerType.value,
       mode = routeAction.dataset.mapSearchSignature ? "local" : bookingMode.value,
       start = $("startCity").value.trim(),
@@ -1159,6 +1161,7 @@
     const searchSignature = JSON.stringify({
       artist: artist,
       genre: genre,
+      venueType: venueType,
       actType: actType,
       mode: mode,
       start: start,
@@ -1219,6 +1222,7 @@
             artist: artist,
             actType: actType,
             genre: genre,
+            venueType: venueType,
             mode: mode,
             start: start,
             end: end,
@@ -1398,6 +1402,13 @@
           )
         )
           genreInput.value = tour.plan.genre;
+        if (
+          tour.plan?.venueType &&
+          [...venueTypeInput.options].some(
+            (option) => option.value === tour.plan.venueType,
+          )
+        )
+          venueTypeInput.value = tour.plan.venueType;
         $("startCity").value = tour.plan?.start || "";
         $("days").value = String(tour.plan?.days || 7);
         if (tour.plan?.departOn) departInput.value = tour.plan.departOn;
@@ -1474,6 +1485,7 @@
           artist: artistInput.value.trim(),
           actType: performerType.value,
           genre: genreInput.value,
+          venueType: venueTypeInput.value,
           start: route.start?.label || $("startCity").value.trim(),
           direction: route.direction || "custom",
           departOn: route.departOn || departInput.value,

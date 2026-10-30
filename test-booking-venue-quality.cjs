@@ -43,6 +43,13 @@ assert.equal(isBookableClub({ name: "Stadthalle", categories: ["Concert Hall", "
 assert.equal(isBookableClub({ name: "Konzertmuschel Heringsdorf", categories: ["Concert Venue", "Live Music"] }, "Rock"), false);
 assert.equal(isBookableClub({ name: "Ostseebad Ahrenshoop", categories: ["Live Music Venue"] }, "Rock"), false);
 
+const isVenueTypeMatch = vm.runInContext("isVenueTypeMatch", context);
+assert.equal(isVenueTypeMatch({ name: "The DIY Space", categories: ["All Ages", "Independent"] }, "diy"), true);
+assert.equal(isVenueTypeMatch({ name: "Roadhouse", categories: ["Live Music Bar"] }, "bar"), true);
+assert.equal(isVenueTypeMatch({ name: "Night Room", categories: ["Nightclub"] }, "club"), true);
+assert.equal(isVenueTypeMatch({ name: "Town Music Hall", categories: ["Concert Venue"] }, "hall"), true);
+assert.equal(isVenueTypeMatch({ name: "Town Music Hall", categories: ["Concert Venue"] }, "bar"), false);
+
 const client = fs.readFileSync("assets/booking-agent.js", "utf8");
 assert.match(client, /Search again for different clubs/);
 assert.match(client, /excludeVenueKeys/);
@@ -111,6 +118,8 @@ assert.match(client, /place\.activityEvidence/);
 assert.match(client, /listingCheckedText\(place\.discoveredAt\)/, "search cards must say when a public listing was checked");
 assert.match(mapClient, /place\.discoveredAt/, "map pins must say when a public listing was checked");
 assert.match(api, /discoveredAt: timestamp\(v\.discoveredAt\)/, "saved booking workspaces must preserve a validated listing-check timestamp");
+assert.match(client, /venueType: venueType/, "the selected venue type must be sent with venue searches");
+assert.match(api, /isVenueTypeMatch\(place, venueType\)/, "discovery must apply venue-type filtering to live and curated results");
 assert.match(client, /Source: \$\{place\.sourceName\}/);
 
 console.log("Booking venue checks passed: positive music-room evidence is required and repeat searches request a different batch.");
