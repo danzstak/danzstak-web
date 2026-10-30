@@ -3,6 +3,8 @@ $ErrorActionPreference = 'Stop'
 $authApiPath = Join-Path $PSScriptRoot 'infrastructure\auth-api\index.mjs'
 if (-not (Test-Path -LiteralPath $authApiPath)) { throw 'Version-controlled Auth API source is missing.' }
 $authApi = Get-Content -LiteralPath $authApiPath -Raw -Encoding utf8
+$authDeploy = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-deploy-auth-api.ps1') -Raw -Encoding utf8
+if ($authDeploy -notmatch 'package-lock\.json' -or $authDeploy -notmatch 'npm ci --omit=dev --ignore-scripts') { throw 'Auth API deployments must use the committed dependency lockfile.' }
 $productionDeploy = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aws-deploy-production.ps1') -Raw -Encoding utf8
 foreach ($releaseStep in @('DANZSTAK-Engagement', 'aws-deploy-auth-api.ps1', '$EngagementTemplate', 'test-live-security.ps1')) {
   if (-not $productionDeploy.Contains($releaseStep)) { throw "Production workflow omits required backend release step: $releaseStep" }

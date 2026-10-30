@@ -64,6 +64,8 @@ business data is read by venue discovery, and a directory outage falls back to
 the other discovery sources instead of blocking a tour search. A short-lived
 server cache prevents multi-stop route searches from repeatedly scanning the
 same reviewed directory.
+The Auth API deployment uses its committed npm lockfile with `npm ci` and
+disabled lifecycle scripts so production dependency resolution is reproducible.
 New selections merge into the account workspace without replacing existing
 booking notes. Saving is
 explicit; a tab copy is a fallback, not a cross-device source of truth.

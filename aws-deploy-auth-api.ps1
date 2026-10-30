@@ -5,6 +5,7 @@ $FunctionName = "DANZSTAK-Auth-API"
 $RoleName = "DANZSTAK-Auth-API-role-zjknf4ur"
 $Source = Join-Path $PSScriptRoot "infrastructure\auth-api\index.mjs"
 $Package = Join-Path $PSScriptRoot "infrastructure\auth-api\package.json"
+$PackageLock = Join-Path $PSScriptRoot "infrastructure\auth-api\package-lock.json"
 $Bundle = Join-Path $env:TEMP "danzstak-auth-api.zip"
 $Stage = Join-Path $env:TEMP ("danzstak-auth-api-" + [guid]::NewGuid().ToString("N"))
 $Policy = Join-Path $env:TEMP "danzstak-auth-api-policy.json"
@@ -39,10 +40,10 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Venue directory recovery protection failed." }
   }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath $Source,$Package -Destination $Stage
+  Copy-Item -LiteralPath $Source,$Package,$PackageLock -Destination $Stage
   Push-Location $Stage
   try {
-    npm install --omit=dev --ignore-scripts --no-audit --no-fund
+    npm ci --omit=dev --ignore-scripts --no-audit --no-fund
     if ($LASTEXITCODE -ne 0) { throw "Auth API dependency installation failed." }
   } finally { Pop-Location }
   Compress-Archive -Path (Join-Path $Stage "*") -DestinationPath $Bundle -Force
