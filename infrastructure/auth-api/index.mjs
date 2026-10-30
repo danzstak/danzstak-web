@@ -2097,6 +2097,45 @@ async function geocodeTourPlace(query) {
   return { label: String(place.Title || query).slice(0, 160), position: place.Position.slice(0, 2) };
 }
 
+async function addManualBookingVenue(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const data = parseJsonBody(event);
+  if (!data || typeof data !== "object" || Array.isArray(data)) return reply(400, { error: "Invalid venue details." });
+  const clean = (value, maximum) => String(value || "").trim().slice(0, maximum);
+  const name = clean(data.name, 160), address = clean(data.address, 300);
+  let website = clean(data.website, 600), email = clean(data.email, 254).toLowerCase(), phone = clean(data.phone, 30);
+  if (!name || !address) return reply(400, { error: "Add the club name and public street address." });
+  if (website) {
+    try { const url = new URL(website); website = url.protocol === "https:" ? url.href : ""; } catch { website = ""; }
+    if (!website) return reply(400, { error: "The club website must be a complete HTTPS link." });
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply(400, { error: "Add a valid public booking email or leave it blank." });
+  if (phone && !/^\+?[0-9 ()-]{7,24}$/.test(phone)) return reply(400, { error: "Add a valid public phone number or leave it blank." });
+  if (!website && !email && !phone) return reply(400, { error: "Add at least one public website, booking email, or phone number." });
+  const result = await geoPlaces.send(new GeocodeCommand({ QueryText: address, MaxResults: 3 }));
+  const match = (result.ResultItems || []).find(place => Array.isArray(place.Position) && place.Position.length === 2);
+  if (!match) return reply(422, { error: "That public address could not be placed on the map. Check it and try again." });
+  const position = match.Position.slice(0, 2), locality = clean(match.Address?.Locality || match.Address?.District, 120);
+  const discoveredAt = new Date(now() * 1000).toISOString();
+  const venueKey = createHash("sha256").update(`${name.toLowerCase()}|${address.toLowerCase()}|${position.join(",")}`).digest("hex").slice(0, 20);
+  return reply(200, { venue: {
+    venueKey, name, address, locality, position,
+    distanceMiles: null,
+    websites: website ? [website] : [], emails: email ? [email] : [], phones: phone ? [phone] : [],
+    categories: ["Member-added public live music venue"],
+    contactVerificationRequired: true,
+    sourceName: "Member-added public booking lead",
+    sourceUrl: website,
+    sources: [{ name: "Member-added public booking lead", url: website }],
+    discoveredAt,
+    activityEvidence: "A DanzStak member supplied this public club contact. Verify the official website, current calendar, and buyer before outreach."
+  } });
+}
+
 const verifiedSanFranciscoRooms = [
   { name: "The Knockout", address: "3223 Mission St, San Francisco, CA 94110", position: [-122.4198, 37.7456], websites: ["https://theknockoutsf.com/events-2-1"], emails: ["knockoutsfbooking@gmail.com"], phones: [], categories: ["Live Music Venue", "Punk", "Rock", "Metal"] },
   { name: "Kilowatt", address: "3160 16th St, San Francisco, CA 94103", position: [-122.4235, 37.7643], websites: ["https://kilowattbar.com/"], emails: ["kilowatt@kilowattbar.com"], phones: ["415-861-2595"], categories: ["Live Music Venue", "Punk", "Rock"] },
@@ -2599,6 +2638,8 @@ export const handler = async event => {
     if (method === "POST" && path === "/tour/route") {
       return await planTourRoute(event);
     }
+
+    if (method === "POST" && path === "/tour/manual-venue") return await addManualBookingVenue(event);
 
     if ((method === "GET" || method === "POST") && path === "/booking-pipeline") return await bookingWorkspace(event, method);
     if (method === "GET" && path === "/tours") return await listTourPlans(event);

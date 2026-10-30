@@ -25,7 +25,7 @@
       sizes="180x180"
     />
     <link rel="stylesheet" href="assets/booking-agent.css?v=311" />
-    <link rel="stylesheet" href="assets/booking-agent-driver.css?v=316" />
+    <link rel="stylesheet" href="assets/booking-agent-driver.css?v=317" />
     <link rel="stylesheet" href="assets/accessibility.css?v=364" />
   </head>
   <body>
@@ -93,6 +93,23 @@
           id="venueSearchMap"
           aria-label="Interactive map for searching visible live-music clubs"
         ></div>
+        <details class="missing-venue">
+          <summary>Club missing from the map?</summary>
+          <p>Add a public live-music room to your private booking list. DanzStak will place its address on the map; this does not publish it to the shared directory.</p>
+          <form id="manualVenueForm" autocomplete="off">
+            <div class="two">
+              <label>Club name<input id="manualVenueName" required maxlength="160"></label>
+              <label>Public street address<input id="manualVenueAddress" required maxlength="300" placeholder="Street, city, country"></label>
+            </div>
+            <div class="three">
+              <label>Official website<input id="manualVenueWebsite" type="url" maxlength="600" placeholder="https://"></label>
+              <label>Public booking email<input id="manualVenueEmail" type="email" maxlength="254"></label>
+              <label>Public phone<input id="manualVenuePhone" type="tel" maxlength="30"></label>
+            </div>
+            <button type="submit">Add club to booking list</button>
+            <p id="manualVenueStatus" role="status" aria-live="polite"></p>
+          </form>
+        </details>
         <div class="venue-selection-bar">
           <strong id="selectedVenueCount">0 clubs selected</strong
           ><button
@@ -627,7 +644,7 @@
       crossorigin="anonymous"
       defer
     ></script>
-    <script src="assets/booking-map.js?v=434" defer></script>
+    <script src="assets/booking-map.js?v=435" defer></script>
     <script src="assets/session-activity.js?v=270" defer></script>
     <script src="assets/logout.js?v=308" defer></script>
     <script src="assets/booking-agent.js?v=320" defer></script>

@@ -306,6 +306,57 @@
     return box;
   }
 
+  function addVenueMarker(place, open = false) {
+    if (!Array.isArray(place.position) || place.position.length !== 2) return null;
+    const venueName = String(place.name || "Live music venue").trim();
+    const marker = L.marker([place.position[1], place.position[0]], {
+      title: venueName,
+      alt: `${venueName} venue marker`
+    }).bindPopup(popupFor(place)).addTo(venueMarkers);
+    if (open) marker.openPopup();
+    return marker;
+  }
+
+  const manualVenueForm = document.getElementById("manualVenueForm");
+  const manualVenueStatus = document.getElementById("manualVenueStatus");
+  manualVenueForm?.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!manualVenueForm.reportValidity()) return;
+    const submit = manualVenueForm.querySelector('button[type="submit"]');
+    const details = {
+      name: document.getElementById("manualVenueName")?.value.trim() || "",
+      address: document.getElementById("manualVenueAddress")?.value.trim() || "",
+      website: document.getElementById("manualVenueWebsite")?.value.trim() || "",
+      email: document.getElementById("manualVenueEmail")?.value.trim() || "",
+      phone: document.getElementById("manualVenuePhone")?.value.trim() || ""
+    };
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 15000);
+    submit.disabled = true;
+    manualVenueStatus.textContent = "Placing this club on the map…";
+    try {
+      const response = await fetch("https://api.danzstak.com/tour/manual-venue", {
+        method: "POST", credentials: "include", cache: "no-store", signal: controller.signal,
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify(details)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.venue) throw new Error(response.status === 401 ? "Sign in again before adding a club." : data.error || "The club could not be added.");
+      const place = data.venue;
+      selectedVenues.set(venueIdentity(place), place);
+      try { sessionStorage.setItem("danzstakBookingMapAdditions", "true"); } catch {}
+      updateSelectionUi();
+      addVenueMarker(place, true);
+      map.setView([place.position[1], place.position[0]], Math.max(map.getZoom(), 13));
+      manualVenueForm.reset();
+      manualVenueStatus.textContent = `${place.name} was added to your private booking list. Verify the contact before outreach.`;
+    } catch (error) {
+      manualVenueStatus.textContent = error.name === "AbortError" ? "Address lookup took too long. Check the address and try again." : error.message;
+    } finally {
+      window.clearTimeout(timer);
+      submit.disabled = false;
+    }
+  });
+
   function appendDifferentClubsButton() {
     const results = document.getElementById("routeResults");
     const primarySearch = document.getElementById("routeSearchAction") || document.querySelector(".primary-route");
@@ -326,13 +377,7 @@
       .filter(point => Array.isArray(point?.position) && point.position.length === 2);
     const venues = (data.candidates || []).flatMap(market => market.venues || [])
       .filter(place => Array.isArray(place.position) && place.position.length === 2);
-    for (const place of venues) {
-      const venueName = String(place.name || "Live music venue").trim();
-      L.marker([place.position[1], place.position[0]], {
-        title: venueName,
-        alt: `${venueName} venue marker`
-      }).bindPopup(popupFor(place)).addTo(venueMarkers);
-    }
+    for (const place of venues) addVenueMarker(place);
     const coordinates = venues.length
       ? venues.map(place => [place.position[1], place.position[0]])
       : routePoints.map(point => [point.position[1], point.position[0]]);
