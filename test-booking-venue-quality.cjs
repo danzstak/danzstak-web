@@ -63,7 +63,7 @@ assert.match(api, /name: "Great American Music Hall"[\s\S]*info@gamh\.com/);
 assert.match(api, /name: "August Hall"[\s\S]*booking@augusthallsf\.com/);
 assert.match(api, /name: "Make-Out Room"[\s\S]*makeoutroom\.com/);
 assert.match(api, /discoveryGenre[\s\S]*bar live music[\s\S]*concert club/, "discovery must search beyond the curated directory with several real-world club query shapes");
-assert.match(api, /deduplicateVenues\(\[\.\.\.discovered, \.\.\.curated/, "live map discoveries must appear before curated fallback rooms");
+assert.match(api, /deduplicateVenues\(\[\.\.\.reviewed, \.\.\.discovered, \.\.\.curated/, "reviewed and live map discoveries must appear before curated fallback rooms");
 assert.match(api, /slice\(0, 24\)/, "a dense city search must be able to return more than a short curated list");
 assert.match(api, /name: "Hawthorne Theatre"[\s\S]*hawthornetheatre\.com\/booking/);
 assert.match(api, /name: "Turn! Turn! Turn!"[\s\S]*turnturnturnpdx\.booking@gmail\.com/);

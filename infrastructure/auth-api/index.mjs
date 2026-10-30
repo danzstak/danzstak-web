@@ -57,6 +57,7 @@ const groupsTable = "DANZSTAK-GroupMembers";
 const settingsTable = "DanzStak-UserSettings";
 const supportTicketsTable = process.env.SUPPORT_TICKETS_TABLE || "DANZSTAK-SupportTickets";
 const toursTable = process.env.TOURS_TABLE || "DANZSTAK-Tours";
+const venueDirectoryTable = process.env.VENUE_DIRECTORY_TABLE || "DANZSTAK-VenueDirectory";
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -2040,6 +2041,46 @@ function deduplicateVenues(places) {
   return [...unique.values()];
 }
 
+function approximateMilesBetween(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== 2 || right.length !== 2) return Number.POSITIVE_INFINITY;
+  const meanLatitude = (Number(left[1]) + Number(right[1])) / 2 * Math.PI / 180;
+  const dx = (Number(left[0]) - Number(right[0])) * 69 * Math.max(0.2, Math.cos(meanLatitude));
+  const dy = (Number(left[1]) - Number(right[1])) * 69;
+  return Math.hypot(dx, dy);
+}
+
+async function approvedMemberVenueLeads(point, searchBounds = null) {
+  try {
+    const records = await scanAll({
+      TableName: venueDirectoryTable,
+      FilterExpression: "#status = :approved",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: { ":approved": { S: "approved" } },
+      Limit: 500
+    }, 500);
+    return records.map(item => {
+      const position = [Number(item.longitude?.N), Number(item.latitude?.N)];
+      const websites = item.website?.S ? [item.website.S] : [];
+      const emails = item.email?.S ? [item.email.S] : [];
+      const phones = item.phone?.S ? [item.phone.S] : [];
+      return {
+        venueKey: item.venueKey?.S || "", name: item.name?.S || "Public venue", address: item.address?.S || "",
+        locality: item.locality?.S || "", position, websites, emails, phones,
+        categories: (item.categories?.SS || ["Member-verified public live music venue"]).slice(0, 8),
+        distanceMiles: Math.round(approximateMilesBetween(point.position, position) * 10) / 10,
+        contactVerificationRequired: true, sourceName: "DanzStak reviewed venue directory",
+        sourceUrl: websites[0] || "", sources: [{ name: "DanzStak reviewed venue directory", url: websites[0] || "" }],
+        discoveredAt: item.approvedAt?.S || item.createdAt?.S || "",
+        activityEvidence: "A moderator reviewed this member-supplied public venue lead. Confirm its current calendar before pitching."
+      };
+    }).filter(place => place.venueKey && place.position.every(Number.isFinite))
+      .filter(place => !searchBounds || (place.position[1] <= searchBounds.north && place.position[1] >= searchBounds.south && place.position[0] <= searchBounds.east && place.position[0] >= searchBounds.west));
+  } catch (error) {
+    console.error("Reviewed venue directory unavailable:", error.name);
+    return [];
+  }
+}
+
 function distanceToSearchPathMiles(position, path) {
   if (!Array.isArray(position) || position.length !== 2 || !Array.isArray(path) || path.length < 2) return Number.POSITIVE_INFINITY;
   const longitudeScale = Math.max(0.2, Math.cos(Number(position[1]) * Math.PI / 180));
@@ -2262,7 +2303,10 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
         ? "classical concert hall orchestra venue"
         : "rock punk metal music venue"
   ])];
-  const searchResults = await Promise.allSettled([search("hotel"), ...venueQueries.map(search)]);
+  const [searchResults, reviewedDirectory] = await Promise.all([
+    Promise.allSettled([search("hotel"), ...venueQueries.map(search)]),
+    approvedMemberVenueLeads(point, searchBounds)
+  ]);
   const [hotelSearch, ...venueSearches] = searchResults;
   // A failed category lookup must not discard clubs found by the other searches.
   if (venueSearches.every(result => result.status === "rejected")) throw venueSearches[0].reason;
@@ -2271,13 +2315,14 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
   const curatedPool = curatedVenueLeads(point, genre, variation);
   const curated = curatedPool.filter(place => isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
+  const reviewed = reviewedDirectory.filter(place => nearby(place, 60) && isBookableClub(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
   const discovered = venueBatches.flat()
     .filter(place => nearby(place, 60) && isBookableClub(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey))
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre));
   const initialFallback = excludedVenueKeys.size || curated.length || discovered.length ? [] : curatedPool;
   // Live map discovery is the product. Curated records only fill genuine gaps and
   // must never crowd newly discovered rooms out of the first results.
-  const venuePool = deduplicateVenues([...discovered, ...curated, ...initialFallback]);
+  const venuePool = deduplicateVenues([...reviewed, ...discovered, ...curated, ...initialFallback]);
   const offset = venuePool.length ? variation % venuePool.length : 0;
   const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60);
   const hotels = hotelResults.filter(place => nearby(place, 35));

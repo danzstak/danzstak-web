@@ -16,6 +16,7 @@ async function run(fail, genre = "DIY Punk") {
       })) };
     } },
     publicPlace: place => place,
+    approvedMemberVenueLeads: async () => [],
     curatedVenueLeads: () => [],
     isBookableClub: () => true,
     isVenueTypeMatch: () => true,

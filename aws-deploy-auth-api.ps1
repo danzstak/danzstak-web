@@ -12,6 +12,7 @@ $Environment = Join-Path $env:TEMP "danzstak-auth-api-environment.json"
 $ApiId = "0872gqal4m"
 $AuthIntegrationId = "5pipi5a"
 $ToursTable = "DANZSTAK-Tours"
+$VenueDirectoryTable = "DANZSTAK-VenueDirectory"
 
 node --check $Source
 if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript validation failed." }
@@ -23,6 +24,19 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Tour plans table creation failed." }
     aws dynamodb wait table-exists --region $Region --table-name $ToursTable
     if ($LASTEXITCODE -ne 0) { throw "Tour plans table did not become ready." }
+  }
+  $previousErrorPreference = $ErrorActionPreference
+  $ErrorActionPreference = "SilentlyContinue"
+  aws dynamodb describe-table --region $Region --table-name $VenueDirectoryTable --output json 2>$null | Out-Null
+  $venueDirectoryDescribeExit = $LASTEXITCODE
+  $ErrorActionPreference = $previousErrorPreference
+  if ($venueDirectoryDescribeExit -ne 0) {
+    aws dynamodb create-table --region $Region --table-name $VenueDirectoryTable --billing-mode PAY_PER_REQUEST --attribute-definitions AttributeName=venueKey,AttributeType=S --key-schema AttributeName=venueKey,KeyType=HASH --tags Key=Application,Value=DanzStak Key=Purpose,Value=ReviewedVenueDirectory --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Venue directory table creation failed." }
+    aws dynamodb wait table-exists --region $Region --table-name $VenueDirectoryTable
+    if ($LASTEXITCODE -ne 0) { throw "Venue directory table did not become ready." }
+    aws dynamodb update-continuous-backups --region $Region --table-name $VenueDirectoryTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Venue directory recovery protection failed." }
   }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
   Copy-Item -LiteralPath $Source,$Package -Destination $Stage
@@ -101,6 +115,12 @@ try {
         Effect = "Allow"
         Action = @("dynamodb:PutItem", "dynamodb:GetItem", "dynamodb:Query", "dynamodb:DeleteItem")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Tours"
+      },
+      @{
+        Sid = "ReviewedVenueDirectory"
+        Effect = "Allow"
+        Action = @("dynamodb:Scan", "dynamodb:GetItem")
+        Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-VenueDirectory"
       }
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Policy -Encoding ascii

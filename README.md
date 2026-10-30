@@ -58,6 +58,10 @@ workspace. Members can also add a missing public club to their private booking
 list. An explicit, certified opt-in can place that lead into a moderation queue;
 it is never published automatically and private homes, secret DIY spaces, and
 personal contacts are prohibited.
+Approved suggestions move through `moderate-venue-directory.ps1` into a
+separate point-in-time-recovery-protected directory table. Only approved public
+business data is read by venue discovery, and a directory outage falls back to
+the other discovery sources instead of blocking a tour search.
 New selections merge into the account workspace without replacing existing
 booking notes. Saving is
 explicit; a tab copy is a fallback, not a cross-device source of truth.
