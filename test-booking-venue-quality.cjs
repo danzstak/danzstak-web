@@ -37,6 +37,12 @@ assert.equal(isBookableClub({ name: "SFJAZZ Center", categories: ["Jazz Workshop
 assert.equal(isBookableClub({ name: "PDE", categories: ["Orchestra"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "Musicians Entrance", categories: ["San Francisco Symphony", "Orchestra Facility"] }, "Rock"), false);
 assert.equal(isBookableClub({ name: "Club Passport", categories: ["Passport Service", "Government Office"] }, "DJ / Electronic"), false);
+assert.equal(isBookableClub({ name: "Top Notch DJ's and Event Services", categories: ["Live Entertainment-Music"] }, "Rock"), false);
+assert.equal(isBookableClub({ name: "Robo Party Band", categories: ["Entertainment and Recreation", "Live Entertainment-Music"] }, "Rock"), false);
+assert.equal(isBookableClub({ name: "Town & Country Event Center", categories: ["Live Entertainment-Music", "Event Space"] }, "Rock"), false);
+assert.equal(isBookableClub({ name: "The Grand", categories: ["Swimming Pool", "Live Entertainment-Music"] }, "Rock"), false);
+assert.equal(isBookableClub({ name: "Richard Brunelle Performance Hall", categories: ["Live Entertainment-Music", "Theatre, Music and Culture"] }, "Rock"), false);
+assert.equal(isBookableClub({ name: "Roseville Veterans Memorial Hall", categories: ["Live Entertainment-Music"] }, "Rock"), false);
 assert.equal(isBookableClub({ name: "Störtebeker Festspiele", categories: ["Concert Venue", "Live Music"] }, "Rock"), false);
 assert.equal(isBookableClub({ name: "Kurpavillon", categories: ["Concert Venue", "Live Music"] }, "Rock"), false);
 assert.equal(isBookableClub({ name: "Stadthalle", categories: ["Concert Hall", "Live Music"] }, "Rock"), false);

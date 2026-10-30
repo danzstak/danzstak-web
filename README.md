@@ -59,6 +59,9 @@ plain request such as “Plan a 10-day DIY punk tour for The Rats from Momo to
 Berlin and back home,” and DanzStak fills the structured route controls before
 running the same verified club search. The map and detailed controls remain
 available for correction and refinement.
+Discovery rejects mobile DJs, event-service vendors, party bands, generic
+event centers, pools, institutional performance halls, and veterans halls even
+when a place provider labels them as live entertainment.
 Members can also add a missing public club to their private booking
 list. An explicit, certified opt-in can place that lead into a moderation queue;
 it is never published automatically and private homes, secret DIY spaces, and
