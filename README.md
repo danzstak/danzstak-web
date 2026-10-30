@@ -54,7 +54,12 @@ authenticated owner's workspace; `POST /booking-pipeline` saves a bounded,
 validated snapshot using a revision condition to prevent cross-device
 overwrites. The workspace uses a reserved item in the existing Tours table
 and is excluded from the saved-tour list. New map selections merge into the
-account workspace without replacing existing booking notes. Saving is
+workspace. Members can also add a missing public club to their private booking
+list. An explicit, certified opt-in can place that lead into a moderation queue;
+it is never published automatically and private homes, secret DIY spaces, and
+personal contacts are prohibited.
+New selections merge into the account workspace without replacing existing
+booking notes. Saving is
 explicit; a tab copy is a fallback, not a cross-device source of truth.
 Pitch review opens the artist's email client and does not send email or
 automatically mark a lead contacted. Public contacts and genre categories

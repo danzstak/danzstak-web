@@ -319,6 +319,13 @@
 
   const manualVenueForm = document.getElementById("manualVenueForm");
   const manualVenueStatus = document.getElementById("manualVenueStatus");
+  const manualVenueReview = document.getElementById("manualVenueReview");
+  const manualVenueCertification = document.getElementById("manualVenueCertification");
+  const manualVenueCertificationRow = manualVenueCertification?.closest("label");
+  manualVenueReview?.addEventListener("change", () => {
+    if (manualVenueCertificationRow) manualVenueCertificationRow.hidden = !manualVenueReview.checked;
+    if (!manualVenueReview.checked && manualVenueCertification) manualVenueCertification.checked = false;
+  });
   manualVenueForm?.addEventListener("submit", async event => {
     event.preventDefault();
     if (!manualVenueForm.reportValidity()) return;
@@ -328,8 +335,15 @@
       address: document.getElementById("manualVenueAddress")?.value.trim() || "",
       website: document.getElementById("manualVenueWebsite")?.value.trim() || "",
       email: document.getElementById("manualVenueEmail")?.value.trim() || "",
-      phone: document.getElementById("manualVenuePhone")?.value.trim() || ""
+      phone: document.getElementById("manualVenuePhone")?.value.trim() || "",
+      submitForReview: Boolean(manualVenueReview?.checked),
+      publicVenueCertified: Boolean(manualVenueCertification?.checked)
     };
+    if (details.submitForReview && !details.publicVenueCertified) {
+      manualVenueStatus.textContent = "Confirm that this is a public business venue before submitting it for directory review.";
+      manualVenueCertification?.focus();
+      return;
+    }
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 15000);
     submit.disabled = true;
@@ -348,7 +362,9 @@
       addVenueMarker(place, true);
       map.setView([place.position[1], place.position[0]], Math.max(map.getZoom(), 13));
       manualVenueForm.reset();
-      manualVenueStatus.textContent = `${place.name} was added to your private booking list. Verify the contact before outreach.`;
+      manualVenueStatus.textContent = data.reviewSubmitted
+        ? `${place.name} was added privately and submitted for directory review. It will not be shared unless a moderator verifies it.`
+        : `${place.name} was added to your private booking list. Verify the contact before outreach.`;
     } catch (error) {
       manualVenueStatus.textContent = error.name === "AbortError" ? "Address lookup took too long. Check the address and try again." : error.message;
     } finally {

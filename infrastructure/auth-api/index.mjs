@@ -2107,6 +2107,8 @@ async function addManualBookingVenue(event) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return reply(400, { error: "Invalid venue details." });
   const clean = (value, maximum) => String(value || "").trim().slice(0, maximum);
   const name = clean(data.name, 160), address = clean(data.address, 300);
+  const submitForReview = data.submitForReview === true;
+  const publicVenueCertified = data.publicVenueCertified === true;
   let website = clean(data.website, 600), email = clean(data.email, 254).toLowerCase(), phone = clean(data.phone, 30);
   if (!name || !address) return reply(400, { error: "Add the club name and public street address." });
   if (website) {
@@ -2116,13 +2118,32 @@ async function addManualBookingVenue(event) {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply(400, { error: "Add a valid public booking email or leave it blank." });
   if (phone && !/^\+?[0-9 ()-]{7,24}$/.test(phone)) return reply(400, { error: "Add a valid public phone number or leave it blank." });
   if (!website && !email && !phone) return reply(400, { error: "Add at least one public website, booking email, or phone number." });
+  if (submitForReview && !publicVenueCertified) return reply(400, { error: "Confirm that this is a public business venue before submitting it for directory review." });
   const result = await geoPlaces.send(new GeocodeCommand({ QueryText: address, MaxResults: 3 }));
   const match = (result.ResultItems || []).find(place => Array.isArray(place.Position) && place.Position.length === 2);
   if (!match) return reply(422, { error: "That public address could not be placed on the map. Check it and try again." });
   const position = match.Position.slice(0, 2), locality = clean(match.Address?.Locality || match.Address?.District, 120);
   const discoveredAt = new Date(now() * 1000).toISOString();
   const venueKey = createHash("sha256").update(`${name.toLowerCase()}|${address.toLowerCase()}|${position.join(",")}`).digest("hex").slice(0, 20);
-  return reply(200, { venue: {
+  if (submitForReview) {
+    const ticketId = `venue-${venueKey}-${sha256(userId).slice(0, 8)}`;
+    try {
+      await db.send(new PutItemCommand({
+        TableName: supportTicketsTable,
+        Item: {
+          ticketId: { S: ticketId }, userId: { S: userId },
+          category: { S: "venue-directory" }, subject: { S: `Review public venue: ${name}` },
+          message: { S: JSON.stringify({ venueKey, name, address, locality, position, website, email, phone }) },
+          createdAt: { S: discoveredAt }, status: { S: "pending-review" },
+          publicVenueCertified: { BOOL: true }, expiresAt: { N: String(now() + 31536000) }
+        },
+        ConditionExpression: "attribute_not_exists(ticketId)"
+      }));
+    } catch (error) {
+      if (error.name !== "ConditionalCheckFailedException") throw error;
+    }
+  }
+  return reply(200, { reviewSubmitted: submitForReview, venue: {
     venueKey, name, address, locality, position,
     distanceMiles: null,
     websites: website ? [website] : [], emails: email ? [email] : [], phones: phone ? [phone] : [],
