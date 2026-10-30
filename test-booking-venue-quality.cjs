@@ -108,6 +108,8 @@ assert.match(mapClient, /L\.polyline\(routePoints/);
 assert.match(mapClient, /ResizeObserver/);
 assert.match(mapClient, /body\.searchBounds = searchBounds/);
 assert.match(mapClient, /venueMarkers/);
+assert.match(mapClient, /restoreSelectedVenues\(\)/, "selected clubs must survive a page reload in the booking session");
+assert.match(mapClient, /persistSelectedVenues\(\)/, "booking-list changes must be preserved immediately");
 assert.match(mapClient, /searchVisibleVenueArea/);
 assert.match(mapClient, /map\.getBounds\(\)/);
 assert.match(mapClient, /isSearchableBounds/);
@@ -124,6 +126,7 @@ assert.match(api, /isVenueTypeMatch\(place, venueType\)/, "discovery must apply 
 assert.match(client, /venueSources\(place\)/);
 assert.match(api, /sources: \[\{ name: "AWS Places public listing"/);
 assert.match(api, /sources: \[\{ name: "DanzStak curated public venue directory"/);
+assert.match(api, /discoveredAt: new Date\(now\(\) \* 1000\)\.toISOString\(\)/, "curated listings must disclose when they were checked");
 assert.match(api, /sources, activityEvidence:/, "saved booking workspaces must preserve validated multi-source evidence");
 
 console.log("Booking venue checks passed: positive music-room evidence is required and repeat searches request a different batch.");

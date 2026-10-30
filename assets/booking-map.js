@@ -44,6 +44,22 @@
   const venueSources = place => Array.isArray(place.sources) && place.sources.length
     ? place.sources.filter(source => source?.name)
     : place.sourceName ? [{ name: place.sourceName, url: place.sourceUrl || "" }] : [];
+  const selectionStorageKey = "danzstakBookingVenueSelections";
+  function restoreSelectedVenues() {
+    try {
+      const stored = JSON.parse(sessionStorage.getItem(selectionStorageKey) || "[]");
+      if (!Array.isArray(stored)) return;
+      for (const place of stored.slice(0, 200)) {
+        if (!place || typeof place !== "object" || !String(place.name || "").trim()) continue;
+        selectedVenues.set(venueIdentity(place), place);
+      }
+    } catch {
+      sessionStorage.removeItem(selectionStorageKey);
+    }
+  }
+  function persistSelectedVenues() {
+    sessionStorage.setItem(selectionStorageKey, JSON.stringify([...selectedVenues.values()]));
+  }
   const boundsPayload = bounds => ({
     north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest()
   });
@@ -53,6 +69,7 @@
     const count = selectedVenues.size;
     if (selectionCount) selectionCount.textContent = `${count} club${count === 1 ? "" : "s"} selected`;
     if (openSelections) openSelections.disabled = count === 0;
+    persistSelectedVenues();
   }
 
   function useBounds(bounds, scope) {
@@ -381,10 +398,11 @@
   window.setTimeout(resizeMap, 500);
   openSelections?.addEventListener("click", () => {
     if (!selectedVenues.size) return;
-    sessionStorage.setItem("danzstakBookingVenueSelections", JSON.stringify([...selectedVenues.values()]));
+    persistSelectedVenues();
     sessionStorage.setItem("danzstakBookingMapAdditions", "true");
     window.location.assign("booking-selections.html");
   });
+  restoreSelectedVenues();
   updateSelectionUi();
   document.addEventListener("DOMContentLoaded", () => {
     const mode = document.getElementById("bookingMode");

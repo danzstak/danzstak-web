@@ -2167,6 +2167,7 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
     sourceName: "DanzStak curated public venue directory",
     sourceUrl: place.websites?.[0] || "",
     sources: [{ name: "DanzStak curated public venue directory", url: place.websites?.[0] || "" }],
+    discoveredAt: new Date(now() * 1000).toISOString(),
     activityEvidence: "A public venue or booking page is available; confirm the current calendar before pitching."
   }));
 }
