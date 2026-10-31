@@ -1063,6 +1063,7 @@
         venueDetails = document.createElement("details"),
         venueSummary = document.createElement("summary"),
         venueGrid = document.createElement("div"),
+        venueStatus = document.createElement("p"),
         hotelDetails = document.createElement("details"),
         hotelSummary = document.createElement("summary"),
       hotelGrid = document.createElement("div"),
@@ -1083,7 +1084,16 @@
           : "Mark date confirmed";
         confirmation.classList.toggle("confirmed", market.confirmed);
       });
-      venueSummary.textContent = `Best club leads (${Math.min(6, market.venues.length)} of ${market.venues.length})`;
+      const marketVenues = Array.isArray(market.venues) ? market.venues : [];
+      venueSummary.textContent = market.discoveryUnavailable
+        ? "Club lookup needs another try"
+        : `Best club leads (${Math.min(6, marketVenues.length)} of ${marketVenues.length})`;
+      venueStatus.className = "hint";
+      venueStatus.textContent = market.discoveryUnavailable
+        ? "This town stayed on the route, but its live club search was temporarily unavailable. Use Search different clubs to retry without losing the tour."
+        : marketVenues.length
+          ? ""
+          : "No strong live-music lead was returned for this town yet. Try Search different clubs or add a verified public venue.";
       const budgetHotels = (market.hotels || []).slice(0, 2),
         vanStops = (market.vanStops || []).slice(0, 2);
       hotelSummary.textContent = `Budget sleep leads (${budgetHotels.length})`;
@@ -1091,14 +1101,16 @@
       vanWarning.className = "hint";
       vanWarning.textContent = "Verify overnight permission, current rules, lighting and safety before stopping. A public listing is not permission to sleep there.";
       venueGrid.className = hotelGrid.className = vanGrid.className = "place-grid";
-      market.venues.slice(0, 6).forEach((place) =>
+      marketVenues.slice(0, 6).forEach((place) =>
         venueGrid.append(placeCard(place, "club")),
       );
       budgetHotels.forEach((place) =>
         hotelGrid.append(placeCard(place, "hotel")),
       );
       vanStops.forEach((place) => vanGrid.append(placeCard(place, "van-rest")));
-      venueDetails.append(venueSummary, venueGrid);
+      venueDetails.append(venueSummary);
+      if (venueStatus.textContent) venueDetails.append(venueStatus);
+      venueDetails.append(venueGrid);
       hotelDetails.append(hotelSummary, hotelGrid);
       vanDetails.append(vanSummary, vanWarning, vanGrid);
       section.className = "route-market";

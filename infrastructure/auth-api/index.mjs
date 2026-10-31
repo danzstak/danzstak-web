@@ -2549,7 +2549,17 @@ async function planTourRoute(event) {
       : corridor
         ? await Promise.all([...new Set(corridorSearchMarkets)].map(geocodeTourPlace))
         : await discoverRouteMarkets(route, points, requestedDays, requestedShows),
-      candidates = await Promise.all(selected.map(point => tourCandidates(point, genre, excludedVenueKeys, variation, null, venueType)));
+      candidates = await mapLimit(selected, 4, async point => {
+        try {
+          return await tourCandidates(point, genre, excludedVenueKeys, variation, null, venueType);
+        } catch (error) {
+          // A temporary lookup failure in one road town must not throw away the
+          // rest of a multi-city tour. Keep the market visible so the band can
+          // retry or add a verified lead without rebuilding the whole route.
+          console.warn("Tour market discovery unavailable", { market: point.label, name: error.name });
+          return { stop: point.label, position: point.position, venues: [], hotels: [], vanStops: [], discoveryUnavailable: true };
+        }
+      });
     candidates.forEach(candidate => {
       if (!candidate.stop.startsWith("On the road:")) return;
       const lead = candidate.venues?.find(venue => venue.locality);

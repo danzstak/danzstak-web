@@ -5,6 +5,12 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const source = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
+const bookingUi = fs.readFileSync("assets/booking-agent.js", "utf8");
+assert.match(source, /candidates = await mapLimit\(selected, 4, async point =>/, "multi-market discovery should use bounded concurrency");
+assert.match(source, /discoveryUnavailable: true/, "one failed market should remain visible without cancelling the route");
+assert.doesNotMatch(source, /candidates = await Promise\.all\(selected\.map\(point => tourCandidates/, "tour markets must not launch every venue query simultaneously");
+assert.match(bookingUi, /market\.discoveryUnavailable[\s\S]*Club lookup needs another try/, "a failed town lookup should explain its retryable state");
+assert.match(bookingUi, /This town stayed on the route/, "the UI should make clear that a failed lookup did not remove the market");
 const corridorSource = source.slice(
   source.indexOf("function westCoastTourCorridor("),
   source.indexOf("async function addManualBookingVenue("),
