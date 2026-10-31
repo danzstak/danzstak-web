@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-T+3EDdvec9I3BZG+zZLmh21JejFFEwXA+w0FN/Rk534='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-zYG5ve3gDfVCQl8Pmv0NTaqt8pkncRL1vCZRI+i1mXg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -532,11 +532,27 @@ async function discardUploadedMedia(mediaKey) {
   }).catch(() => null);
 }
 
+let presenceHeartbeatPromise = null;
+function refreshPresenceHeartbeat() {
+  if (presenceHeartbeatPromise) return presenceHeartbeatPromise;
+  presenceHeartbeatPromise = (async () => {
+    const response = await fetchWithDeadline("https://api.danzstak.com/calls/presence", {
+      method: "POST",
+      credentials: "include"
+    });
+    if (response.status === 401) {
+      location.replace("./");
+      return {};
+    }
+    return response.ok ? response.json().catch(() => ({})) : {};
+  })().catch(() => ({})).finally(() => { presenceHeartbeatPromise = null; });
+  return presenceHeartbeatPromise;
+}
+
 async function loadOnlineUsers() {
   const container = document.getElementById("feedOnlineUsers");
   try {
-    const presenceResponse = await fetchWithDeadline("https://api.danzstak.com/calls/presence", { method: "POST", credentials: "include" }).catch(() => null);
-    const presenceState = presenceResponse?.ok ? await presenceResponse.json().catch(() => ({})) : {};
+    const presenceState = await refreshPresenceHeartbeat();
     const [directoryResult, friendsResult] = await Promise.allSettled([
       fetchWithDeadline("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" }),
       fetchWithDeadline("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store" })
@@ -615,6 +631,7 @@ async function updateFeedFriend(path, body, button) {
 async function loadFriends() {
   const container = document.getElementById("feedFriends");
   try {
+    await refreshPresenceHeartbeat();
     const [friendsResult, directoryResult] = await Promise.allSettled([
       fetchWithDeadline("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store" }),
       fetchWithDeadline("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store" })

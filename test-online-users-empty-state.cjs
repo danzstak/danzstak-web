@@ -21,11 +21,11 @@ async function renderEmptyState(presence) {
       createElement: tagName => ({ tagName: tagName.toUpperCase(), className: '', textContent: '' })
     },
     fetchWithDeadline: async url => {
-      if (url.endsWith('/calls/presence')) return response(presence);
       if (url.endsWith('/calls/directory')) return response({ users: [] });
       if (url.endsWith('/friends')) return response({ friends: [] });
       throw new Error(`Unexpected request: ${url}`);
     },
+    refreshPresenceHeartbeat: async () => presence,
     location: { replace() { throw new Error('Unexpected sign-out redirect'); } },
     openMessageDrawer() {},
     updateFeedFriend() {}

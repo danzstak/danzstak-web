@@ -33,7 +33,8 @@ async function render({ friendsAvailable = true, presenceAvailable = true } = {}
         return response({ users: [{ email: 'friend@example.com', online: true }] });
       }
       throw Error(`Unexpected request: ${url}`);
-    }
+    },
+    refreshPresenceHeartbeat: async () => ({ online: true })
   });
   vm.runInContext(code, context);
   await context.loadFriends();

@@ -621,6 +621,10 @@ async function loadConversations() {
   loadingConversations = true;
   conversationUsers?.setAttribute?.("aria-busy", "true");
   try {
+    await directFetch("/calls/presence", {
+      method: "POST",
+      credentials: "include"
+    }).catch(() => null);
     const results = await Promise.allSettled([
       directFetch("/conversations", { credentials: "include", cache: "no-store" }),
       directFetch("/friends", { credentials: "include", cache: "no-store" }),
