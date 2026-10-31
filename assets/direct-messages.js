@@ -328,6 +328,16 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
   if (focusFirst) palette.querySelector("button")?.focus();
 }
 
+function updateConversationPresence(conversation) {
+  if (!conversationPresence) return;
+  const isOnline = conversation?.online === true;
+  const contactName = conversation?.name || conversationName?.textContent || "DanzStak member";
+  conversationPresence.hidden = false;
+  conversationPresence.textContent = isOnline ? "Online" : "Offline";
+  conversationPresence.classList.toggle("is-offline", !isOnline);
+  conversationPresence.setAttribute("aria-label", contactName + " is " + (isOnline ? "online" : "offline"));
+}
+
 function openConversation(conversation) {
   closeConversation();
   document.body.classList.add("is-conversation-open");
@@ -345,13 +355,7 @@ function openConversation(conversation) {
   conversationAvatar.href = profileHref;
   conversationAvatar.setAttribute("aria-label", "Open " + conversationName.textContent + " profile");
   labelConversationHeaderActions(conversationName.textContent);
-  if (conversationPresence) {
-    const isOnline = conversation.online === true;
-    conversationPresence.hidden = false;
-    conversationPresence.textContent = isOnline ? "Online" : "Offline";
-    conversationPresence.classList.toggle("is-offline", !isOnline);
-    conversationPresence.setAttribute("aria-label", conversationName.textContent + " is " + (isOnline ? "online" : "offline"));
-  }
+  updateConversationPresence(conversation);
   activeContactName = conversation.name || "Contact";
   if (deleteChat) deleteChat.disabled = false;
   conversationAvatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
@@ -689,6 +693,10 @@ async function loadConversations() {
     cachedConversations = [...contacts.values()];
     const focusedContact = document.activeElement?.closest?.(".conversation-user")?.dataset.contactEmail || "";
     const activeContact = String(contactInput?.value || "").trim().toLowerCase();
+    if (activeContact && !conversationHeader.hidden) {
+      const activeConversation = cachedConversations.find(item => item.contactEmail === activeContact);
+      if (activeConversation) updateConversationPresence(activeConversation);
+    }
     conversationUsers.replaceChildren();
     const query = chatSearch?.value.trim().toLowerCase() || "";
     const visible = cachedConversations.filter(item => {
