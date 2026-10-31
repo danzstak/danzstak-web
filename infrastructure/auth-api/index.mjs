@@ -2385,9 +2385,17 @@ const verifiedOlympiaRooms = [
   { name: "Rhythms Coffee", address: "210 4th Ave W, Olympia, WA 98501", position: [-122.9034761, 47.0448992], websites: ["https://rhythms-coffee.com/"], emails: [], phones: [], categories: ["All Ages Venue", "Live Music", "Rock", "Folk"] }
 ];
 
+const verifiedLongviewRooms = [
+  { name: "The Roxy Theater", address: "1101 Commerce Ave, Longview, WA 98632", position: [-122.9358010, 46.1338320], websites: ["https://www.theroxylongview.com/contact"], emails: [], phones: ["360-703-3678"], categories: ["Independent Theater", "Live Music Venue", "Rock"] }
+];
+
 const verifiedSalemRooms = [
   { name: "Victory Club", address: "155 Liberty St NE, Salem, OR 97301", position: [-123.0389917, 44.9407303], websites: ["https://vagabondbrewing.wixsite.com/mysite-2"], emails: ["info@victoryclubsalem.com"], phones: ["971-304-0004"], categories: ["Live Music Venue", "Bar", "Rock"] },
   { name: "The BAD Space at Santiam Brewing", address: "2572 19th St SE, Salem, OR 97302", position: [-123.0177, 44.9177], websites: ["https://www.santiambrewing.com/the-bad-space.html"], emails: ["ian@santiambrewing.com"], phones: ["503-507-5257"], categories: ["All Ages Venue", "Live Music Venue", "Rock", "Punk", "Metal"] }
+];
+
+const verifiedAlbanyOregonRooms = [
+  { name: "The 520 Event Center", address: "520 Pacific Blvd SW, Albany, OR 97321", position: [-123.1080254, 44.6248871], websites: ["https://pnwdynamic.com/"], emails: [], phones: [], categories: ["All Ages Venue", "Live Music Venue", "Metal", "Hardcore", "Screamo", "Rock"] }
 ];
 
 const verifiedRoseburgRooms = [
@@ -2403,6 +2411,14 @@ const verifiedSouthernOregonRooms = [
 
 const verifiedReddingRooms = [
   { name: "The Dip", address: "1730 California St, Redding, CA 96001", position: [-122.3916333, 40.5817582], websites: ["https://www.thedipredding.com/venue"], emails: ["aaron@thedipredding.com"], phones: ["530-605-0827"], categories: ["Independent Music Venue", "Punk", "Rock", "Metal", "21+"] }
+];
+
+const verifiedWeedRooms = [
+  { name: "Mount Shasta Brewing Company", address: "360 College Ave, Weed, CA 96094", position: [-122.3869185, 41.4161669], websites: ["https://mountshastabrewingcompany.com/"], emails: ["cheers@mountshastabrewingcompany.com"], phones: ["530-938-2394"], categories: ["All Ages Venue", "Brewery", "Live Music Venue", "Rock"] }
+];
+
+const verifiedRedBluffRooms = [
+  { name: "Enjoy Local", address: "615 Main St, Red Bluff, CA 96080", position: [-122.2347188, 40.1767524], websites: ["https://www.enjoylocalredbluff.com/events"], emails: [], phones: ["530-727-9016"], categories: ["Live Music Venue", "Bar", "Rock"] }
 ];
 
 const verifiedChicoRooms = [
@@ -2435,18 +2451,30 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   } else if (latitude >= 46.95 && latitude <= 47.15 && longitude >= -123.05 && longitude <= -122.75) {
     rooms = verifiedOlympiaRooms;
     locality = "Olympia";
+  } else if (latitude >= 46.02 && latitude <= 46.24 && longitude >= -123.10 && longitude <= -122.75) {
+    rooms = verifiedLongviewRooms;
+    locality = "Longview";
   } else if (latitude >= 44.85 && latitude <= 45.02 && longitude >= -123.18 && longitude <= -122.90) {
     rooms = verifiedSalemRooms;
     locality = "Salem";
+  } else if (latitude >= 44.52 && latitude <= 44.72 && longitude >= -123.25 && longitude <= -122.95) {
+    rooms = verifiedAlbanyOregonRooms;
+    locality = "Albany";
   } else if (latitude >= 43.10 && latitude <= 43.32 && longitude >= -123.48 && longitude <= -123.18) {
     rooms = verifiedRoseburgRooms;
     locality = "Roseburg";
   } else if (latitude >= 42.12 && latitude <= 42.42 && longitude >= -123.05 && longitude <= -122.60) {
     rooms = verifiedSouthernOregonRooms;
     locality = pointLabel.includes("ashland") ? "Ashland" : "Medford";
+  } else if (latitude >= 41.30 && latitude <= 41.52 && longitude >= -122.52 && longitude <= -122.22) {
+    rooms = verifiedWeedRooms;
+    locality = "Weed";
   } else if (latitude >= 40.45 && latitude <= 40.75 && longitude >= -122.55 && longitude <= -122.20) {
     rooms = verifiedReddingRooms;
     locality = "Redding";
+  } else if (latitude >= 40.08 && latitude <= 40.28 && longitude >= -122.38 && longitude <= -122.08) {
+    rooms = verifiedRedBluffRooms;
+    locality = "Red Bluff";
   } else if (latitude >= 39.62 && latitude <= 39.86 && longitude >= -122.02 && longitude <= -121.68) {
     rooms = verifiedChicoRooms;
     locality = "Chico";
@@ -2456,7 +2484,11 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   } else return [];
   const wanted = genre.toLowerCase();
   const genreTerms = wanted.includes("punk") ? ["punk", "diy"] : wanted.includes("metal") ? ["metal"] : wanted.includes("rock") ? ["rock"] : wanted.includes("dj") || wanted.includes("electronic") ? ["dj", "electronic"] : wanted.includes("hip-hop") ? ["hip-hop"] : [];
-  const matches = genreTerms.length ? rooms.filter(place => genreTerms.some(term => place.categories.some(category => category.toLowerCase().includes(term)))) : rooms;
+  const genreMatches = genreTerms.length ? rooms.filter(place => genreTerms.some(term => place.categories.some(category => category.toLowerCase().includes(term)))) : rooms;
+  // In a small market, a legitimate current live room is a better lead than an
+  // empty town. Prefer exact genre evidence, then retain the verified room with
+  // the existing "confirm the calendar before pitching" warning.
+  const matches = genreTerms.length && genreMatches.length ? genreMatches : rooms;
   const offset = matches.length ? variation % matches.length : 0;
   return [...matches.slice(offset), ...matches.slice(0, offset)].map(place => ({
     ...place,
