@@ -223,6 +223,37 @@ function openChoiceDialog({ title, description, choices, selected }) {
   });
 }
 
+function openInfoDialog({ title, content }) {
+  document.querySelector(".info-action-dialog")?.close();
+  const opener = document.activeElement;
+  const dialog = document.createElement("dialog");
+  dialog.className = "post-report-dialog info-action-dialog";
+  const titleId = "infoActionDialogTitle-" + crypto.randomUUID();
+  dialog.setAttribute("aria-labelledby", titleId);
+  const heading = document.createElement("h2");
+  heading.id = titleId;
+  heading.textContent = title;
+  const copy = document.createElement("div");
+  copy.className = "info-action-content";
+  copy.textContent = content;
+  const actions = document.createElement("div");
+  actions.className = "post-report-actions";
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "primary";
+  close.textContent = "Close";
+  close.addEventListener("click", () => dialog.close());
+  actions.appendChild(close);
+  dialog.append(heading, copy, actions);
+  document.body.appendChild(dialog);
+  dialog.addEventListener("close", () => {
+    dialog.remove();
+    if (opener?.isConnected) opener.focus({ preventScroll: true });
+  }, { once: true });
+  dialog.showModal();
+  close.focus();
+}
+
 function dataSaverEnabled() {
   try { return readDevicePreference("danzstak_data_saver") === "1"; }
   catch { return false; }
@@ -2431,7 +2462,10 @@ function addPostDeleteButton(post) {
   if (preferences.pinned === true) pinOption.querySelector("strong").textContent = "Unpin post";
   if (preferences.saved === true) saveOption.querySelector("strong").textContent = "Unsave post";
   option("View edit history", "See changes made to this post.", () => {
-    alert(history.length ? history.map((item, index) => `${index + 1}. ${new Date(item.editedAt).toLocaleString()}\n${item.content}`).join("\n\n") : "This post has not been edited.");
+    openInfoDialog({
+      title: "Edit history",
+      content: history.length ? history.map((item, index) => `${index + 1}. ${new Date(item.editedAt).toLocaleString()}\n${item.content}`).join("\n\n") : "This post has not been edited."
+    });
   });
   option("Edit post", "Change your post text.", () => {
     const body = post.querySelector(".post-content");

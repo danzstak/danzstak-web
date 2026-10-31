@@ -17,8 +17,11 @@ assert.match(styles, /\.app-toast\{[^}]*safe-area-inset-bottom/, "mobile feedbac
 assert.match(styles, /@media\(prefers-reduced-motion:reduce\)\{\.app-toast\{transition:none\}\}/, "toast motion must respect reduced-motion preferences");
 assert.match(enhancements, /Tribe could not be deleted\.[\s\S]{0,80}urgent: true/, "Tribe failures should use the shared feedback path");
 assert.match(enhancements, /Comment could not be deleted\.[\s\S]{0,80}urgent: true/, "comment failures should use the shared feedback path");
-assert.doesNotMatch(enhancements.replace(/alert\(history\.length[\s\S]*?\);\n  \}\);/, ""), /alert\(/, "routine feed actions should not use blocking browser alerts");
-assert.match(feed, /feed-enhancements\.css\?v=466/, "feed stylesheet cache key should be current");
-assert.match(feed, /feed-enhancements\.js\?v=464/, "feed script cache key should be current");
+assert.doesNotMatch(enhancements, /alert\(/, "feed actions should not use blocking browser alerts");
+assert.match(enhancements, /function openInfoDialog\(\{ title, content \}\)/, "long informational content should use an accessible dialog");
+assert.match(enhancements, /title: "Edit history"/, "post edit history should open in the informational dialog");
+assert.match(styles, /\.info-action-content\{[^}]*overflow:auto/, "long edit histories should scroll within the dialog");
+assert.match(feed, /feed-enhancements\.css\?v=467/, "feed stylesheet cache key should be current");
+assert.match(feed, /feed-enhancements\.js\?v=465/, "feed script cache key should be current");
 
 console.log("Feed action feedback checks passed: post actions use compact, accessible, nonblocking status messages.");
