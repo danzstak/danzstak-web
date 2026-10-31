@@ -41,7 +41,7 @@ setImmediate(async () => {
     let deadline;
     let retries = 0;
     class TestAbortController {
-      constructor() { const listeners = []; this.signal = { addEventListener(type, fn) { if (type === 'abort') listeners.push(fn); } }; this.abort = () => listeners.forEach(fn => fn()); }
+      constructor() { const listeners = []; this.signal = { aborted: false, addEventListener(type, fn) { if (type === 'abort') listeners.push(fn); } }; this.abort = () => { this.signal.aborted = true; listeners.forEach(fn => fn()); }; }
     }
     function timeoutNode(tag) {
       const item = { tag, children: [], listeners: {}, append(...items) { this.children.push(...items); }, appendChild(child) { this.children.push(child); }, replaceChildren(...items) { this.children = items; }, setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { this.listeners[name] = fn; } };
@@ -50,9 +50,10 @@ setImmediate(async () => {
     vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
       document: { createElement: timeoutNode }, workspace: timeoutNode('workspace'), featureText: {}, createFriendRequestForm: () => timeoutNode('form'),
       AbortController: TestAbortController, setTimeout(fn) { deadline = fn; return 1; }, clearTimeout() {}, renderWorkspace(name) { if (name === 'Friends') retries++; },
-      fetch: (url, options) => new Promise((resolve, reject) => options.signal.addEventListener('abort', () => { const error = new Error('aborted'); error.name = 'AbortError'; reject(error); }))
+      fetch: (url, options) => new Promise((resolve, reject) => { const abort = () => { const error = new Error('aborted'); error.name = 'AbortError'; reject(error); }; if (options.signal.aborted) abort(); else options.signal.addEventListener('abort', abort); })
     });
     deadline();
+    await new Promise(resolve => setImmediate(resolve));
     await new Promise(resolve => setImmediate(resolve));
     const alert = timeoutNodes.find(item => item.role === 'alert');
     const retry = timeoutNodes.find(item => item.tag === 'button' && item.textContent === 'Retry');

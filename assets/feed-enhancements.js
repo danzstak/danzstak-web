@@ -1209,10 +1209,11 @@ function renderWorkspace(name) {
     workspace.appendChild(list);
     const friendsController = new AbortController();
     const friendsTimeout = setTimeout(() => friendsController.abort(), 10000);
-    Promise.allSettled([
-      fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store", signal: friendsController.signal }),
-      fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: friendsController.signal })
-    ]).then(async ([friendsResult, directoryResult]) => {
+    Promise.resolve(typeof refreshPresenceHeartbeat === "function" ? refreshPresenceHeartbeat() : null)
+      .then(() => Promise.allSettled([
+        fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store", signal: friendsController.signal }),
+        fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: friendsController.signal })
+      ])).then(async ([friendsResult, directoryResult]) => {
       if (friendsResult.status === "rejected" && friendsResult.reason?.name === "AbortError") throw friendsResult.reason;
       const friendsResponse = friendsResult.status === "fulfilled" ? friendsResult.value : null;
       const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
