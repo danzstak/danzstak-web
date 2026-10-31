@@ -57,8 +57,14 @@ assert.equal(controls.get("routeSearchAction").clicked, 1);
 assert.match(controls.get("bookingBriefStatus").value || controls.get("bookingBriefStatus").textContent, /Building the route/);
 
 const markup = fs.readFileSync("booking.html", "utf8");
+const bookingAgent = fs.readFileSync("assets/booking-agent.js", "utf8");
+const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 assert.match(markup, /id="bookingBriefForm"/);
 assert.match(markup, /assets\/booking-conversation\.js\?v=449/);
 assert.match(markup, /Where do you want to play\?/);
 assert.match(markup, /More tour options: genre, crew, van and budget/);
+assert.match(bookingAgent, /target calendar/);
+assert.match(bookingAgent, /Arrive 4:00 PM · Soundcheck 5:00 PM/);
+assert.match(bookingAgent, /safe return drive; everyone and the vehicle finish at home/);
+assert.match(authApi, /San Jose, California[\s\S]*Santa Cruz, California[\s\S]*Portland, Oregon[\s\S]*Seattle, Washington/);
 console.log("Conversational Booking Agent checks passed: natural route, genre, act, days, date, direction, and one-click planning.");
