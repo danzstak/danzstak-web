@@ -65,6 +65,8 @@ assert.match(bookingUi, /candidate \|\| \{[\s\S]*discoveryUnavailable: true/, "m
 assert.match(bookingUi, /function routeItineraryMarkets\(route, candidates = \[\]\)/, "the browser should guard against an older API returning only route endpoints");
 assert.match(bookingUi, /"Medford, Oregon"[\s\S]*"Redding, California"/, "the browser fallback should retain Medford and Redding between Seattle and San Francisco");
 assert.match(bookingUi, /return start\.includes\("seattle"\) \? i5Markets : \[\.\.\.i5Markets\]\.reverse\(\)/, "the browser fallback should follow either requested travel direction");
+assert.match(bookingUi, /section = document\.createElement\("details"\),[\s\S]*heading = document\.createElement\("summary"\)/, "each route town should be a compact expandable result instead of a long open panel");
+assert.doesNotMatch(bookingUi, /details\.open = true/, "the day-by-day calendar should not force a long result page open");
 
 const discoverySource = source.slice(
   source.indexOf("async function discoverRouteMarkets("),

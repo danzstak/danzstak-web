@@ -1073,8 +1073,8 @@
         };
       });
     for (const market of displayedMarkets) {
-      const section = document.createElement("section"),
-        heading = document.createElement("h3"),
+      const section = document.createElement("details"),
+        heading = document.createElement("summary"),
         confirmation = document.createElement("button"),
         venueDetails = document.createElement("details"),
         venueSummary = document.createElement("summary"),
@@ -1149,7 +1149,6 @@
         return candidate || { stop, venues: [] };
       });
     details.className = "proposed-calendar";
-    details.open = true;
     summary.textContent = `${days}-day target calendar · ${shows} proposed shows`;
     intro.className = "hint";
     intro.textContent = "This is a working pitch plan, not a confirmed tour. A show becomes real only after the venue agrees.";
