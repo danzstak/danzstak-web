@@ -1114,7 +1114,12 @@
       list = document.createElement("ol"),
       days = Math.max(1, Number(data.route.requestedDays) || number("days") || 1),
       shows = Math.max(1, Math.min(days, Number(data.route.requestedShows) || number("showCount") || 1)),
-      markets = (data.candidates || []).filter(market => market.stop);
+      candidates = (data.candidates || []).filter(market => market.stop),
+      markets = (data.route.itineraryMarkets?.length ? data.route.itineraryMarkets : candidates.map(market => market.stop)).map(stop => {
+        const city = String(stop).split(",")[0].trim().toLowerCase(),
+          candidate = candidates.find(market => String(market.stop).split(",")[0].trim().toLowerCase() === city);
+        return candidate || { stop, venues: [] };
+      });
     details.className = "proposed-calendar";
     details.open = true;
     summary.textContent = `${days}-day target calendar · ${shows} proposed shows`;
@@ -1122,12 +1127,14 @@
     intro.textContent = "This is a working pitch plan, not a confirmed tour. A show becomes real only after the venue agrees.";
     list.className = "tour-calendar";
     const start = new Date(`${data.route.departOn || departInput.value}T12:00:00Z`);
+    const returnDays = Math.min(4, Math.max(0, days - shows)),
+      performanceDays = Math.max(shows, days - returnDays);
     let showIndex = 0;
     for (let day = 0; day < days; day += 1) {
       const date = new Date(start);
       date.setUTCDate(date.getUTCDate() + day);
-      const shouldShow = Math.floor(((day + 1) * shows) / days) > Math.floor((day * shows) / days),
-        progress = days <= 1 ? 0 : day / (days - 1),
+      const shouldShow = day < performanceDays && Math.floor(((day + 1) * shows) / performanceDays) > Math.floor((day * shows) / performanceDays),
+        progress = performanceDays <= 1 ? 0 : Math.min(day, performanceDays - 1) / (performanceDays - 1),
         market = markets[Math.min(markets.length - 1, Math.floor(progress * markets.length))],
         item = document.createElement("li"),
         dayHeading = document.createElement("strong"),
@@ -1140,9 +1147,10 @@
         dayDetail.textContent = `${market.stop}${venue ? ` — ${venue.name}` : " — venue lead needed"} · Arrive 4:00 PM · Soundcheck 5:00 PM`;
         showIndex += 1;
       } else {
-        const label = day === 0 ? data.route.start?.label : market?.stop || data.route.start?.label;
+        const returningHome = day >= performanceDays,
+          label = returningHome ? `Return toward ${data.route.start?.label || "home"}` : day === 0 ? data.route.start?.label : market?.stop || data.route.start?.label;
         dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · TRAVEL / REST`;
-        dayDetail.textContent = `${label || "Route day"} — drive, load-in buffer, laundry or sleep.`;
+        dayDetail.textContent = `${label || "Route day"} — ${returningHome ? "safe return drive; everyone and the vehicle finish at home." : "drive, load-in buffer, laundry or sleep."}`;
       }
       item.append(dayHeading, dayDetail);
       list.append(item);

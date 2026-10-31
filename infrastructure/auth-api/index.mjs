@@ -2214,6 +2214,18 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays) {
   return unique.slice(0, 8);
 }
 
+function westCoastTourCorridor(points) {
+  const labels = points.map(point => point.label.toLowerCase()).join(" | ");
+  if (!labels.includes("san francisco") || !labels.includes("los angeles") || !labels.includes("seattle")) return null;
+  return [
+    "San Francisco, California", "San Jose, California", "Santa Cruz, California",
+    "San Luis Obispo, California", "Los Angeles, California", "Bakersfield, California",
+    "Fresno, California", "Sacramento, California", "Redding, California",
+    "Medford, Oregon", "Eugene, Oregon", "Portland, Oregon",
+    "Olympia, Washington", "Tacoma, Washington", "Seattle, Washington"
+  ];
+}
+
 async function addManualBookingVenue(event) {
   const headers = corsHeaders(event.headers?.origin);
   const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
@@ -2478,9 +2490,13 @@ async function planTourRoute(event) {
     }
     const summary = route?.Routes?.[0]?.Summary;
     if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
-    const markets = points.slice(1, -1), selected = directional
+    const markets = points.slice(1, -1), corridor = directional ? null : westCoastTourCorridor(points),
+      itineraryMarkets = corridor || null,
+      selected = directional
       ? (markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]))
-      : await discoverRouteMarkets(route, points, requestedDays),
+      : corridor
+        ? await Promise.all(["San Francisco, California", "Los Angeles, California", "Sacramento, California", "Portland, Oregon", "Seattle, Washington"].map(geocodeTourPlace))
+        : await discoverRouteMarkets(route, points, requestedDays),
       candidates = await Promise.all(selected.map(point => tourCandidates(point, genre, excludedVenueKeys, variation, null, venueType)));
     candidates.forEach(candidate => {
       if (!candidate.stop.startsWith("On the road:")) return;
@@ -2497,7 +2513,7 @@ async function planTourRoute(event) {
       const departureDate = new Date(returnDate); departureDate.setUTCDate(departureDate.getUTCDate() - requestedDays + 1); departOn = departureDate.toISOString().slice(0, 10);
     }
     if (departOn) candidates.forEach((market, index) => { const date = new Date(`${departOn}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + Math.min(Math.max(0, requestedDays - 1), index + (local ? 0 : 1))); market.proposedDate = date.toISOString().slice(0, 10); market.bookingStatus = "proposed"; });
-    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), turnaround: points.at(-2), stops: points.slice(1, -1), distanceMiles, durationHours, minimumDrivingDays, requestedDays, requestedShows, direction: directional ? direction : undefined, departOn, returnBy, bookingStatus: "proposed", roundTrip: true, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), turnaround: points.at(-2), stops: points.slice(1, -1), itineraryMarkets: itineraryMarkets || candidates.map(candidate => candidate.stop), distanceMiles, durationHours, minimumDrivingDays, requestedDays, requestedShows, direction: directional ? direction : undefined, departOn, returnBy, bookingStatus: "proposed", roundTrip: true, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
   } catch (error) {
     if (error.statusCode === 422) return { statusCode: 422, headers, body: JSON.stringify({ error: error.message }) };
     console.error("Tour route planning failed", { name: error.name });
