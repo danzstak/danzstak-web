@@ -1055,7 +1055,7 @@
     status.textContent = `Travel window ${data.route.departOn || departInput.value} through ${data.route.returnBy || returnInput.value}. Dates stay proposed until each venue confirms.`;
     summary.className = "route-summary";
     summary.append(title, details, status);
-    routeResults.append(summary, renderRouteMap(data));
+    routeResults.append(summary, renderProposedCalendar(data), renderRouteMap(data));
     for (const market of data.candidates || []) {
       const section = document.createElement("section"),
         heading = document.createElement("h3"),
@@ -1083,7 +1083,7 @@
           : "Mark date confirmed";
         confirmation.classList.toggle("confirmed", market.confirmed);
       });
-      venueSummary.textContent = `Club and venue leads (${market.venues.length})`;
+      venueSummary.textContent = `Best club leads (${Math.min(6, market.venues.length)} of ${market.venues.length})`;
       const budgetHotels = (market.hotels || []).slice(0, 2),
         vanStops = (market.vanStops || []).slice(0, 2);
       hotelSummary.textContent = `Budget sleep leads (${budgetHotels.length})`;
@@ -1091,22 +1091,59 @@
       vanWarning.className = "hint";
       vanWarning.textContent = "Verify overnight permission, current rules, lighting and safety before stopping. A public listing is not permission to sleep there.";
       venueGrid.className = hotelGrid.className = vanGrid.className = "place-grid";
-      market.venues.forEach((place) =>
+      market.venues.slice(0, 6).forEach((place) =>
         venueGrid.append(placeCard(place, "club")),
       );
       budgetHotels.forEach((place) =>
         hotelGrid.append(placeCard(place, "hotel")),
       );
       vanStops.forEach((place) => vanGrid.append(placeCard(place, "van-rest")));
-      venueDetails.open = true;
       venueDetails.append(venueSummary, venueGrid);
-      hotelDetails.open = true;
       hotelDetails.append(hotelSummary, hotelGrid);
       vanDetails.append(vanSummary, vanWarning, vanGrid);
       section.className = "route-market";
       section.append(heading, confirmation, venueDetails, hotelDetails, vanDetails);
       routeResults.append(section);
     }
+  }
+
+  function renderProposedCalendar(data) {
+    const details = document.createElement("details"),
+      summary = document.createElement("summary"),
+      intro = document.createElement("p"),
+      list = document.createElement("ol"),
+      days = Math.max(1, Number(data.route.requestedDays) || number("days") || 1),
+      shows = Math.max(1, Math.min(days, Number(data.route.requestedShows) || number("showCount") || 1)),
+      markets = (data.candidates || []).filter(market => market.stop);
+    details.className = "proposed-calendar";
+    details.open = true;
+    summary.textContent = `${days}-day target calendar · ${shows} proposed shows`;
+    intro.className = "hint";
+    intro.textContent = "This is a working pitch plan, not a confirmed tour. A show becomes real only after the venue agrees.";
+    list.className = "tour-calendar";
+    const start = new Date(`${data.route.departOn || departInput.value}T12:00:00Z`);
+    let showIndex = 0;
+    for (let day = 0; day < days; day += 1) {
+      const date = new Date(start);
+      date.setUTCDate(date.getUTCDate() + day);
+      const shouldShow = Math.floor(((day + 1) * shows) / days) > Math.floor((day * shows) / days),
+        progress = days <= 1 ? 0 : day / (days - 1),
+        market = markets[Math.min(markets.length - 1, Math.floor(progress * markets.length))],
+        item = document.createElement("li"),
+        dateLabel = date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+      if (shouldShow && market) {
+        const venueCount = Math.min(6, market.venues?.length || 0),
+          venue = venueCount ? market.venues[showIndex % venueCount] : null;
+        item.innerHTML = `<strong>Day ${day + 1} · ${dateLabel} · SHOW TARGET</strong><span>${escapeHtml(market.stop)}${venue ? ` — ${escapeHtml(venue.name)}` : " — venue lead needed"}</span>`;
+        showIndex += 1;
+      } else {
+        const label = day === 0 ? data.route.start?.label : market?.stop || data.route.start?.label;
+        item.innerHTML = `<strong>Day ${day + 1} · ${dateLabel} · TRAVEL / REST</strong><span>${escapeHtml(label || "Route day")} — drive, load-in buffer, laundry or sleep.</span>`;
+      }
+      list.append(item);
+    }
+    details.append(summary, intro, list);
+    return details;
   }
   function updateBookingMode() {
     const local = bookingMode.value === "local",
@@ -1250,6 +1287,7 @@
             stops: stops,
             direction: direction,
             days: days,
+            shows: Math.max(1, number("showCount")),
             departOn: departOn,
             returnBy: returnBy,
             variation: searchVariation,

@@ -30,6 +30,7 @@ import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import {
   GeoPlacesClient,
   GeocodeCommand,
+  ReverseGeocodeCommand,
   SearchTextCommand
 } from "@aws-sdk/client-geo-places";
 import {
@@ -2158,6 +2159,49 @@ async function geocodeTourPlace(query) {
   return { label: String(place.Title || query).slice(0, 160), position: place.Position.slice(0, 2) };
 }
 
+async function reverseGeocodeTourMarket(position) {
+  try {
+    const result = await geoPlaces.send(new ReverseGeocodeCommand({
+      QueryPosition: position,
+      MaxResults: 1,
+      Filter: { IncludePlaceTypes: ["Locality"] }
+    }));
+    const place = result.ResultItems?.[0];
+    if (!place) return null;
+    const locality = place.Address?.Locality || place.Title;
+    const region = place.Address?.Region?.Code || place.Address?.Region?.Name || "";
+    const country = place.Address?.Country?.Name || "";
+    const label = [locality, region, country].filter(Boolean).join(", ");
+    return label ? { label: label.slice(0, 160), position: position.slice(0, 2) } : null;
+  } catch (error) {
+    console.error("Route market reverse geocode unavailable:", error.name);
+    return null;
+  }
+}
+
+async function discoverRouteMarkets(route, explicitMarkets, requestedDays) {
+  const line = (route?.Routes?.[0]?.Legs || []).flatMap(leg => leg.Geometry?.LineString || []);
+  if (line.length < 3) return explicitMarkets;
+  const desired = Math.max(3, Math.min(6, Math.ceil(Math.max(1, requestedDays) / 5)));
+  const samplePositions = Array.from({ length: desired }, (_, index) =>
+    line[Math.round((index + 1) * (line.length - 1) / (desired + 1))]
+  ).filter(position => Array.isArray(position) && position.length === 2);
+  const sampled = (await Promise.all(samplePositions.map(reverseGeocodeTourMarket))).filter(Boolean);
+  const nearestLineIndex = position => line.reduce((best, point, index) => {
+    const distance = approximateMilesBetween(position, point);
+    return distance < best.distance ? { index, distance } : best;
+  }, { index: 0, distance: Number.POSITIVE_INFINITY }).index;
+  const combined = [...sampled, ...explicitMarkets]
+    .sort((left, right) => nearestLineIndex(left.position) - nearestLineIndex(right.position));
+  const unique = [];
+  for (const market of combined) {
+    const locality = market.label.split(",")[0].trim().toLowerCase();
+    if (!locality || unique.some(item => item.label.split(",")[0].trim().toLowerCase() === locality)) continue;
+    unique.push(market);
+  }
+  return unique.slice(0, 6);
+}
+
 async function addManualBookingVenue(event) {
   const headers = corsHeaders(event.headers?.origin);
   const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
@@ -2367,7 +2411,7 @@ async function planTourRoute(event) {
   const cleanPlace = value => String(value || "").trim();
   const excludedVenueKeys = new Set((Array.isArray(data.excludeVenueKeys) ? data.excludeVenueKeys : []).slice(0, 120).map(value => String(value || "").trim()).filter(value => /^[a-f0-9]{20}$/.test(value)));
   const variation = Math.max(0, Math.min(1000, Math.trunc(Number(data.variation) || 0)));
-  const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), genre = cleanPlace(data.genre).slice(0, 80), venueType = cleanPlace(data.venueType || "any").toLowerCase(), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), requestedDepartOn = cleanPlace(data.departOn), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), suppliedStops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [], suppliedEnd = local || directional ? start : cleanPlace(data.end), end = suppliedEnd || suppliedStops.at(-1) || "", stops = suppliedEnd ? suppliedStops : suppliedStops.slice(0, -1);
+  const local = data.mode === "local", directional = data.mode === "direction", direction = cleanPlace(data.direction).toLowerCase(), genre = cleanPlace(data.genre).slice(0, 80), venueType = cleanPlace(data.venueType || "any").toLowerCase(), requestedDays = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), requestedShows = Math.max(1, Math.min(requestedDays, Math.trunc(Number(data.shows) || 1))), requestedDepartOn = cleanPlace(data.departOn), returnBy = cleanPlace(data.returnBy), start = cleanPlace(data.start), suppliedStops = local || directional ? [] : Array.isArray(data.stops) ? data.stops.map(cleanPlace).filter(Boolean) : [], suppliedEnd = local || directional ? start : cleanPlace(data.end), end = suppliedEnd || suppliedStops.at(-1) || "", stops = suppliedEnd ? suppliedStops : suppliedStops.slice(0, -1);
   const rawBounds = data.searchBounds && typeof data.searchBounds === "object" ? data.searchBounds : null;
   const searchBounds = rawBounds ? { north: Number(rawBounds.north), south: Number(rawBounds.south), east: Number(rawBounds.east), west: Number(rawBounds.west) } : null;
   const searchPath = Array.isArray(data.searchPath) ? data.searchPath.slice(0, 40).map(point => Array.isArray(point) ? [Number(point[0]), Number(point[1])] : []) : [];
@@ -2410,7 +2454,7 @@ async function planTourRoute(event) {
     let route;
     while (points.length >= 3) {
       try {
-        route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: points[0].position, Destination: points.at(-1).position, Waypoints: points.slice(1, -1).map(point => ({ Position: point.position })), TravelMode: "Car" }));
+        route = await geoRoutes.send(new CalculateRoutesCommand({ Origin: points[0].position, Destination: points.at(-1).position, Waypoints: points.slice(1, -1).map(point => ({ Position: point.position })), TravelMode: "Car", LegGeometryFormat: "Simple" }));
       } catch (error) {
         if (!directional) throw error;
         route = undefined;
@@ -2420,7 +2464,10 @@ async function planTourRoute(event) {
     }
     const summary = route?.Routes?.[0]?.Summary;
     if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
-    const markets = points.slice(1, -1), selected = markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]), candidates = await Promise.all(selected.map(point => tourCandidates(point, genre, excludedVenueKeys, variation, null, venueType)));
+    const markets = points.slice(1, -1), selected = directional
+      ? (markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]))
+      : await discoverRouteMarkets(route, markets, requestedDays),
+      candidates = await Promise.all(selected.map((point, index) => tourCandidates(point, genre, excludedVenueKeys, variation + index, null, venueType)));
     const distanceMiles = Math.round(Number(summary.Distance || 0) / 1609.344), durationHours = Math.round(Number(summary.Duration || 0) / 360) / 10;
     const minimumDrivingDays = Math.max(1, Math.ceil(durationHours / 8));
     if (directional && minimumDrivingDays >= requestedDays) return { statusCode: 422, headers, body: JSON.stringify({ error: `That ${direction} loop needs at least ${minimumDrivingDays} full driving days. Add days or choose a shorter direction-based plan.` }) };
@@ -2431,7 +2478,7 @@ async function planTourRoute(event) {
       const departureDate = new Date(returnDate); departureDate.setUTCDate(departureDate.getUTCDate() - requestedDays + 1); departOn = departureDate.toISOString().slice(0, 10);
     }
     if (departOn) candidates.forEach((market, index) => { const date = new Date(`${departOn}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + Math.min(Math.max(0, requestedDays - 1), index + (local ? 0 : 1))); market.proposedDate = date.toISOString().slice(0, 10); market.bookingStatus = "proposed"; });
-    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), turnaround: points.at(-2), stops: points.slice(1, -1), distanceMiles, durationHours, minimumDrivingDays, requestedDays, direction: directional ? direction : undefined, departOn, returnBy, bookingStatus: "proposed", roundTrip: true, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ route: { start: points[0], end: points.at(-1), turnaround: points.at(-2), stops: points.slice(1, -1), distanceMiles, durationHours, minimumDrivingDays, requestedDays, requestedShows, direction: directional ? direction : undefined, departOn, returnBy, bookingStatus: "proposed", roundTrip: true, provider: "Amazon Location Service", planningOnly: true }, candidates }) };
   } catch (error) {
     if (error.statusCode === 422) return { statusCode: 422, headers, body: JSON.stringify({ error: error.message }) };
     console.error("Tour route planning failed", { name: error.name });
