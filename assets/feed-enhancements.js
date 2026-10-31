@@ -551,6 +551,8 @@ function renderWorkspace(name) {
 
   if (name === "Groups") {
     workspace.classList.add("groups-workspace");
+    const requestedTribeId = new URLSearchParams(location.search).get("tribe") || "";
+    if (/^[a-f0-9-]{36}$/i.test(requestedTribeId)) window.danzstakPendingTribeId = requestedTribeId;
     featureText.textContent = "Discover Tribes, keep up with communities you joined, and meet people who share your interests.";
     const groupCategoryName = category => ({Artists:"Visual Artist", Creators:"Bands", "Venues & Promoters":"Venues", "Local Scenes":"Scenes", "Industry Networking":"Industry"})[category] || category;
     const legacyCategoryOrder = ["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"];
@@ -668,6 +670,11 @@ function renderWorkspace(name) {
       toolbar.hidden = false;
       grid.hidden = false;
       featureText.textContent = "Discover Tribes, keep up with communities you joined, and meet people who share your interests.";
+      const directoryUrl = new URL(location.href);
+      if (directoryUrl.searchParams.has("tribe")) {
+        directoryUrl.searchParams.delete("tribe");
+        history.replaceState({ workspace: "Groups" }, "", directoryUrl.pathname + directoryUrl.search + directoryUrl.hash);
+      }
       renderGroups();
     }
 
@@ -732,7 +739,16 @@ function renderWorkspace(name) {
       } catch (error) { loading.textContent = error.message; }
     }
 
-    function openTribe(group) {
+    function openTribe(group, { updateHistory = true } = {}) {
+      if (updateHistory && /^[a-f0-9-]{36}$/i.test(String(group.id || ""))) {
+        const tribeUrl = new URL(location.href);
+        if (tribeUrl.searchParams.get("tribe") !== group.id) {
+          tribeUrl.searchParams.set("view", "groups");
+          tribeUrl.searchParams.set("tribe", group.id);
+          tribeUrl.hash = "groups";
+          history.pushState({ workspace: "Groups", tribe: group.id }, "", tribeUrl.pathname + tribeUrl.search + tribeUrl.hash);
+        }
+      }
       toolbar.hidden = true; createBox.hidden = true; grid.hidden = true; detail.hidden = false; detail.replaceChildren();
       featureText.textContent = group.name;
       const back = document.createElement("button"); back.type = "button"; back.className = "tribe-back"; back.textContent = "← Back to Tribes"; back.addEventListener("click", showTribeDirectory);
@@ -857,7 +873,7 @@ function renderWorkspace(name) {
     if (window.danzstakOpenTribeHandler) window.removeEventListener("danzstak:open-tribe", window.danzstakOpenTribeHandler);
     window.danzstakOpenTribeHandler = event => {
       const group = customGroups.find(item => item.id === event.detail?.groupId);
-      if (group) { window.danzstakPendingTribeId = ""; openTribe(group); }
+      if (group) { window.danzstakPendingTribeId = ""; openTribe(group, { updateHistory: false }); }
     };
     window.addEventListener("danzstak:open-tribe", window.danzstakOpenTribeHandler);
 
@@ -1026,6 +1042,10 @@ function renderWorkspace(name) {
     categoryFilter.addEventListener("change", renderGroups);
     workspace.append(toolbar, createBox, grid, detail);
     renderGroups();
+    if (window.danzstakPendingTribeId) {
+      const pendingLocalGroup = customGroups.find(group => group.id === window.danzstakPendingTribeId);
+      if (pendingLocalGroup) { window.danzstakPendingTribeId = ""; openTribe(pendingLocalGroup, { updateHistory: false }); }
+    }
     groupFetch("/groups", { credentials: "include", cache: "no-store" })
       .then(response => response.ok ? response.json() : null)
       .then(async data => {
@@ -1050,7 +1070,7 @@ function renderWorkspace(name) {
         renderGroups();
         if (window.danzstakPendingTribeId) {
           const pendingGroup = customGroups.find(group => group.id === window.danzstakPendingTribeId);
-          if (pendingGroup) { window.danzstakPendingTribeId = ""; openTribe(pendingGroup); }
+          if (pendingGroup) { window.danzstakPendingTribeId = ""; openTribe(pendingGroup, { updateHistory: false }); }
         }
       })
       .catch(() => { createButton.textContent = "Retry Tribe Service"; createButton.dataset.mode = "retry"; createButton.disabled = false; });
@@ -1189,7 +1209,10 @@ function renderWorkspace(name) {
             const open = document.createElement("a");
             open.className = "primary";
             open.textContent = "Open Tribe";
-            open.href = "feed.html#groups";
+            open.href = /^[a-f0-9-]{36}$/i.test(String(notice.groupId || ""))
+              ? `feed.html?view=groups&tribe=${encodeURIComponent(notice.groupId)}#groups`
+              : "feed.html?view=groups#groups";
+            open.setAttribute("aria-label", "Open " + (notice.groupName || "Tribe"));
             actions.appendChild(open);
           } else if (["reaction", "comment", "reply", "tag"].includes(notice.type)) {
             const open = document.createElement("a");
