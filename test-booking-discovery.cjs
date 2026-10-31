@@ -29,9 +29,11 @@ async function run(fail, genre = "DIY Punk") {
 }
 
 (async () => {
-  const { result, queries } = await run(query => query === "hotel" || query === "Punk live music venue");
+  const { result, queries } = await run(query => query === "budget hotel motel hostel" || query === "Punk live music venue");
   assert.equal(result.venues.length, 60, "dense discovery must retain more than 24 clubs");
   assert.equal(result.hotels.length, 0, "hotel failure must not break venue discovery");
+  assert.equal(result.vanStops.length, 2, "van-rest discovery should return two nearby leads");
+  assert.ok(queries.includes("truck stop rest area campground"));
   for (const query of ["live music pub", "music hall", "concert venue"]) assert.ok(queries.includes(query));
   const classical = await run(() => false, "Orchestra / Classical");
   assert.ok(classical.queries.includes("classical concert hall orchestra venue"), "classical acts need a genre-appropriate discovery query");

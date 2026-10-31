@@ -2319,13 +2319,18 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
         : "rock punk metal music venue"
   ])];
   const [searchResults, reviewedDirectory] = await Promise.all([
-    Promise.allSettled([search("hotel"), ...venueQueries.map(search)]),
+    Promise.allSettled([
+      search("budget hotel motel hostel"),
+      search("truck stop rest area campground"),
+      ...venueQueries.map(search)
+    ]),
     approvedMemberVenueLeads(point, searchBounds)
   ]);
-  const [hotelSearch, ...venueSearches] = searchResults;
+  const [hotelSearch, vanRestSearch, ...venueSearches] = searchResults;
   // A failed category lookup must not discard clubs found by the other searches.
   if (venueSearches.every(result => result.status === "rejected")) throw venueSearches[0].reason;
   const hotelResults = hotelSearch.status === "fulfilled" ? hotelSearch.value : [];
+  const vanRestResults = vanRestSearch.status === "fulfilled" ? vanRestSearch.value : [];
   const venueBatches = venueSearches.filter(result => result.status === "fulfilled").map(result => result.value);
   const nearby = (place, maximumMiles) => place.distanceMiles === null || place.distanceMiles <= maximumMiles;
   const curatedPool = curatedVenueLeads(point, genre, variation);
@@ -2340,8 +2345,9 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const venuePool = deduplicateVenues([...reviewed, ...discovered, ...curated, ...initialFallback]);
   const offset = venuePool.length ? variation % venuePool.length : 0;
   const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60);
-  const hotels = hotelResults.filter(place => nearby(place, 35));
-  return { stop: point.label, position: point.position, venues, hotels };
+  const hotels = hotelResults.filter(place => nearby(place, 35)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
+  const vanStops = vanRestResults.filter(place => nearby(place, 25)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
+  return { stop: point.label, position: point.position, venues, hotels, vanStops };
 }
 
 async function planTourRoute(event) {
@@ -2376,9 +2382,10 @@ async function planTourRoute(event) {
           .filter(place => distanceToSearchPathMiles(place.position, searchPath) <= 25)
           .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre))
           .slice(0, 30);
-        const hotels = deduplicateVenues(batches.flatMap(batch => batch.hotels || [])).slice(0, 20);
+        const hotels = deduplicateVenues(batches.flatMap(batch => batch.hotels || [])).slice(0, 2);
+        const vanStops = deduplicateVenues(batches.flatMap(batch => batch.vanStops || [])).slice(0, 2);
         if (requestedDepartOn) batches.forEach(batch => { batch.proposedDate = requestedDepartOn; });
-        return { statusCode: 200, headers, body: JSON.stringify({ route: { start: homePoint, end: homePoint, stops: samplePoints.map((position, index) => ({ label: `Drawn route area ${index + 1}`, position })), distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, requestedDays, departOn: requestedDepartOn, returnBy, provider: "Amazon Location Service", planningOnly: true, local: true, drawn: true }, candidates: [{ stop: "Clubs along your drawn route", position: samplePoints[0], venues, hotels, ...(requestedDepartOn ? { proposedDate: requestedDepartOn } : {}) }] }) };
+        return { statusCode: 200, headers, body: JSON.stringify({ route: { start: homePoint, end: homePoint, stops: samplePoints.map((position, index) => ({ label: `Drawn route area ${index + 1}`, position })), distanceMiles: 0, durationHours: 0, minimumDrivingDays: 0, requestedDays, departOn: requestedDepartOn, returnBy, provider: "Amazon Location Service", planningOnly: true, local: true, drawn: true }, candidates: [{ stop: "Clubs along your drawn route", position: samplePoints[0], venues, hotels, vanStops, ...(requestedDepartOn ? { proposedDate: requestedDepartOn } : {}) }] }) };
       }
       const point = searchBounds ? {
         label: `${homePoint.label} map area`,

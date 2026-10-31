@@ -810,6 +810,7 @@
   pastList.setAttribute("aria-labelledby", pastTitle.id);
   savedPanel.append(savedTitle, tourNameLabel, saveTour, saveStatus, upcomingTitle, upcomingList, pastTitle, pastList);
   bookingBoard.children[1].after(savedPanel, routeResults);
+  bookingBoard.hidden = true;
   const daysLabel = $("days").closest("label");
   returnLabel.insertAdjacentElement("afterend", daysLabel);
   daysLabel.classList.add("quick-days");
@@ -921,7 +922,9 @@
             ? "Navigate to this club"
             : placeType === "hotel"
               ? "Navigate to this hotel"
-              : "Navigate here now",
+              : placeType === "van-rest"
+                ? "Navigate to this rest lead"
+                : "Navigate here now",
           `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving&dir_action=navigate`,
         ),
       );
@@ -1062,7 +1065,11 @@
         venueGrid = document.createElement("div"),
         hotelDetails = document.createElement("details"),
         hotelSummary = document.createElement("summary"),
-        hotelGrid = document.createElement("div");
+      hotelGrid = document.createElement("div"),
+      vanDetails = document.createElement("details"),
+      vanSummary = document.createElement("summary"),
+      vanGrid = document.createElement("div"),
+      vanWarning = document.createElement("p");
       heading.textContent = market.proposedDate
         ? `${market.proposedDate} — ${market.stop}`
         : market.stop;
@@ -1077,19 +1084,27 @@
         confirmation.classList.toggle("confirmed", market.confirmed);
       });
       venueSummary.textContent = `Club and venue leads (${market.venues.length})`;
-      hotelSummary.textContent = `Nearby hotel leads (${market.hotels.length})`;
-      venueGrid.className = hotelGrid.className = "place-grid";
+      const budgetHotels = (market.hotels || []).slice(0, 2),
+        vanStops = (market.vanStops || []).slice(0, 2);
+      hotelSummary.textContent = `Budget sleep leads (${budgetHotels.length})`;
+      vanSummary.textContent = `Possible van-rest leads (${vanStops.length})`;
+      vanWarning.className = "hint";
+      vanWarning.textContent = "Verify overnight permission, current rules, lighting and safety before stopping. A public listing is not permission to sleep there.";
+      venueGrid.className = hotelGrid.className = vanGrid.className = "place-grid";
       market.venues.forEach((place) =>
         venueGrid.append(placeCard(place, "club")),
       );
-      market.hotels.forEach((place) =>
+      budgetHotels.forEach((place) =>
         hotelGrid.append(placeCard(place, "hotel")),
       );
+      vanStops.forEach((place) => vanGrid.append(placeCard(place, "van-rest")));
       venueDetails.open = true;
       venueDetails.append(venueSummary, venueGrid);
+      hotelDetails.open = true;
       hotelDetails.append(hotelSummary, hotelGrid);
+      vanDetails.append(vanSummary, vanWarning, vanGrid);
       section.className = "route-market";
-      section.append(heading, confirmation, venueDetails, hotelDetails);
+      section.append(heading, confirmation, venueDetails, hotelDetails, vanDetails);
       routeResults.append(section);
     }
   }
@@ -1209,6 +1224,7 @@
         "Choose the first date and the date the act must be home.";
       return;
     }
+    bookingBoard.hidden = false;
     routeAction.disabled = true;
     routeStatus.textContent =
       mode === "local"

@@ -20,6 +20,8 @@
     const parsed = {};
     const days = lower.match(/\b(\d{1,3})\s*(?:-| )?days?\b/);
     if (days) parsed.days = Math.max(1, Math.min(180, Number(days[1])));
+    const shows = lower.match(/\b(?:do|play|book)?\s*(\d{1,3})\s*(?:shows?|gigs?|dates?)\b/);
+    if (shows) parsed.shows = Math.max(1, Math.min(180, Number(shows[1])));
     const genreRules = [
       [/\b(?:diy\s+)?punk\b|\bhardcore\b/, "DIY Punk"], [/\bmetal\b/, "Metal"], [/\brock\b/, "Rock"],
       [/\b(?:dj|electronic|techno|house)\b/, "DJ / Electronic"], [/\b(?:hip[- ]?hop|rap)\b/, "Hip-Hop"],
@@ -28,9 +30,20 @@
     parsed.genre = genreRules.find(([pattern]) => pattern.test(lower))?.[1];
     const act = text.match(/\bfor\s+(.+?)\s+from\s+/i);
     if (act && !/^\d+\s*(?:-| )?days?$/i.test(act[1].trim())) parsed.act = tidyPlace(act[1]);
-    const route = text.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:and\s+back|then\s+back|and\s+home|return(?:ing)?\s+home|for\s+\d+\s*(?:-| )?days?|starting\s+\d{4}-\d{2}-\d{2})\b|$)/i);
+    if (!parsed.act) {
+      const plainAct = text.match(/^\s*(?:plan\s+(?:a\s+)?(?:tour\s+)?for\s+)?([^.!?]+)[.!?]\s*/i);
+      if (plainAct && !/^(?:plan|tour|trip|run|punk|rock|metal|jazz|dj)\b/i.test(plainAct[1].trim())) parsed.act = tidyPlace(plainAct[1]);
+    }
+    const chainedRoute = text.match(/\bfrom\s+(.+?)\s+to\s+(.+?)\s+and\s+(?:then\s+)?(?:up|down|over|on|to)?\s*(.+?)\s+and\s+back(?:\s+to\s+.+?)?(?=\s+(?:for\s+\d+\s*(?:-| )?days?|and\s+(?:do|play|book)?\s*\d+\s*(?:shows?|gigs?|dates?))\b|[.!?]|$)/i);
+    if (chainedRoute) {
+      parsed.home = tidyPlace(chainedRoute[1]);
+      parsed.stops = [tidyPlace(chainedRoute[2])];
+      parsed.destination = tidyPlace(chainedRoute[3]);
+      parsed.mode = "tour";
+    }
+    const route = !chainedRoute && text.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:and\s+back|then\s+back|and\s+home|return(?:ing)?\s+home|for\s+\d+\s*(?:-| )?days?|starting\s+\d{4}-\d{2}-\d{2})\b|$)/i);
     if (route) { parsed.home = tidyPlace(route[1]); parsed.destination = tidyPlace(route[2]); parsed.mode = "tour"; }
-    else {
+    else if (!chainedRoute) {
       const home = text.match(/\b(?:from|home(?:town)?\s+is)\s+(.+?)(?=\s+(?:and|travel|tour|head|go)\b|$)/i);
       if (home) parsed.home = tidyPlace(home[1]);
       if (/\b(?:near|around|close to)\s+home\b/.test(lower)) parsed.mode = "local";
@@ -47,10 +60,12 @@
     setValue("startCity", parsed.home);
     setValue("musicGenre", parsed.genre);
     setValue("days", parsed.days);
+    setValue("showCount", parsed.shows);
     setValue("departOn", parsed.departOn);
     if (parsed.mode) setValue("bookingMode", parsed.mode);
     if (parsed.direction) setValue("travelDirection", parsed.direction);
     if (parsed.destination) setValue("endCity", parsed.destination);
+    if (parsed.stops?.length) setValue("tourStops", parsed.stops.join("\n"));
   }
 
   form.addEventListener("submit", event => {
@@ -63,7 +78,8 @@
     if (!field("startCity")?.value.trim()) missing.push("home town");
     if (parsed.mode === "tour" && !field("endCity")?.value.trim()) missing.push("turnaround city");
     if (missing.length) {
-      status.textContent = `I understood the request. Add the ${missing.join(" and ")} below, then press Plan my tour again.`;
+      status.textContent = `Almost there—add the ${missing.join(" and ")}, then press Find the run again.`;
+      document.querySelector("details.booking-start")?.setAttribute("open", "");
       field(missing[0] === "act name" ? "bandName" : "startCity")?.focus();
       return;
     }
@@ -72,7 +88,7 @@
   });
 
   document.getElementById("bookingBriefExample")?.addEventListener("click", () => {
-    brief.value = "Plan a 10-day DIY punk tour for The Rats from Momo, Italy to Berlin and back home.";
+    brief.value = "The Rats. DIY punk. From Momo, Italy to Berlin and back home for 10 days.";
     brief.focus();
   });
 
