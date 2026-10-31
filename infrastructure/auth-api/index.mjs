@@ -2358,6 +2358,8 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const venueQueries = [...new Set([
     discoveryGenre ? `${discoveryGenre} live music venue` : "live music venue",
     discoveryGenre ? `${discoveryGenre} music club` : "independent music club",
+    discoveryGenre ? `${discoveryGenre} bar live music` : "bar live music",
+    discoveryGenre ? `${discoveryGenre} concert club` : "concert club",
     "independent live music venue",
     "live music bar",
     selectedGenre.includes("DJ") || selectedGenre.includes("Electronic")
