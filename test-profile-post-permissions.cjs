@@ -11,7 +11,7 @@ const settings = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 assert.match(profile, /Who can post on your profile\?/);
 assert.match(profile, /Just me/);
 assert.match(profile, /Friends/);
-assert.match(profile, /Anyone on DanzStak/);
+assert.match(profile, /<option value="owner">Just me<\/option><option value="friends">Friends<\/option><option value="anyone">Public<\/option>/);
 assert.match(profile, /get\("edit"\) === "privacy"/);
 assert.match(profile, /panel\.elements\.profilePostPermission\.focus/);
 assert.match(settings, /profile\.html\?edit=privacy/);
