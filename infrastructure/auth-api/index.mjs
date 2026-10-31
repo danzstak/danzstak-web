@@ -2244,6 +2244,33 @@ function westCoastTourCorridor(points) {
   ];
 }
 
+function sampleTourCorridorMarkets(corridor, requestedDays = 1, requestedShows = 1) {
+  if (!Array.isArray(corridor) || !corridor.length) return [];
+  const limit = Math.min(corridor.length, Math.max(12, requestedShows, Math.ceil(requestedDays / 2)));
+  if (corridor.length <= limit) return [...corridor];
+
+  // Do not let even-distance sampling skip the markets touring bands actually
+  // use as anchors. The remaining slots are filled across the whole drive so
+  // smaller towns still appear instead of reducing a tour to its endpoints.
+  const anchorPattern = /^(seattle|tacoma|olympia|portland|salem|eugene|medford|redding|sacramento|san francisco),/i;
+  const selectedIndexes = new Set([0, corridor.length - 1]);
+  corridor.forEach((market, index) => {
+    if (anchorPattern.test(String(market))) selectedIndexes.add(index);
+  });
+  for (let slot = 0; selectedIndexes.size < limit && slot < limit * 3; slot += 1) {
+    selectedIndexes.add(Math.round(slot * (corridor.length - 1) / Math.max(1, limit - 1)));
+  }
+  if (selectedIndexes.size < limit) {
+    corridor.forEach((_, index) => {
+      if (selectedIndexes.size < limit) selectedIndexes.add(index);
+    });
+  }
+  return [...selectedIndexes]
+    .sort((left, right) => left - right)
+    .slice(0, limit)
+    .map(index => corridor[index]);
+}
+
 async function addManualBookingVenue(event) {
   const headers = corsHeaders(event.headers?.origin);
   const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
@@ -2510,10 +2537,7 @@ async function planTourRoute(event) {
     if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
     const markets = points.slice(1, -1), corridor = directional ? null : westCoastTourCorridor(points),
       itineraryMarkets = corridor || null,
-      corridorSearchLimit = corridor ? Math.min(corridor.length, Math.max(10, requestedShows, Math.ceil(requestedDays / 2))) : 0,
-      corridorSearchMarkets = corridor && corridor.length > corridorSearchLimit
-        ? Array.from({ length: corridorSearchLimit }, (_, index) => corridor[Math.round(index * (corridor.length - 1) / Math.max(1, corridorSearchLimit - 1))])
-        : corridor,
+      corridorSearchMarkets = corridor ? sampleTourCorridorMarkets(corridor, requestedDays, requestedShows) : null,
       selected = directional
       ? (markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]))
       : corridor
