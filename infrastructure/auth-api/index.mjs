@@ -2417,6 +2417,11 @@ const verifiedWeedRooms = [
   { name: "Mount Shasta Brewing Company", address: "360 College Ave, Weed, CA 96094", position: [-122.3869185, 41.4161669], websites: ["https://mountshastabrewingcompany.com/"], emails: ["cheers@mountshastabrewingcompany.com"], phones: ["530-938-2394"], categories: ["All Ages Venue", "Brewery", "Live Music Venue", "Rock"] }
 ];
 
+const verifiedDunsmuirRooms = [
+  { name: "Dunsmuir Brewery Works", address: "5701 Dunsmuir Ave, Dunsmuir, CA 96025", position: [-122.2718891, 41.2119583], websites: ["https://www.dunsmuirbreweryworks.com/"], emails: ["info@dunsmuirbreweryworks.com"], phones: ["530-235-1900"], categories: ["Independent Brewpub", "Live Music Venue", "Open Mic", "All Ages"] },
+  { name: "Jubilee Railroad Dining Car", address: "100 Railroad Park Rd, Dunsmuir, CA 96025", position: [-122.2931185, 41.1850309], websites: ["https://www.jubileerailroad.com/events-calendar"], emails: [], phones: ["530-235-4440"], categories: ["Independent Restaurant", "Live Music Venue", "Rock", "Folk", "Jazz"] }
+];
+
 const verifiedRedBluffRooms = [
   { name: "Enjoy Local", address: "615 Main St, Red Bluff, CA 96080", position: [-122.2347188, 40.1767524], websites: ["https://www.enjoylocalredbluff.com/events"], emails: [], phones: ["530-727-9016"], categories: ["Live Music Venue", "Bar", "Rock"] }
 ];
@@ -2469,6 +2474,9 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   } else if (latitude >= 41.30 && latitude <= 41.52 && longitude >= -122.52 && longitude <= -122.22) {
     rooms = verifiedWeedRooms;
     locality = "Weed";
+  } else if (latitude >= 41.10 && latitude <= 41.30 && longitude >= -122.42 && longitude <= -122.15) {
+    rooms = verifiedDunsmuirRooms;
+    locality = "Dunsmuir";
   } else if (latitude >= 40.45 && latitude <= 40.75 && longitude >= -122.55 && longitude <= -122.20) {
     rooms = verifiedReddingRooms;
     locality = "Redding";

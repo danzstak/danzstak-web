@@ -83,6 +83,8 @@ assert.match(api, /name: "The Roxy Theater"[\s\S]*theroxylongview\.com/, "the I-
 assert.match(api, /name: "The 520 Event Center"[\s\S]*pnwdynamic\.com/, "the I-5 search should include Albany's all-ages heavy room");
 assert.match(api, /name: "The Rosebud Theatre"[\s\S]*booking@therosebudtheatre\.com/, "the I-5 search should include Roseburg's independent room");
 assert.match(api, /name: "Mount Shasta Brewing Company"[\s\S]*mountshastabrewingcompany\.com/, "the I-5 search should include Weed's current all-ages live room");
+assert.match(api, /name: "Dunsmuir Brewery Works"[\s\S]*dunsmuirbreweryworks\.com/, "the I-5 search should include Dunsmuir's current live-music brewpub");
+assert.match(api, /name: "Jubilee Railroad Dining Car"[\s\S]*jubileerailroad\.com\/events-calendar/, "the I-5 search should include Dunsmuir's current independently programmed dining-car room");
 assert.match(api, /name: "Enjoy Local"[\s\S]*enjoylocalredbluff\.com/, "the I-5 search should include Red Bluff's weekly music room");
 assert.match(api, /genreTerms\.length && genreMatches\.length \? genreMatches : rooms/, "a verified small-town room must remain available when no exact genre-tagged room exists");
 assert.match(api, /name: "Lost on Main"[\s\S]*ilovelost\.com/, "the I-5 search should include a current Chico music venue");
