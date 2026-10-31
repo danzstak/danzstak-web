@@ -19,6 +19,30 @@ notificationAnnouncer.className = "visually-hidden";
 notificationAnnouncer.setAttribute("role", "status");
 notificationAnnouncer.setAttribute("aria-live", "polite");
 document.body.appendChild(notificationAnnouncer);
+const appToast = document.createElement("div");
+appToast.className = "app-toast";
+appToast.hidden = true;
+appToast.setAttribute("role", "status");
+appToast.setAttribute("aria-live", "polite");
+appToast.setAttribute("aria-atomic", "true");
+document.body.appendChild(appToast);
+let appToastTimer = 0;
+let appToastHideTimer = 0;
+
+function showAppFeedback(message, { urgent = false, timeout = 4200 } = {}) {
+  clearTimeout(appToastTimer);
+  clearTimeout(appToastHideTimer);
+  appToast.textContent = String(message || "DanzStak could not complete that action.");
+  appToast.setAttribute("role", urgent ? "alert" : "status");
+  appToast.setAttribute("aria-live", urgent ? "assertive" : "polite");
+  appToast.hidden = false;
+  appToast.classList.remove("app-toast-visible");
+  requestAnimationFrame(() => appToast.classList.add("app-toast-visible"));
+  appToastTimer = setTimeout(() => {
+    appToast.classList.remove("app-toast-visible");
+    appToastHideTimer = setTimeout(() => { appToast.hidden = true; }, 180);
+  }, timeout);
+}
 let lastNotificationCount = null;
 const notificationSourceCounts = { social: null, engagement: null };
 let notificationCountLoading = false;
@@ -2066,7 +2090,7 @@ function addShareButton(post) {
   button.title = "Share post";
   button.addEventListener("click", async () => {
     if ((post.dataset.audience || "public") !== "public") {
-      alert("Only Public posts can be shared outside DanzStak.");
+      showAppFeedback("Only Public posts can be shared outside DanzStak.", { urgent: true });
       return;
     }
     if (window.danzstakSharePost) { window.danzstakSharePost(post); return; }
@@ -2383,7 +2407,7 @@ function addPostDeleteButton(post) {
         menu.hidden = true;
         toggle.setAttribute("aria-expanded", "false");
         if (menu.contains(document.activeElement)) toggle.focus({ preventScroll: true });
-      } catch (error) { alert(error.message || "This action could not be saved. Please try again."); }
+      } catch (error) { showAppFeedback(error.message || "This action could not be saved. Please try again.", { urgent: true }); }
       finally { button.disabled = false; }
     });
     menu.appendChild(button);
@@ -2452,7 +2476,7 @@ function addPostDeleteButton(post) {
             history = Array.isArray(data.editHistory) ? data.editHistory : history;
             post.dataset.editHistory = JSON.stringify(history);
           } catch {
-            alert("The edited post could not be saved. Please try again.");
+            showAppFeedback("The edited post could not be saved. Please try again.", { urgent: true });
             save.disabled = false;
             return;
           }
@@ -2492,7 +2516,7 @@ function addPostDeleteButton(post) {
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Comment setting could not be saved");
-      } catch (error) { alert(error.message); button.disabled = false; return; }
+      } catch (error) { showAppFeedback(error.message, { urgent: true }); button.disabled = false; return; }
     }
     post.dataset.commentSetting = String(next);
     await updatePostPreference(post, { commentSetting: next });
@@ -2523,7 +2547,7 @@ function addPostDeleteButton(post) {
             body: JSON.stringify({ content: post.querySelector(".post-content")?.textContent.trim() || "Shared media", audience: audiences[next] })
           });
           if (!response.ok) throw new Error("Privacy could not be saved");
-        } catch (error) { alert(error.message); button.disabled = false; return; }
+        } catch (error) { showAppFeedback(error.message, { urgent: true }); button.disabled = false; return; }
       }
       post.dataset.privacySetting = String(next);
       post.dataset.audience = audiences[next];
@@ -2534,6 +2558,7 @@ function addPostDeleteButton(post) {
         audienceBadge.setAttribute("aria-label", "Post audience: " + values[next]);
       }
       button.disabled = false;
+      showAppFeedback(`Post privacy changed to ${values[next]}.`);
     });
     option("Move to archive", "Hide this post from your account.", () => hidePostForAccount(post));
   option("Delete post", "Permanently remove your post, or hide another member's post from Your Mix.", async () => {
@@ -2543,7 +2568,7 @@ function addPostDeleteButton(post) {
       return;
     }
     if (!postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
-      alert("This post is missing its server ID. Refresh the page and try again.");
+      showAppFeedback("This post is missing its server ID. Refresh the page and try again.", { urgent: true });
       return;
     }
     if (post.dataset.isOwner === "true" && !confirm("Permanently delete this post and its uploaded media?")) return;
@@ -2556,7 +2581,7 @@ function addPostDeleteButton(post) {
           return;
         }
         if (!response.ok) throw new Error();
-      } catch { alert("The post could not be deleted from the server."); return; }
+      } catch { showAppFeedback("The post could not be deleted from the server.", { urgent: true }); return; }
     }
     post.remove();
     if (postId && Array.isArray(window.danzstakLoadedPosts)) {
@@ -2573,8 +2598,8 @@ function addPostDeleteButton(post) {
   if (preferences.notificationsOff === true) notificationsOption.querySelector("strong").textContent = "Turn on notifications";
   if (owner && ["image","video"].includes(post.dataset.mediaType)) option("Tag people or location", "Tag accepted friends or add a place to this photo or video.", () => window.danzstakOpenMediaTags?.(post));
     option("Copy link", "Copy a shareable link to this post.", async () => {
-    try { await navigator.clipboard.writeText(postPermalink(post)); }
-    catch { alert("Copying is unavailable in this browser."); }
+    try { await navigator.clipboard.writeText(postPermalink(post)); showAppFeedback("Link copied."); }
+    catch { showAppFeedback("Copying is unavailable in this browser.", { urgent: true }); }
   });
 
   if (!owner) {
