@@ -9,6 +9,8 @@ assert.equal(inlineScripts.length, 1, "feed should retain one explicitly hashed 
 const script = inlineScripts[0];
 
 assert.doesNotMatch(script, /\balert\(/, "feed composer, Flashes, and friend actions should not block the page with browser alerts");
+assert.doesNotMatch(script, /\bconfirm\(/, "feed composer and Flashes should not use blocking browser confirmations");
+assert.ok((script.match(/window\.danzstakConfirm/g) || []).length >= 2, "Flash certification and deletion should use the shared accessible dialog");
 for (const message of [
   "Friend request could not be updated.",
   "Flash could not be deleted.",

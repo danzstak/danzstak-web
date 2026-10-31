@@ -127,7 +127,7 @@ if (-not $feed.Contains('JSON.stringify({ content, audience, mediaKey: storyTick
 foreach ($copyrightSubmission in @('originalContentCertified: true')) {
   if (-not $feed.Contains($copyrightSubmission)) { Add-Failure "Posting flow omits copyright attestation: $copyrightSubmission" }
 }
-foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()', 'Do you certify that you created this Flash')) {
+foreach ($preUploadCertification in @('if (!certification?.checked)', 'certification?.focus()', 'Confirm that you created this Flash')) {
   if (-not $feed.Contains($preUploadCertification)) { Add-Failure "Copyright: upload can begin before explicit certification: $preUploadCertification" }
 }
 foreach ($drawerAccessibility in @('aria-controls="messageDrawer"', 'aria-expanded="false"', 'drawer.setAttribute("role", "dialog")', 'event.key === "Escape"', 'launcher.setAttribute("aria-expanded", "true")')) {
