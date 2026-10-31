@@ -1137,7 +1137,7 @@
         const venueCount = Math.min(6, market.venues?.length || 0),
           venue = venueCount ? market.venues[showIndex % venueCount] : null;
         dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · SHOW TARGET`;
-        dayDetail.textContent = `${market.stop}${venue ? ` — ${venue.name}` : " — venue lead needed"}`;
+        dayDetail.textContent = `${market.stop}${venue ? ` — ${venue.name}` : " — venue lead needed"} · Arrive 4:00 PM · Soundcheck 5:00 PM`;
         showIndex += 1;
       } else {
         const label = day === 0 ? data.route.start?.label : market?.stop || data.route.start?.label;
