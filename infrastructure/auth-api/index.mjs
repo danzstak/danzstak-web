@@ -2180,12 +2180,14 @@ async function reverseGeocodeTourMarket(position) {
 }
 
 async function discoverRouteMarkets(route, explicitMarkets, requestedDays) {
-  const line = (route?.Routes?.[0]?.Legs || []).flatMap(leg => leg.Geometry?.LineString || []);
+  const legs = (route?.Routes?.[0]?.Legs || []).map(leg => leg.Geometry?.LineString || []).filter(line => line.length >= 3);
+  const line = legs.flat();
   if (line.length < 3) return explicitMarkets;
   const desired = Math.max(3, Math.min(6, Math.ceil(Math.max(1, requestedDays) / 5)));
-  const samplePositions = Array.from({ length: desired }, (_, index) =>
-    line[Math.round((index + 1) * (line.length - 1) / (desired + 1))]
-  ).filter(position => Array.isArray(position) && position.length === 2);
+  const perLeg = Math.max(1, Math.ceil(desired / Math.max(1, legs.length)));
+  const samplePositions = legs.flatMap(leg => Array.from({ length: perLeg }, (_, index) =>
+    leg[Math.round((index + 1) * (leg.length - 1) / (perLeg + 1))]
+  )).slice(0, desired).filter(position => Array.isArray(position) && position.length === 2);
   const sampled = (await Promise.all(samplePositions.map(reverseGeocodeTourMarket))).filter(Boolean);
   const nearestLineIndex = position => line.reduce((best, point, index) => {
     const distance = approximateMilesBetween(position, point);
@@ -2356,13 +2358,8 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const venueQueries = [...new Set([
     discoveryGenre ? `${discoveryGenre} live music venue` : "live music venue",
     discoveryGenre ? `${discoveryGenre} music club` : "independent music club",
-    discoveryGenre ? `${discoveryGenre} bar live music` : "bar live music",
-    discoveryGenre ? `${discoveryGenre} concert club` : "concert club",
     "independent live music venue",
     "live music bar",
-    "live music pub",
-    "music hall",
-    "concert venue",
     selectedGenre.includes("DJ") || selectedGenre.includes("Electronic")
       ? "nightclub DJ electronic music"
       : selectedGenre.includes("Orchestra") || selectedGenre.includes("Classical")
