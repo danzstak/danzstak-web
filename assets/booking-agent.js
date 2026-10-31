@@ -1059,7 +1059,22 @@
     summary.className = "route-summary";
     summary.append(title, details, status);
     routeResults.append(summary, renderProposedCalendar(data), renderRouteMap(data));
-    for (const market of data.candidates || []) {
+    const candidateMarkets = (data.candidates || []).filter((market) => market?.stop),
+      itineraryMarkets = data.route.itineraryMarkets?.length
+        ? data.route.itineraryMarkets
+        : candidateMarkets.map((market) => market.stop),
+      marketKey = (value) => String(value || "").split(",")[0].trim().toLowerCase(),
+      displayedMarkets = itineraryMarkets.map((stop) => {
+        const candidate = candidateMarkets.find((market) => marketKey(market.stop) === marketKey(stop));
+        return candidate || {
+          stop,
+          venues: [],
+          hotels: [],
+          vanStops: [],
+          discoveryUnavailable: true,
+        };
+      });
+    for (const market of displayedMarkets) {
       const section = document.createElement("section"),
         heading = document.createElement("h3"),
         confirmation = document.createElement("button"),

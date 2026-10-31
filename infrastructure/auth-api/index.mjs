@@ -2674,7 +2674,17 @@ async function planTourRoute(event) {
       selected = directional
       ? (markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]))
       : corridor
-        ? await Promise.all([...new Set(corridorSearchMarkets)].map(geocodeTourPlace))
+        ? (await mapLimit([...new Set(corridorSearchMarkets)], 4, async market => {
+            try {
+              return await geocodeTourPlace(market);
+            } catch (error) {
+              // Keep the itinerary usable even if one road town cannot be
+              // geocoded during this request. The client still renders the
+              // named market and a later search can retry its venue lookup.
+              console.warn("Tour corridor geocode unavailable", { market, name: error.name });
+              return null;
+            }
+          })).filter(Boolean)
         : await discoverRouteMarkets(route, points, requestedDays, requestedShows),
       candidates = await mapLimit(selected, 4, async point => {
         try {

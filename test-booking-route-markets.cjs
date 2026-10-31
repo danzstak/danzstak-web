@@ -7,6 +7,8 @@ const vm = require("node:vm");
 const source = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 const bookingUi = fs.readFileSync("assets/booking-agent.js", "utf8");
 assert.match(source, /candidates = await mapLimit\(selected, 4, async point =>/, "multi-market discovery should use bounded concurrency");
+assert.match(source, /mapLimit\(\[\.\.\.new Set\(corridorSearchMarkets\)\], 4/, "corridor geocoding should use bounded concurrency");
+assert.match(source, /Tour corridor geocode unavailable/, "one failed corridor geocode should not cancel the tour");
 assert.match(source, /discoveryUnavailable: true/, "one failed market should remain visible without cancelling the route");
 assert.doesNotMatch(source, /candidates = await Promise\.all\(selected\.map\(point => tourCandidates/, "tour markets must not launch every venue query simultaneously");
 assert.match(bookingUi, /market\.discoveryUnavailable[\s\S]*Club lookup needs another try/, "a failed town lookup should explain its retryable state");
@@ -56,6 +58,8 @@ assert.equal(ordinaryTourMarkets[0], "Seattle, Washington");
 assert.equal(ordinaryTourMarkets.at(-1), "San Francisco, California");
 assert.match(bookingUi, /discoveredPoints = \(data\.candidates \|\| \[\]\)/, "the route overview should use every discovered corridor market");
 assert.match(bookingUi, /stopLine\.textContent = points\.map/, "the route overview should name the intermediate towns in one compact line");
+assert.match(bookingUi, /displayedMarkets = itineraryMarkets\.map/, "result cards should be driven by the full itinerary, not only successful venue lookups");
+assert.match(bookingUi, /candidate \|\| \{[\s\S]*discoveryUnavailable: true/, "missing market lookups should stay visible and retryable");
 
 const discoverySource = source.slice(
   source.indexOf("async function discoverRouteMarkets("),
