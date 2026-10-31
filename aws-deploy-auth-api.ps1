@@ -108,7 +108,7 @@ try {
       @{
         Sid = "TourRoutePlanning"
         Effect = "Allow"
-        Action = @("geo-places:Geocode", "geo-places:SearchText", "geo-routes:CalculateRoutes")
+        Action = @("geo-places:Geocode", "geo-places:ReverseGeocode", "geo-places:SearchText", "geo-routes:CalculateRoutes")
         Resource = "*"
       },
       @{
