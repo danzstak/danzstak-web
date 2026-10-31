@@ -192,7 +192,7 @@ window.danzstakRequestInstall = async () => {
 };
 installButton.addEventListener("click", async () => {
   const result = await window.danzstakRequestInstall();
-  if (result === "manual") alert("Use your browser's Install option. On iPhone or iPad, open Share and choose Add to Home Screen.");
+  if (result === "manual") window.danzstakShowFeedback?.("Use your browser's Install option. On iPhone or iPad, open Share and choose Add to Home Screen.", { timeout: 7000 });
 });
 
 window.addEventListener("appinstalled", () => {

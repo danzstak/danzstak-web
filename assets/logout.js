@@ -31,6 +31,6 @@ document.addEventListener("click", async event => {
       button.disabled = false;
       button.removeAttribute("aria-disabled");
       button.textContent = original;
-      alert(error.message || "Logout failed. Please try again.");
+      window.danzstakShowFeedback?.(error.message || "Logout failed. Please try again.", { urgent: true });
     }
 });
