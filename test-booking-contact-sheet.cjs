@@ -10,7 +10,8 @@ for (const control of ["printVenueSheet", "downloadVenueCsv", "clearVenueSelecti
 }
 assert.match(client, /sessionStorage\.setItem\(storageKey, JSON\.stringify\(venues\)\)/, "removed leads must stay removed");
 assert.match(client, /venues\.splice\(index, 1\)/, "individual leads must be removable");
-assert.match(client, /window\.confirm\("Clear every selected club/, "clearing every lead must be confirmed");
+assert.match(client, /danzstakConfirm\("This removes every selected club/, "clearing every lead must use an accessible confirmation");
+assert.doesNotMatch(client, /window\.(?:alert|confirm)\(/, "the booking pipeline should not use blocking browser popups");
 assert.match(client, /window\.print\(\)/, "the contact sheet must be printable");
 assert.match(client, /text\/csv;charset=utf-8/, "the contact sheet must export CSV");
 assert.match(client, /booking\.outreachDraft = draft\.value/, "edited outreach drafts must survive rerenders and tab refreshes");

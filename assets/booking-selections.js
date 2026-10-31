@@ -202,7 +202,7 @@
     button.disabled = !email;
     button.addEventListener("click", () => {
       if (!a.name || !venue.booking?.showDate || /\[[^\]]+\]/.test(draft.value)) {
-        window.alert("Add your act name, proposed date, and replace draft placeholders before opening email.");
+        window.danzstakShowFeedback?.("Add your act name, proposed date, and replace draft placeholders before opening email.", { urgent: true });
         return;
       }
       window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`${a.name} — booking enquiry for ${venue.booking.showDate}`)}&body=${encodeURIComponent(draft.value)}`;
@@ -231,7 +231,7 @@
   }
 
   async function loadWorkspace(manual = false) {
-    if (manual && dirty && !window.confirm("Reload account records? Unsaved edits to existing venues and artist details will be replaced. Export CSV first to keep a copy.")) return;
+    if (manual && dirty && !(await window.danzstakConfirm("Unsaved edits to existing venues and artist details will be replaced. Export CSV first to keep a copy.", { title: "Reload account records?", confirmLabel: "Reload records", danger: true }))) return;
     saveAccount.disabled = true;
     loadAccount.disabled = true;
     const enabled = [...document.querySelectorAll("main input, main select, main textarea, main button")].filter(c => !c.disabled);
@@ -328,8 +328,8 @@
 
   printButton?.addEventListener("click", () => window.print());
   downloadButton?.addEventListener("click", downloadCsv);
-  clearButton?.addEventListener("click", () => {
-    if (!window.confirm("Clear every selected club from this booking list?")) return;
+  clearButton?.addEventListener("click", async () => {
+    if (!(await window.danzstakConfirm("This removes every selected club from this booking list.", { title: "Clear booking list?", confirmLabel: "Clear clubs", danger: true }))) return;
     venues = [];
     persist();
     render();
