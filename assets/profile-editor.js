@@ -723,7 +723,8 @@ function renderProfileWebsite(value) {
     const link = document.createElement("a");
     link.href = url.href;
     link.target = "_blank";
-    link.rel = "noopener noreferrer";
+    link.rel = "noopener noreferrer nofollow ugc";
+    link.referrerPolicy = "no-referrer";
     link.textContent = text;
     link.setAttribute("aria-label", "Open " + text + " in a new tab");
     target.appendChild(link);

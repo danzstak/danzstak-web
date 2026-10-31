@@ -15,7 +15,8 @@ context.renderProfileWebsite("https://sfscoop.com/path");
 assert.equal(target.children.length, 1);
 assert.equal(target.children[0].href, "https://sfscoop.com/path");
 assert.equal(target.children[0].target, "_blank");
-assert.equal(target.children[0].rel, "noopener noreferrer");
+assert.equal(target.children[0].rel, "noopener noreferrer nofollow ugc");
+assert.equal(target.children[0].referrerPolicy, "no-referrer");
 assert.match(target.children[0]["aria-label"], /new tab/);
 
 context.renderProfileWebsite("javascript:alert(1)");
