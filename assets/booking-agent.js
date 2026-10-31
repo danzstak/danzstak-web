@@ -1060,9 +1060,7 @@
     summary.append(title, details, status);
     routeResults.append(summary, renderProposedCalendar(data), renderRouteMap(data));
     const candidateMarkets = (data.candidates || []).filter((market) => market?.stop),
-      itineraryMarkets = data.route.itineraryMarkets?.length
-        ? data.route.itineraryMarkets
-        : candidateMarkets.map((market) => market.stop),
+      itineraryMarkets = routeItineraryMarkets(data.route, candidateMarkets),
       marketKey = (value) => String(value || "").split(",")[0].trim().toLowerCase(),
       displayedMarkets = itineraryMarkets.map((stop) => {
         const candidate = candidateMarkets.find((market) => marketKey(market.stop) === marketKey(stop));
@@ -1145,7 +1143,7 @@
       days = Math.max(1, Number(data.route.requestedDays) || number("days") || 1),
       shows = Math.max(1, Math.min(days, Number(data.route.requestedShows) || number("showCount") || 1)),
       candidates = (data.candidates || []).filter(market => market.stop),
-      markets = (data.route.itineraryMarkets?.length ? data.route.itineraryMarkets : candidates.map(market => market.stop)).map(stop => {
+      markets = routeItineraryMarkets(data.route, candidates).map(stop => {
         const city = String(stop).split(",")[0].trim().toLowerCase(),
           candidate = candidates.find(market => String(market.stop).split(",")[0].trim().toLowerCase() === city);
         return candidate || { stop, venues: [] };
@@ -1187,6 +1185,29 @@
     }
     details.append(summary, intro, list);
     return details;
+  }
+
+  function routeItineraryMarkets(route, candidates = []) {
+    const supplied = Array.isArray(route?.itineraryMarkets)
+      ? route.itineraryMarkets.filter(Boolean)
+      : [];
+    const start = String(route?.start?.label || "").toLowerCase();
+    const turnaround = String(route?.turnaround?.label || route?.end?.label || "").toLowerCase();
+    const labels = `${start} | ${turnaround}`;
+    if (!labels.includes("seattle") || !labels.includes("san francisco") || labels.includes("los angeles")) {
+      return supplied.length ? supplied : candidates.map((market) => market.stop);
+    }
+    const i5Markets = [
+      "Seattle, Washington", "Tacoma, Washington", "Olympia, Washington",
+      "Centralia, Washington", "Kelso, Washington", "Longview, Washington", "Vancouver, Washington",
+      "Portland, Oregon", "Salem, Oregon", "Albany, Oregon", "Corvallis, Oregon", "Eugene, Oregon",
+      "Cottage Grove, Oregon", "Roseburg, Oregon", "Grants Pass, Oregon",
+      "Medford, Oregon", "Ashland, Oregon", "Yreka, California", "Weed, California",
+      "Mount Shasta, California", "Dunsmuir, California", "Redding, California",
+      "Anderson, California", "Red Bluff, California",
+      "Chico, California", "Sacramento, California", "San Francisco, California",
+    ];
+    return start.includes("seattle") ? i5Markets : [...i5Markets].reverse();
   }
   function updateBookingMode() {
     const local = bookingMode.value === "local",

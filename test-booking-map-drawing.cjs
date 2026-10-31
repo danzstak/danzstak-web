@@ -6,6 +6,7 @@ const html = fs.readFileSync("booking.html", "utf8");
 const script = fs.readFileSync("assets/booking-map.js", "utf8");
 const css = fs.readFileSync("assets/booking-agent-driver.css", "utf8");
 const api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
+const customHeaders = fs.readFileSync("customHttp.yml", "utf8");
 
 assert.doesNotMatch(html, /id="drawVenueRoute"/, "the redundant page-level Draw route button should be removed");
 assert.match(html, /use\s+the pencil on the map/i, "map instructions should point users to the pencil control");
@@ -32,5 +33,7 @@ assert.match(css, /\.map-draw-control\[aria-pressed="true"\]/, "active drawing s
 assert.match(script, /The club search took too long\. Zoom closer or draw a shorter route and try again\./, "a timed-out map search must leave the searching state with useful recovery guidance");
 assert.match(script, /The club search could not connect\. Check the connection and try again\./, "a failed map request must report a connection problem");
 assert.match(script, /alt: `\$\{venueName\} venue marker`/, "venue pins must announce the venue name instead of a generic marker label");
+assert.match(customHeaders, /geolocation=\(self\)/, "same-origin booking geolocation should be allowed by Permissions-Policy");
+assert.doesNotMatch(customHeaders, /geolocation=\(\)/, "Permissions-Policy must not block booking geolocation globally");
 
 console.log("Booking map drawing checks passed: the pencil captures a freehand path, finishes with a checkmark, samples safely, and supports cancellation.");
