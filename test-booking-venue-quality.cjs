@@ -95,6 +95,7 @@ assert.match(api, /sourceName: "AWS Places public listing"/);
 assert.match(api, /sourceName: "DanzStak curated public venue directory"/);
 assert.match(api, /activityEvidence:/);
 assert.match(api, /function deduplicateVenues\(places\)/);
+assert.match(api, /\["la", "Los Angeles, California, United States"\]/, "common tour-city shorthand must not geocode LA as Laos");
 const dedupeStart = api.indexOf("function normalizedVenueText");
 const dedupeEnd = api.indexOf("const tourDirections", dedupeStart);
 const dedupeContext = vm.createContext({});

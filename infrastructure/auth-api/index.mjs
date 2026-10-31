@@ -2145,7 +2145,14 @@ async function suggestDirectionalMarkets(home, direction, days, genre = "") {
 }
 
 async function geocodeTourPlace(query) {
-  const result = await geoPlaces.send(new GeocodeCommand({ QueryText: query, MaxResults: 1 }));
+  const aliases = new Map([
+    ["la", "Los Angeles, California, United States"],
+    ["l.a.", "Los Angeles, California, United States"],
+    ["sf", "San Francisco, California, United States"],
+    ["nyc", "New York City, New York, United States"]
+  ]);
+  const normalizedQuery = aliases.get(String(query || "").trim().toLowerCase()) || query;
+  const result = await geoPlaces.send(new GeocodeCommand({ QueryText: normalizedQuery, MaxResults: 1 }));
   const place = result.ResultItems?.[0];
   if (!place || !Array.isArray(place.Position) || place.Position.length !== 2) throw Object.assign(new Error("Tour location not found"), { statusCode: 422 });
   return { label: String(place.Title || query).slice(0, 160), position: place.Position.slice(0, 2) };
