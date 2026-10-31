@@ -29,7 +29,8 @@ assert.deepEqual(
   "the corridor should follow the requested travel direction",
 );
 const ordinaryTourMarkets = Array.from(corridorContext.sampleTourCorridorMarkets(direct, 10, 8));
-assert.equal(ordinaryTourMarkets.length, 12, "ordinary corridor tours should search more than endpoint cities");
+assert.equal(ordinaryTourMarkets.length, direct.length, "ordinary corridor tours should expose every known booking market");
+assert.deepEqual(ordinaryTourMarkets, direct, "the venue search should preserve every I-5 market in road order");
 for (const market of [
   "Tacoma, Washington",
   "Portland, Oregon",

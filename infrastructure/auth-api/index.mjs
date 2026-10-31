@@ -2246,6 +2246,12 @@ function westCoastTourCorridor(points) {
 
 function sampleTourCorridorMarkets(corridor, requestedDays = 1, requestedShows = 1) {
   if (!Array.isArray(corridor) || !corridor.length) return [];
+  // A route search is a booking-lead search, not the final performance
+  // calendar. Keep every known market on curated corridors so a band can
+  // choose Tacoma, Medford, Redding, or a smaller road town even when it only
+  // wants a handful of shows. The calendar below still limits actual show
+  // nights to requestedShows.
+  if (corridor.length <= 24) return [...corridor];
   const limit = Math.min(corridor.length, Math.max(12, requestedShows, Math.ceil(requestedDays / 2)));
   if (corridor.length <= limit) return [...corridor];
 
