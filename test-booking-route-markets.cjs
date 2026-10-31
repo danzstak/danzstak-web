@@ -9,6 +9,8 @@ const bookingUi = fs.readFileSync("assets/booking-agent.js", "utf8");
 assert.match(source, /candidates = await mapLimit\(selected, 4, async point =>/, "multi-market discovery should use bounded concurrency");
 assert.match(source, /mapLimit\(\[\.\.\.new Set\(corridorSearchMarkets\)\], 4/, "corridor geocoding should use bounded concurrency");
 assert.match(source, /Tour corridor geocode unavailable/, "one failed corridor geocode should not cancel the tour");
+assert.match(source, /mapLimit\(discoveryQueries, 3, async query =>/, "each town should bound its place-search concurrency");
+assert.doesNotMatch(source, /Promise\.allSettled\(\[\s*search\("budget hotel motel hostel"\)/, "a town must not launch every place query simultaneously");
 assert.match(source, /discoveryUnavailable: true/, "one failed market should remain visible without cancelling the route");
 assert.doesNotMatch(source, /candidates = await Promise\.all\(selected\.map\(point => tourCandidates/, "tour markets must not launch every venue query simultaneously");
 assert.match(bookingUi, /market\.discoveryUnavailable[\s\S]*Club lookup needs another try/, "a failed town lookup should explain its retryable state");

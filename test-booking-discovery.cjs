@@ -6,14 +6,30 @@ const functionSource = source.slice(source.indexOf("async function tourCandidate
 
 async function run(fail, genre = "DIY Punk") {
   const queries = [];
+  let active = 0, peakActive = 0;
   const context = vm.createContext({
+    mapLimit: async (items, limit, worker) => {
+      const results = new Array(items.length);
+      let next = 0;
+      await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+        while (next < items.length) {
+          const index = next++;
+          results[index] = await worker(items[index], index);
+        }
+      }));
+      return results;
+    },
     SearchTextCommand: class { constructor(input) { this.input = input; } },
     geoPlaces: { async send({ input }) {
       queries.push(input.QueryText);
-      if (fail(input.QueryText)) throw new Error("lookup unavailable");
-      return { ResultItems: Array.from({ length: 50 }, (_, index) => ({
-        venueKey: `${input.QueryText}-${index}`, name: `Room ${index}`, distanceMiles: 1
-      })) };
+      active += 1; peakActive = Math.max(peakActive, active);
+      try {
+        await Promise.resolve();
+        if (fail(input.QueryText)) throw new Error("lookup unavailable");
+        return { ResultItems: Array.from({ length: 50 }, (_, index) => ({
+          venueKey: `${input.QueryText}-${index}`, name: `Room ${index}`, distanceMiles: 1
+        })) };
+      } finally { active -= 1; }
     } },
     publicPlace: place => place,
     approvedMemberVenueLeads: async () => [],
@@ -25,11 +41,12 @@ async function run(fail, genre = "DIY Punk") {
   });
   vm.runInContext(functionSource, context);
   const result = await context.tourCandidates({ label: "Test city", position: [0, 0] }, genre);
-  return { result, queries };
+  return { result, queries, peakActive };
 }
 
 (async () => {
-  const { result, queries } = await run(query => query === "budget hotel motel hostel" || query === "Punk live music venue");
+  const { result, queries, peakActive } = await run(query => query === "budget hotel motel hostel" || query === "Punk live music venue");
+  assert.ok(peakActive <= 3, `town discovery exceeded its three-request limit (${peakActive})`);
   assert.equal(result.venues.length, 60, "dense discovery must retain more than 24 clubs");
   assert.equal(result.hotels.length, 0, "hotel failure must not break venue discovery");
   assert.equal(result.vanStops.length, 2, "van-rest discovery should return two nearby leads");

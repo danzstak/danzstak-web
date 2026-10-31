@@ -2568,12 +2568,19 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
         ? "classical concert hall orchestra venue"
         : "rock punk metal music venue"
   ])];
+  const discoveryQueries = [
+    "budget hotel motel hostel",
+    "truck stop rest area campground",
+    ...venueQueries
+  ];
   const [searchResults, reviewedDirectory] = await Promise.all([
-    Promise.allSettled([
-      search("budget hotel motel hostel"),
-      search("truck stop rest area campground"),
-      ...venueQueries.map(search)
-    ]),
+    mapLimit(discoveryQueries, 3, async query => {
+      try {
+        return { status: "fulfilled", value: await search(query) };
+      } catch (reason) {
+        return { status: "rejected", reason };
+      }
+    }),
     approvedMemberVenueLeads(point, searchBounds)
   ]);
   const [hotelSearch, vanRestSearch, ...venueSearches] = searchResults;
