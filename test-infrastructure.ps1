@@ -118,6 +118,9 @@ $engagementTemplate = Get-Content -LiteralPath $engagementTemplatePath -Raw -Enc
 foreach ($required in @('DANZSTAK-Reactions', 'DANZSTAK-Comments', 'DANZSTAK-EngagementNotifications', 'GET /engagement', 'POST /reactions', 'POST /comments', 'DELETE /comments/{commentId}', 'GET /engagement-notifications', 'POST /engagement-notifications/read', 'DeletionPolicy: Retain', 'dynamodb:UpdateItem')) {
   if (-not $engagementTemplate.Contains($required)) { throw "Engagement infrastructure is missing: $required" }
 }
+if ($engagementTemplate -notmatch 'Action: \[dynamodb:GetItem, dynamodb:PutItem\]\s+Resource: !GetAtt PostViewsTable\.Arn') {
+  throw 'Post-view duplicate detection lacks GetItem permission on PostViewsTable.'
+}
 
 $publisherPath = Join-Path $PSScriptRoot 'aws-publish-site.ps1'
 if (-not (Test-Path -LiteralPath $publisherPath)) { throw 'Static site publisher is missing.' }
@@ -287,7 +290,7 @@ if (-not $profileUpdate.Contains('oldMedia.push(old)') -or
 $requiredDataPermissions = @(
   'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]',
   'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:DeleteItem]',
-  'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem]'
+  'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Scan, dynamodb:UpdateItem]'
 )
 foreach ($permission in $requiredDataPermissions) {
   if (-not $template.Contains($permission)) {
