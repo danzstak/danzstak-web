@@ -38,7 +38,7 @@ for (const required of [
   ".tribe-hero{",
   ".tribe-nav{",
   ".tribe-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px",
-  ".tribe-nav button{min-width:0;padding-inline:6px;background:#fff",
+  ".tribe-nav button{min-width:0;padding-inline:4px;background:#fff;font-size:12px",
   ".tribe-crew-member{",
   ".tribe-crew-avatar[href]",
   ".tribe-detail{scroll-margin-top:90px}",
