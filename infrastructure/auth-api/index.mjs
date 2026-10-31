@@ -2380,6 +2380,20 @@ const verifiedPortlandRooms = [
   { name: "Haymaker", address: "1233 N Killingsworth St, Portland, OR 97217", position: [-122.6839, 45.5625], websites: ["https://www.haymakerportland.com/"], emails: ["haymakermusicbooking@gmail.com"], phones: ["971-871-5429"], categories: ["Live Music Venue", "Punk", "Rock"] }
 ];
 
+const verifiedOlympiaRooms = [
+  { name: "The Crypt", address: "421 4th Ave E, Olympia, WA 98501", position: [-122.8970477, 47.0450635], websites: ["https://www.thecryptbar.com/contact"], emails: ["booking@thecryptbar.com"], phones: [], categories: ["Independent Music Venue", "Punk", "Rock", "Metal", "21+"] },
+  { name: "Rhythms Coffee", address: "210 4th Ave W, Olympia, WA 98501", position: [-122.9034761, 47.0448992], websites: ["https://rhythms-coffee.com/"], emails: [], phones: [], categories: ["All Ages Venue", "Live Music", "Rock", "Folk"] }
+];
+
+const verifiedSalemRooms = [
+  { name: "Victory Club", address: "155 Liberty St NE, Salem, OR 97301", position: [-123.0389917, 44.9407303], websites: ["https://vagabondbrewing.wixsite.com/mysite-2"], emails: ["info@victoryclubsalem.com"], phones: ["971-304-0004"], categories: ["Live Music Venue", "Bar", "Rock"] },
+  { name: "The BAD Space at Santiam Brewing", address: "2572 19th St SE, Salem, OR 97302", position: [-123.0177, 44.9177], websites: ["https://www.santiambrewing.com/the-bad-space.html"], emails: ["ian@santiambrewing.com"], phones: ["503-507-5257"], categories: ["All Ages Venue", "Live Music Venue", "Rock", "Punk", "Metal"] }
+];
+
+const verifiedRoseburgRooms = [
+  { name: "The Rosebud Theatre", address: "663 SE Jackson St, Roseburg, OR 97470", position: [-123.3445504, 43.2079745], websites: ["https://www.therosebudtheatre.com/faqs"], emails: ["booking@therosebudtheatre.com"], phones: [], categories: ["Independent Music Venue", "All Ages", "Rock", "Punk"] }
+];
+
 const verifiedSouthernOregonRooms = [
   { name: "Rockafairy", address: "1600 N Riverside Ave, Medford, OR 97501", position: [-122.8772680, 42.3442689], websites: ["https://www.rockafairy.org/"], emails: ["contactus@rockafairy.org"], phones: [], categories: ["All Ages Venue", "DIY", "Punk", "Rock", "Metal", "Hardcore"] },
   { name: "Grape Street Bar & Grill", address: "31 S Grape St, Medford, OR 97501", position: [-122.8747382, 42.3248195], websites: ["https://www.grapestreetmedford.com/"], emails: ["grapestreetbar@gmail.com"], phones: [], categories: ["Live Music Venue", "Bar", "Rock", "DJ", "Electronic"] },
@@ -2389,6 +2403,18 @@ const verifiedSouthernOregonRooms = [
 
 const verifiedReddingRooms = [
   { name: "The Dip", address: "1730 California St, Redding, CA 96001", position: [-122.3916333, 40.5817582], websites: ["https://www.thedipredding.com/venue"], emails: ["aaron@thedipredding.com"], phones: ["530-605-0827"], categories: ["Independent Music Venue", "Punk", "Rock", "Metal", "21+"] }
+];
+
+const verifiedChicoRooms = [
+  { name: "Lost on Main", address: "319 Main St Ste F, Chico, CA 95928", position: [-121.8392528, 39.7295082], websites: ["https://www.ilovelost.com/"], emails: [], phones: ["530-892-2445"], categories: ["Live Music Venue", "Rock", "DJ", "Electronic"] },
+  { name: "The Breakbeat", address: "112 W 2nd St, Chico, CA 95928", position: [-121.8406519, 39.7302849], websites: ["https://www.thebreakbeatchico.com/"], emails: ["contact@thebreakbeatchico.com"], phones: [], categories: ["Live Music Venue", "Rock", "DJ", "Electronic"] },
+  { name: "Argus Bar & Patio", address: "212 W 2nd St, Chico, CA 95928", position: [-121.8415732, 39.7296666], websites: ["https://www.argusvenue.com/about"], emails: ["argusbarandpatio@gmail.com"], phones: ["530-520-8233"], categories: ["Live Music Venue", "Bar", "Rock", "Punk"] },
+  { name: "The Tackle Box", address: "379 E Park Ave, Chico, CA 95928", position: [-121.8379, 39.7141], websites: ["https://www.tackleboxchico.com/bands/"], emails: ["tackleboxevents@gmail.com"], phones: [], categories: ["Live Music Venue", "Bar", "Rock"] }
+];
+
+const verifiedSacramentoRooms = [
+  { name: "Cafe Colonial", address: "3520 Stockton Blvd, Sacramento, CA 95820", position: [-121.4516060, 38.5425680], websites: ["https://www.colonialpresents.com/booking-and-private-events"], emails: ["booking@colonialpresents.com"], phones: [], categories: ["All Ages Venue", "DIY", "Punk", "Rock", "Metal", "Hardcore", "Hip-Hop"] },
+  { name: "Harlow's", address: "2708 J St, Sacramento, CA 95816", position: [-121.4701361, 38.5738508], websites: ["https://www.harlows.com/faq/"], emails: ["booking@harlows.com"], phones: ["916-441-4693"], categories: ["Independent Music Venue", "Rock", "Punk", "Metal", "Hip-Hop"] }
 ];
 
 function verifiedVenueKey(place) {
@@ -2406,12 +2432,27 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   } else if (latitude >= 45.40 && latitude <= 45.65 && longitude >= -122.85 && longitude <= -122.45) {
     rooms = verifiedPortlandRooms;
     locality = "Portland";
+  } else if (latitude >= 46.95 && latitude <= 47.15 && longitude >= -123.05 && longitude <= -122.75) {
+    rooms = verifiedOlympiaRooms;
+    locality = "Olympia";
+  } else if (latitude >= 44.85 && latitude <= 45.02 && longitude >= -123.18 && longitude <= -122.90) {
+    rooms = verifiedSalemRooms;
+    locality = "Salem";
+  } else if (latitude >= 43.10 && latitude <= 43.32 && longitude >= -123.48 && longitude <= -123.18) {
+    rooms = verifiedRoseburgRooms;
+    locality = "Roseburg";
   } else if (latitude >= 42.12 && latitude <= 42.42 && longitude >= -123.05 && longitude <= -122.60) {
     rooms = verifiedSouthernOregonRooms;
     locality = pointLabel.includes("ashland") ? "Ashland" : "Medford";
   } else if (latitude >= 40.45 && latitude <= 40.75 && longitude >= -122.55 && longitude <= -122.20) {
     rooms = verifiedReddingRooms;
     locality = "Redding";
+  } else if (latitude >= 39.62 && latitude <= 39.86 && longitude >= -122.02 && longitude <= -121.68) {
+    rooms = verifiedChicoRooms;
+    locality = "Chico";
+  } else if (latitude >= 38.42 && latitude <= 38.72 && longitude >= -121.65 && longitude <= -121.30) {
+    rooms = verifiedSacramentoRooms;
+    locality = "Sacramento";
   } else return [];
   const wanted = genre.toLowerCase();
   const genreTerms = wanted.includes("punk") ? ["punk", "diy"] : wanted.includes("metal") ? ["metal"] : wanted.includes("rock") ? ["rock"] : wanted.includes("dj") || wanted.includes("electronic") ? ["dj", "electronic"] : wanted.includes("hip-hop") ? ["hip-hop"] : [];
