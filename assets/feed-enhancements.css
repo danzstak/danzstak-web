@@ -201,5 +201,9 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
 /* A Tribe detail is its own workspace: directory controls must not remain
    above it, and all three detail tabs must fit without a horizontal scroller. */
 .groups-toolbar[hidden],.groups-grid[hidden]{display:none!important}
-.tribe-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;padding-inline:0;overflow:hidden}
-.tribe-nav button{min-width:0;padding-inline:6px;text-align:center}
+.tribe-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;padding-inline:0;overflow:hidden;background:#e4e7ec}
+.tribe-nav button{min-width:0;padding-inline:6px;background:#fff;line-height:1.2;text-align:center}
+.tribe-nav button[aria-selected="true"]{background:#f7fbff}
+.dark-mode .tribe-nav{background:#3b4658}
+.dark-mode .tribe-nav button{background:#1f2937}
+.dark-mode .tribe-nav button[aria-selected="true"]{background:#253c60}
