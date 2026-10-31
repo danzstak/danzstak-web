@@ -11,7 +11,6 @@ async function renderEmptyState(presence) {
     replaceChildren() { this.children = []; },
     appendChild(child) { this.children.push(child); }
   };
-  const response = payload => ({ ok: true, status: 200, json: async () => payload });
   const context = vm.createContext({
     document: {
       getElementById: id => {
@@ -20,12 +19,7 @@ async function renderEmptyState(presence) {
       },
       createElement: tagName => ({ tagName: tagName.toUpperCase(), className: '', textContent: '' })
     },
-    fetchWithDeadline: async url => {
-      if (url.endsWith('/calls/directory')) return response({ users: [] });
-      if (url.endsWith('/friends')) return response({ friends: [] });
-      throw new Error(`Unexpected request: ${url}`);
-    },
-    refreshPresenceHeartbeat: async () => presence,
+    loadPeopleSnapshot: async () => ({ presenceState: presence, directoryData: { users: [] }, friendsData: { friends: [] }, presenceAvailable: true }),
     location: { replace() { throw new Error('Unexpected sign-out redirect'); } },
     openMessageDrawer() {},
     updateFeedFriend() {}

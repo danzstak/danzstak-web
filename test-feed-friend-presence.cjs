@@ -17,24 +17,20 @@ function element(tagName) {
 
 async function render({ friendsAvailable = true, presenceAvailable = true } = {}) {
   const container = element('div');
-  const response = payload => ({ ok: true, status: 200, json: async () => payload });
   const context = vm.createContext({
     document: {
       getElementById(id) { assert.equal(id, 'feedFriends'); return container; },
       createElement: element
     },
-    fetchWithDeadline: async url => {
-      if (url.endsWith('/friends')) {
-        if (!friendsAvailable) throw Error('Friends unavailable');
-        return response({ friends: [{ email: 'friend@example.com', memberId: '44444444-4444-4444-4444-444444444444', name: 'Existing Friend' }] });
-      }
-      if (url.endsWith('/calls/directory')) {
-        if (!presenceAvailable) throw Error('Presence unavailable');
-        return response({ users: [{ email: 'friend@example.com', online: true }] });
-      }
-      throw Error(`Unexpected request: ${url}`);
-    },
-    refreshPresenceHeartbeat: async () => ({ online: true })
+    loadPeopleSnapshot: async () => {
+      if (!friendsAvailable) throw Error('Friends unavailable');
+      return {
+        presenceState: { online: true },
+        friendsData: { friends: [{ email: 'friend@example.com', memberId: '44444444-4444-4444-4444-444444444444', name: 'Existing Friend' }] },
+        directoryData: { users: presenceAvailable ? [{ email: 'friend@example.com', online: true }] : [] },
+        presenceAvailable
+      };
+    }
   });
   vm.runInContext(code, context);
   await context.loadFriends();

@@ -649,8 +649,10 @@ if (-not $directMessagesJs.Contains('Promise.allSettled([') -or
 foreach ($savedChatBehavior in @('let activeCanContact = false', 'conversation.canContact !== false', 'data.canContact !== false', 'Saved chat. Become friends or join the same Tribe', 'call.disabled = conversation.canContact === false')) {
   if (-not $directMessagesJs.Contains($savedChatBehavior)) { Add-Failure "Messages: saved history or disabled contact actions are incomplete: $savedChatBehavior" }
 }
-if (-not $feed.Contains('const [friendsResult, directoryResult] = await Promise.allSettled([') -or
-    -not $feed.Contains('if (!friendsResponse?.ok) throw new Error("Friends could not be loaded");')) {
+if (-not $feed.Contains('const [directoryResult, friendsResult] = await Promise.allSettled([') -or
+    -not $feed.Contains('if (!directoryResponse?.ok && !friendsResponse?.ok) throw new Error("User directory unavailable");') -or
+    -not $feed.Contains('const { friendsData, directoryData, presenceAvailable } = await loadPeopleSnapshot();') -or
+    -not $feed.Contains('presenceAvailable: directoryResponse?.ok === true')) {
   Add-Failure 'Feed friends: a presence failure can still hide accepted friends'
 }
 if (-not $directMessagesJs.Contains('const chatFilters =') -or -not $directMessagesJs.Contains('item.setAttribute("aria-selected"') -or -not $directMessagesJs.Contains('ArrowRight')) {
