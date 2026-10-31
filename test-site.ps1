@@ -276,7 +276,7 @@ $requiredStoryUploadSteps = @(
   'const storyTicketResponse = await fetchWithDeadline("https://api.danzstak.com/stories"',
   'const storyUploadResponse = await fetchWithDeadline(storyTicket.uploadUrl',
   'dedicatedMedia: true',
-  'alert("Your post was saved, but the Flash could not be published.")'
+  'window.danzstakShowFeedback?.("Your post was saved, but the Flash could not be published.", { urgent: true })'
 )
 foreach ($step in $requiredStoryUploadSteps) {
   if (-not $feed.Contains($step)) {

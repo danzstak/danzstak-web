@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-zYG5ve3gDfVCQl8Pmv0NTaqt8pkncRL1vCZRI+i1mXg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-4K8QdVRm0oLZlAQ7HikXOCbKMO2GIcnK3fmL3ZY/3IU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -624,7 +624,7 @@ async function updateFeedFriend(path, body, button) {
     if (!response.ok) throw new Error(data.error || "Friend request could not be updated.");
     await Promise.allSettled([loadOnlineUsers(), loadFriends()]);
   } catch (error) {
-    alert(error.message || "Friend request could not be updated.");
+    window.danzstakShowFeedback?.(error.message || "Friend request could not be updated.", { urgent: true });
     if (button?.isConnected) { button.disabled = false; button.textContent = originalLabel; }
   }
 }
@@ -888,7 +888,7 @@ async function loadStories() {
             item.remove();
           } catch (error) {
             remove.disabled = false;
-            alert(error.message || "Flash could not be deleted.");
+            window.danzstakShowFeedback?.(error.message || "Flash could not be deleted.", { urgent: true });
           }
         });
         item.appendChild(remove);
@@ -920,7 +920,7 @@ createStoryInput.addEventListener("change", async () => {
   if (!file) return;
   const mediaType = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "";
   if (!mediaType || !createStoryInput.accept.split(",").includes(file.type)) {
-    alert("Flashes must use a supported photo or video file.");
+    window.danzstakShowFeedback?.("Flashes must use a supported photo or video file.", { urgent: true });
     createStoryInput.value = "";
     return;
   }
@@ -950,7 +950,7 @@ createStoryInput.addEventListener("change", async () => {
     await loadStories();
   } catch (error) {
     await discardUploadedMedia(uploadedStoryKey);
-    alert(error.message || "Flash could not be published.");
+    window.danzstakShowFeedback?.(error.message || "Flash could not be published.", { urgent: true });
   } finally {
     createStoryInput.value = "";
     createStoryButton.disabled = false;
@@ -1093,12 +1093,12 @@ publishBtn.addEventListener("click", async () => {
   const selectedMedia = window.danzstakSelectedMedia;
   if (!content && !selectedMedia) return;
   if (content.length > 5000) {
-    alert("Posts must be 5000 characters or fewer.");
+    window.danzstakShowFeedback?.("Posts must be 5000 characters or fewer.", { urgent: true });
     return;
   }
   const certification = document.getElementById("originalContentCertification");
   if (!certification?.checked) {
-    alert("Certify that this is your original content before posting.");
+    window.danzstakShowFeedback?.("Certify that this is your original content before posting.", { urgent: true });
     certification?.focus();
     return;
   }
@@ -1170,7 +1170,7 @@ publishBtn.addEventListener("click", async () => {
       } catch (storyError) {
         await discardUploadedMedia(uploadedStoryKey);
         console.error("DanzStak Story error:", storyError);
-        alert("Your post was saved, but the Flash could not be published.");
+        window.danzstakShowFeedback?.("Your post was saved, but the Flash could not be published.", { urgent: true });
       }
     }
 
@@ -1218,9 +1218,7 @@ publishBtn.addEventListener("click", async () => {
       error
     );
 
-    alert(
-      "Post was not saved: " + error.message
-    );
+    window.danzstakShowFeedback?.("Post was not saved: " + error.message, { urgent: true });
 
   } finally {
 

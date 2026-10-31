@@ -16,11 +16,12 @@ vm.runInContext(newsCode,newsContext);
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 
 const friendCode=source.slice(source.indexOf('async function updateFeedFriend('),source.indexOf('async function loadFriends()'));
-let alertMessage='';
+let feedbackMessage='';
 const friendContext=vm.createContext({
   button:{textContent:'Add Friend',disabled:false,isConnected:true},
   fetchWithDeadline:async()=>{throw new Error('Connection failed');},
-  loadOnlineUsers:async()=>{},loadFriends:async()=>{},alert:message=>{alertMessage=message;},Promise,JSON
+  loadOnlineUsers:async()=>{},loadFriends:async()=>{},
+  window:{danzstakShowFeedback:message=>{feedbackMessage=message;}},Promise,JSON
 });
 vm.runInContext(friendCode,friendContext);
 
@@ -32,6 +33,6 @@ vm.runInContext(friendCode,friendContext);
   assert.equal(container.children.length,1);assert.equal(container.children[0].children[0].textContent,'Current sports','older news must not overwrite the current interest');
 
   await vm.runInContext('updateFeedFriend("/friends/request", {email:"friend@example.test"}, button)',friendContext);
-  assert.equal(friendContext.button.disabled,false);assert.equal(friendContext.button.textContent,'Add Friend');assert.match(alertMessage,/Connection failed/);
+  assert.equal(friendContext.button.disabled,false);assert.equal(friendContext.button.textContent,'Add Friend');assert.match(feedbackMessage,/Connection failed/);
   console.log('Feed request race checks passed: current news wins and failed friend actions restore retry controls.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
