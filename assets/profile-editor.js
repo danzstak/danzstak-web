@@ -662,7 +662,10 @@ panel.innerHTML = '<h2>Edit Profile</h2>' +
   '<p class="edit-note">Your display name and username must each be unique. If a name is taken, DanzStak will suggest a numbered alternative. Share only information you want members to see.</p>' +
   '<div class="edit-actions"><button class="secondary" type="button" data-cancel>Cancel</button><button class="button" type="submit">Save Changes</button></div>' +
   '<div class="profile-import"><button type="button" data-facebook-import>Import from Facebook</button><p>Preview your export, set Public, Friends, or Just me in batches, and review shared-source posts before copying them.</p></div>';
-profileCard.appendChild(panel);
+// Keep profile controls beside the profile actions instead of after the entire
+// post history.  Appending the form to the card made a deep profile timeline
+// push the editor off-screen while the edit route was trying to focus it.
+actions.insertAdjacentElement("afterend", panel);
 const profileLanguage = panel.querySelector("[data-profile-language]");
 for (const [code, label] of (window.danzstakLanguages || [["en", "English"]])) {
   const option = document.createElement("option");
