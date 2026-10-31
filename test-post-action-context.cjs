@@ -11,5 +11,8 @@ assert.match(enhancements, /content\.id \|\|= `post-\$\{postId\}-content`/, "pos
 assert.match(enhancements, /post\.querySelectorAll\("\.post-actions button, \.post-menu-toggle, \.comments input"\)/, "actions, options, and comment composer receive post context");
 assert.match(enhancements, /control\.setAttribute\("aria-describedby", describedBy\)/, "post controls announce their author and text without replacing translated labels");
 assert.ok((enhancements.match(/describePostControls\(/g) || []).length >= 3, "existing and newly rendered posts both receive contextual descriptions");
+assert.match(enhancements, /title: "Edit privacy"[\s\S]*choices: values\.map/, "post privacy opens an explicit audience chooser");
+assert.match(enhancements, /const values = \["Public", "Friends", "Only me"\]/, "privacy choices are Public, Friends, and Only me");
+assert.match(enhancements, /strong\.textContent = title === "Delete post" \? "🗑️" : title/, "destructive post controls use a compact trash-can label");
 
 console.log("Post action-context checks passed: repeated controls identify their post while keeping familiar labels.");

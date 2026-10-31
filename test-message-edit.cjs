@@ -15,9 +15,9 @@ assert.match(source, /message\.editedAt \? " · edited" : ""/, "edited messages 
 assert.match(source, /event\.key\.toLowerCase\(\) === "e"/, "keyboard users can edit sent text");
 assert.match(css, /\.message-edit-form\{/, "message editor is styled");
 assert.match(css, /\.message-edit-choice\{/, "Edit action is styled in the reaction palette");
-assert.match(source, /remove\.textContent = "⌫ Delete"/, "long press contains a delete action");
-assert.match(source, /addChoice\("Delete for me", "me"\)/, "all participants can hide a message for themselves");
-assert.match(source, /addChoice\("Delete for everyone", "everyone", true\)/, "senders can delete a message for everyone");
+assert.match(source, /remove\.textContent = "🗑️"/, "long press uses a compact trash-can action");
+assert.match(source, /addChoice\("Remove for me", "me"\)/, "all participants can hide a message for themselves");
+assert.match(source, /addChoice\("Remove for everyone", "everyone", true\)/, "senders can remove a message for everyone");
 assert.match(source, /action: "delete", contactEmail: directContact, messageId: message\.messageId, scope/, "deletion is saved through the API");
 
 assert.match(backend, /if\(body\.action==='edit'\)return editMessage\(body,user\)/, "message API routes edits");

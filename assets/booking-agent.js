@@ -1457,7 +1457,9 @@
         .join(" · ");
       open.type = remove.type = "button";
       open.textContent = "Open";
-      remove.textContent = "Delete";
+      remove.textContent = "🗑️";
+      remove.title = "Delete saved tour";
+      remove.setAttribute("aria-label", "Delete saved tour");
       open.addEventListener("click", () => {
         artistInput.value = tour.plan?.artist || "";
         if (

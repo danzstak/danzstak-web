@@ -161,6 +161,44 @@ function openTextActionDialog({ title, description, label, placeholder = "", sub
   });
 }
 
+function openChoiceDialog({ title, description, choices, selected }) {
+  document.querySelector(".choice-action-dialog")?.close();
+  return new Promise(resolve => {
+    const opener = document.activeElement;
+    const dialog = document.createElement("dialog");
+    dialog.className = "post-report-dialog choice-action-dialog";
+    const titleId = "choiceActionDialogTitle-" + crypto.randomUUID();
+    dialog.setAttribute("aria-labelledby", titleId);
+    const heading = document.createElement("h2");
+    heading.id = titleId;
+    heading.textContent = title;
+    const copy = document.createElement("p");
+    copy.textContent = description;
+    const list = document.createElement("div");
+    list.className = "choice-action-list";
+    let settled = false;
+    const finish = value => { if (settled) return; settled = true; resolve(value); dialog.close(); };
+    for (const choice of choices) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "choice-action-button";
+      button.textContent = choice.label + (choice.value === selected ? " ✓" : "");
+      button.setAttribute("aria-pressed", String(choice.value === selected));
+      button.addEventListener("click", () => finish(choice.value));
+      list.appendChild(button);
+    }
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", () => finish(null));
+    dialog.append(heading, copy, list, cancel);
+    document.body.appendChild(dialog);
+    dialog.addEventListener("close", () => { if (!settled) { settled = true; resolve(null); } dialog.remove(); if (opener?.isConnected) opener.focus({ preventScroll: true }); }, { once: true });
+    dialog.showModal();
+    list.querySelector('[aria-pressed="true"]')?.focus();
+  });
+}
+
 function dataSaverEnabled() {
   try { return readDevicePreference("danzstak_data_saver") === "1"; }
   catch { return false; }
@@ -880,7 +918,9 @@ function renderWorkspace(name) {
           const remove = document.createElement("button");
           remove.type = "button";
           remove.className = "group-delete";
-          remove.textContent = "Delete Tribe";
+          remove.textContent = "🗑️";
+          remove.title = "Delete Tribe";
+          remove.setAttribute("aria-label", "Delete Tribe");
           remove.addEventListener("click", async () => {
             if (!confirm("Delete this Tribe?")) return;
             remove.disabled = true;
@@ -2309,7 +2349,7 @@ function addPostDeleteButton(post) {
   const optionIcons = {
     "Pin post": "⌖", "Save post": "♡", "View edit history": "↶", "Edit post": "✎",
     "Who can comment?": "◯", "Edit privacy": "◉", "Move to archive": "▰",
-    "Move to trash": "♜", "Turn off notifications": "♧", "Copy link": "⧉"
+    "Move to trash": "🗑️", "Delete post": "🗑️", "Turn off notifications": "♧", "Copy link": "⧉"
   };
 
   function option(title, description, handler) {
@@ -2317,6 +2357,7 @@ function addPostDeleteButton(post) {
     button.type = "button";
     button.className = "post-option-row";
     button.setAttribute("role", "menuitem");
+    button.setAttribute("aria-label", title);
     if (title === "Delete post") button.classList.add("post-option-danger");
     const icon = document.createElement("span");
     icon.className = "post-option-icon";
@@ -2325,7 +2366,7 @@ function addPostDeleteButton(post) {
     const copy = document.createElement("span");
     copy.className = "post-option-copy";
     const strong = document.createElement("strong");
-    strong.textContent = title;
+    strong.textContent = title === "Delete post" ? "🗑️" : title;
     copy.appendChild(strong);
     if (description) {
       const small = document.createElement("small");
@@ -2463,7 +2504,15 @@ function addPostDeleteButton(post) {
       const values = ["Public", "Friends", "Only me"];
       const audiences = ["public", "friends", "private"];
       const current = Number(post.dataset.privacySetting || 0);
-      const next = (current + 1) % values.length;
+      const selected = await openChoiceDialog({
+        title: "Edit privacy",
+        description: "Choose who can see this post.",
+        selected: audiences[current],
+        choices: values.map((label, index) => ({ label, value: audiences[index] }))
+      });
+      if (!selected) return;
+      const next = audiences.indexOf(selected);
+      if (next === current) return;
       const postId = post.dataset.postId;
       button.disabled = true;
       if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
@@ -2486,7 +2535,7 @@ function addPostDeleteButton(post) {
       button.disabled = false;
     });
     option("Move to archive", "Hide this post from your account.", () => hidePostForAccount(post));
-  option("Delete post", "Delete your post or remove another user's post from Your Mix.", async () => {
+  option("Delete post", "Permanently remove your post, or hide another member's post from Your Mix.", async () => {
     const postId = post.dataset.postId;
     if (post.dataset.isOwner !== "true") {
       if (confirm("You did not post this. Do you want to remove it from Your Mix?")) await removePostFromThisFeed();
@@ -2939,7 +2988,9 @@ function addCommentDelete(comment) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "deleteCommentBtn";
-  button.textContent = "Delete";
+  button.textContent = "🗑️";
+  button.title = "Delete comment";
+  button.setAttribute("aria-label", "Delete comment");
   button.style.marginLeft = "10px";
   button.addEventListener("click", async () => {
     if (!confirm("Delete this comment?")) return;
@@ -3178,7 +3229,7 @@ function renderPlayableReels() {
       const author = document.createElement("a");
       author.className = "reel-author-link";
       author.href = reel.isOwner === true ? "profile.html" : "profile.html?member=" + encodeURIComponent(reelMemberId);
-      author.textContent = reel.internal ? "Open " + reelAuthorName + " profile" : "Shared by " + reelAuthorName;
+      author.textContent = reelAuthorName;
       author.setAttribute("aria-label", "Open " + reelAuthorName + " profile");
       details.insertBefore(author, source);
       if (reel.internal) platform.hidden = true;
@@ -3199,7 +3250,9 @@ function renderPlayableReels() {
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "reel-delete";
-      remove.textContent = "Delete from The Roll";
+      remove.textContent = "🗑️";
+      remove.title = "Delete from The Roll";
+      remove.setAttribute("aria-label", "Delete from The Roll");
       remove.addEventListener("click", async () => {
         remove.disabled = true;
         if (Array.isArray(cloudReels)) {

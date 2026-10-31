@@ -292,8 +292,8 @@ function openMessageDeleteChoices(item, message, palette) {
     });
     palette.appendChild(button);
   };
-  addChoice("Delete for me", "me");
-  if (message.senderEmail === currentEmail) addChoice("Delete for everyone", "everyone", true);
+  addChoice("Remove for me", "me");
+  if (message.senderEmail === currentEmail) addChoice("Remove for everyone", "everyone", true);
   const cancel = document.createElement("button");
   cancel.type = "button";
   cancel.textContent = "Cancel";
@@ -318,7 +318,8 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
   const remove = document.createElement("button");
   remove.type = "button";
   remove.className = "message-delete-choice";
-  remove.textContent = "⌫ Delete";
+  remove.textContent = "🗑️";
+  remove.title = "Delete message";
   remove.setAttribute("aria-label", "Delete message");
   remove.addEventListener("click", () => openMessageDeleteChoices(item, message, palette));
   palette.appendChild(remove);

@@ -9,7 +9,7 @@ assert.match(html, /id="newChat"[^>]*aria-label="Start a new chat"/);
 assert.match(html, /id="enableRinging"[^>]*aria-label="Enable call alerts"[^>]*>🔔<\/button>/);
 assert.match(html, /id="callStatus" class="call-status sr-only"/);
 assert.match(html, /id="conversationUsers" aria-busy="true"/);
-assert.match(html, /id="deleteChat"[^>]*hidden>Delete Chat<\/button>/);
+assert.match(html, /id="deleteChat"[^>]*aria-label="Delete chat"[^>]*>🗑️<\/button>/);
 assert.match(html, /class="chat-compat-controls" hidden aria-hidden="true"/);
 assert.match(css, /\.new-chat-button\{/);
 assert.match(css, /\.chat-heading-actions\{/);

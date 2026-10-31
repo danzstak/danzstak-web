@@ -8,6 +8,7 @@ assert.match(source, /memberId: post\.userId \|\| ""/, "post videos carry their 
 assert.match(source, /const reelMemberId = String\(reel\.memberId \|\| ""\)/, "Roll cards resolve opaque member IDs");
 assert.match(source, /reel\.isOwner === true \? "profile\.html" : "profile\.html\?member=" \+ encodeURIComponent\(reelMemberId\)/, "Roll cards link to self or another member without an email route");
 assert.match(source, /author\.setAttribute\("aria-label", "Open " \+ reelAuthorName \+ " profile"\)/, "Roll profile links have accessible names");
+assert.match(source, /author\.textContent = reelAuthorName/, "Roll profile links show only the member name");
 assert.match(css, /\.reel-author-link:focus-visible\{outline:2px solid #fff/, "Roll profile links have visible keyboard focus");
 
 console.log("Roll author link checks passed: internal and shared videos use accessible opaque profile routes.");

@@ -10,7 +10,7 @@ const serviceWorker = read("service-worker.js");
 const pwa = read("assets/pwa.js");
 
 const cacheVersion = Number(serviceWorker.match(/danzstak-shell-v(\d+)/)?.[1] || 0);
-assert.ok(cacheVersion >= 459, "service-worker cache version must include the current Booking Agent release");
+assert.ok(cacheVersion >= 460, "service-worker cache version must include the current social controls release");
 assert.match(serviceWorker, /"\/assets\/booking-map\.js"/, "the installable shell must keep the Booking Agent map controls available");
 assert.match(serviceWorker, /async function refreshAppShell\(\)/, "service worker must refresh its app shell");
 assert.match(serviceWorker, /Promise\.allSettled\(SHELL\.map/, "one failed shell request must not cancel the refresh");
@@ -26,13 +26,13 @@ for (const [file, expected] of [
   ["feed.html", "assets/soft-ui.css?v=425"],
   ["messages.html", "assets/soft-ui.css?v=425"],
   ["profile.html", "assets/soft-ui.css?v=425"],
-  ["feed.html", "assets/feed-enhancements.css?v=422"],
-  ["feed.html", "assets/feed-enhancements.js?v=437"],
+  ["feed.html", "assets/feed-enhancements.css?v=460"],
+  ["feed.html", "assets/feed-enhancements.js?v=460"],
   ["feed.html", "assets/post-sharing.js?v=416"],
   ["feed.html", "assets/people-search.js?v=416"],
   ["messages.html", "assets/chat.js?v=433"],
   ["messages.html", "assets/chat.css?v=436"],
-  ["messages.html", "assets/direct-messages.js?v=436"],
+  ["messages.html", "assets/direct-messages.js?v=460"],
   ["profile.html", "assets/profile-sharing.js?v=415"],
   ["profile.html", "assets/post-sharing.js?v=416"],
   ["profile.html", "assets/profile.js?v=416"]
