@@ -2188,7 +2188,8 @@ async function discoverRouteMarkets(route, explicitMarkets, requestedDays) {
   const samplePositions = legs.flatMap(leg => Array.from({ length: perLeg }, (_, index) =>
     leg[Math.round((index + 1) * (leg.length - 1) / (perLeg + 1))]
   )).slice(0, desired).filter(position => Array.isArray(position) && position.length === 2);
-  const sampled = (await Promise.all(samplePositions.map(reverseGeocodeTourMarket))).filter(Boolean);
+  const sampled = (await Promise.all(samplePositions.map(reverseGeocodeTourMarket)))
+    .map((market, index) => market || { label: `Route market ${index + 1}`, position: samplePositions[index] });
   const nearestLineIndex = position => line.reduce((best, point, index) => {
     const distance = approximateMilesBetween(position, point);
     return distance < best.distance ? { index, distance } : best;
@@ -2198,10 +2199,14 @@ async function discoverRouteMarkets(route, explicitMarkets, requestedDays) {
   const unique = [];
   for (const market of combined) {
     const locality = market.label.split(",")[0].trim().toLowerCase();
-    if (!locality || unique.some(item => item.label.split(",")[0].trim().toLowerCase() === locality)) continue;
+    if (!locality) continue;
+    if (unique.some(item => item.label.split(",")[0].trim().toLowerCase() === locality)) {
+      if (!market.label.startsWith("Route market")) unique.push({ label: `Route market ${unique.length + 1}`, position: market.position });
+      continue;
+    }
     unique.push(market);
   }
-  return unique.slice(0, 6);
+  return unique.slice(0, 8);
 }
 
 async function addManualBookingVenue(event) {
@@ -2467,6 +2472,11 @@ async function planTourRoute(event) {
       ? (markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]))
       : await discoverRouteMarkets(route, markets, requestedDays),
       candidates = await Promise.all(selected.map((point, index) => tourCandidates(point, genre, excludedVenueKeys, variation + index, null, venueType)));
+    candidates.forEach(candidate => {
+      if (!/^Route market \d+$/i.test(candidate.stop)) return;
+      const lead = candidate.venues?.find(venue => venue.locality);
+      if (lead?.locality) candidate.stop = lead.locality;
+    });
     const distanceMiles = Math.round(Number(summary.Distance || 0) / 1609.344), durationHours = Math.round(Number(summary.Duration || 0) / 360) / 10;
     const minimumDrivingDays = Math.max(1, Math.ceil(durationHours / 8));
     if (directional && minimumDrivingDays >= requestedDays) return { statusCode: 422, headers, body: JSON.stringify({ error: `That ${direction} loop needs at least ${minimumDrivingDays} full driving days. Add days or choose a shorter direction-based plan.` }) };
