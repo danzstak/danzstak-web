@@ -8,6 +8,7 @@ const root = __dirname;
 const read = file => fs.readFileSync(path.join(root, file), "utf8");
 const serviceWorker = read("service-worker.js");
 const pwa = read("assets/pwa.js");
+const hostingHeaders = read("customHttp.yml");
 
 const cacheVersion = Number(serviceWorker.match(/danzstak-shell-v(\d+)/)?.[1] || 0);
 assert.ok(cacheVersion >= 464, "service-worker cache version must include the current profile privacy wording release");
@@ -21,6 +22,8 @@ assert.match(serviceWorker, /type === "REFRESH_SHELL"/, "service worker must acc
 assert.match(pwa, /type: "REFRESH_SHELL"/, "PWA controller must request a shell refresh");
 assert.match(pwa, /navigator\.connection\?\.saveData !== true/, "PWA must respect data-saver mode");
 assert.ok((pwa.match(/refreshOfflineShell\(\)/g) || []).length >= 2, "PWA must refresh after registration and when visible again");
+assert.match(hostingHeaders, /Cache-Control'[\s\S]*public, max-age=300, must-revalidate/, "Amplify must not cache app-shell files at the edge for a year");
+assert.doesNotMatch(hostingHeaders, /s-maxage\s*=\s*31536000/i, "the app shell must not receive a one-year shared-cache lifetime");
 
 for (const [file, expected] of [
   ["feed.html", "assets/soft-ui.css?v=425"],
