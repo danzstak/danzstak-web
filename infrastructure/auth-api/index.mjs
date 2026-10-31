@@ -2227,8 +2227,11 @@ function westCoastTourCorridor(points) {
   if (!labels.includes("los angeles")) {
     const i5Markets = [
       "Seattle, Washington", "Tacoma, Washington", "Olympia, Washington",
-      "Portland, Oregon", "Salem, Oregon", "Eugene, Oregon", "Medford, Oregon",
-      "Redding, California", "Sacramento, California", "San Francisco, California"
+      "Centralia, Washington", "Longview, Washington", "Vancouver, Washington",
+      "Portland, Oregon", "Salem, Oregon", "Albany, Oregon", "Eugene, Oregon",
+      "Roseburg, Oregon", "Grants Pass, Oregon", "Medford, Oregon", "Ashland, Oregon",
+      "Yreka, California", "Mount Shasta, California", "Redding, California",
+      "Chico, California", "Sacramento, California", "San Francisco, California"
     ];
     return points[0].label.toLowerCase().includes("seattle") ? i5Markets : [...i5Markets].reverse();
   }
@@ -2507,10 +2510,14 @@ async function planTourRoute(event) {
     if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
     const markets = points.slice(1, -1), corridor = directional ? null : westCoastTourCorridor(points),
       itineraryMarkets = corridor || null,
+      corridorSearchLimit = corridor ? Math.min(corridor.length, Math.max(10, requestedShows, Math.ceil(requestedDays / 2))) : 0,
+      corridorSearchMarkets = corridor && corridor.length > corridorSearchLimit
+        ? Array.from({ length: corridorSearchLimit }, (_, index) => corridor[Math.round(index * (corridor.length - 1) / Math.max(1, corridorSearchLimit - 1))])
+        : corridor,
       selected = directional
       ? (markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]))
       : corridor
-        ? await Promise.all([...new Set(corridor)].map(geocodeTourPlace))
+        ? await Promise.all([...new Set(corridorSearchMarkets)].map(geocodeTourPlace))
         : await discoverRouteMarkets(route, points, requestedDays, requestedShows),
       candidates = await Promise.all(selected.map(point => tourCandidates(point, genre, excludedVenueKeys, variation, null, venueType)));
     candidates.forEach(candidate => {

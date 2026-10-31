@@ -17,8 +17,11 @@ const sanFrancisco = { label: "San Francisco, California, United States", positi
 const direct = Array.from(corridorContext.westCoastTourCorridor([seattle, sanFrancisco, seattle]));
 assert.deepEqual(direct, [
   "Seattle, Washington", "Tacoma, Washington", "Olympia, Washington",
-  "Portland, Oregon", "Salem, Oregon", "Eugene, Oregon", "Medford, Oregon",
-  "Redding, California", "Sacramento, California", "San Francisco, California",
+  "Centralia, Washington", "Longview, Washington", "Vancouver, Washington",
+  "Portland, Oregon", "Salem, Oregon", "Albany, Oregon", "Eugene, Oregon",
+  "Roseburg, Oregon", "Grants Pass, Oregon", "Medford, Oregon", "Ashland, Oregon",
+  "Yreka, California", "Mount Shasta, California", "Redding, California",
+  "Chico, California", "Sacramento, California", "San Francisco, California",
 ]);
 assert.deepEqual(
   Array.from(corridorContext.westCoastTourCorridor([sanFrancisco, seattle, sanFrancisco])),
