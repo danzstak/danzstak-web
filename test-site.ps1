@@ -349,7 +349,7 @@ foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.on
   if (-not ($directMessagesJs + $chatStyles).Contains($chatPresenceBehavior)) { Add-Failure "Messages: online friends lack a visible accessible presence marker: $chatPresenceBehavior" }
 }
 $messagesMarkupForPresence = Get-Content -LiteralPath (Join-Path $root 'messages.html') -Raw -Encoding utf8
-foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'conversationPresence.hidden = conversation.online !== true', 'conversationPresence.hidden = true', '.conversation-presence[hidden]{display:none}')) {
+foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'conversationPresence.hidden = false', 'conversationPresence.textContent = isOnline ? "Online" : "Offline"', 'conversationPresence.hidden = true', '.conversation-presence[hidden]{display:none}', '.conversation-presence.is-offline')) {
   if (-not ($messagesMarkupForPresence + $directMessagesJs + $chatStyles).Contains($activeChatPresenceControl)) { Add-Failure "Messages: active conversation does not accurately expose online presence: $activeChatPresenceControl" }
 }
 foreach ($activeChatActionLabel in @('function labelConversationHeaderActions(name = "")', '`${labels[key]} with ${name}`', 'labelConversationHeaderActions(conversationName.textContent)', 'labelConversationHeaderActions()')) {

@@ -345,7 +345,13 @@ function openConversation(conversation) {
   conversationAvatar.href = profileHref;
   conversationAvatar.setAttribute("aria-label", "Open " + conversationName.textContent + " profile");
   labelConversationHeaderActions(conversationName.textContent);
-  if (conversationPresence) conversationPresence.hidden = conversation.online !== true;
+  if (conversationPresence) {
+    const isOnline = conversation.online === true;
+    conversationPresence.hidden = false;
+    conversationPresence.textContent = isOnline ? "Online" : "Offline";
+    conversationPresence.classList.toggle("is-offline", !isOnline);
+    conversationPresence.setAttribute("aria-label", conversationName.textContent + " is " + (isOnline ? "online" : "offline"));
+  }
   activeContactName = conversation.name || "Contact";
   if (deleteChat) deleteChat.disabled = false;
   conversationAvatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
