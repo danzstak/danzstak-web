@@ -10,7 +10,7 @@ const serviceWorker = read("service-worker.js");
 const pwa = read("assets/pwa.js");
 
 const cacheVersion = Number(serviceWorker.match(/danzstak-shell-v(\d+)/)?.[1] || 0);
-assert.ok(cacheVersion >= 460, "service-worker cache version must include the current social controls release");
+assert.ok(cacheVersion >= 461, "service-worker cache version must include the current feed storage release");
 assert.match(serviceWorker, /"\/assets\/booking-map\.js"/, "the installable shell must keep the Booking Agent map controls available");
 assert.match(serviceWorker, /async function refreshAppShell\(\)/, "service worker must refresh its app shell");
 assert.match(serviceWorker, /Promise\.allSettled\(SHELL\.map/, "one failed shell request must not cancel the refresh");

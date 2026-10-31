@@ -11,7 +11,7 @@ const document={
   getElementById:id=>id==='newsInterest'?select:id==='interestNews'?container:null,
   createElement:tag=>({tag,children:[],append(...nodes){this.children.push(...nodes);}})
 };
-const newsContext=vm.createContext({document,localStorage:{getItem:()=>null},encodeURIComponent,fetchWithDeadline:url=>new Promise(resolve=>requests.push({url,resolve}))});
+const newsContext=vm.createContext({document,readFeedPreference:()=>null,encodeURIComponent,fetchWithDeadline:url=>new Promise(resolve=>requests.push({url,resolve}))});
 vm.runInContext(newsCode,newsContext);
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 

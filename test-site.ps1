@@ -288,7 +288,7 @@ foreach ($storyViewerBehavior in @('aria-labelledby", "storyViewerCaption"', 'me
 }
 if (-not $feed.Contains('function openStoryViewer(story)') -or
     -not $feed.Contains('setInterval(loadStories, 45 * 60 * 1000)') -or
-    -not $feed.Contains('video.autoplay = localStorage.getItem("danzstak_data_saver") !== "1";') -or
+    -not $feed.Contains('video.autoplay = readFeedPreference("danzstak_data_saver") !== "1";') -or
     -not $feed.Contains('viewer.showModal();')) {
   Add-Failure 'Stories: media viewer, autoplay, or signed-URL refresh is incomplete'
 }
