@@ -23,11 +23,11 @@ const sanFrancisco = { label: "San Francisco, California, United States", positi
 const direct = Array.from(corridorContext.westCoastTourCorridor([seattle, sanFrancisco, seattle]));
 assert.deepEqual(direct, [
   "Seattle, Washington", "Tacoma, Washington", "Olympia, Washington",
-  "Centralia, Washington", "Longview, Washington", "Vancouver, Washington",
-  "Portland, Oregon", "Salem, Oregon", "Albany, Oregon", "Eugene, Oregon",
-  "Roseburg, Oregon", "Grants Pass, Oregon", "Medford, Oregon", "Ashland, Oregon",
+  "Centralia, Washington", "Kelso, Washington", "Longview, Washington", "Vancouver, Washington",
+  "Portland, Oregon", "Salem, Oregon", "Albany, Oregon", "Corvallis, Oregon", "Eugene, Oregon",
+  "Cottage Grove, Oregon", "Roseburg, Oregon", "Grants Pass, Oregon", "Medford, Oregon", "Ashland, Oregon",
   "Yreka, California", "Weed, California", "Mount Shasta, California",
-  "Dunsmuir, California", "Redding, California", "Red Bluff, California",
+  "Dunsmuir, California", "Redding, California", "Anderson, California", "Red Bluff, California",
   "Chico, California", "Sacramento, California", "San Francisco, California",
 ]);
 assert.deepEqual(
@@ -40,10 +40,14 @@ assert.equal(ordinaryTourMarkets.length, direct.length, "ordinary corridor tours
 assert.deepEqual(ordinaryTourMarkets, direct, "the venue search should preserve every I-5 market in road order");
 for (const market of [
   "Tacoma, Washington",
+  "Kelso, Washington",
   "Portland, Oregon",
+  "Corvallis, Oregon",
   "Eugene, Oregon",
+  "Cottage Grove, Oregon",
   "Medford, Oregon",
   "Redding, California",
+  "Anderson, California",
   "Sacramento, California",
 ]) {
   assert.ok(ordinaryTourMarkets.includes(market), `${market} should remain in a sampled I-5 club search`);

@@ -2227,11 +2227,11 @@ function westCoastTourCorridor(points) {
   if (!labels.includes("los angeles")) {
     const i5Markets = [
       "Seattle, Washington", "Tacoma, Washington", "Olympia, Washington",
-      "Centralia, Washington", "Longview, Washington", "Vancouver, Washington",
-      "Portland, Oregon", "Salem, Oregon", "Albany, Oregon", "Eugene, Oregon",
-      "Roseburg, Oregon", "Grants Pass, Oregon", "Medford, Oregon", "Ashland, Oregon",
+      "Centralia, Washington", "Kelso, Washington", "Longview, Washington", "Vancouver, Washington",
+      "Portland, Oregon", "Salem, Oregon", "Albany, Oregon", "Corvallis, Oregon", "Eugene, Oregon",
+      "Cottage Grove, Oregon", "Roseburg, Oregon", "Grants Pass, Oregon", "Medford, Oregon", "Ashland, Oregon",
       "Yreka, California", "Weed, California", "Mount Shasta, California",
-      "Dunsmuir, California", "Redding, California", "Red Bluff, California",
+      "Dunsmuir, California", "Redding, California", "Anderson, California", "Red Bluff, California",
       "Chico, California", "Sacramento, California", "San Francisco, California"
     ];
     return points[0].label.toLowerCase().includes("seattle") ? i5Markets : [...i5Markets].reverse();
@@ -2252,7 +2252,7 @@ function sampleTourCorridorMarkets(corridor, requestedDays = 1, requestedShows =
   // choose Tacoma, Medford, Redding, or a smaller road town even when it only
   // wants a handful of shows. The calendar below still limits actual show
   // nights to requestedShows.
-  if (corridor.length <= 24) return [...corridor];
+  if (corridor.length <= 30) return [...corridor];
   const limit = Math.min(corridor.length, Math.max(12, requestedShows, Math.ceil(requestedDays / 2)));
   if (corridor.length <= limit) return [...corridor];
 
@@ -2389,6 +2389,10 @@ const verifiedLongviewRooms = [
   { name: "The Roxy Theater", address: "1101 Commerce Ave, Longview, WA 98632", position: [-122.9358010, 46.1338320], websites: ["https://www.theroxylongview.com/contact"], emails: [], phones: ["360-703-3678"], categories: ["Independent Theater", "Live Music Venue", "Rock"] }
 ];
 
+const verifiedKelsoRooms = [
+  { name: "The Basement on Allen", address: "802 Allen St, Kelso, WA 98626", position: [-122.9038322, 46.1435688], websites: ["https://www.thebasementonallen.com/contact-us/"], emails: ["thebasementonallen@gmail.com"], phones: ["360-703-8202"], categories: ["Independent Event Space", "DIY Show Venue", "Live Music", "Rock"] }
+];
+
 const verifiedSalemRooms = [
   { name: "Victory Club", address: "155 Liberty St NE, Salem, OR 97301", position: [-123.0389917, 44.9407303], websites: ["https://vagabondbrewing.wixsite.com/mysite-2"], emails: ["info@victoryclubsalem.com"], phones: ["971-304-0004"], categories: ["Live Music Venue", "Bar", "Rock"] },
   { name: "The BAD Space at Santiam Brewing", address: "2572 19th St SE, Salem, OR 97302", position: [-123.0177, 44.9177], websites: ["https://www.santiambrewing.com/the-bad-space.html"], emails: ["ian@santiambrewing.com"], phones: ["503-507-5257"], categories: ["All Ages Venue", "Live Music Venue", "Rock", "Punk", "Metal"] }
@@ -2396,6 +2400,14 @@ const verifiedSalemRooms = [
 
 const verifiedAlbanyOregonRooms = [
   { name: "The 520 Event Center", address: "520 Pacific Blvd SW, Albany, OR 97321", position: [-123.1080254, 44.6248871], websites: ["https://pnwdynamic.com/"], emails: [], phones: [], categories: ["All Ages Venue", "Live Music Venue", "Metal", "Hardcore", "Screamo", "Rock"] }
+];
+
+const verifiedCorvallisRooms = [
+  { name: "Common Fields", address: "545 SW 3rd St, Corvallis, OR 97333", position: [-123.2629558, 44.5596305], websites: ["https://www.commonfieldscorvallis.com/live-music.html"], emails: [], phones: ["541-690-2940"], categories: ["Independent Outdoor Venue", "Original Live Music", "Rock", "Folk"] }
+];
+
+const verifiedCottageGroveRooms = [
+  { name: "Axe & Fiddle", address: "657 E Main St, Cottage Grove, OR 97424", position: [-123.0611462, 43.7970789], websites: ["https://axeandfiddle.com/contact/"], emails: [], phones: ["541-942-5942"], categories: ["Independent Pub", "Live Music Venue", "Rock", "DJ"] }
 ];
 
 const verifiedRoseburgRooms = [
@@ -2411,6 +2423,10 @@ const verifiedSouthernOregonRooms = [
 
 const verifiedReddingRooms = [
   { name: "The Dip", address: "1730 California St, Redding, CA 96001", position: [-122.3916333, 40.5817582], websites: ["https://www.thedipredding.com/venue"], emails: ["aaron@thedipredding.com"], phones: ["530-605-0827"], categories: ["Independent Music Venue", "Punk", "Rock", "Metal", "21+"] }
+];
+
+const verifiedAndersonRooms = [
+  { name: "Firehouse Lounge", address: "2905 E Center St, Anderson, CA 96007", position: [-122.2988578, 40.4496041], websites: ["https://thefirehouselounge.com/"], emails: [], phones: ["530-365-7844"], categories: ["Independent Bar", "Live Music Venue", "Rock", "Dance Floor"] }
 ];
 
 const verifiedWeedRooms = [
@@ -2456,15 +2472,24 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   } else if (latitude >= 46.95 && latitude <= 47.15 && longitude >= -123.05 && longitude <= -122.75) {
     rooms = verifiedOlympiaRooms;
     locality = "Olympia";
+  } else if (pointLabel.includes("kelso")) {
+    rooms = verifiedKelsoRooms;
+    locality = "Kelso";
   } else if (latitude >= 46.02 && latitude <= 46.24 && longitude >= -123.10 && longitude <= -122.75) {
     rooms = verifiedLongviewRooms;
     locality = "Longview";
   } else if (latitude >= 44.85 && latitude <= 45.02 && longitude >= -123.18 && longitude <= -122.90) {
     rooms = verifiedSalemRooms;
     locality = "Salem";
+  } else if (pointLabel.includes("corvallis")) {
+    rooms = verifiedCorvallisRooms;
+    locality = "Corvallis";
   } else if (latitude >= 44.52 && latitude <= 44.72 && longitude >= -123.25 && longitude <= -122.95) {
     rooms = verifiedAlbanyOregonRooms;
     locality = "Albany";
+  } else if (pointLabel.includes("cottage grove")) {
+    rooms = verifiedCottageGroveRooms;
+    locality = "Cottage Grove";
   } else if (latitude >= 43.10 && latitude <= 43.32 && longitude >= -123.48 && longitude <= -123.18) {
     rooms = verifiedRoseburgRooms;
     locality = "Roseburg";
@@ -2477,6 +2502,9 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   } else if (latitude >= 41.10 && latitude <= 41.30 && longitude >= -122.42 && longitude <= -122.15) {
     rooms = verifiedDunsmuirRooms;
     locality = "Dunsmuir";
+  } else if (pointLabel.includes("anderson")) {
+    rooms = verifiedAndersonRooms;
+    locality = "Anderson";
   } else if (latitude >= 40.45 && latitude <= 40.75 && longitude >= -122.55 && longitude <= -122.20) {
     rooms = verifiedReddingRooms;
     locality = "Redding";

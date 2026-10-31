@@ -77,10 +77,14 @@ assert.match(api, /name: "Kelly's Olympian"[\s\S]*bookings@kellysolympian\.com/)
 assert.match(api, /name: "Rockafairy"[\s\S]*contactus@rockafairy\.org/, "the I-5 search should include Medford's active all-ages room");
 assert.match(api, /name: "Grape Street Bar & Grill"[\s\S]*grapestreetbar@gmail\.com/, "the I-5 search should include another current Medford live room");
 assert.match(api, /name: "The Dip"[\s\S]*aaron@thedipredding\.com/, "the I-5 search should include Redding's published regional booking contact");
+assert.match(api, /name: "Firehouse Lounge"[\s\S]*thefirehouselounge\.com/, "the I-5 search should include Anderson's current live room");
 assert.match(api, /name: "The Crypt"[\s\S]*booking@thecryptbar\.com/, "the I-5 search should include Olympia's current punk and metal room");
 assert.match(api, /name: "Victory Club"[\s\S]*info@victoryclubsalem\.com/, "the I-5 search should include a current Salem live room");
 assert.match(api, /name: "The Roxy Theater"[\s\S]*theroxylongview\.com/, "the I-5 search should include a current Longview event room");
+assert.match(api, /name: "The Basement on Allen"[\s\S]*thebasementonallen@gmail\.com/, "the I-5 search should include Kelso's small independently bookable show room");
 assert.match(api, /name: "The 520 Event Center"[\s\S]*pnwdynamic\.com/, "the I-5 search should include Albany's all-ages heavy room");
+assert.match(api, /name: "Common Fields"[\s\S]*commonfieldscorvallis\.com\/live-music/, "the I-5 search should include Corvallis's original-music room");
+assert.match(api, /name: "Axe & Fiddle"[\s\S]*axeandfiddle\.com\/contact/, "the I-5 search should include Cottage Grove's active independent live room");
 assert.match(api, /name: "The Rosebud Theatre"[\s\S]*booking@therosebudtheatre\.com/, "the I-5 search should include Roseburg's independent room");
 assert.match(api, /name: "Mount Shasta Brewing Company"[\s\S]*mountshastabrewingcompany\.com/, "the I-5 search should include Weed's current all-ages live room");
 assert.match(api, /name: "Dunsmuir Brewery Works"[\s\S]*dunsmuirbreweryworks\.com/, "the I-5 search should include Dunsmuir's current live-music brewpub");
@@ -118,6 +122,15 @@ const curatedVenueLeads = vm.runInContext("curatedVenueLeads", curatedContext);
 const dunsmuirLeads = curatedVenueLeads({ label: "Dunsmuir, CA, United States", position: [-122.2719, 41.2120] }, "DIY punk", 0);
 assert.deepEqual(Array.from(dunsmuirLeads, place => place.name), ["Dunsmuir Brewery Works", "Jubilee Railroad Dining Car"], "Dunsmuir route points must resolve to current local rooms rather than remain empty");
 assert.equal(dunsmuirLeads.every(place => place.locality === "Dunsmuir" && place.contactVerificationRequired === true), true, "small-market leads must keep locality and confirmation warnings");
+for (const [label, position, expectedName] of [
+  ["Kelso, WA, United States", [-122.9038, 46.1436], "The Basement on Allen"],
+  ["Corvallis, OR, United States", [-123.2630, 44.5596], "Common Fields"],
+  ["Cottage Grove, OR, United States", [-123.0611, 43.7971], "Axe & Fiddle"],
+  ["Anderson, CA, United States", [-122.2989, 40.4496], "Firehouse Lounge"],
+]) {
+  const leads = curatedVenueLeads({ label, position }, "Rock", 0);
+  assert.ok(Array.from(leads, place => place.name).includes(expectedName), `${label} must resolve to ${expectedName}`);
+}
 assert.match(api, /sourceName: "AWS Places public listing"/);
 assert.match(api, /sourceName: "DanzStak curated public venue directory"/);
 assert.match(api, /activityEvidence:/);
