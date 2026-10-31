@@ -1960,7 +1960,7 @@ function isBookableClub(place, genre = "") {
   const classicalSearch = selectedGenre.includes("orchestra") || selectedGenre.includes("classical");
   const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|pavillon|kurpavillon|stadthalle|konzertmuschel|band shell|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
   const nonClassicalInstitution = /\b(symphony|orchestra|opera house)\b/;
-  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|workshop|clinic|promoter|promotion|productions?|entertainment company|entertainment and recreation|event consultant|entertainment consultant|event planner|event services?|event cent(?:er|re)|event space|mobile dj|dj['’]?s? and event services?|party band|consumer services|photography|swimming pool|veterans? (?:memorial )?hall|fraternal order|performance hall|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|music store|record store|instrument store|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office)\b/;
+  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music academy|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|workshop|clinic|training(?: and development)?|promoter|promotion|productions?|entertainment company|entertainment and recreation|event consultant|entertainment consultant|event planner|event services?|event cent(?:er|re)|event space|mobile dj|dj['’]?s? and event services?|party band|consumer services|photography|swimming pool|veterans? (?:memorial )?hall|fraternal order|performance hall|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|specialty store|music store|record store|instrument store|downtown association|business district|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office)\b/;
   const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival|festspiele|festival office|jazzfest|walking tour|history tour|guided tour|tourist information|tourismus|ostseebad)\b/;
   const wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
   const strongVenue = /\b(live music|live entertainment[- ]?music|music venue|rock club|punk club|metal club|night ?club|concert venue|concert hall)\b/.test(description);
@@ -2184,14 +2184,17 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays) {
   const legs = (route?.Routes?.[0]?.Legs || []).map(leg => leg.Geometry?.LineString || []).filter(line => line.length >= 3);
   const line = legs.flat();
   const desired = Math.max(3, Math.min(6, Math.ceil(Math.max(1, requestedDays) / 5)));
-  const routeSegments = allRoutePoints.slice(0, -1).map((point, index) => [point.position, allRoutePoints[index + 1].position]);
+  const routeSegments = allRoutePoints.slice(0, -1).map((point, index) => ({ start: point, end: allRoutePoints[index + 1] }));
   const perLeg = Math.max(1, Math.ceil(desired / Math.max(1, routeSegments.length)));
-  const samplePositions = routeSegments.flatMap(([start, end]) => Array.from({ length: perLeg }, (_, index) => {
+  const sampleDescriptors = routeSegments.flatMap(({ start, end }) => Array.from({ length: perLeg }, (_, index) => {
     const ratio = (index + 1) / (perLeg + 1);
-    return [start[0] + (end[0] - start[0]) * ratio, start[1] + (end[1] - start[1]) * ratio];
+    return {
+      position: [start.position[0] + (end.position[0] - start.position[0]) * ratio, start.position[1] + (end.position[1] - start.position[1]) * ratio],
+      fallbackLabel: `On the road: ${start.label.split(",")[0]} → ${end.label.split(",")[0]}`
+    };
   })).slice(0, desired);
-  const sampled = (await Promise.all(samplePositions.map(reverseGeocodeTourMarket)))
-    .map((market, index) => market || { label: `Route market ${index + 1}`, position: samplePositions[index] });
+  const sampled = (await Promise.all(sampleDescriptors.map(item => reverseGeocodeTourMarket(item.position))))
+    .map((market, index) => ({ ...(market || { label: sampleDescriptors[index].fallbackLabel, position: sampleDescriptors[index].position }), fallbackLabel: sampleDescriptors[index].fallbackLabel }));
   const nearestLineIndex = position => line.reduce((best, point, index) => {
     const distance = approximateMilesBetween(position, point);
     return distance < best.distance ? { index, distance } : best;
@@ -2203,7 +2206,7 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays) {
     const locality = market.label.split(",")[0].trim().toLowerCase();
     if (!locality) continue;
     if (unique.some(item => item.label.split(",")[0].trim().toLowerCase() === locality)) {
-      if (!market.label.startsWith("Route market")) unique.push({ label: `Route market ${unique.length + 1}`, position: market.position });
+      if (!market.label.startsWith("On the road:")) unique.push({ label: market.fallbackLabel || `On the road: stop ${unique.length + 1}`, position: market.position });
       continue;
     }
     unique.push(market);
@@ -2473,9 +2476,9 @@ async function planTourRoute(event) {
     const markets = points.slice(1, -1), selected = directional
       ? (markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]))
       : await discoverRouteMarkets(route, points, requestedDays),
-      candidates = await Promise.all(selected.map((point, index) => tourCandidates(point, genre, excludedVenueKeys, variation + index, null, venueType)));
+      candidates = await Promise.all(selected.map(point => tourCandidates(point, genre, excludedVenueKeys, variation, null, venueType)));
     candidates.forEach(candidate => {
-      if (!/^Route market \d+$/i.test(candidate.stop)) return;
+      if (!candidate.stop.startsWith("On the road:")) return;
       const lead = candidate.venues?.find(venue => venue.locality);
       if (lead?.locality) candidate.stop = lead.locality;
     });
