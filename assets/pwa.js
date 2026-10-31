@@ -3,6 +3,7 @@
 let installPrompt = null;
 let installDismissTimer = null;
 let updateDismissTimer = null;
+let automaticInstallPromptShown = false;
 const installStateKey = "danzstak_app_installed";
 const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 let knownInstalled = standalone;
@@ -111,7 +112,8 @@ updateButton.addEventListener("click", () => {
 });
 
 function showInstallButtonTemporarily() {
-  if (!signedInPage || knownInstalled || waitingWorker) return;
+  if (!signedInPage || knownInstalled || waitingWorker || automaticInstallPromptShown) return;
+  automaticInstallPromptShown = true;
   installButton.hidden = false;
   installButton.classList.remove("install-app-button--leaving");
   clearTimeout(installDismissTimer);
@@ -203,9 +205,8 @@ window.addEventListener("appinstalled", () => {
 window.addEventListener("danzstak:show-install", () => {
   void detectInstalledDanzStak().then(installed => {
     if (installed) return;
-    installButton.hidden = false;
-    installButton.classList.remove("install-app-button--leaving");
-    clearTimeout(installDismissTimer);
+    automaticInstallPromptShown = false;
+    showInstallButtonTemporarily();
   });
 });
 

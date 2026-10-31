@@ -17,6 +17,9 @@ assert.match(pwa, /app\?\.id === "com\.danzstak\.app"/, "native-app detection mu
 assert.match(pwa, /detectInstalledDanzStak\(true\)/, "a browser install event must recheck and clear stale installed state");
 assert.match(pwa, /knownInstalled \|\| await detectInstalledDanzStak\(\)/, "manual install requests must also suppress prompts for an installed app");
 assert.match(pwa, /if \(!installed\) showInstallButtonTemporarily\(\)/, "automatic prompts must wait for installed-app detection");
+assert.match(pwa, /automaticInstallPromptShown/, "automatic install prompts must not restart their 15-second timer repeatedly in one page view");
+assert.match(pwa, /if \(!signedInPage \|\| knownInstalled \|\| waitingWorker \|\| automaticInstallPromptShown\) return;/, "only one automatic install prompt may appear per signed-in page view");
+assert.match(pwa, /automaticInstallPromptShown = false;\s*showInstallButtonTemporarily\(\);/, "an explicit install request may show a fresh time-limited prompt");
 assert.match(pwa, /document\.querySelector\("body > header"\)/, "install prompts must be placed in page flow after the primary header");
 assert.match(pwa, /insertAdjacentElement\("afterend", installButton\)/, "the install action must not be appended over page controls");
 const softUi = fs.readFileSync("assets/soft-ui.css", "utf8");
