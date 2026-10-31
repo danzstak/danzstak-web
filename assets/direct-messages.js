@@ -504,7 +504,8 @@ function messageLinkPreview(url) {
   card.className = "message-link-preview";
   card.href = url.href;
   card.target = "_blank";
-  card.rel = "noopener noreferrer";
+  card.rel = "noopener noreferrer nofollow ugc";
+  card.referrerPolicy = "no-referrer";
   card.setAttribute("aria-label", `Open shared link on ${url.hostname}`);
   icon.className = "message-link-icon";
   icon.textContent = "🔗";
