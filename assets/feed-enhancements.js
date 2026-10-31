@@ -87,6 +87,8 @@ function formatReactionNotification(displayName, reaction) {
 async function refreshNotificationCount() {
   if (document.hidden || notificationCountLoading) return;
   if (readSections().Settings?.notifications === false) {
+    notificationSourceCounts.social = 0;
+    notificationSourceCounts.engagement = 0;
     updateNotificationCount(0);
     return;
   }
