@@ -106,6 +106,18 @@ assert.match(api, /searchPath\.length >= 2[\s\S]*sampleCount = Math\.min\(5, sea
 assert.match(api, /distanceToSearchPathMiles\(place\.position, searchPath\) <= 25/, "drawn-route results must stay close to the path");
 const tourCandidateSource = api.slice(api.indexOf("async function tourCandidates"), api.indexOf("async function planTourRoute"));
 assert.doesNotMatch(tourCandidateSource, /hasBookingContact\(place\)/, "real music rooms without a published booking contact must still appear for later verification");
+
+const curatedStart = api.indexOf("const verifiedSanFranciscoRooms");
+const curatedEnd = api.indexOf("async function tourCandidates", curatedStart);
+const curatedContext = vm.createContext({
+  now: () => 1_800_000_000,
+  createHash: () => ({ update() { return this; }, digest() { return "0123456789abcdef0123456789abcdef"; } })
+});
+vm.runInContext(api.slice(curatedStart, curatedEnd), curatedContext);
+const curatedVenueLeads = vm.runInContext("curatedVenueLeads", curatedContext);
+const dunsmuirLeads = curatedVenueLeads({ label: "Dunsmuir, CA, United States", position: [-122.2719, 41.2120] }, "DIY punk", 0);
+assert.deepEqual(Array.from(dunsmuirLeads, place => place.name), ["Dunsmuir Brewery Works", "Jubilee Railroad Dining Car"], "Dunsmuir route points must resolve to current local rooms rather than remain empty");
+assert.equal(dunsmuirLeads.every(place => place.locality === "Dunsmuir" && place.contactVerificationRequired === true), true, "small-market leads must keep locality and confirmation warnings");
 assert.match(api, /sourceName: "AWS Places public listing"/);
 assert.match(api, /sourceName: "DanzStak curated public venue directory"/);
 assert.match(api, /activityEvidence:/);
