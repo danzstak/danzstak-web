@@ -1338,7 +1338,7 @@ function renderWorkspace(name) {
     const date = field("Date", "date", "");
     const audience = document.createElement("select");
     audience.setAttribute("aria-label", "Event audience");
-    for (const [value, label] of [["public", "Public"], ["friends", "Friends"], ["private", "Only me"]]) {
+    for (const [value, label] of [["public", "Public"], ["friends", "Friends"], ["private", "Just me"]]) {
       const option = document.createElement("option"); option.value = value; option.textContent = label; audience.appendChild(option);
     }
     const button = document.createElement("button");
@@ -2332,7 +2332,7 @@ function addPostDeleteButton(post) {
     const owner = post.dataset.isOwner === "true";
     const audienceBadge = post.querySelector(".post-audience");
     const audienceText = audienceBadge?.textContent || "Public";
-    post.dataset.privacySetting = String(/Friends/i.test(audienceText) ? 1 : /Only me/i.test(audienceText) ? 2 : 0);
+    post.dataset.privacySetting = String(/Friends/i.test(audienceText) ? 1 : /(?:Just|Only) me/i.test(audienceText) ? 2 : 0);
   post.dataset.pinned = String(preferences.pinned === true);
   post.dataset.saved = String(preferences.saved === true);
   paintPostSaveButton(post);
@@ -2500,8 +2500,8 @@ function addPostDeleteButton(post) {
     button.disabled = false;
   });
   commentOption.querySelector("small").textContent = ["Everyone", "Friends", "Comments off"][Number(post.dataset.commentSetting) || 0];
-    const privacyOption = option("Edit privacy", ["Public", "Friends", "Only me"][Number(post.dataset.privacySetting) || 0], async button => {
-      const values = ["Public", "Friends", "Only me"];
+    const privacyOption = option("Edit privacy", ["Public", "Friends", "Just me"][Number(post.dataset.privacySetting) || 0], async button => {
+      const values = ["Public", "Friends", "Just me"];
       const audiences = ["public", "friends", "private"];
       const current = Number(post.dataset.privacySetting || 0);
       const selected = await openChoiceDialog({
@@ -2529,7 +2529,7 @@ function addPostDeleteButton(post) {
       updateLoadedPost(postId, { audience: audiences[next] });
       button.querySelector("small").textContent = values[next];
       if (audienceBadge) {
-        audienceBadge.textContent = ["🌎 Public", "👥 Friends", "🔒 Only me"][next];
+        audienceBadge.textContent = ["🌎 Public", "👥 Friends", "🔒 Just me"][next];
         audienceBadge.setAttribute("aria-label", "Post audience: " + values[next]);
       }
       button.disabled = false;

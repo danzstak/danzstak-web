@@ -16,7 +16,7 @@ BRING YOUR FACEBOOK HISTORY WITH YOU
 1. In Facebook, request a download of your information.
 2. Choose the posts, photos and videos you want to keep.
 3. Open Edit Profile in DanzStak and choose Import from Facebook.
-4. Preview everything and choose Public, Friends or Only me before importing.
+4. Preview everything and choose Public, Friends or Just me before importing.
 
 Unsubscribe: {{unsubscribe_url}}
 Privacy: https://danzstak.com/privacy.html

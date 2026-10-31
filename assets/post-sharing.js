@@ -34,7 +34,7 @@
     destinationLabel.appendChild(destination);
     const audienceLabel = document.createElement('label'); audienceLabel.textContent = 'Who can see this in Your Mix';
     const audience = document.createElement('select'); audience.setAttribute('aria-label', 'Shared post audience');
-    for (const [value,label] of [['friends','Friends'],['public','Public'],['private','Only me']]) { const option = document.createElement('option'); option.value = value; option.textContent = label; audience.appendChild(option); }
+    for (const [value,label] of [['friends','Friends'],['public','Public'],['private','Just me']]) { const option = document.createElement('option'); option.value = value; option.textContent = label; audience.appendChild(option); }
     audienceLabel.appendChild(audience);
     const feedback = document.createElement('p'); feedback.setAttribute('role', 'status');
     const publish = document.createElement('button'); publish.type = 'button'; publish.className = 'primary'; publish.textContent = 'Share to Your Mix';

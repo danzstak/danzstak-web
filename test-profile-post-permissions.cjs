@@ -9,7 +9,7 @@ const signaling = fs.readFileSync("infrastructure/call-signaling/template.yaml",
 const settings = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 
 assert.match(profile, /Who can post on your profile\?/);
-assert.match(profile, /Only me/);
+assert.match(profile, /Just me/);
 assert.match(profile, /Friends/);
 assert.match(profile, /Anyone on DanzStak/);
 assert.match(profile, /get\("edit"\) === "privacy"/);

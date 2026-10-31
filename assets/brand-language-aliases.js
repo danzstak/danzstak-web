@@ -7,6 +7,7 @@ for (const dictionary of Object.values(window.danzstakTranslations || {})) {
   dictionary.Flashes ||= dictionary.Stories || "Flashes";
   dictionary["The Roll"] ||= dictionary.Reels || "The Roll";
   dictionary.Tribes ||= dictionary.Groups || "Tribes";
+  dictionary["Just me"] ||= dictionary["Only me"] || "Just me";
   dictionary["Back to Your Mix"] ||= dictionary["Back to Feed"] || "Back to Your Mix";
   dictionary["Tribe name"] ||= dictionary["Group name"] || "Tribe name";
   dictionary["Create Tribe"] ||= dictionary["Create Group"] || "Create Tribe";
