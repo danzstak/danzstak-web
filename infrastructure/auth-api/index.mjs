@@ -2179,15 +2179,17 @@ async function reverseGeocodeTourMarket(position) {
   }
 }
 
-async function discoverRouteMarkets(route, explicitMarkets, requestedDays) {
+async function discoverRouteMarkets(route, allRoutePoints, requestedDays) {
+  const explicitMarkets = allRoutePoints.slice(1, -1);
   const legs = (route?.Routes?.[0]?.Legs || []).map(leg => leg.Geometry?.LineString || []).filter(line => line.length >= 3);
   const line = legs.flat();
-  if (line.length < 3) return explicitMarkets;
   const desired = Math.max(3, Math.min(6, Math.ceil(Math.max(1, requestedDays) / 5)));
-  const perLeg = Math.max(1, Math.ceil(desired / Math.max(1, legs.length)));
-  const samplePositions = legs.flatMap(leg => Array.from({ length: perLeg }, (_, index) =>
-    leg[Math.round((index + 1) * (leg.length - 1) / (perLeg + 1))]
-  )).slice(0, desired).filter(position => Array.isArray(position) && position.length === 2);
+  const routeSegments = allRoutePoints.slice(0, -1).map((point, index) => [point.position, allRoutePoints[index + 1].position]);
+  const perLeg = Math.max(1, Math.ceil(desired / Math.max(1, routeSegments.length)));
+  const samplePositions = routeSegments.flatMap(([start, end]) => Array.from({ length: perLeg }, (_, index) => {
+    const ratio = (index + 1) / (perLeg + 1);
+    return [start[0] + (end[0] - start[0]) * ratio, start[1] + (end[1] - start[1]) * ratio];
+  })).slice(0, desired);
   const sampled = (await Promise.all(samplePositions.map(reverseGeocodeTourMarket)))
     .map((market, index) => market || { label: `Route market ${index + 1}`, position: samplePositions[index] });
   const nearestLineIndex = position => line.reduce((best, point, index) => {
@@ -2470,7 +2472,7 @@ async function planTourRoute(event) {
     if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
     const markets = points.slice(1, -1), selected = directional
       ? (markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]))
-      : await discoverRouteMarkets(route, markets, requestedDays),
+      : await discoverRouteMarkets(route, points, requestedDays),
       candidates = await Promise.all(selected.map((point, index) => tourCandidates(point, genre, excludedVenueKeys, variation + index, null, venueType)));
     candidates.forEach(candidate => {
       if (!/^Route market \d+$/i.test(candidate.stop)) return;
