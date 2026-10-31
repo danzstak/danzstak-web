@@ -2183,20 +2183,23 @@ async function reverseGeocodeTourMarket(position) {
   }
 }
 
-async function discoverRouteMarkets(route, allRoutePoints, requestedDays) {
+async function discoverRouteMarkets(route, allRoutePoints, requestedDays, requestedShows = 1) {
   const explicitMarkets = allRoutePoints.slice(1, -1);
   const legs = (route?.Routes?.[0]?.Legs || []).map(leg => leg.Geometry?.LineString || []).filter(line => line.length >= 3);
   const line = legs.flat();
-  const desired = Math.max(3, Math.min(6, Math.ceil(Math.max(1, requestedDays) / 5)));
-  const routeSegments = allRoutePoints.slice(0, -1).map((point, index) => ({ start: point, end: allRoutePoints[index + 1] }));
-  const perLeg = Math.max(1, Math.ceil(desired / Math.max(1, routeSegments.length)));
-  const sampleDescriptors = routeSegments.flatMap(({ start, end }) => Array.from({ length: perLeg }, (_, index) => {
-    const ratio = (index + 1) / (perLeg + 1);
-    return {
-      position: [start.position[0] + (end.position[0] - start.position[0]) * ratio, start.position[1] + (end.position[1] - start.position[1]) * ratio],
-      fallbackLabel: `On the road: ${start.label.split(",")[0]} → ${end.label.split(",")[0]}`
-    };
-  })).slice(0, desired);
+  const desired = Math.max(4, Math.min(10, Math.max(Math.ceil(Math.max(1, requestedDays) / 3), Math.ceil(Math.max(1, requestedShows) / 2))));
+  const sampleDescriptors = line.length >= 3
+    ? Array.from({ length: desired }, (_, index) => {
+        const pointIndex = Math.round(((index + 1) * (line.length - 1)) / (desired + 1));
+        return { position: line[pointIndex].slice(0, 2), fallbackLabel: `Tour corridor stop ${index + 1}` };
+      })
+    : allRoutePoints.slice(0, -1).flatMap((start, index) => {
+        const end = allRoutePoints[index + 1];
+        return [{
+          position: [(start.position[0] + end.position[0]) / 2, (start.position[1] + end.position[1]) / 2],
+          fallbackLabel: `On the road: ${start.label.split(",")[0]} → ${end.label.split(",")[0]}`
+        }];
+      }).slice(0, desired);
   const sampled = (await Promise.all(sampleDescriptors.map(item => reverseGeocodeTourMarket(item.position))))
     .map((market, index) => ({ ...(market || { label: sampleDescriptors[index].fallbackLabel, position: sampleDescriptors[index].position }), fallbackLabel: sampleDescriptors[index].fallbackLabel }));
   const nearestLineIndex = position => line.reduce((best, point, index) => {
@@ -2220,7 +2223,15 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays) {
 
 function westCoastTourCorridor(points) {
   const labels = points.map(point => point.label.toLowerCase()).join(" | ");
-  if (!labels.includes("san francisco") || !labels.includes("los angeles") || !labels.includes("seattle")) return null;
+  if (!labels.includes("san francisco") || !labels.includes("seattle")) return null;
+  if (!labels.includes("los angeles")) {
+    const i5Markets = [
+      "Seattle, Washington", "Tacoma, Washington", "Olympia, Washington",
+      "Portland, Oregon", "Salem, Oregon", "Eugene, Oregon", "Medford, Oregon",
+      "Redding, California", "Sacramento, California", "San Francisco, California"
+    ];
+    return points[0].label.toLowerCase().includes("seattle") ? i5Markets : [...i5Markets].reverse();
+  }
   return [
     "San Francisco, California", "San Jose, California", "Santa Cruz, California",
     "San Luis Obispo, California", "Los Angeles, California", "Bakersfield, California",
@@ -2499,8 +2510,8 @@ async function planTourRoute(event) {
       selected = directional
       ? (markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]))
       : corridor
-        ? await Promise.all(["San Francisco, California", "Los Angeles, California", "Sacramento, California", "Portland, Oregon", "Seattle, Washington"].map(geocodeTourPlace))
-        : await discoverRouteMarkets(route, points, requestedDays),
+        ? await Promise.all([...new Set(corridor)].map(geocodeTourPlace))
+        : await discoverRouteMarkets(route, points, requestedDays, requestedShows),
       candidates = await Promise.all(selected.map(point => tourCandidates(point, genre, excludedVenueKeys, variation, null, venueType)));
     candidates.forEach(candidate => {
       if (!candidate.stop.startsWith("On the road:")) return;
