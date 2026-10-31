@@ -1130,16 +1130,21 @@
         progress = days <= 1 ? 0 : day / (days - 1),
         market = markets[Math.min(markets.length - 1, Math.floor(progress * markets.length))],
         item = document.createElement("li"),
+        dayHeading = document.createElement("strong"),
+        dayDetail = document.createElement("span"),
         dateLabel = date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
       if (shouldShow && market) {
         const venueCount = Math.min(6, market.venues?.length || 0),
           venue = venueCount ? market.venues[showIndex % venueCount] : null;
-        item.innerHTML = `<strong>Day ${day + 1} · ${dateLabel} · SHOW TARGET</strong><span>${escapeHtml(market.stop)}${venue ? ` — ${escapeHtml(venue.name)}` : " — venue lead needed"}</span>`;
+        dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · SHOW TARGET`;
+        dayDetail.textContent = `${market.stop}${venue ? ` — ${venue.name}` : " — venue lead needed"}`;
         showIndex += 1;
       } else {
         const label = day === 0 ? data.route.start?.label : market?.stop || data.route.start?.label;
-        item.innerHTML = `<strong>Day ${day + 1} · ${dateLabel} · TRAVEL / REST</strong><span>${escapeHtml(label || "Route day")} — drive, load-in buffer, laundry or sleep.</span>`;
+        dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · TRAVEL / REST`;
+        dayDetail.textContent = `${label || "Route day"} — drive, load-in buffer, laundry or sleep.`;
       }
+      item.append(dayHeading, dayDetail);
       list.append(item);
     }
     details.append(summary, intro, list);
