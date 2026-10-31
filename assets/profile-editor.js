@@ -7,6 +7,30 @@ const details = profileContent.querySelector(".details");
 const handleElement = document.getElementById("profileHandle");
 const profileMediaKey = "danzstak_profile_media";
 const profileApi = "https://api.danzstak.com";
+const profileToast = document.createElement("div");
+profileToast.className = "profile-toast";
+profileToast.hidden = true;
+profileToast.setAttribute("role", "status");
+profileToast.setAttribute("aria-live", "polite");
+profileToast.setAttribute("aria-atomic", "true");
+document.body.appendChild(profileToast);
+let profileToastTimer = 0;
+let profileToastHideTimer = 0;
+
+function showProfileFeedback(message, { urgent = false, timeout = 4200 } = {}) {
+  clearTimeout(profileToastTimer);
+  clearTimeout(profileToastHideTimer);
+  profileToast.textContent = String(message || "DanzStak could not complete that profile change.");
+  profileToast.setAttribute("role", urgent ? "alert" : "status");
+  profileToast.setAttribute("aria-live", urgent ? "assertive" : "polite");
+  profileToast.hidden = false;
+  profileToast.classList.remove("profile-toast-visible");
+  requestAnimationFrame(() => profileToast.classList.add("profile-toast-visible"));
+  profileToastTimer = setTimeout(() => {
+    profileToast.classList.remove("profile-toast-visible");
+    profileToastHideTimer = setTimeout(() => { profileToast.hidden = true; }, 180);
+  }, timeout);
+}
 async function profileFetch(url, options = {}, timeoutMs = 15000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -105,7 +129,7 @@ function addProfileImageButton(label, target, field) {
     const file = input.files[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      alert("Profile images must be JPG, PNG, or WebP.");
+      showProfileFeedback("Profile images must be JPG, PNG, or WebP.", { urgent: true });
       input.value = "";
       return;
     }
@@ -116,7 +140,7 @@ function addProfileImageButton(label, target, field) {
         if (field === "avatar" && profile?.picture) { target.style.backgroundImage = `url("${profile.picture}")`; target.textContent = ""; }
         if (field === "cover" && profile?.cover) target.style.backgroundImage = `url("${profile.cover}")`;
         target.classList.add("has-photo");
-      } catch (error) { alert(error.message); }
+      } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
       finally { button.disabled = false; input.value = ""; }
       return;
     }
@@ -131,7 +155,7 @@ function addProfileImageButton(label, target, field) {
       const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
       saved[field] = reader.result;
       try { localStorage.setItem(profileMediaKey, JSON.stringify(saved)); }
-      catch { return alert("This image could not be saved in the browser. Choose a smaller file."); }
+      catch { showProfileFeedback("This image could not be saved in the browser. Choose a smaller file.", { urgent: true }); return; }
       applyProfileMedia(saved);
     });
     reader.readAsDataURL(file);
@@ -179,7 +203,7 @@ function addRemoveImageButton(label, field, target) {
     if (!confirm(`${label}?`)) return;
     button.disabled = true;
     try { await removeProfileImage(field, target); }
-    catch (error) { alert(error.message); }
+    catch (error) { showProfileFeedback(error.message, { urgent: true }); }
     finally { button.disabled = false; }
   });
   mediaTools.appendChild(button);
@@ -202,7 +226,7 @@ let repositioning = false;
 let dragStart = null;
 let coverPositionSaving = false;
 repositionButton.addEventListener("click", () => {
-  if (!coverElement.classList.contains("has-photo")) return alert("Add a cover photo first.");
+  if (!coverElement.classList.contains("has-photo")) { showProfileFeedback("Add a cover photo first.", { urgent: true }); return; }
   repositioning = !repositioning;
   repositionButton.classList.toggle("active", repositioning);
   repositionButton.textContent = repositioning ? "Done Repositioning" : "Reposition Cover";
@@ -254,7 +278,7 @@ coverElement.addEventListener("pointerup", async () => {
   if (position.coverX === previous.coverX && position.coverY === previous.coverY) return;
   coverPositionSaving = true;
   try { await persistCoverPosition(position); }
-  catch (error) { restoreCoverPosition(previous); alert(error.message); }
+  catch (error) { restoreCoverPosition(previous); showProfileFeedback(error.message, { urgent: true }); }
   finally { coverPositionSaving = false; }
 });
 coverElement.addEventListener("pointercancel", () => {
@@ -268,7 +292,7 @@ fitCoverButton.type = "button";
 fitCoverButton.dataset.mediaField = "cover";
 fitCoverButton.textContent = "Fit Entire Cover";
 async function toggleCoverFit() {
-  if (!coverElement.classList.contains("has-photo")) return alert("Add a cover photo first.");
+  if (!coverElement.classList.contains("has-photo")) { showProfileFeedback("Add a cover photo first.", { urgent: true }); return; }
   const saved = (() => { try { return JSON.parse(localStorage.getItem(profileMediaKey) || "{}"); } catch { return {}; } })();
   const cloud = window.danzstakCurrentProfile;
   const coverFit = !(cloud?.cloudProfile ? cloud.coverFit : saved.coverFit);
@@ -281,7 +305,7 @@ async function toggleCoverFit() {
     coverElement.style.backgroundRepeat = "no-repeat";
     fitCoverButton.classList.toggle("active", coverFit);
     fitCoverButton.textContent = coverFit ? "Fill Cover Box" : "Fit Entire Cover";
-  } catch (error) { alert(error.message); }
+  } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
   finally { fitCoverButton.disabled = false; }
 }
 fitCoverButton.addEventListener("click", toggleCoverFit);
@@ -308,7 +332,7 @@ videoInput.addEventListener("change", async () => {
   const file = videoInput.files[0];
   if (!file) return;
   if (!videoInput.accept.split(",").includes(file.type)) {
-    alert("Profile videos must be MP4, WebM, or MOV.");
+    showProfileFeedback("Profile videos must be MP4, WebM, or MOV.", { urgent: true });
     videoInput.value = "";
     return;
   }
@@ -324,8 +348,8 @@ videoInput.addEventListener("change", async () => {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Profile video could not be saved");
     setProfileVideoControls(mediaKey);
-    alert("Profile video saved. Open the Media tab to view it.");
-  } catch (error) { alert(error.message); }
+    showProfileFeedback("Profile video saved. Open the Media tab to view it.");
+  } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
   finally { videoButton.disabled = false; removeVideoButton.disabled = false; videoInput.value = ""; }
 });
 mediaTools.append(videoButton, videoInput);
@@ -345,8 +369,8 @@ removeVideoButton.addEventListener("click", async () => {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Profile video could not be removed");
     setProfileVideoControls("");
-    alert("Profile video removed from your profile.");
-  } catch (error) { alert(error.message); }
+    showProfileFeedback("Profile video removed from your profile.");
+  } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
   finally { removeVideoButton.disabled = false; videoButton.disabled = false; }
 });
 mediaTools.appendChild(removeVideoButton);
@@ -443,7 +467,7 @@ function profilePostCard(post) {
         if (!response.ok) throw new Error(data.error || "Featured post could not be saved.");
         post.featured = !post.featured; paint();
         if (!post.featured && tabs.querySelector('[data-profile-tab="Featured"]').getAttribute("aria-selected") === "true") article.remove();
-      } catch (error) { alert(error.message); }
+      } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
       finally { feature.disabled = false; }
     });
     article.appendChild(feature);
@@ -461,7 +485,7 @@ function profilePostCard(post) {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "The post could not be removed.");
         article.remove();
-      } catch (error) { alert(error.message); }
+      } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
       finally { remove.disabled = false; }
     });
     article.appendChild(remove);

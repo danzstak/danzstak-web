@@ -6,7 +6,7 @@ const context=vm.createContext({window:{danzstakCurrentProfile:{cloudProfile:tru
   saveCloudProfile:async position=>{if(saveError)throw Error('Server rejected save');writes.push({...position});},
   localStorage:{getItem:()=>'{"avatar":"keep"}',setItem:()=>{if(storageError)throw Error('quota');}},
   coverElement:{style:{},dataset:{coverX:'0',coverY:'80'},addEventListener:(name,fn)=>handlers[name]=fn},
-  dragStart:{coverX:50,coverY:50},coverPositionSaving:false,alert:message=>alerts.push(message)
+  dragStart:{coverX:50,coverY:50},coverPositionSaving:false,showProfileFeedback:message=>alerts.push(message)
 });vm.runInContext(source.slice(a,b),context);
 (async()=>{
   await handlers.pointerup();assert.equal(writes[0].coverX,0,'zero coordinates are preserved');assert.equal(writes[0].coverY,80);assert.equal(alerts.length,0,'cache failure does not block cloud save');assert.equal(context.dragStart,null);

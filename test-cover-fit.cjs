@@ -8,7 +8,7 @@ const context=vm.createContext({
   coverElement:{classList:{contains:()=>true},style:{backgroundSize:'contain'}},
   fitCoverButton:{classList:{toggle:()=>{}},disabled:false,textContent:'Fill Cover Box'},
   profileMediaKey:'media',localStorage:{getItem:()=>JSON.stringify(saved),setItem:(_,s)=>{if(storageFailure)throw Error('quota');saved=JSON.parse(s);}},
-  alert:message=>alerts.push(message),saveCloudProfile:async changes=>{writes.push(changes);if(fail)throw Error('Save failed');context.window.danzstakCurrentProfile={cloudProfile:true,...changes};}
+  showProfileFeedback:message=>alerts.push(message),saveCloudProfile:async changes=>{writes.push(changes);if(fail)throw Error('Save failed');context.window.danzstakCurrentProfile={cloudProfile:true,...changes};}
 });
 vm.runInContext(code,context);
 (async()=>{
