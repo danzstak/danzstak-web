@@ -3202,6 +3202,15 @@ function isApprovedVideoUrl(url) {
   return trustedHost || directVideo;
 }
 
+function approvedVideoUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return isApprovedVideoUrl(url) && reelPlayer(url) ? url : null;
+  } catch {
+    return null;
+  }
+}
+
 function reelPlayer(url) {
   const host = url.hostname.replace(/^www\./, "").toLowerCase();
   const path = url.pathname;
@@ -3232,7 +3241,8 @@ function renderPlayableReels() {
     return;
   }
   for (const reel of reels) {
-    const reelUrlValue = reel.url ? new URL(reel.url) : null;
+    const reelUrlValue = reel.internal ? null : approvedVideoUrl(reel.url);
+    if (!reel.internal && !reelUrlValue) continue;
     const card = document.createElement("article");
     card.className = "reel-card";
     const playerInfo = reel.internal ? { kind: "video", src: reel.mediaUrl } : reelPlayer(reelUrlValue);
@@ -3304,7 +3314,7 @@ function renderPlayableReels() {
       });
       details.appendChild(open);
     } else {
-      const open = document.createElement("a"); open.href = reel.url; open.target = "_blank"; open.rel = "noopener noreferrer nofollow"; open.textContent = playerInfo ? "Open on source" : "Play on source"; details.appendChild(open);
+      const open = document.createElement("a"); open.href = reelUrlValue.href; open.target = "_blank"; open.rel = "noopener noreferrer nofollow ugc"; open.textContent = playerInfo ? "Open on source" : "Play on source"; details.appendChild(open);
     }
     if (!reel.internal && (!Array.isArray(cloudReels) || reel.isOwner === true)) {
       const remove = document.createElement("button");
@@ -3353,7 +3363,9 @@ addReel.addEventListener("click", async () => {
     if (!response.ok || !result.reel) throw new Error(result.error || "Video could not be saved to The Roll.");
     const reel = result.reel;
     cloudReels = Array.isArray(cloudReels) ? cloudReels : [];
-    cloudReels.unshift({ ...reel, platform: reelPlatform(new URL(reel.url).hostname) });
+    const savedUrl = approvedVideoUrl(reel.url);
+    if (!savedUrl) throw new Error("The saved video link was not safe to open.");
+    cloudReels.unshift({ ...reel, url: savedUrl.href, platform: reelPlatform(savedUrl.hostname) });
     reelUrl.value = "";
     reelPermissionCheck.checked = false;
     reelStatus.textContent = "Video saved to The Roll.";
@@ -3371,16 +3383,23 @@ async function loadCloudReels() {
     if (!response.ok) return;
     const data = await response.json();
     if (!Array.isArray(data.reels)) return;
-    cloudReels = data.reels.map(reel => ({ ...reel, platform: reelPlatform(new URL(reel.url).hostname) }));
+    cloudReels = data.reels.flatMap(reel => {
+      const url = approvedVideoUrl(reel.url);
+      return url ? [{ ...reel, url: url.href, platform: reelPlatform(url.hostname) }] : [];
+    });
     const pending = getLocalReels();
     const remaining = [];
     const existingUrls = new Set(cloudReels.map(reel => reel.url));
     for (const local of pending) {
-      if (existingUrls.has(local.url)) continue;
-      const saved = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: local.url, rightsCertified: true }) }).catch(() => null);
+      const localUrl = approvedVideoUrl(local.url);
+      if (!localUrl || existingUrls.has(localUrl.href)) continue;
+      const saved = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reel", url: localUrl.href, rightsCertified: true }) }).catch(() => null);
       if (!saved?.ok) { remaining.push(local); continue; }
       const result = await saved.json();
-      if (result.reel) { cloudReels.push({ ...result.reel, platform: reelPlatform(new URL(result.reel.url).hostname) }); existingUrls.add(result.reel.url); }
+      if (result.reel) {
+        const resultUrl = approvedVideoUrl(result.reel.url);
+        if (resultUrl) { cloudReels.push({ ...result.reel, url: resultUrl.href, platform: reelPlatform(resultUrl.hostname) }); existingUrls.add(resultUrl.href); }
+      }
     }
     localStorage.setItem(reelsStorageKey, JSON.stringify(remaining));
     cloudReels.sort((a, b) => String(b.sharedAt).localeCompare(String(a.sharedAt)));
