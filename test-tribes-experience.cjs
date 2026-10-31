@@ -30,12 +30,14 @@ for (const required of [
 
 for (const required of [
   ".groups-toolbar{",
+  ".groups-toolbar[hidden],.groups-grid[hidden]{display:none!important}",
   ".groups-tabs{",
   ".groups-discovery-controls{",
   ".group-card-cover{",
   ".groups-empty{",
   ".tribe-hero{",
   ".tribe-nav{",
+  ".tribe-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))",
   ".tribe-crew-member{",
   ".tribe-crew-avatar[href]",
   ".tribe-detail{scroll-margin-top:90px}",

@@ -12,7 +12,7 @@ assert.match(enhancements, /post\.querySelectorAll\("\.post-actions button, \.po
 assert.match(enhancements, /control\.setAttribute\("aria-describedby", describedBy\)/, "post controls announce their author and text without replacing translated labels");
 assert.ok((enhancements.match(/describePostControls\(/g) || []).length >= 3, "existing and newly rendered posts both receive contextual descriptions");
 assert.match(enhancements, /title: "Edit privacy"[\s\S]*choices: values\.map/, "post privacy opens an explicit audience chooser");
-assert.match(enhancements, /const values = \["Public", "Friends", "Just me"\]/, "privacy choices are Public, Friends, and Just me");
+assert.match(enhancements, /const values = \["Just me", "Friends", "Public"\]/, "privacy choices are Just me, Friends, and Public");
 assert.match(enhancements, /strong\.textContent = title === "Delete post" \? "🗑️" : title/, "destructive post controls use a compact trash-can label");
 
 console.log("Post action-context checks passed: repeated controls identify their post while keeping familiar labels.");
