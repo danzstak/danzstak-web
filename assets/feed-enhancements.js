@@ -690,7 +690,7 @@ function renderWorkspace(name) {
                 const result = await update.json().catch(() => ({}));
                 if (!update.ok) throw new Error(result.error || "Elder role could not be updated");
                 await renderCrew(group, panel);
-              } catch (error) { alert(error.message); manage.disabled = false; }
+              } catch (error) { showAppFeedback(error.message, { urgent: true }); manage.disabled = false; }
             });
             row.appendChild(manage);
           }
@@ -726,7 +726,7 @@ function renderWorkspace(name) {
             uploadedMediaKey = ""; group.coverUrl = savedCover.coverUrl; openTribe(group);
           } catch (error) {
             if (uploadedMediaKey && typeof window.discardUploadedMedia === "function") await window.discardUploadedMedia(uploadedMediaKey).catch(() => {});
-            alert(error.message); editCover.disabled = false; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
+            showAppFeedback(error.message, { urgent: true }); editCover.disabled = false; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
           }
         });
         cover.append(editCover, coverInput);
@@ -739,7 +739,7 @@ function renderWorkspace(name) {
       const membership = document.createElement("button"); membership.type = "button"; membership.className = "primary tribe-membership";
       const paintMembership = () => { const joined = Boolean(saved.GroupsJoined?.[group.id]); membership.textContent = joined ? "✓ Joined" : "+ Join Tribe"; membership.classList.toggle("is-selected", joined); };
       paintMembership();
-      membership.addEventListener("click", async () => { membership.disabled = true; try { await saveGroupMembership(group, !saved.GroupsJoined?.[group.id]); paintMembership(); openTribe(group); } catch (error) { alert(error.message); } finally { membership.disabled = false; } });
+      membership.addEventListener("click", async () => { membership.disabled = true; try { await saveGroupMembership(group, !saved.GroupsJoined?.[group.id]); paintMembership(); openTribe(group); } catch (error) { showAppFeedback(error.message, { urgent: true }); } finally { membership.disabled = false; } });
       hero.append(cover, identity, membership);
       const nav = document.createElement("div"); nav.className = "tribe-nav"; nav.setAttribute("role", "tablist"); nav.setAttribute("aria-label", group.name + " sections");
       const panels = document.createElement("div"); panels.className = "tribe-panels";
@@ -771,7 +771,7 @@ function renderWorkspace(name) {
           fileInput.addEventListener("change", () => {
             const file = fileInput.files?.[0]; if (!file) return;
             if (!file.type.startsWith(kind + "/") || kind === "video" && file.size > 100 * 1024 * 1024) {
-              fileInput.value = ""; alert(kind === "video" ? "Video must be MP4, WebM, or MOV and smaller than 100 MB." : "Choose a supported photo."); return;
+              fileInput.value = ""; showAppFeedback(kind === "video" ? "Video must be MP4, WebM, or MOV and smaller than 100 MB." : "Choose a supported photo.", { urgent: true }); return;
             }
             clearSelectedMedia();
             selectedMedia = { file, kind, url: URL.createObjectURL(file) };
@@ -884,7 +884,7 @@ function renderWorkspace(name) {
             join.classList.toggle("is-selected", nextJoined);
             renderGroups();
           } catch (error) {
-            alert(error.message);
+            showAppFeedback(error.message, { urgent: true });
           } finally {
             join.disabled = false;
           }
@@ -912,7 +912,7 @@ function renderWorkspace(name) {
             const data = await response.json().catch(() => ({}));
             if (!response.ok || !data.report?.reportId) throw new Error(data.error || "Report could not be submitted. Please try again.");
             report.textContent = "Report submitted";
-          } catch (error) { alert(error.message); report.disabled = false; }
+          } catch (error) { showAppFeedback(error.message, { urgent: true }); report.disabled = false; }
         });
         moderation.append(moderationTitle, moderationText, report);
         card.appendChild(moderation);
@@ -934,7 +934,7 @@ function renderWorkspace(name) {
                 if (!response.ok) throw new Error(result.error || "Announcement could not be sent.");
                 announce.textContent = `Notified ${result.notified || 0}`;
                 setTimeout(() => { announce.textContent = "Notify @everyone"; }, 3000);
-              } catch (error) { alert(error.message); }
+              } catch (error) { showAppFeedback(error.message, { urgent: true }); }
               finally { announce.disabled = false; }
             });
             card.appendChild(announce);
@@ -950,7 +950,7 @@ function renderWorkspace(name) {
             remove.disabled = true;
             if (group.cloud) {
               const response = await groupFetch("/groups/" + encodeURIComponent(group.id), { method: "DELETE", credentials: "include" }).catch(() => null);
-              if (!response?.ok) { remove.disabled = false; alert("Tribe could not be deleted."); return; }
+              if (!response?.ok) { remove.disabled = false; showAppFeedback("Tribe could not be deleted.", { urgent: true }); return; }
             }
             customGroups = customGroups.filter(item => item.id !== group.id);
             saved.CustomGroups = customGroups.filter(item => !item.cloud);
@@ -983,7 +983,7 @@ function renderWorkspace(name) {
         membershipChanges.set(result.group.id, true);
         saved.CustomGroups = customGroups.filter(item => !item.cloud);
         writeSections(saved);
-      } catch (error) { alert(error.message); createButton.disabled = false; return; }
+      } catch (error) { showAppFeedback(error.message, { urgent: true }); createButton.disabled = false; return; }
       groupName.input.value = "";
       standardsCheckbox.checked = false;
       renderGroups();
@@ -1929,9 +1929,9 @@ if (composerActions && publishButton) {
       if (!file) return;
       if (!file.type.startsWith(kind + "/") || (maxBytes && file.size > maxBytes)) {
         input.value = "";
-        alert(maxBytes
+        showAppFeedback(maxBytes
           ? `${label} must be a supported ${kind} file smaller than ${Math.round(maxBytes / 1048576)} MB.`
-          : `${label} must be a supported ${kind} file.`);
+          : `${label} must be a supported ${kind} file.`, { urgent: true });
         return;
       }
       if (selectedMedia?.url) URL.revokeObjectURL(selectedMedia.url);
@@ -3004,7 +3004,7 @@ async function saveComment(post, input) {
     renderPersistentComment(post, data.comment);
     post.dataset.engagementLoaded = "";
     await loadEngagement(post);
-  } catch (error) { alert(error.message); }
+  } catch (error) { showAppFeedback(error.message, { urgent: true }); }
   finally { input.disabled = false; if (submit) submit.disabled = false; input.focus(); }
 }
 
@@ -3024,7 +3024,7 @@ function addCommentDelete(comment) {
     if (postId && commentId) {
       button.disabled = true;
       const response = await engagementFetch(`/comments/${encodeURIComponent(commentId)}?postId=${encodeURIComponent(postId)}`, { method: "DELETE", credentials: "include" }).catch(() => null);
-      if (!response?.ok) { button.disabled = false; alert("Comment could not be deleted."); return; }
+      if (!response?.ok) { button.disabled = false; showAppFeedback("Comment could not be deleted.", { urgent: true }); return; }
       post.dataset.engagementVersion = String(Number(post.dataset.engagementVersion || 0) + 1);
       post.dataset.engagementLoaded = "";
     }

@@ -15,7 +15,10 @@ assert.match(enhancements, /Post privacy changed to \$\{values\[next\]\}/, "priv
 assert.match(enhancements, /writeText\(postPermalink\(post\)\); showAppFeedback\("Link copied\."\)/, "copying a post link should confirm success");
 assert.match(styles, /\.app-toast\{[^}]*safe-area-inset-bottom/, "mobile feedback must clear the device safe area");
 assert.match(styles, /@media\(prefers-reduced-motion:reduce\)\{\.app-toast\{transition:none\}\}/, "toast motion must respect reduced-motion preferences");
-assert.match(feed, /feed-enhancements\.css\?v=465/, "feed stylesheet cache key should be current");
-assert.match(feed, /feed-enhancements\.js\?v=463/, "feed script cache key should be current");
+assert.match(enhancements, /Tribe could not be deleted\.[\s\S]{0,80}urgent: true/, "Tribe failures should use the shared feedback path");
+assert.match(enhancements, /Comment could not be deleted\.[\s\S]{0,80}urgent: true/, "comment failures should use the shared feedback path");
+assert.doesNotMatch(enhancements.replace(/alert\(history\.length[\s\S]*?\);\n  \}\);/, ""), /alert\(/, "routine feed actions should not use blocking browser alerts");
+assert.match(feed, /feed-enhancements\.css\?v=466/, "feed stylesheet cache key should be current");
+assert.match(feed, /feed-enhancements\.js\?v=464/, "feed script cache key should be current");
 
 console.log("Feed action feedback checks passed: post actions use compact, accessible, nonblocking status messages.");
