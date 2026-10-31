@@ -1618,7 +1618,11 @@ async function createSecurePost(event) {
   const content = data.content.trim() || "Shared a post.";
   if (!sharedSource && data.originalContentCertified !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Original-content certification is required." }) };
   const requestedGroupId = data.groupId === undefined ? "" : String(data.groupId || "");
-  const audience = requestedGroupId ? "group" : ["public", "friends", "private"].includes(data.audience) ? data.audience : "public";
+  const requestedAudience = data.audience === undefined ? "public" : String(data.audience || "");
+  if (!requestedGroupId && !["public", "friends", "private"].includes(requestedAudience)) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid audience." }) };
+  }
+  const audience = requestedGroupId ? "group" : requestedAudience;
   const mediaKey = typeof data.mediaKey === "string" ? data.mediaKey : "";
   const mediaType = ["image", "video"].includes(data.mediaType) ? data.mediaType : "";
   const reel = mediaType === "video" && data.reel === true;
