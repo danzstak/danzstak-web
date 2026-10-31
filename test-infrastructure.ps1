@@ -314,15 +314,15 @@ foreach ($pushCapability in @(
   "key==='DELETE /push/subscribe'",
   "Content-Encoding':'aes128gcm",
   "signalType==='offer'&&['phone','video'].includes(mode)",
-  "notifyCall(recipientEmail,user.email,mode,callId).catch(error=>console.error('Call push failed',error))",
-  "notifyMessage(recipient,user.email).catch(error=>console.error('Message push failed',error))",
+  "notifyCall(recipientEmail,user.email,user.userId,mode,callId).catch(error=>console.error('Call push failed',error))",
+  "notifyMessage(recipient,user.email,user.userId).catch(error=>console.error('Message push failed',error))",
   "type:'message',title:'New DanzStak message'"
 )) {
   if (-not $template.Contains($pushCapability)) { throw "Background push capability is missing: $pushCapability" }
 }
 foreach ($pushFanout in @(
-  'async function notifyCall(recipientEmail,senderEmail,mode,callId){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE',
-  'async function notifyMessage(recipientEmail,senderEmail){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE',
+  'async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE',
+  'async function notifyMessage(recipientEmail,senderEmail,senderMemberId){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE',
   'async function notifyFriendRequest(recipientEmail,senderEmail){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE'
 )) {
   if (-not $template.Contains($pushFanout)) { throw "Push notifications do not reach every registered device: $pushFanout" }

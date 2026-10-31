@@ -74,6 +74,9 @@ assert.match(api, /slice\(0, 24\)/, "a dense city search must be able to return 
 assert.match(api, /name: "Hawthorne Theatre"[\s\S]*hawthornetheatre\.com\/booking/);
 assert.match(api, /name: "Turn! Turn! Turn!"[\s\S]*turnturnturnpdx\.booking@gmail\.com/);
 assert.match(api, /name: "Kelly's Olympian"[\s\S]*bookings@kellysolympian\.com/);
+assert.match(api, /name: "Rockafairy"[\s\S]*contactus@rockafairy\.org/, "the I-5 search should include Medford's active all-ages room");
+assert.match(api, /name: "Grape Street Bar & Grill"[\s\S]*grapestreetbar@gmail\.com/, "the I-5 search should include another current Medford live room");
+assert.match(api, /name: "The Dip"[\s\S]*aaron@thedipredding\.com/, "the I-5 search should include Redding's published regional booking contact");
 assert.doesNotMatch(api, /name: "Kilowatt"[^\n]+categories: \[[^\]]*"DJ"/);
 assert.match(client, /seenVenueKeys/);
 assert.match(client, /https:\/\/www\.google\.com\/maps\/search\/\?api=1/);

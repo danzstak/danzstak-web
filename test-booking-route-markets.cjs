@@ -26,7 +26,8 @@ assert.deepEqual(direct, [
   "Centralia, Washington", "Longview, Washington", "Vancouver, Washington",
   "Portland, Oregon", "Salem, Oregon", "Albany, Oregon", "Eugene, Oregon",
   "Roseburg, Oregon", "Grants Pass, Oregon", "Medford, Oregon", "Ashland, Oregon",
-  "Yreka, California", "Mount Shasta, California", "Redding, California",
+  "Yreka, California", "Weed, California", "Mount Shasta, California",
+  "Dunsmuir, California", "Redding, California", "Red Bluff, California",
   "Chico, California", "Sacramento, California", "San Francisco, California",
 ]);
 assert.deepEqual(
@@ -49,6 +50,8 @@ for (const market of [
 }
 assert.equal(ordinaryTourMarkets[0], "Seattle, Washington");
 assert.equal(ordinaryTourMarkets.at(-1), "San Francisco, California");
+assert.match(bookingUi, /discoveredPoints = \(data\.candidates \|\| \[\]\)/, "the route overview should use every discovered corridor market");
+assert.match(bookingUi, /stopLine\.textContent = points\.map/, "the route overview should name the intermediate towns in one compact line");
 
 const discoverySource = source.slice(
   source.indexOf("async function discoverRouteMarkets("),

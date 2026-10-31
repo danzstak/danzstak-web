@@ -947,11 +947,18 @@
   }
   function renderRouteMap(data) {
     const route = data.route,
-      points = [route.start, ...(route.stops || []), route.end].filter(Boolean),
+      startCity = String(route.start?.label || "").split(",")[0].trim().toLowerCase(),
+      discoveredPoints = (data.candidates || [])
+        .filter((market) => Array.isArray(market.position) && market.position.length === 2)
+        .map((market) => ({ label: market.stop, position: market.position, proposedDate: market.proposedDate }))
+        .filter((point) => String(point.label || "").split(",")[0].trim().toLowerCase() !== startCity),
+      points = route.local
+        ? [route.start, ...(route.stops || []), route.end].filter(Boolean)
+        : [route.start, ...(discoveredPoints.length ? discoveredPoints : route.stops || []), route.end].filter(Boolean),
       figure = document.createElement("figure"),
       caption = document.createElement("figcaption"),
       svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"),
-      list = document.createElement("ol"),
+      stopLine = document.createElement("p"),
       navigation = document.createElement("div");
     figure.className = "route-map";
     caption.textContent = `${artistInput.value.trim() || "Band"} route`;
@@ -979,6 +986,7 @@
     line.setAttribute("points", coords.map((pair) => pair.join(",")).join(" "));
     line.setAttribute("class", "route-line");
     svg.append(line);
+    const labelEvery = Math.max(1, Math.ceil(points.length / 8));
     coords.forEach(([x, y], index) => {
       const circle = document.createElementNS(svg.namespaceURI, "circle"),
         label = document.createElementNS(svg.namespaceURI, "text"),
@@ -994,22 +1002,17 @@
       label.setAttribute("x", x);
       label.setAttribute("y", Math.max(18, y - 13));
       label.setAttribute("text-anchor", "middle");
-      label.textContent =
-        index === coords.length - 1
-          ? "Home"
-          : (point.label || `Stop ${index + 1}`).split(",")[0];
-      svg.append(circle, label);
-      const item = document.createElement("li");
-      item.textContent =
-        index === 0
-          ? `Home — ${point.label}`
-          : index === coords.length - 1
-            ? `Back home — ${point.label}`
-            : `${market?.proposedDate ? market.proposedDate + " — " : ""}${point.label}`;
-      list.append(item);
+      label.textContent = index === coords.length - 1 ? "Home" : (point.label || `Stop ${index + 1}`).split(",")[0];
+      svg.append(circle);
+      if (index === 0 || index === coords.length - 1 || index % labelEvery === 0) svg.append(label);
     });
+    stopLine.className = "route-stop-line";
+    stopLine.textContent = points.map((point, index) => index === points.length - 1 ? "Home" : (point.label || `Stop ${index + 1}`).split(",")[0]).join(" → ");
     navigation.className = "route-navigation";
-    const routeDestinations = points.map(mapDestination).filter(Boolean);
+    const allDestinations = points.map(mapDestination).filter(Boolean),
+      routeDestinations = allDestinations.length <= 10
+        ? allDestinations
+        : Array.from({ length: 10 }, (_, index) => allDestinations[Math.round(index * (allDestinations.length - 1) / 9)]);
     if (routeDestinations.length >= 2) {
       const origin = routeDestinations[0],
         destination = routeDestinations.at(-1),
@@ -1029,7 +1032,7 @@
         );
       }
     }
-    figure.append(caption, svg, list, navigation);
+    figure.append(caption, svg, stopLine, navigation);
     return figure;
   }
   function renderRoute(data) {

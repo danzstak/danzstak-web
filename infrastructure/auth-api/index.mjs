@@ -2230,7 +2230,8 @@ function westCoastTourCorridor(points) {
       "Centralia, Washington", "Longview, Washington", "Vancouver, Washington",
       "Portland, Oregon", "Salem, Oregon", "Albany, Oregon", "Eugene, Oregon",
       "Roseburg, Oregon", "Grants Pass, Oregon", "Medford, Oregon", "Ashland, Oregon",
-      "Yreka, California", "Mount Shasta, California", "Redding, California",
+      "Yreka, California", "Weed, California", "Mount Shasta, California",
+      "Dunsmuir, California", "Redding, California", "Red Bluff, California",
       "Chico, California", "Sacramento, California", "San Francisco, California"
     ];
     return points[0].label.toLowerCase().includes("seattle") ? i5Markets : [...i5Markets].reverse();
@@ -2379,6 +2380,17 @@ const verifiedPortlandRooms = [
   { name: "Haymaker", address: "1233 N Killingsworth St, Portland, OR 97217", position: [-122.6839, 45.5625], websites: ["https://www.haymakerportland.com/"], emails: ["haymakermusicbooking@gmail.com"], phones: ["971-871-5429"], categories: ["Live Music Venue", "Punk", "Rock"] }
 ];
 
+const verifiedSouthernOregonRooms = [
+  { name: "Rockafairy", address: "1600 N Riverside Ave, Medford, OR 97501", position: [-122.8772680, 42.3442689], websites: ["https://www.rockafairy.org/"], emails: ["contactus@rockafairy.org"], phones: [], categories: ["All Ages Venue", "DIY", "Punk", "Rock", "Metal", "Hardcore"] },
+  { name: "Grape Street Bar & Grill", address: "31 S Grape St, Medford, OR 97501", position: [-122.8747382, 42.3248195], websites: ["https://www.grapestreetmedford.com/"], emails: ["grapestreetbar@gmail.com"], phones: [], categories: ["Live Music Venue", "Bar", "Rock", "DJ", "Electronic"] },
+  { name: "Medford Brewing Company", address: "1922 United Way, Medford, OR 97504", position: [-122.8309, 42.3077], websites: ["https://medfordbrew.com/contact-us/musician-booking/"], emails: [], phones: [], categories: ["Live Music Venue", "Brewery", "Rock"] },
+  { name: "Dangerous Lee's Local 31", address: "31 Water St, Ashland, OR 97520", position: [-122.7154993, 42.1985182], websites: ["https://local31pub.ai/booking/"], emails: [], phones: ["541-708-6813"], categories: ["Live Music Venue", "Bar", "Rock", "Punk"] }
+];
+
+const verifiedReddingRooms = [
+  { name: "The Dip", address: "1730 California St, Redding, CA 96001", position: [-122.3916333, 40.5817582], websites: ["https://www.thedipredding.com/venue"], emails: ["aaron@thedipredding.com"], phones: ["530-605-0827"], categories: ["Independent Music Venue", "Punk", "Rock", "Metal", "21+"] }
+];
+
 function verifiedVenueKey(place) {
   return createHash("sha256").update(`${place.name.toLowerCase()}|${place.address.toLowerCase()}`).digest("hex").slice(0, 20);
 }
@@ -2394,6 +2406,12 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   } else if (latitude >= 45.40 && latitude <= 45.65 && longitude >= -122.85 && longitude <= -122.45) {
     rooms = verifiedPortlandRooms;
     locality = "Portland";
+  } else if (latitude >= 42.12 && latitude <= 42.42 && longitude >= -123.05 && longitude <= -122.60) {
+    rooms = verifiedSouthernOregonRooms;
+    locality = pointLabel.includes("ashland") ? "Ashland" : "Medford";
+  } else if (latitude >= 40.45 && latitude <= 40.75 && longitude >= -122.55 && longitude <= -122.20) {
+    rooms = verifiedReddingRooms;
+    locality = "Redding";
   } else return [];
   const wanted = genre.toLowerCase();
   const genreTerms = wanted.includes("punk") ? ["punk", "diy"] : wanted.includes("metal") ? ["metal"] : wanted.includes("rock") ? ["rock"] : wanted.includes("dj") || wanted.includes("electronic") ? ["dj", "electronic"] : wanted.includes("hip-hop") ? ["hip-hop"] : [];
