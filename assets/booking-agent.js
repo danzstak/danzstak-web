@@ -1507,7 +1507,7 @@
         recalculate();
       });
       remove.addEventListener("click", async () => {
-        if (!confirm(`Delete gig plan “${tour.name}”?`)) return;
+        if (!(await window.danzstakConfirm(`The saved gig plan “${tour.name}” will be removed from your account.`, { title: "Delete gig plan?", confirmLabel: "Delete plan", danger: true }))) return;
         try {
           await toursRequest("/tours/" + encodeURIComponent(tour.tourId), {
             method: "DELETE",

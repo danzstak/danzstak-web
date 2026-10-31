@@ -977,7 +977,7 @@ function renderWorkspace(name) {
           remove.title = "Delete Tribe";
           remove.setAttribute("aria-label", "Delete Tribe");
           remove.addEventListener("click", async () => {
-            if (!confirm("Delete this Tribe?")) return;
+            if (!(await window.danzstakConfirm("The Tribe and its DanzStak discussion will be permanently removed.", { title: "Delete this Tribe?", confirmLabel: "Delete Tribe", danger: true }))) return;
             remove.disabled = true;
             if (group.cloud) {
               const response = await groupFetch("/groups/" + encodeURIComponent(group.id), { method: "DELETE", credentials: "include" }).catch(() => null);
@@ -2598,20 +2598,20 @@ function addPostDeleteButton(post) {
   option("Delete post", "Permanently remove your post, or hide another member's post from Your Mix.", async () => {
     const postId = post.dataset.postId;
     if (post.dataset.isOwner !== "true") {
-      if (confirm("You did not post this. Do you want to remove it from Your Mix?")) await removePostFromThisFeed();
+      if (await window.danzstakConfirm("You did not create this post. It will only be removed from Your Mix.", { title: "Remove this post from Your Mix?", confirmLabel: "Remove from My Mix", danger: true })) await removePostFromThisFeed();
       return;
     }
     if (!postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
       showAppFeedback("This post is missing its server ID. Refresh the page and try again.", { urgent: true });
       return;
     }
-    if (post.dataset.isOwner === "true" && !confirm("Permanently delete this post and its uploaded media?")) return;
+    if (post.dataset.isOwner === "true" && !(await window.danzstakConfirm("The post and its uploaded media will be permanently deleted.", { title: "Delete this post?", confirmLabel: "Delete post", danger: true }))) return;
     if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
       try {
         const response = await postActionFetch("/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
         if (response.status === 403) {
           post.dataset.isOwner = "false";
-          if (confirm("You did not post this. Do you want to remove it from Your Mix?")) await removePostFromThisFeed();
+          if (await window.danzstakConfirm("You did not create this post. It will only be removed from Your Mix.", { title: "Remove this post from Your Mix?", confirmLabel: "Remove from My Mix", danger: true })) await removePostFromThisFeed();
           return;
         }
         if (!response.ok) throw new Error();
@@ -3053,7 +3053,7 @@ function addCommentDelete(comment) {
   button.setAttribute("aria-label", "Delete comment");
   button.style.marginLeft = "10px";
   button.addEventListener("click", async () => {
-    if (!confirm("Delete this comment?")) return;
+    if (!(await window.danzstakConfirm("This comment will be permanently removed.", { title: "Delete this comment?", confirmLabel: "Delete comment", danger: true }))) return;
     const post = comment.closest(".post"), postId = engagementPostId(post), commentId = comment.dataset.commentId;
     if (postId && commentId) {
       button.disabled = true;

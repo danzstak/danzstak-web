@@ -27,14 +27,14 @@ for (const [file, expected] of [
   ["messages.html", "assets/soft-ui.css?v=425"],
   ["profile.html", "assets/soft-ui.css?v=425"],
   ["feed.html", "assets/feed-enhancements.css?v=467"],
-  ["feed.html", "assets/feed-enhancements.js?v=465"],
+  ["feed.html", "assets/feed-enhancements.js?v=466"],
   ["feed.html", "assets/post-sharing.js?v=416"],
   ["feed.html", "assets/people-search.js?v=416"],
   ["messages.html", "assets/chat.js?v=433"],
   ["messages.html", "assets/chat.css?v=437"],
-  ["messages.html", "assets/direct-messages.js?v=465"],
+  ["messages.html", "assets/direct-messages.js?v=466"],
   ["profile.html", "assets/profile-sharing.js?v=415"],
-  ["profile.html", "assets/profile-editor.js?v=466"],
+  ["profile.html", "assets/profile-editor.js?v=467"],
   ["profile.html", "assets/post-sharing.js?v=416"],
   ["profile.html", "assets/profile.js?v=416"]
 ]) {

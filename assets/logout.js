@@ -11,7 +11,7 @@ document.addEventListener("click", async event => {
     const button = event.target.closest("[data-logout]");
     if (!button) return;
     event.preventDefault();
-    if (!confirm("Log out of your DanzStak account?")) return;
+    if (!(await window.danzstakConfirm("You will need to sign in again on this device.", { title: "Log out of DanzStak?", confirmLabel: "Log out", danger: true }))) return;
     button.disabled = true;
     button.setAttribute("aria-disabled", "true");
     const original = button.textContent;

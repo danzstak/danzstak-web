@@ -887,7 +887,7 @@ messageCamera?.addEventListener("change", () => previewSelectedMessageMedia(mess
 
 deleteChat?.addEventListener("click", async () => {
   const contact = contactInput.value.trim().toLowerCase();
-  if (!contact || !confirm("Delete this chat from your account? The other person will keep their message history.")) return;
+  if (!contact || !(await window.danzstakConfirm("This removes the chat from your account. The other person will keep their message history.", { title: "Delete this chat?", confirmLabel: "Delete chat", danger: true }))) return;
   const version = conversationVersion;
   deleteChat.disabled = true;
   try {

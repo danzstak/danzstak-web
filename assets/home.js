@@ -93,7 +93,7 @@ async function checkSession() {
 }
 
 logoutBtn.addEventListener("click", async () => {
-  if (!confirm("Log out of your DanzStak session?")) return;
+  if (!(await window.danzstakConfirm("You will need to sign in again on this device.", { title: "Log out of DanzStak?", confirmLabel: "Log out", danger: true }))) return;
 
   logoutBtn.disabled = true;
 

@@ -22,7 +22,7 @@
     if (tags.some(tag => tag.isMe)) {
       const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Remove my tag';
       remove.addEventListener('click', async () => {
-        if (!confirm('Remove your tag from this post? The original post will stay in place.')) return;
+        if (!(await window.danzstakConfirm('The original post will stay in place.', { title: 'Remove your tag from this post?', confirmLabel: 'Remove tag', danger: true }))) return;
         remove.disabled = true;
         try { await patch(post.postId,{removeOwnTag:true}); post.taggedUsers = tags.filter(tag => !tag.isMe); window.danzstakRenderMediaTags(article,post); }
         catch (error) { remove.disabled = false; let status = row.querySelector('[role="status"]'); if (!status) { status = document.createElement('span'); status.setAttribute('role','status'); row.appendChild(status); } status.textContent = error.message; }

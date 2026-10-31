@@ -31,4 +31,10 @@ for (const file of ["index.html", "feed.html", "profile.html", "messages.html", 
   assert.match(html, /assets\/app-feedback\.js\?v=2/, `${file} should load the shared feedback behavior`);
 }
 
+for (const file of ["assets/home.js", "assets/logout.js", "assets/direct-messages.js", "assets/media-tags.js", "assets/profile-editor.js", "assets/feed-enhancements.js", "assets/booking-agent.js"]) {
+  const behavior = readFileSync(file, "utf8");
+  assert.doesNotMatch(behavior, /(?:window\.)?confirm\(/, `${file} should not use blocking browser confirmations`);
+  assert.match(behavior, /danzstakConfirm/, `${file} should use the shared accessible confirmation dialog`);
+}
+
 console.log("App feedback checks passed: install and logout guidance use one accessible, nonblocking surface.");

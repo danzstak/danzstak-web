@@ -122,8 +122,8 @@ function addProfileImageButton(label, target, field) {
   input.type = "file";
   input.accept = "image/jpeg,image/png,image/webp";
   input.hidden = true;
-  button.addEventListener("click", () => {
-    if (confirm("Do you certify that you created this image and it contains no third-party copyrighted material?")) input.click();
+  button.addEventListener("click", async () => {
+    if (await window.danzstakConfirm("Confirm that you created this image and it contains no third-party copyrighted material.", { title: "Use this image?", confirmLabel: "Choose image" })) input.click();
   });
   input.addEventListener("change", async () => {
     const file = input.files[0];
@@ -200,7 +200,7 @@ function addRemoveImageButton(label, field, target) {
   button.type = "button";
   button.textContent = label;
   button.addEventListener("click", async () => {
-    if (!confirm(`${label}?`)) return;
+    if (!(await window.danzstakConfirm("This removes the image from your DanzStak profile.", { title: `${label}?`, confirmLabel: label, danger: true }))) return;
     button.disabled = true;
     try { await removeProfileImage(field, target); }
     catch (error) { showProfileFeedback(error.message, { urgent: true }); }
@@ -325,8 +325,8 @@ videoInput.dataset.mediaField = "video";
 videoInput.type = "file";
 videoInput.accept = "video/mp4,video/webm,video/quicktime";
 videoInput.hidden = true;
-videoButton.addEventListener("click", () => {
-  if (confirm("Do you certify that you created this video and that any music in it is your original material? Standalone audio uploads are not allowed.")) videoInput.click();
+videoButton.addEventListener("click", async () => {
+  if (await window.danzstakConfirm("Confirm that you created this video and that any music in it is your original material. Standalone audio uploads are not allowed.", { title: "Use this video?", confirmLabel: "Choose video" })) videoInput.click();
 });
 videoInput.addEventListener("change", async () => {
   const file = videoInput.files[0];
@@ -359,7 +359,7 @@ removeVideoButton.dataset.mediaField = "video";
 removeVideoButton.textContent = "Remove Profile Video";
 removeVideoButton.hidden = true;
 removeVideoButton.addEventListener("click", async () => {
-  if (!confirm("Remove profile video?")) return;
+  if (!(await window.danzstakConfirm("This removes the video from your DanzStak profile.", { title: "Remove profile video?", confirmLabel: "Remove video", danger: true }))) return;
   removeVideoButton.disabled = true;
   try {
     const response = await profileFetch(profileApi + "/profile-video", {
@@ -478,7 +478,7 @@ function profilePostCard(post) {
     remove.className = "secondary profile-wall-remove";
     remove.textContent = "Remove from my profile";
     remove.addEventListener("click", async () => {
-      if (!confirm("Remove this post from your profile?")) return;
+      if (!(await window.danzstakConfirm("The post will no longer appear on your profile.", { title: "Remove this post from your profile?", confirmLabel: "Remove post", danger: true }))) return;
       remove.disabled = true;
       try {
         const response = await profileFetch(profileApi + "/secure-posts/" + encodeURIComponent(post.postId), { method: "DELETE", credentials: "include" });
