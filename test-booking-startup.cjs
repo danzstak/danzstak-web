@@ -13,6 +13,8 @@ assert.match(agent, /tourDate\(tour\) < startOfToday\.getTime\(\)/, "gig plans m
 assert.match(agent, /const routeFieldset = \$\("tourForm"\)\.querySelector\("fieldset"\)/, "route controls must use the planner fieldset after Act and Home move above the form");
 assert.doesNotMatch(agent, /\$\("startCity"\)\.closest\("fieldset"\)/, "startup must not look for a fieldset around the external Home field");
 assert.match(agent, /routeAction\.id = "routeSearchAction"/, "the map must have a stable route-search target");
+assert.match(agent, /savedPanel = document\.createElement\("details"\)/, "saved gigs should stay collapsed until requested");
+assert.match(agent, /bookingBoard\.children\[1\]\.after\(routeResults, savedPanel\)/, "new route results should appear before saved gigs");
 assert.match(map, /document\.getElementById\("routeSearchAction"\)/, "Search this area must invoke the stable route action");
 assert.match(map, /mapElement\.addEventListener\("pointerdown"/, "route drawing must begin from mobile-safe pointer input");
 assert.match(map, /mapElement\.addEventListener\("pointermove"/, "route drawing must follow the user's freehand path");

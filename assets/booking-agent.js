@@ -758,8 +758,8 @@
     routeAction = document.createElement("button"),
     routeStatus = document.createElement("p"),
     routeResults = document.createElement("div"),
-    savedPanel = document.createElement("section"),
-    savedTitle = document.createElement("h3"),
+    savedPanel = document.createElement("details"),
+    savedTitle = document.createElement("summary"),
     tourNameLabel = document.createElement("label"),
     tourName = document.createElement("input"),
     saveTour = document.createElement("button"),
@@ -788,7 +788,7 @@
   savedPanel.className = "saved-tours";
   savedPanel.setAttribute("aria-labelledby", "savedToursTitle");
   savedTitle.id = "savedToursTitle";
-  savedTitle.textContent = "My gigs";
+  savedTitle.textContent = "My upcoming and past gigs";
   tourName.id = "tourName";
   tourName.placeholder = "Name this tour";
   tourName.maxLength = 100;
@@ -809,7 +809,9 @@
   pastList.className = "saved-tour-list";
   pastList.setAttribute("aria-labelledby", pastTitle.id);
   savedPanel.append(savedTitle, tourNameLabel, saveTour, saveStatus, upcomingTitle, upcomingList, pastTitle, pastList);
-  bookingBoard.children[1].after(savedPanel, routeResults);
+  // Put the answer directly below the short request. Saved plans are useful,
+  // but they should never make a band scroll past its new route.
+  bookingBoard.children[1].after(routeResults, savedPanel);
   bookingBoard.hidden = true;
   const daysLabel = $("days").closest("label");
   returnLabel.insertAdjacentElement("afterend", daysLabel);
