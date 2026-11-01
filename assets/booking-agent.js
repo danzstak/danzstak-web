@@ -1059,19 +1059,27 @@
     summary.className = "route-summary";
     summary.append(title, details, status);
     routeResults.append(summary, renderProposedCalendar(data), renderRouteMap(data));
-    const candidateMarkets = (data.candidates || []).filter((market) => market?.stop),
+    const candidateMarkets = (data.candidates || []).filter((market) =>
+        market?.stop &&
+        !/^tour corridor stop\b/i.test(market.stop) &&
+        Array.isArray(market.venues) && market.venues.length > 0
+      ),
       itineraryMarkets = routeItineraryMarkets(data.route, candidateMarkets),
       marketKey = (value) => String(value || "").split(",")[0].trim().toLowerCase(),
       displayedMarkets = itineraryMarkets.map((stop) => {
         const candidate = candidateMarkets.find((market) => marketKey(market.stop) === marketKey(stop));
-        return candidate || {
-          stop,
-          venues: [],
-          hotels: [],
-          vanStops: [],
-          discoveryUnavailable: true,
-        };
-      });
+        return candidate || null;
+      }).filter(Boolean);
+    if (!displayedMarkets.length) {
+      const empty = document.createElement("section"),
+        emptyTitle = document.createElement("h3"),
+        emptyText = document.createElement("p");
+      empty.className = "route-empty";
+      emptyTitle.textContent = "No solid club leads yet";
+      emptyText.textContent = "DanzStak rejected weak and non-music results. Search again to try a different set of real clubs.";
+      empty.append(emptyTitle, emptyText);
+      routeResults.append(empty);
+    }
     for (const market of displayedMarkets) {
       const section = document.createElement("details"),
         heading = document.createElement("summary"),
@@ -1087,9 +1095,10 @@
       vanSummary = document.createElement("summary"),
       vanGrid = document.createElement("div"),
       vanWarning = document.createElement("p");
+      const marketVenues = Array.isArray(market.venues) ? market.venues : [];
       heading.textContent = market.proposedDate
-        ? `${market.proposedDate} — ${market.stop}`
-        : market.stop;
+        ? `${market.proposedDate} · ${market.stop} · ${marketVenues.length} club${marketVenues.length === 1 ? "" : "s"}`
+        : `${market.stop} · ${marketVenues.length} club${marketVenues.length === 1 ? "" : "s"}`;
       confirmation.type = "button";
       confirmation.className = "confirm-date";
       confirmation.textContent = "Mark date confirmed";
@@ -1100,16 +1109,9 @@
           : "Mark date confirmed";
         confirmation.classList.toggle("confirmed", market.confirmed);
       });
-      const marketVenues = Array.isArray(market.venues) ? market.venues : [];
-      venueSummary.textContent = market.discoveryUnavailable
-        ? "Club lookup needs another try"
-        : `Best club leads (${Math.min(6, marketVenues.length)} of ${marketVenues.length})`;
+      venueSummary.textContent = `Club leads (${Math.min(6, marketVenues.length)} shown)`;
       venueStatus.className = "hint";
-      venueStatus.textContent = market.discoveryUnavailable
-        ? "This town stayed on the route, but its live club search was temporarily unavailable. Use Search different clubs to retry without losing the tour."
-        : marketVenues.length
-          ? ""
-          : "No strong live-music lead was returned for this town yet. Try Search different clubs or add a verified public venue.";
+      venueStatus.textContent = "";
       const budgetHotels = (market.hotels || []).slice(0, 2),
         vanStops = (market.vanStops || []).slice(0, 2);
       hotelSummary.textContent = `Budget sleep leads (${budgetHotels.length})`;
@@ -1127,10 +1129,12 @@
       venueDetails.append(venueSummary);
       if (venueStatus.textContent) venueDetails.append(venueStatus);
       venueDetails.append(venueGrid);
-      hotelDetails.append(hotelSummary, hotelGrid);
-      vanDetails.append(vanSummary, vanWarning, vanGrid);
+      if (budgetHotels.length) hotelDetails.append(hotelSummary, hotelGrid);
+      if (vanStops.length) vanDetails.append(vanSummary, vanWarning, vanGrid);
       section.className = "route-market";
-      section.append(heading, confirmation, venueDetails, hotelDetails, vanDetails);
+      section.append(heading, confirmation, venueDetails);
+      if (budgetHotels.length) section.append(hotelDetails);
+      if (vanStops.length) section.append(vanDetails);
       routeResults.append(section);
     }
   }
@@ -1142,12 +1146,14 @@
       list = document.createElement("ol"),
       days = Math.max(1, Number(data.route.requestedDays) || number("days") || 1),
       shows = Math.max(1, Math.min(days, Number(data.route.requestedShows) || number("showCount") || 1)),
-      candidates = (data.candidates || []).filter(market => market.stop),
+      candidates = (data.candidates || []).filter(market =>
+        market.stop && !/^tour corridor stop\b/i.test(market.stop) && Array.isArray(market.venues) && market.venues.length
+      ),
       markets = routeItineraryMarkets(data.route, candidates).map(stop => {
         const city = String(stop).split(",")[0].trim().toLowerCase(),
           candidate = candidates.find(market => String(market.stop).split(",")[0].trim().toLowerCase() === city);
-        return candidate || { stop, venues: [] };
-      });
+        return candidate || null;
+      }).filter(Boolean);
     details.className = "proposed-calendar";
     summary.textContent = `${days}-day target calendar · ${shows} proposed shows`;
     intro.className = "hint";
@@ -1171,7 +1177,7 @@
         const venueCount = Math.min(6, market.venues?.length || 0),
           venue = venueCount ? market.venues[showIndex % venueCount] : null;
         dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · SHOW TARGET`;
-        dayDetail.textContent = `${market.stop}${venue ? ` — ${venue.name}` : " — venue lead needed"} · Arrive 4:00 PM · Soundcheck 5:00 PM`;
+        dayDetail.textContent = `${market.stop} — ${venue.name} · Arrive 4:00 PM · Soundcheck 5:00 PM`;
         showIndex += 1;
       } else {
         const returningHome = day >= performanceDays,
@@ -1188,7 +1194,7 @@
 
   function routeItineraryMarkets(route, candidates = []) {
     const supplied = Array.isArray(route?.itineraryMarkets)
-      ? route.itineraryMarkets.filter(Boolean)
+      ? route.itineraryMarkets.filter(label => label && !/^tour corridor stop\b/i.test(label))
       : [];
     const start = String(route?.start?.label || "").toLowerCase();
     const turnaround = String(route?.turnaround?.label || route?.end?.label || "").toLowerCase();

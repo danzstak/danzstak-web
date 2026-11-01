@@ -13,8 +13,8 @@ assert.match(source, /mapLimit\(discoveryQueries, 3, async query =>/, "each town
 assert.doesNotMatch(source, /Promise\.allSettled\(\[\s*search\("budget hotel motel hostel"\)/, "a town must not launch every place query simultaneously");
 assert.match(source, /discoveryUnavailable: true/, "one failed market should remain visible without cancelling the route");
 assert.doesNotMatch(source, /candidates = await Promise\.all\(selected\.map\(point => tourCandidates/, "tour markets must not launch every venue query simultaneously");
-assert.match(bookingUi, /market\.discoveryUnavailable[\s\S]*Club lookup needs another try/, "a failed town lookup should explain its retryable state");
-assert.match(bookingUi, /This town stayed on the route/, "the UI should make clear that a failed lookup did not remove the market");
+assert.match(bookingUi, /No solid club leads yet/, "the UI should show one honest retry state when no real clubs are found");
+assert.doesNotMatch(bookingUi, /Best club leads \(0 of 0\)/, "empty club accordions must not masquerade as useful results");
 const corridorSource = source.slice(
   source.indexOf("function westCoastTourCorridor("),
   source.indexOf("async function addManualBookingVenue("),
@@ -60,13 +60,16 @@ assert.equal(ordinaryTourMarkets[0], "Seattle, Washington");
 assert.equal(ordinaryTourMarkets.at(-1), "San Francisco, California");
 assert.match(bookingUi, /discoveredPoints = \(data\.candidates \|\| \[\]\)/, "the route overview should use every discovered corridor market");
 assert.match(bookingUi, /stopLine\.textContent = points\.map/, "the route overview should name the intermediate towns in one compact line");
-assert.match(bookingUi, /displayedMarkets = itineraryMarkets\.map/, "result cards should be driven by the full itinerary, not only successful venue lookups");
-assert.match(bookingUi, /candidate \|\| \{[\s\S]*discoveryUnavailable: true/, "missing market lookups should stay visible and retryable");
+assert.match(bookingUi, /displayedMarkets = itineraryMarkets\.map/, "result cards should follow the itinerary");
+assert.match(bookingUi, /Array\.isArray\(market\.venues\) && market\.venues\.length > 0/, "only markets with real club leads should produce result cards");
 assert.match(bookingUi, /function routeItineraryMarkets\(route, candidates = \[\]\)/, "the browser should guard against an older API returning only route endpoints");
 assert.match(bookingUi, /"Medford, Oregon"[\s\S]*"Redding, California"/, "the browser fallback should retain Medford and Redding between Seattle and San Francisco");
 assert.match(bookingUi, /return start\.includes\("seattle"\) \? i5Markets : \[\.\.\.i5Markets\]\.reverse\(\)/, "the browser fallback should follow either requested travel direction");
 assert.match(bookingUi, /section = document\.createElement\("details"\),[\s\S]*heading = document\.createElement\("summary"\)/, "each route town should be a compact expandable result instead of a long open panel");
 assert.doesNotMatch(bookingUi, /details\.open = true/, "the day-by-day calendar should not force a long result page open");
+assert.doesNotMatch(source, /fallbackLabel: `Tour corridor stop/, "reverse-geocode failures must not become fake corridor stops");
+assert.match(source, /real estate\|realtor\|property management/, "non-music businesses must be excluded from club discovery");
+assert.match(source, /place\.Address\?\.Locality \|\| place\.Address\?\.District/, "route market names must come from address localities, not nearby business titles");
 
 const discoverySource = source.slice(
   source.indexOf("async function discoverRouteMarkets("),

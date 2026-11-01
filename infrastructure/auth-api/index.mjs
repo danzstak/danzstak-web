@@ -1964,7 +1964,7 @@ function isBookableClub(place, genre = "") {
   const classicalSearch = selectedGenre.includes("orchestra") || selectedGenre.includes("classical");
   const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|pavillon|kurpavillon|stadthalle|konzertmuschel|band shell|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
   const nonClassicalInstitution = /\b(symphony|orchestra|opera house)\b/;
-  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music academy|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|workshop|clinic|training(?: and development)?|promoter|promotion|productions?|entertainment company|entertainment and recreation|event consultant|entertainment consultant|event planner|event services?|event cent(?:er|re)|event space|mobile dj|dj services?|dj['’]?s? and event services?|party band|consumer services|photography|swimming pool|veterans? (?:memorial )?hall|fraternal order|performance hall|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|specialty store|music store|record store|instrument store|downtown association|business district|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office)\b/;
+  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music academy|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|workshop|clinic|training(?: and development)?|promoter|promotion|productions?|entertainment company|entertainment and recreation|event consultant|entertainment consultant|event planner|event services?|event cent(?:er|re)|event space|mobile dj|dj services?|dj['’]?s? and event services?|party band|consumer services|photography|swimming pool|veterans? (?:memorial )?hall|fraternal order|performance hall|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|specialty store|music store|record store|instrument store|downtown association|business district|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office|real estate|realtor|property management|mortgage|insurance|financial services?|law firm|attorney|accountant|medical|dental|auto repair|car dealer)\b/;
   const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival|festspiele|festival office|jazzfest|walking tour|history tour|guided tour|tourist information|tourismus|ostseebad)\b/;
   const wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
   const strongVenue = /\b(live music|live entertainment[- ]?music|music venue|rock club|punk club|metal club|night ?club|concert venue|concert hall)\b/.test(description);
@@ -2172,10 +2172,14 @@ async function reverseGeocodeTourMarket(position) {
     }));
     const place = result.ResultItems?.[0];
     if (!place) return null;
-    const locality = place.Address?.Locality || place.Title;
+    // A reverse-geocode result title can be a nearby business (for example a
+    // real-estate office). A tour market must come from an address locality,
+    // never from the result title.
+    const locality = place.Address?.Locality || place.Address?.District || place.Address?.SubRegion?.Name || "";
     const region = place.Address?.Region?.Code || place.Address?.Region?.Name || "";
     const country = place.Address?.Country?.Name || "";
     const label = [locality, region, country].filter(Boolean).join(", ");
+    if (!locality || /\b(real estate|realtor|property|office|hotel|restaurant|store)\b/i.test(locality)) return null;
     return label ? { label: label.slice(0, 160), position: position.slice(0, 2) } : null;
   } catch (error) {
     console.error("Route market reverse geocode unavailable:", error.name);
@@ -2191,17 +2195,17 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays, reques
   const sampleDescriptors = line.length >= 3
     ? Array.from({ length: desired }, (_, index) => {
         const pointIndex = Math.round(((index + 1) * (line.length - 1)) / (desired + 1));
-        return { position: line[pointIndex].slice(0, 2), fallbackLabel: `Tour corridor stop ${index + 1}` };
+        return { position: line[pointIndex].slice(0, 2) };
       })
     : allRoutePoints.slice(0, -1).flatMap((start, index) => {
         const end = allRoutePoints[index + 1];
         return [{
           position: [(start.position[0] + end.position[0]) / 2, (start.position[1] + end.position[1]) / 2],
-          fallbackLabel: `On the road: ${start.label.split(",")[0]} → ${end.label.split(",")[0]}`
+          fallbackLabel: ""
         }];
       }).slice(0, desired);
   const sampled = (await Promise.all(sampleDescriptors.map(item => reverseGeocodeTourMarket(item.position))))
-    .map((market, index) => ({ ...(market || { label: sampleDescriptors[index].fallbackLabel, position: sampleDescriptors[index].position }), fallbackLabel: sampleDescriptors[index].fallbackLabel }));
+    .filter(Boolean);
   const nearestLineIndex = position => line.reduce((best, point, index) => {
     const distance = approximateMilesBetween(position, point);
     return distance < best.distance ? { index, distance } : best;
@@ -2213,7 +2217,6 @@ async function discoverRouteMarkets(route, allRoutePoints, requestedDays, reques
     const locality = market.label.split(",")[0].trim().toLowerCase();
     if (!locality) continue;
     if (unique.some(item => item.label.split(",")[0].trim().toLowerCase() === locality)) {
-      if (!market.label.startsWith("On the road:")) unique.push({ label: market.fallbackLabel || `On the road: stop ${unique.length + 1}`, position: market.position });
       continue;
     }
     unique.push(market);
