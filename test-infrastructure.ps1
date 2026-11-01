@@ -12,7 +12,7 @@ foreach ($releaseStep in @('DANZSTAK-Engagement', 'aws-deploy-auth-api.ps1', '$E
 foreach ($reelPersistence in @('reel: item.reel?.BOOL === true', 'const reel = mediaType === "video" && data.reel === true', 'reel: { BOOL: true }')) {
   if (-not $authApi.Contains($reelPersistence)) { throw "Auth API does not persist uploaded-video Reel selection: $reelPersistence" }
 }
-foreach ($groupPersistence in @('async function listGroups(event)', 'async function createGroup(event)', 'async function deleteGroup(event)', 'data.communityStandards !== true', 'Only the group owner can delete it', 'groupId: { S: id }, joinedAt: { S: createdAt }')) {
+foreach ($groupPersistence in @('async function listGroups(event)', 'async function createGroup(event)', 'async function deleteGroup(event)', 'data.communityStandards !== true', 'Only the Tribe founder can delete it', 'groupId: { S: id }, joinedAt: { S: createdAt }')) {
   if (-not $authApi.Contains($groupPersistence)) { throw "Auth API durable group control is missing: $groupPersistence" }
 }
 foreach ($groupAuthorizationControl in @('const defaultGroupIds = new Set(', 'async function groupExists(groupId)', 'Key: { userEmail: { S: `GROUP#${groupId}` }, groupId: { S: "META" } }', 'for (const groupId of sharedGroups) if (await groupExists(groupId)) return true')) {

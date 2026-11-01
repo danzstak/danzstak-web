@@ -879,8 +879,8 @@ async function createGroup(event) {
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   let data; try { data = JSON.parse(event.body || "{}"); } catch { return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON." }) }; }
-  const name = String(data.name || "").trim(), category = String(data.category || "").trim(), description = String(data.description || "A new DanzStak community group.").trim();
-  if (!name || name.length > 80 || !groupCategories.has(category) || description.length > 240 || data.communityStandards !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid group details and Community Standards agreement are required." }) };
+  const name = String(data.name || "").trim(), category = String(data.category || "").trim(), description = String(data.description || "A new DanzStak Tribe.").trim();
+  if (!name || name.length > 80 || !groupCategories.has(category) || description.length > 240 || data.communityStandards !== true) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid Tribe details and Community Standards agreement are required." }) };
   const ownerEmail = await accountForSub(userId);
   if (!ownerEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
   const id = randomUUID(), createdAt = new Date().toISOString();
@@ -959,11 +959,11 @@ async function deleteGroup(event) {
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
   const userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
-  if (!/^[a-f0-9-]{36}$/.test(id)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid group required." }) };
+  if (!/^[a-f0-9-]{36}$/.test(id)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid Tribe required." }) };
   const key = { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } };
   const found = await db.send(new GetItemCommand({ TableName: groupsTable, Key: key, ConsistentRead: true }));
-  if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Group not found." }) };
-  if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the group owner can delete it." }) };
+  if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
+  if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the Tribe founder can delete it." }) };
   const members = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId" });
   await Promise.all([db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key })), ...members.map(item => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })))]);
   if (found.Item.coverKey?.S) {
@@ -1027,7 +1027,7 @@ async function getProfileVideo(event) {
   if (memberId && !/^[a-f0-9-]{36}$/.test(memberId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid member required." }) };
   const profileEmail = memberId ? await accountForSub(memberId) : String(event.queryStringParameters?.email || viewerEmail).trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileEmail)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid profile required." }) };
-  if (!(await canViewProfileMedia(viewerEmail, profileEmail))) return { statusCode: 403, headers, body: JSON.stringify({ error: "Profile media is available to friends and group members." }) };
+  if (!(await canViewProfileMedia(viewerEmail, profileEmail))) return { statusCode: 403, headers, body: JSON.stringify({ error: "Profile media is available to friends and members of the same Tribe." }) };
   const found = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: profileEmail } }, ConsistentRead: true }));
   const mediaKey = found.Item?.profileVideoKey?.S || "";
   return { statusCode: 200, headers, body: JSON.stringify({ mediaKey, mediaUrl: signedMediaUrl(mediaKey, 3600) }) };
@@ -1432,8 +1432,8 @@ async function reportPost(event) {
   const groupReport = data?.targetType === "group", groupId = String(data?.groupId || "");
   let reportedUserId = "unknown";
   if (groupReport) {
-    if (!details) return { statusCode: 400, headers, body: JSON.stringify({ error: "Describe the group concern." }) };
-    if (!(await groupExists(groupId))) return { statusCode: 404, headers, body: JSON.stringify({ error: "Group not found." }) };
+    if (!details) return { statusCode: 400, headers, body: JSON.stringify({ error: "Describe the Tribe concern." }) };
+    if (!(await groupExists(groupId))) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
   } else {
     const access = await postForEngagement(postId, userId);
     if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };

@@ -11,6 +11,7 @@ const directMessages = fs.readFileSync("assets/direct-messages.js", "utf8");
 const calls = fs.readFileSync("assets/chat.js", "utf8");
 const sharing = fs.readFileSync("assets/post-sharing.js", "utf8");
 const peopleSearch = fs.readFileSync("assets/people-search.js", "utf8");
+const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 
 assert.match(feed, /<span>Flashes<\/span>/, "composer should use Flashes");
 assert.doesNotMatch(feed, /<span>Story<\/span>/, "composer should not expose the old Story label");
@@ -26,10 +27,12 @@ for (const [name, content] of Object.entries({ sharing, peopleSearch, enhancemen
 }
 assert.match(sharing, /Share to Your Mix/, "sharing should use the Your Mix destination");
 assert.match(enhancements, /top of Your Mix/, "pinning should use Your Mix terminology");
-for (const [name, content] of Object.entries({ feed, messages, profile, profileSharing, directMessages, calls })) {
+for (const [name, content] of Object.entries({ feed, messages, profile, profileSharing, directMessages, calls, authApi })) {
   assert.doesNotMatch(content, /Group Message|group members|group member|same group|shared-group/i,
     `${name} should present Tribe terminology to members`);
 }
+assert.doesNotMatch(authApi, /"(?:Valid group|required group|Group not found|Only the group owner|Describe the group concern|community group)/i,
+  "API feedback must use DanzStak Tribe language while retaining group-compatible storage and routes");
 
 // Compatibility contract: branding must not rename established API/storage hooks.
 assert.match(feed, /id="shareToStory"/, "story compatibility hook must remain");
