@@ -1167,9 +1167,10 @@
       vanWarning = document.createElement("p");
       const marketVenues = Array.isArray(market.venues) ? market.venues : [];
       const recommendedRoom = marketVenues[0]?.name || "Club research needed";
-      heading.textContent = market.proposedDate
-        ? `${market.proposedDate} · ${market.stop} — ${recommendedRoom}`
-        : `${market.stop} — ${recommendedRoom}`;
+      // Dates live in the calendar above. A market can appear on both legs of
+      // a round trip, so attaching one date to its reusable contact drawer is
+      // misleading and can disagree with the actual show-night schedule.
+      heading.textContent = `${market.stop} — ${recommendedRoom}`;
       section.open = false;
       confirmation.type = "button";
       confirmation.className = "confirm-date";
@@ -1257,10 +1258,10 @@
         dayDetail.textContent = `${market.stop} — ${venue.name} · Arrive 4:00 PM · Soundcheck 5:00 PM`;
         showIndex += 1;
       } else {
-        const returningHome = showIndex >= Math.ceil(shows * 0.6),
+        const returningHome = showIndex >= shows,
           label = returningHome ? `Return toward ${data.route.start?.label || "home"}` : market?.stop || data.route.start?.label;
         dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · TRAVEL / REST`;
-        dayDetail.textContent = `${label || "Route day"} — ${returningHome ? "safe return drive; everyone and the vehicle finish at home." : shouldShow ? "No additional club lead for this date; booking research needed." : "drive, load-in buffer, laundry or sleep."}`;
+        dayDetail.textContent = `${label || "Route day"} — ${returningHome ? "safe return drive; everyone and the vehicle finish at home." : shouldShow ? "No additional club lead for this date; booking research needed." : "drive toward the next show, load-in buffer, laundry or sleep."}`;
       }
       item.append(dayHeading, dayDetail);
       list.append(item);

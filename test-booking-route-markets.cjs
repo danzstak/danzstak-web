@@ -77,6 +77,8 @@ assert.match(bookingUi, /return start\.includes\("seattle"\) \? i5Markets : \[\.
 assert.match(bookingUi, /section = document\.createElement\("details"\),[\s\S]*heading = document\.createElement\("summary"\)/, "each route town should be a compact expandable result instead of a long open panel");
 assert.match(bookingUi, /recommendedRoom = marketVenues\[0\]\?\.name/, "a collapsed tour stop should name its recommended room instead of showing only a city and count");
 assert.match(bookingUi, /section\.open = false/, "tour stops should start collapsed on phones");
+assert.match(bookingUi, /returningHome = showIndex >= shows/, "a rest day must not claim the band is returning home while later shows remain");
+assert.match(bookingUi, /drive toward the next show, load-in buffer, laundry or sleep/, "mid-tour rest days should point toward the next show");
 assert.doesNotMatch(bookingUi, /details\.open = true/, "the day-by-day calendar should not force a long result page open");
 assert.doesNotMatch(source, /fallbackLabel: `Tour corridor stop/, "reverse-geocode failures must not become fake corridor stops");
 assert.match(source, /const verifiedTacomaRooms = \[/, "the I-5 directory must include reviewed Tacoma rooms");
