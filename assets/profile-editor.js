@@ -813,7 +813,12 @@ function applyLoadedProfile(profile = {}) {
     if (new URLSearchParams(location.search).get("edit") === "privacy" && panel.dataset.routeOpened !== "true") {
       panel.dataset.routeOpened = "true";
       editButton.click();
-      requestAnimationFrame(() => panel.elements.profilePostPermission.focus({ preventScroll: true }));
+      requestAnimationFrame(() => {
+        const privacyControl = panel.elements.profilePostPermission;
+        const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+        privacyControl.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+        privacyControl.focus({ preventScroll: true });
+      });
     }
   }
   applyProfile(profile.cloudProfile ? profile : savedProfile());
