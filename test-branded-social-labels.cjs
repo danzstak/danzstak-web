@@ -31,8 +31,9 @@ for (const [name, content] of Object.entries({ feed, messages, profile, profileS
   assert.doesNotMatch(content, /Group Message|group members|group member|same group|shared-group/i,
     `${name} should present Tribe terminology to members`);
 }
-assert.doesNotMatch(authApi, /"(?:Valid group|required group|Group not found|Only the group owner|Describe the group concern|community group)/i,
+assert.doesNotMatch(authApi, /"(?:Valid group|required group|Group not found|Only the group owner|Describe the group concern)/i,
   "API feedback must use DanzStak Tribe language while retaining group-compatible storage and routes");
+assert.match(authApi, /storedDescription === "A new DanzStak community group\." \? "A new DanzStak Tribe\."/, "legacy default descriptions should be branded at read time without rewriting custom Tribe descriptions");
 
 // Compatibility contract: branding must not rename established API/storage hooks.
 assert.match(feed, /id="shareToStory"/, "story compatibility hook must remain");
