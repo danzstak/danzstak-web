@@ -2015,19 +2015,34 @@ function isVenueTypeMatch(place, venueType = "any") {
 }
 
 function isRecordStore(place) {
-  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
-  const recordSignal = /\b(record store|record shop|vinyl records?|vinyl shop|music store)\b/.test(description);
-  const wrongBusiness = /\b(real estate|realtor|restaurant|hotel|rehearsal|studio|instrument|guitar|piano|electronics|bookstore|video game|thrift|furniture|office)\b/.test(description);
-  return recordSignal && !wrongBusiness;
+  const name = String(place.name || "").toLowerCase();
+  const description = `${name} ${(place.categories || []).join(" ")}`.toLowerCase();
+  const strongNameSignal = /\b(records|record shop|record store|vinyl|turntable|music millennium|music millenium)\b/.test(name);
+  const recordCategorySignal = /\brecord,? cd (?:&|and) video\b/.test(description);
+  const descriptiveSignal = /\b(record store|record shop|vinyl records?|vinyl shop|used records?|new records?)\b/.test(description);
+  // AWS groups some real record shops with books or consumer electronics. Those
+  // secondary categories must not disqualify a shop with a record-specific name.
+  const clearlyWrongName = /\b(dental|dentist|real estate|realtor|video transfer|video production|audio visual|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio)\b/.test(name);
+  const genericWrongBusiness = /\b(real estate|realtor|restaurant|hotel|rehearsal|office|medical|dental|furniture)\b/.test(description);
+  return !clearlyWrongName
+    && (strongNameSignal || descriptiveSignal || recordCategorySignal)
+    && (strongNameSignal || !genericWrongBusiness);
 }
 
 async function recordStoreCandidates(point, maximumMiles = 45) {
-  const queries = ["record store vinyl shop", "independent record shop", "vinyl records music store"];
+  const queries = [
+    "record store",
+    "vinyl record shop",
+    "independent record store",
+    "used records vinyl",
+    "new and used record shop",
+    "music store vinyl records"
+  ];
   const batches = await mapLimit(queries, 2, async query => {
     const result = await geoPlaces.send(new SearchTextCommand({
       QueryText: query,
       BiasPosition: point.position,
-      MaxResults: 30,
+      MaxResults: 50,
       AdditionalFeatures: ["Contact"]
     }));
     return (result.ResultItems || []).map(publicPlace);
@@ -2036,15 +2051,12 @@ async function recordStoreCandidates(point, maximumMiles = 45) {
     .filter(isRecordStore)
     .filter(place => approximateMilesBetween(point.position, place.position) <= maximumMiles)
     .sort((left, right) => approximateMilesBetween(point.position, left.position) - approximateMilesBetween(point.position, right.position))
-    .slice(0, 12)
+    .slice(0, 30)
     .map(place => ({
       ...place,
       sourceName: "Current public place listing",
-      sources: [
-        { name: "Current public place listing", url: place.websites?.[0] || "" },
-        { name: "Explore more on recordstores.love", url: "https://recordstores.love/" }
-      ],
-      activityEvidence: "A current public record-store listing was returned. Check the store website or recordstores.love before visiting."
+      sources: [{ name: "Current public place listing", url: place.websites?.[0] || "" }],
+      activityEvidence: "A current public record-store listing was returned. Check the store website before visiting."
     }));
 }
 
@@ -2060,7 +2072,7 @@ async function searchRecordStores(event) {
   try {
     const point = await geocodeTourPlace(location);
     const stores = await recordStoreCandidates(point, 60);
-    return reply(200, { location: point, stores, directoryUrl: "https://recordstores.love/" });
+    return reply(200, { location: point, stores });
   } catch (error) {
     if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });
     console.error("Record store search failed", { name: error.name });

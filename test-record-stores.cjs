@@ -2,11 +2,15 @@
 const assert = require("node:assert/strict"), fs = require("node:fs");
 const api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), page = fs.readFileSync("record-stores.html", "utf8"), client = fs.readFileSync("assets/record-stores.js", "utf8"), booking = fs.readFileSync("assets/booking-agent.js", "utf8"), feed = fs.readFileSync("feed.html", "utf8"), deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8");
 assert.match(feed, /record-stores\.html[\s\S]*💿[\s\S]*Record Stores/, "the left menu should expose Record Stores with a record icon");
-assert.match(page, /recordstores\.love/, "the standalone search should attribute Record Stores Love");
+assert.doesNotMatch(page, /recordstores\.love/i, "an example directory should not be presented as DanzStak branding or a required partner");
 assert.match(client, /\/record-stores\/search/, "the standalone search should use the protected store API");
 assert.match(client, /credentials:"include"/, "record-store searches should use opaque authenticated sessions");
 assert.match(api, /function isRecordStore\(/, "the API should validate record-store business types");
 assert.match(api, /record store\|record shop\|vinyl records/, "store discovery should require record or vinyl evidence");
+assert.match(api, /used records vinyl/, "store discovery should use several queries so independent shops are not missed");
+assert.match(api, /record,\? cd/, "AWS's Record, CD & Video category should be recognized");
+assert.match(api, /strongNameSignal \|\| !genericWrongBusiness/, "a real record shop should not be rejected merely because it also sells books or electronics");
+assert.match(api, /slice\(0, 30\)/, "dense music cities should retain a useful number of store results");
 assert.match(api, /recordStores = await Promise\.all|reviewedDirectory, recordStores/, "tour markets should collect record stores with venue leads");
 assert.match(api, /POST["'] && path === "\/record-stores\/search"/, "the API should route standalone searches");
 assert.match(deploy, /POST \/record-stores\/search/, "deployment should provision the record-store route");

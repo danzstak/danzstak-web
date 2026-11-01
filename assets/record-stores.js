@@ -9,7 +9,6 @@
       card.className = "store-card"; links.className = "store-links"; title.textContent = store.name || "Record store"; address.textContent = store.address || store.locality || "Address unavailable"; evidence.textContent = store.activityEvidence || "Confirm current hours before visiting.";
       (store.websites || []).filter(url => /^https:\/\//.test(url)).slice(0,1).forEach(url => links.append(safeLink("Website", url)));
       if (Array.isArray(store.position) && store.position.length === 2) links.append(safeLink("Map", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${store.position[1]},${store.position[0]}`)}`));
-      links.append(safeLink("Record Stores Love", "https://recordstores.love/"));
       card.append(title, address, evidence, links); results.append(card);
     });
   }
@@ -20,7 +19,7 @@
     try {
       const response = await fetch("https://api.danzstak.com/record-stores/search", { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({location}), signal:controller.signal });
       const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Search failed.");
-      render(data.stores || []); status.textContent = data.stores?.length ? `${data.stores.length} record store${data.stores.length === 1 ? "" : "s"} near ${data.location?.label || location}.` : `No solid record-store listings found near ${location}. Try a nearby city or Record Stores Love.`;
+      render(data.stores || []); status.textContent = data.stores?.length ? `${data.stores.length} record store${data.stores.length === 1 ? "" : "s"} near ${data.location?.label || location}.` : `No solid record-store listings found near ${location}. Try a nearby city.`;
     } catch (error) { status.textContent = error.name === "AbortError" ? "The search took too long. Try again." : error.message; }
     finally { clearTimeout(timer); }
   });
