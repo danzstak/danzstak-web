@@ -56,6 +56,10 @@
       const plainAct = text.match(/^\s*(?:plan\s+(?:a\s+)?(?:tour\s+)?for\s+)?([^.!?]+)[.!?]\s*/i);
       if (plainAct && !/^(?:plan|tour|trip|run|punk|rock|metal|jazz|dj)\b/i.test(plainAct[1].trim())) parsed.act = tidyPlace(plainAct[1]);
     }
+    if (!parsed.act) {
+      const commaAct = text.match(/^\s*([^,.!?]+)\s*,\s*(?=(?:(?:diy\s+)?punk|hardcore|metal|rock|jazz|dj|electronic|techno|house)\b)/i);
+      if (commaAct && !/^(?:plan|tour|trip|run)\b/i.test(commaAct[1].trim())) parsed.act = tidyPlace(commaAct[1]);
+    }
     const chainedRoute = text.match(/\bfrom\s+(.+?)\s+to\s+(.+?)\s+and\s+(?:then\s+)?(?:up|down|over|on|to)?\s*(.+?)\s+and\s+back(?:\s+to\s+.+?)?(?=\s+(?:for\s+\d+\s*(?:-| )?days?|and\s+(?:do|play|book)?\s*\d+\s*(?:shows?|gigs?|dates?))\b|[.!?]|$)/i);
     if (chainedRoute) {
       parsed.home = tidyPlace(chainedRoute[1]);
@@ -65,7 +69,7 @@
     }
     const routeText = text.replace(/^tour\s+(?!from\b)/i, "from "),
       route = !chainedRoute && routeText.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:and\s+back|then\s+back|and\s+home|return(?:ing)?\s+home|(?:for|in)\s+\d+\s*(?:-| )?days?|starting\s+\d{4}-\d{2}-\d{2})\b|$)/i),
-      bareRoute = !chainedRoute && !route && routeText.match(/(?:^|[.!?]\s*)([a-z][a-z '-]{1,80}?)\s+to\s+([a-z][a-z '-]{1,80}?)(?=\s+and\s+back(?:\s+to\s+[a-z][a-z '-]{1,80}?)?(?:[.!?]|\s+|$))/i);
+      bareRoute = !chainedRoute && !route && routeText.match(/(?:^|[,.!?]\s*)([a-z][a-z '-]{1,80}?)\s+to\s+([a-z][a-z '-]{1,80}?)(?=\s+and\s+back(?:\s+to\s+[a-z][a-z '-]{1,80}?)?(?:[,;.!?]|\s+|$))/i);
     const parsedRoute = route || bareRoute;
     if (parsedRoute) { parsed.home = tidyPlace(parsedRoute[1]); parsed.destination = tidyPlace(parsedRoute[2]); parsed.mode = "tour"; }
     else if (!chainedRoute && !bareRoute) {
