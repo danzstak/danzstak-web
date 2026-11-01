@@ -104,3 +104,4 @@ body.is-conversation-open>.install-app-button,body.is-conversation-open>.app-upd
 }
 
 .message-loading-state{padding:28px 12px}.message-load-error{display:grid;justify-items:center;gap:10px;padding:24px 12px}.message-load-error .system-message{margin:0}.message-load-retry{min-height:36px;padding:7px 12px;border:1px solid #c8d0dc;border-radius:10px;background:#edf1f6;color:#172033;font-weight:750;cursor:pointer}.message-load-retry:hover,.message-load-retry:focus-visible{background:#dfe8f4;outline:2px solid #1769e0;outline-offset:2px}.dark-mode .message-load-retry{border-color:#526074;background:#253247;color:#f5f7fb}
+.conversation-status{min-height:0;margin:0;padding:6px 14px;border-bottom:1px solid #e7eaf0;background:#f8f9fb;color:#526173;font-size:12px;line-height:1.35}.embedded-messages.is-conversation-open #callStatus{display:block}.dark-mode .conversation-status{border-color:#3b4658;background:#253044;color:#c7d0dd}
