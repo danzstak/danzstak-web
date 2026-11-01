@@ -961,6 +961,30 @@
     if (count === 1) return [markets.at(-1)];
     return Array.from({ length: count }, (_, index) => markets[Math.round(index * (markets.length - 1) / (count - 1))]);
   }
+  function strongestRouteMarkets(markets, count) {
+    if (!count || !markets.length) return [];
+    if (markets.length <= count || count < 3) return evenlySampleMarkets(markets, count);
+    const anchorStrength = new Map([
+      ["tacoma", 88], ["olympia", 78], ["portland", 100], ["salem", 82],
+      ["eugene", 96], ["medford", 92], ["redding", 90], ["sacramento", 98],
+      ["san francisco", 100], ["los angeles", 100],
+    ]);
+    const interior = markets.slice(1, -1), slots = count - 2, selected = [];
+    for (let slot = 0; slot < slots; slot += 1) {
+      const start = Math.floor((slot * interior.length) / slots),
+        end = Math.max(start + 1, Math.floor(((slot + 1) * interior.length) / slots)),
+        segment = interior.slice(start, end);
+      const best = segment.reduce((winner, market) => {
+        const locality = String(market.stop || "").split(",")[0].trim().toLowerCase(),
+          score = Number(anchorStrength.get(locality) || 0) + Math.min(12, (market.venues || []).length) * 4,
+          winnerLocality = String(winner.stop || "").split(",")[0].trim().toLowerCase(),
+          winnerScore = Number(anchorStrength.get(winnerLocality) || 0) + Math.min(12, (winner.venues || []).length) * 4;
+        return score > winnerScore ? market : winner;
+      }, segment[0]);
+      if (best) selected.push(best);
+    }
+    return [markets[0], ...selected, markets.at(-1)];
+  }
   function targetTourMarkets(data) {
     const markets = orderedCandidateMarkets(data),
       days = Math.max(1, Number(data.route.requestedDays) || number("days") || 1),
@@ -969,11 +993,13 @@
     if (data.route.local || markets.length < 2) return markets.slice(0, shows);
     const outwardCount = Math.min(markets.length, Math.max(2, Math.ceil((shows + 1) * 0.6))),
       returnCount = Math.max(0, shows - outwardCount),
-      outward = evenlySampleMarkets(markets, outwardCount),
+      outward = strongestRouteMarkets(markets, outwardCount),
       returnPool = markets.slice(0, -1).reverse(),
-      repeatableReturnMarkets = returnPool.filter(market => (market.venues || []).length > 1),
+      outwardKeys = new Set(outward.map(market => String(market.stop || "").split(",")[0].trim().toLowerCase())),
+      freshReturnMarkets = returnPool.filter(market => !outwardKeys.has(String(market.stop || "").split(",")[0].trim().toLowerCase())),
+      repeatableReturnMarkets = freshReturnMarkets.filter(market => (market.venues || []).length > 1),
       returning = evenlySampleMarkets(
-        repeatableReturnMarkets.length >= returnCount ? repeatableReturnMarkets : returnPool,
+        repeatableReturnMarkets.length >= returnCount ? repeatableReturnMarkets : freshReturnMarkets.length >= returnCount ? freshReturnMarkets : returnPool,
         returnCount,
       );
     return [...outward, ...returning];
