@@ -126,6 +126,25 @@ const curatedContext = vm.createContext({
 });
 vm.runInContext(api.slice(curatedStart, curatedEnd), curatedContext);
 const curatedVenueLeads = vm.runInContext("curatedVenueLeads", curatedContext);
+const suitabilitySource = api.slice(api.indexOf("function venueSuitability("), api.indexOf("function isVenueTypeMatch("));
+const suitabilityContext = vm.createContext({});
+vm.runInContext(suitabilitySource, suitabilityContext);
+const verifiedDiyScore = suitabilityContext.venueSuitability({
+  name: "The Vera Project",
+  categories: ["Nonprofit All Ages Venue", "DIY", "Punk", "Rock"],
+  verifiedRoom: true,
+  websites: ["https://theveraproject.org/booking-info/"],
+  emails: ["booking@theveraproject.org"],
+  phones: []
+}, "DIY punk");
+const genericMajorVenueScore = suitabilityContext.venueSuitability({
+  name: "The Showbox",
+  categories: ["Live Entertainment-Music", "Bar or Pub", "Night Club"],
+  websites: ["https://showboxpresents.com"],
+  emails: ["questions@showboxonline.com"],
+  phones: []
+}, "DIY punk");
+assert.ok(verifiedDiyScore > genericMajorVenueScore, "a reviewed DIY room with an official booking path must rank above a generic major-venue map result");
 const dunsmuirLeads = curatedVenueLeads({ label: "Dunsmuir, CA, United States", position: [-122.2719, 41.2120] }, "DIY punk", 0);
 assert.deepEqual(Array.from(dunsmuirLeads, place => place.name), ["Dunsmuir Brewery Works", "Jubilee Railroad Dining Car"], "Dunsmuir route points must resolve to current local rooms rather than remain empty");
 assert.equal(dunsmuirLeads.every(place => place.locality === "Dunsmuir" && place.contactVerificationRequired === true), true, "small-market leads must keep locality and confirmation warnings");
