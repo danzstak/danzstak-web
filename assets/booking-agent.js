@@ -971,7 +971,11 @@
       returnCount = Math.max(0, shows - outwardCount),
       outward = evenlySampleMarkets(markets, outwardCount),
       returnPool = markets.slice(0, -1).reverse(),
-      returning = evenlySampleMarkets(returnPool, returnCount);
+      repeatableReturnMarkets = returnPool.filter(market => (market.venues || []).length > 1),
+      returning = evenlySampleMarkets(
+        repeatableReturnMarkets.length >= returnCount ? repeatableReturnMarkets : returnPool,
+        returnCount,
+      );
     return [...outward, ...returning];
   }
   function renderRouteMap(data) {

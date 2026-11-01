@@ -60,6 +60,7 @@ assert.equal(ordinaryTourMarkets[0], "Seattle, Washington");
 assert.equal(ordinaryTourMarkets.at(-1), "San Francisco, California");
 assert.match(bookingUi, /function targetTourMarkets\(data\)/, "the route overview should turn the discovery pool into a compact bookable run");
 assert.match(bookingUi, /returnPool = markets\.slice\(0, -1\)\.reverse\(\)/, "the proposed run should use real markets on the drive back home");
+assert.match(bookingUi, /repeatableReturnMarkets = returnPool\.filter\(market => \(market\.venues \|\| \[\]\)\.length > 1\)/, "a return leg should prefer markets with another real venue instead of repeating an exhausted one-lead city");
 assert.match(bookingUi, /targetPoints = targetTourMarkets\(data\)/, "the route map should show the proposed outbound-and-return run instead of every discovery town");
 assert.match(bookingUi, /stopLine\.textContent = points\.map/, "the route overview should name the intermediate towns in one compact line");
 assert.match(bookingUi, /displayedMarkets = targetMarkets\.filter/, "result cards should be limited to the proposed target markets");
