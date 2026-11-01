@@ -2371,32 +2371,26 @@ function westCoastTourCorridor(points) {
   ];
 }
 
-function sampleTourCorridorMarkets(corridor, requestedDays = 1, requestedShows = 1) {
+function sampleTourCorridorMarkets(corridor, requestedDays = 1, requestedShows = 1, variation = 0) {
   if (!Array.isArray(corridor) || !corridor.length) return [];
-  // A route search is a booking-lead search, not the final performance
-  // calendar. Keep every known market on curated corridors so a band can
-  // choose Tacoma, Medford, Redding, or a smaller road town even when it only
-  // wants a handful of shows. The calendar below still limits actual show
-  // nights to requestedShows.
-  if (corridor.length <= 30) return [...corridor];
-  const limit = Math.min(corridor.length, Math.max(12, requestedShows, Math.ceil(requestedDays / 2)));
+  // Do not fan one request out into hundreds of live place lookups. That made
+  // AWS throttle the middle of a tour and left the user with only endpoints.
+  // Search the strongest road markets plus a rotating sample of smaller towns;
+  // the complete named corridor remains in route.itineraryMarkets.
+  const limit = Math.min(corridor.length, Math.max(8, Math.min(12, requestedShows + 2, Math.ceil(requestedDays / 2) + 5)));
   if (corridor.length <= limit) return [...corridor];
 
-  // Do not let even-distance sampling skip the markets touring bands actually
-  // use as anchors. The remaining slots are filled across the whole drive so
-  // smaller towns still appear instead of reducing a tour to its endpoints.
-  const anchorPattern = /^(seattle|tacoma|olympia|portland|salem|eugene|medford|redding|sacramento|san francisco),/i;
+  const anchorPattern = /^(seattle|tacoma|portland|eugene|medford|redding|sacramento|san francisco),/i;
   const selectedIndexes = new Set([0, corridor.length - 1]);
   corridor.forEach((market, index) => {
-    if (anchorPattern.test(String(market))) selectedIndexes.add(index);
+    if (selectedIndexes.size < limit && anchorPattern.test(String(market))) selectedIndexes.add(index);
   });
-  for (let slot = 0; selectedIndexes.size < limit && slot < limit * 3; slot += 1) {
-    selectedIndexes.add(Math.round(slot * (corridor.length - 1) / Math.max(1, limit - 1)));
-  }
-  if (selectedIndexes.size < limit) {
-    corridor.forEach((_, index) => {
-      if (selectedIndexes.size < limit) selectedIndexes.add(index);
-    });
+  const optional = corridor.map((_, index) => index).filter(index => !selectedIndexes.has(index));
+  const offset = optional.length ? Math.max(0, Math.trunc(variation)) % optional.length : 0;
+  const rotated = [...optional.slice(offset), ...optional.slice(0, offset)];
+  const remaining = limit - selectedIndexes.size;
+  for (let slot = 0; slot < remaining && rotated.length; slot += 1) {
+    selectedIndexes.add(rotated[Math.round(slot * (rotated.length - 1) / Math.max(1, remaining - 1))]);
   }
   return [...selectedIndexes]
     .sort((left, right) => left - right)
@@ -2841,7 +2835,7 @@ async function planTourRoute(event) {
     if (!summary) return { statusCode: 422, headers, body: JSON.stringify({ error: "A drivable route could not be calculated." }) };
     const markets = points.slice(1, -1), corridor = directional ? null : westCoastTourCorridor(points),
       itineraryMarkets = corridor || null,
-      corridorSearchMarkets = corridor ? sampleTourCorridorMarkets(corridor, requestedDays, requestedShows) : null,
+      corridorSearchMarkets = corridor ? sampleTourCorridorMarkets(corridor, requestedDays, requestedShows, variation) : null,
       selected = directional
       ? (markets.length <= 6 ? markets : Array.from({ length: 6 }, (_, index) => markets[Math.round(index * (markets.length - 1) / 5)]))
       : corridor

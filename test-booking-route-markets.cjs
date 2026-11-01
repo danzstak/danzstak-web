@@ -40,22 +40,19 @@ assert.deepEqual(
   "the corridor should follow the requested travel direction",
 );
 const ordinaryTourMarkets = Array.from(corridorContext.sampleTourCorridorMarkets(direct, 10, 8));
-assert.equal(ordinaryTourMarkets.length, direct.length, "ordinary corridor tours should expose every known booking market");
-assert.deepEqual(ordinaryTourMarkets, direct, "the venue search should preserve every I-5 market in road order");
+assert.equal(ordinaryTourMarkets.length, 10, "an ordinary tour should bound live place lookups while retaining a useful set of markets");
 for (const market of [
   "Tacoma, Washington",
-  "Kelso, Washington",
   "Portland, Oregon",
-  "Corvallis, Oregon",
   "Eugene, Oregon",
-  "Cottage Grove, Oregon",
   "Medford, Oregon",
   "Redding, California",
-  "Anderson, California",
   "Sacramento, California",
 ]) {
   assert.ok(ordinaryTourMarkets.includes(market), `${market} should remain in a sampled I-5 club search`);
 }
+const alternateTourMarkets = Array.from(corridorContext.sampleTourCorridorMarkets(direct, 10, 8, 1));
+assert.notDeepEqual(alternateTourMarkets, ordinaryTourMarkets, "searching again should rotate smaller road towns instead of repeating the identical market batch");
 assert.equal(ordinaryTourMarkets[0], "Seattle, Washington");
 assert.equal(ordinaryTourMarkets.at(-1), "San Francisco, California");
 assert.match(bookingUi, /function targetTourMarkets\(data\)/, "the route overview should turn the discovery pool into a compact bookable run");
