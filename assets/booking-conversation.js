@@ -79,6 +79,7 @@
     if (parsed.mode === "tour" && !field("endCity")?.value.trim()) missing.push("turnaround city");
     if (missing.length) {
       status.textContent = `Almost there—add the ${missing.join(" and ")}, then press Find the run again.`;
+      document.querySelector("details.booking-tools")?.setAttribute("open", "");
       document.querySelector("details.booking-start")?.setAttribute("open", "");
       field(missing[0] === "act name" ? "bandName" : "startCity")?.focus();
       return;

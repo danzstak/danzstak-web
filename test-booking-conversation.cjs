@@ -57,10 +57,14 @@ assert.equal(controls.get("routeSearchAction").clicked, 1);
 assert.match(controls.get("bookingBriefStatus").value || controls.get("bookingBriefStatus").textContent, /Building the route/);
 
 const markup = fs.readFileSync("booking.html", "utf8");
+const bookingConversation = fs.readFileSync("assets/booking-conversation.js", "utf8");
 const bookingAgent = fs.readFileSync("assets/booking-agent.js", "utf8");
 const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 assert.match(markup, /id="bookingBriefForm"/);
-assert.match(markup, /assets\/booking-conversation\.js\?v=449/);
+assert.match(markup, /assets\/booking-conversation\.js\?v=450/);
+assert.match(markup, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/, "manual fields and the venue map should stay behind one optional disclosure");
+assert.match(bookingConversation, /details\.booking-tools/,
+  "a missing plain-language field should reveal the optional manual controls before moving focus");
 assert.match(markup, /Where do you want to play\?/);
 assert.match(markup, /More tour options: genre, crew, van and budget/);
 assert.match(bookingAgent, /target calendar/);
