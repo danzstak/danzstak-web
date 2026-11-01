@@ -14,10 +14,10 @@ const feed = feedHtml.indexOf('<section id="feed"');
 assert.ok(composer >= 0, "the feed composer must exist");
 assert.ok(stories > composer, "Flashes must render directly after the composer");
 assert.ok(feed > stories, "Flashes must render before saved feed posts");
-assert.match(feedHtml, /className = "story story-empty";/, "Flashes need a visible empty-state placeholder");
-assert.match(feedHtml, /No Flashes yet/, "the Flashes placeholder should explain that no media is available yet");
-assert.match(enhancementCss, /\.stories \.story-empty\{[^}]*background:#f7f9fc!important[^}]*box-shadow:none/, "the empty Flashes card should be visually quiet rather than another blue action");
-assert.match(enhancementCss, /\.stories \.story-empty::before\{display:none\}/, "the empty Flashes card should not inherit the dark media overlay");
+assert.match(feedHtml, /className = "story story-empty";/, "Flashes need an accessible empty-state status");
+assert.match(feedHtml, /No Flashes yet/, "the Flashes status should explain that no media is available yet");
+assert.match(enhancementCss, /\.stories \.story-empty\{[^}]*position:absolute!important[^}]*clip-path:inset\(50%\)!important/, "the empty Flashes status should remain accessible without rendering a second empty card");
+assert.match(enhancementCss, /\.stories \.story-empty::before\{display:none\}/, "the empty Flashes status should not inherit the dark media overlay");
 assert.match(enhancementCss, /\.stories \.story-create\{[^}]*background:#fff!important/, "the Flashes creation control should remain a distinct action card");
 assert.match(
   enhancements,

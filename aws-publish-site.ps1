@@ -5,11 +5,14 @@ $Root = $PSScriptRoot
 $Region = "us-west-1"
 $ExpectedWorkerCache = (Select-String -Path (Join-Path $Root "service-worker.js") -Pattern 'danzstak-shell-v\d+').Matches.Value
 
-function Invoke-ReleaseCheck {
-  param([string]$TestFile)
-  Write-Host "Running release check $TestFile..."
-  & node (Join-Path $Root $TestFile)
-  if ($LASTEXITCODE -ne 0) { throw "Release check failed: $TestFile" }
+function Invoke-ReleaseChecks {
+  $tests = Get-ChildItem -Path $Root -File -Filter "test-*.cjs" | Sort-Object Name
+  if (-not $tests.Count) { throw "No release checks were found." }
+  Write-Host "Running $($tests.Count) DanzStak release checks..."
+  foreach ($test in $tests) {
+    & node $test.FullName
+    if ($LASTEXITCODE -ne 0) { throw "Release check failed: $($test.Name)" }
+  }
 }
 
 function Wait-ForPublishedWorker {
@@ -25,10 +28,10 @@ function Wait-ForPublishedWorker {
   throw "The live service worker did not match release $ExpectedCache after $MaxAttempts checks."
 }
 
-# These checks cover the security boundary most likely to fail after an HTML
-# edit and the mobile controls users depend on to search, comment and chat.
-Invoke-ReleaseCheck -TestFile "test-feed-csp.cjs"
-Invoke-ReleaseCheck -TestFile "test-mobile-keyboard.cjs"
+# Publishing is intentionally gated by the complete regression suite. The
+# tests cover the social APIs, security boundary, offline shell and responsive
+# interaction contracts that cannot safely be inferred from a successful build.
+Invoke-ReleaseChecks
 
 Write-Host "Resolving the CloudFront distribution for $Domain..."
 $distributions = aws cloudfront list-distributions --region $Region --output json | ConvertFrom-Json
