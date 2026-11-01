@@ -26,7 +26,7 @@
 <main id="messagesMain" class="chat-shell" tabindex="-1">
   <section class="chat-sidebar" aria-labelledby="messagesTitle">
     <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><div class="chat-heading-actions"><button id="enableRinging" type="button" class="chat-heading-button" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
-    <label class="chat-search"><span aria-hidden="true">⌕</span><input id="chatSearch" type="search" placeholder="Search DanzStak messages" aria-label="Search messages"></label>
+    <label class="chat-search"><span aria-hidden="true">⌕</span><input id="chatSearch" type="search" inputmode="search" enterkeyhint="search" placeholder="Search DanzStak messages" aria-label="Search messages"></label>
     <nav class="chat-filters" aria-label="Chat filters" role="tablist"><button type="button" class="active" data-chat-filter="all" role="tab" aria-selected="true">All</button><button type="button" data-chat-filter="unread" role="tab" aria-selected="false" tabindex="-1">Unread</button><button type="button" data-chat-filter="groups" role="tab" aria-selected="false" tabindex="-1">Tribes</button></nav>
     <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers" aria-busy="true"><p class="chat-note">Loading saved chats…</p></div></section>
     <input id="contactEmail" type="hidden">
@@ -61,7 +61,7 @@
         <label class="message-attach" title="Attach photo or video"><span aria-hidden="true">＋</span><span class="sr-only">Attach photo or video</span><input id="messageMedia" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" disabled></label>
         <label class="message-camera" title="Take a photo or video"><span aria-hidden="true">📷</span><span class="sr-only">Open camera to take a photo or video</span><input id="messageCamera" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" capture="environment" disabled></label>
         <label class="sr-only" for="messageInput">Message</label>
-        <input id="messageInput" type="text" enterkeyhint="send" maxlength="2000" autocomplete="off" placeholder="Write a message" disabled>
+        <input id="messageInput" type="text" inputmode="text" enterkeyhint="send" maxlength="2000" autocomplete="off" placeholder="Write a message" disabled>
       </div>
       <button type="submit" class="message-send" disabled aria-label="Send message" title="Send message">➤</button>
     </form>

@@ -1890,6 +1890,8 @@ setInterval(refreshNotificationCount, 30000);
 window.addEventListener("focus", refreshNotificationCount);
 
 const search = document.querySelector(".search");
+search.type = "search";
+search.setAttribute("inputmode", "search");
 search.setAttribute("aria-label", "Search posts and users");
 search.placeholder = "Search posts and users";
 search.setAttribute("aria-controls", "feed");
@@ -2108,6 +2110,8 @@ if (composerActions && publishButton) {
       comments.className = "comments";
       comments.hidden = true;
       const commentInput = document.createElement("input");
+      commentInput.type = "text";
+      commentInput.setAttribute("inputmode", "text");
       commentInput.setAttribute("aria-label", "Write a comment");
       commentInput.setAttribute("enterkeyhint", "send");
       commentInput.placeholder = "Write a comment and press Enter";

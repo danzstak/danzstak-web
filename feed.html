@@ -346,6 +346,9 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 
   <input
     class="search"
+    type="search"
+    inputmode="search"
+    enterkeyhint="search"
     placeholder="Search DanzStak"
     aria-label="Search DanzStak"
   >
@@ -786,7 +789,7 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   comments.hidden = true;
 
   comments.innerHTML =
-    '<input aria-label="Write a comment" enterkeyhint="send" placeholder="Write a comment and press Enter">' +
+    '<input type="text" inputmode="text" aria-label="Write a comment" enterkeyhint="send" placeholder="Write a comment and press Enter">' +
     '<div class="commentList"></div>';
 
   article.append(header, body);
@@ -1479,7 +1482,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=468" defer></script>
+<script src="assets/feed-enhancements.js?v=469" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=295" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
