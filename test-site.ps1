@@ -67,7 +67,7 @@ foreach ($bookingControl in @('DanzStak Booking Agent', 'Where do you want to pl
 if (-not $bookingMarkup.Contains('assets/session-activity.js?v=270')) {
   Add-Failure 'Booking Agent: signed-in users do not publish site-wide online presence'
 }
-foreach ($bookingClientControl in @('Send me out and bring me home', 'First show / leave home', 'Back home', 'route-map', 'My gigs', 'Upcoming gigs', 'Past gigs')) {
+foreach ($bookingClientControl in @('Send me out and bring me home', 'First show / leave home', 'Back home', 'route-map', 'My upcoming and past gigs', 'Upcoming gigs', 'Past gigs')) {
   if (-not $bookingClient.Contains($bookingClientControl)) { Add-Failure "Booking Agent: required home-loop control is missing: $bookingClientControl" }
 }
 foreach ($bookingAccessibilityControl in @('tourNameLabel.append(document.createTextNode("Tour name"),tourName)', 'savedPanel.setAttribute("aria-labelledby","savedToursTitle")', 'routeStatus.setAttribute("role","status")', 'saveStatus.setAttribute("role","status")')) {
@@ -170,7 +170,8 @@ foreach ($pushCleanupPage in @('index.html', 'feed.html', 'profile.html', 'messa
 }
 $chatScript = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -Encoding utf8
 if (-not $chatScript.Contains('await window.danzstakEnablePush()')) { Add-Failure 'Messages: Enable ringing is disconnected from durable Web Push setup' }
-if (-not $feedEnhancements.Contains('await window.danzstakEnablePush()')) { Add-Failure 'Settings: Call and message alerts is disconnected from durable Web Push setup' }
+$deviceSettings = Get-Content -LiteralPath (Join-Path $root 'assets\device-settings.js') -Raw -Encoding utf8
+if (-not $deviceSettings.Contains('await window.danzstakEnablePush()')) { Add-Failure 'Settings: Call and message alerts is disconnected from durable Web Push setup' }
 if (-not $feedEnhancements.Contains('darkCheckbox.setAttribute("aria-label", "Use dark mode")')) { Add-Failure 'Settings: Dark mode control has no accessible name' }
 foreach ($safeSettingsLoad in @('button.textContent = "Loading Settings', 'button.dataset.mode = "retry"', 'Retry before changing privacy preferences.', 'if (!response.ok) throw new Error("Account settings could not be loaded.")')) {
   if (-not $feedEnhancements.Contains($safeSettingsLoad)) { Add-Failure "Settings: a failed preference load can overwrite account privacy: $safeSettingsLoad" }

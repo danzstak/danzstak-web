@@ -996,12 +996,13 @@
     const outwardCount = Math.min(markets.length, Math.max(2, Math.ceil((shows + 1) * 0.6))),
       returnCount = Math.max(0, shows - outwardCount),
       outward = strongestRouteMarkets(markets, outwardCount),
+      // A round trip naturally revisits markets. Prefer cities with another
+      // club lead so the return date proposes a different room instead of
+      // silently dropping shows when every outbound market was already used.
       returnPool = markets.slice(0, -1).reverse(),
-      outwardKeys = new Set(outward.map(market => String(market.stop || "").split(",")[0].trim().toLowerCase())),
-      freshReturnMarkets = returnPool.filter(market => !outwardKeys.has(String(market.stop || "").split(",")[0].trim().toLowerCase())),
-      repeatableReturnMarkets = freshReturnMarkets.filter(market => (market.venues || []).length > 1),
+      repeatableReturnMarkets = returnPool.filter(market => (market.venues || []).length > 1),
       returning = evenlySampleMarkets(
-        repeatableReturnMarkets.length >= returnCount ? repeatableReturnMarkets : freshReturnMarkets.length >= returnCount ? freshReturnMarkets : returnPool,
+        repeatableReturnMarkets.length >= returnCount ? repeatableReturnMarkets : returnPool,
         returnCount,
       );
     return [...outward, ...returning];
@@ -1165,9 +1166,11 @@
       vanGrid = document.createElement("div"),
       vanWarning = document.createElement("p");
       const marketVenues = Array.isArray(market.venues) ? market.venues : [];
+      const recommendedRoom = marketVenues[0]?.name || "Club research needed";
       heading.textContent = market.proposedDate
-        ? `${market.proposedDate} · ${market.stop} · ${marketVenues.length} club${marketVenues.length === 1 ? "" : "s"}`
-        : `${market.stop} · ${marketVenues.length} club${marketVenues.length === 1 ? "" : "s"}`;
+        ? `${market.proposedDate} · ${market.stop} — ${recommendedRoom}`
+        : `${market.stop} — ${recommendedRoom}`;
+      section.open = false;
       confirmation.type = "button";
       confirmation.className = "confirm-date";
       confirmation.textContent = "Mark date confirmed";
@@ -1178,7 +1181,9 @@
           : "Mark date confirmed";
         confirmation.classList.toggle("confirmed", market.confirmed);
       });
-      venueSummary.textContent = `Club leads (${Math.min(6, marketVenues.length)} shown)`;
+      venueSummary.textContent = marketVenues.length > 1
+        ? `See ${Math.min(6, marketVenues.length)} club options`
+        : "Club contact";
       venueStatus.className = "hint";
       venueStatus.textContent = "";
       const budgetHotels = (market.hotels || []).slice(0, 2),

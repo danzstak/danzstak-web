@@ -63,8 +63,8 @@ assert.match(bookingUi, /function strongestRouteMarkets\(markets, count\)/, "the
 assert.match(bookingUi, /\["portland", 100\][\s\S]*\["eugene", 96\][\s\S]*\["medford", 92\][\s\S]*\["redding", 90\]/, "I-5 planning should favor strong Portland, Eugene, Medford, and Redding scenes");
 assert.match(bookingUi, /outward = strongestRouteMarkets\(markets, outwardCount\)/, "outbound show targets should use music-market strength rather than blind even spacing");
 assert.match(bookingUi, /returnPool = markets\.slice\(0, -1\)\.reverse\(\)/, "the proposed run should use real markets on the drive back home");
-assert.match(bookingUi, /freshReturnMarkets = returnPool\.filter/, "the return leg should offer different towns before repeating outbound markets");
-assert.match(bookingUi, /repeatableReturnMarkets = freshReturnMarkets\.filter\(market => \(market\.venues \|\| \[\]\)\.length > 1\)/, "a return leg should prefer fresh markets with another real venue instead of repeating an exhausted one-lead city");
+assert.match(bookingUi, /repeatableReturnMarkets = returnPool\.filter\(market => \(market\.venues \|\| \[\]\)\.length > 1\)/, "a return leg should revisit markets only when another real room can be proposed");
+assert.match(bookingUi, /repeatableReturnMarkets\.length >= returnCount \? repeatableReturnMarkets : returnPool/, "the requested show count should not be silently reduced merely because a round trip revisits a city");
 assert.match(bookingUi, /targetPoints = targetTourMarkets\(data\)/, "the route map should show the proposed outbound-and-return run instead of every discovery town");
 assert.match(bookingUi, /stopLine\.textContent = points\.map/, "the route overview should name the intermediate towns in one compact line");
 assert.match(bookingUi, /displayedMarkets = targetMarkets\.filter/, "result cards should be limited to the proposed target markets");
@@ -75,6 +75,8 @@ assert.match(bookingUi, /function routeItineraryMarkets\(route, candidates = \[\
 assert.match(bookingUi, /"Medford, Oregon"[\s\S]*"Redding, California"/, "the browser fallback should retain Medford and Redding between Seattle and San Francisco");
 assert.match(bookingUi, /return start\.includes\("seattle"\) \? i5Markets : \[\.\.\.i5Markets\]\.reverse\(\)/, "the browser fallback should follow either requested travel direction");
 assert.match(bookingUi, /section = document\.createElement\("details"\),[\s\S]*heading = document\.createElement\("summary"\)/, "each route town should be a compact expandable result instead of a long open panel");
+assert.match(bookingUi, /recommendedRoom = marketVenues\[0\]\?\.name/, "a collapsed tour stop should name its recommended room instead of showing only a city and count");
+assert.match(bookingUi, /section\.open = false/, "tour stops should start collapsed on phones");
 assert.doesNotMatch(bookingUi, /details\.open = true/, "the day-by-day calendar should not force a long result page open");
 assert.doesNotMatch(source, /fallbackLabel: `Tour corridor stop/, "reverse-geocode failures must not become fake corridor stops");
 assert.match(source, /const verifiedTacomaRooms = \[/, "the I-5 directory must include reviewed Tacoma rooms");
