@@ -1855,7 +1855,10 @@ function restoreWorkspaceRoute() {
   const name = workspaceRoutes.get(location.hash.slice(1).toLowerCase()) || workspaceRoutes.get(requestedView);
   if (name) openWorkspaceRoute(name, false);
   else if (!location.hash || location.hash === "#feed" || location.hash.startsWith("#post-")) {
-    document.body.classList.toggle("content-only", requestedView === "feed" || location.hash === "#feed" || location.hash.startsWith("#post-"));
+    // The regular Home URL must keep the familiar desktop rails visible.
+    // Focused deep links may still remove the rails so a specific post can
+    // use the available width, but `?view=feed` is the ordinary Home route.
+    document.body.classList.toggle("content-only", location.hash === "#feed" || location.hash.startsWith("#post-"));
     const home = document.querySelector('[data-route="home"]');
     home?.setAttribute("aria-pressed", "true");
     if (document.body.classList.contains("content-only")) home?.removeAttribute("aria-current");
