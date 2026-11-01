@@ -23,7 +23,7 @@
         if(raw.length>5000){warnings.tooLong++;continue;}
         const date=typeof post.timestamp==='number'?new Date(post.timestamp*1000):new Date(post.created_time||post.timestamp||'');
         if(!Number.isFinite(date.getTime())||date.getTime()<0||date.getTime()>Date.now()+86400000){warnings.invalidDate++;continue;}
-        const originalCreatedAt=date.toISOString(),media=[],sharedSources=[];
+        const originalCreatedAt=date.toISOString(),media=[],sharedSources=[];let missingMedia=false;
         for(const attachment of Array.isArray(post.attachments)?post.attachments:[]){for(const part of Array.isArray(attachment?.data)?attachment.data:[]){
           const m=part?.media,context=part?.external_context||attachment?.external_context||{};
           const sourceUrl=externalUrl(context.url||context.link||part?.url||part?.target_url||m?.url||m?.external_url);
@@ -32,12 +32,12 @@
           const mediaUri=String(m.uri||"");
           const remoteMedia=externalUrl(mediaUri);
           if(remoteMedia){sharedSources.push({url:sourceUrl||remoteMedia,title:str(context.name||context.title||context.source||"Shared image",160)});continue;}
-          const path=pathOf(mediaUri);if(path&&mediaType(path)){const candidates=files.has(path)?[path]:[...files.keys()].filter(name=>name.endsWith("/"+path));if(candidates.length===1)media.push(candidates[0]);else warnings.missingMedia++;}else warnings.unsupported++;
+          const path=pathOf(mediaUri);if(path&&mediaType(path)){const candidates=files.has(path)?[path]:[...files.keys()].filter(name=>name.endsWith("/"+path));if(candidates.length===1)media.push(candidates[0]);else{warnings.missingMedia++;missingMedia=true;}}else warnings.unsupported++;
         }}
         const sharedSource=sharedSources.find(source=>source.url)||null;
         if(!raw.trim()&&!media.length&&!sharedSource){warnings.unsupported++;continue;}
         const paths=media.length?media:[''];
-        for(const mediaPath of paths){const content=raw.trim()||(mediaType(mediaPath).startsWith('video/')?'Imported video':sharedSource?.title||'Imported photo');const localIdentity=JSON.stringify([originalCreatedAt,content,mediaPath,sharedSource?.url||""]);if(seen.has(localIdentity))continue;seen.add(localIdentity);const identity=JSON.stringify([originalCreatedAt,content,mediaPath?mediaType(mediaPath):"",sharedSource?.url||""]);items.push({content,originalCreatedAt,mediaPath,mediaType:mediaPath?mediaType(mediaPath):'',identity,sourceFile:name,sharedSource});if(items.length>2000)throw Error('This export contains more than 2,000 posts or attachments. Export a smaller date range.');}
+        for(const mediaPath of paths){const content=raw.trim()||(mediaType(mediaPath).startsWith('video/')?'Imported video':sharedSource?.title||'Imported photo');const localIdentity=JSON.stringify([originalCreatedAt,content,mediaPath,sharedSource?.url||""]);if(seen.has(localIdentity))continue;seen.add(localIdentity);const identity=JSON.stringify([originalCreatedAt,content,mediaPath?mediaType(mediaPath):"",sharedSource?.url||""]);items.push({content,originalCreatedAt,mediaPath,mediaType:mediaPath?mediaType(mediaPath):'',identity,sourceFile:name,sharedSource,missingMedia:missingMedia&&!mediaPath});if(items.length>2000)throw Error('This export contains more than 2,000 posts or attachments. Export a smaller date range.');}
       }
     }
     const needed=new Set(items.map(item=>item.mediaPath).filter(Boolean));const media=[...needed].map(name=>({name,type:mediaType(name),bytes:files.get(name)}));
