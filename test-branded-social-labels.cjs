@@ -12,6 +12,8 @@ const calls = fs.readFileSync("assets/chat.js", "utf8");
 const sharing = fs.readFileSync("assets/post-sharing.js", "utf8");
 const peopleSearch = fs.readFileSync("assets/people-search.js", "utf8");
 const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
+const terms = fs.readFileSync("terms.html", "utf8");
+const privacy = fs.readFileSync("privacy.html", "utf8");
 
 assert.match(feed, /<span>Flashes<\/span>/, "composer should use Flashes");
 assert.doesNotMatch(feed, /<span>Story<\/span>/, "composer should not expose the old Story label");
@@ -30,6 +32,12 @@ assert.match(enhancements, /top of Your Mix/, "pinning should use Your Mix termi
 for (const [name, content] of Object.entries({ feed, messages, profile, profileSharing, directMessages, calls, authApi })) {
   assert.doesNotMatch(content, /Group Message|group members|group member|same group|shared-group/i,
     `${name} should present Tribe terminology to members`);
+}
+for (const [name, content] of Object.entries({ terms, privacy })) {
+  assert.doesNotMatch(content, /members of a shared group|shared-group members/i,
+    `${name} should explain communication access with the member-facing Tribe name`);
+  assert.match(content, /members of a shared Tribe/i,
+    `${name} should retain the enforced shared-membership rule while using Tribe branding`);
 }
 assert.doesNotMatch(authApi, /"(?:Valid group|required group|Group not found|Only the group owner|Describe the group concern)/i,
   "API feedback must use DanzStak Tribe language while retaining group-compatible storage and routes");
