@@ -9,8 +9,9 @@ assert.match(api, /function isRecordStore\(/, "the API should validate record-st
 assert.match(api, /record store\|record shop\|vinyl records/, "store discovery should require record or vinyl evidence");
 assert.match(api, /used records vinyl/, "store discovery should use several queries so independent shops are not missed");
 assert.match(api, /record,\? cd/, "AWS's Record, CD & Video category should be recognized");
-assert.match(api, /strongNameSignal \|\| !genericWrongBusiness/, "a real record shop should not be rejected merely because it also sells books or electronics");
-assert.match(api, /slice\(0, 30\)/, "dense music cities should retain a useful number of store results");
+assert.match(api, /strongNameSignal && recordCategorySignal/, "a listing should need explicit record\/vinyl evidence instead of a broad category alone");
+assert.match(api, /audio visual\|audio[\s\S]*music company\|music center/, "audio, instrument, video and generic music retailers should be excluded");
+assert.match(api, /slice\(0, 20\)/, "dense music cities should retain a focused number of credible store results");
 assert.match(api, /recordStores = await Promise\.all|reviewedDirectory, recordStores/, "tour markets should collect record stores with venue leads");
 assert.match(api, /POST["'] && path === "\/record-stores\/search"/, "the API should route standalone searches");
 assert.match(deploy, /POST \/record-stores\/search/, "deployment should provision the record-store route");

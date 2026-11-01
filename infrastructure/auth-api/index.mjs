@@ -2017,16 +2017,18 @@ function isVenueTypeMatch(place, venueType = "any") {
 function isRecordStore(place) {
   const name = String(place.name || "").toLowerCase();
   const description = `${name} ${(place.categories || []).join(" ")}`.toLowerCase();
-  const strongNameSignal = /\b(records|record shop|record store|vinyl|turntable|music millennium|music millenium)\b/.test(name);
+  const strongNameSignal = /\b(records?|record shop|record store|vinyl|turntable|music millennium|music millenium)\b/.test(name);
   const recordCategorySignal = /\brecord,? cd (?:&|and) video\b/.test(description);
   const descriptiveSignal = /\b(record store|record shop|vinyl records?|vinyl shop|used records?|new records?)\b/.test(description);
-  // AWS groups some real record shops with books or consumer electronics. Those
-  // secondary categories must not disqualify a shop with a record-specific name.
-  const clearlyWrongName = /\b(dental|dentist|real estate|realtor|video transfer|video production|audio visual|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio)\b/.test(name);
-  const genericWrongBusiness = /\b(real estate|realtor|restaurant|hotel|rehearsal|office|medical|dental|furniture)\b/.test(description);
+  // A broad place-category match alone is not evidence that a shop sells records.
+  // It regularly includes audio installers, video production, instrument shops,
+  // bookstores and unrelated retailers. Prefer a shorter list with explicit
+  // record/vinyl evidence in the public name over wasting an artist's outreach.
+  const clearlyWrongName = /\b(dental|dentist|real estate|realtor|video transfer|video production|audio visual|audio|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio|books?|press|productions?|music company|music center)\b/.test(name);
+  const genericWrongBusiness = /\b(real estate|realtor|restaurant|hotel|rehearsal|office|medical|dental|furniture|bookstore|electronics store|musical instrument)\b/.test(description);
   return !clearlyWrongName
-    && (strongNameSignal || descriptiveSignal || recordCategorySignal)
-    && (strongNameSignal || !genericWrongBusiness);
+    && !genericWrongBusiness
+    && (descriptiveSignal || (strongNameSignal && recordCategorySignal));
 }
 
 async function recordStoreCandidates(point, maximumMiles = 45) {
@@ -2051,7 +2053,7 @@ async function recordStoreCandidates(point, maximumMiles = 45) {
     .filter(isRecordStore)
     .filter(place => approximateMilesBetween(point.position, place.position) <= maximumMiles)
     .sort((left, right) => approximateMilesBetween(point.position, left.position) - approximateMilesBetween(point.position, right.position))
-    .slice(0, 30)
+    .slice(0, 20)
     .map(place => ({
       ...place,
       sourceName: "Current public place listing",
