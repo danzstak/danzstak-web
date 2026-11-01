@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v498";
+const CACHE = "danzstak-shell-v499";
 const SHELL = [
   "/assets/media-tags.js",
   "/assets/post-sharing.js", "/assets/post-views.js",
@@ -8,7 +8,7 @@ const SHELL = [
   "/assets/facebook-import.js", "/assets/facebook-import.css", "/assets/facebook-import-worker.js", "/assets/facebook-import-core.js", "/assets/vendor/fflate-0.8.3.js",
   "/assets/people-search.js",
   "/assets/mobile-keyboard.js",
-  "/assets/languages.js", "/assets/i18n.js",
+  "/assets/languages.js", "/assets/brand-language-aliases.js", "/assets/i18n.js",
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html", "/support.html", "/booking.html", "/record-stores.html", "/epk.html",
   "/manifest.webmanifest", "/assets/app-icon.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-apps-v3.png",
   "/assets/media-visibility.js", "/assets/text-emojis.js", "/assets/story-book.svg", "/assets/device-settings.js", "/assets/home.js", "/assets/app-feedback.js", "/assets/app-feedback.css", "/assets/pwa.js", "/assets/app-downloads.js", "/assets/logout.js", "/assets/session-cleanup.js", "/assets/session-activity.js", "/assets/profile.js", "/assets/profile-editor.js",
