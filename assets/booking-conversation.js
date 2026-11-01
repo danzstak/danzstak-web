@@ -14,6 +14,28 @@
   };
   const tidyPlace = value => String(value || "").trim().replace(/[,.!?]+$/, "").replace(/\s+/g, " ");
 
+  function parseDepartureDate(text) {
+    const validDate = (year, month, day) => {
+      const date = new Date(Date.UTC(year, month - 1, day));
+      return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+    };
+    const iso = text.match(/\b(?:depart(?:ing)?|starting|leaving|first show(?: is)?|on)\s+(\d{4}-\d{2}-\d{2})\b/i);
+    if (iso) {
+      const [year, month, day] = iso[1].split("-").map(Number);
+      return validDate(year, month, day) ? iso[1] : "";
+    }
+    const monthNames = {
+      january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
+      july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
+      jan: 1, feb: 2, mar: 3, apr: 4, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12
+    };
+    const named = text.match(/\b(?:depart(?:ing)?|starting|leaving|first show(?: is)?|on)\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(\d{4})\b/i);
+    if (!named) return "";
+    const month = monthNames[named[1].toLowerCase()], day = Number(named[2]), year = Number(named[3]);
+    if (!validDate(year, month, day)) return "";
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
   function parseTourBrief(value) {
     const text = String(value || "").trim();
     const lower = text.toLowerCase();
@@ -53,8 +75,7 @@
       const direction = lower.match(/\b(?:travel|tour|head|go)\s+(northwest|northeast|southwest|southeast|north|south|east|west)\b/);
       if (direction) { parsed.direction = direction[1]; parsed.mode = "direction"; }
     }
-    const date = text.match(/\b(?:starting|leaving|first show)\s+(\d{4}-\d{2}-\d{2})\b/i);
-    if (date) parsed.departOn = date[1];
+    parsed.departOn = parseDepartureDate(text) || undefined;
     return parsed;
   }
 
