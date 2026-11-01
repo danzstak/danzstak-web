@@ -3,6 +3,7 @@ const vm = require("vm");
 const assert = require("assert");
 
 const source = fs.readFileSync("feed.html", "utf8");
+const styles = fs.readFileSync("assets/feed-enhancements.css", "utf8");
 const start = source.indexOf("function storyDisplayCaption");
 const end = source.indexOf("\nfunction openStoryViewer", start);
 assert.ok(start >= 0 && end > start, "story caption formatter must exist");
@@ -16,5 +17,7 @@ assert.equal(context.storyDisplayCaption({ content: "Backstage in Tacoma", media
 assert.equal(context.storyDisplayCaption({ content: "", mediaType: "image" }), "Photo Flash");
 assert.match(source, /item\.title = storyDisplayCaption\(story\)/);
 assert.match(source, /story-viewer-caption"\)\.textContent = storyDisplayCaption\(story\)/);
+assert.match(source, /feed-enhancements\.css\?v=473/, "the live feed should load the compact empty-Flash treatment");
+assert.match(styles, /\.stories \.story-empty\{position:absolute!important;width:1px!important;height:1px!important/, "the empty-state announcement should remain accessible without rendering a second empty card");
 
 console.log("Flash caption checks passed: uploaded filenames are hidden while user captions remain intact.");
