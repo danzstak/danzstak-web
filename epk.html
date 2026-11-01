@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; img-src 'self' https: data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>EPK Builder | DanzStak</title>
+  <meta name="description" content="Build and publish a clear electronic press kit for venues, promoters, record stores, and press.">
+  <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
+  <link rel="stylesheet" href="assets/epk.css?v=1">
+  <link rel="stylesheet" href="assets/accessibility.css?v=364">
+</head>
+<body>
+  <a class="skip-link" href="#epkMain">Skip to EPK</a>
+  <header><a href="feed.html"><img src="assets/danzstak-logo.png" alt="DanzStak"></a><nav><a href="feed.html">Your Mix</a><a href="booking.html">Booking Agent</a><a href="record-stores.html">Record Stores</a></nav></header>
+  <main id="epkMain" tabindex="-1">
+    <section class="intro" id="builderIntro"><p class="eyebrow">DanzStak artist tools</p><h1>EPK Builder</h1><p>Give a booker the useful facts fast. Drafts stay private until you publish.</p></section>
+    <div class="epk-layout">
+      <form id="epkForm" class="epk-form" autocomplete="off">
+        <section><h2>Start here</h2><div class="two"><label>Artist or act name<input id="artistName" maxlength="120" required></label><label>Home town<input id="hometown" maxlength="160"></label></div><label>Genres<input id="genres" maxlength="300" placeholder="DIY punk, hardcore, garage rock"></label><label>One-line pitch<textarea id="shortPitch" rows="2" maxlength="300" placeholder="What makes the live set worth booking?"></textarea></label></section>
+        <section><h2>Tell the story</h2><label>Biography<textarea id="bio" rows="7" maxlength="5000"></textarea></label><label>Lineup, one member and role per line<textarea id="lineup" rows="4" placeholder="Name - vocals"></textarea></label><label>Notable shows, one per line<textarea id="notableShows" rows="4" placeholder="Venue, city - date or year"></textarea></label></section>
+        <section><h2>Let them hear and see you</h2><p class="hint">Use public HTTPS links. One per line: label | URL</p><label>Music links<textarea id="musicLinks" rows="4" placeholder="Latest single | https://..."></textarea></label><label>Live video links<textarea id="videoLinks" rows="4" placeholder="Live at Venue | https://..."></textarea></label><div class="two"><label>Press photo URL<input id="heroImage" type="url" placeholder="https://"></label><label>Logo URL<input id="logoImage" type="url" placeholder="https://"></label></div></section>
+        <section><h2>Proof and production</h2><p class="hint">Never invent press. Include the publication and its public source link.</p><label>Press quotes, one per line: quote | source | URL<textarea id="pressQuotes" rows="4"></textarea></label><label>Stage requirements<textarea id="stageRequirements" rows="4" placeholder="Space, changeover, backline, accessibility"></textarea></label><label>Technical requirements<textarea id="techRequirements" rows="5" placeholder="Inputs, microphones, monitors, power, playback"></textarea></label></section>
+        <section><h2>Booking contact</h2><p class="hint">These details appear publicly only when you publish.</p><div class="two"><label>Contact name<input id="bookingName" maxlength="120"></label><label>Booking email<input id="bookingEmail" type="email" maxlength="254"></label><label>Phone<input id="bookingPhone" type="tel" maxlength="40"></label><label>Official website<input id="website" type="url" placeholder="https://"></label></div></section>
+        <div class="form-actions"><button type="button" id="saveDraft">Save private draft</button><button type="button" id="publishEpk" class="primary">Publish EPK</button><button type="button" id="unpublishEpk">Unpublish</button></div>
+        <p id="epkStatus" role="status" aria-live="polite">Loading your private draft...</p>
+        <p id="publicLinkRow" hidden>Public link: <a id="publicLink" target="_blank" rel="noopener noreferrer"></a> <button type="button" id="copyPublicLink">Copy link</button></p>
+      </form>
+      <article id="epkPreview" class="epk-preview" aria-label="EPK preview"></article>
+    </div>
+  </main>
+  <script src="assets/epk.js?v=1" defer></script>
+</body>
+</html>

@@ -1,26 +1,41 @@
 "use strict";
 (() => {
-  const form = document.getElementById("recordStoreForm"), input = document.getElementById("recordStoreLocation"), status = document.getElementById("recordStoreStatus"), results = document.getElementById("recordStoreResults");
+  const api = "https://api.danzstak.com", byId = id => document.getElementById(id);
+  const form = byId("recordStoreForm"), input = byId("recordStoreLocation"), status = byId("recordStoreStatus"), results = byId("recordStoreResults"), placement = byId("placementStores"), placementStatus = byId("placementStatus");
+  let workspace = { release:{}, stores:[], revision:"" };
   const safeLink = (label, href) => { const link = document.createElement("a"); link.textContent = label; link.href = href; link.target = "_blank"; link.rel = "noopener noreferrer"; return link; };
-  function render(stores) {
-    results.replaceChildren();
-    stores.forEach(store => {
-      const card = document.createElement("article"), title = document.createElement("h2"), address = document.createElement("p"), evidence = document.createElement("p"), links = document.createElement("div");
-      card.className = "store-card"; links.className = "store-links"; title.textContent = store.name || "Record store"; address.textContent = store.address || store.locality || "Address unavailable"; evidence.textContent = store.activityEvidence || "Confirm current hours before visiting.";
-      (store.websites || []).filter(url => /^https:\/\//.test(url)).slice(0,1).forEach(url => links.append(safeLink("Website", url)));
+  const text = (tag, value, className = "") => { const node = document.createElement(tag); node.textContent = value; if (className) node.className = className; return node; };
+  const releaseFields = { artist:"releaseArtist", title:"releaseTitleInput", format:"releaseFormat", genre:"releaseGenre", releaseDate:"releaseDate", wholesale:"releaseWholesale", suggestedRetail:"releaseRetail", epk:"releaseEpk", listen:"releaseListen", contactName:"releaseContactName", contactEmail:"releaseContactEmail", terms:"releaseTerms" };
+  const releaseFromForm = () => Object.fromEntries(Object.entries(releaseFields).map(([key,id]) => [key, byId(id).value.trim()]));
+  function fillRelease(release = {}) { Object.entries(releaseFields).forEach(([key,id]) => { byId(id).value = release[key] || ""; }); }
+  function draftFor(store) { const r = releaseFromForm(); return `Hello ${store.name} team,\n\nI am reaching out about ${r.artist || "[artist]"}'s ${r.format || "release"}, ${r.title || "[title]"}${r.genre ? ` (${r.genre})` : ""}. ${r.releaseDate ? `The release date is ${r.releaseDate}. ` : ""}Are you currently considering independent releases for wholesale or consignment?\n\n${r.listen ? `Listen: ${r.listen}\n` : "[Add a public listening link.]\n"}${r.epk ? `EPK: ${r.epk}\n` : ""}${r.wholesale ? `Wholesale: ${r.wholesale}\n` : ""}${r.suggestedRetail ? `Suggested retail: ${r.suggestedRetail}\n` : ""}${r.terms ? `Terms offered: ${r.terms}\n` : ""}\nPlease let me know your current submission policy and purchasing contact.\n\nThank you,\n${r.contactName || r.artist || "[contact name]"}${r.contactEmail ? `\n${r.contactEmail}` : ""}`; }
+  function renderResults(stores) {
+    results.replaceChildren(); stores.forEach(store => {
+      const card = document.createElement("article"), links = document.createElement("div"), sources = document.createElement("p"), add = document.createElement("button");
+      card.className = "store-card"; links.className = "store-links"; sources.className = "source-list";
+      card.append(text("h2", store.name || "Record store"), text("p", store.address || store.locality || "Address not listed"), text("p", store.activityEvidence || "A current public listing was returned. Confirm before contacting.", "evidence-label"));
+      (store.websites || []).filter(url => /^https:\/\//.test(url)).slice(0,1).forEach(url => links.append(safeLink("Official website", url)));
       if (Array.isArray(store.position) && store.position.length === 2) links.append(safeLink("Map", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${store.position[1]},${store.position[0]}`)}`));
-      card.append(title, address, evidence, links); results.append(card);
+      (store.sources || []).filter(source => source.name && /^https:\/\//.test(source.url || "")).forEach(source => { sources.append(safeLink(`Source: ${source.name}`, source.url), document.createTextNode(" ")); });
+      add.type = "button"; add.textContent = workspace.stores.some(item => item.name === store.name && item.address === store.address) ? "Added to outreach" : "Add to outreach"; add.disabled = add.textContent.startsWith("Added");
+      add.addEventListener("click", () => { workspace.stores.push({ ...store, stage:"Research", followUp:"", notes:"", outreachDraft:draftFor(store) }); add.textContent = "Added to outreach"; add.disabled = true; renderPlacement(); placementStatus.textContent = `${store.name} added. Save the workspace when ready.`; });
+      card.append(links, sources, add); results.append(card);
     });
   }
-  form.addEventListener("submit", async event => {
-    event.preventDefault(); const location = input.value.trim(); if (!location) return;
-    status.textContent = `Finding record stores near ${location}…`; results.replaceChildren();
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 25000);
-    try {
-      const response = await fetch("https://api.danzstak.com/record-stores/search", { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({location}), signal:controller.signal });
-      const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Search failed.");
-      render(data.stores || []); status.textContent = data.stores?.length ? `${data.stores.length} record store${data.stores.length === 1 ? "" : "s"} near ${data.location?.label || location}.` : `No solid record-store listings found near ${location}. Try a nearby city.`;
-    } catch (error) { status.textContent = error.name === "AbortError" ? "The search took too long. Try again." : error.message; }
-    finally { clearTimeout(timer); }
-  });
+  function renderPlacement() {
+    placement.replaceChildren(); if (!workspace.stores.length) { placement.append(text("p", "No stores selected yet. Search a city and add stores you genuinely want to approach.")); return; }
+    workspace.stores.forEach((store,index) => {
+      const item = document.createElement("article"), top = document.createElement("div"), controls = document.createElement("div"), remove = document.createElement("button"), stageLabel = document.createElement("label"), stage = document.createElement("select"), followLabel = document.createElement("label"), follow = document.createElement("input"), notesLabel = document.createElement("label"), notes = document.createElement("textarea"), draftLabel = document.createElement("label"), draft = document.createElement("textarea");
+      item.className = "placement-item"; top.className = "placement-top"; controls.className = "placement-controls"; remove.type = "button"; remove.textContent = "Remove"; remove.addEventListener("click", () => { workspace.stores.splice(index,1); renderPlacement(); }); top.append(text("h3", store.name), remove);
+      stageLabel.append(document.createTextNode("Status"), stage); ["Research","Ready to pitch","Contacted","Follow up","Interested","Stocking","Passed"].forEach(value => { const option = document.createElement("option"); option.value = option.textContent = value; option.selected = store.stage === value; stage.append(option); }); stage.addEventListener("change", () => { store.stage = stage.value; });
+      follow.type = "date"; follow.value = store.followUp || ""; follow.addEventListener("change", () => { store.followUp = follow.value; }); followLabel.append(document.createTextNode("Follow-up date"), follow);
+      notes.value = store.notes || ""; notes.rows = 3; notes.addEventListener("input", () => { store.notes = notes.value; }); notesLabel.append(document.createTextNode("Notes"), notes);
+      draft.value = store.outreachDraft || draftFor(store); draft.rows = 10; draft.addEventListener("input", () => { store.outreachDraft = draft.value; }); draftLabel.append(document.createTextNode("Outreach draft"), draft);
+      controls.append(stageLabel, followLabel, notesLabel, draftLabel); item.append(top, text("p", store.address || "Address not listed"), controls); placement.append(item);
+    });
+  }
+  async function loadWorkspace() { try { const response = await fetch(`${api}/record-store-workspace`, { credentials:"include" }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Could not load the placement workspace."); workspace = data; fillRelease(data.release); renderPlacement(); placementStatus.textContent = data.stores?.length ? `${data.stores.length} saved store lead${data.stores.length === 1 ? "" : "s"}.` : "Search for stores and build a private outreach list."; } catch (error) { renderPlacement(); placementStatus.textContent = error.message; } }
+  async function saveWorkspace() { workspace.release = releaseFromForm(); placementStatus.textContent = "Saving placement workspace..."; try { const response = await fetch(`${api}/record-store-workspace`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify(workspace) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Could not save the workspace."); workspace.revision = data.revision; placementStatus.textContent = "Placement workspace saved to your account."; } catch (error) { placementStatus.textContent = error.message; } }
+  form.addEventListener("submit", async event => { event.preventDefault(); const location = input.value.trim(); if (!location) return; status.textContent = `Finding record stores near ${location}...`; results.replaceChildren(); const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 25000); try { const response = await fetch(`${api}/record-stores/search`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({location}), signal:controller.signal }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Search failed."); renderResults(data.stores || []); status.textContent = data.stores?.length ? `${data.stores.length} sourced store listing${data.stores.length === 1 ? "" : "s"} near ${data.location?.label || location}. Confirm each store's current buying policy before pitching.` : `No sufficiently supported record-store listings were found near ${location}.`; } catch (error) { status.textContent = error.name === "AbortError" ? "The search took too long. Try again." : error.message; } finally { clearTimeout(timer); } });
+  byId("savePlacement").addEventListener("click", saveWorkspace); loadWorkspace();
 })();

@@ -2080,6 +2080,45 @@ async function searchRecordStores(event) {
   }
 }
 
+const recordStoreWorkspaceId = "record-store-workspace-v1";
+async function recordStoreWorkspace(event, method) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const Key = { userId: { S: userId }, tourId: { S: recordStoreWorkspaceId } };
+  if (method === "GET") {
+    const result = await db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true }));
+    return reply(200, result.Item ? { ...JSON.parse(result.Item.plan.S), revision: result.Item.revision?.S || "" } : { release: {}, stores: [], revision: "" });
+  }
+  const data = parseJsonBody(event);
+  if (!data || !Array.isArray(data.stores) || data.stores.length > 100 || typeof data.revision !== "string") return reply(400, { error: "Provide up to 100 stores and the loaded revision." });
+  const text = (value, max = 300) => typeof value === "string" ? value.trim().slice(0, max) : "";
+  const https = value => /^https:\/\//i.test(text(value, 600)) ? text(value, 600) : "";
+  const email = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(value, 254)) ? text(value, 254).toLowerCase() : "";
+  const list = (value, clean) => Array.isArray(value) ? value.slice(0, 8).map(clean).filter(Boolean) : [];
+  const stages = new Set(["Research", "Ready to pitch", "Contacted", "Follow up", "Interested", "Stocking", "Passed"]);
+  const stores = data.stores.map(store => {
+    if (!store || typeof store !== "object" || !text(store.name, 160)) return null;
+    const sources = Array.isArray(store.sources) ? store.sources.slice(0, 6).map(source => source && typeof source === "object" ? { name: text(source.name, 120), url: https(source.url) } : null).filter(source => source?.name) : [];
+    return { name: text(store.name, 160), address: text(store.address), locality: text(store.locality, 160), websites: list(store.websites, https), emails: list(store.emails, email), phones: list(store.phones, item => text(item, 40)), sources, activityEvidence: text(store.activityEvidence, 1000), stage: stages.has(store.stage) ? store.stage : "Research", followUp: /^\d{4}-\d{2}-\d{2}$/.test(text(store.followUp, 10)) ? text(store.followUp, 10) : "", notes: text(store.notes, 2000), outreachDraft: text(store.outreachDraft, 5000) };
+  });
+  if (stores.some(store => !store)) return reply(400, { error: "Each store needs a name." });
+  const release = data.release && typeof data.release === "object" ? data.release : {};
+  const cleanedRelease = { artist: text(release.artist, 120), title: text(release.title, 160), format: text(release.format, 80), genre: text(release.genre, 120), releaseDate: /^\d{4}-\d{2}-\d{2}$/.test(text(release.releaseDate, 10)) ? text(release.releaseDate, 10) : "", wholesale: text(release.wholesale, 80), suggestedRetail: text(release.suggestedRetail, 80), terms: text(release.terms, 1000), epk: https(release.epk), listen: https(release.listen), contactName: text(release.contactName, 120), contactEmail: email(release.contactEmail) };
+  const plan = JSON.stringify({ release: cleanedRelease, stores });
+  if (Buffer.byteLength(plan, "utf8") > 250000) return reply(400, { error: "Placement workspace is too large." });
+  const revision = randomUUID();
+  try {
+    await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...Key, name: { S: "Record placement workspace" }, plan: { S: plan }, revision: { S: revision }, updatedAt: { S: new Date().toISOString() } }, ConditionExpression: data.revision ? "revision = :revision" : "attribute_not_exists(userId)", ...(data.revision ? { ExpressionAttributeValues: { ":revision": { S: data.revision } } } : {}) }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return reply(409, { error: "Another device saved changes. Reload before saving again." });
+    throw error;
+  }
+  return reply(200, { revision });
+}
+
 function hasBookingContact(place) {
   return Boolean(place.websites?.length || place.emails?.length || place.phones?.length);
 }
@@ -2812,6 +2851,75 @@ function cleanTourMarket(value) {
 }
 
 const bookingWorkspaceId = "booking-workspace-v1";
+const epkWorkspaceId = "epk-workspace-v1";
+const epkPublicPartition = "epk-public";
+
+function cleanEpk(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const text = (value, max = 1000) => typeof value === "string" ? value.trim().slice(0, max) : "";
+  const https = value => /^https:\/\//i.test(text(value, 600)) ? text(value, 600) : "";
+  const email = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(value, 254)) ? text(value, 254).toLowerCase() : "";
+  const list = (value, max, cleaner) => Array.isArray(value) ? value.slice(0, max).map(cleaner).filter(Boolean) : [];
+  const links = value => list(value, 12, item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const label = text(item.label, 100), url = https(item.url);
+    return label && url ? { label, url } : null;
+  });
+  const quotes = list(data.pressQuotes, 8, item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const quote = text(item.quote, 500), source = text(item.source, 160), url = https(item.url);
+    return quote && source ? { quote, source, url } : null;
+  });
+  const kit = {
+    artistName: text(data.artistName, 120), hometown: text(data.hometown, 160),
+    genres: list(data.genres, 8, item => text(item, 60)), shortPitch: text(data.shortPitch, 300),
+    bio: text(data.bio, 5000), lineup: list(data.lineup, 16, item => text(item, 160)),
+    notableShows: list(data.notableShows, 20, item => text(item, 240)), pressQuotes: quotes,
+    musicLinks: links(data.musicLinks), videoLinks: links(data.videoLinks),
+    heroImage: https(data.heroImage), logoImage: https(data.logoImage),
+    stageRequirements: text(data.stageRequirements, 3000), techRequirements: text(data.techRequirements, 5000),
+    bookingName: text(data.bookingName, 120), bookingEmail: email(data.bookingEmail),
+    bookingPhone: text(data.bookingPhone, 40), website: https(data.website)
+  };
+  return kit.artistName ? kit : null;
+}
+
+async function epkWorkspace(event, method) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const ownerKey = { userId: { S: userId }, tourId: { S: epkWorkspaceId } };
+  if (method === "GET") {
+    const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
+    if (!result.Item) return reply(200, { kit: null, publicId: "", published: false, updatedAt: "" });
+    return reply(200, { kit: JSON.parse(result.Item.plan?.S || "{}"), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, updatedAt: result.Item.updatedAt?.S || "" });
+  }
+  const data = parseJsonBody(event), kit = cleanEpk(data?.kit), publish = data?.publish === true;
+  if (!kit) return reply(400, { error: "Add an artist name and valid EPK details." });
+  const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
+  const publicId = /^[0-9a-f-]{36}$/i.test(existing.Item?.publicId?.S || "") ? existing.Item.publicId.S : randomUUID();
+  const nowIso = new Date().toISOString(), plan = JSON.stringify(kit);
+  if (Buffer.byteLength(plan, "utf8") > 200000) return reply(400, { error: "This EPK is too large." });
+  const publicKey = { userId: { S: epkPublicPartition }, tourId: { S: publicId } };
+  await db.send(new TransactWriteItemsCommand({ TransactItems: [
+    { Put: { TableName: toursTable, Item: { ...ownerKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, publicId: { S: publicId }, published: { BOOL: publish }, updatedAt: { S: nowIso } } } },
+    publish
+      ? { Put: { TableName: toursTable, Item: { ...publicKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, updatedAt: { S: nowIso } } } }
+      : { Delete: { TableName: toursTable, Key: publicKey } }
+  ] }));
+  return reply(200, { publicId, published: publish, updatedAt: nowIso });
+}
+
+async function publicEpk(event, publicId) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin) || !/^[0-9a-f-]{36}$/i.test(publicId)) return reply(404, { error: "EPK not found." });
+  const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } }));
+  if (!result.Item) return reply(404, { error: "EPK not found." });
+  return reply(200, { kit: JSON.parse(result.Item.plan?.S || "{}"), updatedAt: result.Item.updatedAt?.S || "" });
+}
 async function bookingWorkspace(event, method) {
   const headers = corsHeaders(event.headers?.origin);
   const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
@@ -2876,7 +2984,8 @@ async function listTourPlans(event) {
   const userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId", ExpressionAttributeValues: { ":userId": { S: userId } }, ProjectionExpression: "tourId, #name, #plan, updatedAt", ExpressionAttributeNames: { "#name": "name", "#plan": "plan" }, Limit: 50, ScanIndexForward: false }));
-  const tours = (result.Items || []).filter(item => item.tourId?.S !== bookingWorkspaceId).map(item => { let plan = {}; try { plan = JSON.parse(item.plan?.S || "{}"); } catch { /* Ignore malformed legacy data. */ } return { tourId: item.tourId?.S || "", name: item.name?.S || "Tour", updatedAt: item.updatedAt?.S || "", plan }; });
+  const reservedWorkspaceIds = new Set([bookingWorkspaceId, epkWorkspaceId, recordStoreWorkspaceId]);
+  const tours = (result.Items || []).filter(item => !reservedWorkspaceIds.has(item.tourId?.S || "")).map(item => { let plan = {}; try { plan = JSON.parse(item.plan?.S || "{}"); } catch { /* Ignore malformed legacy data. */ } return { tourId: item.tourId?.S || "", name: item.name?.S || "Tour", updatedAt: item.updatedAt?.S || "", plan }; });
   return { statusCode: 200, headers, body: JSON.stringify({ tours }) };
 }
 
@@ -3093,10 +3202,14 @@ export const handler = async event => {
     }
 
     if (method === "POST" && path === "/record-stores/search") return await searchRecordStores(event);
+    if ((method === "GET" || method === "POST") && path === "/record-store-workspace") return await recordStoreWorkspace(event, method);
 
     if (method === "POST" && path === "/tour/manual-venue") return await addManualBookingVenue(event);
 
     if ((method === "GET" || method === "POST") && path === "/booking-pipeline") return await bookingWorkspace(event, method);
+    if ((method === "GET" || method === "POST") && path === "/epk") return await epkWorkspace(event, method);
+    const epkPublicMatch = path.match(/^\/epk\/public\/([0-9a-f-]{36})$/i);
+    if (method === "GET" && epkPublicMatch) return await publicEpk(event, epkPublicMatch[1]);
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
     if (method === "POST" && path === "/tours") return await saveTourPlan(event);
     if (method === "DELETE" && path.startsWith("/tours/")) return await deleteTourPlan(event, decodeURIComponent(path.slice(7)));

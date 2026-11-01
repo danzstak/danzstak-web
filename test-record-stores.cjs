@@ -14,6 +14,11 @@ assert.match(api, /slice\(0, 30\)/, "dense music cities should retain a useful n
 assert.match(api, /recordStores = await Promise\.all|reviewedDirectory, recordStores/, "tour markets should collect record stores with venue leads");
 assert.match(api, /POST["'] && path === "\/record-stores\/search"/, "the API should route standalone searches");
 assert.match(deploy, /POST \/record-stores\/search/, "deployment should provision the record-store route");
+assert.match(deploy, /POST \/record-store-workspace/, "deployment should provision the record-placement workspace");
 assert.match(booking, /Record stores along the route/, "tour results should expose route record stores");
 assert.doesNotMatch(client, /innerHTML/, "public store data must be rendered without HTML injection");
+assert.match(client, /Add to outreach/, "artists should be able to select a store for release outreach");
+assert.match(client, /wholesale or consignment/, "outreach must ask for the store's current policy rather than inventing one");
+assert.match(client, /record-store-workspace/, "record placement work should save to the signed-in account");
+assert.match(api, /const recordStoreWorkspaceId/, "record-placement data should have an isolated owner workspace");
 console.log("Record Store checks passed: menu, standalone search, route discovery, validation, attribution, and safe rendering.");

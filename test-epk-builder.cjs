@@ -1,0 +1,17 @@
+"use strict";
+const assert = require("node:assert/strict"), fs = require("node:fs");
+const html = fs.readFileSync("epk.html", "utf8"), client = fs.readFileSync("assets/epk.js", "utf8"), api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8"), feed = fs.readFileSync("feed.html", "utf8");
+assert.match(feed, /epk\.html[\s\S]*EPK Builder/, "the artist menu should expose the EPK Builder");
+for (const field of ["artistName","shortPitch","bio","lineup","notableShows","musicLinks","videoLinks","pressQuotes","stageRequirements","techRequirements","bookingEmail"]) assert.match(html, new RegExp(`id="${field}"`), `EPK field ${field} is missing`);
+assert.match(html, /Save private draft/, "EPKs must be private by default");
+assert.match(html, /Publish EPK/, "publishing must be explicit");
+assert.match(client, /\/epk\/public\//, "the public EPK should load from an opaque public route");
+assert.match(client, /credentials:"include"/, "private EPK operations should use opaque sessions");
+assert.doesNotMatch(client, /innerHTML/, "EPK content must not be injected as HTML");
+assert.match(api, /function cleanEpk\(/, "the API should validate EPK content");
+assert.match(api, /epkPublicPartition = "epk-public"/, "public EPKs should use isolated opaque records");
+assert.match(api, /TransactWriteItemsCommand/, "publish and private state should update atomically");
+assert.match(api, /reservedWorkspaceIds = new Set\(\[bookingWorkspaceId, epkWorkspaceId, recordStoreWorkspaceId\]\)/, "EPK and placement workspaces must not appear as saved tours");
+assert.match(deploy, /GET \/epk\/public\/\{publicId\}/, "deployment should provision public EPK reads");
+assert.match(deploy, /dynamodb:TransactWriteItems/, "EPK publishing should receive only the required transaction permission");
+console.log("EPK checks passed: private drafts, explicit publishing, sourced press fields, public links, validation, and safe rendering.");
