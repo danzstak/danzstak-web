@@ -2130,7 +2130,12 @@ function isSupportedBookingLead(place, genre = "") {
   // must have positive live-room evidence and a usable public contact path.
   // Results that fail either check are omitted instead of being placed on a
   // tour calendar with invented or incomplete information.
-  return isBookableClub(place, genre) && hasBookingContact(place);
+  // Reviewed directory entries already passed a human venue/genre check. Do
+  // not let broad place-search rejection words (for example "ballroom" in a
+  // real venue name or "jazz" in a room that also books punk) discard that
+  // stronger evidence. Unreviewed discovery results still use the strict
+  // classifier above.
+  return (place.verifiedRoom === true || isBookableClub(place, genre)) && hasBookingContact(place);
 }
 
 function normalizedVenueText(value) {
@@ -2503,6 +2508,13 @@ const verifiedOlympiaRooms = [
   { name: "Rhythms Coffee", address: "210 4th Ave W, Olympia, WA 98501", position: [-122.9034761, 47.0448992], websites: ["https://rhythms-coffee.com/"], emails: [], phones: [], categories: ["All Ages Venue", "Live Music", "Rock", "Folk"] }
 ];
 
+const verifiedTacomaRooms = [
+  { name: "Real Art Tacoma", address: "5412 S Tacoma Way, Tacoma, WA 98409", position: [-122.4829, 47.2067], websites: ["https://www.realarttacoma.com/how-to-book"], emails: ["booking@realarttacoma.com"], phones: [], categories: ["Nonprofit All Ages Venue", "DIY", "Punk", "Hardcore", "Rock", "Metal"] },
+  { name: "Airport Tavern", address: "5406 S Tacoma Way, Tacoma, WA 98409", position: [-122.4840, 47.2078], websites: ["https://www.airporttavern.com/"], emails: ["info@airporttavern.com"], phones: ["253-212-0709"], categories: ["Independent Live Music Venue", "Bar", "Punk", "Rock", "Metal"] },
+  { name: "Jazzbones", address: "2803 6th Ave, Tacoma, WA 98406", position: [-122.4746, 47.2556], websites: ["https://jazzbones.com/"], emails: ["booking@jazzbones.com"], phones: [], categories: ["Live Music Venue", "Rock", "Punk", "Metal", "Hip-Hop"] },
+  { name: "Spanish Ballroom", address: "565 Broadway, Tacoma, WA 98402", position: [-122.4401, 47.2583], websites: ["https://www.mcmenamins.com/spanish-ballroom"], emails: ["tacbox@mcmenamins.com"], phones: ["253-300-8744"], categories: ["Live Music Venue", "Rock", "Punk", "Metal"] }
+];
+
 const verifiedLongviewRooms = [
   { name: "The Roxy Theater", address: "1101 Commerce Ave, Longview, WA 98632", position: [-122.9358010, 46.1338320], websites: ["https://www.theroxylongview.com/contact"], emails: [], phones: ["360-703-3678"], categories: ["Independent Theater", "Live Music Venue", "Rock"] }
 ];
@@ -2587,6 +2599,9 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   } else if (latitude >= 45.40 && latitude <= 45.65 && longitude >= -122.85 && longitude <= -122.45) {
     rooms = verifiedPortlandRooms;
     locality = "Portland";
+  } else if (pointLabel.includes("tacoma") || (latitude >= 47.15 && latitude <= 47.32 && longitude >= -122.58 && longitude <= -122.34)) {
+    rooms = verifiedTacomaRooms;
+    locality = "Tacoma";
   } else if (latitude >= 46.95 && latitude <= 47.15 && longitude >= -123.05 && longitude <= -122.75) {
     rooms = verifiedOlympiaRooms;
     locality = "Olympia";
@@ -2714,11 +2729,23 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
       : approximateMilesBetween(point.position, place.position);
     return distance <= maximumMiles;
   };
+  const marketLocality = String(point.label || "").split(",")[0].trim().toLowerCase();
+  const belongsToMarket = place => {
+    const placeLocality = String(place.locality || "").trim().toLowerCase();
+    if (!placeLocality || !marketLocality || placeLocality === marketLocality) return true;
+    // Place search is intentionally biased rather than city-bounded. Keep only
+    // a truly adjacent room when the provider crosses a municipal boundary;
+    // never turn Tacoma into Seattle or San Francisco into a distant suburb.
+    const distance = Number.isFinite(place.distanceMiles)
+      ? place.distanceMiles
+      : approximateMilesBetween(point.position, place.position);
+    return distance <= 8;
+  };
   const curatedPool = curatedVenueLeads(point, genre, variation);
   const curated = curatedPool.filter(place => isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
   const reviewed = reviewedDirectory.filter(place => nearby(place, 60) && isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
   const discovered = venueBatches.flat()
-    .filter(place => nearby(place, 60) && isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey))
+    .filter(place => nearby(place, 60) && belongsToMarket(place) && isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey))
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre));
   const initialFallback = excludedVenueKeys.size || curated.length || discovered.length
     ? []
