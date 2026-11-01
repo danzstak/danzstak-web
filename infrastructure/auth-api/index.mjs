@@ -2025,9 +2025,7 @@ function isRecordStore(place) {
   // bookstores and unrelated retailers. Prefer a shorter list with explicit
   // record/vinyl evidence in the public name over wasting an artist's outreach.
   const clearlyWrongName = /\b(dental|dentist|real estate|realtor|video transfer|video production|audio visual|audio|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio|books?|press|productions?|music company|music center)\b/.test(name);
-  const genericWrongBusiness = /\b(real estate|realtor|restaurant|hotel|rehearsal|office|medical|dental|furniture|bookstore|electronics store|musical instrument)\b/.test(description);
   return !clearlyWrongName
-    && !genericWrongBusiness
     && (descriptiveSignal || (strongNameSignal && recordCategorySignal));
 }
 
@@ -2073,7 +2071,7 @@ async function searchRecordStores(event) {
   if (location.length < 2) return reply(400, { error: "Enter a city or region." });
   try {
     const point = await geocodeTourPlace(location);
-    const stores = await recordStoreCandidates(point, 60);
+    const stores = await recordStoreCandidates(point, 30);
     return reply(200, { location: point, stores });
   } catch (error) {
     if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });

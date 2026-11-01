@@ -11,6 +11,7 @@ assert.match(api, /used records vinyl/, "store discovery should use several quer
 assert.match(api, /record,\? cd/, "AWS's Record, CD & Video category should be recognized");
 assert.match(api, /strongNameSignal && recordCategorySignal/, "a listing should need explicit record\/vinyl evidence instead of a broad category alone");
 assert.match(api, /audio visual\|audio[\s\S]*music company\|music center/, "audio, instrument, video and generic music retailers should be excluded");
+assert.match(api, /recordStoreCandidates\(point, 30\)/, "standalone city searches should not drift into distant metro areas");
 assert.match(api, /slice\(0, 20\)/, "dense music cities should retain a focused number of credible store results");
 assert.match(api, /recordStores = await Promise\.all|reviewedDirectory, recordStores/, "tour markets should collect record stores with venue leads");
 assert.match(api, /POST["'] && path === "\/record-stores\/search"/, "the API should route standalone searches");
