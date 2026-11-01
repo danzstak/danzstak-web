@@ -15,6 +15,19 @@ $AuthIntegrationId = "5pipi5a"
 $ToursTable = "DANZSTAK-Tours"
 $VenueDirectoryTable = "DANZSTAK-VenueDirectory"
 
+$previousErrorPreference = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
+$identityJson = aws sts get-caller-identity --region $Region --output json 2>$null
+$identityExitCode = $LASTEXITCODE
+$ErrorActionPreference = $previousErrorPreference
+if ($identityExitCode -ne 0 -or [string]::IsNullOrWhiteSpace([string]$identityJson)) {
+  throw "AWS authentication is missing or expired. Run 'aws login', then rerun this deployment. No production resources were changed."
+}
+$identity = $identityJson | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace([string]$identity.Account)) {
+  throw "AWS identity could not be verified. No production resources were changed."
+}
+
 node --check $Source
 if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript validation failed." }
 
