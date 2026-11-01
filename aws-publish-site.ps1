@@ -5,6 +5,13 @@ $Root = $PSScriptRoot
 $Region = "us-west-1"
 $ExpectedWorkerCache = (Select-String -Path (Join-Path $Root "service-worker.js") -Pattern 'danzstak-shell-v\d+').Matches.Value
 
+function Invoke-ReleaseCheck {
+  param([string]$TestFile)
+  Write-Host "Running release check $TestFile..."
+  & node (Join-Path $Root $TestFile)
+  if ($LASTEXITCODE -ne 0) { throw "Release check failed: $TestFile" }
+}
+
 function Wait-ForPublishedWorker {
   param([string]$Url, [string]$ExpectedCache, [int]$MaxAttempts = 19, [int]$RetrySeconds = 10)
   if (-not $ExpectedCache) { throw "The local service worker has no release identifier." }
@@ -17,6 +24,11 @@ function Wait-ForPublishedWorker {
   }
   throw "The live service worker did not match release $ExpectedCache after $MaxAttempts checks."
 }
+
+# These checks cover the security boundary most likely to fail after an HTML
+# edit and the mobile controls users depend on to search, comment and chat.
+Invoke-ReleaseCheck -TestFile "test-feed-csp.cjs"
+Invoke-ReleaseCheck -TestFile "test-mobile-keyboard.cjs"
 
 Write-Host "Resolving the CloudFront distribution for $Domain..."
 $distributions = aws cloudfront list-distributions --region $Region --output json | ConvertFrom-Json
