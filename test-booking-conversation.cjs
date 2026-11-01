@@ -30,6 +30,8 @@ assert.equal(naturalRoundTrip.days, 10);
 assert.equal(naturalRoundTrip.shows, 8);
 const naturalDeparture = parse("Route Test. DIY punk. Seattle to San Francisco and back to Seattle. 10 days. 8 shows. Depart January 4, 2027.");
 assert.equal(naturalDeparture.departOn, "2027-01-04");
+const plainDeparture = parse("Codex. Punk. Seattle to San Francisco and back to Seattle. 10 days. 8 shows. January 1 2027.");
+assert.equal(plainDeparture.departOn, "2027-01-01", "a plain-language trailing date should set the first tour day");
 const spokenCommaRoute = parse("Route Test, DIY punk from Seattle to San Francisco and back to Seattle, 10 days, 8 shows, depart January 4 2027");
 assert.equal(spokenCommaRoute.act, "Route Test");
 assert.equal(spokenCommaRoute.genre, "DIY Punk");
@@ -84,7 +86,7 @@ const bookingConversation = fs.readFileSync("assets/booking-conversation.js", "u
 const bookingAgent = fs.readFileSync("assets/booking-agent.js", "utf8");
 const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 assert.match(markup, /id="bookingBriefForm"/);
-assert.match(markup, /assets\/booking-conversation\.js\?v=474/);
+assert.match(markup, /assets\/booking-conversation\.js\?v=475/);
 assert.match(markup, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/, "manual fields and the venue map should stay behind one optional disclosure");
 assert.match(bookingConversation, /details\.booking-tools/,
   "a missing plain-language field should reveal the optional manual controls before moving focus");

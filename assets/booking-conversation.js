@@ -29,7 +29,7 @@
       july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
       jan: 1, feb: 2, mar: 3, apr: 4, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12
     };
-    const named = text.match(/\b(?:depart(?:ing)?|starting|leaving|first show(?: is)?|on)\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(\d{4})\b/i);
+    const named = text.match(/\b(?:(?:depart(?:ing)?|starting|leaving|first show(?: is)?|on)\s+)?(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,)?\s+(\d{4})\b/i);
     if (!named) return "";
     const month = monthNames[named[1].toLowerCase()], day = Number(named[2]), year = Number(named[3]);
     if (!validDate(year, month, day)) return "";
