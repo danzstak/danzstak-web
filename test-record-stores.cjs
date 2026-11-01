@@ -1,0 +1,15 @@
+"use strict";
+const assert = require("node:assert/strict"), fs = require("node:fs");
+const api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), page = fs.readFileSync("record-stores.html", "utf8"), client = fs.readFileSync("assets/record-stores.js", "utf8"), booking = fs.readFileSync("assets/booking-agent.js", "utf8"), feed = fs.readFileSync("feed.html", "utf8"), deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8");
+assert.match(feed, /record-stores\.html[\s\S]*💿[\s\S]*Record Stores/, "the left menu should expose Record Stores with a record icon");
+assert.match(page, /recordstores\.love/, "the standalone search should attribute Record Stores Love");
+assert.match(client, /\/record-stores\/search/, "the standalone search should use the protected store API");
+assert.match(client, /credentials:"include"/, "record-store searches should use opaque authenticated sessions");
+assert.match(api, /function isRecordStore\(/, "the API should validate record-store business types");
+assert.match(api, /record store\|record shop\|vinyl records/, "store discovery should require record or vinyl evidence");
+assert.match(api, /recordStores = await Promise\.all|reviewedDirectory, recordStores/, "tour markets should collect record stores with venue leads");
+assert.match(api, /POST["'] && path === "\/record-stores\/search"/, "the API should route standalone searches");
+assert.match(deploy, /POST \/record-stores\/search/, "deployment should provision the record-store route");
+assert.match(booking, /Record stores along the route/, "tour results should expose route record stores");
+assert.doesNotMatch(client, /innerHTML/, "public store data must be rendered without HTML injection");
+console.log("Record Store checks passed: menu, standalone search, route discovery, validation, attribution, and safe rendering.");

@@ -1088,6 +1088,9 @@
         venueSummary = document.createElement("summary"),
         venueGrid = document.createElement("div"),
         venueStatus = document.createElement("p"),
+        recordDetails = document.createElement("details"),
+        recordSummary = document.createElement("summary"),
+        recordGrid = document.createElement("div"),
         hotelDetails = document.createElement("details"),
         hotelSummary = document.createElement("summary"),
       hotelGrid = document.createElement("div"),
@@ -1113,15 +1116,18 @@
       venueStatus.className = "hint";
       venueStatus.textContent = "";
       const budgetHotels = (market.hotels || []).slice(0, 2),
-        vanStops = (market.vanStops || []).slice(0, 2);
+        vanStops = (market.vanStops || []).slice(0, 2),
+        recordStores = (market.recordStores || []).slice(0, 4);
+      recordSummary.textContent = `💿 Record stores along the route (${recordStores.length})`;
       hotelSummary.textContent = `Budget sleep leads (${budgetHotels.length})`;
       vanSummary.textContent = `Possible van-rest leads (${vanStops.length})`;
       vanWarning.className = "hint";
       vanWarning.textContent = "Verify overnight permission, current rules, lighting and safety before stopping. A public listing is not permission to sleep there.";
-      venueGrid.className = hotelGrid.className = vanGrid.className = "place-grid";
+      venueGrid.className = recordGrid.className = hotelGrid.className = vanGrid.className = "place-grid";
       marketVenues.slice(0, 6).forEach((place) =>
         venueGrid.append(placeCard(place, "club")),
       );
+      recordStores.forEach((place) => recordGrid.append(placeCard(place, "record-store")));
       budgetHotels.forEach((place) =>
         hotelGrid.append(placeCard(place, "hotel")),
       );
@@ -1129,10 +1135,12 @@
       venueDetails.append(venueSummary);
       if (venueStatus.textContent) venueDetails.append(venueStatus);
       venueDetails.append(venueGrid);
+      if (recordStores.length) recordDetails.append(recordSummary, recordGrid);
       if (budgetHotels.length) hotelDetails.append(hotelSummary, hotelGrid);
       if (vanStops.length) vanDetails.append(vanSummary, vanWarning, vanGrid);
       section.className = "route-market";
       section.append(heading, confirmation, venueDetails);
+      if (recordStores.length) section.append(recordDetails);
       if (budgetHotels.length) section.append(hotelDetails);
       if (vanStops.length) section.append(vanDetails);
       routeResults.append(section);

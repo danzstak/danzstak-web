@@ -32,6 +32,7 @@ async function run(fail, genre = "DIY Punk") {
       } finally { active -= 1; }
     } },
     publicPlace: place => place,
+    recordStoreCandidates: async () => [],
     approvedMemberVenueLeads: async () => [],
     curatedVenueLeads: () => [],
     isBookableClub: () => true,

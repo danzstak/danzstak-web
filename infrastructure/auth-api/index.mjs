@@ -2014,6 +2014,60 @@ function isVenueTypeMatch(place, venueType = "any") {
   return false;
 }
 
+function isRecordStore(place) {
+  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
+  const recordSignal = /\b(record store|record shop|vinyl records?|vinyl shop|music store)\b/.test(description);
+  const wrongBusiness = /\b(real estate|realtor|restaurant|hotel|rehearsal|studio|instrument|guitar|piano|electronics|bookstore|video game|thrift|furniture|office)\b/.test(description);
+  return recordSignal && !wrongBusiness;
+}
+
+async function recordStoreCandidates(point, maximumMiles = 45) {
+  const queries = ["record store vinyl shop", "independent record shop", "vinyl records music store"];
+  const batches = await mapLimit(queries, 2, async query => {
+    const result = await geoPlaces.send(new SearchTextCommand({
+      QueryText: query,
+      BiasPosition: point.position,
+      MaxResults: 30,
+      AdditionalFeatures: ["Contact"]
+    }));
+    return (result.ResultItems || []).map(publicPlace);
+  });
+  return deduplicateVenues(batches.flat())
+    .filter(isRecordStore)
+    .filter(place => approximateMilesBetween(point.position, place.position) <= maximumMiles)
+    .sort((left, right) => approximateMilesBetween(point.position, left.position) - approximateMilesBetween(point.position, right.position))
+    .slice(0, 12)
+    .map(place => ({
+      ...place,
+      sourceName: "Current public place listing",
+      sources: [
+        { name: "Current public place listing", url: place.websites?.[0] || "" },
+        { name: "Explore more on recordstores.love", url: "https://recordstores.love/" }
+      ],
+      activityEvidence: "A current public record-store listing was returned. Check the store website or recordstores.love before visiting."
+    }));
+}
+
+async function searchRecordStores(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const data = parseJsonBody(event);
+  const location = String(data?.location || "").trim().slice(0, 120);
+  if (location.length < 2) return reply(400, { error: "Enter a city or region." });
+  try {
+    const point = await geocodeTourPlace(location);
+    const stores = await recordStoreCandidates(point, 60);
+    return reply(200, { location: point, stores, directoryUrl: "https://recordstores.love/" });
+  } catch (error) {
+    if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });
+    console.error("Record store search failed", { name: error.name });
+    return reply(502, { error: "Record store search is temporarily unavailable." });
+  }
+}
+
 function hasBookingContact(place) {
   return Boolean(place.websites?.length || place.emails?.length || place.phones?.length);
 }
@@ -2576,7 +2630,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     "truck stop rest area campground",
     ...venueQueries
   ];
-  const [searchResults, reviewedDirectory] = await Promise.all([
+  const [searchResults, reviewedDirectory, recordStores] = await Promise.all([
     mapLimit(discoveryQueries, 3, async query => {
       try {
         return { status: "fulfilled", value: await search(query) };
@@ -2584,7 +2638,8 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
         return { status: "rejected", reason };
       }
     }),
-    approvedMemberVenueLeads(point, searchBounds)
+    approvedMemberVenueLeads(point, searchBounds),
+    recordStoreCandidates(point).catch(() => [])
   ]);
   const [hotelSearch, vanRestSearch, ...venueSearches] = searchResults;
   // A failed category lookup must not discard clubs found by the other searches.
@@ -2612,7 +2667,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60);
   const hotels = hotelResults.filter(place => nearby(place, 35)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   const vanStops = vanRestResults.filter(place => nearby(place, 25)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
-  return { stop: point.label, position: point.position, venues, hotels, vanStops };
+  return { stop: point.label, position: point.position, venues, hotels, vanStops, recordStores };
 }
 
 async function planTourRoute(event) {
@@ -3024,6 +3079,8 @@ export const handler = async event => {
     if (method === "POST" && path === "/tour/route") {
       return await planTourRoute(event);
     }
+
+    if (method === "POST" && path === "/record-stores/search") return await searchRecordStores(event);
 
     if (method === "POST" && path === "/tour/manual-venue") return await addManualBookingVenue(event);
 

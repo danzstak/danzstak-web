@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; img-src 'self' data: https:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>Record Stores | DanzStak</title>
+  <meta name="description" content="Find independent record stores around the world and along a DanzStak tour route.">
+  <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
+  <link rel="stylesheet" href="assets/record-stores.css?v=1">
+  <link rel="stylesheet" href="assets/accessibility.css?v=364">
+</head>
+<body>
+  <a class="skip-link" href="#recordStoreMain">Skip to record store search</a>
+  <header><a href="feed.html"><img src="assets/danzstak-logo.png" alt="DanzStak"></a><nav><a href="feed.html">Your Mix</a><a href="booking.html">Booking Agent</a></nav></header>
+  <main id="recordStoreMain" tabindex="-1">
+    <section class="hero">
+      <span class="record-icon" aria-hidden="true">💿</span>
+      <div><p class="eyebrow">DanzStak crate finder</p><h1>Record Stores</h1><p>Find independent shops near home, a gig, or the next town on tour.</p></div>
+    </section>
+    <section class="search-card">
+      <form id="recordStoreForm">
+        <label for="recordStoreLocation">City or region</label>
+        <div class="search-row"><input id="recordStoreLocation" maxlength="120" autocomplete="address-level2" placeholder="Portland, Oregon" required><button type="submit">Find stores</button></div>
+      </form>
+      <p id="recordStoreStatus" role="status" aria-live="polite">Enter a city to start digging.</p>
+    </section>
+    <section id="recordStoreResults" class="store-grid" aria-label="Record store results"></section>
+    <p class="directory-credit">More crate digging: <a href="https://recordstores.love/" target="_blank" rel="noopener noreferrer">recordstores.love — The Record Store Map</a>.</p>
+  </main>
+  <script src="assets/record-stores.js?v=1" defer></script>
+</body>
+</html>
