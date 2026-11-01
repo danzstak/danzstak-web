@@ -15,6 +15,7 @@ assert.match(api, /recordStores = await Promise\.all|reviewedDirectory, recordSt
 assert.match(api, /POST["'] && path === "\/record-stores\/search"/, "the API should route standalone searches");
 assert.match(deploy, /POST \/record-stores\/search/, "deployment should provision the record-store route");
 assert.match(deploy, /POST \/record-store-workspace/, "deployment should provision the record-placement workspace");
+assert.match(deploy, /AllowRecordStoreWorkspaceFromApiGateway/, "the record-placement workspace must be invokable through API Gateway");
 assert.match(booking, /Record stores along the route/, "tour results should expose route record stores");
 assert.doesNotMatch(client, /innerHTML/, "public store data must be rendered without HTML injection");
 assert.match(client, /Add to outreach/, "artists should be able to select a store for release outreach");

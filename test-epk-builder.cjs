@@ -14,4 +14,5 @@ assert.match(api, /TransactWriteItemsCommand/, "publish and private state should
 assert.match(api, /reservedWorkspaceIds = new Set\(\[bookingWorkspaceId, epkWorkspaceId, recordStoreWorkspaceId\]\)/, "EPK and placement workspaces must not appear as saved tours");
 assert.match(deploy, /GET \/epk\/public\/\{publicId\}/, "deployment should provision public EPK reads");
 assert.match(deploy, /dynamodb:TransactWriteItems/, "EPK publishing should receive only the required transaction permission");
+assert.match(deploy, /AllowEpkFromApiGateway/, "the deployed EPK routes must be invokable through API Gateway");
 console.log("EPK checks passed: private drafts, explicit publishing, sourced press fields, public links, validation, and safe rendering.");
