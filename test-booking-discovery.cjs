@@ -36,6 +36,7 @@ async function run(fail, genre = "DIY Punk") {
     approvedMemberVenueLeads: async () => [],
     curatedVenueLeads: () => [],
     isBookableClub: () => true,
+    isSupportedBookingLead: () => true,
     isVenueTypeMatch: () => true,
     venueSuitability: () => 1,
     deduplicateVenues: places => [...new Map(places.map(place => [place.venueKey, place])).values()]

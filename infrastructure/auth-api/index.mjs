@@ -1951,10 +1951,10 @@ function publicPlace(place) {
     sources: [{ name: "AWS Places public listing", url: websites[0] || "" }],
     discoveredAt,
     activityEvidence: websites.length
-      ? "A public venue website was returned by the current place search."
+      ? "Current public place data includes this venue website. Check its live calendar and booking instructions before pitching."
       : emails.length || phones.length
-        ? "A public contact was returned by the current place search."
-        : "A current public place listing was returned; confirm live-show activity before contacting."
+        ? "Current public place data includes a direct contact. Confirm that it handles live-show booking before pitching."
+        : "No usable public contact was returned. This listing is not eligible for a DanzStak booking lead."
   };
 }
 
@@ -2121,6 +2121,14 @@ async function recordStoreWorkspace(event, method) {
 
 function hasBookingContact(place) {
   return Boolean(place.websites?.length || place.emails?.length || place.phones?.length);
+}
+
+function isSupportedBookingLead(place, genre = "") {
+  // A plausible name is not a booking lead. Every result shown to an artist
+  // must have positive live-room evidence and a usable public contact path.
+  // Results that fail either check are omitted instead of being placed on a
+  // tour calendar with invented or incomplete information.
+  return isBookableClub(place, genre) && hasBookingContact(place);
 }
 
 function normalizedVenueText(value) {
@@ -2705,12 +2713,14 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     return distance <= maximumMiles;
   };
   const curatedPool = curatedVenueLeads(point, genre, variation);
-  const curated = curatedPool.filter(place => isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
-  const reviewed = reviewedDirectory.filter(place => nearby(place, 60) && isBookableClub(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
+  const curated = curatedPool.filter(place => isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
+  const reviewed = reviewedDirectory.filter(place => nearby(place, 60) && isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
   const discovered = venueBatches.flat()
-    .filter(place => nearby(place, 60) && isBookableClub(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey))
+    .filter(place => nearby(place, 60) && isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey))
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre));
-  const initialFallback = excludedVenueKeys.size || curated.length || discovered.length ? [] : curatedPool;
+  const initialFallback = excludedVenueKeys.size || curated.length || discovered.length
+    ? []
+    : curatedPool.filter(place => isSupportedBookingLead(place, genre));
   // Live map discovery is the product. Curated records only fill genuine gaps and
   // must never crowd newly discovered rooms out of the first results.
   const venuePool = deduplicateVenues([...reviewed, ...discovered, ...curated, ...initialFallback]);

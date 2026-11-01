@@ -945,16 +945,45 @@
     card.append(contacts, notice);
     return card;
   }
+  function orderedCandidateMarkets(data) {
+    const candidates = (data.candidates || []).filter(market =>
+        market?.stop &&
+        !/^tour corridor stop\b/i.test(market.stop) &&
+        Array.isArray(market.venues) && market.venues.length > 0
+      ),
+      itinerary = routeItineraryMarkets(data.route, candidates),
+      marketKey = value => String(value || "").split(",")[0].trim().toLowerCase();
+    return itinerary.map(stop => candidates.find(market => marketKey(market.stop) === marketKey(stop)) || null).filter(Boolean);
+  }
+  function evenlySampleMarkets(markets, count) {
+    if (!count || !markets.length) return [];
+    if (markets.length <= count) return markets.slice();
+    if (count === 1) return [markets.at(-1)];
+    return Array.from({ length: count }, (_, index) => markets[Math.round(index * (markets.length - 1) / (count - 1))]);
+  }
+  function targetTourMarkets(data) {
+    const markets = orderedCandidateMarkets(data),
+      days = Math.max(1, Number(data.route.requestedDays) || number("days") || 1),
+      requestedShows = Math.max(1, Math.min(days, Number(data.route.requestedShows) || number("showCount") || 1)),
+      shows = Math.min(requestedShows, Math.max(1, markets.length * 2 - 1));
+    if (data.route.local || markets.length < 2) return markets.slice(0, shows);
+    const outwardCount = Math.min(markets.length, Math.max(2, Math.ceil((shows + 1) * 0.6))),
+      returnCount = Math.max(0, shows - outwardCount),
+      outward = evenlySampleMarkets(markets, outwardCount),
+      returnPool = markets.slice(0, -1).reverse(),
+      returning = evenlySampleMarkets(returnPool, returnCount);
+    return [...outward, ...returning];
+  }
   function renderRouteMap(data) {
     const route = data.route,
       startCity = String(route.start?.label || "").split(",")[0].trim().toLowerCase(),
-      discoveredPoints = (data.candidates || [])
+      targetPoints = targetTourMarkets(data)
         .filter((market) => Array.isArray(market.position) && market.position.length === 2)
         .map((market) => ({ label: market.stop, position: market.position, proposedDate: market.proposedDate }))
         .filter((point) => String(point.label || "").split(",")[0].trim().toLowerCase() !== startCity),
       points = route.local
         ? [route.start, ...(route.stops || []), route.end].filter(Boolean)
-        : [route.start, ...(discoveredPoints.length ? discoveredPoints : route.stops || []), route.end].filter(Boolean),
+        : [route.start, ...(targetPoints.length ? targetPoints : route.stops || []), route.end].filter(Boolean),
       figure = document.createElement("figure"),
       caption = document.createElement("figcaption"),
       svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"),
@@ -1059,17 +1088,14 @@
     summary.className = "route-summary";
     summary.append(title, details, status);
     routeResults.append(summary, renderProposedCalendar(data), renderRouteMap(data));
-    const candidateMarkets = (data.candidates || []).filter((market) =>
-        market?.stop &&
-        !/^tour corridor stop\b/i.test(market.stop) &&
-        Array.isArray(market.venues) && market.venues.length > 0
-      ),
-      itineraryMarkets = routeItineraryMarkets(data.route, candidateMarkets),
-      marketKey = (value) => String(value || "").split(",")[0].trim().toLowerCase(),
-      displayedMarkets = itineraryMarkets.map((stop) => {
-        const candidate = candidateMarkets.find((market) => marketKey(market.stop) === marketKey(stop));
-        return candidate || null;
-      }).filter(Boolean);
+    const targetMarkets = targetTourMarkets(data),
+      seenMarkets = new Set(),
+      displayedMarkets = targetMarkets.filter(market => {
+        const key = String(market.stop || "").split(",")[0].trim().toLowerCase();
+        if (!key || seenMarkets.has(key)) return false;
+        seenMarkets.add(key);
+        return true;
+      }).slice(0, 8);
     if (!displayedMarkets.length) {
       const empty = document.createElement("section"),
         emptyTitle = document.createElement("h3"),
@@ -1154,48 +1180,48 @@
       list = document.createElement("ol"),
       days = Math.max(1, Number(data.route.requestedDays) || number("days") || 1),
       shows = Math.max(1, Math.min(days, Number(data.route.requestedShows) || number("showCount") || 1)),
-      candidates = (data.candidates || []).filter(market =>
-        market.stop && !/^tour corridor stop\b/i.test(market.stop) && Array.isArray(market.venues) && market.venues.length
-      ),
-      markets = routeItineraryMarkets(data.route, candidates).map(stop => {
-        const city = String(stop).split(",")[0].trim().toLowerCase(),
-          candidate = candidates.find(market => String(market.stop).split(",")[0].trim().toLowerCase() === city);
-        return candidate || null;
-      }).filter(Boolean);
+      markets = targetTourMarkets(data);
     details.className = "proposed-calendar";
     summary.textContent = `${days}-day target calendar · ${shows} proposed shows`;
     intro.className = "hint";
     intro.textContent = "This is a working pitch plan, not a confirmed tour. A show becomes real only after the venue agrees.";
     list.className = "tour-calendar";
     const start = new Date(`${data.route.departOn || departInput.value}T12:00:00Z`);
-    const returnDays = Math.min(4, Math.max(0, days - shows)),
-      performanceDays = Math.max(shows, days - returnDays);
+    const restCount = Math.max(0, days - shows),
+      restDays = new Set(Array.from({ length: restCount }, (_, index) =>
+        Math.max(1, Math.min(days - 2, Math.round(((index + 1) * days) / (restCount + 1)) - 1))
+      ));
     let showIndex = 0;
+    const usedVenues = new Set();
     for (let day = 0; day < days; day += 1) {
       const date = new Date(start);
       date.setUTCDate(date.getUTCDate() + day);
-      const shouldShow = day < performanceDays && Math.floor(((day + 1) * shows) / performanceDays) > Math.floor((day * shows) / performanceDays),
-        progress = performanceDays <= 1 ? 0 : Math.min(day, performanceDays - 1) / (performanceDays - 1),
-        market = markets[Math.min(markets.length - 1, Math.floor(progress * markets.length))],
+      const shouldShow = !restDays.has(day) && showIndex < shows,
+        market = markets[Math.min(markets.length - 1, showIndex)],
         item = document.createElement("li"),
         dayHeading = document.createElement("strong"),
         dayDetail = document.createElement("span"),
         dateLabel = date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
-      if (shouldShow && market) {
-        const venueCount = Math.min(6, market.venues?.length || 0),
-          venue = venueCount ? market.venues[showIndex % venueCount] : null;
+      const venueKey = venue => venue.venueKey || `${market?.stop}|${venue.name}`.toLowerCase(),
+        venue = shouldShow && market
+          ? market.venues.find(candidate => !usedVenues.has(venueKey(candidate)))
+          : null;
+      if (venue) {
+        usedVenues.add(venueKey(venue));
         dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · SHOW TARGET`;
         dayDetail.textContent = `${market.stop} — ${venue.name} · Arrive 4:00 PM · Soundcheck 5:00 PM`;
         showIndex += 1;
       } else {
-        const returningHome = day >= performanceDays,
-          label = returningHome ? `Return toward ${data.route.start?.label || "home"}` : day === 0 ? data.route.start?.label : market?.stop || data.route.start?.label;
+        const returningHome = showIndex >= Math.ceil(shows * 0.6),
+          label = returningHome ? `Return toward ${data.route.start?.label || "home"}` : market?.stop || data.route.start?.label;
         dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · TRAVEL / REST`;
-        dayDetail.textContent = `${label || "Route day"} — ${returningHome ? "safe return drive; everyone and the vehicle finish at home." : "drive, load-in buffer, laundry or sleep."}`;
+        dayDetail.textContent = `${label || "Route day"} — ${returningHome ? "safe return drive; everyone and the vehicle finish at home." : shouldShow ? "No additional club lead for this date; booking research needed." : "drive, load-in buffer, laundry or sleep."}`;
       }
       item.append(dayHeading, dayDetail);
       list.append(item);
     }
+    summary.textContent = `${days}-day target calendar · ${showIndex} proposed shows`;
+    if (showIndex < shows) intro.textContent += ` ${shows} shows requested; ${shows - showIndex} still need club leads.`;
     details.append(summary, intro, list);
     return details;
   }

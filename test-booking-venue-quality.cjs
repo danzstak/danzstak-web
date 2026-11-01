@@ -56,6 +56,13 @@ assert.equal(isVenueTypeMatch({ name: "Night Room", categories: ["Nightclub"] },
 assert.equal(isVenueTypeMatch({ name: "Town Music Hall", categories: ["Concert Venue"] }, "hall"), true);
 assert.equal(isVenueTypeMatch({ name: "Town Music Hall", categories: ["Concert Venue"] }, "bar"), false);
 
+const leadContext = vm.createContext({});
+vm.runInContext(api.slice(start, api.indexOf("function normalizedVenueText", start)), leadContext);
+const isSupportedBookingLead = vm.runInContext("isSupportedBookingLead", leadContext);
+assert.equal(isSupportedBookingLead({ name: "Real Room", categories: ["Live Music Venue"], websites: ["https://room.example"], emails: [], phones: [] }, "Rock"), true, "a real live room with a public contact path can be shown as a lead");
+assert.equal(isSupportedBookingLead({ name: "Mystery Room", categories: ["Live Music Venue"], websites: [], emails: [], phones: [] }, "Rock"), false, "a venue with no public contact path must not be presented as a booking lead");
+assert.equal(isSupportedBookingLead({ name: "Roger Morris Real Estate", categories: ["Real Estate"], websites: ["https://example.com"], emails: [], phones: [] }, "Rock"), false, "a contact path cannot make an unrelated business a venue");
+
 const client = fs.readFileSync("assets/booking-agent.js", "utf8");
 assert.match(client, /Search again for different clubs/);
 assert.match(client, /excludeVenueKeys/);
@@ -101,7 +108,7 @@ assert.match(client, /Navigate to this club/);
 assert.match(client, /dir_action=navigate/);
 assert.match(client, /https:\/\/maps\.apple\.com/);
 assert.match(api, /pointLabel\.includes\("san francisco"\)/);
-assert.match(api, /excludedVenueKeys\.size \|\| curated\.length \|\| discovered\.length \? \[\] : curatedPool/);
+assert.match(api, /curatedPool\.filter\(place => isSupportedBookingLead\(place, genre\)\)/, "curated fallback rooms must pass the same evidence and contact gate as live discoveries");
 assert.match(api, /discoveryGenre \? `\$\{discoveryGenre\} music club`/);
 assert.match(api, /searchBounds/);
 assert.match(api, /Filter: \{ BoundingBox:/);
@@ -109,7 +116,7 @@ assert.match(api, /slice\(0, 24\)/);
 assert.match(api, /searchPath\.length >= 2[\s\S]*sampleCount = Math\.min\(5, searchPath\.length\)[\s\S]*Promise\.all\(samplePoints\.map/, "drawn routes must search several areas along the path instead of only its midpoint");
 assert.match(api, /distanceToSearchPathMiles\(place\.position, searchPath\) <= 25/, "drawn-route results must stay close to the path");
 const tourCandidateSource = api.slice(api.indexOf("async function tourCandidates"), api.indexOf("async function planTourRoute"));
-assert.doesNotMatch(tourCandidateSource, /hasBookingContact\(place\)/, "real music rooms without a published booking contact must still appear for later verification");
+assert.match(tourCandidateSource, /isSupportedBookingLead\(place, genre\)/, "every returned club must have live-room evidence and a public contact path");
 
 const curatedStart = api.indexOf("const verifiedSanFranciscoRooms");
 const curatedEnd = api.indexOf("async function tourCandidates", curatedStart);

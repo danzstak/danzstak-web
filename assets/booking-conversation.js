@@ -41,7 +41,7 @@
       parsed.destination = tidyPlace(chainedRoute[3]);
       parsed.mode = "tour";
     }
-    const route = !chainedRoute && text.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:and\s+back|then\s+back|and\s+home|return(?:ing)?\s+home|for\s+\d+\s*(?:-| )?days?|starting\s+\d{4}-\d{2}-\d{2})\b|$)/i);
+    const route = !chainedRoute && text.replace(/^tour\s+(?!from\b)/i, "from ").match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:and\s+back|then\s+back|and\s+home|return(?:ing)?\s+home|(?:for|in)\s+\d+\s*(?:-| )?days?|starting\s+\d{4}-\d{2}-\d{2})\b|$)/i);
     if (route) { parsed.home = tidyPlace(route[1]); parsed.destination = tidyPlace(route[2]); parsed.mode = "tour"; }
     else if (!chainedRoute) {
       const home = text.match(/\b(?:from|home(?:town)?\s+is)\s+(.+?)(?=\s+(?:and|travel|tour|head|go)\b|$)/i);
@@ -65,7 +65,10 @@
     if (parsed.mode) setValue("bookingMode", parsed.mode);
     if (parsed.direction) setValue("travelDirection", parsed.direction);
     if (parsed.destination) setValue("endCity", parsed.destination);
-    if (parsed.stops?.length) setValue("tourStops", parsed.stops.join("\n"));
+    if (parsed.mode) {
+      const stops = field("tourStops");
+      if (stops) stops.value = (parsed.stops || []).join("\n");
+    }
   }
 
   form.addEventListener("submit", event => {
@@ -94,4 +97,9 @@
   });
 
   window.danzstakParseTourBrief = parseTourBrief;
+  const routeStatus = field("routeSearchStatus");
+  if (routeStatus && typeof MutationObserver !== "undefined") {
+    new MutationObserver(() => { status.textContent = routeStatus.textContent; })
+      .observe(routeStatus, { childList: true, characterData: true, subtree: true });
+  }
 })();
