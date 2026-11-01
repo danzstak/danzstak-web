@@ -1995,6 +1995,9 @@ function isBookableClub(place, genre = "") {
 function venueSuitability(place, genre = "") {
   const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
   let score = 0;
+  // A human-reviewed room with an official booking page is more useful to a
+  // touring act than a famous venue returned by a broad map keyword search.
+  if (place.verifiedRoom) score += 40;
   if (/\b(live music|music venue|rock club|punk club|metal club|concert venue)\b/.test(description)) score += 12;
   if (/\b(club|bar|pub|tavern|lounge|music hall|taproom|brewery|roadhouse)\b/.test(description)) score += 5;
   if (/\b(independent|diy|all ages|punk|metal|rock)\b/.test(description)) score += 4;
@@ -2508,6 +2511,14 @@ const verifiedOlympiaRooms = [
   { name: "Rhythms Coffee", address: "210 4th Ave W, Olympia, WA 98501", position: [-122.9034761, 47.0448992], websites: ["https://rhythms-coffee.com/"], emails: [], phones: [], categories: ["All Ages Venue", "Live Music", "Rock", "Folk"] }
 ];
 
+const verifiedSeattleRooms = [
+  { name: "The Vera Project", address: "161 Republican St, Seattle, WA 98109", position: [-122.35391, 47.62313], websites: ["https://theveraproject.org/booking-info/"], emails: ["booking@theveraproject.org"], phones: ["206-956-8372"], categories: ["Nonprofit All Ages Venue", "DIY", "Punk", "Hardcore", "Rock", "Electronic"] },
+  { name: "Blue Moon Tavern", address: "712 NE 45th St, Seattle, WA 98105", position: [-122.32002, 47.66149], websites: ["https://www.thebluemoonseattle.com/specs-booking"], emails: ["bluemoonseattle@gmail.com"], phones: ["206-675-9116"], categories: ["Independent Live Music Venue", "Bar", "Punk", "Rock", "Metal"] },
+  { name: "The Mountain Room", address: "3100 Airport Way S, Seattle, WA 98134", position: [-122.32044, 47.57655], websites: ["https://www.themountainroomseattle.com/booking"], emails: [], phones: [], categories: ["Independent Live Music Venue", "Bar", "Punk", "Rock", "Metal", "Emerging Artists"] },
+  { name: "Substation", address: "645 NW 45th St, Seattle, WA 98107", position: [-122.36564, 47.66125], websites: ["https://substationseattle.com/"], emails: ["booking@substationseattle.com"], phones: ["206-782-1885"], categories: ["DIY Live Music Venue", "Punk", "Hardcore", "Rock", "Metal", "Electronic"] },
+  { name: "Tractor Tavern", address: "5213 Ballard Ave NW, Seattle, WA 98107", position: [-122.3828, 47.66571], websites: ["https://tractortavern.com/booking/"], emails: ["booking@tractortavern.com"], phones: ["206-789-3599"], categories: ["Independent Live Music Venue", "Rock", "Punk", "Country", "Hip-Hop"] }
+];
+
 const verifiedTacomaRooms = [
   { name: "Real Art Tacoma", address: "5412 S Tacoma Way, Tacoma, WA 98409", position: [-122.4829, 47.2067], websites: ["https://www.realarttacoma.com/how-to-book"], emails: ["booking@realarttacoma.com"], phones: [], categories: ["Nonprofit All Ages Venue", "DIY", "Punk", "Hardcore", "Rock", "Metal"] },
   { name: "Airport Tavern", address: "5406 S Tacoma Way, Tacoma, WA 98409", position: [-122.4840, 47.2078], websites: ["https://www.airporttavern.com/"], emails: ["info@airporttavern.com"], phones: ["253-212-0709"], categories: ["Independent Live Music Venue", "Bar", "Punk", "Rock", "Metal"] },
@@ -2596,6 +2607,9 @@ function curatedVenueLeads(point, genre = "", variation = 0) {
   if (pointLabel.includes("san francisco") || (latitude >= 37.68 && latitude <= 37.86 && longitude >= -122.55 && longitude <= -122.32)) {
     rooms = verifiedSanFranciscoRooms;
     locality = "San Francisco";
+  } else if (pointLabel.includes("seattle") || (latitude >= 47.50 && latitude <= 47.73 && longitude >= -122.46 && longitude <= -122.22)) {
+    rooms = verifiedSeattleRooms;
+    locality = "Seattle";
   } else if (latitude >= 45.40 && latitude <= 45.65 && longitude >= -122.85 && longitude <= -122.45) {
     rooms = verifiedPortlandRooms;
     locality = "Portland";
@@ -2752,7 +2766,9 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     : curatedPool.filter(place => isSupportedBookingLead(place, genre));
   // Live map discovery is the product. Curated records only fill genuine gaps and
   // must never crowd newly discovered rooms out of the first results.
-  const venuePool = deduplicateVenues([...reviewed, ...discovered, ...curated, ...initialFallback]);
+  const venuePool = deduplicateVenues([...reviewed, ...discovered, ...curated, ...initialFallback])
+    .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre)
+      || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
   const offset = venuePool.length ? variation % venuePool.length : 0;
   const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60);
   const hotels = hotelResults.filter(place => nearby(place, 35)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);

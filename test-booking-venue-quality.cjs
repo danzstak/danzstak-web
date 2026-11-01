@@ -130,6 +130,7 @@ const dunsmuirLeads = curatedVenueLeads({ label: "Dunsmuir, CA, United States", 
 assert.deepEqual(Array.from(dunsmuirLeads, place => place.name), ["Dunsmuir Brewery Works", "Jubilee Railroad Dining Car"], "Dunsmuir route points must resolve to current local rooms rather than remain empty");
 assert.equal(dunsmuirLeads.every(place => place.locality === "Dunsmuir" && place.contactVerificationRequired === true), true, "small-market leads must keep locality and confirmation warnings");
 for (const [label, position, expectedName] of [
+  ["Seattle, WA, United States", [-122.3350, 47.6090], "The Vera Project"],
   ["Kelso, WA, United States", [-122.9038, 46.1436], "The Basement on Allen"],
   ["Corvallis, OR, United States", [-123.2630, 44.5596], "Common Fields"],
   ["Cottage Grove, OR, United States", [-123.0611, 43.7971], "Axe & Fiddle"],
