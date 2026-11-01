@@ -2,6 +2,7 @@
 const assert = require("node:assert/strict"), fs = require("node:fs");
 const html = fs.readFileSync("epk.html", "utf8"), client = fs.readFileSync("assets/epk.js", "utf8"), api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8"), feed = fs.readFileSync("feed.html", "utf8");
 assert.match(feed, /epk\.html[\s\S]*EPK Builder/, "the artist menu should expose the EPK Builder");
+assert.doesNotMatch(feed, /menu-icon[^>]*>EPK</, "the EPK menu icon must not repeat the EPK label visually");
 for (const field of ["artistName","shortPitch","bio","lineup","notableShows","musicLinks","videoLinks","pressQuotes","stageRequirements","techRequirements","bookingEmail"]) assert.match(html, new RegExp(`id="${field}"`), `EPK field ${field} is missing`);
 assert.match(html, /Save private draft/, "EPKs must be private by default");
 assert.match(html, /Publish EPK/, "publishing must be explicit");
