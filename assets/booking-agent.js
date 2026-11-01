@@ -1095,7 +1095,15 @@
         if (!key || seenMarkets.has(key)) return false;
         seenMarkets.add(key);
         return true;
-      }).slice(0, 8);
+      }).slice(0, 8),
+      firstDate = new Date(`${data.route.departOn || departInput.value}T12:00:00Z`),
+      travelDays = Math.max(1, Number(data.route.requestedDays) || number("days") || 1);
+    displayedMarkets.forEach((market, index) => {
+      if (Number.isNaN(firstDate.getTime())) return;
+      const date = new Date(firstDate);
+      date.setUTCDate(date.getUTCDate() + Math.max(0, Math.min(travelDays - 1, Math.round(((index + 1) * (travelDays - 1)) / (displayedMarkets.length + 1)))));
+      market.proposedDate = date.toISOString().slice(0, 10);
+    });
     if (!displayedMarkets.length) {
       const empty = document.createElement("section"),
         emptyTitle = document.createElement("h3"),

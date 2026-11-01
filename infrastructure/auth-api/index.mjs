@@ -2824,9 +2824,15 @@ async function planTourRoute(event) {
         }
       });
     candidates.forEach(candidate => {
-      if (!candidate.stop.startsWith("On the road:")) return;
-      const lead = candidate.venues?.find(venue => venue.locality);
-      if (lead?.locality) candidate.stop = lead.locality;
+      const localities = (candidate.venues || []).map(venue => String(venue.locality || "").trim()).filter(Boolean);
+      if (!localities.length) return;
+      const counts = localities.reduce((all, locality) => all.set(locality, (all.get(locality) || 0) + 1), new Map());
+      const [dominantLocality, dominantCount] = [...counts].sort((left, right) => right[1] - left[1])[0];
+      const currentLocality = String(candidate.stop || "").split(",")[0].trim().toLowerCase();
+      if (dominantCount < Math.ceil(localities.length * 0.6) || dominantLocality.toLowerCase() === currentLocality) return;
+      const lead = candidate.venues.find(venue => venue.locality === dominantLocality);
+      candidate.stop = dominantLocality;
+      if (Array.isArray(lead?.position) && lead.position.length === 2) candidate.position = lead.position;
     });
     const distanceMiles = Math.round(Number(summary.Distance || 0) / 1609.344), durationHours = Math.round(Number(summary.Duration || 0) / 360) / 10;
     const minimumDrivingDays = Math.max(1, Math.ceil(durationHours / 8));

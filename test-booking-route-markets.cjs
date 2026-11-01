@@ -64,6 +64,7 @@ assert.match(bookingUi, /targetPoints = targetTourMarkets\(data\)/, "the route m
 assert.match(bookingUi, /stopLine\.textContent = points\.map/, "the route overview should name the intermediate towns in one compact line");
 assert.match(bookingUi, /displayedMarkets = targetMarkets\.filter/, "result cards should be limited to the proposed target markets");
 assert.match(bookingUi, /slice\(0, 8\)/, "the initial result page should stay compact on phones");
+assert.match(bookingUi, /displayedMarkets\.forEach\(\(market, index\)/, "displayed route markets must receive dates spread across the selected tour window");
 assert.match(bookingUi, /Array\.isArray\(market\.venues\) && market\.venues\.length > 0/, "only markets with real club leads should produce result cards");
 assert.match(bookingUi, /function routeItineraryMarkets\(route, candidates = \[\]\)/, "the browser should guard against an older API returning only route endpoints");
 assert.match(bookingUi, /"Medford, Oregon"[\s\S]*"Redding, California"/, "the browser fallback should retain Medford and Redding between Seattle and San Francisco");
@@ -71,6 +72,7 @@ assert.match(bookingUi, /return start\.includes\("seattle"\) \? i5Markets : \[\.
 assert.match(bookingUi, /section = document\.createElement\("details"\),[\s\S]*heading = document\.createElement\("summary"\)/, "each route town should be a compact expandable result instead of a long open panel");
 assert.doesNotMatch(bookingUi, /details\.open = true/, "the day-by-day calendar should not force a long result page open");
 assert.doesNotMatch(source, /fallbackLabel: `Tour corridor stop/, "reverse-geocode failures must not become fake corridor stops");
+assert.match(source, /dominantCount < Math\.ceil\(localities\.length \* 0\.6\)/, "a search centered across a city boundary must display the locality where most returned clubs actually are");
 assert.match(source, /real estate\|realtor\|property management/, "non-music businesses must be excluded from club discovery");
 assert.match(source, /place\.Address\?\.Locality \|\| place\.Address\?\.District/, "route market names must come from address localities, not nearby business titles");
 
