@@ -388,7 +388,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   </aside>
 
   <main id="yourMixMain" tabindex="-1">
-    <h1 class="visually-hidden">Your Mix</h1>
+    <h1 id="pageHeading" class="visually-hidden">Your Mix</h1>
 
     <section id="featureView" class="panel" hidden>
       <h3 id="featureTitle"></h3>
@@ -1366,6 +1366,8 @@ feed.addEventListener("keydown", (event) => {
 
 // LOAD POSTS AUTOMATICALLY ON PAGE OPEN OR REFRESH
 document.querySelector('[data-route="home"]').addEventListener("click", () => {
+  const pageHeading = document.getElementById("pageHeading");
+  if (pageHeading) pageHeading.textContent = "Your Mix";
   document.body.classList.remove("content-only");
   document.querySelectorAll("[data-feature]").forEach(control => {
     control.removeAttribute("aria-current");
@@ -1482,7 +1484,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=471" defer></script>
+<script src="assets/feed-enhancements.js?v=472" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=295" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>

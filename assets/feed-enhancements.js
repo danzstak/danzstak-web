@@ -1812,7 +1812,10 @@ function openWorkspaceRoute(name, pushHistory = true) {
   homeControl?.setAttribute("aria-pressed", "false");
   document.getElementById("newsFeedView").hidden = true;
   featurePanel.hidden = false;
-  featureHeading.textContent = canonicalName === "Groups" ? "Tribes" : canonicalName;
+  const visibleName = canonicalName === "Groups" ? "Tribes" : canonicalName;
+  featureHeading.textContent = visibleName;
+  const pageHeading = document.getElementById("pageHeading");
+  if (pageHeading) pageHeading.textContent = visibleName;
   featurePanel.dataset.workspaceName = canonicalName;
   document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.dataset.feature === canonicalName));
   document.querySelectorAll("[data-feature]").forEach(control => {
@@ -1859,6 +1862,8 @@ function restoreWorkspaceRoute() {
     else home?.setAttribute("aria-current", "page");
     featurePanel.hidden = true;
     document.getElementById("newsFeedView").hidden = false;
+    const pageHeading = document.getElementById("pageHeading");
+    if (pageHeading) pageHeading.textContent = "Your Mix";
     document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.getAttribute("href") === "feed.html?view=feed"));
     document.querySelectorAll("[data-feature]").forEach(control => {
       control.removeAttribute("aria-current");
