@@ -3439,9 +3439,9 @@ document.getElementById("feed").addEventListener("keydown", event => {
 }, true);
 document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRail && !hiddenPostIds.has(String(post.dataset.postId || ""))) { addReactionButton(post); addShareButton(post); addSaveButton(post); addPostDeleteButton(post); describePostControls(post); } else if (post !== reelsRail) post.remove(); });
 
-window.addEventListener("message", event => {
-  if (event.origin !== location.origin || event.source === window || event.data?.type !== "danzstak-presence-update" || !Array.isArray(event.data.users)) return;
-  const states = new Map(event.data.users
+function applyFriendWorkspacePresence(users) {
+  if (!Array.isArray(users)) return;
+  const states = new Map(users
     .filter(member => /^[a-f0-9-]{36}$/.test(String(member?.memberId || "")))
     .map(member => [String(member.memberId), member.online === true]));
   document.querySelectorAll(".friend-workspace-row[data-member-id]").forEach(row => {
@@ -3457,6 +3457,27 @@ window.addEventListener("message", event => {
       dot.title = online ? "Online" : "Offline";
     }
   });
+}
+window.addEventListener("message", event => {
+  if (event.origin !== location.origin || event.source === window || event.data?.type !== "danzstak-presence-update" || !Array.isArray(event.data.users)) return;
+  applyFriendWorkspacePresence(event.data.users);
+});
+let friendPresenceRefresh = null;
+window.addEventListener("danzstak-presence-updated", () => {
+  if (!document.querySelector(".friend-workspace-row[data-member-id]") || friendPresenceRefresh) return;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  friendPresenceRefresh = fetch("https://api.danzstak.com/calls/directory", {
+    credentials: "include",
+    cache: "no-store",
+    signal: controller.signal
+  }).then(response => response.ok ? response.json() : Promise.reject(new Error("Presence unavailable")))
+    .then(data => applyFriendWorkspacePresence(data.users || []))
+    .catch(() => {})
+    .finally(() => {
+      clearTimeout(timeout);
+      friendPresenceRefresh = null;
+    });
 });
 function linkifyUserText(element) {
   if (element?.nodeType !== 1) return;
