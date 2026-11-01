@@ -1576,26 +1576,10 @@ function renderWorkspace(name) {
     const alertSettings = document.createElement("button");
     alertSettings.type = "button";
     alertSettings.className = "secondary";
-    const updateAlertLabel = async () => {
-      alertSettings.disabled = true;
-      try {
-        const state = await window.danzstakPushState?.();
-        alertSettings.textContent = state === "enabled" ? "Enabled" : state === "blocked" ? "Blocked" : state === "unsupported" ? "Unavailable" : state === "incomplete" ? "Finish setup" : "Enable";
-        alertSettings.setAttribute("aria-label", `${alertSettings.textContent} call and message alerts`);
-      } catch { alertSettings.textContent = "Try again"; }
-      finally { alertSettings.disabled = alertSettings.textContent === "Enabled" || alertSettings.textContent === "Unavailable"; }
-    };
-    updateAlertLabel();
-    alertSettings.addEventListener("click", async () => {
-      alertSettings.disabled = true;
-      alertSettings.textContent = "Enabling…";
-      try {
-        await window.danzstakEnablePush();
-        if (isCurrentWorkspace()) featureText.textContent = "Background call alerts are enabled on this device, including while the installed app is closed.";
-      } catch (error) {
-        if (isCurrentWorkspace()) featureText.textContent = error.message;
-      }
-      await updateAlertLabel();
+    alertSettings.textContent = "Manage";
+    alertSettings.setAttribute("aria-label", "Manage call and message alerts");
+    alertSettings.addEventListener("click", () => {
+      window.danzstakOpenDeviceSettings(alertSettings);
     });
     const legalLinks = document.createElement("span");
     legalLinks.className = "settings-links";

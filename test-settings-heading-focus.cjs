@@ -10,7 +10,8 @@ assert.match(html, /assets\/feed-enhancements\.css\?v=\d+/, "Feed must request a
 assert.match(source, /appSettings\.setAttribute\("aria-label", "Manage app and device settings"\)/);
 assert.match(source, /activityButton\.setAttribute\("aria-label", "View your DanzStak activity"\)/);
 assert.match(source, /exportButton\.setAttribute\("aria-label", "Download my DanzStak data"\)/);
-assert.match(source, /alertSettings\.setAttribute\("aria-label", `\$\{alertSettings\.textContent\} call and message alerts`\)/);
+assert.match(source, /alertSettings\.setAttribute\("aria-label", "Manage call and message alerts"\)/);
+assert.match(source, /window\.danzstakOpenDeviceSettings\(alertSettings\)/, "Alert management must remain available after notifications are enabled");
 assert.match(source, /logout\.setAttribute\("aria-label", "Log out of DanzStak"\)/);
 
 console.log("Settings heading focus treatment is visually clear while retaining programmatic announcement.");
