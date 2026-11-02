@@ -72,6 +72,12 @@ assert.deepEqual(Array.from(eroticon.stops), ["LA"]);
 assert.equal(eroticon.destination, "Seattle");
 assert.equal(eroticon.days, 30);
 assert.equal(eroticon.shows, 20);
+const between = parse("Find punk clubs to play between Momo, Italy and Berlin for 10 days.");
+assert.equal(between.home, "Momo, Italy");
+assert.equal(between.destination, "Berlin");
+assert.equal(between.genre, "DIY Punk");
+assert.equal(between.days, 10);
+assert.equal(between.mode, "tour");
 
 controls.get("bookingBrief").value = "Plan a 10-day DIY punk tour for The Rats from Momo, Italy to Berlin and back home.";
 listeners["bookingBriefForm:submit"]({ preventDefault() {} });
@@ -81,12 +87,21 @@ assert.equal(controls.get("endCity").value, "Berlin");
 assert.equal(controls.get("routeSearchAction").clicked, 1);
 assert.match(controls.get("bookingBriefStatus").value || controls.get("bookingBriefStatus").textContent, /Building the route/);
 
+controls.get("bandName").value = "";
+controls.get("startCity").value = "";
+controls.get("endCity").value = "";
+controls.get("bookingBrief").value = "Find punk clubs to play between Momo, Italy and Berlin for 10 days.";
+listeners["bookingBriefForm:submit"]({ preventDefault() {} });
+assert.equal(controls.get("startCity").value, "Momo, Italy");
+assert.equal(controls.get("endCity").value, "Berlin");
+assert.equal(controls.get("routeSearchAction").clicked, 2, "venue discovery must not require an act name");
+
 const markup = fs.readFileSync("booking.html", "utf8");
 const bookingConversation = fs.readFileSync("assets/booking-conversation.js", "utf8");
 const bookingAgent = fs.readFileSync("assets/booking-agent.js", "utf8");
 const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 assert.match(markup, /id="bookingBriefForm"/);
-assert.match(markup, /assets\/booking-conversation\.js\?v=475/);
+assert.match(markup, /assets\/booking-conversation\.js\?v=476/);
 assert.match(markup, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/, "manual fields and the venue map should stay behind one optional disclosure");
 assert.match(bookingConversation, /details\.booking-tools/,
   "a missing plain-language field should reveal the optional manual controls before moving focus");

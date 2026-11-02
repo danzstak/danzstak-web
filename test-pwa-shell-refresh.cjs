@@ -16,6 +16,7 @@ assert.match(serviceWorker, /"\/assets\/profile-onboarding\.css"/, "the offline 
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.js"/, "the offline shell must include first-login naming behavior");
 assert.match(serviceWorker, /"\/assets\/brand-language-aliases\.js"/, "the offline shell must keep branded social labels translatable");
 assert.match(serviceWorker, /"\/assets\/booking-map\.js"/, "the installable shell must keep the Booking Agent map controls available");
+assert.match(serviceWorker, /"\/assets\/booking-discovery\.js"/, "the installable shell must keep natural-language venue discovery available");
 assert.match(serviceWorker, /async function refreshAppShell\(\)/, "service worker must refresh its app shell");
 assert.match(serviceWorker, /Promise\.allSettled\(SHELL\.map/, "one failed shell request must not cancel the refresh");
 assert.match(serviceWorker, /fetch\(path, \{ cache: "no-store" \}\)/, "shell refresh must bypass stale browser cache");
@@ -45,7 +46,7 @@ for (const [file, expected] of [
   ["messages.html", "assets/direct-messages.js?v=471"],
   ["profile.html", "assets/profile-sharing.js?v=415"],
   ["profile.html", "assets/profile-editor.js?v=474"],
-  ["booking.html", "assets/booking-agent.js?v=477"],
+  ["booking.html", "assets/booking-agent.js?v=478"],
   ["profile.html", "assets/post-sharing.js?v=416"],
   ["profile.html", "assets/profile.js?v=417"]
 ]) {

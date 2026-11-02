@@ -1403,12 +1403,6 @@
       seenVenueKeys = new Set();
     }
     const excludeVenueKeys = [...seenVenueKeys];
-    if (!artist) {
-      routeStatus.textContent = "Enter the act name.";
-      artistInput.focus();
-      artistInput.reportValidity();
-      return;
-    }
     if (!start) {
       routeStatus.textContent = "Enter your home city.";
       $("startCity").focus();

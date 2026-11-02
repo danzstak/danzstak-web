@@ -57,6 +57,20 @@ async function run(fail, genre = "DIY Punk") {
   assert.match(source, /canExpand: radiusMiles < 75/, "venue discovery should expose an explicit wider-area continuation");
   assert.match(quickSearchClient, /seen\.has\(identity\)/, "wider venue searches should not repeat clubs already displayed");
   assert.match(quickSearchClient, /hasMore \? search\(page \+ 1, radiusMiles, true\) : canExpand/, "pagination and radius expansion must be separate actions");
+  const routeListeners = {}, routeElements = new Map();
+  const routeElement = (id, extra = {}) => {
+    const element = { id, value: "", hidden: false, textContent: "", addEventListener(type, handler) { routeListeners[`${id}:${type}`] = handler; }, replaceChildren() {}, scrollIntoView() {}, ...extra };
+    routeElements.set(id, element);
+    return element;
+  };
+  routeElement("venueQuickForm");
+  routeElement("venueQuickQuery").value = "Find punk clubs to play between Momo and Berlin for 10 days";
+  routeElement("venueQuickStatus"); routeElement("venueQuickResults"); routeElement("venueQuickMore"); routeElement("bookingBrief");
+  routeElement("bookingBriefForm", { submitted: 0, requestSubmit() { this.submitted += 1; } });
+  vm.runInContext(quickSearchClient, vm.createContext({ window: { dispatchEvent() {} }, document: { getElementById: id => routeElements.get(id) || null, createElement: () => ({ append() {}, set textContent(value) {}, set href(value) {}, set target(value) {}, set rel(value) {} }) }, CustomEvent: class {} }));
+  routeListeners["venueQuickForm:submit"]({ preventDefault() {} });
+  assert.equal(routeElements.get("bookingBriefForm").submitted, 1, "multi-city language must enter the route planner instead of one-city geocoding");
+  assert.equal(routeElements.get("bookingBrief").value, routeElements.get("venueQuickQuery").value);
   const { result, queries, peakActive } = await run(query => query === "budget hotel motel hostel" || query === "Punk live music venue");
   assert.ok(peakActive <= 3, `town discovery exceeded its three-request limit (${peakActive})`);
   assert.equal(result.venues.length, 60, "dense discovery must retain more than 24 clubs");

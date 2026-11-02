@@ -72,7 +72,15 @@
       bareRoute = !chainedRoute && !route && routeText.match(/(?:^|[,.!?]\s*)([a-z][a-z '-]{1,80}?)\s+to\s+([a-z][a-z '-]{1,80}?)(?=\s+and\s+back(?:\s+to\s+[a-z][a-z '-]{1,80}?)?(?:[,;.!?]|\s+|$))/i);
     const parsedRoute = route || bareRoute;
     if (parsedRoute) { parsed.home = tidyPlace(parsedRoute[1]); parsed.destination = tidyPlace(parsedRoute[2]); parsed.mode = "tour"; }
-    else if (!chainedRoute && !bareRoute) {
+    else {
+      const betweenRoute = text.match(/\bbetween\s+(.+?)\s+and\s+(.+?)(?=\s+(?:for|in)\s+\d+\s*(?:-| )?days?|[.!?]|$)/i);
+      if (betweenRoute) {
+        parsed.home = tidyPlace(betweenRoute[1]);
+        parsed.destination = tidyPlace(betweenRoute[2]);
+        parsed.mode = "tour";
+      }
+    }
+    if (!parsed.mode && !chainedRoute && !bareRoute) {
       const home = text.match(/\b(?:from|home(?:town)?\s+is)\s+(.+?)(?=\s+(?:and|travel|tour|head|go)\b|$)/i);
       if (home) parsed.home = tidyPlace(home[1]);
       if (/\b(?:near|around|close to)\s+home\b/.test(lower)) parsed.mode = "local";
@@ -105,14 +113,13 @@
     if (!brief.value.trim()) { status.textContent = "Describe where you are starting, how long you have, and where you want to go."; brief.focus(); return; }
     applyTourBrief(parsed);
     const missing = [];
-    if (!field("bandName")?.value.trim()) missing.push("act name");
     if (!field("startCity")?.value.trim()) missing.push("home town");
     if (parsed.mode === "tour" && !field("endCity")?.value.trim()) missing.push("turnaround city");
     if (missing.length) {
       status.textContent = `Almost there—add the ${missing.join(" and ")}, then press Find the run again.`;
       document.querySelector("details.booking-tools")?.setAttribute("open", "");
       document.querySelector("details.booking-start")?.setAttribute("open", "");
-      field(missing[0] === "act name" ? "bandName" : "startCity")?.focus();
+      field("startCity")?.focus();
       return;
     }
     status.textContent = "Building the route and looking for playable clubs…";
