@@ -7,11 +7,9 @@
   const handleInput = document.getElementById("profileOnboardingHandle");
   const save = document.getElementById("profileOnboardingSave");
   const status = document.getElementById("profileOnboardingStatus");
-  let handleWasEdited = false;
-
   const copy = {
-    en: { title: "What should people call you?", help: "Add your name once so friends can recognize and find you.", name: "Your name", handle: "Username", save: "Save my name", saving: "Saving your name…", saved: "Your DanzStak name is ready." },
-    it: { title: "Come vuoi farti chiamare?", help: "Aggiungi il tuo nome una volta, così gli amici possono riconoscerti e trovarti.", name: "Il tuo nome", handle: "Nome utente", save: "Salva il mio nome", saving: "Salvataggio del nome…", saved: "Il tuo nome DanzStak è pronto." }
+    en: { title: "What should people call you?", help: "Enter the name you want people to see. DanzStak handles the username for you.", name: "Name people see", save: "Use this name", saving: "Saving your name…", saved: "Your DanzStak name is ready.", later: "You can change this later in Settings → Edit Profile." },
+    it: { title: "Come vuoi farti chiamare?", help: "Inserisci il nome che vuoi mostrare. DanzStak crea automaticamente il nome utente.", name: "Nome visibile agli altri", save: "Usa questo nome", saving: "Salvataggio del nome…", saved: "Il tuo nome DanzStak è pronto.", later: "Puoi cambiarlo in seguito in Impostazioni → Modifica profilo." }
   };
   let language = "en";
   try { language = (localStorage.getItem("danzstak_language") || document.documentElement.lang || navigator.language || "en").toLowerCase().split("-")[0]; } catch { language = String(document.documentElement.lang || "en").toLowerCase().split("-")[0]; }
@@ -19,14 +17,16 @@
   document.getElementById("profileOnboardingTitle").textContent = words.title;
   document.getElementById("profileOnboardingHelp").textContent = words.help;
   document.getElementById("profileOnboardingNameLabel").textContent = words.name;
-  document.getElementById("profileOnboardingHandleLabel").textContent = words.handle;
+  document.getElementById("profileOnboardingLater").textContent = words.later;
   save.textContent = words.save;
 
-  const suggestedHandle = value => String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9._]+/g, ".").replace(/^\.+|\.+$/g, "").slice(0, 24);
+  const suggestedHandle = value => {
+    const base = String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9._]+/g, ".").replace(/^\.+|\.+$/g, "").slice(0, 24) || "member";
+    return base.length < 3 ? `${base}.1`.slice(0, 24) : base;
+  };
   nameInput.addEventListener("input", () => {
-    if (!handleWasEdited) handleInput.value = suggestedHandle(nameInput.value);
+    handleInput.value = suggestedHandle(nameInput.value);
   });
-  handleInput.addEventListener("input", event => { handleWasEdited = event.isTrusted !== false || Boolean(handleInput.value); });
 
   async function request(url, options = {}, timeoutMs = 12000) {
     const controller = new AbortController();
@@ -48,7 +48,6 @@
       if (!genericName && !genericHandle) return;
       nameInput.value = genericName ? "" : profile.name;
       handleInput.value = genericHandle ? suggestedHandle(nameInput.value) : profile.handle;
-      handleWasEdited = !genericHandle;
       panel.hidden = false;
       nameInput.focus({ preventScroll: true });
     } catch { /* Profile editing remains available if onboarding cannot load. */ }
@@ -58,14 +57,21 @@
     event.preventDefault();
     if (save.disabled || !form.reportValidity()) return;
     const name = nameInput.value.trim();
-    const handle = handleInput.value.trim().replace(/^@/, "");
+    const handle = suggestedHandle(handleInput.value || name);
     save.disabled = true;
     status.textContent = words.saving;
     try {
-      const response = await request("https://api.danzstak.com/profiles", {
+      let response = await request("https://api.danzstak.com/profiles", {
         method: "POST", credentials: "include", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, handle })
       });
-      const data = await response.json().catch(() => ({}));
+      let data = await response.json().catch(() => ({}));
+      if (!response.ok && data.suggestion && !/display name/i.test(data.error || "")) {
+        handleInput.value = data.suggestion;
+        response = await request("https://api.danzstak.com/profiles", {
+          method: "POST", credentials: "include", cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, handle: data.suggestion })
+        });
+        data = await response.json().catch(() => ({}));
+      }
       if (!response.ok) {
         if (data.suggestion) {
           if (/display name/i.test(data.error || "")) nameInput.value = data.suggestion;
