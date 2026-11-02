@@ -84,5 +84,12 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
   assert.ok(owner.deletes.some(item => item.TableName === 'notices' && item.Key.eventId.S === 'notice'), 'post notifications must be deleted');
   assert.ok(owner.deletes.some(item => item.TableName === 'stories'), 'linked Story records must be deleted');
   assert.ok(!owner.deletes.some(item => item.TableName === 'notices' && item.Key.eventId.S === 'other'), 'unrelated notifications must remain');
+
+  const storageUnavailable = harness({ failMediaAttempts: 3 });
+  const unavailableResponse = await storageUnavailable.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId } });
+  assert.equal(unavailableResponse.statusCode, 503);
+  assert.deepEqual(JSON.parse(unavailableResponse.body), { error: 'Post media could not be removed yet. Try again.', deleted: false });
+  assert.equal(storageUnavailable.mediaAttempts(), 3, 'storage deletion receives the full retry budget');
+  assert.equal(storageUnavailable.deletes.length, 0, 'the post and its database graph must remain retryable when media deletion is unavailable');
   console.log('Post deletion checks passed: author-only destruction, safe profile removal, database cleanup, media retry, and unrelated-record preservation.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

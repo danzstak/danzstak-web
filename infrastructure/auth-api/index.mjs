@@ -1758,13 +1758,21 @@ async function deleteSecurePost(event) {
     queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true }),
     found.Item.userEmail?.S ? queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: found.Item.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true }) : Promise.resolve([])
   ]);
+  if (mediaKey) {
+    const mediaCleanupPending = await runCleanup([
+      () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey }))
+    ]);
+    if (mediaCleanupPending) {
+      console.error("Post media deletion remains pending", { postId, mediaKey });
+      return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
+    }
+  }
   await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
   const cleanupTasks = [
     ...reactions.map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
     ...comments.map(item => () => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
     ...notices.filter(item => item.postId?.S === postId).map(item => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } }))),
-    ...linkedStories.map(item => () => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } }))),
-    ...(mediaKey ? [() => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey }))] : [])
+    ...linkedStories.map(item => () => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } })))
   ];
   const cleanupPending = await runCleanup(cleanupTasks);
   if (cleanupPending) console.error("Post deletion cleanup remains pending", { postId, cleanupPending });
