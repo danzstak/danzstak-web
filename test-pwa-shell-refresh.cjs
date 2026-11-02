@@ -11,7 +11,9 @@ const pwa = read("assets/pwa.js");
 const hostingHeaders = read("customHttp.yml");
 
 const cacheVersion = Number(serviceWorker.match(/danzstak-shell-v(\d+)/)?.[1] || 0);
-assert.ok(cacheVersion >= 464, "service-worker cache version must include the current profile privacy wording release");
+assert.ok(cacheVersion >= 503, "service-worker cache version must include the current profile onboarding release");
+assert.match(serviceWorker, /"\/assets\/profile-onboarding\.css"/, "the offline shell must include first-login naming styles");
+assert.match(serviceWorker, /"\/assets\/profile-onboarding\.js"/, "the offline shell must include first-login naming behavior");
 assert.match(serviceWorker, /"\/assets\/brand-language-aliases\.js"/, "the offline shell must keep branded social labels translatable");
 assert.match(serviceWorker, /"\/assets\/booking-map\.js"/, "the installable shell must keep the Booking Agent map controls available");
 assert.match(serviceWorker, /async function refreshAppShell\(\)/, "service worker must refresh its app shell");
