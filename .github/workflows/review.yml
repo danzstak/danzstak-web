@@ -1,0 +1,30 @@
+name: Review checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: infrastructure/auth-api/package-lock.json
+      - name: Install API dependencies
+        working-directory: infrastructure/auth-api
+        run: npm ci --ignore-scripts
+      - name: Run complete local regression suite
+        shell: pwsh
+        run: .\test-regressions.ps1
