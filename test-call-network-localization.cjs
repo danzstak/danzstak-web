@@ -7,9 +7,11 @@ const vm = require("node:vm");
 const i18n = fs.readFileSync("assets/i18n.js", "utf8");
 const chat = fs.readFileSync("assets/chat.js", "utf8");
 const keysMatch = i18n.match(/const callNetworkKeys=(\[[^;]+\]);/);
-const guidanceMatch = i18n.match(/const callNetworkGuidance=(\{[\s\S]*?\n \});\n for\(const \[language,values\] of Object\.entries\(callNetworkGuidance\)\)/);
+const guidancePattern = /const callNetworkGuidance=(\{[\s\S]*?\r?\n \});\r?\n for\(const \[language,values\] of Object\.entries\(callNetworkGuidance\)\)/;
+const guidanceMatch = i18n.match(guidancePattern);
 
 assert.ok(keysMatch && guidanceMatch, "call network translation tables should remain inspectable");
+assert.ok(i18n.replace(/\r?\n/g, "\r\n").match(guidancePattern), "translation-table checks should work on Windows CI line endings");
 const context = vm.createContext({ result: null });
 vm.runInContext(`result={keys:${keysMatch[1]},guidance:${guidanceMatch[1]}}`, context);
 const { keys, guidance } = context.result;
