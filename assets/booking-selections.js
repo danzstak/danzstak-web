@@ -23,6 +23,9 @@
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetch(url, { ...options, signal: controller.signal });
+    } catch (error) {
+      if (error.name === "AbortError") throw error;
+      throw new Error("DanzStak cannot connect right now. Check your connection and try again.");
     } finally {
       clearTimeout(timer);
     }

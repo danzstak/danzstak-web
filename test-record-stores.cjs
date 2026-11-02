@@ -31,6 +31,7 @@ assert.match(client, /Add to outreach/, "artists should be able to select a stor
 assert.match(client, /wholesale or consignment/, "outreach must ask for the store's current policy rather than inventing one");
 assert.match(client, /record-store-workspace/, "record placement work should save to the signed-in account");
 assert.match(client, /fetchWithTimeout/, "record-store workspace requests must recover from network stalls");
+assert.match(client, /DanzStak cannot connect right now/, "record-store workspace failures must use actionable product language");
 assert.match(client, /Saving took too long and may have completed/, "timed-out saves must warn against blindly creating duplicate writes");
 assert.match(api, /const recordStoreWorkspaceId/, "record-placement data should have an isolated owner workspace");
 console.log("Record Store checks passed: menu, standalone search, route discovery, validation, attribution, and safe rendering.");

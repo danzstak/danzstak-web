@@ -5,7 +5,7 @@
   let workspace = { release:{}, stores:[], revision:"" };
   let activeSearch = { location:"", page:0, radiusMiles:30, hasMore:false, canExpand:false };
   let seenStores = new Set();
-  async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) { const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs); try { return await fetch(url, { ...options, signal:controller.signal }); } finally { clearTimeout(timer); } }
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) { const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs); try { return await fetch(url, { ...options, signal:controller.signal }); } catch (error) { if (error.name === "AbortError") throw error; throw new Error("DanzStak cannot connect right now. Check your connection and try again."); } finally { clearTimeout(timer); } }
   const safeLink = (label, href) => { const link = document.createElement("a"); link.textContent = label; link.href = href; link.target = "_blank"; link.rel = "noopener noreferrer"; return link; };
   const text = (tag, value, className = "") => { const node = document.createElement(tag); node.textContent = value; if (className) node.className = className; return node; };
   const releaseFields = { artist:"releaseArtist", title:"releaseTitleInput", format:"releaseFormat", genre:"releaseGenre", releaseDate:"releaseDate", wholesale:"releaseWholesale", suggestedRetail:"releaseRetail", epk:"releaseEpk", listen:"releaseListen", contactName:"releaseContactName", contactEmail:"releaseContactEmail", terms:"releaseTerms" };
