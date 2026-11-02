@@ -24,11 +24,23 @@ node test-message-media.cjs
 
 All passed.
 
+Production dependency audit from `infrastructure/auth-api`:
+
+```powershell
+npm audit --omit=dev --audit-level=moderate
+```
+
+Result on 2026-11-02: `found 0 vulnerabilities`.
+
 ## Manual checks completed
 
 - Desktop EPK editor: two-column edit/preview layout, private draft controls, file manager, and public-link controls render without visible overflow.
 - Desktop Booking Agent: the natural-language club finder appears before the advanced route planner; advanced controls are collapsed by default.
 - A fresh in-app browser pass at 390 × 844 verified Booking Agent, Record Stores, and EPK without horizontal overflow; primary actions remained readable and advanced booking controls remained collapsed. The repository's static viewport, touch-target, navigation, EPK, and booking tests also pass. A physical-device pass is still required before deployment.
+- A signed-in narrow-viewport live pass verified that saved chats open into a full-width conversation, message history and read receipts load, photo/video and camera actions remain beside the composer, phone/video actions remain in the header, and the icon-only destructive action has an accessible `Delete chat` name.
+- The same live pass verified the notification drawer's focusable close control, actor profile link, timestamp, and post destination; Friends resolved from loading into distinct online/empty/offline states; accepted offline friends remained available to message.
+- Mobile navigation was scrolled end to end. Booking Agent, Record Stores, EPK Builder, Saved, Settings, Support, legal links, stacked Android/Apple app links, and Logout remained reachable without exposing the background workspace to focus.
+- Settings recovered from its loading state and enabled presence privacy, tagging, device preferences, language, alerts, activity, data export, legal links, and logout. Global search completed with separate post and member result states rather than leaving an indefinite loader.
 
 ## Live provider test
 
