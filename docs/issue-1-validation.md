@@ -38,9 +38,22 @@ Run only with an authenticated AWS CLI session:
 node test-live-discovery.mjs
 ```
 
-The venue matrix covers the required searches: Seattle punk/hardcore, San Francisco rock/alternative, Los Angeles live music, Bologna all live music, Berlin techno/punk/rock, Paris jazz/blues, and London independent venues. A separate worldwide record-store matrix covers Bologna, Berlin, London, Tokyo, Seattle, and Momo. The test rejects out-of-radius results, requires source attribution and coordinates, and fails when a requested search has no validated results. Actual post-fix counts must be recorded in the pull request after authentication; no counts are fabricated here.
+The venue matrix covers the required searches: Seattle punk/hardcore, San Francisco rock/alternative, Los Angeles live music, Bologna all live music, Berlin techno/punk/rock, Paris jazz/blues, and London independent venues. A separate worldwide record-store matrix covers Bologna, Berlin, London, Tokyo, Seattle, and Momo. The test rejects out-of-radius results, requires source attribution and coordinates, and fails when a requested search has no validated results.
 
-The OpenStreetMap Overpass public endpoint was unavailable from the development machine during validation. The application reports provider status separately and continues with AWS Places when one provider is unavailable. This fallback still needs validation from the deployed Lambda network before production approval.
+Authenticated live result counts on 2026-11-02 (validated results after geographic and type filtering):
+
+- Seattle: punk 3, hardcore 1
+- San Francisco: rock 2, alternative 4
+- Los Angeles: live music 8
+- Bologna: all live music 28
+- Berlin: techno 2, punk 1, rock 1
+- Paris: jazz 4, blues 1
+- London: independent 4
+- Record stores: Bologna 6, Berlin 52, London 51, Tokyo 3, Seattle 41, Momo 6
+
+These are test-run observations, not guaranteed inventory counts. Listings can change and the product tells artists to verify current calendars and booking contacts.
+
+All three current global OpenStreetMap Overpass mirrors were unavailable from the development machine during validation. The application now races a bounded operator-configurable mirror set, reports provider status separately, and continues with AWS Places when the open-data provider is unavailable. AWS Places alone passed every city and store assertion above. The Overpass path still needs validation from the deployed Lambda network before production approval.
 
 ## Known limits
 

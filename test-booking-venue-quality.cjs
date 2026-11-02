@@ -32,6 +32,10 @@ assert.equal(isBookableClub({ name: "Public Works", categories: ["Nightclub", "D
 assert.equal(isBookableClub({ name: "Public Works", categories: ["Nightclub", "DJ", "Electronic"] }, "DJ / Electronic"), true);
 assert.equal(isBookableClub({ name: "The Knockout", categories: ["Live Music Venue", "Punk", "Rock"] }, "DIY Punk"), true);
 assert.equal(isBookableClub({ name: "Small Room", categories: ["Live Entertainment-Music", "Bar or Pub"] }, "DIY Punk"), true, "genre searches must retain real music rooms whose public category is generic");
+assert.equal(isBookableClub({ name: "Kantine am Berghain", categories: ["Live-Entertainment/Livemusik", "Bar oder Pub", "Theater, Musik und Kultur"] }, "DIY Punk"), true, "localized live-music categories must not erase a real Berlin room");
+assert.equal(isBookableClub({ name: "Punch L!Ne Club Berlin", categories: ["Live-Entertainment/Livemusik"] }, "DIY Punk"), false, "localized categories must not turn a comedy room into a punk lead");
+assert.equal(isBookableClub({ name: "Concert Concept", categories: ["Live-Entertainment/Livemusik", "Geschäftliche Dienstleistungen"] }, "DIY Punk"), false, "localized business-service listings are not venues");
+assert.equal(isBookableClub({ name: "Kammermusiksaal", categories: ["Live-Entertainment/Livemusik", "Theater"] }, "DIY Punk"), false, "a chamber-music institution is not a punk room without genre evidence");
 assert.equal(isBookableClub({ name: "Clusterfest", categories: ["Festival"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "SFJAZZ Center", categories: ["Jazz Workshop"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "PDE", categories: ["Orchestra"] }, "DIY Punk"), false);

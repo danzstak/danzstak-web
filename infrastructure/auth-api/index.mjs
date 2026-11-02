@@ -1969,15 +1969,15 @@ function publicPlace(place) {
 }
 
 function isBookableClub(place, genre = "") {
-  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
+  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
   const selectedGenre = genre.toLowerCase();
   const classicalSearch = selectedGenre.includes("orchestra") || selectedGenre.includes("classical");
   const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|pavillon|kurpavillon|stadthalle|konzertmuschel|band shell|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
-  const nonClassicalInstitution = /\b(symphony|orchestra|opera house)\b/;
-  const wrongFormat = /\b(comedy|comic|laughs?|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music academy|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|workshop|clinic|training(?: and development)?|promoter|promotion|productions?|entertainment company|entertainment and recreation|event consultant|entertainment consultant|event planner|event services?|event cent(?:er|re)|event space|mobile dj|dj services?|dj['’]?s? and event services?|party band|consumer services|photography|swimming pool|veterans? (?:memorial )?hall|fraternal order|performance hall|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variet[eé]|museum|gallery|library|retail|specialty store|music store|record store|instrument store|downtown association|business district|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office|real estate|realtor|property management|mortgage|insurance|financial services?|law firm|attorney|accountant|medical|dental|auto repair|car dealer)\b/;
+  const nonClassicalInstitution = /\b(symphony|orchestra|opera house|chamber music|kammermusik\w*|philharmoni(?:c|e))\b/;
+  const wrongFormat = /\b(comedy|comic|laughs?|punch\s*l.?ne|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music academy|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|workshop|clinic|training(?: and development)?|promoter|promotion|productions?|entertainment company|entertainment and recreation|business services?|geschaftliche dienstleistungen|event consultant|entertainment consultant|event planner|event services?|event cent(?:er|re)|event space|mobile dj|dj services?|dj['’]?s? and event services?|party band|consumer services|photography|swimming pool|veterans? (?:memorial )?hall|fraternal order|performance hall|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variete|museum|gallery|library|retail|specialty store|music store|record store|instrument store|downtown association|business district|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office|real estate|realtor|property management|mortgage|insurance|financial services?|law firm|attorney|accountant|medical|dental|auto repair|car dealer)\b/;
   const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival|festspiele|festival office|jazzfest|walking tour|history tour|guided tour|tourist information|tourismus|ostseebad)\b/;
   const wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
-  const strongVenue = /\b(live music|live entertainment[- ]?music|music venue|rock club|punk club|metal club|night ?club|concert venue|concert hall)\b/.test(description);
+  const strongVenue = /\b(live music|live entertainment[- /]?music|livemusik|live musik|musica dal vivo|musique live|musica en vivo|music venue|rock club|punk club|metal club|night ?club|concert venue|concert hall)\b/.test(description);
   const electronicOnly = /\b(dj|electronic|techno|house|night ?club)\b/.test(description) && !/\b(live music|live entertainment[- ]?music|rock|punk|metal|hardcore|diy)\b/.test(description);
   const genreEvidence = selectedGenre.includes("punk")
     ? /\b(punk|hardcore|diy)\b/.test(description) || (strongVenue && !electronicOnly)
@@ -1995,18 +1995,18 @@ function isBookableClub(place, genre = "") {
                 ? /\b(classical|orchestra|symphony|chamber|opera|concert hall|recital)\b/.test(description)
                 : true;
   const plausibleRoom = /\b(club|bar|pub|tavern|lounge|music hall|social hall|taproom|brewery|roadhouse)\b/.test(description);
-  const musicSignal = /\b(music|concert|live|rock|punk|metal|electronic|dj|hip[- ]?hop|jazz)\b/.test(description);
+  const musicSignal = /\b(music|musik|musica|musique|concert|live|rock|punk|metal|electronic|dj|hip[- ]?hop|jazz)\b/.test(description);
   const classicalRoom = classicalSearch && /\b(symphony|orchestra|opera house|concert hall|recital hall|chamber music)\b/.test(description);
   return !wrongScale.test(description) && (classicalSearch || !nonClassicalInstitution.test(description)) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre && genreEvidence && (strongVenue || classicalRoom || (plausibleRoom && musicSignal));
 }
 
 function venueSuitability(place, genre = "") {
-  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase();
+  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
   let score = 0;
   // A human-reviewed room with an official booking page is more useful to a
   // touring act than a famous venue returned by a broad map keyword search.
   if (place.verifiedRoom) score += 40;
-  if (/\b(live music|music venue|rock club|punk club|metal club|concert venue)\b/.test(description)) score += 12;
+  if (/\b(live music|livemusik|live musik|musica dal vivo|musique live|musica en vivo|music venue|rock club|punk club|metal club|concert venue)\b/.test(description)) score += 12;
   if (/\b(club|bar|pub|tavern|lounge|music hall|taproom|brewery|roadhouse)\b/.test(description)) score += 5;
   if (/\b(independent|diy|all ages|punk|metal|rock)\b/.test(description)) score += 4;
   const genreWords = genre.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 2 && !["electronic", "classical", "other"].includes(word));
@@ -2043,7 +2043,16 @@ function isRecordStore(place) {
 }
 
 const osmAttribution = "© OpenStreetMap contributors";
-const osmOverpassEndpoint = globalThis.process?.env?.OSM_OVERPASS_ENDPOINT || "https://overpass-api.de/api/interpreter";
+const defaultOsmOverpassEndpoints = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+];
+const configuredOsmOverpassEndpoints = String(globalThis.process?.env?.OSM_OVERPASS_ENDPOINTS || globalThis.process?.env?.OSM_OVERPASS_ENDPOINT || "")
+  .split(",")
+  .map(value => value.trim())
+  .filter(value => /^https:\/\/[^\s]+$/i.test(value));
+const osmOverpassEndpoints = configuredOsmOverpassEndpoints.length ? configuredOsmOverpassEndpoints : defaultOsmOverpassEndpoints;
 const discoveryCache = new Map();
 
 function cacheDiscovery(key, loader, ttlMs = 15 * 60 * 1000) {
@@ -2105,20 +2114,40 @@ async function overpassPlaces(point, kind, radiusMiles = 30) {
         `["name"~"music club|live music|rock club|punk club|jazz club|concert hall",i]`
       ];
   const query = `[out:json][timeout:18];(${selectors.map(selector => `nwr(around:${radius},${lat},${lon})${selector};`).join("")});out center tags 300;`;
-  const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 20000);
+  // Overpass is a community service and individual public instances can be
+  // busy or unavailable. Race a small, operator-configurable mirror set under
+  // one latency budget; abort the losers as soon as a valid response arrives.
+  // This keeps a slow mirror from delaying an otherwise healthy AWS result.
+  const controllers = osmOverpassEndpoints.map(() => new AbortController());
+  const timeout = setTimeout(() => controllers.forEach(controller => controller.abort()), 7000);
   try {
-    const response = await fetch(osmOverpassEndpoint, {
-      method: "POST", signal: controller.signal,
-      headers: { "content-type": "application/x-www-form-urlencoded;charset=UTF-8", "user-agent": "DanzStak/1.0 (support@danzstak.com)" },
-      body: new URLSearchParams({ data: query })
-    });
-    if (!response.ok) throw Object.assign(new Error(`OpenStreetMap provider returned ${response.status}`), { provider: "OpenStreetMap" });
-    const data = await response.json();
-    return (data.elements || []).map(osmPlace).filter(Boolean).map(place => ({
+    const data = await Promise.any(osmOverpassEndpoints.map(async (endpoint, index) => {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST", signal: controllers[index].signal,
+          headers: { "content-type": "application/x-www-form-urlencoded;charset=UTF-8", "user-agent": "DanzStak/1.0 (support@danzstak.com)" },
+          body: new URLSearchParams({ data: query })
+        });
+        if (!response.ok) throw new Error(`OpenStreetMap mirror returned ${response.status}`);
+        const value = await response.json();
+        if (!Array.isArray(value.elements)) throw new Error("OpenStreetMap mirror returned invalid data");
+        return value;
+      } catch (error) {
+        console.warn("OpenStreetMap mirror unavailable", { endpoint: new URL(endpoint).host, name: error.name });
+        throw error;
+      }
+    }));
+    controllers.forEach(controller => controller.abort());
+    return data.elements.map(osmPlace).filter(Boolean).map(place => ({
       ...place,
       distanceMiles: Math.round(approximateMilesBetween(point.position, place.position) * 10) / 10
     }));
-  } finally { clearTimeout(timeout); }
+  } catch (error) {
+    throw Object.assign(error, { provider: "OpenStreetMap" });
+  } finally {
+    clearTimeout(timeout);
+    controllers.forEach(controller => controller.abort());
+  }
 }
 
 function discoveryBoundingBox(position, radiusMiles) {
