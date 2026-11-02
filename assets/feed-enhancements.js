@@ -1846,7 +1846,13 @@ document.addEventListener("click", event => {
   closeNotificationDrawer(false);
 });
 
+const messageDrawerOpenClicks = new WeakSet();
 document.addEventListener("click", event => {
+  const drawer = document.getElementById("messageDrawer");
+  if (drawer && !drawer.hidden) messageDrawerOpenClicks.add(event);
+}, true);
+document.addEventListener("click", event => {
+  if (!messageDrawerOpenClicks.has(event)) return;
   const drawer = document.getElementById("messageDrawer");
   const launcher = document.getElementById("messagesNav");
   if (!drawer || drawer.hidden || drawer.classList.contains("is-video-call")) return;

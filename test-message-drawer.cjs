@@ -15,6 +15,8 @@ assert.match(feed, /drawer\.querySelector\("\.message-drawer-loading"\)\.hidden 
 assert.match(feed, /if \(drawer && !drawer\.hidden\)[\s\S]*?message-drawer-close[\s\S]*?return;[\s\S]*?openMessageDrawer\(\)/, "the Messages icon toggles an open drawer closed");
 assert.match(enhancements, /drawer\.classList\.contains\("is-video-call"\)[\s\S]*?drawer\.contains\(event\.target\)[\s\S]*?launcher\?\.contains\(event\.target\)[\s\S]*?message-drawer-close/,
   "clicking back into the page dismisses compact Messages without interrupting a video call");
+assert.match(enhancements, /const messageDrawerOpenClicks = new WeakSet\(\)[\s\S]*?messageDrawerOpenClicks\.add\(event\)[\s\S]*?if \(!messageDrawerOpenClicks\.has\(event\)\) return/,
+  "the tap that opens a friend conversation must not also dismiss the newly opened drawer");
 assert.match(enhancements, /clickedControl instanceof HTMLElement\) messageDrawerPreviousFocus = clickedControl/,
   "click-outside dismissal must preserve the page control the member chose");
 assert.match(feed, /event\.data\?\.type === "danzstak-call-mode"\) drawer\.classList\.toggle\("is-video-call", event\.data\.mode === "video"\)/, "only a video call expands the drawer to full screen");
