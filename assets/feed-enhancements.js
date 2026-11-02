@@ -47,23 +47,27 @@ function showAppFeedback(message, { urgent = false, timeout = 4200 } = {}) {
 let lastNotificationCount = null;
 const notificationSourceCounts = { social: null, engagement: null };
 let notificationCountLoading = false;
-
 function isLocalHost() {
   return location.hostname === "127.0.0.1" || location.hostname === "localhost";
 }
 
 function updateNotificationCount(count) {
+  const feedTranslate = value => globalThis.danzstakTranslate?.(value) || value;
+  const feedFormat = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), feedTranslate(key));
   const safeCount = Math.max(0, Number(count) || 0);
   for (const control of notificationControls) {
     if (!control.dataset.baseLabel) control.dataset.baseLabel = control.dataset.feature || control.textContent.trim();
+    const translatedLabel = feedTranslate(control.dataset.baseLabel);
     const badge = control.querySelector(".nav-count");
     if (badge) { badge.hidden = safeCount === 0; badge.textContent = safeCount > 99 ? "99+" : String(safeCount); }
-    else control.textContent = safeCount ? `${control.dataset.baseLabel} (${safeCount})` : control.dataset.baseLabel;
-    control.setAttribute("aria-label", safeCount ? `${control.dataset.baseLabel}, ${safeCount} new` : control.dataset.baseLabel);
+    else control.textContent = safeCount ? `${translatedLabel} (${safeCount})` : translatedLabel;
+    control.setAttribute("aria-label", safeCount ? feedFormat(safeCount === 1 ? "{label}, {count} new notification" : "{label}, {count} new notifications", { label: translatedLabel, count: safeCount }) : translatedLabel);
   }
-  if (lastNotificationCount !== null && safeCount !== lastNotificationCount) notificationAnnouncer.textContent = safeCount ? `${safeCount} new notification${safeCount === 1 ? "" : "s"}.` : "No new notifications.";
+  if (lastNotificationCount !== null && safeCount !== lastNotificationCount) notificationAnnouncer.textContent = safeCount ? feedFormat(safeCount === 1 ? "{count} new notification." : "{count} new notifications.", { count: safeCount }) : feedTranslate("No new notifications.");
   lastNotificationCount = safeCount;
 }
+
+if (typeof MutationObserver === "function") new MutationObserver(() => { if (lastNotificationCount !== null) updateNotificationCount(lastNotificationCount); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
 
 function formatNotificationTimestamp(value) {
   const created = new Date(value || "");
