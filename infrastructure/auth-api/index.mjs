@@ -3514,4 +3514,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk };
+export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer };

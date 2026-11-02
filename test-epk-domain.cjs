@@ -1,0 +1,29 @@
+"use strict";
+const assert = require("node:assert/strict");
+
+(async () => {
+  Object.assign(process.env, { MEDIA_BUCKET:"example-private-media", AWS_REGION:"us-west-1", AWS_ACCESS_KEY_ID:"AKIAEXAMPLE", AWS_SECRET_ACCESS_KEY:"test-secret", AWS_SESSION_TOKEN:"test-token" });
+  const { cleanEpk, epkForViewer } = await import("./infrastructure/auth-api/index.mjs");
+  const owner = "0123456789abcdef01234567";
+  const photoKey = `epk/${owner}/11111111-1111-4111-a111-111111111111.jpg`;
+  const riderKey = `epk/${owner}/22222222-2222-4222-a222-222222222222.pdf`;
+  const kit = cleanEpk({
+    artistName: "Codex Band",
+    media: [
+      { key: photoKey, id:"photo", role:"press-photo", name:"Press photo", public:true, featured:true },
+      { key: riderKey, id:"rider", role:"technical-rider", name:"Private rider", public:false }
+    ]
+  }, owner);
+  assert.equal(kit.artistName, "Codex Band");
+  assert.equal(kit.media.length, 2, "valid owner-scoped media should remain in the artist draft");
+  assert.equal(cleanEpk({ artistName:"Codex Band", media:[{ key:photoKey.replace(owner, "fedcba9876543210fedcba98"), role:"press-photo", name:"Stolen" }] }, owner), null, "another artist's object key must reject the entire update");
+  assert.equal(cleanEpk({ artistName:"Codex Band", media:[{ key:photoKey, role:"executable", name:"Bad role" }] }, owner), null, "unknown media roles must be rejected");
+
+  const ownerView = epkForViewer(kit, false), publicView = epkForViewer(kit, true);
+  assert.equal(ownerView.media.length, 2, "the artist should retain private and public media");
+  assert.equal(publicView.media.length, 1, "the public EPK must hide private media");
+  assert.equal(publicView.media[0].key, photoKey);
+  assert.match(publicView.media[0].url, /^https:\/\//, "public downloads should use a signed HTTPS URL");
+  assert.equal(kit.media.some(item => "url" in item), false, "viewer serialization must not mutate stored EPK data");
+  console.log("EPK domain checks passed: owner isolation, role validation, private media filtering, and signed-view serialization.");
+})().catch(error => { console.error(error); process.exitCode = 1; });
