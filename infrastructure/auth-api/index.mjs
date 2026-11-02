@@ -3145,6 +3145,16 @@ function epkForViewer(kit, publicView = false) {
   return copy;
 }
 
+function epkDeletionPlan(existingItem, ownerPrefix, ownerKey) {
+  const publicId = /^[a-z0-9-]{3,64}$/.test(existingItem?.publicId?.S || "") ? existingItem.publicId.S : "";
+  const transaction = [{ Delete: { TableName: toursTable, Key: ownerKey } }];
+  if (publicId) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } } });
+  let previousKit = {};
+  try { previousKit = JSON.parse(existingItem?.plan?.S || "{}"); } catch { previousKit = {}; }
+  const mediaKeys = (previousKit.media || []).map(item => item?.key || "").filter(key => epkMediaPattern(ownerPrefix).test(key));
+  return { transaction, mediaKeys };
+}
+
 async function epkWorkspace(event, method) {
   const headers = corsHeaders(event.headers?.origin);
   const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
@@ -3154,6 +3164,20 @@ async function epkWorkspace(event, method) {
   const accountEmail = await accountForSub(userId);
   if (!accountEmail) return reply(409, { error: "Account email could not be verified." });
   const ownerPrefix = sha256(accountEmail).slice(0, 24), ownerKey = { userId: { S: userId }, tourId: { S: epkWorkspaceId } };
+  if (method === "DELETE") {
+    const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
+    if (!existing.Item) return reply(200, { deleted: false, cleanupPending: false });
+    const { transaction, mediaKeys } = epkDeletionPlan(existing.Item, ownerPrefix, ownerKey);
+    const cleanupPending = mediaKeys.length
+      ? await runCleanup(mediaKeys.map(key => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }))))
+      : 0;
+    if (cleanupPending) {
+      console.error("EPK media deletion remains pending", { userId, cleanupPending });
+      return reply(503, { error: "EPK files could not be removed yet. Try again.", deleted: false });
+    }
+    await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
+    return reply(200, { deleted: true, cleanupPending: false });
+  }
   if (method === "GET") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
     if (!result.Item) return reply(200, { kit: null, publicId: "", published: false, updatedAt: "" });
@@ -3484,7 +3508,7 @@ export const handler = async event => {
     if (method === "POST" && path === "/tour/manual-venue") return await addManualBookingVenue(event);
 
     if ((method === "GET" || method === "POST") && path === "/booking-pipeline") return await bookingWorkspace(event, method);
-    if ((method === "GET" || method === "POST") && path === "/epk") return await epkWorkspace(event, method);
+    if ((method === "GET" || method === "POST" || method === "DELETE") && path === "/epk") return await epkWorkspace(event, method);
     const epkPublicMatch = path.match(/^\/epk\/public\/([a-z0-9-]{3,64})$/i);
     if (method === "GET" && epkPublicMatch) return await publicEpk(event, epkPublicMatch[1]);
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
@@ -3514,4 +3538,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer };
+export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan };

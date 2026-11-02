@@ -7,6 +7,7 @@ for (const field of ["artistName","shortPitch","bio","lineup","notableShows","mu
 for (const field of ["shortBio","releases","achievements","hospitalityRequirements","epkMediaInput","epkMediaList"]) assert.match(html, new RegExp(`id="${field}"`), `complete EPK field ${field} is missing`);
 assert.match(html, /Save private draft/, "EPKs must be private by default");
 assert.match(html, /Publish EPK/, "publishing must be explicit");
+assert.match(html, /id="deleteEpk"/, "artists must be able to permanently delete an EPK");
 assert.match(client, /\/epk\/public\//, "the public EPK should load from an opaque public route");
 assert.match(client, /credentials:"include"/, "private EPK operations should use opaque sessions");
 assert.doesNotMatch(client, /innerHTML/, "EPK content must not be injected as HTML");
@@ -21,14 +22,18 @@ assert.match(client, /prepareEpkImage[\s\S]*2400[\s\S]*image\/jpeg[\s\S]*0\.88/,
 assert.match(client, /File removed from this draft/, "EPK media should support deletion");
 assert.match(client, /Replace /, "EPK media should support replacement");
 assert.match(client, /discardEpkMedia/, "failed EPK uploads should be removed from private storage");
+assert.match(client, /method:"DELETE"[\s\S]*EPK and its private files were deleted/, "the EPK owner should receive an explicit permanent-delete flow");
 assert.match(client, /youtube-nocookie\.com\/embed/, "supported video providers should render privacy-enhanced embeds");
 assert.match(client, /open\.spotify\.com\/embed/, "supported music providers should render provider-hosted embeds");
 assert.match(html, /frame-src https:\/\/www\.youtube-nocookie\.com https:\/\/player\.vimeo\.com https:\/\/open\.spotify\.com/, "EPK embeds need a narrow provider CSP");
 assert.match(api, /epkPublicPartition = "epk-public"/, "public EPKs should use isolated opaque records");
 assert.match(api, /path\.match\(\/\^\\\/epk\\\/public\\\/\(\[a-z0-9-\]\{3,64\}\)\$\/i\)/, "public EPK routes should accept stable artist slugs");
 assert.match(api, /TransactWriteItemsCommand/, "publish and private state should update atomically");
+assert.match(api, /method === "DELETE"[\s\S]*epkDeletionPlan[\s\S]*DeleteObjectCommand/, "permanent deletion must remove the private record, public record, and owner-scoped media");
+assert.match(api, /if \(cleanupPending\)[\s\S]*return reply\(503,[\s\S]*TransactWriteItemsCommand/, "failed media cleanup must preserve the EPK records so deletion remains retryable");
 assert.match(api, /reservedWorkspaceIds = new Set\(\[bookingWorkspaceId, epkWorkspaceId, recordStoreWorkspaceId\]\)/, "EPK and placement workspaces must not appear as saved tours");
 assert.match(deploy, /GET \/epk\/public\/\{publicId\}/, "deployment should provision public EPK reads");
+assert.match(deploy, /DELETE \/epk/, "deployment should provision owner-authorized permanent EPK deletion");
 assert.match(deploy, /dynamodb:TransactWriteItems/, "EPK publishing should receive only the required transaction permission");
 assert.match(deploy, /AllowEpkFromApiGateway/, "the deployed EPK routes must be invokable through API Gateway");
 console.log("EPK checks passed: private drafts, explicit publishing, image optimization, sourced press fields, public links, validation, and safe rendering.");

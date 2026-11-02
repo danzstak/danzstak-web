@@ -25,13 +25,13 @@
         <section aria-labelledby="epkMediaTitle"><h2 id="epkMediaTitle">Press photos and documents</h2><p class="hint">Private S3 storage. Images: JPG, PNG, WebP up to 12 MB. Documents: PDF up to 20 MB. Choose which files a public EPK may download.</p><label id="epkDropZone" class="epk-drop-zone">Drop files here or choose files<input id="epkMediaInput" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf"></label><progress id="epkUploadProgress" max="100" value="0" hidden></progress><p id="epkUploadStatus" role="status" aria-live="polite"></p><div id="epkMediaList" class="epk-media-list"></div></section>
         <section><h2>Proof and production</h2><p class="hint">Never invent press. Include the publication and its public source link.</p><label>Press quotes, one per line: quote | source | URL<textarea id="pressQuotes" rows="4"></textarea></label><label>Stage requirements<textarea id="stageRequirements" rows="4" placeholder="Space, changeover, backline, accessibility"></textarea></label><label>Technical requirements<textarea id="techRequirements" rows="5" placeholder="Inputs, microphones, monitors, power, playback"></textarea></label><label>Hospitality requirements<textarea id="hospitalityRequirements" rows="4" placeholder="Meals, water, dressing room, accessibility"></textarea></label></section>
         <section><h2>Booking contact</h2><p class="hint">These details appear publicly only when you publish.</p><div class="two"><label>Contact name<input id="bookingName" maxlength="120"></label><label>Booking email<input id="bookingEmail" type="email" maxlength="254"></label><label>Phone<input id="bookingPhone" type="tel" maxlength="40"></label><label>Official website<input id="website" type="url" placeholder="https://"></label></div></section>
-        <div class="form-actions"><button type="button" id="saveDraft">Save private draft</button><button type="button" id="publishEpk" class="primary">Publish EPK</button><button type="button" id="unpublishEpk">Unpublish</button></div>
+        <div class="form-actions"><button type="button" id="saveDraft">Save private draft</button><button type="button" id="publishEpk" class="primary">Publish EPK</button><button type="button" id="unpublishEpk">Unpublish</button><button type="button" id="deleteEpk" class="danger">Delete EPK</button></div>
         <p id="epkStatus" role="status" aria-live="polite">Loading your private draft...</p>
         <p id="publicLinkRow" hidden>Public link: <a id="publicLink" target="_blank" rel="noopener noreferrer"></a> <button type="button" id="copyPublicLink">Copy link</button></p>
       </form>
       <article id="epkPreview" class="epk-preview" aria-label="EPK preview"></article>
     </div>
   </main>
-  <script src="assets/epk.js?v=1" defer></script>
+  <script src="assets/epk.js?v=2" defer></script>
 </body>
 </html>

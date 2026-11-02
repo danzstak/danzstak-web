@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 (async () => {
   Object.assign(process.env, { MEDIA_BUCKET:"example-private-media", AWS_REGION:"us-west-1", AWS_ACCESS_KEY_ID:"AKIAEXAMPLE", AWS_SECRET_ACCESS_KEY:"test-secret", AWS_SESSION_TOKEN:"test-token" });
-  const { cleanEpk, epkForViewer } = await import("./infrastructure/auth-api/index.mjs");
+  const { cleanEpk, epkForViewer, epkDeletionPlan } = await import("./infrastructure/auth-api/index.mjs");
   const owner = "0123456789abcdef01234567";
   const photoKey = `epk/${owner}/11111111-1111-4111-a111-111111111111.jpg`;
   const riderKey = `epk/${owner}/22222222-2222-4222-a222-222222222222.pdf`;
@@ -25,5 +25,10 @@ const assert = require("node:assert/strict");
   assert.equal(publicView.media[0].key, photoKey);
   assert.match(publicView.media[0].url, /^https:\/\//, "public downloads should use a signed HTTPS URL");
   assert.equal(kit.media.some(item => "url" in item), false, "viewer serialization must not mutate stored EPK data");
-  console.log("EPK domain checks passed: owner isolation, role validation, private media filtering, and signed-view serialization.");
+  const ownerKey = { userId:{S:"artist-1"}, tourId:{S:"epk-workspace-v1"} };
+  const deletion = epkDeletionPlan({ publicId:{S:"codex-band"}, plan:{S:JSON.stringify({media:[{key:photoKey},{key:photoKey.replace(owner,"fedcba9876543210fedcba98")}]})} }, owner, ownerKey);
+  assert.equal(deletion.transaction.length, 2, "deletion should remove both the private draft and published copy atomically");
+  assert.deepEqual(deletion.transaction[0].Delete.Key, ownerKey);
+  assert.deepEqual(deletion.mediaKeys, [photoKey], "deletion must clean up only media owned by the signed-in artist");
+  console.log("EPK domain checks passed: owner isolation, role validation, private media filtering, signed-view serialization, and scoped permanent deletion.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

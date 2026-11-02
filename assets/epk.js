@@ -101,9 +101,27 @@
   }
   async function uploadFiles(files) { for (const file of files) { const item = await uploadEpkFile(file); if (item) epkMedia.push(item); } renderMediaManager(); render(kitFromForm()); }
   async function save(publish) { const kit = kitFromForm(); if (!kit.artistName) { status.textContent = "Add the artist or act name first."; byId("artistName").focus(); return; } status.textContent = publish ? "Publishing EPK..." : "Saving private draft..."; try { const response = await fetch(`${api}/epk`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({kit,publish}) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "The EPK could not be saved."); showLink(data.publicId, data.published); status.textContent = data.published ? "EPK published. Review the public link before sending it." : "Private draft saved. The public copy is unavailable."; } catch (error) { status.textContent = error.message; } }
+  async function deleteEpk() {
+    if (!window.confirm("Permanently delete this EPK and all uploaded EPK files? This cannot be undone.")) return;
+    const button = byId("deleteEpk");
+    button.disabled = true;
+    status.textContent = "Deleting EPK and private files...";
+    try {
+      const response = await fetch(`${api}/epk`, { method:"DELETE", credentials:"include", cache:"no-store" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "The EPK could not be deleted.");
+      form.reset();
+      epkMedia = [];
+      renderMediaManager();
+      render({});
+      showLink("", false);
+      status.textContent = data.cleanupPending ? "EPK deleted. Some private files are still being cleaned up." : "EPK and its private files were deleted.";
+    } catch (error) { status.textContent = error.message; }
+    finally { button.disabled = false; }
+  }
   const publicId = new URLSearchParams(location.search).get("id");
   if (publicId) { document.body.classList.add("public-mode"); status.textContent = "Loading EPK..."; fetch(`${api}/epk/public/${encodeURIComponent(publicId)}`, { credentials:"include" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "EPK not found."); render(data.kit); document.title = `${data.kit.artistName} EPK | DanzStak`; }).catch(error => { preview.replaceChildren(text("p", error.message, "empty-note")); }); return; }
   fetch(`${api}/epk`, { credentials:"include" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Could not load your EPK."); if (data.kit) fill(data.kit); else render({}); showLink(data.publicId, data.published); status.textContent = data.kit ? (data.published ? "Published EPK loaded." : "Private draft loaded.") : "Start with the act name. Your draft is private."; }).catch(error => { render({}); status.textContent = error.message; });
   const mediaInput = byId("epkMediaInput"), dropZone = byId("epkDropZone"); mediaInput.addEventListener("change", () => uploadFiles([...mediaInput.files])); for (const eventName of ["dragenter","dragover"]) dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.add("is-dragging"); }); for (const eventName of ["dragleave","drop"]) dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.remove("is-dragging"); }); dropZone.addEventListener("drop", event => uploadFiles([...event.dataTransfer.files]));
-  form.addEventListener("input", event => { if (!event.target.closest(".epk-media-item")) render(kitFromForm()); }); byId("saveDraft").addEventListener("click", () => save(false)); byId("publishEpk").addEventListener("click", () => save(true)); byId("unpublishEpk").addEventListener("click", () => save(false)); byId("copyPublicLink").addEventListener("click", async () => { try { await navigator.clipboard.writeText(byId("publicLink").href); status.textContent = "Public EPK link copied."; } catch { status.textContent = "Copy was blocked. Select the visible link instead."; } });
+  form.addEventListener("input", event => { if (!event.target.closest(".epk-media-item")) render(kitFromForm()); }); byId("saveDraft").addEventListener("click", () => save(false)); byId("publishEpk").addEventListener("click", () => save(true)); byId("unpublishEpk").addEventListener("click", () => save(false)); byId("deleteEpk").addEventListener("click", deleteEpk); byId("copyPublicLink").addEventListener("click", async () => { try { await navigator.clipboard.writeText(byId("publicLink").href); status.textContent = "Public EPK link copied."; } catch { status.textContent = "Copy was blocked. Select the visible link instead."; } });
 })();
