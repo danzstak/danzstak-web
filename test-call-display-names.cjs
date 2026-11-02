@@ -8,7 +8,7 @@ const messages = readFileSync('assets/direct-messages.js', 'utf8');
 
 assert.match(template, /senderName=signalType==='offer'\?\(\(await publicProfile\(user\.email\)\)\.name\|\|'DanzStak member'\):''/);
 assert.match(template, /senderName:x\.senderName\?\.S\|\|''/);
-assert.match(incoming, /event\.senderName \|\| "DanzStak member"/);
+assert.match(incoming, /current\.senderName \|\| t\("DanzStak member"\)/);
 assert.doesNotMatch(incoming, /label\.textContent = `\$\{event\.senderEmail\}/);
 assert.match(chat, /contactName=event\.senderName\|\|"DanzStak member"/);
 assert.match(chat, /els\.incomingLabel\.textContent=t\("Incoming call"\)\+": "\+contactName/);

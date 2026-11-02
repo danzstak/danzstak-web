@@ -121,6 +121,24 @@
   id:["Terhubung aman dengan {name}.","Koneksi {mode} aman tersambung.","Pilih teman atau anggota Suku yang sama terlebih dahulu.","Memanggil {name}…","Berdering ke {name}…","Tidak ada jawaban dari {name}.","Tidak dapat menelepon: {error}","Menghubungkan ke {name}…","{name} mengakhiri percakapan.","Panggilan masuk ini sudah tidak tersedia.","Layanan panggilan sedang tersambung kembali secara otomatis…","{name} dipilih.","Tidak dapat menjawab: {error}","Panggilan ditolak.","Mengaktifkan peringatan panggilan…","Panggilan sekarang dapat memberi tahu perangkat ini saat DanzStak ditutup.","Hanya teman atau anggota Suku yang sama yang dapat menelepon.","suara","video"]
  };
  for(const [language,values] of Object.entries(callStatuses))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(callStatusKeys.map((key,index)=>[key,values[index]])));
+ const globalCallKeys=["DanzStak member","{name} is calling by {mode}.","Could not decline the call. Please try again."];
+ const globalCallGuidance={
+  es:["Miembro de DanzStak","{name} está llamando por {mode}.","No se pudo rechazar la llamada. Inténtalo de nuevo."],
+  fr:["Membre de DanzStak","{name} appelle par {mode}.","Impossible de refuser l’appel. Réessayez."],
+  de:["DanzStak-Mitglied","{name} ruft per {mode} an.","Der Anruf konnte nicht abgelehnt werden. Versuche es erneut."],
+  pt:["Membro do DanzStak","{name} está ligando por {mode}.","Não foi possível recusar a chamada. Tente novamente."],
+  it:["Membro di DanzStak","{name} sta chiamando tramite {mode}.","Impossibile rifiutare la chiamata. Riprova."],
+  ko:["DanzStak 멤버","{name}님이 {mode} 통화를 걸고 있습니다.","통화를 거절할 수 없습니다. 다시 시도하세요."],
+  ja:["DanzStakメンバー","{name}から{mode}通話が着信しています。","通話を拒否できませんでした。もう一度お試しください。"],
+  "zh-Hans":["DanzStak成员","{name}正在发起{mode}通话。","无法拒绝来电。请重试。"],
+  "zh-Hant":["DanzStak成員","{name}正在發起{mode}通話。","無法拒絕來電。請再試一次。"],
+  fil:["Miyembro ng DanzStak","Tumatawag si {name} sa pamamagitan ng {mode}.","Hindi matanggihan ang tawag. Subukan muli."],
+  hi:["DanzStak सदस्य","{name} {mode} से कॉल कर रहे हैं।","कॉल अस्वीकार नहीं हो सकी। फिर कोशिश करें।"],
+  vi:["Thành viên DanzStak","{name} đang gọi bằng {mode}.","Không thể từ chối cuộc gọi. Hãy thử lại."],
+  th:["สมาชิก DanzStak","{name} กำลังโทรผ่าน{mode}","ไม่สามารถปฏิเสธสายได้ โปรดลองอีกครั้ง"],
+  id:["Anggota DanzStak","{name} menelepon melalui {mode}.","Tidak dapat menolak panggilan. Coba lagi."]
+ };
+ for(const [language,values] of Object.entries(globalCallGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(globalCallKeys.map((key,index)=>[key,values[index]])));
  const callNetworkKeys=["DanzStak is taking too long to respond. Retrying automatically.","DanzStak cannot connect to calls right now. Check your connection and try again.","Session expired","Request failed"];
  const callNetworkGuidance={
   es:["DanzStak está tardando demasiado en responder. Reintentando automáticamente.","DanzStak no puede conectarse a las llamadas ahora. Comprueba tu conexión y vuelve a intentarlo.","La sesión caducó","La solicitud falló"],
