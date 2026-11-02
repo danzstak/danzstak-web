@@ -343,7 +343,7 @@ foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'doc
 foreach ($messageHistoryBehavior in @('let nextMessageCursor = ""', 'function renderEarlierMessagesButton()', 'async function loadEarlierMessages()', '"&before=" + encodeURIComponent(cursor)', 'messageList.prepend(fragment)', 'Load earlier messages')) {
   if (-not $directMessagesJs.Contains($messageHistoryBehavior)) { Add-Failure "Messages: saved history cannot load beyond the newest page: $messageHistoryBehavior" }
 }
-foreach ($messageIdentityBehavior in @('let activeContactName = "Contact"', 'activeContactName = conversation.name || "Contact"', '(mine ? "You" : activeContactName)')) {
+foreach ($messageIdentityBehavior in @('let activeContactName = "Contact"', 'activeContactName = conversation.name || "Contact"', '(mine ? messageTranslate("You") : activeContactName)')) {
   if (-not $directMessagesJs.Contains($messageIdentityBehavior)) { Add-Failure "Messages: visible message metadata can expose contact email instead of the profile name: $messageIdentityBehavior" }
 }
 foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.online === true', 'conversation-online-dot', 'aria-label", "Online')) {
@@ -353,7 +353,7 @@ $messagesMarkupForPresence = Get-Content -LiteralPath (Join-Path $root 'messages
 foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'function updateConversationPresence(conversation)', 'conversationPresence.hidden = false', 'conversationPresence.textContent = isOnline ? "Online" : "Offline"', 'updateConversationPresence(activeConversation)', 'conversationPresence.hidden = true', '.conversation-presence[hidden]{display:none}', '.conversation-presence.is-offline')) {
   if (-not ($messagesMarkupForPresence + $directMessagesJs + $chatStyles).Contains($activeChatPresenceControl)) { Add-Failure "Messages: active conversation does not accurately expose online presence: $activeChatPresenceControl" }
 }
-foreach ($activeChatActionLabel in @('function labelConversationHeaderActions(name = "")', '`${labels[key]} with ${name}`', 'labelConversationHeaderActions(conversationName.textContent)', 'labelConversationHeaderActions()')) {
+foreach ($activeChatActionLabel in @('function labelConversationHeaderActions(name = "")', '`${translated}: ${name}`', 'labelConversationHeaderActions(conversationName.textContent)', 'labelConversationHeaderActions()')) {
   if (-not $directMessagesJs.Contains($activeChatActionLabel)) { Add-Failure "Messages: active conversation controls do not identify or reset the selected contact: $activeChatActionLabel" }
 }
 foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'Contacts are temporarily unavailable. Retrying automatically')) {

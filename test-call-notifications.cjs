@@ -36,7 +36,7 @@ vm.runInContext(source,context);
  assert.match(chat,/window\.danzstakPushState\(\)/,'the call-alert button must use the real push subscription state');
  assert.match(chat,/danzstak:push-enabled/,'the button must update immediately after push setup');
  assert.match(chat,/Call alerts enabled — tap to enable sound in this session/,'enabled devices must retain a user gesture for in-page ringtone audio');
- const state=vm.createContext({pending:null,peer:null,autoAnswer:true,autoAnswerDeadline:Date.now()+60000,requestedCallId:first.callId,requestedContact:null,Date,els:{email:{},incomingLabel:{}},accept:async()=>accepted++,ring(){throw Error('Unexpected ring');}});
+ const state=vm.createContext({pending:null,peer:null,autoAnswer:true,autoAnswerDeadline:Date.now()+60000,requestedCallId:first.callId,requestedContact:null,Date,t:value=>value,els:{email:{},incomingLabel:{}},accept:async()=>accepted++,ring(){throw Error('Unexpected ring');}});
  vm.runInContext(handle,state);await state.handleEvent({...first,callId:'unrelated'});assert.equal(accepted,0);assert.equal(state.pending,null);await state.handleEvent(first);assert.equal(accepted,1,'the opaque call ID is sufficient to automatically answer the selected call');assert.match(state.els.incomingLabel.textContent,/Caller Name/);assert.doesNotMatch(state.els.incomingLabel.textContent,/@/,'in-call prompt uses the profile display name');
  console.log('Call notification checks passed: one background notifier, answer/decline handoffs, distinct calls, and branded call actions.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

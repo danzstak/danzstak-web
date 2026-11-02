@@ -17,6 +17,7 @@ const sendButton = messageForm?.querySelector('button[type="submit"]');
 const textButton = document.getElementById("startText");
 const conversationActions = [textButton, document.getElementById("startPhone"), document.getElementById("startVideo")].filter(Boolean);
 const callStatus = document.getElementById("callStatus");
+const messageTranslate = value => window.danzstakTranslate?.(value) || value;
 
 function createCallActionIcon(kind) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -123,7 +124,8 @@ function labelConversationHeaderActions(name = "") {
   const labels = { phone: "Phone call", video: "Video call", minimize: "Minimize chat", more: "More chat options", close: "Close chat" };
   for (const [key, button] of Object.entries(conversationHeaderActions)) {
     if (!button) continue;
-    const label = name ? `${labels[key]} with ${name}` : labels[key];
+    const translated = messageTranslate(labels[key]);
+    const label = name ? `${translated}: ${name}` : translated;
     button.setAttribute("aria-label", label);
     button.title = label;
   }
@@ -442,7 +444,7 @@ function renderMessageLoadError(message) {
 }
 
 function messageAccessibleSummary(message, mine) {
-  const actor = mine ? "You" : activeContactName;
+  const actor = mine ? messageTranslate("You") : activeContactName;
   const content = String(message.content || "").trim();
   const media = message.mediaType === "video" ? "video" : message.mediaType === "image" ? "photo" : "";
   const lead = content ? `${actor}: ${content}.` : media ? `${actor} sent a ${media}.` : `${actor} sent a message.`;
@@ -473,7 +475,7 @@ function directMessageItem(message) {
   item.setAttribute("aria-label", messageAccessibleSummary(message, mine));
   const meta = document.createElement("span");
   meta.className = "message-meta";
-  meta.textContent = (mine ? "You" : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · edited" : "");
+  meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · edited" : "");
   if (mine) {
     const receipt = document.createElement("span");
     receipt.className = message.read ? "message-receipt is-read" : "message-receipt";

@@ -11,7 +11,7 @@ assert.match(template, /senderName:x\.senderName\?\.S\|\|''/);
 assert.match(incoming, /event\.senderName \|\| "DanzStak member"/);
 assert.doesNotMatch(incoming, /label\.textContent = `\$\{event\.senderEmail\}/);
 assert.match(chat, /contactName=event\.senderName\|\|"DanzStak member"/);
-assert.match(chat, /els\.incomingLabel\.textContent="Incoming "\+event\.mode\+" from "\+contactName/);
+assert.match(chat, /els\.incomingLabel\.textContent=t\("Incoming call"\)\+": "\+contactName/);
 assert.match(chat, /setStatus\("Connected securely to "\+contactName\+"\."\)/);
 assert.match(chat, /setStatus\("Connecting to "\+contactName\+"…"\)/);
 assert.doesNotMatch(chat, /setStatus\("Connected securely to "\+contact\+"\."\)/);

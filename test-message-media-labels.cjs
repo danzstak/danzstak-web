@@ -8,7 +8,7 @@ const end = source.indexOf('function directMessageItem', start);
 assert.notEqual(start, -1, 'message summary helper exists');
 assert.notEqual(end, -1, 'message summary helper has a stable boundary');
 
-const context = vm.createContext({ activeContactName: 'Sleeping Dragon' });
+const context = vm.createContext({ activeContactName: 'Sleeping Dragon', messageTranslate: value => value });
 vm.runInContext(source.slice(start, end), context);
 
 assert.equal(
