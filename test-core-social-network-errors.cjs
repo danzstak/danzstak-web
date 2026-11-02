@@ -42,5 +42,12 @@ async function helper(file, startText, endText, invocation, expected) {
     'api("/calls/events")',
     /DanzStak cannot connect to calls right now/
   );
-  console.log("Core social network checks passed: Messages, push setup, and calls replace raw browser failures with retryable product guidance.");
+  await helper(
+    "assets/people-search.js",
+    "async function peopleFetch",
+    "function memberId",
+    'peopleFetch("/people?query=sigmund")',
+    /DanzStak cannot connect right now/
+  );
+  console.log("Core social network checks passed: Messages, push setup, calls, and member discovery replace raw browser failures with retryable product guidance.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
