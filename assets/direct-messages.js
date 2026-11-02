@@ -104,10 +104,20 @@ async function uploadSelectedMessageMedia(file) {
     const upload = await directFetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file }, Math.max(30000, Math.min(300000, Math.ceil(file.size / 20000))));
     if (!upload.ok) throw new Error("Attachment upload failed");
   } catch (error) {
+    await discardMessageMedia(ticket.mediaKey);
     if (/taking too long/i.test(error.message)) throw new Error("Attachment upload took too long. Try again on a stronger connection.");
     throw error;
   }
   return { mediaKey: ticket.mediaKey, mediaType: file.type.startsWith("video/") ? "video" : "image" };
+}
+async function discardMessageMedia(mediaKey) {
+  if (!mediaKey) return;
+  await directFetch("/stories", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "discard", mediaKey })
+  }).catch(() => null);
 }
 function labelConversationHeaderActions(name = "") {
   const labels = { phone: "Phone call", video: "Video call", minimize: "Minimize chat", more: "More chat options", close: "Close chat" };
@@ -861,7 +871,10 @@ messageForm?.addEventListener("submit", async event => {
     const attachment = mediaFile ? await uploadSelectedMessageMedia(mediaFile) : {};
     const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, ...attachment }) });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "Message could not be sent");
+    if (!response.ok) {
+      await discardMessageMedia(attachment.mediaKey);
+      throw new Error(data.error || "Message could not be sent");
+    }
     if (version !== conversationVersion) { await loadConversations(); return; }
     if (data.message?.messageId) {
       shownMessages.add(data.message.messageId);

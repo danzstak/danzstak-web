@@ -16,12 +16,17 @@ assert.match(page, /media-src[^;]+danzstak-call-signaling-mediabucket/);
 assert.match(client, /Standalone audio files are not supported/);
 assert.match(client, /purpose: "message"/);
 assert.match(client, /uploadSelectedMessageMedia/);
+assert.match(client, /async function discardMessageMedia\(mediaKey\)/, "failed message attachments need an ownership-checked cleanup path");
+assert.match(client, /if \(!response\.ok\) \{\s*await discardMessageMedia\(attachment\.mediaKey\)/, "a rejected message must discard its completed upload");
+assert.match(client, /catch \(error\) \{\s*await discardMessageMedia\(ticket\.mediaKey\)/, "a failed object upload must attempt cleanup");
 assert.match(client, /media\.className = "message-attachment"/);
 assert.match(client, /\(!content && !selectedMessageMedia\)/);
 assert.match(styles, /\.message-media-preview/);
 assert.match(styles, /\.message-attachment/);
 
 assert.match(template, /mediaPattern=new RegExp\(`\^messages\/\$\{ownerPrefix\(user\)\}/);
+assert.match(template, /messageUpload=new RegExp\(`\^messages\/\$\{prefix\}\//, "the server must recognize only the signed-in member's message media for cleanup");
+assert.match(template, /!storyUpload&&!postUpload&&!messageUpload/, "message cleanup must use the same ownership gate as post and Flash media");
 assert.match(template, /\['story','post','profile','message'\]/);
 assert.match(template, /Invalid message attachment/);
 assert.match(template, /Boolean\(mediaKey\)!==Boolean\(mediaType\)/);
