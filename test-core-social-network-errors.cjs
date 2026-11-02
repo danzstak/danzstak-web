@@ -13,6 +13,7 @@ async function helper(file, startText, endText, invocation, expected) {
     api: "https://api.danzstak.com",
     directApi: "https://api.danzstak.com",
     API: "https://api.danzstak.com",
+    t: value => value,
     setTimeout,
     clearTimeout,
     fetch: async () => { throw new TypeError("Failed to fetch"); }
