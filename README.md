@@ -47,6 +47,21 @@ The browser receives only the opaque `__Host-danzstak_session` cookie. Cognito t
 
 ## Local verification
 
+### Offline use
+
+Offline access is off by default and must be enabled explicitly in App and
+device settings. The setting explains that private content is saved locally.
+After it is enabled during an online visit, the installed app can reopen its cached pages and show
+previously loaded feed, profile, friends, and chat data on the same device.
+Offline text posts and direct messages are saved in a bounded device queue.
+Keep DanzStak open or reopen it after reconnecting to send queued items; the
+account is checked first. The Saved offline items control shows pending content
+and allows discarding it. Interrupted sends remain available for review rather
+than being automatically sent twice. Media uploads and calls require a connection.
+Turning offline access off or signing out clears saved offline data. Automatic sending requires browser Web
+Locks support to coordinate open tabs. Run `node test-offline.cjs` to verify
+saved reads, queued writes, reconnect sending, and uncertain-delivery handling.
+
 The Booking Agent's selected-club page includes a private account workspace,
 artist pitch details, listed-genre match guidance, proposed dates, booking
 stages, deals, notes, and follow-up counts. `GET /booking-pipeline` loads the

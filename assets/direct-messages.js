@@ -860,6 +860,16 @@ messageForm?.addEventListener("submit", async event => {
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
+  if (window.navigator?.onLine === false && window.danzstakQueueOffline) {
+    try {
+      if (selectedMessageMedia) throw new Error("Attachments need a connection. Your draft is still here.");
+      window.danzstakQueueOffline("/messages", { recipientEmail, content });
+      messageInput.value = "";
+      saveChatDraft(recipientEmail, "");
+      callStatus.textContent = "Saved offline — waiting to send when you reconnect.";
+    } catch (error) { callStatus.textContent = error.message; }
+    return;
+  }
   const version = conversationVersion;
   const mediaFile = selectedMessageMedia;
   const pendingItem = pendingMessageItem(content, mediaFile);
@@ -942,3 +952,5 @@ setInterval(() => loadDirectMessages(), 3000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { loadDirectMessages(); loadConversations(); } });
 loadConversations();
 setInterval(loadConversations, 15000);
+
+window.addEventListener("danzstak-offline-synced", () => { loadConversations(); loadDirectMessages(true); });

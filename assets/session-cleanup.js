@@ -13,6 +13,7 @@
   ];
 
   window.danzstakClearAccountData = () => {
+    window.danzstakClearOffline?.();
     try { for (const key of accountLocalKeys) localStorage.removeItem(key); }
     catch { /* Server logout remains authoritative when browser storage is unavailable. */ }
     try {
