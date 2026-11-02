@@ -95,11 +95,13 @@ body.is-conversation-open>.install-app-button,body.is-conversation-open>.app-upd
 
 /* Keep phone navigation on one row so the conversation owns the viewport. */
 @media(max-width:560px){
+  body.messages-page{max-width:100vw;overflow-x:hidden}
   .chat-header{height:60px;min-height:60px;flex-wrap:nowrap;gap:5px;padding:6px 8px}
   .chat-header .chat-brand{flex:0 0 70px}
   .chat-header .chat-brand img{width:70px;height:42px}
   .chat-header>div{min-width:0;gap:4px;margin-left:auto}
   .chat-header .button{min-height:40px;padding:6px 8px;font-size:12px;white-space:nowrap}
+  .messages-page>.install-app-button,.messages-page>.app-update-button{max-width:calc(100vw - 24px)}
   body:not(.is-conversation-open) .chat-sidebar{min-height:calc(100dvh - 60px)}
 }
 
