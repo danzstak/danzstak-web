@@ -5,6 +5,14 @@
   const fields = ["artistName","hometown","genres","shortPitch","shortBio","bio","lineup","releases","notableShows","achievements","musicLinks","videoLinks","heroImage","logoImage","pressQuotes","stageRequirements","techRequirements","hospitalityRequirements","bookingName","bookingEmail","bookingPhone","website"];
   let epkMedia = [];
   const text = (tag, value, className = "") => { const node = document.createElement(tag); node.textContent = value; if (className) node.className = className; return node; };
+  async function request(url, options = {}, timeoutMs = 12000) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
+    try { return await fetch(url, { ...options, signal:controller.signal }); }
+    catch (error) {
+      if (error.name === "AbortError") throw new Error("DanzStak took too long to respond. Try again.");
+      throw new Error("DanzStak cannot connect right now. Check your connection and try again.");
+    } finally { clearTimeout(timer); }
+  }
   const lines = value => String(value || "").split(/\r?\n/).map(item => item.trim()).filter(Boolean);
   const linkLines = value => lines(value).map(item => { const [label, ...rest] = item.split("|"); const url = rest.join("|").trim(); return { label: label.trim(), url }; }).filter(item => item.label && /^https:\/\//i.test(item.url));
   const quoteLines = value => lines(value).map(item => { const [quote, source, ...rest] = item.split("|"); return { quote: quote?.trim(), source: source?.trim(), url: rest.join("|").trim() }; }).filter(item => item.quote && item.source);
@@ -73,7 +81,7 @@
     });
   }
   function putWithProgress(url, file) {
-    return new Promise((resolve,reject) => { const request = new XMLHttpRequest(), progress = byId("epkUploadProgress"); request.open("PUT", url); request.setRequestHeader("Content-Type", file.type); progress.hidden = false; progress.value = 0; request.upload.onprogress = event => { if (event.lengthComputable) progress.value = Math.round(event.loaded / event.total * 100); }; request.onload = () => request.status >= 200 && request.status < 300 ? resolve() : reject(new Error("The file upload failed.")); request.onerror = () => reject(new Error("The file upload failed.")); request.onloadend = () => { progress.hidden = true; }; request.send(file); });
+    return new Promise((resolve,reject) => { const upload = new XMLHttpRequest(), progress = byId("epkUploadProgress"); upload.open("PUT", url); upload.setRequestHeader("Content-Type", file.type); upload.timeout = Math.max(60000, Math.min(300000, Math.ceil(file.size / 50000) * 1000)); progress.hidden = false; progress.value = 0; upload.upload.onprogress = event => { if (event.lengthComputable) progress.value = Math.round(event.loaded / event.total * 100); }; upload.onload = () => upload.status >= 200 && upload.status < 300 ? resolve() : reject(new Error("The file upload failed.")); upload.onerror = () => reject(new Error("The file upload failed.")); upload.ontimeout = () => reject(new Error("The file upload took too long. Try again on a stronger connection.")); upload.onloadend = () => { progress.hidden = true; }; upload.send(file); });
   }
   async function prepareEpkImage(file) {
     if (!file.type.startsWith("image/") || typeof createImageBitmap !== "function") return file;
@@ -97,7 +105,7 @@
   }
   async function discardEpkMedia(mediaKey) {
     if (!mediaKey) return;
-    await fetch(`${api}/stories`, { method:"POST", credentials:"include", keepalive:true, headers:{"content-type":"application/json"}, body:JSON.stringify({action:"discard",mediaKey}) }).catch(() => {});
+    await request(`${api}/stories`, { method:"POST", credentials:"include", keepalive:true, headers:{"content-type":"application/json"}, body:JSON.stringify({action:"discard",mediaKey}) }, 5000).catch(() => {});
   }
   async function uploadEpkFile(file, requestedRole = "") {
     file = await prepareEpkImage(file);
@@ -105,17 +113,17 @@
     if (!allowed.has(file.type) || !file.size || file.size > maximum) { uploadStatus.textContent = `${file.name} is not a supported file or exceeds the size limit.`; return null; }
     uploadStatus.textContent = `Uploading ${file.name}...`;
     let ticket = null;
-    try { const response = await fetch(`${api}/stories`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({contentType:file.type,purpose:"epk"}) }); ticket = await response.json().catch(() => ({})); if (!response.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || "Upload could not start."); await putWithProgress(ticket.uploadUrl, file); uploadStatus.textContent = `${file.name} uploaded. Save the EPK to keep it.`; return { id:ticket.mediaKey.split("/").at(-1).split(".")[0], key:ticket.mediaKey, name:file.name, role:requestedRole || (file.type === "application/pdf" ? "other" : "press-photo"), public:false, featured:false, contentType:file.type, size:file.size, previewUrl:file.type.startsWith("image/") ? URL.createObjectURL(file) : "" }; } catch (error) { await discardEpkMedia(ticket?.mediaKey); uploadStatus.textContent = error.message; return null; }
+    try { const response = await request(`${api}/stories`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({contentType:file.type,purpose:"epk"}) }); ticket = await response.json().catch(() => ({})); if (!response.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || "Upload could not start."); await putWithProgress(ticket.uploadUrl, file); uploadStatus.textContent = `${file.name} uploaded. Save the EPK to keep it.`; return { id:ticket.mediaKey.split("/").at(-1).split(".")[0], key:ticket.mediaKey, name:file.name, role:requestedRole || (file.type === "application/pdf" ? "other" : "press-photo"), public:false, featured:false, contentType:file.type, size:file.size, previewUrl:file.type.startsWith("image/") ? URL.createObjectURL(file) : "" }; } catch (error) { await discardEpkMedia(ticket?.mediaKey); uploadStatus.textContent = error.message; return null; }
   }
   async function uploadFiles(files) { for (const file of files) { const item = await uploadEpkFile(file); if (item) epkMedia.push(item); } renderMediaManager(); render(kitFromForm(true)); }
-  async function save(publish) { const kit = kitFromForm(); if (!kit.artistName) { status.textContent = "Add the artist or act name first."; byId("artistName").focus(); return; } status.textContent = publish ? "Publishing EPK..." : "Saving private draft..."; try { const response = await fetch(`${api}/epk`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({kit,publish}) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "The EPK could not be saved."); showLink(data.publicId, data.published); status.textContent = data.published ? "EPK published. Review the public link before sending it." : "Private draft saved. The public copy is unavailable."; } catch (error) { status.textContent = error.message; } }
+  async function save(publish) { const kit = kitFromForm(); if (!kit.artistName) { status.textContent = "Add the artist or act name first."; byId("artistName").focus(); return; } status.textContent = publish ? "Publishing EPK..." : "Saving private draft..."; try { const response = await request(`${api}/epk`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({kit,publish}) }, 20000); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "The EPK could not be saved."); showLink(data.publicId, data.published); status.textContent = data.published ? "EPK published. Review the public link before sending it." : "Private draft saved. The public copy is unavailable."; } catch (error) { status.textContent = error.message; } }
   async function deleteEpk() {
     if (!window.confirm("Permanently delete this EPK and all uploaded EPK files? This cannot be undone.")) return;
     const button = byId("deleteEpk");
     button.disabled = true;
     status.textContent = "Deleting EPK and private files...";
     try {
-      const response = await fetch(`${api}/epk`, { method:"DELETE", credentials:"include", cache:"no-store" });
+      const response = await request(`${api}/epk`, { method:"DELETE", credentials:"include", cache:"no-store" }, 20000);
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "The EPK could not be deleted.");
       form.reset();
@@ -129,8 +137,8 @@
     finally { button.disabled = false; }
   }
   const publicId = new URLSearchParams(location.search).get("id");
-  if (publicId) { document.body.classList.add("public-mode"); status.textContent = "Loading EPK..."; fetch(`${api}/epk/public/${encodeURIComponent(publicId)}`, { credentials:"include" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "EPK not found."); render(data.kit); document.title = `${data.kit.artistName} EPK | DanzStak`; }).catch(error => { preview.replaceChildren(text("p", error.message, "empty-note")); }); return; }
-  fetch(`${api}/epk`, { credentials:"include" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Could not load your EPK."); if (data.kit) fill(data.kit); else render({}); showLink(data.publicId, data.published); status.textContent = data.kit ? (data.published ? "Published EPK loaded." : "Private draft loaded.") : "Start with the act name. Your draft is private."; }).catch(error => { render({}); status.textContent = error.message; });
+  if (publicId) { document.body.classList.add("public-mode"); status.textContent = "Loading EPK..."; request(`${api}/epk/public/${encodeURIComponent(publicId)}`, { credentials:"omit", cache:"no-store" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "EPK not found."); render(data.kit); document.title = `${data.kit.artistName} EPK | DanzStak`; }).catch(error => { preview.replaceChildren(text("p", error.message, "empty-note")); }); return; }
+  request(`${api}/epk`, { credentials:"include", cache:"no-store" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Could not load your EPK."); if (data.kit) fill(data.kit); else render({}); showLink(data.publicId, data.published); status.textContent = data.kit ? (data.published ? "Published EPK loaded." : "Private draft loaded.") : "Start with the act name. Your draft is private."; }).catch(error => { render({}); status.textContent = error.message; });
   const mediaInput = byId("epkMediaInput"), dropZone = byId("epkDropZone"); mediaInput.addEventListener("change", () => uploadFiles([...mediaInput.files])); for (const eventName of ["dragenter","dragover"]) dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.add("is-dragging"); }); for (const eventName of ["dragleave","drop"]) dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.remove("is-dragging"); }); dropZone.addEventListener("drop", event => uploadFiles([...event.dataTransfer.files]));
   form.addEventListener("input", event => { if (!event.target.closest(".epk-media-item")) render(kitFromForm(true)); }); byId("saveDraft").addEventListener("click", () => save(false)); byId("publishEpk").addEventListener("click", () => save(true)); byId("unpublishEpk").addEventListener("click", () => save(false)); byId("deleteEpk").addEventListener("click", deleteEpk); byId("copyPublicLink").addEventListener("click", async () => { try { await navigator.clipboard.writeText(byId("publicLink").href); status.textContent = "Public EPK link copied."; } catch { status.textContent = "Copy was blocked. Select the visible link instead."; } });
 })();
