@@ -81,6 +81,24 @@
   id:["Postingan dan tag profil","Izinkan teman menandai saya","Aktivitas DanzStak Anda","Unduh data saya","Kelola izin postingan dan tag profil","Izinkan teman menandai saya di foto dan video","Kelola notifikasi panggilan dan pesan","Kelola aplikasi dan pengaturan perangkat","Lihat aktivitas DanzStak Anda","Unduh data DanzStak saya","Keluar dari DanzStak","Menyiapkan…"]
  };
  for(const [language,values] of Object.entries(settingsDetails)){const dictionary=dictionaries[language]||(dictionaries[language]={});settingsDetailKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const messageDetailKeys=["Enable call alerts","Call alerts enabled — tap to enable sound in this session","Start a new chat","Search DanzStak messages","Chat filters","Saved chats","Loading saved chats…","Loading contacts…"];
+ const messageDetails={
+  es:["Activar alertas de llamadas","Alertas de llamadas activadas; toca para activar el sonido en esta sesión","Iniciar un chat nuevo","Buscar mensajes de DanzStak","Filtros de chat","Chats guardados","Cargando chats guardados…","Cargando contactos…"],
+  fr:["Activer les alertes d’appels","Alertes d’appels activées — touchez pour activer le son pour cette session","Démarrer une nouvelle discussion","Rechercher dans les messages DanzStak","Filtres de discussion","Discussions enregistrées","Chargement des discussions enregistrées…","Chargement des contacts…"],
+  de:["Anrufhinweise aktivieren","Anrufhinweise aktiviert – tippe, um den Ton für diese Sitzung einzuschalten","Neuen Chat starten","DanzStak-Nachrichten durchsuchen","Chatfilter","Gespeicherte Chats","Gespeicherte Chats werden geladen…","Kontakte werden geladen…"],
+  pt:["Ativar alertas de chamadas","Alertas de chamadas ativados — toque para ativar o som nesta sessão","Iniciar nova conversa","Pesquisar mensagens do DanzStak","Filtros de conversa","Conversas salvas","Carregando conversas salvas…","Carregando contatos…"],
+  it:["Attiva gli avvisi di chiamata","Avvisi di chiamata attivi — tocca per abilitare l’audio in questa sessione","Avvia una nuova chat","Cerca nei messaggi DanzStak","Filtri chat","Chat salvate","Caricamento delle chat salvate…","Caricamento contatti…"],
+  ko:["통화 알림 켜기","통화 알림이 켜졌습니다. 이번 세션에서 소리를 켜려면 누르세요","새 채팅 시작","DanzStak 메시지 검색","채팅 필터","저장된 채팅","저장된 채팅 불러오는 중…","연락처 불러오는 중…"],
+  ja:["通話通知を有効にする","通話通知は有効です。タップしてこのセッションの音を有効にできます","新しいチャットを開始","DanzStakのメッセージを検索","チャットフィルター","保存済みチャット","保存済みチャットを読み込んでいます…","連絡先を読み込んでいます…"],
+  "zh-Hans":["启用通话提醒","通话提醒已启用；点按可在本次会话中开启声音","开始新聊天","搜索DanzStak消息","聊天筛选","已保存的聊天","正在加载已保存的聊天…","正在加载联系人…"],
+  "zh-Hant":["啟用通話提醒","通話提醒已啟用；點按可在本次工作階段中開啟聲音","開始新聊天","搜尋DanzStak訊息","聊天篩選","已儲存的聊天","正在載入已儲存的聊天…","正在載入聯絡人…"],
+  fil:["I-enable ang mga alerto sa tawag","Naka-enable ang mga alerto sa tawag — i-tap para buksan ang tunog sa session na ito","Magsimula ng bagong chat","Maghanap sa mga mensahe ng DanzStak","Mga filter ng chat","Mga naka-save na chat","Nilo-load ang mga naka-save na chat…","Nilo-load ang mga contact…"],
+  hi:["कॉल अलर्ट चालू करें","कॉल अलर्ट चालू हैं — इस सत्र में आवाज़ चालू करने के लिए टैप करें","नई चैट शुरू करें","DanzStak संदेश खोजें","चैट फ़िल्टर","सहेजी गई चैट","सहेजी गई चैट लोड हो रही हैं…","संपर्क लोड हो रहे हैं…"],
+  vi:["Bật thông báo cuộc gọi","Thông báo cuộc gọi đã bật — chạm để bật âm thanh trong phiên này","Bắt đầu cuộc trò chuyện mới","Tìm trong tin nhắn DanzStak","Bộ lọc trò chuyện","Cuộc trò chuyện đã lưu","Đang tải cuộc trò chuyện đã lưu…","Đang tải danh bạ…"],
+  th:["เปิดการแจ้งเตือนสาย","เปิดการแจ้งเตือนสายแล้ว — แตะเพื่อเปิดเสียงในเซสชันนี้","เริ่มแชทใหม่","ค้นหาข้อความ DanzStak","ตัวกรองแชท","แชทที่บันทึกไว้","กำลังโหลดแชทที่บันทึกไว้…","กำลังโหลดรายชื่อ…"],
+  id:["Aktifkan notifikasi panggilan","Notifikasi panggilan aktif — ketuk untuk mengaktifkan suara di sesi ini","Mulai obrolan baru","Cari pesan DanzStak","Filter obrolan","Obrolan tersimpan","Memuat obrolan tersimpan…","Memuat kontak…"]
+ };
+ for(const [language,values] of Object.entries(messageDetails)){const dictionary=dictionaries[language]||(dictionaries[language]={});messageDetailKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const memberCountLabels={es:n=>`Resultados: ${n}.`,fr:n=>`Résultats : ${n}.`,de:n=>`Ergebnisse: ${n}.`,pt:n=>`Resultados: ${n}.`,it:n=>`Risultati: ${n}.`,ko:n=>`검색 결과: ${n}명.`,ja:n=>`検索結果：${n}件。`,"zh-Hans":n=>`结果：${n}。`,"zh-Hant":n=>`結果：${n}。`,fil:n=>`Mga resulta: ${n}.`,hi:n=>`नतीजे: ${n}।`,vi:n=>`Kết quả: ${n}.`,th:n=>`ผลลัพธ์: ${n}`,id:n=>`Hasil: ${n}.`};
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';

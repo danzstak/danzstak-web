@@ -108,6 +108,7 @@ assert.equal(window.danzstakTranslate("Your Mix"), "Il tuo Mix");
 assert.equal(window.danzstakTranslate("Flashes"), "Flash");
 assert.equal(window.danzstakTranslate("The Roll"), "The Roll");
 assert.equal(window.danzstakTranslate("Tribes"), "Tribù");
+assert.equal(window.danzstakTranslate("Back to Your Mix"), "Torna al tuo Mix");
 window.danzstakSetLanguage("fil");
 assert.equal(ui.nodeValue, "Mga setting");
 window.danzstakSetLanguage("en");
@@ -140,6 +141,24 @@ for (const [language] of window.danzstakLanguages) {
         translated,
         source,
         `${language} needs localized friend guidance for: ${source}`,
+      );
+  }
+  for (const source of [
+    "Enable call alerts",
+    "Call alerts enabled — tap to enable sound in this session",
+    "Start a new chat",
+    "Search DanzStak messages",
+    "Chat filters",
+    "Saved chats",
+    "Loading saved chats…",
+    "Loading contacts…",
+  ]) {
+    const translated = window.danzstakTranslate(source);
+    if (language !== "en")
+      assert.notEqual(
+        translated,
+        source,
+        `${language} needs localized message guidance for: ${source}`,
       );
   }
   for (const source of [
