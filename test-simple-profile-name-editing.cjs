@@ -16,6 +16,10 @@ assert.match(editor, /document\.getElementById\("profileName"\)\.addEventListene
 assert.match(editor, /profileName\.setAttribute\("role", "button"\)/, "the clickable name is keyboard and assistive-technology discoverable");
 assert.match(editor, /profile\.handle = \(profile\.handle \|\| ""\)[\s\S]*window\.danzstakCurrentProfile\?\.handle/, "saving a visible name preserves the existing username automatically");
 assert.match(css, /profile-name-edit-hint/, "the direct name-edit shortcut has dedicated styling");
-assert.match(profile, /profile-editor\.js\?v=473/, "the profile loads the simplified editor release");
+for (const language of ['en','es','fr','de','pt','it','ko','ja','zh-Hans','zh-Hant','fil','hi','vi','th','id']) {
+  assert.match(editor, new RegExp(`(?:^|\\s|[,{])(?:"${language}"|${language}):`), `${language} receives direct profile-editor copy`);
+}
+assert.match(editor, /resolveProfileLanguage/, "the editor resolves every supported locale explicitly");
+assert.match(profile, /profile-editor\.js\?v=474/, "the profile loads the simplified editor release");
 
-console.log("Simple profile-name editing checks passed: owners can tap their name and Italian members do not have to understand usernames.");
+console.log("Simple profile-name editing checks passed: owners can tap their name and all 15 languages explain visible names without username jargon.");

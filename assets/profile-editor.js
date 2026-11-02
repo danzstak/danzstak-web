@@ -7,23 +7,37 @@ const details = profileContent.querySelector(".details");
 const handleElement = document.getElementById("profileHandle");
 const profileMediaKey = "danzstak_profile_media";
 const profileApi = "https://api.danzstak.com";
-const profileLanguageCode = (() => {
-  try { return (localStorage.getItem("danzstak_language") || document.documentElement.lang || navigator.language || "en").toLowerCase().split("-")[0]; }
-  catch { return String(document.documentElement.lang || "en").toLowerCase().split("-")[0]; }
-})();
-const profileEditorWords = profileLanguageCode === "it" ? {
-  edit: "Modifica profilo", heading: "Modifica il tuo profilo", name: "Nome visibile agli altri",
-  nameHelp: "Questo è il nome che amici e altri membri vedranno.", advanced: "Nome utente (facoltativo)",
-  handle: "Nome utente", handleHelp: "Non devi modificarlo per cambiare il nome visibile.",
-  tap: "Tocca il tuo nome per cambiarlo", cancel: "Annulla", save: "Salva nome e profilo",
-  note: "Scegli il nome che vuoi mostrare agli altri membri. Puoi modificare il resto del profilo quando vuoi."
-} : {
-  edit: "Edit Profile", heading: "Edit your profile", name: "Name people see",
-  nameHelp: "This is the name friends and other members will see.", advanced: "Username (optional)",
-  handle: "Username", handleHelp: "You do not need to change this to change your visible name.",
-  tap: "Tap your name to change it", cancel: "Cancel", save: "Save name and profile",
-  note: "Choose the name you want other members to see. You can edit the rest of your profile whenever you want."
+const profileEditorCopy = {
+  en: { edit:"Edit Profile",heading:"Edit your profile",name:"Name people see",nameHelp:"This is the name friends and other members will see.",advanced:"Username (optional)",handle:"Username",handleHelp:"You do not need to change this to change your visible name.",tap:"Tap your name to change it",cancel:"Cancel",save:"Save name and profile",note:"Choose the name you want other members to see. You can edit the rest of your profile whenever you want." },
+  es: { edit:"Editar perfil",heading:"Edita tu perfil",name:"Nombre que verán los demás",nameHelp:"Este es el nombre que verán tus amigos y otros miembros.",advanced:"Nombre de usuario (opcional)",handle:"Nombre de usuario",handleHelp:"No necesitas cambiarlo para modificar tu nombre visible.",tap:"Toca tu nombre para cambiarlo",cancel:"Cancelar",save:"Guardar nombre y perfil",note:"Elige el nombre que quieres mostrar. Puedes editar el resto del perfil cuando quieras." },
+  fr: { edit:"Modifier le profil",heading:"Modifiez votre profil",name:"Nom visible par les autres",nameHelp:"C’est le nom que vos amis et les autres membres verront.",advanced:"Nom d’utilisateur (facultatif)",handle:"Nom d’utilisateur",handleHelp:"Vous n’avez pas besoin de le modifier pour changer votre nom affiché.",tap:"Touchez votre nom pour le modifier",cancel:"Annuler",save:"Enregistrer le nom et le profil",note:"Choisissez le nom à afficher. Vous pourrez modifier le reste du profil à tout moment." },
+  de: { edit:"Profil bearbeiten",heading:"Profil bearbeiten",name:"Sichtbarer Name",nameHelp:"Diesen Namen sehen Freunde und andere Mitglieder.",advanced:"Benutzername (optional)",handle:"Benutzername",handleHelp:"Du musst ihn nicht ändern, um deinen sichtbaren Namen zu ändern.",tap:"Tippe auf deinen Namen, um ihn zu ändern",cancel:"Abbrechen",save:"Name und Profil speichern",note:"Wähle den Namen, den andere sehen sollen. Den Rest deines Profils kannst du jederzeit bearbeiten." },
+  pt: { edit:"Editar perfil",heading:"Edite seu perfil",name:"Nome que as pessoas verão",nameHelp:"Este é o nome que amigos e outros membros verão.",advanced:"Nome de usuário (opcional)",handle:"Nome de usuário",handleHelp:"Você não precisa alterá-lo para mudar seu nome visível.",tap:"Toque no seu nome para mudar",cancel:"Cancelar",save:"Salvar nome e perfil",note:"Escolha o nome que deseja mostrar. Você pode editar o restante do perfil quando quiser." },
+  it: { edit:"Modifica profilo",heading:"Modifica il tuo profilo",name:"Nome visibile agli altri",nameHelp:"Questo è il nome che amici e altri membri vedranno.",advanced:"Nome utente (facoltativo)",handle:"Nome utente",handleHelp:"Non devi modificarlo per cambiare il nome visibile.",tap:"Tocca il tuo nome per cambiarlo",cancel:"Annulla",save:"Salva nome e profilo",note:"Scegli il nome che vuoi mostrare agli altri membri. Puoi modificare il resto del profilo quando vuoi." },
+  ko: { edit:"프로필 편집",heading:"프로필 편집",name:"사람들에게 보일 이름",nameHelp:"친구와 다른 회원에게 이 이름이 표시됩니다.",advanced:"사용자 이름 (선택 사항)",handle:"사용자 이름",handleHelp:"표시 이름을 바꾸기 위해 이 항목을 변경할 필요는 없습니다.",tap:"이름을 눌러 변경",cancel:"취소",save:"이름과 프로필 저장",note:"다른 회원에게 보여 줄 이름을 선택하세요. 나머지 프로필은 언제든 수정할 수 있습니다." },
+  ja: { edit:"プロフィールを編集",heading:"プロフィールを編集",name:"表示する名前",nameHelp:"友達やほかのメンバーにはこの名前が表示されます。",advanced:"ユーザー名（任意）",handle:"ユーザー名",handleHelp:"表示名を変えるために変更する必要はありません。",tap:"名前をタップして変更",cancel:"キャンセル",save:"名前とプロフィールを保存",note:"ほかのメンバーに表示する名前を選んでください。ほかのプロフィール項目はいつでも編集できます。" },
+  "zh-Hans": { edit:"编辑个人资料",heading:"编辑个人资料",name:"向他人显示的名字",nameHelp:"好友和其他成员会看到这个名字。",advanced:"用户名（可选）",handle:"用户名",handleHelp:"更改显示名字时无需修改用户名。",tap:"点按名字进行更改",cancel:"取消",save:"保存名字和个人资料",note:"选择你想让其他成员看到的名字。其他资料可随时编辑。" },
+  "zh-Hant": { edit:"編輯個人檔案",heading:"編輯個人檔案",name:"向他人顯示的名字",nameHelp:"好友和其他成員會看到這個名字。",advanced:"使用者名稱（選填）",handle:"使用者名稱",handleHelp:"更改顯示名字時不需要修改使用者名稱。",tap:"點按名字進行更改",cancel:"取消",save:"儲存名字和個人檔案",note:"選擇你想讓其他成員看到的名字。其他資料可隨時編輯。" },
+  fil: { edit:"I-edit ang profile",heading:"I-edit ang iyong profile",name:"Pangalang makikita ng iba",nameHelp:"Ito ang pangalang makikita ng mga kaibigan at ibang miyembro.",advanced:"Username (opsyonal)",handle:"Username",handleHelp:"Hindi mo ito kailangang baguhin para palitan ang nakikitang pangalan.",tap:"I-tap ang pangalan para baguhin",cancel:"Kanselahin",save:"I-save ang pangalan at profile",note:"Piliin ang pangalang gusto mong ipakita. Maaari mong i-edit ang ibang detalye anumang oras." },
+  hi: { edit:"प्रोफ़ाइल संपादित करें",heading:"अपनी प्रोफ़ाइल संपादित करें",name:"लोगों को दिखने वाला नाम",nameHelp:"दोस्तों और दूसरे सदस्यों को यही नाम दिखेगा।",advanced:"उपयोगकर्ता नाम (वैकल्पिक)",handle:"उपयोगकर्ता नाम",handleHelp:"दिखाई देने वाला नाम बदलने के लिए इसे बदलना ज़रूरी नहीं है।",tap:"नाम बदलने के लिए उस पर टैप करें",cancel:"रद्द करें",save:"नाम और प्रोफ़ाइल सहेजें",note:"वह नाम चुनें जो आप दूसरे सदस्यों को दिखाना चाहते हैं। बाकी प्रोफ़ाइल कभी भी बदल सकते हैं।" },
+  vi: { edit:"Chỉnh sửa trang cá nhân",heading:"Chỉnh sửa trang cá nhân",name:"Tên mọi người sẽ thấy",nameHelp:"Bạn bè và các thành viên khác sẽ thấy tên này.",advanced:"Tên người dùng (không bắt buộc)",handle:"Tên người dùng",handleHelp:"Bạn không cần đổi mục này để thay tên hiển thị.",tap:"Chạm vào tên để thay đổi",cancel:"Hủy",save:"Lưu tên và trang cá nhân",note:"Chọn tên bạn muốn hiển thị. Bạn có thể chỉnh sửa phần còn lại bất cứ lúc nào." },
+  th: { edit:"แก้ไขโปรไฟล์",heading:"แก้ไขโปรไฟล์ของคุณ",name:"ชื่อที่คนอื่นจะเห็น",nameHelp:"เพื่อนและสมาชิกคนอื่นจะเห็นชื่อนี้",advanced:"ชื่อผู้ใช้ (ไม่บังคับ)",handle:"ชื่อผู้ใช้",handleHelp:"ไม่ต้องเปลี่ยนส่วนนี้เพื่อเปลี่ยนชื่อที่แสดง",tap:"แตะชื่อเพื่อเปลี่ยน",cancel:"ยกเลิก",save:"บันทึกชื่อและโปรไฟล์",note:"เลือกชื่อที่ต้องการแสดง คุณแก้ไขข้อมูลส่วนอื่นได้ทุกเมื่อ" },
+  id: { edit:"Edit profil",heading:"Edit profil Anda",name:"Nama yang dilihat orang lain",nameHelp:"Teman dan anggota lain akan melihat nama ini.",advanced:"Nama pengguna (opsional)",handle:"Nama pengguna",handleHelp:"Anda tidak perlu mengubahnya untuk mengganti nama tampilan.",tap:"Ketuk nama untuk mengubahnya",cancel:"Batal",save:"Simpan nama dan profil",note:"Pilih nama yang ingin ditampilkan. Anda dapat mengedit bagian profil lainnya kapan saja." }
 };
+function resolveProfileLanguage(value) {
+  const raw = String(value || "en").trim().toLowerCase();
+  if (/^zh-(?:tw|hk|mo|hant)/.test(raw)) return "zh-Hant";
+  if (/^zh/.test(raw)) return "zh-Hans";
+  const exact = Object.keys(profileEditorCopy).find(code => code.toLowerCase() === raw);
+  if (exact) return exact;
+  const base = raw.split("-")[0];
+  return Object.prototype.hasOwnProperty.call(profileEditorCopy, base) ? base : "en";
+}
+const profileLanguageCode = (() => {
+  try { return resolveProfileLanguage(localStorage.getItem("danzstak_language") || document.documentElement.lang || navigator.language || "en"); }
+  catch { return resolveProfileLanguage(document.documentElement.lang || "en"); }
+})();
+const profileEditorWords = profileEditorCopy[profileLanguageCode] || profileEditorCopy.en;
 const profileToast = document.createElement("div");
 profileToast.className = "profile-toast";
 profileToast.hidden = true;
