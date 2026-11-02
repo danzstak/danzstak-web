@@ -462,10 +462,11 @@ foreach ($profilePresenceFeature in @(
 }
 
 $profileJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile.js') -Raw -Encoding utf8
-if (-not $profileJs.Contains('isOther ? "Private" : (email || "Not available")') -or
+if ($profileJs.Contains('profileEmail') -or
     -not $profileJs.Contains('avatar.classList.remove("has-photo")') -or
     -not $profileJs.Contains('cover.classList.remove("has-photo")') -or
-    -not $profileEditorJs.Contains('if (!viewingOtherProfile) {')) {
+    -not $profileEditorJs.Contains('if (!viewingOtherProfile) {') -or
+    -not $profileEditorJs.Contains('target.closest(".detail").hidden = viewingOtherProfile && !text')) {
   Add-Failure 'Profiles: another member can inherit local profile media or expose their email'
 }
 if (-not $profileJs.Contains('feed.html?messageMember=') -or $profileJs.Contains('feed.html?message=')) {

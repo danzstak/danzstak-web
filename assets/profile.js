@@ -59,14 +59,12 @@ async function loadProfile() {
     const data = await response.json();
     const profile = data.profile || data;
     const isOther = profile.isOwner === false || (profile.isOwner !== true && Boolean(requestedUser || requestedMember));
-    const email = firstString(profile, ["email", "username"]);
     const name = firstString(profile, ["name", "displayName", "given_name", "preferred_username"]) || "DanzStak member";
     const handle = firstString(profile, ["handle", "preferred_username", "username"]) || name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "member";
 
     document.getElementById("profileName").textContent = name;
     document.title = isOther ? name + " | DanzStak" : "My Profile | DanzStak";
     document.getElementById("profileHandle").textContent = "@" + handle;
-    document.getElementById("profileEmail").textContent = isOther ? "Private" : (email || "Not available");
     const avatar = document.getElementById("profileInitial");
     avatar.textContent = name.charAt(0).toUpperCase() || "D";
     avatar.classList.remove("has-photo");

@@ -96,6 +96,13 @@ function detail(label, id) {
   details.appendChild(box);
 }
 
+function setProfileDetail(id, value) {
+  const target = document.getElementById(id);
+  const text = String(value || "").trim();
+  target.textContent = text || "Not added";
+  target.closest(".detail").hidden = viewingOtherProfile && !text;
+}
+
 detail("Location", "profileLocation");
 detail("Work", "profileWork");
 detail("Website", "profileWebsite");
@@ -745,9 +752,11 @@ function applyProfile(profile) {
   if (profile.name) document.getElementById("profileName").textContent = profile.name;
   if (profile.handle) handleElement.textContent = "@" + profile.handle;
   bioElement.textContent = profile.bio || "Add a short bio so people know more about you.";
-  document.getElementById("profileLocation").textContent = profile.location || "Not added";
-  document.getElementById("profileWork").textContent = profile.work || "Not added";
+  setProfileDetail("profileLocation", profile.location);
+  setProfileDetail("profileWork", profile.work);
   renderProfileWebsite(profile.website);
+  document.getElementById("profileWebsite").closest(".detail").hidden = viewingOtherProfile && !String(profile.website || "").trim();
+  details.hidden = viewingOtherProfile && ![...details.querySelectorAll(".detail")].some(box => !box.hidden);
   const name = document.getElementById("profileName").textContent.trim();
   const avatar = document.getElementById("profileInitial");
   if (profile.picture) { avatar.style.backgroundImage = `url("${profile.picture}")`; avatar.classList.add("has-photo"); avatar.textContent = ""; }
