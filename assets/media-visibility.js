@@ -26,6 +26,11 @@
   saveSoundPreference(!video.muted,video);
  },true);
  const eligible=element=>element?.matches?.('video,iframe.reel-player')&&!element.closest('.video-grid');
+ const isYouTubeFrame=element=>element?.tagName==='IFRAME'&&element.src?.includes('youtube-nocookie.com/embed/');
+ function controlYouTube(frame,command){
+  if(!isYouTubeFrame(frame)||!frame.contentWindow)return;
+  try{frame.contentWindow.postMessage(JSON.stringify({event:'command',func:command,args:[]}), 'https://www.youtube-nocookie.com');}catch{}
+ }
  const dataSaverEnabled=()=>document.documentElement?.classList?.contains('data-saver')||(()=>{try{return localStorage.getItem('danzstak_data_saver')==='1';}catch{return false;}})();
  const isFeedVideo=video=>video?.matches?.('video.post-media');
  function prepareVideoPreview(video){
@@ -66,12 +71,13 @@
  }
  function pause(element){
   if(element.tagName==='VIDEO'){element.pause();return;}
+  if(isYouTubeFrame(element)){controlYouTube(element,'pauseVideo');return;}
   if(!element.isConnected||element.src==='about:blank')return;
   const original=element.src,button=document.createElement('button');button.type='button';button.className='reel-player reel-load-button';button.textContent='Play video';button.setAttribute('aria-label','Play video');
   element.src='about:blank';element.replaceWith(button);
   button.addEventListener('click',()=>{element.src=original;button.replaceWith(element);});
  }
- const observer=new IntersectionObserver(entries=>{for(const entry of entries){const inView=entry.isIntersecting&&entry.intersectionRatio>=0.15;visible.set(entry.target,inView);if(!inView){manualPlayback.delete(entry.target);pause(entry.target);continue;}if(entry.target.tagName!=='VIDEO'||document.hidden)continue;const feedVideo=isFeedVideo(entry.target);if(feedVideo&&dataSaverEnabled())continue;entry.target.preload=feedVideo?'auto':'metadata';if(entry.target.readyState===0)entry.target.load?.();if(feedVideo)entry.target.play().catch(()=>{});}}, {threshold:[0,0.15,0.6]});
+ const observer=new IntersectionObserver(entries=>{for(const entry of entries){const inView=entry.isIntersecting&&entry.intersectionRatio>=0.15;visible.set(entry.target,inView);if(!inView){manualPlayback.delete(entry.target);pause(entry.target);continue;}if(isYouTubeFrame(entry.target)){if(!document.hidden&&!dataSaverEnabled())controlYouTube(entry.target,'playVideo');continue;}if(entry.target.tagName!=='VIDEO'||document.hidden)continue;const feedVideo=isFeedVideo(entry.target);if(feedVideo&&dataSaverEnabled())continue;entry.target.preload=feedVideo?'auto':'metadata';if(entry.target.readyState===0)entry.target.load?.();if(feedVideo)entry.target.play().catch(()=>{});}}, {threshold:[0,0.15,0.6]});
  function track(element){if(!eligible(element)||tracked.has(element))return;tracked.add(element);observer.observe(element);if(element.tagName==='VIDEO'){element.muted=!soundEnabled();prepareVideoPreview(element);element.addEventListener('play',()=>{if(document.hidden||(visible.get(element)===false&&!manualPlayback.has(element)))element.pause();});}}
  function added(root){
   if(root?.tagName==='VIDEO')root.muted=!soundEnabled();

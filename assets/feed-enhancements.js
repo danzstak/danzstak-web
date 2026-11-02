@@ -3307,7 +3307,10 @@ function reelPlayer(url) {
   let match;
   if (host === "youtu.be") match = path.match(/^\/([^/?#]+)/);
   else if (host.endsWith("youtube.com")) match = [null, url.searchParams.get("v") || path.match(/^\/(?:shorts|embed)\/([^/?#]+)/)?.[1]];
-  if (match?.[1]) return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(match[1]) + "?autoplay=1&mute=1&playsinline=1" };
+  if (match?.[1]) {
+    const videoId = encodeURIComponent(match[1]);
+    return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=1&mute=1&playsinline=1&enablejsapi=1&loop=1&playlist=" + videoId };
+  }
   if (host.endsWith("vimeo.com") && (match = path.match(/\/(\d+)/))) return { kind: "iframe", src: "https://player.vimeo.com/video/" + match[1] + "?autoplay=1&muted=1&playsinline=1" };
   if (host.endsWith("tiktok.com") && (match = path.match(/\/video\/(\d+)/))) return { kind: "iframe", src: "https://www.tiktok.com/player/v1/" + match[1] + "?autoplay=1&loop=1&muted=1" };
   if (host.endsWith("facebook.com") || host === "fb.watch") return { kind: "iframe", src: "https://www.facebook.com/plugins/video.php?show_text=false&autoplay=true&href=" + encodeURIComponent(url.href) };
