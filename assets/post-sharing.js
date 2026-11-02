@@ -4,7 +4,7 @@
   async function shareFetch(path, options = {}, timeoutMs = 10000) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
     try { return await fetch('https://api.danzstak.com' + path, { ...options, signal: controller.signal }); }
-    catch (error) { if (error?.name === 'AbortError') throw new Error('Sharing took too long. Check your connection and try again.'); throw error; }
+    catch (error) { if (error?.name === 'AbortError') throw new Error('Sharing took too long. Check your connection and try again.'); throw new Error('DanzStak cannot share this post right now. Check your connection and try again.'); }
     finally { clearTimeout(timer); }
   }
   const defaultTribes = ["Visual Artist", "DJs & Producers", "Fans", "Venues", "Events", "Scenes", "Bands", "Industry", "Politics", "Religion"]

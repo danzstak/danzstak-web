@@ -9,7 +9,7 @@ const requestedMember = new URLSearchParams(location.search).get("member") || ""
 async function profileFetch(path, options = {}, timeoutMs = 10000) {
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
-  catch (error) { if (error?.name === "AbortError") throw new Error("Profile loading took too long. Check your connection and try again."); throw error; }
+  catch (error) { if (error?.name === "AbortError") throw new Error("Profile loading took too long. Check your connection and try again."); throw new Error("DanzStak cannot load this profile right now. Check your connection and try again."); }
   finally { clearTimeout(timer); }
 }
 

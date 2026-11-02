@@ -10,6 +10,7 @@ async function helper(file, startText, endText, invocation, expected) {
   const context = vm.createContext({
     AbortController,
     URL,
+    api: "https://api.danzstak.com",
     directApi: "https://api.danzstak.com",
     API: "https://api.danzstak.com",
     setTimeout,
@@ -49,5 +50,10 @@ async function helper(file, startText, endText, invocation, expected) {
     'peopleFetch("/people?query=sigmund")',
     /DanzStak cannot connect right now/
   );
-  console.log("Core social network checks passed: Messages, push setup, calls, and member discovery replace raw browser failures with retryable product guidance.");
+  await helper("assets/home.js", "async function homeFetch", "legalAgreement.addEventListener", 'homeFetch("/auth/session")', /DanzStak cannot connect right now/);
+  await helper("assets/logout.js", "async function logoutFetch", "document.addEventListener", "logoutFetch()", /DanzStak cannot log out right now/);
+  await helper("assets/profile.js", "async function profileFetch", "function firstString", 'profileFetch("/profiles")', /DanzStak cannot load this profile right now/);
+  await helper("assets/post-sharing.js", "async function shareFetch", "const defaultTribes", 'shareFetch("/secure-posts")', /DanzStak cannot share this post right now/);
+  await helper("assets/media-tags.js", "async function tagFetch", "async function patch", 'tagFetch("/friends")', /DanzStak cannot update tags right now/);
+  console.log("Core social network checks passed: account, profile, sharing, tagging, Messages, push setup, calls, and member discovery replace raw browser failures with retryable product guidance.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
