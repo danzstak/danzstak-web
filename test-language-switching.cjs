@@ -162,6 +162,21 @@ for (const [language] of window.danzstakLanguages) {
       );
   }
   for (const source of [
+    "Ready to start a secure call.",
+    "Select a saved chat or an available friend to begin messaging.",
+    "Attach photo or video",
+    "Open camera to take a photo or video",
+    "Send message",
+  ]) {
+    const translated = window.danzstakTranslate(source);
+    if (language !== "en")
+      assert.notEqual(
+        translated,
+        source,
+        `${language} needs localized empty-conversation guidance for: ${source}`,
+      );
+  }
+  for (const source of [
     "Profile posting and tagging",
     "Allow friends to tag me in photos and videos",
     "Manage profile posting and tagging permissions",

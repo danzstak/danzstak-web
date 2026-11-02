@@ -99,6 +99,24 @@
   id:["Aktifkan notifikasi panggilan","Notifikasi panggilan aktif — ketuk untuk mengaktifkan suara di sesi ini","Mulai obrolan baru","Cari pesan DanzStak","Filter obrolan","Obrolan tersimpan","Memuat obrolan tersimpan…","Memuat kontak…"]
  };
  for(const [language,values] of Object.entries(messageDetails)){const dictionary=dictionaries[language]||(dictionaries[language]={});messageDetailKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const conversationEmptyKeys=["Ready to start a secure call.","Select a saved chat or an available friend to begin messaging.","Attach photo or video","Open camera to take a photo or video","Send message"];
+ const conversationEmptyDetails={
+  es:["Listo para iniciar una llamada segura.","Selecciona un chat guardado o un amigo disponible para empezar a conversar.","Adjuntar foto o video","Abrir la cámara para tomar una foto o un video","Enviar mensaje"],
+  fr:["Prêt à démarrer un appel sécurisé.","Sélectionnez une discussion enregistrée ou un ami disponible pour commencer à échanger.","Joindre une photo ou une vidéo","Ouvrir l’appareil photo pour prendre une photo ou une vidéo","Envoyer le message"],
+  de:["Bereit für einen sicheren Anruf.","Wähle einen gespeicherten Chat oder einen verfügbaren Freund aus, um Nachrichten zu senden.","Foto oder Video anhängen","Kamera für ein Foto oder Video öffnen","Nachricht senden"],
+  pt:["Pronto para iniciar uma chamada segura.","Selecione uma conversa salva ou um amigo disponível para começar a conversar.","Anexar foto ou vídeo","Abrir a câmera para tirar uma foto ou gravar um vídeo","Enviar mensagem"],
+  it:["Pronto per avviare una chiamata sicura.","Seleziona una chat salvata o un amico disponibile per iniziare a messaggiare.","Allega foto o video","Apri la fotocamera per scattare una foto o registrare un video","Invia messaggio"],
+  ko:["보안 통화를 시작할 준비가 되었습니다.","저장된 채팅이나 대화 가능한 친구를 선택해 메시지를 시작하세요.","사진 또는 동영상 첨부","카메라를 열어 사진 또는 동영상 촬영","메시지 보내기"],
+  ja:["安全な通話を開始できます。","保存済みチャットまたは連絡可能な友達を選んでメッセージを始めてください。","写真または動画を添付","カメラを開いて写真または動画を撮影","メッセージを送信"],
+  "zh-Hans":["可以开始安全通话。","选择已保存的聊天或可联系的好友以开始发送消息。","附加照片或视频","打开相机拍摄照片或视频","发送消息"],
+  "zh-Hant":["可以開始安全通話。","選擇已儲存的聊天或可聯絡的好友以開始傳送訊息。","附加照片或影片","開啟相機拍攝照片或影片","傳送訊息"],
+  fil:["Handa nang magsimula ng secure na tawag.","Pumili ng naka-save na chat o available na kaibigan para magsimulang mag-message.","Mag-attach ng larawan o video","Buksan ang camera para kumuha ng larawan o video","Ipadala ang mensahe"],
+  hi:["सुरक्षित कॉल शुरू करने के लिए तैयार।","संदेश शुरू करने के लिए सहेजी गई चैट या उपलब्ध दोस्त चुनें।","फ़ोटो या वीडियो जोड़ें","फ़ोटो या वीडियो लेने के लिए कैमरा खोलें","संदेश भेजें"],
+  vi:["Sẵn sàng bắt đầu cuộc gọi bảo mật.","Chọn cuộc trò chuyện đã lưu hoặc một người bạn đang sẵn sàng để bắt đầu nhắn tin.","Đính kèm ảnh hoặc video","Mở máy ảnh để chụp ảnh hoặc quay video","Gửi tin nhắn"],
+  th:["พร้อมเริ่มการโทรที่ปลอดภัย","เลือกแชทที่บันทึกไว้หรือเพื่อนที่พร้อมใช้งานเพื่อเริ่มส่งข้อความ","แนบรูปภาพหรือวิดีโอ","เปิดกล้องเพื่อถ่ายรูปหรือวิดีโอ","ส่งข้อความ"],
+  id:["Siap memulai panggilan aman.","Pilih obrolan tersimpan atau teman yang tersedia untuk mulai berkirim pesan.","Lampirkan foto atau video","Buka kamera untuk mengambil foto atau video","Kirim pesan"]
+ };
+ for(const [language,values] of Object.entries(conversationEmptyDetails)){const dictionary=dictionaries[language]||(dictionaries[language]={});conversationEmptyKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const memberCountLabels={es:n=>`Resultados: ${n}.`,fr:n=>`Résultats : ${n}.`,de:n=>`Ergebnisse: ${n}.`,pt:n=>`Resultados: ${n}.`,it:n=>`Risultati: ${n}.`,ko:n=>`검색 결과: ${n}명.`,ja:n=>`検索結果：${n}件。`,"zh-Hans":n=>`结果：${n}。`,"zh-Hant":n=>`結果：${n}。`,fil:n=>`Mga resulta: ${n}.`,hi:n=>`नतीजे: ${n}।`,vi:n=>`Kết quả: ${n}.`,th:n=>`ผลลัพธ์: ${n}`,id:n=>`Hasil: ${n}.`};
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';
