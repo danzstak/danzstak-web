@@ -179,6 +179,28 @@ for (const [language] of window.danzstakLanguages) {
       );
   }
   for (const source of [
+    "Audience",
+    "Add location (optional)",
+    "City, venue, or place",
+    "+ Interest",
+    "Choose your news interest",
+    "Music",
+    "Top News",
+    "Entertainment",
+    "Technology",
+    "Sports",
+    "Business",
+    "Checking who is online…",
+  ]) {
+    const translated = window.danzstakTranslate(source);
+    if (language !== "en")
+      assert.notEqual(
+        translated,
+        source,
+        `${language} needs localized feed controls for: ${source}`,
+      );
+  }
+  for (const source of [
     "Profile posting and tagging",
     "Allow friends to tag me in photos and videos",
     "Manage profile posting and tagging permissions",

@@ -122,6 +122,24 @@
   es:["Tomar una foto o un video","Conversación"],fr:["Prendre une photo ou une vidéo","Discussion"],de:["Foto oder Video aufnehmen","Unterhaltung"],pt:["Tirar uma foto ou gravar um vídeo","Conversa"],it:["Scatta una foto o registra un video","Conversazione"],ko:["사진 또는 동영상 촬영","대화"],ja:["写真または動画を撮影","会話"],"zh-Hans":["拍摄照片或视频","对话"],"zh-Hant":["拍攝照片或影片","對話"],fil:["Kumuha ng larawan o video","Pag-uusap"],hi:["फ़ोटो या वीडियो लें","बातचीत"],vi:["Chụp ảnh hoặc quay video","Cuộc trò chuyện"],th:["ถ่ายรูปหรือวิดีโอ","การสนทนา"],id:["Ambil foto atau video","Percakapan"]
  };
  for(const [language,values] of Object.entries(conversationAccessibilityDetails)){const dictionary=dictionaries[language]||(dictionaries[language]={});conversationAccessibilityKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const feedControlKeys=["Audience","Add location (optional)","City, venue, or place","+ Interest","Choose your news interest","Music","Top News","Entertainment","Technology","Sports","Business","Checking who is online…"];
+ const feedControls={
+  es:["Visibilidad","Añadir ubicación (opcional)","Ciudad, local o lugar","+ Interés","Elige tu interés de noticias","Música","Noticias principales","Entretenimiento","Tecnología","Deportes","Negocios","Comprobando quién está en línea…"],
+  fr:["Visibilité","Ajouter un lieu (facultatif)","Ville, salle ou lieu","+ Centre d’intérêt","Choisissez vos actualités","Musique","À la une","Divertissement","Technologie","Sport","Économie","Recherche des personnes en ligne…"],
+  de:["Sichtbarkeit","Ort hinzufügen (optional)","Stadt, Veranstaltungsort oder Ort","+ Interesse","Nachrichteninteresse auswählen","Musik","Top-Nachrichten","Unterhaltung","Technologie","Sport","Wirtschaft","Es wird geprüft, wer online ist…"],
+  pt:["Visibilidade","Adicionar local (opcional)","Cidade, casa de shows ou lugar","+ Interesse","Escolha seu interesse de notícias","Música","Principais notícias","Entretenimento","Tecnologia","Esportes","Negócios","Verificando quem está online…"],
+  it:["Visibilità","Aggiungi luogo (facoltativo)","Città, locale o luogo","+ Interesse","Scegli il tuo interesse per le notizie","Musica","Notizie principali","Intrattenimento","Tecnologia","Sport","Economia","Controllo di chi è online…"],
+  ko:["공개 범위","위치 추가(선택 사항)","도시, 공연장 또는 장소","+ 관심사","뉴스 관심사 선택","음악","주요 뉴스","엔터테인먼트","기술","스포츠","비즈니스","온라인 사용자 확인 중…"],
+  ja:["公開範囲","場所を追加（任意）","都市、会場、または場所","＋ 関心分野","ニュースの関心分野を選択","音楽","トップニュース","エンターテインメント","テクノロジー","スポーツ","ビジネス","オンラインのユーザーを確認しています…"],
+  "zh-Hans":["可见范围","添加位置（可选）","城市、场地或地点","+ 兴趣","选择新闻兴趣","音乐","头条新闻","娱乐","科技","体育","商业","正在查看谁在线…"],
+  "zh-Hant":["可見範圍","新增位置（選填）","城市、場地或地點","+ 興趣","選擇新聞興趣","音樂","焦點新聞","娛樂","科技","體育","商業","正在查看誰在線…"],
+  fil:["Sino ang makakakita","Magdagdag ng lokasyon (opsyonal)","Lungsod, venue, o lugar","+ Interes","Piliin ang interes mo sa balita","Musika","Nangungunang balita","Libangan","Teknolohiya","Palakasan","Negosyo","Tinitingnan kung sino ang online…"],
+  hi:["कौन देख सकता है","स्थान जोड़ें (वैकल्पिक)","शहर, कार्यक्रम स्थल या जगह","+ रुचि","समाचार की रुचि चुनें","संगीत","मुख्य समाचार","मनोरंजन","तकनीक","खेल","व्यवसाय","देख रहे हैं कौन ऑनलाइन है…"],
+  vi:["Phạm vi hiển thị","Thêm địa điểm (không bắt buộc)","Thành phố, địa điểm biểu diễn hoặc nơi chốn","+ Sở thích","Chọn chủ đề tin tức","Âm nhạc","Tin hàng đầu","Giải trí","Công nghệ","Thể thao","Kinh doanh","Đang kiểm tra ai trực tuyến…"],
+  th:["การมองเห็น","เพิ่มสถานที่ (ไม่บังคับ)","เมือง สถานที่จัดงาน หรือสถานที่","+ ความสนใจ","เลือกหัวข้อข่าวที่สนใจ","ดนตรี","ข่าวเด่น","บันเทิง","เทคโนโลยี","กีฬา","ธุรกิจ","กำลังตรวจสอบว่าใครออนไลน์…"],
+  id:["Visibilitas","Tambahkan lokasi (opsional)","Kota, venue, atau tempat","+ Minat","Pilih minat berita Anda","Musik","Berita utama","Hiburan","Teknologi","Olahraga","Bisnis","Memeriksa siapa yang online…"]
+ };
+ for(const [language,values] of Object.entries(feedControls)){const dictionary=dictionaries[language]||(dictionaries[language]={});feedControlKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const memberCountLabels={es:n=>`Resultados: ${n}.`,fr:n=>`Résultats : ${n}.`,de:n=>`Ergebnisse: ${n}.`,pt:n=>`Resultados: ${n}.`,it:n=>`Risultati: ${n}.`,ko:n=>`검색 결과: ${n}명.`,ja:n=>`検索結果：${n}件。`,"zh-Hans":n=>`结果：${n}。`,"zh-Hant":n=>`結果：${n}。`,fil:n=>`Mga resulta: ${n}.`,hi:n=>`नतीजे: ${n}।`,vi:n=>`Kết quả: ${n}.`,th:n=>`ผลลัพธ์: ${n}`,id:n=>`Hasil: ${n}.`};
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';
