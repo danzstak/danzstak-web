@@ -74,6 +74,11 @@ vm.runInContext(
   context,
 );
 vm.runInContext(fs.readFileSync("assets/i18n.js", "utf8"), context);
+assert.doesNotMatch(
+  fs.readFileSync("assets/i18n.js", "utf8").match(/const attributeExcluded=.*$/m)?.[0] || "",
+  /\.post-header|\.comment|\.reel-details|\.story-viewer-caption/,
+  "interface attributes inside user-content containers must remain translatable",
+);
 assert.equal(window.danzstakLanguages.length, 15);
 assert.equal(ui.nodeValue, "設定");
 assert.equal(post.nodeValue, "Settings", "user posts must never be translated");

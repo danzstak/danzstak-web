@@ -3397,7 +3397,7 @@ function renderPlayableReels() {
       if (reel.internal) platform.hidden = true;
     }
     if (reel.internal) {
-      const open = document.createElement("a"); open.href = "#post-" + encodeURIComponent(reel.postId); open.textContent = "View post";
+      const open = document.createElement("a"); open.href = "#post-" + encodeURIComponent(reel.postId); open.textContent = window.danzstakTranslate?.("View post") || "View post";
       open.addEventListener("click", event => {
         const post = document.getElementById("post-" + reel.postId);
         if (!post) return;
@@ -3406,7 +3406,7 @@ function renderPlayableReels() {
       });
       details.appendChild(open);
     } else {
-      const open = document.createElement("a"); open.href = reelUrlValue.href; open.target = "_blank"; open.rel = "noopener noreferrer nofollow ugc"; open.textContent = playerInfo ? "Open on source" : "Play on source"; details.appendChild(open);
+      const open = document.createElement("a"); open.href = reelUrlValue.href; open.target = "_blank"; open.rel = "noopener noreferrer nofollow ugc"; open.textContent = window.danzstakTranslate?.(playerInfo ? "Open on source" : "Play on source") || (playerInfo ? "Open on source" : "Play on source"); details.appendChild(open);
     }
     if (!reel.internal && (!Array.isArray(cloudReels) || reel.isOwner === true)) {
       const remove = document.createElement("button");

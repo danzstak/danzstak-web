@@ -235,7 +235,11 @@
  const memberCountLabels={es:n=>`Resultados: ${n}.`,fr:n=>`Résultats : ${n}.`,de:n=>`Ergebnisse: ${n}.`,pt:n=>`Resultados: ${n}.`,it:n=>`Risultati: ${n}.`,ko:n=>`검색 결과: ${n}명.`,ja:n=>`検索結果：${n}件。`,"zh-Hans":n=>`结果：${n}。`,"zh-Hant":n=>`結果：${n}。`,fil:n=>`Mga resulta: ${n}.`,hi:n=>`नतीजे: ${n}।`,vi:n=>`Kết quả: ${n}.`,th:n=>`ผลลัพธ์: ${n}`,id:n=>`Hasil: ${n}.`};
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';
- const attributeExcluded='script,style,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';
+ // Text inside posts, comments, captions, and member cards is user content and
+ // stays untouched. Their aria-label/title attributes are interface copy, so
+ // those attributes may be translated while dynamic names remain preserved by
+ // the social templates above.
+ const attributeExcluded='script,style,[data-no-translate],.post-content,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.value,#profileName,#profileHandle,.facebook-import-items';
  let queued=false;
  function normalize(code){const raw=String(code||'');if(supported.has(raw))return raw;const lower=raw.toLowerCase();if(/^zh-(?:tw|hk|mo|hant)/.test(lower)&&supported.has('zh-Hant'))return'zh-Hant';if(/^zh/.test(lower)&&supported.has('zh-Hans'))return'zh-Hans';const exact=[...supported].find(value=>value.toLowerCase()===lower);if(exact)return exact;const base=lower.split('-')[0];return supported.has(base)?base:'en';}
  function translate(raw){
