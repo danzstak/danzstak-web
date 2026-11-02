@@ -7,7 +7,7 @@ const feedHtml = fs.readFileSync("feed.html", "utf8");
 const enhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const enhancementCss = fs.readFileSync("assets/feed-enhancements.css", "utf8");
 
-const composer = feedHtml.indexOf('<section class="panel">', feedHtml.indexOf('<div id="newsFeedView">'));
+const composer = feedHtml.indexOf('<section class="panel post-composer" id="postComposer">', feedHtml.indexOf('<div id="newsFeedView">'));
 const stories = feedHtml.indexOf('<section id="storiesRail"');
 const feed = feedHtml.indexOf('<section id="feed"');
 

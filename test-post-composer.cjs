@@ -18,11 +18,12 @@ vm.runInContext(code,context);
   const second=handler();resolveSave({ok:true,status:200,json:async()=>({postId:'two'})});await second;
   assert.equal(context.postText.value,'');assert.equal(checkbox.checked,false,'new posts need fresh certification');
   const enhancements=fs.readFileSync('assets/feed-enhancements.js','utf8');
+  const enhancementCss=fs.readFileSync('assets/feed-enhancements.css','utf8');
   const start=enhancements.indexOf('  window.addEventListener("danzstak:post-published", event => {');
   const cleanup=enhancements.slice(start,enhancements.indexOf('\n  if (isLocalHost()) {',start));
   let cleanupHandler,cleared=0;const mediaContext=vm.createContext({
     window:{addEventListener:(_,fn)=>cleanupHandler=fn,danzstakSelectedMedia:{url:'new-draft'}},
-    selectedMedia:{url:'new-draft'},isLocalHost:()=>false,preview:{replaceChildren:()=>cleared++},
+    selectedMedia:{url:'new-draft'},isLocalHost:()=>false,preview:{replaceChildren:()=>cleared++},collapseComposer:()=>{},
     document:{getElementById:()=>({dataset:{}})}
   });
   vm.runInContext(cleanup,mediaContext);
@@ -32,5 +33,10 @@ vm.runInContext(code,context);
   assert.match(enhancements,/image\.onload = \(\) =>/,'profile photos replace initials only after loading successfully');
   assert.match(enhancements,/avatar\.style\.backgroundImage = `url\("\$\{profile\.picture\}"\)`/,'the authenticated profile photo appears in the composer');
   assert.match(feed,/\.composer-avatar \{[^}]*center\/cover no-repeat/,'composer photos remain circular and correctly cropped');
-  console.log('Post composer checks passed: pending drafts, fresh certification, and matching-media cleanup.');
+  assert.match(feed,/class="panel post-composer" id="postComposer"/,'the feed exposes one stable compact composer container');
+  assert.match(enhancements,/composerText\?\.addEventListener\("focus", expandComposer\)/,'focusing the post prompt expands every publishing control');
+  assert.match(enhancements,/button\.addEventListener\("click", \(\) => \{ expandComposer\(\); input\.click\(\); \}\)/,'photo and video shortcuts expand the composer before selection');
+  assert.match(enhancementCss,/@media\(max-width:700px\)\{[\s\S]*\.post-composer:not\(\.is-expanded\) \.composer-actions\{display:none!important\}/,'phone composer keeps advanced controls out of the initial viewport');
+  assert.match(enhancementCss,/\.post-composer:not\(\.is-expanded\) #postText\{min-height:54px/,'collapsed phone composer keeps a familiar compact prompt');
+  console.log('Post composer checks passed: compact mobile intent state, pending drafts, fresh certification, and matching-media cleanup.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

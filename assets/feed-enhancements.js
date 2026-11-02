@@ -1996,7 +1996,20 @@ if (uploadNotice) uploadNotice.textContent = "Original content only — videos m
 const composerActions = document.querySelector(".composer-actions");
 const publishButton = document.getElementById("publishBtn");
 if (composerActions && publishButton) {
+  const composerPanel = document.getElementById("postComposer");
+  const composerText = document.getElementById("postText");
+  const expandComposer = () => composerPanel?.classList.add("is-expanded");
+  const collapseComposer = () => {
+    if (!composerText?.value.trim() && !window.danzstakSelectedMedia) composerPanel?.classList.remove("is-expanded");
+  };
+  composerText?.addEventListener("focus", expandComposer);
+  composerText?.addEventListener("input", expandComposer);
+  composerPanel?.querySelector(".post-location-picker")?.addEventListener("toggle", event => {
+    if (event.currentTarget.open) expandComposer();
+  });
+
   const certification = document.createElement("label");
+  certification.className = "original-content-certification";
   certification.style.display = "flex";
   certification.style.alignItems = "flex-start";
   certification.style.gap = "9px";
@@ -2026,11 +2039,13 @@ if (composerActions && publishButton) {
   }, true);
 
   const mediaTools = document.createElement("div");
+  mediaTools.className = "composer-media-tools";
   mediaTools.style.display = "flex";
   mediaTools.style.gap = "10px";
   mediaTools.style.flexWrap = "wrap";
   mediaTools.style.marginTop = "12px";
   const preview = document.createElement("div");
+  preview.className = "composer-media-preview";
   preview.style.marginTop = "12px";
   let selectedMedia = null;
 
@@ -2043,7 +2058,7 @@ if (composerActions && publishButton) {
     input.type = "file";
     input.accept = accept;
     input.hidden = true;
-    button.addEventListener("click", () => input.click());
+    button.addEventListener("click", () => { expandComposer(); input.click(); });
     input.addEventListener("change", () => {
       const file = input.files[0];
       if (!file) return;
@@ -2105,6 +2120,7 @@ if (composerActions && publishButton) {
     }
     const reelsToggle = document.getElementById("shareToReels");
     if (reelsToggle) { reelsToggle.checked = false; reelsToggle.disabled = true; }
+    collapseComposer();
   });
 
   if (isLocalHost()) {
