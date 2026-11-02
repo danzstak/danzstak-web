@@ -4,9 +4,14 @@
  const soundPreferenceKey='danzstak_video_sound';
  const soundEnabled=()=>{try{return localStorage.getItem(soundPreferenceKey)==='on';}catch{return false;}};
  let applyingSound=false;
+ const isYouTubeFrame=element=>element?.tagName==='IFRAME'&&element.src?.includes('youtube-nocookie.com/embed/');
+ function controlYouTube(frame,command){
+  if(!isYouTubeFrame(frame)||!frame.contentWindow)return;
+  try{frame.contentWindow.postMessage(JSON.stringify({event:'command',func:command,args:[]}), 'https://www.youtube-nocookie.com');}catch{}
+ }
  function updateYouTubeSound(enabled){
   document.querySelectorAll?.('iframe.reel-player[src*="youtube-nocookie.com/embed/"]').forEach(frame=>{
-   try{const url=new URL(frame.src);const next=enabled?'0':'1';if(url.searchParams.get('mute')===next)return;url.searchParams.set('mute',next);url.searchParams.set('autoplay','1');frame.src=url.href;}catch{}
+   controlYouTube(frame,enabled?'unMute':'mute');
   });
  }
  function applySoundPreference(enabled,source){
@@ -26,10 +31,15 @@
   saveSoundPreference(!video.muted,video);
  },true);
  const eligible=element=>element?.matches?.('video,iframe.reel-player')&&!element.closest('.video-grid');
- const isYouTubeFrame=element=>element?.tagName==='IFRAME'&&element.src?.includes('youtube-nocookie.com/embed/');
- function controlYouTube(frame,command){
-  if(!isYouTubeFrame(frame)||!frame.contentWindow)return;
-  try{frame.contentWindow.postMessage(JSON.stringify({event:'command',func:command,args:[]}), 'https://www.youtube-nocookie.com');}catch{}
+ function listenToYouTube(frame){
+  if(!isYouTubeFrame(frame)||frame.dataset?.soundSync==='1')return;
+  if(frame.dataset)frame.dataset.soundSync='1';
+  const connect=()=>{
+   try{frame.contentWindow?.postMessage(JSON.stringify({event:'listening',id:'danzstak-sound'}),'https://www.youtube-nocookie.com');}catch{}
+   controlYouTube(frame,soundEnabled()?'unMute':'mute');
+  };
+  frame.addEventListener?.('load',connect);
+  connect();
  }
  const dataSaverEnabled=()=>document.documentElement?.classList?.contains('data-saver')||(()=>{try{return localStorage.getItem('danzstak_data_saver')==='1';}catch{return false;}})();
  const isFeedVideo=video=>video?.matches?.('video.post-media');
@@ -78,7 +88,7 @@
   button.addEventListener('click',()=>{element.src=original;button.replaceWith(element);});
  }
  const observer=new IntersectionObserver(entries=>{for(const entry of entries){const inView=entry.isIntersecting&&entry.intersectionRatio>=0.15;visible.set(entry.target,inView);if(!inView){manualPlayback.delete(entry.target);pause(entry.target);continue;}if(isYouTubeFrame(entry.target)){if(!document.hidden&&!dataSaverEnabled())controlYouTube(entry.target,'playVideo');continue;}if(entry.target.tagName!=='VIDEO'||document.hidden)continue;const feedVideo=isFeedVideo(entry.target);if(feedVideo&&dataSaverEnabled())continue;entry.target.preload=feedVideo?'auto':'metadata';if(entry.target.readyState===0)entry.target.load?.();if(feedVideo)entry.target.play().catch(()=>{});}}, {threshold:[0,0.15,0.6]});
- function track(element){if(!eligible(element)||tracked.has(element))return;tracked.add(element);observer.observe(element);if(element.tagName==='VIDEO'){element.muted=!soundEnabled();prepareVideoPreview(element);element.addEventListener('play',()=>{if(document.hidden||(visible.get(element)===false&&!manualPlayback.has(element)))element.pause();});}}
+ function track(element){if(!eligible(element)||tracked.has(element))return;tracked.add(element);observer.observe(element);if(isYouTubeFrame(element))listenToYouTube(element);if(element.tagName==='VIDEO'){element.muted=!soundEnabled();prepareVideoPreview(element);element.addEventListener('play',()=>{if(document.hidden||(visible.get(element)===false&&!manualPlayback.has(element)))element.pause();});}}
  function added(root){
   if(root?.tagName==='VIDEO')root.muted=!soundEnabled();
   root.querySelectorAll?.('video').forEach(video=>{video.muted=!soundEnabled();});
@@ -89,5 +99,14 @@
  added(document.body);
  applySoundPreference(soundEnabled());
  new MutationObserver(records=>{for(const record of records){record.removedNodes.forEach(removed);record.addedNodes.forEach(added);}}).observe(document.body,{childList:true,subtree:true});
+ globalThis.addEventListener?.('message',event=>{
+  if(event.origin!=='https://www.youtube-nocookie.com'&&event.origin!=='https://www.youtube.com')return;
+  const frame=[...tracked].find(item=>isYouTubeFrame(item)&&item.contentWindow===event.source);
+  if(!frame)return;
+  let payload=event.data;try{if(typeof payload==='string')payload=JSON.parse(payload);}catch{return;}
+  if(payload?.event!=='infoDelivery'||typeof payload.info?.muted!=='boolean'||applyingSound)return;
+  if(payload.info.muted===!soundEnabled())return;
+  saveSoundPreference(!payload.info.muted,frame);
+ });
  document.addEventListener('visibilitychange',()=>{if(document.hidden)for(const media of [...tracked])pause(media);});
 })();
