@@ -327,6 +327,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 }
 </style>
 <link rel="stylesheet" href="assets/feed-enhancements.css?v=474">
+<link rel="stylesheet" href="assets/profile-onboarding.css?v=1">
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=231">
   <link rel="stylesheet" href="assets/soft-ui.css?v=425">
@@ -393,6 +394,20 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
     <section id="featureView" class="panel" hidden>
       <h3 id="featureTitle"></h3>
       <p id="featureDescription" class="muted"></p>
+    </section>
+
+    <section id="profileOnboarding" class="panel profile-onboarding" aria-labelledby="profileOnboardingTitle" hidden>
+      <div class="profile-onboarding-copy">
+        <p class="profile-onboarding-kicker">Welcome to DanzStak</p>
+        <h2 id="profileOnboardingTitle">What should people call you?</h2>
+        <p id="profileOnboardingHelp">Add your name once so friends can recognize and find you.</p>
+      </div>
+      <form id="profileOnboardingForm">
+        <label><span id="profileOnboardingNameLabel">Your name</span><input id="profileOnboardingName" name="name" minlength="2" maxlength="80" autocomplete="name" placeholder="Liana" required></label>
+        <label><span id="profileOnboardingHandleLabel">Username</span><span class="profile-handle-input"><b aria-hidden="true">@</b><input id="profileOnboardingHandle" name="handle" minlength="3" maxlength="24" pattern="[A-Za-z0-9._]+" autocomplete="username" placeholder="liana" required></span></label>
+        <button class="primary" id="profileOnboardingSave" type="submit">Save my name</button>
+      </form>
+      <p id="profileOnboardingStatus" class="muted" role="status" aria-live="polite"></p>
     </section>
 
     <div id="newsFeedView">
@@ -1485,6 +1500,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
 <script src="assets/feed-enhancements.js?v=474" defer></script>
+<script src="assets/profile-onboarding.js?v=1" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=295" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
