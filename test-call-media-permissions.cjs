@@ -6,7 +6,7 @@ const source = fs.readFileSync("assets/chat.js", "utf8");
 const start = source.indexOf("function callMediaError");
 const end = source.indexOf("async function media", start);
 assert.ok(start >= 0 && end > start, "call media permission guidance must exist");
-const context = vm.createContext({});
+const context = vm.createContext({ t: value => value });
 vm.runInContext(source.slice(start, end), context);
 const message = (name, kind) => vm.runInContext(`callMediaError({name:${JSON.stringify(name)}},${JSON.stringify(kind)})`, context);
 

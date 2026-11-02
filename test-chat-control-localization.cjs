@@ -8,6 +8,7 @@ const messages = fs.readFileSync("assets/direct-messages.js", "utf8");
 
 assert.match(i18n, /const chatControlKeys=\["Incoming call"[\s\S]*"Open contact profile"\]/, "call and chat controls need one complete translation key set");
 assert.match(i18n, /const callStatusKeys=\["Connected securely to \{name\}\."[\s\S]*"video"\]/, "the complete live call flow needs translated status templates");
+assert.match(i18n, /const callMediaKeys=\["Camera and microphone access is blocked\.[\s\S]*"The microphone could not start\./, "camera and microphone recovery guidance needs one complete translation key set");
 assert.match(i18n, /const conversationStatusKeys=\["Loading messages with \{name\}…"[\s\S]*"Saved chat\./, "saved conversations need translated loading and permission guidance");
 assert.match(i18n, /const messageActionKeys=\["Remove attachment"[\s\S]*"Contacts are temporarily unavailable\. Retrying automatically…"\]/, "message actions, history, offline state, and empty states need one complete translation key set");
 for (const language of ["es", "fr", "de", "pt", "it", "ko", "ja", "zh-Hans", "zh-Hant", "fil", "hi", "vi", "th", "id"]) {
@@ -19,6 +20,7 @@ assert.match(chat, /els\.camera\.textContent=t\(track\.enabled\?"Camera off":"Ca
 assert.match(chat, /setStatus\(tf\("Calling \{name\}…",\{name:contactName\}\)\)/, "outgoing call progress should translate while preserving the member name");
 assert.match(chat, /setStatus\(tf\("No answer from \{name\}\."/, "no-answer status should translate while preserving the member name");
 assert.match(chat, /setStatus\(t\("Call declined\."\)\)/, "declined-call status should remain translated");
+assert.match(chat, /function callMediaError\([\s\S]*return t\(video\?"Camera and microphone access is blocked\./, "call permission recovery should use the selected language");
 assert.match(messages, /const translated = messageTranslate\(labels\[key\]\)/, "named conversation actions should translate before adding the member name");
 assert.match(messages, /mine \? messageTranslate\("You"\)/, "message ownership labels should stay translated");
 assert.match(messages, /messageFormat\("Loading messages with \{name\}…", \{ name: activeContactName \}\)/, "conversation loading should translate without losing the contact name");
