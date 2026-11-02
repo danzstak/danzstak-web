@@ -27,6 +27,23 @@
     th: { title: "อยากให้คนอื่นเรียกคุณว่าอะไร?", help: "ใส่ชื่อที่ต้องการให้คนอื่นเห็น DanzStak จะสร้างชื่อผู้ใช้ให้อัตโนมัติ", name: "ชื่อที่คนอื่นจะเห็น", save: "ใช้ชื่อนี้", saving: "กำลังบันทึกชื่อ…", saved: "ตั้งชื่อเรียบร้อยแล้ว ค้นหาผู้คนและเพิ่มเพื่อนกลุ่มแรกของคุณ", later: "เปลี่ยนภายหลังได้ที่ การตั้งค่า → แก้ไขโปรไฟล์", find: "ค้นหาผู้คน", done: "ไว้ทีหลัง" },
     id: { title: "Anda ingin dipanggil apa?", help: "Masukkan nama yang ingin dilihat orang lain. DanzStak membuat nama pengguna secara otomatis.", name: "Nama yang dilihat orang lain", save: "Gunakan nama ini", saving: "Menyimpan nama…", saved: "Nama Anda sudah siap. Temukan orang dan tambahkan teman pertama Anda.", later: "Anda dapat mengubahnya nanti di Pengaturan → Edit profil.", find: "Temukan orang", done: "Nanti saja" }
   };
+  const feedback = {
+    en: { welcome: "Welcome to DanzStak", slow: "DanzStak is taking too long. Try again.", offline: "DanzStak cannot connect right now. Check your connection and try again.", taken: "That name is already used. Try the suggested name.", failed: "Your name could not be saved. Try again." },
+    es: { welcome: "Te damos la bienvenida a DanzStak", slow: "DanzStak está tardando demasiado. Inténtalo de nuevo.", offline: "DanzStak no puede conectarse ahora. Comprueba tu conexión e inténtalo de nuevo.", taken: "Ese nombre ya está en uso. Prueba el nombre sugerido.", failed: "No se pudo guardar tu nombre. Inténtalo de nuevo." },
+    fr: { welcome: "Bienvenue sur DanzStak", slow: "DanzStak met trop de temps à répondre. Réessayez.", offline: "DanzStak ne peut pas se connecter. Vérifiez votre connexion et réessayez.", taken: "Ce nom est déjà utilisé. Essayez le nom proposé.", failed: "Votre nom n’a pas pu être enregistré. Réessayez." },
+    de: { welcome: "Willkommen bei DanzStak", slow: "DanzStak braucht zu lange. Versuche es erneut.", offline: "DanzStak kann gerade keine Verbindung herstellen. Prüfe deine Verbindung und versuche es erneut.", taken: "Dieser Name wird bereits verwendet. Probiere den vorgeschlagenen Namen.", failed: "Dein Name konnte nicht gespeichert werden. Versuche es erneut." },
+    pt: { welcome: "Boas-vindas ao DanzStak", slow: "O DanzStak está demorando demais. Tente novamente.", offline: "O DanzStak não consegue se conectar agora. Verifique sua conexão e tente novamente.", taken: "Esse nome já está em uso. Tente o nome sugerido.", failed: "Não foi possível salvar seu nome. Tente novamente." },
+    it: { welcome: "Benvenuto su DanzStak", slow: "DanzStak sta impiegando troppo tempo. Riprova.", offline: "DanzStak non riesce a connettersi. Controlla la connessione e riprova.", taken: "Questo nome è già in uso. Prova quello suggerito.", failed: "Impossibile salvare il nome. Riprova." },
+    ko: { welcome: "DanzStak에 오신 것을 환영합니다", slow: "DanzStak 응답이 지연되고 있습니다. 다시 시도하세요.", offline: "지금 DanzStak에 연결할 수 없습니다. 연결을 확인하고 다시 시도하세요.", taken: "이미 사용 중인 이름입니다. 추천 이름을 사용해 보세요.", failed: "이름을 저장하지 못했습니다. 다시 시도하세요." },
+    ja: { welcome: "DanzStakへようこそ", slow: "DanzStakの応答に時間がかかっています。もう一度お試しください。", offline: "現在DanzStakに接続できません。接続を確認してもう一度お試しください。", taken: "その名前はすでに使われています。候補の名前をお試しください。", failed: "名前を保存できませんでした。もう一度お試しください。" },
+    "zh-Hans": { welcome: "欢迎使用 DanzStak", slow: "DanzStak 响应时间过长，请重试。", offline: "DanzStak 目前无法连接，请检查网络后重试。", taken: "该名字已被使用，请尝试建议的名字。", failed: "无法保存名字，请重试。" },
+    "zh-Hant": { welcome: "歡迎使用 DanzStak", slow: "DanzStak 回應時間過長，請重試。", offline: "DanzStak 目前無法連線，請檢查網路後重試。", taken: "該名字已被使用，請嘗試建議的名字。", failed: "無法儲存名字，請重試。" },
+    fil: { welcome: "Maligayang pagdating sa DanzStak", slow: "Masyadong matagal ang DanzStak. Subukan muli.", offline: "Hindi makakonekta ang DanzStak ngayon. Suriin ang koneksyon at subukan muli.", taken: "Ginagamit na ang pangalang iyon. Subukan ang iminungkahing pangalan.", failed: "Hindi na-save ang pangalan mo. Subukan muli." },
+    hi: { welcome: "DanzStak में आपका स्वागत है", slow: "DanzStak बहुत समय ले रहा है। फिर कोशिश करें।", offline: "DanzStak अभी कनेक्ट नहीं हो पा रहा है। अपना कनेक्शन जाँचें और फिर कोशिश करें।", taken: "यह नाम पहले से उपयोग में है। सुझाया गया नाम आज़माएँ।", failed: "आपका नाम सहेजा नहीं जा सका। फिर कोशिश करें।" },
+    vi: { welcome: "Chào mừng đến với DanzStak", slow: "DanzStak phản hồi quá lâu. Hãy thử lại.", offline: "DanzStak hiện không thể kết nối. Hãy kiểm tra kết nối rồi thử lại.", taken: "Tên này đã được sử dụng. Hãy thử tên được đề xuất.", failed: "Không thể lưu tên của bạn. Hãy thử lại." },
+    th: { welcome: "ยินดีต้อนรับสู่ DanzStak", slow: "DanzStak ใช้เวลานานเกินไป โปรดลองอีกครั้ง", offline: "DanzStak เชื่อมต่อไม่ได้ในขณะนี้ โปรดตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง", taken: "ชื่อนี้มีผู้ใช้แล้ว โปรดลองชื่อที่แนะนำ", failed: "บันทึกชื่อของคุณไม่ได้ โปรดลองอีกครั้ง" },
+    id: { welcome: "Selamat datang di DanzStak", slow: "DanzStak terlalu lama merespons. Coba lagi.", offline: "DanzStak tidak dapat terhubung saat ini. Periksa koneksi Anda lalu coba lagi.", taken: "Nama itu sudah digunakan. Coba nama yang disarankan.", failed: "Nama Anda tidak dapat disimpan. Coba lagi." }
+  };
   function identityLanguage(value) {
     const raw = String(value || "en").trim().toLowerCase();
     if (/^zh-(?:tw|hk|mo|hant)/.test(raw)) return "zh-Hant";
@@ -39,6 +56,8 @@
   let language = "en";
   try { language = identityLanguage(localStorage.getItem("danzstak_language") || document.documentElement.lang || navigator.language || "en"); } catch { language = identityLanguage(document.documentElement.lang || "en"); }
   const words = copy[language] || copy.en;
+  const messages = feedback[language] || feedback.en;
+  document.querySelector(".profile-onboarding-kicker").textContent = messages.welcome;
   document.getElementById("profileOnboardingTitle").textContent = words.title;
   document.getElementById("profileOnboardingHelp").textContent = words.help;
   document.getElementById("profileOnboardingNameLabel").textContent = words.name;
@@ -67,8 +86,8 @@
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try { return await fetch(url, { ...options, signal: controller.signal }); }
     catch (error) {
-      if (error.name === "AbortError") throw new Error("DanzStak is taking too long. Try again.");
-      throw error;
+      if (error.name === "AbortError") throw new Error(messages.slow);
+      throw new Error(messages.offline);
     } finally { clearTimeout(timeout); }
   }
 
@@ -113,7 +132,7 @@
           if (/display name/i.test(data.error || "")) nameInput.value = data.suggestion;
           else handleInput.value = data.suggestion;
         }
-        throw new Error(data.error || "Your name could not be saved. Try again.");
+        throw new Error(data.suggestion ? messages.taken : messages.failed);
       }
       status.textContent = words.saved;
       const composerAvatar = document.querySelector(".composer-avatar");

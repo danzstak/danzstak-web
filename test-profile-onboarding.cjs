@@ -8,7 +8,7 @@ const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 
 assert.match(feed, /id="profileOnboarding"[^>]*hidden/, 'the identity prompt is present but hidden until an incomplete profile is confirmed');
 assert.match(feed, /What should people call you\?/, 'the prompt uses ordinary language rather than profile jargon');
-assert.match(feed, /assets\/profile-onboarding\.js\?v=5/, 'the live feed loads first-login identity behavior');
+assert.match(feed, /assets\/profile-onboarding\.js\?v=6/, 'the live feed loads first-login identity behavior');
 assert.match(feed, /assets\/profile-onboarding\.css\?v=2/, 'the live feed loads responsive identity styling');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.css"/, 'the installed app keeps the identity layout available offline');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.js"/, 'the installed app keeps the identity behavior available offline');
@@ -27,9 +27,15 @@ assert.match(source, /Come vuoi farti chiamare\?/, 'Italian members receive dire
 assert.match(feed, /aria-label="Find friends and see who is online"/, 'the top people icon clearly identifies friend discovery');
 assert.match(feed, /id="profileOnboardingFindPeople"/, 'the completed name step offers a direct next action');
 assert.match(source, /Trova persone/, 'Italian members receive a translated friend-discovery action');
+assert.match(source, /Benvenuto su DanzStak/, 'Italian members receive a translated welcome rather than an English banner');
+assert.match(source, /DanzStak non riesce a connettersi/, 'Italian members receive understandable connection recovery guidance');
+assert.match(source, /Questo nome è già in uso/, 'Italian members receive understandable name-conflict guidance');
 for (const language of ['en','es','fr','de','pt','it','ko','ja','zh-Hans','zh-Hant','fil','hi','vi','th','id']) {
   assert.match(source, new RegExp(`(?:^|\\s|[,{])(?:"${language}"|${language}):`), `${language} receives direct identity onboarding copy`);
 }
+assert.match(source, /const feedback = \{/, 'welcome and recovery feedback are localized separately from field labels');
+assert.match(source, /document\.querySelector\("\.profile-onboarding-kicker"\)\.textContent = messages\.welcome/, 'the visible welcome banner follows the member language');
+assert.match(source, /throw new Error\(messages\.offline\)/, 'connection failures never fall back to browser-language technical errors');
 assert.match(source, /identityLanguage/, 'identity setup resolves every supported locale explicitly');
 assert.match(source, /\.topnav \[data-feature="Friends"\]/, 'the next action opens the existing online-user and friend workspace');
 assert.match(source, /next\.hidden = false/, 'saving a name reveals friend discovery instead of silently dismissing onboarding');
