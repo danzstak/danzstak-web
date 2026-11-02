@@ -84,6 +84,7 @@
  const memberCountLabels={es:n=>`Resultados: ${n}.`,fr:n=>`Résultats : ${n}.`,de:n=>`Ergebnisse: ${n}.`,pt:n=>`Resultados: ${n}.`,it:n=>`Risultati: ${n}.`,ko:n=>`검색 결과: ${n}명.`,ja:n=>`検索結果：${n}件。`,"zh-Hans":n=>`结果：${n}。`,"zh-Hant":n=>`結果：${n}。`,fil:n=>`Mga resulta: ${n}.`,hi:n=>`नतीजे: ${n}।`,vi:n=>`Kết quả: ${n}.`,th:n=>`ผลลัพธ์: ${n}`,id:n=>`Hasil: ${n}.`};
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';
+ const attributeExcluded='script,style,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';
  let queued=false;
  function normalize(code){const raw=String(code||'');if(supported.has(raw))return raw;const lower=raw.toLowerCase();if(/^zh-(?:tw|hk|mo|hant)/.test(lower)&&supported.has('zh-Hant'))return'zh-Hant';if(/^zh/.test(lower)&&supported.has('zh-Hans'))return'zh-Hans';const exact=[...supported].find(value=>value.toLowerCase()===lower);if(exact)return exact;const base=lower.split('-')[0];return supported.has(base)?base:'en';}
  function translate(raw){
@@ -104,7 +105,7 @@
     const rendered=translate(source);originalText.set(textNode,{source,rendered});if(current!==rendered)textNode.nodeValue=rendered;
   }
   for(const element of document.body.querySelectorAll('[placeholder],[title],[aria-label]')){
-    if(element.closest(excluded))continue;let records=originalAttributes.get(element);if(!records){records=new Map();originalAttributes.set(element,records);}
+    if(element.closest(attributeExcluded))continue;let records=originalAttributes.get(element);if(!records){records=new Map();originalAttributes.set(element,records);}
     for(const name of ['placeholder','title','aria-label']){if(!element.hasAttribute(name))continue;const current=element.getAttribute(name),old=records.get(name),source=old&&old.rendered===current?old.source:current,rendered=translate(source);records.set(name,{source,rendered});if(current!==rendered)element.setAttribute(name,rendered);}
   }
  }
