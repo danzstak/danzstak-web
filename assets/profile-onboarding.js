@@ -7,9 +7,12 @@
   const handleInput = document.getElementById("profileOnboardingHandle");
   const save = document.getElementById("profileOnboardingSave");
   const status = document.getElementById("profileOnboardingStatus");
+  const next = document.getElementById("profileOnboardingNext");
+  const findPeople = document.getElementById("profileOnboardingFindPeople");
+  const done = document.getElementById("profileOnboardingDone");
   const copy = {
-    en: { title: "What should people call you?", help: "Enter the name you want people to see. DanzStak handles the username for you.", name: "Name people see", save: "Use this name", saving: "Saving your name…", saved: "Your DanzStak name is ready.", later: "You can change this later in Settings → Edit Profile." },
-    it: { title: "Come vuoi farti chiamare?", help: "Inserisci il nome che vuoi mostrare. DanzStak crea automaticamente il nome utente.", name: "Nome visibile agli altri", save: "Usa questo nome", saving: "Salvataggio del nome…", saved: "Il tuo nome DanzStak è pronto.", later: "Puoi cambiarlo in seguito in Impostazioni → Modifica profilo." }
+    en: { title: "What should people call you?", help: "Enter the name you want people to see. DanzStak handles the username for you.", name: "Name people see", save: "Use this name", saving: "Saving your name…", saved: "Your name is ready. Find people who are online and add your first friends.", later: "You can change this later in Settings → Edit Profile.", find: "Find people", done: "Not now" },
+    it: { title: "Come vuoi farti chiamare?", help: "Inserisci il nome che vuoi mostrare. DanzStak crea automaticamente il nome utente.", name: "Nome visibile agli altri", save: "Usa questo nome", saving: "Salvataggio del nome…", saved: "Il tuo nome è pronto. Trova le persone online e aggiungi i tuoi primi amici.", later: "Puoi cambiarlo in seguito in Impostazioni → Modifica profilo.", find: "Trova persone", done: "Non ora" }
   };
   let language = "en";
   try { language = (localStorage.getItem("danzstak_language") || document.documentElement.lang || navigator.language || "en").toLowerCase().split("-")[0]; } catch { language = String(document.documentElement.lang || "en").toLowerCase().split("-")[0]; }
@@ -19,6 +22,15 @@
   document.getElementById("profileOnboardingNameLabel").textContent = words.name;
   document.getElementById("profileOnboardingLater").textContent = words.later;
   save.textContent = words.save;
+  findPeople.textContent = words.find;
+  done.textContent = words.done;
+
+  const closeOnboarding = () => { panel.hidden = true; };
+  findPeople.addEventListener("click", () => {
+    closeOnboarding();
+    document.querySelector('.topnav [data-feature="Friends"]')?.click();
+  });
+  done.addEventListener("click", closeOnboarding);
 
   const suggestedHandle = value => {
     const base = String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9._]+/g, ".").replace(/^\.+|\.+$/g, "").slice(0, 24) || "member";
@@ -82,7 +94,10 @@
       status.textContent = words.saved;
       const composerAvatar = document.querySelector(".composer-avatar");
       if (composerAvatar) composerAvatar.textContent = name.charAt(0).toUpperCase() || "D";
-      setTimeout(() => { panel.hidden = true; }, 700);
+      form.hidden = true;
+      document.getElementById("profileOnboardingLater").hidden = true;
+      next.hidden = false;
+      findPeople.focus({ preventScroll: true });
     } catch (error) { status.textContent = error.message; }
     finally { save.disabled = false; }
   });
