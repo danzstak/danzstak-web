@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 
 const source = readFileSync('assets/profile-editor.js', 'utf8');
 const start = source.indexOf('const profileTabRoutes');
-const end = source.indexOf('\n\nlet profileTabVersion', start);
+const end = source.indexOf('let profileTabVersion = 0', start);
 assert.notEqual(start, -1, 'profile tab routes exist');
 assert.notEqual(end, -1, 'profile tab route helper has a stable boundary');
 
