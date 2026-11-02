@@ -218,6 +218,28 @@ for (const [language] of window.danzstakLanguages) {
         `${language} needs localized settings guidance for: ${source}`,
       );
   }
+  for (const source of [
+    "Loading Flashes",
+    "Loading saved posts...",
+    "Loading news…",
+    "Externally hosted videos",
+    "Open The Roll fullscreen",
+    "External video URL",
+    "I own this video or have permission to share its external link.",
+    "Videos shared to The Roll will appear here.",
+    "© 2026 DanzStak LLC. All rights reserved.",
+    "User content belongs to its creators.",
+    "Add a photo or video to share this post to Flashes",
+    "Add a video before sharing it to The Roll",
+  ]) {
+    const translated = window.danzstakTranslate(source);
+    if (language !== "en")
+      assert.notEqual(
+        translated,
+        source,
+        `${language} needs localized feed loading, Roll, and ownership copy for: ${source}`,
+      );
+  }
   if (language !== "en")
     assert.notEqual(
       window.danzstakTranslate("2 matching members."),
