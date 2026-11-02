@@ -55,8 +55,10 @@
       const response = await request("https://api.danzstak.com/profiles", { credentials: "include", cache: "no-store" });
       if (!response.ok) return;
       const profile = (await response.json()).profile || {};
-      const genericName = !profile.name || profile.name === "DanzStak member";
-      const genericHandle = !profile.handle || profile.handle === "danzstak-member" || profile.handle === "member";
+      const normalizedName = String(profile.name || "").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+      const normalizedHandle = String(profile.handle || "").trim().replace(/^@/, "").toLocaleLowerCase();
+      const genericName = !normalizedName || ["danzstak member", "danzstak user", "new member"].includes(normalizedName);
+      const genericHandle = !normalizedHandle || ["danzstak-member", "danzstak.member", "danzstak_member", "member", "new-member"].includes(normalizedHandle);
       if (!genericName && !genericHandle) return;
       nameInput.value = genericName ? "" : profile.name;
       handleInput.value = genericHandle ? suggestedHandle(nameInput.value) : profile.handle;

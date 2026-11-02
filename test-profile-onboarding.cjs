@@ -8,12 +8,13 @@ const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 
 assert.match(feed, /id="profileOnboarding"[^>]*hidden/, 'the identity prompt is present but hidden until an incomplete profile is confirmed');
 assert.match(feed, /What should people call you\?/, 'the prompt uses ordinary language rather than profile jargon');
-assert.match(feed, /assets\/profile-onboarding\.js\?v=3/, 'the live feed loads first-login identity behavior');
+assert.match(feed, /assets\/profile-onboarding\.js\?v=4/, 'the live feed loads first-login identity behavior');
 assert.match(feed, /assets\/profile-onboarding\.css\?v=2/, 'the live feed loads responsive identity styling');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.css"/, 'the installed app keeps the identity layout available offline');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.js"/, 'the installed app keeps the identity behavior available offline');
-assert.match(source, /profile\.name === "DanzStak member"/, 'generic new accounts are detected');
-assert.match(source, /profile\.handle === "danzstak-member"/, 'generic usernames are detected');
+assert.match(source, /toLocaleLowerCase\(\)/, 'generic account detection ignores capitalization');
+assert.match(source, /"danzstak member", "danzstak user", "new member"/, 'legacy generic display names are detected');
+assert.match(source, /"danzstak-member", "danzstak\.member", "danzstak_member", "member", "new-member"/, 'legacy generic usernames are detected');
 assert.match(source, /suggestedHandle\(nameInput\.value\)/, 'typing a name automatically suggests a username');
 assert.match(feed, /id="profileOnboardingHandle"[^>]*type="hidden"/, 'new members only have to understand and enter one visible name field');
 assert.match(source, /DanzStak handles the username for you/, 'plain-language help explains that the technical username is automatic');
