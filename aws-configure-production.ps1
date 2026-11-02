@@ -6,6 +6,61 @@ $AmplifyAppId = "d31oovi2mos5iz"
 $UserPoolRegion = "us-east-1"
 $UserPoolId = "us-east-1_qA4B46ilc"
 
+Write-Host "Keeping DanzStak self-signup open with email verification..."
+$CurrentUserPool = (aws cognito-idp describe-user-pool `
+  --region $UserPoolRegion `
+  --user-pool-id $UserPoolId `
+  --output json | ConvertFrom-Json).UserPool
+if ($LASTEXITCODE -ne 0 -or -not $CurrentUserPool) { throw "Cognito user-pool lookup failed." }
+
+# UpdateUserPool resets omitted fields to service defaults. Build the request from
+# the live pool so opening signup cannot silently weaken unrelated settings.
+$SignupConfig = [ordered]@{
+  UserPoolId = $UserPoolId
+  PoolName = $CurrentUserPool.Name
+}
+foreach ($Name in @(
+  "Policies", "DeletionProtection", "VerificationMessageTemplate",
+  "UserAttributeUpdateSettings", "MfaConfiguration", "EmailConfiguration",
+  "UserPoolTags", "AdminCreateUserConfig", "AccountRecoverySetting",
+  "UserPoolTier", "KeyConfiguration", "IssuerConfiguration",
+  "DeviceConfiguration", "SmsConfiguration", "UserPoolAddOns"
+)) {
+  $Property = $CurrentUserPool.PSObject.Properties[$Name]
+  if ($Property -and $null -ne $Property.Value) { $SignupConfig[$Name] = $Property.Value }
+}
+$PreservedTriggers = [ordered]@{}
+if ($CurrentUserPool.LambdaConfig) {
+  foreach ($Property in $CurrentUserPool.LambdaConfig.PSObject.Properties) {
+    if ($Property.Name -ne "PreSignUp") { $PreservedTriggers[$Property.Name] = $Property.Value }
+  }
+}
+$SignupConfig["LambdaConfig"] = $PreservedTriggers
+$SignupConfig["AutoVerifiedAttributes"] = @("email")
+$SignupJson = $SignupConfig | ConvertTo-Json -Depth 20 -Compress
+$SignupRequestPath = Join-Path ([System.IO.Path]::GetTempPath()) ("danzstak-cognito-" + [guid]::NewGuid().ToString("N") + ".json")
+try {
+  [System.IO.File]::WriteAllText($SignupRequestPath, $SignupJson, (New-Object System.Text.UTF8Encoding($false)))
+  aws cognito-idp update-user-pool `
+    --region $UserPoolRegion `
+    --cli-input-json ("file://" + $SignupRequestPath) | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "Cognito public signup configuration failed." }
+}
+finally {
+  if (Test-Path -LiteralPath $SignupRequestPath) { Remove-Item -LiteralPath $SignupRequestPath -Force }
+}
+
+$VerifiedSignupConfig = (aws cognito-idp describe-user-pool `
+  --region $UserPoolRegion `
+  --user-pool-id $UserPoolId `
+  --output json | ConvertFrom-Json).UserPool
+if ($LASTEXITCODE -ne 0 -or
+    $VerifiedSignupConfig.AdminCreateUserConfig.AllowAdminCreateUserOnly -or
+    $VerifiedSignupConfig.AutoVerifiedAttributes -notcontains "email" -or
+    $VerifiedSignupConfig.LambdaConfig.PSObject.Properties.Name -contains "PreSignUp") {
+  throw "Cognito public signup verification failed."
+}
+
 Write-Host "Configuring optional authenticator-app MFA..."
 aws cognito-idp set-user-pool-mfa-config `
   --region $UserPoolRegion `

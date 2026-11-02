@@ -21,6 +21,6 @@
   "attribution": {
     "utmSource": "danzstak_outreach",
     "utmMedium": "email",
-    "conversionEvents": ["landing_visit", "signup_verified", "profile_completed", "facebook_import_completed", "sfscoop_visit"]
+    "conversionEvents": ["landing_visit", "signup_verified", "profile_completed", "facebook_import_completed"]
   }
 }
