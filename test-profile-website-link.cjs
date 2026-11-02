@@ -11,9 +11,9 @@ const document = { getElementById: () => target, createElement: tag => ({ tag, s
 const context = vm.createContext({ document, URL, Error });
 vm.runInContext(functionSource, context);
 
-context.renderProfileWebsite("https://sfscoop.com/path");
+context.renderProfileWebsite("https://sleepingdragon.example/path");
 assert.equal(target.children.length, 1);
-assert.equal(target.children[0].href, "https://sfscoop.com/path");
+assert.equal(target.children[0].href, "https://sleepingdragon.example/path");
 assert.equal(target.children[0].target, "_blank");
 assert.equal(target.children[0].rel, "noopener noreferrer nofollow ugc");
 assert.equal(target.children[0].referrerPolicy, "no-referrer");

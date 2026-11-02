@@ -9,6 +9,5 @@ assert.match(source, /AllowAdminCreateUserOnly/);
 assert.match(source, /Verify your DanzStak account/);
 assert.match(source, /verification code is \{####\}/);
 assert.match(source, /never ask for your password or sell your personal information/i);
-assert.doesNotMatch(source, /sfscoop/i);
 
-console.log('Public signup configuration checks passed: open registration, email verification, branded copy, and no SFScoop workflow.');
+console.log('Public signup configuration checks passed: open registration, email verification, and branded copy.');

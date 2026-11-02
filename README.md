@@ -5,8 +5,8 @@ Official DanzStak social networking and music platform website.
 
 DanzStak is an installable, responsive Progressive Web App for social
 networking. It does not include blockchain, cryptocurrency, wallets, tokens,
-or Web3 transactions. Those capabilities belong to the separate SFSCOOP
-product and must not be introduced into DanzStak.
+or Web3 transactions. Those capabilities are outside the DanzStak product
+boundary and must not be introduced into DanzStak.
 ## Migration objective
 
 The owner wants DanzStak to help users leave billionaire-owned social platforms. Data portability is a core product goal: users should be able to copy their own Facebook profile and content into DanzStak while keeping Facebook, or migrate and then close Facebook after verifying their imported data. Account closure must remain a separate user-controlled action on Facebook. The importer should preview supported content, preserve original dates where available, let the user batch-select an audience with Public as the initial choice, and prevent duplicate imports. Facebook connections, likes, and comments must not be represented as actions taken by real DanzStak members.

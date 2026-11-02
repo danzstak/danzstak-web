@@ -8,7 +8,5 @@ assert.ok(plan.prohibited.includes('private-address scraping'));
 assert.ok(html.includes('{{unsubscribe_url}}'));
 assert.ok(html.includes('utm_campaign=independent_music_launch'));
 assert.ok(html.includes('DanzStak'));
-assert.ok(!html.toLowerCase().includes('sfscoop'));
-assert.ok(!JSON.stringify(plan).toLowerCase().includes('sfscoop'));
 assert.ok(html.includes('Import from Facebook'));
 console.log('Campaign checks passed: seven-day pacing, 200-email cap, consent controls, unsubscribe, DanzStak-only attribution, and Facebook migration.');

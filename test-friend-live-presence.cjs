@@ -24,7 +24,7 @@ const handlers = {};
 const attributes = {};
 const status = { textContent: "Offline" };
 const dot = { title: "Offline", classList: { toggle(name, enabled) { attributes[name] = enabled; } } };
-const profileLink = { dataset: { friendName: "SFScoop" }, setAttribute(name, value) { attributes[name] = value; } };
+const profileLink = { dataset: { friendName: "Sleeping Dragon" }, setAttribute(name, value) { attributes[name] = value; } };
 const row = {
   dataset: { memberId: "b4f80438-e021-70d6-1dac-91deb901b6d9" },
   querySelector(selector) {
@@ -61,6 +61,6 @@ vm.runInContext(feed.slice(refreshStart, refreshEnd), context);
   assert.equal(status.textContent, "Online", "the open Friends row should update without reopening Messages");
   assert.equal(dot.title, "Online");
   assert.equal(attributes.online, true);
-  assert.equal(attributes["aria-label"], "SFScoop, Online. Open profile");
+  assert.equal(attributes["aria-label"], "Sleeping Dragon, Online. Open profile");
   console.log("Friend live-presence checks passed: heartbeat and same-origin chat snapshots keep Friends current.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

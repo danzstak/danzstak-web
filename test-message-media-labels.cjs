@@ -8,12 +8,12 @@ const end = source.indexOf('function directMessageItem', start);
 assert.notEqual(start, -1, 'message summary helper exists');
 assert.notEqual(end, -1, 'message summary helper has a stable boundary');
 
-const context = vm.createContext({ activeContactName: 'SFScoop' });
+const context = vm.createContext({ activeContactName: 'Sleeping Dragon' });
 vm.runInContext(source.slice(start, end), context);
 
 assert.equal(
   context.messageAccessibleSummary({ content: '', mediaType: 'video' }, false),
-  'SFScoop sent a video. Long press or press Shift F10 for reactions.',
+  'Sleeping Dragon sent a video. Long press or press Shift F10 for reactions.',
   'received media-only videos have a useful accessible name'
 );
 assert.equal(
@@ -23,7 +23,7 @@ assert.equal(
 );
 assert.equal(
   context.messageAccessibleSummary({ content: '', mediaType: '' }, false),
-  'SFScoop sent a message. Long press or press Shift F10 for reactions.',
+  'Sleeping Dragon sent a message. Long press or press Shift F10 for reactions.',
   'legacy empty messages never expose awkward punctuation'
 );
 

@@ -13,9 +13,9 @@ vm.runInContext(source.slice(start, end), context);
 assert.equal(vm.runInContext('formatNotificationTimestamp("")', context), '');
 assert.equal(vm.runInContext('formatNotificationTimestamp("not-a-date")', context), '');
 assert.ok(vm.runInContext('formatNotificationTimestamp("2026-10-26T10:30:00.000Z")', context).length > 3);
-assert.equal(vm.runInContext('formatReactionNotification("SFScoop", "Like")', context), 'SFScoop liked your post.');
-assert.equal(vm.runInContext('formatReactionNotification("SFScoop", "Dislike")', context), 'SFScoop disliked your post.');
-assert.equal(vm.runInContext('formatReactionNotification("SFScoop", "")', context), 'SFScoop reacted to your post.');
+assert.equal(vm.runInContext('formatReactionNotification("Sleeping Dragon", "Like")', context), 'Sleeping Dragon liked your post.');
+assert.equal(vm.runInContext('formatReactionNotification("Sleeping Dragon", "Dislike")', context), 'Sleeping Dragon disliked your post.');
+assert.equal(vm.runInContext('formatReactionNotification("Sleeping Dragon", "")', context), 'Sleeping Dragon reacted to your post.');
 
 const notificationBlock = source.slice(source.indexOf('if (name === "Notifications")'), source.indexOf('if (name === "Friends")'));
 assert.match(notificationBlock, /copy\.className = "notification-copy"/);
