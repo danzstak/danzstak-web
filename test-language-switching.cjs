@@ -135,6 +135,17 @@ assert.equal(window.danzstakSetLanguage("unsupported"), "en");
 for (const [language] of window.danzstakLanguages) {
   window.danzstakSetLanguage(language);
   for (const source of [
+    "Offline access",
+    "Keep recent posts and chats available offline on this device",
+    "Off by default. Turning this on saves recently viewed private content and unsent text posts or messages only on this device. Turning it off or signing out deletes that saved content.",
+    "Offline access is on for this device.",
+    "Offline access is off. Saved offline content was deleted.",
+  ]) {
+    const translated = window.danzstakTranslate(source);
+    if (language !== "en")
+      assert.notEqual(translated, source, `${language} needs localized offline consent copy for: ${source}`);
+  }
+  for (const source of [
     "Type their name. They do not need to be online.",
     "Finding users online…",
     "No other users are online right now. Your accepted friends remain listed below.",

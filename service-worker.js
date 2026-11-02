@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v532";
+const CACHE = "danzstak-shell-v533";
 const SHELL = [
   "/assets/offline.js",
   "/assets/media-tags.js",
