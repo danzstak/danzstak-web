@@ -37,5 +37,8 @@ assert.equal(window.danzstakTranslate("Allow accepted friends to tag me in photo
 assert.equal(window.danzstakTranslate("Profile posting and tagging"), "Pubblicazione e tag sul profilo");
 assert.equal(window.danzstakTranslate("Allow friends to tag me"), "Consenti agli amici di taggarmi");
 assert.equal(window.danzstakTranslate("Edit your name, username, and profile"), "Modifica nome, nome utente e profilo");
+assert.equal(window.danzstakTranslate("More profile details"), "Altri dettagli del profilo");
+assert.equal(window.danzstakTranslate("Photos and video"), "Foto e video");
+assert.equal(window.danzstakTranslate("Privacy and tagging"), "Privacy e tag");
 
 console.log("Italian profile-language checks passed: identity, privacy, and tagging controls are understandable end to end.");

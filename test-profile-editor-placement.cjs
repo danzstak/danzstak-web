@@ -14,5 +14,15 @@ assert.match(styles, /\.edit-profile-panel\{[^}]*width:100%[^}]*max-width:100%[^
   "the editor should remain inside the profile card at every viewport width");
 assert.match(styles, /\.edit-profile-panel input,\.edit-profile-panel textarea,\.edit-profile-panel select\{[^}]*width:100%[^}]*min-width:0/,
   "profile inputs and privacy selectors should not overflow their panel");
+assert.match(script, /profile-identity-fields[^]*Display name[^]*Username[^]*More profile details/,
+  "name and username should be the first visible profile controls");
+assert.match(script, /<details class="profile-edit-section" data-profile-privacy>/,
+  "privacy and tagging should be grouped instead of crowding the basic identity form");
+assert.match(script, /mediaSummary\.textContent = "Photos and video"/,
+  "photo and video tools should be available in one optional section");
+assert.match(script, /requestedSection\.open = true/,
+  "direct privacy links should open the collapsed section before focusing its control");
+assert.match(styles, /@media\(max-width:560px\)\{\.profile-identity-fields\{grid-template-columns:1fr\}/,
+  "the two basic identity fields should stack cleanly on phones");
 
 console.log("Profile editor placement checks passed.");

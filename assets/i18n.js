@@ -10,6 +10,11 @@
   "Profile posting and tagging":"Pubblicazione e tag sul profilo",
   "Allow friends to tag me":"Consenti agli amici di taggarmi",
   "Edit your name, username, and profile":"Modifica nome, nome utente e profilo"
+  ,"More profile details":"Altri dettagli del profilo"
+  ,"Photos and video":"Foto e video"
+  ,"Privacy and tagging":"Privacy e tag"
+  ,"Import from Facebook":"Importa da Facebook"
+  ,"Choose Facebook export":"Scegli l’esportazione di Facebook"
  });
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';

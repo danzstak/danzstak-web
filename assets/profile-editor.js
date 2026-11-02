@@ -674,18 +674,20 @@ const panel = document.createElement("form");
 panel.className = "edit-profile-panel";
 panel.hidden = true;
 panel.innerHTML = '<h2>Edit Profile</h2>' +
-  '<label>Display name<input name="name" minlength="2" maxlength="80" autocomplete="name" required></label>' +
-  '<label>Username<input name="handle" minlength="3" maxlength="24" pattern="[A-Za-z0-9._]+" required></label>' +
+  '<div class="profile-identity-fields"><label>Display name<input name="name" minlength="2" maxlength="80" autocomplete="name" required></label>' +
+  '<label>Username<input name="handle" minlength="3" maxlength="24" pattern="[A-Za-z0-9._]+" required></label></div>' +
+  '<details class="profile-edit-section"><summary>More profile details</summary><div class="profile-edit-section-body">' +
   '<label>Bio<textarea name="bio" maxlength="160"></textarea></label>' +
   '<label>Location<input name="location" maxlength="80"></label>' +
   '<label>Work<input name="work" maxlength="100"></label>' +
   '<label>Website<input name="website" type="url" maxlength="200" placeholder="https://"></label>' +
-  '<label>DanzStak language<select name="language" data-profile-language></select></label>' +
+  '<label>DanzStak language<select name="language" data-profile-language></select></label></div></details>' +
+  '<details class="profile-edit-section" data-profile-privacy><summary>Privacy and tagging</summary><div class="profile-edit-section-body">' +
   '<label>Who can post on your profile?<select name="profilePostPermission"><option value="owner">Just me</option><option value="friends">Friends</option><option value="anyone">Public</option></select></label>' +
-  '<label class="profile-tag-setting"><input name="allowTags" type="checkbox">Allow accepted friends to tag me in photos and videos</label>' +
+  '<label class="profile-tag-setting"><input name="allowTags" type="checkbox">Allow accepted friends to tag me in photos and videos</label></div></details>' +
   '<p class="edit-note">Your display name and username must each be unique. If a name is taken, DanzStak will suggest a numbered alternative. Share only information you want members to see.</p>' +
   '<div class="edit-actions"><button class="secondary" type="button" data-cancel>Cancel</button><button class="button" type="submit">Save Changes</button></div>' +
-  '<div class="profile-import"><button type="button" data-facebook-import>Import from Facebook</button><p>Preview your export, set Public, Friends, or Just me in batches, and review shared-source posts before copying them.</p></div>';
+  '<details class="profile-edit-section profile-import"><summary>Import from Facebook</summary><div class="profile-edit-section-body"><button type="button" data-facebook-import>Choose Facebook export</button><p>Preview your export, set Public, Friends, or Just me in batches, and review shared-source posts before copying them.</p></div></details>';
 // Keep profile controls beside the profile actions instead of after the entire
 // post history.  Appending the form to the card made a deep profile timeline
 // push the editor off-screen while the edit route was trying to focus it.
@@ -704,7 +706,15 @@ for (const [field,label] of [["avatar","Profile photo"],["cover","Cover photo"],
   for (const control of mediaItems) if (control.dataset.mediaField === field) menu.appendChild(control);
   mediaTools.appendChild(menu);
 }
-panel.insertBefore(mediaTools, panel.querySelector("label"));
+const mediaSection = document.createElement("details");
+mediaSection.className = "profile-edit-section";
+const mediaSummary = document.createElement("summary");
+mediaSummary.textContent = "Photos and video";
+const mediaBody = document.createElement("div");
+mediaBody.className = "profile-edit-section-body";
+mediaBody.appendChild(mediaTools);
+mediaSection.append(mediaSummary, mediaBody);
+panel.querySelector(".profile-identity-fields").insertAdjacentElement("afterend", mediaSection);
 panel.querySelector("[data-facebook-import]").addEventListener("click", event => window.openDanzStakFacebookImport?.(event.currentTarget));
 
 function savedProfile() {
@@ -816,6 +826,8 @@ function applyLoadedProfile(profile = {}) {
       editButton.click();
       requestAnimationFrame(() => {
         const requestedControl = requestedEdit === "privacy" ? panel.elements.profilePostPermission : panel.elements.name;
+        const requestedSection = requestedControl.closest("details");
+        if (requestedSection) requestedSection.open = true;
         const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
         requestedControl.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
         requestedControl.focus({ preventScroll: true });
