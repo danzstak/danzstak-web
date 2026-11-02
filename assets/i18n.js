@@ -198,6 +198,40 @@
   id:["Memuat Kilas","Memuat postingan tersimpan...","Memuat berita…","Belum ada Kilas","Tambahkan foto atau video untuk memulai.","Video yang dihosting secara eksternal","Buka layar penuh","Buka The Roll dalam layar penuh","Tutup layar penuh The Roll","Tempel tautan video yang mendukung putar otomatis","URL video eksternal","Saya memiliki video ini atau mempunyai izin untuk membagikan tautan eksternalnya.","Tambahkan ke The Roll","Video yang dibagikan ke The Roll akan muncul di sini.","© 2026 DanzStak LLC. Hak cipta dilindungi.","Konten pengguna adalah milik pembuatnya.","Tambahkan foto atau video untuk membagikan postingan ini ke Kilas","Tambahkan video sebelum membagikannya ke The Roll","Tambahkan foto atau video ke Kilas"]
  };
  for(const [language,values] of Object.entries(feedPolish)){const dictionary=dictionaries[language]||(dictionaries[language]={});feedPolishKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const socialActionKeys=["Like comment","Dislike post","Dislike comment","Remove dislike reaction","Save post","Remove post from Saved","Remove from Saved","Post options","View post","Open on source","Play on source","You are online. No other connected users are active right now.","No other connected users are active right now.","Open your profile","Show more posts"];
+ const socialActions={
+  es:["Me gusta este comentario","No me gusta esta publicación","No me gusta este comentario","Quitar No me gusta","Guardar publicación","Quitar publicación de Guardados","Quitar de Guardados","Opciones de la publicación","Ver publicación","Abrir en la fuente","Reproducir en la fuente","Estás en línea. No hay otros usuarios conectados activos ahora.","No hay otros usuarios conectados activos ahora.","Abrir tu perfil","Mostrar más publicaciones"],
+  fr:["Aimer le commentaire","Ne pas aimer la publication","Ne pas aimer le commentaire","Retirer la réaction Je n’aime pas","Enregistrer la publication","Retirer la publication des Enregistrés","Retirer des Enregistrés","Options de la publication","Voir la publication","Ouvrir sur la source","Lire sur la source","Vous êtes en ligne. Aucun autre utilisateur connecté n’est actif actuellement.","Aucun autre utilisateur connecté n’est actif actuellement.","Ouvrir votre profil","Afficher plus de publications"],
+  de:["Kommentar liken","Beitrag ablehnen","Kommentar ablehnen","Ablehnung entfernen","Beitrag speichern","Beitrag aus Gespeichert entfernen","Aus Gespeichert entfernen","Beitragsoptionen","Beitrag ansehen","Bei der Quelle öffnen","Bei der Quelle abspielen","Du bist online. Derzeit sind keine anderen verbundenen Nutzer aktiv.","Derzeit sind keine anderen verbundenen Nutzer aktiv.","Dein Profil öffnen","Mehr Beiträge anzeigen"],
+  pt:["Curtir comentário","Não curtir publicação","Não curtir comentário","Remover reação negativa","Salvar publicação","Remover publicação dos Salvos","Remover dos Salvos","Opções da publicação","Ver publicação","Abrir na fonte","Reproduzir na fonte","Você está online. Nenhum outro usuário conectado está ativo agora.","Nenhum outro usuário conectado está ativo agora.","Abrir seu perfil","Mostrar mais publicações"],
+  it:["Metti Mi piace al commento","Non mi piace al post","Non mi piace al commento","Rimuovi la reazione Non mi piace","Salva post","Rimuovi il post dai Salvati","Rimuovi dai Salvati","Opzioni del post","Visualizza post","Apri sulla fonte","Riproduci sulla fonte","Sei online. Nessun altro utente connesso è attivo in questo momento.","Nessun altro utente connesso è attivo in questo momento.","Apri il tuo profilo","Mostra altri post"],
+  ko:["댓글 좋아요","게시물 싫어요","댓글 싫어요","싫어요 반응 취소","게시물 저장","저장됨에서 게시물 삭제","저장됨에서 삭제","게시물 옵션","게시물 보기","원본에서 열기","원본에서 재생","온라인 상태입니다. 현재 활동 중인 다른 사용자가 없습니다.","현재 활동 중인 다른 사용자가 없습니다.","내 프로필 열기","게시물 더 보기"],
+  ja:["コメントにいいね","投稿に低評価","コメントに低評価","低評価を取り消す","投稿を保存","保存済みから投稿を削除","保存済みから削除","投稿のオプション","投稿を見る","配信元で開く","配信元で再生","オンラインです。現在アクティブな他の接続ユーザーはいません。","現在アクティブな他の接続ユーザーはいません。","自分のプロフィールを開く","投稿をさらに表示"],
+  "zh-Hans":["赞评论","不赞帖子","不赞评论","移除不赞反应","保存帖子","从已保存中移除帖子","从已保存中移除","帖子选项","查看帖子","在来源网站打开","在来源网站播放","你已在线。目前没有其他活跃的在线用户。","目前没有其他活跃的在线用户。","打开你的个人资料","显示更多帖子"],
+  "zh-Hant":["讚好留言","不讚好貼文","不讚好留言","移除不讚好反應","儲存貼文","從已儲存中移除貼文","從已儲存中移除","貼文選項","查看貼文","在來源網站開啟","在來源網站播放","你已在線。目前沒有其他活躍的連線用戶。","目前沒有其他活躍的連線用戶。","開啟你的個人檔案","顯示更多貼文"],
+  fil:["I-like ang komento","I-dislike ang post","I-dislike ang komento","Alisin ang dislike reaction","I-save ang post","Alisin ang post sa Naka-save","Alisin sa Naka-save","Mga opsyon ng post","Tingnan ang post","Buksan sa pinagmulan","I-play sa pinagmulan","Online ka. Walang ibang nakakonektang user na aktibo ngayon.","Walang ibang nakakonektang user na aktibo ngayon.","Buksan ang iyong profile","Magpakita pa ng mga post"],
+  hi:["टिप्पणी पसंद करें","पोस्ट नापसंद करें","टिप्पणी नापसंद करें","नापसंद प्रतिक्रिया हटाएँ","पोस्ट सहेजें","सहेजे गए से पोस्ट हटाएँ","सहेजे गए से हटाएँ","पोस्ट विकल्प","पोस्ट देखें","स्रोत पर खोलें","स्रोत पर चलाएँ","आप ऑनलाइन हैं। अभी कोई अन्य जुड़ा हुआ उपयोगकर्ता सक्रिय नहीं है।","अभी कोई अन्य जुड़ा हुआ उपयोगकर्ता सक्रिय नहीं है।","अपनी प्रोफ़ाइल खोलें","और पोस्ट दिखाएँ"],
+  vi:["Thích bình luận","Không thích bài viết","Không thích bình luận","Gỡ phản ứng không thích","Lưu bài viết","Xóa bài viết khỏi Đã lưu","Xóa khỏi Đã lưu","Tùy chọn bài viết","Xem bài viết","Mở tại nguồn","Phát tại nguồn","Bạn đang trực tuyến. Hiện không có người dùng kết nối nào khác đang hoạt động.","Hiện không có người dùng kết nối nào khác đang hoạt động.","Mở trang cá nhân của bạn","Hiện thêm bài viết"],
+  th:["ถูกใจความคิดเห็น","ไม่ถูกใจโพสต์","ไม่ถูกใจความคิดเห็น","ลบปฏิกิริยาไม่ถูกใจ","บันทึกโพสต์","นำโพสต์ออกจากที่บันทึกไว้","นำออกจากที่บันทึกไว้","ตัวเลือกโพสต์","ดูโพสต์","เปิดที่แหล่งที่มา","เล่นที่แหล่งที่มา","คุณออนไลน์อยู่ ขณะนี้ไม่มีผู้ใช้ที่เชื่อมต่อรายอื่นกำลังใช้งาน","ขณะนี้ไม่มีผู้ใช้ที่เชื่อมต่อรายอื่นกำลังใช้งาน","เปิดโปรไฟล์ของคุณ","แสดงโพสต์เพิ่มเติม"],
+  id:["Sukai komentar","Tidak suka postingan","Tidak suka komentar","Hapus reaksi tidak suka","Simpan postingan","Hapus postingan dari Tersimpan","Hapus dari Tersimpan","Opsi postingan","Lihat postingan","Buka di sumber","Putar di sumber","Anda sedang online. Tidak ada pengguna terhubung lain yang aktif saat ini.","Tidak ada pengguna terhubung lain yang aktif saat ini.","Buka profil Anda","Tampilkan postingan lainnya"]
+ };
+ for(const [language,values] of Object.entries(socialActions)){const dictionary=dictionaries[language]||(dictionaries[language]={});socialActionKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const socialTemplates={
+  es:{open:"Abrir el perfil de {name}",reply:"Responder a {name}",view:"Ver la publicación de {name}",audience:"Audiencia de la publicación: {value}",remaining:"Mostrar más publicaciones. Quedan {count}."},
+  fr:{open:"Ouvrir le profil de {name}",reply:"Répondre à {name}",view:"Voir la publication de {name}",audience:"Audience de la publication : {value}",remaining:"Afficher plus de publications. {count} restantes."},
+  de:{open:"Profil von {name} öffnen",reply:"{name} antworten",view:"Beitrag von {name} ansehen",audience:"Beitragssichtbarkeit: {value}",remaining:"Mehr Beiträge anzeigen. Noch {count}."},
+  pt:{open:"Abrir perfil de {name}",reply:"Responder a {name}",view:"Ver publicação de {name}",audience:"Público da publicação: {value}",remaining:"Mostrar mais publicações. Restam {count}."},
+  it:{open:"Apri il profilo di {name}",reply:"Rispondi a {name}",view:"Visualizza il post di {name}",audience:"Pubblico del post: {value}",remaining:"Mostra altri post. Ne restano {count}."},
+  ko:{open:"{name} 프로필 열기",reply:"{name}님에게 답글",view:"{name}님의 게시물 보기",audience:"게시물 공개 범위: {value}",remaining:"게시물 더 보기. {count}개 남음."},
+  ja:{open:"{name}のプロフィールを開く",reply:"{name}に返信",view:"{name}の投稿を見る",audience:"投稿の公開範囲：{value}",remaining:"投稿をさらに表示。残り{count}件。"},
+  "zh-Hans":{open:"打开{name}的个人资料",reply:"回复{name}",view:"查看{name}的帖子",audience:"帖子可见范围：{value}",remaining:"显示更多帖子。还剩{count}篇。"},
+  "zh-Hant":{open:"開啟{name}的個人檔案",reply:"回覆{name}",view:"查看{name}的貼文",audience:"貼文可見範圍：{value}",remaining:"顯示更多貼文。還剩{count}篇。"},
+  fil:{open:"Buksan ang profile ni {name}",reply:"Tumugon kay {name}",view:"Tingnan ang post ni {name}",audience:"Audience ng post: {value}",remaining:"Magpakita pa ng mga post. {count} ang natitira."},
+  hi:{open:"{name} की प्रोफ़ाइल खोलें",reply:"{name} को जवाब दें",view:"{name} की पोस्ट देखें",audience:"पोस्ट दर्शक: {value}",remaining:"और पोस्ट दिखाएँ। {count} बाकी।"},
+  vi:{open:"Mở trang cá nhân của {name}",reply:"Trả lời {name}",view:"Xem bài viết của {name}",audience:"Đối tượng bài viết: {value}",remaining:"Hiện thêm bài viết. Còn {count}."},
+  th:{open:"เปิดโปรไฟล์ของ {name}",reply:"ตอบกลับ {name}",view:"ดูโพสต์ของ {name}",audience:"ผู้ชมโพสต์: {value}",remaining:"แสดงโพสต์เพิ่มเติม เหลือ {count} โพสต์"},
+  id:{open:"Buka profil {name}",reply:"Balas {name}",view:"Lihat postingan {name}",audience:"Pemirsa postingan: {value}",remaining:"Tampilkan postingan lainnya. Tersisa {count}."}
+ };
  const memberCountLabels={es:n=>`Resultados: ${n}.`,fr:n=>`Résultats : ${n}.`,de:n=>`Ergebnisse: ${n}.`,pt:n=>`Resultados: ${n}.`,it:n=>`Risultati: ${n}.`,ko:n=>`검색 결과: ${n}명.`,ja:n=>`検索結果：${n}件。`,"zh-Hans":n=>`结果：${n}。`,"zh-Hant":n=>`結果：${n}。`,fil:n=>`Mga resulta: ${n}.`,hi:n=>`नतीजे: ${n}।`,vi:n=>`Kết quả: ${n}.`,th:n=>`ผลลัพธ์: ${n}`,id:n=>`Hasil: ${n}.`};
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';
@@ -207,6 +241,15 @@
  function translate(raw){
   const source=String(raw),trimmed=source.trim(),language=normalize(document.documentElement.lang),dictionary=dictionaries[language]||{};
   let result=dictionary[trimmed];
+  const templates=socialTemplates[language];
+  if(!result&&templates){
+   const fill=(template,values)=>template.replace(/\{(\w+)\}/g,(_,key)=>values[key]??"");
+   let match=trimmed.match(/^Open (.+) profile$/);if(match)result=fill(templates.open,{name:match[1]});
+   if(!result&&(match=trimmed.match(/^Reply to (.+?)(…)?$/)))result=fill(templates.reply,{name:match[1]})+(match[2]||"");
+   if(!result&&(match=trimmed.match(/^View post from (.+)$/)))result=fill(templates.view,{name:match[1]});
+   if(!result&&(match=trimmed.match(/^Post audience: (.+)$/)))result=fill(templates.audience,{value:dictionary[match[1]]||match[1]});
+   if(!result&&(match=trimmed.match(/^Show more posts\. (\d+) remaining\.$/)))result=fill(templates.remaining,{count:match[1]});
+  }
   if(!result){const members=trimmed.match(/^(\d+) matching members?\.$/);if(members&&memberCountLabels[language])result=memberCountLabels[language](members[1]);}
   if(!result){const count=trimmed.match(/^(Notifications|Friends|Messages) \((\d+)\)$/);if(count)result=(dictionary[count[1]]||count[1])+' ('+count[2]+')';}
   if(!result)return source;

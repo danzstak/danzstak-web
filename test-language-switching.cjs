@@ -240,6 +240,38 @@ for (const [language] of window.danzstakLanguages) {
         `${language} needs localized feed loading, Roll, and ownership copy for: ${source}`,
       );
   }
+  for (const source of [
+    "Like comment",
+    "Dislike post",
+    "Dislike comment",
+    "Remove dislike reaction",
+    "Save post",
+    "Remove post from Saved",
+    "Post options",
+    "View post",
+    "Open on source",
+    "You are online. No other connected users are active right now.",
+    "No other connected users are active right now.",
+    "Show more posts",
+  ]) {
+    const translated = window.danzstakTranslate(source);
+    if (language !== "en")
+      assert.notEqual(
+        translated,
+        source,
+        `${language} needs localized social actions for: ${source}`,
+      );
+  }
+  for (const [source, preserved] of [
+    ["Open Sigmund profile", "Sigmund"],
+    ["Reply to Sigmund", "Sigmund"],
+    ["View post from Sigmund", "Sigmund"],
+    ["Show more posts. 12 remaining.", "12"],
+  ]) {
+    const translated = window.danzstakTranslate(source);
+    if (language !== "en") assert.notEqual(translated, source, `${language} needs a localized social template for: ${source}`);
+    assert.match(translated, new RegExp(preserved), `${language} must preserve member names and counts in: ${source}`);
+  }
   if (language !== "en")
     assert.notEqual(
       window.danzstakTranslate("2 matching members."),
