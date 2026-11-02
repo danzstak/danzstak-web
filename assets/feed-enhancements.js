@@ -414,7 +414,8 @@ function renderOnlineFriendList(list, users) {
       action.addEventListener("click", async () => {
         action.disabled = true; action.textContent = "Sending…";
         try {
-          const response = await friendActionFetch("/friends/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: person.email }) });
+          const requestTarget = /^[a-f0-9-]{36}$/.test(memberId) ? { memberId } : { email: person.email };
+          const response = await friendActionFetch("/friends/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestTarget) });
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || "Friend request could not be sent.");
           action.textContent = data.alreadyFriends ? "Friends" : "Requested";

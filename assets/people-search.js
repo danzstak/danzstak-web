@@ -61,8 +61,11 @@
     }
     const identity = document.createElement("span");
     identity.className = "user-search-identity";
-    const name = person.friendStatus === "friends" || person.friendStatus === "visible-author" ? document.createElement("a") : document.createElement("strong");
-    if (name.tagName === "A" && id) name.href = "profile.html?member=" + encodeURIComponent(id);
+    const name = id ? document.createElement("a") : document.createElement("strong");
+    if (name.tagName === "A") {
+      name.href = "profile.html?member=" + encodeURIComponent(id);
+      name.setAttribute("aria-label", "Open " + (person.name || "DanzStak member") + " profile");
+    }
     name.textContent = person.name || "DanzStak member";
     name.setAttribute("data-no-translate", "");
     identity.appendChild(name);
