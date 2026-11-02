@@ -55,5 +55,8 @@ async function helper(file, startText, endText, invocation, expected) {
   await helper("assets/profile.js", "async function profileFetch", "function firstString", 'profileFetch("/profiles")', /DanzStak cannot load this profile right now/);
   await helper("assets/post-sharing.js", "async function shareFetch", "const defaultTribes", 'shareFetch("/secure-posts")', /DanzStak cannot share this post right now/);
   await helper("assets/media-tags.js", "async function tagFetch", "async function patch", 'tagFetch("/friends")', /DanzStak cannot update tags right now/);
-  console.log("Core social network checks passed: account, profile, sharing, tagging, Messages, push setup, calls, and member discovery replace raw browser failures with retryable product guidance.");
+  await helper("assets/chat.js", "async function request", "function waitIce", 'request("/calls/directory")', /DanzStak cannot connect to calls right now/);
+  await helper("assets/facebook-import.js", "async function importFetch", "function importUploadDeadline", 'importFetch("https://api.danzstak.com/facebook-import")', /DanzStak cannot continue the import right now/);
+  await helper("assets/support.js", "async function supportFetch", "message.addEventListener", "supportFetch()", /DanzStak cannot send your support request right now/);
+  console.log("Core social network checks passed: account, profile, sharing, tagging, Messages, calls, imports, support, push setup, and member discovery replace raw browser failures with retryable product guidance.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
