@@ -35,7 +35,7 @@ for (const [file, expected] of [
   ["messages.html", "assets/soft-ui.css?v=425"],
   ["profile.html", "assets/soft-ui.css?v=425"],
   ["feed.html", "assets/feed-enhancements.css?v=478"],
-  ["feed.html", "assets/feed-enhancements.js?v=484"],
+  ["feed.html", "assets/feed-enhancements.js?v=485"],
   ["feed.html", "assets/profile-onboarding.js?v=6"],
   ["feed.html", "assets/post-sharing.js?v=417"],
   ["feed.html", "assets/people-search.js?v=421"],
@@ -46,7 +46,7 @@ for (const [file, expected] of [
   ["messages.html", "assets/chat.css?v=439"],
   ["messages.html", "assets/direct-messages.js?v=472"],
   ["profile.html", "assets/profile-sharing.js?v=415"],
-  ["profile.html", "assets/profile-editor.js?v=474"],
+  ["profile.html", "assets/profile-editor.js?v=475"],
   ["booking.html", "assets/booking-agent.js?v=478"],
   ["profile.html", "assets/post-sharing.js?v=417"],
   ["profile.html", "assets/profile.js?v=418"]

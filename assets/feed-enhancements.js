@@ -354,7 +354,7 @@ async function friendActionFetch(path, options = {}, timeoutMs = 10000) {
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error("The friend service took too long to respond. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot connect to friends right now. Check your connection and try again.");
   } finally { clearTimeout(timeout); }
 }
 
@@ -435,7 +435,7 @@ async function groupFetch(path, options = {}, timeoutMs = 12000) {
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error("The Tribe service took too long to respond. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot connect to Tribes right now. Check your connection and try again.");
   } finally { clearTimeout(timeout); }
 }
 
@@ -564,7 +564,11 @@ async function openAccountActivity(opener) {
       list.appendChild(link);
     }
   } catch (error) {
-    summary.textContent = error.name === "AbortError" ? "Activity took too long to load. Close this panel and try again." : error.message;
+    summary.textContent = error.name === "AbortError"
+      ? "Activity took too long to load. Close this panel and try again."
+      : error.name === "TypeError"
+        ? "DanzStak cannot load activity right now. Check your connection and try again."
+        : error.message;
   } finally { clearTimeout(timeout); }
 }
 
@@ -1539,7 +1543,7 @@ function renderWorkspace(name) {
         const timeout = setTimeout(() => controller.abort(), 10000);
         try { return await fetch("https://api.danzstak.com/settings/presence", { ...options, signal: controller.signal }); }
         catch (error) {
-          if (error.name !== "AbortError") throw error;
+          if (error.name !== "AbortError") throw new Error("DanzStak cannot load account settings right now. Check your connection and try again.");
           if (attempt + 1 >= attempts) throw new Error("Account settings took too long to respond.");
         } finally { clearTimeout(timeout); }
       }
@@ -2313,7 +2317,7 @@ async function postActionFetch(path, options = {}, timeoutMs = 12000) {
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot update this post right now. Check your connection and try again.");
   } finally { clearTimeout(timeout); }
 }
 
@@ -3086,7 +3090,7 @@ async function engagementFetch(path, options = {}, timeoutMs = 10000) {
     return await fetch(`${engagementApi}${path}`, { ...options, signal: controller.signal });
   } catch (error) {
     if (error?.name === "AbortError") throw new Error("DanzStak is taking too long to update this post. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot update this post right now. Check your connection and try again.");
   } finally {
     clearTimeout(timeout);
   }
@@ -3269,7 +3273,7 @@ async function reelFetch(path, options = {}, timeoutMs = 12000) {
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot load The Roll right now. Check your connection and try again.");
   } finally { clearTimeout(timeout); }
 }
 

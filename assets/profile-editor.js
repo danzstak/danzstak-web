@@ -68,7 +68,7 @@ async function profileFetch(url, options = {}, timeoutMs = 15000) {
   try { return await fetch(url, { ...options, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot update your profile right now. Check your connection and try again.");
   } finally { clearTimeout(timeout); }
 }
 let viewingOtherProfile = Boolean(new URLSearchParams(location.search).get("user") || new URLSearchParams(location.search).get("member"));
