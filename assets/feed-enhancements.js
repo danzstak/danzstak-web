@@ -1611,6 +1611,11 @@ function renderWorkspace(name) {
     profilePermissions.href = "profile.html?edit=privacy";
     profilePermissions.textContent = "Manage";
     profilePermissions.setAttribute("aria-label", "Manage profile posting and tagging permissions");
+    const editProfile = document.createElement("a");
+    editProfile.className = "secondary";
+    editProfile.href = "profile.html?edit=identity";
+    editProfile.textContent = "Manage";
+    editProfile.setAttribute("aria-label", "Edit your name, username, and profile");
     const exportButton = document.createElement("button");
     exportButton.type = "button";
     exportButton.className = "secondary";
@@ -1707,6 +1712,7 @@ function renderWorkspace(name) {
     });
     workspace.append(
       heading,
+      settingRow("👤", "Edit Profile", editProfile),
       settingRow("👤", "Account settings", notifications),
       settingRow("🔒", "Privacy center", presence),
       settingRow("✎", "Profile posting and tagging", profilePermissions),

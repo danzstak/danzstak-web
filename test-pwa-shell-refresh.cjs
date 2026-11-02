@@ -11,7 +11,7 @@ const pwa = read("assets/pwa.js");
 const hostingHeaders = read("customHttp.yml");
 
 const cacheVersion = Number(serviceWorker.match(/danzstak-shell-v(\d+)/)?.[1] || 0);
-assert.ok(cacheVersion >= 503, "service-worker cache version must include the current profile onboarding release");
+assert.ok(cacheVersion >= 504, "service-worker cache version must include direct profile-edit navigation");
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.css"/, "the offline shell must include first-login naming styles");
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.js"/, "the offline shell must include first-login naming behavior");
 assert.match(serviceWorker, /"\/assets\/brand-language-aliases\.js"/, "the offline shell must keep branded social labels translatable");
@@ -33,14 +33,14 @@ for (const [file, expected] of [
   ["messages.html", "assets/soft-ui.css?v=425"],
   ["profile.html", "assets/soft-ui.css?v=425"],
   ["feed.html", "assets/feed-enhancements.css?v=475"],
-  ["feed.html", "assets/feed-enhancements.js?v=474"],
+  ["feed.html", "assets/feed-enhancements.js?v=476"],
   ["feed.html", "assets/post-sharing.js?v=416"],
   ["feed.html", "assets/people-search.js?v=416"],
   ["messages.html", "assets/chat.js?v=434"],
   ["messages.html", "assets/chat.css?v=438"],
   ["messages.html", "assets/direct-messages.js?v=467"],
   ["profile.html", "assets/profile-sharing.js?v=415"],
-  ["profile.html", "assets/profile-editor.js?v=469"],
+  ["profile.html", "assets/profile-editor.js?v=470"],
   ["booking.html", "assets/booking-agent.js?v=477"],
   ["profile.html", "assets/post-sharing.js?v=416"],
   ["profile.html", "assets/profile.js?v=416"]

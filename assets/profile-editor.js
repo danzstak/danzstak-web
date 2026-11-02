@@ -810,14 +810,15 @@ function applyLoadedProfile(profile = {}) {
     viewingOtherProfile = false;
     editButton.hidden = false;
     mediaTools.hidden = false;
-    if (new URLSearchParams(location.search).get("edit") === "privacy" && panel.dataset.routeOpened !== "true") {
+    const requestedEdit = new URLSearchParams(location.search).get("edit");
+    if (["identity", "privacy"].includes(requestedEdit) && panel.dataset.routeOpened !== "true") {
       panel.dataset.routeOpened = "true";
       editButton.click();
       requestAnimationFrame(() => {
-        const privacyControl = panel.elements.profilePostPermission;
+        const requestedControl = requestedEdit === "privacy" ? panel.elements.profilePostPermission : panel.elements.name;
         const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
-        privacyControl.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
-        privacyControl.focus({ preventScroll: true });
+        requestedControl.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+        requestedControl.focus({ preventScroll: true });
       });
     }
   }
