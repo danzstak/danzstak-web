@@ -166,7 +166,9 @@ for (const [language] of window.danzstakLanguages) {
     "Select a saved chat or an available friend to begin messaging.",
     "Attach photo or video",
     "Open camera to take a photo or video",
+    "Take a photo or video",
     "Send message",
+    "Conversation",
   ]) {
     const translated = window.danzstakTranslate(source);
     if (language !== "en")

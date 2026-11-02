@@ -117,6 +117,11 @@
   id:["Siap memulai panggilan aman.","Pilih obrolan tersimpan atau teman yang tersedia untuk mulai berkirim pesan.","Lampirkan foto atau video","Buka kamera untuk mengambil foto atau video","Kirim pesan"]
  };
  for(const [language,values] of Object.entries(conversationEmptyDetails)){const dictionary=dictionaries[language]||(dictionaries[language]={});conversationEmptyKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const conversationAccessibilityKeys=["Take a photo or video","Conversation"];
+ const conversationAccessibilityDetails={
+  es:["Tomar una foto o un video","Conversación"],fr:["Prendre une photo ou une vidéo","Conversation"],de:["Foto oder Video aufnehmen","Unterhaltung"],pt:["Tirar uma foto ou gravar um vídeo","Conversa"],it:["Scatta una foto o registra un video","Conversazione"],ko:["사진 또는 동영상 촬영","대화"],ja:["写真または動画を撮影","会話"],"zh-Hans":["拍摄照片或视频","对话"],"zh-Hant":["拍攝照片或影片","對話"],fil:["Kumuha ng larawan o video","Pag-uusap"],hi:["फ़ोटो या वीडियो लें","बातचीत"],vi:["Chụp ảnh hoặc quay video","Cuộc trò chuyện"],th:["ถ่ายรูปหรือวิดีโอ","การสนทนา"],id:["Ambil foto atau video","Percakapan"]
+ };
+ for(const [language,values] of Object.entries(conversationAccessibilityDetails)){const dictionary=dictionaries[language]||(dictionaries[language]={});conversationAccessibilityKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const memberCountLabels={es:n=>`Resultados: ${n}.`,fr:n=>`Résultats : ${n}.`,de:n=>`Ergebnisse: ${n}.`,pt:n=>`Resultados: ${n}.`,it:n=>`Risultati: ${n}.`,ko:n=>`검색 결과: ${n}명.`,ja:n=>`検索結果：${n}件。`,"zh-Hans":n=>`结果：${n}。`,"zh-Hant":n=>`結果：${n}。`,fil:n=>`Mga resulta: ${n}.`,hi:n=>`नतीजे: ${n}।`,vi:n=>`Kết quả: ${n}.`,th:n=>`ผลลัพธ์: ${n}`,id:n=>`Hasil: ${n}.`};
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';
