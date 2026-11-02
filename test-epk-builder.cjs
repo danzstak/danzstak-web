@@ -19,6 +19,11 @@ assert.match(api, /epkForViewer[\s\S]*item\.public/, "public EPKs must expose on
 assert.match(client, /purpose:"epk"/, "EPK uploads should request dedicated short-lived upload tickets");
 assert.match(client, /putWithProgress/, "EPK uploads should report progress");
 assert.match(client, /prepareEpkImage[\s\S]*2400[\s\S]*image\/jpeg[\s\S]*0\.88/, "large EPK images should be resized and optimized before upload");
+assert.match(client, /featuredMedia[\s\S]*heroSource/, "the artist's featured uploaded photo must drive the EPK hero when no external hero is set");
+assert.match(client, /logoMedia[\s\S]*epk-logo/, "uploaded logos must render in the EPK instead of being ignored");
+assert.match(client, /URL\.createObjectURL\(file\)/, "new image uploads should preview immediately before the draft is saved");
+assert.match(client, /\(\{url,previewUrl,\.\.\.item\}\)[\s\S]*includeLocalPreviews/, "temporary signed and blob URLs must be excluded from the stored EPK document");
+assert.match(client, /URL\.revokeObjectURL/, "replaced and removed local previews must release their object URLs");
 assert.match(client, /File removed from this draft/, "EPK media should support deletion");
 assert.match(client, /Replace /, "EPK media should support replacement");
 assert.match(client, /discardEpkMedia/, "failed EPK uploads should be removed from private storage");
