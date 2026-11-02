@@ -37,6 +37,11 @@ if ($CurrentUserPool.LambdaConfig) {
 }
 $SignupConfig["LambdaConfig"] = $PreservedTriggers
 $SignupConfig["AutoVerifiedAttributes"] = @("email")
+$SignupConfig["VerificationMessageTemplate"] = [ordered]@{
+  DefaultEmailOption = "CONFIRM_WITH_CODE"
+  EmailSubject = "Verify your DanzStak account"
+  EmailMessage = "Welcome to DanzStak - your digital clubhouse for music people.`n`nYour verification code is {####}.`n`nIf you did not create this account, you can ignore this email. DanzStak will never ask for your password or sell your personal information."
+}
 $SignupJson = $SignupConfig | ConvertTo-Json -Depth 20 -Compress
 $SignupRequestPath = Join-Path ([System.IO.Path]::GetTempPath()) ("danzstak-cognito-" + [guid]::NewGuid().ToString("N") + ".json")
 try {
