@@ -2,6 +2,15 @@
 (() => {
  const supported=new Set((window.danzstakLanguages||[['en','English']]).map(([code])=>code));
  const dictionaries=window.danzstakTranslations||{en:{}};
+ Object.assign(dictionaries.it||(dictionaries.it={}),{
+  "Who can post on your profile?":"Chi può pubblicare sul tuo profilo?",
+  "Just me":"Solo io",
+  "Allow accepted friends to tag me in photos and videos":"Consenti agli amici accettati di taggarmi in foto e video",
+  "Your display name and username must each be unique. If a name is taken, DanzStak will suggest a numbered alternative. Share only information you want members to see.":"Il nome visualizzato e il nome utente devono essere univoci. Se un nome è già in uso, DanzStak suggerirà un’alternativa numerata. Condividi solo le informazioni che vuoi mostrare agli altri membri.",
+  "Profile posting and tagging":"Pubblicazione e tag sul profilo",
+  "Allow friends to tag me":"Consenti agli amici di taggarmi",
+  "Edit your name, username, and profile":"Modifica nome, nome utente e profilo"
+ });
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';
  let queued=false;

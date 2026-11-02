@@ -11,7 +11,7 @@ const pwa = read("assets/pwa.js");
 const hostingHeaders = read("customHttp.yml");
 
 const cacheVersion = Number(serviceWorker.match(/danzstak-shell-v(\d+)/)?.[1] || 0);
-assert.ok(cacheVersion >= 504, "service-worker cache version must include direct profile-edit navigation");
+assert.ok(cacheVersion >= 505, "service-worker cache version must include complete Italian profile editing");
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.css"/, "the offline shell must include first-login naming styles");
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.js"/, "the offline shell must include first-login naming behavior");
 assert.match(serviceWorker, /"\/assets\/brand-language-aliases\.js"/, "the offline shell must keep branded social labels translatable");
