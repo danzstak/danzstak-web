@@ -3,6 +3,8 @@ const source = fs.readFileSync("assets/people-search.js", "utf8");
 assert.match(source, /\/people\?query=/, "search uses the authenticated public-member endpoint");
 assert.match(source, /JSON\.stringify\(\{ memberId: id \}\)/, "friend request uses an opaque member ID");
 assert.doesNotMatch(source, /JSON\.stringify\(\{ email:/, "member search never submits an account email");
+assert.match(source, /danzstakMountPeopleFinder/, "the Friends workspace can mount its own name finder");
+assert.match(source, /They do not need to be online/, "the finder explains that offline members are searchable");
 
 function element(tag = "div") {
   return {

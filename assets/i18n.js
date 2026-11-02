@@ -15,6 +15,19 @@
   ,"Privacy and tagging":"Privacy e tag"
   ,"Import from Facebook":"Importa da Facebook"
   ,"Choose Facebook export":"Scegli l’esportazione di Facebook"
+  ,"Find people":"Trova persone"
+  ,"Type their name. They do not need to be online.":"Scrivi il loro nome. Non devono essere online."
+  ,"Name":"Nome"
+  ,"Example: Liana":"Esempio: Liana"
+  ,"Type at least 2 letters.":"Scrivi almeno 2 lettere."
+  ,"Searching members…":"Ricerca dei membri…"
+  ,"No matching members. Check the spelling of their profile name.":"Nessun membro trovato. Controlla il nome del profilo."
+  ,"Search by name or tap Add Friend beside someone online. Your friends stay listed when they are offline.":"Cerca per nome oppure tocca Aggiungi amico accanto a una persona online. I tuoi amici restano nell’elenco anche quando sono offline."
+  ,"Users online":"Utenti online"
+  ,"Your friends":"I tuoi amici"
+  ,"Add Friend":"Aggiungi amico"
+  ,"Requested":"Richiesta inviata"
+  ,"Friends":"Amici"
  });
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';

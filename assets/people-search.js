@@ -112,6 +112,66 @@
     return row;
   }
 
+  window.danzstakMountPeopleFinder = function mountPeopleFinder(container) {
+    if (!container || container.querySelector(".friend-name-finder")) return;
+    const finder = document.createElement("section");
+    finder.className = "friend-name-finder";
+    finder.setAttribute("aria-labelledby", "friendNameFinderTitle");
+    const title = document.createElement("h3");
+    title.id = "friendNameFinderTitle";
+    title.textContent = "Find people";
+    const instructions = document.createElement("p");
+    instructions.className = "muted";
+    instructions.textContent = "Type their name. They do not need to be online.";
+    const label = document.createElement("label");
+    label.className = "friend-name-search";
+    const labelText = document.createElement("span");
+    labelText.textContent = "Name";
+    const search = document.createElement("input");
+    search.type = "search";
+    search.autocomplete = "off";
+    search.placeholder = "Example: Liana";
+    search.setAttribute("aria-describedby", "friendNameFinderStatus");
+    const finderStatus = document.createElement("p");
+    finderStatus.id = "friendNameFinderStatus";
+    finderStatus.className = "muted";
+    finderStatus.setAttribute("role", "status");
+    const results = document.createElement("div");
+    results.className = "user-search-list friend-name-results";
+    label.append(labelText, search);
+    finder.append(title, instructions, label, finderStatus, results);
+    container.appendChild(finder);
+
+    let finderGeneration = 0;
+    let finderTimer;
+    let finderController;
+    search.addEventListener("input", () => {
+      const version = ++finderGeneration;
+      const query = search.value.trim();
+      clearTimeout(finderTimer);
+      finderController?.abort();
+      results.replaceChildren();
+      if (!query) { finderStatus.textContent = ""; return; }
+      if (query.length < 2) { finderStatus.textContent = "Type at least 2 letters."; return; }
+      finderStatus.textContent = "Searching members…";
+      finderTimer = setTimeout(async () => {
+        finderController = new AbortController();
+        const timeout = setTimeout(() => finderController.abort(), 10000);
+        try {
+          const response = await fetch("https://api.danzstak.com/people?query=" + encodeURIComponent(query), { credentials: "include", cache: "no-store", signal: finderController.signal });
+          if (!response.ok) throw new Error("Member search is temporarily unavailable.");
+          const people = (await response.json()).users || [];
+          if (version !== finderGeneration) return;
+          results.replaceChildren(...people.slice(0, 20).map(personRow));
+          finderStatus.textContent = people.length ? `${people.length} matching member${people.length === 1 ? "" : "s"}.` : "No matching members. Check the spelling of their profile name.";
+        } catch (error) {
+          if (version !== finderGeneration || error.name === "AbortError") return;
+          finderStatus.textContent = error.message || "Member search is temporarily unavailable.";
+        } finally { clearTimeout(timeout); }
+      }, 250);
+    });
+  };
+
   async function runSearch(version, query) {
     requestController?.abort();
     requestController = new AbortController();

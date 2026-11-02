@@ -1311,7 +1311,11 @@ function renderWorkspace(name) {
   }
 
   if (name === "Friends") {
-    featureText.textContent = "Tap Add Friend beside anyone online. Accepted friends stay here even when they are offline.";
+    featureText.textContent = "Search by name or tap Add Friend beside someone online. Your friends stay listed when they are offline.";
+    const finderHost = document.createElement("div");
+    finderHost.className = "friend-finder-host";
+    workspace.appendChild(finderHost);
+    window.danzstakMountPeopleFinder?.(finderHost);
     const onlineHeading = document.createElement("h3");
     onlineHeading.className = "friends-section-heading";
     onlineHeading.textContent = "Users online";
