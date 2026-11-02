@@ -97,7 +97,7 @@ function previewSelectedMessageMedia(file) {
   media.alt = file.type.startsWith("image/") ? "Photo ready to send" : "";
   if (media.tagName === "VIDEO") { media.controls = true; media.preload = "metadata"; }
   const remove = document.createElement("button");
-  remove.type = "button"; remove.className = "message-media-remove"; remove.textContent = "×"; remove.setAttribute("aria-label", "Remove attachment"); remove.addEventListener("click", clearSelectedMessageMedia);
+  remove.type = "button"; remove.className = "message-media-remove"; remove.textContent = "×"; remove.setAttribute("aria-label", messageTranslate("Remove attachment")); remove.addEventListener("click", clearSelectedMessageMedia);
   messageMediaPreview.append(media, remove); messageMediaPreview.hidden = false;
 }
 
@@ -239,12 +239,12 @@ function openMessageEditor(item, message) {
   input.value = message.content;
   input.maxLength = 2000;
   input.rows = Math.min(6, Math.max(2, String(message.content).split("\n").length));
-  input.setAttribute("aria-label", "Edit message text");
+  input.setAttribute("aria-label", messageTranslate("Edit message text"));
   actions.className = "message-edit-actions";
   cancel.type = "button";
-  cancel.textContent = "Cancel";
+  cancel.textContent = messageTranslate("Cancel");
   save.type = "submit";
-  save.textContent = "Save";
+  save.textContent = messageTranslate("Save");
   actions.append(cancel, save);
   form.append(input, actions);
   if (text) text.hidden = true;
@@ -290,7 +290,7 @@ async function deleteDirectMessage(item, message, scope) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || "Message could not be deleted");
   item.remove();
-  callStatus.textContent = scope === "everyone" ? "Message deleted for everyone." : "Message deleted for you.";
+  callStatus.textContent = messageTranslate(scope === "everyone" ? "Message deleted for everyone." : "Message deleted for you.");
 }
 
 function openMessageDeleteChoices(item, message, palette) {
@@ -308,11 +308,11 @@ function openMessageDeleteChoices(item, message, palette) {
     });
     palette.appendChild(button);
   };
-  addChoice("Remove for me", "me");
-  if (message.senderEmail === currentEmail) addChoice("Remove for everyone", "everyone", true);
+  addChoice(messageTranslate("Remove for me"), "me");
+  if (message.senderEmail === currentEmail) addChoice(messageTranslate("Remove for everyone"), "everyone", true);
   const cancel = document.createElement("button");
   cancel.type = "button";
-  cancel.textContent = "Cancel";
+  cancel.textContent = messageTranslate("Cancel");
   cancel.addEventListener("click", () => palette.remove());
   palette.appendChild(cancel);
   palette.querySelector("button")?.focus();
@@ -326,8 +326,8 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
     const edit = document.createElement("button");
     edit.type = "button";
     edit.className = "message-edit-choice";
-    edit.textContent = "✎ Edit";
-    edit.setAttribute("aria-label", "Edit message");
+    edit.textContent = "✎ " + messageTranslate("Edit message");
+    edit.setAttribute("aria-label", messageTranslate("Edit message"));
     edit.addEventListener("click", () => openMessageEditor(item, message));
     palette.appendChild(edit);
   }
@@ -335,8 +335,8 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
   remove.type = "button";
   remove.className = "message-delete-choice";
   remove.textContent = "🗑️";
-  remove.title = "Delete message";
-  remove.setAttribute("aria-label", "Delete message");
+  remove.title = messageTranslate("Delete message");
+  remove.setAttribute("aria-label", messageTranslate("Delete message"));
   remove.addEventListener("click", () => openMessageDeleteChoices(item, message, palette));
   palette.appendChild(remove);
   palette.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); palette.remove(); item.focus(); } });
@@ -552,7 +552,7 @@ function renderEarlierMessagesButton() {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "load-earlier-messages";
-  button.textContent = "Load earlier messages";
+  button.textContent = messageTranslate("Load earlier messages");
   button.addEventListener("click", loadEarlierMessages);
   messageList.prepend(button);
 }
@@ -689,7 +689,7 @@ async function loadConversations() {
         memberId: friend.memberId || existing.memberId || "",
         name: friend.name || existing.name || "DanzStak member",
         picture: friend.picture || existing.picture || "",
-        preview: existing.preview || "Start a conversation",
+        preview: existing.preview || messageTranslate("Start a conversation"),
         updatedAt: existing.updatedAt || "",
         isFriend: true
       });
@@ -704,7 +704,7 @@ async function loadConversations() {
         name: existing?.name || member.name || "DanzStak member",
         memberId: existing?.memberId || member.memberId || "",
         picture: member.picture || existing?.picture || "",
-        preview: existing?.preview || "Shared Tribe member",
+        preview: existing?.preview || messageTranslate("Shared Tribe member"),
         updatedAt: existing?.updatedAt || "",
         sharedGroup: existing?.sharedGroup === true || member.sharedGroup === true,
         online: member.online === true
@@ -725,7 +725,7 @@ async function loadConversations() {
       const matchesFilter = activeFilter === "all" || (activeFilter === "unread" && unread) || (activeFilter === "groups" && item.sharedGroup);
       return matchesSearch && matchesFilter;
     });
-    if (!visible.length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = query ? "No friends or chats match your search." : "No friends or saved chats yet."; conversationUsers.appendChild(empty); return; }
+    if (!visible.length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = messageTranslate(query ? "No friends or chats match your search." : "No friends or saved chats yet."); conversationUsers.appendChild(empty); return; }
     for (const conversation of visible) {
       const row = document.createElement("div"); row.className = "conversation-row";
       const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
@@ -751,7 +751,7 @@ async function loadConversations() {
       }
       const copy = document.createElement("span"); copy.className = "conversation-copy";
       const name = document.createElement("strong"); name.textContent = conversation.name || "DanzStak member";
-      const preview = document.createElement("small"); preview.textContent = conversation.preview || "Open chat";
+      const preview = document.createElement("small"); preview.textContent = conversation.preview || messageTranslate("Open chat");
       const unread = Number(conversation.unread || 0) > 0;
       button.classList.toggle("is-unread", Boolean(unread));
       const meta = document.createElement("span"); meta.className = "conversation-list-meta";
@@ -784,7 +784,7 @@ async function loadConversations() {
   } catch {
     if (!cachedConversations.length) {
       conversationUsers.replaceChildren();
-      const unavailable = document.createElement("p"); unavailable.className = "chat-note"; unavailable.textContent = "Contacts are temporarily unavailable. Retrying automatically…"; conversationUsers.appendChild(unavailable);
+      const unavailable = document.createElement("p"); unavailable.className = "chat-note"; unavailable.textContent = messageTranslate("Contacts are temporarily unavailable. Retrying automatically…"); conversationUsers.appendChild(unavailable);
     }
   } finally {
     loadingConversations = false;
@@ -873,7 +873,7 @@ messageForm?.addEventListener("submit", async event => {
       window.danzstakQueueOffline("/messages", { recipientEmail, content });
       messageInput.value = "";
       saveChatDraft(recipientEmail, "");
-      callStatus.textContent = "Saved offline — waiting to send when you reconnect.";
+      callStatus.textContent = messageTranslate("Saved offline — waiting to send when you reconnect.");
     } catch (error) { callStatus.textContent = error.message; }
     return;
   }
@@ -886,7 +886,7 @@ messageForm?.addEventListener("submit", async event => {
   messageList.scrollTop = messageList.scrollHeight;
   if (content && messageInput.value.trim() === content) messageInput.value = "";
   try {
-    if (mediaFile) callStatus.textContent = "Uploading attachment…";
+    if (mediaFile) callStatus.textContent = messageTranslate("Uploading attachment…");
     const attachment = mediaFile ? await uploadSelectedMessageMedia(mediaFile) : {};
     const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, ...attachment }) });
     const data = await response.json().catch(() => ({}));
@@ -929,7 +929,7 @@ deleteChat?.addEventListener("click", async () => {
     if (version === conversationVersion) {
       saveChatDraft(contact, "");
       closeConversation({ focusList: true, preserveDraft: false });
-      callStatus.textContent = "Chat deleted from your account.";
+      callStatus.textContent = messageTranslate("Chat deleted from your account.");
     }
     await loadConversations();
   } catch (error) { callStatus.textContent = error.message; }

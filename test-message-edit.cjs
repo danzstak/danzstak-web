@@ -9,15 +9,15 @@ assert.match(source, /function openMessageEditor\(item, message\)/, "owned messa
 assert.match(source, /body: JSON\.stringify\(\{ action: "edit", contactEmail: directContact, messageId: message\.messageId, content \}\)/, "edits are saved through the API");
 assert.match(source, /text\.textContent = message\.content/, "message text remains XSS-safe");
 assert.match(source, /message\.senderEmail === currentEmail && message\.content/, "only sent text offers Edit");
-assert.match(source, /edit\.textContent = "✎ Edit"/, "the long-press palette contains an Edit action");
+assert.match(source, /edit\.textContent = "✎ " \+ messageTranslate\("Edit message"\)/, "the long-press palette contains a translated Edit action");
 assert.match(source, /for \(const emoji of \["👍","❤️","😂","😮","😢","😡"\]\)/, "long press retains emoji reactions");
 assert.match(source, /message\.editedAt \? " · edited" : ""/, "edited messages are labeled");
 assert.match(source, /event\.key\.toLowerCase\(\) === "e"/, "keyboard users can edit sent text");
 assert.match(css, /\.message-edit-form\{/, "message editor is styled");
 assert.match(css, /\.message-edit-choice\{/, "Edit action is styled in the reaction palette");
 assert.match(source, /remove\.textContent = "🗑️"/, "long press uses a compact trash-can action");
-assert.match(source, /addChoice\("Remove for me", "me"\)/, "all participants can hide a message for themselves");
-assert.match(source, /addChoice\("Remove for everyone", "everyone", true\)/, "senders can remove a message for everyone");
+assert.match(source, /addChoice\(messageTranslate\("Remove for me"\), "me"\)/, "all participants can hide a message for themselves in their selected language");
+assert.match(source, /addChoice\(messageTranslate\("Remove for everyone"\), "everyone", true\)/, "senders can remove a message for everyone in their selected language");
 assert.match(source, /action: "delete", contactEmail: directContact, messageId: message\.messageId, scope/, "deletion is saved through the API");
 
 assert.match(backend, /if\(body\.action==='edit'\)return editMessage\(body,user\)/, "message API routes edits");

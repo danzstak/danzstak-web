@@ -340,7 +340,7 @@ if (-not $directMessagesJs.Contains('currentEmail = String(profile.email || prof
 foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'document.hidden && !reset', 'visibilitychange')) {
   if (-not $directMessagesJs.Contains($messagePollingBehavior)) { Add-Failure "Messages: respectful live polling behavior is missing: $messagePollingBehavior" }
 }
-foreach ($messageHistoryBehavior in @('let nextMessageCursor = ""', 'function renderEarlierMessagesButton()', 'async function loadEarlierMessages()', '"&before=" + encodeURIComponent(cursor)', 'messageList.prepend(fragment)', 'Load earlier messages')) {
+foreach ($messageHistoryBehavior in @('let nextMessageCursor = ""', 'function renderEarlierMessagesButton()', 'async function loadEarlierMessages()', '"&before=" + encodeURIComponent(cursor)', 'messageList.prepend(fragment)', 'messageTranslate("Load earlier messages")')) {
   if (-not $directMessagesJs.Contains($messageHistoryBehavior)) { Add-Failure "Messages: saved history cannot load beyond the newest page: $messageHistoryBehavior" }
 }
 foreach ($messageIdentityBehavior in @('let activeContactName = "Contact"', 'activeContactName = conversation.name || "Contact"', '(mine ? messageTranslate("You") : activeContactName)')) {
@@ -356,7 +356,7 @@ foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'function 
 foreach ($activeChatActionLabel in @('function labelConversationHeaderActions(name = "")', '`${translated}: ${name}`', 'labelConversationHeaderActions(conversationName.textContent)', 'labelConversationHeaderActions()')) {
   if (-not $directMessagesJs.Contains($activeChatActionLabel)) { Add-Failure "Messages: active conversation controls do not identify or reset the selected contact: $activeChatActionLabel" }
 }
-foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'Contacts are temporarily unavailable. Retrying automatically')) {
+foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'messageTranslate("Contacts are temporarily unavailable. Retrying automatically')) {
   if (-not $directMessagesJs.Contains($contactFailureBehavior)) { Add-Failure "Messages: bounded contact loading behavior is missing: $contactFailureBehavior" }
 }
 foreach ($messageDeadlineBehavior in @('directFetch("/messages",', 'directFetch("/messages/delete?contact="', 'directFetch("/auth/session"', 'setTimeout(loadCurrentSession, 5000)', 'DanzStak is taking too long to respond. Try again.')) {
