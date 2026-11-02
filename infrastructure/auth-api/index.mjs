@@ -2726,8 +2726,12 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     recordStoreCandidates(point).catch(() => [])
   ]);
   const [hotelSearch, vanRestSearch, ...venueSearches] = searchResults;
-  // A failed category lookup must not discard clubs found by the other searches.
-  if (venueSearches.every(result => result.status === "rejected")) throw venueSearches[0].reason;
+  const curatedPool = curatedVenueLeads(point, genre, variation);
+  // Live discovery can be throttled when one tour fans out across several
+  // road markets. A reviewed public lead is still useful in that case, so do
+  // not erase Redding, Eugene, Olympia, or another real stop merely because
+  // every Places query for that one market failed temporarily.
+  if (venueSearches.every(result => result.status === "rejected") && !curatedPool.length) throw venueSearches[0].reason;
   const hotelResults = hotelSearch.status === "fulfilled" ? hotelSearch.value : [];
   const vanRestResults = vanRestSearch.status === "fulfilled" ? vanRestSearch.value : [];
   const venueBatches = venueSearches.filter(result => result.status === "fulfilled").map(result => result.value);
@@ -2749,7 +2753,6 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
       : approximateMilesBetween(point.position, place.position);
     return distance <= 8;
   };
-  const curatedPool = curatedVenueLeads(point, genre, variation);
   const curated = curatedPool.filter(place => isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
   const reviewed = reviewedDirectory.filter(place => nearby(place, 60) && isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
   const discovered = venueBatches.flat()

@@ -999,12 +999,15 @@
       // A round trip naturally revisits markets. Prefer cities with another
       // club lead so the return date proposes a different room instead of
       // silently dropping shows when every outbound market was already used.
-      returnPool = markets.slice(0, -1).reverse(),
+      // Home is the finish line, not another booking target. Sample one extra
+      // point on the return leg and leave the final slot for getting everyone
+      // and the van safely home.
+      returnPool = markets.slice(1, -1).reverse(),
       repeatableReturnMarkets = returnPool.filter(market => (market.venues || []).length > 1),
-      returning = evenlySampleMarkets(
-        repeatableReturnMarkets.length >= returnCount ? repeatableReturnMarkets : returnPool,
-        returnCount,
-      );
+      returnChoices = repeatableReturnMarkets.length >= returnCount ? repeatableReturnMarkets : returnPool,
+      returning = returnCount
+        ? evenlySampleMarkets(returnChoices, Math.min(returnChoices.length, returnCount + 1)).slice(0, returnCount)
+        : [];
     return [...outward, ...returning];
   }
   function renderRouteMap(data) {
@@ -1233,16 +1236,19 @@
     intro.textContent = "This is a working pitch plan, not a confirmed tour. A show becomes real only after the venue agrees.";
     list.className = "tour-calendar";
     const start = new Date(`${data.route.departOn || departInput.value}T12:00:00Z`);
-    const restCount = Math.max(0, days - shows),
+    const needsHomeDay = !data.route.local && days > 1,
+      showDays = needsHomeDay ? days - 1 : days,
+      restCount = Math.max(0, showDays - shows),
       restDays = new Set(Array.from({ length: restCount }, (_, index) =>
-        Math.max(1, Math.min(days - 2, Math.round(((index + 1) * days) / (restCount + 1)) - 1))
+        Math.max(1, Math.min(showDays - 1, Math.round(((index + 1) * showDays) / (restCount + 1)) - 1))
       ));
     let showIndex = 0;
     const usedVenues = new Set();
     for (let day = 0; day < days; day += 1) {
       const date = new Date(start);
       date.setUTCDate(date.getUTCDate() + day);
-      const shouldShow = !restDays.has(day) && showIndex < shows,
+      const finalHomeDay = needsHomeDay && day === days - 1,
+        shouldShow = !finalHomeDay && !restDays.has(day) && showIndex < shows,
         market = markets[Math.min(markets.length - 1, showIndex)],
         item = document.createElement("li"),
         dayHeading = document.createElement("strong"),
@@ -1258,7 +1264,7 @@
         dayDetail.textContent = `${market.stop} — ${venue.name} · Arrive 4:00 PM · Soundcheck 5:00 PM`;
         showIndex += 1;
       } else {
-        const returningHome = showIndex >= shows,
+        const returningHome = finalHomeDay || showIndex >= shows,
           label = returningHome ? `Return toward ${data.route.start?.label || "home"}` : market?.stop || data.route.start?.label;
         dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · TRAVEL / REST`;
         dayDetail.textContent = `${label || "Route day"} — ${returningHome ? "safe return drive; everyone and the vehicle finish at home." : shouldShow ? "No additional club lead for this date; booking research needed." : "drive toward the next show, load-in buffer, laundry or sleep."}`;

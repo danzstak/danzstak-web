@@ -10,6 +10,7 @@ assert.match(source, /candidates = await mapLimit\(selected, 4, async point =>/,
 assert.match(source, /mapLimit\(\[\.\.\.new Set\(corridorSearchMarkets\)\], 4/, "corridor geocoding should use bounded concurrency");
 assert.match(source, /Tour corridor geocode unavailable/, "one failed corridor geocode should not cancel the tour");
 assert.match(source, /mapLimit\(discoveryQueries, 3, async query =>/, "each town should bound its place-search concurrency");
+assert.match(source, /venueSearches\.every\(result => result\.status === "rejected"\) && !curatedPool\.length/, "temporary Places throttling must retain a reviewed public club lead for that market");
 assert.doesNotMatch(source, /Promise\.allSettled\(\[\s*search\("budget hotel motel hostel"\)/, "a town must not launch every place query simultaneously");
 assert.match(source, /discoveryUnavailable: true/, "one failed market should remain visible without cancelling the route");
 assert.doesNotMatch(source, /candidates = await Promise\.all\(selected\.map\(point => tourCandidates/, "tour markets must not launch every venue query simultaneously");
@@ -59,9 +60,9 @@ assert.match(bookingUi, /function targetTourMarkets\(data\)/, "the route overvie
 assert.match(bookingUi, /function strongestRouteMarkets\(markets, count\)/, "the proposed run should prefer established music markets inside each road segment");
 assert.match(bookingUi, /\["portland", 100\][\s\S]*\["eugene", 96\][\s\S]*\["medford", 92\][\s\S]*\["redding", 90\]/, "I-5 planning should favor strong Portland, Eugene, Medford, and Redding scenes");
 assert.match(bookingUi, /outward = strongestRouteMarkets\(markets, outwardCount\)/, "outbound show targets should use music-market strength rather than blind even spacing");
-assert.match(bookingUi, /returnPool = markets\.slice\(0, -1\)\.reverse\(\)/, "the proposed run should use real markets on the drive back home");
+assert.match(bookingUi, /returnPool = markets\.slice\(1, -1\)\.reverse\(\)/, "the proposed run should use real intermediate markets on the drive back without treating home as another booking target");
 assert.match(bookingUi, /repeatableReturnMarkets = returnPool\.filter\(market => \(market\.venues \|\| \[\]\)\.length > 1\)/, "a return leg should revisit markets only when another real room can be proposed");
-assert.match(bookingUi, /repeatableReturnMarkets\.length >= returnCount \? repeatableReturnMarkets : returnPool/, "the requested show count should not be silently reduced merely because a round trip revisits a city");
+assert.match(bookingUi, /evenlySampleMarkets\(returnChoices, Math\.min\(returnChoices\.length, returnCount \+ 1\)\)\.slice\(0, returnCount\)/, "the return leg should leave one final segment for reaching home safely");
 assert.match(bookingUi, /targetPoints = targetTourMarkets\(data\)/, "the route map should show the proposed outbound-and-return run instead of every discovery town");
 assert.match(bookingUi, /stopLine\.textContent = points\.map/, "the route overview should name the intermediate towns in one compact line");
 assert.match(bookingUi, /displayedMarkets = targetMarkets\.filter/, "result cards should be limited to the proposed target markets");
@@ -74,7 +75,9 @@ assert.match(bookingUi, /return start\.includes\("seattle"\) \? i5Markets : \[\.
 assert.match(bookingUi, /section = document\.createElement\("details"\),[\s\S]*heading = document\.createElement\("summary"\)/, "each route town should be a compact expandable result instead of a long open panel");
 assert.match(bookingUi, /recommendedRoom = marketVenues\[0\]\?\.name/, "a collapsed tour stop should name its recommended room instead of showing only a city and count");
 assert.match(bookingUi, /section\.open = false/, "tour stops should start collapsed on phones");
-assert.match(bookingUi, /returningHome = showIndex >= shows/, "a rest day must not claim the band is returning home while later shows remain");
+assert.match(bookingUi, /needsHomeDay = !data\.route\.local && days > 1/, "a round-trip calendar must reserve its final day for reaching home");
+assert.match(bookingUi, /finalHomeDay = needsHomeDay && day === days - 1/, "the final round-trip day must not be consumed by another venue target");
+assert.match(bookingUi, /returningHome = finalHomeDay \|\| showIndex >= shows/, "a rest day must not claim the band is returning home while later shows remain");
 assert.match(bookingUi, /drive toward the next show, load-in buffer, laundry or sleep/, "mid-tour rest days should point toward the next show");
 assert.doesNotMatch(bookingUi, /details\.open = true/, "the day-by-day calendar should not force a long result page open");
 assert.doesNotMatch(source, /fallbackLabel: `Tour corridor stop/, "reverse-geocode failures must not become fake corridor stops");
