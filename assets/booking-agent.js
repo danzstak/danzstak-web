@@ -993,25 +993,20 @@
       requestedShows = Math.max(1, Math.min(days, Number(data.route.requestedShows) || number("showCount") || 1)),
       shows = Math.min(requestedShows, Math.max(1, markets.length * 2 - 1));
     if (data.route.local || markets.length < 2) return markets.slice(0, shows);
-    const outwardCount = Math.min(markets.length, Math.max(2, Math.ceil((shows + 1) * 0.6))),
+    const outwardCount = Math.min(markets.length, Math.max(2, Math.ceil((shows + 1) * 0.55))),
       returnCount = Math.max(0, shows - outwardCount),
       outward = strongestRouteMarkets(markets, outwardCount),
-      // A round trip naturally revisits markets. Prefer cities with another
-      // club lead so the return date proposes a different room instead of
-      // silently dropping shows when every outbound market was already used.
       // Home is the finish line, not another booking target. Sample one extra
       // point on the return leg and leave the final slot for getting everyone
       // and the van safely home.
       returnPool = markets.slice(1, -1).reverse(),
-      repeatableReturnMarkets = returnPool.filter(market => (market.venues || []).length > 1),
-      unbufferedReturnChoices = repeatableReturnMarkets.length >= returnCount ? repeatableReturnMarkets : returnPool,
       // Avoid booking the first town outside the turnaround and the last town
       // outside home when there are enough alternatives. Those edge markets
       // are travel buffers; on I-5 this yields Redding and Portland instead of
       // an unsafe Sacramento-to-Portland show-day jump.
-      returnChoices = unbufferedReturnChoices.length >= returnCount + 2
-        ? unbufferedReturnChoices.slice(1, -1)
-        : unbufferedReturnChoices,
+      returnChoices = returnPool.length >= returnCount + 2
+        ? returnPool.slice(1, -1)
+        : returnPool,
       returning = returnCount
         ? evenlySampleMarkets(returnChoices, Math.min(returnChoices.length, returnCount + 1)).slice(0, returnCount)
         : [];

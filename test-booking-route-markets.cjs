@@ -65,9 +65,9 @@ assert.match(bookingUi, /function strongestRouteMarkets\(markets, count\)/, "the
 assert.match(bookingUi, /\["portland", 100\][\s\S]*\["eugene", 96\][\s\S]*\["medford", 92\][\s\S]*\["redding", 90\]/, "I-5 planning should favor strong Portland, Eugene, Medford, and Redding scenes");
 assert.match(bookingUi, /outward = strongestRouteMarkets\(markets, outwardCount\)/, "outbound show targets should use music-market strength rather than blind even spacing");
 assert.match(bookingUi, /returnPool = markets\.slice\(1, -1\)\.reverse\(\)/, "the proposed run should use real intermediate markets on the drive back without treating home as another booking target");
-assert.match(bookingUi, /repeatableReturnMarkets = returnPool\.filter\(market => \(market\.venues \|\| \[\]\)\.length > 1\)/, "a return leg should revisit markets only when another real room can be proposed");
 assert.match(bookingUi, /evenlySampleMarkets\(returnChoices, Math\.min\(returnChoices\.length, returnCount \+ 1\)\)\.slice\(0, returnCount\)/, "the return leg should leave one final segment for reaching home safely");
-assert.match(bookingUi, /unbufferedReturnChoices\.length >= returnCount \+ 2[\s\S]*unbufferedReturnChoices\.slice\(1, -1\)/, "return shows should leave travel buffers outside the turnaround and home markets");
+assert.match(bookingUi, /returnPool\.length >= returnCount \+ 2[\s\S]*returnPool\.slice\(1, -1\)/, "return shows should leave travel buffers outside the turnaround and home markets");
+assert.match(bookingUi, /Math\.ceil\(\(shows \+ 1\) \* 0\.55\)/, "an eight-show round trip should retain three useful return-leg targets");
 assert.match(bookingUi, /targetPoints = targetTourMarkets\(data\)/, "the route map should show the proposed outbound-and-return run instead of every discovery town");
 assert.match(bookingUi, /stopLine\.textContent = points\.map/, "the route overview should name the intermediate towns in one compact line");
 assert.match(bookingUi, /displayedMarkets = targetMarkets\.filter/, "result cards should be limited to the proposed target markets");
