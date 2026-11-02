@@ -54,6 +54,9 @@ async function run(fail, genre = "DIY Punk") {
   assert.match(source, /path === "\/venues\/search"/, "natural-language venue discovery needs an authenticated API route");
   assert.match(bookingMarkup, /id="venueQuickQuery"/, "the booking page should expose a simple natural-language club finder");
   assert.match(quickSearchClient, /danzstak:venue-search-results/, "quick-search venues should be passed to the booking map");
+  assert.match(source, /canExpand: radiusMiles < 75/, "venue discovery should expose an explicit wider-area continuation");
+  assert.match(quickSearchClient, /seen\.has\(identity\)/, "wider venue searches should not repeat clubs already displayed");
+  assert.match(quickSearchClient, /hasMore \? search\(page \+ 1, radiusMiles, true\) : canExpand/, "pagination and radius expansion must be separate actions");
   const { result, queries, peakActive } = await run(query => query === "budget hotel motel hostel" || query === "Punk live music venue");
   assert.ok(peakActive <= 3, `town discovery exceeded its three-request limit (${peakActive})`);
   assert.equal(result.venues.length, 60, "dense discovery must retain more than 24 clubs");

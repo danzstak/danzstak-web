@@ -2186,10 +2186,10 @@ async function searchRecordStores(event) {
   try {
     const point = await geocodeTourPlace(location);
     const page = Math.max(0, Math.min(20, Math.trunc(Number(data?.page) || 0)));
-    const radiusMiles = Math.max(5, Math.min(60, Number(data?.radiusMiles) || (page > 0 ? 45 : 30)));
+    const radiusMiles = Math.max(5, Math.min(60, Number(data?.radiusMiles) || 30));
     const discovery = await recordStoreCandidates(point, radiusMiles);
     const offset = page * 20, stores = discovery.stores.slice(offset, offset + 20);
-    return reply(200, { location: point, stores, providers: discovery.providers, page, hasMore: discovery.stores.length > offset + stores.length, radiusMiles });
+    return reply(200, { location: point, stores, providers: discovery.providers, page, hasMore: discovery.stores.length > offset + stores.length, canExpand: radiusMiles < 60, radiusMiles });
   } catch (error) {
     if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });
     console.error("Record store search failed", { name: error.name });
@@ -2924,7 +2924,7 @@ async function searchVenues(event) {
   const data = parseJsonBody(event), parsed = parseVenueDiscoveryRequest(data);
   if (parsed.location.length < 2) return reply(400, { error: "Enter a city or region to search." });
   const page = Math.max(0, Math.min(20, Math.trunc(Number(data?.page) || 0)));
-  const radiusMiles = Math.max(5, Math.min(75, Number(data?.radiusMiles) || (page > 0 ? 45 : 25)));
+  const radiusMiles = Math.max(5, Math.min(75, Number(data?.radiusMiles) || 25));
   try {
     const point = await geocodeTourPlace(parsed.location);
     const discovery = await multiSourceDiscovery(point, "venue", { genre: parsed.genre, radiusMiles });
@@ -2933,7 +2933,7 @@ async function searchVenues(event) {
       .filter(place => isBookableClub(place, parsed.genre))
       .sort((left, right) => venueSuitability(right, parsed.genre) - venueSuitability(left, parsed.genre) || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
     const offset = page * 20, venues = ranked.slice(offset, offset + 20);
-    return reply(200, { query: parsed.raw, location: point, genre: parsed.genre, venues, providers: discovery.providers, page, hasMore: ranked.length > offset + venues.length, radiusMiles });
+    return reply(200, { query: parsed.raw, location: point, genre: parsed.genre, venues, providers: discovery.providers, page, hasMore: ranked.length > offset + venues.length, canExpand: radiusMiles < 75, radiusMiles });
   } catch (error) {
     if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });
     console.error("Venue discovery failed", { name: error.name, provider: error.provider });

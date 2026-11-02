@@ -15,8 +15,11 @@ assert.doesNotMatch(api, /categories:\s*\[\.\.\.new Set\(\[\.\.\.\(place\.catego
 assert.match(api, /OpenStreetMap contributors/, "OpenStreetMap records must retain attribution");
 assert.match(client, /loadMoreStores/, "dense cities should support paged store results");
 assert.match(api, /audio visual\|audio[\s\S]*music company\|music center/, "audio, instrument, video and generic music retailers should be excluded");
-assert.match(api, /radiusMiles[\s\S]*page > 0 \? 45 : 30/, "later pages should expand discovery without making the first page geographically noisy");
+assert.match(api, /Number\(data\?\.radiusMiles\) \|\| 30/, "pagination should keep a stable radius until the user explicitly searches wider");
 assert.match(api, /stores\.slice\(offset, offset \+ 20\)/, "dense music cities should return focused paginated results");
+assert.match(api, /canExpand: radiusMiles < 60/, "record-store results should explicitly advertise wider-area discovery");
+assert.match(client, /seenStores\.has\(identity\)/, "expanded record-store searches should suppress duplicates already shown");
+assert.match(client, /Search a wider area/, "artists should be able to widen a sparse record-store search");
 assert.match(api, /reviewedDirectory, recordDiscovery, osmVenueDiscovery/, "tour markets should collect record stores with venue leads and multi-source venue results");
 assert.match(api, /POST["'] && path === "\/record-stores\/search"/, "the API should route standalone searches");
 assert.match(deploy, /POST \/record-stores\/search/, "deployment should provision the record-store route");
