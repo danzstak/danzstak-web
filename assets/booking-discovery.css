@@ -1,0 +1,13 @@
+.venue-quick-search { margin: 18px 0; padding: 18px; border: 1px solid #d8dee8; border-radius: 16px; background: #fff; box-shadow: 0 10px 28px #20344d12; }
+.venue-quick-search h2 { margin: 3px 0 7px; }
+.venue-quick-search p { color: #566274; }
+.venue-quick-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.venue-quick-row input,.venue-quick-row button,#venueQuickMore { min-height: 44px; padding: 9px 12px; border: 1px solid #aeb8c7; border-radius: 9px; font: inherit; }
+.venue-quick-row button { border-color: #1769e0; background: #1769e0; color: #fff; font-weight: 800; }
+.venue-quick-results { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.venue-quick-results article { padding: 12px; border: 1px solid #dbe2eb; border-radius: 10px; }
+.venue-quick-results h3 { margin: 0 0 6px; }
+.venue-quick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.venue-quick-actions a { color: #075fcb; font-weight: 700; }
+#venueQuickMore { display: block; margin: 12px auto 0; background: #fff; font-weight: 800; }
+@media(max-width:680px){.venue-quick-row,.venue-quick-results{grid-template-columns:1fr}}

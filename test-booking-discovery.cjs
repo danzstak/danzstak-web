@@ -3,6 +3,8 @@ const vm = require("node:vm");
 const assert = require("node:assert/strict");
 const source = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 const functionSource = source.slice(source.indexOf("async function tourCandidates("), source.indexOf("async function planTourRoute("));
+const bookingMarkup = fs.readFileSync("booking.html", "utf8");
+const quickSearchClient = fs.readFileSync("assets/booking-discovery.js", "utf8");
 
 async function run(fail, genre = "DIY Punk") {
   const queries = [];
@@ -32,7 +34,8 @@ async function run(fail, genre = "DIY Punk") {
       } finally { active -= 1; }
     } },
     publicPlace: place => place,
-    recordStoreCandidates: async () => [],
+    recordStoreCandidates: async () => ({ stores: [], providers: [] }),
+    overpassPlaces: async () => [],
     approvedMemberVenueLeads: async () => [],
     curatedVenueLeads: () => [],
     isBookableClub: () => true,
@@ -47,6 +50,10 @@ async function run(fail, genre = "DIY Punk") {
 }
 
 (async () => {
+  assert.match(source, /Filter: \{ BoundingBox: boundingBox \}/, "provider searches must be geographically bounded instead of leaking global names into a city search");
+  assert.match(source, /path === "\/venues\/search"/, "natural-language venue discovery needs an authenticated API route");
+  assert.match(bookingMarkup, /id="venueQuickQuery"/, "the booking page should expose a simple natural-language club finder");
+  assert.match(quickSearchClient, /danzstak:venue-search-results/, "quick-search venues should be passed to the booking map");
   const { result, queries, peakActive } = await run(query => query === "budget hotel motel hostel" || query === "Punk live music venue");
   assert.ok(peakActive <= 3, `town discovery exceeded its three-request limit (${peakActive})`);
   assert.equal(result.venues.length, 60, "dense discovery must retain more than 24 clubs");

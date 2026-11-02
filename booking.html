@@ -26,6 +26,7 @@
     />
     <link rel="stylesheet" href="assets/booking-agent.css?v=311" />
     <link rel="stylesheet" href="assets/booking-agent-driver.css?v=469" />
+    <link rel="stylesheet" href="assets/booking-discovery.css?v=1" />
     <link rel="stylesheet" href="assets/accessibility.css?v=364" />
   </head>
   <body>
@@ -56,6 +57,13 @@
           <div class="booking-brief-actions"><button type="submit" class="primary">Find the run</button><button type="button" class="secondary" id="bookingBriefExample">Show me an example</button></div>
           <p id="bookingBriefStatus" role="status" aria-live="polite"></p>
         </form>
+      </section>
+      <section class="venue-quick-search" aria-labelledby="venueQuickTitle">
+        <div><p class="eyebrow">Club finder</p><h2 id="venueQuickTitle">Find real places to play</h2><p>Ask for a city and music style. Every result shows where it came from; a listing is not a confirmed booking.</p></div>
+        <form id="venueQuickForm"><label for="venueQuickQuery">What are you looking for?</label><div class="venue-quick-row"><input id="venueQuickQuery" maxlength="240" placeholder="Find punk clubs in Seattle" required><button type="submit">Find clubs</button></div></form>
+        <p id="venueQuickStatus" role="status" aria-live="polite"></p>
+        <div id="venueQuickResults" class="venue-quick-results"></div>
+        <button type="button" id="venueQuickMore" hidden>Find more clubs</button>
       </section>
       <details class="booking-tools">
         <summary>Use the map or fill in the details yourself</summary>
@@ -668,6 +676,7 @@
       defer
     ></script>
     <script src="assets/booking-map.js?v=447" defer></script>
+    <script src="assets/booking-discovery.js?v=1" defer></script>
     <script src="assets/session-activity.js?v=270" defer></script>
     <link rel="stylesheet" href="assets/app-feedback.css?v=2" />
     <script src="assets/app-feedback.js?v=3" defer></script>

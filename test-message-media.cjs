@@ -27,7 +27,7 @@ assert.match(styles, /\.message-attachment/);
 assert.match(template, /mediaPattern=new RegExp\(`\^messages\/\$\{ownerPrefix\(user\)\}/);
 assert.match(template, /messageUpload=new RegExp\(`\^messages\/\$\{prefix\}\//, "the server must recognize only the signed-in member's message media for cleanup");
 assert.match(template, /!storyUpload&&!postUpload&&!messageUpload/, "message cleanup must use the same ownership gate as post and Flash media");
-assert.match(template, /\['story','post','profile','message'\]/);
+assert.match(template, /\['story','post','profile','message','epk'\]/);
 assert.match(template, /Invalid message attachment/);
 assert.match(template, /Boolean\(mediaKey\)!==Boolean\(mediaType\)/);
 assert.match(template, /mediaType:x\.mediaType\?\.S\|\|''/);

@@ -9,11 +9,14 @@ assert.match(api, /function isRecordStore\(/, "the API should validate record-st
 assert.match(api, /record store\|record shop\|vinyl records/, "store discovery should require record or vinyl evidence");
 assert.match(api, /used records vinyl/, "store discovery should use several queries so independent shops are not missed");
 assert.match(api, /record,\? cd/, "AWS's Record, CD & Video category should be recognized");
-assert.match(api, /strongNameSignal && recordCategorySignal/, "a listing should need explicit record\/vinyl evidence instead of a broad category alone");
+assert.match(api, /descriptiveSignal \|\| strongNameSignal \|\| recordCategorySignal/, "a listing should accept explicit record\/vinyl evidence from names, descriptions, or provider categories");
+assert.match(api, /multiSourceDiscovery\(point, "record-store"/, "record-store discovery should combine authorized providers");
+assert.match(api, /OpenStreetMap contributors/, "OpenStreetMap records must retain attribution");
+assert.match(client, /loadMoreStores/, "dense cities should support paged store results");
 assert.match(api, /audio visual\|audio[\s\S]*music company\|music center/, "audio, instrument, video and generic music retailers should be excluded");
-assert.match(api, /recordStoreCandidates\(point, 30\)/, "standalone city searches should not drift into distant metro areas");
-assert.match(api, /slice\(0, 20\)/, "dense music cities should retain a focused number of credible store results");
-assert.match(api, /recordStores = await Promise\.all|reviewedDirectory, recordStores/, "tour markets should collect record stores with venue leads");
+assert.match(api, /radiusMiles[\s\S]*page > 0 \? 45 : 30/, "later pages should expand discovery without making the first page geographically noisy");
+assert.match(api, /stores\.slice\(offset, offset \+ 20\)/, "dense music cities should return focused paginated results");
+assert.match(api, /reviewedDirectory, recordDiscovery, osmVenueDiscovery/, "tour markets should collect record stores with venue leads and multi-source venue results");
 assert.match(api, /POST["'] && path === "\/record-stores\/search"/, "the API should route standalone searches");
 assert.match(deploy, /POST \/record-stores\/search/, "deployment should provision the record-store route");
 assert.match(deploy, /POST \/record-store-workspace/, "deployment should provision the record-placement workspace");

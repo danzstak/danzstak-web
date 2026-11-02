@@ -1,0 +1,15 @@
+.search-more {
+  display: flex;
+  justify-content: center;
+  margin: 16px;
+}
+
+.search-more button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #1769e0;
+  border-radius: 10px;
+  background: #fff;
+  color: #075fcb;
+  font-weight: 800;
+}

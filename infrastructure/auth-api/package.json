@@ -6,7 +6,11 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "3.1156.0",
+    "@aws-sdk/client-dynamodb": "3.1156.0",
     "@aws-sdk/client-geo-places": "3.1156.0",
-    "@aws-sdk/client-geo-routes": "3.1156.0"
+    "@aws-sdk/client-geo-routes": "3.1156.0",
+    "@aws-sdk/client-s3": "3.1156.0",
+    "@aws-sdk/client-sesv2": "3.1156.0"
   }
 }

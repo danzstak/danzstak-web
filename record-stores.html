@@ -9,6 +9,7 @@
   <meta name="description" content="Find independent record stores around the world and along a DanzStak tour route.">
   <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
   <link rel="stylesheet" href="assets/record-stores.css?v=1">
+  <link rel="stylesheet" href="assets/record-stores-pagination.css?v=1">
   <link rel="stylesheet" href="assets/record-placement.css?v=1">
   <link rel="stylesheet" href="assets/accessibility.css?v=364">
 </head>
@@ -39,6 +40,7 @@
       <p id="recordStoreStatus" role="status" aria-live="polite">Enter a city to start digging.</p>
     </section>
     <section id="recordStoreResults" class="store-grid" aria-label="Record store results"></section>
+    <div class="search-more"><button type="button" id="loadMoreStores" hidden>Find more stores nearby</button></div>
     <section class="placement-card" aria-labelledby="placementTitle"><div class="placement-heading"><div><p class="eyebrow">Private outreach workspace</p><h2 id="placementTitle">Stores you want to approach</h2></div><button type="button" id="savePlacement">Save workspace</button></div><p id="placementStatus" role="status" aria-live="polite">Loading your store list...</p><div id="placementStores" class="placement-list"></div></section>
   </main>
   <script src="assets/record-stores.js?v=2" defer></script>

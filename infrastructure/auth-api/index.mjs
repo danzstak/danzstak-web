@@ -2032,45 +2032,150 @@ function isRecordStore(place) {
   const description = `${name} ${(place.categories || []).join(" ")}`.toLowerCase();
   const strongNameSignal = /\b(records?|record shop|record store|vinyl|turntable|music millennium|music millenium)\b/.test(name);
   const recordCategorySignal = /\brecord,? cd (?:&|and) video\b/.test(description);
-  const descriptiveSignal = /\b(record store|record shop|vinyl records?|vinyl shop|used records?|new records?)\b/.test(description);
+  const descriptiveSignal = /\b(record store|record shop|vinyl records?|vinyl shop|used records?|new records?|dischi|vinili|plattenladen|schallplatten|disquaire|tienda de discos|レコード)\b/.test(description);
   // A broad place-category match alone is not evidence that a shop sells records.
   // It regularly includes audio installers, video production, instrument shops,
   // bookstores and unrelated retailers. Prefer a shorter list with explicit
   // record/vinyl evidence in the public name over wasting an artist's outreach.
   const clearlyWrongName = /\b(dental|dentist|real estate|realtor|video transfer|video production|audio visual|audio|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio|books?|press|productions?|music company|music center)\b/.test(name);
   return !clearlyWrongName
-    && (descriptiveSignal || (strongNameSignal && recordCategorySignal));
+    && (descriptiveSignal || strongNameSignal || recordCategorySignal);
+}
+
+const osmAttribution = "© OpenStreetMap contributors";
+const osmOverpassEndpoint = globalThis.process?.env?.OSM_OVERPASS_ENDPOINT || "https://overpass-api.de/api/interpreter";
+const discoveryCache = new Map();
+
+function cacheDiscovery(key, loader, ttlMs = 15 * 60 * 1000) {
+  const hit = discoveryCache.get(key);
+  if (hit?.expiresAt > Date.now()) return Promise.resolve(hit.value);
+  return loader().then(value => {
+    discoveryCache.set(key, { value, expiresAt: Date.now() + ttlMs });
+    if (discoveryCache.size > 100) discoveryCache.delete(discoveryCache.keys().next().value);
+    return value;
+  });
+}
+
+function osmElementUrl(element) {
+  const type = element.type === "node" ? "node" : element.type === "way" ? "way" : "relation";
+  return `https://www.openstreetmap.org/${type}/${element.id}`;
+}
+
+function osmPosition(element) {
+  const lat = Number(element.lat ?? element.center?.lat), lon = Number(element.lon ?? element.center?.lon);
+  return Number.isFinite(lat) && Number.isFinite(lon) ? [lon, lat] : [];
+}
+
+function osmPlace(element) {
+  const tags = element.tags || {}, position = osmPosition(element), name = String(tags.name || tags.brand || "").trim();
+  if (!name || position.length !== 2) return null;
+  const address = [tags["addr:housenumber"], tags["addr:street"], tags["addr:city"] || tags["addr:town"] || tags["addr:village"], tags["addr:postcode"], tags["addr:country"]].filter(Boolean).join(" ");
+  const websites = [tags.website, tags["contact:website"], tags.url].filter(value => /^https:\/\//i.test(String(value || ""))).slice(0, 2);
+  const emails = [tags.email, tags["contact:email"]].filter(value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ""))).slice(0, 2);
+  const phones = [tags.phone, tags["contact:phone"]].filter(Boolean).map(String).slice(0, 2);
+  const categories = [tags.amenity, tags.shop, tags.club, tags.leisure, tags.music, tags["music:genre"], tags.genre, tags.live_music === "yes" ? "live music" : "", tags.description]
+    .filter(Boolean)
+    .map(value => String(value).replace(/_/g, " "))
+    .slice(0, 10);
+  const sourceUrl = osmElementUrl(element);
+  return {
+    venueKey: `osm-${element.type}-${element.id}`,
+    name: name.slice(0, 160), address: address.slice(0, 300),
+    locality: String(tags["addr:city"] || tags["addr:town"] || tags["addr:village"] || "").slice(0, 120),
+    position, websites, emails, phones, categories,
+    contactVerificationRequired: true, sourceName: osmAttribution, sourceUrl,
+    sources: [{ name: osmAttribution, url: sourceUrl }], discoveredAt: new Date().toISOString(),
+    activityEvidence: tags.opening_hours
+      ? `OpenStreetMap lists opening hours (${String(tags.opening_hours).slice(0, 160)}). Confirm the current calendar and booking contact before pitching.`
+      : "A current OpenStreetMap business listing was returned. Confirm the current calendar and booking contact before pitching."
+  };
+}
+
+async function overpassPlaces(point, kind, radiusMiles = 30) {
+  const radius = Math.max(1000, Math.min(100000, Math.round(radiusMiles * 1609.344)));
+  const [lon, lat] = point.position;
+  const selectors = kind === "record-store"
+    ? [
+        `["shop"="music"]`, `["shop"="video"]`,
+        `["name"~"record|records|vinyl|dischi|vinili|platten|schallplatten|disquaire|discos|レコード",i]`
+      ]
+    : [
+        `["amenity"="music_venue"]`, `["amenity"="nightclub"]`, `["club"="music"]`,
+        `["live_music"="yes"]`, `["music"~"live|rock|punk|metal|electronic|techno|house|jazz",i]`,
+        `["name"~"music club|live music|rock club|punk club|jazz club|concert hall",i]`
+      ];
+  const query = `[out:json][timeout:18];(${selectors.map(selector => `nwr(around:${radius},${lat},${lon})${selector};`).join("")});out center tags 300;`;
+  const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(osmOverpassEndpoint, {
+      method: "POST", signal: controller.signal,
+      headers: { "content-type": "application/x-www-form-urlencoded;charset=UTF-8", "user-agent": "DanzStak/1.0 (support@danzstak.com)" },
+      body: new URLSearchParams({ data: query })
+    });
+    if (!response.ok) throw Object.assign(new Error(`OpenStreetMap provider returned ${response.status}`), { provider: "OpenStreetMap" });
+    const data = await response.json();
+    return (data.elements || []).map(osmPlace).filter(Boolean).map(place => ({
+      ...place,
+      distanceMiles: Math.round(approximateMilesBetween(point.position, place.position) * 10) / 10
+    }));
+  } finally { clearTimeout(timeout); }
+}
+
+function discoveryBoundingBox(position, radiusMiles) {
+  const [longitude, latitude] = position;
+  const latitudeDelta = radiusMiles / 69;
+  const longitudeDelta = radiusMiles / (69 * Math.max(0.2, Math.cos(latitude * Math.PI / 180)));
+  return [longitude - longitudeDelta, latitude - latitudeDelta, longitude + longitudeDelta, latitude + latitudeDelta];
+}
+
+async function awsPlaceSearch(point, queries, radiusMiles = 30) {
+  const boundingBox = discoveryBoundingBox(point.position, radiusMiles);
+  const batches = await mapLimit(queries, 2, async query => {
+    const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, Filter: { BoundingBox: boundingBox }, MaxResults: 50, AdditionalFeatures: ["Contact"] }));
+    return (result.ResultItems || []).map(publicPlace).map(place => ({
+      ...place,
+      categories: [...new Set([...(place.categories || []), `Discovery query: ${query}`])].slice(0, 10),
+      discoveryQuery: query
+    }));
+  });
+  return batches.flat();
+}
+
+async function multiSourceDiscovery(point, kind, { genre = "", radiusMiles = 30 } = {}) {
+  const awsQueries = kind === "record-store"
+    ? ["record store", "vinyl record shop", "independent record store", "used records vinyl", "new and used record shop", "music store vinyl records"]
+    : [...new Set([
+        genre ? `${genre} live music venue` : "live music venue", genre ? `${genre} music club` : "music club",
+        genre ? `${genre} club bar concerts` : "independent music venue", "concert venue", "live music bar", "nightclub live music"
+      ])];
+  const cacheKey = `${kind}|${point.position.map(value => value.toFixed(3)).join(",")}|${genre.toLowerCase()}|${radiusMiles}`;
+  return cacheDiscovery(cacheKey, async () => {
+    const attempts = await Promise.allSettled([
+      awsPlaceSearch(point, awsQueries, radiusMiles),
+      overpassPlaces(point, kind, radiusMiles)
+    ]);
+    const providers = ["AWS Places", "OpenStreetMap"].map((name, index) => ({
+      name, ok: attempts[index].status === "fulfilled",
+      count: attempts[index].status === "fulfilled" ? attempts[index].value.length : 0,
+      error: attempts[index].status === "rejected" ? "Provider temporarily unavailable" : ""
+    }));
+    const successful = attempts.filter(result => result.status === "fulfilled");
+    if (!successful.length) throw Object.assign(new Error("All discovery providers are temporarily unavailable."), { providerStatuses: providers });
+    return { places: deduplicateVenues(successful.flatMap(result => result.value)), providers };
+  });
 }
 
 async function recordStoreCandidates(point, maximumMiles = 45) {
-  const queries = [
-    "record store",
-    "vinyl record shop",
-    "independent record store",
-    "used records vinyl",
-    "new and used record shop",
-    "music store vinyl records"
-  ];
-  const batches = await mapLimit(queries, 2, async query => {
-    const result = await geoPlaces.send(new SearchTextCommand({
-      QueryText: query,
-      BiasPosition: point.position,
-      MaxResults: 50,
-      AdditionalFeatures: ["Contact"]
-    }));
-    return (result.ResultItems || []).map(publicPlace);
-  });
-  return deduplicateVenues(batches.flat())
+  const discovery = await multiSourceDiscovery(point, "record-store", { radiusMiles: maximumMiles });
+  const stores = discovery.places
     .filter(isRecordStore)
     .filter(place => approximateMilesBetween(point.position, place.position) <= maximumMiles)
     .sort((left, right) => approximateMilesBetween(point.position, left.position) - approximateMilesBetween(point.position, right.position))
-    .slice(0, 20)
     .map(place => ({
       ...place,
-      sourceName: "Current public place listing",
-      sources: [{ name: "Current public place listing", url: place.websites?.[0] || "" }],
-      activityEvidence: "A current public record-store listing was returned. Check the store website before visiting."
+      activityEvidence: place.activityEvidence || "A current public record-store listing was returned. Check the store website before visiting."
     }));
+  return { stores, providers: discovery.providers };
 }
 
 async function searchRecordStores(event) {
@@ -2084,8 +2189,11 @@ async function searchRecordStores(event) {
   if (location.length < 2) return reply(400, { error: "Enter a city or region." });
   try {
     const point = await geocodeTourPlace(location);
-    const stores = await recordStoreCandidates(point, 30);
-    return reply(200, { location: point, stores });
+    const page = Math.max(0, Math.min(20, Math.trunc(Number(data?.page) || 0)));
+    const radiusMiles = Math.max(5, Math.min(60, Number(data?.radiusMiles) || (page > 0 ? 45 : 30)));
+    const discovery = await recordStoreCandidates(point, radiusMiles);
+    const offset = page * 20, stores = discovery.stores.slice(offset, offset + 20);
+    return reply(200, { location: point, stores, providers: discovery.providers, page, hasMore: discovery.stores.length > offset + stores.length, radiusMiles });
   } catch (error) {
     if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });
     console.error("Record store search failed", { name: error.name });
@@ -2739,7 +2847,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     "truck stop rest area campground",
     ...venueQueries
   ];
-  const [searchResults, reviewedDirectory, recordStores] = await Promise.all([
+  const [searchResults, reviewedDirectory, recordDiscovery, osmVenueDiscovery] = await Promise.all([
     mapLimit(discoveryQueries, 3, async query => {
       try {
         return { status: "fulfilled", value: await search(query) };
@@ -2748,7 +2856,8 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
       }
     }),
     approvedMemberVenueLeads(point, searchBounds),
-    recordStoreCandidates(point).catch(() => [])
+    recordStoreCandidates(point).catch(() => ({ stores: [], providers: [{ name: "Record-store discovery", ok: false, count: 0, error: "Provider temporarily unavailable" }] })),
+    overpassPlaces(point, "venue", 60).catch(() => [])
   ]);
   const [hotelSearch, vanRestSearch, ...venueSearches] = searchResults;
   const curatedPool = curatedVenueLeads(point, genre, variation);
@@ -2756,10 +2865,10 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   // road markets. A reviewed public lead is still useful in that case, so do
   // not erase Redding, Eugene, Olympia, or another real stop merely because
   // every Places query for that one market failed temporarily.
-  if (venueSearches.every(result => result.status === "rejected") && !curatedPool.length) throw venueSearches[0].reason;
+  if (venueSearches.every(result => result.status === "rejected") && !curatedPool.length && !osmVenueDiscovery.length) throw venueSearches[0].reason;
   const hotelResults = hotelSearch.status === "fulfilled" ? hotelSearch.value : [];
   const vanRestResults = vanRestSearch.status === "fulfilled" ? vanRestSearch.value : [];
-  const venueBatches = venueSearches.filter(result => result.status === "fulfilled").map(result => result.value);
+  const venueBatches = [...venueSearches.filter(result => result.status === "fulfilled").map(result => result.value), osmVenueDiscovery];
   const nearby = (place, maximumMiles) => {
     const distance = Number.isFinite(place.distanceMiles)
       ? place.distanceMiles
@@ -2795,7 +2904,45 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60);
   const hotels = hotelResults.filter(place => nearby(place, 35)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   const vanStops = vanRestResults.filter(place => nearby(place, 25)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
-  return { stop: point.label, position: point.position, venues, hotels, vanStops, recordStores };
+  return { stop: point.label, position: point.position, venues, hotels, vanStops, recordStores: recordDiscovery.stores || [], providerStatus: recordDiscovery.providers || [] };
+}
+
+function parseVenueDiscoveryRequest(data) {
+  const raw = String(data?.query || "").trim().slice(0, 240);
+  let location = String(data?.location || "").trim().slice(0, 160), genre = String(data?.genre || "").trim().slice(0, 80);
+  if (!location && raw) {
+    const match = raw.match(/\b(?:in|near|around)\s+(.+?)(?:\s+to\s+play)?$/i);
+    location = String(match?.[1] || raw).replace(/[?.!]+$/, "").trim();
+  }
+  if (!genre && raw) {
+    const match = raw.match(/\b(techno|house|electronic|edm|punk|hardcore|metal|rock|jazz|hip[- ]?hop|rap|classical|orchestra|folk|country|blues)\b/i);
+    genre = match?.[1] || "";
+  }
+  return { raw, location, genre };
+}
+
+async function searchVenues(event) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  if (!(await getAuthenticatedUser(event))) return reply(401, { error: "Authentication required." });
+  const data = parseJsonBody(event), parsed = parseVenueDiscoveryRequest(data);
+  if (parsed.location.length < 2) return reply(400, { error: "Enter a city or region to search." });
+  const page = Math.max(0, Math.min(20, Math.trunc(Number(data?.page) || 0)));
+  const radiusMiles = Math.max(5, Math.min(75, Number(data?.radiusMiles) || (page > 0 ? 45 : 25)));
+  try {
+    const point = await geocodeTourPlace(parsed.location);
+    const discovery = await multiSourceDiscovery(point, "venue", { genre: parsed.genre, radiusMiles });
+    const ranked = discovery.places
+      .filter(place => approximateMilesBetween(point.position, place.position) <= radiusMiles)
+      .filter(place => isBookableClub(place, parsed.genre))
+      .sort((left, right) => venueSuitability(right, parsed.genre) - venueSuitability(left, parsed.genre) || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
+    const offset = page * 20, venues = ranked.slice(offset, offset + 20);
+    return reply(200, { query: parsed.raw, location: point, genre: parsed.genre, venues, providers: discovery.providers, page, hasMore: ranked.length > offset + venues.length, radiusMiles });
+  } catch (error) {
+    if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });
+    console.error("Venue discovery failed", { name: error.name, provider: error.provider });
+    return reply(502, { error: "Venue discovery is temporarily unavailable.", providers: error.providerStatuses || [] });
+  }
 }
 
 async function planTourRoute(event) {
@@ -2937,7 +3084,10 @@ const bookingWorkspaceId = "booking-workspace-v1";
 const epkWorkspaceId = "epk-workspace-v1";
 const epkPublicPartition = "epk-public";
 
-function cleanEpk(data) {
+const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
+const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
+
+function cleanEpk(data, ownerPrefix = "") {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
   const text = (value, max = 1000) => typeof value === "string" ? value.trim().slice(0, max) : "";
   const https = value => /^https:\/\//i.test(text(value, 600)) ? text(value, 600) : "";
@@ -2953,18 +3103,50 @@ function cleanEpk(data) {
     const quote = text(item.quote, 500), source = text(item.source, 160), url = https(item.url);
     return quote && source ? { quote, source, url } : null;
   });
+  const rawMedia = Array.isArray(data.media) ? data.media.slice(0, 40) : [];
+  const media = list(rawMedia, 40, item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const key = text(item.key, 300), role = text(item.role, 40), name = text(item.name, 160);
+    if (!ownerPrefix || !epkMediaPattern(ownerPrefix).test(key) || !epkMediaRoles.has(role) || !name) return null;
+    return { id: text(item.id, 36) || key.split("/").at(-1).split(".")[0], key, role, name, public: item.public === true, featured: item.featured === true };
+  });
+  if (media.length !== rawMedia.length) return null;
   const kit = {
     artistName: text(data.artistName, 120), hometown: text(data.hometown, 160),
     genres: list(data.genres, 8, item => text(item, 60)), shortPitch: text(data.shortPitch, 300),
-    bio: text(data.bio, 5000), lineup: list(data.lineup, 16, item => text(item, 160)),
+    shortBio: text(data.shortBio, 1000), bio: text(data.bio, 5000), lineup: list(data.lineup, 16, item => text(item, 160)),
+    releases: list(data.releases, 20, item => text(item, 300)), achievements: list(data.achievements, 20, item => text(item, 300)),
     notableShows: list(data.notableShows, 20, item => text(item, 240)), pressQuotes: quotes,
     musicLinks: links(data.musicLinks), videoLinks: links(data.videoLinks),
-    heroImage: https(data.heroImage), logoImage: https(data.logoImage),
-    stageRequirements: text(data.stageRequirements, 3000), techRequirements: text(data.techRequirements, 5000),
+    heroImage: https(data.heroImage), logoImage: https(data.logoImage), media,
+    stageRequirements: text(data.stageRequirements, 3000), techRequirements: text(data.techRequirements, 5000), hospitalityRequirements: text(data.hospitalityRequirements, 3000),
     bookingName: text(data.bookingName, 120), bookingEmail: email(data.bookingEmail),
     bookingPhone: text(data.bookingPhone, 40), website: https(data.website)
   };
   return kit.artistName ? kit : null;
+}
+
+async function validatedEpkMedia(media) {
+  let total = 0;
+  for (const item of media || []) {
+    let head;
+    try { head = await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: item.key })); }
+    catch { throw Object.assign(new Error(`Uploaded file not found: ${item.name}`), { statusCode: 422 }); }
+    const size = Number(head.ContentLength || 0), contentType = String(head.ContentType || "").toLowerCase();
+    const image = /\.(jpg|png|webp)$/.test(item.key), allowedType = image ? /^image\/(jpeg|png|webp)$/.test(contentType) : contentType === "application/pdf";
+    const maximum = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
+    if (!allowedType || size <= 0 || size > maximum) throw Object.assign(new Error(`${item.name} has an unsupported type or size.`), { statusCode: 422 });
+    total += size;
+    item.contentType = contentType; item.size = size;
+  }
+  if (total > 100 * 1024 * 1024) throw Object.assign(new Error("EPK media exceeds the 100 MB account quota."), { statusCode: 413 });
+  return media;
+}
+
+function epkForViewer(kit, publicView = false) {
+  const copy = structuredClone(kit || {});
+  copy.media = (copy.media || []).filter(item => !publicView || item.public).map(item => ({ ...item, url: signedMediaUrl(item.key, publicView ? 3600 : 900) }));
+  return copy;
 }
 
 async function epkWorkspace(event, method) {
@@ -2973,35 +3155,49 @@ async function epkWorkspace(event, method) {
   if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
   const userId = await getAuthenticatedUser(event);
   if (!userId) return reply(401, { error: "Authentication required." });
-  const ownerKey = { userId: { S: userId }, tourId: { S: epkWorkspaceId } };
+  const accountEmail = await accountForSub(userId);
+  if (!accountEmail) return reply(409, { error: "Account email could not be verified." });
+  const ownerPrefix = sha256(accountEmail).slice(0, 24), ownerKey = { userId: { S: userId }, tourId: { S: epkWorkspaceId } };
   if (method === "GET") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
     if (!result.Item) return reply(200, { kit: null, publicId: "", published: false, updatedAt: "" });
-    return reply(200, { kit: JSON.parse(result.Item.plan?.S || "{}"), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, updatedAt: result.Item.updatedAt?.S || "" });
+    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}")), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, updatedAt: result.Item.updatedAt?.S || "" });
   }
-  const data = parseJsonBody(event), kit = cleanEpk(data?.kit), publish = data?.publish === true;
+  const data = parseJsonBody(event), kit = cleanEpk(data?.kit, ownerPrefix), publish = data?.publish === true;
   if (!kit) return reply(400, { error: "Add an artist name and valid EPK details." });
   const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
-  const publicId = /^[0-9a-f-]{36}$/i.test(existing.Item?.publicId?.S || "") ? existing.Item.publicId.S : randomUUID();
+  try { await validatedEpkMedia(kit.media); } catch (error) { return reply(error.statusCode || 422, { error: error.message }); }
+  let publicId = /^[a-z0-9-]{3,64}$/.test(existing.Item?.publicId?.S || "") ? existing.Item.publicId.S : kit.artistName.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
+  if (publicId.length < 3) publicId = randomUUID();
+  if (!existing.Item?.publicId?.S) {
+    const collision = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } }, ConsistentRead: true }));
+    if (collision.Item) publicId = `${publicId.slice(0, 39)}-${sha256(userId).slice(0, 8)}`;
+  }
   const nowIso = new Date().toISOString(), plan = JSON.stringify(kit);
   if (Buffer.byteLength(plan, "utf8") > 200000) return reply(400, { error: "This EPK is too large." });
   const publicKey = { userId: { S: epkPublicPartition }, tourId: { S: publicId } };
   await db.send(new TransactWriteItemsCommand({ TransactItems: [
     { Put: { TableName: toursTable, Item: { ...ownerKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, publicId: { S: publicId }, published: { BOOL: publish }, updatedAt: { S: nowIso } } } },
     publish
-      ? { Put: { TableName: toursTable, Item: { ...publicKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, updatedAt: { S: nowIso } } } }
+      ? { Put: { TableName: toursTable, Item: { ...publicKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }
       : { Delete: { TableName: toursTable, Key: publicKey } }
   ] }));
+  const previousKit = existing.Item?.plan?.S ? JSON.parse(existing.Item.plan.S) : {}, retained = new Set((kit.media || []).map(item => item.key));
+  const removed = (previousKit.media || []).filter(item => epkMediaPattern(ownerPrefix).test(item.key || "") && !retained.has(item.key));
+  if (removed.length) {
+    const pending = await runCleanup(removed.map(item => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: item.key }))));
+    if (pending) console.error("EPK media cleanup remains pending", { userId, pending });
+  }
   return reply(200, { publicId, published: publish, updatedAt: nowIso });
 }
 
 async function publicEpk(event, publicId) {
   const headers = corsHeaders(event.headers?.origin);
   const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
-  if (!allowedOrigins.has(event.headers?.origin) || !/^[0-9a-f-]{36}$/i.test(publicId)) return reply(404, { error: "EPK not found." });
+  if (!allowedOrigins.has(event.headers?.origin) || !/^[a-z0-9-]{3,64}$/i.test(publicId)) return reply(404, { error: "EPK not found." });
   const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } }));
   if (!result.Item) return reply(404, { error: "EPK not found." });
-  return reply(200, { kit: JSON.parse(result.Item.plan?.S || "{}"), updatedAt: result.Item.updatedAt?.S || "" });
+  return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), true), updatedAt: result.Item.updatedAt?.S || "" });
 }
 async function bookingWorkspace(event, method) {
   const headers = corsHeaders(event.headers?.origin);
@@ -3284,6 +3480,8 @@ export const handler = async event => {
       return await planTourRoute(event);
     }
 
+    if (method === "POST" && path === "/venues/search") return await searchVenues(event);
+
     if (method === "POST" && path === "/record-stores/search") return await searchRecordStores(event);
     if ((method === "GET" || method === "POST") && path === "/record-store-workspace") return await recordStoreWorkspace(event, method);
 
@@ -3291,7 +3489,7 @@ export const handler = async event => {
 
     if ((method === "GET" || method === "POST") && path === "/booking-pipeline") return await bookingWorkspace(event, method);
     if ((method === "GET" || method === "POST") && path === "/epk") return await epkWorkspace(event, method);
-    const epkPublicMatch = path.match(/^\/epk\/public\/([0-9a-f-]{36})$/i);
+    const epkPublicMatch = path.match(/^\/epk\/public\/([a-z0-9-]{3,64})$/i);
     if (method === "GET" && epkPublicMatch) return await publicEpk(event, epkPublicMatch[1]);
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
     if (method === "POST" && path === "/tours") return await saveTourPlan(event);
@@ -3317,3 +3515,7 @@ export const handler = async event => {
     );
   }
 };
+
+// Named exports keep provider and classifier integration tests on the same
+// implementation that Lambda runs. They do not expose an HTTP route.
+export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk };

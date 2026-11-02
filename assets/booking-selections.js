@@ -27,6 +27,25 @@
     if (Array.isArray(parsed)) venues = parsed.slice(0, 100);
   } catch {}
 
+  document.getElementById("usePublishedEpk")?.addEventListener("click", async () => {
+    const button = document.getElementById("usePublishedEpk");
+    button.disabled = true;
+    accountStatus.textContent = "Finding your published EPK…";
+    try {
+      const response = await fetch("https://api.danzstak.com/epk", { credentials: "include", cache: "no-store" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Your EPK could not be loaded.");
+      if (!data.published || !data.publicId) throw new Error("Publish your EPK before adding it to a booking inquiry.");
+      document.getElementById("pitchEpk").value = new URL(`epk.html?id=${encodeURIComponent(data.publicId)}`, location.origin).href;
+      dirty = true;
+      accountStatus.textContent = "Published EPK added. Save the booking workspace to keep it.";
+    } catch (error) {
+      accountStatus.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+
   const link = (label, href) => {
     const anchor = document.createElement("a");
     anchor.textContent = label;
