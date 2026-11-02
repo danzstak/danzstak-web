@@ -11,6 +11,7 @@ assert.match(api, /used records vinyl/, "store discovery should use several quer
 assert.match(api, /record,\? cd/, "AWS's Record, CD & Video category should be recognized");
 assert.match(api, /descriptiveSignal \|\| strongNameSignal \|\| recordCategorySignal/, "a listing should accept explicit record\/vinyl evidence from names, descriptions, or provider categories");
 assert.match(api, /multiSourceDiscovery\(point, "record-store"/, "record-store discovery should combine authorized providers");
+assert.doesNotMatch(api, /categories:\s*\[\.\.\.new Set\(\[\.\.\.\(place\.categories/, "search phrases must not be injected as provider category evidence");
 assert.match(api, /OpenStreetMap contributors/, "OpenStreetMap records must retain attribution");
 assert.match(client, /loadMoreStores/, "dense cities should support paged store results");
 assert.match(api, /audio visual\|audio[\s\S]*music company\|music center/, "audio, instrument, video and generic music retailers should be excluded");

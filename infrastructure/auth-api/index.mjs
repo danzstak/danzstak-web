@@ -2037,7 +2037,7 @@ function isRecordStore(place) {
   // It regularly includes audio installers, video production, instrument shops,
   // bookstores and unrelated retailers. Prefer a shorter list with explicit
   // record/vinyl evidence in the public name over wasting an artist's outreach.
-  const clearlyWrongName = /\b(dental|dentist|real estate|realtor|video transfer|video production|audio visual|audio|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio|books?|press|productions?|music company|music center)\b/.test(name);
+  const clearlyWrongName = /\b(dental|dentist|medical|county records?|public records?|records? office|real estate|realtor|video transfer|video production|audio visual|audio|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio|books?|press|productions?|music company|music center)\b/.test(name);
   return !clearlyWrongName
     && (descriptiveSignal || strongNameSignal || recordCategorySignal);
 }
@@ -2132,11 +2132,7 @@ async function awsPlaceSearch(point, queries, radiusMiles = 30) {
   const boundingBox = discoveryBoundingBox(point.position, radiusMiles);
   const batches = await mapLimit(queries, 2, async query => {
     const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, Filter: { BoundingBox: boundingBox }, MaxResults: 50, AdditionalFeatures: ["Contact"] }));
-    return (result.ResultItems || []).map(publicPlace).map(place => ({
-      ...place,
-      categories: [...new Set([...(place.categories || []), `Discovery query: ${query}`])].slice(0, 10),
-      discoveryQuery: query
-    }));
+    return (result.ResultItems || []).map(publicPlace).map(place => ({ ...place, discoveryQuery: query }));
   });
   return batches.flat();
 }
