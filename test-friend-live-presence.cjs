@@ -16,6 +16,10 @@ assert.match(feed, /if \(!document\.querySelector\("\.friend-workspace-row\[data
 assert.match(feed, /applyFriendWorkspacePresence\(data\.users \|\| \[\]\)/, "heartbeat snapshots update the same friend cards as chat snapshots");
 assert.match(feed, /status\.textContent = online \? "Online" : "Offline"/, "friend status text updates from the fresh snapshot");
 assert.match(feed, /dot\.classList\.toggle\("online", online\)/, "friend presence dots update from the fresh snapshot");
+assert.match(feed, /onlineHeading\.textContent = "Users online"/, "the Friends button opens a plain-language online-user list");
+assert.match(feed, /action\.textContent = "Add Friend"/, "online users can be added with one clear action");
+assert.match(feed, /friendsHeading\.textContent = "Your friends"/, "accepted friends remain in a separate persistent list");
+assert.doesNotMatch(feed, /Add a friend by email/, "the primary Friends flow does not require users to know an email address");
 
 const refreshStart = feed.indexOf("function applyFriendWorkspacePresence(users)");
 const refreshEnd = feed.indexOf("function linkifyUserText(element)", refreshStart);

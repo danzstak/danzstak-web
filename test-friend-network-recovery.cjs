@@ -4,7 +4,7 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync('assets/feed-enhancements.js', 'utf8');
 const start = source.indexOf('async function friendActionFetch(');
-const end = source.indexOf('function createFriendRequestForm', start);
+const end = source.indexOf('function renderOnlineFriendList', start);
 assert.ok(start >= 0 && end > start, 'deadline-protected friend action helper is missing');
 
 let deadline;

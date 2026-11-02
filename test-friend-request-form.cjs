@@ -1,39 +1,22 @@
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-const vm = require('node:vm');
 const assert = require('node:assert/strict');
+
 const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
 const css = readFileSync(join(__dirname, 'assets/feed-enhancements.css'), 'utf8');
 const feed = readFileSync(join(__dirname, 'feed.html'), 'utf8');
-const code = source.slice(source.indexOf('function createFriendRequestForm()'), source.indexOf('async function migrateLocalGroups('));
-const nodes = [], requests = [];
-const node = tag => { const item = { tag, value: '', children: [], setAttribute() {}, reportValidity: () => true, addEventListener(_, handler) { this.submit = handler; }, append(...items) { this.children.push(...items); } }; nodes.push(item); return item; };
-const input = node('input');
-const context = vm.createContext({ document: { createElement: node }, field: () => ({ wrap: node('label'), input }),
-  friendActionFetch: (_, options) => new Promise((resolve, reject) => requests.push({ resolve, reject, body: JSON.parse(options.body) })) });
-vm.runInContext(code + '\ncreateFriendRequestForm();', context);
-const form = nodes.find(item => item.tag === 'form'), send = nodes.find(item => item.tag === 'button'), status = nodes.find(item => item.tag === 'p');
-const event = { preventDefault() {} };
-assert.match(css, /\.friend-request-form\{display:grid;grid-template-columns:minmax\(220px,460px\) auto/, 'desktop friend requests use a compact input and action row');
-assert.match(css, /\.friend-request-form button\{width:auto;min-width:170px;[^}]*justify-self:start/, 'the global primary action style cannot stretch the friend request button');
-assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.friend-request-form\{grid-template-columns:1fr/, 'mobile friend requests stack without squeezing the email field');
-assert.match(feed, /assets\/feed-enhancements\.css\?v=\d+/, 'the feed loads versioned friend workspace styling');
-(async () => {
-  input.value = ' Friend@Example.com ';
-  const pending = form.submit(event);
-  await form.submit(event);
-  assert.equal(requests.length, 1, 'duplicate submissions are prevented');
-  assert.equal(requests[0].body.email, 'friend@example.com');
-  requests[0].resolve({ ok: false, json: async () => ({ error: 'Member not found' }) });
-  await pending;
-  assert.equal(input.value, ' Friend@Example.com ', 'a rejected request preserves the address for correction');
-  assert.equal(status.textContent, 'Member not found'); assert.equal(send.disabled, false);
-  const accepted = form.submit(event);
-  requests[1].resolve({ ok: true, json: async () => ({ requested: true }) }); await accepted;
-  assert.equal(input.value, ''); assert.match(status.textContent, /Friend request sent/);
-  input.value = 'friend@example.com';
-  const existing = form.submit(event);
-  requests[2].resolve({ ok: true, json: async () => ({ alreadyFriends: true, requested: false }) }); await existing;
-  assert.match(status.textContent, /already friends/, 'existing friendships do not claim a new request was sent');
-  console.log('Friend request form checks passed: normalized email, duplicate prevention, and retry after errors.');
-})().catch(error => { console.error(error); process.exitCode = 1; });
+
+assert.match(source, /function renderOnlineFriendList\(list, users\)/, 'Friends has a dedicated online-user discovery list');
+assert.match(source, /const online = users\.filter\(person => person\.online === true\)/, 'only currently online people appear in the discovery list');
+assert.match(source, /action\.textContent = "Add Friend"/, 'an unconnected online member has one clear Add Friend action');
+assert.match(source, /action\.textContent = "Accept"/, 'incoming requests can be accepted from the same list');
+assert.match(source, /action\.textContent = "Requested"/, 'sent requests have an understandable state');
+assert.match(source, /action\.textContent = person\.friendStatus === "friends" \? "Message" : "Tribe Message"/, 'existing connections can be messaged instead of receiving duplicate requests');
+assert.match(source, /onlineHeading\.textContent = "Users online"/, 'the top Friends workspace section is named Users online');
+assert.match(source, /friendsHeading\.textContent = "Your friends"/, 'accepted friends remain visible below discovery');
+assert.doesNotMatch(source, /Add a friend by email/, 'ordinary users are not required to know account email addresses');
+assert.match(css, /\.friend-discovery-list\{display:grid;/, 'online-user discovery uses a responsive compact grid');
+assert.match(feed, /assets\/feed-enhancements\.css\?v=474/, 'the feed loads the current friend discovery styles');
+assert.match(feed, /assets\/feed-enhancements\.js\?v=474/, 'the feed loads the current friend discovery behavior');
+
+console.log('Friend discovery checks passed: the Friends button lists online users with one-tap relationship actions and no email lookup.');

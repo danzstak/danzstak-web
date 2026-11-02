@@ -357,36 +357,74 @@ async function friendActionFetch(path, options = {}, timeoutMs = 10000) {
   } finally { clearTimeout(timeout); }
 }
 
-function createFriendRequestForm() {
-  const form = document.createElement("form");
-  form.className = "friend-request-form";
-  const email = field("Add a friend by email", "email", "name@example.com");
-  email.input.required = true;
-  email.input.maxLength = 254;
-  email.input.autocomplete = "email";
-  const send = document.createElement("button");
-  send.type = "submit"; send.className = "primary"; send.textContent = "Send friend request";
-  const status = document.createElement("p"); status.className = "muted"; status.setAttribute("role", "status");
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-    if (send.disabled || !form.reportValidity()) return;
-    const address = email.input.value.trim().toLowerCase();
-    send.disabled = true;
-    status.textContent = "Sending friend request…";
-    try {
-      const response = await friendActionFetch("/friends/request", {
-        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: address })
+function renderOnlineFriendList(list, users) {
+  list.replaceChildren();
+  const online = users.filter(person => person.online === true);
+  if (!online.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "No other users are online right now. Your accepted friends remain listed below.";
+    list.appendChild(empty);
+    return;
+  }
+  for (const person of online) {
+    const row = document.createElement("div");
+    row.className = "feed-online-row friend-discovery-row";
+    const displayName = person.name || "DanzStak member";
+    const avatarWrap = document.createElement("span");
+    avatarWrap.className = "feed-online-avatar-wrap";
+    const avatar = person.picture ? document.createElement("img") : document.createElement("span");
+    avatar.className = "feed-online-avatar";
+    if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+    else { avatar.textContent = displayName.charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
+    const dot = document.createElement("span");
+    dot.className = "feed-online-dot";
+    dot.setAttribute("role", "img");
+    dot.setAttribute("aria-label", "Online");
+    avatarWrap.append(avatar, dot);
+    const memberId = String(person.memberId || "");
+    const name = /^[a-f0-9-]{36}$/.test(memberId) ? document.createElement("a") : document.createElement("strong");
+    if (name.tagName === "A") name.href = "profile.html?member=" + encodeURIComponent(memberId);
+    name.textContent = displayName;
+    name.setAttribute("data-no-translate", "");
+    const action = document.createElement("button");
+    action.type = "button";
+    if (person.friendStatus === "friends" || person.sharedGroup) {
+      action.textContent = person.friendStatus === "friends" ? "Message" : "Tribe Message";
+      action.addEventListener("click", () => openMessageDrawer(person.email));
+    } else if (person.friendStatus === "incoming") {
+      action.textContent = "Accept";
+      action.addEventListener("click", async () => {
+        action.disabled = true; action.textContent = "Accepting…";
+        try {
+          const response = await friendActionFetch("/friends/respond", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: person.email, accept: true }) });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || "Friend request could not be accepted.");
+          action.textContent = "Friends";
+          window.danzstakShowFeedback?.(`You and ${displayName} are now friends.`);
+          renderWorkspace("Friends");
+        } catch (error) { action.disabled = false; action.textContent = "Accept"; window.danzstakShowFeedback?.(error.message, { urgent: true }); }
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Friend request could not be sent. Please try again.");
-      status.textContent = data.alreadyFriends ? "You are already friends with this member." : "Friend request sent. It will appear in their DanzStak notifications.";
-      if (email.input.value.trim().toLowerCase() === address) email.input.value = "";
-    } catch (error) { status.textContent = error.message || "Friend request could not be sent. Please try again."; }
-    finally { send.disabled = false; }
-  });
-  form.append(email.wrap, send, status);
-  return form;
+    } else if (person.friendStatus === "outgoing") {
+      action.textContent = "Requested";
+      action.disabled = true;
+    } else {
+      action.textContent = "Add Friend";
+      action.setAttribute("aria-label", "Send friend request to " + displayName);
+      action.addEventListener("click", async () => {
+        action.disabled = true; action.textContent = "Sending…";
+        try {
+          const response = await friendActionFetch("/friends/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: person.email }) });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || "Friend request could not be sent.");
+          action.textContent = data.alreadyFriends ? "Friends" : "Requested";
+          window.danzstakShowFeedback?.(data.alreadyFriends ? `You and ${displayName} are already friends.` : `Friend request sent to ${displayName}.`);
+        } catch (error) { action.disabled = false; action.textContent = "Add Friend"; window.danzstakShowFeedback?.(error.message, { urgent: true }); }
+      });
+    }
+    row.append(avatarWrap, name, action);
+    list.appendChild(row);
+  }
 }
 
 async function groupFetch(path, options = {}, timeoutMs = 12000) {
@@ -1273,8 +1311,21 @@ function renderWorkspace(name) {
   }
 
   if (name === "Friends") {
-    featureText.textContent = "All accepted friends appear here, including friends who are offline.";
-    workspace.appendChild(createFriendRequestForm());
+    featureText.textContent = "Tap Add Friend beside anyone online. Accepted friends stay here even when they are offline.";
+    const onlineHeading = document.createElement("h3");
+    onlineHeading.className = "friends-section-heading";
+    onlineHeading.textContent = "Users online";
+    const onlineList = document.createElement("div");
+    onlineList.className = "friend-discovery-list";
+    onlineList.setAttribute("aria-live", "polite");
+    const onlineLoading = document.createElement("p");
+    onlineLoading.className = "muted";
+    onlineLoading.textContent = "Finding users online…";
+    onlineList.appendChild(onlineLoading);
+    const friendsHeading = document.createElement("h3");
+    friendsHeading.className = "friends-section-heading";
+    friendsHeading.textContent = "Your friends";
+    workspace.append(onlineHeading, onlineList, friendsHeading);
     const list = document.createElement("div");
     list.className = "friends-workspace-list";
     list.setAttribute("role", "region");
@@ -1305,6 +1356,7 @@ function renderWorkspace(name) {
           .filter(user => user.email)
           .map(user => [String(user.email).toLowerCase(), user])
         : []);
+      renderOnlineFriendList(onlineList, [...directoryPeople.values()]);
       list.replaceChildren();
       list.setAttribute("aria-busy", "false");
       if (!friends.length) {
