@@ -145,14 +145,14 @@ if (-not $template.Contains("/*/DELETE/stories/*'")) {
   throw 'Story deletion route is missing its path-specific Lambda invoke permission.'
 }
 
-if (-not $template.Contains('expiresAt:{N:String(now()+7200)}')) {
-  throw 'Presence records do not remain available for the full two-hour signed-in activity window'
+if (-not $template.Contains('expiresAt:{N:String(now()+120)}')) {
+  throw 'Online presence must expire shortly after its 30-second browser heartbeat stops'
+}
+if ($template.Contains('expiresAt:{N:String(now()+7200)}')) {
+  throw 'Online presence is incorrectly coupled to the two-hour signed-in activity window'
 }
 foreach ($scheduledStoryCleanup in @('DANZSTAK-Expired-Story-Cleanup', 'Type: AWS::Events::Rule', 'ScheduleExpression: rate(15 minutes)', 'Principal: events.amazonaws.com', "item.kind?.S==='reel'", "item.mediaKey.S.startsWith('stories/')", 'Resource: !Sub ''${MediaBucket.Arn}/stories/*''')) {
   if (-not $template.Contains($scheduledStoryCleanup)) { throw "Stories: scheduled database/media cleanup is incomplete: $scheduledStoryCleanup" }
-}
-if ($template.Contains('expiresAt:{N:String(now()+180)}')) {
-  throw 'Presence still expires after three minutes when a browser suspends background JavaScript'
 }
 foreach ($paginationControl in @('async function scanAll(input,maximumItems=5000)', 'async function queryAll(input,maximumItems=5000)', 'page.LastEvaluatedKey', 'scanAll({TableName:process.env.PRESENCE_TABLE', 'queryAll({TableName:process.env.FRIENDS_TABLE', 'scanAll({TableName:process.env.STORIES_TABLE', 'async function groupIds(email){const items=await queryAll')) {
   if (-not $template.Contains($paginationControl)) { throw "Stories, presence, or contact pagination is incomplete: $paginationControl" }
