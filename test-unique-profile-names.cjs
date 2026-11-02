@@ -17,7 +17,7 @@ assert.match(template, /async function availableProfileSuggestion\(field,value\)
 assert.match(template, /for\(let number=2;number<=99;number\+\+\)/);
 assert.match(template, /return json\(409,\{error:`That \$\{field==='name'[\s\S]*?,suggestion\}\)/);
 assert.match(template, /async function updateProfile\(event,user\)\{return updateProfileUnique\(event,user\);\}/);
-assert.match(editor, /display name and username must each be unique/i);
+assert.match(editor, /Username \(optional\)/i);
 assert.match(editor, /name="handle" minlength="3"/);
 
 console.log("Unique-profile-name checks passed: names and usernames are atomically reserved and duplicates receive a numbered suggestion.");

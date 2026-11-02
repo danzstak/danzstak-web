@@ -7,6 +7,23 @@ const details = profileContent.querySelector(".details");
 const handleElement = document.getElementById("profileHandle");
 const profileMediaKey = "danzstak_profile_media";
 const profileApi = "https://api.danzstak.com";
+const profileLanguageCode = (() => {
+  try { return (localStorage.getItem("danzstak_language") || document.documentElement.lang || navigator.language || "en").toLowerCase().split("-")[0]; }
+  catch { return String(document.documentElement.lang || "en").toLowerCase().split("-")[0]; }
+})();
+const profileEditorWords = profileLanguageCode === "it" ? {
+  edit: "Modifica profilo", heading: "Modifica il tuo profilo", name: "Nome visibile agli altri",
+  nameHelp: "Questo è il nome che amici e altri membri vedranno.", advanced: "Nome utente (facoltativo)",
+  handle: "Nome utente", handleHelp: "Non devi modificarlo per cambiare il nome visibile.",
+  tap: "Tocca il tuo nome per cambiarlo", cancel: "Annulla", save: "Salva nome e profilo",
+  note: "Scegli il nome che vuoi mostrare agli altri membri. Puoi modificare il resto del profilo quando vuoi."
+} : {
+  edit: "Edit Profile", heading: "Edit your profile", name: "Name people see",
+  nameHelp: "This is the name friends and other members will see.", advanced: "Username (optional)",
+  handle: "Username", handleHelp: "You do not need to change this to change your visible name.",
+  tap: "Tap your name to change it", cancel: "Cancel", save: "Save name and profile",
+  note: "Choose the name you want other members to see. You can edit the rest of your profile whenever you want."
+};
 const profileToast = document.createElement("div");
 profileToast.className = "profile-toast";
 profileToast.hidden = true;
@@ -112,9 +129,15 @@ actions.className = "profile-actions";
 const editButton = document.createElement("button");
 editButton.type = "button";
 editButton.className = "button";
-editButton.textContent = "Edit Profile";
+editButton.textContent = profileEditorWords.edit;
 actions.appendChild(editButton);
 bioElement.insertAdjacentElement("afterend", actions);
+const nameEditHint = document.createElement("button");
+nameEditHint.type = "button";
+nameEditHint.className = "profile-name-edit-hint";
+nameEditHint.textContent = profileEditorWords.tap;
+nameEditHint.hidden = true;
+handleElement.insertAdjacentElement("afterend", nameEditHint);
 
 const mediaTools = document.createElement("div");
 mediaTools.className = "profile-media-tools";
@@ -680,9 +703,9 @@ tabs.addEventListener("keydown", event => {
 const panel = document.createElement("form");
 panel.className = "edit-profile-panel";
 panel.hidden = true;
-panel.innerHTML = '<h2>Edit Profile</h2>' +
-  '<div class="profile-identity-fields"><label>Display name<input name="name" minlength="2" maxlength="80" autocomplete="name" required></label>' +
-  '<label>Username<input name="handle" minlength="3" maxlength="24" pattern="[A-Za-z0-9._]+" required></label></div>' +
+panel.innerHTML = '<h2>' + profileEditorWords.heading + '</h2>' +
+  '<div class="profile-identity-fields"><label>' + profileEditorWords.name + '<input name="name" minlength="2" maxlength="80" autocomplete="name" required><small>' + profileEditorWords.nameHelp + '</small></label></div>' +
+  '<details class="profile-edit-section profile-username"><summary>' + profileEditorWords.advanced + '</summary><div class="profile-edit-section-body"><label>' + profileEditorWords.handle + '<input name="handle" minlength="3" maxlength="24" pattern="[A-Za-z0-9._]+"><small>' + profileEditorWords.handleHelp + '</small></label></div></details>' +
   '<details class="profile-edit-section"><summary>More profile details</summary><div class="profile-edit-section-body">' +
   '<label>Bio<textarea name="bio" maxlength="160"></textarea></label>' +
   '<label>Location<input name="location" maxlength="80"></label>' +
@@ -692,8 +715,8 @@ panel.innerHTML = '<h2>Edit Profile</h2>' +
   '<details class="profile-edit-section" data-profile-privacy><summary>Privacy and tagging</summary><div class="profile-edit-section-body">' +
   '<label>Who can post on your profile?<select name="profilePostPermission"><option value="owner">Just me</option><option value="friends">Friends</option><option value="anyone">Public</option></select></label>' +
   '<label class="profile-tag-setting"><input name="allowTags" type="checkbox">Allow accepted friends to tag me in photos and videos</label></div></details>' +
-  '<p class="edit-note">Your display name and username must each be unique. If a name is taken, DanzStak will suggest a numbered alternative. Share only information you want members to see.</p>' +
-  '<div class="edit-actions"><button class="secondary" type="button" data-cancel>Cancel</button><button class="button" type="submit">Save Changes</button></div>' +
+  '<p class="edit-note">' + profileEditorWords.note + '</p>' +
+  '<div class="edit-actions"><button class="secondary" type="button" data-cancel>' + profileEditorWords.cancel + '</button><button class="button" type="submit">' + profileEditorWords.save + '</button></div>' +
   '<details class="profile-edit-section profile-import"><summary>Import from Facebook</summary><div class="profile-edit-section-body"><button type="button" data-facebook-import>Choose Facebook export</button><p>Preview your export, set Public, Friends, or Just me in batches, and review shared-source posts before copying them.</p></div></details>';
 // Keep profile controls beside the profile actions instead of after the entire
 // post history.  Appending the form to the card made a deep profile timeline
@@ -788,6 +811,14 @@ editButton.addEventListener("click", () => {
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
+nameEditHint.addEventListener("click", () => {
+  editButton.click();
+  requestAnimationFrame(() => panel.elements.name.focus({ preventScroll: true }));
+});
+document.getElementById("profileName").addEventListener("click", () => {
+  if (viewingOtherProfile || editButton.hidden) return;
+  nameEditHint.click();
+});
 
 panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; repositioning = false; finishReposition.hidden = true; coverElement.classList.remove("repositioning"); repositionButton.classList.remove("active"); repositionButton.textContent = "Reposition Cover"; });
 panel.addEventListener("submit", async event => {
@@ -795,7 +826,7 @@ panel.addEventListener("submit", async event => {
   if (!panel.reportValidity()) return;
   const profile = Object.fromEntries(new FormData(panel).entries());
   profile.allowTags = panel.elements.allowTags.checked;
-  profile.handle = profile.handle.replace(/^@/, "");
+  profile.handle = (profile.handle || "").replace(/^@/, "") || (window.danzstakCurrentProfile?.handle || handleElement.textContent.replace(/^@/, ""));
   const language = profile.language;
   delete profile.language;
   if (window.danzstakSetLanguage) window.danzstakSetLanguage(language);
@@ -828,6 +859,17 @@ function applyLoadedProfile(profile = {}) {
   if (profile.isOwner === true) {
     viewingOtherProfile = false;
     editButton.hidden = false;
+    nameEditHint.hidden = false;
+    const profileName = document.getElementById("profileName");
+    profileName.classList.add("profile-name-editable");
+    profileName.tabIndex = 0;
+    profileName.setAttribute("role", "button");
+    profileName.setAttribute("aria-label", profileEditorWords.tap);
+    profileName.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      nameEditHint.click();
+    }, { once: false });
     mediaTools.hidden = false;
     const requestedEdit = new URLSearchParams(location.search).get("edit");
     if (["identity", "privacy"].includes(requestedEdit) && panel.dataset.routeOpened !== "true") {
