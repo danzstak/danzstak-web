@@ -62,6 +62,7 @@ for (const market of ["eugene, oregon", "redding, california"]) {
 }
 assert.match(bookingUi, /function targetTourMarkets\(data\)/, "the route overview should turn the discovery pool into a compact bookable run");
 assert.match(bookingUi, /function strongestRouteMarkets\(markets, count\)/, "the proposed run should prefer established music markets inside each road segment");
+assert.match(bookingUi, /\["seattle", "tacoma", "portland", "medford", "san francisco"\]/, "a five-show I-5 outbound leg should use the safe Seattle-Tacoma-Portland-Medford-San Francisco backbone");
 assert.match(bookingUi, /\["portland", 100\][\s\S]*\["eugene", 96\][\s\S]*\["medford", 92\][\s\S]*\["redding", 90\]/, "I-5 planning should favor strong Portland, Eugene, Medford, and Redding scenes");
 assert.match(bookingUi, /outward = strongestRouteMarkets\(markets, outwardCount\)/, "outbound show targets should use music-market strength rather than blind even spacing");
 assert.match(bookingUi, /returnPool = markets\.slice\(1, -1\)\.reverse\(\)/, "the proposed run should use real intermediate markets on the drive back without treating home as another booking target");

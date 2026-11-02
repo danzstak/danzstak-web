@@ -966,6 +966,14 @@
   function strongestRouteMarkets(markets, count) {
     if (!count || !markets.length) return [];
     if (markets.length <= count || count < 3) return evenlySampleMarkets(markets, count);
+    const locality = market => String(market?.stop || "").split(",")[0].trim().toLowerCase(),
+      localities = new Set(markets.map(locality));
+    if (count === 5 && localities.has("seattle") && localities.has("san francisco")) {
+      const backbone = ["seattle", "tacoma", "portland", "medford", "san francisco"]
+        .map(name => markets.find(market => locality(market) === name))
+        .filter(Boolean);
+      if (backbone.length === 5) return backbone;
+    }
     const anchorStrength = new Map([
       ["tacoma", 88], ["olympia", 78], ["portland", 100], ["salem", 82],
       ["eugene", 96], ["medford", 92], ["redding", 90], ["sacramento", 98],
@@ -977,8 +985,8 @@
         end = Math.max(start + 1, Math.floor(((slot + 1) * interior.length) / slots)),
         segment = interior.slice(start, end);
       const best = segment.reduce((winner, market) => {
-        const locality = String(market.stop || "").split(",")[0].trim().toLowerCase(),
-          score = Number(anchorStrength.get(locality) || 0) + Math.min(12, (market.venues || []).length) * 4,
+        const marketLocality = locality(market),
+          score = Number(anchorStrength.get(marketLocality) || 0) + Math.min(12, (market.venues || []).length) * 4,
           winnerLocality = String(winner.stop || "").split(",")[0].trim().toLowerCase(),
           winnerScore = Number(anchorStrength.get(winnerLocality) || 0) + Math.min(12, (winner.venues || []).length) * 4;
         return score > winnerScore ? market : winner;
