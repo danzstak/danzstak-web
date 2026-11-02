@@ -1004,7 +1004,14 @@
       // and the van safely home.
       returnPool = markets.slice(1, -1).reverse(),
       repeatableReturnMarkets = returnPool.filter(market => (market.venues || []).length > 1),
-      returnChoices = repeatableReturnMarkets.length >= returnCount ? repeatableReturnMarkets : returnPool,
+      unbufferedReturnChoices = repeatableReturnMarkets.length >= returnCount ? repeatableReturnMarkets : returnPool,
+      // Avoid booking the first town outside the turnaround and the last town
+      // outside home when there are enough alternatives. Those edge markets
+      // are travel buffers; on I-5 this yields Redding and Portland instead of
+      // an unsafe Sacramento-to-Portland show-day jump.
+      returnChoices = unbufferedReturnChoices.length >= returnCount + 2
+        ? unbufferedReturnChoices.slice(1, -1)
+        : unbufferedReturnChoices,
       returning = returnCount
         ? evenlySampleMarkets(returnChoices, Math.min(returnChoices.length, returnCount + 1)).slice(0, returnCount)
         : [];

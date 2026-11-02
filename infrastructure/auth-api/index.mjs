@@ -2371,6 +2371,23 @@ function westCoastTourCorridor(points) {
   ];
 }
 
+const reviewedCorridorCoordinates = new Map([
+  ["seattle, washington", [-122.3321, 47.6062]],
+  ["tacoma, washington", [-122.4443, 47.2529]],
+  ["olympia, washington", [-122.9007, 47.0379]],
+  ["portland, oregon", [-122.6765, 45.5231]],
+  ["eugene, oregon", [-123.0868, 44.0521]],
+  ["medford, oregon", [-122.8756, 42.3265]],
+  ["redding, california", [-122.3917, 40.5865]],
+  ["sacramento, california", [-121.4944, 38.5816]],
+  ["san francisco, california", [-122.4194, 37.7749]],
+]);
+
+function reviewedCorridorPoint(market) {
+  const label = String(market || "").trim(), position = reviewedCorridorCoordinates.get(label.toLowerCase());
+  return position ? { label, position: [...position] } : null;
+}
+
 function sampleTourCorridorMarkets(corridor, requestedDays = 1, requestedShows = 1, variation = 0) {
   if (!Array.isArray(corridor) || !corridor.length) return [];
   // Do not fan one request out into hundreds of live place lookups. That made
@@ -2844,7 +2861,7 @@ async function planTourRoute(event) {
       : corridor
         ? (await mapLimit([...new Set(corridorSearchMarkets)], 4, async market => {
             try {
-              return await geocodeTourPlace(market);
+              return reviewedCorridorPoint(market) || await geocodeTourPlace(market);
             } catch (error) {
               // Keep the itinerary usable even if one road town cannot be
               // geocoded during this request. The client still renders the
