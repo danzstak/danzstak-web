@@ -165,6 +165,18 @@ for (const [language] of window.danzstakLanguages) {
       );
   }
   for (const source of [
+    "Post media could not be removed yet. Try again.",
+    "The post could not be deleted from the server.",
+  ]) {
+    const translated = window.danzstakTranslate(source);
+    if (language !== "en")
+      assert.notEqual(
+        translated,
+        source,
+        `${language} needs localized post-deletion recovery for: ${source}`,
+      );
+  }
+  for (const source of [
     "Enable call alerts",
     "Call alerts enabled — tap to enable sound in this session",
     "Start a new chat",

@@ -4,6 +4,9 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
 const source = readFileSync('infrastructure/auth-api/index.mjs', 'utf8');
+const feedSource = readFileSync('assets/feed-enhancements.js', 'utf8');
+const feedbackSource = readFileSync('assets/app-feedback.js', 'utf8');
+const translationsSource = readFileSync('assets/i18n.js', 'utf8');
 const cleanupCode = source.slice(source.indexOf('async function runCleanup('), source.indexOf('async function batchGetFriendships'));
 const deleteCode = source.slice(source.indexOf('async function deleteSecurePost('), source.indexOf('async function resolveMediaTags'));
 
@@ -56,6 +59,11 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
 }
 
 (async () => {
+  assert.match(feedSource, /const data = await response\.json\(\)\.catch\(\(\) => \(\{\}\)\);\s*if \(!response\.ok\) throw new Error\(data\.error \|\| "The post could not be deleted from the server\."\)/, 'the feed must preserve a retryable server deletion error');
+  assert.match(feedSource, /window\.danzstakTranslate\?\.\(source\) \|\| source/, 'feed feedback must follow the selected language');
+  assert.match(feedbackSource, /window\.danzstakTranslate\?\.\(source\) \|\| source/, 'shared feedback must follow the selected language');
+  assert.match(translationsSource, /const deletionFeedbackKeys=/, 'post deletion feedback must have localized keys');
+  for (const language of ['es','fr','de','pt','it','ko','ja','zh-Hans','zh-Hant','fil','hi','vi','th','id']) assert.match(translationsSource, new RegExp(`(?:^|\\n)\\s*(?:"${language}"|${language}):\\[`), `post deletion feedback must cover ${language}`);
   const denied = harness({ storedOwner: 'someone-else' });
   const deniedResponse = await denied.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId } });
   assert.equal(deniedResponse.statusCode, 403);

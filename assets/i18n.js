@@ -45,6 +45,24 @@
   id:{"Find people":"Temukan orang","Type their name. They do not need to be online.":"Ketik nama mereka. Mereka tidak harus online.","Name":"Nama","Example: Liana":"Contoh: Liana","Type at least 2 letters.":"Ketik minimal 2 huruf.","Searching members…":"Mencari anggota…","No matching members. Check the spelling of their profile name.":"Tidak ada anggota yang cocok. Periksa ejaan nama profilnya.","Search by name or tap Add Friend beside someone online. Your friends stay listed when they are offline.":"Cari berdasarkan nama atau ketuk Tambah teman di samping orang yang online. Teman tetap ada dalam daftar saat offline.","Users online":"Pengguna online","Your friends":"Teman Anda","Add Friend":"Tambah teman","Requested":"Permintaan terkirim"}
  };
  for(const [language,translations] of Object.entries(friendGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),translations);
+ const deletionFeedbackKeys=["Post media could not be removed yet. Try again.","The post could not be deleted from the server."];
+ const deletionFeedback={
+  es:["El contenido multimedia de la publicación aún no se pudo eliminar. Inténtalo de nuevo.","La publicación no se pudo eliminar del servidor."],
+  fr:["Le média de la publication n’a pas encore pu être supprimé. Réessayez.","La publication n’a pas pu être supprimée du serveur."],
+  de:["Die Medien des Beitrags konnten noch nicht entfernt werden. Versuche es erneut.","Der Beitrag konnte nicht vom Server gelöscht werden."],
+  pt:["A mídia da publicação ainda não pôde ser removida. Tente novamente.","A publicação não pôde ser excluída do servidor."],
+  it:["Il contenuto multimediale del post non è ancora stato rimosso. Riprova.","Non è stato possibile eliminare il post dal server."],
+  ko:["게시물 미디어를 아직 삭제하지 못했습니다. 다시 시도하세요.","서버에서 게시물을 삭제하지 못했습니다."],
+  ja:["投稿のメディアをまだ削除できませんでした。もう一度お試しください。","サーバーから投稿を削除できませんでした。"],
+  "zh-Hans":["尚未能移除帖子中的媒体。请重试。","无法从服务器删除帖子。"],
+  "zh-Hant":["尚未能移除貼文中的媒體。請重試。","無法從伺服器刪除貼文。"],
+  fil:["Hindi pa maalis ang media ng post. Subukan muli.","Hindi matanggal ang post sa server."],
+  hi:["पोस्ट का मीडिया अभी हटाया नहीं जा सका। फिर कोशिश करें।","पोस्ट को सर्वर से हटाया नहीं जा सका।"],
+  vi:["Chưa thể xóa nội dung đa phương tiện của bài viết. Hãy thử lại.","Không thể xóa bài viết khỏi máy chủ."],
+  th:["ยังไม่สามารถลบสื่อของโพสต์ได้ โปรดลองอีกครั้ง","ไม่สามารถลบโพสต์ออกจากเซิร์ฟเวอร์ได้"],
+  id:["Media postingan belum dapat dihapus. Coba lagi.","Postingan tidak dapat dihapus dari server."]
+ };
+ for(const [language,values] of Object.entries(deletionFeedback)){const dictionary=dictionaries[language]||(dictionaries[language]={});deletionFeedbackKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const connectionActionKeys=["No friends or Tribe members available yet.","Offline — calls can ring through notifications when enabled","Not connected","Users are temporarily unavailable. Retrying automatically…","Friend request sent to {name}.","You are now friends.","Friend request declined.","Accept"];
  const connectionActions={
   es:["Aún no hay amigos ni miembros de una Tribu disponibles.","Desconectado — las llamadas pueden sonar mediante notificaciones si están activadas","Sin conexión","Los usuarios no están disponibles temporalmente. Reintentando automáticamente…","Solicitud de amistad enviada a {name}.","Ahora son amigos.","Solicitud de amistad rechazada.","Aceptar"],

@@ -19,6 +19,6 @@ assert.doesNotMatch(source, /Add a friend by email/, 'ordinary users are not req
 assert.match(css, /\.friend-discovery-list\{display:grid;/, 'online-user discovery uses a responsive compact grid');
 assert.match(css, /\.friend-workspace-row\{grid-template-columns:minmax\(0,1fr\)\}\.friend-message-action\{width:100%;min-width:0\}/, 'mobile friend actions stack without clipping off screen');
 assert.match(feed, /assets\/feed-enhancements\.css\?v=477/, 'the feed loads the current friend discovery styles');
-assert.match(feed, /assets\/feed-enhancements\.js\?v=482/, 'the feed loads the current friend discovery behavior');
+assert.match(feed, /assets\/feed-enhancements\.js\?v=483/, 'the feed loads the current friend discovery behavior');
 
 console.log('Friend discovery checks passed: the Friends button lists online users with one-tap relationship actions and no email lookup.');

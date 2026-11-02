@@ -20,7 +20,8 @@ window.danzstakShowFeedback = function danzstakShowFeedback(message, { urgent = 
   const toast = feedbackElement();
   clearTimeout(appFeedbackTimer);
   clearTimeout(appFeedbackHideTimer);
-  toast.textContent = String(message || "DanzStak could not complete that action.");
+  const source = String(message || "DanzStak could not complete that action.");
+  toast.textContent = window.danzstakTranslate?.(source) || source;
   toast.setAttribute("role", urgent ? "alert" : "status");
   toast.setAttribute("aria-live", urgent ? "assertive" : "polite");
   toast.hidden = false;

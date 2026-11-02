@@ -28,7 +28,7 @@ assert.match(worker, /"\/assets\/app-feedback\.css"/);
 for (const file of ["index.html", "feed.html", "profile.html", "messages.html", "booking.html", "booking-selections.html"]) {
   const html = readFileSync(file, "utf8");
   assert.match(html, /assets\/app-feedback\.css\?v=2/, `${file} should load the shared feedback styles`);
-  assert.match(html, /assets\/app-feedback\.js\?v=2/, `${file} should load the shared feedback behavior`);
+  assert.match(html, /assets\/app-feedback\.js\?v=3/, `${file} should load the shared feedback behavior`);
 }
 
 for (const file of ["assets/home.js", "assets/logout.js", "assets/direct-messages.js", "assets/media-tags.js", "assets/profile-editor.js", "assets/feed-enhancements.js", "assets/booking-agent.js"]) {

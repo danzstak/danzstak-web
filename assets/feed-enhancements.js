@@ -32,7 +32,8 @@ let appToastHideTimer = 0;
 function showAppFeedback(message, { urgent = false, timeout = 4200 } = {}) {
   clearTimeout(appToastTimer);
   clearTimeout(appToastHideTimer);
-  appToast.textContent = String(message || "DanzStak could not complete that action.");
+  const source = String(message || "DanzStak could not complete that action.");
+  appToast.textContent = window.danzstakTranslate?.(source) || source;
   appToast.setAttribute("role", urgent ? "alert" : "status");
   appToast.setAttribute("aria-live", urgent ? "assertive" : "polite");
   appToast.hidden = false;
@@ -2704,8 +2705,9 @@ function addPostDeleteButton(post) {
           if (await window.danzstakConfirm("You did not create this post. It will only be removed from Your Mix.", { title: "Remove this post from Your Mix?", confirmLabel: "Remove from My Mix", danger: true })) await removePostFromThisFeed();
           return;
         }
-        if (!response.ok) throw new Error();
-      } catch { showAppFeedback("The post could not be deleted from the server.", { urgent: true }); return; }
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "The post could not be deleted from the server.");
+      } catch (error) { showAppFeedback(error.message || "The post could not be deleted from the server.", { urgent: true }); return; }
     }
     post.remove();
     if (postId && Array.isArray(window.danzstakLoadedPosts)) {
