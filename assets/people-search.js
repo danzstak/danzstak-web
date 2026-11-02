@@ -130,7 +130,7 @@
     const search = document.createElement("input");
     search.type = "search";
     search.autocomplete = "off";
-    search.placeholder = "Example: Liana";
+    search.placeholder = "Example: Sigmund";
     search.setAttribute("aria-describedby", "friendNameFinderStatus");
     const finderStatus = document.createElement("p");
     finderStatus.id = "friendNameFinderStatus";

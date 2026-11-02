@@ -45,6 +45,10 @@
   id:{"Find people":"Temukan orang","Type their name. They do not need to be online.":"Ketik nama mereka. Mereka tidak harus online.","Name":"Nama","Example: Liana":"Contoh: Liana","Type at least 2 letters.":"Ketik minimal 2 huruf.","Searching members…":"Mencari anggota…","No matching members. Check the spelling of their profile name.":"Tidak ada anggota yang cocok. Periksa ejaan nama profilnya.","Search by name or tap Add Friend beside someone online. Your friends stay listed when they are offline.":"Cari berdasarkan nama atau ketuk Tambah teman di samping orang yang online. Teman tetap ada dalam daftar saat offline.","Users online":"Pengguna online","Your friends":"Teman Anda","Add Friend":"Tambah teman","Requested":"Permintaan terkirim"}
  };
  for(const [language,translations] of Object.entries(friendGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),translations);
+ for(const dictionary of Object.values(dictionaries)){
+  const oldExample=dictionary["Example: Liana"];
+  if(oldExample)dictionary["Example: Sigmund"]=oldExample.replace(/Liana/g,"Sigmund");
+ }
  const friendStateKeys=["Find friends and see who is online","Finding users online…","Loading friends…","No other users are online right now. Your accepted friends remain listed below.","No accepted friends yet.","Online","Offline","Status unavailable","Message","Member search is temporarily unavailable.","No matching members yet. Check the spelling or try their profile name.","Member search is temporarily unavailable. Matching people in Your Mix will still appear here."];
  const friendStates={
   es:["Buscar amigos y ver quién está en línea","Buscando usuarios en línea…","Cargando amigos…","No hay otros usuarios en línea ahora. Tus amigos aceptados aparecen abajo.","Aún no tienes amigos aceptados.","En línea","Desconectado","Estado no disponible","Mensaje","La búsqueda de miembros no está disponible temporalmente.","Aún no hay miembros coincidentes. Revisa la ortografía o prueba con su nombre de perfil.","La búsqueda no está disponible temporalmente. Las personas coincidentes de Tu Mix seguirán apareciendo aquí."],
