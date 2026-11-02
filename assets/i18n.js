@@ -139,6 +139,24 @@
   id:["Aktifkan notifikasi panggilan","Notifikasi panggilan aktif — ketuk untuk mengaktifkan suara di sesi ini","Mulai obrolan baru","Cari pesan DanzStak","Filter obrolan","Obrolan tersimpan","Memuat obrolan tersimpan…","Memuat kontak…"]
  };
  for(const [language,values] of Object.entries(messageDetails)){const dictionary=dictionaries[language]||(dictionaries[language]={});messageDetailKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const conversationStatusKeys=["Loading messages with {name}…","You can message {name} directly.","Saved chat. Become friends or join the same Tribe to send new messages or call."];
+ const conversationStatuses={
+  es:["Cargando mensajes con {name}…","Puedes enviar mensajes directamente a {name}.","Chat guardado. Hazte amigo o únete a la misma Tribu para enviar mensajes o llamar."],
+  fr:["Chargement des messages avec {name}…","Vous pouvez envoyer directement un message à {name}.","Discussion enregistrée. Devenez amis ou rejoignez la même Tribu pour envoyer des messages ou appeler."],
+  de:["Nachrichten mit {name} werden geladen…","Du kannst {name} direkt eine Nachricht senden.","Gespeicherter Chat. Werdet Freunde oder tretet derselben Tribu bei, um Nachrichten zu senden oder anzurufen."],
+  pt:["Carregando mensagens com {name}…","Você pode enviar mensagens diretamente para {name}.","Conversa salva. Tornem-se amigos ou participem da mesma Tribo para enviar mensagens ou ligar."],
+  it:["Caricamento dei messaggi con {name}…","Puoi inviare messaggi direttamente a {name}.","Chat salvata. Diventate amici o unitevi alla stessa Tribù per inviare messaggi o chiamare."],
+  ko:["{name}님과의 메시지를 불러오는 중…","{name}님에게 직접 메시지를 보낼 수 있습니다.","저장된 채팅입니다. 친구가 되거나 같은 부족에 가입하면 메시지를 보내거나 통화할 수 있습니다."],
+  ja:["{name}とのメッセージを読み込んでいます…","{name}に直接メッセージを送れます。","保存済みチャットです。友達になるか同じ部族に参加すると、メッセージや通話ができます。"],
+  "zh-Hans":["正在加载与{name}的消息…","你可以直接向{name}发送消息。","已保存聊天。成为好友或加入同一部落后即可发送消息或通话。"],
+  "zh-Hant":["正在載入與{name}的訊息…","你可以直接向{name}傳送訊息。","已儲存聊天。成為好友或加入同一部落後即可傳送訊息或通話。"],
+  fil:["Nilo-load ang mga mensahe kay {name}…","Maaari kang direktang magpadala ng mensahe kay {name}.","Naka-save na chat. Maging magkaibigan o sumali sa parehong Tribo para makapagpadala ng mensahe o tumawag."],
+  hi:["{name} के साथ संदेश लोड हो रहे हैं…","आप {name} को सीधे संदेश भेज सकते हैं।","सहेजी गई चैट। संदेश भेजने या कॉल करने के लिए दोस्त बनें या उसी समूह में शामिल हों।"],
+  vi:["Đang tải tin nhắn với {name}…","Bạn có thể nhắn tin trực tiếp cho {name}.","Cuộc trò chuyện đã lưu. Hãy kết bạn hoặc tham gia cùng Bộ lạc để nhắn tin hoặc gọi."],
+  th:["กำลังโหลดข้อความกับ {name}…","คุณสามารถส่งข้อความถึง {name} ได้โดยตรง","แชทที่บันทึกไว้ โปรดเป็นเพื่อนหรือเข้าร่วมเผ่าเดียวกันเพื่อส่งข้อความหรือโทร"],
+  id:["Memuat pesan dengan {name}…","Anda dapat mengirim pesan langsung kepada {name}.","Obrolan tersimpan. Bertemanlah atau bergabunglah dengan Suku yang sama untuk mengirim pesan atau menelepon."]
+ };
+ for(const [language,values] of Object.entries(conversationStatuses)){const dictionary=dictionaries[language]||(dictionaries[language]={});conversationStatusKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const conversationEmptyKeys=["Ready to start a secure call.","Select a saved chat or an available friend to begin messaging.","Attach photo or video","Open camera to take a photo or video","Send message"];
  const conversationEmptyDetails={
   es:["Listo para iniciar una llamada segura.","Selecciona un chat guardado o un amigo disponible para empezar a conversar.","Adjuntar foto o video","Abrir la cámara para tomar una foto o un video","Enviar mensaje"],

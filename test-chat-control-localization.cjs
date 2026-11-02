@@ -8,6 +8,7 @@ const messages = fs.readFileSync("assets/direct-messages.js", "utf8");
 
 assert.match(i18n, /const chatControlKeys=\["Incoming call"[\s\S]*"Open contact profile"\]/, "call and chat controls need one complete translation key set");
 assert.match(i18n, /const callStatusKeys=\["Connected securely to \{name\}\."[\s\S]*"video"\]/, "the complete live call flow needs translated status templates");
+assert.match(i18n, /const conversationStatusKeys=\["Loading messages with \{name\}…"[\s\S]*"Saved chat\./, "saved conversations need translated loading and permission guidance");
 for (const language of ["es", "fr", "de", "pt", "it", "ko", "ja", "zh-Hans", "zh-Hant", "fil", "hi", "vi", "th", "id"]) {
   assert.match(i18n, new RegExp(`(?:^|\\s|,)${language.includes("-") ? `"${language}"` : language}:\\[`), `${language} needs chat control translations`);
 }
@@ -19,5 +20,8 @@ assert.match(chat, /setStatus\(tf\("No answer from \{name\}\."/, "no-answer stat
 assert.match(chat, /setStatus\(t\("Call declined\."\)\)/, "declined-call status should remain translated");
 assert.match(messages, /const translated = messageTranslate\(labels\[key\]\)/, "named conversation actions should translate before adding the member name");
 assert.match(messages, /mine \? messageTranslate\("You"\)/, "message ownership labels should stay translated");
+assert.match(messages, /messageFormat\("Loading messages with \{name\}…", \{ name: activeContactName \}\)/, "conversation loading should translate without losing the contact name");
+assert.match(messages, /messageFormat\("You can message \{name\} directly\.", \{ name: activeContactName \}\)/, "conversation permission guidance should translate without losing the contact name");
+assert.match(messages, /messageTranslate\(isOnline \? "Online" : "Offline"\)/, "conversation presence should use the selected language");
 
 console.log("Chat localization checks passed: all supported languages cover active conversation and call controls.");

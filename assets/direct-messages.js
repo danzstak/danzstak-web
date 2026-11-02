@@ -18,6 +18,10 @@ const textButton = document.getElementById("startText");
 const conversationActions = [textButton, document.getElementById("startPhone"), document.getElementById("startVideo")].filter(Boolean);
 const callStatus = document.getElementById("callStatus");
 const messageTranslate = value => window.danzstakTranslate?.(value) || value;
+const messageFormat = (key, values = {}) => Object.entries(values).reduce(
+  (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+  messageTranslate(key)
+);
 
 function createCallActionIcon(kind) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -344,10 +348,11 @@ function updateConversationPresence(conversation) {
   if (!conversationPresence) return;
   const isOnline = conversation?.online === true;
   const contactName = conversation?.name || conversationName?.textContent || "DanzStak member";
+  const translatedPresence = messageTranslate(isOnline ? "Online" : "Offline");
   conversationPresence.hidden = false;
-  conversationPresence.textContent = isOnline ? "Online" : "Offline";
+  conversationPresence.textContent = translatedPresence;
   conversationPresence.classList.toggle("is-offline", !isOnline);
-  conversationPresence.setAttribute("aria-label", contactName + " is " + (isOnline ? "online" : "offline"));
+  conversationPresence.setAttribute("aria-label", `${contactName}: ${translatedPresence}`);
 }
 
 function openConversation(conversation) {
@@ -363,9 +368,9 @@ function openConversation(conversation) {
   conversationName.textContent = conversation.name || "DanzStak member";
   const profileHref = conversation.memberId ? "profile.html?member=" + encodeURIComponent(conversation.memberId) : "profile.html";
   conversationName.href = profileHref;
-  conversationName.setAttribute("aria-label", "Open " + conversationName.textContent + " profile");
+  conversationName.setAttribute("aria-label", `${messageTranslate("Open contact profile")}: ${conversationName.textContent}`);
   conversationAvatar.href = profileHref;
-  conversationAvatar.setAttribute("aria-label", "Open " + conversationName.textContent + " profile");
+  conversationAvatar.setAttribute("aria-label", `${messageTranslate("Open contact profile")}: ${conversationName.textContent}`);
   labelConversationHeaderActions(conversationName.textContent);
   updateConversationPresence(conversation);
   activeContactName = conversation.name || "Contact";
@@ -423,7 +428,7 @@ function renderMessageLoadingState() {
   const status = document.createElement("p");
   status.className = "system-message message-loading-state";
   status.setAttribute("role", "status");
-  status.textContent = `Loading messages with ${activeContactName}…`;
+  status.textContent = messageFormat("Loading messages with {name}…", { name: activeContactName });
   messageList.replaceChildren(status);
 }
 
@@ -623,7 +628,9 @@ async function loadDirectMessages(reset = false) {
     setConversationActionsEnabled(activeCanContact);
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
-    callStatus.textContent = activeCanContact ? "You can message " + activeContactName + " directly." : "Saved chat. Become friends or join the same Tribe to send new messages or call.";
+    callStatus.textContent = activeCanContact
+      ? messageFormat("You can message {name} directly.", { name: activeContactName })
+      : messageTranslate("Saved chat. Become friends or join the same Tribe to send new messages or call.");
   } catch (error) {
     if (version === conversationVersion) {
       const message = error.message || "Messages could not be loaded";
@@ -740,7 +747,7 @@ async function loadConversations() {
       } else avatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
       avatarWrap.appendChild(avatar);
       if (conversation.online === true) {
-        const onlineDot = document.createElement("span"); onlineDot.className = "conversation-online-dot"; onlineDot.setAttribute("role", "img"); onlineDot.setAttribute("aria-label", "Online"); onlineDot.title = "Online"; avatarWrap.appendChild(onlineDot);
+        const onlineDot = document.createElement("span"); onlineDot.className = "conversation-online-dot"; onlineDot.setAttribute("role", "img"); onlineDot.setAttribute("aria-label", messageTranslate("Online")); onlineDot.title = messageTranslate("Online"); avatarWrap.appendChild(onlineDot);
       }
       const copy = document.createElement("span"); copy.className = "conversation-copy";
       const name = document.createElement("strong"); name.textContent = conversation.name || "DanzStak member";
@@ -761,7 +768,7 @@ async function loadConversations() {
       button.addEventListener("click", () => { conversation.unread = 0; markChatRead(conversation.contactEmail, conversation.updatedAt || new Date().toISOString()); openConversation(conversation); });
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [kind, targetId] of [["phone", "startPhone"], ["video", "startVideo"]]) {
-        const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.appendChild(createCallActionIcon(kind)); call.title = `${targetId === "startPhone" ? "Phone" : "Video"} call with ${publicName}`; call.setAttribute("aria-label", call.title);
+        const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.appendChild(createCallActionIcon(kind)); call.title = `${messageTranslate(targetId === "startPhone" ? "Phone call" : "Video call")}: ${publicName}`; call.setAttribute("aria-label", call.title);
         call.disabled = conversation.canContact === false;
         call.addEventListener("click", () => { openConversation(conversation); document.getElementById(targetId)?.click(); });
         calls.appendChild(call);
@@ -834,7 +841,7 @@ onlineUsers?.addEventListener("click", event => {
 textButton?.addEventListener("click", event => {
   event.stopImmediatePropagation();
   const email = contactInput.value.trim().toLowerCase();
-  if (!email) { callStatus.textContent = "Select a friend or Tribe member first."; return; }
+  if (!email) { callStatus.textContent = messageTranslate("Select a friend or Tribe member first."); return; }
   openConversation(cachedConversations.find(item => item.contactEmail === email) || { contactEmail: email, name: "DanzStak member", picture: "" });
 }, true);
 
