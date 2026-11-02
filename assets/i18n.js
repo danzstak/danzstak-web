@@ -217,22 +217,25 @@
  };
  for(const [language,values] of Object.entries(socialActions)){const dictionary=dictionaries[language]||(dictionaries[language]={});socialActionKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const socialTemplates={
-  es:{open:"Abrir el perfil de {name}",reply:"Responder a {name}",view:"Ver la publicación de {name}",audience:"Audiencia de la publicación: {value}",remaining:"Mostrar más publicaciones. Quedan {count}."},
-  fr:{open:"Ouvrir le profil de {name}",reply:"Répondre à {name}",view:"Voir la publication de {name}",audience:"Audience de la publication : {value}",remaining:"Afficher plus de publications. {count} restantes."},
-  de:{open:"Profil von {name} öffnen",reply:"{name} antworten",view:"Beitrag von {name} ansehen",audience:"Beitragssichtbarkeit: {value}",remaining:"Mehr Beiträge anzeigen. Noch {count}."},
-  pt:{open:"Abrir perfil de {name}",reply:"Responder a {name}",view:"Ver publicação de {name}",audience:"Público da publicação: {value}",remaining:"Mostrar mais publicações. Restam {count}."},
-  it:{open:"Apri il profilo di {name}",reply:"Rispondi a {name}",view:"Visualizza il post di {name}",audience:"Pubblico del post: {value}",remaining:"Mostra altri post. Ne restano {count}."},
-  ko:{open:"{name} 프로필 열기",reply:"{name}님에게 답글",view:"{name}님의 게시물 보기",audience:"게시물 공개 범위: {value}",remaining:"게시물 더 보기. {count}개 남음."},
-  ja:{open:"{name}のプロフィールを開く",reply:"{name}に返信",view:"{name}の投稿を見る",audience:"投稿の公開範囲：{value}",remaining:"投稿をさらに表示。残り{count}件。"},
-  "zh-Hans":{open:"打开{name}的个人资料",reply:"回复{name}",view:"查看{name}的帖子",audience:"帖子可见范围：{value}",remaining:"显示更多帖子。还剩{count}篇。"},
-  "zh-Hant":{open:"開啟{name}的個人檔案",reply:"回覆{name}",view:"查看{name}的貼文",audience:"貼文可見範圍：{value}",remaining:"顯示更多貼文。還剩{count}篇。"},
-  fil:{open:"Buksan ang profile ni {name}",reply:"Tumugon kay {name}",view:"Tingnan ang post ni {name}",audience:"Audience ng post: {value}",remaining:"Magpakita pa ng mga post. {count} ang natitira."},
-  hi:{open:"{name} की प्रोफ़ाइल खोलें",reply:"{name} को जवाब दें",view:"{name} की पोस्ट देखें",audience:"पोस्ट दर्शक: {value}",remaining:"और पोस्ट दिखाएँ। {count} बाकी।"},
-  vi:{open:"Mở trang cá nhân của {name}",reply:"Trả lời {name}",view:"Xem bài viết của {name}",audience:"Đối tượng bài viết: {value}",remaining:"Hiện thêm bài viết. Còn {count}."},
-  th:{open:"เปิดโปรไฟล์ของ {name}",reply:"ตอบกลับ {name}",view:"ดูโพสต์ของ {name}",audience:"ผู้ชมโพสต์: {value}",remaining:"แสดงโพสต์เพิ่มเติม เหลือ {count} โพสต์"},
-  id:{open:"Buka profil {name}",reply:"Balas {name}",view:"Lihat postingan {name}",audience:"Pemirsa postingan: {value}",remaining:"Tampilkan postingan lainnya. Tersisa {count}."}
+  es:{open:"Abrir el perfil de {name}",reply:"Responder a {name}",view:"Ver la publicación de {name}",audience:"Audiencia de la publicación: {value}",remaining:"Mostrar más publicaciones. Quedan {count}.",photo:"Foto compartida por {name}",video:"Video compartido por {name}",roll:"Video en The Roll de {name}"},
+  fr:{open:"Ouvrir le profil de {name}",reply:"Répondre à {name}",view:"Voir la publication de {name}",audience:"Audience de la publication : {value}",remaining:"Afficher plus de publications. {count} restantes.",photo:"Photo partagée par {name}",video:"Vidéo partagée par {name}",roll:"Vidéo dans The Roll de {name}"},
+  de:{open:"Profil von {name} öffnen",reply:"{name} antworten",view:"Beitrag von {name} ansehen",audience:"Beitragssichtbarkeit: {value}",remaining:"Mehr Beiträge anzeigen. Noch {count}.",photo:"Von {name} geteiltes Foto",video:"Von {name} geteiltes Video",roll:"Video in The Roll von {name}"},
+  pt:{open:"Abrir perfil de {name}",reply:"Responder a {name}",view:"Ver publicação de {name}",audience:"Público da publicação: {value}",remaining:"Mostrar mais publicações. Restam {count}.",photo:"Foto compartilhada por {name}",video:"Vídeo compartilhado por {name}",roll:"Vídeo no The Roll de {name}"},
+  it:{open:"Apri il profilo di {name}",reply:"Rispondi a {name}",view:"Visualizza il post di {name}",audience:"Pubblico del post: {value}",remaining:"Mostra altri post. Ne restano {count}.",photo:"Foto condivisa da {name}",video:"Video condiviso da {name}",roll:"Video in The Roll di {name}"},
+  ko:{open:"{name} 프로필 열기",reply:"{name}님에게 답글",view:"{name}님의 게시물 보기",audience:"게시물 공개 범위: {value}",remaining:"게시물 더 보기. {count}개 남음.",photo:"{name}님이 공유한 사진",video:"{name}님이 공유한 동영상",roll:"{name}님의 The Roll 동영상"},
+  ja:{open:"{name}のプロフィールを開く",reply:"{name}に返信",view:"{name}の投稿を見る",audience:"投稿の公開範囲：{value}",remaining:"投稿をさらに表示。残り{count}件。",photo:"{name}が共有した写真",video:"{name}が共有した動画",roll:"{name}のThe Roll動画"},
+  "zh-Hans":{open:"打开{name}的个人资料",reply:"回复{name}",view:"查看{name}的帖子",audience:"帖子可见范围：{value}",remaining:"显示更多帖子。还剩{count}篇。",photo:"{name}分享的照片",video:"{name}分享的视频",roll:"{name}在The Roll中的视频"},
+  "zh-Hant":{open:"開啟{name}的個人檔案",reply:"回覆{name}",view:"查看{name}的貼文",audience:"貼文可見範圍：{value}",remaining:"顯示更多貼文。還剩{count}篇。",photo:"{name}分享的相片",video:"{name}分享的影片",roll:"{name}在The Roll中的影片"},
+  fil:{open:"Buksan ang profile ni {name}",reply:"Tumugon kay {name}",view:"Tingnan ang post ni {name}",audience:"Audience ng post: {value}",remaining:"Magpakita pa ng mga post. {count} ang natitira.",photo:"Larawang ibinahagi ni {name}",video:"Video na ibinahagi ni {name}",roll:"Video sa The Roll ni {name}"},
+  hi:{open:"{name} की प्रोफ़ाइल खोलें",reply:"{name} को जवाब दें",view:"{name} की पोस्ट देखें",audience:"पोस्ट दर्शक: {value}",remaining:"और पोस्ट दिखाएँ। {count} बाकी।",photo:"{name} द्वारा साझा की गई फ़ोटो",video:"{name} द्वारा साझा किया गया वीडियो",roll:"{name} का The Roll वीडियो"},
+  vi:{open:"Mở trang cá nhân của {name}",reply:"Trả lời {name}",view:"Xem bài viết của {name}",audience:"Đối tượng bài viết: {value}",remaining:"Hiện thêm bài viết. Còn {count}.",photo:"Ảnh do {name} chia sẻ",video:"Video do {name} chia sẻ",roll:"Video trên The Roll của {name}"},
+  th:{open:"เปิดโปรไฟล์ของ {name}",reply:"ตอบกลับ {name}",view:"ดูโพสต์ของ {name}",audience:"ผู้ชมโพสต์: {value}",remaining:"แสดงโพสต์เพิ่มเติม เหลือ {count} โพสต์",photo:"รูปภาพที่แชร์โดย {name}",video:"วิดีโอที่แชร์โดย {name}",roll:"วิดีโอใน The Roll จาก {name}"},
+  id:{open:"Buka profil {name}",reply:"Balas {name}",view:"Lihat postingan {name}",audience:"Pemirsa postingan: {value}",remaining:"Tampilkan postingan lainnya. Tersisa {count}.",photo:"Foto yang dibagikan oleh {name}",video:"Video yang dibagikan oleh {name}",roll:"Video di The Roll dari {name}"}
  };
  const memberCountLabels={es:n=>`Resultados: ${n}.`,fr:n=>`Résultats : ${n}.`,de:n=>`Ergebnisse: ${n}.`,pt:n=>`Resultados: ${n}.`,it:n=>`Risultati: ${n}.`,ko:n=>`검색 결과: ${n}명.`,ja:n=>`検索結果：${n}件。`,"zh-Hans":n=>`结果：${n}。`,"zh-Hant":n=>`結果：${n}。`,fil:n=>`Mga resulta: ${n}.`,hi:n=>`नतीजे: ${n}।`,vi:n=>`Kết quả: ${n}.`,th:n=>`ผลลัพธ์: ${n}`,id:n=>`Hasil: ${n}.`};
+ const viewCountLabels={es:n=>`${n} ${n===1?'vista':'vistas'}`,fr:n=>`${n} vue${n===1?'':'s'}`,de:n=>`${n} ${n===1?'Aufruf':'Aufrufe'}`,pt:n=>`${n} ${n===1?'visualização':'visualizações'}`,it:n=>`${n} ${n===1?'visualizzazione':'visualizzazioni'}`,ko:n=>`조회 ${n}회`,ja:n=>`${n}回表示`,"zh-Hans":n=>`${n}次浏览`,"zh-Hant":n=>`${n}次瀏覽`,fil:n=>`${n} ${n===1?'view':'mga view'}`,hi:n=>`${n} बार देखा गया`,vi:n=>`${n} lượt xem`,th:n=>`ดู ${n} ครั้ง`,id:n=>`${n} kali dilihat`};
+ const postTextLabels={es:"Texto de la publicación",fr:"Texte de la publication",de:"Beitragstext",pt:"Texto da publicação",it:"Testo del post",ko:"게시물 텍스트",ja:"投稿本文","zh-Hans":"帖子文字","zh-Hant":"貼文文字",fil:"Teksto ng post",hi:"पोस्ट का टेक्स्ट",vi:"Nội dung bài viết",th:"ข้อความโพสต์",id:"Teks postingan"};
+ for(const [language,label] of Object.entries(postTextLabels))(dictionaries[language]||(dictionaries[language]={}))["Post text"]=label;
  const originalText=new WeakMap(),originalAttributes=new WeakMap();
  const excluded='script,style,textarea,[data-no-translate],.post-content,.post-header,.comment,.message:not(.system-message),.profile-bio,.profile-post-card p,.profile-post-meta,.profile-friend-card,.friend-details,.conversation-user,#conversationName,.news-card,.reel-details,.story-viewer-caption,.value,#profileName,#profileHandle,.facebook-import-items';
  // Text inside posts, comments, captions, and member cards is user content and
@@ -253,8 +256,12 @@
    if(!result&&(match=trimmed.match(/^View post from (.+)$/)))result=fill(templates.view,{name:match[1]});
    if(!result&&(match=trimmed.match(/^Post audience: (.+)$/)))result=fill(templates.audience,{value:dictionary[match[1]]||match[1]});
    if(!result&&(match=trimmed.match(/^Show more posts\. (\d+) remaining\.$/)))result=fill(templates.remaining,{count:match[1]});
+   if(!result&&(match=trimmed.match(/^Photo shared by (.+)$/)))result=fill(templates.photo,{name:match[1]});
+   if(!result&&(match=trimmed.match(/^Video shared by (.+)$/)))result=fill(templates.video,{name:match[1]});
+   if(!result&&(match=trimmed.match(/^Video in The Roll from (.+)$/)))result=fill(templates.roll,{name:match[1]});
   }
   if(!result){const members=trimmed.match(/^(\d+) matching members?\.$/);if(members&&memberCountLabels[language])result=memberCountLabels[language](members[1]);}
+  if(!result){const views=trimmed.match(/^(\d[\d,.]*) views?$/);if(views&&viewCountLabels[language])result=viewCountLabels[language](views[1]);}
   if(!result){const count=trimmed.match(/^(Notifications|Friends|Messages) \((\d+)\)$/);if(count)result=(dictionary[count[1]]||count[1])+' ('+count[2]+')';}
   if(!result)return source;
   return source.slice(0,source.indexOf(trimmed))+result+source.slice(source.indexOf(trimmed)+trimmed.length);

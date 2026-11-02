@@ -9,7 +9,7 @@
   function countLabel(article, count) {
     let label = article.querySelector('.post-view-count');
     if (!label) { label = document.createElement('div'); label.className = 'post-view-count'; const actions = article.querySelector('.post-actions'); if (actions) actions.before(label); else article.appendChild(label); }
-    const safe = Math.max(0,Number(count) || 0); label.textContent = safe.toLocaleString() + (safe === 1 ? ' view' : ' views'); article.dataset.viewCount = String(safe);
+    const safe = Math.max(0,Number(count) || 0), source = safe.toLocaleString() + (safe === 1 ? ' view' : ' views'); label.textContent = globalThis.danzstakTranslate?.(source) || source; article.dataset.viewCount = String(safe);
   }
   function cancel(article) { clearTimeout(timers.get(article)); timers.delete(article); }
   async function record(article) {

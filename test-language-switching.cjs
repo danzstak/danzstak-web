@@ -135,6 +135,11 @@ assert.equal(window.danzstakSetLanguage("unsupported"), "en");
 for (const [language] of window.danzstakLanguages) {
   window.danzstakSetLanguage(language);
   for (const source of [
+    "Post text",
+    "Photo shared by Sigmund",
+    "Video shared by Sigmund",
+    "Video in The Roll from Sigmund",
+    "8 views",
     "Offline access",
     "Keep recent posts and chats available offline on this device",
     "Off by default. Turning this on saves recently viewed private content and unsent text posts or messages only on this device. Turning it off or signing out deletes that saved content.",

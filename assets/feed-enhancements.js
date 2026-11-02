@@ -2677,7 +2677,7 @@ function addPostDeleteButton(post) {
       updateLoadedPost(postId, { audience: audiences[next] });
       button.querySelector("small").textContent = values[next];
       if (audienceBadge) {
-        audienceBadge.textContent = ["🔒 Just me", "👥 Friends", "🌎 Public"][next];
+        audienceBadge.textContent = ["🔒 "+(window.danzstakTranslate?.("Just me")||"Just me"), "👥 "+(window.danzstakTranslate?.("Friends")||"Friends"), "🌎 "+(window.danzstakTranslate?.("Public")||"Public")][next];
         audienceBadge.setAttribute("aria-label", "Post audience: " + values[next]);
       }
       button.disabled = false;
@@ -3344,7 +3344,8 @@ function renderPlayableReels() {
       video.src = playerInfo.src;
       video.controls = true;
       video.playsInline = true;
-      video.setAttribute("aria-label", "Video in The Roll from " + (reel.authorName || "a DanzStak member"));
+      const rollLabel = "Video in The Roll from " + (reel.authorName || "a DanzStak member");
+      video.setAttribute("aria-label", window.danzstakTranslate?.(rollLabel) || rollLabel);
       video.autoplay = !dataSaverEnabled();
       video.muted = true;
       video.loop = true;
