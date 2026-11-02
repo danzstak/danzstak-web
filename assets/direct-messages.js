@@ -148,7 +148,7 @@ async function directFetch(path, options = {}, timeoutMs = 10000) {
   try { return await fetch(String(target), { ...options, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot connect right now. Check your connection and try again.");
   }
   finally { clearTimeout(timer); }
 }

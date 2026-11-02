@@ -31,7 +31,7 @@
       });
     } catch (error) {
       if (error.name === "AbortError") throw new Error("Notification setup took too long. Try again.");
-      throw error;
+      throw new Error("DanzStak cannot connect right now. Check your connection and try again.");
     } finally { clearTimeout(timeout); }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Notification setup failed");

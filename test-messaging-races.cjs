@@ -57,7 +57,7 @@ function setup() {
   h.requests[3].reject(new Error('Network unavailable'));
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.run('loadingMessages'), false, 'failure releases the loader');
-  assert.match(h.elements.get('callStatus').textContent, /Network unavailable/);
+  assert.match(h.elements.get('callStatus').textContent, /DanzStak cannot connect right now/);
 
   h.run('openConversation({contactEmail:"sender@example.com"})');
   await h.finish(4, { canContact: true });

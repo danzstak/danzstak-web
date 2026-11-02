@@ -33,6 +33,10 @@
       });
       if (!response.ok) throw new Error("Call service unavailable");
       return response.json().catch(() => ({}));
+    } catch (error) {
+      if (error.name === "AbortError") throw new Error("Call service took too long. Try again.");
+      if (error.message === "Call service unavailable") throw error;
+      throw new Error("DanzStak cannot connect to calls right now. Check your connection and try again.");
     } finally { clearTimeout(timeout); }
   }
 
