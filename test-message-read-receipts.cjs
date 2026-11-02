@@ -12,7 +12,7 @@ assert.match(template, /read:x\.senderEmail\.S===user\.email&&Boolean\(contactRe
 assert.match(template, /Key:\{userEmail:\{S:contact\},contactEmail:\{S:user\.email\}\}/);
 assert.match(template, /UpdateExpression:'SET contactReadAt = :r'/);
 assert.match(client, /message\.read \? "✓✓" : "✓"/);
-assert.match(client, /message\.read \? "Read" : "Delivered"/);
+assert.match(client, /messageTranslate\(message\.read \? "Read" : "Delivered"\)/);
 assert.match(css, /\.message-receipt\.is-read\{color:#1687d9\}/);
 
 console.log("Message receipt checks passed: durable recipient reads, delivered/read ticks, and accessible status labels.");

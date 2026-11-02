@@ -480,12 +480,12 @@ function directMessageItem(message) {
   item.setAttribute("aria-label", messageAccessibleSummary(message, mine));
   const meta = document.createElement("span");
   meta.className = "message-meta";
-  meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · edited" : "");
+  meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · " + messageTranslate("edited") : "");
   if (mine) {
     const receipt = document.createElement("span");
     receipt.className = message.read ? "message-receipt is-read" : "message-receipt";
     receipt.textContent = message.read ? "✓✓" : "✓";
-    receipt.setAttribute("aria-label", message.read ? "Read" : "Delivered");
+    receipt.setAttribute("aria-label", messageTranslate(message.read ? "Read" : "Delivered"));
     meta.append(" ", receipt);
   }
   item.appendChild(meta);
@@ -539,9 +539,9 @@ function pendingMessageItem(content, mediaFile) {
   const meta = document.createElement("span");
   item.className = "message mine message-pending";
   item.textContent = text;
-  item.setAttribute("aria-label", `You: ${text}. Sending.`);
+  item.setAttribute("aria-label", messageFormat("You: {text}. Sending.", { text }));
   meta.className = "message-meta";
-  meta.textContent = "Sending…";
+  meta.textContent = messageTranslate("Sending…");
   item.appendChild(meta);
   return item;
 }
@@ -761,7 +761,7 @@ async function loadConversations() {
         const badge = document.createElement("span");
         badge.className = "conversation-unread";
         badge.textContent = Number(conversation.unread) > 99 ? "99+" : String(Number(conversation.unread));
-        badge.setAttribute("aria-label", `${conversation.unread} unread message${Number(conversation.unread) === 1 ? "" : "s"}`);
+        badge.setAttribute("aria-label", messageFormat(Number(conversation.unread) === 1 ? "{count} unread message" : "{count} unread messages", { count: conversation.unread }));
         meta.appendChild(badge);
       }
       copy.append(name, preview); button.append(avatarWrap, copy, meta);
