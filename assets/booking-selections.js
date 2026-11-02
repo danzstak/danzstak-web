@@ -18,6 +18,15 @@
   const artistInputs = { name: "pitchArtist", genre: "pitchGenre", hometown: "pitchHometown", epk: "pitchEpk", pitch: "pitchSummary" };
   const artist = () => Object.fromEntries(Object.entries(artistInputs).map(([key, id]) => [key, document.getElementById(id).value.trim()]));
   const identity = v => String(v.venueKey || `${v.name || ""}|${v.address || ""}`);
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
   const listingCheckedText = value => {
     const checked = new Date(value || "");
     return Number.isNaN(checked.getTime()) ? "" : `Public listing checked ${new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(checked)}`;
@@ -32,7 +41,7 @@
     button.disabled = true;
     accountStatus.textContent = "Finding your published EPK…";
     try {
-      const response = await fetch("https://api.danzstak.com/epk", { credentials: "include", cache: "no-store" });
+      const response = await fetchWithTimeout("https://api.danzstak.com/epk", { credentials: "include", cache: "no-store" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Your EPK could not be loaded.");
       if (!data.published || !data.publicId) throw new Error("Publish your EPK before adding it to a booking inquiry.");
@@ -40,7 +49,7 @@
       dirty = true;
       accountStatus.textContent = "Published EPK added. Save the booking workspace to keep it.";
     } catch (error) {
-      accountStatus.textContent = error.message;
+      accountStatus.textContent = error.name === "AbortError" ? "Your EPK took too long to load. Try again." : error.message;
     } finally {
       button.disabled = false;
     }
