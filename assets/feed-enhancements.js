@@ -3332,15 +3332,31 @@ function setRollFullscreen(open) {
   document.body.classList.toggle("roll-view-open", open);
   rollOpen.setAttribute("aria-expanded", String(open));
   if (open) {
+    reelsRail.setAttribute("role", "dialog");
+    reelsRail.setAttribute("aria-modal", "true");
     reelsList.scrollTop = 0;
     rollClose.focus({ preventScroll: true });
     const first = reelsList.querySelector("video.reel-player");
     if (first && !dataSaverEnabled()) first.play().catch(() => {});
-  } else rollOpen.focus({ preventScroll: true });
+  } else {
+    reelsRail.removeAttribute("role");
+    reelsRail.removeAttribute("aria-modal");
+    rollOpen.focus({ preventScroll: true });
+  }
 }
 rollOpen.addEventListener("click", () => setRollFullscreen(true));
 rollClose.addEventListener("click", () => setRollFullscreen(false));
-document.addEventListener("keydown", event => { if (event.key === "Escape" && reelsRail.classList.contains("roll-fullscreen")) { event.preventDefault(); setRollFullscreen(false); } });
+document.addEventListener("keydown", event => {
+  if (!reelsRail.classList.contains("roll-fullscreen")) return;
+  if (event.key === "Escape") { event.preventDefault(); setRollFullscreen(false); return; }
+  if (event.key !== "Tab") return;
+  const focusable = [...reelsRail.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),video[controls],[tabindex]:not([tabindex="-1"])')]
+    .filter(element => !element.hidden && element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length);
+  if (!focusable.length) { event.preventDefault(); rollClose.focus({ preventScroll: true }); return; }
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
 reelsHeading.append(reelsTitle, reelsSourceNote, rollOpen, rollClose);
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
