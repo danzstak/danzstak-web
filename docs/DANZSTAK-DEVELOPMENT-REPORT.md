@@ -7,8 +7,10 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 - Opening a conversation in the standalone mobile Messages page now creates a privacy-safe browser-history entry. Android/iPhone Back returns to the conversation list instead of leaving Messages, and Forward restores the chat without creating a history loop.
 - History state contains only a boolean view marker; it does not store the contact's email, message content or account identifier.
 - Desktop Chat and embedded Chat drawers do not modify browser history. Existing per-chat drafts, optimistic sends, calls, media attachments, reactions, read receipts and conversation deletion remain unchanged.
+- The standalone mobile minimize control now consumes the same history entry as Close, preventing a hidden stale conversation state from breaking the next browser Back action. Embedded minimize continues to use the parent-drawer message protocol.
 - Verification: **48 of 48** focused messaging, calling, presence and notification regression programs passed; PWA shell refresh passed; the locally served Messages page loaded with its accessible list, filters, recovery state and composer structure intact.
 - Implementation commit: `5f0d4b3bf4b91435ecdfe8165a2a3b0ea084fc9f` on `danzstak-patch-1`.
+- History-safe minimize follow-up: `0c39e17ad3ad4ec3ff92c03852b7a96b2fcfc624`.
 
 ## Stripe integration on `danzstak-patch-1`
 
