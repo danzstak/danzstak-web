@@ -2969,14 +2969,18 @@ function updateCommentPreview(post) {
   if (!more) { more = document.createElement("button"); more.type = "button"; more.className = "comments-more"; more.addEventListener("click", () => { post.dataset.commentsExpanded = String(post.dataset.commentsExpanded !== "true"); updateCommentPreview(post); }); list.after(more); }
   more.hidden = items.length <= 2; more.textContent = expanded ? "Show top 2 comments" : "View all " + items.length + " comments"; more.setAttribute("aria-expanded", String(expanded));
 }
+let reactionPaletteSequence = 0;
 function attachReactionPicker(container, up, down, current, choose) {
-  const palette = document.createElement("div"); palette.className = "reaction-palette"; palette.hidden = true; palette.setAttribute("role", "toolbar"); palette.setAttribute("aria-label", "Choose a reaction");
+  const palette = document.createElement("div"); palette.className = "reaction-palette"; palette.hidden = true; palette.id = "reaction-palette-" + (++reactionPaletteSequence); palette.setAttribute("role", "toolbar"); palette.setAttribute("aria-label", "Choose a reaction");
   let held = false, moved = false, timer, origin, opener = up;
-  const hide = () => { palette.hidden = true; };
-  const show = button => { opener = button; const rect = button.getBoundingClientRect(); const width = Math.min(320, document.documentElement.clientWidth - 24); palette.style.width = width + "px"; palette.style.left = Math.max(12,Math.min(rect.left,document.documentElement.clientWidth-width-12)) + "px"; palette.style.top = Math.max(12,rect.top-64) + "px"; palette.hidden = false; };
+  const hide = () => { palette.hidden = true; opener?.setAttribute("aria-expanded", "false"); };
+  const show = button => { opener?.setAttribute("aria-expanded", "false"); opener = button; const rect = button.getBoundingClientRect(); const width = Math.min(320, document.documentElement.clientWidth - 24); palette.style.width = width + "px"; palette.style.left = Math.max(12,Math.min(rect.left,document.documentElement.clientWidth-width-12)) + "px"; palette.style.top = Math.max(12,rect.top-64) + "px"; palette.hidden = false; opener.setAttribute("aria-expanded", "true"); };
   for (const [label,emoji] of Object.entries(reactionEmoji)) { const choice = document.createElement("button"); choice.type = "button"; choice.textContent = emoji; choice.setAttribute("aria-label",label); choice.title = label; choice.addEventListener("click", event => { event.stopPropagation(); choose(current() === label ? "" : label); hide(); opener.focus(); }); palette.appendChild(choice); }
   container.appendChild(palette);
   for (const [button,label] of [[up,"Like"],[down,"Dislike"]]) {
+    button.setAttribute("aria-haspopup", "true");
+    button.setAttribute("aria-controls", palette.id);
+    button.setAttribute("aria-expanded", "false");
     const cancel = () => { clearTimeout(timer); timer = null; };
     button.addEventListener("pointerdown", event => { cancel(); held = false; moved = false; origin = {x:event.clientX,y:event.clientY}; timer = setTimeout(() => { held = true; show(button); },500); });
     button.addEventListener("pointermove", event => { if (origin && Math.hypot(event.clientX-origin.x,event.clientY-origin.y)>10) { cancel(); moved = true; hide(); } });
@@ -2985,7 +2989,16 @@ function attachReactionPicker(container, up, down, current, choose) {
     button.addEventListener("keydown", event => { if (event.shiftKey && event.key === "F10") { event.preventDefault(); show(button); palette.querySelector("button")?.focus(); } });
     button.addEventListener("click", event => { event.preventDefault(); event.stopImmediatePropagation(); if (held || moved) { held = false; moved = false; return; } const value = current(); choose(label === "Like" && value && value !== "Dislike" ? "" : value === label ? "" : label); },true);
   }
-  palette.addEventListener("keydown",event => { if (event.key === "Escape") { event.preventDefault(); hide(); opener.focus(); } });
+  palette.addEventListener("keydown",event => {
+    if (event.key === "Escape") { event.preventDefault(); hide(); opener.focus(); return; }
+    if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
+    const choices = [...palette.querySelectorAll("button:not([disabled])")];
+    if (!choices.length) return;
+    event.preventDefault();
+    const currentIndex = choices.indexOf(document.activeElement);
+    const next = event.key === "Home" ? 0 : event.key === "End" ? choices.length - 1 : (Math.max(0, currentIndex) + (event.key === "ArrowRight" ? 1 : -1) + choices.length) % choices.length;
+    choices[next].focus();
+  });
 }
 function createCommentReactions(post, item, comment) {
   const controls = document.createElement("div"); controls.className = "comment-reactions";
