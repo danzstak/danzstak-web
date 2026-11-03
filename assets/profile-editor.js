@@ -770,6 +770,7 @@ tabs.addEventListener("keydown", event => {
 });
 
 const panel = document.createElement("form");
+let profileEditorOpener = null;
 panel.className = "edit-profile-panel";
 panel.hidden = true;
 panel.innerHTML = '<h2>' + profileEditorWords.heading + '</h2>' +
@@ -866,6 +867,8 @@ function applyProfile(profile) {
 }
 
 editButton.addEventListener("click", () => {
+  const activeElement = document.activeElement;
+  if (activeElement instanceof HTMLElement && !panel.contains(activeElement)) profileEditorOpener = activeElement;
   const profile = window.danzstakCurrentProfile?.cloudProfile ? window.danzstakCurrentProfile : savedProfile();
   panel.elements.name.value = profile.name || document.getElementById("profileName").textContent;
   panel.elements.handle.value = profile.handle || handleElement.textContent.replace(/^@/, "");
@@ -888,7 +891,24 @@ document.getElementById("profileName").addEventListener("click", () => {
   nameEditHint.click();
 });
 
-panel.querySelector("[data-cancel]").addEventListener("click", () => { panel.hidden = true; repositioning = false; finishReposition.hidden = true; coverElement.classList.remove("repositioning"); repositionButton.classList.remove("active"); repositionButton.textContent = "Reposition Cover"; });
+function closeProfileEditor({ restoreFocus = true } = {}) {
+  panel.hidden = true;
+  repositioning = false;
+  finishReposition.hidden = true;
+  coverElement.classList.remove("repositioning");
+  repositionButton.classList.remove("active");
+  repositionButton.textContent = "Reposition Cover";
+  const url = new URL(location.href);
+  if (url.searchParams.has("edit")) {
+    url.searchParams.delete("edit");
+    history.replaceState(null, "", url.pathname + url.search + url.hash);
+  }
+  const focusTarget = profileEditorOpener?.isConnected ? profileEditorOpener : editButton;
+  profileEditorOpener = null;
+  if (restoreFocus) requestAnimationFrame(() => focusTarget.focus({ preventScroll: true }));
+}
+
+panel.querySelector("[data-cancel]").addEventListener("click", () => closeProfileEditor());
 panel.addEventListener("submit", async event => {
   event.preventDefault();
   if (!panel.reportValidity()) return;
@@ -911,7 +931,7 @@ panel.addEventListener("submit", async event => {
       applyProfile(profile);
       status.textContent = profileTranslate("Profile saved in this browser. Cloud sync is temporarily unavailable.");
     }
-    panel.hidden = true;
+    closeProfileEditor();
   } catch (error) {
     status.textContent = error.message;
   } finally { submit.disabled = false; }
