@@ -52,7 +52,7 @@ node test-live-discovery.mjs
 
 The venue matrix covers the required searches: Seattle punk/hardcore, San Francisco rock/alternative, Los Angeles live music, Bologna all live music, Berlin techno/punk/rock, Paris jazz/blues, and London independent venues. A separate worldwide record-store matrix covers Bologna, Berlin, London, Tokyo, Seattle, and Momo. The test rejects out-of-radius results, requires source attribution and coordinates, and fails when a requested search has no validated results.
 
-Authenticated live result counts on 2026-11-02 (validated results after geographic and type filtering):
+Authenticated live result counts rechecked on 2026-11-03 (validated results after geographic and type filtering):
 
 - Seattle: punk 3, hardcore 1
 - San Francisco: rock 2, alternative 4
@@ -65,7 +65,7 @@ Authenticated live result counts on 2026-11-02 (validated results after geograph
 
 These are test-run observations, not guaranteed inventory counts. Listings can change and the product tells artists to verify current calendars and booking contacts.
 
-All three current global OpenStreetMap Overpass mirrors were unavailable from the development machine during validation. The application now races a bounded operator-configurable mirror set, reports provider status separately, and continues with AWS Places when the open-data provider is unavailable. AWS Places alone passed every city and store assertion above. The Overpass path still needs validation from the deployed Lambda network before production approval.
+All three current global OpenStreetMap Overpass mirrors were unavailable from the development machine during validation. The application races a bounded operator-configurable mirror set, reports provider status separately, and continues with AWS Places when the open-data provider is unavailable. A five-minute in-process circuit breaker now prevents every later city in the same warm runtime from waiting on mirrors that have already failed; the full 18-case live matrix dropped from roughly 106 seconds to 32 seconds while preserving the same validated counts. AWS Places alone passed every city and store assertion above. The Overpass path still needs validation from the deployed Lambda network before production approval.
 
 ## Known limits
 

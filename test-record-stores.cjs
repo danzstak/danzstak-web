@@ -13,6 +13,9 @@ assert.match(api, /descriptiveSignal \|\| strongNameSignal \|\| recordCategorySi
 assert.match(api, /multiSourceDiscovery\(point, "record-store"/, "record-store discovery should combine authorized providers");
 assert.doesNotMatch(api, /categories:\s*\[\.\.\.new Set\(\[\.\.\.\(place\.categories/, "search phrases must not be injected as provider category evidence");
 assert.match(api, /OpenStreetMap contributors/, "OpenStreetMap records must retain attribution");
+assert.match(api, /osmFailureBackoffMs = 5 \* 60 \* 1000/, "a failed OpenStreetMap mirror set should enter a short circuit-breaker cooldown");
+assert.match(api, /osmBackoffUntil > Date\.now\(\)/, "new city searches should not repeatedly wait on a provider already known to be unavailable");
+assert.match(api, /osmBackoffUntil = 0/, "a healthy OpenStreetMap response should close the circuit breaker");
 assert.match(client, /loadMoreStores/, "dense cities should support paged store results");
 assert.match(api, /audio visual\|audio[\s\S]*music company\|music center/, "audio, instrument, video and generic music retailers should be excluded");
 assert.match(api, /Number\(data\?\.radiusMiles\) \|\| 30/, "pagination should keep a stable radius until the user explicitly searches wider");

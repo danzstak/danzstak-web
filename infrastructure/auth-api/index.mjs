@@ -2054,6 +2054,8 @@ const configuredOsmOverpassEndpoints = String(globalThis.process?.env?.OSM_OVERP
   .filter(value => /^https:\/\/[^\s]+$/i.test(value));
 const osmOverpassEndpoints = configuredOsmOverpassEndpoints.length ? configuredOsmOverpassEndpoints : defaultOsmOverpassEndpoints;
 const discoveryCache = new Map();
+const osmFailureBackoffMs = 5 * 60 * 1000;
+let osmBackoffUntil = 0;
 
 function cacheDiscovery(key, loader, ttlMs = 15 * 60 * 1000) {
   const hit = discoveryCache.get(key);
@@ -2101,6 +2103,9 @@ function osmPlace(element) {
 }
 
 async function overpassPlaces(point, kind, radiusMiles = 30) {
+  if (osmBackoffUntil > Date.now()) {
+    throw Object.assign(new Error("OpenStreetMap is cooling down after a provider failure."), { provider: "OpenStreetMap", retryAfter: osmBackoffUntil });
+  }
   const radius = Math.max(1000, Math.min(100000, Math.round(radiusMiles * 1609.344)));
   const [lon, lat] = point.position;
   const selectors = kind === "record-store"
@@ -2137,12 +2142,14 @@ async function overpassPlaces(point, kind, radiusMiles = 30) {
         throw error;
       }
     }));
+    osmBackoffUntil = 0;
     controllers.forEach(controller => controller.abort());
     return data.elements.map(osmPlace).filter(Boolean).map(place => ({
       ...place,
       distanceMiles: Math.round(approximateMilesBetween(point.position, place.position) * 10) / 10
     }));
   } catch (error) {
+    osmBackoffUntil = Date.now() + osmFailureBackoffMs;
     throw Object.assign(error, { provider: "OpenStreetMap" });
   } finally {
     clearTimeout(timeout);
