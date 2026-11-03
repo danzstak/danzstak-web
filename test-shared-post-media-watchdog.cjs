@@ -23,7 +23,7 @@ assert.match(block, /setTimeout\(\(\) => \{ watchdog = 0; onTimeout\(\); \}, 150
 assert.match(block, /showRecovery\('Media is taking longer than expected\.'\)/,
   "stalled shared media should expose an honest retry state");
 for (const [name, page] of [["feed", feed], ["profile", profile]]) {
-  assert.match(page, /assets\/post-sharing\.js\?v=419/, `${name} should request the updated shared-media controller`);
+  assert.match(page, /assets\/post-sharing\.js\?v=420/, `${name} should request the updated shared-media controller`);
 }
 
 console.log("Shared post watchdog checks passed: near-viewport reshared media stalls become retryable.");

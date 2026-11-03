@@ -23,7 +23,7 @@ assert.match(block, /showRecovery\("Media is taking longer than expected\."\)/,
   "stalled profile media should expose an honest retry state");
 assert.match(block, /media\.loading = "lazy"/,
   "off-screen profile images should remain lazy-loaded");
-assert.match(page, /assets\/profile-editor\.js\?v=481/,
+assert.match(page, /assets\/profile-editor\.js\?v=482/,
   "the profile page should request the updated media controller");
 
 console.log("Profile media watchdog checks passed: near-viewport post and video stalls become retryable.");

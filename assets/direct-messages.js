@@ -594,7 +594,7 @@ function directMessageItem(message) {
   if (message.content) {
     const text = document.createElement("span");
     text.className = "message-text";
-    text.textContent = message.content;
+    window.danzstakRenderUserText?.(text, message.content) || (text.textContent = message.content);
     item.appendChild(text);
   }
   if (["image", "video"].includes(message.mediaType)) installDirectMessageMedia(item, message, mine);
