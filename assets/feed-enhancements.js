@@ -474,17 +474,27 @@ async function respondToNotificationRequest(row, email, accept) {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, accept })
     });
-    if (!response.ok) throw new Error("Friend request could not be updated. Please try again.");
+    if (!response.ok) throw new Error(feedTranslate("Friend request could not be updated."));
   } catch (error) {
     buttons.forEach(button => { button.disabled = false; });
     const status = document.createElement("p");
     status.className = "notification-request-status muted";
-    status.setAttribute("role", "status");
-    status.textContent = "Friend request could not be updated. Please try again.";
+    status.setAttribute("role", "alert");
+    status.textContent = feedTranslate("Friend request could not be updated.");
     row.appendChild(status);
     return false;
   }
+  const notificationList = row.parentElement;
   row.remove();
+  notificationSourceCounts.social = Math.max(0, Number(notificationSourceCounts.social || 1) - 1);
+  updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
+  if (notificationList && !notificationList.querySelector(".notification-row")) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = feedTranslate("No new notifications.");
+    notificationList.appendChild(empty);
+  }
+  globalThis.danzstakShowFeedback?.(feedTranslate(accept ? "You are now friends." : "Friend request declined."));
   await refreshNotificationCount().catch(() => {});
   if (typeof loadOnlineUsers === "function") Promise.resolve(loadOnlineUsers()).catch(() => {});
   if (typeof loadFriends === "function") Promise.resolve(loadFriends()).catch(() => {});
