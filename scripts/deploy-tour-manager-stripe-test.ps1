@@ -105,6 +105,10 @@ try {
     aws lambda add-permission --region $region --function-name $functionName --statement-id AllowTourManagerStripeTestApi --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${region}:635288116224:${apiId}/*/*/tour-manager/*" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Test API invoke permission failed." }
   }
+  if (-not ([string]$policy).Contains("AllowDanzStakPhoneStripeTestApi")) {
+    aws lambda add-permission --region $region --function-name $functionName --statement-id AllowDanzStakPhoneStripeTestApi --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${region}:635288116224:${apiId}/*/*/phone-number/*" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Phone-number test API invoke permission failed." }
+  }
   Write-Host "Tour Manager Stripe test endpoint: https://api.danzstak.com/tour-manager/stripe/webhook"
 } finally {
   if ($resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) { Remove-Item -LiteralPath $resolvedStage -Recurse -Force -ErrorAction SilentlyContinue }

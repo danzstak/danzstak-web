@@ -16,6 +16,7 @@ assert.match(source, /\.catch\(\(\) => false\)/, "secret lookup failures must fa
 assert.match(source, /path\?\.startsWith\("\/tour-manager\/"\) \|\| path\?\.startsWith\("\/phone-number\/"\)/, "phone-number purchases must reach the billing router");
 assert.match(deploy, /Required Stripe secret is missing or unreadable:[\s\S]*No Lambda changes were made/, "the test deployment must stop before mutation when either secret is absent");
 assert.match(deploy, /TOUR_MANAGER_LIVE_PAYMENTS = "false"/, "the isolated deployment must keep live payments disabled");
+assert.match(deploy, /AllowDanzStakPhoneStripeTestApi[\s\S]*phone-number\/\*/, "API Gateway must be allowed to invoke the isolated Stripe Lambda for phone-number checkout routes");
 assert.doesNotMatch(source + deploy, /console\.(?:log|error)\([^\n]*(?:STRIPE_SECRET_KEY|STRIPE_TOUR_MANAGER_WEBHOOK_SECRET)/, "Stripe secret values must never be logged");
 
 console.log("Stripe secret-loading checks passed: separate Secrets Manager values, IAM retrieval, fail-closed deployment, phone routing, and live-payment lock remain enforced.");
