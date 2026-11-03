@@ -12,6 +12,7 @@ assert.match(html, /id="printEpk"[\s\S]*Print or save PDF/, "public EPK visitors
 assert.match(html, /id="copyEpkLink"/, "public EPK visitors need an explicit link-copy action");
 assert.match(html, /id="createPrivateLink"[\s\S]*id="revokePrivateLink"/, "artists need revocable private review links for bookers and managers");
 assert.match(html, /id="deleteEpk"/, "artists must be able to permanently delete an EPK");
+assert.match(html, /id="deleteEpk"[^>]*aria-label="Delete EPK"[^>]*>🗑️<\/button>/, "the permanent EPK delete control should stay compact and accessible");
 assert.match(client, /\/epk\/public\//, "the public EPK should load from an opaque public route");
 assert.match(client, /\/epk\/shared\//, "private review links should load from a distinct token-protected route");
 assert.match(client, /DanzStak does not show this secret again/, "private review secrets must only be disclosed when created");
@@ -35,6 +36,7 @@ assert.match(client, /URL\.createObjectURL\(file\)/, "new image uploads should p
 assert.match(client, /\(\{url,previewUrl,\.\.\.item\}\)[\s\S]*includeLocalPreviews/, "temporary signed and blob URLs must be excluded from the stored EPK document");
 assert.match(client, /URL\.revokeObjectURL/, "replaced and removed local previews must release their object URLs");
 assert.match(client, /File removed from this draft/, "EPK media should support deletion");
+assert.match(client, /remove\.textContent = "🗑️"[\s\S]*remove\.setAttribute\("aria-label", `Remove \$\{item\.name \|\| "file"\} from this EPK`\)/, "EPK file removal should use an accessible trash control instead of visible delete text");
 assert.match(client, /Replace /, "EPK media should support replacement");
 assert.match(client, /discardEpkMedia/, "failed EPK uploads should be removed from private storage");
 assert.match(client, /method:"DELETE"[\s\S]*EPK and its private files were deleted/, "the EPK owner should receive an explicit permanent-delete flow");
