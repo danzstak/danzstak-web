@@ -5,7 +5,7 @@ const feed = fs.readFileSync("feed.html", "utf8");
 
 assert.match(feed, /async function refreshStoryMedia\(story\)/, "Flashes should have a signed-media refresh path");
 assert.match(feed, /candidate\.storyId === story\.storyId/, "Flash recovery should match the durable story id");
-assert.match(feed, /async function openStoryViewer\(story\)/, "The Flash viewer should wait for media recovery");
+assert.match(feed, /async function openStoryViewer\(story, \{ updateHistory = true \} = \{\}\)/, "The Flash viewer should wait for media recovery while supporting mobile history restoration");
 assert.match(feed, /Media is temporarily unavailable\./, "Broken Flash media should show an honest unavailable state");
 assert.match(feed, /Retry media/, "The Flash viewer should offer a retry action");
 assert.match(feed, /probe\.addEventListener\("error"/, "Image cards should detect expired signed URLs");

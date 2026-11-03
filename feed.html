@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-BbMFN0jXZ3FIVyyG+xQxeU3wmkqs4EWoUpxcPsbdnu0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-thtCYNpiZllGy0iUrOQJoPWLAhl3EErtA3dPCe31XRs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -884,6 +884,24 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
 
 let lastStoriesLoad = 0;
 let storyViewerPreviousFocus = null;
+let storyViewerActiveStory = null;
+const usesMobileStoryHistory = () => matchMedia("(max-width: 700px)").matches;
+
+function closeStoryViewer({ fromHistory = false } = {}) {
+  const viewer = document.getElementById("storyViewer");
+  if (!viewer?.open) return false;
+  if (!fromHistory && history.state?.danzstakStoryOpen === true) {
+    if (usesMobileStoryHistory()) {
+      history.back();
+      return true;
+    }
+    const nextState = { ...history.state };
+    delete nextState.danzstakStoryOpen;
+    history.replaceState(nextState, "");
+  }
+  viewer.close();
+  return true;
+}
 
 function storyDisplayCaption(story) {
   const content = String(story?.content || "").trim();
@@ -903,7 +921,7 @@ async function refreshStoryMedia(story) {
   return story.mediaUrl;
 }
 
-async function openStoryViewer(story) {
+async function openStoryViewer(story, { updateHistory = true } = {}) {
   let viewer = document.getElementById("storyViewer");
   if (!viewer) {
     viewer = document.createElement("dialog");
@@ -911,8 +929,9 @@ async function openStoryViewer(story) {
     viewer.className = "story-viewer";
     viewer.setAttribute("aria-labelledby", "storyViewerCaption");
     viewer.innerHTML = '<button type="button" class="story-viewer-close" aria-label="Close Flash">×</button><div class="story-viewer-media"></div><p class="story-viewer-caption" id="storyViewerCaption"></p>';
-    viewer.querySelector(".story-viewer-close").addEventListener("click", () => viewer.close());
-    viewer.addEventListener("click", event => { if (event.target === viewer) viewer.close(); });
+    viewer.querySelector(".story-viewer-close").addEventListener("click", () => closeStoryViewer());
+    viewer.addEventListener("click", event => { if (event.target === viewer) closeStoryViewer(); });
+    viewer.addEventListener("cancel", event => { event.preventDefault(); closeStoryViewer(); });
     viewer.addEventListener("close", () => { const video = viewer.querySelector("video"); if (video) video.pause(); storyViewerPreviousFocus?.focus({ preventScroll: true }); storyViewerPreviousFocus = null; });
     document.body.appendChild(viewer);
   }
@@ -923,8 +942,13 @@ async function openStoryViewer(story) {
   status.textContent = feedTranslate("Loading media…");
   mediaBox.appendChild(status);
   viewer.querySelector(".story-viewer-caption").textContent = storyDisplayCaption(story);
+  storyViewerActiveStory = story;
   storyViewerPreviousFocus = document.activeElement;
   viewer.showModal();
+  if (updateHistory && usesMobileStoryHistory() && history.state?.danzstakStoryOpen !== true) {
+    const currentState = history.state && typeof history.state === "object" ? history.state : {};
+    history.pushState({ ...currentState, danzstakStoryOpen: true }, "");
+  }
   viewer.querySelector(".story-viewer-close").focus();
   const showRecovery = () => {
     mediaBox.replaceChildren();
@@ -951,6 +975,15 @@ async function openStoryViewer(story) {
   };
   await installMedia();
 }
+
+function restoreStoryViewerFromHistory(event) {
+  const viewer = document.getElementById("storyViewer");
+  if (!usesMobileStoryHistory()) return;
+  if (event.state?.danzstakStoryOpen === true) {
+    if (!viewer?.open && storyViewerActiveStory) void openStoryViewer(storyViewerActiveStory, { updateHistory: false });
+  } else if (viewer?.open) closeStoryViewer({ fromHistory: true });
+}
+addEventListener("popstate", restoreStoryViewerFromHistory);
 
 async function loadStories() {
   try {
