@@ -34,6 +34,8 @@ assert.doesNotMatch(feedPage.match(/<aside class="left" id="mobileNavMenu"[\s\S]
 
 const messages = fs.readFileSync("messages.html", "utf8");
 for (const icon of ["back", "bell", "edit", "phone", "video", "minimize", "more", "close", "trash", "paperclip", "camera", "send"]) assert.match(messages, new RegExp(`data-icon="${icon}"`), `Chat must use the ${icon} icon`);
+assert.match(messages, /class="chat-search-icon" data-menu-icon="search"/, "Chat search must use the shared search icon rather than a text glyph");
+assert.doesNotMatch(messages, />⌕</, "Chat must not retain the legacy search glyph");
 const sendMarkup = messages.match(/<button type="submit" class="message-send"[^>]*>/)?.[0] || "";
 assert.match(sendMarkup, /data-icon="send"/, "Chat send control must use the shared send icon");
 assert.match(sendMarkup, /aria-label="Send message"/, "Chat send icon must retain its accessible name");
