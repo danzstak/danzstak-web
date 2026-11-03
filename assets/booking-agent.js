@@ -939,8 +939,9 @@
         );
       }
     }
-    notice.textContent =
-      "Verify that this public contact books live shows. DanzStak has not contacted this location.";
+    notice.textContent = place.bookingSuitability === "contact-found"
+      ? "Public contact found. Verify that it books this kind of show; DanzStak has not contacted this location."
+      : `Needs research. ${(place.suitabilityReasons || []).join(" ") || "Confirm current programming and find the correct public booking contact."}`;
     card.className = "place-card";
     card.append(heading, address);
     if (evidence.textContent) card.append(evidence);

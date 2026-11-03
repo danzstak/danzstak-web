@@ -1947,7 +1947,7 @@ function publicPlace(place) {
   const websites = (place.Contacts?.Websites || []).map(item => String(item.Value || "")).filter(value => /^https:\/\//i.test(value)).slice(0, 2);
   const emails = (place.Contacts?.Emails || []).map(item => String(item.Value || "").trim().toLowerCase()).filter(value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)).slice(0, 2);
   const phones = (place.Contacts?.Phones || []).map(item => String(item.Value || "").trim()).filter(value => /^\+?[0-9 ()-]{7,24}$/.test(value)).slice(0, 2);
-  const categories = (place.Categories || []).map(item => String(item.LocalizedName || item.Name || item.Id || "").trim()).filter(Boolean).slice(0, 8);
+  const categories = [...new Set((place.Categories || []).flatMap(item => [item.LocalizedName, item.Name, item.Id].filter(Boolean).map(String)))].slice(0, 24);
   const name = String(place.Title || "Venue").slice(0, 160);
   const address = String(place.Address?.Label || "").slice(0, 300);
   const discoveredAt = new Date(now() * 1000).toISOString();
@@ -1976,14 +1976,19 @@ function publicPlace(place) {
 }
 
 function isBookableClub(place, genre = "") {
-  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  // Provider category IDs, OSM tags and local descriptions establish existence;
+  // neither the act's genre nor the presence of a contact establishes it.
+  const evidence = `${(place.categories || []).join(" ")} ${place.programmingEvidence || ""}`.toLowerCase();
+  if (place.businessStatus === "CLOSED_PERMANENTLY") return false;
+  if (/night_club|live_music_venue|performing_arts_theater|concert_hall|poppodium|muziekpodium|concertzaal|discoteca|sala concerti|salle de concert|sala de conciertos|casa de shows|ライブハウス|コンサート会場|공연장|现场音乐|演出场地|قاعة حفلات|संगीत/.test(evidence)) return true;
+  if (/\b(live music|live_music|concert venue|music venue)\b/.test(evidence) && /\b(event space|community cent(?:er|re)|museum|gallery|church|theat(?:er|re)|auditorium|cocktail)\b/.test(evidence)) return true;
+  const description = `${place.name} ${(place.categories || []).join(" ")} ${place.programmingEvidence || ""}`.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
   const selectedGenre = genre.toLowerCase();
   const classicalSearch = selectedGenre.includes("orchestra") || selectedGenre.includes("classical");
   const wrongScale = /\b(stadium|arena|auditorium|amphitheat(?:er|re)|pavilion|pavillon|kurpavillon|stadthalle|konzertmuschel|band shell|performing arts cent(?:er|re)|sports complex|convention cent(?:er|re)|exhibition cent(?:er|re)|raceway|speedway)\b/;
   const nonClassicalInstitution = /\b(symphony|orchestra|opera house|chamber music|kammermusik\w*|philharmoni(?:c|e))\b/;
   const wrongFormat = /\b(comedy|comic|laughs?|punch\s*l.?ne|piano bar|cocktail bar|cocktail lounge|salsa|ballroom|table\s*dance|strip club|adult entertainment|escort|dance school|dance class|kindermusik|music school|music academy|music lesson|music teacher|music instructor|music with|rehearsal|practice room|studio|choir|chorus|chorale|workshop|clinic|training(?: and development)?|promoter|promotion|productions?|entertainment company|entertainment and recreation|business services?|geschaftliche dienstleistungen|event consultant|entertainment consultant|event planner|event services?|event cent(?:er|re)|event space|mobile dj|dj services?|dj['’]?s? and event services?|party band|consumer services|photography|swimming pool|veterans? (?:memorial )?hall|fraternal order|performance hall|church|worship|jubilee|gospel\w*|christmas market|weihnachtsmarkt|variete|museum|gallery|library|retail|specialty store|music store|record store|instrument store|downtown association|business district|community cent(?:er|re)|recreation cent(?:er|re)|hotel|lodging|restaurant only|tourist attraction|park|passport|visa service|consular|government|office|real estate|realtor|property management|mortgage|insurance|financial services?|law firm|attorney|accountant|medical|dental|auto repair|car dealer)\b/;
   const eventNotRoom = /\b(concerts? in the|concert series|music festival|festival|festspiele|festival office|jazzfest|walking tour|history tour|guided tour|tourist information|tourismus|ostseebad)\b/;
-  const wrongGenre = !selectedGenre.includes("jazz") && /\bjazz\w*/.test(description);
   const strongVenue = /\b(live music|live entertainment[- /]?music|livemusik|live musik|musica dal vivo|musique live|musica en vivo|music venue|rock club|punk club|metal club|night ?club|concert venue|concert hall)\b/.test(description);
   const electronicOnly = /\b(dj|electronic|techno|house|night ?club)\b/.test(description) && !/\b(live music|live entertainment[- ]?music|rock|punk|metal|hardcore|diy)\b/.test(description);
   const genreEvidence = selectedGenre.includes("punk")
@@ -2004,7 +2009,34 @@ function isBookableClub(place, genre = "") {
   const plausibleRoom = /\b(club|bar|pub|tavern|lounge|music hall|social hall|taproom|brewery|roadhouse)\b/.test(description);
   const musicSignal = /\b(music|musik|musica|musique|concert|live|rock|punk|metal|electronic|dj|hip[- ]?hop|jazz)\b/.test(description);
   const classicalRoom = classicalSearch && /\b(symphony|orchestra|opera house|concert hall|recital hall|chamber music)\b/.test(description);
-  return !wrongScale.test(description) && (classicalSearch || !nonClassicalInstitution.test(description)) && !wrongFormat.test(description) && !eventNotRoom.test(description) && !wrongGenre && genreEvidence && (strongVenue || classicalRoom || (plausibleRoom && musicSignal));
+  // Discovery and suitability are intentionally separate. A mixed-programming
+  // room must remain visible even when its public category does not name the
+  // requested genre. Genre evidence affects ranking, not existence.
+  return !wrongScale.test(description) && (classicalSearch || !nonClassicalInstitution.test(description)) && !wrongFormat.test(description) && !eventNotRoom.test(description) && (strongVenue || classicalRoom || (plausibleRoom && musicSignal));
+}
+
+function venueDiscoveryAssessment(place, genre = "", venueType = "any") {
+  const relevant = place.verifiedRoom === true || isBookableClub(place, genre);
+  const typeMatch = isVenueTypeMatch(place, venueType);
+  const hasContact = hasBookingContact(place);
+  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  const requested = String(genre || "").toLowerCase();
+  const families = requested.includes("tekno")
+    ? ["tekno", "free party", "soundsystem", "hardtek", "tribe"]
+    : requested.includes("hardcore") && !requested.includes("punk")
+      ? ["gabber", "hardstyle", "hardcore electronic", "hardcore techno"]
+    : requested.includes("techno") || requested.includes("electronic") || requested.includes("dj")
+      ? ["techno", "electronic", "dj", "club", "house", "hardcore electronic"]
+      : requested.includes("hardcore") && requested.includes("punk")
+        ? ["hardcore punk", "punk", "diy", "all ages"]
+        : requested.split(/[^\p{L}\p{N}]+/u).filter(word => word.length > 2);
+  const genreMatch = !families.length || families.some(word => description.includes(word));
+  const suitability = !relevant ? "not-a-venue" : hasContact && typeMatch && genreMatch ? "contact-found" : "needs-research";
+  const reasons = [];
+  if (!genreMatch) reasons.push("The public listing does not prove programming for this act yet.");
+  if (!typeMatch) reasons.push("The public venue type does not clearly match the selected room preference.");
+  if (!hasContact) reasons.push("No public booking contact was returned; check the official site or calendar.");
+  return { relevant, typeMatch, genreMatch, hasContact, suitability, reasons };
 }
 
 function venueSuitability(place, genre = "") {
@@ -2031,15 +2063,17 @@ function isVenueTypeMatch(place, venueType = "any") {
   if (venueType === "bar") return /\b(bar|pub|tavern|taproom|brewery|roadhouse)\b/.test(description);
   if (venueType === "club") return /\b(club|night ?club|lounge)\b/.test(description);
   if (venueType === "hall") return /\b(music hall|concert hall|concert venue|recital hall)\b/.test(description);
-  return false;
+  // Unknown localized categories remain research leads instead of disappearing.
+  return !/\b(stadium|arena|sports complex|government office|real estate|medical|school)\b/.test(description);
 }
 
 function isRecordStore(place) {
   const name = String(place.name || "").toLowerCase();
   const description = `${name} ${(place.categories || []).join(" ")}`.toLowerCase();
   const strongNameSignal = /\b(records?|record shop|record store|vinyl|turntable|music millennium|music millenium)\b/.test(name);
-  const recordCategorySignal = /\brecord,? cd (?:&|and) video\b/.test(description);
-  const descriptiveSignal = /\b(record store|record shop|vinyl records?|vinyl shop|used records?|new records?|dischi|vinili|plattenladen|schallplatten|disquaire|tienda de discos|レコード)\b/.test(description);
+  const recordCategorySignal = /\brecord,? cd (?:&|and) video\b/.test(description) || (place.categories || []).includes("record,_cd_and_video");
+  const descriptiveSignal = /\b(record store|record shop|vinyl records?|vinyl shop|used records?|new records?|dischi|vinili|plattenladen|schallplatten|disquaire|tienda de discos|platenzaak|platenzaken|platenwinkel)\b|レコード|唱片|레코드/.test(description)
+    || (place.sourceName === osmAttribution && (place.categories || []).includes("music"));
   // A broad place-category match alone is not evidence that a shop sells records.
   // It regularly includes audio installers, video production, instrument shops,
   // bookstores and unrelated retailers. Prefer a shorter list with explicit
@@ -2180,27 +2214,156 @@ async function awsPlaceSearch(point, queries, radiusMiles = 30) {
   return batches.flat();
 }
 
+const regionalVenueTerms = {
+  IT: ["locale musica dal vivo", "club musicale", "sala concerti", "discoteca techno"],
+  NL: ["poppodium", "muziekpodium", "live muziek", "concertzaal", "nachtclub"],
+  DE: ["live musik club", "musikclub", "konzerthaus", "veranstaltungsort"],
+  FR: ["salle de concert", "club de musique", "musique live", "discotheque"],
+  ES: ["sala de conciertos", "club de musica", "musica en vivo"],
+  PT: ["sala de concertos", "clube de musica", "musica ao vivo"],
+  PL: ["klub muzyczny", "sala koncertowa", "muzyka na zywo"],
+  CZ: ["hudebni klub", "koncertni sal", "ziva hudba"],
+  JP: ["ライブハウス", "音楽クラブ", "コンサート会場"],
+  KR: ["라이브 클럽", "공연장", "음악 공연장"],
+  CN: ["现场音乐", "音乐俱乐部", "演出场地"],
+  BR: ["casa de shows", "clube de musica", "musica ao vivo"],
+  SE: ["musikklubb", "konsertlokal", "livemusik"],
+  NO: ["musikklubb", "konsertsted", "levende musikk"],
+  DK: ["musikklub", "koncertsted", "livemusik"],
+  FI: ["musiikkiklubi", "konserttipaikka", "elava musiikki"],
+  HU: ["zenei klub", "koncerthelyszin", "elo zene"],
+  RO: ["club de muzica", "sala de concerte", "muzica live"],
+  GR: ["μουσική σκηνή", "χώρος συναυλιών", "ζωντανή μουσική"],
+  TR: ["muzik kulubu", "konser mekani", "canli muzik"],
+  RU: ["музыкальный клуб", "концертная площадка", "живая музыка"],
+  UA: ["музичний клуб", "концертний майданчик", "жива музика"],
+  IN: ["live music venue", "music club", "concert hall"],
+  ZA: ["live music venue", "music club", "music festival venue"],
+  MX: ["foro de musica", "sala de conciertos", "musica en vivo"],
+  AR: ["club de musica", "sala de conciertos", "musica en vivo"],
+  CL: ["club de musica", "sala de conciertos", "musica en vivo"]
+};
+
+function venueDiscoveryQueries(point, genre = "") {
+  const selected = String(genre || "").trim();
+  const localTerms = regionalVenueTerms[String(point.countryCode || "").toUpperCase()] || [];
+  const sceneTerms = selected.toLowerCase().includes("tekno")
+    ? ["tekno soundsystem venue", "free party electronic club", "hardtek club"]
+    : selected.toLowerCase().includes("hardcore") && selected.toLowerCase().includes("punk")
+      ? ["hardcore punk venue", "DIY punk club", "all ages music venue"]
+      : selected ? [`${selected} live venue`, `${selected} music club`] : [];
+  return [...new Set([
+    ...localTerms, ...sceneTerms, "live music venue", "music club", "independent music venue",
+    "concert venue", "live music bar", "nightclub live music"
+  ])].slice(0, 16);
+}
+
+function googlePlace(place, point, query) {
+  const position = place.location && Number.isFinite(place.location.longitude) && Number.isFinite(place.location.latitude)
+    ? [place.location.longitude, place.location.latitude] : [];
+  const website = /^https:\/\//i.test(String(place.websiteUri || "")) ? place.websiteUri : "";
+  const phone = String(place.internationalPhoneNumber || place.nationalPhoneNumber || "").trim();
+  const categories = [place.primaryTypeDisplayName?.text, place.primaryType, ...(place.types || [])].filter(Boolean).map(value => String(value).replace(/_/g, " ")).slice(0, 10);
+  const name = String(place.displayName?.text || "Venue").slice(0, 160);
+  const address = String(place.formattedAddress || place.shortFormattedAddress || "").slice(0, 300);
+  return {
+    venueKey: `google-${String(place.id || createHash("sha256").update(`${name}|${address}`).digest("hex").slice(0, 20))}`,
+    name, address, locality: String(place.addressComponents?.find(component => (component.types || []).includes("locality"))?.longText || "").slice(0, 120),
+    position, distanceMiles: position.length === 2 ? Math.round(approximateMilesBetween(point.position, position) * 10) / 10 : null,
+    websites: website ? [website] : [], emails: [], phones: phone ? [phone] : [], categories,
+    businessStatus: String(place.businessStatus || ""), contactVerificationRequired: true,
+    sourceName: "Google Places", sourceUrl: place.googleMapsUri || website,
+    sources: [{ name: "Google Places", url: place.googleMapsUri || website }], discoveryQuery: query,
+    discoveredAt: new Date().toISOString(),
+    activityEvidence: place.businessStatus === "CLOSED_PERMANENTLY"
+      ? "Google Places reports this location permanently closed."
+      : "Google Places returned a current public business listing. Check the official calendar and booking instructions before pitching."
+  };
+}
+
+async function googlePlacesSearch(point, queries, radiusMiles = 30) {
+  const apiKey = String(globalThis.process?.env?.GOOGLE_PLACES_API_KEY || "").trim();
+  if (!apiKey) return { skipped: true, places: [] };
+  const places = [];
+  const radius = Math.min(50000, Math.max(1000, Math.round(radiusMiles * 1609.344)));
+  await mapLimit(queries.slice(0, 5), 2, async query => {
+    let pageToken = "";
+    for (let page = 0; page < 2; page += 1) {
+      const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 7000);
+      try {
+        const body = { textQuery: `${query} ${point.label}`, pageSize: 20, languageCode: point.languageCode || "en", locationBias: { circle: { center: { latitude: point.position[1], longitude: point.position[0] }, radius } } };
+        if (pageToken) body.pageToken = pageToken;
+        const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+          method: "POST", signal: controller.signal,
+          headers: {
+            "content-type": "application/json", "X-Goog-Api-Key": apiKey,
+            "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.addressComponents,places.location,places.primaryType,places.primaryTypeDisplayName,places.types,places.websiteUri,places.googleMapsUri,places.nationalPhoneNumber,places.internationalPhoneNumber,places.businessStatus,nextPageToken"
+          }, body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error(`Google Places returned ${response.status}`);
+        const data = await response.json();
+        places.push(...(data.places || []).map(place => googlePlace(place, point, query)).filter(place => place.position.length === 2));
+        pageToken = String(data.nextPageToken || "");
+        if (!pageToken) break;
+      } finally { clearTimeout(timeout); }
+    }
+  });
+  return { skipped: false, places };
+}
+
+async function webVenueResearch(point, genre = "") {
+  const apiKey = String(globalThis.process?.env?.BRAVE_SEARCH_API_KEY || "").trim();
+  if (!apiKey) return { skipped: true, leads: [] };
+  const queryTerms = venueDiscoveryQueries(point, genre).slice(0, 2);
+  const leads = [];
+  await mapLimit(queryTerms, 2, async term => {
+    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 6000);
+    try {
+      const search = new URLSearchParams({ q: `${term} ${point.label} official events calendar booking`, count: "10", search_lang: point.languageCode || "en", safesearch: "moderate" });
+      if (/^[A-Z]{2}$/.test(point.countryCode || "")) search.set("country", point.countryCode);
+      const response = await fetch(`https://api.search.brave.com/res/v1/web/search?${search}`, {
+        signal: controller.signal, headers: { accept: "application/json", "X-Subscription-Token": apiKey }
+      });
+      if (!response.ok) throw new Error(`Brave Search returned ${response.status}`);
+      const data = await response.json();
+      for (const result of data.web?.results || []) {
+        const url = String(result.url || "");
+        const title = String(result.title || "").replace(/\s+[|–—-]\s+.*$/, "").trim().slice(0, 160);
+        const description = String(result.description || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 500);
+        if (!title || !/^https:\/\//i.test(url)) continue;
+        leads.push({ title, url, description, query: term, sourceName: "Brave Search web result", needsResearch: true });
+      }
+    } finally { clearTimeout(timeout); }
+  });
+  return { skipped: false, leads: leads.filter((lead, index, all) => all.findIndex(candidate => candidate.url === lead.url) === index).slice(0, 20) };
+}
+
 async function multiSourceDiscovery(point, kind, { genre = "", radiusMiles = 30 } = {}) {
   const awsQueries = kind === "record-store"
     ? ["record store", "vinyl record shop", "independent record store", "used records vinyl", "new and used record shop", "music store vinyl records"]
-    : [...new Set([
-        genre ? `${genre} live music venue` : "live music venue", genre ? `${genre} music club` : "music club",
-        genre ? `${genre} club bar concerts` : "independent music venue", "concert venue", "live music bar", "nightclub live music"
-      ])];
+    : venueDiscoveryQueries(point, genre);
   const cacheKey = `${kind}|${point.position.map(value => value.toFixed(3)).join(",")}|${genre.toLowerCase()}|${radiusMiles}`;
   return cacheDiscovery(cacheKey, async () => {
+    const googleResult = kind === "venue" ? googlePlacesSearch(point, awsQueries, radiusMiles) : Promise.resolve({ skipped: true, places: [] });
+    const webResult = kind === "venue" ? webVenueResearch(point, genre) : Promise.resolve({ skipped: true, leads: [] });
     const attempts = await Promise.allSettled([
       awsPlaceSearch(point, awsQueries, radiusMiles),
-      overpassPlaces(point, kind, radiusMiles)
+      overpassPlaces(point, kind, radiusMiles),
+      googleResult,
+      webResult
     ]);
-    const providers = ["AWS Places", "OpenStreetMap"].map((name, index) => ({
-      name, ok: attempts[index].status === "fulfilled",
-      count: attempts[index].status === "fulfilled" ? attempts[index].value.length : 0,
-      error: attempts[index].status === "rejected" ? "Provider temporarily unavailable" : ""
-    }));
-    const successful = attempts.filter(result => result.status === "fulfilled");
+    const names = ["AWS Places", "OpenStreetMap", "Google Places", "Brave Search"];
+    const providers = names.map((name, index) => {
+      const value = attempts[index].status === "fulfilled" ? attempts[index].value : null;
+      const skipped = Boolean(value?.skipped);
+      const list = Array.isArray(value) ? value : value?.places || value?.leads || [];
+      return { name, ok: attempts[index].status === "fulfilled" && !skipped, skipped, count: list.length, error: attempts[index].status === "rejected" ? "Provider temporarily unavailable" : skipped ? "Not configured" : "" };
+    });
+    const successful = attempts.filter(result => result.status === "fulfilled" && !result.value?.skipped);
     if (!successful.length) throw Object.assign(new Error("All discovery providers are temporarily unavailable."), { providerStatuses: providers });
-    return { places: deduplicateVenues(successful.flatMap(result => result.value)), providers };
+    const placeResults = attempts.slice(0, 3).filter(result => result.status === "fulfilled" && !result.value?.skipped);
+    const researchLeads = attempts[3].status === "fulfilled" ? attempts[3].value.leads || [] : [];
+    return { places: deduplicateVenues(placeResults.flatMap(result => Array.isArray(result.value) ? result.value : result.value.places || [])), researchLeads, providers };
   });
 }
 
@@ -2293,11 +2456,11 @@ function isSupportedBookingLead(place, genre = "") {
   // real venue name or "jazz" in a room that also books punk) discard that
   // stronger evidence. Unreviewed discovery results still use the strict
   // classifier above.
-  return (place.verifiedRoom === true || isBookableClub(place, genre)) && hasBookingContact(place);
+  return venueDiscoveryAssessment(place, genre).relevant && place.businessStatus !== "CLOSED_PERMANENTLY";
 }
 
 function normalizedVenueText(value) {
-  return String(value || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/^the\s+/, "").replace(/\b(inc|llc|ltd|club|venue|bar)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+  return String(value || "").toLowerCase().normalize("NFKD").replace(/\p{M}/gu, "").replace(/^the\s+/, "").replace(/\b(inc|llc|ltd|club|venue|bar)\b/g, " ").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
 function deduplicateVenues(places) {
@@ -2345,10 +2508,12 @@ async function reviewedVenueDirectoryRecords() {
 
 function approximateMilesBetween(left, right) {
   if (!Array.isArray(left) || !Array.isArray(right) || left.length !== 2 || right.length !== 2) return Number.POSITIVE_INFINITY;
-  const meanLatitude = (Number(left[1]) + Number(right[1])) / 2 * Math.PI / 180;
-  const dx = (Number(left[0]) - Number(right[0])) * 69 * Math.max(0.2, Math.cos(meanLatitude));
-  const dy = (Number(left[1]) - Number(right[1])) * 69;
-  return Math.hypot(dx, dy);
+  if (![...left, ...right].every(Number.isFinite)) return Number.POSITIVE_INFINITY;
+  const radians = Math.PI / 180;
+  const a = Math.sin((right[1] - left[1]) * radians / 2) ** 2
+    + Math.cos(left[1] * radians) * Math.cos(right[1] * radians)
+    * Math.sin((right[0] - left[0]) * radians / 2) ** 2;
+  return 3958.7613 * 2 * Math.asin(Math.sqrt(Math.min(1, a)));
 }
 
 async function approvedMemberVenueLeads(point, searchBounds = null) {
@@ -2427,7 +2592,7 @@ async function suggestDirectionalMarkets(home, direction, days, genre = "") {
   return markets;
 }
 
-async function geocodeTourPlace(query) {
+async function geocodeTourPlace(query, { requireDisambiguation = false } = {}) {
   const aliases = new Map([
     ["la", "Los Angeles, California, United States"],
     ["l.a.", "Los Angeles, California, United States"],
@@ -2435,10 +2600,28 @@ async function geocodeTourPlace(query) {
     ["nyc", "New York City, New York, United States"]
   ]);
   const normalizedQuery = aliases.get(String(query || "").trim().toLowerCase()) || query;
-  const result = await geoPlaces.send(new GeocodeCommand({ QueryText: normalizedQuery, MaxResults: 1 }));
-  const place = result.ResultItems?.[0];
+  const result = await geoPlaces.send(new GeocodeCommand({ QueryText: normalizedQuery, MaxResults: 5 }));
+  const candidates = (result.ResultItems || []).filter(item => Array.isArray(item.Position) && item.Position.length === 2);
+  const place = candidates.find(item => item.Address?.Locality || item.PlaceType === "Locality") || candidates[0];
   if (!place || !Array.isArray(place.Position) || place.Position.length !== 2) throw Object.assign(new Error("Tour location not found"), { statusCode: 422 });
-  return { label: String(place.Title || query).slice(0, 160), position: place.Position.slice(0, 2) };
+  const countryCode = String(place.Address?.Country?.Code2 || place.Address?.Country?.Code || "").toUpperCase();
+  const languageByCountry = { IT: "it", NL: "nl", DE: "de", AT: "de", CH: "de", FR: "fr", BE: "nl", ES: "es", PT: "pt", PL: "pl", CZ: "cs", JP: "ja", KR: "ko", CN: "zh", TW: "zh", BR: "pt" };
+  const alternatives = candidates.slice(1, 5).map(item => ({
+    label: String(item.Title || item.Address?.Label || "").slice(0, 160),
+    position: item.Position.slice(0, 2),
+    countryCode: String(item.Address?.Country?.Code2 || item.Address?.Country?.Code || "").toUpperCase()
+  })).filter(item => item.label && approximateMilesBetween(place.Position, item.position) > 10);
+  const resolved = {
+    label: String(place.Title || place.Address?.Label || query).slice(0, 160), position: place.Position.slice(0, 2),
+    locality: String(place.Address?.Locality || place.Address?.District || "").slice(0, 120), countryCode,
+    languageCode: languageByCountry[countryCode] || "en", alternatives
+  };
+  if (requireDisambiguation && alternatives.length && !/[,،，]/u.test(String(query || ""))) {
+    throw Object.assign(new Error("Several places match that name. Add the region or country and search again."), {
+      statusCode: 409, locationChoices: [{ label: resolved.label, position: resolved.position, countryCode }, ...alternatives]
+    });
+  }
+  return resolved;
 }
 
 async function reverseGeocodeTourMarket(position) {
@@ -2881,10 +3064,11 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
         ? "classical concert hall orchestra venue"
         : "rock punk metal music venue"
   ])];
+  const localizedVenueQueries = venueDiscoveryQueries(point, selectedGenre);
   const discoveryQueries = [
     "budget hotel motel hostel",
     "truck stop rest area campground",
-    ...venueQueries
+    ...new Set([...venueQueries, ...localizedVenueQueries])
   ];
   const [searchResults, reviewedDirectory, recordDiscovery, osmVenueDiscovery] = await Promise.all([
     mapLimit(discoveryQueries, 3, async query => {
@@ -2896,7 +3080,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     }),
     approvedMemberVenueLeads(point, searchBounds),
     recordStoreCandidates(point).catch(() => ({ stores: [], providers: [{ name: "Record-store discovery", ok: false, count: 0, error: "Provider temporarily unavailable" }] })),
-    overpassPlaces(point, "venue", 60).catch(() => [])
+    multiSourceDiscovery(point, "venue", { genre, radiusMiles: searchBounds ? 75 : 60 }).catch(() => ({ places: [], providers: [{ name: "Venue discovery", ok: false, count: 0, error: "Provider temporarily unavailable" }] }))
   ]);
   const [hotelSearch, vanRestSearch, ...venueSearches] = searchResults;
   const curatedPool = curatedVenueLeads(point, genre, variation);
@@ -2904,32 +3088,26 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   // road markets. A reviewed public lead is still useful in that case, so do
   // not erase Redding, Eugene, Olympia, or another real stop merely because
   // every Places query for that one market failed temporarily.
-  if (venueSearches.every(result => result.status === "rejected") && !curatedPool.length && !osmVenueDiscovery.length) throw venueSearches[0].reason;
+  if (venueSearches.every(result => result.status === "rejected") && !curatedPool.length && !osmVenueDiscovery.places.length) throw venueSearches[0].reason;
   const hotelResults = hotelSearch.status === "fulfilled" ? hotelSearch.value : [];
   const vanRestResults = vanRestSearch.status === "fulfilled" ? vanRestSearch.value : [];
-  const venueBatches = [...venueSearches.filter(result => result.status === "fulfilled").map(result => result.value), osmVenueDiscovery];
+  const venueBatches = [...venueSearches.filter(result => result.status === "fulfilled").map(result => result.value), osmVenueDiscovery.places];
   const nearby = (place, maximumMiles) => {
     const distance = Number.isFinite(place.distanceMiles)
       ? place.distanceMiles
       : approximateMilesBetween(point.position, place.position);
     return distance <= maximumMiles;
   };
-  const marketLocality = String(point.label || "").split(",")[0].trim().toLowerCase();
-  const belongsToMarket = place => {
-    const placeLocality = String(place.locality || "").trim().toLowerCase();
-    if (!placeLocality || !marketLocality || placeLocality === marketLocality) return true;
-    // Place search is intentionally biased rather than city-bounded. Keep only
-    // a truly adjacent room when the provider crosses a municipal boundary;
-    // never turn Tacoma into Seattle or San Francisco into a distant suburb.
-    const distance = Number.isFinite(place.distanceMiles)
-      ? place.distanceMiles
-      : approximateMilesBetween(point.position, place.position);
-    return distance <= 8;
+  const annotate = place => {
+    const assessment = venueDiscoveryAssessment(place, genre, venueType);
+    const distanceMiles = Number.isFinite(place.distanceMiles) ? place.distanceMiles : Math.round(approximateMilesBetween(point.position, place.position) * 10) / 10;
+    return { ...place, distanceMiles, bookingSuitability: assessment.suitability, suitabilityReasons: assessment.reasons, genreMatch: assessment.genreMatch, venueTypeMatch: assessment.typeMatch };
   };
-  const curated = curatedPool.filter(place => isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
-  const reviewed = reviewedDirectory.filter(place => nearby(place, 60) && isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey));
+  const curated = curatedPool.filter(place => isSupportedBookingLead(place, genre) && !excludedVenueKeys.has(place.venueKey)).map(annotate);
+  const reviewed = reviewedDirectory.filter(place => nearby(place, 60) && isSupportedBookingLead(place, genre) && !excludedVenueKeys.has(place.venueKey)).map(annotate);
   const discovered = venueBatches.flat()
-    .filter(place => nearby(place, 60) && belongsToMarket(place) && isSupportedBookingLead(place, genre) && isVenueTypeMatch(place, venueType) && !excludedVenueKeys.has(place.venueKey))
+    .filter(place => nearby(place, 60) && isSupportedBookingLead(place, genre) && !excludedVenueKeys.has(place.venueKey))
+    .map(annotate)
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre));
   const initialFallback = excludedVenueKeys.size || curated.length || discovered.length
     ? []
@@ -2943,7 +3121,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
   const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60);
   const hotels = hotelResults.filter(place => nearby(place, 35)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   const vanStops = vanRestResults.filter(place => nearby(place, 25)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
-  return { stop: point.label, position: point.position, venues, hotels, vanStops, recordStores: recordDiscovery.stores || [], providerStatus: recordDiscovery.providers || [] };
+  return { stop: point.label, position: point.position, venues, hotels, vanStops, recordStores: recordDiscovery.stores || [], researchLeads: osmVenueDiscovery.researchLeads || [], providerStatus: [...(osmVenueDiscovery.providers || []), ...(recordDiscovery.providers || [])] };
 }
 
 function parseVenueDiscoveryRequest(data) {
@@ -2967,18 +3145,28 @@ async function searchVenues(event) {
   const data = parseJsonBody(event), parsed = parseVenueDiscoveryRequest(data);
   if (parsed.location.length < 2) return reply(400, { error: "Enter a city or region to search." });
   const page = Math.max(0, Math.min(20, Math.trunc(Number(data?.page) || 0)));
-  const radiusMiles = Math.max(5, Math.min(75, Number(data?.radiusMiles) || 25));
+  const requestedRadiusMiles = Math.max(5, Math.min(150, Number(data?.radiusMiles) || 25));
   try {
-    const point = await geocodeTourPlace(parsed.location);
-    const discovery = await multiSourceDiscovery(point, "venue", { genre: parsed.genre, radiusMiles });
-    const ranked = discovery.places
-      .filter(place => approximateMilesBetween(point.position, place.position) <= radiusMiles)
-      .filter(place => isBookableClub(place, parsed.genre))
-      .sort((left, right) => venueSuitability(right, parsed.genre) - venueSuitability(left, parsed.genre) || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
+    const point = await geocodeTourPlace(parsed.location, { requireDisambiguation: true });
+    let radiusMiles = requestedRadiusMiles;
+    let discovery = await multiSourceDiscovery(point, "venue", { genre: parsed.genre, radiusMiles });
+    let discovered = discovery.places.filter(place => approximateMilesBetween(point.position, place.position) <= radiusMiles).filter(place => isSupportedBookingLead(place, parsed.genre));
+    const expandedFromMiles = discovered.length < 5 && radiusMiles < 75 ? radiusMiles : null;
+    if (expandedFromMiles) {
+      radiusMiles = Math.min(75, Math.max(40, radiusMiles * 2));
+      discovery = await multiSourceDiscovery(point, "venue", { genre: parsed.genre, radiusMiles });
+      discovered = discovery.places.filter(place => approximateMilesBetween(point.position, place.position) <= radiusMiles).filter(place => isSupportedBookingLead(place, parsed.genre));
+    }
+    const ranked = discovered.map(place => {
+      const assessment = venueDiscoveryAssessment(place, parsed.genre, String(data?.venueType || "any"));
+      return { ...place, distanceMiles: Math.round(approximateMilesBetween(point.position, place.position) * 10) / 10, bookingSuitability: assessment.suitability, suitabilityReasons: assessment.reasons, genreMatch: assessment.genreMatch, venueTypeMatch: assessment.typeMatch };
+    }).sort((left, right) => venueSuitability(right, parsed.genre) - venueSuitability(left, parsed.genre) || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
     const offset = page * 20, venues = ranked.slice(offset, offset + 20);
-    return reply(200, { query: parsed.raw, location: point, genre: parsed.genre, venues, providers: discovery.providers, page, hasMore: ranked.length > offset + venues.length, canExpand: radiusMiles < 75, radiusMiles });
+    const providerFailures = discovery.providers.filter(provider => !provider.ok && !provider.skipped);
+    return reply(200, { query: parsed.raw, location: point, genre: parsed.genre, venues, researchLeads: discovery.researchLeads || [], providers: discovery.providers, coverage: providerFailures.length ? "partial" : "provider-complete", coverageNotice: providerFailures.length ? "Some discovery providers were unavailable; these results are incomplete." : ranked.length ? "Results are current public leads, not guaranteed booking availability." : "No relevant public venue leads were found in the searched radius. This does not prove that no venues exist.", page, hasMore: ranked.length > offset + venues.length, canExpand: radiusMiles < 150, radiusMiles, expandedFromMiles });
   } catch (error) {
     if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });
+    if (error.statusCode === 409) return reply(409, { error: error.message, locationChoices: error.locationChoices || [] });
     console.error("Venue discovery failed", { name: error.name, provider: error.provider });
     return reply(502, { error: "Venue discovery is temporarily unavailable.", providers: error.providerStatuses || [] });
   }
@@ -3033,7 +3221,7 @@ async function planTourRoute(event) {
     }
     const home = await geocodeTourPlace(start);
     const suggestedMarkets = directional ? await suggestDirectionalMarkets(home, direction, requestedDays, genre) : [];
-    let points = directional ? [home, ...suggestedMarkets, home] : await Promise.all([start, ...stops, end, start].map(geocodeTourPlace));
+    let points = directional ? [home, ...suggestedMarkets, home] : await Promise.all([start, ...stops, end, start].map(value => geocodeTourPlace(value)));
     let route;
     while (points.length >= 3) {
       try {

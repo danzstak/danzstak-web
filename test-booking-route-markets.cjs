@@ -91,9 +91,10 @@ assert.match(source, /const verifiedTacomaRooms = \[/, "the I-5 directory must i
 for (const room of ["Real Art Tacoma", "Airport Tavern", "Jazzbones", "Spanish Ballroom"]) {
   assert.match(source, new RegExp(room), `Tacoma booking leads must include ${room}`);
 }
-assert.match(source, /const belongsToMarket = place =>/, "place-search results must be checked against the requested market");
-assert.match(source, /return distance <= 8;/, "a stop must not silently substitute a venue from a distant city");
+assert.doesNotMatch(source, /const belongsToMarket = place =>/, "worldwide discovery must not silently discard nearby towns at an arbitrary municipal boundary");
+assert.doesNotMatch(source, /return distance <= 8;/, "nearby-area discovery must not retain the former eight-mile cutoff");
 assert.match(source, /place\.verifiedRoom === true \|\| isBookableClub\(place, genre\)/, "human-reviewed rooms must not be discarded by generic place-name filters");
+assert.match(source, /bookingSuitability: assessment\.suitability/, "nearby results must disclose whether they are contact-ready or need research");
 assert.match(source, /dominantCount < Math\.ceil\(localities\.length \* 0\.6\)/, "a search centered across a city boundary must display the locality where most returned clubs actually are");
 assert.match(source, /real estate\|realtor\|property management/, "non-music businesses must be excluded from club discovery");
 assert.match(source, /place\.Address\?\.Locality \|\| place\.Address\?\.District/, "route market names must come from address localities, not nearby business titles");

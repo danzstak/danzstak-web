@@ -20,7 +20,7 @@ assert.equal(isBookableClub({ name: "City Symphony", categories: ["Symphony", "O
 assert.equal(isBookableClub({ name: "City Symphony", categories: ["Symphony", "Orchestra"] }, "Orchestra / Classical"), true, "orchestra searches must not be filtered to zero by rock-club rules");
 assert.equal(isBookableClub({ name: "City Art Museum", categories: ["Museum", "Tourist Attraction"] }, "Rock"), false);
 assert.equal(isBookableClub({ name: "Auto Shop", categories: ["Automotive Service"] }, "Metal"), false);
-assert.equal(isBookableClub({ name: "Downtown Jazz Club", categories: ["Jazz", "Night Club"] }, "DIY Punk"), false);
+assert.equal(isBookableClub({ name: "Downtown Jazz Club", categories: ["Jazz", "Night Club"] }, "DIY Punk"), true, "a real mixed-programming club must remain discoverable even when genre suitability needs research");
 assert.equal(isBookableClub({ name: "Another Planet Entertainment", categories: ["Concert Promoter", "Entertainment Company"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "Stamina DNB", categories: ["Music Promoter"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "SFGMC", categories: ["Choir"] }, "DIY Punk"), false);
@@ -28,7 +28,7 @@ assert.equal(isBookableClub({ name: "RHL Rehearsal Studios", categories: ["Rehea
 assert.equal(isBookableClub({ name: "Martuni's", categories: ["Cocktail Bar"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "Martuni's", categories: ["Live Entertainment-Music", "Bar or Pub", "Cocktail Lounge"] }, "DIY Punk"), false);
 assert.equal(isBookableClub({ name: "The Royale", categories: ["Bar or Pub", "Live Entertainment-Music", "Cocktail Lounge"] }, "DIY Punk"), false);
-assert.equal(isBookableClub({ name: "Public Works", categories: ["Nightclub", "DJ", "Electronic"] }, "DIY Punk"), false);
+assert.equal(isBookableClub({ name: "Public Works", categories: ["Nightclub", "DJ", "Electronic"] }, "DIY Punk"), true, "discovery must not erase an actual venue because the requested genre differs");
 assert.equal(isBookableClub({ name: "Public Works", categories: ["Nightclub", "DJ", "Electronic"] }, "DJ / Electronic"), true);
 assert.equal(isBookableClub({ name: "The Knockout", categories: ["Live Music Venue", "Punk", "Rock"] }, "DIY Punk"), true);
 assert.equal(isBookableClub({ name: "Small Room", categories: ["Live Entertainment-Music", "Bar or Pub"] }, "DIY Punk"), true, "genre searches must retain real music rooms whose public category is generic");
@@ -64,7 +64,7 @@ const leadContext = vm.createContext({});
 vm.runInContext(api.slice(start, api.indexOf("function normalizedVenueText", start)), leadContext);
 const isSupportedBookingLead = vm.runInContext("isSupportedBookingLead", leadContext);
 assert.equal(isSupportedBookingLead({ name: "Real Room", categories: ["Live Music Venue"], websites: ["https://room.example"], emails: [], phones: [] }, "Rock"), true, "a real live room with a public contact path can be shown as a lead");
-assert.equal(isSupportedBookingLead({ name: "Mystery Room", categories: ["Live Music Venue"], websites: [], emails: [], phones: [] }, "Rock"), false, "a venue with no public contact path must not be presented as a booking lead");
+assert.equal(isSupportedBookingLead({ name: "Mystery Room", categories: ["Live Music Venue"], websites: [], emails: [], phones: [] }, "Rock"), true, "a real venue without a returned contact must remain visible as a research lead");
 assert.equal(isSupportedBookingLead({ name: "Roger Morris Real Estate", categories: ["Real Estate"], websites: ["https://example.com"], emails: [], phones: [] }, "Rock"), false, "a contact path cannot make an unrelated business a venue");
 
 const client = fs.readFileSync("assets/booking-agent.js", "utf8");
@@ -112,7 +112,7 @@ assert.match(client, /Navigate to this club/);
 assert.match(client, /dir_action=navigate/);
 assert.match(client, /https:\/\/maps\.apple\.com/);
 assert.match(api, /pointLabel\.includes\("san francisco"\)/);
-assert.match(api, /curatedPool\.filter\(place => isSupportedBookingLead\(place, genre\)\)/, "curated fallback rooms must pass the same evidence and contact gate as live discoveries");
+assert.match(api, /curatedPool\.filter\(place => isSupportedBookingLead\(place, genre\)/, "curated fallback rooms must pass the same venue-evidence gate as live discoveries");
 assert.match(api, /discoveryGenre \? `\$\{discoveryGenre\} music club`/);
 assert.match(api, /searchBounds/);
 assert.match(api, /Filter: \{ BoundingBox:/);
@@ -120,7 +120,7 @@ assert.match(api, /slice\(0, 24\)/);
 assert.match(api, /searchPath\.length >= 2[\s\S]*sampleCount = Math\.min\(5, searchPath\.length\)[\s\S]*Promise\.all\(samplePoints\.map/, "drawn routes must search several areas along the path instead of only its midpoint");
 assert.match(api, /distanceToSearchPathMiles\(place\.position, searchPath\) <= 25/, "drawn-route results must stay close to the path");
 const tourCandidateSource = api.slice(api.indexOf("async function tourCandidates"), api.indexOf("async function planTourRoute"));
-assert.match(tourCandidateSource, /isSupportedBookingLead\(place, genre\)/, "every returned club must have live-room evidence and a public contact path");
+assert.match(tourCandidateSource, /isSupportedBookingLead\(place, genre\)/, "every returned club must have live-room evidence, while incomplete contacts remain research leads");
 
 const curatedStart = api.indexOf("const verifiedSanFranciscoRooms");
 const curatedEnd = api.indexOf("async function tourCandidates", curatedStart);

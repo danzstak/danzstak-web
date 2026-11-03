@@ -34,13 +34,16 @@ async function run(fail, genre = "DIY Punk") {
       } finally { active -= 1; }
     } },
     publicPlace: place => place,
+    venueDiscoveryQueries: (_point, selectedGenre) => [selectedGenre ? `${selectedGenre.replace(/DIY/gi, "").trim()} live music venue` : "live music venue"],
     recordStoreCandidates: async () => ({ stores: [], providers: [] }),
-    overpassPlaces: async () => [],
+    multiSourceDiscovery: async () => ({ places: [], providers: [] }),
     approvedMemberVenueLeads: async () => [],
     curatedVenueLeads: () => [],
     isBookableClub: () => true,
     isSupportedBookingLead: () => true,
     isVenueTypeMatch: () => true,
+    venueDiscoveryAssessment: () => ({ suitability: "needs-research", reasons: [], genreMatch: true, typeMatch: true }),
+    approximateMilesBetween: () => 1,
     venueSuitability: () => 1,
     deduplicateVenues: places => [...new Map(places.map(place => [place.venueKey, place])).values()]
   });
@@ -54,7 +57,7 @@ async function run(fail, genre = "DIY Punk") {
   assert.match(source, /path === "\/venues\/search"/, "natural-language venue discovery needs an authenticated API route");
   assert.match(bookingMarkup, /id="venueQuickQuery"/, "the booking page should expose a simple natural-language club finder");
   assert.match(quickSearchClient, /danzstak:venue-search-results/, "quick-search venues should be passed to the booking map");
-  assert.match(source, /canExpand: radiusMiles < 75/, "venue discovery should expose an explicit wider-area continuation");
+  assert.match(source, /canExpand: radiusMiles < 150/, "venue discovery should expose an explicit wider-area continuation");
   assert.match(quickSearchClient, /seen\.has\(identity\)/, "wider venue searches should not repeat clubs already displayed");
   assert.match(quickSearchClient, /hasMore \? search\(page \+ 1, radiusMiles, true\) : canExpand/, "pagination and radius expansion must be separate actions");
   assert.match(quickSearchClient, /providerStatusText[\s\S]*if \(!response\.ok\)[\s\S]*providerStatus/, "venue errors should name unavailable providers to the artist");
