@@ -3149,7 +3149,7 @@ function cleanEpk(data, ownerPrefix = "") {
     shortBio: text(data.shortBio, 1000), bio: text(data.bio, 5000), lineup: list(data.lineup, 16, item => text(item, 160)),
     releases: list(data.releases, 20, item => text(item, 300)), achievements: list(data.achievements, 20, item => text(item, 300)),
     notableShows: list(data.notableShows, 20, item => text(item, 240)), pressQuotes: quotes,
-    musicLinks: links(data.musicLinks), videoLinks: links(data.videoLinks),
+    musicLinks: links(data.musicLinks), videoLinks: links(data.videoLinks), socialLinks: links(data.socialLinks),
     heroImage: https(data.heroImage), logoImage: https(data.logoImage), media,
     stageRequirements: text(data.stageRequirements, 3000), techRequirements: text(data.techRequirements, 5000), hospitalityRequirements: text(data.hospitalityRequirements, 3000),
     bookingName: text(data.bookingName, 120), bookingEmail: email(data.bookingEmail),

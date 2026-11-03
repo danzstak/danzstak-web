@@ -25,6 +25,10 @@
 .epk-embeds > div { min-width: 0; }
 .epk-embeds h3 { margin: 0 0 6px; font-size: 1rem; }
 .epk-embeds iframe { display: block; width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 10px; margin: 0 0 7px; background: #10141b; }
+.epk-provider { margin: 0; color: #596579; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.epk-contact { display: grid; gap: 8px; }
+.epk-contact p { margin: 0; font-weight: 800; }
+.epk-contact a { width: max-content; max-width: 100%; color: #0b56b3; font-weight: 700; overflow-wrap: anywhere; }
 .form-actions .danger { border-color: #b42318; background: #fff; color: #b42318; }
 .form-actions .danger:hover,
 .form-actions .danger:focus-visible { background: #fff1f0; }

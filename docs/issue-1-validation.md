@@ -82,6 +82,7 @@ All three current global OpenStreetMap Overpass mirrors were unavailable from th
 - Active phone and video calls now tolerate a short mobile-network interruption, cancel stale recovery timers when the connection returns, and fully release camera, microphone, and call controls when the peer connection is lost. Reconnect and lost-call states are localized across all 15 supported languages; focused call tests and the complete regression suite pass.
 - Call-role controls are now explicit: outgoing callers keep the primary accessible Hang Up action without a duplicate floating button, while recipients retain the dedicated touch-friendly receiver Hang Up control requested for mobile calls.
 - Permanent EPK deletion now uses DanzStak's accessible modal confirmation instead of a blocking browser prompt. Escape and the safe default keep the EPK, keyboard focus returns to the Delete EPK opener, and the destructive choice is visually distinct.
+- EPKs now persist and publish artist-controlled social links. YouTube, Vimeo, and Spotify retain constrained provider embeds; SoundCloud, Bandcamp, TikTok, Instagram, and Facebook receive named, safe external preview cards without copying or rehosting third-party media. Published booking email, phone, and website details are actionable only when the artist supplies them.
 
 ## Known limits
 

@@ -9,12 +9,17 @@ const assert = require("node:assert/strict");
   const riderKey = `epk/${owner}/22222222-2222-4222-a222-222222222222.pdf`;
   const kit = cleanEpk({
     artistName: "Codex Band",
+    socialLinks: [
+      { label:"Instagram", url:"https://www.instagram.com/codex-band" },
+      { label:"Unsafe", url:"javascript:alert(1)" }
+    ],
     media: [
       { key: photoKey, id:"photo", role:"press-photo", name:"Press photo", public:true, featured:true },
       { key: riderKey, id:"rider", role:"technical-rider", name:"Private rider", public:false }
     ]
   }, owner);
   assert.equal(kit.artistName, "Codex Band");
+  assert.deepEqual(kit.socialLinks, [{ label:"Instagram", url:"https://www.instagram.com/codex-band" }], "social links should persist while unsafe schemes are rejected");
   assert.equal(kit.media.length, 2, "valid owner-scoped media should remain in the artist draft");
   assert.equal(cleanEpk({ artistName:"Codex Band", media:[{ key:photoKey.replace(owner, "fedcba9876543210fedcba98"), role:"press-photo", name:"Stolen" }] }, owner), null, "another artist's object key must reject the entire update");
   assert.equal(cleanEpk({ artistName:"Codex Band", media:[{ key:photoKey, role:"executable", name:"Bad role" }] }, owner), null, "unknown media roles must be rejected");
