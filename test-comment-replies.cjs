@@ -42,6 +42,17 @@ assert.doesNotMatch(api.slice(api.indexOf("const commentRecords"), api.indexOf("
 
 for (const required of [".comment-composer{", ".comment-bubble{", ".comment-reply-button", ".comment-replying{"])
   assert.ok(css.includes(required), `Compact comment styling is missing: ${required}`);
+for (const required of [
+  'actionRow.className = "comment-action-row"',
+  'actionLeft.className = "comment-action-left"',
+  'actionLeft.appendChild(reply)',
+  'actionRow.appendChild(button)'
+]) assert.ok(ui.includes(required), `Reply/delete single-row structure is missing: ${required}`);
+for (const required of [
+  ".comment-action-row{grid-column:2;display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap",
+  ".deleteCommentBtn{position:static;flex:0 0 auto",
+  "white-space:nowrap"
+]) assert.ok(css.includes(required), `Reply/delete single-row layout is missing: ${required}`);
 
 assert.match(feed, /feed-enhancements\.css\?v=\d+/);
 assert.match(feed, /feed-enhancements\.js\?v=\d+/, "comment reply behavior must use a versioned script URL");
