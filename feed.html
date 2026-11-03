@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-zCE+gSDEpdz+kerRHjaetvjUwWHKVjBrTa2HJKUTLQ0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-tImYmGjaqrCicswGKoyF8o5SgjKYUploDKVyajyGQrc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -682,7 +682,11 @@ function loadPeopleSnapshot() {
 async function loadOnlineUsers() {
   const container = document.getElementById("feedOnlineUsers");
   try {
-    const { presenceState, directoryData, friendsData } = await loadPeopleSnapshot();
+    const { presenceState, directoryData, friendsData, presenceAvailable } = await loadPeopleSnapshot();
+    if (!presenceAvailable) {
+      renderFeedRecovery(container, "Online status is temporarily unavailable. Retrying automatically…", refreshPeopleLists);
+      return;
+    }
     const merged = new Map();
     for (const friend of friendsData.friends || []) {
       const email = String(friend.email || "").toLowerCase();
@@ -701,7 +705,15 @@ async function loadOnlineUsers() {
         : presenceState.online === true
           ? feedTranslate("You are online. No other connected users are active right now.")
           : feedTranslate("No other connected users are active right now.");
-      container.appendChild(empty); return;
+      const findPeople = document.createElement("button");
+      findPeople.type = "button";
+      findPeople.className = "secondary";
+      findPeople.textContent = feedTranslate("Find people");
+      findPeople.addEventListener("click", () => {
+        document.querySelector('[data-feature="Friends"]')?.click();
+        requestAnimationFrame(() => document.querySelector(".friend-name-search input")?.focus());
+      });
+      container.append(empty, findPeople); return;
     }
     for (const user of users) {
       const row = document.createElement("div"); row.className = "feed-online-row";
