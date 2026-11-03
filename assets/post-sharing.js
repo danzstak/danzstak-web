@@ -107,7 +107,7 @@
     else {
       const source = post.sharedPost, memberId = String(source.authorMemberId || ''), validMemberId = /^[a-f0-9-]{36}$/.test(memberId), name = document.createElement(validMemberId ? 'a' : 'strong'); name.textContent = source.authorName;
       if (validMemberId) { name.href = 'profile.html?member=' + encodeURIComponent(memberId); name.className = 'shared-post-author'; }
-      const body = document.createElement('p'); body.textContent = source.content; card.append(name,body);
+      const body = document.createElement('p'); window.danzstakRenderUserText?.(body, source.content) || (body.textContent = source.content); card.append(name,body);
       if (['image','video'].includes(source.mediaType)) installSharedPostMedia(card, source);
       const original = document.createElement('a'); original.href = 'feed.html#post-' + encodeURIComponent(source.postId); original.textContent = 'View original post'; card.appendChild(original);
     }

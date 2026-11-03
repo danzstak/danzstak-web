@@ -527,7 +527,7 @@ function profilePostCard(post) {
   audience.textContent = post.audience === "private" ? "Just me" : post.audience === "friends" ? "Friends" : "Public";
   meta.append(time, audience);
   const text = document.createElement("p");
-  text.textContent = post.content || "Shared media";
+  window.danzstakRenderUserText?.(text, post.content || "Shared media") || (text.textContent = post.content || "Shared media");
   article.append(meta, text);
   if ((post.postId || typeof post.refreshMedia === "function") && ["image", "video"].includes(post.mediaType)) installProfilePostMedia(article, post);
   else if (post.mediaUrl && ["image", "video"].includes(post.mediaType)) {
@@ -779,7 +779,7 @@ panel.innerHTML = '<h2>' + profileEditorWords.heading + '</h2>' +
   '<label>Bio<textarea name="bio" maxlength="160"></textarea></label>' +
   '<label>Location<input name="location" maxlength="80"></label>' +
   '<label>Work<input name="work" maxlength="100"></label>' +
-  '<label>Website<input name="website" type="url" maxlength="200" placeholder="https://"></label></div></details>' +
+  '<label>Website<input name="website" type="text" inputmode="url" maxlength="200" placeholder="yourband.com"></label></div></details>' +
   '<details class="profile-edit-section" data-profile-privacy><summary>Privacy and tagging</summary><div class="profile-edit-section-body">' +
   '<label>Who can post on your profile?<select name="profilePostPermission"><option value="owner">Just me</option><option value="friends">Friends</option><option value="anyone">Public</option></select></label>' +
   '<label class="profile-tag-setting"><input name="allowTags" type="checkbox">Allow accepted friends to tag me in photos and videos</label></div></details>' +
@@ -826,10 +826,10 @@ function renderProfileWebsite(value) {
   target.replaceChildren();
   if (!text) { target.textContent = "Not added"; return; }
   try {
-    const url = new URL(text);
-    if (!["http:", "https:"].includes(url.protocol)) throw new Error("Unsupported website scheme");
+    const href = window.danzstakNormalizeUserUrl?.(text);
+    if (!href) throw new Error("Unsupported website address");
     const link = document.createElement("a");
-    link.href = url.href;
+    link.href = href;
     link.target = "_blank";
     link.rel = "noopener noreferrer nofollow ugc";
     link.referrerPolicy = "no-referrer";
@@ -843,6 +843,7 @@ function applyProfile(profile) {
   if (profile.name) document.getElementById("profileName").textContent = profile.name;
   if (profile.handle) handleElement.textContent = "@" + profile.handle;
   bioElement.textContent = profile.bio || "Add a short bio so people know more about you.";
+  window.danzstakLinkifyUserText?.(bioElement);
   setProfileDetail("profileLocation", profile.location);
   setProfileDetail("profileWork", profile.work);
   renderProfileWebsite(profile.website);
@@ -883,6 +884,7 @@ nameEditHint.addEventListener("click", () => {
   editButton.click();
   requestAnimationFrame(() => panel.elements.name.focus({ preventScroll: true }));
 });
+panel.elements.website.addEventListener("input", () => panel.elements.website.setCustomValidity(""));
 document.getElementById("profileName").addEventListener("click", () => {
   if (viewingOtherProfile || editButton.hidden) return;
   nameEditHint.click();
@@ -893,6 +895,16 @@ panel.addEventListener("submit", async event => {
   event.preventDefault();
   if (!panel.reportValidity()) return;
   const profile = Object.fromEntries(new FormData(panel).entries());
+  if (String(profile.website || "").trim()) {
+    const website = window.danzstakNormalizeUserUrl?.(profile.website);
+    if (!website) {
+      panel.elements.website.setCustomValidity("Enter a valid website address, such as yourband.com.");
+      panel.elements.website.reportValidity();
+      return;
+    }
+    panel.elements.website.setCustomValidity("");
+    profile.website = website;
+  } else panel.elements.website.setCustomValidity("");
   profile.allowTags = panel.elements.allowTags.checked;
   profile.handle = (profile.handle || "").replace(/^@/, "") || (window.danzstakCurrentProfile?.handle || handleElement.textContent.replace(/^@/, ""));
   const language = profile.language;

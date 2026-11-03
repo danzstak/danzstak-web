@@ -10,7 +10,7 @@ function node(tag) {
   nodes.push(item); return item;
 }
 vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
-  document: { createElement: node }, window: { danzstakMountPeopleFinder() {} }, workspace: node('workspace'), featureText: {}, renderOnlineFriendList() {}, AbortController, setTimeout, clearTimeout,
+  document: { createElement: node }, window: { danzstakMountPeopleFinder() {} }, workspace: node('workspace'), featureText: {}, renderOnlineFriendList() {}, isCurrentWorkspace: () => true, AbortController, setTimeout, clearTimeout,
   fetch: async url => {
     if (url.endsWith('/calls/directory')) throw new Error('Presence unavailable');
     return { ok: true, json: async () => ({ friends: [{ email: 'friend@example.com', memberId: '44444444-4444-4444-4444-444444444444', name: 'Existing Friend' }] }) };
@@ -28,7 +28,7 @@ setImmediate(async () => {
       mergedNodes.push(item); return item;
     }
     vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
-      document: { createElement: mergedNode }, window: { danzstakMountPeopleFinder() {} }, workspace: mergedNode('workspace'), featureText: {}, renderOnlineFriendList() {}, AbortController, setTimeout, clearTimeout,
+      document: { createElement: mergedNode }, window: { danzstakMountPeopleFinder() {} }, workspace: mergedNode('workspace'), featureText: {}, renderOnlineFriendList() {}, isCurrentWorkspace: () => true, AbortController, setTimeout, clearTimeout,
       fetch: async url => url.endsWith('/calls/directory')
         ? { ok: true, json: async () => ({ users: [{ email: 'friend@example.com', name: 'Directory Friend', picture: 'https://cdn.example/friend.jpg', online: true }] }) }
         : { ok: true, json: async () => ({ friends: [{ email: 'friend@example.com', memberId: '44444444-4444-4444-4444-444444444444', name: 'Existing Friend' }] }) }
@@ -48,7 +48,7 @@ setImmediate(async () => {
       timeoutNodes.push(item); return item;
     }
     vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
-      document: { createElement: timeoutNode }, window: { danzstakMountPeopleFinder() {} }, workspace: timeoutNode('workspace'), featureText: {}, renderOnlineFriendList() {},
+      document: { createElement: timeoutNode }, window: { danzstakMountPeopleFinder() {} }, workspace: timeoutNode('workspace'), featureText: {}, renderOnlineFriendList() {}, isCurrentWorkspace: () => true,
       AbortController: TestAbortController, setTimeout(fn) { deadline = fn; return 1; }, clearTimeout() {}, renderWorkspace(name) { if (name === 'Friends') retries++; },
       fetch: (url, options) => new Promise((resolve, reject) => { const abort = () => { const error = new Error('aborted'); error.name = 'AbortError'; reject(error); }; if (options.signal.aborted) abort(); else options.signal.addEventListener('abort', abort); })
     });

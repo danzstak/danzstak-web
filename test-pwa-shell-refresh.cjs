@@ -20,6 +20,8 @@ assert.match(serviceWorker, /"\/assets\/booking-discovery\.js"/, "the installabl
 assert.match(serviceWorker, /"\/assets\/booking-discovery\.css"/, "the installable shell must keep venue discovery readable offline");
 assert.match(serviceWorker, /"\/assets\/record-stores-pagination\.css"/, "the installable shell must keep record-store pagination readable offline");
 assert.match(serviceWorker, /"\/assets\/epk-media\.css"/, "the installable shell must keep EPK media management styled offline");
+assert.match(serviceWorker, /"\/assets\/user-content-links\.js"/, "the offline shell must keep user links clickable");
+assert.match(serviceWorker, /"\/assets\/user-content-links\.css"/, "the offline shell must keep user links visibly styled");
 assert.match(serviceWorker, /async function refreshAppShell\(\)/, "service worker must refresh its app shell");
 assert.match(serviceWorker, /Promise\.allSettled\(SHELL\.map/, "one failed shell request must not cancel the refresh");
 assert.match(serviceWorker, /fetch\(path, \{ cache: "no-store" \}\)/, "shell refresh must bypass stale browser cache");
@@ -40,20 +42,20 @@ for (const [file, expected] of [
   ["feed.html", "assets/identity-media.js?v=1"],
   ["messages.html", "assets/identity-media.js?v=1"],
   ["profile.html", "assets/identity-media.js?v=1"],
-  ["feed.html", "assets/feed-enhancements.js?v=500"],
+  ["feed.html", "assets/feed-enhancements.js?v=503"],
   ["feed.html", "assets/profile-onboarding.js?v=6"],
-  ["feed.html", "assets/post-sharing.js?v=418"],
+  ["feed.html", "assets/post-sharing.js?v=420"],
   ["feed.html", "assets/people-search.js?v=422"],
   ["feed.html", "assets/media-visibility.js?v=384"],
   ["messages.html", "assets/media-visibility.js?v=384"],
   ["profile.html", "assets/media-visibility.js?v=384"],
-  ["messages.html", "assets/chat.js?v=445"],
+  ["messages.html", "assets/chat.js?v=447"],
   ["messages.html", "assets/chat.css?v=441"],
-  ["messages.html", "assets/direct-messages.js?v=478"],
+  ["messages.html", "assets/direct-messages.js?v=479"],
   ["profile.html", "assets/profile-sharing.js?v=415"],
-  ["profile.html", "assets/profile-editor.js?v=480"],
+  ["profile.html", "assets/profile-editor.js?v=482"],
   ["booking.html", "assets/booking-agent.js?v=478"],
-  ["profile.html", "assets/post-sharing.js?v=418"],
+  ["profile.html", "assets/post-sharing.js?v=420"],
   ["profile.html", "assets/profile.js?v=419"]
 ]) {
   assert.ok(read(file).includes(expected), `${file} must reference ${expected}`);

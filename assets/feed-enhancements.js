@@ -1425,6 +1425,7 @@ function renderWorkspace(name) {
       const directoryPeople = new Map(directoryUsers
         .filter(user => user.email)
         .map(user => [String(user.email).toLowerCase(), user]));
+      if (!isCurrentWorkspace()) return;
       renderOnlineFriendList(onlineList, [...directoryPeople.values()], presenceAvailable);
       list.replaceChildren();
       list.setAttribute("aria-busy", "false");
@@ -1444,6 +1445,7 @@ function renderWorkspace(name) {
         return;
       }
       const friends = (await friendsResponse.json()).friends || [];
+      if (!isCurrentWorkspace()) return;
       if (!friends.length) {
         const empty = document.createElement("p");
         empty.className = "muted";
@@ -1499,6 +1501,7 @@ function renderWorkspace(name) {
         list.appendChild(row);
       }
     }).catch(error => {
+      if (!isCurrentWorkspace()) return;
       list.setAttribute("aria-busy", "false");
       list.replaceChildren();
       const failure = document.createElement("p");
@@ -2725,6 +2728,7 @@ function addPostDeleteButton(post) {
           }
         }
         body.textContent = updated;
+        window.danzstakLinkifyUserText?.(body);
         updateLoadedPost(postId, { content: updated, location: updatedLocation, editHistory: history });
         post.dataset.location = updatedLocation;
         let place = post.querySelector(".post-location");
@@ -3745,48 +3749,7 @@ window.addEventListener("danzstak-presence-updated", () => {
     });
 });
 function linkifyUserText(element) {
-  if (element?.nodeType !== 1) return;
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-  const textNodes = [];
-  while (walker.nextNode()) {
-    const node = walker.currentNode;
-    if (!node.nodeValue?.match(/(?:https?:\/\/|www\.)/i)) continue;
-    if (node.parentElement?.closest("a, button, input, textarea, script, style")) continue;
-    textNodes.push(node);
-  }
-  for (const node of textNodes) {
-    const text = node.nodeValue;
-    const pattern = /(?:https?:\/\/|www\.)[^\s<>]+/gi;
-    const fragment = document.createDocumentFragment();
-    let cursor = 0;
-    for (const match of text.matchAll(pattern)) {
-      if (match.index > cursor) fragment.append(document.createTextNode(text.slice(cursor, match.index)));
-      let visible = match[0];
-      let trailing = "";
-      while (/[),.!?;:]$/.test(visible)) {
-        trailing = visible.slice(-1) + trailing;
-        visible = visible.slice(0, -1);
-      }
-      try {
-        const href = new URL(visible.startsWith("www.") ? "https://" + visible : visible);
-        if (href.protocol !== "https:" && href.protocol !== "http:") throw new Error("Unsupported link");
-        const link = document.createElement("a");
-        link.className = "user-content-link";
-        link.href = href.href;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer nofollow ugc";
-        link.textContent = visible;
-        fragment.append(link);
-      } catch {
-        fragment.append(document.createTextNode(visible));
-      }
-      if (trailing) fragment.append(document.createTextNode(trailing));
-      cursor = match.index + match[0].length;
-    }
-    if (!cursor) continue;
-    if (cursor < text.length) fragment.append(document.createTextNode(text.slice(cursor)));
-    node.replaceWith(fragment);
-  }
+  return window.danzstakLinkifyUserText?.(element);
 }
 
 function linkifyFeedContent(root = document) {
