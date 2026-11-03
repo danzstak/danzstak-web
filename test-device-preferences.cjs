@@ -10,4 +10,6 @@ assert.equal(vm.runInContext('readSections().GroupsJoined.group1',context),true)
 assert.equal(vm.runInContext('readDevicePreference("missing")',context),null);
 assert.ok(!source.includes('localStorage.setItem("danzstak_dark_mode"'),'settings hydration uses optional cache writes');
 assert.ok(!source.includes('localStorage.getItem("danzstak_data_saver"'),'Settings remains readable with blocked storage');
-console.log('Device preference checks passed: blocked storage, current settings, and group draft fallback.');
+assert.ok(!source.includes('settingRow("moon", "Dark mode"'),'light-only settings must not expose the legacy theme control');
+assert.ok(source.includes('darkMode: false'),'older backends must receive a safe light-mode compatibility value');
+console.log('Device preference checks passed: light-only rendering, blocked storage, current settings, and group draft fallback.');

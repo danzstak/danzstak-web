@@ -172,7 +172,7 @@ $chatScript = Get-Content -LiteralPath (Join-Path $root 'assets\chat.js') -Raw -
 if (-not $chatScript.Contains('await window.danzstakEnablePush()')) { Add-Failure 'Messages: Enable ringing is disconnected from durable Web Push setup' }
 $deviceSettings = Get-Content -LiteralPath (Join-Path $root 'assets\device-settings.js') -Raw -Encoding utf8
 if (-not $deviceSettings.Contains('await window.danzstakEnablePush()')) { Add-Failure 'Settings: Call and message alerts is disconnected from durable Web Push setup' }
-if (-not $feedEnhancements.Contains('darkCheckbox.setAttribute("aria-label", "Use dark mode")')) { Add-Failure 'Settings: Dark mode control has no accessible name' }
+if ($feedEnhancements.Contains('settingRow("moon", "Dark mode"') -or $feedEnhancements.Contains('aria-label", "Use dark mode"')) { Add-Failure 'Settings: light-only DanzStak still exposes a dark-mode control' }
 foreach ($safeSettingsLoad in @('button.textContent = "Loading Settings', 'button.dataset.mode = "retry"', 'Retry before changing privacy preferences.', 'if (!response.ok) throw new Error("Account settings could not be loaded.")')) {
   if (-not $feedEnhancements.Contains($safeSettingsLoad)) { Add-Failure "Settings: a failed preference load can overwrite account privacy: $safeSettingsLoad" }
 }
@@ -182,13 +182,13 @@ foreach ($displayPage in @('feed.html', 'profile.html', 'messages.html')) {
   if (-not $displayMarkup.Contains('assets/display-preferences.js?v=')) { Add-Failure "${displayPage}: saved display preferences are not restored before rendering" }
 }
 $displayPreferences = Get-Content -LiteralPath (Join-Path $root 'assets\display-preferences.js') -Raw -Encoding utf8
-foreach ($preference in @('danzstak_dark_mode', 'danzstak_reduce_motion', 'danzstak_language')) {
+foreach ($preference in @('danzstak_reduce_motion', 'danzstak_language')) {
   if (-not $displayPreferences.Contains($preference)) { Add-Failure "Display preferences: shared bootstrap omits $preference" }
 }
 $profileStyles = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.css') -Raw -Encoding utf8
 $chatStylesForPreferences = Get-Content -LiteralPath (Join-Path $root 'assets\chat.css') -Raw -Encoding utf8
 foreach ($styleSet in @($feedEnhancementCss, $profileStyles, $chatStylesForPreferences)) {
-  if (-not $styleSet.Contains('.dark-mode') -or -not $styleSet.Contains('.reduce-motion')) { Add-Failure 'Display preferences: a core page lacks dark-mode or reduced-motion coverage' }
+  if (-not $styleSet.Contains('.reduce-motion')) { Add-Failure 'Display preferences: a core page lacks reduced-motion coverage' }
 }
 if ($feedEnhancementCss -match '\.story-share-control input\{position:absolute') { Add-Failure 'Composer: checkbox placement still relies on an absolute offset' }
 foreach ($eventBehavior in @('Event audience', 'Publishing event', '/secure-posts', 'Event published to DanzStak', 'window.loadPosts')) {
@@ -423,7 +423,7 @@ foreach ($notificationAccessibility in @('list.setAttribute("aria-label", feedTr
 foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey && !viewingOtherProfile')) {
   if (-not $profileEditorJs.Contains($protectedProfileMedia)) { Add-Failure "Profiles: media authorization safeguard is missing: $protectedProfileMedia" }
 }
-foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Stay signed in until you sign out', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: darkCheckbox.checked', 'language: language.value')) {
+foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Stay signed in until you sign out', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: false', 'language: language.value')) {
   if (-not $feedEnhancements.Contains($settingsBehavior)) { Add-Failure "Settings: persistent control is missing: $settingsBehavior" }
 }
 foreach ($legalSettingsBehavior in @('"Legal and privacy"', 'privacyLink.href = "privacy.html"', 'termsLink.href = "terms.html"', 'legalLinks.append(privacyLink, termsLink)')) {
@@ -613,9 +613,9 @@ if (-not $feed.Contains('article.dataset.audience = ["public", "friends", "priva
     -not $feedEnhancementsJs.Contains('post.dataset.audience = audiences[next];')) {
   Add-Failure 'Post sharing: non-public content can leak through external sharing or stale privacy state'
 }
-if (-not $feedEnhancementsJs.Contains('readDevicePreference("danzstak_dark_mode") === "1"') -or
+if (-not $feedEnhancementsJs.Contains('document.documentElement.classList.remove("dark-mode")') -or
     -not $feedEnhancementsJs.Contains('document.documentElement.lang = readDevicePreference("danzstak_language") || navigator.language || "en"')) {
-  Add-Failure 'Settings: saved dark-mode or language preferences are not restored after navigation'
+  Add-Failure 'Settings: light-only rendering or saved language restoration is missing after navigation'
 }
 $reactionStart = $feedEnhancementsJs.IndexOf('function addReactionButton(post)')
 $ownerFilter = $feedEnhancementsJs.IndexOf('if (!owner)')

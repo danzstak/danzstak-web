@@ -14,8 +14,8 @@ assert.match(styles, /\.edit-profile-panel\{[^}]*width:100%[^}]*max-width:100%[^
   "the editor should remain inside the profile card at every viewport width");
 assert.match(styles, /\.edit-profile-panel input,\.edit-profile-panel textarea,\.edit-profile-panel select\{[^}]*width:100%[^}]*min-width:0/,
   "profile inputs and privacy selectors should not overflow their panel");
-assert.match(styles, /\.dark-mode \.edit-profile-panel select\{[^}]*background:#111827[^}]*color:#f5f7fb/,
-  "profile selectors should remain legible in dark mode");
+assert.match(styles, /\.edit-profile-panel input,\.edit-profile-panel textarea,\.edit-profile-panel select\{[^}]*background:#fff[^}]*color:#1c1e21/,
+  "profile selectors should remain legible in the required light interface");
 assert.match(script, /profile-identity-fields[^]*profileEditorWords\.name[^]*profile-username[^]*More profile details/,
   "the visible name should come first and the optional username should be collapsed");
 const panelTemplate = script.slice(script.indexOf("panel.innerHTML"), script.indexOf("// Keep profile controls"));

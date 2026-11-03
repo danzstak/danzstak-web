@@ -5,7 +5,8 @@
 const devicePreferenceMemory = new Map();
 
 try {
-  document.documentElement.classList.toggle("dark-mode", readDevicePreference("danzstak_dark_mode") === "1");
+  document.documentElement.classList.remove("dark-mode");
+  cacheDevicePreference("danzstak_dark_mode", "0");
   document.documentElement.classList.toggle("reduce-motion", readDevicePreference("danzstak_reduce_motion") === "1");
   document.documentElement.lang = readDevicePreference("danzstak_language") || navigator.language || "en";
 } catch { /* Device preferences remain optional when storage is unavailable. */ }
@@ -1661,14 +1662,6 @@ function renderWorkspace(name) {
     presenceCheckbox.setAttribute("aria-label", "Show me online to other users");
     presence.append(presenceCheckbox, document.createTextNode("Show me online to other users"));
     const tagsCheckbox = document.createElement("input"); tagsCheckbox.type = "checkbox"; tagsCheckbox.checked = true; tagsCheckbox.id = "allowTags"; tagsCheckbox.setAttribute("aria-label", "Allow friends to tag me in photos and videos");
-    const darkCheckbox = document.createElement("input");
-    darkCheckbox.type = "checkbox";
-    darkCheckbox.checked = document.documentElement.classList.contains("dark-mode");
-    darkCheckbox.setAttribute("aria-label", "Use dark mode");
-    darkCheckbox.addEventListener("change", () => {
-      document.documentElement.classList.toggle("dark-mode", darkCheckbox.checked);
-      cacheDevicePreference("danzstak_dark_mode", darkCheckbox.checked ? "1" : "0");
-    });
     const motionCheckbox = document.createElement("input");
     motionCheckbox.type = "checkbox";
     motionCheckbox.checked = document.documentElement.classList.contains("reduce-motion");
@@ -1771,11 +1764,6 @@ function renderWorkspace(name) {
         tagsCheckbox.checked = data.allowTags !== false;
         callAlertsCheckbox.checked = data.callAlerts !== false;
         messageAlertsCheckbox.checked = data.messageAlerts !== false;
-        if (typeof data.darkMode === "boolean") {
-          darkCheckbox.checked = data.darkMode;
-          document.documentElement.classList.toggle("dark-mode", data.darkMode);
-          cacheDevicePreference("danzstak_dark_mode", data.darkMode ? "1" : "0");
-        }
         if (typeof data.reduceMotion === "boolean") {
           motionCheckbox.checked = data.reduceMotion;
           document.documentElement.classList.toggle("reduce-motion", data.reduceMotion);
@@ -1807,7 +1795,7 @@ function renderWorkspace(name) {
       try {
         const response = await settingsFetch({
           method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-          body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, allowTags: tagsCheckbox.checked, callAlerts: callAlertsCheckbox.checked, messageAlerts: messageAlertsCheckbox.checked, darkMode: darkCheckbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
+          body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, allowTags: tagsCheckbox.checked, callAlerts: callAlertsCheckbox.checked, messageAlerts: messageAlertsCheckbox.checked, darkMode: false, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
         });
         if (!response.ok) throw new Error("Account settings could not be saved.");
         if (isCurrentWorkspace()) featureText.textContent = "Settings saved to your DanzStak account.";
@@ -1823,7 +1811,6 @@ function renderWorkspace(name) {
       settingRow("lock", "Privacy center", presence),
       settingRow("edit", "Profile posting and tagging", profilePermissions),
       settingRow("tag", "Allow friends to tag me", tagsCheckbox),
-      settingRow("moon", "Dark mode", darkCheckbox),
       settingRow("sparkles", "Reduce motion", motionCheckbox),
       settingRow("wifi", "Data saver", dataSaverCheckbox),
       settingRow("globe", "Language", language),
