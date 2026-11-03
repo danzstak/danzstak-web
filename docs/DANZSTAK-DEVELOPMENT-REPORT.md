@@ -64,7 +64,7 @@ Status as of 2026-11-03: **COMPLETE IN LOCAL DEVELOPMENT; STRIPE-HOSTED TEST BLO
 - **PASS locally**: booking-email credit reservation, provider acceptance, final deduction, duplicate-send prevention and failed-send restoration; dashboard regressions.
 - **PASS locally**: complete repository regression sweep, **229 passed and 0 failed**, including unrelated feed, Friends, PWA, profile, messaging, media, Booking Agent and EPK checks.
 - **PASS locally**: production dependency audit, 0 known vulnerabilities across 37 production dependencies.
-- **UPDATED LIVE TEST EVIDENCE (2026-11-03)**: AWS Secrets Manager contains `danzstak/stripe/secret-key`, and it was safely identified as a Stripe Test Mode key without printing its value. Stripe authenticated it as account `acct_1UXmCxDahXMLrQax` with dashboard display name and business name **DANZSTAK sandbox**, not SFScoop. The account has incomplete details, card charges disabled and zero active one-time Test Mode Prices. Each supplied Price ID returned Stripe `404`. AWS Secrets Manager in this account/region has no other Stripe or SFScoop secret.
+- **UPDATED LIVE TEST EVIDENCE (reverified 2026-11-03)**: AWS Secrets Manager contains `danzstak/stripe/secret-key`, and it was safely identified as a Stripe Test Mode key without printing its value. Stripe authenticated it as account `acct_1UXmCxDahXMLrQax` with dashboard display name and business name **DANZSTAK sandbox**, not SFScoop. The account has incomplete details, card charges disabled and zero active one-time Test Mode Prices. Each supplied Price ID returned Stripe `404`. AWS Secrets Manager in AWS account `635288116224` has no other Stripe or SFScoop secret. The recheck made no deployment and created no Checkout Session or charge.
 - Stripe Test Mode verification evidence commit: `bd2178b1af8b0048d92771241128556941798853` on `danzstak-patch-1`.
 - **BLOCKED**: `DANZSTAK-TourManager-Stripe-Test` is not wired to the Secrets Manager value and still has no webhook-signing secret. No Stripe-hosted Checkout or signed webhook was attempted, no Product was created, and no live charge was made.
 
@@ -145,7 +145,7 @@ Status as of 2026-11-03: **STRIPE LOCAL IMPLEMENTATION COMPLETE; STRIPE-HOSTED T
 - Stripe Product: `prod_VYr5JIwpaFSX7b`
 - Stripe Price: `price_1UXjMtFgtfNMBXOVCLeEk8vI`
 - Expected amount: USD 1.50 one time for each booking-email credit.
-- Implementation: Checkout quantities, signed webhook verification, immediate and delayed payment handling, DynamoDB credit ledger, duplicate-event protection, booking-email reservation, provider acceptance, failed-send restoration, and balance/history UI are implemented on `codex/tour-manager-stripe-webhook`.
+- Implementation: Checkout quantities, signed webhook verification, immediate and delayed payment handling, DynamoDB credit ledger, duplicate-event protection, booking-email reservation, provider acceptance, failed-send restoration, and balance/history UI are integrated on `danzstak-patch-1`.
 - Test status: local signature, amount, delayed-payment, idempotency, ledger, reservation, final deduction, failed-send restoration, and Amazon SES mailbox-simulator tests pass.
 - Blocker: the available Stripe Test Mode key addresses an account with no matching test Prices, and no endpoint signing secret is configured. A Stripe-hosted checkout/webhook cycle has not been verified.
 
