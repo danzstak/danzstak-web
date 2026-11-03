@@ -38,7 +38,40 @@
     const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = window.danzstakTranslate?.('Retry media') || 'Retry media';
     recovery.append(copy,retry);
     const insert = node => { const original = card.querySelector('a[href*="#post-"]'); if (original) original.before(node); else card.appendChild(node); };
-    const showRecovery = () => { card.querySelector('.shared-post-media')?.remove(); if (!recovery.parentNode) insert(recovery); };
+    const showRecovery = (text = 'Media is temporarily unavailable.') => {
+      copy.textContent = window.danzstakTranslate?.(text) || text;
+      card.querySelector('.shared-post-media')?.remove();
+      if (!recovery.parentNode) insert(recovery);
+    };
+    const watchSharedMedia = (media, onTimeout) => {
+      let watchdog = 0, visibilityObserver = null;
+      const clearWatchdog = () => {
+        if (watchdog) clearTimeout(watchdog);
+        watchdog = 0;
+        visibilityObserver?.disconnect();
+        visibilityObserver = null;
+      };
+      const armWatchdog = (requestLoad = false) => {
+        if (media.tagName === 'IMG' ? media.complete && media.naturalWidth > 0 : media.readyState >= 2) { clearWatchdog(); return; }
+        if (media.tagName === 'VIDEO') {
+          media.preload = 'metadata';
+          if (requestLoad && media.readyState === 0) media.load();
+        }
+        if (watchdog) clearTimeout(watchdog);
+        watchdog = setTimeout(() => { watchdog = 0; onTimeout(); }, 15000);
+      };
+      media.addEventListener(media.tagName === 'IMG' ? 'load' : 'loadeddata', clearWatchdog, { once:true });
+      media.addEventListener('error', clearWatchdog, { once:true });
+      if (media.tagName === 'VIDEO') media.addEventListener('pointerdown', () => armWatchdog(), { passive:true });
+      visibilityObserver = new IntersectionObserver(entries => {
+        if (!entries.some(entry => entry.isIntersecting)) return;
+        visibilityObserver?.disconnect();
+        visibilityObserver = null;
+        armWatchdog(true);
+      }, { rootMargin:'300px' });
+      visibilityObserver.observe(media);
+      return clearWatchdog;
+    };
     const install = async () => {
       retry.disabled = true;
       const mediaUrl = source.mediaUrl || await refreshSharedPostMedia(source);
@@ -46,9 +79,10 @@
       if (!mediaUrl) { showRecovery(); return; }
       recovery.remove();
       const media = document.createElement(source.mediaType === 'image' ? 'img' : 'video'); media.className = 'shared-post-media';
-      media.addEventListener('error', () => { source.mediaUrl = ''; showRecovery(); }, { once:true });
       if (source.mediaType === 'image') { media.alt = 'Photo by ' + source.authorName; media.loading = 'lazy'; }
       else { media.controls = true; media.playsInline = true; media.preload = 'metadata'; media.setAttribute('aria-label', 'Video by ' + source.authorName); }
+      const clearWatchdog = watchSharedMedia(media, () => { source.mediaUrl = ''; showRecovery('Media is taking longer than expected.'); });
+      media.addEventListener('error', () => { clearWatchdog(); source.mediaUrl = ''; showRecovery(); }, { once:true });
       media.src = mediaUrl; insert(media);
     };
     retry.addEventListener('click', () => { source.mediaUrl = ''; void install(); });
