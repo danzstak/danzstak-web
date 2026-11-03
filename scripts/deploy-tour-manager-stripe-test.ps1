@@ -7,6 +7,7 @@ $stage = Join-Path $env:TEMP ("danzstak-tour-manager-stripe-" + [guid]::NewGuid(
 $bundle = Join-Path $env:TEMP "danzstak-tour-manager-stripe-test.zip"
 $environmentFile = Join-Path $env:TEMP "danzstak-tour-manager-env.json"
 $secretPolicyFile = Join-Path $env:TEMP "danzstak-tour-manager-secret-policy.json"
+$dataPolicyFile = Join-Path $env:TEMP "danzstak-tour-manager-data-policy.json"
 $resolvedTemp = [IO.Path]::GetFullPath($env:TEMP).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
 $resolvedStage = [IO.Path]::GetFullPath($stage)
 if (-not $resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) { throw "Unsafe staging path." }
@@ -52,6 +53,17 @@ try {
   } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $secretPolicyFile -Encoding ascii
   aws iam put-role-policy --role-name DANZSTAK-Auth-API-role-zjknf4ur --policy-name DanzStakStripeSecrets --policy-document "file://$secretPolicyFile"
   if ($LASTEXITCODE -ne 0) { throw "The backend role could not be authorized to read the DANZSTAK Stripe secrets." }
+  @{
+    Version = "2012-10-17"
+    Statement = @(@{
+      Sid = "UseDanzStakTourManagerLedger"
+      Effect = "Allow"
+      Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:TransactWriteItems", "dynamodb:UpdateItem")
+      Resource = "arn:aws:dynamodb:${region}:635288116224:table/DANZSTAK-Tours"
+    })
+  } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $dataPolicyFile -Encoding ascii
+  aws iam put-role-policy --role-name DANZSTAK-Auth-API-role-zjknf4ur --policy-name DanzStakTourManagerLedger --policy-document "file://$dataPolicyFile"
+  if ($LASTEXITCODE -ne 0) { throw "The backend role could not be authorized to use the DANZSTAK Tour Manager ledger." }
 
   $previous = $ErrorActionPreference
   $ErrorActionPreference = "SilentlyContinue"
@@ -96,7 +108,7 @@ try {
   Write-Host "Tour Manager Stripe test endpoint: https://api.danzstak.com/tour-manager/stripe/webhook"
 } finally {
   if ($resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) { Remove-Item -LiteralPath $resolvedStage -Recurse -Force -ErrorAction SilentlyContinue }
-  foreach ($file in @($bundle, $environmentFile, $secretPolicyFile)) {
+  foreach ($file in @($bundle, $environmentFile, $secretPolicyFile, $dataPolicyFile)) {
     $resolvedFile = [IO.Path]::GetFullPath($file)
     if ($resolvedFile.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) { Remove-Item -LiteralPath $resolvedFile -Force -ErrorAction SilentlyContinue }
   }

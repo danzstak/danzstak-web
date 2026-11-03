@@ -4,8 +4,8 @@ const { createHmac } = require("node:crypto");
 (async () => {
   const {
     createTourManagerBilling,
-    PHONE_NUMBER_PRICE_ID,
-    PHONE_NUMBER_PRODUCT_ID,
+    TEST_PHONE_NUMBER_PRICE_ID: PHONE_NUMBER_PRICE_ID,
+    TEST_PHONE_NUMBER_PRODUCT_ID: PHONE_NUMBER_PRODUCT_ID,
     PHONE_NUMBER_UNIT_CENTS
   } = await import("./infrastructure/auth-api/tour-manager-billing.mjs");
   class Command { constructor(input) { this.input = input; } }

@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const { createHmac } = require("node:crypto");
 
 (async () => {
-  const { createTourManagerBilling, verifyStripeSignature, TOUR_MANAGER_EMAIL_PRICE_ID, TOUR_MANAGER_PRODUCT_ID, TOUR_MANAGER_EMAIL_UNIT_CENTS } = await import("./infrastructure/auth-api/tour-manager-billing.mjs");
+  const { createTourManagerBilling, verifyStripeSignature, TEST_TOUR_MANAGER_EMAIL_PRICE_ID: TOUR_MANAGER_EMAIL_PRICE_ID, TEST_TOUR_MANAGER_PRODUCT_ID: TOUR_MANAGER_PRODUCT_ID, TOUR_MANAGER_EMAIL_UNIT_CENTS } = await import("./infrastructure/auth-api/tour-manager-billing.mjs");
   class Command { constructor(input) { this.input = input; } }
   class GetItemCommand extends Command {}
   class PutItemCommand extends Command {}
