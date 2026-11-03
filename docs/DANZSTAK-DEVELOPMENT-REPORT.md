@@ -4,6 +4,17 @@
 
 Status as of 2026-11-03: test infrastructure implemented; live payments disabled.
 
+### Unlock Booking Contact
+
+- Status: **COMPLETE in development; NOT DEPLOYED**.
+- Stripe Product: `prod_VYruR0GLph8xsy`
+- Stripe Price: `price_1UXkB5FgtfNMBXOVVeUOG`
+- Dashboard verification: active, USD 0.75 one time.
+- Implementation: uses the existing Tour Manager Stripe Checkout and signed webhook. Checkout is limited to a saved venue with a public direct contact. Successful verified payment creates one account-and-venue-specific entitlement; webhook retries and repeat purchases do not duplicate the entitlement or charge flow.
+- Interface: official website, map, and evidence stay available; direct email/phone and email outreach remain locked until the entitlement is active. Locked contacts are excluded from CSV contact exports.
+- Tests: fixed Price and amount, saved-contact validation, signature verification, tampered-amount rejection, entitlement persistence, duplicate webhook protection, and repeat-purchase prevention pass locally.
+- Deployment: no production deployment or live payment activation was performed.
+
 ### Tour Manager booking emails
 
 - Stripe Product: `prod_VYr5JIwpaFSX7b`
@@ -17,8 +28,8 @@ Status as of 2026-11-03: test infrastructure implemented; live payments disabled
 
 - Stripe Product: `prod_VYrUnT8yvXS0Ek`
 - Stripe Price: `price_1UXjlYFgtfNMBXOVD42xjrTc`
-- Expected amount: USD 3.00 one time. This remains unverified.
-- Implementation status: intentionally not implemented yet. The development order requires the actual Stripe Price, currency, mode, account, and Product relationship to be verified before entitlement code is added. The Stripe dashboard currently redirects to login, and neither the local environment nor the isolated AWS test Lambda has a Stripe test secret.
+- Expected amount: USD 3.00 one time. The dashboard product and amount were verified on 2026-11-03.
+- Implementation status: intentionally not implemented yet and outside this booking-contact task. The product and displayed amount were verified in the dashboard, but the local environment and isolated AWS test Lambda still do not have a Stripe test secret for an end-to-end phone-entitlement test.
 - Planned entitlement: a verified successful payment will create one idempotent phone-activation entitlement. It will not add booking-email credits. Activation will remain pending until the telecommunications provider confirms provisioning.
 - Cost boundary: the one-time activation fee will not be represented as covering number rental, calls, messages, carrier charges, recurring costs, or permanent number availability. Those costs and any renewal policy must be independently configurable before launch.
 

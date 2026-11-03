@@ -1,6 +1,7 @@
 "use strict";
 (() => {
   const api = "https://api.danzstak.com", balance = document.getElementById("bookingCreditBalance"), summary = document.getElementById("bookingCreditSummary"), status = document.getElementById("bookingCreditStatus"), activity = document.getElementById("bookingCreditActivity"), form = document.getElementById("buyBookingCredits"), quantity = document.getElementById("bookingCreditQuantity");
+  const unlockedContacts = new Set();
   async function request(path, options = {}) { const response = await fetch(api + path, { credentials: "include", cache: "no-store", ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Tour Manager billing is unavailable."); return data; }
   async function refresh() {
     try {
@@ -19,8 +20,28 @@
     try { const data = await request("/tour-manager/checkout", { method: "POST", body: JSON.stringify({ quantity: count }) }); location.assign(data.checkoutUrl); } catch (error) { status.textContent = error.message; button.disabled = false; }
   });
   window.danzstakSendBookingEmail = async payload => { const id = crypto.randomUUID().replaceAll("-", ""); const data = await request("/tour-manager/emails/send", { method: "POST", body: JSON.stringify({ ...payload, idempotencyKey: id }) }); await refresh(); return data; };
+  window.danzstakBookingContactUnlocked = venueKey => unlockedContacts.has(String(venueKey || ""));
+  window.danzstakUnlockBookingContact = async venueKey => {
+    const data = await request("/tour-manager/contact-unlock/checkout", { method: "POST", body: JSON.stringify({ venueKey }) });
+    if (data.unlocked) { unlockedContacts.add(String(venueKey)); document.dispatchEvent(new CustomEvent("danzstak-contact-unlocks")); return data; }
+    if (!data.checkoutUrl?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe Checkout did not return a secure payment page.");
+    location.assign(data.checkoutUrl);
+    return data;
+  };
+  async function refreshContactUnlocks() {
+    try {
+      const data = await request("/tour-manager/contact-unlocks");
+      unlockedContacts.clear();
+      for (const venueKey of data.venueKeys || []) unlockedContacts.add(String(venueKey));
+      document.dispatchEvent(new CustomEvent("danzstak-contact-unlocks"));
+    } catch (error) { if (status && !status.textContent) status.textContent = error.message; }
+  }
   const result = new URLSearchParams(location.search).get("credits");
   if (result === "success") status.textContent = "Payment received. Credits appear after Stripe verifies the webhook.";
   if (result === "cancelled") status.textContent = "Checkout cancelled. No credits were added.";
+  const contactResult = new URLSearchParams(location.search).get("contact");
+  if (contactResult === "success") status.textContent = "Payment received. The contact appears after Stripe verifies the payment.";
+  if (contactResult === "cancelled") status.textContent = "Contact unlock cancelled. No charge was completed.";
   refresh();
+  refreshContactUnlocks();
 })();

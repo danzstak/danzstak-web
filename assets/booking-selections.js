@@ -158,6 +158,9 @@
       listingCheckedText(venue.discoveredAt)
     ].filter(Boolean).join(" — ");
     links.className = "venue-links";
+    const venueKey = identity(venue);
+    const hasDirectContact = (venue.emails || []).some(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) || (venue.phones || []).length > 0;
+    const contactUnlocked = window.danzstakBookingContactUnlocked?.(venueKey) === true;
     if (typeof venue.imageUrl === "string" && /^https:\/\//.test(venue.imageUrl)) {
       const image = document.createElement("img");
       image.src = venue.imageUrl;
@@ -166,8 +169,23 @@
       card.append(image);
     }
     for (const website of venue.websites || []) if (/^https:\/\//.test(website)) links.append(link("Website", website));
-    for (const email of venue.emails || []) if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) links.append(link("Email", `mailto:${email}`));
-    for (const phone of venue.phones || []) links.append(link("Call", `tel:${String(phone).replace(/[^+0-9]/g, "")}`));
+    if (contactUnlocked) {
+      for (const email of venue.emails || []) if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) links.append(link("Email", `mailto:${email}`));
+      for (const phone of venue.phones || []) links.append(link("Call", `tel:${String(phone).replace(/[^+0-9]/g, "")}`));
+    } else if (hasDirectContact) {
+      const unlock = document.createElement("button");
+      unlock.type = "button";
+      unlock.className = "unlock-contact";
+      unlock.textContent = "Unlock booking contact · $0.75";
+      unlock.addEventListener("click", async () => {
+        if (dirty) { window.danzstakShowFeedback?.("Save your booking workspace before unlocking its contact.", { urgent: true }); return; }
+        unlock.disabled = true;
+        unlock.textContent = "Opening secure checkout…";
+        try { await window.danzstakUnlockBookingContact(venueKey); }
+        catch (error) { window.danzstakShowFeedback?.(error.message, { urgent: true }); unlock.disabled = false; unlock.textContent = "Unlock booking contact · $0.75"; }
+      });
+      links.append(unlock);
+    }
     if (Array.isArray(venue.position) && venue.position.length === 2) links.append(link("Map", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${venue.position[1]},${venue.position[0]}`)}`));
     for (const evidence of venueSources(venue)) {
       if (typeof evidence.url === "string" && /^https:\/\//.test(evidence.url)) {
@@ -180,7 +198,7 @@
       }
     }
     note.className = "venue-note";
-    note.textContent = "Verify the booking contact and availability before outreach.";
+    note.textContent = contactUnlocked ? "Booking contact unlocked. Verify the buyer and availability before outreach." : hasDirectContact ? "Direct email and phone are hidden until this venue contact is unlocked." : "No direct public booking contact is listed; use the official website to research submissions.";
     remove.type = "button";
     remove.className = "remove-venue secondary";
     remove.textContent = "Remove from list";
@@ -229,7 +247,8 @@
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = "Send reviewed email · 1 credit";
-    const email = (venue.emails || []).find(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    const contactUnlocked = window.danzstakBookingContactUnlocked?.(identity(venue)) === true;
+    const email = contactUnlocked ? (venue.emails || []).find(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) : undefined;
     button.disabled = !email;
     button.addEventListener("click", async () => {
       if (!a.name || !venue.booking?.showDate || /\[[^\]]+\]/.test(draft.value)) {
@@ -253,7 +272,7 @@
       }
     });
     const note = document.createElement("small");
-    note.textContent = email ? "DanzStak reserves one credit, submits the reviewed message, and restores the credit if the email provider rejects it. Replies go to your account email." : "No public booking email listed. Use the venue website to find its submission form.";
+    note.textContent = email ? "DanzStak reserves one credit, submits the reviewed message, and restores the credit if the email provider rejects it. Replies go to your account email." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
     section.append(fit, label, button, note);
     return section;
   }
@@ -342,12 +361,14 @@
 
   function downloadCsv() {
     const rows = [["Venue", "Address", "Website", "Email", "Phone", "Categories", "Evidence", "Source name", "Source URL", "Listing checked", "Stage", "Proposed show date", "Follow-up date", "Deal", "Notes", "Outreach draft"]];
-    for (const venue of venues) rows.push([
+    for (const venue of venues) {
+      const contactUnlocked = window.danzstakBookingContactUnlocked?.(identity(venue)) === true;
+      rows.push([
       venue.name,
       venue.address,
       (venue.websites || []).join(" | "),
-      (venue.emails || []).join(" | "),
-      (venue.phones || []).join(" | "),
+      contactUnlocked ? (venue.emails || []).join(" | ") : "Locked",
+      contactUnlocked ? (venue.phones || []).join(" | ") : "Locked",
       (venue.categories || []).join(" | "),
       venue.activityEvidence,
       venueSources(venue).map(source => source.name).join(" | "),
@@ -359,7 +380,8 @@
       venue.booking?.deal,
       venue.booking?.notes,
       venue.booking?.outreachDraft
-    ]);
+      ]);
+    }
     const blob = new Blob(["\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -379,6 +401,7 @@
     persist();
     render();
   });
+  document.addEventListener("danzstak-contact-unlocks", render);
   render();
   if (loadAccount) loadWorkspace();
 })();

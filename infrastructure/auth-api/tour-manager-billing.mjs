@@ -2,7 +2,11 @@ import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UXjMtFgtfNMBXOVCLeEk8vI";
 export const TOUR_MANAGER_EMAIL_UNIT_CENTS = 150;
+export const BOOKING_CONTACT_PRICE_ID = "price_1UXkB5FgtfNMBXOVVeUOG";
+export const BOOKING_CONTACT_PRODUCT_ID = "prod_VYruR0GLph8xsy";
+export const BOOKING_CONTACT_UNIT_CENTS = 75;
 const PRODUCT = "tour_manager_booking_email";
+const CONTACT_PRODUCT = "booking_contact_unlock";
 const CREDIT_KEY = "TOUR_MANAGER#BOOKING_EMAIL_CREDITS";
 const BOOKING_WORKSPACE_KEY = "booking-workspace-v1";
 const EVENT_OWNER = "STRIPE#TOUR_MANAGER_EVENTS";
@@ -19,6 +23,8 @@ function creditKey(userId) { return { userId: { S: userId }, tourId: { S: CREDIT
 function eventKey(eventId) { return { userId: { S: EVENT_OWNER }, tourId: { S: eventId } }; }
 function ledgerKey(userId, at, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#LEDGER#${at}#${id}` } }; }
 function sendKey(userId, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${id}` } }; }
+function contactUnlockKey(userId, venueKey) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#CONTACT_UNLOCK#${venueKey}` } }; }
+function validVenueKey(value) { return typeof value === "string" && /^[a-f0-9]{20}$/.test(value); }
 
 export function verifyStripeSignature(payload, header, secret, currentTime = Date.now(), toleranceSeconds = 300) {
   if (typeof payload !== "string" || !payload || typeof header !== "string" || !secret?.startsWith("whsec_")) return false;
@@ -62,6 +68,37 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return response(200, { checkoutUrl: session.url, quantity, unitAmountCents: TOUR_MANAGER_EMAIL_UNIT_CENTS, currency: "usd", testMode: testMode() }, headers);
   }
 
+  async function contactCheckout(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    if (!paymentsAllowed()) return response(503, { error: "Booking contact payments are not configured for testing." }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const venueKey = String(parseBody(event)?.venueKey || "").trim();
+    if (!validVenueKey(venueKey)) return response(400, { error: "Choose a saved venue contact." }, headers);
+    const entitlement = await db.send(new GetItemCommand({ TableName: tableName, Key: contactUnlockKey(userId, venueKey), ConsistentRead: true }));
+    if (entitlement.Item?.status?.S === "active") return response(200, { unlocked: true, venueKey }, headers);
+    const workspace = await db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }));
+    let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
+    const venue = (plan.venues || []).find(item => item?.venueKey === venueKey);
+    if (!venue || !(venue.emails || []).length && !(venue.phones || []).length) return response(409, { error: "Save this venue and its public booking contact before unlocking it." }, headers);
+    const requestId = randomUUID(), form = new URLSearchParams({ mode: "payment", "line_items[0][price]": BOOKING_CONTACT_PRICE_ID, "line_items[0][quantity]": "1", client_reference_id: userId, "metadata[product]": CONTACT_PRODUCT, "metadata[userId]": userId, "metadata[priceId]": BOOKING_CONTACT_PRICE_ID, "metadata[venueKey]": venueKey, success_url: `https://danzstak.com/booking-selections.html?contact=success&venueKey=${encodeURIComponent(venueKey)}`, cancel_url: `https://danzstak.com/booking-selections.html?contact=cancelled&venueKey=${encodeURIComponent(venueKey)}` });
+    const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `contact-unlock-${userId}-${venueKey}-${requestId}` }, body: form.toString() });
+    if (!/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
+    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, product: { S: CONTACT_PRODUCT }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, priceId: { S: BOOKING_CONTACT_PRICE_ID }, environment: { S: testMode() ? "test" : "live" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
+    return response(200, { checkoutUrl: session.url, venueKey, unitAmountCents: BOOKING_CONTACT_UNIT_CENTS, currency: "usd", testMode: testMode() }, headers);
+  }
+
+  async function contactUnlocks(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const result = await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#CONTACT_UNLOCK#" } }, ConsistentRead: true, Limit: 200 }));
+    const venueKeys = (result.Items || []).filter(item => item.status?.S === "active" && validVenueKey(item.venueKey?.S)).map(item => item.venueKey.S);
+    return response(200, { venueKeys, unitAmountCents: BOOKING_CONTACT_UNIT_CENTS, currency: "usd", priceId: BOOKING_CONTACT_PRICE_ID }, headers);
+  }
+
   async function credits(event) {
     const headers = browserHeaders(event);
     if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
@@ -76,12 +113,20 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return response(200, { bookingEmailCredits: Number(found.Item?.credits?.N || 0), purchasedCredits: Number(found.Item?.purchasedCredits?.N || 0), sentEmails: Number(found.Item?.sentEmails?.N || 0), reservedCredits: Number(found.Item?.reservedCredits?.N || 0), unitAmountCents: TOUR_MANAGER_EMAIL_UNIT_CENTS, currency: "usd", priceId: TOUR_MANAGER_EMAIL_PRICE_ID, activity }, headers);
   }
 
-  async function loadVerifiedSession(sessionId, expectedLive) {
-    const session = await stripe(`/checkout/sessions/${encodeURIComponent(sessionId)}?expand%5B%5D=line_items`), userId = session.client_reference_id, lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null, quantity = Number(line?.quantity), metadata = session.metadata || {};
-    const valid = session.id === sessionId && session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PRODUCT && metadata.userId === userId && metadata.priceId === TOUR_MANAGER_EMAIL_PRICE_ID && Number(metadata.quantity) === quantity && line?.price?.id === TOUR_MANAGER_EMAIL_PRICE_ID && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === TOUR_MANAGER_EMAIL_UNIT_CENTS && Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_CREDITS_PER_CHECKOUT && session.currency === "usd" && Number(session.amount_total) === quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS;
+  async function loadVerifiedSession(session, expectedLive) {
+    const userId = session.client_reference_id, lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null, quantity = Number(line?.quantity), metadata = session.metadata || {};
+    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PRODUCT && metadata.userId === userId && metadata.priceId === TOUR_MANAGER_EMAIL_PRICE_ID && Number(metadata.quantity) === quantity && line?.price?.id === TOUR_MANAGER_EMAIL_PRICE_ID && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === TOUR_MANAGER_EMAIL_UNIT_CENTS && Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_CREDITS_PER_CHECKOUT && session.currency === "usd" && Number(session.amount_total) === quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS;
     if (!valid) return null;
     const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
     return item?.sessionId?.S === session.id && item.priceId?.S === TOUR_MANAGER_EMAIL_PRICE_ID && Number(item.quantity?.N) === quantity && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, quantity } : null;
+  }
+
+  async function loadVerifiedContactSession(session, expectedLive) {
+    const userId = session.client_reference_id, metadata = session.metadata || {}, venueKey = String(metadata.venueKey || ""), lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null;
+    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && validVenueKey(venueKey) && metadata.product === CONTACT_PRODUCT && metadata.userId === userId && metadata.priceId === BOOKING_CONTACT_PRICE_ID && Number(line?.quantity) === 1 && line?.price?.id === BOOKING_CONTACT_PRICE_ID && line?.price?.product === BOOKING_CONTACT_PRODUCT_ID && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === BOOKING_CONTACT_UNIT_CENTS && session.currency === "usd" && Number(session.amount_total) === BOOKING_CONTACT_UNIT_CENTS;
+    if (!valid) return null;
+    const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
+    return item?.sessionId?.S === session.id && item.product?.S === CONTACT_PRODUCT && item.venueKey?.S === venueKey && item.priceId?.S === BOOKING_CONTACT_PRICE_ID && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, venueKey, product: CONTACT_PRODUCT } : null;
   }
 
   async function markCheckoutEvent(notification, verified, status) {
@@ -107,6 +152,19 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return true;
   }
 
+  async function grantContactUnlock(notification, verified) {
+    const processedAt = nowIso();
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :paid, paidAt = :paidAt", ConditionExpression: "#status <> :paid AND sessionId = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":paidAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
+        { Put: { TableName: tableName, Item: { ...contactUnlockKey(verified.userId, verified.venueKey), venueKey: { S: verified.venueKey }, status: { S: "active" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, priceId: { S: BOOKING_CONTACT_PRICE_ID }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "contact_unlock" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "settled" }, description: { S: "Booking contact unlocked" }, venueKey: { S: verified.venueKey }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
+      ] }));
+    } catch (error) { const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: eventKey(notification.id), ConsistentRead: true })); if (duplicate.Item) return false; throw error; }
+    return true;
+  }
+
   async function webhook(event) {
     if (!paymentsAllowed()) return response(503, { error: "Tour Manager payment webhook is not configured." });
     const payload = rawBody(event), signature = event.headers?.["stripe-signature"] || event.headers?.["Stripe-Signature"];
@@ -119,11 +177,17 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (processed.Item) return response(200, { received: true, duplicate: true });
     const expectedLive = env.STRIPE_SECRET_KEY.startsWith("sk_live_");
     if (notification.livemode !== expectedLive) return response(400, { error: "Stripe environment mismatch." });
-    const verified = await loadVerifiedSession(supplied.id, expectedLive);
+    const session = await stripe(`/checkout/sessions/${encodeURIComponent(supplied.id)}?expand%5B%5D=line_items`);
+    if (session.id !== supplied.id) return response(409, { error: "No matching Tour Manager checkout." });
+    const verified = session.metadata?.product === CONTACT_PRODUCT ? await loadVerifiedContactSession(session, expectedLive) : await loadVerifiedSession(session, expectedLive);
     if (!verified) return response(409, { error: "No matching Tour Manager checkout." });
     if (notification.type === "checkout.session.completed" && verified.session.payment_status !== "paid") { await markCheckoutEvent(notification, verified, "awaiting_payment"); return response(200, { received: true, awaitingPayment: true }); }
     if (notification.type === "checkout.session.async_payment_failed" || notification.type === "checkout.session.expired") { await markCheckoutEvent(notification, verified, notification.type.endsWith("failed") ? "payment_failed" : "expired"); return response(200, { received: true, creditsIssued: 0 }); }
     if (verified.session.payment_status !== "paid" || verified.session.status !== "complete") return response(409, { error: "Stripe has not verified a completed payment." });
+    if (verified.product === CONTACT_PRODUCT) {
+      const granted = await grantContactUnlock(notification, verified);
+      return response(200, { received: true, contactUnlocked: granted, venueKey: verified.venueKey, duplicate: !granted });
+    }
     const granted = await grantCredits(notification, verified);
     return response(200, { received: true, creditsIssued: granted ? verified.quantity : 0, duplicate: !granted });
   }
@@ -140,6 +204,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
     const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to)), artistName = String(plan.artist?.name || "").trim();
     if (!venue) return response(409, { error: "Save this venue and its public booking email to your account before sending." }, headers);
+    const contactAccess = await db.send(new GetItemCommand({ TableName: tableName, Key: contactUnlockKey(userId, venueKey), ConsistentRead: true }));
+    if (contactAccess.Item?.status?.S !== "active") return response(402, { error: "Unlock this venue's booking contact before sending." }, headers);
     if (!artistName) return response(409, { error: "Add your act name and save the booking workspace before sending." }, headers);
     const key = sendKey(userId, id), existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
     if (existing.Item) return response(existing.Item.status?.S === "sent" ? 200 : 202, { status: existing.Item.status?.S || "pending", duplicate: true, messageId: existing.Item.providerMessageId?.S || "" }, headers);
@@ -184,6 +250,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const method = event?.requestContext?.http?.method, path = event?.rawPath;
     if (method === "POST" && path === "/tour-manager/stripe/webhook") return webhook(event);
     if (method === "POST" && path === "/tour-manager/checkout") return checkout(event);
+    if (method === "POST" && path === "/tour-manager/contact-unlock/checkout") return contactCheckout(event);
+    if (method === "GET" && path === "/tour-manager/contact-unlocks") return contactUnlocks(event);
     if (method === "GET" && path === "/tour-manager/credits") return credits(event);
     if (method === "POST" && path === "/tour-manager/emails/send") return sendEmail(event);
     return null;
