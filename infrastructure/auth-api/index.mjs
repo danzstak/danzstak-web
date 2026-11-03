@@ -37,7 +37,9 @@ import {
   GeoRoutesClient,
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
+import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
+import { createEpkResearch } from "./epk-research.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
@@ -45,6 +47,7 @@ const ses = new SESv2Client({ region: "us-west-1" });
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
 const geoPlaces = new GeoPlacesClient({ region: "us-west-2", maxAttempts: 3 });
 const geoRoutes = new GeoRoutesClient({ region: "us-west-2", maxAttempts: 3 });
+const bedrock = new BedrockRuntimeClient({ region: process.env.EPK_RESEARCH_REGION || "us-west-2", maxAttempts: 5, retryMode: "adaptive" });
 
 const tableName = process.env.SESSIONS_TABLE;
 const postsTable = "DANZSTAK-Posts";
@@ -105,6 +108,15 @@ const tourManagerBilling = createTourManagerBilling({
     }));
     return { messageId: result.MessageId || "" };
   }
+});
+
+const epkResearch = createEpkResearch({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: toursTable,
+  bedrock
 });
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -3426,6 +3438,7 @@ const bookingWorkspaceId = "booking-workspace-v1";
 const epkWorkspaceId = "epk-workspace-v1";
 const epkPublicPartition = "epk-public";
 const epkSharePartition = "epk-private-share";
+const epkVersionPrefix = "epk-version#";
 
 const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
 const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
@@ -3446,6 +3459,11 @@ function cleanEpk(data, ownerPrefix = "") {
     const quote = text(item.quote, 500), source = text(item.source, 160), url = https(item.url);
     return quote && source ? { quote, source, url } : null;
   });
+  const pressCoverage = list(data.pressCoverage, 30, item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const title = text(item.title, 240), publication = text(item.publication, 160), url = https(item.url), date = text(item.date, 20);
+    return title && url ? { title, publication, url, date } : null;
+  });
   const rawMedia = Array.isArray(data.media) ? data.media.slice(0, 40) : [];
   const media = list(rawMedia, 40, item => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return null;
@@ -3457,9 +3475,9 @@ function cleanEpk(data, ownerPrefix = "") {
   const kit = {
     artistName: text(data.artistName, 120), hometown: text(data.hometown, 160),
     genres: list(data.genres, 8, item => text(item, 60)), shortPitch: text(data.shortPitch, 300),
-    shortBio: text(data.shortBio, 1000), bio: text(data.bio, 5000), lineup: list(data.lineup, 16, item => text(item, 160)),
+    shortBio: text(data.shortBio, 1000), mediumBio: text(data.mediumBio, 3000), bio: text(data.bio, 7000), lineup: list(data.lineup, 16, item => text(item, 160)),
     releases: list(data.releases, 20, item => text(item, 300)), achievements: list(data.achievements, 20, item => text(item, 300)),
-    notableShows: list(data.notableShows, 20, item => text(item, 240)), pressQuotes: quotes,
+    notableShows: list(data.notableShows, 20, item => text(item, 240)), pressQuotes: quotes, pressCoverage,
     musicLinks: links(data.musicLinks), videoLinks: links(data.videoLinks), socialLinks: links(data.socialLinks),
     heroImage: https(data.heroImage), logoImage: https(data.logoImage), media,
     stageRequirements: text(data.stageRequirements, 3000), techRequirements: text(data.techRequirements, 5000), hospitalityRequirements: text(data.hospitalityRequirements, 3000),
@@ -3573,6 +3591,7 @@ async function epkWorkspace(event, method) {
   const publicKey = { userId: { S: epkPublicPartition }, tourId: { S: publicId } };
   await db.send(new TransactWriteItemsCommand({ TransactItems: [
     { Put: { TableName: toursTable, Item: { ...ownerKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, publicId: { S: publicId }, published: { BOOL: publish }, updatedAt: { S: nowIso }, ...(shareHash ? { shareHash: { S: shareHash } } : {}) } } },
+    { Put: { TableName: toursTable, Item: { userId: { S: userId }, tourId: { S: `${epkVersionPrefix}${nowIso}#${randomUUID()}` }, name: { S: `${kit.artistName} EPK version` }, plan: { S: plan }, published: { BOOL: publish }, createdAt: { S: nowIso }, updatedAt: { S: nowIso } } } },
     publish
       ? { Put: { TableName: toursTable, Item: { ...publicKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }
       : { Delete: { TableName: toursTable, Key: publicKey } },
@@ -3585,6 +3604,16 @@ async function epkWorkspace(event, method) {
     if (pending) console.error("EPK media cleanup remains pending", { userId, pending });
   }
   return reply(200, { publicId, published: publish, updatedAt: nowIso });
+}
+
+async function epkVersions(event) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: epkVersionPrefix } }, ScanIndexForward: false, Limit: 30, ConsistentRead: true }));
+  const versions = (result.Items || []).map(item => ({ id: String(item.tourId?.S || "").slice(epkVersionPrefix.length), artistName: (() => { try { return JSON.parse(item.plan?.S || "{}").artistName || "Artist"; } catch { return "Artist"; } })(), published: item.published?.BOOL === true, createdAt: item.createdAt?.S || item.updatedAt?.S || "" }));
+  return reply(200, { versions });
 }
 
 async function publicEpk(event, publicId) {
@@ -3988,6 +4017,11 @@ export const handler = async event => {
 
     if ((method === "GET" || method === "POST") && path === "/booking-pipeline") return await bookingWorkspace(event, method);
     if ((method === "GET" || method === "POST" || method === "DELETE") && path === "/epk") return await epkWorkspace(event, method);
+    if (method === "GET" && path === "/epk/versions") return await epkVersions(event);
+    if (method === "GET" && path === "/epk/research") return await epkResearch(event, "history");
+    if (method === "POST" && path === "/epk/research") return await epkResearch(event, "research");
+    if (method === "POST" && path === "/epk/research/approval") return await epkResearch(event, "approval");
+    if (method === "POST" && path === "/epk/research/rewrite") return await epkResearch(event, "rewrite");
     if (method === "POST" && path === "/epk/share") return await privateEpkShare(event, method);
     const epkPublicMatch = path.match(/^\/epk\/public\/([a-z0-9-]{3,64})$/i);
     if (method === "GET" && epkPublicMatch) return await publicEpk(event, epkPublicMatch[1]);

@@ -5,6 +5,7 @@ $FunctionName = "DANZSTAK-Auth-API"
 $RoleName = "DANZSTAK-Auth-API-role-zjknf4ur"
 $Source = Join-Path $PSScriptRoot "infrastructure\auth-api\index.mjs"
 $TourManagerBillingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\tour-manager-billing.mjs"
+$EpkResearchSource = Join-Path $PSScriptRoot "infrastructure\auth-api\epk-research.mjs"
 $Package = Join-Path $PSScriptRoot "infrastructure\auth-api\package.json"
 $PackageLock = Join-Path $PSScriptRoot "infrastructure\auth-api\package-lock.json"
 $Bundle = Join-Path $env:TEMP "danzstak-auth-api.zip"
@@ -31,6 +32,8 @@ if ([string]::IsNullOrWhiteSpace([string]$identity.Account)) {
 
 node --check $Source
 if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript validation failed." }
+node --check $EpkResearchSource
+if ($LASTEXITCODE -ne 0) { throw "EPK research JavaScript validation failed." }
 
 try {
   aws dynamodb describe-table --region $Region --table-name $ToursTable --output json 2>$null | Out-Null
@@ -54,7 +57,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Venue directory recovery protection failed." }
   }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$Package,$PackageLock -Destination $Stage
+  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$EpkResearchSource,$Package,$PackageLock -Destination $Stage
   Push-Location $Stage
   try {
     npm ci --omit=dev --ignore-scripts --no-audit --no-fund
@@ -132,6 +135,12 @@ try {
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Tours"
       },
       @{
+        Sid = "EpkResearchDrafting"
+        Effect = "Allow"
+        Action = @("bedrock:InvokeModel")
+        Resource = "arn:aws:bedrock:us-west-2::foundation-model/*"
+      },
+      @{
         Sid = "ReviewedVenueDirectory"
         Effect = "Allow"
         Action = @("dynamodb:Scan", "dynamodb:GetItem")
@@ -154,6 +163,9 @@ try {
   $variables = @{}
   foreach ($property in $current.Environment.Variables.PSObject.Properties) { $variables[$property.Name] = [string]$property.Value }
   $variables.MEDIA_BUCKET = [string]$mediaBucket
+  if (-not $variables.ContainsKey("EPK_RESEARCH_REGION")) { $variables.EPK_RESEARCH_REGION = "us-west-2" }
+  if (-not $variables.ContainsKey("EPK_RESEARCH_MODEL_ID")) { $variables.EPK_RESEARCH_MODEL_ID = "amazon.nova-lite-v1:0" }
+  if (-not $variables.ContainsKey("EPK_RESEARCH_DAILY_LIMIT")) { $variables.EPK_RESEARCH_DAILY_LIMIT = "3" }
   $postViewsTable = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Engagement --query "Stacks[0].Outputs[?OutputKey=='PostViewsTableName'].OutputValue | [0]" --output text
   if ($LASTEXITCODE -ne 0) { throw "Post view configuration could not be resolved." }
   if ($postViewsTable -and $postViewsTable -ne 'None') { $variables.POST_VIEWS_TABLE = [string]$postViewsTable }
@@ -193,7 +205,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "POST /tour-manager/sfs/quote", "POST /tour-manager/sfs/verify", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "POST /radio-stations/search", "GET /radio-station-workspace", "POST /radio-station-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/share", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "POST /tour-manager/sfs/quote", "POST /tour-manager/sfs/verify", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "POST /radio-stations/search", "GET /radio-station-workspace", "POST /radio-station-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "GET /epk", "POST /epk", "DELETE /epk", "GET /epk/versions", "GET /epk/research", "POST /epk/research", "POST /epk/research/approval", "POST /epk/research/rewrite", "POST /epk/share", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
