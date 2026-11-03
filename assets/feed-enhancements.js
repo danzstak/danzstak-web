@@ -3294,9 +3294,11 @@ async function saveReaction(post, reaction, commentId = "") {
   finally { if (pendingReactionSaves.get(post) === pending) pendingReactionSaves.delete(post); }
 }
 
+const pendingCommentSaves = new WeakSet();
 async function saveComment(post, input) {
   const postId = engagementPostId(post), content = input.value.trim();
-  if (!postId || !content) return;
+  if (!postId || !content || input.disabled || pendingCommentSaves.has(input)) return;
+  pendingCommentSaves.add(input);
   input.disabled = true;
   const submit = input.closest?.(".comment-composer")?.querySelector(".comment-send");
   if (submit) submit.disabled = true;
@@ -3313,7 +3315,7 @@ async function saveComment(post, input) {
     post.dataset.engagementLoaded = "";
     await loadEngagement(post);
   } catch (error) { showAppFeedback(error.message, { urgent: true }); }
-  finally { input.disabled = false; if (submit) submit.disabled = false; input.focus(); }
+  finally { pendingCommentSaves.delete(input); input.disabled = false; if (submit) submit.disabled = false; input.focus(); }
 }
 
 function addCommentDelete(comment) {
