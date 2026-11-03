@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 
 (async () => {
   process.env.TOURS_TABLE = "test-tours";
@@ -35,5 +36,10 @@ const assert = require("node:assert/strict");
 
   const mismatch = structuredClone(event); mismatch.ses.mail.source = "attacker@example.test";
   assert.deepEqual(await inbound.processSesRecord(mismatch, { db, s3: storage, parse: async () => ({ text: "fake" }) }), { accepted: false, reason: "sender-mismatch" });
+  const messagesPage = fs.readFileSync("messages.html", "utf8"), bookingClient = fs.readFileSync("assets/booking-chat.js", "utf8"), chatCss = fs.readFileSync("assets/chat.css", "utf8");
+  assert.match(messagesPage, /assets\/booking-chat\.js/);
+  assert.match(bookingClient, /booking-club/); assert.match(bookingClient, /booking-radio/); assert.match(bookingClient, /booking-record-store/);
+  assert.match(bookingClient, /\/tour-manager\/booking-conversations/); assert.match(bookingClient, /\/tour-manager\/booking-messages/);
+  assert.match(chatCss, /\.booking-chat-row/); assert.match(chatCss, /grid-template-columns:44px minmax\(0,1fr\) auto/);
   console.log("booking mail bridge tests passed");
 })().catch(error => { console.error(error); process.exitCode = 1; });
