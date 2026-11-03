@@ -121,6 +121,18 @@ Status as of 2026-11-04: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 - Implementation commit: `df842addf03ba337c789b9c1d15491b27f2f3a8d` on `danzstak-patch-1`.
 - Deployment: not published to production and not merged into `main`.
 
+## Multilingual privacy-safe background push notifications
+
+Status as of 2026-11-04: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+
+- Corrected the server-generated Web Push payloads for incoming calls, direct messages and friend requests. They now use the recipient account's saved DanzStak language instead of always sending English lock-screen text.
+- All 15 supported account languages are covered. Caller/sender names are inserted after translation and are never translated or replaced with an email address. Missing or unsupported language values fall back safely to English.
+- Direct-message pushes remain deliberately private: the payload says that the named member sent a message but never includes the message body, attachment, conversation preview or account email. Call payloads identify voice versus video using localized terms.
+- Existing account controls remain enforced independently: disabling incoming-call alerts suppresses call pushes, and disabling new-message alerts suppresses message pushes. Friend-request delivery and per-device subscription fan-out are unchanged.
+- Verification: **241 of 241** JavaScript regression programs pass, including new server-payload coverage for every language, placeholder preservation, English fallback and lock-screen privacy. Release verification, the 11-page site smoke suite, CloudFormation/embedded-Lambda syntax validation and `git diff --check` also pass.
+- Implementation commit: `50f2518a7a68ae1336ed1bc5a39b5a2f39246830` on `danzstak-patch-1`.
+- Deployment: not published to production and not merged into `main`.
+
 ## Mobile Flashes navigation
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
