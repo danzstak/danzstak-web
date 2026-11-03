@@ -96,6 +96,7 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 - Member-supplied names remain unchanged and are inserted only after translation, so names are never sent through or altered by the translation dictionary. Existing opaque profile routes, privacy-respecting presence, one-tap friend requests, accepted-friend persistence, quick messaging, timeout recovery and stale-response protection are unchanged.
 - Advanced the feed behavior cache key and PWA shell cache so installed clients receive the correction rather than retaining the older English-only script.
 - Verification: **240 of 240** JavaScript regression programs pass, including new localization coverage plus friend discovery, live presence, loading, stale-response, failure isolation, profile routes, Italian profile language and all 15-language dictionary checks. The 11-page site smoke suite, release verification, infrastructure/Lambda syntax validation and `git diff --check` also pass.
+- Implementation commit: `3cf14f455c7a6e5b8f2a1df1bd919d7221df0cb6` on `danzstak-patch-1`.
 - Deployment: not published to production and not merged into `main`.
 
 ## Mobile Flashes navigation
