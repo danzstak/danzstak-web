@@ -30,6 +30,9 @@ assert.match(deploy, /POST \/record-store-workspace/, "deployment should provisi
 assert.match(deploy, /AllowRecordStoreWorkspaceFromApiGateway/, "the record-placement workspace must be invokable through API Gateway");
 assert.match(booking, /Record stores along the route/, "tour results should expose route record stores");
 assert.doesNotMatch(client, /innerHTML/, "public store data must be rendered without HTML injection");
+assert.match(client, /mailto:\$\{email\}/, "validated public store emails should be actionable in discovery results");
+assert.match(client, /tel:\$\{phone\.replace/, "validated public store phones should be actionable in discovery results");
+assert.match(client, /document\.createTextNode\(label\)/, "provider attribution should remain visible when a source has no link");
 assert.match(client, /Add to outreach/, "artists should be able to select a store for release outreach");
 assert.match(client, /wholesale or consignment/, "outreach must ask for the store's current policy rather than inventing one");
 assert.match(client, /record-store-workspace/, "record placement work should save to the signed-in account");

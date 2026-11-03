@@ -19,8 +19,13 @@
       card.className = "store-card"; links.className = "store-links"; sources.className = "source-list";
       card.append(text("h2", store.name || "Record store"), text("p", store.address || store.locality || "Address not listed"), text("p", store.activityEvidence || "A current public listing was returned. Confirm before contacting.", "evidence-label"));
       (store.websites || []).filter(url => /^https:\/\//.test(url)).slice(0,1).forEach(url => links.append(safeLink("Official website", url)));
+      (store.emails || []).filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)).slice(0,2).forEach((email, index) => links.append(safeLink(index ? `Email ${index + 1}` : "Email store", `mailto:${email}`)));
+      (store.phones || []).filter(phone => /^\+?[0-9 ()-]{7,24}$/.test(phone)).slice(0,2).forEach((phone, index) => links.append(safeLink(index ? `Call ${index + 1}: ${phone}` : `Call ${phone}`, `tel:${phone.replace(/[^+0-9]/g, "")}`)));
       if (Array.isArray(store.position) && store.position.length === 2) links.append(safeLink("Map", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${store.position[1]},${store.position[0]}`)}`));
-      (store.sources || []).filter(source => source.name && /^https:\/\//.test(source.url || "")).forEach(source => { sources.append(safeLink(`Source: ${source.name}`, source.url), document.createTextNode(" ")); });
+      (store.sources || []).filter(source => source.name).forEach(source => {
+        const label = `Source: ${source.name}`;
+        sources.append(/^https:\/\//.test(source.url || "") ? safeLink(label, source.url) : document.createTextNode(label), document.createTextNode(" "));
+      });
       add.type = "button"; add.textContent = workspace.stores.some(item => item.name === store.name && item.address === store.address) ? "Added to outreach" : "Add to outreach"; add.disabled = add.textContent.startsWith("Added");
       add.addEventListener("click", () => { workspace.stores.push({ ...store, stage:"Research", followUp:"", notes:"", outreachDraft:draftFor(store) }); add.textContent = "Added to outreach"; add.disabled = true; renderPlacement(); placementStatus.textContent = `${store.name} added. Save the workspace when ready.`; });
       card.append(links, sources, add); results.append(card);
