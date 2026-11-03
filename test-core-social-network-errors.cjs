@@ -14,6 +14,7 @@ async function helper(file, startText, endText, invocation, expected) {
     directApi: "https://api.danzstak.com",
     API: "https://api.danzstak.com",
     t: value => value,
+    messageTranslate: value => value,
     setTimeout,
     clearTimeout,
     fetch: async () => { throw new TypeError("Failed to fetch"); }

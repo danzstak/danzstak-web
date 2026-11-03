@@ -58,7 +58,7 @@ const conversationHeaderActions = {
 const conversationMenu = document.getElementById("conversationMenu");
 const headerDeleteChat = document.getElementById("headerDeleteChat");
 let directContact = "";
-let activeContactName = "Contact";
+let activeContactName = messageTranslate("Contact");
 let currentEmail = "";
 let loadingMessages = false;
 let conversationVersion = 0;
@@ -142,13 +142,13 @@ function closeConversationMenu({ restoreFocus = false } = {}) {
 }
 async function directFetch(path, options = {}, timeoutMs = 10000) {
   const target = path.startsWith("/") ? directApi + path : new URL(path);
-  if (typeof target !== "string" && target.origin !== "https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com") throw new Error("Unexpected upload destination");
+  if (typeof target !== "string" && target.origin !== "https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com") throw new Error(messageTranslate("Unexpected upload destination"));
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch(String(target), { ...options, signal: controller.signal }); }
   catch (error) {
-    if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw new Error("DanzStak cannot connect right now. Check your connection and try again.");
+    if (error.name === "AbortError") throw new Error(messageTranslate("DanzStak is taking too long to respond. Try again."));
+    throw new Error(messageTranslate("DanzStak cannot connect right now. Check your connection and try again."));
   }
   finally { clearTimeout(timer); }
 }
@@ -373,7 +373,7 @@ function openConversation(conversation) {
   conversationAvatar.setAttribute("aria-label", `${messageTranslate("Open contact profile")}: ${conversationName.textContent}`);
   labelConversationHeaderActions(conversationName.textContent);
   updateConversationPresence(conversation);
-  activeContactName = conversation.name || "Contact";
+  activeContactName = conversation.name || messageTranslate("Contact");
   if (deleteChat) deleteChat.disabled = false;
   conversationAvatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
   conversationAvatar.style.backgroundImage = "";
@@ -400,14 +400,14 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   closeConversationMenu();
   conversationHeader.hidden = true;
   conversationName.href = "profile.html";
-  conversationName.setAttribute("aria-label", "Open contact profile");
+  conversationName.setAttribute("aria-label", messageTranslate("Open contact profile"));
   conversationAvatar.href = "profile.html";
-  conversationAvatar.setAttribute("aria-label", "Open contact profile");
+  conversationAvatar.setAttribute("aria-label", messageTranslate("Open contact profile"));
   labelConversationHeaderActions();
   if (conversationPresence) conversationPresence.hidden = true;
   contactInput.value = "";
   directContact = "";
-  activeContactName = "Contact";
+  activeContactName = messageTranslate("Contact");
   activeCanContact = false;
   setConversationActionsEnabled(false);
   nextMessageCursor = "";
@@ -543,7 +543,7 @@ function messageLinkPreview(url) {
 
 function pendingMessageItem(content, mediaFile) {
   const item = document.createElement("div");
-  const text = content || (mediaFile?.type.startsWith("video/") ? "Video" : "Photo");
+  const text = content || messageTranslate(mediaFile?.type.startsWith("video/") ? "Video" : "Photo");
   const meta = document.createElement("span");
   item.className = "message mine message-pending";
   item.textContent = text;
@@ -572,7 +572,7 @@ async function loadEarlierMessages() {
   if (!contact || !cursor || loadingMessages) return;
   loadingMessages = true;
   const button = messageList.querySelector(".load-earlier-messages");
-  if (button) { button.disabled = true; button.textContent = "Loading…"; }
+  if (button) { button.disabled = true; button.textContent = messageTranslate("Loading…"); }
   const previousHeight = messageList.scrollHeight;
   try {
     const response = await directFetch("/messages?contact=" + encodeURIComponent(contact) + "&before=" + encodeURIComponent(cursor), { credentials: "include", cache: "no-store" });
@@ -928,7 +928,7 @@ messageCamera?.addEventListener("change", () => previewSelectedMessageMedia(mess
 
 deleteChat?.addEventListener("click", async () => {
   const contact = contactInput.value.trim().toLowerCase();
-  if (!contact || !(await window.danzstakConfirm("This removes the chat from your account. The other person will keep their message history.", { title: "Delete this chat?", confirmLabel: "Delete chat", danger: true }))) return;
+  if (!contact || !(await window.danzstakConfirm(messageTranslate("This removes the chat from your account. The other person will keep their message history."), { title: messageTranslate("Delete this chat?"), confirmLabel: messageTranslate("Delete chat"), danger: true }))) return;
   const version = conversationVersion;
   deleteChat.disabled = true;
   try {
