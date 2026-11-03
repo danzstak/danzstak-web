@@ -1208,6 +1208,7 @@ function renderWorkspace(name) {
           readArrayResponse(directoryResponse, "users"),
           readArrayResponse(friendsResponse, "friends")
         ]);
+        if (!isCurrentWorkspace()) return;
         if (!socialSource.available && !engagementSource.available) throw new Error("Notifications could not be loaded");
         const data = { notifications: socialSource.items };
         const engagement = engagementSource.items;
@@ -1359,6 +1360,7 @@ function renderWorkspace(name) {
         }
       })
       .catch(() => {
+        if (!isCurrentWorkspace()) return;
         list.setAttribute("aria-busy", "false");
         list.replaceChildren();
         const error = document.createElement("p");
