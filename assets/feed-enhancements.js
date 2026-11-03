@@ -1139,13 +1139,13 @@ function renderWorkspace(name) {
     const list = document.createElement("div");
     list.className = "notification-list";
     list.setAttribute("role", "region");
-    list.setAttribute("aria-label", "Notifications");
+    list.setAttribute("aria-label", feedTranslate("Notifications"));
     list.setAttribute("aria-live", "polite");
     list.setAttribute("aria-busy", "true");
     const loading = document.createElement("p");
     loading.className = "muted";
     loading.setAttribute("role", "status");
-    loading.textContent = "Loading notifications…";
+    loading.textContent = feedTranslate("Loading notifications…");
     list.appendChild(loading);
     workspace.appendChild(list);
     async function loadNotificationSources() {
@@ -1197,7 +1197,7 @@ function renderWorkspace(name) {
         if (!(data.notifications || []).length) {
           const empty = document.createElement("p");
           empty.className = "muted";
-          empty.textContent = "No new notifications.";
+          empty.textContent = feedTranslate("No new notifications.");
           list.appendChild(empty);
           return;
         }
@@ -1832,8 +1832,10 @@ function openNotificationDrawer(opener) {
     notificationDrawer.id = "notificationDrawer";
     notificationDrawer.className = "notification-drawer";
     notificationDrawer.setAttribute("role", "dialog");
-    notificationDrawer.setAttribute("aria-label", "Notifications");
-    notificationDrawer.innerHTML = '<div class="notification-drawer-bar"><strong>Notifications</strong><button type="button" class="notification-drawer-close" aria-label="Close notifications">×</button></div><div class="notification-drawer-content"></div>';
+    notificationDrawer.setAttribute("aria-label", feedTranslate("Notifications"));
+    notificationDrawer.innerHTML = '<div class="notification-drawer-bar"><strong></strong><button type="button" class="notification-drawer-close">×</button></div><div class="notification-drawer-content"></div>';
+    notificationDrawer.querySelector(".notification-drawer-bar strong").textContent = feedTranslate("Notifications");
+    notificationDrawer.querySelector(".notification-drawer-close").setAttribute("aria-label", feedTranslate("Close notifications"));
     notificationDrawer.querySelector(".notification-drawer-close").addEventListener("click", () => closeNotificationDrawer());
     notificationDrawer.addEventListener("keydown", event => {
       if (event.key === "Escape") { event.preventDefault(); closeNotificationDrawer(); }

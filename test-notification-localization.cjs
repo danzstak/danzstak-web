@@ -30,6 +30,11 @@ for (const language of languages) {
 assert.match(feed, /feedFormat\(safeCount === 1 \? "\{label\}, \{count\} new notification" : "\{label\}, \{count\} new notifications"/, "notification controls should announce localized counts");
 assert.match(feed, /feedFormat\(safeCount === 1 \? "\{count\} new notification\." : "\{count\} new notifications\."/, "live notification announcements should use localized singular and plural text");
 assert.match(feed, /feedTranslate\("No new notifications\."\)/, "cleared notification counts should announce in the selected language");
+assert.match(feed, /list\.setAttribute\("aria-label", feedTranslate\("Notifications"\)\)/, "the notification region label should use the selected language");
+assert.match(feed, /loading\.textContent = feedTranslate\("Loading notifications…"\)/, "the notification loading state should use the selected language");
+assert.match(feed, /empty\.textContent = feedTranslate\("No new notifications\."\)/, "the notification empty state should use the selected language");
+assert.match(feed, /notificationDrawer\.setAttribute\("aria-label", feedTranslate\("Notifications"\)\)/, "the notification dialog label should use the selected language");
+assert.match(feed, /setAttribute\("aria-label", feedTranslate\("Close notifications"\)\)/, "the notification close control should use the selected language");
 assert.match(feed, /typeof MutationObserver === "function"[\s\S]{0,40}new MutationObserver\(\(\) => \{ if \(lastNotificationCount !== null\) updateNotificationCount\(lastNotificationCount\); \}\)/, "language changes should immediately refresh notification labels without announcing a false count change");
 
 console.log("Notification localization checks passed: drawer states, badges, singular/plural announcements, and language changes cover all supported locales.");
