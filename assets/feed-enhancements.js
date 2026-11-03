@@ -1309,11 +1309,11 @@ function renderWorkspace(name) {
         const error = document.createElement("p");
         error.className = "muted";
         error.setAttribute("role", "alert");
-        error.textContent = "Notifications could not be loaded.";
+        error.textContent = feedTranslate("Notifications could not be loaded.");
         const retry = document.createElement("button");
         retry.type = "button";
         retry.className = "secondary";
-        retry.textContent = "Retry";
+        retry.textContent = feedTranslate("Retry");
         retry.addEventListener("click", () => renderWorkspace("Notifications"));
         list.append(error, retry);
       });
@@ -1842,6 +1842,9 @@ function openNotificationDrawer(opener) {
     });
     document.body.appendChild(notificationDrawer);
   }
+  notificationDrawer.setAttribute("aria-label", feedTranslate("Notifications"));
+  notificationDrawer.querySelector(".notification-drawer-bar strong").textContent = feedTranslate("Notifications");
+  notificationDrawer.querySelector(".notification-drawer-close").setAttribute("aria-label", feedTranslate("Close notifications"));
   notificationDrawerPreviousFocus = opener || document.activeElement;
   featureHeading.textContent = "Notifications";
   featurePanel.dataset.workspaceName = "Notifications";
