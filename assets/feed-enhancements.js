@@ -1629,10 +1629,12 @@ function renderWorkspace(name) {
     }
     const heading = document.createElement("h3");
     heading.className = "settings-heading";
-    heading.textContent = "⚙ Settings and privacy";
+    heading.textContent = window.danzstakTranslate?.("Settings and privacy") || "Settings and privacy";
     const settingRow = (icon, title, control) => {
       const row = document.createElement("div"); row.className = "settings-row";
-      const symbol = document.createElement("span"); symbol.className = "settings-icon"; symbol.textContent = icon;
+      const symbol = document.createElement("span"); symbol.className = "settings-icon"; symbol.setAttribute("aria-hidden", "true");
+      const iconSvg = window.danzstakIcons?.create(icon);
+      if (iconSvg) symbol.append(iconSvg); else symbol.textContent = "•";
       const label = document.createElement("strong"); label.textContent = title;
       row.append(symbol, label, control); return row;
     };
@@ -1816,22 +1818,22 @@ function renderWorkspace(name) {
     });
     workspace.append(
       heading,
-      settingRow("👤", "Edit Profile", editProfile),
-      settingRow("👤", "Account settings", notifications),
-      settingRow("🔒", "Privacy center", presence),
-      settingRow("✎", "Profile posting and tagging", profilePermissions),
-      settingRow("@", "Allow friends to tag me", tagsCheckbox),
-      settingRow("🌙", "Dark mode", darkCheckbox),
-      settingRow("✨", "Reduce motion", motionCheckbox),
-      settingRow("📶", "Data saver", dataSaverCheckbox),
-      settingRow("🌐", "Language", language),
-      settingRow("🔔", "Call and message alerts", alertSettings),
-      settingRow("📱", "App and device settings", appSettings),
-      settingRow("🗂", "Your DanzStak activity", activityButton),
-      settingRow("↓", "Download my data", exportButton),
-      settingRow("🕒", "Session", sessionInfo),
-      settingRow("📄", "Legal and privacy", legalLinks),
-      settingRow("🚪", "Account", logout),
+      settingRow("user", "Edit Profile", editProfile),
+      settingRow("settings", "Account settings", notifications),
+      settingRow("lock", "Privacy center", presence),
+      settingRow("edit", "Profile posting and tagging", profilePermissions),
+      settingRow("tag", "Allow friends to tag me", tagsCheckbox),
+      settingRow("moon", "Dark mode", darkCheckbox),
+      settingRow("sparkles", "Reduce motion", motionCheckbox),
+      settingRow("wifi", "Data saver", dataSaverCheckbox),
+      settingRow("globe", "Language", language),
+      settingRow("bell", "Call and message alerts", alertSettings),
+      settingRow("smartphone", "App and device settings", appSettings),
+      settingRow("activity", "Your DanzStak activity", activityButton),
+      settingRow("download", "Download my data", exportButton),
+      settingRow("clock", "Session", sessionInfo),
+      settingRow("file", "Legal and privacy", legalLinks),
+      settingRow("logout", "Account", logout),
       button
     );
   }

@@ -7,7 +7,7 @@ const source = fs.readFileSync("assets/icon-buttons.js", "utf8");
 const css = fs.readFileSync("assets/icon-buttons.css", "utf8");
 const pages = ["feed.html", "messages.html", "profile.html", "booking.html", "booking-selections.html", "record-stores.html", "epk.html"];
 
-for (const icon of ["expand", "minimize", "close", "trash", "edit", "reply", "send", "search", "settings", "bell", "share", "download", "upload", "paperclip", "camera", "calendar", "map", "phone", "video", "more", "back", "refresh", "save", "eye", "link", "menu", "chevron", "chat", "home", "user", "users", "image", "film", "microphone", "bus", "disc", "folder", "bookmark", "help", "lock", "file", "logout"]) {
+for (const icon of ["expand", "minimize", "close", "trash", "edit", "reply", "send", "search", "settings", "bell", "share", "download", "upload", "paperclip", "camera", "calendar", "map", "phone", "video", "more", "back", "refresh", "save", "eye", "link", "menu", "chevron", "chat", "home", "user", "users", "image", "film", "microphone", "bus", "disc", "folder", "bookmark", "help", "lock", "file", "logout", "tag", "moon", "sparkles", "wifi", "globe", "smartphone", "activity", "clock"]) {
   assert.match(source, new RegExp(`\\b${icon}: \\[`), `shared icon registry must include ${icon}`);
 }
 assert.match(source, /setAttribute\("aria-label", label\)/, "an icon-only control must retain an accessible name");
@@ -43,6 +43,8 @@ assert.match(feed, /reply\.dataset\.icon = "reply"/, "comment replies must use t
 assert.match(feed, /button\.dataset\.icon = "trash"/, "comment deletion must use the shared trash icon");
 assert.match(feed, /rollOpen\.dataset\.icon = "expand"/, "The Roll must use the expand icon");
 assert.match(feed, /rollClose\.dataset\.icon = "close"/, "The Roll must use the close icon");
+assert.match(feed, /const iconSvg = window\.danzstakIcons\?\.create\(icon\)/, "Settings rows must use the same shared SVG registry");
+assert.doesNotMatch(feed.match(/workspace\.append\([\s\S]*?\n      button\n    \);/)?.[0] || "", /👤|🔒|🌙|✨|📶|🌐|🔔|📱|🗂|🕒|📄|🚪/, "Settings rows must not fall back to emoji artwork");
 assert.match(feed, /danzstakConfirm\("This comment will be permanently removed\./, "comment deletion must preserve confirmation");
 
 const worker = fs.readFileSync("service-worker.js", "utf8");
