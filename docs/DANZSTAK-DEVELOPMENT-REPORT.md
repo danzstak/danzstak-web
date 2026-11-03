@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Mobile Chat navigation
+
+Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+
+- Opening a conversation in the standalone mobile Messages page now creates a privacy-safe browser-history entry. Android/iPhone Back returns to the conversation list instead of leaving Messages, and Forward restores the chat without creating a history loop.
+- History state contains only a boolean view marker; it does not store the contact's email, message content or account identifier.
+- Desktop Chat and embedded Chat drawers do not modify browser history. Existing per-chat drafts, optimistic sends, calls, media attachments, reactions, read receipts and conversation deletion remain unchanged.
+- Verification: **48 of 48** focused messaging, calling, presence and notification regression programs passed; PWA shell refresh passed; the locally served Messages page loaded with its accessible list, filters, recovery state and composer structure intact.
+- Implementation commit: `5f0d4b3bf4b91435ecdfe8165a2a3b0ea084fc9f` on `danzstak-patch-1`.
+
 ## Stripe integration on `danzstak-patch-1`
 
 Status as of 2026-11-03: **COMPLETE IN LOCAL DEVELOPMENT; STRIPE-HOSTED TEST BLOCKED; NOT DEPLOYED; LIVE PAYMENTS DISABLED**.
