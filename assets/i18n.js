@@ -540,22 +540,22 @@
   id:["Memuat berita…","Belum ada berita utama yang tersedia.","Berita untuk sementara tidak tersedia.","DanzStak terlalu lama merespons. Periksa koneksi Anda lalu coba lagi.","Anda terlihat offline. Aktifkan visibilitas online di Pengaturan agar dapat terlihat.","Anda sedang online. Tidak ada pengguna terhubung lain yang aktif saat ini.","Tidak ada pengguna terhubung lain yang aktif saat ini.","Pengguna untuk sementara tidak tersedia. Mencoba lagi…","Memproses…","Permintaan pertemanan tidak dapat diperbarui.","Anda belum memiliki teman.","Teman untuk sementara tidak tersedia. Mencoba lagi…","Postingan tidak dapat dimuat: {error}","Postingan tidak dapat dimuat. Periksa koneksi Anda lalu coba lagi."]
  };
  for(const [language,values] of Object.entries(feedRecovery)){const dictionary=dictionaries[language]||(dictionaries[language]={});feedRecoveryKeys.forEach((key,index)=>dictionary[key]=values[index]);}
- const feedMediaRecoveryKeys=["Loading media…","Media is temporarily unavailable.","Retry media"];
+ const feedMediaRecoveryKeys=["Loading media…","Media is temporarily unavailable.","Retry media","Media is taking longer than expected."];
  const feedMediaRecovery={
-  es:["Cargando contenido multimedia…","El contenido multimedia no está disponible temporalmente.","Reintentar contenido"],
-  fr:["Chargement du média…","Le média est temporairement indisponible.","Réessayer le média"],
-  de:["Medium wird geladen…","Das Medium ist vorübergehend nicht verfügbar.","Medium erneut laden"],
-  pt:["Carregando mídia…","A mídia está temporariamente indisponível.","Tentar mídia novamente"],
-  it:["Caricamento del contenuto multimediale…","Il contenuto multimediale non è temporaneamente disponibile.","Riprova il contenuto"],
-  ko:["미디어 불러오는 중…","미디어를 일시적으로 사용할 수 없습니다.","미디어 다시 시도"],
-  ja:["メディアを読み込んでいます…","メディアは一時的に利用できません。","メディアを再読み込み"],
-  "zh-Hans":["正在加载媒体…","媒体暂时不可用。","重试媒体"],
-  "zh-Hant":["正在載入媒體…","媒體暫時無法使用。","重試媒體"],
-  fil:["Nilo-load ang media…","Pansamantalang hindi available ang media.","Subukang muli ang media"],
-  hi:["मीडिया लोड हो रहा है…","मीडिया अस्थायी रूप से उपलब्ध नहीं है।","मीडिया फिर लोड करें"],
-  vi:["Đang tải nội dung đa phương tiện…","Nội dung đa phương tiện tạm thời không khả dụng.","Thử lại nội dung"],
-  th:["กำลังโหลดสื่อ…","สื่อไม่พร้อมใช้งานชั่วคราว","ลองโหลดสื่ออีกครั้ง"],
-  id:["Memuat media…","Media sementara tidak tersedia.","Coba lagi media"]
+  es:["Cargando contenido multimedia…","El contenido multimedia no está disponible temporalmente.","Reintentar contenido","El contenido está tardando más de lo esperado."],
+  fr:["Chargement du média…","Le média est temporairement indisponible.","Réessayer le média","Le chargement du média prend plus de temps que prévu."],
+  de:["Medium wird geladen…","Das Medium ist vorübergehend nicht verfügbar.","Medium erneut laden","Das Laden des Mediums dauert länger als erwartet."],
+  pt:["Carregando mídia…","A mídia está temporariamente indisponível.","Tentar mídia novamente","A mídia está demorando mais do que o esperado."],
+  it:["Caricamento del contenuto multimediale…","Il contenuto multimediale non è temporaneamente disponibile.","Riprova il contenuto","Il caricamento sta richiedendo più tempo del previsto."],
+  ko:["미디어 불러오는 중…","미디어를 일시적으로 사용할 수 없습니다.","미디어 다시 시도","미디어를 불러오는 데 예상보다 오래 걸립니다."],
+  ja:["メディアを読み込んでいます…","メディアは一時的に利用できません。","メディアを再読み込み","メディアの読み込みに通常より時間がかかっています。"],
+  "zh-Hans":["正在加载媒体…","媒体暂时不可用。","重试媒体","媒体加载时间比预期更长。"],
+  "zh-Hant":["正在載入媒體…","媒體暫時無法使用。","重試媒體","媒體載入時間比預期更長。"],
+  fil:["Nilo-load ang media…","Pansamantalang hindi available ang media.","Subukang muli ang media","Mas matagal kaysa inaasahan ang pag-load ng media."],
+  hi:["मीडिया लोड हो रहा है…","मीडिया अस्थायी रूप से उपलब्ध नहीं है।","मीडिया फिर लोड करें","मीडिया लोड होने में अपेक्षा से अधिक समय लग रहा है।"],
+  vi:["Đang tải nội dung đa phương tiện…","Nội dung đa phương tiện tạm thời không khả dụng.","Thử lại nội dung","Nội dung đang tải lâu hơn dự kiến."],
+  th:["กำลังโหลดสื่อ…","สื่อไม่พร้อมใช้งานชั่วคราว","ลองโหลดสื่ออีกครั้ง","สื่อใช้เวลาโหลดนานกว่าที่คาดไว้"],
+  id:["Memuat media…","Media sementara tidak tersedia.","Coba lagi media","Media membutuhkan waktu lebih lama dari yang diperkirakan."]
  };
  for(const [language,values] of Object.entries(feedMediaRecovery)){const dictionary=dictionaries[language]||(dictionaries[language]={});feedMediaRecoveryKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const profileRecoveryKeys=["DanzStak could not complete that profile change.","DanzStak is taking too long to respond. Try again.","DanzStak cannot update your profile right now. Check your connection and try again.","Profile could not be saved","Media upload could not start","Media upload failed","Profile saved to your DanzStak account.","Profile saved in this browser. Cloud sync is temporarily unavailable."];
