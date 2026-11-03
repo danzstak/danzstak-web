@@ -38,6 +38,7 @@ const profileLanguageCode = (() => {
   catch { return resolveProfileLanguage(document.documentElement.lang || "en"); }
 })();
 const profileEditorWords = profileEditorCopy[profileLanguageCode] || profileEditorCopy.en;
+const profileTranslate = value => window.danzstakTranslate?.(value) || value;
 const profileToast = document.createElement("div");
 profileToast.className = "profile-toast";
 profileToast.hidden = true;
@@ -51,7 +52,7 @@ let profileToastHideTimer = 0;
 function showProfileFeedback(message, { urgent = false, timeout = 4200 } = {}) {
   clearTimeout(profileToastTimer);
   clearTimeout(profileToastHideTimer);
-  profileToast.textContent = String(message || "DanzStak could not complete that profile change.");
+  profileToast.textContent = String(message || profileTranslate("DanzStak could not complete that profile change."));
   profileToast.setAttribute("role", urgent ? "alert" : "status");
   profileToast.setAttribute("aria-live", urgent ? "assertive" : "polite");
   profileToast.hidden = false;
@@ -67,8 +68,8 @@ async function profileFetch(url, options = {}, timeoutMs = 15000) {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch(url, { ...options, signal: controller.signal }); }
   catch (error) {
-    if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw new Error("DanzStak cannot update your profile right now. Check your connection and try again.");
+    if (error.name === "AbortError") throw new Error(profileTranslate("DanzStak is taking too long to respond. Try again."));
+    throw new Error(profileTranslate("DanzStak cannot update your profile right now. Check your connection and try again."));
   } finally { clearTimeout(timeout); }
 }
 let viewingOtherProfile = Boolean(new URLSearchParams(location.search).get("user") || new URLSearchParams(location.search).get("member"));
@@ -82,7 +83,7 @@ async function saveCloudProfile(changes) {
     body: JSON.stringify(changes)
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "Profile could not be saved");
+  if (!response.ok) throw new Error(data.error || profileTranslate("Profile could not be saved"));
   window.danzstakCurrentProfile = data.profile || window.danzstakCurrentProfile;
   return data.profile;
 }
@@ -94,11 +95,11 @@ async function uploadCloudMedia(file) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ contentType: file.type, purpose: "profile" })
   });
-  if (!ticketResponse.ok) throw new Error("Media upload could not start");
+  if (!ticketResponse.ok) throw new Error(profileTranslate("Media upload could not start"));
   const ticket = await ticketResponse.json();
   const uploadDeadline = Math.max(120000, Math.ceil(file.size / (64 * 1024)) * 1000);
   const uploadResponse = await profileFetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file }, uploadDeadline);
-  if (!uploadResponse.ok) throw new Error("Media upload failed");
+  if (!uploadResponse.ok) throw new Error(profileTranslate("Media upload failed"));
   return ticket.mediaKey;
 }
 
@@ -851,11 +852,11 @@ panel.addEventListener("submit", async event => {
     if (window.danzstakCurrentProfile?.cloudProfile) {
       const saved = await saveCloudProfile(profile);
       applyProfile(saved || profile);
-      status.textContent = "Profile saved to your DanzStak account.";
+      status.textContent = profileTranslate("Profile saved to your DanzStak account.");
     } else {
       localStorage.setItem(profileKey, JSON.stringify(profile));
       applyProfile(profile);
-      status.textContent = "Profile saved in this browser. Cloud sync is temporarily unavailable.";
+      status.textContent = profileTranslate("Profile saved in this browser. Cloud sync is temporarily unavailable.");
     }
     panel.hidden = true;
   } catch (error) {

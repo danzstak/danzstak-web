@@ -11,6 +11,7 @@ async function verify(file, startText, endText, invocation, expected) {
     AbortController,
     setTimeout,
     clearTimeout,
+    profileTranslate: value => value,
     engagementApi: "https://api.danzstak.com",
     fetch: async () => { throw new TypeError("Failed to fetch"); }
   });
