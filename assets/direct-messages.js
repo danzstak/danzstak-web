@@ -94,8 +94,8 @@ function previewSelectedMessageMedia(file) {
   selectedMessageMediaUrl = URL.createObjectURL(file);
   const media = document.createElement(file.type.startsWith("video/") ? "video" : "img");
   media.src = selectedMessageMediaUrl;
-  media.alt = file.type.startsWith("image/") ? "Photo ready to send" : "";
-  if (media.tagName === "VIDEO") { media.controls = true; media.preload = "metadata"; }
+  media.alt = file.type.startsWith("image/") ? messageTranslate("Photo ready to send") : "";
+  if (media.tagName === "VIDEO") { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", messageTranslate("Video ready to send")); }
   const remove = document.createElement("button");
   remove.type = "button"; remove.className = "message-media-remove"; remove.textContent = "×"; remove.setAttribute("aria-label", messageTranslate("Remove attachment")); remove.addEventListener("click", clearSelectedMessageMedia);
   messageMediaPreview.append(media, remove); messageMediaPreview.hidden = false;
@@ -321,7 +321,7 @@ function openMessageDeleteChoices(item, message, palette) {
 function openMessageReactions(item, message, x, y, focusFirst = false) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
-  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", (message.myReaction === emoji ? "Remove " : "React with ") + emoji); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
+  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
   if (message.senderEmail === currentEmail && message.content) {
     const edit = document.createElement("button");
     edit.type = "button";
@@ -451,9 +451,17 @@ function renderMessageLoadError(message) {
 function messageAccessibleSummary(message, mine) {
   const actor = mine ? messageTranslate("You") : activeContactName;
   const content = String(message.content || "").trim();
-  const media = message.mediaType === "video" ? "video" : message.mediaType === "image" ? "photo" : "";
-  const lead = content ? `${actor}: ${content}.` : media ? `${actor} sent a ${media}.` : `${actor} sent a message.`;
-  return `${lead} Long press or press Shift F10 for reactions${mine && content ? " and editing" : ""}.`;
+  const lead = content
+    ? messageFormat("{name}: {text}.", { name: actor, text: content })
+    : message.mediaType === "video"
+      ? messageFormat("{name} sent a video.", { name: actor })
+      : message.mediaType === "image"
+        ? messageFormat("{name} sent a photo.", { name: actor })
+        : messageFormat("{name} sent a message.", { name: actor });
+  const guidance = messageTranslate(mine && content
+    ? "Long press or press Shift F10 for reactions and editing."
+    : "Long press or press Shift F10 for reactions.");
+  return `${lead} ${guidance}`;
 }
 
 function directMessageItem(message) {
@@ -471,8 +479,8 @@ function directMessageItem(message) {
   if (message.mediaUrl && ["image", "video"].includes(message.mediaType)) {
     const media = document.createElement(message.mediaType === "video" ? "video" : "img");
     media.className = "message-attachment"; media.src = message.mediaUrl;
-    if (message.mediaType === "image") { media.alt = mine ? "Photo you sent" : `Photo from ${activeContactName}`; media.loading = "lazy"; }
-    else { media.controls = true; media.playsInline = true; media.preload = "metadata"; media.setAttribute("aria-label", mine ? "Video you sent" : `Video from ${activeContactName}`); }
+    if (message.mediaType === "image") { media.alt = mine ? messageTranslate("Photo you sent") : messageFormat("Photo from {name}", { name: activeContactName }); media.loading = "lazy"; }
+    else { media.controls = true; media.playsInline = true; media.preload = "metadata"; media.setAttribute("aria-label", mine ? messageTranslate("Video you sent") : messageFormat("Video from {name}", { name: activeContactName })); }
     item.prepend(media);
   }
   const sharedUrl = firstSafeMessageUrl(message.content);
@@ -523,11 +531,11 @@ function messageLinkPreview(url) {
   card.target = "_blank";
   card.rel = "noopener noreferrer nofollow ugc";
   card.referrerPolicy = "no-referrer";
-  card.setAttribute("aria-label", `Open shared link on ${url.hostname}`);
+  card.setAttribute("aria-label", messageFormat("Open shared link on {site}", { site: url.hostname }));
   icon.className = "message-link-icon";
   icon.textContent = "🔗";
   domain.textContent = url.hostname.replace(/^www\./, "");
-  detail.textContent = (url.pathname === "/" ? "Open shared link" : url.pathname.replace(/%20/gi, " ").replace(/\/+$/, "").split("/").filter(Boolean).slice(-2).join(" / ")) || "Open shared link";
+  detail.textContent = (url.pathname === "/" ? messageTranslate("Open shared link") : url.pathname.replace(/%20/gi, " ").replace(/\/+$/, "").split("/").filter(Boolean).slice(-2).join(" / ")) || messageTranslate("Open shared link");
   copy.append(domain, detail);
   card.append(icon, copy);
   return card;

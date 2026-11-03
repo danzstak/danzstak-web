@@ -625,7 +625,7 @@ if (-not $directMessagesJs.Contains('if (!document.body.classList.contains("is-c
     -not $directMessagesJs.Contains('/messages?read=1&contact=')) {
   Add-Failure 'Messaging: background or minimized chats can incorrectly clear unread state'
 }
-if (-not $directMessagesJs.Contains('message.myReaction === emoji ? "Remove " : "React with "') -or
+if (-not $directMessagesJs.Contains('messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })') -or
     -not $directMessagesJs.Contains('call.setAttribute("aria-label", call.title)') -or
     -not (Get-Content (Join-Path $root 'assets/text-emojis.js') -Raw).Contains("button.setAttribute('aria-label','Insert '+emoji)")) {
   Add-Failure 'Messaging: dynamic emoji or call controls lack accessible names'
