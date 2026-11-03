@@ -222,13 +222,20 @@ function isReactionKeyboardShortcut(event) {
   return event.key === "ContextMenu" || (event.shiftKey && event.key === "F10");
 }
 
+function dismissActiveMessagePalette() {
+  const palette = document.querySelector(".message-reaction-palette");
+  if (!palette) return;
+  if (typeof palette._dismiss === "function") palette._dismiss();
+  else palette.remove();
+}
+
 function cancelMessageEditor(item, message) {
   item.replaceWith(directMessageItem(message));
 }
 
 function openMessageEditor(item, message) {
   if (message.senderEmail !== currentEmail || !message.content || item.querySelector(".message-edit-form")) return;
-  document.querySelector(".message-reaction-palette")?.remove();
+  dismissActiveMessagePalette();
   const text = item.querySelector(".message-text");
   const form = document.createElement("form");
   const input = document.createElement("textarea");
@@ -299,11 +306,12 @@ function openMessageDeleteChoices(item, message, palette) {
   const addChoice = (label, scope, danger = false) => {
     const button = document.createElement("button");
     button.type = "button";
+    button.setAttribute("role", "menuitem");
     button.textContent = label;
     button.className = danger ? "message-delete-danger" : "";
     button.addEventListener("click", async () => {
       button.disabled = true;
-      try { await deleteDirectMessage(item, message, scope); palette.remove(); }
+      try { await deleteDirectMessage(item, message, scope); palette._dismiss?.(); }
       catch (error) { callStatus.textContent = error.message; button.disabled = false; }
     });
     palette.appendChild(button);
@@ -312,19 +320,34 @@ function openMessageDeleteChoices(item, message, palette) {
   if (message.senderEmail === currentEmail) addChoice(messageTranslate("Remove for everyone"), "everyone", true);
   const cancel = document.createElement("button");
   cancel.type = "button";
+  cancel.setAttribute("role", "menuitem");
   cancel.textContent = messageTranslate("Cancel");
-  cancel.addEventListener("click", () => palette.remove());
+  cancel.addEventListener("click", () => palette._dismiss?.());
   palette.appendChild(cancel);
   palette.querySelector("button")?.focus();
 }
 
 function openMessageReactions(item, message, x, y, focusFirst = false) {
-  document.querySelector(".message-reaction-palette")?.remove();
+  dismissActiveMessagePalette();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
-  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
+  palette.id = "message-actions-" + crypto.randomUUID();
+  palette.setAttribute("role", "menu");
+  palette.setAttribute("aria-label", messageTranslate("Message actions"));
+  item.setAttribute("aria-haspopup", "menu");
+  item.setAttribute("aria-controls", palette.id);
+  item.setAttribute("aria-expanded", "true");
+  const outsideController = new AbortController();
+  palette._dismiss = (restoreFocus = false) => {
+    outsideController.abort();
+    palette.remove();
+    item.setAttribute("aria-expanded", "false");
+    if (restoreFocus && item.isConnected) item.focus();
+  };
+  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.setAttribute("role", "menuitem"); button.textContent = emoji; button.setAttribute("aria-label", messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette._dismiss(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
   if (message.senderEmail === currentEmail && message.content) {
     const edit = document.createElement("button");
     edit.type = "button";
+    edit.setAttribute("role", "menuitem");
     edit.className = "message-edit-choice";
     edit.textContent = "✎ " + messageTranslate("Edit message");
     edit.setAttribute("aria-label", messageTranslate("Edit message"));
@@ -333,14 +356,35 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
   }
   const remove = document.createElement("button");
   remove.type = "button";
+  remove.setAttribute("role", "menuitem");
   remove.className = "message-delete-choice";
   remove.textContent = "🗑️";
   remove.title = messageTranslate("Delete message");
   remove.setAttribute("aria-label", messageTranslate("Delete message"));
   remove.addEventListener("click", () => openMessageDeleteChoices(item, message, palette));
   palette.appendChild(remove);
-  palette.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); palette.remove(); item.focus(); } });
+  palette.addEventListener("keydown", event => {
+    const choices = [...palette.querySelectorAll('[role="menuitem"]:not(:disabled)')];
+    if (event.key === "Escape") { event.preventDefault(); palette._dismiss(true); return; }
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key) || !choices.length) return;
+    event.preventDefault();
+    const current = choices.indexOf(document.activeElement);
+    const first = event.key === "Home";
+    const last = event.key === "End";
+    const forward = ["ArrowRight", "ArrowDown"].includes(event.key);
+    const next = first ? 0 : last ? choices.length - 1 : (current + (forward ? 1 : -1) + choices.length) % choices.length;
+    choices[next].focus();
+  });
+  palette.addEventListener("focusout", () => {
+    requestAnimationFrame(() => {
+      if (!palette.isConnected || palette.contains(document.activeElement) || document.activeElement === item) return;
+      palette._dismiss();
+    });
+  });
   document.body.appendChild(palette);
+  document.addEventListener("pointerdown", event => {
+    if (!palette.contains(event.target) && event.target !== item) palette._dismiss();
+  }, { capture: true, signal: outsideController.signal });
   if (focusFirst) palette.querySelector("button")?.focus();
 }
 
@@ -396,7 +440,7 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   if (closingContact && preserveDraft) saveChatDraft(closingContact, messageInput.value);
   conversationVersion += 1;
   loadingMessages = false;
-  document.querySelector(".message-reaction-palette")?.remove();
+  dismissActiveMessagePalette();
   closeConversationMenu();
   conversationHeader.hidden = true;
   conversationName.href = "profile.html";
@@ -512,6 +556,8 @@ function directMessageItem(message) {
   item.className = "message" + (mine ? " mine" : "");
   item.tabIndex = 0;
   item.dataset.messageId = message.messageId;
+  item.setAttribute("aria-haspopup", "menu");
+  item.setAttribute("aria-expanded", "false");
   if (message.content) {
     const text = document.createElement("span");
     text.className = "message-text";
