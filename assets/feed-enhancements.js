@@ -1859,6 +1859,15 @@ mobileMenuControl?.addEventListener("click", () => setMobileMenu(!document.body.
 mobileNavMenu?.addEventListener("click", event => {
   if (document.body.classList.contains("mobile-menu-open") && event.target.closest("a")) setMobileMenu(false);
 });
+mobileNavMenu?.addEventListener("keydown", event => {
+  if (event.key !== "Tab" || !document.body.classList.contains("mobile-menu-open")) return;
+  const focusable = [...mobileNavMenu.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+    .filter(element => !element.hidden && element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length);
+  if (!focusable.length) { event.preventDefault(); mobileMenuControl?.focus({ preventScroll: true }); return; }
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
 document.addEventListener("click", event => {
   if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !mobileMenuControl?.contains(event.target)) setMobileMenu(false);
 });

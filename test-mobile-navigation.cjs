@@ -17,6 +17,8 @@ assert.match(css, /\.topbar \.topnav\{grid-template-columns:repeat\(5,minmax\(0,
 assert.match(css, /\.menu \.menu-action\{grid-template-columns:18px minmax\(0,1fr\)/, "menu actions share the compact phone navigation layout");
 assert.match(js, /mobileMenuControl\?\.addEventListener\("click"/, "the Menu control opens and closes the drawer");
 assert.match(js, /event\.key === "Escape"/, "keyboard users can dismiss the drawer");
+assert.match(js, /mobileNavMenu\?\.addEventListener\("keydown"[\s\S]*?event\.key !== "Tab"[\s\S]*?event\.shiftKey[\s\S]*?last\.focus\(\)[\s\S]*?first\.focus\(\)/,
+  "Tab and Shift+Tab stay inside the open mobile navigation drawer");
 assert.match(js, /event\.target\.closest\("a"\)/, "choosing a destination closes the drawer");
 
 console.log("Mobile navigation checks passed: full-width feed, accessible Menu drawer, link and Escape dismissal.");
