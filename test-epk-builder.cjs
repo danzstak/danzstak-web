@@ -5,6 +5,7 @@ assert.match(feed, /epk\.html[\s\S]*EPK Builder/, "the artist menu should expose
 assert.doesNotMatch(feed, /menu-icon[^>]*>EPK</, "the EPK menu icon must not repeat the EPK label visually");
 for (const field of ["artistName","shortPitch","bio","lineup","notableShows","musicLinks","videoLinks","socialLinks","pressQuotes","stageRequirements","techRequirements","bookingEmail"]) assert.match(html, new RegExp(`id="${field}"`), `EPK field ${field} is missing`);
 for (const field of ["shortBio","releases","achievements","hospitalityRequirements","epkMediaInput","epkMediaList"]) assert.match(html, new RegExp(`id="${field}"`), `complete EPK field ${field} is missing`);
+for (const field of ["publicBookingEmail","publicBookingPhone","publicTechnical","publicHospitality"]) assert.match(html, new RegExp(`id="${field}"[^>]*type="checkbox"|type="checkbox"[^>]*id="${field}"`), `public EPK choice ${field} is missing`);
 assert.match(html, /Save private draft/, "EPKs must be private by default");
 assert.match(html, /Publish EPK/, "publishing must be explicit");
 assert.match(html, /id="deleteEpk"/, "artists must be able to permanently delete an EPK");
@@ -32,8 +33,9 @@ assert.match(client, /youtube-nocookie\.com\/embed/, "supported video providers 
 assert.match(client, /open\.spotify\.com\/embed/, "supported music providers should render provider-hosted embeds");
 for (const provider of ["SoundCloud","Bandcamp","TikTok","Instagram","Facebook"]) assert.match(client, new RegExp(`return "${provider}"`), `${provider} links should receive a recognizable safe preview`);
 assert.match(client, /section\("Follow", links\(kit\.socialLinks\)\)/, "social links should render on the public EPK");
-assert.match(client, /mailto:\$\{kit\.bookingEmail\}/, "the public booking email should be actionable");
+assert.match(client, /mailto:\$\{publicEmail\}/, "the artist-approved public booking email should be actionable");
 assert.match(api, /socialLinks: links\(data\.socialLinks\)/, "social links should persist through server validation");
+assert.match(api, /publicView[\s\S]*copy\.publicDetails[\s\S]*copy\.bookingEmail = ""[\s\S]*copy\.techRequirements = ""/, "private contacts and riders must be removed from public EPK responses");
 assert.match(html, /frame-src https:\/\/www\.youtube-nocookie\.com https:\/\/player\.vimeo\.com https:\/\/open\.spotify\.com/, "EPK embeds need a narrow provider CSP");
 assert.match(api, /epkPublicPartition = "epk-public"/, "public EPKs should use isolated opaque records");
 assert.match(api, /path\.match\(\/\^\\\/epk\\\/public\\\/\(\[a-z0-9-\]\{3,64\}\)\$\/i\)/, "public EPK routes should accept stable artist slugs");

@@ -13,6 +13,11 @@ const assert = require("node:assert/strict");
       { label:"Instagram", url:"https://www.instagram.com/codex-band" },
       { label:"Unsafe", url:"javascript:alert(1)" }
     ],
+    bookingEmail:"book@codex.band",
+    bookingPhone:"+1 555 010 1234",
+    techRequirements:"Two vocal microphones",
+    hospitalityRequirements:"Water",
+    publicDetails:{ bookingEmail:true, bookingPhone:false, technical:true, hospitality:false },
     media: [
       { key: photoKey, id:"photo", role:"press-photo", name:"Press photo", public:true, featured:true },
       { key: riderKey, id:"rider", role:"technical-rider", name:"Private rider", public:false }
@@ -27,6 +32,12 @@ const assert = require("node:assert/strict");
   const ownerView = epkForViewer(kit, false), publicView = epkForViewer(kit, true);
   assert.equal(ownerView.media.length, 2, "the artist should retain private and public media");
   assert.equal(publicView.media.length, 1, "the public EPK must hide private media");
+  assert.equal(publicView.bookingEmail, "book@codex.band", "artist-approved booking email should be public");
+  assert.equal(publicView.bookingPhone, "", "private booking phone must not leave the owner response");
+  assert.equal(publicView.techRequirements, "Two vocal microphones", "artist-approved technical rider should be public");
+  assert.equal(publicView.hospitalityRequirements, "", "private hospitality rider must not leave the owner response");
+  assert.equal("publicDetails" in publicView, false, "internal publication choices should not be emitted publicly");
+  assert.equal(ownerView.bookingPhone, "+1 555 010 1234", "the artist should retain private contact details");
   assert.equal(publicView.media[0].key, photoKey);
   assert.match(publicView.media[0].url, /^https:\/\//, "public downloads should use a signed HTTPS URL");
   assert.equal(kit.media.some(item => "url" in item), false, "viewer serialization must not mutate stored EPK data");

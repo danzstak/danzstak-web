@@ -83,6 +83,7 @@ All three current global OpenStreetMap Overpass mirrors were unavailable from th
 - Call-role controls are now explicit: outgoing callers keep the primary accessible Hang Up action without a duplicate floating button, while recipients retain the dedicated touch-friendly receiver Hang Up control requested for mobile calls.
 - Permanent EPK deletion now uses DanzStak's accessible modal confirmation instead of a blocking browser prompt. Escape and the safe default keep the EPK, keyboard focus returns to the Delete EPK opener, and the destructive choice is visually distinct.
 - EPKs now persist and publish artist-controlled social links. YouTube, Vimeo, and Spotify retain constrained provider embeds; SoundCloud, Bandcamp, TikTok, Instagram, and Facebook receive named, safe external preview cards without copying or rehosting third-party media. Published booking email, phone, and website details are actionable only when the artist supplies them.
+- New EPKs keep booking email, booking phone, technical rider, and hospitality rider private unless the artist explicitly opts each item into the public kit. Public API responses remove every unapproved field server-side; existing published kits retain their prior behavior until their owner saves the new visibility choices.
 
 ## Known limits
 

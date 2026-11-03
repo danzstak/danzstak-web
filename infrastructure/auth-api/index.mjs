@@ -3153,7 +3153,13 @@ function cleanEpk(data, ownerPrefix = "") {
     heroImage: https(data.heroImage), logoImage: https(data.logoImage), media,
     stageRequirements: text(data.stageRequirements, 3000), techRequirements: text(data.techRequirements, 5000), hospitalityRequirements: text(data.hospitalityRequirements, 3000),
     bookingName: text(data.bookingName, 120), bookingEmail: email(data.bookingEmail),
-    bookingPhone: text(data.bookingPhone, 40), website: https(data.website)
+    bookingPhone: text(data.bookingPhone, 40), website: https(data.website),
+    publicDetails: {
+      bookingEmail: data.publicDetails?.bookingEmail === true,
+      bookingPhone: data.publicDetails?.bookingPhone === true,
+      technical: data.publicDetails?.technical === true,
+      hospitality: data.publicDetails?.hospitality === true
+    }
   };
   return kit.artistName ? kit : null;
 }
@@ -3178,6 +3184,13 @@ async function validatedEpkMedia(media) {
 function epkForViewer(kit, publicView = false) {
   const copy = structuredClone(kit || {});
   copy.media = (copy.media || []).filter(item => !publicView || item.public).map(item => ({ ...item, url: signedMediaUrl(item.key, publicView ? 3600 : 900) }));
+  if (publicView && copy.publicDetails && typeof copy.publicDetails === "object") {
+    if (copy.publicDetails.bookingEmail !== true) copy.bookingEmail = "";
+    if (copy.publicDetails.bookingPhone !== true) copy.bookingPhone = "";
+    if (copy.publicDetails.technical !== true) copy.techRequirements = "";
+    if (copy.publicDetails.hospitality !== true) copy.hospitalityRequirements = "";
+    delete copy.publicDetails;
+  }
   return copy;
 }
 

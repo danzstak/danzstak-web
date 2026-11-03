@@ -29,6 +29,8 @@
 .epk-contact { display: grid; gap: 8px; }
 .epk-contact p { margin: 0; font-weight: 800; }
 .epk-contact a { width: max-content; max-width: 100%; color: #0b56b3; font-weight: 700; overflow-wrap: anywhere; }
+.epk-public-choice { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 9px; font-weight: 650; }
+.epk-public-choice input { width: 20px; height: 20px; margin: 0; }
 .form-actions .danger { border-color: #b42318; background: #fff; color: #b42318; }
 .form-actions .danger:hover,
 .form-actions .danger:focus-visible { background: #fff1f0; }
