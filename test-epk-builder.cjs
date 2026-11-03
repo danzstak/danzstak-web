@@ -8,8 +8,12 @@ for (const field of ["shortBio","releases","achievements","hospitalityRequiremen
 for (const field of ["publicBookingEmail","publicBookingPhone","publicTechnical","publicHospitality"]) assert.match(html, new RegExp(`id="${field}"[^>]*type="checkbox"|type="checkbox"[^>]*id="${field}"`), `public EPK choice ${field} is missing`);
 assert.match(html, /Save private draft/, "EPKs must be private by default");
 assert.match(html, /Publish EPK/, "publishing must be explicit");
+assert.match(html, /id="printEpk"[\s\S]*Print or save PDF/, "public EPK visitors need an explicit print or PDF action");
+assert.match(html, /id="copyEpkLink"/, "public EPK visitors need an explicit link-copy action");
 assert.match(html, /id="deleteEpk"/, "artists must be able to permanently delete an EPK");
 assert.match(client, /\/epk\/public\//, "the public EPK should load from an opaque public route");
+assert.match(client, /printEpk[\s\S]*window\.print\(\)/, "the public EPK should invoke the browser's accessible print and PDF flow");
+assert.match(client, /copyEpkLink[\s\S]*navigator\.clipboard\.writeText\(location\.href\)/, "the public EPK should copy its canonical current link");
 assert.match(client, /credentials:"include"/, "private EPK operations should use opaque sessions");
 assert.doesNotMatch(client, /innerHTML/, "EPK content must not be injected as HTML");
 assert.match(api, /function cleanEpk\(/, "the API should validate EPK content");

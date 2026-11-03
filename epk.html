@@ -18,6 +18,7 @@
   <header><a href="feed.html"><img src="assets/danzstak-logo.png" alt="DanzStak"></a><nav><a href="feed.html">Your Mix</a><a href="booking.html">Booking Agent</a><a href="record-stores.html">Record Stores</a></nav></header>
   <main id="epkMain" tabindex="-1">
     <section class="intro" id="builderIntro"><p class="eyebrow">DanzStak artist tools</p><h1>EPK Builder</h1><p>Give a booker the useful facts fast. Drafts stay private until you publish.</p></section>
+    <nav id="publicEpkActions" class="epk-public-actions" aria-label="EPK actions" hidden><button type="button" id="printEpk">Print or save PDF</button><button type="button" id="copyEpkLink">Copy EPK link</button></nav>
     <div class="epk-layout">
       <form id="epkForm" class="epk-form" autocomplete="off">
         <section><h2>Start here</h2><div class="two"><label>Artist or act name<input id="artistName" maxlength="120" required></label><label>Home town<input id="hometown" maxlength="160"></label></div><label>Genres<input id="genres" maxlength="300" placeholder="DIY punk, hardcore, garage rock"></label><label>One-line pitch<textarea id="shortPitch" rows="2" maxlength="300" placeholder="What makes the live set worth booking?"></textarea></label></section>
@@ -34,6 +35,6 @@
     </div>
   </main>
   <script src="assets/app-feedback.js?v=3" defer></script>
-  <script src="assets/epk.js?v=7" defer></script>
+  <script src="assets/epk.js?v=8" defer></script>
 </body>
 </html>

@@ -31,6 +31,8 @@
 .epk-contact a { width: max-content; max-width: 100%; color: #0b56b3; font-weight: 700; overflow-wrap: anywhere; }
 .epk-public-choice { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 9px; font-weight: 650; }
 .epk-public-choice input { width: 20px; height: 20px; margin: 0; }
+.epk-public-actions { display: flex; justify-content: flex-end; gap: 9px; margin: 0 0 12px; }
+.epk-public-actions[hidden] { display: none; }
 .form-actions .danger { border-color: #b42318; background: #fff; color: #b42318; }
 .form-actions .danger:hover,
 .form-actions .danger:focus-visible { background: #fff1f0; }
@@ -38,4 +40,10 @@
 @media (max-width: 680px) {
   .epk-media-item { grid-template-columns: 56px minmax(0,1fr); }
   .epk-media-item img { width: 56px; height: 56px; }
+  .epk-public-actions { justify-content: stretch; }
+  .epk-public-actions button { flex: 1 1 0; }
+}
+
+@media print {
+  .epk-public-actions { display: none !important; }
 }
