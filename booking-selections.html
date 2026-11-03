@@ -23,6 +23,7 @@
         <label>Booking contacts selected<input id="bookingCreditQuantity" type="number" min="1" max="500" value="10" inputmode="numeric"></label>
         <div class="payment-total" aria-live="polite"><span>Price per contact: $1.50</span><strong id="bookingCheckoutTotal">Total: $15.00</strong></div>
         <fieldset><legend>Payment method</legend><label><input type="radio" name="tourPaymentMethod" value="stripe" checked> Pay with Stripe</label><label><input type="radio" name="tourPaymentMethod" value="sfs"> Pay with SFS Tokens</label></fieldset>
+        <aside class="earn-sfs" aria-label="Earn SFS Tokens"><p>Need SFS Tokens? Visit SFScoop and participate in eligible Engage promotions to earn SFS Tokens through Proof of Engagement. Rewards and waiting periods depend on each promotion; earnings are not guaranteed.</p><a href="https://app.sfscoop.com" target="_blank" rel="noopener noreferrer external">Earn SFS Tokens on SFScoop</a></aside>
         <button type="submit" id="buyBookingCreditsButton">Continue to payment</button>
       </form>
       <section id="sfsPaymentPanel" class="sfs-payment" hidden aria-labelledby="sfsPaymentTitle"><h3 id="sfsPaymentTitle">SFS Token payment</h3><p id="sfsPaymentQuote">Choose SFS Tokens and request a verified quote.</p><button type="button" id="sendSfsPayment" disabled>Pay from compatible wallet</button><p class="hint">Credits are issued only after the blockchain transfer is successful, matches this quote, and reaches the required confirmations.</p></section>

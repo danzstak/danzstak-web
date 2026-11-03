@@ -23,6 +23,10 @@ assert.match(billingBackend, /include its exact public link/, "Booking emails mu
 assert.match(billing, /danzstak-tour-manager-billing/, "Billing and outreach totals must update the dashboard");
 assert.match(html, /Pay with Stripe/);
 assert.match(html, /Pay with SFS Tokens/);
+assert.match(html, /https:\/\/app\.sfscoop\.com/);
+assert.match(html, /target="_blank"/);
+assert.match(html, /rel="noopener noreferrer external"/);
+assert.match(html, /earnings are not guaranteed/i);
 assert.match(html, /Price per contact: \$1\.50/);
 assert.match(billing, /\/tour-manager\/sfs\/quote/);
 assert.match(billing, /eth_sendTransaction/);
