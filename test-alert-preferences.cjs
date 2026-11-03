@@ -18,8 +18,9 @@ assert.match(styles, /\.alert-preferences/);
 
 assert.match(api, /callAlerts:item\.callAlerts\?\.BOOL!==false/);
 assert.match(api, /messageAlerts:item\.messageAlerts\?\.BOOL!==false/);
-assert.match(api, /alertEnabled\(recipientEmail,'callAlerts'\)/);
-assert.match(api, /alertEnabled\(recipientEmail,'messageAlerts'\)/);
+assert.match(api, /pushPreferences\(recipientEmail,'callAlerts'\)/);
+assert.match(api, /pushPreferences\(recipientEmail,'messageAlerts'\)/);
+assert.match(api, /enabled:!setting\|\|result\.Item\?\.\[setting\]\?\.BOOL!==false/);
 assert.match(api, /typeof body\.callAlerts==='boolean'/);
 assert.match(api, /typeof body\.messageAlerts==='boolean'/);
 

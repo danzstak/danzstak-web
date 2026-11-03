@@ -319,18 +319,19 @@ foreach ($pushCapability in @(
   "signalType==='offer'&&['phone','video'].includes(mode)",
   "notifyCall(recipientEmail,user.email,user.userId,mode,callId).catch(error=>console.error('Call push failed',error))",
   "notifyMessage(recipient,user.email,user.userId).catch(error=>console.error('Message push failed',error))",
-  "type:'message',title:'New DanzStak message'"
+  'const pushTranslations=',
+  "localizedPush(preferences.language,'message',profile.name)"
 )) {
   if (-not $template.Contains($pushCapability)) { throw "Background push capability is missing: $pushCapability" }
 }
 foreach ($pushFanout in @(
-  "async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){if(!(await alertEnabled(recipientEmail,'callAlerts')))return;const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
-  "async function notifyMessage(recipientEmail,senderEmail,senderMemberId){if(!(await alertEnabled(recipientEmail,'messageAlerts')))return;const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
-  'async function notifyFriendRequest(recipientEmail,senderEmail){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE'
+  "async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){const preferences=await pushPreferences(recipientEmail,'callAlerts');if(!preferences.enabled)return;const [items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
+  "async function notifyMessage(recipientEmail,senderEmail,senderMemberId){const preferences=await pushPreferences(recipientEmail,'messageAlerts');if(!preferences.enabled)return;const [items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
+  'async function notifyFriendRequest(recipientEmail,senderEmail){const preferences=await pushPreferences(recipientEmail),[items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE'
 )) {
   if (-not $template.Contains($pushFanout)) { throw "Push notifications do not reach every registered device: $pushFanout" }
 }
-if (-not $template.Contains("sender=(await publicProfile(senderEmail)).name||'DanzStak member'") -or $template.Contains('body:`${senderEmail}')) {
+if (-not $template.Contains("localizedPush(preferences.language,'message',profile.name)") -or $template.Contains('body:`${senderEmail}')) {
   throw 'Push notifications expose a contact email instead of the DanzStak profile name.'
 }
 if ($template.Contains("PUSH_SUBSCRIPTIONS_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:recipientEmail}},Limit:10")) {
