@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Global icon-based interface
+
+Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+
+- Added one dependency-free shared SVG icon registry and enhancer in `assets/icon-buttons.js`, with shared responsive states in `assets/icon-buttons.css`. It handles static and dynamically rendered controls without changing their event handlers or business logic.
+- Applied the shared system to Your Mix, comments, profiles, standalone and embedded Chat, The Roll, Booking Agent, Booking contact sheet, Record Store Locator, EPK editor, and the PWA shell cache.
+- Chat now uses consistent back, alert, new-chat, phone, video, minimize, more, close, delete, attachment, camera, edit and send icons. The implemented phone/video controls remain available; no nonfunctional call action was introduced.
+- Comment Reply and Delete remain on their existing single horizontal action row, now using recognizable reply-arrow and trash icons. Destructive confirmation dialogs remain unchanged.
+- Every converted control retains an `aria-label` and desktop `title`; shared styles provide visible keyboard focus, hover/active/disabled states, 38px desktop controls and 44px coarse-pointer touch targets. Pricing, purchase, legal, onboarding and ambiguous actions remain text-labeled.
+- Visual verification: locally served Chat was inspected at 1440×900 and 390×844, and Your Mix at 390×844. Desktop Chat showed the compact two-panel layout and icon composer; the phone feed preserved the branded navigation, composer, Flashes and icon-based Roll control. Local screenshots were diagnostic only and were not committed because they contained transient unauthenticated loading states.
+- Automated verification: **238 of 238** repository test programs pass, including the new shared-icon accessibility test plus comment reply/reaction, message editing/options/keyboard, mobile message view, Roll modal, Booking startup, EPK, record-store and PWA cache regressions. Three stale cache-version assertions were updated to the versions already referenced by `feed.html`.
+- Changed components: `assets/icon-buttons.js`, `assets/icon-buttons.css`, `assets/direct-messages.js`, `assets/feed-enhancements.js`, seven core HTML pages, `service-worker.js`, and focused test files.
+- Implementation commit: `42887861b9e12134bc667dd8e6945222da69870a` on `danzstak-patch-1`.
+
 ## Mobile Flashes navigation
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
