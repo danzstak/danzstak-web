@@ -406,6 +406,10 @@
       : "No clubs matched. Zoom out, change the music style, or search a different area.";
     window.setTimeout(appendDifferentClubsButton, 0);
   }
+  window.addEventListener("danzstak:venue-search-results", event => {
+    const data = event.detail || {}, point = data.location;
+    showResults({ route: { start: point, end: point, stops: [] }, candidates: [{ stop: point?.label || "Search area", position: point?.position || [], venues: data.venues || [] }] });
+  });
 
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (resource, options = {}) => {

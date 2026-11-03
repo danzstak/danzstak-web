@@ -56,9 +56,9 @@ setImmediate(async () => {
     await new Promise(resolve => setImmediate(resolve));
     await new Promise(resolve => setImmediate(resolve));
     const alert = timeoutNodes.find(item => item.role === 'alert');
-    const retry = timeoutNodes.find(item => item.tag === 'button' && item.textContent === 'Retry');
+    const retry = timeoutNodes.find(item => item.tag === 'button' && item.textContent === 'Retry friends');
     assert.equal(alert?.textContent, 'Friends took too long to load.');
-    assert.ok(retry, 'timed-out friend loading must provide a Retry button');
+    assert.ok(retry, 'timed-out friend loading must provide a specific friends retry button');
     retry.listeners.click();
     assert.equal(retries, 1, 'Retry must reopen the Friends workspace');
     console.log('Friends loading check passed: accepted friends survive a failed presence lookup without a false offline status.');

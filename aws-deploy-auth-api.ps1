@@ -192,7 +192,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "GET /epk", "POST /epk", "GET /epk/public/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/share", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
@@ -204,6 +204,10 @@ try {
   if ($permission -notmatch "AllowTourRouteFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourRouteFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/route" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API invoke permission failed." }
+  }
+  if ($permission -notmatch "AllowVenueSearchFromApiGateway") {
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowVenueSearchFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/venues/search" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Venue search API invoke permission failed." }
   }
   if ($permission -notmatch "AllowManualVenueFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowManualVenueFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/manual-venue" --output json | Out-Null

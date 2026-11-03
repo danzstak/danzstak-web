@@ -18,6 +18,7 @@ class AbortController {
 }
 const context = vm.createContext({
   AbortController,
+  profileTranslate: value => value,
   setTimeout(fn) { deadline = fn; return 1; },
   clearTimeout() { cleared++; },
   fetch(url, options) {

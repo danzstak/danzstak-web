@@ -31,7 +31,7 @@
       });
     } catch (error) {
       if (error.name === "AbortError") throw new Error("Notification setup took too long. Try again.");
-      throw error;
+      throw new Error("DanzStak cannot connect right now. Check your connection and try again.");
     } finally { clearTimeout(timeout); }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Notification setup failed");
@@ -94,6 +94,7 @@
 
   async function showPermissionPrompt() {
     if (new URLSearchParams(location.search).get("embedded") === "1") return;
+    if (document.body.classList.contains("messages-page")) return;
     try {
       if (sessionStorage.getItem("danzstak_push_prompt_dismissed") === "1") return;
     } catch (_) {}
@@ -133,10 +134,19 @@
       }
     });
     prompt.append(copy, action, dismiss);
+    prompt.hidden = document.getElementById('messageDrawer')?.hidden === false
+      || document.getElementById('notificationDrawer')?.hidden === false;
     document.body.appendChild(prompt);
   }
 
   addEventListener('danzstak:push-enabled', () => document.querySelector('.push-alert-prompt')?.remove());
+  function syncPromptDrawerVisibility() {
+    const prompt = document.querySelector('.push-alert-prompt');
+    if (prompt) prompt.hidden = document.getElementById('messageDrawer')?.hidden === false
+      || document.getElementById('notificationDrawer')?.hidden === false;
+  }
+  addEventListener('danzstak:message-drawer', syncPromptDrawerVisibility);
+  addEventListener('danzstak:notification-drawer', syncPromptDrawerVisibility);
   setTimeout(renewExistingSubscription, 2000);
   setTimeout(showPermissionPrompt, 12000);
 })();

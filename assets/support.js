@@ -1,7 +1,7 @@
 "use strict";
 (() => {
  const form=document.getElementById("supportForm"),message=document.getElementById("supportMessage"),count=document.getElementById("supportCount"),status=document.getElementById("supportStatus"),button=form.querySelector("button[type=submit]");
- async function supportFetch(options={},timeoutMs=10000){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);try{return await fetch("https://api.danzstak.com/support-tickets",{...options,signal:controller.signal});}catch(error){if(error?.name==="AbortError")throw Error("Support took too long to respond. Check your connection and try again.");throw error;}finally{clearTimeout(timer);}}
+ async function supportFetch(options={},timeoutMs=10000){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);try{return await fetch("https://api.danzstak.com/support-tickets",{...options,signal:controller.signal});}catch(error){if(error?.name==="AbortError")throw Error("Support took too long to respond. Check your connection and try again.");throw Error("DanzStak cannot send your support request right now. Check your connection and try again.");}finally{clearTimeout(timer);}}
  message.addEventListener("input",()=>{count.textContent=String(message.value.length);});
  form.addEventListener("submit",async event=>{
   event.preventDefault();if(!form.reportValidity())return;button.disabled=true;status.textContent="Sending your request…";

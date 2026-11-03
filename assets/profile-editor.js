@@ -38,6 +38,7 @@ const profileLanguageCode = (() => {
   catch { return resolveProfileLanguage(document.documentElement.lang || "en"); }
 })();
 const profileEditorWords = profileEditorCopy[profileLanguageCode] || profileEditorCopy.en;
+const profileTranslate = value => window.danzstakTranslate?.(value) || value;
 const profileToast = document.createElement("div");
 profileToast.className = "profile-toast";
 profileToast.hidden = true;
@@ -51,7 +52,7 @@ let profileToastHideTimer = 0;
 function showProfileFeedback(message, { urgent = false, timeout = 4200 } = {}) {
   clearTimeout(profileToastTimer);
   clearTimeout(profileToastHideTimer);
-  profileToast.textContent = String(message || "DanzStak could not complete that profile change.");
+  profileToast.textContent = String(message || profileTranslate("DanzStak could not complete that profile change."));
   profileToast.setAttribute("role", urgent ? "alert" : "status");
   profileToast.setAttribute("aria-live", urgent ? "assertive" : "polite");
   profileToast.hidden = false;
@@ -67,8 +68,8 @@ async function profileFetch(url, options = {}, timeoutMs = 15000) {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch(url, { ...options, signal: controller.signal }); }
   catch (error) {
-    if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw error;
+    if (error.name === "AbortError") throw new Error(profileTranslate("DanzStak is taking too long to respond. Try again."));
+    throw new Error(profileTranslate("DanzStak cannot update your profile right now. Check your connection and try again."));
   } finally { clearTimeout(timeout); }
 }
 let viewingOtherProfile = Boolean(new URLSearchParams(location.search).get("user") || new URLSearchParams(location.search).get("member"));
@@ -82,7 +83,7 @@ async function saveCloudProfile(changes) {
     body: JSON.stringify(changes)
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "Profile could not be saved");
+  if (!response.ok) throw new Error(data.error || profileTranslate("Profile could not be saved"));
   window.danzstakCurrentProfile = data.profile || window.danzstakCurrentProfile;
   return data.profile;
 }
@@ -94,11 +95,11 @@ async function uploadCloudMedia(file) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ contentType: file.type, purpose: "profile" })
   });
-  if (!ticketResponse.ok) throw new Error("Media upload could not start");
+  if (!ticketResponse.ok) throw new Error(profileTranslate("Media upload could not start"));
   const ticket = await ticketResponse.json();
   const uploadDeadline = Math.max(120000, Math.ceil(file.size / (64 * 1024)) * 1000);
   const uploadResponse = await profileFetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file }, uploadDeadline);
-  if (!uploadResponse.ok) throw new Error("Media upload failed");
+  if (!uploadResponse.ok) throw new Error(profileTranslate("Media upload failed"));
   return ticket.mediaKey;
 }
 
@@ -466,6 +467,53 @@ details.insertAdjacentElement("beforebegin", tabs);
 details.insertAdjacentElement("afterend", tabMessage);
 details.hidden = true;
 
+async function refreshProfilePostMedia(post) {
+  if (typeof post?.refreshMedia === "function") {
+    const mediaUrl = await post.refreshMedia().catch(() => "");
+    if (mediaUrl) post.mediaUrl = mediaUrl;
+    return mediaUrl || "";
+  }
+  if (!/^[a-f0-9-]{36}$/.test(String(post?.postId || ""))) return "";
+  const response = await profileFetch(profileApi + "/secure-posts", { credentials: "include", cache: "no-store" }).catch(() => null);
+  if (!response?.ok) return "";
+  const data = await response.json().catch(() => ({}));
+  const refreshed = (data.posts || []).find(candidate => candidate.postId === post.postId);
+  if (!refreshed?.mediaUrl || !["image", "video"].includes(refreshed.mediaType)) return "";
+  post.mediaUrl = refreshed.mediaUrl;
+  post.mediaType = refreshed.mediaType;
+  return post.mediaUrl;
+}
+
+function installProfilePostMedia(article, post) {
+  const recovery = document.createElement("div");
+  recovery.className = "profile-media-recovery";
+  const copy = document.createElement("span");
+  copy.textContent = profileTranslate("Media is temporarily unavailable.");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "secondary";
+  retry.textContent = profileTranslate("Retry media");
+  recovery.append(copy, retry);
+  const insert = node => { const open = article.querySelector(".profile-post-open"); if (open) open.before(node); else article.appendChild(node); };
+  const showRecovery = () => { article.querySelector(".profile-post-media")?.remove(); if (!recovery.parentNode) insert(recovery); };
+  const install = async () => {
+    retry.disabled = true;
+    const mediaUrl = post.mediaUrl || await refreshProfilePostMedia(post);
+    retry.disabled = false;
+    if (!mediaUrl) { showRecovery(); return; }
+    recovery.remove();
+    const media = document.createElement(post.mediaType === "image" ? "img" : "video");
+    media.className = "profile-post-media";
+    media.addEventListener("error", () => { post.mediaUrl = ""; showRecovery(); }, { once: true });
+    if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
+    else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
+    media.src = mediaUrl;
+    insert(media);
+  };
+  retry.addEventListener("click", () => { post.mediaUrl = ""; void install(); });
+  void install();
+}
+
 function profilePostCard(post) {
   const article = document.createElement("article");
   article.className = "profile-post-card";
@@ -481,10 +529,10 @@ function profilePostCard(post) {
   const text = document.createElement("p");
   text.textContent = post.content || "Shared media";
   article.append(meta, text);
-  if (post.mediaUrl && ["image", "video"].includes(post.mediaType)) {
+  if ((post.postId || typeof post.refreshMedia === "function") && ["image", "video"].includes(post.mediaType)) installProfilePostMedia(article, post);
+  else if (post.mediaUrl && ["image", "video"].includes(post.mediaType)) {
     const media = document.createElement(post.mediaType === "image" ? "img" : "video");
-    media.className = "profile-post-media";
-    media.src = post.mediaUrl;
+    media.className = "profile-post-media"; media.src = post.mediaUrl;
     if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
     else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
     article.appendChild(media);
@@ -613,6 +661,13 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
       const params = new URLSearchParams();
       const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
       if (viewingOtherProfile && /^[a-f0-9-]{36}$/.test(profileMemberId)) params.set("member", profileMemberId);
+      const refreshProfileVideo = async () => {
+        const refreshedResponse = await profileFetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" }).catch(() => null);
+        if (!refreshedResponse?.ok) return "";
+        const refreshed = await refreshedResponse.json().catch(() => ({}));
+        return refreshed.mediaUrl || "";
+      };
+      const profileVideoCard = mediaUrl => profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl, refreshMedia: refreshProfileVideo });
       const videoResponse = await profileFetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
       if (version !== profileTabVersion) return;
       if (!videoResponse.ok && videoResponse.status !== 404) throw new Error("Profile video is temporarily unavailable.");
@@ -620,7 +675,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
         const stored = await videoResponse.json();
         if (version !== profileTabVersion) return;
         if (stored.mediaUrl) {
-          tabMessage.appendChild(profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl: stored.mediaUrl }));
+          tabMessage.appendChild(profileVideoCard(stored.mediaUrl));
         } else if (stored.mediaKey && !viewingOtherProfile) {
           const viewResponse = await profileFetch(profileApi + "/stories", {
             method: "POST", credentials: "include", cache: "no-store",
@@ -630,7 +685,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
           if (viewResponse.ok) {
             const view = await viewResponse.json();
             if (version !== profileTabVersion) return;
-            tabMessage.appendChild(profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl: view.mediaUrl }));
+            tabMessage.appendChild(profileVideoCard(view.mediaUrl));
           }
         }
       }
@@ -672,7 +727,7 @@ async function loadProfileFriends() {
     for (const friend of data.friends) {
       const link = document.createElement("a"); link.className = "profile-friend-card"; link.href = "profile.html?member=" + encodeURIComponent(friend.memberId);
       const avatar = friend.picture ? document.createElement("img") : document.createElement("span"); avatar.className = "profile-friend-avatar";
-      if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+      if (friend.picture) { avatar.src = friend.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, friend); }
       else { avatar.textContent = (friend.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
       const copy = document.createElement("span");
       const name = document.createElement("strong"); name.textContent = friend.name || "DanzStak member";
@@ -851,11 +906,11 @@ panel.addEventListener("submit", async event => {
     if (window.danzstakCurrentProfile?.cloudProfile) {
       const saved = await saveCloudProfile(profile);
       applyProfile(saved || profile);
-      status.textContent = "Profile saved to your DanzStak account.";
+      status.textContent = profileTranslate("Profile saved to your DanzStak account.");
     } else {
       localStorage.setItem(profileKey, JSON.stringify(profile));
       applyProfile(profile);
-      status.textContent = "Profile saved in this browser. Cloud sync is temporarily unavailable.";
+      status.textContent = profileTranslate("Profile saved in this browser. Cloud sync is temporarily unavailable.");
     }
     panel.hidden = true;
   } catch (error) {

@@ -12,6 +12,7 @@ async function renderEmptyState(presence) {
     appendChild(child) { this.children.push(child); }
   };
   const context = vm.createContext({
+    feedTranslate: value => value,
     document: {
       getElementById: id => {
         assert.equal(id, 'feedOnlineUsers');

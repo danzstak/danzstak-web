@@ -14,7 +14,7 @@ const legalVersion = "2026-10-26";
 async function homeFetch(path, options = {}, timeoutMs = 10000) {
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch(api + path, { ...options, signal: controller.signal }); }
-  catch (error) { if (error?.name === "AbortError") throw new Error("DanzStak took too long to respond. Check your connection and try again."); throw error; }
+  catch (error) { if (error?.name === "AbortError") throw new Error("DanzStak took too long to respond. Check your connection and try again."); throw new Error("DanzStak cannot connect right now. Check your connection and try again."); }
   finally { clearTimeout(timer); }
 }
 

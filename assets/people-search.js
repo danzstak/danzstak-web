@@ -25,6 +25,26 @@
   let timer;
   let requestController;
 
+  async function peopleFetch(path, options = {}, timeoutMs = 10000) {
+    const controller = new AbortController();
+    const externalSignal = options.signal;
+    let timedOut = false;
+    const cancel = () => controller.abort();
+    if (externalSignal?.aborted) cancel();
+    else externalSignal?.addEventListener("abort", cancel, { once: true });
+    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+    try {
+      return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal });
+    } catch (error) {
+      if (error.name === "AbortError" && !timedOut) throw error;
+      if (error.name === "AbortError") throw new Error("DanzStak member search took too long. Try again.");
+      throw new Error("DanzStak cannot connect right now. Check your connection and try again.");
+    } finally {
+      clearTimeout(timeout);
+      externalSignal?.removeEventListener?.("abort", cancel);
+    }
+  }
+
   function memberId(value) {
     const id = String(value || "");
     return /^[a-f0-9-]{36}$/.test(id) ? id : "";
@@ -55,6 +75,7 @@
       avatar.src = person.picture;
       avatar.alt = "";
       avatar.referrerPolicy = "no-referrer";
+      window.danzstakIdentityMedia?.install(avatar, person);
     } else {
       avatar.textContent = String(person.name || "D").charAt(0).toUpperCase();
       avatar.setAttribute("aria-hidden", "true");
@@ -94,7 +115,7 @@
         action.disabled = true;
         action.textContent = "Sending…";
         try {
-          const response = await fetch("https://api.danzstak.com/friends/request", {
+          const response = await peopleFetch("/friends/request", {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
@@ -161,7 +182,7 @@
         finderController = new AbortController();
         const timeout = setTimeout(() => finderController.abort(), 10000);
         try {
-          const response = await fetch("https://api.danzstak.com/people?query=" + encodeURIComponent(query), { credentials: "include", cache: "no-store", signal: finderController.signal });
+          const response = await peopleFetch("/people?query=" + encodeURIComponent(query), { credentials: "include", cache: "no-store", signal: finderController.signal });
           if (!response.ok) throw new Error("Member search is temporarily unavailable.");
           const people = (await response.json()).users || [];
           if (version !== finderGeneration) return;
@@ -181,7 +202,7 @@
     const timeout = setTimeout(() => requestController.abort(), 10000);
     let people = [], failed = false;
     try {
-      const response = await fetch("https://api.danzstak.com/people?query=" + encodeURIComponent(query), { credentials: "include", cache: "no-store", signal: requestController.signal });
+      const response = await peopleFetch("/people?query=" + encodeURIComponent(query), { credentials: "include", cache: "no-store", signal: requestController.signal });
       if (!response.ok) throw new Error("User search unavailable");
       people = (await response.json()).users || [];
     } catch { failed = true; }

@@ -152,7 +152,7 @@ $pushClient = Get-Content -LiteralPath (Join-Path $root 'assets\push-notificatio
 foreach ($pushRenewalBehavior in @('async function renewExistingSubscription()', 'Notification.permission !== "granted"', 'registration.pushManager.getSubscription()', 'sessionStorage.getItem("danzstak_push_synced")', 'await api("/push/subscribe"', 'setTimeout(renewExistingSubscription, 2000)')) {
   if (-not $pushClient.Contains($pushRenewalBehavior)) { Add-Failure "Push alerts: an approved browser subscription can expire server-side without renewal: $pushRenewalBehavior" }
 }
-foreach ($notificationRecoveryBehavior in @('const notificationController = new AbortController()', 'setTimeout(() => notificationController.abort(), 10000)', 'signal: notificationController.signal', 'error.textContent = "Notifications could not be loaded."', 'retry.addEventListener("click", () => renderWorkspace("Notifications"))', 'clearTimeout(notificationTimeout)')) {
+foreach ($notificationRecoveryBehavior in @('const notificationController = new AbortController()', 'setTimeout(() => notificationController.abort(), 10000)', 'signal: notificationController.signal', 'error.textContent = feedTranslate("Notifications could not be loaded.")', 'retry.addEventListener("click", () => renderWorkspace("Notifications"))', 'clearTimeout(notificationTimeout)')) {
   if (-not $feedEnhancements.Contains($notificationRecoveryBehavior)) { Add-Failure "Notifications workspace can remain stuck without recovery: $notificationRecoveryBehavior" }
 }
 $logoutJs = Get-Content -LiteralPath (Join-Path $root 'assets\logout.js') -Raw -Encoding utf8
@@ -343,7 +343,7 @@ foreach ($messagePollingBehavior in @('distanceFromBottom', 'followNewest', 'doc
 foreach ($messageHistoryBehavior in @('let nextMessageCursor = ""', 'function renderEarlierMessagesButton()', 'async function loadEarlierMessages()', '"&before=" + encodeURIComponent(cursor)', 'messageList.prepend(fragment)', 'messageTranslate("Load earlier messages")')) {
   if (-not $directMessagesJs.Contains($messageHistoryBehavior)) { Add-Failure "Messages: saved history cannot load beyond the newest page: $messageHistoryBehavior" }
 }
-foreach ($messageIdentityBehavior in @('let activeContactName = "Contact"', 'activeContactName = conversation.name || "Contact"', '(mine ? messageTranslate("You") : activeContactName)')) {
+foreach ($messageIdentityBehavior in @('let activeContactName = messageTranslate("Contact")', 'activeContactName = conversation.name || messageTranslate("Contact")', '(mine ? messageTranslate("You") : activeContactName)')) {
   if (-not $directMessagesJs.Contains($messageIdentityBehavior)) { Add-Failure "Messages: visible message metadata can expose contact email instead of the profile name: $messageIdentityBehavior" }
 }
 foreach ($chatPresenceBehavior in @('conversation-avatar-wrap', 'conversation.online === true', 'conversation-online-dot', 'aria-label", messageTranslate("Online")')) {
@@ -356,7 +356,7 @@ foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'function 
 foreach ($activeChatActionLabel in @('function labelConversationHeaderActions(name = "")', '`${translated}: ${name}`', 'labelConversationHeaderActions(conversationName.textContent)', 'labelConversationHeaderActions()')) {
   if (-not $directMessagesJs.Contains($activeChatActionLabel)) { Add-Failure "Messages: active conversation controls do not identify or reset the selected contact: $activeChatActionLabel" }
 }
-foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'messageTranslate("Contacts are temporarily unavailable. Retrying automatically')) {
+foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'function renderConversationLoadError()', 'messageTranslate("Contacts are temporarily unavailable")', 'retry.textContent = messageTranslate("Try loading messages again")')) {
   if (-not $directMessagesJs.Contains($contactFailureBehavior)) { Add-Failure "Messages: bounded contact loading behavior is missing: $contactFailureBehavior" }
 }
 foreach ($messageDeadlineBehavior in @('directFetch("/messages",', 'directFetch("/messages/delete?contact="', 'directFetch("/auth/session"', 'setTimeout(loadCurrentSession, 5000)', 'DanzStak is taking too long to respond. Try again.')) {
@@ -417,7 +417,7 @@ foreach ($profileShell in @('background:#f0f2f5', 'class="header-actions"', 'hre
 foreach ($notificationHistoryUi in @('notice.unread !== false', 'row.classList.toggle("is-read"', 'notificationSourceCounts.engagement = 0')) {
   if (-not $feedEnhancements.Contains($notificationHistoryUi)) { Add-Failure "Notifications: read history behavior is missing: $notificationHistoryUi" }
 }
-foreach ($notificationAccessibility in @('list.setAttribute("aria-label", "Notifications")', 'list.setAttribute("aria-live", "polite")', 'list.setAttribute("aria-busy", "true")', 'loading.setAttribute("role", "status")', 'list.setAttribute("aria-busy", "false")')) {
+foreach ($notificationAccessibility in @('list.setAttribute("aria-label", feedTranslate("Notifications"))', 'list.setAttribute("aria-live", "polite")', 'list.setAttribute("aria-busy", "true")', 'loading.setAttribute("role", "status")', 'list.setAttribute("aria-busy", "false")')) {
   if (-not $feedEnhancements.Contains($notificationAccessibility)) { Add-Failure "Notifications: dynamic loading state is not accessible: $notificationAccessibility" }
 }
 foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey && !viewingOtherProfile')) {
@@ -544,9 +544,10 @@ if ([regex]::Matches($feedEnhancementsJs, '(?m)^function isLocalHost\(\)').Count
   Add-Failure 'feed-enhancements.js must expose one top-level isLocalHost helper'
 }
 if ($messagesHtml -notmatch 'id="receiverHangUp"[^>]+hidden' -or
-    -not $chatJs.Contains('els.receiverHangup.hidden=false') -or
+    -not $chatJs.Contains('els.receiverHangup.hidden=!receiving') -or
+    -not $chatJs.Contains('makePeer(offer.mode,{receiving:true})') -or
     -not $chatJs.Contains('els.receiverHangup.hidden=true')) {
-  Add-Failure 'Call controls: receiver Hang Up visibility is not tied to active call state'
+  Add-Failure 'Call controls: receiver Hang Up visibility is not tied to the receiving call role and active call state'
 }
 foreach ($deletedChatControl in @('function closeConversation(', 'shownMessages.clear()', 'danzstak-chat-view", open: false', 'closeConversation({ focusList: true })')) {
   if (-not $directMessagesJs.Contains($deletedChatControl)) { Add-Failure "Messaging: deleting or closing a chat leaves stale conversation state: $deletedChatControl" }
@@ -625,7 +626,7 @@ if (-not $directMessagesJs.Contains('if (!document.body.classList.contains("is-c
     -not $directMessagesJs.Contains('/messages?read=1&contact=')) {
   Add-Failure 'Messaging: background or minimized chats can incorrectly clear unread state'
 }
-if (-not $directMessagesJs.Contains('message.myReaction === emoji ? "Remove " : "React with "') -or
+if (-not $directMessagesJs.Contains('messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })') -or
     -not $directMessagesJs.Contains('call.setAttribute("aria-label", call.title)') -or
     -not (Get-Content (Join-Path $root 'assets/text-emojis.js') -Raw).Contains("button.setAttribute('aria-label','Insert '+emoji)")) {
   Add-Failure 'Messaging: dynamic emoji or call controls lack accessible names'
@@ -640,7 +641,7 @@ if (-not $directMessagesJs.Contains('event.source === window.parent') -or
 if (-not $directMessagesJs.Contains('type: "danzstak-chat-read"') -or -not $feed.Contains('event.data?.type === "danzstak-chat-read"')) {
   Add-Failure 'Notifications: reading an embedded chat does not refresh the unread count'
 }
-foreach ($partialNotificationBehavior in @('notificationSourceCounts', 'if (succeeded) updateNotificationCount', 'if (!response?.ok && !engagementResponse?.ok)')) {
+foreach ($partialNotificationBehavior in @('notificationSourceCounts', 'if (succeeded) updateNotificationCount', 'if (!socialSource.available && !engagementSource.available)', 'Some notifications are temporarily unavailable.', 'Retry notifications')) {
   if (-not $feedEnhancementsJs.Contains($partialNotificationBehavior)) { Add-Failure "Notifications: partial API failure handling is missing: $partialNotificationBehavior" }
 }
 if (-not $directMessagesJs.Contains('Promise.allSettled([') -or

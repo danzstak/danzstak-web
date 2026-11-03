@@ -17,7 +17,9 @@ const video=(id,mediaUrl='')=>({postId:id,reel:true,mediaType:'video',mediaKey:i
   context.posts=[video('bad'),video('good','https://example.com/good.mp4')];
   const malformed=vm.runInContext('loadInternalReels(posts)',context);
   requests[1]({ok:true,json:async()=>{throw Error('invalid JSON');}});await malformed;
-  assert.equal(context.internalReels.length,1);assert.equal(context.internalReels[0].postId,'good');
+  assert.equal(context.internalReels.length,2,'temporarily unavailable Reels remain visible for retry');
+  assert.equal(context.internalReels[0].postId,'bad');assert.equal(context.internalReels[0].mediaUrl,'');
+  assert.equal(context.internalReels[1].postId,'good');
   const cacheStart=source.indexOf('function updateLoadedPost(postId, changes)');
   const cacheCode=source.slice(cacheStart,source.indexOf('function addPostDeleteButton(',cacheStart));
   const events=[];const cache=vm.createContext({window:{danzstakLoadedPosts:[video('one'),video('two')],dispatchEvent:event=>events.push(event)},CustomEvent:class{constructor(name,options){this.detail=options.detail;}}});

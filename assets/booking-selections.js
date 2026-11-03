@@ -18,6 +18,18 @@
   const artistInputs = { name: "pitchArtist", genre: "pitchGenre", hometown: "pitchHometown", epk: "pitchEpk", pitch: "pitchSummary" };
   const artist = () => Object.fromEntries(Object.entries(artistInputs).map(([key, id]) => [key, document.getElementById(id).value.trim()]));
   const identity = v => String(v.venueKey || `${v.name || ""}|${v.address || ""}`);
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } catch (error) {
+      if (error.name === "AbortError") throw error;
+      throw new Error("DanzStak cannot connect right now. Check your connection and try again.");
+    } finally {
+      clearTimeout(timer);
+    }
+  }
   const listingCheckedText = value => {
     const checked = new Date(value || "");
     return Number.isNaN(checked.getTime()) ? "" : `Public listing checked ${new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(checked)}`;
@@ -26,6 +38,25 @@
     const parsed = JSON.parse(sessionStorage.getItem(storageKey) || "[]");
     if (Array.isArray(parsed)) venues = parsed.slice(0, 100);
   } catch {}
+
+  document.getElementById("usePublishedEpk")?.addEventListener("click", async () => {
+    const button = document.getElementById("usePublishedEpk");
+    button.disabled = true;
+    accountStatus.textContent = "Finding your published EPK…";
+    try {
+      const response = await fetchWithTimeout("https://api.danzstak.com/epk", { credentials: "include", cache: "no-store" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Your EPK could not be loaded.");
+      if (!data.published || !data.publicId) throw new Error("Publish your EPK before adding it to a booking inquiry.");
+      document.getElementById("pitchEpk").value = new URL(`epk.html?id=${encodeURIComponent(data.publicId)}`, location.origin).href;
+      dirty = true;
+      accountStatus.textContent = "Published EPK added. Save the booking workspace to keep it.";
+    } catch (error) {
+      accountStatus.textContent = error.name === "AbortError" ? "Your EPK took too long to load. Try again." : error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   const link = (label, href) => {
     const anchor = document.createElement("a");

@@ -58,7 +58,7 @@ const conversationHeaderActions = {
 const conversationMenu = document.getElementById("conversationMenu");
 const headerDeleteChat = document.getElementById("headerDeleteChat");
 let directContact = "";
-let activeContactName = "Contact";
+let activeContactName = messageTranslate("Contact");
 let currentEmail = "";
 let loadingMessages = false;
 let conversationVersion = 0;
@@ -89,13 +89,13 @@ function previewSelectedMessageMedia(file) {
   clearSelectedMessageMedia();
   if (!file) return;
   const allowed = /^(image\/(jpeg|png|webp|gif)|video\/(mp4|webm|quicktime))$/i;
-  if (!allowed.test(file.type)) { callStatus.textContent = "Choose a photo or video. Standalone audio files are not supported."; return; }
+  if (!allowed.test(file.type)) { callStatus.textContent = messageTranslate("Choose a photo or video. Standalone audio files are not supported."); return; }
   selectedMessageMedia = file;
   selectedMessageMediaUrl = URL.createObjectURL(file);
   const media = document.createElement(file.type.startsWith("video/") ? "video" : "img");
   media.src = selectedMessageMediaUrl;
-  media.alt = file.type.startsWith("image/") ? "Photo ready to send" : "";
-  if (media.tagName === "VIDEO") { media.controls = true; media.preload = "metadata"; }
+  media.alt = file.type.startsWith("image/") ? messageTranslate("Photo ready to send") : "";
+  if (media.tagName === "VIDEO") { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", messageTranslate("Video ready to send")); }
   const remove = document.createElement("button");
   remove.type = "button"; remove.className = "message-media-remove"; remove.textContent = "×"; remove.setAttribute("aria-label", messageTranslate("Remove attachment")); remove.addEventListener("click", clearSelectedMessageMedia);
   messageMediaPreview.append(media, remove); messageMediaPreview.hidden = false;
@@ -104,13 +104,13 @@ function previewSelectedMessageMedia(file) {
 async function uploadSelectedMessageMedia(file) {
   const ticketResponse = await directFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: file.type, purpose: "message" }) });
   const ticket = await ticketResponse.json().catch(() => ({}));
-  if (!ticketResponse.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || "Attachment upload could not start");
+  if (!ticketResponse.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || messageTranslate("Attachment upload could not start"));
   try {
     const upload = await directFetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file }, Math.max(30000, Math.min(300000, Math.ceil(file.size / 20000))));
-    if (!upload.ok) throw new Error("Attachment upload failed");
+    if (!upload.ok) throw new Error(messageTranslate("Attachment upload failed"));
   } catch (error) {
     await discardMessageMedia(ticket.mediaKey);
-    if (/taking too long/i.test(error.message)) throw new Error("Attachment upload took too long. Try again on a stronger connection.");
+    if (/taking too long/i.test(error.message)) throw new Error(messageTranslate("Attachment upload took too long. Try again on a stronger connection."));
     throw error;
   }
   return { mediaKey: ticket.mediaKey, mediaType: file.type.startsWith("video/") ? "video" : "image" };
@@ -142,13 +142,13 @@ function closeConversationMenu({ restoreFocus = false } = {}) {
 }
 async function directFetch(path, options = {}, timeoutMs = 10000) {
   const target = path.startsWith("/") ? directApi + path : new URL(path);
-  if (typeof target !== "string" && target.origin !== "https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com") throw new Error("Unexpected upload destination");
+  if (typeof target !== "string" && target.origin !== "https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com") throw new Error(messageTranslate("Unexpected upload destination"));
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch(String(target), { ...options, signal: controller.signal }); }
   catch (error) {
-    if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw error;
+    if (error.name === "AbortError") throw new Error(messageTranslate("DanzStak is taking too long to respond. Try again."));
+    throw new Error(messageTranslate("DanzStak cannot connect right now. Check your connection and try again."));
   }
   finally { clearTimeout(timer); }
 }
@@ -209,7 +209,7 @@ async function saveMessageReaction(item, message, emoji) {
     body: JSON.stringify({ action: "reaction", contactEmail: directContact, messageId: message.messageId, reaction })
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "Reaction could not be saved");
+  if (!response.ok) throw new Error(data.error || messageTranslate("Reaction could not be saved"));
   const counts = { ...(message.reactionCounts || {}) };
   if (message.myReaction) counts[message.myReaction] = Math.max(0, Number(counts[message.myReaction] || 0) - 1);
   if (reaction) counts[reaction] = Number(counts[reaction] || 0) + 1;
@@ -257,7 +257,7 @@ function openMessageEditor(item, message) {
     event.preventDefault();
     const content = input.value.trim();
     if (!content || content === message.content) {
-      if (!content) { input.setCustomValidity("Message text cannot be empty"); input.reportValidity(); }
+      if (!content) { input.setCustomValidity(messageTranslate("Message text cannot be empty")); input.reportValidity(); }
       else cancelMessageEditor(item, message);
       return;
     }
@@ -269,7 +269,7 @@ function openMessageEditor(item, message) {
         body: JSON.stringify({ action: "edit", contactEmail: directContact, messageId: message.messageId, content })
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Message could not be edited");
+      if (!response.ok) throw new Error(data.error || messageTranslate("Message could not be edited"));
       Object.assign(message, data.message || {}, { content });
       item.replaceWith(directMessageItem(message));
     } catch (error) {
@@ -288,7 +288,7 @@ async function deleteDirectMessage(item, message, scope) {
     body: JSON.stringify({ action: "delete", contactEmail: directContact, messageId: message.messageId, scope })
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "Message could not be deleted");
+  if (!response.ok) throw new Error(data.error || messageTranslate("Message could not be deleted"));
   item.remove();
   callStatus.textContent = messageTranslate(scope === "everyone" ? "Message deleted for everyone." : "Message deleted for you.");
 }
@@ -321,7 +321,7 @@ function openMessageDeleteChoices(item, message, palette) {
 function openMessageReactions(item, message, x, y, focusFirst = false) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
-  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", (message.myReaction === emoji ? "Remove " : "React with ") + emoji); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
+  for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
   if (message.senderEmail === currentEmail && message.content) {
     const edit = document.createElement("button");
     edit.type = "button";
@@ -373,7 +373,7 @@ function openConversation(conversation) {
   conversationAvatar.setAttribute("aria-label", `${messageTranslate("Open contact profile")}: ${conversationName.textContent}`);
   labelConversationHeaderActions(conversationName.textContent);
   updateConversationPresence(conversation);
-  activeContactName = conversation.name || "Contact";
+  activeContactName = conversation.name || messageTranslate("Contact");
   if (deleteChat) deleteChat.disabled = false;
   conversationAvatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
   conversationAvatar.style.backgroundImage = "";
@@ -400,14 +400,14 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   closeConversationMenu();
   conversationHeader.hidden = true;
   conversationName.href = "profile.html";
-  conversationName.setAttribute("aria-label", "Open contact profile");
+  conversationName.setAttribute("aria-label", messageTranslate("Open contact profile"));
   conversationAvatar.href = "profile.html";
-  conversationAvatar.setAttribute("aria-label", "Open contact profile");
+  conversationAvatar.setAttribute("aria-label", messageTranslate("Open contact profile"));
   labelConversationHeaderActions();
   if (conversationPresence) conversationPresence.hidden = true;
   contactInput.value = "";
   directContact = "";
-  activeContactName = "Contact";
+  activeContactName = messageTranslate("Contact");
   activeCanContact = false;
   setConversationActionsEnabled(false);
   nextMessageCursor = "";
@@ -439,10 +439,10 @@ function renderMessageLoadError(message) {
   panel.className = "message-load-error";
   status.className = "system-message";
   status.setAttribute("role", "alert");
-  status.textContent = message || "Messages could not be loaded";
+  status.textContent = message || messageTranslate("Messages could not be loaded");
   retry.type = "button";
   retry.className = "message-load-retry";
-  retry.textContent = "Try loading messages again";
+  retry.textContent = messageTranslate("Try loading messages again");
   retry.addEventListener?.("click", () => loadDirectMessages(true));
   panel.append(status, retry);
   messageList.replaceChildren(panel);
@@ -451,9 +451,59 @@ function renderMessageLoadError(message) {
 function messageAccessibleSummary(message, mine) {
   const actor = mine ? messageTranslate("You") : activeContactName;
   const content = String(message.content || "").trim();
-  const media = message.mediaType === "video" ? "video" : message.mediaType === "image" ? "photo" : "";
-  const lead = content ? `${actor}: ${content}.` : media ? `${actor} sent a ${media}.` : `${actor} sent a message.`;
-  return `${lead} Long press or press Shift F10 for reactions${mine && content ? " and editing" : ""}.`;
+  const lead = content
+    ? messageFormat("{name}: {text}.", { name: actor, text: content })
+    : message.mediaType === "video"
+      ? messageFormat("{name} sent a video.", { name: actor })
+      : message.mediaType === "image"
+        ? messageFormat("{name} sent a photo.", { name: actor })
+        : messageFormat("{name} sent a message.", { name: actor });
+  const guidance = messageTranslate(mine && content
+    ? "Long press or press Shift F10 for reactions and editing."
+    : "Long press or press Shift F10 for reactions.");
+  return `${lead} ${guidance}`;
+}
+
+async function refreshDirectMessageMedia(message) {
+  const contact = contactInput?.value.trim().toLowerCase();
+  if (!contact || !message?.messageId) return "";
+  const response = await directFetch("/messages?contact=" + encodeURIComponent(contact) + "&message=" + encodeURIComponent(message.messageId), { credentials: "include", cache: "no-store" }).catch(() => null);
+  if (!response?.ok) return "";
+  const data = await response.json().catch(() => ({}));
+  if (!data.message?.mediaUrl) return "";
+  message.mediaUrl = data.message.mediaUrl;
+  return message.mediaUrl;
+}
+
+function installDirectMessageMedia(item, message, mine) {
+  const recovery = document.createElement("div");
+  recovery.className = "message-attachment-recovery";
+  const copy = document.createElement("span");
+  copy.textContent = messageTranslate("Media is temporarily unavailable.");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.textContent = messageTranslate("Retry media");
+  recovery.append(copy, retry);
+  const showRecovery = () => {
+    item.querySelector(".message-attachment")?.remove();
+    if (!recovery.parentNode) item.prepend(recovery);
+  };
+  const install = async () => {
+    retry.disabled = true;
+    const mediaUrl = message.mediaUrl || await refreshDirectMessageMedia(message);
+    retry.disabled = false;
+    if (!mediaUrl) { showRecovery(); return; }
+    recovery.remove();
+    const media = document.createElement(message.mediaType === "video" ? "video" : "img");
+    media.className = "message-attachment";
+    media.addEventListener("error", () => { message.mediaUrl = ""; showRecovery(); }, { once: true });
+    if (message.mediaType === "image") { media.alt = mine ? messageTranslate("Photo you sent") : messageFormat("Photo from {name}", { name: activeContactName }); media.loading = "lazy"; }
+    else { media.controls = true; media.playsInline = true; media.preload = "metadata"; media.setAttribute("aria-label", mine ? messageTranslate("Video you sent") : messageFormat("Video from {name}", { name: activeContactName })); }
+    media.src = mediaUrl;
+    item.prepend(media);
+  };
+  retry.addEventListener("click", () => { message.mediaUrl = ""; void install(); });
+  void install();
 }
 
 function directMessageItem(message) {
@@ -468,24 +518,18 @@ function directMessageItem(message) {
     text.textContent = message.content;
     item.appendChild(text);
   }
-  if (message.mediaUrl && ["image", "video"].includes(message.mediaType)) {
-    const media = document.createElement(message.mediaType === "video" ? "video" : "img");
-    media.className = "message-attachment"; media.src = message.mediaUrl;
-    if (message.mediaType === "image") { media.alt = mine ? "Photo you sent" : `Photo from ${activeContactName}`; media.loading = "lazy"; }
-    else { media.controls = true; media.playsInline = true; media.preload = "metadata"; media.setAttribute("aria-label", mine ? "Video you sent" : `Video from ${activeContactName}`); }
-    item.prepend(media);
-  }
+  if (["image", "video"].includes(message.mediaType)) installDirectMessageMedia(item, message, mine);
   const sharedUrl = firstSafeMessageUrl(message.content);
   if (sharedUrl) item.appendChild(messageLinkPreview(sharedUrl));
   item.setAttribute("aria-label", messageAccessibleSummary(message, mine));
   const meta = document.createElement("span");
   meta.className = "message-meta";
-  meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · edited" : "");
+  meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · " + messageTranslate("edited") : "");
   if (mine) {
     const receipt = document.createElement("span");
     receipt.className = message.read ? "message-receipt is-read" : "message-receipt";
     receipt.textContent = message.read ? "✓✓" : "✓";
-    receipt.setAttribute("aria-label", message.read ? "Read" : "Delivered");
+    receipt.setAttribute("aria-label", messageTranslate(message.read ? "Read" : "Delivered"));
     meta.append(" ", receipt);
   }
   item.appendChild(meta);
@@ -523,11 +567,11 @@ function messageLinkPreview(url) {
   card.target = "_blank";
   card.rel = "noopener noreferrer nofollow ugc";
   card.referrerPolicy = "no-referrer";
-  card.setAttribute("aria-label", `Open shared link on ${url.hostname}`);
+  card.setAttribute("aria-label", messageFormat("Open shared link on {site}", { site: url.hostname }));
   icon.className = "message-link-icon";
   icon.textContent = "🔗";
   domain.textContent = url.hostname.replace(/^www\./, "");
-  detail.textContent = (url.pathname === "/" ? "Open shared link" : url.pathname.replace(/%20/gi, " ").replace(/\/+$/, "").split("/").filter(Boolean).slice(-2).join(" / ")) || "Open shared link";
+  detail.textContent = (url.pathname === "/" ? messageTranslate("Open shared link") : url.pathname.replace(/%20/gi, " ").replace(/\/+$/, "").split("/").filter(Boolean).slice(-2).join(" / ")) || messageTranslate("Open shared link");
   copy.append(domain, detail);
   card.append(icon, copy);
   return card;
@@ -535,13 +579,13 @@ function messageLinkPreview(url) {
 
 function pendingMessageItem(content, mediaFile) {
   const item = document.createElement("div");
-  const text = content || (mediaFile?.type.startsWith("video/") ? "Video" : "Photo");
+  const text = content || messageTranslate(mediaFile?.type.startsWith("video/") ? "Video" : "Photo");
   const meta = document.createElement("span");
   item.className = "message mine message-pending";
   item.textContent = text;
-  item.setAttribute("aria-label", `You: ${text}. Sending.`);
+  item.setAttribute("aria-label", messageFormat("You: {text}. Sending.", { text }));
   meta.className = "message-meta";
-  meta.textContent = "Sending…";
+  meta.textContent = messageTranslate("Sending…");
   item.appendChild(meta);
   return item;
 }
@@ -564,13 +608,13 @@ async function loadEarlierMessages() {
   if (!contact || !cursor || loadingMessages) return;
   loadingMessages = true;
   const button = messageList.querySelector(".load-earlier-messages");
-  if (button) { button.disabled = true; button.textContent = "Loading…"; }
+  if (button) { button.disabled = true; button.textContent = messageTranslate("Loading…"); }
   const previousHeight = messageList.scrollHeight;
   try {
     const response = await directFetch("/messages?contact=" + encodeURIComponent(contact) + "&before=" + encodeURIComponent(cursor), { credentials: "include", cache: "no-store" });
     const data = await response.json().catch(() => ({}));
     if (version !== conversationVersion) return;
-    if (!response.ok) throw new Error(data.error || "Earlier messages could not be loaded");
+    if (!response.ok) throw new Error(data.error || messageTranslate("Earlier messages could not be loaded"));
     const fragment = document.createDocumentFragment();
     for (const message of data.messages || []) {
       if (shownMessages.has(message.messageId)) continue;
@@ -585,7 +629,7 @@ async function loadEarlierMessages() {
   } catch (error) {
     if (version !== conversationVersion) return;
     callStatus.textContent = error.message;
-    if (button) { button.disabled = false; button.textContent = "Try loading earlier messages again"; }
+    if (button) { button.disabled = false; button.textContent = messageTranslate("Try loading earlier messages again"); }
   } finally { if (version === conversationVersion) loadingMessages = false; }
 }
 
@@ -603,7 +647,7 @@ async function loadDirectMessages(reset = false) {
     const response = await directFetch("/messages?read=1&contact=" + encodeURIComponent(contact), { credentials: "include", cache: "no-store" });
     const data = await response.json();
     if (version !== conversationVersion) return;
-    if (!response.ok) throw new Error(data.error || "Messages could not be loaded");
+    if (!response.ok) throw new Error(data.error || messageTranslate("Messages could not be loaded"));
     const distanceFromBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight;
     const followNewest = reset || distanceFromBottom < 80;
     if (reset) { shownMessages.clear(); nextMessageCursor = data.nextCursor || ""; messageList.replaceChildren(); }
@@ -633,7 +677,7 @@ async function loadDirectMessages(reset = false) {
       : messageTranslate("Saved chat. Become friends or join the same Tribe to send new messages or call.");
   } catch (error) {
     if (version === conversationVersion) {
-      const message = error.message || "Messages could not be loaded";
+      const message = error.message || messageTranslate("Messages could not be loaded");
       callStatus.textContent = message;
       if (reset) renderMessageLoadError(message);
     }
@@ -646,6 +690,52 @@ async function loadDirectMessages(reset = false) {
 }
 
 let loadingConversations = false;
+async function readMessagingArrayResponse(response, key) {
+  if (!response?.ok) return { available: false, items: [] };
+  try {
+    const data = await response.json();
+    return { available: true, items: Array.isArray(data?.[key]) ? data[key] : [] };
+  } catch {
+    return { available: false, items: [] };
+  }
+}
+function renderConversationLoadError() {
+  if (!conversationUsers) return;
+  conversationUsers.replaceChildren();
+  const panel = document.createElement("div");
+  panel.className = "message-load-error contact-load-error";
+  const status = document.createElement("p");
+  status.className = "chat-note";
+  status.setAttribute?.("role", "alert");
+  status.textContent = messageTranslate("Contacts are temporarily unavailable");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "message-load-retry";
+  retry.textContent = messageTranslate("Try loading messages again");
+  retry.addEventListener("click", () => {
+    retry.disabled = true;
+    retry.textContent = messageTranslate("Loading…");
+    loadConversations();
+  });
+  panel.append(status, retry);
+  conversationUsers.appendChild(panel);
+}
+function appendConversationAvailabilityWarning() {
+  if (!conversationUsers) return;
+  const panel = document.createElement("div");
+  panel.className = "message-load-error contact-load-error message-partial-warning";
+  const status = document.createElement("p");
+  status.className = "chat-note";
+  status.setAttribute("role", "status");
+  status.textContent = messageTranslate("Some chats or online statuses are temporarily unavailable.");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "message-load-retry";
+  retry.textContent = messageTranslate("Retry contacts");
+  retry.addEventListener("click", () => loadConversations());
+  panel.append(status, retry);
+  conversationUsers.appendChild(panel);
+}
 async function loadConversations() {
   if (document.hidden || loadingConversations) return;
   loadingConversations = true;
@@ -664,22 +754,31 @@ async function loadConversations() {
     const conversationResponse = usableResponse(results[0]);
     const friendsResponse = usableResponse(results[1]);
     const directoryResponse = usableResponse(results[2]);
-    if (!conversationResponse && !friendsResponse && !directoryResponse) throw new Error("Contacts are temporarily unavailable");
-    const data = conversationResponse ? await conversationResponse.json() : { conversations: [] };
-    const friendsData = friendsResponse ? await friendsResponse.json() : { friends: [] };
-    const directoryData = directoryResponse ? await directoryResponse.json() : { users: [] };
-    if (typeof window !== "undefined" && window.parent !== window && directoryResponse) {
-      const users = (directoryData.users || []).map(member => ({
+    const [conversationSource, friendsSource, directorySource] = await Promise.all([
+      readMessagingArrayResponse(conversationResponse, "conversations"),
+      readMessagingArrayResponse(friendsResponse, "friends"),
+      readMessagingArrayResponse(directoryResponse, "users")
+    ]);
+    if (!conversationSource.available && !friendsSource.available && !directorySource.available) throw new Error(messageTranslate("Contacts are temporarily unavailable"));
+    const sourcesComplete = conversationSource.available && friendsSource.available && directorySource.available;
+    if (typeof window !== "undefined" && window.parent !== window && directorySource.available) {
+      const users = directorySource.items.map(member => ({
         memberId: String(member.memberId || ""),
         online: member.online === true
       })).filter(member => /^[a-f0-9-]{36}$/.test(member.memberId));
       window.parent.postMessage({ type: "danzstak-presence-update", users }, location.origin);
     }
     const contacts = new Map();
-    for (const conversation of data.conversations || []) {
+    if (!sourcesComplete) {
+      for (const conversation of cachedConversations) {
+        const email = String(conversation.contactEmail || "").toLowerCase();
+        if (email) contacts.set(email, { ...conversation, contactEmail: email });
+      }
+    }
+    for (const conversation of conversationSource.items) {
       if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), conversation);
     }
-    for (const friend of friendsData.friends || []) {
+    for (const friend of friendsSource.items) {
       const email = String(friend.email || "").toLowerCase();
       if (!email) continue;
       const existing = contacts.get(email) || {};
@@ -694,7 +793,7 @@ async function loadConversations() {
         isFriend: true
       });
     }
-    for (const member of directoryData.users || []) {
+    for (const member of directorySource.items) {
       const email = String(member.email || "").toLowerCase();
       const existing = contacts.get(email);
       if (!email || (!existing && !member.sharedGroup)) continue;
@@ -725,7 +824,14 @@ async function loadConversations() {
       const matchesFilter = activeFilter === "all" || (activeFilter === "unread" && unread) || (activeFilter === "groups" && item.sharedGroup);
       return matchesSearch && matchesFilter;
     });
-    if (!visible.length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = messageTranslate(query ? "No friends or chats match your search." : "No friends or saved chats yet."); conversationUsers.appendChild(empty); return; }
+    if (!visible.length) {
+      const empty = document.createElement("p");
+      empty.className = "chat-note";
+      empty.textContent = messageTranslate(query ? "No friends or chats match your search." : "No friends or saved chats yet.");
+      conversationUsers.appendChild(empty);
+      if (!sourcesComplete) appendConversationAvailabilityWarning();
+      return;
+    }
     for (const conversation of visible) {
       const row = document.createElement("div"); row.className = "conversation-row";
       const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
@@ -738,12 +844,7 @@ async function loadConversations() {
       if (conversation.picture) {
         avatar.src = conversation.picture;
         avatar.alt = "";
-        avatar.addEventListener("error", () => {
-          const fallback = document.createElement("span");
-          fallback.className = "conversation-list-avatar";
-          fallback.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
-          avatar.replaceWith(fallback);
-        }, { once: true });
+        window.danzstakIdentityMedia?.install(avatar, conversation);
       } else avatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
       avatarWrap.appendChild(avatar);
       if (conversation.online === true) {
@@ -761,7 +862,7 @@ async function loadConversations() {
         const badge = document.createElement("span");
         badge.className = "conversation-unread";
         badge.textContent = Number(conversation.unread) > 99 ? "99+" : String(Number(conversation.unread));
-        badge.setAttribute("aria-label", `${conversation.unread} unread message${Number(conversation.unread) === 1 ? "" : "s"}`);
+        badge.setAttribute("aria-label", messageFormat(Number(conversation.unread) === 1 ? "{count} unread message" : "{count} unread messages", { count: conversation.unread }));
         meta.appendChild(badge);
       }
       copy.append(name, preview); button.append(avatarWrap, copy, meta);
@@ -775,6 +876,7 @@ async function loadConversations() {
       }
       row.append(button, calls); conversationUsers.appendChild(row);
     }
+    if (!sourcesComplete) appendConversationAvailabilityWarning();
     if (focusedContact) {
       const focusTarget = [...conversationUsers.querySelectorAll(".conversation-user")].find(button => button.dataset.contactEmail === focusedContact);
       focusTarget?.focus({ preventScroll: true });
@@ -782,10 +884,7 @@ async function loadConversations() {
     const requested = contactInput.value.trim().toLowerCase();
     if (requested && conversationHeader.hidden) openConversation(cachedConversations.find(item => item.contactEmail === requested) || { contactEmail: requested, name: "DanzStak member", picture: "" });
   } catch {
-    if (!cachedConversations.length) {
-      conversationUsers.replaceChildren();
-      const unavailable = document.createElement("p"); unavailable.className = "chat-note"; unavailable.textContent = messageTranslate("Contacts are temporarily unavailable. Retrying automatically…"); conversationUsers.appendChild(unavailable);
-    }
+    if (!cachedConversations.length) renderConversationLoadError();
   } finally {
     loadingConversations = false;
     conversationUsers?.setAttribute?.("aria-busy", "false");
@@ -869,7 +968,7 @@ messageForm?.addEventListener("submit", async event => {
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
   if (window.navigator?.onLine === false && window.danzstakQueueOffline) {
     try {
-      if (selectedMessageMedia) throw new Error("Attachments need a connection. Your draft is still here.");
+      if (selectedMessageMedia) throw new Error(messageTranslate("Attachments need a connection. Your draft is still here."));
       window.danzstakQueueOffline("/messages", { recipientEmail, content });
       messageInput.value = "";
       saveChatDraft(recipientEmail, "");
@@ -892,7 +991,7 @@ messageForm?.addEventListener("submit", async event => {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       await discardMessageMedia(attachment.mediaKey);
-      throw new Error(data.error || "Message could not be sent");
+      throw new Error(data.error || messageTranslate("Message could not be sent"));
     }
     if (version !== conversationVersion) { await loadConversations(); return; }
     if (data.message?.messageId) {
@@ -908,7 +1007,7 @@ messageForm?.addEventListener("submit", async event => {
     pendingItem.remove();
     if (version === conversationVersion) {
       if (content && !messageInput.value.trim()) messageInput.value = content;
-      callStatus.textContent = `${error.message}. Your message is still in the composer.`;
+      callStatus.textContent = messageFormat("{error}. Your message is still in the composer.", { error: error.message });
       messageInput.focus();
     }
   }
@@ -920,12 +1019,12 @@ messageCamera?.addEventListener("change", () => previewSelectedMessageMedia(mess
 
 deleteChat?.addEventListener("click", async () => {
   const contact = contactInput.value.trim().toLowerCase();
-  if (!contact || !(await window.danzstakConfirm("This removes the chat from your account. The other person will keep their message history.", { title: "Delete this chat?", confirmLabel: "Delete chat", danger: true }))) return;
+  if (!contact || !(await window.danzstakConfirm(messageTranslate("This removes the chat from your account. The other person will keep their message history."), { title: messageTranslate("Delete this chat?"), confirmLabel: messageTranslate("Delete chat"), danger: true }))) return;
   const version = conversationVersion;
   deleteChat.disabled = true;
   try {
     const response = await directFetch("/messages/delete?contact=" + encodeURIComponent(contact), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
-    if (!response.ok) throw new Error("Chat could not be deleted");
+    if (!response.ok) throw new Error(messageTranslate("Chat could not be deleted"));
     if (version === conversationVersion) {
       saveChatDraft(contact, "");
       closeConversation({ focusList: true, preserveDraft: false });
@@ -945,7 +1044,7 @@ async function loadCurrentSession() {
   try {
     const response = await directFetch("/auth/session", { credentials: "include", cache: "no-store" });
     if (response.status === 401) { location.replace("./"); return; }
-    if (!response.ok) throw new Error("Your account could not be loaded");
+    if (!response.ok) throw new Error(messageTranslate("Your account could not be loaded"));
     const data = await response.json().catch(() => ({}));
     const profile = data?.user || data?.claims || data?.profile || data || {};
     currentEmail = String(profile.email || profile.username || "").toLowerCase();

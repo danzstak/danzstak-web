@@ -25,13 +25,13 @@ assert.match(logout, /danzstakShowFeedback/, "logout failures should use app fee
 assert.match(worker, /"\/assets\/app-feedback\.js"/);
 assert.match(worker, /"\/assets\/app-feedback\.css"/);
 
-for (const file of ["index.html", "feed.html", "profile.html", "messages.html", "booking.html", "booking-selections.html"]) {
+for (const file of ["index.html", "feed.html", "profile.html", "messages.html", "booking.html", "booking-selections.html", "epk.html"]) {
   const html = readFileSync(file, "utf8");
   assert.match(html, /assets\/app-feedback\.css\?v=2/, `${file} should load the shared feedback styles`);
   assert.match(html, /assets\/app-feedback\.js\?v=3/, `${file} should load the shared feedback behavior`);
 }
 
-for (const file of ["assets/home.js", "assets/logout.js", "assets/direct-messages.js", "assets/media-tags.js", "assets/profile-editor.js", "assets/feed-enhancements.js", "assets/booking-agent.js"]) {
+for (const file of ["assets/home.js", "assets/logout.js", "assets/direct-messages.js", "assets/media-tags.js", "assets/profile-editor.js", "assets/feed-enhancements.js", "assets/booking-agent.js", "assets/epk.js"]) {
   const behavior = readFileSync(file, "utf8");
   assert.doesNotMatch(behavior, /(?:window\.)?confirm\(/, `${file} should not use blocking browser confirmations`);
   assert.match(behavior, /danzstakConfirm/, `${file} should use the shared accessible confirmation dialog`);

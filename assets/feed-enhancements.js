@@ -1,5 +1,7 @@
 "use strict";
 
+(() => {
+
 const devicePreferenceMemory = new Map();
 
 try {
@@ -47,7 +49,8 @@ function showAppFeedback(message, { urgent = false, timeout = 4200 } = {}) {
 let lastNotificationCount = null;
 const notificationSourceCounts = { social: null, engagement: null };
 let notificationCountLoading = false;
-
+const feedTranslate = value => globalThis.danzstakTranslate?.(value) || value;
+const feedFormat = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), feedTranslate(key));
 function isLocalHost() {
   return location.hostname === "127.0.0.1" || location.hostname === "localhost";
 }
@@ -56,14 +59,17 @@ function updateNotificationCount(count) {
   const safeCount = Math.max(0, Number(count) || 0);
   for (const control of notificationControls) {
     if (!control.dataset.baseLabel) control.dataset.baseLabel = control.dataset.feature || control.textContent.trim();
+    const translatedLabel = feedTranslate(control.dataset.baseLabel);
     const badge = control.querySelector(".nav-count");
     if (badge) { badge.hidden = safeCount === 0; badge.textContent = safeCount > 99 ? "99+" : String(safeCount); }
-    else control.textContent = safeCount ? `${control.dataset.baseLabel} (${safeCount})` : control.dataset.baseLabel;
-    control.setAttribute("aria-label", safeCount ? `${control.dataset.baseLabel}, ${safeCount} new` : control.dataset.baseLabel);
+    else control.textContent = safeCount ? `${translatedLabel} (${safeCount})` : translatedLabel;
+    control.setAttribute("aria-label", safeCount ? feedFormat(safeCount === 1 ? "{label}, {count} new notification" : "{label}, {count} new notifications", { label: translatedLabel, count: safeCount }) : translatedLabel);
   }
-  if (lastNotificationCount !== null && safeCount !== lastNotificationCount) notificationAnnouncer.textContent = safeCount ? `${safeCount} new notification${safeCount === 1 ? "" : "s"}.` : "No new notifications.";
+  if (lastNotificationCount !== null && safeCount !== lastNotificationCount) notificationAnnouncer.textContent = safeCount ? feedFormat(safeCount === 1 ? "{count} new notification." : "{count} new notifications.", { count: safeCount }) : feedTranslate("No new notifications.");
   lastNotificationCount = safeCount;
 }
+
+if (typeof MutationObserver === "function") new MutationObserver(() => { if (lastNotificationCount !== null) updateNotificationCount(lastNotificationCount); }).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
 
 function formatNotificationTimestamp(value) {
   const created = new Date(value || "");
@@ -83,6 +89,16 @@ function formatReactionNotification(displayName, reaction) {
     Fire: "reacted Fire to your post."
   };
   return `${displayName} ${phrases[label] || "reacted to your post."}`;
+}
+
+async function readArrayResponse(response, key) {
+  if (!response?.ok) return { available: false, items: [] };
+  try {
+    const data = await response.json();
+    return { available: true, items: Array.isArray(data?.[key]) ? data[key] : [] };
+  } catch {
+    return { available: false, items: [] };
+  }
 }
 
 async function refreshNotificationCount() {
@@ -354,12 +370,20 @@ async function friendActionFetch(path, options = {}, timeoutMs = 10000) {
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error("The friend service took too long to respond. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot connect to friends right now. Check your connection and try again.");
   } finally { clearTimeout(timeout); }
 }
 
-function renderOnlineFriendList(list, users) {
+function renderOnlineFriendList(list, users, presenceAvailable = true) {
   list.replaceChildren();
+  if (!presenceAvailable) {
+    const unavailable = document.createElement("p");
+    unavailable.className = "muted";
+    unavailable.setAttribute("role", "status");
+    unavailable.textContent = "Online status is temporarily unavailable. Retrying automatically…";
+    list.appendChild(unavailable);
+    return;
+  }
   const online = users.filter(person => person.online === true);
   if (!online.length) {
     const empty = document.createElement("p");
@@ -376,7 +400,7 @@ function renderOnlineFriendList(list, users) {
     avatarWrap.className = "feed-online-avatar-wrap";
     const avatar = person.picture ? document.createElement("img") : document.createElement("span");
     avatar.className = "feed-online-avatar";
-    if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+    if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, person); }
     else { avatar.textContent = displayName.charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
     const dot = document.createElement("span");
     dot.className = "feed-online-dot";
@@ -435,7 +459,7 @@ async function groupFetch(path, options = {}, timeoutMs = 12000) {
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error("The Tribe service took too long to respond. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot connect to Tribes right now. Check your connection and try again.");
   } finally { clearTimeout(timeout); }
 }
 
@@ -470,17 +494,27 @@ async function respondToNotificationRequest(row, email, accept) {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, accept })
     });
-    if (!response.ok) throw new Error("Friend request could not be updated. Please try again.");
+    if (!response.ok) throw new Error(feedTranslate("Friend request could not be updated."));
   } catch (error) {
     buttons.forEach(button => { button.disabled = false; });
     const status = document.createElement("p");
     status.className = "notification-request-status muted";
-    status.setAttribute("role", "status");
-    status.textContent = "Friend request could not be updated. Please try again.";
+    status.setAttribute("role", "alert");
+    status.textContent = feedTranslate("Friend request could not be updated.");
     row.appendChild(status);
     return false;
   }
+  const notificationList = row.parentElement;
   row.remove();
+  notificationSourceCounts.social = Math.max(0, Number(notificationSourceCounts.social || 1) - 1);
+  updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
+  if (notificationList && !notificationList.querySelector(".notification-row")) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = feedTranslate("No new notifications.");
+    notificationList.appendChild(empty);
+  }
+  globalThis.danzstakShowFeedback?.(feedTranslate(accept ? "You are now friends." : "Friend request declined."));
   await refreshNotificationCount().catch(() => {});
   if (typeof loadOnlineUsers === "function") Promise.resolve(loadOnlineUsers()).catch(() => {});
   if (typeof loadFriends === "function") Promise.resolve(loadFriends()).catch(() => {});
@@ -564,7 +598,11 @@ async function openAccountActivity(opener) {
       list.appendChild(link);
     }
   } catch (error) {
-    summary.textContent = error.name === "AbortError" ? "Activity took too long to load. Close this panel and try again." : error.message;
+    summary.textContent = error.name === "AbortError"
+      ? "Activity took too long to load. Close this panel and try again."
+      : error.name === "TypeError"
+        ? "DanzStak cannot load activity right now. Check your connection and try again."
+        : error.message;
   } finally { clearTimeout(timeout); }
 }
 
@@ -754,7 +792,7 @@ function renderWorkspace(name) {
           const memberId = String(member.memberId || ""), validMemberId = /^[a-f0-9-]{36}$/.test(memberId), profileUrl = member.isMe ? "profile.html" : validMemberId ? "profile.html?member=" + encodeURIComponent(memberId) : "";
           const avatar = document.createElement(profileUrl ? "a" : "span"); avatar.className = "tribe-crew-avatar";
           if (profileUrl) { avatar.href = profileUrl; avatar.setAttribute("aria-label", "Open " + (member.name || "member") + " profile"); }
-          if (member.picture) { const image = document.createElement("img"); image.src = member.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.appendChild(image); }
+          if (member.picture) { const image = document.createElement("img"); image.src = member.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(image, member); avatar.appendChild(image); }
           else avatar.textContent = String(member.name || "D").charAt(0).toUpperCase();
           const identity = document.createElement("div");
           const name = document.createElement(profileUrl ? "a" : "strong"); name.textContent = member.name || "DanzStak member"; name.className = "tribe-crew-name"; if (profileUrl) name.href = profileUrl;
@@ -1131,13 +1169,13 @@ function renderWorkspace(name) {
     const list = document.createElement("div");
     list.className = "notification-list";
     list.setAttribute("role", "region");
-    list.setAttribute("aria-label", "Notifications");
+    list.setAttribute("aria-label", feedTranslate("Notifications"));
     list.setAttribute("aria-live", "polite");
     list.setAttribute("aria-busy", "true");
     const loading = document.createElement("p");
     loading.className = "muted";
     loading.setAttribute("role", "status");
-    loading.textContent = "Loading notifications…";
+    loading.textContent = feedTranslate("Loading notifications…");
     list.appendChild(loading);
     workspace.appendChild(list);
     async function loadNotificationSources() {
@@ -1164,14 +1202,21 @@ function renderWorkspace(name) {
         const directoryResponse = results[1].status === "fulfilled" ? results[1].value : null;
         const engagementResponse = results[2].status === "fulfilled" ? results[2].value : null;
         const friendsResponse = results[3].status === "fulfilled" ? results[3].value : null;
-        if (!response?.ok && !engagementResponse?.ok) throw new Error("Notifications could not be loaded");
-        const data = response?.ok ? await response.json() : { notifications: [] };
-        const engagement = engagementResponse?.ok ? (await engagementResponse.json()).notifications || [] : [];
-        notificationSourceCounts.social = response?.ok ? (data.notifications || []).length : notificationSourceCounts.social;
-        notificationSourceCounts.engagement = engagementResponse?.ok ? engagement.filter(notice => notice.unread !== false).length : notificationSourceCounts.engagement;
-        data.notifications = [...(data.notifications || []), ...engagement].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
-        const directory = directoryResponse?.ok ? (await directoryResponse.json()).users || [] : [];
-        const friends = friendsResponse?.ok ? (await friendsResponse.json()).friends || [] : [];
+        const [socialSource, engagementSource, directorySource, friendsSource] = await Promise.all([
+          readArrayResponse(response, "notifications"),
+          readArrayResponse(engagementResponse, "notifications"),
+          readArrayResponse(directoryResponse, "users"),
+          readArrayResponse(friendsResponse, "friends")
+        ]);
+        if (!socialSource.available && !engagementSource.available) throw new Error("Notifications could not be loaded");
+        const data = { notifications: socialSource.items };
+        const engagement = engagementSource.items;
+        notificationSourceCounts.social = socialSource.available ? data.notifications.length : notificationSourceCounts.social;
+        notificationSourceCounts.engagement = engagementSource.available ? engagement.filter(notice => notice.unread !== false).length : notificationSourceCounts.engagement;
+        data.notifications = [...data.notifications, ...engagement].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+        const directory = directorySource.items;
+        const friends = friendsSource.items;
+        const notificationSourcesComplete = socialSource.available && engagementSource.available;
         const people = new Map();
         for (const friend of friends) {
           const email = String(friend.email || "").toLowerCase();
@@ -1186,10 +1231,26 @@ function renderWorkspace(name) {
         updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
         list.replaceChildren();
         list.setAttribute("aria-busy", "false");
-        if (!(data.notifications || []).length) {
+        const appendAvailabilityWarning = () => {
+          const warning = document.createElement("p");
+          warning.className = "muted notification-source-warning";
+          warning.setAttribute("role", "status");
+          warning.textContent = feedTranslate("Some notifications are temporarily unavailable.");
+          const retry = document.createElement("button");
+          retry.type = "button";
+          retry.className = "secondary";
+          retry.textContent = feedTranslate("Retry notifications");
+          retry.addEventListener("click", () => renderWorkspace("Notifications"));
+          list.append(warning, retry);
+        };
+        if (!data.notifications.length) {
+          if (!notificationSourcesComplete) {
+            appendAvailabilityWarning();
+            return;
+          }
           const empty = document.createElement("p");
           empty.className = "muted";
-          empty.textContent = "No new notifications.";
+          empty.textContent = feedTranslate("No new notifications.");
           list.appendChild(empty);
           return;
         }
@@ -1213,6 +1274,7 @@ function renderWorkspace(name) {
             picture.src = person.picture;
             picture.alt = "";
             picture.referrerPolicy = "no-referrer";
+            window.danzstakIdentityMedia?.install(picture, person);
             avatar.appendChild(picture);
           }
           else {
@@ -1248,25 +1310,25 @@ function renderWorkspace(name) {
           if (notice.type === "group_everyone") {
             const open = document.createElement("a");
             open.className = "primary";
-            open.textContent = "Open Tribe";
+            open.textContent = feedTranslate("Open Tribe");
             open.href = /^[a-f0-9-]{36}$/i.test(String(notice.groupId || ""))
               ? `feed.html?view=groups&tribe=${encodeURIComponent(notice.groupId)}#groups`
               : "feed.html?view=groups#groups";
-            open.setAttribute("aria-label", "Open " + (notice.groupName || "Tribe"));
+            open.setAttribute("aria-label", `${feedTranslate("Open Tribe")}: ${notice.groupName || "Tribe"}`);
             actions.appendChild(open);
           } else if (["reaction", "comment", "reply", "tag"].includes(notice.type)) {
             const open = document.createElement("a");
             open.className = "primary";
-            open.textContent = "View post";
-            open.setAttribute("aria-label", "View post from " + displayName);
+            open.textContent = feedTranslate("View post");
+            open.setAttribute("aria-label", `${feedTranslate("View post")}: ${displayName}`);
             open.href = `feed.html#post-${encodeURIComponent(notice.postId)}`;
             actions.appendChild(open);
           } else if (notice.type === "message") {
             const open = document.createElement("button");
             open.type = "button";
             open.className = "primary";
-            open.textContent = "Open chat";
-            open.setAttribute("aria-label", "Open chat with " + displayName);
+            open.textContent = feedTranslate("Open chat");
+            open.setAttribute("aria-label", `${feedTranslate("Open chat")}: ${displayName}`);
             open.addEventListener("click", () => {
               if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email);
               setTimeout(() => {
@@ -1278,8 +1340,8 @@ function renderWorkspace(name) {
           } else for (const [label, accept] of [["Accept", true], ["Decline", false]]) {
             const button = document.createElement("button");
             button.type = "button";
-            button.textContent = label;
-            button.setAttribute("aria-label", label + " friend request from " + displayName);
+            button.textContent = feedTranslate(label);
+            button.setAttribute("aria-label", `${feedTranslate(label)}: ${displayName}`);
             button.className = accept ? "primary" : "secondary";
             button.addEventListener("click", async () => {
               await respondToNotificationRequest(row, notice.email, accept);
@@ -1289,6 +1351,7 @@ function renderWorkspace(name) {
           row.append(avatar, copy, actions);
           list.appendChild(row);
         }
+        if (!notificationSourcesComplete) appendAvailabilityWarning();
         if (engagement.length) {
           postActionFetch("/engagement-notifications/read", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" })
             .then(marked => { if (marked.ok) { notificationSourceCounts.engagement = 0; updateNotificationCount((notificationSourceCounts.social || 0)); } })
@@ -1301,11 +1364,11 @@ function renderWorkspace(name) {
         const error = document.createElement("p");
         error.className = "muted";
         error.setAttribute("role", "alert");
-        error.textContent = "Notifications could not be loaded.";
+        error.textContent = feedTranslate("Notifications could not be loaded.");
         const retry = document.createElement("button");
         retry.type = "button";
         retry.className = "secondary";
-        retry.textContent = "Retry";
+        retry.textContent = feedTranslate("Retry");
         retry.addEventListener("click", () => renderWorkspace("Notifications"));
         list.append(error, retry);
       });
@@ -1351,20 +1414,36 @@ function renderWorkspace(name) {
         fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store", signal: friendsController.signal }),
         fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: friendsController.signal })
       ])).then(async ([friendsResult, directoryResult]) => {
-      if (friendsResult.status === "rejected" && friendsResult.reason?.name === "AbortError") throw friendsResult.reason;
       const friendsResponse = friendsResult.status === "fulfilled" ? friendsResult.value : null;
       const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
-      if (!friendsResponse?.ok) throw new Error("Friends could not be loaded");
-      const friends = (await friendsResponse.json()).friends || [];
-      const presenceAvailable = directoryResponse?.ok === true;
-      const directoryPeople = new Map(presenceAvailable
-        ? ((await directoryResponse.json()).users || [])
-          .filter(user => user.email)
-          .map(user => [String(user.email).toLowerCase(), user])
-        : []);
-      renderOnlineFriendList(onlineList, [...directoryPeople.values()]);
+      let presenceAvailable = directoryResponse?.ok === true;
+      let directoryUsers = [];
+      if (presenceAvailable) {
+        try { directoryUsers = (await directoryResponse.json()).users || []; }
+        catch { presenceAvailable = false; }
+      }
+      const directoryPeople = new Map(directoryUsers
+        .filter(user => user.email)
+        .map(user => [String(user.email).toLowerCase(), user]));
+      renderOnlineFriendList(onlineList, [...directoryPeople.values()], presenceAvailable);
       list.replaceChildren();
       list.setAttribute("aria-busy", "false");
+      if (!friendsResponse?.ok) {
+        const failure = document.createElement("p");
+        failure.className = "muted";
+        failure.setAttribute("role", "alert");
+        failure.textContent = friendsResult.status === "rejected" && friendsResult.reason?.name === "AbortError"
+          ? "Friends took too long to load."
+          : "Friends could not be loaded.";
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "secondary";
+        retry.textContent = "Retry friends";
+        retry.addEventListener("click", () => renderWorkspace("Friends"));
+        list.append(failure, retry);
+        return;
+      }
+      const friends = (await friendsResponse.json()).friends || [];
       if (!friends.length) {
         const empty = document.createElement("p");
         empty.className = "muted";
@@ -1391,7 +1470,7 @@ function renderWorkspace(name) {
         }
         const avatar = person.picture ? document.createElement("img") : document.createElement("span");
         avatar.className = "friend-avatar";
-        if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+        if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, person); }
         else { avatar.textContent = (person.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
         const details = document.createElement("span");
         details.className = "friend-details";
@@ -1539,7 +1618,7 @@ function renderWorkspace(name) {
         const timeout = setTimeout(() => controller.abort(), 10000);
         try { return await fetch("https://api.danzstak.com/settings/presence", { ...options, signal: controller.signal }); }
         catch (error) {
-          if (error.name !== "AbortError") throw error;
+          if (error.name !== "AbortError") throw new Error("DanzStak cannot load account settings right now. Check your connection and try again.");
           if (attempt + 1 >= attempts) throw new Error("Account settings took too long to respond.");
         } finally { clearTimeout(timeout); }
       }
@@ -1559,7 +1638,13 @@ function renderWorkspace(name) {
     notifications.style.gap = "10px";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
+    checkbox.setAttribute("aria-label", "Show activity notification badges on this device");
     checkbox.checked = saved.Settings?.notifications !== false;
+    checkbox.addEventListener("change", () => {
+      saved.Settings = { ...(saved.Settings || {}), notifications: checkbox.checked };
+      writeSections(saved);
+      refreshNotificationCount();
+    });
     notifications.append(checkbox, document.createTextNode("Show activity notification badges on this device"));
     const presence = document.createElement("label");
     presence.style.display = "flex";
@@ -1568,6 +1653,7 @@ function renderWorkspace(name) {
     const presenceCheckbox = document.createElement("input");
     presenceCheckbox.type = "checkbox";
     presenceCheckbox.checked = true;
+    presenceCheckbox.setAttribute("aria-label", "Show me online to other users");
     presence.append(presenceCheckbox, document.createTextNode("Show me online to other users"));
     const tagsCheckbox = document.createElement("input"); tagsCheckbox.type = "checkbox"; tagsCheckbox.checked = true; tagsCheckbox.id = "allowTags"; tagsCheckbox.setAttribute("aria-label", "Allow friends to tag me in photos and videos");
     const darkCheckbox = document.createElement("input");
@@ -1659,8 +1745,8 @@ function renderWorkspace(name) {
     button.type = "button";
     button.disabled = true;
     button.textContent = "Loading Settings…";
-    const preferenceControls = [presenceCheckbox, tagsCheckbox, darkCheckbox, motionCheckbox, dataSaverCheckbox, language];
-    preferenceControls.forEach(control => { control.disabled = true; });
+    const accountPreferenceControls = [presenceCheckbox, tagsCheckbox];
+    accountPreferenceControls.forEach(control => { control.disabled = true; });
     settingsFetch({ credentials: "include", cache: "no-store" }, true)
       .then(response => {
         if (!response.ok) throw new Error("Account settings could not be loaded.");
@@ -1668,7 +1754,7 @@ function renderWorkspace(name) {
       })
       .then(data => {
         if (!isCurrentWorkspace()) return;
-        preferenceControls.forEach(control => { control.disabled = false; });
+        accountPreferenceControls.forEach(control => { control.disabled = false; });
         presenceCheckbox.checked = data.onlineVisible !== false;
         tagsCheckbox.checked = data.allowTags !== false;
         if (typeof data.darkMode === "boolean") {
@@ -1783,6 +1869,7 @@ const notificationFeedView = document.getElementById("newsFeedView");
 function closeNotificationDrawer(restoreFocus = true) {
   if (!notificationDrawer || notificationDrawer.hidden) return false;
   notificationDrawer.hidden = true;
+  dispatchEvent(new CustomEvent("danzstak:notification-drawer", { detail: { open: false } }));
   notificationFeedView.before(featurePanel);
   notificationWorkspacePlaceholder?.remove();
   notificationWorkspacePlaceholder = null;
@@ -1824,20 +1911,26 @@ function openNotificationDrawer(opener) {
     notificationDrawer.id = "notificationDrawer";
     notificationDrawer.className = "notification-drawer";
     notificationDrawer.setAttribute("role", "dialog");
-    notificationDrawer.setAttribute("aria-label", "Notifications");
-    notificationDrawer.innerHTML = '<div class="notification-drawer-bar"><strong>Notifications</strong><button type="button" class="notification-drawer-close" aria-label="Close notifications">×</button></div><div class="notification-drawer-content"></div>';
+    notificationDrawer.setAttribute("aria-label", feedTranslate("Notifications"));
+    notificationDrawer.innerHTML = '<div class="notification-drawer-bar"><strong></strong><button type="button" class="notification-drawer-close">×</button></div><div class="notification-drawer-content"></div>';
+    notificationDrawer.querySelector(".notification-drawer-bar strong").textContent = feedTranslate("Notifications");
+    notificationDrawer.querySelector(".notification-drawer-close").setAttribute("aria-label", feedTranslate("Close notifications"));
     notificationDrawer.querySelector(".notification-drawer-close").addEventListener("click", () => closeNotificationDrawer());
     notificationDrawer.addEventListener("keydown", event => {
       if (event.key === "Escape") { event.preventDefault(); closeNotificationDrawer(); }
     });
     document.body.appendChild(notificationDrawer);
   }
+  notificationDrawer.setAttribute("aria-label", feedTranslate("Notifications"));
+  notificationDrawer.querySelector(".notification-drawer-bar strong").textContent = feedTranslate("Notifications");
+  notificationDrawer.querySelector(".notification-drawer-close").setAttribute("aria-label", feedTranslate("Close notifications"));
   notificationDrawerPreviousFocus = opener || document.activeElement;
   featureHeading.textContent = "Notifications";
   featurePanel.dataset.workspaceName = "Notifications";
   featurePanel.hidden = false;
   notificationDrawer.querySelector(".notification-drawer-content").appendChild(featurePanel);
   notificationDrawer.hidden = false;
+  dispatchEvent(new CustomEvent("danzstak:notification-drawer", { detail: { open: true } }));
   notificationControls.forEach(control => {
     control.setAttribute("aria-expanded", "true");
     control.setAttribute("aria-pressed", "true");
@@ -2313,7 +2406,7 @@ async function postActionFetch(path, options = {}, timeoutMs = 12000) {
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot update this post right now. Check your connection and try again.");
   } finally { clearTimeout(timeout); }
 }
 
@@ -2971,7 +3064,7 @@ function ensureCommentComposer(post) {
   loadCommentViewerProfile().then(profile => {
     if (!avatar.isConnected) return;
     if (profile.picture) {
-      const image = document.createElement("img"); image.className = "comment-composer-avatar"; image.src = profile.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.replaceWith(image);
+      const image = document.createElement("img"); image.className = "comment-composer-avatar"; image.src = profile.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(image, profile); avatar.replaceWith(image);
     } else avatar.textContent = String(profile.name || "D").charAt(0).toUpperCase();
   });
   const field = document.createElement("div");
@@ -3048,7 +3141,7 @@ function renderPersistentComment(post, comment) {
   const avatar = document.createElement(memberId ? "a" : "span");
   avatar.className = "comment-avatar";
   if (memberId) { avatar.href = profileUrl; avatar.setAttribute("aria-label", "Open " + (comment.authorName || "member") + " profile"); }
-  if (comment.authorPicture) { const image = document.createElement("img"); image.src = comment.authorPicture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.appendChild(image); }
+  if (comment.authorPicture) { const image = document.createElement("img"); image.src = comment.authorPicture; image.alt = ""; image.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(image, { memberId, name: comment.authorName, picture: comment.authorPicture }); avatar.appendChild(image); }
   else { avatar.textContent = String(comment.authorName || "D").charAt(0).toUpperCase(); if (!memberId) avatar.setAttribute("aria-hidden", "true"); }
   const bubble = document.createElement("div"); bubble.className = "comment-bubble";
   const author = document.createElement(memberId ? "a" : "strong");
@@ -3086,7 +3179,7 @@ async function engagementFetch(path, options = {}, timeoutMs = 10000) {
     return await fetch(`${engagementApi}${path}`, { ...options, signal: controller.signal });
   } catch (error) {
     if (error?.name === "AbortError") throw new Error("DanzStak is taking too long to update this post. Try again.");
-    throw error;
+    throw new Error("DanzStak cannot update this post right now. Check your connection and try again.");
   } finally {
     clearTimeout(timeout);
   }
@@ -3268,25 +3361,33 @@ async function reelFetch(path, options = {}, timeoutMs = 12000) {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
   catch (error) {
-    if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw error;
+    if (error.name === "AbortError") throw new Error(feedTranslate("DanzStak is taking too long to respond. Try again."));
+    throw new Error(feedTranslate("DanzStak cannot load The Roll right now. Check your connection and try again."));
   } finally { clearTimeout(timeout); }
 }
 
 let internalReelsVersion = 0;
+async function requestInternalReelMedia(reel) {
+  if (!reel?.mediaKey) return "";
+  const response = await reelFetch("/stories", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "view", mediaKey: reel.mediaKey, mediaType: "video" })
+  }).catch(() => null);
+  if (!response?.ok) return "";
+  return (await response.json().catch(() => ({}))).mediaUrl || "";
+}
 async function loadInternalReels(posts = []) {
   const version = ++internalReelsVersion;
   const videos = posts.filter(post => !hiddenPostIds.has(String(post.postId)) && post.reel === true && post.mediaType === "video" && post.mediaKey);
   const resolved = await Promise.all(videos.map(async post => {
-    let mediaUrl = post.mediaUrl || "";
-    if (!mediaUrl) {
-      const response = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: "video" }) }).catch(() => null);
-      if (response?.ok) mediaUrl = (await response.json().catch(() => ({}))).mediaUrl || "";
-    }
-    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", memberId: post.userId || "", authorName: post.authorName || "DanzStak member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
+    const reel = { id: post.postId, postId: post.postId, mediaKey: post.mediaKey, mediaUrl: post.mediaUrl || "", platform: "DanzStak", memberId: post.userId || "", authorName: post.authorName || "DanzStak member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true };
+    if (!reel.mediaUrl) reel.mediaUrl = await requestInternalReelMedia(reel);
+    return reel;
   }));
   if (version !== internalReelsVersion) return;
-  internalReels = resolved.filter(Boolean);
+  internalReels = resolved;
   renderPlayableReels();
   placeReelsRail();
 }
@@ -3356,11 +3457,36 @@ function renderPlayableReels() {
     if (!reel.internal && !reelUrlValue) continue;
     const card = document.createElement("article");
     card.className = "reel-card";
-    const playerInfo = reel.internal ? { kind: "video", src: reel.mediaUrl } : reelPlayer(reelUrlValue);
-    if (playerInfo?.kind === "video") {
+    const playerInfo = reel.internal ? (reel.mediaUrl ? { kind: "video", src: reel.mediaUrl } : null) : reelPlayer(reelUrlValue);
+    const createInternalRecovery = () => {
+      const recovery = document.createElement("div");
+      recovery.className = "reel-player-fallback reel-media-recovery";
+      recovery.setAttribute("role", "status");
+      const status = document.createElement("span");
+      status.textContent = feedTranslate("Media is temporarily unavailable.");
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "secondary";
+      retry.textContent = feedTranslate("Retry media");
+      retry.addEventListener("click", async () => {
+        retry.disabled = true;
+        status.textContent = feedTranslate("Loading media…");
+        const mediaUrl = await requestInternalReelMedia(reel);
+        if (!mediaUrl) {
+          status.textContent = feedTranslate("Media is temporarily unavailable.");
+          retry.disabled = false;
+          return;
+        }
+        reel.mediaUrl = mediaUrl;
+        recovery.replaceWith(createInternalVideo());
+      });
+      recovery.append(status, retry);
+      return recovery;
+    };
+    const createInternalVideo = () => {
       const video = document.createElement("video");
       video.className = "reel-player";
-      video.src = playerInfo.src;
+      video.src = reel.mediaUrl;
       video.controls = true;
       video.playsInline = true;
       const rollLabel = "Video in The Roll from " + (reel.authorName || "a DanzStak member");
@@ -3369,8 +3495,28 @@ function renderPlayableReels() {
       video.muted = true;
       video.loop = true;
       video.preload = "none";
+      video.addEventListener("error", () => {
+        reel.mediaUrl = "";
+        video.replaceWith(createInternalRecovery());
+      }, { once: true });
       reelPlaybackObserver.observe(video);
-      card.appendChild(video);
+      return video;
+    };
+    if (playerInfo?.kind === "video") {
+      card.appendChild(reel.internal ? createInternalVideo() : (() => {
+        const video = document.createElement("video");
+        video.className = "reel-player";
+        video.src = playerInfo.src;
+        video.controls = true;
+        video.playsInline = true;
+        video.setAttribute("aria-label", "Video in The Roll");
+        video.autoplay = !dataSaverEnabled();
+        video.muted = true;
+        video.loop = true;
+        video.preload = "none";
+        reelPlaybackObserver.observe(video);
+        return video;
+      })());
     } else if (playerInfo?.kind === "iframe") {
       const createFrame = () => {
         const frame = document.createElement("iframe");
@@ -3392,6 +3538,8 @@ function renderPlayableReels() {
         load.addEventListener("click", () => load.replaceWith(createFrame()));
         card.appendChild(load);
       } else card.appendChild(createFrame());
+    } else if (reel.internal) {
+      card.appendChild(createInternalRecovery());
     } else {
       const unavailable = document.createElement("div");
       unavailable.className = "reel-player-fallback";
@@ -3492,7 +3640,7 @@ addReel.addEventListener("click", async () => {
 async function loadCloudReels() {
   try {
     const response = await reelFetch("/stories", { credentials: "include", cache: "no-store" });
-    if (!response.ok) return;
+    if (!response.ok) throw new Error(feedTranslate("The Roll could not be loaded. Check your connection and try again."));
     const data = await response.json();
     if (!Array.isArray(data.reels)) return;
     cloudReels = data.reels.flatMap(reel => {
@@ -3516,7 +3664,16 @@ async function loadCloudReels() {
     localStorage.setItem(reelsStorageKey, JSON.stringify(remaining));
     cloudReels.sort((a, b) => String(b.sharedAt).localeCompare(String(a.sharedAt)));
     renderPlayableReels();
-  } catch { /* Local reels remain available while cloud sync retries next load. */ }
+    reelStatus.textContent = "";
+  } catch (error) {
+    reelStatus.textContent = error.message || feedTranslate("The Roll could not be loaded. Check your connection and try again.");
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "secondary reel-retry";
+    retry.textContent = feedTranslate("Try again");
+    retry.addEventListener("click", () => { reelStatus.replaceChildren(); loadCloudReels(); });
+    reelStatus.append(" ", retry);
+  }
 }
 
 renderPlayableReels();
@@ -3662,3 +3819,5 @@ new MutationObserver(records => {
   filterFeedPosts();
   refreshFeedMediaWorkspace(records);
 }).observe(document.getElementById("feed"), { childList: true, subtree: true });
+
+})();

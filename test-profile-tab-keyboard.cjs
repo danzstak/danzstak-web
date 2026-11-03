@@ -10,7 +10,7 @@ assert.match(css, /scroll-snap-type:x proximity;scrollbar-width:none/, 'profile 
 assert.match(css, /\.profile-tabs::-webkit-scrollbar\{display:none\}/, 'WebKit profile tabs hide the visual scrollbar');
 assert.match(css, /\.profile-tabs button\{flex:0 0 auto;/, 'profile tabs keep readable labels while horizontally scrolling');
 const start = source.indexOf('tabs.addEventListener("keydown"');
-const end = source.indexOf('\n\nconst panel', start);
+const end = source.indexOf('const panel = document.createElement("form")', start);
 assert.notEqual(start, -1, 'profile keyboard handler exists');
 assert.notEqual(end, -1, 'profile keyboard handler boundary exists');
 

@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-lafTHr4v4+pSzccpC9FnPA13+LKg2UhwZMbjuG4QTg8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-BbMFN0jXZ3FIVyyG+xQxeU3wmkqs4EWoUpxcPsbdnu0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -252,6 +252,25 @@ textarea {
   margin-bottom: 15px;
 }
 
+#feedStatus.feed-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #d7dee8;
+  border-radius: 12px;
+  background: #fff;
+  color: #4b5563;
+  text-align: center;
+}
+
+#feedStatus.feed-load-error .secondary {
+  min-height: 38px;
+  padding: 7px 14px;
+}
+
 .load-more-posts {
   display: block;
   width: min(100%, 260px);
@@ -285,6 +304,9 @@ img.post-media { height:auto; max-height:none; object-fit:contain; object-positi
 video.post-media { height:auto; max-height:none; object-fit:contain; object-position:center center; }
 .post { --post-inline-padding:20px; }
 .post > .post-media { width:calc(100% + var(--post-inline-padding) + var(--post-inline-padding)); margin:12px calc(0px - var(--post-inline-padding)) 0; border-radius:0; }
+.post-media-recovery { display:flex; align-items:center; justify-content:center; gap:10px; min-height:92px; margin:12px calc(0px - var(--post-inline-padding)) 0; padding:16px; background:#eef1f5; color:#536172; text-align:center; }
+.post-media-recovery .secondary { min-height:36px; padding:7px 12px; border:1px solid #c8d0db; border-radius:8px; background:#fff; color:#1769e0; font:inherit; font-weight:700; cursor:pointer; }
+.dark-mode .post-media-recovery { background:#202938; color:#d9e1eb; }
 #feed > .post { width:100%; margin-left:auto; margin-right:auto; }
 .message-drawer{position:fixed;right:18px;bottom:18px;width:min(430px,calc(100vw - 24px));height:min(690px,calc(100vh - 84px));z-index:10000;background:#fff;border:1px solid #dce3ec;border-radius:18px;box-shadow:0 18px 60px #10182840;overflow:hidden}.message-drawer[hidden]{display:none}.message-drawer-bar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 16px;border-bottom:1px solid #e5e9ef;font-weight:850}.message-drawer-close{min-width:34px;min-height:34px;padding:4px;border:0;background:transparent;font-size:1.35rem}.message-drawer iframe{display:block;width:100%;height:calc(100% - 46px);border:0;background:#f3f5f8}@media(max-width:560px){.message-drawer{right:6px;bottom:6px;width:calc(100vw - 12px);height:min(72vh,700px);border-radius:16px}}
 .message-drawer.is-conversation{width:min(360px,calc(100vw - 18px));height:min(540px,calc(100vh - 70px))}
@@ -327,17 +349,18 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=478">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=481">
 <link rel="stylesheet" href="assets/profile-onboarding.css?v=2">
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">
-<link rel="stylesheet" href="assets/incoming-calls.css?v=231">
+<link rel="stylesheet" href="assets/incoming-calls.css?v=233">
   <link rel="stylesheet" href="assets/soft-ui.css?v=425">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=6" defer></script>
-<script src="assets/i18n.js?v=363" defer></script>
+<script src="assets/i18n.js?v=381" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
-<script src="assets/post-sharing.js?v=416" defer></script>
-<script src="assets/media-tags.js?v=358" defer></script>
+<script src="assets/identity-media.js?v=1"></script>
+<script src="assets/post-sharing.js?v=418" defer></script>
+<script src="assets/media-tags.js?v=359" defer></script>
 </head>
 
 <body>
@@ -502,6 +525,11 @@ const featureView = document.getElementById("featureView");
 const featureTitle = document.getElementById("featureTitle");
 const featureDescription = document.getElementById("featureDescription");
 const volatileFeedPreferences = new Map();
+const feedTranslate = value => window.danzstakTranslate?.(value) || value;
+const feedFormat = (key, values = {}) => Object.entries(values).reduce(
+  (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+  feedTranslate(key)
+);
 
 function readFeedPreference(key) {
   if (volatileFeedPreferences.has(key)) return volatileFeedPreferences.get(key);
@@ -523,6 +551,24 @@ function readHiddenPostIds() {
 }
 
 let newsLoadVersion = 0;
+function renderFeedRecovery(container, message, retryAction, loadingLabel = "Working…") {
+  if (!container) return;
+  container.replaceChildren();
+  const status = document.createElement("p");
+  status.className = "muted";
+  status.setAttribute("role", "alert");
+  status.textContent = feedTranslate(message);
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "secondary";
+  retry.textContent = feedTranslate("Try again");
+  retry.addEventListener("click", () => {
+    retry.disabled = true;
+    retry.textContent = feedTranslate(loadingLabel);
+    retryAction();
+  }, { once: true });
+  container.append(status, retry);
+}
 async function loadInterestNews() {
   const version = ++newsLoadVersion;
   const select = document.getElementById("newsInterest"), container = document.getElementById("interestNews");
@@ -530,7 +576,8 @@ async function loadInterestNews() {
   const allowed = ["music", "top", "entertainment", "technology", "sports", "business"];
   const saved = readFeedPreference("danzstak-news-interest");
   if (allowed.includes(saved)) select.value = saved;
-  container.innerHTML = '<p class="muted">Loading news…</p>';
+  container.replaceChildren();
+  const loading = document.createElement("p"); loading.className = "muted"; loading.textContent = feedTranslate("Loading news…"); container.appendChild(loading);
   try {
     const response = await fetchWithDeadline("https://api.danzstak.com/news?interest=" + encodeURIComponent(select.value), { credentials: "include", cache: "no-store" });
     if (!response.ok) throw new Error();
@@ -548,8 +595,14 @@ async function loadInterestNews() {
       const source = document.createElement("small"); source.textContent = item.source || "News";
       link.append(title, source); container.appendChild(link);
     }
-    if (!container.children.length) container.innerHTML = '<p class="muted">No headlines available right now.</p>';
-  } catch { if (version === newsLoadVersion) container.innerHTML = '<p class="muted">News is temporarily unavailable.</p>'; }
+    if (!container.children.length) {
+      const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = feedTranslate("No headlines available right now."); container.appendChild(empty);
+    }
+  } catch {
+    if (version === newsLoadVersion) {
+      renderFeedRecovery(container, "News is temporarily unavailable.", loadInterestNews, "Loading news…");
+    }
+  }
 }
 document.getElementById("newsInterest")?.addEventListener("change", event => { writeFeedPreference("danzstak-news-interest", event.target.value); loadInterestNews(); });
 document.getElementById("addNewsInterest")?.addEventListener("click", () => {
@@ -563,7 +616,7 @@ async function fetchWithDeadline(url, options = {}, timeoutMs = 10000) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch(url, { ...options, signal: controller.signal }); }
   catch (error) {
-    if (error?.name === "AbortError") throw new Error("DanzStak took too long to respond. Check your connection and try again.");
+    if (error?.name === "AbortError") throw new Error(feedTranslate("DanzStak took too long to respond. Check your connection and try again."));
     throw error;
   }
   finally { clearTimeout(timer); }
@@ -643,10 +696,10 @@ async function loadOnlineUsers() {
     if (!users.length) {
       const empty = document.createElement("p"); empty.className = "muted";
       empty.textContent = presenceState.visible === false
-        ? "You are appearing offline. Turn on online visibility in Settings to be seen."
+        ? feedTranslate("You are appearing offline. Turn on online visibility in Settings to be seen.")
         : presenceState.online === true
-          ? "You are online. No other connected users are active right now."
-          : "No other connected users are active right now.";
+          ? feedTranslate("You are online. No other connected users are active right now.")
+          : feedTranslate("No other connected users are active right now.");
       container.appendChild(empty); return;
     }
     for (const user of users) {
@@ -675,21 +728,20 @@ async function loadOnlineUsers() {
       row.append(avatarWrap, name, action); container.appendChild(row);
     }
   } catch {
-    container.replaceChildren();
-    const error = document.createElement("p"); error.className = "muted"; error.textContent = "Users are temporarily unavailable. Retrying…"; container.appendChild(error);
+    renderFeedRecovery(container, "Users are temporarily unavailable. Retrying…", refreshPeopleLists);
   }
 }
 
 async function updateFeedFriend(path, body, button) {
   const originalLabel = button?.textContent || "";
-  if (button) { button.disabled = true; button.textContent = "Working…"; }
+  if (button) { button.disabled = true; button.textContent = feedTranslate("Working…"); }
   try {
     const response = await fetchWithDeadline("https://api.danzstak.com" + path, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "Friend request could not be updated.");
+    if (!response.ok) throw new Error(data.error || feedTranslate("Friend request could not be updated."));
     await Promise.allSettled([loadOnlineUsers(), loadFriends()]);
   } catch (error) {
-    window.danzstakShowFeedback?.(error.message || "Friend request could not be updated.", { urgent: true });
+    window.danzstakShowFeedback?.(error.message || feedTranslate("Friend request could not be updated."), { urgent: true });
     if (button?.isConnected) { button.disabled = false; button.textContent = originalLabel; }
   }
 }
@@ -708,7 +760,7 @@ async function loadFriends() {
         : []
     );
     container.replaceChildren();
-    if (!friends.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No friends yet."; container.appendChild(empty); return; }
+    if (!friends.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = feedTranslate("No friends yet."); container.appendChild(empty); return; }
     for (const friend of friends) {
       const link = document.createElement("a"); link.className = "friend-card"; link.href = "profile.html?member=" + encodeURIComponent(friend.memberId);
       const avatar = friend.picture ? document.createElement("img") : document.createElement("span");
@@ -724,8 +776,7 @@ async function loadFriends() {
       link.append(avatar, details, state); container.appendChild(link);
     }
   } catch {
-    container.replaceChildren();
-    const error = document.createElement("p"); error.className = "muted"; error.textContent = "Friends are temporarily unavailable. Retrying…"; container.appendChild(error);
+    renderFeedRecovery(container, "Friends are temporarily unavailable. Retrying…", refreshPeopleLists);
   }
 }
 
@@ -753,7 +804,7 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   const avatar = document.createElement(authorProfileUrl ? "a" : "span");
   avatar.className = "post-avatar";
   if (authorProfileUrl) { avatar.href = authorProfileUrl; avatar.setAttribute("aria-label", "Open " + (author || "member") + " profile"); }
-  if (authorPicture) { const image = document.createElement("img"); image.src = authorPicture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.appendChild(image); }
+  if (authorPicture) { const image = document.createElement("img"); image.src = authorPicture; image.alt = ""; image.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(image, { memberId: authorMemberId, name: author, picture: authorPicture }); avatar.appendChild(image); }
   else { avatar.textContent = String(author || "D").charAt(0).toUpperCase(); if (!authorProfileUrl) avatar.setAttribute("aria-hidden", "true"); }
   const authorDetails = document.createElement("div"); authorDetails.className = "post-author-details";
   const authorLabel = isOwner === true || validAuthorMember ? document.createElement("a") : document.createElement("span");
@@ -839,7 +890,18 @@ function storyDisplayCaption(story) {
   return story?.mediaType === "video" ? "Video Flash" : "Photo Flash";
 }
 
-function openStoryViewer(story) {
+async function refreshStoryMedia(story) {
+  if (!story?.storyId) return "";
+  const response = await fetchWithDeadline("https://api.danzstak.com/stories", { credentials: "include", cache: "no-store" }).catch(() => null);
+  if (!response?.ok) return "";
+  const data = await response.json().catch(() => ({}));
+  const refreshed = (data.stories || []).find(candidate => candidate.storyId === story.storyId);
+  if (!refreshed?.mediaUrl) return "";
+  story.mediaUrl = refreshed.mediaUrl;
+  return story.mediaUrl;
+}
+
+async function openStoryViewer(story) {
   let viewer = document.getElementById("storyViewer");
   if (!viewer) {
     viewer = document.createElement("dialog");
@@ -854,21 +916,44 @@ function openStoryViewer(story) {
   }
   const mediaBox = viewer.querySelector(".story-viewer-media");
   mediaBox.replaceChildren();
-  const media = document.createElement(story.mediaType === "video" ? "video" : "img");
-  media.src = story.mediaUrl;
-  if (story.mediaType === "video") { media.controls = true; media.autoplay = true; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", storyDisplayCaption(story)); }
-  else media.alt = storyDisplayCaption(story);
-  mediaBox.appendChild(media);
+  const status = document.createElement("p");
+  status.className = "story-viewer-status";
+  status.textContent = feedTranslate("Loading media…");
+  mediaBox.appendChild(status);
   viewer.querySelector(".story-viewer-caption").textContent = storyDisplayCaption(story);
   storyViewerPreviousFocus = document.activeElement;
   viewer.showModal();
   viewer.querySelector(".story-viewer-close").focus();
+  const showRecovery = () => {
+    mediaBox.replaceChildren();
+    const copy = document.createElement("p");
+    copy.className = "story-viewer-status";
+    copy.textContent = feedTranslate("Media is temporarily unavailable.");
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "story-viewer-retry";
+    retry.textContent = feedTranslate("Retry media");
+    retry.addEventListener("click", async () => { story.mediaUrl = ""; await installMedia(); });
+    mediaBox.append(copy, retry);
+  };
+  const installMedia = async () => {
+    mediaBox.replaceChildren(status);
+    const mediaUrl = story.mediaUrl || await refreshStoryMedia(story);
+    if (!mediaUrl) { showRecovery(); return; }
+    const media = document.createElement(story.mediaType === "video" ? "video" : "img");
+    media.addEventListener("error", () => { story.mediaUrl = ""; showRecovery(); }, { once: true });
+    if (story.mediaType === "video") { media.controls = true; media.autoplay = true; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", storyDisplayCaption(story)); }
+    else media.alt = storyDisplayCaption(story);
+    media.src = mediaUrl;
+    mediaBox.replaceChildren(media);
+  };
+  await installMedia();
 }
 
 async function loadStories() {
   try {
     const response = await fetchWithDeadline("https://api.danzstak.com/stories", { credentials: "include", cache: "no-store" });
-    if (!response.ok) return;
+    if (!response.ok) throw new Error(feedTranslate("Flashes could not be loaded. Check your connection and try again."));
     const data = await response.json();
     lastStoriesLoad = Date.now();
     document.getElementById("storiesLoading")?.remove();
@@ -911,14 +996,33 @@ async function loadStories() {
         item.appendChild(profile);
         author.hidden = true;
       }
-      if (story.mediaType === "image" && story.mediaUrl) {
-        item.style.backgroundImage = `linear-gradient(transparent,#0009),url("${story.mediaUrl}")`;
-        item.style.backgroundSize = "cover";
-        item.style.backgroundPosition = "center";
-      } else if (story.mediaType === "video" && story.mediaUrl) {
+      const markStoryUnavailable = () => {
+        item.classList.add("story-media-unavailable");
+        caption.textContent = feedTranslate("Media is temporarily unavailable.");
+      };
+      const installStoryImage = async (allowRefresh = true) => {
+        const mediaUrl = story.mediaUrl || (allowRefresh ? await refreshStoryMedia(story) : "");
+        if (!mediaUrl) { markStoryUnavailable(); return; }
+        const probe = new Image();
+        probe.addEventListener("load", () => {
+          item.classList.remove("story-media-unavailable");
+          caption.textContent = storyDisplayCaption(story);
+          item.style.backgroundImage = `linear-gradient(transparent,#0009),url("${mediaUrl}")`;
+          item.style.backgroundSize = "cover";
+          item.style.backgroundPosition = "center";
+        }, { once: true });
+        probe.addEventListener("error", async () => {
+          story.mediaUrl = "";
+          if (allowRefresh) await installStoryImage(false);
+          else markStoryUnavailable();
+        }, { once: true });
+        probe.src = mediaUrl;
+      };
+      if (story.mediaType === "image") {
+        void installStoryImage();
+      } else if (story.mediaType === "video") {
         item.classList.add("story-video");
         const video = document.createElement("video");
-        video.src = story.mediaUrl;
         video.muted = true;
         video.autoplay = readFeedPreference("danzstak_data_saver") !== "1";
         video.loop = true;
@@ -926,6 +1030,17 @@ async function loadStories() {
         video.preload = readFeedPreference("danzstak_data_saver") === "1" ? "none" : "metadata";
         video.setAttribute("aria-label", "Video Flash from " + storyAuthor + ": " + storyDisplayCaption(story));
         item.appendChild(video);
+        const installStoryVideo = async (allowRefresh = true) => {
+          const mediaUrl = story.mediaUrl || (allowRefresh ? await refreshStoryMedia(story) : "");
+          if (!mediaUrl) { video.remove(); markStoryUnavailable(); return; }
+          video.addEventListener("error", async () => {
+            story.mediaUrl = "";
+            if (allowRefresh) await installStoryVideo(false);
+            else { video.remove(); markStoryUnavailable(); }
+          }, { once: true });
+          video.src = mediaUrl;
+        };
+        void installStoryVideo();
       }
       open.addEventListener("click", () => openStoryViewer(story));
       item.appendChild(open);
@@ -960,7 +1075,23 @@ async function loadStories() {
       empty.innerHTML = "<span><strong>No Flashes yet</strong><small>Add a photo or video to start.</small></span>";
       storiesRail.appendChild(empty);
     }
-  } catch { /* Feed still works if stories are temporarily unavailable. */ }
+  } catch (error) {
+    storiesRail.querySelector(".story-load-error")?.remove();
+    const unavailable = document.createElement("div");
+    unavailable.className = "story story-empty story-load-error";
+    unavailable.setAttribute("role", "status");
+    const message = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = feedTranslate("Flashes could not be loaded. Check your connection and try again.");
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "secondary";
+    retry.textContent = feedTranslate("Try again");
+    retry.addEventListener("click", () => { unavailable.remove(); loadStories(); });
+    message.append(title, retry);
+    unavailable.appendChild(message);
+    storiesRail.appendChild(unavailable);
+  }
   finally { document.getElementById("storiesLoading")?.remove(); }
 }
 
@@ -1019,6 +1150,7 @@ createStoryInput.addEventListener("change", async () => {
 // LOAD SAVED POSTS FROM AWS DYNAMODB
 async function loadPosts() {
 
+  feedStatus.classList.remove("feed-load-error");
   feedStatus.textContent = "Loading saved posts...";
 
   try {
@@ -1090,20 +1222,54 @@ async function loadPosts() {
         post.groupName
       );
 
-      if (!post.mediaUrl && post.mediaKey && post.mediaType) {
-        fetchWithDeadline("https://api.danzstak.com/stories", {
-          method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-          body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: post.mediaType })
-        }).then(response => response.ok ? response.json() : null).then(ticket => {
-          if (!ticket?.mediaUrl || !article.isConnected) return;
+      if (post.mediaKey && ["image", "video"].includes(post.mediaType)) {
+        let recovery = null;
+        const insertBeforeActions = element => article.querySelector(".post-actions")?.insertAdjacentElement("beforebegin", element);
+        const showMediaRecovery = message => {
+          article.querySelector(".post-media")?.remove();
+          if (!recovery) {
+            recovery = document.createElement("div");
+            recovery.className = "post-media-recovery";
+            recovery.setAttribute("role", "status");
+            const status = document.createElement("span");
+            const retry = document.createElement("button");
+            retry.type = "button";
+            retry.className = "secondary";
+            retry.textContent = feedTranslate("Retry media");
+            retry.addEventListener("click", () => loadPostMedia());
+            recovery.append(status, retry);
+          }
+          recovery.querySelector("span").textContent = feedTranslate(message);
+          recovery.querySelector("button").hidden = message === "Loading media…";
+          if (!recovery.parentNode) insertBeforeActions(recovery);
+        };
+        const installPostMedia = mediaUrl => {
           const media = document.createElement(post.mediaType === "image" ? "img" : "video");
-          media.src = ticket.mediaUrl;
+          media.src = mediaUrl;
           media.className = "post-media";
           media.loading = "lazy";
           if (post.mediaType === "image") media.alt = window.danzstakTranslate?.("Photo shared by " + authorName) || "Photo shared by " + authorName;
           if (post.mediaType === "video") { media.controls = true; media.playsInline = true; media.setAttribute("aria-label", window.danzstakTranslate?.("Video shared by " + authorName) || "Video shared by " + authorName); }
-          article.querySelector(".post-content")?.insertAdjacentElement("afterend", media);
-        }).catch(() => {});
+          media.addEventListener("error", () => showMediaRecovery("Media is temporarily unavailable."), { once: true });
+          article.querySelector(".post-media")?.remove();
+          if (recovery?.parentNode) recovery.replaceWith(media);
+          else insertBeforeActions(media);
+        };
+        async function loadPostMedia() {
+          showMediaRecovery("Loading media…");
+          try {
+            const response = await fetchWithDeadline("https://api.danzstak.com/stories", {
+              method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
+              body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: post.mediaType })
+            });
+            const ticket = response.ok ? await response.json().catch(() => null) : null;
+            if (!ticket?.mediaUrl) throw new Error("Media is temporarily unavailable.");
+            installPostMedia(ticket.mediaUrl);
+          } catch { showMediaRecovery("Media is temporarily unavailable."); }
+        }
+        const existingMedia = article.querySelector(".post-media");
+        if (existingMedia) existingMedia.addEventListener("error", () => loadPostMedia(), { once: true });
+        else loadPostMedia();
       }
 
       article.dataset.viewCount = String(post.viewCount || 0);
@@ -1168,8 +1334,15 @@ async function loadPosts() {
       error
     );
 
-    feedStatus.textContent =
-      "Unable to load posts: " + error.message;
+    const message = document.createElement("span");
+    message.textContent = feedTranslate("Posts could not be loaded. Check your connection and try again.");
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "secondary";
+    retry.textContent = feedTranslate("Try again");
+    retry.addEventListener("click", loadPosts, { once: true });
+    feedStatus.classList.add("feed-load-error");
+    feedStatus.replaceChildren(message, retry);
 
   }
 }
@@ -1427,7 +1600,7 @@ function openMessageDrawer(contact = "", answerCall = false, callId = "") {
     drawer.setAttribute("role", "dialog");
     drawer.setAttribute("aria-label", "Messages");
     drawer.innerHTML = '<div class="message-drawer-bar"><span>Chats</span><button type="button" class="message-drawer-close" aria-label="Close messages">×</button></div><div class="message-drawer-loading" role="status">Loading chats…</div><iframe title="DanzStak messages"></iframe>';
-    drawer.querySelector(".message-drawer-close").addEventListener("click", () => { drawer.hidden = true; drawer.querySelector("iframe")?.contentWindow?.postMessage({ type: "danzstak-chat-hidden" }, location.origin); });
+    drawer.querySelector(".message-drawer-close").addEventListener("click", () => { drawer.hidden = true; drawer.querySelector("iframe")?.contentWindow?.postMessage({ type: "danzstak-chat-hidden" }, location.origin); dispatchEvent(new CustomEvent("danzstak:message-drawer", { detail: { open: false } })); });
     drawer.querySelector(".message-drawer-close").addEventListener("click", () => { launcher.setAttribute("aria-expanded", "false"); (messageDrawerPreviousFocus || launcher).focus(); messageDrawerPreviousFocus = null; });
     drawer.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); drawer.querySelector(".message-drawer-close").click(); } });
     document.body.appendChild(drawer);
@@ -1449,6 +1622,7 @@ function openMessageDrawer(contact = "", answerCall = false, callId = "") {
     frame.src = target.href;
   }
   drawer.hidden = false;
+  dispatchEvent(new CustomEvent("danzstak:message-drawer", { detail: { open: true } }));
   launcher.setAttribute("aria-expanded", "true");
   drawer.querySelector(".message-drawer-close").focus();
 }
@@ -1482,6 +1656,7 @@ window.addEventListener("message", event => {
   if (event.data?.type === "danzstak-chat-read") refreshNotificationCount();
   if (event.data?.type === "danzstak-chat-minimize") {
     drawer.setAttribute("hidden", "");
+    dispatchEvent(new CustomEvent("danzstak:message-drawer", { detail: { open: false } }));
     document.getElementById("messagesNav")?.setAttribute("aria-expanded", "false");
     (messageDrawerPreviousFocus || document.getElementById("messagesNav"))?.focus();
     messageDrawerPreviousFocus = null;
@@ -1512,18 +1687,18 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 </script>
 
-<script src="assets/push-notifications.js?v=303" defer></script>
-<script src="assets/device-settings.js?v=232" defer></script>
+<script src="assets/push-notifications.js?v=307" defer></script>
+<script src="assets/device-settings.js?v=233" defer></script>
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=484" defer></script>
+<script src="assets/feed-enhancements.js?v=499" defer></script>
 <script src="assets/profile-onboarding.js?v=6" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
-<script src="assets/incoming-calls.js?v=295" defer></script>
+<script src="assets/incoming-calls.js?v=297" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
 <script src="assets/app-feedback.js?v=3" defer></script>
-<script src="assets/logout.js?v=310" defer></script>
+<script src="assets/logout.js?v=311" defer></script>
 <script src="assets/pwa.js?v=423" defer></script>
 <script src="assets/app-downloads.js?v=292" defer></script>
 <dialog class="install-help" id="installHelp" aria-labelledby="installHelpTitle">
@@ -1534,7 +1709,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <footer class="site-ownership">&copy; 2026 DanzStak LLC. All rights reserved.<br>User content belongs to its creators.</footer>
 <script src="assets/media-visibility.js?v=384" defer></script>
 <script src="assets/text-emojis.js?v=231" defer></script>
-<script src="assets/people-search.js?v=420" defer></script>
+<script src="assets/people-search.js?v=422" defer></script>
 <script src="assets/post-views.js?v=307" defer></script>
 </body>
 </html>

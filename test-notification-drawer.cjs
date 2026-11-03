@@ -14,6 +14,8 @@ assert.match(source, /notificationDrawer\.contains\(event\.target\)[\s\S]*?notif
   "clicking outside dismisses notifications without stealing focus from the clicked control");
 assert.match(source, /messageDrawer[\s\S]*?message-drawer-close[\s\S]*?openNotificationDrawer/, "opening notifications closes Messages first");
 assert.match(source, /getElementById\("messagesNav"\)[\s\S]*?closeNotificationDrawer\(false\)/, "opening Messages closes Notifications first");
+assert.match(source, /notificationDrawer\.hidden = true;[\s\S]*?danzstak:notification-drawer[\s\S]*?open: false/, "closing Notifications announces that overlay prompts may return");
+assert.match(source, /notificationDrawer\.hidden = false;[\s\S]*?danzstak:notification-drawer[\s\S]*?open: true/, "opening Notifications announces that overlay prompts must yield");
 assert.match(source, /notificationUnderlyingWorkspace = !featurePanel\.hidden/, "the drawer remembers an open workspace");
 assert.match(source, /notificationWorkspacePlaceholder = featurePanel\.cloneNode\(true\)/, "an inert visual placeholder keeps the current workspace behind the drawer");
 assert.match(source, /if \(workspaceToRestore\) openWorkspaceRoute\(workspaceToRestore, false\)/, "closing notifications restores the exact workspace that was open");

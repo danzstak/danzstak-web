@@ -8,6 +8,10 @@ const styles = fs.readFileSync("assets/booking-selections.css", "utf8");
 for (const control of ["printVenueSheet", "downloadVenueCsv", "clearVenueSelections", "selectedVenueCards"]) {
   assert.match(markup, new RegExp(`id=["']${control}["']`), `${control} must be available on the contact sheet`);
 }
+assert.match(markup, /id="usePublishedEpk"/, "the booking pipeline should offer the artist's published EPK");
+assert.match(client, /fetchWithTimeout\("https:\/\/api\.danzstak\.com\/epk"/, "booking should load the signed-in artist's EPK without retyping its URL");
+assert.match(client, /AbortController/, "EPK loading must recover from a stalled network request");
+assert.match(client, /DanzStak cannot connect right now/, "EPK loading must not expose a raw browser network error");
 assert.match(client, /sessionStorage\.setItem\(storageKey, JSON\.stringify\(venues\)\)/, "removed leads must stay removed");
 assert.match(client, /venues\.splice\(index, 1\)/, "individual leads must be removable");
 assert.match(client, /danzstakConfirm\("This removes every selected club/, "clearing every lead must use an accessible confirmation");

@@ -6,6 +6,8 @@
   let polling = false;
   let previousFocus = null;
   const handledCalls = new Map();
+  const t = value => window.danzstakTranslate?.(value) || value;
+  const tf = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), t(key));
 
   const popup = document.createElement("section");
   popup.className = "global-incoming-call";
@@ -20,6 +22,14 @@
   const answer = popup.querySelector("[data-answer]");
   const decline = popup.querySelector("[data-decline]");
 
+  function renderCurrentCall() {
+    if (!current) return;
+    label.textContent = tf("{name} is calling by {mode}.", {
+      name: current.senderName || t("DanzStak member"),
+      mode: t(current.mode === "video" ? "video" : "phone")
+    });
+  }
+
   async function api(path, options = {}) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
@@ -33,13 +43,17 @@
       });
       if (!response.ok) throw new Error("Call service unavailable");
       return response.json().catch(() => ({}));
+    } catch (error) {
+      if (error.name === "AbortError") throw new Error("Call service took too long. Try again.");
+      if (error.message === "Call service unavailable") throw error;
+      throw new Error("DanzStak cannot connect to calls right now. Check your connection and try again.");
     } finally { clearTimeout(timeout); }
   }
 
   function showCall(event) {
     if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
     current = event;
-    label.textContent = `${event.senderName || "DanzStak member"} is calling by ${event.mode === "video" ? "video" : "phone"}.`;
+    renderCurrentCall();
     popup.hidden = false;
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     answer.focus();
@@ -83,7 +97,7 @@
       navigator.vibrate?.(0);
       previousFocus?.focus();
       previousFocus = null;
-    } catch { label.textContent = "Could not decline the call. Please try again."; }
+    } catch { label.textContent = t("Could not decline the call. Please try again."); }
     finally { decline.disabled = false; }
   });
 
@@ -127,4 +141,5 @@
   poll();
   setInterval(poll, 2000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+  if (typeof MutationObserver === "function") new MutationObserver(renderCurrentCall).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
 })();

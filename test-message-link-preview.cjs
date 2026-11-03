@@ -12,7 +12,7 @@ assert.match(source, /function messageLinkPreview\(url\)/);
 assert.match(source, /card\.rel = "noopener noreferrer nofollow ugc"/);
 assert.match(source, /card\.referrerPolicy = "no-referrer"/);
 assert.match(source, /item\.appendChild\(messageLinkPreview\(sharedUrl\)\)/);
-assert.match(source, /media\.setAttribute\("aria-label", mine \? "Video you sent"/);
+assert.match(source, /media\.setAttribute\("aria-label", mine \? messageTranslate\("Video you sent"\) : messageFormat\("Video from \{name\}"/);
 assert.match(css, /\.message-link-preview\{/);
 assert.match(css, /\.message-attachment:is\(video\)/);
 
