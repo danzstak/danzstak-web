@@ -9,11 +9,10 @@
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-BbMFN0jXZ3FIVyyG+xQxeU3wmkqs4EWoUpxcPsbdnu0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
-<link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
-<link rel="icon" href="assets/app-icon.svg?v=2" type="image/svg+xml">
-<link rel="shortcut icon" href="assets/favicon-32.png?v=1" type="image/png">
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1" sizes="180x180">
+<link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
+<link rel="shortcut icon" href="assets/favicon-32.png?v=3" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=3" sizes="180x180">
 <script src="assets/offline.js?v=2"></script>
 <script src="assets/display-preferences.js?v=342"></script>
 <title>DanzStak | Your Mix</title>
@@ -350,6 +349,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 }
 </style>
 <link rel="stylesheet" href="assets/feed-enhancements.css?v=485">
+<link rel="stylesheet" href="assets/brand-icon.css?v=1">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
 <link rel="stylesheet" href="assets/profile-onboarding.css?v=2">
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">
@@ -369,7 +369,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 <a class="skip-link" href="#yourMixMain">Skip to Your Mix</a>
 
 <header class="topbar">
-  <a class="logo" href="feed.html?view=feed" aria-label="DanzStak home"><img src="assets/danzstak-logo.png" alt="DanzStak"></a>
+  <a class="logo brand-lockup" href="feed.html?view=feed" aria-label="DanzStak home"><img class="brand-mark" src="assets/danzstak-d-icon.png" alt=""><span class="brand-name">DANZSTAK</span></a>
 
   <input
     class="search"
@@ -381,7 +381,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   >
 
   <nav class="topnav">
-    <button type="button" data-route="home" aria-label="Home" title="Home"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></svg></button>
+    <button type="button" data-route="home" aria-label="DanzStak home" title="Home"><img class="brand-nav-icon" src="assets/danzstak-d-icon.png" alt=""></button>
     <button type="button" data-feature="Friends" aria-label="Find friends and see who is online" title="Find friends"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5v1"/></svg></button>
     <button type="button" id="messagesNav" aria-controls="messageDrawer" aria-expanded="false" aria-label="Messages" title="Messages"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 10h10M7 14h7"/></svg></button>
     <button type="button" data-feature="Notifications" aria-controls="notificationDrawer" aria-expanded="false" aria-label="Notifications" title="Notifications"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="nav-count" aria-hidden="true" hidden></span></button>
@@ -394,7 +394,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   <button type="button" class="mobile-menu-backdrop" aria-label="Close menu" hidden></button>
   <aside class="left" id="mobileNavMenu" aria-label="DanzStak menu">
     <header class="menu-drawer-header">
-      <a class="menu-drawer-brand" href="feed.html?view=feed" aria-label="DanzStak home"><img src="assets/danzstak-logo.png" alt="DanzStak"></a>
+      <a class="menu-drawer-brand brand-lockup" href="feed.html?view=feed" aria-label="DanzStak home"><img class="brand-mark" src="assets/danzstak-d-icon.png" alt=""><span class="brand-name">DANZSTAK</span></a>
       <button type="button" class="mobile-menu-close" aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       <a class="menu-profile" href="profile.html" aria-label="Open my profile">
         <span class="menu-profile-avatar" id="menuProfileAvatar" aria-hidden="true">D</span>
@@ -405,7 +405,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
     <nav class="panel menu" aria-label="DanzStak navigation">
       <section class="menu-section" aria-labelledby="menuSocialHeading">
         <h2 id="menuSocialHeading">Social</h2>
-        <a href="feed.html?view=feed" class="active"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></svg><span class="menu-label">Your Mix</span></a>
+        <a href="feed.html?view=feed" class="active"><img class="menu-icon menu-brand-icon" src="assets/danzstak-d-icon.png" alt=""><span class="menu-label">Your Mix</span></a>
         <a href="profile.html"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="menu-label">My Profile</span></a>
         <a href="#friends" data-feature="Friends"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5v1"/></svg><span class="menu-label">Friends</span></a>
         <a href="#groups" data-feature="Groups"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 21v-3a6 6 0 0 1 12 0v3M14 16a5 5 0 0 1 8 4v1"/></svg><span class="menu-label">Tribes</span></a>
