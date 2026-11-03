@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Mobile The Roll navigation
+
+Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+
+- Opening The Roll fullscreen on a phone now creates a privacy-safe browser-history entry. Android/iPhone Back closes the viewer and returns to the same Your Mix position; Forward restores fullscreen without creating a history loop.
+- The close button and Escape use the same history-safe path. Desktop behavior remains direct and removes a stale phone marker if the viewport changes while fullscreen is open.
+- Existing autoplay, data-saver handling, site-wide sound preference, accessible player labels, URL validation, network recovery and media refresh behavior remain intact. History stores only a boolean marker and no video URL, title, author or account data.
+- Verification: **11 of 11** focused Roll, video, navigation and PWA regression programs passed, along with JavaScript syntax and whitespace checks. A locally served phone-width browser check confirmed Open fullscreen, Back-to-feed with launcher focus restored, and Forward-to-fullscreen.
+- Implementation commit: `e617d95d033133054eb5ed119f0f66e63c359f0f` on `danzstak-patch-1`.
+
 ## Mobile navigation drawer
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
