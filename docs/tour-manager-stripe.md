@@ -20,18 +20,20 @@ Assigned-number activation uses Product `prod_VYrUnT8yvXS0Ek` and Price `price_1
 
 Official websites, maps, and source evidence remain visible without payment. Direct email and phone controls remain hidden in the Tour Manager until the signed webhook grants the account-and-venue-specific entitlement. Repeat purchases return the existing entitlement instead of opening another Checkout Session. A public contact is still only a lead and does not guarantee availability, genre fit, or acceptance of unsolicited pitches.
 
-The webhook verifies the exact unmodified request body, the endpoint signing secret, a five-minute timestamp tolerance, event and session IDs, Stripe test/live environment, `payment_status=paid`, `status=complete`, `mode=payment`, USD currency, the configured Price ID, the 150-cent unit amount, quantity, total, metadata, authenticated-user checkout record, and the session returned directly by Stripe. A DynamoDB transaction records the event, closes the pending checkout, adds a provider-neutral ledger entry, and increments credits exactly once. Ledger entries identify `paymentMethod=stripe`; a future verified SFS Token processor can write to the same balance without sharing Stripe verification code.
+The webhook verifies the exact unmodified request body, the endpoint signing secret, a five-minute timestamp tolerance, event and session IDs, Stripe test/live environment, `payment_status=paid`, `status=complete`, `mode=payment`, USD currency, the configured Price ID, amount, quantity, total, metadata, authenticated-user checkout record, and the session returned directly by Stripe. A DynamoDB transaction records the event, closes the pending checkout, adds a provider-neutral ledger entry, and grants access exactly once. Full refund events are matched back to the Stripe Checkout Session and persistent DANZSTAK purchase before access is reversed; partial refunds create a manual-review ledger entry. Ledger entries identify `paymentMethod=stripe`; a future verified SFS Token processor can write to the same balance without sharing Stripe verification code.
 
-## Required Lambda environment
+## Required AWS secrets and Lambda configuration
 
-- `STRIPE_SECRET_KEY` — start with a Stripe test key.
-- `STRIPE_TOUR_MANAGER_WEBHOOK_SECRET` — the signing secret for this endpoint only.
+- `danzstak/stripe/secret-key` — Stripe test key retrieved at runtime through the Lambda IAM role.
+- `danzstak/stripe/webhook-secret` — endpoint-specific signing secret retrieved separately at runtime.
 - `TOUR_MANAGER_LIVE_PAYMENTS` — omit or set to `false` during testing. Live Stripe keys fail closed unless this is explicitly `true` after review.
 
-Never store keys in the repository. During isolated testing, configure them as encrypted Lambda environment values using a secure operator workflow. Before live launch, store both in AWS Secrets Manager and grant only the Tour Manager Lambda access to those exact secret ARNs.
+Never store keys in the repository or logs. The deployment policy grants only `secretsmanager:GetSecretValue` for these two secret ARNs. The deployment preflight refuses to alter Lambda if either secret is absent or unreadable.
 
 ## Stripe test configuration
 
 Webhook URL: `https://api.danzstak.com/tour-manager/stripe/webhook`
 
-Subscribe to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`. Configure the endpoint in Stripe test mode first, save its endpoint-specific `whsec_...` signing secret, and run a Stripe test-card checkout. A delayed Checkout completion remains pending until the async success event; async failure and expiration grant no credits. Confirm one successful payment grants exactly the purchased quantity, a webhook retry grants zero additional credits, invalid signatures are rejected, and mismatched sessions do not grant credits. Do not enable `TOUR_MANAGER_LIVE_PAYMENTS` until the complete Stripe-hosted test and refund/dispute policy are reviewed.
+Subscribe to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, and `charge.refunded`. Configure the endpoint in Stripe test mode first, save its endpoint-specific signing secret to `danzstak/stripe/webhook-secret`, and run a Stripe test-card checkout. A delayed Checkout completion remains pending until the async success event; async failure and expiration grant no credits. Confirm one successful payment grants exactly the purchased quantity, a webhook retry grants zero additional credits, invalid signatures are rejected, mismatched sessions do not grant credits, and a controlled full refund reverses only its matching entitlement. Do not enable `TOUR_MANAGER_LIVE_PAYMENTS` until the complete Stripe-hosted test and refund/dispute policy are reviewed.
+
+As of 2026-11-03, `danzstak/stripe/secret-key` authenticates in Test Mode to SFScoop account `acct_1RRZmKFgtfNMBXOV`, but the three supplied Prices are unavailable in that mode and `danzstak/stripe/webhook-secret` is missing. The endpoint therefore remains not deployed for operational payment processing.

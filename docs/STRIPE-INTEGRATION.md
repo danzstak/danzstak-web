@@ -1,7 +1,7 @@
 # DANZSTAK Stripe Integration
 
 **Branch:** `danzstak-patch-1`  
-**Status:** Test-mode implementation complete locally; Stripe-hosted checkout/webhook validation is blocked by an account/Price mismatch and missing webhook secret.
+**Status:** Test-mode implementation complete locally; the AWS credential now authenticates to the intended SFScoop account, but Stripe-hosted validation is blocked because the supplied Prices are unavailable in Test Mode and the endpoint signing secret is missing.
 **Account decision:** DANZSTAK intentionally uses the existing SFScoop Stripe account. Do not create a second Stripe account and do not modify SFScoop's existing checkout or webhook behavior.
 
 ## Product configuration
@@ -12,7 +12,7 @@
 | Professional: Tour Manager / booking-email unit | $1.50 | `prod_VYr5JIwpaFSX7b` | `price_1UXjMtFgtfNMBXOVCLeEk8vI` | One-time |
 | DANZSTAK assigned-number activation | $3.00 expected | `prod_VYrUnT8yvXS0Ek` | `price_1UXjlYFgtfNMBXOVD42xjrTc` | One-time |
 
-The backend fails closed unless Stripe returns these exact Price and Product IDs, currency, one-time quantity and unit amount. On 2026-11-03 the AWS secret `danzstak/stripe/secret-key` was confirmed to contain a test key, but all three supplied Price IDs returned Stripe `404`. Stripe identifies that key's account `acct_1UXmCxDahXMLrQax` as **DANZSTAK sandbox**, not SFScoop. It has zero active one-time Test Mode Prices, card charges disabled, and incomplete account details. AWS Secrets Manager contains no other Stripe/SFScoop secret. Do not create replacement products in this sandbox or change SFScoop configuration. The owner must replace the secret with a restricted Test Mode key from the existing SFScoop Stripe account, or provide the approved secret name if it is stored in another AWS account/region.
+The backend fails closed unless Stripe returns these exact Price and Product IDs, currency, one-time quantity and unit amount. On 2026-11-03 the updated AWS secret `danzstak/stripe/secret-key` authenticated in Test Mode to Stripe account `acct_1RRZmKFgtfNMBXOV`, display name **SFScoop**. Charges and payouts are enabled on that account. All three supplied Price IDs returned Stripe Test Mode `resource_missing`, so their amounts, billing types, Product relationships, and active states cannot be verified with this test key. This is consistent with the supplied IDs being Live Mode objects, but live configuration remains unverified because no live credential was used. No replacement Product or Price was created.
 
 ## Feature entitlements
 
@@ -23,12 +23,12 @@ The backend fails closed unless Stripe returns these exact Price and Product IDs
 
 ## Webhook implementation checklist
 
-1. Replace or correct `danzstak/stripe/secret-key` with a restricted Test Mode key for the existing SFScoop Stripe account, or identify the approved secret in its actual AWS account/region. Retrieve the three test Price counterparts and verify Product ID, active status, USD amount, one-time type and `livemode=false`. Do not put a live key into the test Lambda.
-2. Public HTTPS webhook receiver: `https://api.danzstak.com/tour-manager/stripe/webhook`. The route exists in API Gateway, but the current test Lambda has no Stripe secret or webhook secret and is therefore not operational.
-3. In Stripe test mode, register that destination for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`.
+1. Supply the approved existing Test Mode Price IDs for the three products in account `acct_1RRZmKFgtfNMBXOV`, if they already exist. The current live-looking IDs cannot be used for a test transaction. Do not recreate or alter live SFScoop Products as a workaround.
+2. Public HTTPS webhook receiver: `https://api.danzstak.com/tour-manager/stripe/webhook`. The route exists in API Gateway, but `danzstak/stripe/webhook-secret` does not exist, so the test deployment correctly stops before changing Lambda and the endpoint is not operational for Stripe.
+3. In Stripe test mode, register that destination for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, and `charge.refunded`.
 4. Verify Stripe signatures using the webhook signing secret stored only in a secure backend secret manager. Never commit `sk_` or `whsec_` credentials.
 5. Fulfill entitlements only after confirmed successful payment. Validate account, price, user, and selected venue server-side. Make processing idempotent; prevent duplicate charges/unlocks.
-6. Handle refunds, failed or delayed payments, and Stripe retries safely.
+6. Full refunds revoke the matching contact or phone entitlement, or reverse the matching email-credit purchase. Partial refunds are recorded for manual review without silently changing access. Stripe event IDs make retries idempotent.
 7. Test each tier and the assigned-number entitlement with Stripe-hosted test transactions and controlled accounts. A phone purchase creates `pending_provisioning`; it does not assign a number until a telecommunications provider confirms provisioning.
 8. Record the deployed endpoint URL, selected event names, test evidence, commit SHA, and deployment status in `docs/DANZSTAK-DEVELOPMENT-REPORT.md`.
 9. Do not enable live payments until the existing account's live keys, live prices, live webhook, and entitlement tests are verified.
@@ -41,7 +41,7 @@ The backend fails closed unless Stripe returns these exact Price and Product IDs
 - `POST /tour-manager/stripe/webhook` — common signed Stripe fulfillment endpoint for all three products.
 - `GET /tour-manager/credits`, `GET /tour-manager/contact-unlocks`, and `GET /phone-number/entitlement` — account-isolated entitlement state.
 
-All fulfillment uses DynamoDB conditional transactions and a global Stripe event record for retry idempotency. Ledger entries retain a `paymentMethod` field so a future independently verified Phantom/SFS Token processor can grant the same provider-neutral entitlements. No Phantom or token-payment path is active.
+All fulfillment uses DynamoDB conditional transactions and a global Stripe event record for retry idempotency. The backend retrieves the Stripe API and webhook secrets at runtime through its AWS IAM role from separate Secrets Manager records and never places their values in Git, Lambda configuration, or logs. Ledger entries retain a `paymentMethod` field so a future independently verified Phantom/SFS Token processor can grant the same provider-neutral entitlements. No Phantom or token-payment path is active.
 
 ## Security note
 
