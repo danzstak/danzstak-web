@@ -6,7 +6,7 @@ Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISA
 
 ### Publication verification — 2026-11-04
 
-- **VERIFIED — repository:** development and verification were performed on `danzstak-patch-1`. The implementation revision for this update is `695a89b3a27949121e1e0595f8d25633eabdff04`; the report-publication commit is the branch head immediately following that revision and is supplied with the GitHub report URL after push.
+- **VERIFIED — repository:** development and verification were performed on `danzstak-patch-1`. The latest implementation revision for this update is `fa000ba8ffa3cf7a600cc471d7cbc8229c2f0a71`; the report-publication commit is the branch head immediately following that revision and is supplied with the GitHub report URL after push.
 - **VERIFIED — Stripe account and catalog:** a fresh authenticated Stripe API read identified account `acct_1RRZmKFgtfNMBXOV` with dashboard name **SFScoop**. The three Test Mode Products and Prices listed below are active, `livemode: false`, USD, one-time, have the expected amounts, and each Price points to its documented Product.
 - **VERIFIED — webhook registration:** Stripe endpoint `we_1UXoPzFgtfNMBXOV05UR9jPa` is enabled in Test Mode at `https://api.danzstak.com/tour-manager/stripe/webhook` with exactly the five required events documented below.
 - **VERIFIED — AWS deployment:** `DANZSTAK-TourManager-Stripe-Test` in `us-west-1` is `Active`, its last update is `Successful`, its runtime is Node.js 20, and `TOUR_MANAGER_LIVE_PAYMENTS=false`. API Gateway still exposes `POST /tour-manager/stripe/webhook`.
@@ -72,10 +72,18 @@ The original Live Mode products and prices remain unchanged. DANZSTAK's isolated
 - Verification: the new focused localization regression passes, and the full **242-program** JavaScript regression suite passes together with release verification, the 11-page site smoke suite, infrastructure validation and `git diff --check`.
 - Implementation commit: `695a89b3a27949121e1e0595f8d25633eabdff04`.
 
+### Required light-only social interface
+
+- **COMPLETE IN DEVELOPMENT; NOT DEPLOYED TO THE WEBSITE:** removed the Dark mode control from account Settings and retired the legacy device preference across Your Mix, Messages and Profiles. A stale local or cloud `darkMode=true` value can no longer override the official DanzStak light interface.
+- Older backend clients remain compatible: current account saves explicitly send `darkMode=false`, while language, reduced motion, data saver, privacy and notification preferences remain independent and functional.
+- Cache versions were advanced for the shared preference bootstrap, feed behavior and PWA shell so an installed development client cannot retain the retired theme control.
+- Visual verification: the real local Settings workspace rendered without the Dark mode row, without a leftover gap, and retained compact aligned controls. Automated verification: **243 of 243** JavaScript regression programs pass, plus release verification, the 11-page site smoke suite, infrastructure validation and `git diff --check`.
+- Implementation commit: `fa000ba8ffa3cf7a600cc471d7cbc8229c2f0a71`.
+
 ### Source and deployment record
 
 - Branch: `danzstak-patch-1`.
-- Implementation revision immediately before this report update: `695a89b3a27949121e1e0595f8d25633eabdff04`.
+- Implementation revision immediately before this report update: `fa000ba8ffa3cf7a600cc471d7cbc8229c2f0a71`.
 - Stripe Test integration implementation revision: `9b27dba7ee94837aafefe7a0ac0a4e8ceea2b855`.
 - Deployment status: **isolated Stripe Test Lambda and webhook deployed; Live payments disabled; recent website, Chat, Booking, EPK, Tour Manager and UI branch changes not deployed to production; branch not merged into `main`.**
 - This report-update commit is recorded in the GitHub history for `danzstak-patch-1`; the final pushed SHA is supplied with the report URL after publication.
