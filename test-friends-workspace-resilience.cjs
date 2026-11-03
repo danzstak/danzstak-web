@@ -25,6 +25,8 @@ function element(tagName) {
 
 const context = vm.createContext({
   document: { createElement: element },
+  feedTranslate: value => value,
+  feedFormat: (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), key),
   encodeURIComponent
 });
 vm.runInContext(source.slice(start, end), context);
@@ -32,7 +34,7 @@ vm.runInContext(source.slice(start, end), context);
 const unavailable = element("div");
 context.renderOnlineFriendList(unavailable, [], false);
 assert.equal(unavailable.children[0].attributes.role, "status");
-assert.match(unavailable.children[0].textContent, /temporarily unavailable/i,
+assert.match(unavailable.children[0].textContent, /unavailable/i,
   "a failed presence request must not claim that nobody is online");
 
 const empty = element("div");

@@ -87,6 +87,17 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 - Settings follow-up (2026-11-03): the Settings workspace also used legacy emoji despite the global-icon status. All sixteen settings categories now use the same local SVG registry with compact circular treatment, accessible row labels, localized text, dark-mode contrast and no new dependency. The PWA cache was advanced to prevent an installed client from retaining the old artwork. Local visual verification confirmed the icon rows and unchanged functional controls; all 238 JavaScript regressions, release verification, 11-page smoke checks and infrastructure/Lambda syntax checks pass. This remains **NOT DEPLOYED**.
 - Settings-icon implementation commit: `183ba5aaf30a3b8ea3d00243d03cf5521d70e2f8` on `danzstak-patch-1`.
 
+## Multilingual Friends and presence workspace
+
+Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+
+- Corrected the Friends workspace so its existing translations are actually used for online discovery, accepted-friend lists, loading/empty/recovery states, Add Friend/Accept/Requested/Message actions, Online/Offline presence, profile-link labels and accessible action names. Previously, this live workspace bypassed the language layer and rendered English even when the account was set to Italian or another supported language.
+- Live presence updates from the page heartbeat and embedded Messages frame now preserve the selected language instead of changing a translated friend card back to English.
+- Member-supplied names remain unchanged and are inserted only after translation, so names are never sent through or altered by the translation dictionary. Existing opaque profile routes, privacy-respecting presence, one-tap friend requests, accepted-friend persistence, quick messaging, timeout recovery and stale-response protection are unchanged.
+- Advanced the feed behavior cache key and PWA shell cache so installed clients receive the correction rather than retaining the older English-only script.
+- Verification: **240 of 240** JavaScript regression programs pass, including new localization coverage plus friend discovery, live presence, loading, stale-response, failure isolation, profile routes, Italian profile language and all 15-language dictionary checks. The 11-page site smoke suite, release verification, infrastructure/Lambda syntax validation and `git diff --check` also pass.
+- Deployment: not published to production and not merged into `main`.
+
 ## Mobile Flashes navigation
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.

@@ -14,11 +14,11 @@ assert.match(feed, /window\.addEventListener\("danzstak-presence-updated"/, "the
 assert.match(feed, /friendPresenceRefresh = fetch\("https:\/\/api\.danzstak\.com\/calls\/directory"/, "the Friends view requests a fresh presence snapshot after each heartbeat");
 assert.match(feed, /if \(!document\.querySelector\("\.friend-workspace-row\[data-member-id\]"\) \|\| friendPresenceRefresh\) return/, "presence refreshes only while Friends is visible and never overlap");
 assert.match(feed, /applyFriendWorkspacePresence\(data\.users \|\| \[\]\)/, "heartbeat snapshots update the same friend cards as chat snapshots");
-assert.match(feed, /status\.textContent = online \? "Online" : "Offline"/, "friend status text updates from the fresh snapshot");
+assert.match(feed, /const presenceLabel = feedTranslate\(online \? "Online" : "Offline"\)/, "friend status text updates through the active language");
 assert.match(feed, /dot\.classList\.toggle\("online", online\)/, "friend presence dots update from the fresh snapshot");
-assert.match(feed, /onlineHeading\.textContent = "Users online"/, "the Friends button opens a plain-language online-user list");
-assert.match(feed, /action\.textContent = "Add Friend"/, "online users can be added with one clear action");
-assert.match(feed, /friendsHeading\.textContent = "Your friends"/, "accepted friends remain in a separate persistent list");
+assert.match(feed, /onlineHeading\.textContent = feedTranslate\("Users online"\)/, "the Friends button opens a localized plain-language online-user list");
+assert.match(feed, /action\.textContent = feedTranslate\("Add Friend"\)/, "online users can be added with one localized clear action");
+assert.match(feed, /friendsHeading\.textContent = feedTranslate\("Your friends"\)/, "accepted friends remain in a separate localized persistent list");
 assert.doesNotMatch(feed, /Add a friend by email/, "the primary Friends flow does not require users to know an email address");
 
 const refreshStart = feed.indexOf("function applyFriendWorkspacePresence(users)");
@@ -44,6 +44,7 @@ const context = vm.createContext({
   Error,
   Promise,
   clearTimeout() {},
+  feedTranslate(value) { return value; },
   document: {
     querySelector(selector) { return selector.includes("friend-workspace-row") ? row : null; },
     querySelectorAll(selector) { return selector.includes("friend-workspace-row") ? [row] : []; }
