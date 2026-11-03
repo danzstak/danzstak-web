@@ -3363,11 +3363,26 @@ rollClose.type = "button";
 rollClose.className = "roll-close";
 rollClose.textContent = "Close";
 rollClose.setAttribute("aria-label", "Close The Roll fullscreen");
-function setRollFullscreen(open) {
-  reelsRail.classList.toggle("roll-fullscreen", open);
-  document.body.classList.toggle("roll-view-open", open);
-  rollOpen.setAttribute("aria-expanded", String(open));
-  if (open) {
+const usesMobileRollHistory = () => matchMedia("(max-width: 700px)").matches;
+function setRollFullscreen(open, { updateHistory = true, fromHistory = false } = {}) {
+  const shouldOpen = Boolean(open);
+  if (!shouldOpen && !fromHistory && history.state?.danzstakRollOpen === true) {
+    if (usesMobileRollHistory()) {
+      history.back();
+      return;
+    }
+    const nextState = { ...history.state };
+    delete nextState.danzstakRollOpen;
+    history.replaceState(nextState, "");
+  }
+  reelsRail.classList.toggle("roll-fullscreen", shouldOpen);
+  document.body.classList.toggle("roll-view-open", shouldOpen);
+  rollOpen.setAttribute("aria-expanded", String(shouldOpen));
+  if (shouldOpen && updateHistory && usesMobileRollHistory() && history.state?.danzstakRollOpen !== true) {
+    const currentState = history.state && typeof history.state === "object" ? history.state : {};
+    history.pushState({ ...currentState, danzstakRollOpen: true }, "");
+  }
+  if (shouldOpen) {
     reelsList.scrollTop = 0;
     rollClose.focus({ preventScroll: true });
     const first = reelsList.querySelector("video.reel-player");
@@ -3380,6 +3395,14 @@ document.addEventListener("keydown", event => { if (event.key === "Escape" && re
 reelsHeading.append(reelsTitle, reelsSourceNote, rollOpen, rollClose);
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
+function restoreRollFullscreenFromHistory(event) {
+  if (!usesMobileRollHistory()) return;
+  if (event.state?.danzstakRollOpen === true) {
+    if (!reelsRail.classList.contains("roll-fullscreen")) setRollFullscreen(true, { updateHistory: false, fromHistory: true });
+  } else if (reelsRail.classList.contains("roll-fullscreen")) setRollFullscreen(false, { updateHistory: false, fromHistory: true });
+}
+addEventListener("popstate", restoreRollFullscreenFromHistory);
+restoreRollFullscreenFromHistory({ state: history.state });
 const reelPlaybackObserver = new IntersectionObserver(entries => {
   for (const entry of entries) {
     const video = entry.target;
