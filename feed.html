@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-cEBBZ2gB00/BfStqy17ByMAY2kBPAA2VKQZRXW2EVTo='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-lA1iDMkY9XxqYcAKW4CF89spC1WgRuYHLVbwkvYtQXw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -334,7 +334,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   <link rel="stylesheet" href="assets/soft-ui.css?v=425">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=6" defer></script>
-<script src="assets/i18n.js?v=374" defer></script>
+<script src="assets/i18n.js?v=375" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/post-sharing.js?v=417" defer></script>
 <script src="assets/media-tags.js?v=359" defer></script>
@@ -881,7 +881,7 @@ function openStoryViewer(story) {
 async function loadStories() {
   try {
     const response = await fetchWithDeadline("https://api.danzstak.com/stories", { credentials: "include", cache: "no-store" });
-    if (!response.ok) return;
+    if (!response.ok) throw new Error(feedTranslate("Flashes could not be loaded. Check your connection and try again."));
     const data = await response.json();
     lastStoriesLoad = Date.now();
     document.getElementById("storiesLoading")?.remove();
@@ -973,7 +973,23 @@ async function loadStories() {
       empty.innerHTML = "<span><strong>No Flashes yet</strong><small>Add a photo or video to start.</small></span>";
       storiesRail.appendChild(empty);
     }
-  } catch { /* Feed still works if stories are temporarily unavailable. */ }
+  } catch (error) {
+    storiesRail.querySelector(".story-load-error")?.remove();
+    const unavailable = document.createElement("div");
+    unavailable.className = "story story-empty story-load-error";
+    unavailable.setAttribute("role", "status");
+    const message = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = feedTranslate("Flashes could not be loaded. Check your connection and try again.");
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "secondary";
+    retry.textContent = feedTranslate("Try again");
+    retry.addEventListener("click", () => { unavailable.remove(); loadStories(); });
+    message.append(title, retry);
+    unavailable.appendChild(message);
+    storiesRail.appendChild(unavailable);
+  }
   finally { document.getElementById("storiesLoading")?.remove(); }
 }
 
@@ -1529,7 +1545,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=486" defer></script>
+<script src="assets/feed-enhancements.js?v=487" defer></script>
 <script src="assets/profile-onboarding.js?v=6" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=297" defer></script>

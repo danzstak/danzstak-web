@@ -12,6 +12,7 @@ async function verify(file, startText, endText, invocation, expected) {
     setTimeout,
     clearTimeout,
     profileTranslate: value => value,
+    feedTranslate: value => value,
     engagementApi: "https://api.danzstak.com",
     fetch: async () => { throw new TypeError("Failed to fetch"); }
   });

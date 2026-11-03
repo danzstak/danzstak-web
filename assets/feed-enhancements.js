@@ -3276,8 +3276,8 @@ async function reelFetch(path, options = {}, timeoutMs = 12000) {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }
   catch (error) {
-    if (error.name === "AbortError") throw new Error("DanzStak is taking too long to respond. Try again.");
-    throw new Error("DanzStak cannot load The Roll right now. Check your connection and try again.");
+    if (error.name === "AbortError") throw new Error(feedTranslate("DanzStak is taking too long to respond. Try again."));
+    throw new Error(feedTranslate("DanzStak cannot load The Roll right now. Check your connection and try again."));
   } finally { clearTimeout(timeout); }
 }
 
@@ -3500,7 +3500,7 @@ addReel.addEventListener("click", async () => {
 async function loadCloudReels() {
   try {
     const response = await reelFetch("/stories", { credentials: "include", cache: "no-store" });
-    if (!response.ok) return;
+    if (!response.ok) throw new Error(feedTranslate("The Roll could not be loaded. Check your connection and try again."));
     const data = await response.json();
     if (!Array.isArray(data.reels)) return;
     cloudReels = data.reels.flatMap(reel => {
@@ -3524,7 +3524,16 @@ async function loadCloudReels() {
     localStorage.setItem(reelsStorageKey, JSON.stringify(remaining));
     cloudReels.sort((a, b) => String(b.sharedAt).localeCompare(String(a.sharedAt)));
     renderPlayableReels();
-  } catch { /* Local reels remain available while cloud sync retries next load. */ }
+    reelStatus.textContent = "";
+  } catch (error) {
+    reelStatus.textContent = error.message || feedTranslate("The Roll could not be loaded. Check your connection and try again.");
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "secondary reel-retry";
+    retry.textContent = feedTranslate("Try again");
+    retry.addEventListener("click", () => { reelStatus.replaceChildren(); loadCloudReels(); });
+    reelStatus.append(" ", retry);
+  }
 }
 
 renderPlayableReels();
