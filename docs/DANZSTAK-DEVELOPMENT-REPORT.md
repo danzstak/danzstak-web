@@ -1,5 +1,45 @@
 # DANZSTAK development report
 
+## Booking email-to-phone Chat bridge
+
+Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; LIVE AWS MAIL AND PUSH VALIDATION BLOCKED; NOT DEPLOYED**.
+
+### Completed work
+
+- Replaced the old direct-to-artist account `Reply-To` design with a unique opaque 192-bit alias for each artist/organization/category conversation. The alias contains no phone number, account email, user ID, tour ID or venue ID. Only its SHA-256 hash is used for the global inbound lookup.
+- Added account-isolated, durable booking conversations and messages to the existing Tour Manager DynamoDB table. Categories exposed in the existing WhatsApp-style Chat are Personal, Club Bookings, Radio Interviews and Record Stores.
+- Artist-approved outbound booking email now creates or reuses the secure conversation, uses the alias at `reply.danzstak.com`, records the provider message, and preserves the existing credit reservation/finalization/restoration workflow.
+- Added authenticated APIs for listing booking conversations, reading one owned conversation, marking it read and replying. External replies are sent as ordinary SES email with the same alias plus `In-Reply-To` and `References` when the external Message-ID is available. External contacts need no DANZSTAK account or telephone number.
+- Added a separate Node.js 20 inbound Lambda implementation and reviewable CloudFormation template. The SES rule requires TLS and scanning, writes raw mail to a private encrypted S3 bucket with 30-day expiry, then invokes the bridge asynchronously.
+- Inbound routing requires the exact opaque alias, exact expected envelope sender, spam PASS, virus PASS and at least one SPF/DKIM/DMARC PASS. SES Message-ID conditional writes prevent duplicate processing. The owner/conversation update condition prevents cross-account delivery.
+- MIME parsing is capped, text is stored rather than remote HTML, and the production dependency audit reports zero known vulnerabilities.
+- Clear confirmation language plus a complete date creates a sourced appointment marker and sets `routeRecalculationRequired`. Tentative or incomplete language is `needs-clarification`; it does not become a confirmed booking.
+- Created privacy-safe pending push jobs containing only “A booking contact replied in DanzStak Chat.” Message contents are not placed in push payloads.
+
+### AWS verification and blockers
+
+- **PASS**: AWS identity and SES configuration were read successfully on 2026-11-03. `danzstak.com` is a verified SES sending identity in `us-west-1`; bounce and complaint account suppression is enabled.
+- **BLOCKED**: SES `us-west-1` reports `ProductionAccessEnabled=false` and a 200-message/day, 1-message/second sandbox quota. Real booking contacts cannot be emailed until production access is approved and compliance controls are reviewed.
+- **BLOCKED**: `us-west-2` has no SES receipt rule set, and Route 53 has no `reply.danzstak.com` MX record. The root-domain MX still points to `inbox.danzstak.com`; this implementation deliberately does not alter it.
+- **BLOCKED**: pending generic push jobs are not yet consumed by the existing Web Push Lambda. The bridge stores privacy-safe jobs, but a real phone push has not been delivered.
+- **NOT TESTED**: controlled external recipient round trip, real Message-ID threading across Gmail/Outlook, bounce/complaint events, cancellation/date-change extraction, automatic route recomputation, physical iPhone/Android rendering and cross-device live persistence.
+- No AWS resource, DNS record, receipt rule or production code was deployed or activated.
+
+### Tests
+
+- **PASS**: opaque alias parsing, deterministic conversation isolation, spam/virus/authentication verdict gates, exact-sender enforcement, duplicate-event design, confirmed versus ambiguous date extraction, privacy-safe push content and a four-write atomic inbound transaction.
+- **PASS**: auth/inbound/client syntax, Tour Manager Stripe regression, dashboard regression, booking pipeline, workspace account isolation, contact-sheet and contact-unlock regressions.
+- **PASS**: CloudFormation service validation in `us-west-2`; production dependency audit has zero known vulnerabilities.
+- Implementation guide: `docs/booking-email-chat-bridge.md`.
+- Implementation commit: `baaf74d70256a5b0020a5f4799012537863d2f34` on `codex/tour-manager-production`.
+
+### Next required work
+
+1. Review and package the Lambda, deploy the stack in `us-west-2`, activate the receipt rule set, then add the reply-subdomain MX only for a controlled test.
+2. Obtain SES production sending access; add delivery, bounce and complaint event handling before any artist outreach.
+3. Connect pending booking push jobs to the existing Web Push worker and prove a generic notification on Android and iPhone.
+4. Run a two-account controlled round trip and verify account isolation, threading, retry/idempotency, calendar evidence, cancellation/date changes and route recalculation before calling the bridge operational.
+
 ## AI Music Artist Research and EPK Builder
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; LIVE PROVIDER VALIDATION BLOCKED; NOT DEPLOYED**.
@@ -83,7 +123,7 @@ Status as of 2026-11-03: test infrastructure implemented; live payments disabled
 
 - Status: **IN PROGRESS**.
 - Worldwide venue discovery needs live multi-provider benchmarks and current-data moderation before it can be called production complete. Provider failure must remain distinct from a true empty result.
-- Inbound reply ingestion and secure correlation to the correct outbound message are **NOT STARTED**. SES receipt rules, a reply address design, spam/virus checks, and a controlled reply parser are required.
+- Inbound reply ingestion and secure correlation are **COMPLETE IN DEVELOPMENT; LIVE AWS VALIDATION BLOCKED**. Opaque reply aliases, SES/S3/Lambda infrastructure, exact account/conversation routing, spam/virus/authentication checks, sender matching, MIME parsing, duplicate protection and Chat APIs are implemented. SES sandbox status, receipt-rule/MX activation, real Web Push delivery and a controlled external round trip remain blockers.
 - Unified club, radio and record-store selections in one Tour Manager calendar are **IN PROGRESS**. Club calendar summaries exist, and radio/store workspaces persist proposed dates, but cross-workspace confirmation events and automatic calendar creation from replies are not implemented.
 - Professional Tour Book Day Sheets and PDF export are **NOT STARTED**. No PDF itinerary should be presented as operational until confirmed/proposed separation, pagination and mobile/print rendering tests pass.
 - Automatic route recalculation around fixed confirmed dates is **NOT STARTED**. Existing Amazon Location routing can calculate routes, but confirmed-stop anchoring and pending-stop optimization require a separate tested algorithm.
