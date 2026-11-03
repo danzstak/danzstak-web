@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Mobile notification navigation
+
+Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+
+- The phone notification drawer now participates in browser history: Back dismisses notifications and restores focus to the opener; Forward restores the drawer without creating a loop.
+- Desktop notification routing is unchanged. History stores only a boolean drawer marker and never stores notification text, actor identity, email or account data.
+- Existing notification count privacy, partial-source resilience, unread handling, friend-request actions, outside-click dismissal, workspace preservation and Messages mutual exclusion remain intact.
+- Verification: **10 of 10** notification regression programs passed, along with JavaScript syntax and PWA shell-cache verification.
+- Implementation commit: `746965b5ee7f45441032da0f442d0fb00350240f` on `danzstak-patch-1`.
+
 ## Mobile Chat navigation
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
