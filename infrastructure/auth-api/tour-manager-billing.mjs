@@ -2,7 +2,7 @@ import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UXjMtFgtfNMBXOVCLeEk8vI";
 export const TOUR_MANAGER_EMAIL_UNIT_CENTS = 150;
-export const BOOKING_CONTACT_PRICE_ID = "price_1UXkB5FgtfNMBXOVVeUOG";
+export const BOOKING_CONTACT_PRICE_ID = "price_1UXkB5FgtfNMBXOVVeUOGJjX";
 export const BOOKING_CONTACT_PRODUCT_ID = "prod_VYruR0GLph8xsy";
 export const BOOKING_CONTACT_UNIT_CENTS = 75;
 const PRODUCT = "tour_manager_booking_email";

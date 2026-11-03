@@ -60,8 +60,8 @@ Status as of 2026-11-03: test infrastructure implemented; live payments disabled
 
 - Status: **COMPLETE in development; NOT DEPLOYED**.
 - Stripe Product: `prod_VYruR0GLph8xsy`
-- Stripe Price: `price_1UXkB5FgtfNMBXOVVeUOG`
-- Dashboard verification: active, USD 0.75 one time.
+- Stripe Price: `price_1UXkB5FgtfNMBXOVVeUOGJjX`
+- Expected amount: USD 0.75 one time. The complete Price ID was corrected from the previously truncated value; test-mode retrieval and Checkout/webhook verification remain required before activation.
 - Implementation: uses the existing Tour Manager Stripe Checkout and signed webhook. Checkout is limited to a saved venue with a public direct contact. Successful verified payment creates one account-and-venue-specific entitlement; webhook retries and repeat purchases do not duplicate the entitlement or charge flow.
 - Interface: official website, map, and evidence stay available; direct email/phone and email outreach remain locked until the entitlement is active. Locked contacts are excluded from CSV contact exports.
 - Tests: fixed Price and amount, saved-contact validation, signature verification, tampered-amount rejection, entitlement persistence, duplicate webhook protection, and repeat-purchase prevention pass locally.

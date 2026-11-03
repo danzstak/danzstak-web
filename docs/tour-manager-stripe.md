@@ -2,7 +2,7 @@
 
 The Tour Manager billing endpoint sells one booking-email credit per unit of Stripe Price `price_1UXjMtFgtfNMBXOVCLeEk8vI`. The backend independently requires a USD unit amount of 150 cents; changing the Stripe Price amount without changing and reviewing the backend causes the webhook to reject the purchase.
 
-The same service sells a venue-specific booking-contact unlock using Product `prod_VYruR0GLph8xsy` and Price `price_1UXkB5FgtfNMBXOVVeUOG`. The Stripe dashboard shows that active one-time Price as USD 0.75. The backend independently verifies the Price ID, product metadata, one-unit quantity, USD currency, and 75-cent total before creating an entitlement.
+The same service sells a venue-specific booking-contact unlock using Product `prod_VYruR0GLph8xsy` and Price `price_1UXkB5FgtfNMBXOVVeUOGJjX`. The expected one-time amount is USD 0.75. The backend independently verifies the Price ID, product metadata, one-unit quantity, USD currency, and 75-cent total before creating an entitlement. The Stripe account and mode must still be verified through a test Checkout before activation.
 
 ## Routes
 

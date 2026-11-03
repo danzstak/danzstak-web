@@ -3,6 +3,7 @@ const { createHmac } = require("node:crypto");
 
 (async () => {
   const { createTourManagerBilling, BOOKING_CONTACT_PRICE_ID, BOOKING_CONTACT_PRODUCT_ID, BOOKING_CONTACT_UNIT_CENTS } = await import("./infrastructure/auth-api/tour-manager-billing.mjs");
+  assert.equal(BOOKING_CONTACT_PRICE_ID, "price_1UXkB5FgtfNMBXOVVeUOGJjX");
   class Command { constructor(input) { this.input = input; } }
   class GetItemCommand extends Command {}
   class PutItemCommand extends Command {}
