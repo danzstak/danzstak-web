@@ -3173,13 +3173,21 @@ function renderPersistentComment(post, comment) {
   bubble.append(author, time, body);
   item.append(avatar, bubble);
   createCommentReactions(post,item,comment);
+  const actionRow = document.createElement("div");
+  actionRow.className = "comment-action-row";
+  const actionLeft = document.createElement("div");
+  actionLeft.className = "comment-action-left";
+  const reactions = item.querySelector(".comment-reactions");
+  reactions?.replaceWith(actionRow);
   const reply = document.createElement("button");
   reply.type = "button";
   reply.className = "comment-reply-button";
   reply.textContent = "Reply";
   reply.setAttribute("aria-label", "Reply to " + (comment.authorName || "this comment"));
   reply.addEventListener("click", () => beginCommentReply(post, comment, item));
-  item.querySelector(".comment-reactions")?.appendChild(reply);
+  actionLeft.appendChild(reply);
+  if (reactions) actionLeft.appendChild(reactions);
+  actionRow.appendChild(actionLeft);
   list.appendChild(item);
   addCommentDelete(item);
   updateCommentPreview(post);
@@ -3265,7 +3273,6 @@ function addCommentDelete(comment) {
   button.textContent = "🗑️";
   button.title = "Delete comment";
   button.setAttribute("aria-label", "Delete comment");
-  button.style.marginLeft = "10px";
   button.addEventListener("click", async () => {
     if (!(await window.danzstakConfirm("This comment will be permanently removed.", { title: "Delete this comment?", confirmLabel: "Delete comment", danger: true }))) return;
     const post = comment.closest(".post"), postId = engagementPostId(post), commentId = comment.dataset.commentId;
@@ -3279,7 +3286,9 @@ function addCommentDelete(comment) {
     comment.remove();
     if (post) updateCommentPreview(post);
   });
-  comment.appendChild(button);
+  const actionRow = comment.querySelector(".comment-action-row");
+  if (actionRow) actionRow.appendChild(button);
+  else comment.appendChild(button);
 }
 
 function addReactionButton(post) {
