@@ -46,6 +46,17 @@ Status as of 2026-11-03: **COMPLETE IN LOCAL DEVELOPMENT; STRIPE-HOSTED TEST BLO
 
 Status as of 2026-11-03: test infrastructure implemented; live payments disabled.
 
+## Dual payment architecture
+
+Status as of 2026-11-03: **STRIPE LOCAL IMPLEMENTATION COMPLETE; STRIPE-HOSTED TEST BLOCKED; SFS/PHANTOM BLOCKED AND DISABLED**.
+
+- Stripe remains under the existing SFScoop Stripe account. No Product, bank connection, SFScoop payment workflow, liquidity pool or token contract was changed.
+- DANZSTAK entitlements and the transaction ledger are provider-neutral. Professional Tour Manager, venue contact unlocks, assigned-number activation and booking-email credits store the payment method and immutable provider reference separately from the entitlement key.
+- Stripe and a future SFS verifier therefore can fulfill the same purchase-specific records without mixing their verification logic. Stripe uses signed webhooks plus a server-retrieved Checkout Session; future SFS payments require independent on-chain verification before the shared entitlement transaction is allowed.
+- DANZSTAK remains functional without SFScoop, Phantom or wallet connectivity. No wallet UI, Phantom SDK, token quote, receiving wallet or SFS transaction endpoint has been added.
+- SFS activation is blocked pending approval of the network, canonical token contract/mint and decimals, receiving wallet, authoritative exchange-rate source, quote expiry/rounding, wallet challenge, finality rule, RPC provider, transaction parsing, replay protection and refund policy.
+- Architecture and mandatory negative tests: `docs/DUAL-PAYMENT-ARCHITECTURE.md`.
+
 ## Tour Manager production build
 
 ### Existing-system audit
