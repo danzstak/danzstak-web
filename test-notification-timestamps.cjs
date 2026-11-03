@@ -7,7 +7,7 @@ const start = source.indexOf('function formatNotificationTimestamp(');
 const end = source.indexOf('async function refreshNotificationCount()', start);
 assert.notEqual(start, -1, 'notification timestamp formatter exists');
 assert.notEqual(end, -1, 'notification timestamp formatter boundary exists');
-const context = vm.createContext({ Date, Number });
+const context = vm.createContext({ Date, Number, feedFormat(key, values = {}) { return Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), key); } });
 vm.runInContext(source.slice(start, end), context);
 
 assert.equal(vm.runInContext('formatNotificationTimestamp("")', context), '');
@@ -21,7 +21,7 @@ const notificationBlock = source.slice(source.indexOf('if (name === "Notificatio
 assert.match(notificationBlock, /copy\.className = "notification-copy"/);
 assert.match(notificationBlock, /time\.dateTime = notice\.createdAt/);
 assert.match(notificationBlock, /row\.append\(avatar, copy, actions\)/);
-assert.match(notificationBlock, /const displayName = person\?\.name \|\| "DanzStak member"/);
+assert.match(notificationBlock, /const displayName = person\?\.name \|\| feedTranslate\("DanzStak member"\)/);
 assert.match(notificationBlock, /notice\.memberId[\s\S]*name: notice\.name[\s\S]*picture: notice\.picture/, 'engagement notifications should use public profile identity returned by the API');
 assert.match(notificationBlock, /formatReactionNotification\(displayName, notice\.preview\)/);
 assert.match(notificationBlock, /fetch\("https:\/\/api\.danzstak\.com\/friends"/, 'notification identities should include accepted-friend profile data');

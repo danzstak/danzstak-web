@@ -79,16 +79,16 @@ function formatNotificationTimestamp(value) {
 
 function formatReactionNotification(displayName, reaction) {
   const label = String(reaction || "").trim();
-  const phrases = {
-    Like: "liked your post.",
-    Dislike: "disliked your post.",
-    Love: "loved your post.",
-    Laugh: "laughed at your post.",
-    Wow: "reacted Wow to your post.",
-    Sad: "reacted Sad to your post.",
-    Fire: "reacted Fire to your post."
+  const templates = {
+    Like: "{name} liked your post.",
+    Dislike: "{name} disliked your post.",
+    Love: "{name} loved your post.",
+    Laugh: "{name} laughed at your post.",
+    Wow: "{name} reacted Wow to your post.",
+    Sad: "{name} reacted Sad to your post.",
+    Fire: "{name} reacted Fire to your post."
   };
-  return `${displayName} ${phrases[label] || "reacted to your post."}`;
+  return feedFormat(templates[label] || "{name} reacted to your post.", { name: displayName });
 }
 
 async function readArrayResponse(response, key) {
@@ -1258,7 +1258,7 @@ function renderWorkspace(name) {
           const person = notice.memberId
             ? { memberId: notice.memberId, name: notice.name, picture: notice.picture }
             : people.get(String(notice.email || "").toLowerCase());
-          const displayName = person?.name || "DanzStak member";
+          const displayName = person?.name || feedTranslate("DanzStak member");
           const row = document.createElement("article");
           row.className = "notification-row";
           row.classList.toggle("is-read", notice.unread === false);
@@ -1267,7 +1267,7 @@ function renderWorkspace(name) {
           avatar.className = "notification-avatar";
           if (memberId) {
             avatar.href = `profile.html?member=${encodeURIComponent(memberId)}`;
-            avatar.setAttribute("aria-label", "Open " + displayName + " profile");
+            avatar.setAttribute("aria-label", feedFormat("Open {name} profile", { name: displayName }));
           }
           if (person?.picture) {
             const picture = document.createElement("img");
@@ -1283,18 +1283,18 @@ function renderWorkspace(name) {
           }
           const message = document.createElement("p");
           message.textContent = notice.type === "message"
-            ? `${displayName}: ${notice.preview || "New message"}`
+            ? `${displayName}: ${notice.preview || feedTranslate("New message")}`
             : notice.type === "group_everyone"
-              ? `${displayName} notified @everyone in ${notice.groupName || "your Tribe"}: ${notice.preview || "New announcement"}`
+              ? feedFormat("{name} notified @everyone in {group}: {preview}", { name: displayName, group: notice.groupName || feedTranslate("your Tribe"), preview: notice.preview || feedTranslate("New announcement") })
             : notice.type === "reaction"
               ? formatReactionNotification(displayName, notice.preview)
               : notice.type === "tag"
-                ? `${displayName} tagged you in a post.`
+                ? feedFormat("{name} tagged you in a post.", { name: displayName })
                 : notice.type === "reply"
-                  ? `${displayName} replied to you: ${notice.preview || "New reply"}`
+                  ? feedFormat("{name} replied to you: {preview}", { name: displayName, preview: notice.preview || feedTranslate("New reply") })
                 : notice.type === "comment"
-                ? `${displayName} commented: ${notice.preview || "New comment"}`
-                : `${displayName} sent you a friend request.`;
+                ? feedFormat("{name} commented: {preview}", { name: displayName, preview: notice.preview || feedTranslate("New comment") })
+                : feedFormat("{name} sent you a friend request.", { name: displayName });
           const copy = document.createElement("div");
           copy.className = "notification-copy";
           copy.appendChild(message);
@@ -1314,7 +1314,7 @@ function renderWorkspace(name) {
             open.href = /^[a-f0-9-]{36}$/i.test(String(notice.groupId || ""))
               ? `feed.html?view=groups&tribe=${encodeURIComponent(notice.groupId)}#groups`
               : "feed.html?view=groups#groups";
-            open.setAttribute("aria-label", `${feedTranslate("Open Tribe")}: ${notice.groupName || "Tribe"}`);
+            open.setAttribute("aria-label", `${feedTranslate("Open Tribe")}: ${notice.groupName || feedTranslate("Tribe")}`);
             actions.appendChild(open);
           } else if (["reaction", "comment", "reply", "tag"].includes(notice.type)) {
             const open = document.createElement("a");

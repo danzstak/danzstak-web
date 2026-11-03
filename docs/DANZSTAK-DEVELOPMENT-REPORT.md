@@ -99,6 +99,17 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 - Implementation commit: `3cf14f455c7a6e5b8f2a1df1bd919d7221df0cb6` on `danzstak-patch-1`.
 - Deployment: not published to production and not merged into `main`.
 
+## Multilingual social activity notifications
+
+Status as of 2026-11-04: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+
+- Corrected the notification drawer so the activity itself—not only the drawer controls—uses the selected DanzStak language. Direct-message fallbacks, Tribe `@everyone` announcements, Like/Dislike/Love/Laugh/Wow/Sad/Fire reactions, generic reactions, media tags, replies, comments, friend requests and accessible profile-link labels now cover all 15 supported locales.
+- Activity rendering uses parameterized templates. Member names, Tribe names and user-written message/comment previews are inserted after translation and are never translated or rewritten.
+- Preserved the existing privacy boundary: public member identity uses opaque member profile routes, account email addresses remain internal, external text is rendered with `textContent`, and notification links retain the established safe destinations.
+- Advanced the feed localization/behavior cache keys and PWA shell cache so installed clients receive the corrected activity text.
+- Verification: **240 of 240** JavaScript regression programs pass. Notification-specific coverage verifies every translation table, placeholder preservation, timestamp rendering, drawer behavior, focus-safe navigation, privacy, partial-source recovery and PWA refresh. Release verification, the 11-page smoke suite, infrastructure/Lambda syntax validation and `git diff --check` also pass.
+- Deployment: not published to production and not merged into `main`.
+
 ## Mobile Flashes navigation
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
