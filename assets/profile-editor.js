@@ -495,7 +495,41 @@ function installProfilePostMedia(article, post) {
   retry.textContent = profileTranslate("Retry media");
   recovery.append(copy, retry);
   const insert = node => { const open = article.querySelector(".profile-post-open"); if (open) open.before(node); else article.appendChild(node); };
-  const showRecovery = () => { article.querySelector(".profile-post-media")?.remove(); if (!recovery.parentNode) insert(recovery); };
+  const showRecovery = (text = "Media is temporarily unavailable.") => {
+    copy.textContent = profileTranslate(text);
+    article.querySelector(".profile-post-media")?.remove();
+    if (!recovery.parentNode) insert(recovery);
+  };
+  const watchProfileMedia = (media, onTimeout) => {
+    let watchdog = 0;
+    let visibilityObserver = null;
+    const clearWatchdog = () => {
+      if (watchdog) clearTimeout(watchdog);
+      watchdog = 0;
+      visibilityObserver?.disconnect();
+      visibilityObserver = null;
+    };
+    const armWatchdog = (requestLoad = false) => {
+      if (media.tagName === "IMG" ? media.complete && media.naturalWidth > 0 : media.readyState >= 2) { clearWatchdog(); return; }
+      if (media.tagName === "VIDEO") {
+        media.preload = "metadata";
+        if (requestLoad && media.readyState === 0) media.load();
+      }
+      if (watchdog) clearTimeout(watchdog);
+      watchdog = setTimeout(() => { watchdog = 0; onTimeout(); }, 15000);
+    };
+    media.addEventListener(media.tagName === "IMG" ? "load" : "loadeddata", clearWatchdog, { once: true });
+    media.addEventListener("error", clearWatchdog, { once: true });
+    if (media.tagName === "VIDEO") media.addEventListener("pointerdown", () => armWatchdog(), { passive: true });
+    visibilityObserver = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      visibilityObserver?.disconnect();
+      visibilityObserver = null;
+      armWatchdog(true);
+    }, { rootMargin: "300px" });
+    visibilityObserver.observe(media);
+    return clearWatchdog;
+  };
   const install = async () => {
     retry.disabled = true;
     const mediaUrl = post.mediaUrl || await refreshProfilePostMedia(post);
@@ -504,9 +538,10 @@ function installProfilePostMedia(article, post) {
     recovery.remove();
     const media = document.createElement(post.mediaType === "image" ? "img" : "video");
     media.className = "profile-post-media";
-    media.addEventListener("error", () => { post.mediaUrl = ""; showRecovery(); }, { once: true });
-    if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
+    if (post.mediaType === "image") { media.alt = post.content || "Profile post photo"; media.loading = "lazy"; }
     else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
+    const clearWatchdog = watchProfileMedia(media, () => { post.mediaUrl = ""; showRecovery("Media is taking longer than expected."); });
+    media.addEventListener("error", () => { clearWatchdog(); post.mediaUrl = ""; showRecovery(); }, { once: true });
     media.src = mediaUrl;
     insert(media);
   };
