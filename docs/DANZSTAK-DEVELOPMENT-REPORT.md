@@ -33,6 +33,8 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; LIVE AWS MAIL AND PUSH VALID
 - Implementation guide: `docs/booking-email-chat-bridge.md`.
 - Implementation commit: `baaf74d70256a5b0020a5f4799012537863d2f34` on `codex/tour-manager-production`.
 - Client integration test commit: `8c7e8e79e664f6e4072dc01763a4ac33030bb815`.
+- Privacy-safe push integration commit: `c53a7718b04a4d07e6e3e09c47680e5247f2ad09`.
+- Push-to-conversation deep-link commit: `b0a01dda98b30993e91ce020c585cfec01efb197`.
 
 ### Next required work
 
