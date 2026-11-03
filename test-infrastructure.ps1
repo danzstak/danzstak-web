@@ -324,8 +324,8 @@ foreach ($pushCapability in @(
   if (-not $template.Contains($pushCapability)) { throw "Background push capability is missing: $pushCapability" }
 }
 foreach ($pushFanout in @(
-  'async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE',
-  'async function notifyMessage(recipientEmail,senderEmail,senderMemberId){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE',
+  "async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){if(!(await alertEnabled(recipientEmail,'callAlerts')))return;const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
+  "async function notifyMessage(recipientEmail,senderEmail,senderMemberId){if(!(await alertEnabled(recipientEmail,'messageAlerts')))return;const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
   'async function notifyFriendRequest(recipientEmail,senderEmail){const items=await queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE'
 )) {
   if (-not $template.Contains($pushFanout)) { throw "Push notifications do not reach every registered device: $pushFanout" }

@@ -247,6 +247,24 @@
   id:["Postingan dan tag profil","Izinkan teman menandai saya","Aktivitas DanzStak Anda","Unduh data saya","Kelola izin postingan dan tag profil","Izinkan teman menandai saya di foto dan video","Kelola notifikasi panggilan dan pesan","Kelola aplikasi dan pengaturan perangkat","Lihat aktivitas DanzStak Anda","Unduh data DanzStak saya","Keluar dari DanzStak","Menyiapkan…"]
  };
  for(const [language,values] of Object.entries(settingsDetails)){const dictionary=dictionaries[language]||(dictionaries[language]={});settingsDetailKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const alertPreferenceKeys=["Incoming calls","New messages","Notify me about incoming calls","Notify me about new messages"];
+ const alertPreferences={
+  es:["Llamadas entrantes","Mensajes nuevos","Notificarme las llamadas entrantes","Notificarme los mensajes nuevos"],
+  fr:["Appels entrants","Nouveaux messages","M’avertir des appels entrants","M’avertir des nouveaux messages"],
+  de:["Eingehende Anrufe","Neue Nachrichten","Bei eingehenden Anrufen benachrichtigen","Bei neuen Nachrichten benachrichtigen"],
+  pt:["Chamadas recebidas","Novas mensagens","Notificar-me sobre chamadas recebidas","Notificar-me sobre novas mensagens"],
+  it:["Chiamate in arrivo","Nuovi messaggi","Avvisami delle chiamate in arrivo","Avvisami dei nuovi messaggi"],
+  ko:["수신 전화","새 메시지","수신 전화를 알림","새 메시지를 알림"],
+  ja:["着信","新しいメッセージ","着信を通知する","新しいメッセージを通知する"],
+  "zh-Hans":["来电","新消息","收到来电时通知我","收到新消息时通知我"],
+  "zh-Hant":["來電","新訊息","收到來電時通知我","收到新訊息時通知我"],
+  fil:["Mga papasok na tawag","Mga bagong mensahe","Abisuhan ako sa mga papasok na tawag","Abisuhan ako sa mga bagong mensahe"],
+  hi:["आने वाली कॉल","नए संदेश","आने वाली कॉल की सूचना दें","नए संदेशों की सूचना दें"],
+  vi:["Cuộc gọi đến","Tin nhắn mới","Thông báo cho tôi về cuộc gọi đến","Thông báo cho tôi về tin nhắn mới"],
+  th:["สายเรียกเข้า","ข้อความใหม่","แจ้งเตือนเมื่อมีสายเรียกเข้า","แจ้งเตือนเมื่อมีข้อความใหม่"],
+  id:["Panggilan masuk","Pesan baru","Beri tahu saya tentang panggilan masuk","Beri tahu saya tentang pesan baru"]
+ };
+ for(const [language,values] of Object.entries(alertPreferences)){const dictionary=dictionaries[language]||(dictionaries[language]={});alertPreferenceKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const messageDetailKeys=["Enable call alerts","Call alerts enabled — tap to enable sound in this session","Start a new chat","Search DanzStak messages","Chat filters","Saved chats","Loading saved chats…","Loading contacts…"];
  const messageDetails={
   es:["Activar alertas de llamadas","Alertas de llamadas activadas; toca para activar el sonido en esta sesión","Iniciar un chat nuevo","Buscar mensajes de DanzStak","Filtros de chat","Chats guardados","Cargando chats guardados…","Cargando contactos…"],

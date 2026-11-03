@@ -1722,14 +1722,21 @@ function renderWorkspace(name) {
       } catch { /* The exporter reports an actionable status message. */ }
       finally { exportButton.disabled = false; exportButton.textContent = original; }
     });
-    const alertSettings = document.createElement("button");
-    alertSettings.type = "button";
-    alertSettings.className = "secondary";
-    alertSettings.textContent = "Manage";
-    alertSettings.setAttribute("aria-label", "Manage call and message alerts");
-    alertSettings.addEventListener("click", () => {
-      window.danzstakOpenDeviceSettings(alertSettings);
-    });
+    const alertSettings = document.createElement("div");
+    alertSettings.className = "alert-preferences";
+    const callAlertsCheckbox = document.createElement("input");
+    callAlertsCheckbox.type = "checkbox";
+    callAlertsCheckbox.checked = true;
+    callAlertsCheckbox.setAttribute("aria-label", "Notify me about incoming calls");
+    const callAlertsLabel = document.createElement("label");
+    callAlertsLabel.append(callAlertsCheckbox, document.createTextNode("Incoming calls"));
+    const messageAlertsCheckbox = document.createElement("input");
+    messageAlertsCheckbox.type = "checkbox";
+    messageAlertsCheckbox.checked = true;
+    messageAlertsCheckbox.setAttribute("aria-label", "Notify me about new messages");
+    const messageAlertsLabel = document.createElement("label");
+    messageAlertsLabel.append(messageAlertsCheckbox, document.createTextNode("New messages"));
+    alertSettings.append(callAlertsLabel, messageAlertsLabel);
     const legalLinks = document.createElement("span");
     legalLinks.className = "settings-links";
     const privacyLink = document.createElement("a"); privacyLink.href = "privacy.html"; privacyLink.textContent = "Privacy";
@@ -1745,7 +1752,7 @@ function renderWorkspace(name) {
     button.type = "button";
     button.disabled = true;
     button.textContent = "Loading Settings…";
-    const accountPreferenceControls = [presenceCheckbox, tagsCheckbox];
+    const accountPreferenceControls = [presenceCheckbox, tagsCheckbox, callAlertsCheckbox, messageAlertsCheckbox];
     accountPreferenceControls.forEach(control => { control.disabled = true; });
     settingsFetch({ credentials: "include", cache: "no-store" }, true)
       .then(response => {
@@ -1757,6 +1764,8 @@ function renderWorkspace(name) {
         accountPreferenceControls.forEach(control => { control.disabled = false; });
         presenceCheckbox.checked = data.onlineVisible !== false;
         tagsCheckbox.checked = data.allowTags !== false;
+        callAlertsCheckbox.checked = data.callAlerts !== false;
+        messageAlertsCheckbox.checked = data.messageAlerts !== false;
         if (typeof data.darkMode === "boolean") {
           darkCheckbox.checked = data.darkMode;
           document.documentElement.classList.toggle("dark-mode", data.darkMode);
@@ -1793,7 +1802,7 @@ function renderWorkspace(name) {
       try {
         const response = await settingsFetch({
           method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-          body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, allowTags: tagsCheckbox.checked, darkMode: darkCheckbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
+          body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, allowTags: tagsCheckbox.checked, callAlerts: callAlertsCheckbox.checked, messageAlerts: messageAlertsCheckbox.checked, darkMode: darkCheckbox.checked, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
         });
         if (!response.ok) throw new Error("Account settings could not be saved.");
         if (isCurrentWorkspace()) featureText.textContent = "Settings saved to your DanzStak account.";

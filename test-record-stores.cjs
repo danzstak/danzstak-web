@@ -32,7 +32,7 @@ assert.match(booking, /Record stores along the route/, "tour results should expo
 assert.doesNotMatch(client, /innerHTML/, "public store data must be rendered without HTML injection");
 assert.match(client, /mailto:\$\{email\}/, "validated public store emails should be actionable in discovery results");
 assert.match(client, /tel:\$\{phone\.replace/, "validated public store phones should be actionable in discovery results");
-assert.match(client, /document\.createTextNode\(label\)/, "provider attribution should remain visible when a source has no link");
+assert.doesNotMatch(client, /Source:|activityEvidence|current public listing|Confirm each store/, "store cards should show contact and location without discovery jargon");
 assert.match(client, /Add to outreach/, "artists should be able to select a store for release outreach");
 assert.match(client, /wholesale or consignment/, "outreach must ask for the store's current policy rather than inventing one");
 assert.match(client, /record-store-workspace/, "record placement work should save to the signed-in account");
@@ -42,4 +42,4 @@ assert.match(client, /Saving took too long and may have completed/, "timed-out s
 assert.match(api, /Record store search is temporarily unavailable\.[\s\S]*providers: error\.providerStatuses \|\| \[\]/, "total record-store provider failure should return provider diagnostics instead of a false zero");
 assert.match(client, /providerStatusText[\s\S]*if \(!response\.ok\)[\s\S]*providerText/, "record-store errors should name unavailable providers to the artist");
 assert.match(api, /const recordStoreWorkspaceId/, "record-placement data should have an isolated owner workspace");
-console.log("Record Store checks passed: menu, standalone search, route discovery, validation, attribution, and safe rendering.");
+console.log("Record Store checks passed: menu, standalone search, route discovery, validation, simple contact cards, and safe rendering.");
