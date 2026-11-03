@@ -35,9 +35,9 @@ assert.match(hostingHeaders, /Cache-Control'[\s\S]*public, max-age=300, must-rev
 assert.doesNotMatch(hostingHeaders, /s-maxage\s*=\s*31536000/i, "the app shell must not receive a one-year shared-cache lifetime");
 
 for (const [file, expected] of [
-  ["feed.html", "assets/soft-ui.css?v=425"],
-  ["messages.html", "assets/soft-ui.css?v=425"],
-  ["profile.html", "assets/soft-ui.css?v=425"],
+  ["feed.html", "assets/soft-ui.css?v=426"],
+  ["messages.html", "assets/soft-ui.css?v=426"],
+  ["profile.html", "assets/soft-ui.css?v=426"],
   ["feed.html", "assets/feed-enhancements.css?v=484"],
   ["feed.html", "assets/identity-media.js?v=1"],
   ["messages.html", "assets/identity-media.js?v=1"],
@@ -50,7 +50,7 @@ for (const [file, expected] of [
   ["messages.html", "assets/media-visibility.js?v=384"],
   ["profile.html", "assets/media-visibility.js?v=384"],
   ["messages.html", "assets/chat.js?v=447"],
-  ["messages.html", "assets/chat.css?v=441"],
+  ["messages.html", "assets/chat.css?v=442"],
   ["messages.html", "assets/direct-messages.js?v=481"],
   ["profile.html", "assets/profile-sharing.js?v=415"],
   ["profile.html", "assets/profile-editor.js?v=482"],

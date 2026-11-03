@@ -32,6 +32,8 @@ assert.ok(manifest.icons.every(icon => icon.type === "image/png" && icon.purpose
 const feed = read("feed.html");
 assert.match(feed, /class="logo"[^>]*><img src="assets\/danzstak-d-icon\.png" alt=""><span>DANZSTAK<\/span>/);
 assert.match(feed, /class="menu-icon menu-brand-icon"[^>]*><img src="assets\/danzstak-d-icon\.png" alt="">/);
+assert.match(read("messages.html"), /class="chat-brand"[^>]*aria-label="DanzStak home"[^>]*><img src="assets\/danzstak-d-icon\.png" alt=""><span>DANZSTAK<\/span>/);
+assert.match(read("profile.html"), /class="brand"[^>]*aria-label="DanzStak home"[^>]*><img src="assets\/danzstak-d-icon\.png" alt=""><span>DANZSTAK<\/span>/);
 
 const shell = read("service-worker.js");
 assert.match(shell, /"\/assets\/danzstak-d-icon\.png"/);
