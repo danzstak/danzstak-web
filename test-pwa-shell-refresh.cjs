@@ -34,10 +34,10 @@ for (const [file, expected] of [
   ["feed.html", "assets/soft-ui.css?v=425"],
   ["messages.html", "assets/soft-ui.css?v=425"],
   ["profile.html", "assets/soft-ui.css?v=425"],
-  ["feed.html", "assets/feed-enhancements.css?v=480"],
+  ["feed.html", "assets/feed-enhancements.css?v=481"],
   ["feed.html", "assets/feed-enhancements.js?v=498"],
   ["feed.html", "assets/profile-onboarding.js?v=6"],
-  ["feed.html", "assets/post-sharing.js?v=417"],
+  ["feed.html", "assets/post-sharing.js?v=418"],
   ["feed.html", "assets/people-search.js?v=421"],
   ["feed.html", "assets/media-visibility.js?v=384"],
   ["messages.html", "assets/media-visibility.js?v=384"],
@@ -48,7 +48,7 @@ for (const [file, expected] of [
   ["profile.html", "assets/profile-sharing.js?v=415"],
   ["profile.html", "assets/profile-editor.js?v=476"],
   ["booking.html", "assets/booking-agent.js?v=478"],
-  ["profile.html", "assets/post-sharing.js?v=417"],
+  ["profile.html", "assets/post-sharing.js?v=418"],
   ["profile.html", "assets/profile.js?v=418"]
 ]) {
   assert.ok(read(file).includes(expected), `${file} must reference ${expected}`);

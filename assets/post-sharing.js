@@ -21,6 +21,39 @@
     const groups = [...defaultTribes, ...(Array.isArray(groupsData.groups) ? groupsData.groups : [])];
     return groups.filter(group => memberships.has(group.id)).sort((a, b) => String(a.name).localeCompare(String(b.name)));
   }
+  async function refreshSharedPostMedia(source) {
+    if (!source?.postId) return '';
+    const response = await shareFetch('/secure-posts', { credentials: 'include', cache: 'no-store' }).catch(() => null);
+    if (!response?.ok) return '';
+    const data = await response.json().catch(() => ({}));
+    const original = (data.posts || []).find(post => post.postId === source.postId);
+    if (!original?.mediaUrl || !['image','video'].includes(original.mediaType)) return '';
+    source.mediaUrl = original.mediaUrl;
+    source.mediaType = original.mediaType;
+    return source.mediaUrl;
+  }
+  function installSharedPostMedia(card, source) {
+    const recovery = document.createElement('div'); recovery.className = 'shared-post-recovery';
+    const copy = document.createElement('span'); copy.textContent = window.danzstakTranslate?.('Media is temporarily unavailable.') || 'Media is temporarily unavailable.';
+    const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = window.danzstakTranslate?.('Retry media') || 'Retry media';
+    recovery.append(copy,retry);
+    const insert = node => { const original = card.querySelector('a[href*="#post-"]'); if (original) original.before(node); else card.appendChild(node); };
+    const showRecovery = () => { card.querySelector('.shared-post-media')?.remove(); if (!recovery.parentNode) insert(recovery); };
+    const install = async () => {
+      retry.disabled = true;
+      const mediaUrl = source.mediaUrl || await refreshSharedPostMedia(source);
+      retry.disabled = false;
+      if (!mediaUrl) { showRecovery(); return; }
+      recovery.remove();
+      const media = document.createElement(source.mediaType === 'image' ? 'img' : 'video'); media.className = 'shared-post-media';
+      media.addEventListener('error', () => { source.mediaUrl = ''; showRecovery(); }, { once:true });
+      if (source.mediaType === 'image') { media.alt = 'Photo by ' + source.authorName; media.loading = 'lazy'; }
+      else { media.controls = true; media.playsInline = true; media.preload = 'metadata'; media.setAttribute('aria-label', 'Video by ' + source.authorName); }
+      media.src = mediaUrl; insert(media);
+    };
+    retry.addEventListener('click', () => { source.mediaUrl = ''; void install(); });
+    void install();
+  }
   async function openShareDialog(post) {
     if (post.dataset.audience !== 'public') return;
     if (!dialog) { dialog = document.createElement('dialog'); dialog.className = 'post-share-dialog'; document.body.appendChild(dialog); }
@@ -75,7 +108,7 @@
       const source = post.sharedPost, memberId = String(source.authorMemberId || ''), validMemberId = /^[a-f0-9-]{36}$/.test(memberId), name = document.createElement(validMemberId ? 'a' : 'strong'); name.textContent = source.authorName;
       if (validMemberId) { name.href = 'profile.html?member=' + encodeURIComponent(memberId); name.className = 'shared-post-author'; }
       const body = document.createElement('p'); body.textContent = source.content; card.append(name,body);
-      if (source.mediaUrl && ['image','video'].includes(source.mediaType)) { const media = document.createElement(source.mediaType === 'image' ? 'img' : 'video'); media.src = source.mediaUrl; media.className = 'shared-post-media'; if (source.mediaType === 'image') { media.alt = 'Photo by ' + source.authorName; media.loading = 'lazy'; } else { media.controls = true; media.playsInline = true; media.preload = 'metadata'; media.setAttribute('aria-label', 'Video by ' + source.authorName); } card.appendChild(media); }
+      if (['image','video'].includes(source.mediaType)) installSharedPostMedia(card, source);
       const original = document.createElement('a'); original.href = 'feed.html#post-' + encodeURIComponent(source.postId); original.textContent = 'View original post'; card.appendChild(original);
     }
     const actions = article.querySelector('.post-actions'); if (actions) actions.before(card); else article.appendChild(card);
