@@ -3115,6 +3115,7 @@ function cleanTourMarket(value) {
 const bookingWorkspaceId = "booking-workspace-v1";
 const epkWorkspaceId = "epk-workspace-v1";
 const epkPublicPartition = "epk-public";
+const epkSharePartition = "epk-private-share";
 
 const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
 const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
@@ -3181,7 +3182,7 @@ async function validatedEpkMedia(media) {
   return media;
 }
 
-function epkForViewer(kit, publicView = false) {
+function epkForViewer(kit, publicView = false, ownerView = true) {
   const copy = structuredClone(kit || {});
   copy.media = (copy.media || []).filter(item => !publicView || item.public).map(item => ({ ...item, url: signedMediaUrl(item.key, publicView ? 3600 : 900) }));
   if (publicView && copy.publicDetails && typeof copy.publicDetails === "object") {
@@ -3191,6 +3192,7 @@ function epkForViewer(kit, publicView = false) {
     if (copy.publicDetails.hospitality !== true) copy.hospitalityRequirements = "";
     delete copy.publicDetails;
   }
+  if (!ownerView) delete copy.publicDetails;
   return copy;
 }
 
@@ -3198,10 +3200,17 @@ function epkDeletionPlan(existingItem, ownerPrefix, ownerKey) {
   const publicId = /^[a-z0-9-]{3,64}$/.test(existingItem?.publicId?.S || "") ? existingItem.publicId.S : "";
   const transaction = [{ Delete: { TableName: toursTable, Key: ownerKey } }];
   if (publicId) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } } });
+  if (publicId) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkSharePartition }, tourId: { S: publicId } } } });
   let previousKit = {};
   try { previousKit = JSON.parse(existingItem?.plan?.S || "{}"); } catch { previousKit = {}; }
   const mediaKeys = (previousKit.media || []).map(item => item?.key || "").filter(key => epkMediaPattern(ownerPrefix).test(key));
   return { transaction, mediaKeys };
+}
+
+function epkShareTokenMatches(token, storedHash) {
+  return /^[a-f0-9]{64}$/.test(token || "")
+    && /^[a-f0-9]{64}$/.test(storedHash || "")
+    && safeEqual(sha256(`epk-share:${token}`), storedHash);
 }
 
 async function epkWorkspace(event, method) {
@@ -3230,7 +3239,7 @@ async function epkWorkspace(event, method) {
   if (method === "GET") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
     if (!result.Item) return reply(200, { kit: null, publicId: "", published: false, updatedAt: "" });
-    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}")), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, updatedAt: result.Item.updatedAt?.S || "" });
+    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}")), publicId: result.Item.publicId?.S || "", published: result.Item.published?.BOOL === true, privateShared: Boolean(result.Item.shareHash?.S), updatedAt: result.Item.updatedAt?.S || "" });
   }
   const data = parseJsonBody(event), kit = cleanEpk(data?.kit, ownerPrefix), publish = data?.publish === true;
   if (!kit) return reply(400, { error: "Add an artist name and valid EPK details." });
@@ -3242,14 +3251,15 @@ async function epkWorkspace(event, method) {
     const collision = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } }, ConsistentRead: true }));
     if (collision.Item) publicId = `${publicId.slice(0, 39)}-${sha256(userId).slice(0, 8)}`;
   }
-  const nowIso = new Date().toISOString(), plan = JSON.stringify(kit);
+  const nowIso = new Date().toISOString(), plan = JSON.stringify(kit), shareHash = /^[a-f0-9]{64}$/.test(existing.Item?.shareHash?.S || "") ? existing.Item.shareHash.S : "";
   if (Buffer.byteLength(plan, "utf8") > 200000) return reply(400, { error: "This EPK is too large." });
   const publicKey = { userId: { S: epkPublicPartition }, tourId: { S: publicId } };
   await db.send(new TransactWriteItemsCommand({ TransactItems: [
-    { Put: { TableName: toursTable, Item: { ...ownerKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, publicId: { S: publicId }, published: { BOOL: publish }, updatedAt: { S: nowIso } } } },
+    { Put: { TableName: toursTable, Item: { ...ownerKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, publicId: { S: publicId }, published: { BOOL: publish }, updatedAt: { S: nowIso }, ...(shareHash ? { shareHash: { S: shareHash } } : {}) } } },
     publish
       ? { Put: { TableName: toursTable, Item: { ...publicKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }
-      : { Delete: { TableName: toursTable, Key: publicKey } }
+      : { Delete: { TableName: toursTable, Key: publicKey } },
+    ...(shareHash ? [{ Put: { TableName: toursTable, Item: { userId: { S: epkSharePartition }, tourId: { S: publicId }, name: { S: `${kit.artistName} private EPK` }, plan: { S: plan }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }] : [])
   ] }));
   const previousKit = existing.Item?.plan?.S ? JSON.parse(existing.Item.plan.S) : {}, retained = new Set((kit.media || []).map(item => item.key));
   const removed = (previousKit.media || []).filter(item => epkMediaPattern(ownerPrefix).test(item.key || "") && !retained.has(item.key));
@@ -3267,6 +3277,43 @@ async function publicEpk(event, publicId) {
   const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } } }));
   if (!result.Item) return reply(404, { error: "EPK not found." });
   return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), true), updatedAt: result.Item.updatedAt?.S || "" });
+}
+
+async function privateEpkShare(event, method, publicId = "") {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(404, { error: "EPK not found." });
+  if (publicId) {
+    const token = String(parseJsonBody(event)?.token || "");
+    if (!/^[a-f0-9]{64}$/.test(token) || !/^[a-z0-9-]{3,64}$/i.test(publicId)) return reply(404, { error: "Private EPK link is invalid or has been revoked." });
+    const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkSharePartition }, tourId: { S: publicId } }, ConsistentRead: true }));
+    const storedHash = result.Item?.shareHash?.S || "";
+    if (!epkShareTokenMatches(token, storedHash)) return reply(404, { error: "Private EPK link is invalid or has been revoked." });
+    return reply(200, { kit: epkForViewer(JSON.parse(result.Item.plan?.S || "{}"), false, false), private: true, updatedAt: result.Item.updatedAt?.S || "" });
+  }
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const ownerKey = { userId: { S: userId }, tourId: { S: epkWorkspaceId } };
+  const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true }));
+  if (!existing.Item) return reply(404, { error: "Save the EPK before creating a private review link." });
+  const data = parseJsonBody(event), action = String(data?.action || "");
+  const id = /^[a-z0-9-]{3,64}$/.test(existing.Item.publicId?.S || "") ? existing.Item.publicId.S : "";
+  if (!id) return reply(409, { error: "Save the EPK before creating a private review link." });
+  const shareKey = { userId: { S: epkSharePartition }, tourId: { S: id } };
+  if (action === "revoke") {
+    await db.send(new TransactWriteItemsCommand({ TransactItems: [
+      { Update: { TableName: toursTable, Key: ownerKey, UpdateExpression: "REMOVE shareHash", ConditionExpression: "attribute_exists(userId)" } },
+      { Delete: { TableName: toursTable, Key: shareKey } }
+    ] }));
+    return reply(200, { privateShared: false });
+  }
+  if (action !== "create") return reply(400, { error: "Choose create or revoke." });
+  const token = randomValue(), shareHash = sha256(`epk-share:${token}`), nowIso = new Date().toISOString();
+  await db.send(new TransactWriteItemsCommand({ TransactItems: [
+    { Update: { TableName: toursTable, Key: ownerKey, UpdateExpression: "SET shareHash = :hash, updatedAt = :updated", ConditionExpression: "attribute_exists(userId)", ExpressionAttributeValues: { ":hash": { S: shareHash }, ":updated": { S: nowIso } } } },
+    { Put: { TableName: toursTable, Item: { ...shareKey, name: { S: `${existing.Item.name?.S || "Private EPK"} review` }, plan: { S: existing.Item.plan?.S || "{}" }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }
+  ] }));
+  return reply(200, { privateShared: true, publicId: id, token });
 }
 async function bookingWorkspace(event, method) {
   const headers = corsHeaders(event.headers?.origin);
@@ -3558,8 +3605,11 @@ export const handler = async event => {
 
     if ((method === "GET" || method === "POST") && path === "/booking-pipeline") return await bookingWorkspace(event, method);
     if ((method === "GET" || method === "POST" || method === "DELETE") && path === "/epk") return await epkWorkspace(event, method);
+    if (method === "POST" && path === "/epk/share") return await privateEpkShare(event, method);
     const epkPublicMatch = path.match(/^\/epk\/public\/([a-z0-9-]{3,64})$/i);
     if (method === "GET" && epkPublicMatch) return await publicEpk(event, epkPublicMatch[1]);
+    const epkPrivateMatch = path.match(/^\/epk\/shared\/([a-z0-9-]{3,64})$/i);
+    if (method === "POST" && epkPrivateMatch) return await privateEpkShare(event, method, epkPrivateMatch[1]);
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
     if (method === "POST" && path === "/tours") return await saveTourPlan(event);
     if (method === "DELETE" && path.startsWith("/tours/")) return await deleteTourPlan(event, decodeURIComponent(path.slice(7)));
@@ -3587,4 +3637,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan };
+export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches };

@@ -14,8 +14,10 @@ assert.match(client, /request\(`\$\{api\}\/epk`, \{ method:"DELETE"[\s\S]*20000\
   "permanent deletion must remain retryable after a stalled connection");
 assert.match(client, /epk\/public[\s\S]*credentials:"omit"[\s\S]*cache:"no-store"/,
   "public EPK reads must not send the visitor's account session or use stale data");
+assert.match(client, /epk\/shared[\s\S]*credentials:"omit"[\s\S]*cache:"no-store"/,
+  "private review reads must use their secret without sending the visitor's account session or stale data");
 assert.match(client, /upload\.timeout = Math\.max\(60000[\s\S]*upload\.ontimeout/,
   "large media uploads need an adaptive timeout and explicit recovery message");
-assert.match(markup, /assets\/epk\.js\?v=8/, "the EPK page must load the bounded-request release");
+assert.match(markup, /assets\/epk\.js\?v=9/, "the EPK page must load the bounded-request release");
 
 console.log("EPK network checks passed: loads, saves, publishing, deletion, tickets, and media uploads recover from stalls without exposing sessions on public kits.");
