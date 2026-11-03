@@ -844,12 +844,7 @@ async function loadConversations() {
       if (conversation.picture) {
         avatar.src = conversation.picture;
         avatar.alt = "";
-        avatar.addEventListener("error", () => {
-          const fallback = document.createElement("span");
-          fallback.className = "conversation-list-avatar";
-          fallback.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
-          avatar.replaceWith(fallback);
-        }, { once: true });
+        window.danzstakIdentityMedia?.install(avatar, conversation);
       } else avatar.textContent = (conversation.name || "DanzStak member").charAt(0).toUpperCase();
       avatarWrap.appendChild(avatar);
       if (conversation.online === true) {

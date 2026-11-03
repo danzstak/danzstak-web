@@ -400,7 +400,7 @@ function renderOnlineFriendList(list, users, presenceAvailable = true) {
     avatarWrap.className = "feed-online-avatar-wrap";
     const avatar = person.picture ? document.createElement("img") : document.createElement("span");
     avatar.className = "feed-online-avatar";
-    if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+    if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, person); }
     else { avatar.textContent = displayName.charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
     const dot = document.createElement("span");
     dot.className = "feed-online-dot";
@@ -792,7 +792,7 @@ function renderWorkspace(name) {
           const memberId = String(member.memberId || ""), validMemberId = /^[a-f0-9-]{36}$/.test(memberId), profileUrl = member.isMe ? "profile.html" : validMemberId ? "profile.html?member=" + encodeURIComponent(memberId) : "";
           const avatar = document.createElement(profileUrl ? "a" : "span"); avatar.className = "tribe-crew-avatar";
           if (profileUrl) { avatar.href = profileUrl; avatar.setAttribute("aria-label", "Open " + (member.name || "member") + " profile"); }
-          if (member.picture) { const image = document.createElement("img"); image.src = member.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.appendChild(image); }
+          if (member.picture) { const image = document.createElement("img"); image.src = member.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(image, member); avatar.appendChild(image); }
           else avatar.textContent = String(member.name || "D").charAt(0).toUpperCase();
           const identity = document.createElement("div");
           const name = document.createElement(profileUrl ? "a" : "strong"); name.textContent = member.name || "DanzStak member"; name.className = "tribe-crew-name"; if (profileUrl) name.href = profileUrl;
@@ -1274,6 +1274,7 @@ function renderWorkspace(name) {
             picture.src = person.picture;
             picture.alt = "";
             picture.referrerPolicy = "no-referrer";
+            window.danzstakIdentityMedia?.install(picture, person);
             avatar.appendChild(picture);
           }
           else {
@@ -1469,7 +1470,7 @@ function renderWorkspace(name) {
         }
         const avatar = person.picture ? document.createElement("img") : document.createElement("span");
         avatar.className = "friend-avatar";
-        if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; }
+        if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, person); }
         else { avatar.textContent = (person.name || "DanzStak member").charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
         const details = document.createElement("span");
         details.className = "friend-details";
@@ -3063,7 +3064,7 @@ function ensureCommentComposer(post) {
   loadCommentViewerProfile().then(profile => {
     if (!avatar.isConnected) return;
     if (profile.picture) {
-      const image = document.createElement("img"); image.className = "comment-composer-avatar"; image.src = profile.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.replaceWith(image);
+      const image = document.createElement("img"); image.className = "comment-composer-avatar"; image.src = profile.picture; image.alt = ""; image.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(image, profile); avatar.replaceWith(image);
     } else avatar.textContent = String(profile.name || "D").charAt(0).toUpperCase();
   });
   const field = document.createElement("div");
@@ -3140,7 +3141,7 @@ function renderPersistentComment(post, comment) {
   const avatar = document.createElement(memberId ? "a" : "span");
   avatar.className = "comment-avatar";
   if (memberId) { avatar.href = profileUrl; avatar.setAttribute("aria-label", "Open " + (comment.authorName || "member") + " profile"); }
-  if (comment.authorPicture) { const image = document.createElement("img"); image.src = comment.authorPicture; image.alt = ""; image.referrerPolicy = "no-referrer"; avatar.appendChild(image); }
+  if (comment.authorPicture) { const image = document.createElement("img"); image.src = comment.authorPicture; image.alt = ""; image.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(image, { memberId, name: comment.authorName, picture: comment.authorPicture }); avatar.appendChild(image); }
   else { avatar.textContent = String(comment.authorName || "D").charAt(0).toUpperCase(); if (!memberId) avatar.setAttribute("aria-hidden", "true"); }
   const bubble = document.createElement("div"); bubble.className = "comment-bubble";
   const author = document.createElement(memberId ? "a" : "strong");

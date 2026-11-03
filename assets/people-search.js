@@ -75,6 +75,7 @@
       avatar.src = person.picture;
       avatar.alt = "";
       avatar.referrerPolicy = "no-referrer";
+      window.danzstakIdentityMedia?.install(avatar, person);
     } else {
       avatar.textContent = String(person.name || "D").charAt(0).toUpperCase();
       avatar.setAttribute("aria-hidden", "true");
