@@ -12,6 +12,7 @@ const assert = require("node:assert/strict");
   const records = new Map(), keyOf = key => `${key.userId.S}|${key.tourId.S}`;
   const userId = "user_12345678", creditId = `${userId}|TOUR_MANAGER#BOOKING_EMAIL_CREDITS`;
   records.set(creditId, { userId: { S: userId }, tourId: { S: "TOUR_MANAGER#BOOKING_EMAIL_CREDITS" }, credits: { N: "2" }, reservedCredits: { N: "0" }, sentEmails: { N: "0" } });
+  records.set(`${userId}|TOUR_MANAGER#CONTACT_UNLOCK#venue-1`, { userId: { S: userId }, tourId: { S: "TOUR_MANAGER#CONTACT_UNLOCK#venue-1" }, venueKey: { S: "venue-1" }, status: { S: "active" } });
   records.set(`${userId}|booking-workspace-v1`, { userId: { S: userId }, tourId: { S: "booking-workspace-v1" }, plan: { S: JSON.stringify({ artist: { name: "Codex" }, venues: [{ venueKey: "venue-1", name: "Club Test", emails: ["bookings@example.com"] }] }) } });
   const number = (item, name) => Number(item[name]?.N || 0);
   const db = { async send(command) {
@@ -60,5 +61,7 @@ const assert = require("node:assert/strict");
   fail = true;
   const failed = await service(event("fedcba0987654321"));
   assert.equal(failed.statusCode, 502); assert.equal(number(records.get(creditId), "credits"), 1, "A provider failure must restore the reserved credit"); assert.equal(number(records.get(creditId), "reservedCredits"), 0);
-  console.log("Tour Manager email-credit checks passed: saved-contact validation, reservation, provider acceptance, duplicate prevention, final deduction, and failed-send restoration.");
+  records.delete(`${userId}|TOUR_MANAGER#CONTACT_UNLOCK#venue-1`);
+  assert.equal((await service(event("contactlocked1234"))).statusCode, 402, "Sending must fail closed when the venue contact is locked");
+  console.log("Tour Manager email-credit checks passed: contact entitlement, saved-contact validation, reservation, provider acceptance, duplicate prevention, final deduction, and failed-send restoration.");
 })().catch(error => { console.error(error); process.exit(1); });
