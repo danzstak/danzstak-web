@@ -3350,6 +3350,7 @@ reelsRail.setAttribute("aria-label", "The Roll");
 const reelsHeading = document.createElement("div");
 reelsHeading.className = "reels-heading";
 const reelsTitle = document.createElement("h3");
+reelsTitle.id = "rollTitle";
 reelsTitle.textContent = "The Roll";
 const reelsSourceNote = document.createElement("span");
 reelsSourceNote.textContent = "Externally hosted videos";
@@ -3364,6 +3365,30 @@ rollClose.className = "roll-close";
 rollClose.textContent = "Close";
 rollClose.setAttribute("aria-label", "Close The Roll fullscreen");
 const usesMobileRollHistory = () => matchMedia("(max-width: 700px)").matches;
+let rollPlaceholder = null;
+let rollBackgroundState = [];
+function isolateRollFullscreen() {
+  if (rollPlaceholder) return;
+  rollPlaceholder = document.createComment("The Roll feed position");
+  reelsRail.replaceWith(rollPlaceholder);
+  document.body.appendChild(reelsRail);
+  rollBackgroundState = [...document.body.children]
+    .filter(element => element !== reelsRail)
+    .map(element => ({ element, wasInert: element.inert }));
+  rollBackgroundState.forEach(({ element }) => { element.inert = true; });
+  reelsRail.setAttribute("role", "dialog");
+  reelsRail.setAttribute("aria-modal", "true");
+  reelsRail.setAttribute("aria-labelledby", reelsTitle.id);
+}
+function restoreRollBackground() {
+  rollBackgroundState.forEach(({ element, wasInert }) => { if (element.isConnected) element.inert = wasInert; });
+  rollBackgroundState = [];
+  if (rollPlaceholder?.isConnected) rollPlaceholder.replaceWith(reelsRail);
+  rollPlaceholder = null;
+  reelsRail.removeAttribute("role");
+  reelsRail.removeAttribute("aria-modal");
+  reelsRail.removeAttribute("aria-labelledby");
+}
 function setRollFullscreen(open, { updateHistory = true, fromHistory = false } = {}) {
   const shouldOpen = Boolean(open);
   if (!shouldOpen && !fromHistory && history.state?.danzstakRollOpen === true) {
@@ -3375,6 +3400,7 @@ function setRollFullscreen(open, { updateHistory = true, fromHistory = false } =
     delete nextState.danzstakRollOpen;
     history.replaceState(nextState, "");
   }
+  if (shouldOpen) isolateRollFullscreen();
   reelsRail.classList.toggle("roll-fullscreen", shouldOpen);
   document.body.classList.toggle("roll-view-open", shouldOpen);
   rollOpen.setAttribute("aria-expanded", String(shouldOpen));
@@ -3387,11 +3413,23 @@ function setRollFullscreen(open, { updateHistory = true, fromHistory = false } =
     rollClose.focus({ preventScroll: true });
     const first = reelsList.querySelector("video.reel-player");
     if (first && !dataSaverEnabled()) first.play().catch(() => {});
-  } else rollOpen.focus({ preventScroll: true });
+  } else {
+    restoreRollBackground();
+    rollOpen.focus({ preventScroll: true });
+  }
 }
 rollOpen.addEventListener("click", () => setRollFullscreen(true));
 rollClose.addEventListener("click", () => setRollFullscreen(false));
 document.addEventListener("keydown", event => { if (event.key === "Escape" && reelsRail.classList.contains("roll-fullscreen")) { event.preventDefault(); setRollFullscreen(false); } });
+reelsRail.addEventListener("keydown", event => {
+  if (event.key !== "Tab" || !reelsRail.classList.contains("roll-fullscreen")) return;
+  const focusable = [...reelsRail.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+    .filter(element => element.getClientRects().length && element.getAttribute("aria-hidden") !== "true");
+  if (!focusable.length) return;
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
 reelsHeading.append(reelsTitle, reelsSourceNote, rollOpen, rollClose);
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
@@ -3687,6 +3725,7 @@ window.addEventListener("danzstak:posts-loaded", event => loadInternalReels(even
 if (Array.isArray(window.danzstakLoadedPosts)) loadInternalReels(window.danzstakLoadedPosts);
 
 function placeReelsRail() {
+  if (rollPlaceholder || reelsRail.classList.contains("roll-fullscreen")) return;
   const feedElement = document.getElementById("feed");
   const posts = [...feedElement.children].filter(child => child.classList.contains("post") && child !== reelsRail);
   if (posts.length >= 4) posts[3].insertAdjacentElement("afterend", reelsRail);
