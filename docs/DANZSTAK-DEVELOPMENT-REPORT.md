@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Mobile Flashes navigation
+
+Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+
+- Opening a Flash on a phone now creates a privacy-safe browser-history entry. Android/iPhone Back closes the modal and returns to the feed; Forward restores the active Flash without creating another entry.
+- The close button, backdrop tap and Escape all use the same history-safe path. Focus returns to the Flash launcher after dismissal, and desktop dialog behavior remains direct.
+- Existing 24-hour expiry, audience privacy, durable author links, caption cleanup, signed-media recovery, retry UI, autoplay and accessible media labels remain intact. History stores only a boolean marker and no story identifier, caption, media URL, author or account data.
+- Verification: **12 of 12** focused Flash, video, navigation, CSP and PWA regression programs passed, along with whitespace checks. The locally served phone-width feed loaded with the updated strict CSP; no authenticated Flash record was available in that isolated session, so live Back/Forward playback remains to be repeated with controlled account media before deployment.
+- Implementation commit: `fa30963bfddbd25a74d68c65a23c72b37cf744b4` on `danzstak-patch-1`.
+
 ## Mobile The Roll navigation
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
