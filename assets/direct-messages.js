@@ -89,7 +89,7 @@ function previewSelectedMessageMedia(file) {
   clearSelectedMessageMedia();
   if (!file) return;
   const allowed = /^(image\/(jpeg|png|webp|gif)|video\/(mp4|webm|quicktime))$/i;
-  if (!allowed.test(file.type)) { callStatus.textContent = "Choose a photo or video. Standalone audio files are not supported."; return; }
+  if (!allowed.test(file.type)) { callStatus.textContent = messageTranslate("Choose a photo or video. Standalone audio files are not supported."); return; }
   selectedMessageMedia = file;
   selectedMessageMediaUrl = URL.createObjectURL(file);
   const media = document.createElement(file.type.startsWith("video/") ? "video" : "img");
@@ -104,13 +104,13 @@ function previewSelectedMessageMedia(file) {
 async function uploadSelectedMessageMedia(file) {
   const ticketResponse = await directFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: file.type, purpose: "message" }) });
   const ticket = await ticketResponse.json().catch(() => ({}));
-  if (!ticketResponse.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || "Attachment upload could not start");
+  if (!ticketResponse.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || messageTranslate("Attachment upload could not start"));
   try {
     const upload = await directFetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file }, Math.max(30000, Math.min(300000, Math.ceil(file.size / 20000))));
-    if (!upload.ok) throw new Error("Attachment upload failed");
+    if (!upload.ok) throw new Error(messageTranslate("Attachment upload failed"));
   } catch (error) {
     await discardMessageMedia(ticket.mediaKey);
-    if (/taking too long/i.test(error.message)) throw new Error("Attachment upload took too long. Try again on a stronger connection.");
+    if (/taking too long/i.test(error.message)) throw new Error(messageTranslate("Attachment upload took too long. Try again on a stronger connection."));
     throw error;
   }
   return { mediaKey: ticket.mediaKey, mediaType: file.type.startsWith("video/") ? "video" : "image" };
@@ -209,7 +209,7 @@ async function saveMessageReaction(item, message, emoji) {
     body: JSON.stringify({ action: "reaction", contactEmail: directContact, messageId: message.messageId, reaction })
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "Reaction could not be saved");
+  if (!response.ok) throw new Error(data.error || messageTranslate("Reaction could not be saved"));
   const counts = { ...(message.reactionCounts || {}) };
   if (message.myReaction) counts[message.myReaction] = Math.max(0, Number(counts[message.myReaction] || 0) - 1);
   if (reaction) counts[reaction] = Number(counts[reaction] || 0) + 1;
@@ -257,7 +257,7 @@ function openMessageEditor(item, message) {
     event.preventDefault();
     const content = input.value.trim();
     if (!content || content === message.content) {
-      if (!content) { input.setCustomValidity("Message text cannot be empty"); input.reportValidity(); }
+      if (!content) { input.setCustomValidity(messageTranslate("Message text cannot be empty")); input.reportValidity(); }
       else cancelMessageEditor(item, message);
       return;
     }
@@ -269,7 +269,7 @@ function openMessageEditor(item, message) {
         body: JSON.stringify({ action: "edit", contactEmail: directContact, messageId: message.messageId, content })
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Message could not be edited");
+      if (!response.ok) throw new Error(data.error || messageTranslate("Message could not be edited"));
       Object.assign(message, data.message || {}, { content });
       item.replaceWith(directMessageItem(message));
     } catch (error) {
@@ -288,7 +288,7 @@ async function deleteDirectMessage(item, message, scope) {
     body: JSON.stringify({ action: "delete", contactEmail: directContact, messageId: message.messageId, scope })
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "Message could not be deleted");
+  if (!response.ok) throw new Error(data.error || messageTranslate("Message could not be deleted"));
   item.remove();
   callStatus.textContent = messageTranslate(scope === "everyone" ? "Message deleted for everyone." : "Message deleted for you.");
 }
@@ -439,10 +439,10 @@ function renderMessageLoadError(message) {
   panel.className = "message-load-error";
   status.className = "system-message";
   status.setAttribute("role", "alert");
-  status.textContent = message || "Messages could not be loaded";
+  status.textContent = message || messageTranslate("Messages could not be loaded");
   retry.type = "button";
   retry.className = "message-load-retry";
-  retry.textContent = "Try loading messages again";
+  retry.textContent = messageTranslate("Try loading messages again");
   retry.addEventListener?.("click", () => loadDirectMessages(true));
   panel.append(status, retry);
   messageList.replaceChildren(panel);
@@ -578,7 +578,7 @@ async function loadEarlierMessages() {
     const response = await directFetch("/messages?contact=" + encodeURIComponent(contact) + "&before=" + encodeURIComponent(cursor), { credentials: "include", cache: "no-store" });
     const data = await response.json().catch(() => ({}));
     if (version !== conversationVersion) return;
-    if (!response.ok) throw new Error(data.error || "Earlier messages could not be loaded");
+    if (!response.ok) throw new Error(data.error || messageTranslate("Earlier messages could not be loaded"));
     const fragment = document.createDocumentFragment();
     for (const message of data.messages || []) {
       if (shownMessages.has(message.messageId)) continue;
@@ -593,7 +593,7 @@ async function loadEarlierMessages() {
   } catch (error) {
     if (version !== conversationVersion) return;
     callStatus.textContent = error.message;
-    if (button) { button.disabled = false; button.textContent = "Try loading earlier messages again"; }
+    if (button) { button.disabled = false; button.textContent = messageTranslate("Try loading earlier messages again"); }
   } finally { if (version === conversationVersion) loadingMessages = false; }
 }
 
@@ -611,7 +611,7 @@ async function loadDirectMessages(reset = false) {
     const response = await directFetch("/messages?read=1&contact=" + encodeURIComponent(contact), { credentials: "include", cache: "no-store" });
     const data = await response.json();
     if (version !== conversationVersion) return;
-    if (!response.ok) throw new Error(data.error || "Messages could not be loaded");
+    if (!response.ok) throw new Error(data.error || messageTranslate("Messages could not be loaded"));
     const distanceFromBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight;
     const followNewest = reset || distanceFromBottom < 80;
     if (reset) { shownMessages.clear(); nextMessageCursor = data.nextCursor || ""; messageList.replaceChildren(); }
@@ -641,7 +641,7 @@ async function loadDirectMessages(reset = false) {
       : messageTranslate("Saved chat. Become friends or join the same Tribe to send new messages or call.");
   } catch (error) {
     if (version === conversationVersion) {
-      const message = error.message || "Messages could not be loaded";
+      const message = error.message || messageTranslate("Messages could not be loaded");
       callStatus.textContent = message;
       if (reset) renderMessageLoadError(message);
     }
@@ -672,7 +672,7 @@ async function loadConversations() {
     const conversationResponse = usableResponse(results[0]);
     const friendsResponse = usableResponse(results[1]);
     const directoryResponse = usableResponse(results[2]);
-    if (!conversationResponse && !friendsResponse && !directoryResponse) throw new Error("Contacts are temporarily unavailable");
+    if (!conversationResponse && !friendsResponse && !directoryResponse) throw new Error(messageTranslate("Contacts are temporarily unavailable"));
     const data = conversationResponse ? await conversationResponse.json() : { conversations: [] };
     const friendsData = friendsResponse ? await friendsResponse.json() : { friends: [] };
     const directoryData = directoryResponse ? await directoryResponse.json() : { users: [] };
@@ -877,7 +877,7 @@ messageForm?.addEventListener("submit", async event => {
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
   if (window.navigator?.onLine === false && window.danzstakQueueOffline) {
     try {
-      if (selectedMessageMedia) throw new Error("Attachments need a connection. Your draft is still here.");
+      if (selectedMessageMedia) throw new Error(messageTranslate("Attachments need a connection. Your draft is still here."));
       window.danzstakQueueOffline("/messages", { recipientEmail, content });
       messageInput.value = "";
       saveChatDraft(recipientEmail, "");
@@ -900,7 +900,7 @@ messageForm?.addEventListener("submit", async event => {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       await discardMessageMedia(attachment.mediaKey);
-      throw new Error(data.error || "Message could not be sent");
+      throw new Error(data.error || messageTranslate("Message could not be sent"));
     }
     if (version !== conversationVersion) { await loadConversations(); return; }
     if (data.message?.messageId) {
@@ -916,7 +916,7 @@ messageForm?.addEventListener("submit", async event => {
     pendingItem.remove();
     if (version === conversationVersion) {
       if (content && !messageInput.value.trim()) messageInput.value = content;
-      callStatus.textContent = `${error.message}. Your message is still in the composer.`;
+      callStatus.textContent = messageFormat("{error}. Your message is still in the composer.", { error: error.message });
       messageInput.focus();
     }
   }
@@ -933,7 +933,7 @@ deleteChat?.addEventListener("click", async () => {
   deleteChat.disabled = true;
   try {
     const response = await directFetch("/messages/delete?contact=" + encodeURIComponent(contact), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" });
-    if (!response.ok) throw new Error("Chat could not be deleted");
+    if (!response.ok) throw new Error(messageTranslate("Chat could not be deleted"));
     if (version === conversationVersion) {
       saveChatDraft(contact, "");
       closeConversation({ focusList: true, preserveDraft: false });
@@ -953,7 +953,7 @@ async function loadCurrentSession() {
   try {
     const response = await directFetch("/auth/session", { credentials: "include", cache: "no-store" });
     if (response.status === 401) { location.replace("./"); return; }
-    if (!response.ok) throw new Error("Your account could not be loaded");
+    if (!response.ok) throw new Error(messageTranslate("Your account could not be loaded"));
     const data = await response.json().catch(() => ({}));
     const profile = data?.user || data?.claims || data?.profile || data || {};
     currentEmail = String(profile.email || profile.username || "").toLowerCase();

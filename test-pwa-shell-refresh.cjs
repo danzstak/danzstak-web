@@ -44,7 +44,7 @@ for (const [file, expected] of [
   ["profile.html", "assets/media-visibility.js?v=384"],
   ["messages.html", "assets/chat.js?v=442"],
   ["messages.html", "assets/chat.css?v=440"],
-  ["messages.html", "assets/direct-messages.js?v=472"],
+  ["messages.html", "assets/direct-messages.js?v=473"],
   ["profile.html", "assets/profile-sharing.js?v=415"],
   ["profile.html", "assets/profile-editor.js?v=475"],
   ["booking.html", "assets/booking-agent.js?v=478"],
