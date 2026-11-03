@@ -7,6 +7,8 @@ Parameters:
   ReplyDomain: {Type: String, Default: reply.danzstak.com}
   CodeBucket: {Type: String}
   CodeKey: {Type: String}
+  PushFunctionName: {Type: String, Default: DANZSTAK-Call-Signaling}
+  PushFunctionRegion: {Type: String, Default: us-west-1}
 
 Resources:
   InboundBucket:
@@ -44,6 +46,7 @@ Resources:
             Statement:
               - {Effect: Allow, Action: ['s3:GetObject'], Resource: !Sub '${InboundBucket.Arn}/booking-replies/*'}
               - {Effect: Allow, Action: ['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem','dynamodb:TransactWriteItems'], Resource: !Sub 'arn:${AWS::Partition}:dynamodb:${AuthDataRegion}:${AWS::AccountId}:table/${ToursTableName}'}
+              - {Effect: Allow, Action: ['lambda:InvokeFunction'], Resource: !Sub 'arn:${AWS::Partition}:lambda:${PushFunctionRegion}:${AWS::AccountId}:function:${PushFunctionName}'}
 
   BridgeFunction:
     Type: AWS::Lambda::Function
@@ -63,6 +66,8 @@ Resources:
           INBOUND_BUCKET: !Ref InboundBucket
           INBOUND_PREFIX: booking-replies/
           BOOKING_REPLY_DOMAIN: !Ref ReplyDomain
+          PUSH_FUNCTION_NAME: !Ref PushFunctionName
+          PUSH_FUNCTION_REGION: !Ref PushFunctionRegion
 
   SesInvokePermission:
     Type: AWS::Lambda::Permission

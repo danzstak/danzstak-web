@@ -14,20 +14,20 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; LIVE AWS MAIL AND PUSH VALID
 - Inbound routing requires the exact opaque alias, exact expected envelope sender, spam PASS, virus PASS and at least one SPF/DKIM/DMARC PASS. SES Message-ID conditional writes prevent duplicate processing. The owner/conversation update condition prevents cross-account delivery.
 - MIME parsing is capped, text is stored rather than remote HTML, and the production dependency audit reports zero known vulnerabilities.
 - Clear confirmation language plus a complete date creates a sourced appointment marker and sets `routeRecalculationRequired`. Tentative or incomplete language is `needs-clarification`; it does not become a confirmed booking.
-- Created privacy-safe pending push jobs containing only “A booking contact replied in DanzStak Chat.” Message contents are not placed in push payloads.
+- Created privacy-safe push jobs containing only “A booking contact replied in DanzStak Chat.” Message contents are not placed in push payloads. The bridge invokes the existing Web Push Lambda through a least-privilege IAM permission; that worker resolves the Cognito account server-side and applies the user's existing message-alert preference.
 
 ### AWS verification and blockers
 
 - **PASS**: AWS identity and SES configuration were read successfully on 2026-11-03. `danzstak.com` is a verified SES sending identity in `us-west-1`; bounce and complaint account suppression is enabled.
 - **BLOCKED**: SES `us-west-1` reports `ProductionAccessEnabled=false` and a 200-message/day, 1-message/second sandbox quota. Real booking contacts cannot be emailed until production access is approved and compliance controls are reviewed.
 - **BLOCKED**: `us-west-2` has no SES receipt rule set, and Route 53 has no `reply.danzstak.com` MX record. The root-domain MX still points to `inbox.danzstak.com`; this implementation deliberately does not alter it.
-- **BLOCKED**: pending generic push jobs are not yet consumed by the existing Web Push Lambda. The bridge stores privacy-safe jobs, but a real phone push has not been delivered.
+- **COMPLETE IN DEVELOPMENT; LIVE TEST BLOCKED**: the existing Web Push worker now accepts only an IAM-invoked internal booking event, validates the Cognito user ID and opaque conversation ID, resolves the account server-side, respects `messageAlerts`, and sends generic copy. A real phone push has not yet been delivered because the mail bridge is not deployed.
 - **NOT TESTED**: controlled external recipient round trip, real Message-ID threading across Gmail/Outlook, bounce/complaint events, cancellation/date-change extraction, automatic route recomputation, physical iPhone/Android rendering and cross-device live persistence.
 - No AWS resource, DNS record, receipt rule or production code was deployed or activated.
 
 ### Tests
 
-- **PASS**: opaque alias parsing, deterministic conversation isolation, spam/virus/authentication verdict gates, exact-sender enforcement, duplicate-event design, confirmed versus ambiguous date extraction, privacy-safe push content and a four-write atomic inbound transaction.
+- **PASS**: opaque alias parsing, deterministic conversation isolation, spam/virus/authentication verdict gates, exact-sender enforcement, duplicate-event design, confirmed versus ambiguous date extraction, privacy-safe push content, least-privilege push invocation and a four-write atomic inbound transaction.
 - **PASS**: auth/inbound/client syntax, Tour Manager Stripe regression, dashboard regression, booking pipeline, workspace account isolation, contact-sheet and contact-unlock regressions.
 - **PASS**: CloudFormation service validation in `us-west-2`; production dependency audit has zero known vulnerabilities.
 - Implementation guide: `docs/booking-email-chat-bridge.md`.
@@ -38,7 +38,7 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; LIVE AWS MAIL AND PUSH VALID
 
 1. Review and package the Lambda, deploy the stack in `us-west-2`, activate the receipt rule set, then add the reply-subdomain MX only for a controlled test.
 2. Obtain SES production sending access; add delivery, bounce and complaint event handling before any artist outreach.
-3. Connect pending booking push jobs to the existing Web Push worker and prove a generic notification on Android and iPhone.
+3. Prove a generic notification on subscribed Android and iPhone devices.
 4. Run a two-account controlled round trip and verify account isolation, threading, retry/idempotency, calendar evidence, cancellation/date changes and route recalculation before calling the bridge operational.
 
 ## AI Music Artist Research and EPK Builder
