@@ -3366,19 +3366,27 @@ async function reelFetch(path, options = {}, timeoutMs = 12000) {
 }
 
 let internalReelsVersion = 0;
+async function requestInternalReelMedia(reel) {
+  if (!reel?.mediaKey) return "";
+  const response = await reelFetch("/stories", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "view", mediaKey: reel.mediaKey, mediaType: "video" })
+  }).catch(() => null);
+  if (!response?.ok) return "";
+  return (await response.json().catch(() => ({}))).mediaUrl || "";
+}
 async function loadInternalReels(posts = []) {
   const version = ++internalReelsVersion;
   const videos = posts.filter(post => !hiddenPostIds.has(String(post.postId)) && post.reel === true && post.mediaType === "video" && post.mediaKey);
   const resolved = await Promise.all(videos.map(async post => {
-    let mediaUrl = post.mediaUrl || "";
-    if (!mediaUrl) {
-      const response = await reelFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", mediaKey: post.mediaKey, mediaType: "video" }) }).catch(() => null);
-      if (response?.ok) mediaUrl = (await response.json().catch(() => ({}))).mediaUrl || "";
-    }
-    return mediaUrl ? { id: post.postId, postId: post.postId, mediaUrl, platform: "DanzStak", memberId: post.userId || "", authorName: post.authorName || "DanzStak member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true } : null;
+    const reel = { id: post.postId, postId: post.postId, mediaKey: post.mediaKey, mediaUrl: post.mediaUrl || "", platform: "DanzStak", memberId: post.userId || "", authorName: post.authorName || "DanzStak member", content: post.content || "Shared video", internal: true, isOwner: post.isOwner === true };
+    if (!reel.mediaUrl) reel.mediaUrl = await requestInternalReelMedia(reel);
+    return reel;
   }));
   if (version !== internalReelsVersion) return;
-  internalReels = resolved.filter(Boolean);
+  internalReels = resolved;
   renderPlayableReels();
   placeReelsRail();
 }
@@ -3448,11 +3456,36 @@ function renderPlayableReels() {
     if (!reel.internal && !reelUrlValue) continue;
     const card = document.createElement("article");
     card.className = "reel-card";
-    const playerInfo = reel.internal ? { kind: "video", src: reel.mediaUrl } : reelPlayer(reelUrlValue);
-    if (playerInfo?.kind === "video") {
+    const playerInfo = reel.internal ? (reel.mediaUrl ? { kind: "video", src: reel.mediaUrl } : null) : reelPlayer(reelUrlValue);
+    const createInternalRecovery = () => {
+      const recovery = document.createElement("div");
+      recovery.className = "reel-player-fallback reel-media-recovery";
+      recovery.setAttribute("role", "status");
+      const status = document.createElement("span");
+      status.textContent = feedTranslate("Media is temporarily unavailable.");
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "secondary";
+      retry.textContent = feedTranslate("Retry media");
+      retry.addEventListener("click", async () => {
+        retry.disabled = true;
+        status.textContent = feedTranslate("Loading media…");
+        const mediaUrl = await requestInternalReelMedia(reel);
+        if (!mediaUrl) {
+          status.textContent = feedTranslate("Media is temporarily unavailable.");
+          retry.disabled = false;
+          return;
+        }
+        reel.mediaUrl = mediaUrl;
+        recovery.replaceWith(createInternalVideo());
+      });
+      recovery.append(status, retry);
+      return recovery;
+    };
+    const createInternalVideo = () => {
       const video = document.createElement("video");
       video.className = "reel-player";
-      video.src = playerInfo.src;
+      video.src = reel.mediaUrl;
       video.controls = true;
       video.playsInline = true;
       const rollLabel = "Video in The Roll from " + (reel.authorName || "a DanzStak member");
@@ -3461,8 +3494,28 @@ function renderPlayableReels() {
       video.muted = true;
       video.loop = true;
       video.preload = "none";
+      video.addEventListener("error", () => {
+        reel.mediaUrl = "";
+        video.replaceWith(createInternalRecovery());
+      }, { once: true });
       reelPlaybackObserver.observe(video);
-      card.appendChild(video);
+      return video;
+    };
+    if (playerInfo?.kind === "video") {
+      card.appendChild(reel.internal ? createInternalVideo() : (() => {
+        const video = document.createElement("video");
+        video.className = "reel-player";
+        video.src = playerInfo.src;
+        video.controls = true;
+        video.playsInline = true;
+        video.setAttribute("aria-label", "Video in The Roll");
+        video.autoplay = !dataSaverEnabled();
+        video.muted = true;
+        video.loop = true;
+        video.preload = "none";
+        reelPlaybackObserver.observe(video);
+        return video;
+      })());
     } else if (playerInfo?.kind === "iframe") {
       const createFrame = () => {
         const frame = document.createElement("iframe");
@@ -3484,6 +3537,8 @@ function renderPlayableReels() {
         load.addEventListener("click", () => load.replaceWith(createFrame()));
         card.appendChild(load);
       } else card.appendChild(createFrame());
+    } else if (reel.internal) {
+      card.appendChild(createInternalRecovery());
     } else {
       const unavailable = document.createElement("div");
       unavailable.className = "reel-player-fallback";
