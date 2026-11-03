@@ -349,7 +349,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=484">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=485">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
 <link rel="stylesheet" href="assets/profile-onboarding.css?v=2">
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">
@@ -391,27 +391,47 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 
 <div class="layout">
 
+  <button type="button" class="mobile-menu-backdrop" aria-label="Close menu" hidden></button>
   <aside class="left" id="mobileNavMenu" aria-label="DanzStak menu">
-    <div class="panel menu">
-      <a href="feed.html?view=feed" class="active"><span class="menu-icon" aria-hidden="true">🏠</span><span class="menu-label">Your Mix</span></a>
-      <a href="profile.html"><span class="menu-icon" aria-hidden="true">👤</span><span class="menu-label">My Profile</span></a>
-      <a href="#friends" data-feature="Friends"><span class="menu-icon" aria-hidden="true">👥</span><span class="menu-label">Friends</span></a>
-      <a href="#groups" data-feature="Groups"><span class="menu-icon" aria-hidden="true">👥</span><span class="menu-label">Tribes</span></a>
-      <a href="#photos" data-feature="Photos"><span class="menu-icon" aria-hidden="true">📷</span><span class="menu-label">Photos</span></a>
-      <a href="#videos" data-feature="Videos"><span class="menu-icon" aria-hidden="true">🎬</span><span class="menu-label">Videos</span></a>
-      <a href="#events" data-feature="Events"><span class="menu-icon" aria-hidden="true">🎤</span><span class="menu-label">Events</span></a>
-      <a href="booking.html"><span class="menu-icon" aria-hidden="true">🚌</span><span class="menu-label">Booking Agent</span></a>
-      <a href="record-stores.html"><span class="menu-icon" aria-hidden="true">💿</span><span class="menu-label">Record Stores</span></a>
-      <a href="epk.html"><span class="menu-icon" aria-hidden="true">🗂</span><span class="menu-label">EPK Builder</span></a>
-      <a href="#saved" data-feature="Saved"><span class="menu-icon" aria-hidden="true">🔖</span><span class="menu-label">Saved</span></a>
-      <a href="#settings" data-feature="Settings"><span class="menu-icon" aria-hidden="true">⚙</span><span class="menu-label">Settings</span></a>
-      <a href="support.html"><span class="menu-icon" aria-hidden="true">?</span><span class="menu-label">Support</span></a>
-      <a href="privacy.html"><span class="menu-icon" aria-hidden="true">🔒</span><span class="menu-label">Privacy Policy</span></a>
-      <a href="terms.html"><span class="menu-icon" aria-hidden="true">📄</span><span class="menu-label">Terms of Service</span></a>
-      <a class="app-menu-link" href="downloads/danzstak-android-test.apk" data-app-platform="android" download><span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.2 5.4 5.8 3a.7.7 0 0 1 1.2-.7l1.5 2.5a9.7 9.7 0 0 1 7 0L17 2.3a.7.7 0 1 1 1.2.7l-1.4 2.4A6.5 6.5 0 0 1 20 11H4a6.5 6.5 0 0 1 3.2-5.6ZM8 8.2a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Zm8 0a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8ZM4 12h16v6.2a1.8 1.8 0 0 1-1.8 1.8H17v2a1 1 0 0 1-2 0v-2H9v2a1 1 0 0 1-2 0v-2H5.8A1.8 1.8 0 0 1 4 18.2V12Z"/></svg></span><span class="menu-label">Android Preview</span></a>
-      <a class="app-menu-link" href="#install-danzstak" data-app-platform="apple"><span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16.7 12.8c0-2.5 2-3.7 2.1-3.8a4.6 4.6 0 0 0-3.6-2c-1.5-.2-3 .9-3.8.9-.8 0-2-1-3.3-.9A4.9 4.9 0 0 0 4 9.5c-1.8 3.1-.5 7.6 1.2 10.1.9 1.2 1.9 2.6 3.2 2.5 1.3 0 1.8-.8 3.4-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.2 3.1-2.5a10.9 10.9 0 0 0 1.4-2.9 4.4 4.4 0 0 1-3-3.9ZM14.2 5.4a4.5 4.5 0 0 0 1-3.3 4.6 4.6 0 0 0-3 1.6 4.3 4.3 0 0 0-1.1 3.2 3.8 3.8 0 0 0 3.1-1.5Z"/></svg></span><span class="menu-label">Apple App</span></a>
-      <button type="button" class="menu-action logout-menu-link" data-logout><span class="menu-icon" aria-hidden="true">🚪</span><span class="menu-label">Logout</span></button>
-    </div>
+    <header class="menu-drawer-header">
+      <a class="menu-drawer-brand" href="feed.html?view=feed" aria-label="DanzStak home"><img src="assets/danzstak-logo.png" alt="DanzStak"></a>
+      <button type="button" class="mobile-menu-close" aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <a class="menu-profile" href="profile.html" aria-label="Open my profile">
+        <span class="menu-profile-avatar" id="menuProfileAvatar" aria-hidden="true">D</span>
+        <span class="menu-profile-copy"><strong id="menuProfileName">My Profile</strong><small id="menuProfileHandle">View your profile</small></span>
+        <svg class="menu-profile-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+      </a>
+    </header>
+    <nav class="panel menu" aria-label="DanzStak navigation">
+      <section class="menu-section" aria-labelledby="menuSocialHeading">
+        <h2 id="menuSocialHeading">Social</h2>
+        <a href="feed.html?view=feed" class="active"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></svg><span class="menu-label">Your Mix</span></a>
+        <a href="profile.html"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span class="menu-label">My Profile</span></a>
+        <a href="#friends" data-feature="Friends"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5v1"/></svg><span class="menu-label">Friends</span></a>
+        <a href="#groups" data-feature="Groups"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 21v-3a6 6 0 0 1 12 0v3M14 16a5 5 0 0 1 8 4v1"/></svg><span class="menu-label">Tribes</span></a>
+        <a href="messages.html"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11a8 8 0 0 1-8 8H7l-5 3V11a9 9 0 0 1 19 0Z"/><path d="M7 10h10M7 14h7"/></svg><span class="menu-label">Chats</span></a>
+        <a href="#photos" data-feature="Photos"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 15-5-5L5 19"/></svg><span class="menu-label">Photos</span></a>
+        <a href="#videos" data-feature="Videos"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="m17 10 4-2v8l-4-2zM8 9l5 3-5 3z"/></svg><span class="menu-label">Videos</span></a>
+      </section>
+      <section class="menu-section" aria-labelledby="menuMusicHeading">
+        <h2 id="menuMusicHeading">Music &amp; Entertainment</h2>
+        <a href="#events" data-feature="Events"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/></svg><span class="menu-label">Events</span></a>
+        <a href="booking.html"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 18v2M17 18v2M3 11h18M7 9h3M7 15h.01M17 15h.01"/></svg><span class="menu-label">Booking Agent</span></a>
+        <a href="record-stores.html"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v6"/></svg><span class="menu-label">Record Stores</span></a>
+        <a href="epk.html"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6l2 3h8v13H4z"/><path d="M8 12h8M8 16h6"/></svg><span class="menu-label">EPK Builder</span></a>
+      </section>
+      <section class="menu-section" aria-labelledby="menuAccountHeading">
+        <h2 id="menuAccountHeading">Account</h2>
+        <a href="#saved" data-feature="Saved"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span class="menu-label">Saved</span></a>
+        <a href="#settings" data-feature="Settings"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 9 19.37a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.63 15 1.7 1.7 0 0 0 3.08 14H3v-4h.08A1.7 1.7 0 0 0 4.63 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.63 1.7 1.7 0 0 0 10 3.08V3h4v.08A1.7 1.7 0 0 0 15 4.63a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.37 9 1.7 1.7 0 0 0 20.92 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z"/></svg><span class="menu-label">Settings</span></a>
+        <a href="support.html"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.7 9a2.5 2.5 0 1 1 3.4 2.33c-.75.3-1.1.73-1.1 1.67M12 17h.01"/></svg><span class="menu-label">Support</span></a>
+        <a href="privacy.html"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span class="menu-label">Privacy Policy</span></a>
+        <a href="terms.html"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><span class="menu-label">Terms of Service</span></a>
+        <a class="app-menu-link" href="downloads/danzstak-android-test.apk" data-app-platform="android" download><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4M9 5h6"/></svg><span class="menu-label">Android Preview</span></a>
+        <a class="app-menu-link" href="#install-danzstak" data-app-platform="apple"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span class="menu-label">Apple App</span></a>
+        <button type="button" class="menu-action logout-menu-link" data-logout><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M8 12h10"/></svg><span class="menu-label">Logout</span></button>
+      </section>
+    </nav>
   </aside>
 
   <main id="yourMixMain" tabindex="-1">
@@ -1694,7 +1714,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=504" defer></script>
+<script src="assets/feed-enhancements.js?v=505" defer></script>
 <script src="assets/profile-onboarding.js?v=6" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=297" defer></script>

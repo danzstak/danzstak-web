@@ -1850,28 +1850,79 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
 const workspaceRoutes = new Map(["Friends", "Groups", "Photos", "Videos", "Events", "Saved", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
 const mobileMenuControl = document.querySelector(".mobile-menu-control");
 const mobileNavMenu = document.getElementById("mobileNavMenu");
+const mobileMenuClose = mobileNavMenu?.querySelector(".mobile-menu-close");
+const mobileMenuBackdrop = document.querySelector(".mobile-menu-backdrop");
+let mobileMenuPreviousFocus = null;
+function mobileMenuFocusable() {
+  if (!mobileNavMenu) return [];
+  return [...mobileNavMenu.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+    .filter(control => control.getClientRects().length && getComputedStyle(control).visibility !== "hidden");
+}
 function setMobileMenu(open) {
   const shouldOpen = Boolean(open && matchMedia("(max-width: 700px)").matches);
   const wasOpen = document.body.classList.contains("mobile-menu-open");
   document.body.classList.toggle("mobile-menu-open", shouldOpen);
   mobileMenuControl?.setAttribute("aria-expanded", String(shouldOpen));
-  if (shouldOpen) mobileNavMenu?.querySelector("a")?.focus({ preventScroll: true });
-  else if (wasOpen) mobileMenuControl?.focus({ preventScroll: true });
+  if (mobileMenuBackdrop) mobileMenuBackdrop.hidden = !shouldOpen;
+  if (shouldOpen) {
+    mobileMenuPreviousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : mobileMenuControl;
+    mobileNavMenu?.setAttribute("role", "dialog");
+    mobileNavMenu?.setAttribute("aria-modal", "true");
+    mobileNavMenu?.setAttribute("aria-label", "DanzStak navigation menu");
+    mobileMenuClose?.focus({ preventScroll: true });
+  } else {
+    mobileNavMenu?.removeAttribute("role");
+    mobileNavMenu?.removeAttribute("aria-modal");
+    mobileNavMenu?.setAttribute("aria-label", "DanzStak menu");
+    if (wasOpen) (mobileMenuPreviousFocus?.isConnected ? mobileMenuPreviousFocus : mobileMenuControl)?.focus({ preventScroll: true });
+    mobileMenuPreviousFocus = null;
+  }
 }
 mobileMenuControl?.addEventListener("click", () => setMobileMenu(!document.body.classList.contains("mobile-menu-open")));
+mobileMenuClose?.addEventListener("click", () => setMobileMenu(false));
+mobileMenuBackdrop?.addEventListener("click", () => setMobileMenu(false));
 mobileNavMenu?.addEventListener("click", event => {
-  if (document.body.classList.contains("mobile-menu-open") && event.target.closest("a")) setMobileMenu(false);
+  if (document.body.classList.contains("mobile-menu-open") && event.target.closest("a,.menu-action")) setMobileMenu(false);
 });
 document.addEventListener("click", event => {
   if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !mobileMenuControl?.contains(event.target)) setMobileMenu(false);
 });
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape" && document.body.classList.contains("mobile-menu-open")) setMobileMenu(false);
+  if (!document.body.classList.contains("mobile-menu-open")) return;
+  if (event.key === "Escape") { event.preventDefault(); setMobileMenu(false); return; }
+  if (event.key !== "Tab") return;
+  const controls = mobileMenuFocusable();
+  if (!controls.length) return;
+  const first = controls[0], last = controls[controls.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 });
 const desktopMenuQuery = matchMedia("(min-width: 701px)");
 const closeMobileMenuOnDesktop = event => { if (event.matches) setMobileMenu(false); };
 if (desktopMenuQuery.addEventListener) desktopMenuQuery.addEventListener("change", closeMobileMenuOnDesktop);
 else desktopMenuQuery.addListener(closeMobileMenuOnDesktop);
+
+function hydrateMobileMenuProfile() {
+  const avatar = document.getElementById("menuProfileAvatar");
+  const name = document.getElementById("menuProfileName");
+  const handle = document.getElementById("menuProfileHandle");
+  if (!avatar || !name || !handle) return;
+  loadCommentViewerProfile().then(profile => {
+    if (!avatar.isConnected) return;
+    const displayName = String(profile.name || profile.displayName || profile.preferred_username || "DanzStak member").trim();
+    const userHandle = String(profile.handle || profile.preferred_username || profile.username || "").trim().replace(/^@/, "");
+    name.textContent = displayName || "DanzStak member";
+    handle.textContent = userHandle ? "@" + userHandle : "View your profile";
+    avatar.textContent = (displayName || "D").charAt(0).toUpperCase();
+    if (!profile.picture) return;
+    const image = new Image();
+    image.alt = "";
+    image.referrerPolicy = "no-referrer";
+    image.onload = () => { if (avatar.isConnected) avatar.replaceChildren(image); };
+    image.src = profile.picture;
+  });
+}
+queueMicrotask(hydrateMobileMenuProfile);
 let notificationDrawerPreviousFocus = null;
 let notificationDrawer = null;
 let notificationUnderlyingWorkspace = "";

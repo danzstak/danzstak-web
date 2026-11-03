@@ -26,7 +26,7 @@ for (const action of ["Like", "Dislike", "Comment", "Share"]) {
 }
 
 assert.ok(feed.includes('class="topnav"'), "The familiar five-item top navigation must remain in the real feed");
-assert.ok(feed.includes('feed-enhancements.css?v=484'), "The feed must request the redesigned stylesheet release");
+assert.ok(feed.includes('feed-enhancements.css?v=485'), "The feed must request the redesigned stylesheet release");
 assert.doesNotMatch(css.slice(css.lastIndexOf("/* Polished mobile feed")), /font-size:[0-8]px/, "The redesign must not solve space use with unreadably tiny text");
 
 console.log("Mobile feed redesign checks passed: five-action row, compact navigation/cards/comments/composer, safe areas, and responsive media.");
