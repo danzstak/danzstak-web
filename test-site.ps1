@@ -641,7 +641,7 @@ if (-not $directMessagesJs.Contains('event.source === window.parent') -or
 if (-not $directMessagesJs.Contains('type: "danzstak-chat-read"') -or -not $feed.Contains('event.data?.type === "danzstak-chat-read"')) {
   Add-Failure 'Notifications: reading an embedded chat does not refresh the unread count'
 }
-foreach ($partialNotificationBehavior in @('notificationSourceCounts', 'if (succeeded) updateNotificationCount', 'if (!response?.ok && !engagementResponse?.ok)')) {
+foreach ($partialNotificationBehavior in @('notificationSourceCounts', 'if (succeeded) updateNotificationCount', 'if (!socialSource.available && !engagementSource.available)', 'Some notifications are temporarily unavailable.', 'Retry notifications')) {
   if (-not $feedEnhancementsJs.Contains($partialNotificationBehavior)) { Add-Failure "Notifications: partial API failure handling is missing: $partialNotificationBehavior" }
 }
 if (-not $directMessagesJs.Contains('Promise.allSettled([') -or

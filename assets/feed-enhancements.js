@@ -91,6 +91,16 @@ function formatReactionNotification(displayName, reaction) {
   return `${displayName} ${phrases[label] || "reacted to your post."}`;
 }
 
+async function readArrayResponse(response, key) {
+  if (!response?.ok) return { available: false, items: [] };
+  try {
+    const data = await response.json();
+    return { available: true, items: Array.isArray(data?.[key]) ? data[key] : [] };
+  } catch {
+    return { available: false, items: [] };
+  }
+}
+
 async function refreshNotificationCount() {
   if (document.hidden || notificationCountLoading) return;
   if (readSections().Settings?.notifications === false) {
@@ -1192,14 +1202,21 @@ function renderWorkspace(name) {
         const directoryResponse = results[1].status === "fulfilled" ? results[1].value : null;
         const engagementResponse = results[2].status === "fulfilled" ? results[2].value : null;
         const friendsResponse = results[3].status === "fulfilled" ? results[3].value : null;
-        if (!response?.ok && !engagementResponse?.ok) throw new Error("Notifications could not be loaded");
-        const data = response?.ok ? await response.json() : { notifications: [] };
-        const engagement = engagementResponse?.ok ? (await engagementResponse.json()).notifications || [] : [];
-        notificationSourceCounts.social = response?.ok ? (data.notifications || []).length : notificationSourceCounts.social;
-        notificationSourceCounts.engagement = engagementResponse?.ok ? engagement.filter(notice => notice.unread !== false).length : notificationSourceCounts.engagement;
-        data.notifications = [...(data.notifications || []), ...engagement].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
-        const directory = directoryResponse?.ok ? (await directoryResponse.json()).users || [] : [];
-        const friends = friendsResponse?.ok ? (await friendsResponse.json()).friends || [] : [];
+        const [socialSource, engagementSource, directorySource, friendsSource] = await Promise.all([
+          readArrayResponse(response, "notifications"),
+          readArrayResponse(engagementResponse, "notifications"),
+          readArrayResponse(directoryResponse, "users"),
+          readArrayResponse(friendsResponse, "friends")
+        ]);
+        if (!socialSource.available && !engagementSource.available) throw new Error("Notifications could not be loaded");
+        const data = { notifications: socialSource.items };
+        const engagement = engagementSource.items;
+        notificationSourceCounts.social = socialSource.available ? data.notifications.length : notificationSourceCounts.social;
+        notificationSourceCounts.engagement = engagementSource.available ? engagement.filter(notice => notice.unread !== false).length : notificationSourceCounts.engagement;
+        data.notifications = [...data.notifications, ...engagement].sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+        const directory = directorySource.items;
+        const friends = friendsSource.items;
+        const notificationSourcesComplete = socialSource.available && engagementSource.available;
         const people = new Map();
         for (const friend of friends) {
           const email = String(friend.email || "").toLowerCase();
@@ -1214,7 +1231,23 @@ function renderWorkspace(name) {
         updateNotificationCount(Object.values(notificationSourceCounts).reduce((total, count) => total + (count || 0), 0));
         list.replaceChildren();
         list.setAttribute("aria-busy", "false");
-        if (!(data.notifications || []).length) {
+        const appendAvailabilityWarning = () => {
+          const warning = document.createElement("p");
+          warning.className = "muted notification-source-warning";
+          warning.setAttribute("role", "status");
+          warning.textContent = feedTranslate("Some notifications are temporarily unavailable.");
+          const retry = document.createElement("button");
+          retry.type = "button";
+          retry.className = "secondary";
+          retry.textContent = feedTranslate("Retry notifications");
+          retry.addEventListener("click", () => renderWorkspace("Notifications"));
+          list.append(warning, retry);
+        };
+        if (!data.notifications.length) {
+          if (!notificationSourcesComplete) {
+            appendAvailabilityWarning();
+            return;
+          }
           const empty = document.createElement("p");
           empty.className = "muted";
           empty.textContent = feedTranslate("No new notifications.");
@@ -1317,6 +1350,7 @@ function renderWorkspace(name) {
           row.append(avatar, copy, actions);
           list.appendChild(row);
         }
+        if (!notificationSourcesComplete) appendAvailabilityWarning();
         if (engagement.length) {
           postActionFetch("/engagement-notifications/read", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: "{}" })
             .then(marked => { if (marked.ok) { notificationSourceCounts.engagement = 0; updateNotificationCount((notificationSourceCounts.social || 0)); } })
