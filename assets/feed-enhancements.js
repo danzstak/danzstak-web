@@ -1,5 +1,7 @@
 "use strict";
 
+(() => {
+
 const devicePreferenceMemory = new Map();
 
 try {
@@ -3701,3 +3703,5 @@ new MutationObserver(records => {
   filterFeedPosts();
   refreshFeedMediaWorkspace(records);
 }).observe(document.getElementById("feed"), { childList: true, subtree: true });
+
+})();

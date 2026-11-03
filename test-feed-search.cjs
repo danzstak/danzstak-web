@@ -16,7 +16,7 @@ const context = vm.createContext({ window:{addEventListener(){}}, document: {
   refreshFeedMediaWorkspace() {}
 });
 vm.runInContext(code, context);
-vm.runInContext(source.slice(source.lastIndexOf('new MutationObserver(records => {')), context);
+vm.runInContext(source.slice(source.lastIndexOf('new MutationObserver(records => {'), source.lastIndexOf('})();')), context);
 search.value = 'MUSIC'; search.input();
 assert.equal(posts[0].hidden, false);
 assert.equal(posts[1].hidden, true);
