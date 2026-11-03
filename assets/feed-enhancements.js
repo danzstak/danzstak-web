@@ -3414,7 +3414,11 @@ const reelPlaybackObserver = new IntersectionObserver(entries => {
   for (const entry of entries) {
     const video = entry.target;
     video.dataset.inView = String(entry.isIntersecting && entry.intersectionRatio >= 0.6);
-    if (video.dataset.inView === "true" && !document.hidden && !dataSaverEnabled()) video.play().catch(() => {});
+    if (video.dataset.inView === "true" && !document.hidden && !dataSaverEnabled()) {
+      video.dataset.loadRequested = "true";
+      video.preload = "auto";
+      video.play().catch(() => {});
+    }
     else video.pause();
   }
 }, { threshold: [0, 0.6, 1] });
@@ -3549,12 +3553,32 @@ function renderPlayableReels() {
     const card = document.createElement("article");
     card.className = "reel-card";
     const playerInfo = reel.internal ? (reel.mediaUrl ? { kind: "video", src: reel.mediaUrl } : null) : reelPlayer(reelUrlValue);
-    const createInternalRecovery = () => {
+    const watchRollVideo = (video, onTimeout) => {
+      let watchdog = 0;
+      const clearWatchdog = () => { if (watchdog) clearTimeout(watchdog); watchdog = 0; };
+      const armWatchdog = () => {
+        if (video.readyState >= 2) { clearWatchdog(); return; }
+        clearWatchdog();
+        watchdog = setTimeout(() => {
+          watchdog = 0;
+          if (video.dataset.loadRequested !== "true") return;
+          onTimeout();
+        }, 15000);
+      };
+      video.addEventListener("pointerdown", () => { video.dataset.loadRequested = "true"; }, { passive: true });
+      video.addEventListener("loadstart", armWatchdog);
+      video.addEventListener("stalled", armWatchdog);
+      video.addEventListener("waiting", armWatchdog);
+      video.addEventListener("loadeddata", clearWatchdog, { once: true });
+      video.addEventListener("error", clearWatchdog, { once: true });
+      return clearWatchdog;
+    };
+    const createInternalRecovery = (message = "Media is temporarily unavailable.") => {
       const recovery = document.createElement("div");
       recovery.className = "reel-player-fallback reel-media-recovery";
       recovery.setAttribute("role", "status");
       const status = document.createElement("span");
-      status.textContent = feedTranslate("Media is temporarily unavailable.");
+      status.textContent = feedTranslate(message);
       const retry = document.createElement("button");
       retry.type = "button";
       retry.className = "secondary";
@@ -3586,7 +3610,14 @@ function renderPlayableReels() {
       video.muted = true;
       video.loop = true;
       video.preload = "none";
+      const clearWatchdog = watchRollVideo(video, () => {
+        reelPlaybackObserver.unobserve(video);
+        reel.mediaUrl = "";
+        video.replaceWith(createInternalRecovery("Media is taking longer than expected."));
+      });
       video.addEventListener("error", () => {
+        clearWatchdog();
+        reelPlaybackObserver.unobserve(video);
         reel.mediaUrl = "";
         video.replaceWith(createInternalRecovery());
       }, { once: true });
@@ -3594,7 +3625,21 @@ function renderPlayableReels() {
       return video;
     };
     if (playerInfo?.kind === "video") {
-      card.appendChild(reel.internal ? createInternalVideo() : (() => {
+      const createExternalRecovery = (message = "Media is temporarily unavailable.") => {
+        const recovery = document.createElement("div");
+        recovery.className = "reel-player-fallback reel-media-recovery";
+        recovery.setAttribute("role", "status");
+        const status = document.createElement("span");
+        status.textContent = feedTranslate(message);
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "secondary";
+        retry.textContent = feedTranslate("Retry media");
+        retry.addEventListener("click", () => recovery.replaceWith(createExternalVideo()));
+        recovery.append(status, retry);
+        return recovery;
+      };
+      const createExternalVideo = () => {
         const video = document.createElement("video");
         video.className = "reel-player";
         video.src = playerInfo.src;
@@ -3605,9 +3650,19 @@ function renderPlayableReels() {
         video.muted = true;
         video.loop = true;
         video.preload = "none";
+        const clearWatchdog = watchRollVideo(video, () => {
+          reelPlaybackObserver.unobserve(video);
+          video.replaceWith(createExternalRecovery("Media is taking longer than expected."));
+        });
+        video.addEventListener("error", () => {
+          clearWatchdog();
+          reelPlaybackObserver.unobserve(video);
+          video.replaceWith(createExternalRecovery());
+        }, { once: true });
         reelPlaybackObserver.observe(video);
         return video;
-      })());
+      };
+      card.appendChild(reel.internal ? createInternalVideo() : createExternalVideo());
     } else if (playerInfo?.kind === "iframe") {
       const createFrame = () => {
         const frame = document.createElement("iframe");
