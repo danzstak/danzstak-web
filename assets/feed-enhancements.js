@@ -2895,6 +2895,13 @@ function addPostDeleteButton(post) {
     const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (current + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
     items[next].focus();
   });
+  menu.addEventListener("focusout", () => {
+    requestAnimationFrame(() => {
+      if (menu.hidden || menu.contains(document.activeElement) || document.activeElement === toggle) return;
+      menu.hidden = true;
+      toggle.setAttribute("aria-expanded", "false");
+    });
+  });
   post.append(toggle, menu);
 }
 

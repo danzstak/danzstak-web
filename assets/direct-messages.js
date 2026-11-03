@@ -927,6 +927,12 @@ conversationHeaderActions.more?.addEventListener("click", event => {
 });
 headerDeleteChat?.addEventListener("click", () => { closeConversationMenu(); deleteChat?.click(); });
 conversationMenu?.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); closeConversationMenu({ restoreFocus: true }); } });
+conversationMenu?.addEventListener("focusout", () => {
+  requestAnimationFrame(() => {
+    if (conversationMenu.hidden || conversationMenu.contains(document.activeElement) || document.activeElement === conversationHeaderActions.more) return;
+    closeConversationMenu();
+  });
+});
 document.addEventListener("click", event => { if (!conversationMenu?.hidden && !conversationHeader.contains(event.target)) closeConversationMenu(); });
 document.getElementById("closeConversation")?.addEventListener("click", () => closeConversation({ focusList: true }));
 
