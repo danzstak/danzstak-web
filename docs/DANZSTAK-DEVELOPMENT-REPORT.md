@@ -1,8 +1,18 @@
 # DANZSTAK development report
 
-## ChatGPT status bridge — 2026-11-03
+## ChatGPT status bridge — 2026-11-04
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
+
+### Publication verification — 2026-11-04
+
+- **VERIFIED — repository:** local `danzstak-patch-1` and `origin/danzstak-patch-1` were synchronized before this report update. The verified source revision was `03bedf89f0065890ebef2db9da0036e55dca8fdb`; the report-publication commit is the branch head immediately following that revision and is supplied with the GitHub report URL after push.
+- **VERIFIED — Stripe account and catalog:** a fresh authenticated Stripe API read identified account `acct_1RRZmKFgtfNMBXOV` with dashboard name **SFScoop**. The three Test Mode Products and Prices listed below are active, `livemode: false`, USD, one-time, have the expected amounts, and each Price points to its documented Product.
+- **VERIFIED — webhook registration:** Stripe endpoint `we_1UXoPzFgtfNMBXOV05UR9jPa` is enabled in Test Mode at `https://api.danzstak.com/tour-manager/stripe/webhook` with exactly the five required events documented below.
+- **VERIFIED — AWS deployment:** `DANZSTAK-TourManager-Stripe-Test` in `us-west-1` is `Active`, its last update is `Successful`, its runtime is Node.js 20, and `TOUR_MANAGER_LIVE_PAYMENTS=false`. API Gateway still exposes `POST /tour-manager/stripe/webhook`.
+- **VERIFIED — secret availability:** AWS Secrets Manager contains both `danzstak/stripe/secret-key` and the separately stored `danzstak/stripe/webhook-secret`. Secret values were neither displayed nor written to this report.
+- **VERIFIED — signature rejection:** a fresh unsigned/invalidly signed request to the deployed HTTPS endpoint returned HTTP 400. This confirms fail-closed signature handling at the public receiver; it does not replace the pending manual Stripe-hosted successful-card and refund tests.
+- **UNCHANGED OWNER ACTION:** complete one Stripe-hosted Test Mode Checkout and one Test Mode refund for each purchase type, then inspect the Stripe delivery record and matching DynamoDB entitlement. Until those controlled tests pass, Live payments must remain disabled and this branch must not be merged into `main`.
 
 ### Stripe and AWS payment configuration
 
