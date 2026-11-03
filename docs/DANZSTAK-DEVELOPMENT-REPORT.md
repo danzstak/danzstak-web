@@ -47,6 +47,9 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 - The existing body-scroll lock, dimmed backdrop, initial-link focus and opener-focus restoration remain intact. History stores only a boolean menu marker and no user, route or menu-label data.
 - Verification: **9 of 9** focused mobile navigation, notification coexistence, desktop navigation and PWA cache checks passed.
 - Implementation commit: `d6602a6bdb131ee8828a9a8661f86edff8416103` on `danzstak-patch-1`.
+- Profile-header follow-up (2026-11-03): the existing drawer now starts with a compact account header populated from the authenticated member's profile name and resilient avatar, plus a dedicated phone-only close control. Navigation is grouped under Social, Music & Entertainment, and Account without removing or rerouting any working destination. The drawer uses an 86vw/340px maximum width, safe-area padding, independent overscroll containment, existing Back/Escape/outside-click dismissal, and the same PWA cache-refresh path.
+- Verification: all **238 of 238** JavaScript regression programs pass, along with release verification, the 11-page site smoke suite, infrastructure template/Lambda syntax validation, and `git diff --check`. A locally served visual inspection confirmed the profile shortcut and grouped line-icon rail on desktop; focused mobile tests verify the off-canvas maximum width, safe area, close control, history behavior and touch targets. This remains **NOT DEPLOYED**.
+- Profile-header implementation commit: `e2d5d01b58eed580bafac3e23b811912eb8cea94` on `danzstak-patch-1`.
 
 ## Mobile notification navigation
 
