@@ -16,6 +16,11 @@ assert.match(styles, /\.edit-profile-panel input,\.edit-profile-panel textarea,\
   "profile inputs and privacy selectors should not overflow their panel");
 assert.match(script, /profile-identity-fields[^]*profileEditorWords\.name[^]*profile-username[^]*More profile details/,
   "the visible name should come first and the optional username should be collapsed");
+const panelTemplate = script.slice(script.indexOf("panel.innerHTML"), script.indexOf("// Keep profile controls"));
+assert.equal((panelTemplate.match(/data-profile-language/g) || []).length, 1,
+  "the profile editor should expose one unambiguous language control");
+assert.ok(panelTemplate.indexOf("data-profile-language") < panelTemplate.indexOf("profile-username"),
+  "language should stay visible beside the member name instead of being buried in advanced details");
 assert.match(script, /<details class="profile-edit-section" data-profile-privacy>/,
   "privacy and tagging should be grouped instead of crowding the basic identity form");
 assert.match(script, /mediaSummary\.textContent = "Photos and video"/,
