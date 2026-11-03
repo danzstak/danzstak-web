@@ -16,9 +16,11 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 
 - Opening The Roll fullscreen on a phone now creates a privacy-safe browser-history entry. Android/iPhone Back closes the viewer and returns to the same Your Mix position; Forward restores fullscreen without creating a history loop.
 - The close button and Escape use the same history-safe path. Desktop behavior remains direct and removes a stale phone marker if the viewport changes while fullscreen is open.
+- Fullscreen now moves to a top-level modal layer, exposes a dialog named by the visible “The Roll” heading, makes the background inert, hides off-screen import controls and contains keyboard focus. Closing restores every background region's prior inert state and returns The Roll to its exact feed position.
 - Existing autoplay, data-saver handling, site-wide sound preference, accessible player labels, URL validation, network recovery and media refresh behavior remain intact. History stores only a boolean marker and no video URL, title, author or account data.
-- Verification: **11 of 11** focused Roll, video, navigation and PWA regression programs passed, along with JavaScript syntax and whitespace checks. A locally served phone-width browser check confirmed Open fullscreen, Back-to-feed with launcher focus restored, and Forward-to-fullscreen.
+- Verification: **15 of 15** focused Roll, video, navigation, CSP and PWA regression programs passed, along with JavaScript syntax and whitespace checks. A locally served phone-width browser check confirmed that only The Roll remains in the accessibility tree while fullscreen, Back restores the complete feed and launcher focus, and Forward restores the isolated viewer.
 - Implementation commit: `e617d95d033133054eb5ed119f0f66e63c359f0f` on `danzstak-patch-1`.
+- Modal-accessibility follow-up: `c89b130af8f70c42a8983e4fa4b78482d78a3f76`.
 
 ## Mobile navigation drawer
 
