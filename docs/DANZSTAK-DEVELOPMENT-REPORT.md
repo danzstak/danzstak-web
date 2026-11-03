@@ -85,6 +85,19 @@ Status as of 2026-11-03: test infrastructure implemented; live payments disabled
 - Planned entitlement: a verified successful payment will create one idempotent phone-activation entitlement. It will not add booking-email credits. Activation will remain pending until the telecommunications provider confirms provisioning.
 - Cost boundary: the one-time activation fee will not be represented as covering number rental, calls, messages, carrier charges, recurring costs, or permanent number availability. Those costs and any renewal policy must be independently configurable before launch.
 
+### Three-level musician pricing page
+
+- Status: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+- Implementation commit: `2478e232226dbb273be1143f7c81cc81f066dcf2` on `codex/tour-manager-production`.
+- Added a dedicated, light-mode pricing page for Beginner — The Bedroom, Intermediate — The Garage, and Professional — The Rehearsal Room. Desktop uses three equal-height cards; mobile stacks the cards without horizontal overflow.
+- Added three original responsive card images and optimized them as 640×480 WebP files. File sizes are 39,514 bytes, 60,624 bytes, and 51,668 bytes, each below the enforced 100 KB budget. Images lazy-load and declare intrinsic dimensions to reduce transfer time and layout shift.
+- The Intermediate button returns the artist to club discovery because its existing `$0.75` checkout requires a saved venue with an available public direct contact. It reuses Stripe Price `price_1UXkB5FgtfNMBXOVVeUOGJjX` and does not create a second payment path.
+- The Professional button reuses the existing Tour Manager checkout and Stripe Price `price_1UXjMtFgtfNMBXOVCLeEk8vI`. The page accurately identifies the current `$1.50` purchase as one approved booking-email credit. Replies in Chat, automatic confirmed-date calendar/routing, and Tour Book/PDF remain clearly labeled **Coming Soon**.
+- Added navigation from the Booking Agent and booking pipeline, PWA shell caching, and an automated regression test for plan copy, Stripe Price mappings, existing-flow links, truthful feature labels, responsive layout, lazy loading, intrinsic dimensions, and the image-size budget.
+- Tests passed: `test-booking-pricing.cjs`, `test-booking-contact-unlock.cjs`, `test-tour-manager-billing.cjs`, `test-tour-manager-dashboard.cjs`, the 13-page site smoke suite, and `git diff --check`. Desktop and narrow-screen static renders were visually inspected; no payment call was made.
+- Preview references: `booking-pricing.html`, `assets/pricing-bedroom.webp`, `assets/pricing-garage.webp`, and `assets/pricing-rehearsal-room.webp`.
+- Deployment: no production deployment was performed. The page is prepared for review on `codex/tour-manager-production`.
+
 ### Required test configuration
 
 The isolated Lambda is `DANZSTAK-TourManager-Stripe-Test`. It currently has live payments disabled and no Stripe secrets.
