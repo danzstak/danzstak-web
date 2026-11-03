@@ -31,6 +31,7 @@ Configure these settings on `DANZSTAK-Auth-API`, preserving all existing environ
 | --- | --- |
 | `PHONE_TABLE` | `DANZSTAK-Phone` (deployment sets this) |
 | `PHONE_ENABLED` | `true` for the test pilot; omit or set `false` to disable the Phone API |
+| `PHONE_TEST_USER_IDS` | Comma-separated Cognito user sub IDs allowed into sandbox Phone testing; required with a test Stripe key. Other members cannot activate using test cards. |
 | `CLOUDFLARE_TURN_KEY_ID` | TURN key ID |
 | `CLOUDFLARE_TURN_API_TOKEN` | TURN API token; backend secret |
 | `STRIPE_SECRET_KEY` | Sandbox/test secret API key initially |

@@ -129,6 +129,7 @@ export function createPhoneService({ db, commands, authenticate, accountForSub, 
     const id = await authenticate(event);
     if (!id) return reply(401, { error: 'Authentication required' });
     if (env.PHONE_ENABLED !== 'true') return reply(503, { error: 'DANZSTAK Phone is not available yet' });
+    if (env.STRIPE_SECRET_KEY?.startsWith('sk_test_') && !String(env.PHONE_TEST_USER_IDS || '').split(',').map(value => value.trim()).includes(id)) return reply(503, { error: 'DANZSTAK Phone is currently in a private test' });
     const account = await read(ownerKey(id));
     if (method === 'GET' && path === '/phone') return reply(200, { number: account?.number?.S || null, activationCents: 300, currency: 'usd', checkoutAvailable: paymentsReady(), testMode: !env.STRIPE_SECRET_KEY?.startsWith('sk_live_') });
     if (method === 'POST' && path === '/phone/checkout') return checkout(id);
