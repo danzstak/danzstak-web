@@ -37,6 +37,7 @@ import {
   GeoRoutesClient,
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
+import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
@@ -83,6 +84,14 @@ const sessionCookieName = "__Host-danzstak_session";
 const oauthCookieName = "__Host-danzstak_oauth";
 const legalCookieName = "__Host-danzstak_legal";
 const legalVersion = "2026-10-26";
+
+const tourManagerBilling = createTourManagerBilling({
+  db,
+  commands: { GetItemCommand, PutItemCommand, TransactWriteItemsCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: toursTable
+});
 
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -3680,6 +3689,11 @@ export const handler = async event => {
   const path = event?.rawPath;
 
   try {
+    if (path?.startsWith("/tour-manager/")) {
+      const billingResponse = await tourManagerBilling(event);
+      if (billingResponse) return billingResponse;
+    }
+
     if (method === "GET" && path === "/auth/login") {
       return await startLogin("login");
     }
