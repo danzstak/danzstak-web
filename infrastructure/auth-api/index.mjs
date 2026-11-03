@@ -2236,7 +2236,7 @@ async function searchRecordStores(event) {
   } catch (error) {
     if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });
     console.error("Record store search failed", { name: error.name });
-    return reply(502, { error: "Record store search is temporarily unavailable." });
+    return reply(502, { error: "Record store search is temporarily unavailable.", providers: error.providerStatuses || [] });
   }
 }
 

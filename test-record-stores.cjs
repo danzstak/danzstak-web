@@ -39,5 +39,7 @@ assert.match(client, /record-store-workspace/, "record placement work should sav
 assert.match(client, /fetchWithTimeout/, "record-store workspace requests must recover from network stalls");
 assert.match(client, /DanzStak cannot connect right now/, "record-store workspace failures must use actionable product language");
 assert.match(client, /Saving took too long and may have completed/, "timed-out saves must warn against blindly creating duplicate writes");
+assert.match(api, /Record store search is temporarily unavailable\.[\s\S]*providers: error\.providerStatuses \|\| \[\]/, "total record-store provider failure should return provider diagnostics instead of a false zero");
+assert.match(client, /providerStatusText[\s\S]*if \(!response\.ok\)[\s\S]*providerText/, "record-store errors should name unavailable providers to the artist");
 assert.match(api, /const recordStoreWorkspaceId/, "record-placement data should have an isolated owner workspace");
 console.log("Record Store checks passed: menu, standalone search, route discovery, validation, attribution, and safe rendering.");

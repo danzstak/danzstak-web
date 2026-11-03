@@ -57,6 +57,7 @@ async function run(fail, genre = "DIY Punk") {
   assert.match(source, /canExpand: radiusMiles < 75/, "venue discovery should expose an explicit wider-area continuation");
   assert.match(quickSearchClient, /seen\.has\(identity\)/, "wider venue searches should not repeat clubs already displayed");
   assert.match(quickSearchClient, /hasMore \? search\(page \+ 1, radiusMiles, true\) : canExpand/, "pagination and radius expansion must be separate actions");
+  assert.match(quickSearchClient, /providerStatusText[\s\S]*if \(!response\.ok\)[\s\S]*providerStatus/, "venue errors should name unavailable providers to the artist");
   const routeListeners = {}, routeElements = new Map();
   const routeElement = (id, extra = {}) => {
     const element = { id, value: "", hidden: false, textContent: "", addEventListener(type, handler) { routeListeners[`${id}:${type}`] = handler; }, replaceChildren() {}, scrollIntoView() {}, ...extra };
