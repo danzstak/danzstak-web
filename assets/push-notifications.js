@@ -94,6 +94,7 @@
 
   async function showPermissionPrompt() {
     if (new URLSearchParams(location.search).get("embedded") === "1") return;
+    if (document.body.classList.contains("messages-page")) return;
     try {
       if (sessionStorage.getItem("danzstak_push_prompt_dismissed") === "1") return;
     } catch (_) {}
