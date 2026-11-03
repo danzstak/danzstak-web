@@ -33,6 +33,7 @@ Status as of 2026-11-03: **COMPLETE IN LOCAL DEVELOPMENT; STRIPE-HOSTED TEST BLO
 - **PASS locally**: complete repository regression sweep, **229 passed and 0 failed**, including unrelated feed, Friends, PWA, profile, messaging, media, Booking Agent and EPK checks.
 - **PASS locally**: production dependency audit, 0 known vulnerabilities across 37 production dependencies.
 - **UPDATED LIVE TEST EVIDENCE (2026-11-03)**: AWS Secrets Manager now contains `danzstak/stripe/secret-key`, and it was safely identified as a Stripe Test Mode key without printing its value. Stripe authenticated the key as account `acct_1UXmCxDahXMLrQax`, but that account reports card charges disabled and contains zero active one-time Test Mode Prices. Each of the three supplied Price IDs returned Stripe `404` with this key. Therefore the key is not usable for testing the existing SFScoop products; it may address a different account or the supplied IDs may exist only in live mode.
+- Stripe Test Mode verification evidence commit: `bd2178b1af8b0048d92771241128556941798853` on `danzstak-patch-1`.
 - **BLOCKED**: `DANZSTAK-TourManager-Stripe-Test` is not wired to the Secrets Manager value and still has no webhook-signing secret. No Stripe-hosted Checkout or signed webhook was attempted, no Product was created, and no live charge was made.
 
 ### Remaining configuration
