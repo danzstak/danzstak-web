@@ -34,7 +34,7 @@ for (const [file, expected] of [
   ["feed.html", "assets/soft-ui.css?v=425"],
   ["messages.html", "assets/soft-ui.css?v=425"],
   ["profile.html", "assets/soft-ui.css?v=425"],
-  ["feed.html", "assets/feed-enhancements.css?v=479"],
+  ["feed.html", "assets/feed-enhancements.css?v=480"],
   ["feed.html", "assets/feed-enhancements.js?v=498"],
   ["feed.html", "assets/profile-onboarding.js?v=6"],
   ["feed.html", "assets/post-sharing.js?v=417"],

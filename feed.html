@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-+1Sa3gSrsbJ0E+c2H374i9nj2WSIU4Y/r544BCyfhzQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-4ebz48UytAQQ342tYW4Z5AcIYeVXlkcA3oeu0C5rS30='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -349,7 +349,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   .story { scroll-snap-align: start; }
 }
 </style>
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=479">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=480">
 <link rel="stylesheet" href="assets/profile-onboarding.css?v=2">
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=233">
@@ -889,7 +889,18 @@ function storyDisplayCaption(story) {
   return story?.mediaType === "video" ? "Video Flash" : "Photo Flash";
 }
 
-function openStoryViewer(story) {
+async function refreshStoryMedia(story) {
+  if (!story?.storyId) return "";
+  const response = await fetchWithDeadline("https://api.danzstak.com/stories", { credentials: "include", cache: "no-store" }).catch(() => null);
+  if (!response?.ok) return "";
+  const data = await response.json().catch(() => ({}));
+  const refreshed = (data.stories || []).find(candidate => candidate.storyId === story.storyId);
+  if (!refreshed?.mediaUrl) return "";
+  story.mediaUrl = refreshed.mediaUrl;
+  return story.mediaUrl;
+}
+
+async function openStoryViewer(story) {
   let viewer = document.getElementById("storyViewer");
   if (!viewer) {
     viewer = document.createElement("dialog");
@@ -904,15 +915,38 @@ function openStoryViewer(story) {
   }
   const mediaBox = viewer.querySelector(".story-viewer-media");
   mediaBox.replaceChildren();
-  const media = document.createElement(story.mediaType === "video" ? "video" : "img");
-  media.src = story.mediaUrl;
-  if (story.mediaType === "video") { media.controls = true; media.autoplay = true; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", storyDisplayCaption(story)); }
-  else media.alt = storyDisplayCaption(story);
-  mediaBox.appendChild(media);
+  const status = document.createElement("p");
+  status.className = "story-viewer-status";
+  status.textContent = feedTranslate("Loading media…");
+  mediaBox.appendChild(status);
   viewer.querySelector(".story-viewer-caption").textContent = storyDisplayCaption(story);
   storyViewerPreviousFocus = document.activeElement;
   viewer.showModal();
   viewer.querySelector(".story-viewer-close").focus();
+  const showRecovery = () => {
+    mediaBox.replaceChildren();
+    const copy = document.createElement("p");
+    copy.className = "story-viewer-status";
+    copy.textContent = feedTranslate("Media is temporarily unavailable.");
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "story-viewer-retry";
+    retry.textContent = feedTranslate("Retry media");
+    retry.addEventListener("click", async () => { story.mediaUrl = ""; await installMedia(); });
+    mediaBox.append(copy, retry);
+  };
+  const installMedia = async () => {
+    mediaBox.replaceChildren(status);
+    const mediaUrl = story.mediaUrl || await refreshStoryMedia(story);
+    if (!mediaUrl) { showRecovery(); return; }
+    const media = document.createElement(story.mediaType === "video" ? "video" : "img");
+    media.addEventListener("error", () => { story.mediaUrl = ""; showRecovery(); }, { once: true });
+    if (story.mediaType === "video") { media.controls = true; media.autoplay = true; media.muted = true; media.playsInline = true; media.setAttribute("aria-label", storyDisplayCaption(story)); }
+    else media.alt = storyDisplayCaption(story);
+    media.src = mediaUrl;
+    mediaBox.replaceChildren(media);
+  };
+  await installMedia();
 }
 
 async function loadStories() {
@@ -961,14 +995,33 @@ async function loadStories() {
         item.appendChild(profile);
         author.hidden = true;
       }
-      if (story.mediaType === "image" && story.mediaUrl) {
-        item.style.backgroundImage = `linear-gradient(transparent,#0009),url("${story.mediaUrl}")`;
-        item.style.backgroundSize = "cover";
-        item.style.backgroundPosition = "center";
-      } else if (story.mediaType === "video" && story.mediaUrl) {
+      const markStoryUnavailable = () => {
+        item.classList.add("story-media-unavailable");
+        caption.textContent = feedTranslate("Media is temporarily unavailable.");
+      };
+      const installStoryImage = async (allowRefresh = true) => {
+        const mediaUrl = story.mediaUrl || (allowRefresh ? await refreshStoryMedia(story) : "");
+        if (!mediaUrl) { markStoryUnavailable(); return; }
+        const probe = new Image();
+        probe.addEventListener("load", () => {
+          item.classList.remove("story-media-unavailable");
+          caption.textContent = storyDisplayCaption(story);
+          item.style.backgroundImage = `linear-gradient(transparent,#0009),url("${mediaUrl}")`;
+          item.style.backgroundSize = "cover";
+          item.style.backgroundPosition = "center";
+        }, { once: true });
+        probe.addEventListener("error", async () => {
+          story.mediaUrl = "";
+          if (allowRefresh) await installStoryImage(false);
+          else markStoryUnavailable();
+        }, { once: true });
+        probe.src = mediaUrl;
+      };
+      if (story.mediaType === "image") {
+        void installStoryImage();
+      } else if (story.mediaType === "video") {
         item.classList.add("story-video");
         const video = document.createElement("video");
-        video.src = story.mediaUrl;
         video.muted = true;
         video.autoplay = readFeedPreference("danzstak_data_saver") !== "1";
         video.loop = true;
@@ -976,6 +1029,17 @@ async function loadStories() {
         video.preload = readFeedPreference("danzstak_data_saver") === "1" ? "none" : "metadata";
         video.setAttribute("aria-label", "Video Flash from " + storyAuthor + ": " + storyDisplayCaption(story));
         item.appendChild(video);
+        const installStoryVideo = async (allowRefresh = true) => {
+          const mediaUrl = story.mediaUrl || (allowRefresh ? await refreshStoryMedia(story) : "");
+          if (!mediaUrl) { video.remove(); markStoryUnavailable(); return; }
+          video.addEventListener("error", async () => {
+            story.mediaUrl = "";
+            if (allowRefresh) await installStoryVideo(false);
+            else { video.remove(); markStoryUnavailable(); }
+          }, { once: true });
+          video.src = mediaUrl;
+        };
+        void installStoryVideo();
       }
       open.addEventListener("click", () => openStoryViewer(story));
       item.appendChild(open);
