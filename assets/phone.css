@@ -1,0 +1,15 @@
+.phone-panel { margin: 12px 0; padding: 12px; border: 1px solid #d9e2ee; border-radius: 14px; background: #f7faff; color: #172b4d; }
+.phone-panel summary { cursor: pointer; font-weight: 700; min-height: 36px; }
+.phone-panel p { margin: 10px 0; font-size: .875rem; line-height: 1.5; }
+.phone-panel output { display: block; font-size: 1.15rem; font-weight: 700; overflow-wrap: anywhere; }
+.phone-panel form { display: grid; gap: 8px; margin-top: 12px; }
+.phone-panel input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: 8px; border: 1px solid #9babc1; border-radius: 8px; background: #fff; color: #172b4d; }
+.phone-panel button { min-height: 44px; padding: 8px 12px; border: 1px solid #9babc1; border-radius: 8px; background: #fff; color: #172b4d; cursor: pointer; }
+.phone-panel button:disabled { opacity: .6; cursor: default; }
+.phone-panel .phone-primary { background: #1769e0; color: #fff; border-color: #1769e0; }
+.phone-panel [hidden], .phone-call-ad[hidden] { display: none !important; }
+.phone-block-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.phone-history { padding-left: 20px; max-height: 140px; overflow: auto; font-size: .8rem; }
+.phone-call-ad { flex: 0 0 auto; margin: 8px 12px; padding: 10px; background: #eef5ff; color: #172b4d; border: 1px solid #c9dafa; border-radius: 10px; font-size: .85rem; }
+.phone-call-ad small { display: block; color: #46576c; }
+.phone-call-ad a { color: #1255b8; }

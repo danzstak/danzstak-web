@@ -3680,6 +3680,14 @@ export const handler = async event => {
   const path = event?.rawPath;
 
   try {
+    if (path === "/phone" || path?.startsWith("/phone/")) {
+      const { createPhoneService } = await import("./phone.mjs");
+      return await createPhoneService({
+        db, commands: { GetItemCommand, PutItemCommand, UpdateItemCommand, QueryCommand, TransactWriteItemsCommand, DeleteItemCommand },
+        authenticate: getAuthenticatedUser, accountForSub, canContact: canViewProfileMedia,
+        headers: corsHeaders(event.headers?.origin)
+      })(event);
+    }
     if (method === "GET" && path === "/auth/login") {
       return await startLogin("login");
     }

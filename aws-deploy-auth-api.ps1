@@ -53,7 +53,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Venue directory recovery protection failed." }
   }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath $Source,$Package,$PackageLock -Destination $Stage
+  Copy-Item -LiteralPath $Source,$Package,$PackageLock,(Join-Path $PSScriptRoot "infrastructure\auth-api\phone.mjs") -Destination $Stage
   Push-Location $Stage
   try {
     npm ci --omit=dev --ignore-scripts --no-audit --no-fund
@@ -64,6 +64,12 @@ try {
   @{
     Version = "2012-10-17"
     Statement = @(
+      @{
+        Sid = "PhoneRecords"
+        Effect = "Allow"
+        Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:TransactWriteItems")
+        Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Phone"
+      },
       @{
         Sid = "PostRecords"
         Effect = "Allow"
@@ -153,6 +159,7 @@ try {
   $variables = @{}
   foreach ($property in $current.Environment.Variables.PSObject.Properties) { $variables[$property.Name] = [string]$property.Value }
   $variables.MEDIA_BUCKET = [string]$mediaBucket
+  $variables.PHONE_TABLE = "DANZSTAK-Phone"
   $postViewsTable = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Engagement --query "Stacks[0].Outputs[?OutputKey=='PostViewsTableName'].OutputValue | [0]" --output text
   if ($LASTEXITCODE -ne 0) { throw "Post view configuration could not be resolved." }
   if ($postViewsTable -and $postViewsTable -ne 'None') { $variables.POST_VIEWS_TABLE = [string]$postViewsTable }
@@ -192,7 +199,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/share", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("GET /phone", "POST /phone/checkout", "POST /phone/webhook", "GET /phone/ice", "POST /phone/resolve", "POST /phone/block", "GET /phone/history", "POST /phone/events", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/share", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
@@ -201,6 +208,10 @@ try {
   }
   $permission = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
   if ($LASTEXITCODE -ne 0) { throw "Auth API invoke permissions could not be inspected." }
+  if ($permission -notmatch "AllowPhoneFromApiGateway") {
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowPhoneFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/phone*" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Phone API invoke permission failed." }
+  }
   if ($permission -notmatch "AllowTourRouteFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourRouteFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/route" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API invoke permission failed." }

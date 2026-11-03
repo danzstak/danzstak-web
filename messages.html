@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="assets/soft-ui.css?v=425">
 <link rel="stylesheet" href="assets/chat.css?v=441">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=233">
+<link rel="stylesheet" href="assets/phone.css?v=1">
 <title>Messages | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
@@ -30,6 +31,20 @@
     <label class="chat-search"><span aria-hidden="true">⌕</span><input id="chatSearch" type="search" inputmode="search" enterkeyhint="search" placeholder="Search DanzStak messages" aria-label="Search messages"></label>
     <nav class="chat-filters" aria-label="Chat filters" role="tablist"><button type="button" class="active" data-chat-filter="all" role="tab" aria-selected="true">All</button><button type="button" data-chat-filter="unread" role="tab" aria-selected="false" tabindex="-1">Unread</button><button type="button" data-chat-filter="groups" role="tab" aria-selected="false" tabindex="-1">Tribes</button></nav>
     <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers" aria-busy="true"><p class="chat-note">Loading saved chats…</p></div></section>
+    <details id="phonePanel" class="phone-panel">
+      <summary>DANZSTAK Phone</summary>
+      <p>Your DANZSTAK number</p><output id="phoneNumber">Loading…</output>
+      <p id="phoneStatus" role="status">Checking availability…</p>
+      <button id="phoneActivate" type="button" class="phone-primary" disabled>Activate for $3 once</button>
+      <form id="phoneDial" hidden>
+        <label for="phoneDialNumber">DANZSTAK number</label>
+        <input id="phoneDialNumber" type="text" inputmode="text" maxlength="15" pattern="[Dd][Ss]-[0-9]{12}" placeholder="DS-000000000000" autocomplete="off" required>
+        <button id="phoneDialCall" class="phone-primary" type="submit">Call number</button>
+        <div class="phone-block-actions"><button id="phoneBlock" type="button" disabled>Block number</button><button id="phoneUnblock" type="button" disabled>Unblock number</button></div>
+      </form>
+      <p>Works only inside DANZSTAK. No ordinary phone calls, carrier SMS, or emergency calls. Friends and Tribe contact permissions still apply.</p>
+      <details><summary>Recent numbered calls</summary><ul id="phoneHistory" class="phone-history"><li>No numbered calls yet.</li></ul></details>
+    </details>
     <input id="contactEmail" type="hidden">
     <div class="chat-compat-controls" hidden aria-hidden="true">
       <section class="online-panel" aria-labelledby="onlineTitle"><h2 id="onlineTitle">Friends and Tribe members</h2><div id="onlineUsers"><p class="chat-note">Loading contacts…</p></div></section>
@@ -55,6 +70,7 @@
       <button id="toggleCamera" type="button">Camera off</button>
       <button id="hangUp" type="button" class="danger hangup-button" aria-label="Hang up the current call">📞 Hang Up</button>
     </div>
+    <aside id="phoneCallAd" class="phone-call-ad" aria-label="House advertisement" hidden><small>Advertisement · DANZSTAK house promotion</small><a href="record-stores.html" target="_blank" rel="noopener">Discover independent record stores with DANZSTAK.</a></aside>
     <div id="messageList" class="message-list" aria-live="polite"><p class="system-message">Select a saved chat or an available friend to begin messaging.</p></div>
     <form id="messageForm" class="message-form">
       <div id="messageMediaPreview" class="message-media-preview" hidden></div>
@@ -70,7 +86,8 @@
 </main>
 <script src="assets/push-notifications.js?v=307" defer></script>
 <script src="assets/identity-media.js?v=1" defer></script>
-<script src="assets/chat.js?v=445" defer></script>
+<script src="assets/phone.js?v=1" defer></script>
+<script src="assets/chat.js?v=446" defer></script>
 <script src="assets/direct-messages.js?v=478" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
