@@ -132,6 +132,15 @@ try {
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Tours"
       },
       @{
+        Sid = "DanzStakStripeSecrets"
+        Effect = "Allow"
+        Action = @("secretsmanager:GetSecretValue")
+        Resource = @(
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/secret-key-*",
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/webhook-secret-*"
+        )
+      },
+      @{
         Sid = "ReviewedVenueDirectory"
         Effect = "Allow"
         Action = @("dynamodb:Scan", "dynamodb:GetItem")

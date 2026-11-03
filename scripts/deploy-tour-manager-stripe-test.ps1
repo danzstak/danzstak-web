@@ -6,12 +6,17 @@ $functionName = "DANZSTAK-TourManager-Stripe-Test"
 $stage = Join-Path $env:TEMP ("danzstak-tour-manager-stripe-" + [guid]::NewGuid().ToString("N"))
 $bundle = Join-Path $env:TEMP "danzstak-tour-manager-stripe-test.zip"
 $environmentFile = Join-Path $env:TEMP "danzstak-tour-manager-env.json"
+$secretPolicyFile = Join-Path $env:TEMP "danzstak-tour-manager-secret-policy.json"
 $resolvedTemp = [IO.Path]::GetFullPath($env:TEMP).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
 $resolvedStage = [IO.Path]::GetFullPath($stage)
 if (-not $resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) { throw "Unsafe staging path." }
 
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
 try {
+  foreach ($secretName in @("danzstak/stripe/secret-key", "danzstak/stripe/webhook-secret")) {
+    aws secretsmanager describe-secret --region $region --secret-id $secretName --output json 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Required Stripe secret is missing or unreadable: $secretName. No Lambda changes were made." }
+  }
   Copy-Item `
     (Join-Path $PSScriptRoot "..\infrastructure\auth-api\index.mjs"), `
     (Join-Path $PSScriptRoot "..\infrastructure\auth-api\tour-manager-billing.mjs"), `
@@ -30,7 +35,23 @@ try {
   $variables = @{}
   foreach ($property in $source.Environment.Variables.PSObject.Properties) { $variables[$property.Name] = [string]$property.Value }
   $variables.TOURS_TABLE = "DANZSTAK-Tours"
+  $variables.TOUR_MANAGER_LIVE_PAYMENTS = "false"
   @{ Variables = $variables } | ConvertTo-Json -Depth 5 -Compress | Set-Content $environmentFile -Encoding ascii
+
+  @{
+    Version = "2012-10-17"
+    Statement = @(@{
+      Sid = "ReadDanzStakStripeSecrets"
+      Effect = "Allow"
+      Action = @("secretsmanager:GetSecretValue")
+      Resource = @(
+        "arn:aws:secretsmanager:${region}:635288116224:secret:danzstak/stripe/secret-key-*",
+        "arn:aws:secretsmanager:${region}:635288116224:secret:danzstak/stripe/webhook-secret-*"
+      )
+    })
+  } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $secretPolicyFile -Encoding ascii
+  aws iam put-role-policy --role-name DANZSTAK-Auth-API-role-zjknf4ur --policy-name DanzStakStripeSecrets --policy-document "file://$secretPolicyFile"
+  if ($LASTEXITCODE -ne 0) { throw "The backend role could not be authorized to read the DANZSTAK Stripe secrets." }
 
   $previous = $ErrorActionPreference
   $ErrorActionPreference = "SilentlyContinue"
@@ -75,7 +96,7 @@ try {
   Write-Host "Tour Manager Stripe test endpoint: https://api.danzstak.com/tour-manager/stripe/webhook"
 } finally {
   if ($resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) { Remove-Item -LiteralPath $resolvedStage -Recurse -Force -ErrorAction SilentlyContinue }
-  foreach ($file in @($bundle, $environmentFile)) {
+  foreach ($file in @($bundle, $environmentFile, $secretPolicyFile)) {
     $resolvedFile = [IO.Path]::GetFullPath($file)
     if ($resolvedFile.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) { Remove-Item -LiteralPath $resolvedFile -Force -ErrorAction SilentlyContinue }
   }

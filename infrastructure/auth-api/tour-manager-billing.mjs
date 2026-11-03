@@ -18,7 +18,7 @@ const PHONE_ENTITLEMENT_KEY = "PHONE#ACTIVATION_ENTITLEMENT";
 const BOOKING_WORKSPACE_KEY = "booking-workspace-v1";
 const EVENT_OWNER = "STRIPE#TOUR_MANAGER_EVENTS";
 const MAX_CREDITS_PER_CHECKOUT = 500;
-const WEBHOOK_TYPES = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired"]);
+const WEBHOOK_TYPES = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired", "charge.refunded"]);
 const securityHeaders = { "content-type": "application/json", "cache-control": "no-store", "strict-transport-security": "max-age=63072000; includeSubDomains; preload", "x-content-type-options": "nosniff", "x-frame-options": "DENY", "referrer-policy": "no-referrer" };
 
 function response(statusCode, data, headers = {}) { return { statusCode, headers: { ...securityHeaders, ...headers }, body: JSON.stringify(data) }; }
@@ -217,6 +217,12 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return item?.sessionId?.S === session.id && item.product?.S === PHONE_PRODUCT && item.priceId?.S === PHONE_NUMBER_PRICE_ID && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, product: PHONE_PRODUCT } : null;
   }
 
+  async function loadVerifiedKnownSession(session, expectedLive) {
+    if (session?.metadata?.product === CONTACT_PRODUCT) return loadVerifiedContactSession(session, expectedLive);
+    if (session?.metadata?.product === PHONE_PRODUCT) return loadVerifiedPhoneSession(session, expectedLive);
+    return loadVerifiedSession(session, expectedLive);
+  }
+
   async function markCheckoutEvent(notification, verified, status) {
     const processedAt = nowIso();
     try {
@@ -267,6 +273,51 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return true;
   }
 
+  async function recordRefundReview(notification, verified, charge) {
+    const processedAt = nowIso();
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt }, status: { S: "partial_refund_review" } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "partial_refund" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "manual_review" }, description: { S: `Partial Stripe refund requires review (${Number(charge.amount_refunded || 0)} of ${Number(charge.amount || 0)} cents)` }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
+      ] }));
+    } catch (error) { const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: eventKey(notification.id), ConsistentRead: true })); if (!duplicate.Item) throw error; }
+  }
+
+  async function revokeRefundedPurchase(notification, verified) {
+    const processedAt = nowIso(), items = [
+      { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt }, status: { S: "refunded" } }, ConditionExpression: "attribute_not_exists(userId)" } },
+      { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :refunded, refundedAt = :refundedAt", ConditionExpression: "#status = :paid", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":refunded": { S: "refunded" }, ":refundedAt": { S: processedAt }, ":paid": { S: "paid" } } } }
+    ];
+    if (verified.product === CONTACT_PRODUCT) {
+      items.push(
+        { Update: { TableName: tableName, Key: contactUnlockKey(verified.userId, verified.venueKey), UpdateExpression: "SET #status = :refunded, refundedAt = :refundedAt", ConditionExpression: "paymentReference = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":refunded": { S: "refunded" }, ":refundedAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
+        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "contact_unlock_refund" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "refunded" }, description: { S: "Booking contact unlock refunded and access removed" }, venueKey: { S: verified.venueKey }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
+      );
+    } else if (verified.product === PHONE_PRODUCT) {
+      items.push(
+        { Update: { TableName: tableName, Key: phoneEntitlementKey(verified.userId), UpdateExpression: "SET #status = :refunded, refundedAt = :refundedAt, provisioningActionRequired = :required", ConditionExpression: "paymentReference = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":refunded": { S: "refunded" }, ":refundedAt": { S: processedAt }, ":required": { BOOL: true }, ":sessionId": { S: verified.session.id } } } },
+        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "phone_activation_refund" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "refunded" }, description: { S: "Phone activation payment refunded; provider follow-up required" }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
+      );
+    } else {
+      items.push(
+        { Update: { TableName: tableName, Key: creditKey(verified.userId), UpdateExpression: "ADD credits :minusQuantity, purchasedCredits :minusQuantity SET updatedAt = :updatedAt, lastRefundedSessionId = :sessionId", ExpressionAttributeValues: { ":minusQuantity": { N: String(-verified.quantity) }, ":updatedAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
+        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "purchase_refund" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: String(-verified.quantity) }, status: { S: "refunded" }, description: { S: `${verified.quantity} booking email credits refunded` }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
+      );
+      const professional = await db.send(new GetItemCommand({ TableName: tableName, Key: professionalKey(verified.userId), ConsistentRead: true }));
+      if (professional.Item?.paymentReference?.S === verified.session.id) {
+        items.push({ Update: { TableName: tableName, Key: professionalKey(verified.userId), UpdateExpression: "SET #status = :refunded, refundedAt = :refundedAt, updatedAt = :refundedAt", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":refunded": { S: "refunded" }, ":refundedAt": { S: processedAt } } } });
+      }
+    }
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: items }));
+    } catch (error) {
+      const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: eventKey(notification.id), ConsistentRead: true }));
+      if (duplicate.Item) return false;
+      throw error;
+    }
+    return true;
+  }
+
   async function webhook(event) {
     if (!paymentsAllowed()) return response(503, { error: "Tour Manager payment webhook is not configured." });
     const payload = rawBody(event), signature = event.headers?.["stripe-signature"] || event.headers?.["Stripe-Signature"];
@@ -274,18 +325,28 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     let notification; try { notification = JSON.parse(payload); } catch { return response(400, { error: "Invalid Stripe event." }); }
     if (!WEBHOOK_TYPES.has(notification.type)) return response(200, { received: true, ignored: true });
     const supplied = notification.data?.object;
-    if (!/^evt_[a-zA-Z0-9]+$/.test(notification.id || "") || !/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(supplied?.id || "")) return response(400, { error: "Invalid Stripe event." });
+    if (!/^evt_[a-zA-Z0-9]+$/.test(notification.id || "")) return response(400, { error: "Invalid Stripe event." });
     const processed = await db.send(new GetItemCommand({ TableName: tableName, Key: eventKey(notification.id), ConsistentRead: true }));
     if (processed.Item) return response(200, { received: true, duplicate: true });
     const expectedLive = env.STRIPE_SECRET_KEY.startsWith("sk_live_");
     if (notification.livemode !== expectedLive) return response(400, { error: "Stripe environment mismatch." });
+    if (notification.type === "charge.refunded") {
+      if (!/^ch_[a-zA-Z0-9]+$/.test(supplied?.id || "") || !/^pi_[a-zA-Z0-9]+$/.test(supplied?.payment_intent || "") || supplied.currency !== "usd") return response(400, { error: "Invalid Stripe refund event." });
+      const sessions = await stripe(`/checkout/sessions?payment_intent=${encodeURIComponent(supplied.payment_intent)}&limit=2&expand%5B%5D=data.line_items`);
+      const session = Array.isArray(sessions.data) && sessions.data.length === 1 ? sessions.data[0] : null;
+      const verified = session ? await loadVerifiedKnownSession(session, expectedLive) : null;
+      if (!verified || verified.session.payment_status !== "paid" || verified.session.status !== "complete" || Number(supplied.amount) !== Number(verified.session.amount_total) || !Number.isInteger(Number(supplied.amount_refunded)) || Number(supplied.amount_refunded) < 1 || Number(supplied.amount_refunded) > Number(supplied.amount)) return response(409, { error: "No matching refundable DANZSTAK purchase." });
+      if (Number(supplied.amount_refunded) !== Number(supplied.amount)) {
+        await recordRefundReview(notification, verified, supplied);
+        return response(200, { received: true, refundReviewRequired: true, accessChanged: false });
+      }
+      const revoked = await revokeRefundedPurchase(notification, verified);
+      return response(200, { received: true, refunded: revoked, duplicate: !revoked });
+    }
+    if (!/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(supplied?.id || "")) return response(400, { error: "Invalid Stripe event." });
     const session = await stripe(`/checkout/sessions/${encodeURIComponent(supplied.id)}?expand%5B%5D=line_items`);
     if (session.id !== supplied.id) return response(409, { error: "No matching Tour Manager checkout." });
-    const verified = session.metadata?.product === CONTACT_PRODUCT
-      ? await loadVerifiedContactSession(session, expectedLive)
-      : session.metadata?.product === PHONE_PRODUCT
-        ? await loadVerifiedPhoneSession(session, expectedLive)
-        : await loadVerifiedSession(session, expectedLive);
+    const verified = await loadVerifiedKnownSession(session, expectedLive);
     if (!verified) return response(409, { error: "No matching Tour Manager checkout." });
     if (notification.type === "checkout.session.completed" && verified.session.payment_status !== "paid") { await markCheckoutEvent(notification, verified, "awaiting_payment"); return response(200, { received: true, awaitingPayment: true }); }
     if (notification.type === "checkout.session.async_payment_failed" || notification.type === "checkout.session.expired") { await markCheckoutEvent(notification, verified, notification.type.endsWith("failed") ? "payment_failed" : "expired"); return response(200, { received: true, creditsIssued: 0 }); }

@@ -27,6 +27,7 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import {
   GeoPlacesClient,
   GeocodeCommand,
@@ -45,6 +46,7 @@ const ses = new SESv2Client({ region: "us-west-1" });
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
 const geoPlaces = new GeoPlacesClient({ region: "us-west-2", maxAttempts: 3 });
 const geoRoutes = new GeoRoutesClient({ region: "us-west-2", maxAttempts: 3 });
+const secretsManager = new SecretsManagerClient({ region: "us-west-1", maxAttempts: 3 });
 
 const tableName = process.env.SESSIONS_TABLE;
 const postsTable = "DANZSTAK-Posts";
@@ -84,6 +86,40 @@ const sessionCookieName = "__Host-danzstak_session";
 const oauthCookieName = "__Host-danzstak_oauth";
 const legalCookieName = "__Host-danzstak_legal";
 const legalVersion = "2026-10-26";
+const stripeEnvironment = { ...process.env };
+const stripeSecretName = process.env.STRIPE_SECRET_NAME || "danzstak/stripe/secret-key";
+const stripeWebhookSecretName = process.env.STRIPE_WEBHOOK_SECRET_NAME || "danzstak/stripe/webhook-secret";
+let stripeSecretsPromise = null;
+
+function secretText(result, fields) {
+  const raw = typeof result?.SecretString === "string" ? result.SecretString : result?.SecretBinary ? Buffer.from(result.SecretBinary).toString("utf8") : "";
+  if (!raw) throw new Error("Stripe secret is empty");
+  if (!raw.trimStart().startsWith("{")) return raw.trim();
+  let parsed; try { parsed = JSON.parse(raw); } catch { throw new Error("Stripe secret JSON is invalid"); }
+  const value = fields.map(field => parsed?.[field]).find(candidate => typeof candidate === "string" && candidate.trim());
+  if (!value) throw new Error("Stripe secret field is missing");
+  return value.trim();
+}
+
+async function ensureStripeSecrets() {
+  if (stripeEnvironment.STRIPE_SECRET_KEY && stripeEnvironment.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) return true;
+  if (!stripeSecretsPromise) {
+    stripeSecretsPromise = Promise.all([
+      secretsManager.send(new GetSecretValueCommand({ SecretId: stripeSecretName })),
+      secretsManager.send(new GetSecretValueCommand({ SecretId: stripeWebhookSecretName }))
+    ]).then(([keyResult, webhookResult]) => {
+      const key = secretText(keyResult, ["STRIPE_SECRET_KEY", "secretKey", "key", "value"]);
+      const webhook = secretText(webhookResult, ["STRIPE_TOUR_MANAGER_WEBHOOK_SECRET", "webhookSecret", "secret", "value"]);
+      if (!/^sk_(?:test|live)_/.test(key) || !webhook.startsWith("whsec_")) throw new Error("Stripe secret format is invalid");
+      stripeEnvironment.STRIPE_SECRET_KEY = key;
+      stripeEnvironment.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET = webhook;
+      return true;
+    }).catch(() => false);
+  }
+  const ready = await stripeSecretsPromise;
+  if (!ready) stripeSecretsPromise = null;
+  return ready;
+}
 
 const tourManagerBilling = createTourManagerBilling({
   db,
@@ -91,6 +127,7 @@ const tourManagerBilling = createTourManagerBilling({
   authenticate: getAuthenticatedUser,
   corsHeaders,
   tableName: toursTable,
+  env: stripeEnvironment,
   sendBookingEmail: async ({ userId, artistName, venueName, to, subject, message }) => {
     const replyTo = await accountForSub(userId);
     if (!replyTo) throw new Error("Account email could not be verified");
@@ -3762,7 +3799,8 @@ export const handler = async event => {
   const path = event?.rawPath;
 
   try {
-    if (path?.startsWith("/tour-manager/")) {
+    if (path?.startsWith("/tour-manager/") || path?.startsWith("/phone-number/")) {
+      if (method === "POST" && ["/tour-manager/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);
       if (billingResponse) return billingResponse;
     }
