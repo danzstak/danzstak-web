@@ -464,6 +464,48 @@ function messageAccessibleSummary(message, mine) {
   return `${lead} ${guidance}`;
 }
 
+async function refreshDirectMessageMedia(message) {
+  const contact = contactInput?.value.trim().toLowerCase();
+  if (!contact || !message?.messageId) return "";
+  const response = await directFetch("/messages?contact=" + encodeURIComponent(contact) + "&message=" + encodeURIComponent(message.messageId), { credentials: "include", cache: "no-store" }).catch(() => null);
+  if (!response?.ok) return "";
+  const data = await response.json().catch(() => ({}));
+  if (!data.message?.mediaUrl) return "";
+  message.mediaUrl = data.message.mediaUrl;
+  return message.mediaUrl;
+}
+
+function installDirectMessageMedia(item, message, mine) {
+  const recovery = document.createElement("div");
+  recovery.className = "message-attachment-recovery";
+  const copy = document.createElement("span");
+  copy.textContent = messageTranslate("Media is temporarily unavailable.");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.textContent = messageTranslate("Retry media");
+  recovery.append(copy, retry);
+  const showRecovery = () => {
+    item.querySelector(".message-attachment")?.remove();
+    if (!recovery.parentNode) item.prepend(recovery);
+  };
+  const install = async () => {
+    retry.disabled = true;
+    const mediaUrl = message.mediaUrl || await refreshDirectMessageMedia(message);
+    retry.disabled = false;
+    if (!mediaUrl) { showRecovery(); return; }
+    recovery.remove();
+    const media = document.createElement(message.mediaType === "video" ? "video" : "img");
+    media.className = "message-attachment";
+    media.addEventListener("error", () => { message.mediaUrl = ""; showRecovery(); }, { once: true });
+    if (message.mediaType === "image") { media.alt = mine ? messageTranslate("Photo you sent") : messageFormat("Photo from {name}", { name: activeContactName }); media.loading = "lazy"; }
+    else { media.controls = true; media.playsInline = true; media.preload = "metadata"; media.setAttribute("aria-label", mine ? messageTranslate("Video you sent") : messageFormat("Video from {name}", { name: activeContactName })); }
+    media.src = mediaUrl;
+    item.prepend(media);
+  };
+  retry.addEventListener("click", () => { message.mediaUrl = ""; void install(); });
+  void install();
+}
+
 function directMessageItem(message) {
   const mine = message.senderEmail === currentEmail;
   const item = document.createElement("div");
@@ -476,13 +518,7 @@ function directMessageItem(message) {
     text.textContent = message.content;
     item.appendChild(text);
   }
-  if (message.mediaUrl && ["image", "video"].includes(message.mediaType)) {
-    const media = document.createElement(message.mediaType === "video" ? "video" : "img");
-    media.className = "message-attachment"; media.src = message.mediaUrl;
-    if (message.mediaType === "image") { media.alt = mine ? messageTranslate("Photo you sent") : messageFormat("Photo from {name}", { name: activeContactName }); media.loading = "lazy"; }
-    else { media.controls = true; media.playsInline = true; media.preload = "metadata"; media.setAttribute("aria-label", mine ? messageTranslate("Video you sent") : messageFormat("Video from {name}", { name: activeContactName })); }
-    item.prepend(media);
-  }
+  if (["image", "video"].includes(message.mediaType)) installDirectMessageMedia(item, message, mine);
   const sharedUrl = firstSafeMessageUrl(message.content);
   if (sharedUrl) item.appendChild(messageLinkPreview(sharedUrl));
   item.setAttribute("aria-label", messageAccessibleSummary(message, mine));
