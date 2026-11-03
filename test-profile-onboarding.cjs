@@ -8,7 +8,7 @@ const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 
 assert.match(feed, /id="profileOnboarding"[^>]*hidden/, 'the identity prompt is present but hidden until an incomplete profile is confirmed');
 assert.match(feed, /What should people call you\?/, 'the prompt uses ordinary language rather than profile jargon');
-assert.match(feed, /assets\/profile-onboarding\.js\?v=6/, 'the live feed loads first-login identity behavior');
+assert.match(feed, /assets\/profile-onboarding\.js\?v=7/, 'the live feed loads current first-login identity behavior');
 assert.match(feed, /assets\/profile-onboarding\.css\?v=2/, 'the live feed loads responsive identity styling');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.css"/, 'the installed app keeps the identity layout available offline');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.js"/, 'the installed app keeps the identity behavior available offline');
@@ -18,6 +18,10 @@ assert.match(source, /"danzstak-member", "danzstak\.member", "danzstak_member", 
 assert.match(source, /suggestedHandle\(nameInput\.value\)/, 'typing a name automatically suggests a username');
 assert.match(feed, /id="profileOnboardingHandle"[^>]*type="hidden"/, 'new members only have to understand and enter one visible name field');
 assert.match(source, /DanzStak handles the username for you/, 'plain-language help explains that the technical username is automatic');
+assert.match(source, /function updateMenuProfile\(profile = \{\}\)/, 'the same account profile populates the navigation header');
+assert.match(source, /menuProfileName\.textContent = name/, 'the drawer shows the member display name rather than a generic account label');
+assert.match(source, /window\.danzstakIdentityMedia\?\.install\(menuProfileImage, profile\)/, 'the drawer avatar uses the existing resilient identity-media loader');
+assert.doesNotMatch(source.match(/function updateMenuProfile[\s\S]*?^  \}/m)?.[0] || '', /profile\.email|@/, 'the drawer profile header does not expose account email');
 assert.match(source, /Puoi cambiarlo in seguito in Impostazioni/, 'Italian members are told where to change their name later');
 assert.match(source, /handle: data\.suggestion/, 'a taken automatic username is retried without making the member understand or edit it');
 assert.match(source, /base\.length < 3/, 'short or non-Latin display names still receive a valid automatic username');

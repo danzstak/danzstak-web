@@ -1863,7 +1863,7 @@ function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {})
     delete nextState.danzstakMenuOpen;
     history.replaceState(nextState, "");
   }
-  if (shouldOpen) mobileNavMenu?.querySelector("a")?.focus({ preventScroll: true });
+  if (shouldOpen) mobileNavMenu?.querySelector("[data-menu-close], a")?.focus({ preventScroll: true });
   else if (wasOpen) mobileMenuControl?.focus({ preventScroll: true });
 }
 function closeMobileMenuFromControl() {
@@ -1874,6 +1874,7 @@ mobileMenuControl?.addEventListener("click", () => {
   if (document.body.classList.contains("mobile-menu-open")) closeMobileMenuFromControl();
   else setMobileMenu(true);
 });
+mobileNavMenu?.querySelector("[data-menu-close]")?.addEventListener("click", closeMobileMenuFromControl);
 mobileNavMenu?.addEventListener("click", event => {
   if (document.body.classList.contains("mobile-menu-open") && event.target.closest("a")) setMobileMenu(false);
 });

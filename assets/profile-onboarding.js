@@ -10,6 +10,27 @@
   const next = document.getElementById("profileOnboardingNext");
   const findPeople = document.getElementById("profileOnboardingFindPeople");
   const done = document.getElementById("profileOnboardingDone");
+  const menuProfileName = document.getElementById("menuProfileName");
+  const menuProfileImage = document.getElementById("menuProfileImage");
+  const menuProfileFallback = document.getElementById("menuProfileFallback");
+  let currentProfile = {};
+  function updateMenuProfile(profile = {}) {
+    const name = String(profile.name || "").trim() || "My Profile";
+    if (menuProfileName) menuProfileName.textContent = name;
+    if (menuProfileFallback) {
+      menuProfileFallback.textContent = name.charAt(0).toUpperCase() || "D";
+      menuProfileFallback.hidden = false;
+    }
+    if (!menuProfileImage) return;
+    const picture = String(profile.picture || "").trim();
+    menuProfileImage.hidden = true;
+    menuProfileImage.removeAttribute("src");
+    if (!picture) return;
+    menuProfileImage.onload = () => { menuProfileImage.hidden = false; if (menuProfileFallback) menuProfileFallback.hidden = true; };
+    menuProfileImage.onerror = () => { menuProfileImage.hidden = true; if (menuProfileFallback) menuProfileFallback.hidden = false; };
+    menuProfileImage.src = picture;
+    window.danzstakIdentityMedia?.install(menuProfileImage, profile);
+  }
   const copy = {
     en: { title: "What should people call you?", help: "Enter the name you want people to see. DanzStak handles the username for you.", name: "Name people see", save: "Use this name", saving: "Saving your name…", saved: "Your name is ready. Find people who are online and add your first friends.", later: "You can change this later in Settings → Edit Profile.", find: "Find people", done: "Not now" },
     es: { title: "¿Cómo quieres que te llamen?", help: "Escribe el nombre que quieres mostrar. DanzStak crea tu nombre de usuario automáticamente.", name: "Nombre que verán los demás", save: "Usar este nombre", saving: "Guardando tu nombre…", saved: "Tu nombre está listo. Busca personas y añade tus primeros amigos.", later: "Puedes cambiarlo después en Configuración → Editar perfil.", find: "Buscar personas", done: "Ahora no" },
@@ -96,6 +117,8 @@
       const response = await request("https://api.danzstak.com/profiles", { credentials: "include", cache: "no-store" });
       if (!response.ok) return;
       const profile = (await response.json()).profile || {};
+      currentProfile = profile;
+      updateMenuProfile(profile);
       const normalizedName = String(profile.name || "").trim().replace(/\s+/g, " ").toLocaleLowerCase();
       const normalizedHandle = String(profile.handle || "").trim().replace(/^@/, "").toLocaleLowerCase();
       const genericName = !normalizedName || ["danzstak member", "danzstak user", "new member"].includes(normalizedName);
@@ -135,6 +158,8 @@
         throw new Error(data.suggestion ? messages.taken : messages.failed);
       }
       status.textContent = words.saved;
+      currentProfile = { ...currentProfile, ...(data.profile || {}), name };
+      updateMenuProfile(currentProfile);
       const composerAvatar = document.querySelector(".composer-avatar");
       if (composerAvatar) composerAvatar.textContent = name.charAt(0).toUpperCase() || "D";
       form.hidden = true;

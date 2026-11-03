@@ -12,6 +12,6 @@ assert.match(source, /history\.back\(\)/, "Close and Escape must return through 
 assert.match(source, /openNotificationDrawer\(notificationControls\[0\], \{ updateHistory: false \}\)/, "Forward must restore notifications without creating a loop");
 assert.match(source, /closeNotificationDrawer\(true, \{ fromHistory: true \}\)/, "Back must close the drawer without adding another history action and restore focus");
 assert.doesNotMatch(source, /danzstakNotificationsOpen:\s*(?:notice|notification|message|user|email)/, "history state must not contain notification or account data");
-assert.match(feed, /assets\/feed-enhancements\.js\?v=507/, "the feed must load the notification-history build");
+assert.match(feed, /assets\/feed-enhancements\.js\?v=508/, "the feed must load the notification-history build");
 
 console.log("Mobile notification history checks passed: Back dismisses, Forward restores, desktop routing is unchanged, and history contains no notification data.");

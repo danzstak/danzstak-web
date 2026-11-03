@@ -394,16 +394,29 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 
   <aside class="left" id="mobileNavMenu" aria-label="DanzStak menu">
     <div class="panel menu">
+      <header class="menu-profile-header">
+        <a class="menu-profile-link" href="profile.html" aria-label="Open my profile">
+          <span class="menu-profile-avatar" aria-hidden="true">
+            <img id="menuProfileImage" alt="" hidden>
+            <span id="menuProfileFallback">D</span>
+          </span>
+          <span class="menu-profile-copy"><strong id="menuProfileName">My Profile</strong><small>View profile</small></span>
+        </a>
+        <button type="button" class="menu-close" data-menu-close data-icon="close" aria-label="Close menu" title="Close menu"></button>
+      </header>
+      <p class="menu-section-heading">Social</p>
       <a href="feed.html?view=feed" class="active"><span class="menu-icon" data-menu-icon="home" aria-hidden="true"></span><span class="menu-label">Your Mix</span></a>
       <a href="profile.html"><span class="menu-icon" data-menu-icon="user" aria-hidden="true"></span><span class="menu-label">My Profile</span></a>
       <a href="#friends" data-feature="Friends"><span class="menu-icon" data-menu-icon="users" aria-hidden="true"></span><span class="menu-label">Friends</span></a>
       <a href="#groups" data-feature="Groups"><span class="menu-icon" data-menu-icon="users" aria-hidden="true"></span><span class="menu-label">Tribes</span></a>
       <a href="#photos" data-feature="Photos"><span class="menu-icon" data-menu-icon="image" aria-hidden="true"></span><span class="menu-label">Photos</span></a>
       <a href="#videos" data-feature="Videos"><span class="menu-icon" data-menu-icon="film" aria-hidden="true"></span><span class="menu-label">Videos</span></a>
+      <p class="menu-section-heading">Music &amp; Entertainment</p>
       <a href="#events" data-feature="Events"><span class="menu-icon" data-menu-icon="microphone" aria-hidden="true"></span><span class="menu-label">Events</span></a>
       <a href="booking.html"><span class="menu-icon" data-menu-icon="bus" aria-hidden="true"></span><span class="menu-label">Booking Agent</span></a>
       <a href="record-stores.html"><span class="menu-icon" data-menu-icon="disc" aria-hidden="true"></span><span class="menu-label">Record Stores</span></a>
       <a href="epk.html"><span class="menu-icon" data-menu-icon="folder" aria-hidden="true"></span><span class="menu-label">EPK Builder</span></a>
+      <p class="menu-section-heading">Account</p>
       <a href="#saved" data-feature="Saved"><span class="menu-icon" data-menu-icon="bookmark" aria-hidden="true"></span><span class="menu-label">Saved</span></a>
       <a href="#settings" data-feature="Settings"><span class="menu-icon" data-menu-icon="settings" aria-hidden="true"></span><span class="menu-label">Settings</span></a>
       <a href="support.html"><span class="menu-icon" data-menu-icon="help" aria-hidden="true"></span><span class="menu-label">Support</span></a>
@@ -1729,8 +1742,8 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=507" defer></script>
-<script src="assets/profile-onboarding.js?v=6" defer></script>
+<script src="assets/feed-enhancements.js?v=508" defer></script>
+<script src="assets/profile-onboarding.js?v=7" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=297" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>

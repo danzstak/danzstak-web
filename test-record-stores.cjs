@@ -1,7 +1,7 @@
 "use strict";
 const assert = require("node:assert/strict"), fs = require("node:fs");
 const api = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), page = fs.readFileSync("record-stores.html", "utf8"), client = fs.readFileSync("assets/record-stores.js", "utf8"), booking = fs.readFileSync("assets/booking-agent.js", "utf8"), feed = fs.readFileSync("feed.html", "utf8"), deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8");
-assert.match(feed, /record-stores\.html[\s\S]*💿[\s\S]*Record Stores/, "the left menu should expose Record Stores with a record icon");
+assert.match(feed, /record-stores\.html[\s\S]*data-menu-icon="disc"[\s\S]*Record Stores/, "the left menu should expose Record Stores with the shared record icon");
 assert.doesNotMatch(page, /recordstores\.love/i, "an example directory should not be presented as DanzStak branding or a required partner");
 assert.match(client, /\/record-stores\/search/, "the standalone search should use the protected store API");
 assert.match(client, /credentials:"include"/, "record-store searches should use opaque authenticated sessions");
