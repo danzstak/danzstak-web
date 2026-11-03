@@ -5,6 +5,8 @@ const vm = require('node:vm');
 const source = fs.readFileSync('assets/push-notifications.js', 'utf8');
 const callCss = fs.readFileSync('assets/incoming-calls.css', 'utf8');
 assert.match(callCss, /\.push-alert-prompt\[hidden\]\{display:none\}/, 'the chat suppression state must override the prompt grid display');
+assert.match(callCss, /\.push-alert-prompt\{[^}]*right:max\(16px,env\(safe-area-inset-right\)\)/, 'the desktop notification prompt should stay clear of the left navigation');
+assert.doesNotMatch(callCss, /\.push-alert-prompt\{[^}]*left:/, 'the notification prompt must not cover lower navigation links');
 assert.match(source, /prompt\.hidden = document\.getElementById\('messageDrawer'\)\?\.hidden === false/, 'the permission prompt must not cover an already open chat');
 assert.match(source, /danzstak:message-drawer[\s\S]*?prompt\.hidden = event\.detail\?\.open === true/, 'the permission prompt should pause while Messages is open and return after it closes');
 const start = source.indexOf('async function withDeadline(');
