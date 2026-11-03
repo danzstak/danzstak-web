@@ -32,12 +32,13 @@ Status as of 2026-11-03: **COMPLETE IN LOCAL DEVELOPMENT; STRIPE-HOSTED TEST BLO
 - **PASS locally**: booking-email credit reservation, provider acceptance, final deduction, duplicate-send prevention and failed-send restoration; dashboard regressions.
 - **PASS locally**: complete repository regression sweep, **229 passed and 0 failed**, including unrelated feed, Friends, PWA, profile, messaging, media, Booking Agent and EPK checks.
 - **PASS locally**: production dependency audit, 0 known vulnerabilities across 37 production dependencies.
-- **BLOCKED**: the current AWS environment has no Stripe test secret, so the three Price objects have not been retrieved from Stripe in this run and no Stripe-hosted Checkout/webhook cycle has been completed. The expected amounts above must not be treated as live verification.
+- **UPDATED LIVE TEST EVIDENCE (2026-11-03)**: AWS Secrets Manager now contains `danzstak/stripe/secret-key`, and it was safely identified as a Stripe Test Mode key without printing its value. Stripe authenticated the key as account `acct_1UXmCxDahXMLrQax`, but that account reports card charges disabled and contains zero active one-time Test Mode Prices. Each of the three supplied Price IDs returned Stripe `404` with this key. Therefore the key is not usable for testing the existing SFScoop products; it may address a different account or the supplied IDs may exist only in live mode.
+- **BLOCKED**: `DANZSTAK-TourManager-Stripe-Test` is not wired to the Secrets Manager value and still has no webhook-signing secret. No Stripe-hosted Checkout or signed webhook was attempted, no Product was created, and no live charge was made.
 
 ### Remaining configuration
 
-1. Store an SFScoop-account restricted Stripe **test** key and the endpoint-specific **test** webhook signing secret in a reviewed server-side secret store; never commit either value.
-2. Retrieve the three test Price objects and verify their active status, Product ID, USD amount, one-time type and `livemode=false`.
+1. Confirm the correct existing SFScoop Stripe account ID, then store a restricted **test** key for that account and the endpoint-specific **test** webhook signing secret in a reviewed server-side secret store; never commit either value.
+2. Ensure Test Mode counterparts for the three approved products exist in that same account, then record their test Price IDs separately from live IDs. Do not recreate or alter live SFScoop products as a workaround.
 3. Register the four events above for the public webhook URL, then run controlled test-card purchases for all three products, including webhook retry and delayed/failure cases.
 4. Add the two new phone routes and contact-unlock routes to the test API only when approved for a controlled test. No production deployment was performed from this branch.
 5. Do not merge to `main`, configure live keys or enable `TOUR_MANAGER_LIVE_PAYMENTS` until owner review.
@@ -113,7 +114,7 @@ Status as of 2026-11-03: **STRIPE LOCAL IMPLEMENTATION COMPLETE; STRIPE-HOSTED T
 - Expected amount: USD 1.50 one time for each booking-email credit.
 - Implementation: Checkout quantities, signed webhook verification, immediate and delayed payment handling, DynamoDB credit ledger, duplicate-event protection, booking-email reservation, provider acceptance, failed-send restoration, and balance/history UI are implemented on `codex/tour-manager-stripe-webhook`.
 - Test status: local signature, amount, delayed-payment, idempotency, ledger, reservation, final deduction, failed-send restoration, and Amazon SES mailbox-simulator tests pass.
-- Blocker: no Stripe test secret or endpoint signing secret is configured, so the Price object and a Stripe-hosted checkout/webhook cycle have not been verified.
+- Blocker: the available Stripe Test Mode key addresses an account with no matching test Prices, and no endpoint signing secret is configured. A Stripe-hosted checkout/webhook cycle has not been verified.
 
 ### DANZSTAK phone number
 
@@ -125,7 +126,7 @@ Status as of 2026-11-03: **STRIPE LOCAL IMPLEMENTATION COMPLETE; STRIPE-HOSTED T
 
 ### Required test configuration
 
-The isolated Lambda is `DANZSTAK-TourManager-Stripe-Test`. It currently has live payments disabled and no Stripe secrets.
+The isolated Lambda is `DANZSTAK-TourManager-Stripe-Test`. It currently has live payments disabled and is not wired to the available Secrets Manager test key. No endpoint-specific webhook signing secret is configured.
 
 Required server-side configuration, without committing secret values:
 
