@@ -32,6 +32,7 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; LIVE AWS MAIL AND PUSH VALID
 - **PASS**: CloudFormation service validation in `us-west-2`; production dependency audit has zero known vulnerabilities.
 - Implementation guide: `docs/booking-email-chat-bridge.md`.
 - Implementation commit: `baaf74d70256a5b0020a5f4799012537863d2f34` on `codex/tour-manager-production`.
+- Client integration test commit: `8c7e8e79e664f6e4072dc01763a4ac33030bb815`.
 
 ### Next required work
 
