@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Mobile navigation drawer
+
+Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+
+- The phone navigation drawer now participates in browser history. Back, Escape, the Menu toggle and an outside tap dismiss it; Forward restores it without creating a loop.
+- Selecting a menu destination still closes immediately and preserves the existing workspace route behavior. Crossing to the desktop breakpoint closes the drawer and restores the desktop rails.
+- The existing body-scroll lock, dimmed backdrop, initial-link focus and opener-focus restoration remain intact. History stores only a boolean menu marker and no user, route or menu-label data.
+- Verification: **9 of 9** focused mobile navigation, notification coexistence, desktop navigation and PWA cache checks passed.
+- Implementation commit: `d6602a6bdb131ee8828a9a8661f86edff8416103` on `danzstak-patch-1`.
+
 ## Mobile notification navigation
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
