@@ -45,6 +45,7 @@ const fs = require("node:fs");
   assert.match(messagesPage, /assets\/booking-chat\.js/);
   assert.match(bookingClient, /booking-club/); assert.match(bookingClient, /booking-radio/); assert.match(bookingClient, /booking-record-store/);
   assert.match(bookingClient, /\/tour-manager\/booking-conversations/); assert.match(bookingClient, /\/tour-manager\/booking-messages/);
+  assert.match(bookingClient, /URLSearchParams\(location\.search\)\.get\("booking"\)/); assert.match(bookingClient, /history\.replaceState/);
   assert.match(chatCss, /\.booking-chat-row/); assert.match(chatCss, /grid-template-columns:44px minmax\(0,1fr\) auto/);
   console.log("booking mail bridge tests passed");
 })().catch(error => { console.error(error); process.exitCode = 1; });

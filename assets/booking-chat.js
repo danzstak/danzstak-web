@@ -3,7 +3,7 @@
   const api = "https://api.danzstak.com";
   const list = document.getElementById("conversationUsers"), messageList = document.getElementById("messageList"), form = document.getElementById("messageForm"), input = document.getElementById("messageInput"), header = document.getElementById("conversationHeader"), name = document.getElementById("conversationName"), avatar = document.getElementById("conversationAvatar"), presence = document.getElementById("conversationPresence");
   if (!list || !messageList || !form || !input) return;
-  let conversations = [], active = null, category = "";
+  let conversations = [], active = null, category = "", initialBooking = new URLSearchParams(location.search).get("booking") || "";
   const escape = value => String(value || "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
   const request = async (path, options = {}) => { const response = await fetch(api + path, { credentials: "include", headers: { "content-type": "application/json", ...(options.headers || {}) }, ...options }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Booking Chat is unavailable."); return data; };
   const categoryFromFilter = filter => ({ "booking-club": "club", "booking-radio": "radio", "booking-record-store": "record-store" }[filter] || "");
@@ -15,7 +15,7 @@
     for (const item of filtered) { const button = document.createElement("button"); button.type = "button"; button.className = "booking-chat-row"; button.dataset.bookingConversation = item.conversationId; button.innerHTML = `<span class="booking-chat-avatar" aria-hidden="true">${escape(item.organizationName.slice(0, 1).toUpperCase())}</span><span><strong>${escape(item.organizationName)}</strong><small>${escape(item.preview || item.subject || "Booking email")}</small></span>${item.unread ? `<b aria-label="${item.unread} unread">${item.unread}</b>` : ""}`; fragment.append(button); }
     list.prepend(fragment);
   }
-  async function loadConversations() { try { const data = await request("/tour-manager/booking-conversations"); conversations = data.conversations || []; ensureCards(); } catch (error) { console.warn(error.message); } }
+  async function loadConversations() { try { const data = await request("/tour-manager/booking-conversations"); conversations = data.conversations || []; if (/^[a-f0-9]{32}$/.test(initialBooking)) { const target = conversations.find(item => item.conversationId === initialBooking); if (target) { category = target.category; const filter = document.querySelector(`[data-chat-filter="booking-${target.category}"]`); filter?.click(); await openConversation(initialBooking); history.replaceState(null, "", location.pathname); } initialBooking = ""; } ensureCards(); } catch (error) { console.warn(error.message); } }
   function renderMessages(messages) { messageList.innerHTML = messages.length ? messages.map(item => `<article class="message-bubble ${item.direction === "outbound" ? "mine" : "theirs"}"><p>${escape(item.content)}</p><time>${escape(new Date(item.createdAt).toLocaleString())}</time></article>`).join("") : '<p class="system-message">No messages in this booking conversation yet.</p>'; messageList.scrollTop = messageList.scrollHeight; }
   async function openConversation(id) {
     active = conversations.find(item => item.conversationId === id); if (!active) return;
