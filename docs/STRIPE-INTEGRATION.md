@@ -12,7 +12,7 @@
 | Professional: Tour Manager / booking-email unit | $1.50 | `prod_VYr5JIwpaFSX7b` | `price_1UXjMtFgtfNMBXOVCLeEk8vI` | One-time |
 | DANZSTAK assigned-number activation | $3.00 expected | `prod_VYrUnT8yvXS0Ek` | `price_1UXjlYFgtfNMBXOVD42xjrTc` | One-time |
 
-The backend fails closed unless Stripe returns these exact Price and Product IDs, currency, one-time quantity and unit amount. On 2026-11-03 the AWS secret `danzstak/stripe/secret-key` was confirmed to contain a test key, but all three supplied Price IDs returned Stripe `404`. That key resolves to account `acct_1UXmCxDahXMLrQax`, which has zero active one-time Test Mode Prices and reports card charges disabled. This is not evidence that the live Prices are invalid; it proves only that they are unavailable to this Test Mode account/key. Do not recreate them or change SFScoop configuration. Supply a restricted Test Mode key for the existing SFScoop account and confirm that account contains test counterparts before continuing.
+The backend fails closed unless Stripe returns these exact Price and Product IDs, currency, one-time quantity and unit amount. On 2026-11-03 the AWS secret `danzstak/stripe/secret-key` was confirmed to contain a test key, but all three supplied Price IDs returned Stripe `404`. Stripe identifies that key's account `acct_1UXmCxDahXMLrQax` as **DANZSTAK sandbox**, not SFScoop. It has zero active one-time Test Mode Prices, card charges disabled, and incomplete account details. AWS Secrets Manager contains no other Stripe/SFScoop secret. Do not create replacement products in this sandbox or change SFScoop configuration. The owner must replace the secret with a restricted Test Mode key from the existing SFScoop Stripe account, or provide the approved secret name if it is stored in another AWS account/region.
 
 ## Feature entitlements
 
@@ -23,7 +23,7 @@ The backend fails closed unless Stripe returns these exact Price and Product IDs
 
 ## Webhook implementation checklist
 
-1. Replace or correct the AWS test secret with a restricted Test Mode key for the existing SFScoop Stripe account. Retrieve all three test Price counterparts and verify Product ID, active status, USD amount, one-time type and `livemode=false`. Do not put a live key into the test Lambda.
+1. Replace or correct `danzstak/stripe/secret-key` with a restricted Test Mode key for the existing SFScoop Stripe account, or identify the approved secret in its actual AWS account/region. Retrieve the three test Price counterparts and verify Product ID, active status, USD amount, one-time type and `livemode=false`. Do not put a live key into the test Lambda.
 2. Public HTTPS webhook receiver: `https://api.danzstak.com/tour-manager/stripe/webhook`. The route exists in API Gateway, but the current test Lambda has no Stripe secret or webhook secret and is therefore not operational.
 3. In Stripe test mode, register that destination for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`.
 4. Verify Stripe signatures using the webhook signing secret stored only in a secure backend secret manager. Never commit `sk_` or `whsec_` credentials.
