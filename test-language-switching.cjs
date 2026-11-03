@@ -114,6 +114,8 @@ assert.equal(window.danzstakTranslate("Flashes"), "Flash");
 assert.equal(window.danzstakTranslate("The Roll"), "The Roll");
 assert.equal(window.danzstakTranslate("Tribes"), "Tribù");
 assert.equal(window.danzstakTranslate("Back to Your Mix"), "Torna al tuo Mix");
+window.danzstakSetLanguage("de");
+assert.equal(window.danzstakTranslate("Back to Your Mix"), "Zurück zu deinem Mix");
 window.danzstakSetLanguage("fil");
 assert.equal(ui.nodeValue, "Mga setting");
 window.danzstakSetLanguage("en");

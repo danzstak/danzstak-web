@@ -7,7 +7,7 @@ const danzstakBrandNames = {
   en: ["Your Mix", "Flashes", "The Roll", "Tribes", "Back to Your Mix"],
   es: ["Tu Mix", "Flashes", "The Roll", "Tribus", "Volver a Tu Mix"],
   fr: ["Votre Mix", "Flashes", "The Roll", "Tribus", "Retour à Votre Mix"],
-  de: ["Dein Mix", "Flashes", "The Roll", "Tribes", "Zurück zu Dein Mix"],
+  de: ["Dein Mix", "Flashes", "The Roll", "Tribes", "Zurück zu deinem Mix"],
   pt: ["Seu Mix", "Flashes", "The Roll", "Tribos", "Voltar ao Seu Mix"],
   it: ["Il tuo Mix", "Flash", "The Roll", "Tribù", "Torna al tuo Mix"],
   ko: ["나의 믹스", "플래시", "더 롤", "트라이브", "나의 믹스로 돌아가기"],
