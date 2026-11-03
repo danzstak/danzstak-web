@@ -22,14 +22,18 @@ const { createHmac } = require("node:crypto");
       if (records.has(keyOf(eventPut.Item))) { const error = new Error("duplicate"); error.name = "TransactionCanceledException"; throw error; }
       const checkoutUpdate = command.input.TransactItems[1].Update;
       const checkout = records.get(keyOf(checkoutUpdate.Key));
-      if (!checkout || checkout.status.S !== "pending") { const error = new Error("not pending"); error.name = "TransactionCanceledException"; throw error; }
+      if (!checkout || checkout.status.S === "paid") { const error = new Error("not pending"); error.name = "TransactionCanceledException"; throw error; }
       records.set(keyOf(eventPut.Item), structuredClone(eventPut.Item));
-      checkout.status = { S: "paid" };
-      checkout.paidAt = checkoutUpdate.ExpressionAttributeValues[":paidAt"];
-      const creditUpdate = command.input.TransactItems[2].Update;
-      const creditKey = keyOf(creditUpdate.Key), credit = records.get(creditKey) || structuredClone(creditUpdate.Key);
-      credit.credits = { N: String(Number(credit.credits?.N || 0) + Number(creditUpdate.ExpressionAttributeValues[":quantity"].N)) };
-      records.set(creditKey, credit);
+      checkout.status = checkoutUpdate.ExpressionAttributeValues[":status"] || checkoutUpdate.ExpressionAttributeValues[":paid"];
+      if (checkoutUpdate.ExpressionAttributeValues[":paidAt"]) checkout.paidAt = checkoutUpdate.ExpressionAttributeValues[":paidAt"];
+      if (command.input.TransactItems[2]?.Update) {
+        const creditUpdate = command.input.TransactItems[2].Update;
+        const creditKey = keyOf(creditUpdate.Key), credit = records.get(creditKey) || structuredClone(creditUpdate.Key);
+        credit.credits = { N: String(Number(credit.credits?.N || 0) + Number(creditUpdate.ExpressionAttributeValues[":quantity"].N)) };
+        credit.purchasedCredits = { N: String(Number(credit.purchasedCredits?.N || 0) + Number(creditUpdate.ExpressionAttributeValues[":quantity"].N)) };
+        records.set(creditKey, credit);
+      }
+      if (command.input.TransactItems[3]?.Put) records.set(keyOf(command.input.TransactItems[3].Put.Item), structuredClone(command.input.TransactItems[3].Put.Item));
       return {};
     }
     throw new Error("Unexpected command");
@@ -73,15 +77,19 @@ const { createHmac } = require("node:crypto");
   assert.equal((await service(event("POST", "/tour-manager/stripe/webhook", payload, { "stripe-signature": "t=1,v1=bad" }))).statusCode, 400);
 
   sessionOverrides = { payment_status: "unpaid" };
-  assert.equal((await service(event("POST", "/tour-manager/stripe/webhook", payload, { "stripe-signature": signed(payload) }))).statusCode, 400);
+  const awaiting = await service(event("POST", "/tour-manager/stripe/webhook", payload, { "stripe-signature": signed(payload) }));
+  assert.equal(awaiting.statusCode, 200);
+  assert.equal(JSON.parse(awaiting.body).awaitingPayment, true);
   assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS"), undefined);
 
   sessionOverrides = {};
-  const paid = await service(event("POST", "/tour-manager/stripe/webhook", payload, { "stripe-signature": signed(payload) }));
+  const asyncEvent = { ...stripeEvent, id: "evt_credit456", type: "checkout.session.async_payment_succeeded" };
+  const asyncPayload = JSON.stringify(asyncEvent);
+  const paid = await service(event("POST", "/tour-manager/stripe/webhook", asyncPayload, { "stripe-signature": signed(asyncPayload) }));
   assert.equal(paid.statusCode, 200);
   assert.equal(JSON.parse(paid.body).creditsIssued, 3);
   assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS").credits.N, "3");
-  const duplicate = await service(event("POST", "/tour-manager/stripe/webhook", payload, { "stripe-signature": signed(payload) }));
+  const duplicate = await service(event("POST", "/tour-manager/stripe/webhook", asyncPayload, { "stripe-signature": signed(asyncPayload) }));
   assert.equal(JSON.parse(duplicate.body).duplicate, true);
   assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS").credits.N, "3", "Stripe retries must not issue credits twice");
 
@@ -90,5 +98,5 @@ const { createHmac } = require("node:crypto");
 
   const disabled = createTourManagerBilling({ db, commands, authenticate: async () => "user_12345678", corsHeaders, tableName: "Tours", env: {}, fetcher, clock: () => now });
   assert.equal((await disabled(event("POST", "/tour-manager/stripe/webhook", payload, { "stripe-signature": signed(payload) }))).statusCode, 503);
-  console.log("Tour Manager Stripe checks passed: fixed Price ID, paid-session verification, pending-checkout binding, atomic credits, test-mode gate, and retry idempotency.");
+  console.log("Tour Manager Stripe checks passed: fixed Price ID, delayed-payment handling, pending-checkout binding, atomic ledger credits, test-mode gate, and retry idempotency.");
 })().catch(error => { console.error(error); process.exit(1); });

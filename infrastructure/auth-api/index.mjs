@@ -87,10 +87,24 @@ const legalVersion = "2026-10-26";
 
 const tourManagerBilling = createTourManagerBilling({
   db,
-  commands: { GetItemCommand, PutItemCommand, TransactWriteItemsCommand },
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand },
   authenticate: getAuthenticatedUser,
   corsHeaders,
-  tableName: toursTable
+  tableName: toursTable,
+  sendBookingEmail: async ({ userId, artistName, venueName, to, subject, message }) => {
+    const replyTo = await accountForSub(userId);
+    if (!replyTo) throw new Error("Account email could not be verified");
+    const result = await ses.send(new SendEmailCommand({
+      FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
+      Destination: { ToAddresses: [to] },
+      ReplyToAddresses: [replyTo],
+      Content: { Simple: {
+        Subject: { Data: subject, Charset: "UTF-8" },
+        Body: { Text: { Data: `${message}\n\nSent by ${artistName} using DanzStak Tour Manager.\nVenue: ${venueName}\nReplies go directly to the artist.`, Charset: "UTF-8" } }
+      } }
+    }));
+    return { messageId: result.MessageId || "" };
+  }
 });
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -3591,7 +3605,10 @@ async function listTourPlans(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId", ExpressionAttributeValues: { ":userId": { S: userId } }, ProjectionExpression: "tourId, #name, #plan, updatedAt", ExpressionAttributeNames: { "#name": "name", "#plan": "plan" }, Limit: 50, ScanIndexForward: false }));
   const reservedWorkspaceIds = new Set([bookingWorkspaceId, epkWorkspaceId, recordStoreWorkspaceId]);
-  const tours = (result.Items || []).filter(item => !reservedWorkspaceIds.has(item.tourId?.S || "")).map(item => { let plan = {}; try { plan = JSON.parse(item.plan?.S || "{}"); } catch { /* Ignore malformed legacy data. */ } return { tourId: item.tourId?.S || "", name: item.name?.S || "Tour", updatedAt: item.updatedAt?.S || "", plan }; });
+  const tours = (result.Items || []).filter(item => {
+    const id = item.tourId?.S || "";
+    return !reservedWorkspaceIds.has(id) && !id.startsWith("TOUR_MANAGER#");
+  }).map(item => { let plan = {}; try { plan = JSON.parse(item.plan?.S || "{}"); } catch { /* Ignore malformed legacy data. */ } return { tourId: item.tourId?.S || "", name: item.name?.S || "Tour", updatedAt: item.updatedAt?.S || "", plan }; });
   return { statusCode: 200, headers, body: JSON.stringify({ tours }) };
 }
 
