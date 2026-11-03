@@ -287,7 +287,7 @@ foreach ($step in $requiredStoryUploadSteps) {
 foreach ($storyViewerBehavior in @('aria-labelledby", "storyViewerCaption"', 'media.muted = true', 'storyViewerPreviousFocus?.focus({ preventScroll: true })', 'viewer.querySelector(".story-viewer-close").focus()')) {
   if (-not $feed.Contains($storyViewerBehavior)) { Add-Failure "Stories: accessible autoplay viewer behavior is missing: $storyViewerBehavior" }
 }
-if (-not $feed.Contains('function openStoryViewer(story)') -or
+if ($feed -notmatch 'async\s+function\s+openStoryViewer\s*\(\s*story\s*(?:,|\))' -or
     -not $feed.Contains('setInterval(loadStories, 45 * 60 * 1000)') -or
     -not $feed.Contains('video.autoplay = readFeedPreference("danzstak_data_saver") !== "1";') -or
     -not $feed.Contains('viewer.showModal();')) {
@@ -555,7 +555,7 @@ foreach ($deletedChatControl in @('function closeConversation(', 'shownMessages.
 foreach ($deleteChatState in @('if (deleteChat) deleteChat.disabled = false;', 'if (deleteChat) deleteChat.disabled = true;', 'deleteChat && version === conversationVersion && contactInput.value.trim()')) {
   if (-not $directMessagesJs.Contains($deleteChatState)) { Add-Failure "Messaging: Delete Chat does not follow the active conversation state: $deleteChatState" }
 }
-if (-not $messagesHtml.Contains('id="deleteChat" type="button" class="secondary delete-chat" disabled')) {
+if ($messagesHtml -notmatch '<button\s+id="deleteChat"[^>]*\bdisabled(?:\s|>|=)') {
   Add-Failure 'Messaging: Delete Chat is enabled before a conversation is selected'
 }
 foreach ($idleConversationControl in @('id="startText" type="button" class="primary" disabled', 'id="startPhone" type="button" class="primary" disabled', 'id="startVideo" type="button" class="primary" disabled')) {
