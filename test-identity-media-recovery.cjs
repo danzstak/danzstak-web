@@ -10,6 +10,7 @@ const search = fs.readFileSync("assets/people-search.js", "utf8");
 const messages = fs.readFileSync("assets/direct-messages.js", "utf8");
 const profile = fs.readFileSync("assets/profile-editor.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
+const feedPage = fs.readFileSync("feed.html", "utf8");
 
 assert.match(identity, /fetchFreshProfile\(person\)/, "expired identity media needs a fresh profile lookup");
 assert.match(identity, /member=.+encodeURIComponent\(id\)/, "opaque member ids must be preferred for recovery");
@@ -18,6 +19,8 @@ assert.match(identity, /cache: "no-store"/, "recovery must not reuse an expired 
 assert.match(identity, /if \(attempted\)/, "a broken replacement URL must not cause an infinite retry loop");
 assert.match(identity, /replaceWithInitial\(image, person\)/, "unavailable photos need an accessible visual fallback");
 assert.match(feed, /danzstakIdentityMedia\?\.install/g, "feed social avatars must use identity recovery");
+assert.match(feedPage, /danzstakIdentityMedia\?\.install\(image, \{ memberId: authorMemberId, name: author, picture: authorPicture \}\)/, "post author photos must use identity recovery");
+assert.ok(feedPage.indexOf("assets/identity-media.js?v=1") < feedPage.indexOf("function createPostElement"), "post author recovery must load before the inline post renderer can run");
 assert.match(search, /danzstakIdentityMedia\?\.install\(avatar, person\)/, "member search avatars must recover");
 assert.match(messages, /danzstakIdentityMedia\?\.install\(avatar, conversation\)/, "saved-chat avatars must recover");
 assert.match(profile, /danzstakIdentityMedia\?\.install\(avatar, friend\)/, "profile friend avatars must recover");
