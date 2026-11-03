@@ -70,6 +70,27 @@ let activeCanContact = false;
 let reactionTimer = null;
 let selectedMessageMedia = null;
 let selectedMessageMediaUrl = "";
+let mobileHistoryConversation = null;
+
+function usesMobileConversationHistory() {
+  return window.parent === window && window.matchMedia?.("(max-width: 760px)").matches === true;
+}
+
+function rememberMobileConversation(conversation) {
+  if (!usesMobileConversationHistory()) return;
+  mobileHistoryConversation = { ...conversation };
+  if (history.state?.danzstakChatOpen === true) return;
+  const currentState = history.state && typeof history.state === "object" ? history.state : {};
+  history.pushState({ ...currentState, danzstakChatOpen: true }, "");
+}
+
+function closeConversationFromControl() {
+  if (usesMobileConversationHistory() && history.state?.danzstakChatOpen === true) {
+    history.back();
+    return;
+  }
+  closeConversation({ focusList: true });
+}
 function setConversationActionsEnabled(enabled) {
   for (const button of conversationActions) button.disabled = !enabled;
   if (messageMedia) messageMedia.disabled = !enabled;
@@ -355,9 +376,10 @@ function updateConversationPresence(conversation) {
   conversationPresence.setAttribute("aria-label", `${contactName}: ${translatedPresence}`);
 }
 
-function openConversation(conversation) {
+function openConversation(conversation, { updateHistory = true } = {}) {
   closeConversation();
   document.body.classList.add("is-conversation-open");
+  if (updateHistory) rememberMobileConversation(conversation);
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: true }, location.origin);
   contactInput.value = conversation.contactEmail;
   window.danzstakActiveContactName = conversation.name || "DanzStak member";
@@ -928,7 +950,16 @@ conversationHeaderActions.more?.addEventListener("click", event => {
 headerDeleteChat?.addEventListener("click", () => { closeConversationMenu(); deleteChat?.click(); });
 conversationMenu?.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); closeConversationMenu({ restoreFocus: true }); } });
 document.addEventListener("click", event => { if (!conversationMenu?.hidden && !conversationHeader.contains(event.target)) closeConversationMenu(); });
-document.getElementById("closeConversation")?.addEventListener("click", () => closeConversation({ focusList: true }));
+document.getElementById("closeConversation")?.addEventListener("click", closeConversationFromControl);
+
+window.addEventListener("popstate", event => {
+  if (!usesMobileConversationHistory()) return;
+  if (event.state?.danzstakChatOpen === true && mobileHistoryConversation) {
+    openConversation(mobileHistoryConversation, { updateHistory: false });
+    return;
+  }
+  if (document.body.classList.contains("is-conversation-open")) closeConversation({ focusList: true });
+});
 
 window.addEventListener("message", event => { if (event.source === window.parent && event.origin === location.origin && event.data?.type === "danzstak-chat-hidden") document.body.classList.remove("is-conversation-open"); });
 
