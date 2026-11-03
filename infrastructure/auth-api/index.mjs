@@ -40,6 +40,7 @@ import {
 import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import { createEpkResearch } from "./epk-research.mjs";
+import { createBookingMailChat } from "./booking-mail-chat.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
@@ -88,22 +89,46 @@ const oauthCookieName = "__Host-danzstak_oauth";
 const legalCookieName = "__Host-danzstak_legal";
 const legalVersion = "2026-10-26";
 
-const tourManagerBilling = createTourManagerBilling({
+const bookingMailChat = createBookingMailChat({
   db,
   commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand },
   authenticate: getAuthenticatedUser,
   corsHeaders,
   tableName: toursTable,
-  sendBookingEmail: async ({ userId, artistName, venueName, to, subject, message }) => {
-    const replyTo = await accountForSub(userId);
-    if (!replyTo) throw new Error("Account email could not be verified");
+  sendExternalReply: async ({ to, replyTo, subject, content, externalMessageId }) => {
     const result = await ses.send(new SendEmailCommand({
       FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
       Destination: { ToAddresses: [to] },
       ReplyToAddresses: [replyTo],
       Content: { Simple: {
         Subject: { Data: subject, Charset: "UTF-8" },
-        Body: { Text: { Data: `${message}\n\nSent by ${artistName} using DanzStak Tour Manager.\nVenue: ${venueName}\nReplies go directly to the artist.`, Charset: "UTF-8" } }
+        Body: { Text: { Data: content, Charset: "UTF-8" } },
+        ...(externalMessageId ? { Headers: [
+          { Name: "In-Reply-To", Value: externalMessageId },
+          { Name: "References", Value: externalMessageId }
+        ] } : {})
+      } }
+    }));
+    return { messageId: result.MessageId || "" };
+  }
+});
+
+const tourManagerBilling = createTourManagerBilling({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: toursTable,
+  prepareBookingConversation: bookingMailChat.prepareOutbound,
+  recordBookingOutbound: bookingMailChat.recordOutbound,
+  sendBookingEmail: async ({ artistName, venueName, to, subject, message, replyTo }) => {
+    const result = await ses.send(new SendEmailCommand({
+      FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
+      Destination: { ToAddresses: [to] },
+      ReplyToAddresses: [replyTo],
+      Content: { Simple: {
+        Subject: { Data: subject, Charset: "UTF-8" },
+        Body: { Text: { Data: `${message}\n\nSent by ${artistName} using DanzStak Tour Manager.\nVenue: ${venueName}\nReply to this email to continue the booking conversation in DanzStak Chat.`, Charset: "UTF-8" } }
       } }
     }));
     return { messageId: result.MessageId || "" };
@@ -3883,6 +3908,10 @@ export const handler = async event => {
   const path = event?.rawPath;
 
   try {
+    if (path?.startsWith("/tour-manager/booking-")) {
+      const bookingChatResponse = await bookingMailChat.route(event);
+      if (bookingChatResponse) return bookingChatResponse;
+    }
     if (path?.startsWith("/tour-manager/")) {
       const billingResponse = await tourManagerBilling(event);
       if (billingResponse) return billingResponse;

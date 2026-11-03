@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Secure SES inbound bridge for DanzStak Tour Manager booking conversations.
+
+Parameters:
+  AuthDataRegion: {Type: String, Default: us-west-1}
+  ToursTableName: {Type: String, Default: DANZSTAK-Tours}
+  ReplyDomain: {Type: String, Default: reply.danzstak.com}
+  CodeBucket: {Type: String}
+  CodeKey: {Type: String}
+
+Resources:
+  InboundBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption: {ServerSideEncryptionConfiguration: [{ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}}]}
+      LifecycleConfiguration: {Rules: [{Id: expire-raw-booking-mail, Status: Enabled, ExpirationInDays: 30, Prefix: booking-replies/}]}
+      PublicAccessBlockConfiguration: {BlockPublicAcls: true, IgnorePublicAcls: true, BlockPublicPolicy: true, RestrictPublicBuckets: true}
+
+  InboundBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref InboundBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ses.amazonaws.com}
+            Action: s3:PutObject
+            Resource: !Sub '${InboundBucket.Arn}/booking-replies/*'
+            Condition:
+              StringEquals: {aws:SourceAccount: !Ref 'AWS::AccountId'}
+
+  BridgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument: {Version: '2012-10-17', Statement: [{Effect: Allow, Principal: {Service: lambda.amazonaws.com}, Action: 'sts:AssumeRole'}]}
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole]
+      Policies:
+        - PolicyName: booking-mail-only
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - {Effect: Allow, Action: ['s3:GetObject'], Resource: !Sub '${InboundBucket.Arn}/booking-replies/*'}
+              - {Effect: Allow, Action: ['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem','dynamodb:TransactWriteItems'], Resource: !Sub 'arn:${AWS::Partition}:dynamodb:${AuthDataRegion}:${AWS::AccountId}:table/${ToursTableName}'}
+
+  BridgeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: DANZSTAK-Booking-Mail-Bridge
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt BridgeRole.Arn
+      Timeout: 30
+      MemorySize: 512
+      ReservedConcurrentExecutions: 10
+      Code: {S3Bucket: !Ref CodeBucket, S3Key: !Ref CodeKey}
+      Environment:
+        Variables:
+          DATA_REGION: !Ref AuthDataRegion
+          TOURS_TABLE: !Ref ToursTableName
+          INBOUND_BUCKET: !Ref InboundBucket
+          INBOUND_PREFIX: booking-replies/
+          BOOKING_REPLY_DOMAIN: !Ref ReplyDomain
+
+  SesInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BridgeFunction
+      Principal: ses.amazonaws.com
+      SourceAccount: !Ref 'AWS::AccountId'
+
+  ReceiptRuleSet:
+    Type: AWS::SES::ReceiptRuleSet
+    Properties: {RuleSetName: danzstak-booking-mail}
+
+  BookingReplyRule:
+    Type: AWS::SES::ReceiptRule
+    DependsOn: [InboundBucketPolicy, SesInvokePermission]
+    Properties:
+      RuleSetName: !Ref ReceiptRuleSet
+      Rule:
+        Name: booking-replies
+        Enabled: true
+        ScanEnabled: true
+        Recipients: [!Ref ReplyDomain]
+        Actions:
+          - S3Action: {BucketName: !Ref InboundBucket, ObjectKeyPrefix: booking-replies/}
+          - LambdaAction: {FunctionArn: !GetAtt BridgeFunction.Arn, InvocationType: Event}
+        TlsPolicy: Require
+
+Outputs:
+  ReplyDomain: {Value: !Ref ReplyDomain}
+  InboundBucketName: {Value: !Ref InboundBucket}
+  ReceiptRuleSetName: {Value: !Ref ReceiptRuleSet}

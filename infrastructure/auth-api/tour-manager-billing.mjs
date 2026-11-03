@@ -61,7 +61,7 @@ export function verifyStripeSignature(payload, header, secret, currentTime = Dat
   return signatures.some(signature => { if (!/^[a-f0-9]{64}$/i.test(signature)) return false; const candidate = Buffer.from(signature, "hex"); return candidate.length === expected.length && timingSafeEqual(candidate, expected); });
 }
 
-export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, env = process.env, fetcher = fetch, clock = Date.now }) {
+export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, prepareBookingConversation, recordBookingOutbound, env = process.env, fetcher = fetch, clock = Date.now }) {
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
   const testMode = () => env.STRIPE_SECRET_KEY?.startsWith("sk_test_");
   const paymentsAllowed = () => Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) && (testMode() || (env.TOUR_MANAGER_LIVE_PAYMENTS === "true" && env.STRIPE_SECRET_KEY.startsWith("sk_live_")));
@@ -353,8 +353,11 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     let providerAccepted = false;
     try {
       await db.send(new UpdateItemCommand({ TableName: tableName, Key: key, UpdateExpression: "SET #status = :sending, sendingAt = :at", ConditionExpression: "#status = :reserved", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sending": { S: "sending" }, ":reserved": { S: "reserved" }, ":at": { S: nowIso() } } }));
-      const delivery = await sendBookingEmail({ userId, artistName, venueName: venue.name, to, subject, message });
+      if (typeof prepareBookingConversation !== "function" || typeof recordBookingOutbound !== "function") throw new Error("Booking reply routing is not configured");
+      const conversation = await prepareBookingConversation({ userId, bookingId: id, organizationKey: venueKey, organizationName: venue.name, recipient: to, category: "club", subject });
+      const delivery = await sendBookingEmail({ userId, artistName, venueName: venue.name, to, subject, message, replyTo: conversation.replyAddress });
       if (!delivery?.messageId) throw new Error("Email provider did not accept the message");
+      await recordBookingOutbound({ userId, conversationId: conversation.conversationId, providerMessageId: delivery.messageId, content: message, subject });
       await db.send(new UpdateItemCommand({ TableName: tableName, Key: key, UpdateExpression: "SET #status = :accepted, providerAcceptedAt = :at, providerMessageId = :messageId", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":accepted": { S: "provider_accepted" }, ":sending": { S: "sending" }, ":at": { S: nowIso() }, ":messageId": { S: delivery.messageId } } }));
       providerAccepted = true;
       const sentAt = nowIso();

@@ -1,0 +1,11 @@
+{
+  "name": "danzstak-booking-mail-bridge",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "3.1156.0",
+    "@aws-sdk/client-s3": "3.1156.0",
+    "mailparser": "3.14.1"
+  }
+}
