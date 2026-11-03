@@ -10,6 +10,7 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 - Retired every reference to the generic SVG and advanced the service-worker shell cache to `danzstak-shell-v622`, so installed development clients refresh the brand artwork.
 - Asset workflow: the built-in image editing tool extracted the official D from `assets/danzstak-logo.png` onto a transparent background; deterministic local resizing produced each platform size. The final normalized source is in the repository rather than an external generated-image directory.
 - Verification: the new brand regression checks PNG dimensions and alpha support, manifest references, header/navigation markup, PWA caching and generic-icon retirement. **239 of 239** JavaScript regression programs pass, along with release verification, the 11-page site smoke suite, infrastructure template/Lambda syntax validation and `git diff --check`. Phone-width visual inspection confirmed the mark, wordmark, search and navigation remain readable at the app-panel width.
+- Implementation commit: `459fc49de408be67da701907a918f7a7dcf36f0c` on `danzstak-patch-1`.
 - Deployment: not published to production and not merged into `main`.
 
 ## Global icon-based interface
