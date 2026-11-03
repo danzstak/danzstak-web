@@ -13,6 +13,22 @@ Parameters:
     Type: String
     Default: us-east-1_qA4B46ilc
 Resources:
+  PhoneTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: DANZSTAK-Phone
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      SSESpecification: {SSEEnabled: true}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}
   MediaBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
@@ -362,6 +378,9 @@ Resources:
                 Action: [dynamodb:GetItem, dynamodb:UpdateItem]
                 Resource: !Sub arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SessionsTable}
               - Effect: Allow
+                Action: dynamodb:GetItem
+                Resource: !GetAtt PhoneTable.Arn
+              - Effect: Allow
                 Action: [dynamodb:PutItem, dynamodb:Query, dynamodb:DeleteItem]
                 Resource: !GetAtt CallSignalsTable.Arn
               - Effect: Allow
@@ -433,6 +452,7 @@ Resources:
       Environment:
         Variables:
           CALLS_TABLE: !Ref CallSignalsTable
+          PHONE_TABLE: !Ref PhoneTable
           PRESENCE_TABLE: !Ref PresenceTable
           PUSH_SUBSCRIPTIONS_TABLE: !Ref PushSubscriptionsTable
           VAPID_KEY_ID: !GetAtt VapidSigningKey.Arn
@@ -497,7 +517,7 @@ Resources:
           async function groupIds(email){const items=await queryAll({TableName:process.env.GROUPS_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:email}},ConsistentRead:true});return new Set(items.map(x=>x.groupId.S));}
           async function groupExists(groupId){if(defaultGroupIds.has(groupId))return true;if(!/^[a-f0-9-]{36}$/.test(groupId))return false;const found=await db.send(new GetItemCommand({TableName:process.env.GROUPS_TABLE,Key:{userEmail:{S:`GROUP#${groupId}`},groupId:{S:'META'}},ConsistentRead:true}));return Boolean(found.Item);}
           async function sharesValidGroup(a,b){for(const groupId of a)if(b.has(groupId)&&await groupExists(groupId))return true;return false;}
-          async function canContact(sender,recipient){const friendship=await db.send(new GetItemCommand({TableName:process.env.FRIENDS_TABLE,Key:{userEmail:{S:sender},friendEmail:{S:recipient}},ConsistentRead:true}));if(friendship.Item?.status?.S==='friends')return true;const [a,b]=await Promise.all([groupIds(sender),groupIds(recipient)]);return sharesValidGroup(a,b);}
+          async function canContact(sender,recipient){if(process.env.PHONE_TABLE){const digest=value=>createHash('sha256').update(value).digest('hex'),blocks=await Promise.all([[sender,recipient],[recipient,sender]].map(([owner,other])=>db.send(new GetItemCommand({TableName:process.env.PHONE_TABLE,Key:{pk:{S:'BLOCK#'+digest(owner)},sk:{S:digest(other)}},ConsistentRead:true}))));if(blocks.some(result=>result.Item))return false;}const friendship=await db.send(new GetItemCommand({TableName:process.env.FRIENDS_TABLE,Key:{userEmail:{S:sender},friendEmail:{S:recipient}},ConsistentRead:true}));if(friendship.Item?.status?.S==='friends')return true;const [a,b]=await Promise.all([groupIds(sender),groupIds(recipient)]);return sharesValidGroup(a,b);}
           async function send(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const recipientEmail=String(body.recipientEmail||'').trim().toLowerCase();const mode=String(body.mode||'');const signalType=String(body.signalType||'');const callId=String(body.callId||'');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)||recipientEmail.length>254)return json(400,{error:'Valid recipient required'});if(recipientEmail===user.email)return json(400,{error:'Choose another account'});if(!['text','phone','video'].includes(mode)||!['offer','answer','hangup'].includes(signalType)||!/^[a-f0-9-]{36}$/.test(callId))return json(400,{error:'Invalid call signal'});if(!(await canContact(user.email,recipientEmail)))return json(403,{error:'Contact not allowed'});const payload=body.payload??null;const serialized=JSON.stringify(payload);if(serialized.length>110000)return json(413,{error:'Signal too large'});if(!(await registered(recipientEmail)))return json(404,{error:'DanzStak user not found'});const eventId=`${String(Date.now()).padStart(13,'0')}#${randomUUID()}`,senderName=signalType==='offer'?((await publicProfile(user.email)).name||'DanzStak member'):'';await db.send(new PutItemCommand({TableName:process.env.CALLS_TABLE,Item:{recipientEmail:{S:recipientEmail},eventId:{S:eventId},senderEmail:{S:user.email},callId:{S:callId},mode:{S:mode},signalType:{S:signalType},payload:{S:serialized},createdAt:{S:new Date().toISOString()},expiresAt:{N:String(now()+120)},...(senderName?{senderName:{S:senderName}}:{})}}));if(signalType==='offer'&&['phone','video'].includes(mode))await notifyCall(recipientEmail,user.email,user.userId,mode,callId).catch(error=>console.error('Call push failed',error));return json(202,{accepted:true,eventId});}
           async function inbox(user){const items=await queryAll({TableName:process.env.CALLS_TABLE,KeyConditionExpression:'recipientEmail = :r',FilterExpression:'expiresAt > :n',ExpressionAttributeValues:{':r':{S:user.email},':n':{N:String(now())}},ScanIndexForward:true,ConsistentRead:true},20);return json(200,{events:items.map(x=>({eventId:x.eventId.S,senderEmail:x.senderEmail.S,senderName:x.senderName?.S||'',callId:x.callId.S,mode:x.mode.S,signalType:x.signalType.S,payload:JSON.parse(x.payload.S),createdAt:x.createdAt.S}))});}
           async function ack(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const ids=Array.isArray(body.eventIds)?body.eventIds.slice(0,20):[];for(const eventId of ids){if(typeof eventId==='string'&&eventId.length<100)await db.send(new DeleteItemCommand({TableName:process.env.CALLS_TABLE,Key:{recipientEmail:{S:user.email},eventId:{S:eventId}}}));}return json(200,{acknowledged:ids.length});}
