@@ -1,5 +1,50 @@
 # DANZSTAK development report
 
+## AI Music Artist Research and EPK Builder
+
+Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; LIVE PROVIDER VALIDATION BLOCKED; NOT DEPLOYED**.
+
+### Completed work
+
+- Integrated AI-assisted research into the existing EPK editor rather than creating a separate application. The artist name is the only required starting field; stage name, location, genre, official site, Spotify, Discogs, Bandcamp, SoundCloud, YouTube and label links are optional identity evidence.
+- Restricted this workflow to musicians, bands, DJs, producers and recording artists. No comedian or general-entertainment category was added.
+- Added MusicBrainz identity search and structured release data, optional Brave Search API evidence, artist-supplied HTTPS links, source URLs, provider names and research dates. The implementation does not crawl result pages, bypass access controls, copy press photography or copy publication bodies.
+- Added identity disambiguation for similar names. The artist must choose a MusicBrainz candidate or add identity evidence when the match is uncertain. A missing catalog match remains an honest sparse result rather than a fabricated career.
+- Added Bedrock Converse drafting for short (75-100 word), medium (200-300 word) and full (up to 500 word) biographies plus sourced genres, releases, performances, achievements, press coverage and official links. Claims without supplied evidence are excluded by the prompt and validated source identifiers.
+- Added Professional, Underground / Independent, Energetic, Press / Media and Direct and Concise writing styles.
+- Added per-section Approve, Edit, Rewrite and Reject controls, Research Again, Refresh My EPK, and Save Approved EPK. Research and AI output remain private. Saving copies only approved or artist-edited sections into the existing private EPK draft; it never publishes or sends automatically.
+- Added immutable EPK save-version snapshots and research history. Refresh proposes new material beside existing approved content and does not overwrite it.
+- Preserved the existing public/private sharing flow, browser print-to-PDF workflow, S3 media manager and Booking Agent consumption of an artist-approved published EPK link.
+- Added a seven-day duplicate-research cache, default three-research-per-user daily limit, 180-day research-record TTL, server-side credentials, adaptive Bedrock retries, explicit 2,800 output-token cap and MusicBrainz's one-request-per-second pacing.
+
+### Providers, configuration and estimated API cost
+
+- MusicBrainz: public official API with the required identifying User-Agent and one-request-per-second pacing. No paid API charge is expected, but availability and fair-use limits apply.
+- Brave Search API: requires server-side `BRAVE_SEARCH_API_KEY`. One uncached research run makes up to three Search requests. [Brave's published Search price](https://brave.com/search/api/) is USD 5 per 1,000 requests with USD 5 monthly credits, so the search portion is approximately USD 0.015 per uncached run after credits. Cached repeats make no provider calls.
+- Amazon Bedrock: defaults to `amazon.nova-lite-v1:0` in `us-west-2` through the Converse API. Configure `EPK_RESEARCH_MODEL_ID`, `EPK_RESEARCH_REGION` and `EPK_RESEARCH_DAILY_LIMIT` server-side. Bedrock is token-billed and model/region/tier prices change; measure the returned input/output token usage against the [current AWS Bedrock price table](https://aws.amazon.com/bedrock/pricing/) before setting a production budget. The explicit 2,800-token output ceiling and daily request limit bound exposure.
+- The deployment script adds only `bedrock:InvokeModel` for the configured foundation-model path. A future inference-profile model requires a separately reviewed inference-profile IAM resource.
+
+### Testing results
+
+- **PASS**: sourced music-only research, unsafe-link rejection, similar-name disambiguation, selected MusicBrainz identity, source-ID filtering, duplicate cache, explicit Bedrock token cap, section approval persistence, private-save behavior, research history and EPK version history.
+- **PASS**: existing private/published EPK, media validation, domain isolation, signed public views, permanent deletion, network recovery, Booking Agent contact sheets, Tour Manager dashboard and 13-page site smoke suite.
+- **PASS**: local static visual inspection at desktop and narrow mobile widths. The new research controls stack without horizontal overflow and remain light-mode DANZSTAK branded.
+- **PASS WITH LIVE DATA**: MusicBrainz identity searches for established artist, DJ/producer, band, ambiguous-name and no-match cases. This validates identity behavior, not every research source or generated biography.
+- **BLOCKED**: the AWS account accepted the Bedrock Converse request but returned `ThrottlingException: Too many tokens per day`; therefore a real generated biography has not passed live validation.
+- **BLOCKED**: `BRAVE_SEARCH_API_KEY` is not configured on the current Lambda, so the complete live web-research path has not been tested.
+- **NOT TESTED**: physical iPhone/Android interaction and a production deployment.
+
+### Remaining limitations and blockers
+
+- Do not advertise AI research as operational until Brave is configured and a complete Bedrock research/draft cycle passes with controlled musician accounts.
+- Direct Spotify and Discogs authenticated APIs are not integrated. Those services may appear as artist-supplied links or licensed Brave search evidence only.
+- Existing PDF support is browser print/save-to-PDF. A server-rendered downloadable professional PDF file is **NOT STARTED** and must not be described as complete.
+- Existing Booking Agent integration uses the approved published EPK URL. Automatic outreach, inbound email-to-Chat and reply correlation remain governed by the separate Tour Manager blockers in this report.
+
+Implementation branch: `codex/tour-manager-production`  
+Implementation commit: `be7cd86bd295098d3b444f2fb7cc62552ddd7b8b`  
+Deployment status: **NOT DEPLOYED**
+
 ## Stripe products and Tour Manager credits
 
 Status as of 2026-11-03: test infrastructure implemented; live payments disabled.
