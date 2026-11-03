@@ -70,6 +70,7 @@
   findPeople.addEventListener("click", () => {
     closeOnboarding();
     document.querySelector('.topnav [data-feature="Friends"]')?.click();
+    requestAnimationFrame(() => document.querySelector(".friend-name-search input")?.focus({ preventScroll: true }));
   });
   done.addEventListener("click", closeOnboarding);
 
@@ -114,6 +115,7 @@
     const name = nameInput.value.trim();
     const handle = suggestedHandle(handleInput.value || name);
     save.disabled = true;
+    form.setAttribute("aria-busy", "true");
     status.textContent = words.saving;
     try {
       let response = await request("https://api.danzstak.com/profiles", {
@@ -142,7 +144,7 @@
       next.hidden = false;
       findPeople.focus({ preventScroll: true });
     } catch (error) { status.textContent = error.message; }
-    finally { save.disabled = false; }
+    finally { save.disabled = false; form.setAttribute("aria-busy", "false"); }
   });
 
   load();

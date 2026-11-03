@@ -428,7 +428,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
         <p id="profileOnboardingHelp">Add your name once so friends can recognize and find you.</p>
       </div>
       <form id="profileOnboardingForm">
-        <label><span id="profileOnboardingNameLabel">Name people see</span><input id="profileOnboardingName" name="name" minlength="2" maxlength="80" autocomplete="name" placeholder="Liana" required></label>
+        <label><span id="profileOnboardingNameLabel">Name people see</span><input id="profileOnboardingName" name="name" minlength="2" maxlength="80" autocomplete="name" placeholder="Liana" aria-describedby="profileOnboardingHelp profileOnboardingStatus" required></label>
         <input id="profileOnboardingHandle" name="handle" type="hidden">
         <button class="primary" id="profileOnboardingSave" type="submit">Save my name</button>
       </form>
