@@ -1877,9 +1877,14 @@ let notificationDrawer = null;
 let notificationUnderlyingWorkspace = "";
 let notificationWorkspacePlaceholder = null;
 const notificationFeedView = document.getElementById("newsFeedView");
+const usesMobileNotificationHistory = () => matchMedia("(max-width: 700px)").matches;
 
-function closeNotificationDrawer(restoreFocus = true) {
+function closeNotificationDrawer(restoreFocus = true, { fromHistory = false } = {}) {
   if (!notificationDrawer || notificationDrawer.hidden) return false;
+  if (!fromHistory && restoreFocus && usesMobileNotificationHistory() && history.state?.danzstakNotificationsOpen === true) {
+    history.back();
+    return true;
+  }
   notificationDrawer.hidden = true;
   dispatchEvent(new CustomEvent("danzstak:notification-drawer", { detail: { open: false } }));
   notificationFeedView.before(featurePanel);
@@ -1897,12 +1902,17 @@ function closeNotificationDrawer(restoreFocus = true) {
     control.setAttribute("aria-pressed", "false");
   });
   if (location.hash.toLowerCase() === "#notifications") history.replaceState(null, "", location.pathname + location.search);
+  else if (history.state?.danzstakNotificationsOpen === true) {
+    const nextState = { ...history.state };
+    delete nextState.danzstakNotificationsOpen;
+    history.replaceState(nextState, "");
+  }
   if (restoreFocus) (notificationDrawerPreviousFocus || notificationControls[0])?.focus({ preventScroll: true });
   notificationDrawerPreviousFocus = null;
   return true;
 }
 
-function openNotificationDrawer(opener) {
+function openNotificationDrawer(opener, { updateHistory = true } = {}) {
   document.getElementById("messageDrawer")?.querySelector(".message-drawer-close")?.click();
   setMobileMenu(false);
   document.body.classList.remove("content-only");
@@ -1942,6 +1952,10 @@ function openNotificationDrawer(opener) {
   featurePanel.hidden = false;
   notificationDrawer.querySelector(".notification-drawer-content").appendChild(featurePanel);
   notificationDrawer.hidden = false;
+  if (updateHistory && usesMobileNotificationHistory() && history.state?.danzstakNotificationsOpen !== true) {
+    const currentState = history.state && typeof history.state === "object" ? history.state : {};
+    history.pushState({ ...currentState, danzstakNotificationsOpen: true }, "");
+  }
   dispatchEvent(new CustomEvent("danzstak:notification-drawer", { detail: { open: true } }));
   notificationControls.forEach(control => {
     control.setAttribute("aria-expanded", "true");
@@ -1977,7 +1991,7 @@ function openWorkspaceRoute(name, pushHistory = true) {
   if (!workspaceRoutes.has(String(name).toLowerCase())) return false;
   const canonicalName = workspaceRoutes.get(String(name).toLowerCase());
   if (canonicalName === "Notifications") {
-    openNotificationDrawer(notificationControls[0]);
+    openNotificationDrawer(notificationControls[0], { updateHistory: pushHistory });
     return true;
   }
   if (typeof closeNotificationDrawer === "function") closeNotificationDrawer(false);
@@ -2026,6 +2040,11 @@ document.querySelector('[data-route="home"]')?.addEventListener("click", () => c
 document.getElementById("messagesNav")?.addEventListener("click", () => closeNotificationDrawer(false), { capture: true });
 
 function restoreWorkspaceRoute() {
+  if (usesMobileNotificationHistory() && history.state?.danzstakNotificationsOpen === true) {
+    if (!notificationDrawer || notificationDrawer.hidden) openNotificationDrawer(notificationControls[0], { updateHistory: false });
+    return;
+  }
+  if (notificationDrawer && !notificationDrawer.hidden) closeNotificationDrawer(true, { fromHistory: true });
   const requestedView = new URLSearchParams(location.search).get("view")?.trim().toLowerCase() || "";
   const name = workspaceRoutes.get(location.hash.slice(1).toLowerCase()) || workspaceRoutes.get(requestedView);
   if (name) openWorkspaceRoute(name, false);
