@@ -80,6 +80,7 @@ All three current global OpenStreetMap Overpass mirrors were unavailable from th
 - Accepting or declining a friend request now updates the notification badge and final empty state immediately after server confirmation, even if the follow-up count refresh is offline. Failures are announced as alerts, confirmed actions give localized feedback, and Friends/presence still refresh in the background.
 - A cloud settings outage no longer disables device-only choices. Dark mode, reduced motion, data saver, language, and notification-badge visibility remain usable; presence and tagging stay protected until account settings load. Notification-badge changes persist and refresh immediately without waiting for a cloud save.
 - Active phone and video calls now tolerate a short mobile-network interruption, cancel stale recovery timers when the connection returns, and fully release camera, microphone, and call controls when the peer connection is lost. Reconnect and lost-call states are localized across all 15 supported languages; focused call tests and the complete regression suite pass.
+- Call-role controls are now explicit: outgoing callers keep the primary accessible Hang Up action without a duplicate floating button, while recipients retain the dedicated touch-friendly receiver Hang Up control requested for mobile calls.
 
 ## Known limits
 

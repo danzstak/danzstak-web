@@ -544,9 +544,10 @@ if ([regex]::Matches($feedEnhancementsJs, '(?m)^function isLocalHost\(\)').Count
   Add-Failure 'feed-enhancements.js must expose one top-level isLocalHost helper'
 }
 if ($messagesHtml -notmatch 'id="receiverHangUp"[^>]+hidden' -or
-    -not $chatJs.Contains('els.receiverHangup.hidden=false') -or
+    -not $chatJs.Contains('els.receiverHangup.hidden=!receiving') -or
+    -not $chatJs.Contains('makePeer(offer.mode,{receiving:true})') -or
     -not $chatJs.Contains('els.receiverHangup.hidden=true')) {
-  Add-Failure 'Call controls: receiver Hang Up visibility is not tied to active call state'
+  Add-Failure 'Call controls: receiver Hang Up visibility is not tied to the receiving call role and active call state'
 }
 foreach ($deletedChatControl in @('function closeConversation(', 'shownMessages.clear()', 'danzstak-chat-view", open: false', 'closeConversation({ focusList: true })')) {
   if (-not $directMessagesJs.Contains($deletedChatControl)) { Add-Failure "Messaging: deleting or closing a chat leaves stale conversation state: $deletedChatControl" }
