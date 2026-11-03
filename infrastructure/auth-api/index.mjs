@@ -9,6 +9,7 @@ import {
   verify,
   timingSafeEqual
 } from "node:crypto";
+import { researchVenuePages } from "./venue-research.mjs";
 
 import {
   DynamoDBClient,
@@ -2019,7 +2020,7 @@ function venueDiscoveryAssessment(place, genre = "", venueType = "any") {
   const relevant = place.verifiedRoom === true || isBookableClub(place, genre);
   const typeMatch = isVenueTypeMatch(place, venueType);
   const hasContact = hasBookingContact(place);
-  const description = `${place.name} ${(place.categories || []).join(" ")}`.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  const description = `${place.name} ${(place.categories || []).join(" ")} ${place.programmingEvidence || ""}`.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
   const requested = String(genre || "").toLowerCase();
   const families = requested.includes("tekno")
     ? ["tekno", "free party", "soundsystem", "hardtek", "tribe"]
@@ -2206,16 +2207,29 @@ function discoveryBoundingBox(position, radiusMiles) {
 }
 
 async function awsPlaceSearch(point, queries, radiusMiles = 30) {
-  const boundingBox = discoveryBoundingBox(point.position, radiusMiles);
+  const failures = [];
   const batches = await mapLimit(queries, 2, async query => {
-    const result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, Filter: { BoundingBox: boundingBox }, MaxResults: 50, AdditionalFeatures: ["Contact"] }));
-    return (result.ResultItems || []).map(publicPlace).map(place => ({ ...place, discoveryQuery: query }));
+    const places = [];
+    let nextToken;
+    for (let page = 0; page < 2; page += 1) {
+      let result;
+      try {
+        result = await geoPlaces.send(new SearchTextCommand({ QueryText: query, Filter: { Circle: { Center: point.position, Radius: Math.round(radiusMiles * 1609.344) } }, MaxResults: 50, AdditionalFeatures: ["Contact"], ...(nextToken ? { NextToken: nextToken } : {}) }), { abortSignal: AbortSignal.timeout(2500) });
+      } catch (error) { failures.push(error); break; }
+      places.push(...(result.ResultItems || []).map(publicPlace).map(place => ({ ...place, discoveryQuery: query })));
+      nextToken = result.NextToken;
+      if (!nextToken) break;
+    }
+    return places;
   });
-  return batches.flat();
+  const places = batches.flat();
+  if (!places.length && failures.length === queries.length) throw failures[0];
+  places.partial = failures.length > 0;
+  return places;
 }
 
 const regionalVenueTerms = {
-  IT: ["locale musica dal vivo", "club musicale", "sala concerti", "discoteca techno"],
+  IT: ["locale musica dal vivo", "discoteca", "club musicale", "sala concerti"],
   NL: ["poppodium", "muziekpodium", "live muziek", "concertzaal", "nachtclub"],
   DE: ["live musik club", "musikclub", "konzerthaus", "veranstaltungsort"],
   FR: ["salle de concert", "club de musique", "musique live", "discotheque"],
@@ -2254,8 +2268,19 @@ function venueDiscoveryQueries(point, genre = "") {
       : selected ? [`${selected} live venue`, `${selected} music club`] : [];
   return [...new Set([
     ...localTerms, ...sceneTerms, "live music venue", "music club", "independent music venue",
-    "concert venue", "live music bar", "nightclub live music"
+    "concert venue", "live music bar", "nightclub", "performance venue", "concert hall"
   ])].slice(0, 16);
+}
+
+const externalDiscoveryBackoff = new Map();
+async function discoveryProviderFetch(provider, url, options) {
+  if ((externalDiscoveryBackoff.get(provider) || 0) > Date.now()) throw new Error(`${provider} is cooling down after a rate limit`);
+  const response = await fetch(url, options);
+  if (response.status === 429) {
+    const retryAfter = Number(response.headers?.get("retry-after"));
+    externalDiscoveryBackoff.set(provider, Date.now() + Math.max(1000, Math.min(300000, (retryAfter || 30) * 1000)));
+  }
+  return response;
 }
 
 function googlePlace(place, point, query) {
@@ -2293,7 +2318,7 @@ async function googlePlacesSearch(point, queries, radiusMiles = 30) {
       try {
         const body = { textQuery: `${query} ${point.label}`, pageSize: 20, languageCode: point.languageCode || "en", locationBias: { circle: { center: { latitude: point.position[1], longitude: point.position[0] }, radius } } };
         if (pageToken) body.pageToken = pageToken;
-        const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+        const response = await discoveryProviderFetch("Google Places", "https://places.googleapis.com/v1/places:searchText", {
           method: "POST", signal: controller.signal,
           headers: {
             "content-type": "application/json", "X-Goog-Api-Key": apiKey,
@@ -2320,8 +2345,10 @@ async function webVenueResearch(point, genre = "") {
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 6000);
     try {
       const search = new URLSearchParams({ q: `${term} ${point.label} official events calendar booking`, count: "10", search_lang: point.languageCode || "en", safesearch: "moderate" });
-      if (/^[A-Z]{2}$/.test(point.countryCode || "")) search.set("country", point.countryCode);
-      const response = await fetch(`https://api.search.brave.com/res/v1/web/search?${search}`, {
+      // Brave supports a subset of country codes. The locality is in the query;
+      // ALL avoids rejecting valid towns in countries outside that subset.
+      search.set("country", "ALL");
+      const response = await discoveryProviderFetch("Brave Search", `https://api.search.brave.com/res/v1/web/search?${search}`, {
         signal: controller.signal, headers: { accept: "application/json", "X-Subscription-Token": apiKey }
       });
       if (!response.ok) throw new Error(`Brave Search returned ${response.status}`);
@@ -2342,7 +2369,7 @@ async function multiSourceDiscovery(point, kind, { genre = "", radiusMiles = 30 
   const awsQueries = kind === "record-store"
     ? ["record store", "vinyl record shop", "independent record store", "used records vinyl", "new and used record shop", "music store vinyl records"]
     : venueDiscoveryQueries(point, genre);
-  const cacheKey = `${kind}|${point.position.map(value => value.toFixed(3)).join(",")}|${genre.toLowerCase()}|${radiusMiles}`;
+  const cacheKey = `${kind}|${point.label}|${point.languageCode || ""}|${point.position.map(value => value.toFixed(4)).join(",")}|${genre.toLowerCase()}|${radiusMiles}`;
   return cacheDiscovery(cacheKey, async () => {
     const googleResult = kind === "venue" ? googlePlacesSearch(point, awsQueries, radiusMiles) : Promise.resolve({ skipped: true, places: [] });
     const webResult = kind === "venue" ? webVenueResearch(point, genre) : Promise.resolve({ skipped: true, leads: [] });
@@ -2357,13 +2384,15 @@ async function multiSourceDiscovery(point, kind, { genre = "", radiusMiles = 30 
       const value = attempts[index].status === "fulfilled" ? attempts[index].value : null;
       const skipped = Boolean(value?.skipped);
       const list = Array.isArray(value) ? value : value?.places || value?.leads || [];
-      return { name, ok: attempts[index].status === "fulfilled" && !skipped, skipped, count: list.length, error: attempts[index].status === "rejected" ? "Provider temporarily unavailable" : skipped ? "Not configured" : "" };
+      return { name, ok: attempts[index].status === "fulfilled" && !skipped && !value?.partial, skipped, count: list.length, error: attempts[index].status === "rejected" ? "Provider temporarily unavailable" : skipped ? "Not configured" : value?.partial ? "Some provider queries failed; retained successful results" : "" };
     });
     const successful = attempts.filter(result => result.status === "fulfilled" && !result.value?.skipped);
     if (!successful.length) throw Object.assign(new Error("All discovery providers are temporarily unavailable."), { providerStatuses: providers });
     const placeResults = attempts.slice(0, 3).filter(result => result.status === "fulfilled" && !result.value?.skipped);
     const researchLeads = attempts[3].status === "fulfilled" ? attempts[3].value.leads || [] : [];
-    return { places: deduplicateVenues(placeResults.flatMap(result => Array.isArray(result.value) ? result.value : result.value.places || [])), researchLeads, providers };
+    const places = deduplicateVenues(placeResults.flatMap(result => Array.isArray(result.value) ? result.value : result.value.places || []));
+    if (kind === "venue") await researchVenuePages(places);
+    return { places, researchLeads, providers };
   });
 }
 
@@ -3132,7 +3161,7 @@ function parseVenueDiscoveryRequest(data) {
     location = String(match?.[1] || raw).replace(/[?.!]+$/, "").trim();
   }
   if (!genre && raw) {
-    const match = raw.match(/\b(techno|house|electronic|edm|punk|hardcore|metal|rock|jazz|hip[- ]?hop|rap|classical|orchestra|folk|country|blues)\b/i);
+    const match = raw.match(/\b(hardcore punk|hardcore electronic|tekno|hardtek|techno|house|electronic|edm|punk|hardcore|metal|rock|jazz|hip[- ]?hop|rap|classical|orchestra|folk|country|blues)\b/i);
     genre = match?.[1] || "";
   }
   return { raw, location, genre };
@@ -3162,7 +3191,7 @@ async function searchVenues(event) {
       return { ...place, distanceMiles: Math.round(approximateMilesBetween(point.position, place.position) * 10) / 10, bookingSuitability: assessment.suitability, suitabilityReasons: assessment.reasons, genreMatch: assessment.genreMatch, venueTypeMatch: assessment.typeMatch };
     }).sort((left, right) => venueSuitability(right, parsed.genre) - venueSuitability(left, parsed.genre) || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
     const offset = page * 20, venues = ranked.slice(offset, offset + 20);
-    const providerFailures = discovery.providers.filter(provider => !provider.ok && !provider.skipped);
+    const providerFailures = discovery.providers.filter(provider => !provider.ok);
     return reply(200, { query: parsed.raw, location: point, genre: parsed.genre, venues, researchLeads: discovery.researchLeads || [], providers: discovery.providers, coverage: providerFailures.length ? "partial" : "provider-complete", coverageNotice: providerFailures.length ? "Some discovery providers were unavailable; these results are incomplete." : ranked.length ? "Results are current public leads, not guaranteed booking availability." : "No relevant public venue leads were found in the searched radius. This does not prove that no venues exist.", page, hasMore: ranked.length > offset + venues.length, canExpand: radiusMiles < 150, radiusMiles, expandedFromMiles });
   } catch (error) {
     if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });
@@ -3565,7 +3594,7 @@ async function saveTourPlan(event) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON request." }) };
   const name = String(data.name || "").trim().slice(0, 100), artist = String(data.artist || "").trim().slice(0, 100), tourId = /^[0-9a-f-]{36}$/i.test(String(data.tourId || "")) ? String(data.tourId) : randomUUID();
   const requestedActType = String(data.actType || "").trim().toLowerCase(), requestedGenre = String(data.genre || "").trim(), requestedVenueType = String(data.venueType || "any").trim().toLowerCase();
-  const actType = tourActTypes.has(requestedActType) ? requestedActType : "band", genre = tourGenres.has(requestedGenre) ? requestedGenre : "DIY Punk", venueType = new Set(["any", "diy", "bar", "club", "hall"]).has(requestedVenueType) ? requestedVenueType : "any";
+  const actType = tourActTypes.has(requestedActType) ? requestedActType : "band", genre = requestedGenre.slice(0, 80) || "Other", venueType = new Set(["any", "diy", "bar", "club", "hall"]).has(requestedVenueType) ? requestedVenueType : "any";
   const start = String(data.start || "").trim().slice(0, 160), direction = String(data.direction || "").trim().toLowerCase(), departOn = String(data.departOn || "").trim(), returnBy = String(data.returnBy || "").trim();
   const days = Math.max(1, Math.min(180, Math.trunc(Number(data.days) || 0))), distanceMiles = Math.max(0, Math.min(100000, Math.round(Number(data.distanceMiles) || 0)));
   const markets = Array.isArray(data.markets) ? data.markets.slice(0, 24).map(cleanTourMarket) : [];

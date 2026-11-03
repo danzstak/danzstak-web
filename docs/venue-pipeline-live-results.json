@@ -1,0 +1,7277 @@
+[
+  {
+    "location": "Novara, Italy",
+    "resolved": {
+      "label": "Novara, Piemonte, Italia",
+      "position": [
+        8.61524,
+        45.44678
+      ],
+      "locality": "Novara",
+      "countryCode": "IT",
+      "languageCode": "it",
+      "alternatives": []
+    },
+    "providers": [
+      {
+        "name": "AWS Places",
+        "ok": true,
+        "skipped": false,
+        "count": 167,
+        "error": ""
+      },
+      {
+        "name": "OpenStreetMap",
+        "ok": false,
+        "skipped": false,
+        "count": 0,
+        "error": "Provider temporarily unavailable"
+      },
+      {
+        "name": "Google Places",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      },
+      {
+        "name": "Brave Search",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      }
+    ],
+    "rawCount": 86,
+    "venues": [
+      {
+        "name": "Musica dal Vivo",
+        "locality": "Cesano Boscone",
+        "address": "Musica dal Vivo, Via Amerigo Vespucci, 20090 Cesano Boscone MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.08559,
+          45.44227
+        ]
+      },
+      {
+        "name": "Ryan's",
+        "locality": "Novara",
+        "address": "Ryan's, Via Giacinto Morera, 2, 28100 Novara NO, Italia",
+        "websites": [
+          "https://beacons.ai/ryansclub",
+          "https://www.ryans.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://beacons.ai/ryansclub"
+          }
+        ],
+        "position": [
+          8.61612,
+          45.44762
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "The King II",
+        "locality": "Novara",
+        "address": "The King II, Via Paolo Nibbia, 8, 28100 Novara NO, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.62372,
+          45.44242
+        ]
+      },
+      {
+        "name": "Celebrità",
+        "locality": "Trecate",
+        "address": "Celebrità, 28069 Trecate NO, Italia",
+        "websites": [
+          "https://www.discotecacelebrita.com"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.discotecacelebrita.com"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://www.discotecacelebrita.com/",
+            "checkedAt": "2026-11-03T12:48:13.045Z"
+          }
+        ],
+        "position": [
+          8.70569,
+          45.43412
+        ],
+        "websiteResearch": "evidence-found",
+        "programmingEvidence": "Preparati a vivere notti indimenticabili con Dj internazionali, Ospiti famosi e live show mozzafiato. Immergiti in un&#39;oasi di relax e musica, dove potrai ballare sotto le stelle, sorseggiare cocktail rinfrescanti e divertirti con i tuoi amici. SCOPRI DI PI&Uacute; >> Servizi Richiesta Informazioni - Compleanni e Festeggiamenti Richiesta Informazioni - Ampio Parcheggio Richiesta Informazioni - Addio al Nubilato e Celibato Richiesta Informazioni - Area Bimbi Richiesta Informazioni - Feste a Tema Richiesta Informazioni - Eventi privati Richiesta Informazioni - Parcheggio priv&#233; Richiesta Informazioni - Feste di Laurea Richiesta Informazioni - Prenotazione Tavoli Richiesta Informazioni - Eventi Aziendali Richiesta Informazioni - Cerimonie --> Special Guest - Il Pagante Prenota Special Guest DJ MATRIX Prenota Addio al nubilato e celibato | Ampio parcheggio | Animazione e Atmosfera Magica | Arona | Borgomanero | Capodanno | Disco invernale | Divertimento Novara | Epifania Befana | Eventi aziendali | Eventi in discoteca | Ferragosto | Feste di compleanno | Feste di laurea | Feste di Natale | Gallarate | Halloween | Lago maggiore &#8211; Lago d'Orta | Locale estivo | Locali | Magenta | Mortara | Pavia | Prenotazione tavoli | Priv&#232; eleganti | Sala House | Serate a tema | Serate glamour | Tavoli esclusivi e champagne | Vercelli | Vigevano | BUNGALOWS | RESORT | OCCASIONS | PHOTO GALLERY | Contact --> Language Afrikaans Albanian Arabic Armenian Azerbaijani Basque Belarusian Bulgarian Catalan Chinese (Simplified) Chinese (Traditional) Croatian Czech Danish Dutch English Estonian Filipino Finnish French Galician Georgian German Greek Haitian Creole Hebrew Hindi Hungarian Icelandic Indonesian Irish Italian Japanese Korean Latvian Lithuanian Macedonian Malay Maltese Norwe"
+      },
+      {
+        "name": "Seventeen Lounge Bar",
+        "locality": "Palestro",
+        "address": "Seventeen Lounge Bar, Via Robbio, 25, 27030 Palestro PV, Italia",
+        "websites": [
+          "https://www.facebook.com/seventeenloungebar?hc_location=timeline"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/seventeenloungebar?hc_location=timeline"
+          }
+        ],
+        "position": [
+          8.54151,
+          45.29857
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "Why Not Lounge and Bar",
+        "locality": "Nicorvo",
+        "address": "Why Not Lounge and Bar, Piazza della Libertà, 5, 27020 Nicorvo PV, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.66752,
+          45.28594
+        ]
+      },
+      {
+        "name": "El Patio Night Club",
+        "locality": "Vanzaghello",
+        "address": "El Patio Night Club, Viale Milano, 9, 20020 Vanzaghello MI, Italia",
+        "websites": [
+          "https://sites.google.com/view/el-patio-night-club-1982"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://sites.google.com/view/el-patio-night-club-1982"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://sites.google.com/view/el-patio-night-club-1982",
+            "checkedAt": "2026-11-03T12:48:14.313Z"
+          }
+        ],
+        "position": [
+          8.78056,
+          45.57255
+        ],
+        "websiteResearch": "no-programming-found",
+        "programmingEvidence": ""
+      },
+      {
+        "name": "Ambra's Café",
+        "locality": "Vercelli",
+        "address": "Ambra's Café, Via Riccardo Restano, 46, 13100 Vercelli VC, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.42068,
+          45.33388
+        ]
+      },
+      {
+        "name": "H2o Club",
+        "locality": "Marano Ticino",
+        "address": "H2o Club, Via Mezzomerico, 18, 28040 Marano Ticino NO, Italia",
+        "websites": [
+          "https://h2o.playdance.tv"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://h2o.playdance.tv"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://h2o.playdance.tv/",
+            "checkedAt": "2026-11-03T12:48:14.162Z"
+          }
+        ],
+        "position": [
+          8.62519,
+          45.62689
+        ],
+        "websiteResearch": "no-programming-found",
+        "programmingEvidence": ""
+      },
+      {
+        "name": "H2o Discoteca",
+        "locality": "Marano Ticino",
+        "address": "H2o Discoteca, Via Roma, 1, Marano Ticino NO, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.63234,
+          45.63188
+        ]
+      },
+      {
+        "name": "Only Village",
+        "locality": "Marcallo con Casone",
+        "address": "Only Village, Via Menedrago, 20010 Marcallo con Casone MI, Italia",
+        "websites": [
+          "https://shor.by/onlyvillage"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://shor.by/onlyvillage"
+          }
+        ],
+        "position": [
+          8.88423,
+          45.49264
+        ]
+      },
+      {
+        "name": "Etoile Club",
+        "locality": "Cassinetta di Lugagnano",
+        "address": "Etoile Club, Viale Lombardia, 16, 20081 Cassinetta di Lugagnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.90059,
+          45.41875
+        ]
+      },
+      {
+        "name": "Vamos A la Playa",
+        "locality": "Vigevano",
+        "address": "Vamos A la Playa, Via San Giovanni, 27029 Vigevano PV, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.88354,
+          45.32331
+        ]
+      },
+      {
+        "name": "Target Cafè Lounge",
+        "locality": "Busto Arsizio",
+        "address": "Target Cafè Lounge, Via Girolamo Miani, 14, 21052 Busto Arsizio VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.85488,
+          45.61525
+        ]
+      },
+      {
+        "name": "Shed Club",
+        "locality": "Busto Arsizio",
+        "address": "Shed Club, Corso 20 Settembre, 53, 21052 Busto Arsizio VA, Italia",
+        "websites": [
+          "https://www.shedclub.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.shedclub.it"
+          }
+        ],
+        "position": [
+          8.8659,
+          45.61299
+        ]
+      },
+      {
+        "name": "Discoteca Mediterranèe",
+        "locality": "Legnano",
+        "address": "Discoteca Mediterranèe, Via Thomas Alva Edison, 7, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.88751,
+          45.60103
+        ]
+      },
+      {
+        "name": "Melodica",
+        "locality": "Vermezzo con Zelo",
+        "address": "Melodica, 20071 Vermezzo con Zelo MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.96081,
+          45.40249
+        ]
+      },
+      {
+        "name": "Quid",
+        "locality": "Gallarate",
+        "address": "Quid, Via Camillo Benso di Cavour, 17, 21013 Gallarate VA, Italia",
+        "websites": [
+          "https://www.facebook.com/QUIDgallarate"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/QUIDgallarate"
+          }
+        ],
+        "position": [
+          8.79723,
+          45.65821
+        ]
+      },
+      {
+        "name": "De Cube Club",
+        "locality": "Cassano Magnago",
+        "address": "De Cube Club, Via Morazzone, 11, 21012 Cassano Magnago VA, Italia",
+        "websites": [
+          "https://decubeclub.com",
+          "https://www.papido.it/milano/discoteca/de-cube.htm"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://decubeclub.com"
+          }
+        ],
+        "position": [
+          8.82274,
+          45.65545
+        ]
+      },
+      {
+        "name": "Zero",
+        "locality": "Olgiate Olona",
+        "address": "Zero, Via San Francesco, 19, 21057 Olgiate Olona VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.86573,
+          45.63421
+        ]
+      },
+      {
+        "name": "Ritual Club & Lounge",
+        "locality": "Castellanza",
+        "address": "Ritual Club & Lounge, Corso Sempione, 11, 21053 Castellanza VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.89463,
+          45.61488
+        ]
+      },
+      {
+        "name": "Secretroom",
+        "locality": "Legnano",
+        "address": "Secretroom, Via Bellingera, 5, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.90866,
+          45.60354
+        ]
+      },
+      {
+        "name": "Royalty Lounge Bar",
+        "locality": "Parabiago",
+        "address": "Royalty Lounge Bar, Via Santa Maria, 16, 20015 Parabiago MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.94854,
+          45.55796
+        ]
+      },
+      {
+        "name": "Joker Dance Club",
+        "locality": "Nerviano",
+        "address": "Joker Dance Club, Via Mario Re Depaolini, 68, 20015 Nerviano MI, Italia",
+        "websites": [
+          "https://www.jokerdance.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.jokerdance.it"
+          }
+        ],
+        "position": [
+          8.95918,
+          45.54638
+        ]
+      },
+      {
+        "name": "Empyre",
+        "locality": "Parabiago",
+        "address": "Empyre, Via Filarete, 2, 20015 Parabiago MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.95292,
+          45.56922
+        ]
+      },
+      {
+        "name": "Dancing Cadorna",
+        "locality": "Legnano",
+        "address": "Dancing Cadorna, Viale Luigi Cadorna, 25, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.93518,
+          45.59508
+        ]
+      },
+      {
+        "name": "Irish Hill Pub",
+        "locality": "Bareggio",
+        "address": "Irish Hill Pub, Piazza Camillo Benso di Cavour, 20008 Bareggio MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.99616,
+          45.47634
+        ]
+      },
+      {
+        "name": "Sommelier Social Club",
+        "locality": "Nerviano",
+        "address": "Sommelier Social Club, Piazza Crivelli, 1, 20014 Nerviano MI, Italia",
+        "websites": [
+          "https://www.sommeliersocialclub.com"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.sommeliersocialclub.com"
+          }
+        ],
+        "position": [
+          8.97196,
+          45.55489
+        ]
+      },
+      {
+        "name": "Discoteca Gilda",
+        "locality": "Castelletto Sopra Ticino",
+        "address": "Discoteca Gilda, Via Vigevano, 12, 28053 Castelletto Sopra Ticino NO, Italia",
+        "websites": [
+          "https://www.discotecagilda.com"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.discotecagilda.com"
+          }
+        ],
+        "position": [
+          8.63654,
+          45.72057
+        ]
+      },
+      {
+        "name": "Land",
+        "locality": "Legnano",
+        "address": "Land, Via Privata Maestri del Lavoro, 27, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.92859,
+          45.61312
+        ]
+      },
+      {
+        "name": "Valerios Cafe Lounge Bar",
+        "locality": "Cerro Maggiore",
+        "address": "Valerios Cafe Lounge Bar, Via Cappuccini, 20023 Cerro Maggiore MI, Italia",
+        "websites": [
+          "https://valerios-cafe-lounge-bar.business.site",
+          "https://valerios-cafe-lounge-bar.business.site/?utm_source=gmb&utm_medium=referral"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://valerios-cafe-lounge-bar.business.site"
+          }
+        ],
+        "position": [
+          8.94867,
+          45.59378
+        ]
+      },
+      {
+        "name": "Bar la Marna",
+        "locality": "Sesto Calende",
+        "address": "Bar la Marna, Via Roma, 21018 Sesto Calende VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.63024,
+          45.72421
+        ]
+      },
+      {
+        "name": "Fell in Love",
+        "locality": "Pogliano Milanese",
+        "address": "Fell in Love, Via Roma, 26, 20005 Pogliano Milanese MI, Italia",
+        "websites": [
+          "https://www.discotecafellini.com/contatti"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.discotecafellini.com/contatti"
+          }
+        ],
+        "position": [
+          8.98902,
+          45.53885
+        ]
+      },
+      {
+        "name": "Freelifestyle Club",
+        "locality": "Cusago",
+        "address": "Freelifestyle Club, Viale Galileo Ferraris, 15, 20047 Cusago MI, Italia",
+        "websites": [
+          "https://freelifestyleclub.com"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://freelifestyleclub.com"
+          }
+        ],
+        "position": [
+          9.04964,
+          45.43701
+        ]
+      },
+      {
+        "name": "Kattys",
+        "locality": "Paruzzaro",
+        "address": "Kattys, Via Borgomanero, 32, 28040 Paruzzaro NO, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.51595,
+          45.74389
+        ]
+      },
+      {
+        "name": "La Rocca Gold",
+        "locality": "Arona",
+        "address": "La Rocca Gold, Via Sempione, 28041 Arona NO, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.55617,
+          45.7649
+        ]
+      },
+      {
+        "name": "Bliss Disco Club Rho",
+        "locality": "Rho",
+        "address": "Bliss Disco Club Rho, Via Federico Borromeo, 2, 20017 Rho MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.06633,
+          45.5268
+        ]
+      },
+      {
+        "name": "The Big Party",
+        "locality": "Pero",
+        "address": "The Big Party, Via Fratelli Bandiera, 20016 Pero MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.08283,
+          45.50663
+        ]
+      },
+      {
+        "name": "Pavarotty",
+        "locality": "Garlasco",
+        "address": "Pavarotty, Via Leonardo da Vinci, 48, 27026 Garlasco PV, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.92129,
+          45.19173
+        ]
+      },
+      {
+        "name": "Le Rotonde",
+        "locality": "Garlasco",
+        "address": "Le Rotonde, Via Leonardo da Vinci, 30, 27026 Garlasco PV, Italia",
+        "websites": [
+          "https://4-stagioni-pizzeria-le-rotonde.business.site",
+          "https://4-stagioni-pizzeria-le-rotonde.business.site/?utm_source=gmb&utm_medium=referral"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://4-stagioni-pizzeria-le-rotonde.business.site"
+          }
+        ],
+        "position": [
+          8.92165,
+          45.19187
+        ]
+      },
+      {
+        "name": "Greyhound Club",
+        "locality": "Saronno",
+        "address": "Greyhound Club, Via Maestri del Lavoro, 41, 21047 Saronno VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.03704,
+          45.62152
+        ]
+      },
+      {
+        "name": "Face Accademia dello Spettacolo",
+        "locality": "Buccinasco",
+        "address": "Face Accademia dello Spettacolo, Via degli Aceri, 1, 20090 Buccinasco MI, Italia",
+        "websites": [
+          "https://faceaccademiadellospettacolo.com"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://faceaccademiadellospettacolo.com"
+          }
+        ],
+        "position": [
+          9.10584,
+          45.42534
+        ]
+      },
+      {
+        "name": "Boscaccio Bar Discoclub",
+        "locality": "Zerbolò",
+        "address": "Boscaccio Bar Discoclub, Via Bereguardo, 9, 27020 Zerbolò PV, Italia",
+        "websites": [
+          "https://m.facebook.com/barboscaccio",
+          "https://www.facebook.com/barboscaccio"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://m.facebook.com/barboscaccio"
+          }
+        ],
+        "position": [
+          9.00618,
+          45.23407
+        ]
+      },
+      {
+        "name": "Camana Club",
+        "locality": "Buccinasco",
+        "address": "Camana Club, Via Palermo, 12, 20090 Buccinasco MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.11401,
+          45.42536
+        ]
+      },
+      {
+        "name": "Playa Santo Domingo",
+        "locality": "Assago",
+        "address": "Playa Santo Domingo, Via Luigi Galvani, 7, 20057 Assago MI, Italia",
+        "websites": [
+          "https://playasantodomingo.eatbu.com"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://playasantodomingo.eatbu.com"
+          }
+        ],
+        "position": [
+          9.11963,
+          45.40995
+        ]
+      },
+      {
+        "name": "E Street Lounge",
+        "locality": "Milano",
+        "address": "E Street Lounge, Piazzale Angelo Moratti, 20151 Milano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.12294,
+          45.47679
+        ]
+      },
+      {
+        "name": "Monate Beach",
+        "locality": "Travedona-Monate",
+        "address": "Monate Beach, Via Milano, 1462, 21028 Travedona-Monate VA, Italia",
+        "websites": [
+          "https://www.monatebeach.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.monatebeach.it"
+          }
+        ],
+        "position": [
+          8.6691,
+          45.80228
+        ]
+      },
+      {
+        "name": "La Tana Garage Music & Art Club",
+        "locality": "Turbigo",
+        "address": "La Tana Garage Music & Art Club, Via Eugenio Villoresi, 66, 20029 Turbigo MI, Italia",
+        "websites": [
+          "https://www.facebook.com/695653960791602"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/695653960791602"
+          }
+        ],
+        "position": [
+          8.75257,
+          45.53105
+        ]
+      },
+      {
+        "name": "Discoteca Mixer",
+        "locality": "Vigevano",
+        "address": "Discoteca Mixer, Via Alessandro La Marmora, 6, 27029 Vigevano PV, Italia",
+        "websites": [
+          "https://www.facebook.com/293697767380476"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/293697767380476"
+          }
+        ],
+        "position": [
+          8.86601,
+          45.31927
+        ]
+      },
+      {
+        "name": "Phenomenon",
+        "locality": "Fontaneto d'Agogna",
+        "address": "Phenomenon, Strada Regionale del Lago d'Orta, 10, 28010 Fontaneto d'Agogna NO, Italia",
+        "websites": [
+          "https://phenomenon.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://phenomenon.it"
+          }
+        ],
+        "position": [
+          8.49486,
+          45.65442
+        ]
+      },
+      {
+        "name": "Caffè Teatro",
+        "locality": "Samarate",
+        "address": "Caffè Teatro, Via Indipendenza, 10, 21017 Samarate VA, Italia",
+        "websites": [
+          "https://caffeteatrosamarate.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://caffeteatrosamarate.it"
+          }
+        ],
+        "position": [
+          8.79266,
+          45.63607
+        ]
+      },
+      {
+        "name": "Associazione Musicale Jubilate",
+        "locality": "Legnano",
+        "address": "Associazione Musicale Jubilate, Via Abruzzi, 19, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.89981,
+          45.58567
+        ]
+      },
+      {
+        "name": "Jazz Appeal",
+        "locality": "Gallarate",
+        "address": "Jazz Appeal, Via Magenta, 3, 21013 Gallarate VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.7934,
+          45.65624
+        ]
+      },
+      {
+        "name": "Teatro S. Anna",
+        "locality": "Busto Arsizio",
+        "address": "Teatro S. Anna, Piazza Sant'Anna, 1, 21052 Busto Arsizio VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.84391,
+          45.63288
+        ]
+      },
+      {
+        "name": "Corpo Musicale Pietro Mascagni di Cisliano",
+        "locality": "Cisliano",
+        "address": "Corpo Musicale Pietro Mascagni di Cisliano, Via Cardinale Andrea Carlo Ferrari, 1, 20046 Cisliano MI, Italia",
+        "websites": [
+          "https://bandacisliano.wordpress.com",
+          "https://www.facebook.com/865909313601951"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://bandacisliano.wordpress.com"
+          }
+        ],
+        "position": [
+          8.98923,
+          45.44562
+        ]
+      },
+      {
+        "name": "Land of Freedom",
+        "locality": "Legnano",
+        "address": "Land of Freedom, Via Privata Maestri del Lavoro, 27, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.92859,
+          45.61312
+        ]
+      },
+      {
+        "name": "La Villa Summer Music Resort",
+        "locality": "Cerro Maggiore",
+        "address": "La Villa Summer Music Resort, Via Don Carlo Gnocchi, 14, 20023 Cerro Maggiore MI, Italia",
+        "websites": [
+          "https://lavillasummer.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://lavillasummer.it"
+          }
+        ],
+        "position": [
+          8.96386,
+          45.59137
+        ]
+      },
+      {
+        "name": "Home Music Cafe'",
+        "locality": "Cornaredo",
+        "address": "Home Music Cafe', Via Monzoro, 2, 20007 Cornaredo MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.02758,
+          45.4886
+        ]
+      },
+      {
+        "name": "Cine-Teatro la Filanda",
+        "locality": "Cornaredo",
+        "address": "Cine-Teatro la Filanda, Piazza Libertà, 2, 20007 Cornaredo MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.02611,
+          45.50191
+        ]
+      },
+      {
+        "name": "Gotham City",
+        "locality": "Settimo Milanese",
+        "address": "Gotham City, Via Giuseppe Parini, 20019 Settimo Milanese MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.06024,
+          45.48781
+        ]
+      },
+      {
+        "name": "Sold Out Live on Stage",
+        "locality": "Rho",
+        "address": "Sold Out Live on Stage, Via Paolo Taverna, 9, 20017 Rho MI, Italia",
+        "websites": [
+          "https://www.soldoutliveonstage.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.soldoutliveonstage.it"
+          }
+        ],
+        "position": [
+          9.04732,
+          45.54972
+        ]
+      },
+      {
+        "name": "Mx Lab Milan",
+        "locality": "Milano",
+        "address": "Mx Lab Milan, Piazza Anita Garibaldi, 13, 20153 Milano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.08716,
+          45.46304
+        ]
+      },
+      {
+        "name": "Salone la Pianta",
+        "locality": "Corsico",
+        "address": "Salone la Pianta, Via Giacomo Leopardi, 7, 20094 Corsico MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.11043,
+          45.4322
+        ]
+      },
+      {
+        "name": "Bonaventura Music Club",
+        "locality": "Buccinasco",
+        "address": "Bonaventura Music Club, Via Modena, 15, 20090 Buccinasco MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.11357,
+          45.41964
+        ]
+      },
+      {
+        "name": "Mister Fantasy Food & Music",
+        "locality": "Buccinasco",
+        "address": "Mister Fantasy Food & Music, Largo Luigi Brugnatelli, 9, 20090 Buccinasco MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.11294,
+          45.4088
+        ]
+      },
+      {
+        "name": "I Days Metallica",
+        "locality": "Milano",
+        "address": "I Days Metallica, Via Ippodromo, 20151 Milano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.11916,
+          45.48518
+        ]
+      },
+      {
+        "name": "La Villa Summer Music Club",
+        "locality": "Cerro Maggiore",
+        "address": "La Villa Summer Music Club, Via Don Carlo Gnocchi, 20023 Cerro Maggiore MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.96782,
+          45.59293
+        ]
+      },
+      {
+        "name": "Vintage Italian Portico Caffè Cocktails Food & Music Novara",
+        "locality": "Novara",
+        "address": "Vintage Italian Portico Caffè Cocktails Food & Music Novara, Via 20 Settembre, 28, 28100 Novara NO, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.61494,
+          45.447
+        ]
+      },
+      {
+        "name": "Scotch Club Live Music",
+        "locality": "Magenta",
+        "address": "Scotch Club Live Music, Via Milano, 20013 Magenta MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.89433,
+          45.46781
+        ]
+      }
+    ],
+    "researchLeads": [],
+    "testedAt": "2026-11-03T12:48:16.026Z"
+  },
+  {
+    "location": "Eindhoven, Netherlands",
+    "resolved": {
+      "label": "Eindhoven, Noord-Brabant, Nederland",
+      "position": [
+        5.48533,
+        51.43597
+      ],
+      "locality": "Eindhoven",
+      "countryCode": "NL",
+      "languageCode": "nl",
+      "alternatives": []
+    },
+    "providers": [
+      {
+        "name": "AWS Places",
+        "ok": true,
+        "skipped": false,
+        "count": 261,
+        "error": ""
+      },
+      {
+        "name": "OpenStreetMap",
+        "ok": false,
+        "skipped": false,
+        "count": 0,
+        "error": "Provider temporarily unavailable"
+      },
+      {
+        "name": "Google Places",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      },
+      {
+        "name": "Brave Search",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      }
+    ],
+    "rawCount": 137,
+    "venues": [
+      {
+        "name": "Pool 8 & Lounge",
+        "locality": "Eindhoven",
+        "address": "Pool 8 & Lounge, Bleekweg 11, 5611 EZ Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48404,
+          51.43514
+        ]
+      },
+      {
+        "name": "Stage Music Cafe",
+        "locality": "Eindhoven",
+        "address": "Stage Music Cafe, Stratumseind 25, 5611 EN Eindhoven, Nederland",
+        "websites": [
+          "https://stagemusiccafe.nl"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://stagemusiccafe.nl"
+          }
+        ],
+        "position": [
+          5.48048,
+          51.43695
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "Dynamo",
+        "locality": "Eindhoven",
+        "address": "Dynamo, Catharinaplein 21, 5611 Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.4803,
+          51.43781
+        ]
+      },
+      {
+        "name": "De Bank",
+        "locality": "Eindhoven",
+        "address": "De Bank, Wal 15, 5611 Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.47901,
+          51.43601
+        ]
+      },
+      {
+        "name": "Speakerwallrecordings",
+        "locality": "Eindhoven",
+        "address": "Speakerwallrecordings, Bergmannstraat 76, 5615 KG Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.46915,
+          51.42925
+        ]
+      },
+      {
+        "name": "Klavertje4",
+        "locality": "Eindhoven",
+        "address": "Klavertje4, Weissenbruchlaan 14, 5643 VR Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.50683,
+          51.42795
+        ]
+      },
+      {
+        "name": "Uptempo Maniacs",
+        "locality": "Eindhoven",
+        "address": "Uptempo Maniacs, Javalaan 149, 5631 DB Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.50078,
+          51.44998
+        ]
+      },
+      {
+        "name": "Rondje Tilburg",
+        "locality": "Eindhoven",
+        "address": "Rondje Tilburg, Torenallee 3, 5617 BA Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.46119,
+          51.44509
+        ]
+      },
+      {
+        "name": "Boogiedown",
+        "locality": "Eindhoven",
+        "address": "Boogiedown, Ketelhuisplein, 5617 AE Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.4566,
+          51.4484
+        ]
+      },
+      {
+        "name": "Club C Eindhoven",
+        "locality": "Eindhoven",
+        "address": "Club C Eindhoven, Daalakkersweg 14, 5641 JA Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.52319,
+          51.44623
+        ]
+      },
+      {
+        "name": "Jouw Techniek",
+        "locality": "Eindhoven",
+        "address": "Jouw Techniek, Daalakkersweg 8, 5641 JA Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.52512,
+          51.44692
+        ]
+      },
+      {
+        "name": "Orion22",
+        "locality": "Eindhoven",
+        "address": "Orion22, Orionstraat 22, 5632 DD Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.49435,
+          51.47069
+        ]
+      },
+      {
+        "name": "Dinnershow Luxurious",
+        "locality": "Nuenen",
+        "address": "Dinnershow Luxurious, Collse Hoefdijk 24, 5674 VK Nuenen, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.55224,
+          51.4462
+        ]
+      },
+      {
+        "name": "Sinterklaashuis Veldhoven",
+        "locality": "Veldhoven",
+        "address": "Sinterklaashuis Veldhoven, Hemelrijken 6, 5502 HM Veldhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.41665,
+          51.42835
+        ]
+      },
+      {
+        "name": "Sinterklaashuis Valkenswaard",
+        "locality": "Valkenswaard",
+        "address": "Sinterklaashuis Valkenswaard, Bosstraat 25, 5553 CK Valkenswaard, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.46418,
+          51.35785
+        ]
+      },
+      {
+        "name": "Dutch Blitz Party - Best",
+        "locality": "Best",
+        "address": "Dutch Blitz Party - Best, Sonseweg 39, 5681 BH Best, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.44119,
+          51.51581
+        ]
+      },
+      {
+        "name": "Pruuvenemert",
+        "locality": "Valkenswaard",
+        "address": "Pruuvenemert, Markt, 5554 CA Valkenswaard, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.45868,
+          51.34929
+        ]
+      },
+      {
+        "name": "Boerderij Paulushoef",
+        "locality": "Son",
+        "address": "Boerderij Paulushoef, Sonniuswijk 42, 5691 PE Son, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.46091,
+          51.52762
+        ]
+      },
+      {
+        "name": "Border-Combi",
+        "locality": "Helmond",
+        "address": "Border-Combi, Mierloseweg 235, 5707 AH Helmond, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.63445,
+          51.47294
+        ]
+      },
+      {
+        "name": "Theehuis van Mevrouw van Best",
+        "locality": "Valkenswaard",
+        "address": "Theehuis van Mevrouw van Best, Molenstraat 210, 5554 TT Valkenswaard, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.44614,
+          51.33799
+        ]
+      },
+      {
+        "name": "Muziekcafe Helmond",
+        "locality": "Helmond",
+        "address": "Muziekcafe Helmond, Zuid Koninginnewal 39, 5701 NS Helmond, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.6572,
+          51.47804
+        ]
+      },
+      {
+        "name": "Nirwana Tuinfeest",
+        "locality": "Lierop",
+        "address": "Nirwana Tuinfeest, Meervensedijk 4, 5715 PZ Lierop, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.6736,
+          51.4173
+        ]
+      },
+      {
+        "name": "Rommelmarktsparta25",
+        "locality": "Beek en Donk",
+        "address": "Rommelmarktsparta25, Heereindsestraat 10, 5741 RB Beek en Donk, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.61765,
+          51.53598
+        ]
+      },
+      {
+        "name": "Kempencup Toernooi Hoogeloon",
+        "locality": "Hoogeloon",
+        "address": "Kempencup Toernooi Hoogeloon, Landrop 30, 5528 NB Hoogeloon, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.27167,
+          51.38641
+        ]
+      },
+      {
+        "name": "Limuscene Live",
+        "locality": "Liempde",
+        "address": "Limuscene Live, 5298 Liempde, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.37077,
+          51.5668
+        ]
+      },
+      {
+        "name": "Midzomer Activiteiten Asten",
+        "locality": "Asten",
+        "address": "Midzomer Activiteiten Asten, Markt 12, 5721 GE Asten, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.74626,
+          51.40415
+        ]
+      },
+      {
+        "name": "Marinushoeve",
+        "locality": "Deurne",
+        "address": "Marinushoeve, Bruggenseweg 18B, 5752 SC Deurne, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.74155,
+          51.48268
+        ]
+      },
+      {
+        "name": "Festivalterrein de Roost",
+        "locality": "Erp",
+        "address": "Festivalterrein de Roost, Keldonkseweg 8, 5469 EP Erp, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.6064,
+          51.59003
+        ]
+      },
+      {
+        "name": "De Bunker",
+        "locality": "Gemert",
+        "address": "De Bunker, Sint Annastraat 60, 5421 KC Gemert, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.69216,
+          51.55782
+        ]
+      },
+      {
+        "name": "De Hutten Live",
+        "locality": "Bergeijk",
+        "address": "De Hutten Live, Hutten 2, 5571 VG Bergeijk, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.34727,
+          51.27586
+        ]
+      },
+      {
+        "name": "Local Heroes Presents",
+        "locality": "Budel",
+        "address": "Local Heroes Presents, Sportlaan 7, 6021 KA Budel, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.56958,
+          51.26105
+        ]
+      },
+      {
+        "name": "Rovershol de Witrijt",
+        "locality": "Bergeijk",
+        "address": "Rovershol de Witrijt, Witrijtseweg 15, 5571 XJ Bergeijk, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.26697,
+          51.31218
+        ]
+      },
+      {
+        "name": "Kaderschouw",
+        "locality": "Erp",
+        "address": "Kaderschouw, Heesakker 12, 5469 AV Erp, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.6194,
+          51.60234
+        ]
+      },
+      {
+        "name": "Bar Dancing Queens",
+        "locality": "Hamont-Achel",
+        "address": "Bar Dancing Queens, Salvatorstraat 107, 3930 Hamont-Achel, België",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.5426,
+          51.23854
+        ]
+      },
+      {
+        "name": "Evenemententerrein Boekel",
+        "locality": "Boekel",
+        "address": "Evenemententerrein Boekel, Waterval 3A, 5427 HL Boekel, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.69044,
+          51.60694
+        ]
+      },
+      {
+        "name": "Room 71",
+        "locality": "Pelt",
+        "address": "Room 71, Stationsstraat 71, 3910 Pelt, België",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.43708,
+          51.22344
+        ]
+      },
+      {
+        "name": "Dogvillage Oisterwijk",
+        "locality": "Oisterwijk",
+        "address": "Dogvillage Oisterwijk, Vennelaan 8, 5062 SR Oisterwijk, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.22056,
+          51.57421
+        ]
+      },
+      {
+        "name": "Ojc 't Tref",
+        "locality": "Hilvarenbeek",
+        "address": "Ojc 't Tref, Holstraat 4, 5081 CC Hilvarenbeek, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.13687,
+          51.48676
+        ]
+      },
+      {
+        "name": "De Bierproeverij",
+        "locality": "Lommel",
+        "address": "De Bierproeverij, Lutlommel 42, 3920 Lommel, België",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.33585,
+          51.23138
+        ]
+      },
+      {
+        "name": "Glow with the Flow",
+        "locality": "Weert",
+        "address": "Glow with the Flow, Oelemarkt 16, 6001 ES Weert, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.7086,
+          51.25553
+        ]
+      },
+      {
+        "name": "Dames van het Bier",
+        "locality": "Volkel",
+        "address": "Dames van het Bier, Zeelandsedijk 29, 5408 SL Volkel, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.66521,
+          51.6357
+        ]
+      },
+      {
+        "name": "Villa 040",
+        "locality": "Eindhoven",
+        "address": "Villa 040, Bleekweg 11, 5611 EZ Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48404,
+          51.43514
+        ]
+      },
+      {
+        "name": "Proeflokaal Stadsbrouwerij Eindhoven",
+        "locality": "Eindhoven",
+        "address": "Proeflokaal Stadsbrouwerij Eindhoven, Stratumseind 101, 5611 ER Eindhoven, Nederland",
+        "websites": [
+          "https://twitter.com/daanblu"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://twitter.com/daanblu"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://x.com/daanblu",
+            "checkedAt": "2026-11-03T12:48:21.333Z"
+          }
+        ],
+        "position": [
+          5.48322,
+          51.43552
+        ],
+        "websiteResearch": "no-programming-found",
+        "programmingEvidence": ""
+      },
+      {
+        "name": "Dubai Shisha Lounge",
+        "locality": "Eindhoven",
+        "address": "Dubai Shisha Lounge, Stratumsedijk 1, 5611 NA Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48368,
+          51.43498
+        ]
+      },
+      {
+        "name": "Kitsch",
+        "locality": "Eindhoven",
+        "address": "Kitsch, Stratumseind 62, 5611 EV Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48304,
+          51.43542
+        ]
+      },
+      {
+        "name": "XI",
+        "locality": "Eindhoven",
+        "address": "XI, Stratumseind 81, 5611 ER Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48278,
+          51.43614
+        ]
+      },
+      {
+        "name": "Discotheek Arcade",
+        "locality": "Eindhoven",
+        "address": "Discotheek Arcade, Stratumseind 56, 5611 EV Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48272,
+          51.43571
+        ]
+      },
+      {
+        "name": "Rouge",
+        "locality": "Eindhoven",
+        "address": "Rouge, Stratumseind 75, 5611 ER Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48245,
+          51.43628
+        ]
+      },
+      {
+        "name": "Club Blush",
+        "locality": "Eindhoven",
+        "address": "Club Blush, Stratumseind 44, 5611 EV Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48216,
+          51.43618
+        ]
+      },
+      {
+        "name": "Pallaz",
+        "locality": "Eindhoven",
+        "address": "Pallaz, Stratumsedijk 14, 5611 Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48367,
+          51.43413
+        ]
+      },
+      {
+        "name": "De Rechter",
+        "locality": "Eindhoven",
+        "address": "De Rechter, Stratumseind 32, 5611 ET Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48139,
+          51.43644
+        ]
+      },
+      {
+        "name": "De Doordraaierij",
+        "locality": "Eindhoven",
+        "address": "De Doordraaierij, Stratumseind, 5611 EP Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48107,
+          51.43671
+        ]
+      },
+      {
+        "name": "Club Twentyone",
+        "locality": "Eindhoven",
+        "address": "Club Twentyone, Stratumseind 31, 5611 EN Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48074,
+          51.43684
+        ]
+      },
+      {
+        "name": "Club 040",
+        "locality": "Eindhoven",
+        "address": "Club 040, Stadhuisplein 6, 5611 EM Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.47999,
+          51.43584
+        ]
+      },
+      {
+        "name": "pullman's Bar",
+        "locality": "Eindhoven",
+        "address": "pullman's Bar, Vestdijk, 5611 CA Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48218,
+          51.43867
+        ]
+      },
+      {
+        "name": "Nightingale Eindhoven",
+        "locality": "Eindhoven",
+        "address": "Nightingale Eindhoven, Wal 11, 5611 GE Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.47871,
+          51.43622
+        ]
+      },
+      {
+        "name": "Club Vrijdag",
+        "locality": "Eindhoven",
+        "address": "Club Vrijdag, Markt, 5611 EC Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.4782,
+          51.4392
+        ]
+      },
+      {
+        "name": "De Club",
+        "locality": "Eindhoven",
+        "address": "De Club, Dommelstraat 7, 5611 CJ Eindhoven, Nederland",
+        "websites": [
+          "https://www.declubeindhoven.nl"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.declubeindhoven.nl"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://www.declubeindhoven.nl/",
+            "checkedAt": "2026-11-03T12:48:20.703Z"
+          }
+        ],
+        "position": [
+          5.48235,
+          51.44131
+        ],
+        "websiteResearch": "evidence-found",
+        "programmingEvidence": "Ga naar de inhoud Instagram Facebook Agenda Werken bij Contact Agenda Werken bij Contact TICKETS Dommelstraat 7 | Eindhoven WELKOM BIJ de club. TICKETS AGENDA No data was found EINDHOVEN HEEFT HISTORIE En in die historie staat één plek als symbool voor feest, muziek en de beste herinneringen. Inmiddels hebben we alweer nieuwe legendarische artiesten mogen ontvangen, van Chuckie, DJ Jean, Francois, Dyna en Afro Bros tot aan George McCrae, Bonnie St Claire & Imca Marina. nl De Club Dommelstraat 7 5611 CJ Eindhoven vacatures AGENDA GEGEVENS Naam E-mail Wat is je vraag"
+      },
+      {
+        "name": "Paleis Nieuwstraat",
+        "locality": "Eindhoven",
+        "address": "Paleis Nieuwstraat, Nieuwstraat 10, 5611 DB Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.47908,
+          51.44034
+        ]
+      },
+      {
+        "name": "Bermuda",
+        "locality": "Eindhoven",
+        "address": "Bermuda, Stationsplein 4, 5611 AB Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48032,
+          51.44098
+        ]
+      },
+      {
+        "name": "Club Entourage",
+        "locality": "Eindhoven",
+        "address": "Club Entourage, Stationsplein 2, 5611 AB Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48023,
+          51.4412
+        ]
+      },
+      {
+        "name": "Club Storm",
+        "locality": "Eindhoven",
+        "address": "Club Storm, Stationsplein 2, 5611 AB Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48023,
+          51.4412
+        ]
+      },
+      {
+        "name": "Jupiterhuis",
+        "locality": "Eindhoven",
+        "address": "Jupiterhuis, Rodenbachlaan 13, 5615 GG Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.47663,
+          51.43023
+        ]
+      },
+      {
+        "name": "Ruby's Disco Bar",
+        "locality": "Eindhoven",
+        "address": "Ruby's Disco Bar, Leenderweg 65, 5614 HL Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.4891,
+          51.42711
+        ]
+      },
+      {
+        "name": "@ Ronie's Place",
+        "locality": "Eindhoven",
+        "address": "@ Ronie's Place, Leenderweg 65, 5614 HL Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.4891,
+          51.42711
+        ]
+      },
+      {
+        "name": "Doucher-Lounge",
+        "locality": "Eindhoven",
+        "address": "Doucher-Lounge, Helmerslaan 16, 5615 JD Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.47305,
+          51.43063
+        ]
+      },
+      {
+        "name": "Down Town Lounge",
+        "locality": "Eindhoven",
+        "address": "Down Town Lounge, Leenderweg 65A, 5614 Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48896,
+          51.42691
+        ]
+      },
+      {
+        "name": "La Manounia",
+        "locality": "Eindhoven",
+        "address": "La Manounia, Kruisstraat 78, 5612 CJ Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.47554,
+          51.4469
+        ]
+      },
+      {
+        "name": "Business Club de Lounge",
+        "locality": "Eindhoven",
+        "address": "Business Club de Lounge, Frederiklaan 10A, 5616 NH Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.46599,
+          51.44201
+        ]
+      },
+      {
+        "name": "The Onehand Chef",
+        "locality": "Eindhoven",
+        "address": "The Onehand Chef, Dominee Theodor Fliednerstraat, 5631 BM Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48803,
+          51.45565
+        ]
+      },
+      {
+        "name": "Stuk X",
+        "locality": "Eindhoven",
+        "address": "Stuk X, Torenallee 40, 5617 BD Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.45613,
+          51.44718
+        ]
+      },
+      {
+        "name": "Afterparty Eindhoven",
+        "locality": "Eindhoven",
+        "address": "Afterparty Eindhoven, Marconilaan 72, 5621 Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.45815,
+          51.45068
+        ]
+      },
+      {
+        "name": "Lava Lounge",
+        "locality": "Eindhoven",
+        "address": "Lava Lounge, Nuijenslaan 22, 5624 GD Eindhoven, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.4602,
+          51.4711
+        ]
+      },
+      {
+        "name": "Aspire Eindhoven Lounge B.V",
+        "locality": "Eindhoven",
+        "address": "Aspire Eindhoven Lounge B.V, Luchthavenweg 25, 5657 EA Eindhoven, Nederland",
+        "websites": [
+          "https://www.executivelounges.com/airport-lounges/eindhoven-airport-aspire-lounge"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.executivelounges.com/airport-lounges/eindhoven-airport-aspire-lounge"
+          }
+        ],
+        "position": [
+          5.39276,
+          51.4584
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "Eetcafe de Kers",
+        "locality": "Oerle",
+        "address": "Eetcafe de Kers, Oude Kerkstraat 11, 5507 LA Oerle, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.36812,
+          51.42254
+        ]
+      },
+      {
+        "name": "De Senaat",
+        "locality": "Valkenswaard",
+        "address": "De Senaat, Luikerweg 10, 5554 NC Valkenswaard, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.45695,
+          51.34938
+        ]
+      },
+      {
+        "name": "Partyroom 110",
+        "locality": "Leende",
+        "address": "Partyroom 110, Valkenswaardseweg, 5595 XB Leende, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.54014,
+          51.35097
+        ]
+      },
+      {
+        "name": "Piet Snaak",
+        "locality": "Knegsel",
+        "address": "Piet Snaak, Het Groen, 5511 AE Knegsel, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.34878,
+          51.39889
+        ]
+      },
+      {
+        "name": "Dutch Riviera",
+        "locality": "Valkenswaard",
+        "address": "Dutch Riviera, Dragonder 11C, 5554 GM Valkenswaard, Nederland",
+        "websites": [
+          "https://lounge-bank.nl"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://lounge-bank.nl"
+          }
+        ],
+        "position": [
+          5.46596,
+          51.34193
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "Hollandse Avond Qb",
+        "locality": "Best",
+        "address": "Hollandse Avond Qb, Nieuwstraat 79, 5683 KB Best, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.39978,
+          51.51585
+        ]
+      },
+      {
+        "name": "Millers",
+        "locality": "Son",
+        "address": "Millers, Libellelaan, 5692 WD Son, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.48545,
+          51.53358
+        ]
+      },
+      {
+        "name": "Businesslounge Helmond-Sport",
+        "locality": "Helmond",
+        "address": "Businesslounge Helmond-Sport, Bakelsedijk, 5703 JG Helmond, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.68071,
+          51.4854
+        ]
+      },
+      {
+        "name": "Ultimate Dream",
+        "locality": "Beek en Donk",
+        "address": "Ultimate Dream, Willemstraat 9B, 5741 PA Beek en Donk, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.6437,
+          51.52809
+        ]
+      },
+      {
+        "name": "Axis het Kaffee",
+        "locality": "Gemert",
+        "address": "Axis het Kaffee, Binderseind 52, 5421 Gemert, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.68487,
+          51.55129
+        ]
+      },
+      {
+        "name": "Club Loyal",
+        "locality": "Gemert",
+        "address": "Club Loyal, Ridderplein 3, 5421 CV Gemert, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.68325,
+          51.5538
+        ]
+      },
+      {
+        "name": "Discotheek the Energy",
+        "locality": "Budel",
+        "address": "Discotheek the Energy, Deken van Baarsstraat 1, 6021 BG Budel, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.57641,
+          51.27448
+        ]
+      },
+      {
+        "name": "Drankstraat",
+        "locality": "Someren-Eind",
+        "address": "Drankstraat, Kleijnaarstraat, 5712 Someren-Eind, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.73033,
+          51.35777
+        ]
+      },
+      {
+        "name": "Club 11",
+        "locality": "Hamont-Achel",
+        "address": "Club 11, Witteberg, 3930 Hamont-Achel, België",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.46415,
+          51.2606
+        ]
+      },
+      {
+        "name": "Club Broadway",
+        "locality": "Erp",
+        "address": "Club Broadway, Cruijgenstraat 32, 5469 BT Erp, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.61058,
+          51.60072
+        ]
+      },
+      {
+        "name": "El Paso",
+        "locality": "Hamont-Achel",
+        "address": "El Paso, Kerkstraat, 3930 Hamont-Achel, België",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.54745,
+          51.25168
+        ]
+      },
+      {
+        "name": "Live Music Bar",
+        "locality": "Tilburg",
+        "address": "Live Music Bar, Heuvelring 90, 5038 CL Tilburg, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.09124,
+          51.55901
+        ]
+      },
+      {
+        "name": "Land van Cuijkse Paardendagen te Haps",
+        "locality": "Haps",
+        "address": "Land van Cuijkse Paardendagen te Haps, Kerkstraat, 5443 AB Haps, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.86264,
+          51.68796
+        ]
+      },
+      {
+        "name": "Stock Rock",
+        "locality": "Schaijk",
+        "address": "Stock Rock, Pastoor van Winkelstraat 2, 5374 BJ Schaijk, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.63173,
+          51.74612
+        ]
+      },
+      {
+        "name": "Easter Open Tournament",
+        "locality": "Mill",
+        "address": "Easter Open Tournament, Julianastraat 2, 5451 BP Mill, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.78274,
+          51.68511
+        ]
+      },
+      {
+        "name": "Sjoobal",
+        "locality": "Boxmeer",
+        "address": "Sjoobal, Stationsweg 12, 5831 CR Boxmeer, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.93904,
+          51.64537
+        ]
+      },
+      {
+        "name": "Jens Beer Shed",
+        "locality": "Oss",
+        "address": "Jens Beer Shed, Klaphekkenstraat 17, 5341 Oss, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.52885,
+          51.76921
+        ]
+      },
+      {
+        "name": "Paulus Oss",
+        "locality": "Oss",
+        "address": "Paulus Oss, Oude Litherweg 2, 5346 RT Oss, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.51432,
+          51.77119
+        ]
+      },
+      {
+        "name": "Privéfoto's Zandsculpturen in Oss 2016 2017 en 2018",
+        "locality": "Oss",
+        "address": "Privéfoto's Zandsculpturen in Oss 2016 2017 en 2018, Oude Kerkstraat, 5341 HH Oss, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.51835,
+          51.76625
+        ]
+      },
+      {
+        "name": "Divine Night",
+        "locality": "Uden",
+        "address": "Divine Night, Lieve Vrouwenplein 44, 5401 AS Uden, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.60988,
+          51.66122
+        ]
+      },
+      {
+        "name": "Oostrum Cup",
+        "locality": "Oostrum",
+        "address": "Oostrum Cup, Sparrendreef 7, 5807 EK Oostrum, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          6.03245,
+          51.52571
+        ]
+      },
+      {
+        "name": "Club Hashtag",
+        "locality": "Venray",
+        "address": "Club Hashtag, Gouden Leeuwplein 14, 5801 MN Venray, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.97331,
+          51.52335
+        ]
+      },
+      {
+        "name": "Balkum Beach",
+        "locality": "Berlicum",
+        "address": "Balkum Beach, Milrooijseweg 45, 5258 KG Berlicum, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.41007,
+          51.67109
+        ]
+      },
+      {
+        "name": "Club Koning",
+        "locality": "'s-Hertogenbosch",
+        "address": "Club Koning, De Baken, 5231 HT 's-Hertogenbosch, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.29964,
+          51.7174
+        ]
+      },
+      {
+        "name": "Mens en Muziek Wederkomstkerk",
+        "locality": "'s-Hertogenbosch",
+        "address": "Mens en Muziek Wederkomstkerk, Rijnstraat 20, 5215 EK 's-Hertogenbosch, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.32403,
+          51.6908
+        ]
+      },
+      {
+        "name": "Foodtour Engelen",
+        "locality": "Engelen",
+        "address": "Foodtour Engelen, Heuvel 18, 5221 AP Engelen, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.27238,
+          51.71921
+        ]
+      },
+      {
+        "name": "Woon Ideaal",
+        "locality": "'s-Hertogenbosch",
+        "address": "Woon Ideaal, Diezekade 2, 5222 AK 's-Hertogenbosch, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.28995,
+          51.70139
+        ]
+      },
+      {
+        "name": "Club Rockula",
+        "locality": "'s-Hertogenbosch",
+        "address": "Club Rockula, Boschdijkstraat 100, 5211 's-Hertogenbosch, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.29713,
+          51.69544
+        ]
+      },
+      {
+        "name": "The Grove of Light",
+        "locality": "Horst",
+        "address": "The Grove of Light, Loevestraat 73, 5961 TW Horst, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          6.05293,
+          51.4563
+        ]
+      },
+      {
+        "name": "Amateurvoetbal Eindhoven",
+        "locality": "'s-Hertogenbosch",
+        "address": "Amateurvoetbal Eindhoven, Brussellaan, 5224 's-Hertogenbosch, Nederland",
+        "websites": [
+          "https://www.amateurvoetbaleindhoven.nl"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.amateurvoetbaleindhoven.nl"
+          }
+        ],
+        "position": [
+          5.26452,
+          51.70173
+        ]
+      },
+      {
+        "name": "Harmoniefeesten",
+        "locality": "Horst",
+        "address": "Harmoniefeesten, Kerkeveld, 5961 RZ Horst, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          6.05235,
+          51.45262
+        ]
+      },
+      {
+        "name": "Muzikantine",
+        "locality": "Horst",
+        "address": "Muzikantine, Gasthuisstraat, 5961 GB Horst, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          6.05341,
+          51.45038
+        ]
+      },
+      {
+        "name": "Sunday Folk",
+        "locality": "Sevenum",
+        "address": "Sunday Folk, Maasbreeseweg 2, 5975 BN Sevenum, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          6.03619,
+          51.41013
+        ]
+      },
+      {
+        "name": "World Championships Kronenberg 2018",
+        "locality": "Kronenberg",
+        "address": "World Championships Kronenberg 2018, Travers 5, 5976 PL Kronenberg, Nederland",
+        "websites": [
+          "https://www.worldhorsedriving.nl"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.worldhorsedriving.nl"
+          }
+        ],
+        "position": [
+          5.97234,
+          51.41349
+        ]
+      },
+      {
+        "name": "Partytainer.Nl",
+        "locality": "Haaren",
+        "address": "Partytainer.Nl, Kantstraat 55, 5076 NP Haaren, Nederland",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          5.22358,
+          51.60882
+        ]
+      }
+    ],
+    "researchLeads": [],
+    "testedAt": "2026-11-03T12:48:24.932Z"
+  },
+  {
+    "location": "Momo, Italy",
+    "resolved": {
+      "label": "Momo, Piemonte, Italia",
+      "position": [
+        8.55386,
+        45.57754
+      ],
+      "locality": "Momo",
+      "countryCode": "IT",
+      "languageCode": "it",
+      "alternatives": []
+    },
+    "providers": [
+      {
+        "name": "AWS Places",
+        "ok": true,
+        "skipped": false,
+        "count": 185,
+        "error": ""
+      },
+      {
+        "name": "OpenStreetMap",
+        "ok": false,
+        "skipped": false,
+        "count": 0,
+        "error": "Provider temporarily unavailable"
+      },
+      {
+        "name": "Google Places",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      },
+      {
+        "name": "Brave Search",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      }
+    ],
+    "rawCount": 104,
+    "venues": [
+      {
+        "name": "H2o Club",
+        "locality": "Marano Ticino",
+        "address": "H2o Club, Via Mezzomerico, 18, 28040 Marano Ticino NO, Italia",
+        "websites": [
+          "https://h2o.playdance.tv"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://h2o.playdance.tv"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://h2o.playdance.tv/",
+            "checkedAt": "2026-11-03T12:48:27.881Z"
+          }
+        ],
+        "position": [
+          8.62519,
+          45.62689
+        ],
+        "websiteResearch": "no-programming-found",
+        "programmingEvidence": ""
+      },
+      {
+        "name": "H2o Discoteca",
+        "locality": "Marano Ticino",
+        "address": "H2o Discoteca, Via Roma, 1, Marano Ticino NO, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.63234,
+          45.63188
+        ]
+      },
+      {
+        "name": "Ryan's",
+        "locality": "Novara",
+        "address": "Ryan's, Via Giacinto Morera, 2, 28100 Novara NO, Italia",
+        "websites": [
+          "https://beacons.ai/ryansclub",
+          "https://www.ryans.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://beacons.ai/ryansclub"
+          }
+        ],
+        "position": [
+          8.61612,
+          45.44762
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "The King II",
+        "locality": "Novara",
+        "address": "The King II, Via Paolo Nibbia, 8, 28100 Novara NO, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.62372,
+          45.44242
+        ]
+      },
+      {
+        "name": "Discoteca Gilda",
+        "locality": "Castelletto Sopra Ticino",
+        "address": "Discoteca Gilda, Via Vigevano, 12, 28053 Castelletto Sopra Ticino NO, Italia",
+        "websites": [
+          "https://www.discotecagilda.com"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.discotecagilda.com"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://www.discotecagilda.com/",
+            "checkedAt": "2026-11-03T12:48:30.340Z"
+          }
+        ],
+        "position": [
+          8.63654,
+          45.72057
+        ],
+        "websiteResearch": "evidence-found",
+        "programmingEvidence": "Home - Discoteca Gilda Close Back Home Eventi speciali Capodanno News Gallery Eventi + Feste Contatti IT EN Vip Discoteca - Ristorante Vip Vip Parco Estivo Gilda Gilda Top Ristorante Eventi in programma Eventi 31 ott Dettagli Prenota 30 ott Dettagli 10 ott Dettagli 9 ott Dettagli #Gilda Discoteca & Ristorante Divertimento Puro GILDA Sono cambiati gli stili, le forme ed i materiali ma non la continuità del nostro impegno e la qualità delle nostre proposte. Dj e Vocalist Dj e Vocalist Enzo Fargetta Dj & Producer Max Savietto Dj & Producer Samuele Lama Dj & Producer Simone Cattaneo Dj & Producer Parco Estivo Discoteca Gilda Via Vigevano 12/16 28053 Castelletto Sopra Ticino Novara ITALIA Contatti Telefonici +39 3355366008 +39 3356376667 +39 0331971600 Orari di Lavoro Venerdì 22:30-04:00 Sabato 22:30-04:00 Domenica 19"
+      },
+      {
+        "name": "Bar la Marna",
+        "locality": "Sesto Calende",
+        "address": "Bar la Marna, Via Roma, 21018 Sesto Calende VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.63024,
+          45.72421
+        ]
+      },
+      {
+        "name": "El Patio Night Club",
+        "locality": "Vanzaghello",
+        "address": "El Patio Night Club, Viale Milano, 9, 20020 Vanzaghello MI, Italia",
+        "websites": [
+          "https://sites.google.com/view/el-patio-night-club-1982"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://sites.google.com/view/el-patio-night-club-1982"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://sites.google.com/view/el-patio-night-club-1982",
+            "checkedAt": "2026-11-03T12:48:30.540Z"
+          }
+        ],
+        "position": [
+          8.78056,
+          45.57255
+        ],
+        "websiteResearch": "no-programming-found",
+        "programmingEvidence": ""
+      },
+      {
+        "name": "Kattys",
+        "locality": "Paruzzaro",
+        "address": "Kattys, Via Borgomanero, 32, 28040 Paruzzaro NO, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.51595,
+          45.74389
+        ]
+      },
+      {
+        "name": "Celebrità",
+        "locality": "Trecate",
+        "address": "Celebrità, 28069 Trecate NO, Italia",
+        "websites": [
+          "https://www.discotecacelebrita.com"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.discotecacelebrita.com"
+          }
+        ],
+        "position": [
+          8.70569,
+          45.43412
+        ]
+      },
+      {
+        "name": "La Rocca Gold",
+        "locality": "Arona",
+        "address": "La Rocca Gold, Via Sempione, 28041 Arona NO, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.55617,
+          45.7649
+        ]
+      },
+      {
+        "name": "Quid",
+        "locality": "Gallarate",
+        "address": "Quid, Via Camillo Benso di Cavour, 17, 21013 Gallarate VA, Italia",
+        "websites": [
+          "https://www.facebook.com/QUIDgallarate"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/QUIDgallarate"
+          }
+        ],
+        "position": [
+          8.79723,
+          45.65821
+        ]
+      },
+      {
+        "name": "De Cube Club",
+        "locality": "Cassano Magnago",
+        "address": "De Cube Club, Via Morazzone, 11, 21012 Cassano Magnago VA, Italia",
+        "websites": [
+          "https://decubeclub.com",
+          "https://www.papido.it/milano/discoteca/de-cube.htm"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://decubeclub.com"
+          }
+        ],
+        "position": [
+          8.82274,
+          45.65545
+        ]
+      },
+      {
+        "name": "Target Cafè Lounge",
+        "locality": "Busto Arsizio",
+        "address": "Target Cafè Lounge, Via Girolamo Miani, 14, 21052 Busto Arsizio VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.85488,
+          45.61525
+        ]
+      },
+      {
+        "name": "Shed Club",
+        "locality": "Busto Arsizio",
+        "address": "Shed Club, Corso 20 Settembre, 53, 21052 Busto Arsizio VA, Italia",
+        "websites": [
+          "https://www.shedclub.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.shedclub.it"
+          }
+        ],
+        "position": [
+          8.8659,
+          45.61299
+        ]
+      },
+      {
+        "name": "Zero",
+        "locality": "Olgiate Olona",
+        "address": "Zero, Via San Francesco, 19, 21057 Olgiate Olona VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.86573,
+          45.63421
+        ]
+      },
+      {
+        "name": "Discoteca Mediterranèe",
+        "locality": "Legnano",
+        "address": "Discoteca Mediterranèe, Via Thomas Alva Edison, 7, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.88751,
+          45.60103
+        ]
+      },
+      {
+        "name": "Monate Beach",
+        "locality": "Travedona-Monate",
+        "address": "Monate Beach, Via Milano, 1462, 21028 Travedona-Monate VA, Italia",
+        "websites": [
+          "https://www.monatebeach.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.monatebeach.it"
+          }
+        ],
+        "position": [
+          8.6691,
+          45.80228
+        ]
+      },
+      {
+        "name": "Bar Corona",
+        "locality": "Borgosesia",
+        "address": "Bar Corona, Viale Varallo, 12, 13011 Borgosesia VC, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.27416,
+          45.71858
+        ]
+      },
+      {
+        "name": "Ritual Club & Lounge",
+        "locality": "Castellanza",
+        "address": "Ritual Club & Lounge, Corso Sempione, 11, 21053 Castellanza VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.89463,
+          45.61488
+        ]
+      },
+      {
+        "name": "Only Village",
+        "locality": "Marcallo con Casone",
+        "address": "Only Village, Via Menedrago, 20010 Marcallo con Casone MI, Italia",
+        "websites": [
+          "https://shor.by/onlyvillage"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://shor.by/onlyvillage"
+          }
+        ],
+        "position": [
+          8.88423,
+          45.49264
+        ]
+      },
+      {
+        "name": "Secretroom",
+        "locality": "Legnano",
+        "address": "Secretroom, Via Bellingera, 5, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.90866,
+          45.60354
+        ]
+      },
+      {
+        "name": "Ambra's Café",
+        "locality": "Vercelli",
+        "address": "Ambra's Café, Via Riccardo Restano, 46, 13100 Vercelli VC, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.42068,
+          45.33388
+        ]
+      },
+      {
+        "name": "Land",
+        "locality": "Legnano",
+        "address": "Land, Via Privata Maestri del Lavoro, 27, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.92859,
+          45.61312
+        ]
+      },
+      {
+        "name": "Dancing Cadorna",
+        "locality": "Legnano",
+        "address": "Dancing Cadorna, Viale Luigi Cadorna, 25, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.93518,
+          45.59508
+        ]
+      },
+      {
+        "name": "Valerios Cafe Lounge Bar",
+        "locality": "Cerro Maggiore",
+        "address": "Valerios Cafe Lounge Bar, Via Cappuccini, 20023 Cerro Maggiore MI, Italia",
+        "websites": [
+          "https://valerios-cafe-lounge-bar.business.site",
+          "https://valerios-cafe-lounge-bar.business.site/?utm_source=gmb&utm_medium=referral"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://valerios-cafe-lounge-bar.business.site"
+          }
+        ],
+        "position": [
+          8.94867,
+          45.59378
+        ]
+      },
+      {
+        "name": "Royalty Lounge Bar",
+        "locality": "Parabiago",
+        "address": "Royalty Lounge Bar, Via Santa Maria, 16, 20015 Parabiago MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.94854,
+          45.55796
+        ]
+      },
+      {
+        "name": "Seventeen Lounge Bar",
+        "locality": "Palestro",
+        "address": "Seventeen Lounge Bar, Via Robbio, 25, 27030 Palestro PV, Italia",
+        "websites": [
+          "https://www.facebook.com/seventeenloungebar?hc_location=timeline"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/seventeenloungebar?hc_location=timeline"
+          }
+        ],
+        "position": [
+          8.54151,
+          45.29857
+        ]
+      },
+      {
+        "name": "Empyre",
+        "locality": "Parabiago",
+        "address": "Empyre, Via Filarete, 2, 20015 Parabiago MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.95292,
+          45.56922
+        ]
+      },
+      {
+        "name": "Joker Dance Club",
+        "locality": "Nerviano",
+        "address": "Joker Dance Club, Via Mario Re Depaolini, 68, 20015 Nerviano MI, Italia",
+        "websites": [
+          "https://www.jokerdance.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.jokerdance.it"
+          }
+        ],
+        "position": [
+          8.95918,
+          45.54638
+        ]
+      },
+      {
+        "name": "Etoile Club",
+        "locality": "Cassinetta di Lugagnano",
+        "address": "Etoile Club, Viale Lombardia, 16, 20081 Cassinetta di Lugagnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.90059,
+          45.41875
+        ]
+      },
+      {
+        "name": "Sommelier Social Club",
+        "locality": "Nerviano",
+        "address": "Sommelier Social Club, Piazza Crivelli, 1, 20014 Nerviano MI, Italia",
+        "websites": [
+          "https://www.sommeliersocialclub.com"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.sommeliersocialclub.com"
+          }
+        ],
+        "position": [
+          8.97196,
+          45.55489
+        ]
+      },
+      {
+        "name": "Why Not Lounge and Bar",
+        "locality": "Nicorvo",
+        "address": "Why Not Lounge and Bar, Piazza della Libertà, 5, 27020 Nicorvo PV, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.66752,
+          45.28594
+        ]
+      },
+      {
+        "name": "Cristal Bar",
+        "locality": "Varese",
+        "address": "Cristal Bar, Via Magenta, 30, 21100 Varese VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.83232,
+          45.81331
+        ]
+      },
+      {
+        "name": "Fell in Love",
+        "locality": "Pogliano Milanese",
+        "address": "Fell in Love, Via Roma, 26, 20005 Pogliano Milanese MI, Italia",
+        "websites": [
+          "https://www.discotecafellini.com/contatti"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.discotecafellini.com/contatti"
+          }
+        ],
+        "position": [
+          8.98902,
+          45.53885
+        ]
+      },
+      {
+        "name": "Deep Club",
+        "locality": "Varese",
+        "address": "Deep Club, Piazza Papa Giovanni XXIII, 15, 21100 Varese VA, Italia",
+        "websites": [
+          "https://www.deepclubvarese.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.deepclubvarese.it"
+          }
+        ],
+        "position": [
+          8.81898,
+          45.82317
+        ]
+      },
+      {
+        "name": "Crystal Lounge Bar Narghilè",
+        "locality": "Varese",
+        "address": "Crystal Lounge Bar Narghilè, Via Giuseppe Speroni, 12, 21100 Varese VA, Italia",
+        "websites": [
+          "https://crystalloungebar.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://crystalloungebar.it"
+          }
+        ],
+        "position": [
+          8.829,
+          45.82076
+        ]
+      },
+      {
+        "name": "Marilyn Discoclub",
+        "locality": "Caravate",
+        "address": "Marilyn Discoclub, Via 20 Settembre, 80, 21032 Caravate VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.66555,
+          45.87994
+        ]
+      },
+      {
+        "name": "Irish Hill Pub",
+        "locality": "Bareggio",
+        "address": "Irish Hill Pub, Piazza Camillo Benso di Cavour, 20008 Bareggio MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.99616,
+          45.47634
+        ]
+      },
+      {
+        "name": "Melodica",
+        "locality": "Vermezzo con Zelo",
+        "address": "Melodica, 20071 Vermezzo con Zelo MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.96081,
+          45.40249
+        ]
+      },
+      {
+        "name": "Greyhound Club",
+        "locality": "Saronno",
+        "address": "Greyhound Club, Via Maestri del Lavoro, 41, 21047 Saronno VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.03704,
+          45.62152
+        ]
+      },
+      {
+        "name": "Vamos A la Playa",
+        "locality": "Vigevano",
+        "address": "Vamos A la Playa, Via San Giovanni, 27029 Vigevano PV, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.88354,
+          45.32331
+        ]
+      },
+      {
+        "name": "Arena Beach Verbania",
+        "locality": "Verbania",
+        "address": "Arena Beach Verbania, Via Roma, 3, 28921 Verbania VB, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.57117,
+          45.93382
+        ]
+      },
+      {
+        "name": "210 Sportway Lounge",
+        "locality": "Gravellona Toce",
+        "address": "210 Sportway Lounge, Corso Roma, 21, 28883 Gravellona Toce VB, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.43213,
+          45.92719
+        ]
+      },
+      {
+        "name": "Phenomenon",
+        "locality": "Fontaneto d'Agogna",
+        "address": "Phenomenon, Strada Regionale del Lago d'Orta, 10, 28010 Fontaneto d'Agogna NO, Italia",
+        "websites": [
+          "https://phenomenon.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://phenomenon.it"
+          }
+        ],
+        "position": [
+          8.49486,
+          45.65442
+        ]
+      },
+      {
+        "name": "La Tana Garage Music & Art Club",
+        "locality": "Turbigo",
+        "address": "La Tana Garage Music & Art Club, Via Eugenio Villoresi, 66, 20029 Turbigo MI, Italia",
+        "websites": [
+          "https://www.facebook.com/695653960791602"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/695653960791602"
+          }
+        ],
+        "position": [
+          8.75257,
+          45.53105
+        ]
+      },
+      {
+        "name": "Caffè Teatro",
+        "locality": "Samarate",
+        "address": "Caffè Teatro, Via Indipendenza, 10, 21017 Samarate VA, Italia",
+        "websites": [
+          "https://caffeteatrosamarate.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://caffeteatrosamarate.it"
+          }
+        ],
+        "position": [
+          8.79266,
+          45.63607
+        ]
+      },
+      {
+        "name": "Jazz Appeal",
+        "locality": "Gallarate",
+        "address": "Jazz Appeal, Via Magenta, 3, 21013 Gallarate VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.7934,
+          45.65624
+        ]
+      },
+      {
+        "name": "Teatro S. Anna",
+        "locality": "Busto Arsizio",
+        "address": "Teatro S. Anna, Piazza Sant'Anna, 1, 21052 Busto Arsizio VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.84391,
+          45.63288
+        ]
+      },
+      {
+        "name": "Associazione Musicale Jubilate",
+        "locality": "Legnano",
+        "address": "Associazione Musicale Jubilate, Via Abruzzi, 19, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.89981,
+          45.58567
+        ]
+      },
+      {
+        "name": "Land of Freedom",
+        "locality": "Legnano",
+        "address": "Land of Freedom, Via Privata Maestri del Lavoro, 27, 20025 Legnano MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.92859,
+          45.61312
+        ]
+      },
+      {
+        "name": "La Villa Summer Music Resort",
+        "locality": "Cerro Maggiore",
+        "address": "La Villa Summer Music Resort, Via Don Carlo Gnocchi, 14, 20023 Cerro Maggiore MI, Italia",
+        "websites": [
+          "https://lavillasummer.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://lavillasummer.it"
+          }
+        ],
+        "position": [
+          8.96386,
+          45.59137
+        ]
+      },
+      {
+        "name": "Il Violino Nuziale",
+        "locality": "Varese",
+        "address": "Il Violino Nuziale, Via Monte Tabor, 21100 Varese VA, Italia",
+        "websites": [
+          "https://ilviolinonuziale.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://ilviolinonuziale.it"
+          }
+        ],
+        "position": [
+          8.81227,
+          45.82397
+        ]
+      },
+      {
+        "name": "Salone Teatro Soms",
+        "locality": "",
+        "address": "Salone Teatro Soms, Via Carlo Malgarini, 3, Italia",
+        "websites": [
+          "https://teatrosomscaldana.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://teatrosomscaldana.it"
+          }
+        ],
+        "position": [
+          8.69208,
+          45.87231
+        ]
+      },
+      {
+        "name": "Follow Us",
+        "locality": "Malnate",
+        "address": "Follow Us, Via Giordano Bruno, 9, 21046 Malnate VA, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.8792,
+          45.8003
+        ]
+      },
+      {
+        "name": "Corpo Musicale Pietro Mascagni di Cisliano",
+        "locality": "Cisliano",
+        "address": "Corpo Musicale Pietro Mascagni di Cisliano, Via Cardinale Andrea Carlo Ferrari, 1, 20046 Cisliano MI, Italia",
+        "websites": [
+          "https://bandacisliano.wordpress.com",
+          "https://www.facebook.com/865909313601951"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://bandacisliano.wordpress.com"
+          }
+        ],
+        "position": [
+          8.98923,
+          45.44562
+        ]
+      },
+      {
+        "name": "Discoteca Mixer",
+        "locality": "Vigevano",
+        "address": "Discoteca Mixer, Via Alessandro La Marmora, 6, 27029 Vigevano PV, Italia",
+        "websites": [
+          "https://www.facebook.com/293697767380476"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/293697767380476"
+          }
+        ],
+        "position": [
+          8.86601,
+          45.31927
+        ]
+      },
+      {
+        "name": "Cine-Teatro la Filanda",
+        "locality": "Cornaredo",
+        "address": "Cine-Teatro la Filanda, Piazza Libertà, 2, 20007 Cornaredo MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.02611,
+          45.50191
+        ]
+      },
+      {
+        "name": "Tilt Cafè Music Club",
+        "locality": "Appiano Gentile",
+        "address": "Tilt Cafè Music Club, Via Salvo D'Acquisto, 25, 22070 Appiano Gentile CO, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.98955,
+          45.72985
+        ]
+      },
+      {
+        "name": "Home Music Cafe'",
+        "locality": "Cornaredo",
+        "address": "Home Music Cafe', Via Monzoro, 2, 20007 Cornaredo MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          9.02758,
+          45.4886
+        ]
+      },
+      {
+        "name": "Sold Out Live on Stage",
+        "locality": "Rho",
+        "address": "Sold Out Live on Stage, Via Paolo Taverna, 9, 20017 Rho MI, Italia",
+        "websites": [
+          "https://www.soldoutliveonstage.it"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.soldoutliveonstage.it"
+          }
+        ],
+        "position": [
+          9.04732,
+          45.54972
+        ]
+      },
+      {
+        "name": "Dedolor Music Headquarter",
+        "locality": "Rovellasca",
+        "address": "Dedolor Music Headquarter, Via 20 Settembre, 33, 22069 Rovellasca CO, Italia",
+        "websites": [
+          "https://www.instagram.com/dedolormh_real?igsh=MTUxcmN0dDhuZjFzMA%3D%3D"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.instagram.com/dedolormh_real?igsh=MTUxcmN0dDhuZjFzMA%3D%3D"
+          }
+        ],
+        "position": [
+          9.04497,
+          45.66549
+        ]
+      },
+      {
+        "name": "Scuolamusica Toscanini Verbania Arci",
+        "locality": "Verbania",
+        "address": "Scuolamusica Toscanini Verbania Arci, Piazzale Mario Flaim, 14, 28921 Verbania VB, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.57324,
+          45.93274
+        ]
+      },
+      {
+        "name": "Biella Jazz Club",
+        "locality": "Biella",
+        "address": "Biella Jazz Club, Corso del Piazzo, 29, 13900 Biella BI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.04634,
+          45.56373
+        ]
+      },
+      {
+        "name": "Scenario Jazz Cafè",
+        "locality": "Verbania",
+        "address": "Scenario Jazz Cafè, Piazza Castello, 18, 28921 Verbania VB, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.57285,
+          45.93492
+        ]
+      },
+      {
+        "name": "Scotch Club Live Music",
+        "locality": "Magenta",
+        "address": "Scotch Club Live Music, Via Milano, 20013 Magenta MI, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.89433,
+          45.46781
+        ]
+      },
+      {
+        "name": "Bone's Pub Live Music",
+        "locality": "Omegna",
+        "address": "Bone's Pub Live Music, Via 4 Novembre, 125, 28887 Omegna VB, Italia",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          8.40978,
+          45.89048
+        ]
+      }
+    ],
+    "researchLeads": [],
+    "testedAt": "2026-11-03T12:48:30.544Z"
+  },
+  {
+    "location": "東根市, 日本",
+    "resolved": {
+      "label": "山形県東根市",
+      "position": [
+        140.39108,
+        38.43133
+      ],
+      "locality": "東根市",
+      "countryCode": "JP",
+      "languageCode": "ja",
+      "alternatives": []
+    },
+    "providers": [
+      {
+        "name": "AWS Places",
+        "ok": true,
+        "skipped": false,
+        "count": 25,
+        "error": ""
+      },
+      {
+        "name": "OpenStreetMap",
+        "ok": false,
+        "skipped": false,
+        "count": 0,
+        "error": "Provider temporarily unavailable"
+      },
+      {
+        "name": "Google Places",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      },
+      {
+        "name": "Brave Search",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      }
+    ],
+    "rawCount": 25,
+    "venues": [
+      {
+        "name": "カラオケスナック ボス",
+        "locality": "東根市",
+        "address": "〒999-3784 山形県東根市本町1-2 カラオケスナック ボス",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          140.39946,
+          38.44095
+        ]
+      },
+      {
+        "name": "スナック藍",
+        "locality": "寒河江市",
+        "address": "〒991-0031 山形県寒河江市本町3丁目1-1 スナック藍",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          140.27444,
+          38.37442
+        ]
+      },
+      {
+        "name": "スナックふぢ",
+        "locality": "中山町",
+        "address": "〒990-0401 山形県東村山郡中山町長崎4480-1 スナックふぢ",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          140.274,
+          38.33384
+        ]
+      },
+      {
+        "name": "Otona Lounge Luxe",
+        "locality": "山形市",
+        "address": "〒990-0039 山形県山形市香澄町1丁目15-28 Otona Lounge Luxe",
+        "websites": [
+          "https://luxe.avantgarde-be.com/"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://luxe.avantgarde-be.com/"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://luxe.avantgarde-be.com/",
+            "checkedAt": "2026-11-03T12:48:36.020Z"
+          }
+        ],
+        "position": [
+          140.32948,
+          38.24971
+        ],
+        "websiteResearch": "no-programming-found",
+        "programmingEvidence": ""
+      },
+      {
+        "name": "アヴァンギャルドビー",
+        "locality": "山形市",
+        "address": "〒990-0039 山形県山形市香澄町1丁目10-1 アヴァンギャルドビー",
+        "websites": [
+          "https://www.avantgarde-be.com/"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.avantgarde-be.com/"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://valor.avantgarde-be.com/",
+            "checkedAt": "2026-11-03T12:48:37.303Z"
+          }
+        ],
+        "position": [
+          140.33047,
+          38.24866
+        ],
+        "websiteResearch": "no-programming-found",
+        "programmingEvidence": ""
+      },
+      {
+        "name": "ジュリアン",
+        "locality": "山形市",
+        "address": "〒990-0039 山形県山形市香澄町1丁目8-8 ジュリアン",
+        "websites": [
+          "https://julian-yamagata-saiyou.com/"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://julian-yamagata-saiyou.com/"
+          }
+        ],
+        "position": [
+          140.32924,
+          38.24886
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "D's CLUB",
+        "locality": "山形市",
+        "address": "〒990-0039 山形県山形市香澄町1丁目4-8 D's CLUB",
+        "websites": [
+          "https://www.pokepara.jp/yamagata/m521/a1101/shop7363/"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.pokepara.jp/yamagata/m521/a1101/shop7363/"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://www.pokepara.jp/yamagata/m521/a1101/shop7363/",
+            "checkedAt": "2026-11-03T12:48:39.156Z"
+          }
+        ],
+        "position": [
+          140.32982,
+          38.24813
+        ],
+        "websiteResearch": "no-programming-found",
+        "programmingEvidence": ""
+      },
+      {
+        "name": "スナックDeep",
+        "locality": "山形市",
+        "address": "〒990-0039 山形県山形市香澄町1丁目5-4 スナックDeep",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          140.32996,
+          38.24801
+        ]
+      },
+      {
+        "name": "カラオケスナック 彩",
+        "locality": "新庄市",
+        "address": "〒996-0025 山形県新庄市若葉町16 カラオケスナック 彩",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          140.30249,
+          38.76196
+        ]
+      },
+      {
+        "name": "スナックRYU",
+        "locality": "新庄市",
+        "address": "〒996-0025 山形県新庄市若葉町16-2 スナックRYU",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          140.30223,
+          38.76205
+        ]
+      },
+      {
+        "name": "カラオケスナックモナミ",
+        "locality": "仙台市",
+        "address": "〒989-3122 宮城県仙台市青葉区栗生4丁目18 カラオケスナックモナミ",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          140.79076,
+          38.26959
+        ]
+      }
+    ],
+    "researchLeads": [],
+    "testedAt": "2026-11-03T12:48:39.157Z"
+  },
+  {
+    "location": "São Paulo, Brazil",
+    "resolved": {
+      "label": "São Paulo, SP, Brasil",
+      "position": [
+        -46.65474,
+        -23.56283
+      ],
+      "locality": "São Paulo",
+      "countryCode": "BR",
+      "languageCode": "pt",
+      "alternatives": []
+    },
+    "providers": [
+      {
+        "name": "AWS Places",
+        "ok": true,
+        "skipped": false,
+        "count": 114,
+        "error": ""
+      },
+      {
+        "name": "OpenStreetMap",
+        "ok": false,
+        "skipped": false,
+        "count": 0,
+        "error": "Provider temporarily unavailable"
+      },
+      {
+        "name": "Google Places",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      },
+      {
+        "name": "Brave Search",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      }
+    ],
+    "rawCount": 113,
+    "venues": [
+      {
+        "name": "D-Edge - Club de Música Eletrônica",
+        "locality": "São Paulo",
+        "address": "D-Edge - Club de Música Eletrônica, Avenida Mário de Andrade, 141, Barra Funda, São Paulo - SP, 01156-001, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.66213,
+          -23.52812
+        ]
+      },
+      {
+        "name": "Mix Bar Com Música ao Vivo",
+        "locality": "São Paulo",
+        "address": "Mix Bar Com Música ao Vivo, Avenida Maria Coelho de Aguiar, 720, Jardim São Luís, São Paulo - SP, 05805-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.73367,
+          -23.65083
+        ]
+      },
+      {
+        "name": "Dj Hit",
+        "locality": "São Paulo",
+        "address": "Dj Hit, Avenida Paulista, 1636, Bela Vista, São Paulo - SP, 01310-200, Brasil",
+        "websites": [
+          "https://djhit.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://djhit.com.br"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://djhit.com.br/",
+            "checkedAt": "2026-11-03T12:48:43.909Z"
+          }
+        ],
+        "position": [
+          -46.65651,
+          -23.56122
+        ],
+        "websiteResearch": "evidence-found",
+        "programmingEvidence": "DJ HIT &gt; Música como Experiência de Marca &gt; 𝘉𝘳𝘢𝘯𝘥 e𝘹𝘱𝘦𝘳𝘪𝘦𝘯𝘤𝘦 + 𝘓𝘪𝘷𝘦 𝘮𝘢𝘳𝘬𝘦𝘵𝘪𝘯𝘨 - DJ HIT Pular para o conteúdo HOME O QUE FAZEMOS SHOWCASE EVENTOS BLOG CONTATO ☰ Menu HOME O QUE FAZEMOS SHOWCASE EVENTOS BLOG CONTATO DJ Hit Music This is HIT Fale conosco Sonoplastia Produção musical Pockt show Dj Vj Curadoria musical ← → DJ Hit Music Música para Eventos Corporativos Assinado por Myrrha . Discotecagem 100% Sonoplastia 100% Produção Musical 100% Pocket Show 100% TRILHA SONORA Trilhas Brancas para atender sua necessidades em streaming. EDIÇAO DE MUSICAS Editamos e criamos uma versão para aquele momento especial. MUSIC BRANDING A MUSICA IMPORTA PARA A SUA MARCA Anos de Experiência + 0 Maior Platéia + 0 Eventos Realizados + 0 DJ Hit Music Expertise Pocket Show Uma experiência Ao Vivo e Performática. Discotecagem A Presença de palco do DJ ao VIVO é insubstituível. vj Momento Multimídia para abrilhantar ainda mais as performances do DJ. Produção Musical Trilha Sonora; Set List / Mixtape; Sound Design (Pré-Produção), Criação de sons…Manipulação sonora; Jingle; Spot Sonoplastia Ao Vivo. Marcas atendidas Blog Inteligência artificial: revolução musical corporativa Ler mais Music branding no metaverso Ler mais Instagram: o poder da música para impactar marcas Ler mais Ver todos Avaliações &#8220;A Dj Hit trouxe ótima música para nosso evento corporativo. &#8221; André Silva &#8220;O DJ da Dj Hit fez a noite do nosso evento especial com uma seleção musical animada. &#8221; Adriana Oliveira DJ Hit Music Entre em Contato Whatsapp (11) 99909-8718 Localização São Paulo - S. DJ Hit Music Av. 5 — 11º andar Paulista Corporate · Bela Vista São Paulo – SP · CEP 01310-200 +55 11 2110-2971 Navegação HOME O QUE FAZEMOS SHOWCASE EVENTOS BLOG CONTATO © 2026 DJ Hit Mu"
+      },
+      {
+        "name": "Paulista 1811",
+        "locality": "São Paulo",
+        "address": "Paulista 1811, Avenida Paulista, 1811, Jardim Paulista, São Paulo - SP, 01310-100, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65802,
+          -23.56035
+        ]
+      },
+      {
+        "name": "Grind",
+        "locality": "São Paulo",
+        "address": "Grind, Rua Frei Caneca, 916, Consolação, São Paulo - SP, 01307-002, Brasil",
+        "websites": [
+          "https://www.facebook.com/332431740125099"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/332431740125099"
+          }
+        ],
+        "position": [
+          -46.65579,
+          -23.55505
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "Mundo Pensante",
+        "locality": "São Paulo",
+        "address": "Mundo Pensante, Rua Treze de Maio, 830, Bela Vista, São Paulo - SP, 01327-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64628,
+          -23.56058
+        ]
+      },
+      {
+        "name": "Clube Barbixas de Comédia",
+        "locality": "São Paulo",
+        "address": "Clube Barbixas de Comédia, Rua Augusta, 1129, Consolação, São Paulo - SP, 01304-001, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65607,
+          -23.55432
+        ]
+      },
+      {
+        "name": "Tribe House",
+        "locality": "São Paulo",
+        "address": "Tribe House, Rua Rui Barbosa, 333, Bela Vista, São Paulo - SP, 01326-010, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64516,
+          -23.55844
+        ]
+      },
+      {
+        "name": "Espaço Casarão Bela Vista",
+        "locality": "São Paulo",
+        "address": "Espaço Casarão Bela Vista, Rua Conselheiro Ramalho, 899, Bela Vista, São Paulo - SP, 01325-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64413,
+          -23.55982
+        ]
+      },
+      {
+        "name": "Casa 38 Eventos e Hospedagens",
+        "locality": "São Paulo",
+        "address": "Casa 38 Eventos e Hospedagens, Rua Rio Preto, 38, Jardim Paulista, São Paulo - SP, 01426-010, Brasil",
+        "websites": [
+          "https://www.airbnb.com.br/rooms/21009986?s=51"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.airbnb.com.br/rooms/21009986?s=51"
+          }
+        ],
+        "position": [
+          -46.6659,
+          -23.56633
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "The Wall Café",
+        "locality": "São Paulo",
+        "address": "The Wall Café, Rua Treze de Maio, 152, Bela Vista, São Paulo - SP, 01327-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64689,
+          -23.55442
+        ]
+      },
+      {
+        "name": "Café Piu Piu",
+        "locality": "São Paulo",
+        "address": "Café Piu Piu, Rua Treze de Maio, 134, Bela Vista, São Paulo - SP, 01327-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64692,
+          -23.55427
+        ]
+      },
+      {
+        "name": "Branco",
+        "locality": "São Paulo",
+        "address": "Branco, Rua da Consolação, 2931, Jardim Paulista, São Paulo - SP, 01416-001, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.66611,
+          -23.55878
+        ]
+      },
+      {
+        "name": "Arena Show SP",
+        "locality": "São Paulo",
+        "address": "Arena Show SP, Avenida Nove de Julho, 1100, Bela Vista, São Paulo - SP, 01312-000, Brasil",
+        "websites": [
+          "https://www.instagram.com/arenashowsp"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.instagram.com/arenashowsp"
+          }
+        ],
+        "position": [
+          -46.64802,
+          -23.55308
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "Jack Fast",
+        "locality": "São Paulo",
+        "address": "Jack Fast, Rua Minas Gerais, 203, Consolação, São Paulo - SP, 01244-011, Brasil",
+        "websites": [
+          "https://www.jackfast.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.jackfast.com.br"
+          }
+        ],
+        "position": [
+          -46.66358,
+          -23.55414
+        ]
+      },
+      {
+        "name": "Hot House SP",
+        "locality": "São Paulo",
+        "address": "Hot House SP, Rua Nestor Pestana, 27, República, São Paulo - SP, 01303-010, Brasil",
+        "websites": [
+          "https://hothousesp.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://hothousesp.com.br"
+          }
+        ],
+        "position": [
+          -46.64527,
+          -23.54783
+        ]
+      },
+      {
+        "name": "Clube do Minhoca",
+        "locality": "São Paulo",
+        "address": "Clube do Minhoca, Rua Cunha Horta, 34, Consolação, São Paulo - SP, 01221-030, Brasil",
+        "websites": [
+          "https://www.sympla.com.br/clubedominhoca"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.sympla.com.br/clubedominhoca"
+          }
+        ],
+        "position": [
+          -46.64831,
+          -23.54616
+        ]
+      },
+      {
+        "name": "Clube do Minhoca",
+        "locality": "São Paulo",
+        "address": "Clube do Minhoca, Rua Amaral Gurgel, 480, Consolação, São Paulo - SP, 01221-001, Brasil",
+        "websites": [
+          "https://www.instagram.com/clubedominhoca/reels"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.instagram.com/clubedominhoca/reels"
+          }
+        ],
+        "position": [
+          -46.64798,
+          -23.54612
+        ]
+      },
+      {
+        "name": "Espaço Antioquina",
+        "locality": "São Paulo",
+        "address": "Espaço Antioquina, Rua Eça de Queiroz, 472, Vila Mariana, São Paulo - SP, 04011-031, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64541,
+          -23.57958
+        ]
+      },
+      {
+        "name": "Álvaro de Carvalho",
+        "locality": "São Paulo",
+        "address": "Álvaro de Carvalho, Rua Álvaro de Carvalho, 56, República, São Paulo - SP, 01050-070, Brasil",
+        "websites": [
+          "https://www.parkopedia.com.br/estacionamento/estacionamento/rua_%c3%a1lvaro_de_carvalho_56/01050/s%C3%A3o_paulo/?vendor=here"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.parkopedia.com.br/estacionamento/estacionamento/rua_%c3%a1lvaro_de_carvalho_56/01050/s%C3%A3o_paulo/?vendor=here"
+          }
+        ],
+        "position": [
+          -46.64086,
+          -23.5484
+        ]
+      },
+      {
+        "name": "Espaço Som",
+        "locality": "São Paulo",
+        "address": "Espaço Som, Rua Teodoro Sampaio, 512, Jardim Paulista, São Paulo - SP, 05405-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.6757,
+          -23.55633
+        ]
+      },
+      {
+        "name": "Kátya Teixeira",
+        "locality": "São Paulo",
+        "address": "Kátya Teixeira, Rua João Moura, 624, Jardim Paulista, São Paulo - SP, 05412-001, Brasil",
+        "websites": [
+          "https://es.katyateixeira.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://es.katyateixeira.com.br"
+          }
+        ],
+        "position": [
+          -46.67792,
+          -23.55982
+        ]
+      },
+      {
+        "name": "Mi Casa SP",
+        "locality": "São Paulo",
+        "address": "Mi Casa SP, Rua Joaquim Antunes, 48, Pinheiros, São Paulo - SP, 05415-000, Brasil",
+        "websites": [
+          "https://www.micasasp.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.micasasp.com.br"
+          }
+        ],
+        "position": [
+          -46.67866,
+          -23.56755
+        ]
+      },
+      {
+        "name": "Espaço Cultural - Santa Cecília",
+        "locality": "São Paulo",
+        "address": "Espaço Cultural - Santa Cecília, Rua Frederico Abranches, 118, Santa Cecília, São Paulo - SP, 01225-001, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64882,
+          -23.54057
+        ]
+      },
+      {
+        "name": "Bar Com Rockabilly",
+        "locality": "São Paulo",
+        "address": "Bar Com Rockabilly, Avenida São João, 677, República, São Paulo - SP, 01035-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64062,
+          -23.54223
+        ]
+      },
+      {
+        "name": "Bar Brahma",
+        "locality": "São Paulo",
+        "address": "Bar Brahma, Avenida São João, 677, República, São Paulo - SP, 01035-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64062,
+          -23.54223
+        ]
+      },
+      {
+        "name": "Briefing Agency",
+        "locality": "São Paulo",
+        "address": "Briefing Agency, Rua Bento de Andrade, 660, Moema, São Paulo - SP, 04503-001, Brasil",
+        "websites": [
+          "https://www.briefingagency.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.briefingagency.com.br"
+          }
+        ],
+        "position": [
+          -46.66917,
+          -23.58457
+        ]
+      },
+      {
+        "name": "Piratininga Bailes",
+        "locality": "São Paulo",
+        "address": "Piratininga Bailes, Alameda Barros, 376, Santa Cecília, São Paulo - SP, 01232-001, Brasil",
+        "websites": [
+          "https://www.facebook.com/796911243724609"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/796911243724609"
+          }
+        ],
+        "position": [
+          -46.65462,
+          -23.53682
+        ]
+      },
+      {
+        "name": "Be on Club",
+        "locality": "São Paulo",
+        "address": "Be on Club, Rua Miguel Teles Júnior, 320, Liberdade, São Paulo - SP, 01540-040, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.62397,
+          -23.56581
+        ]
+      },
+      {
+        "name": "Ó do Borogodó",
+        "locality": "São Paulo",
+        "address": "Ó do Borogodó, Rua Horácio Lane, 21, Pinheiros, São Paulo - SP, 05432-030, Brasil",
+        "websites": [
+          "https://linklist.bio/borogodo"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://linklist.bio/borogodo"
+          }
+        ],
+        "position": [
+          -46.68621,
+          -23.56018
+        ]
+      },
+      {
+        "name": "Rockambole",
+        "locality": "São Paulo",
+        "address": "Rockambole, Rua Belmiro Braga, 119, Pinheiros, São Paulo - SP, 05432-020, Brasil",
+        "websites": [
+          "https://www.rockambole.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.rockambole.com.br"
+          }
+        ],
+        "position": [
+          -46.68737,
+          -23.55954
+        ]
+      },
+      {
+        "name": "Espaço Cambuci - Salão Pará Festas",
+        "locality": "São Paulo",
+        "address": "Espaço Cambuci - Salão Pará Festas, Rua do Lavapés, 1140, Cambuci, São Paulo - SP, 01519-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.62188,
+          -23.5625
+        ]
+      },
+      {
+        "name": "Teatro Lá Em Casa",
+        "locality": "São Paulo",
+        "address": "Teatro Lá Em Casa, Rua Lopes de Oliveira, 635, Santa Cecília, São Paulo - SP, 01152-010, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65606,
+          -23.53246
+        ]
+      },
+      {
+        "name": "Espaço170",
+        "locality": "São Paulo",
+        "address": "Espaço170, Rua Inácio Pereira da Rocha, 170, Pinheiros, São Paulo - SP, 05432-010, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.68839,
+          -23.55924
+        ]
+      },
+      {
+        "name": "Estacionamento 24h Barra Funda",
+        "locality": "São Paulo",
+        "address": "Estacionamento 24h Barra Funda, Avenida Francisco Matarazzo, 148, Barra Funda, São Paulo - SP, 05001-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.66482,
+          -23.53107
+        ]
+      },
+      {
+        "name": "Manifesto Bar",
+        "locality": "São Paulo",
+        "address": "Manifesto Bar, Rua Iguatemi, 36, Itaim Bibi, São Paulo - SP, 01451-011, Brasil",
+        "websites": [
+          "HTTPS://MANIFESTOBAR.COM.BR",
+          "https://www.facebook.com/141876969178516"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "HTTPS://MANIFESTOBAR.COM.BR"
+          }
+        ],
+        "position": [
+          -46.68115,
+          -23.58587
+        ]
+      },
+      {
+        "name": "Que Lugar",
+        "locality": "São Paulo",
+        "address": "Que Lugar, Rua Barra Funda, 630, Santa Cecília, São Paulo - SP, 01152-000, Brasil",
+        "websites": [
+          "https://www.facebook.com/105557014284157"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/105557014284157"
+          }
+        ],
+        "position": [
+          -46.65679,
+          -23.52916
+        ]
+      },
+      {
+        "name": "Espaço Exitos",
+        "locality": "São Paulo",
+        "address": "Espaço Exitos, Rua Doutor Sérgio Meira, 231, Santa Cecília, São Paulo - SP, 01153-010, Brasil",
+        "websites": [
+          "https://www.espacoexitos.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.espacoexitos.com.br"
+          }
+        ],
+        "position": [
+          -46.65652,
+          -23.52821
+        ]
+      },
+      {
+        "name": "All of Jazz",
+        "locality": "São Paulo",
+        "address": "All of Jazz, Rua João Cachoeira, 1366, Itaim Bibi, São Paulo - SP, 04535-006, Brasil",
+        "websites": [
+          "https://www.allofjazzoficial.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.allofjazzoficial.com.br"
+          }
+        ],
+        "position": [
+          -46.67551,
+          -23.59238
+        ]
+      },
+      {
+        "name": "Stive Pura Calma di Vinil",
+        "locality": "São Paulo",
+        "address": "Stive Pura Calma di Vinil, Rua Afonso Celso, 210, Vila Mariana, São Paulo - SP, 04119-001, Brasil",
+        "websites": [
+          "https://www.facebook.com/1905994626374375"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/1905994626374375"
+          }
+        ],
+        "position": [
+          -46.63529,
+          -23.59382
+        ]
+      },
+      {
+        "name": "Dublin Live Music",
+        "locality": "São Paulo",
+        "address": "Dublin Live Music, Rua Ministro Jesuíno Cardoso, 178, Itaim Bibi, São Paulo - SP, 04544-050, Brasil",
+        "websites": [
+          "https://www.facebook.com/10150148917070580"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/10150148917070580"
+          }
+        ],
+        "position": [
+          -46.67953,
+          -23.59191
+        ]
+      },
+      {
+        "name": "Áudio",
+        "locality": "São Paulo",
+        "address": "Áudio, Avenida Francisco Matarazzo, 694, Barra Funda, São Paulo - SP, 05001-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.66961,
+          -23.52848
+        ]
+      },
+      {
+        "name": "Polako",
+        "locality": "São Paulo",
+        "address": "Polako, Rua Ministro Jesuíno Cardoso, 181, Itaim Bibi, São Paulo - SP, 04544-050, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.6795,
+          -23.59209
+        ]
+      },
+      {
+        "name": "G.R.C Escola de Samba Independente",
+        "locality": "São Paulo",
+        "address": "G.R.C Escola de Samba Independente, Rua Doze de Setembro, 259, Vila Guilherme, São Paulo - SP, 02052-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.61144,
+          -23.51945
+        ]
+      },
+      {
+        "name": "Live Music Bar",
+        "locality": "Mauá",
+        "address": "Live Music Bar, Avenida Capitão João, 1152, Mauá - SP, 09360-120, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.45477,
+          -23.67527
+        ]
+      },
+      {
+        "name": "São Paulo Intercontinental Club",
+        "locality": "São Paulo",
+        "address": "São Paulo Intercontinental Club, Alameda Santos, Jardim Paulista, São Paulo - SP, 01419-001, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65356,
+          -23.56571
+        ]
+      },
+      {
+        "name": "Rua Herculano de Freitas 253",
+        "locality": "São Paulo",
+        "address": "Rua Herculano de Freitas 253, Rua Herculano de Freitas, Bela Vista, São Paulo - SP, 01308-020, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.6542,
+          -23.55558
+        ]
+      },
+      {
+        "name": "Túnel do Tempo",
+        "locality": "São Paulo",
+        "address": "Túnel do Tempo, Rua dos Ingleses, 355, Bela Vista, São Paulo - SP, 01329-000, Brasil",
+        "websites": [
+          "https://linktr.ee/balada_tunnel"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://linktr.ee/balada_tunnel"
+          }
+        ],
+        "position": [
+          -46.64682,
+          -23.56111
+        ]
+      },
+      {
+        "name": "Boiler",
+        "locality": "São Paulo",
+        "address": "Boiler, Rua Frei Caneca, Bela Vista, São Paulo - SP, 01307-001, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65583,
+          -23.55533
+        ]
+      },
+      {
+        "name": "Aloka",
+        "locality": "São Paulo",
+        "address": "Aloka, Rua Frei Caneca, 916, Consolação, São Paulo - SP, 01307-002, Brasil",
+        "websites": [
+          "https://www.alokaclub.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.alokaclub.com.br"
+          }
+        ],
+        "position": [
+          -46.65579,
+          -23.55505
+        ]
+      },
+      {
+        "name": "Hole Club",
+        "locality": "São Paulo",
+        "address": "Hole Club, Rua Augusta, 2203, Jardim Paulista, São Paulo - SP, 01413-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.66343,
+          -23.56132
+        ]
+      },
+      {
+        "name": "Subwoof",
+        "locality": "São Paulo",
+        "address": "Subwoof, Alameda Franca, 1100, Jardim Paulista, São Paulo - SP, 01422-001, Brasil",
+        "websites": [
+          "https://festasubwoof.wordpress.com"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://festasubwoof.wordpress.com"
+          }
+        ],
+        "position": [
+          -46.66371,
+          -23.56169
+        ]
+      },
+      {
+        "name": "Toy Room SP",
+        "locality": "São Paulo",
+        "address": "Toy Room SP, Alameda Lorena, 1386, Jardim Paulista, São Paulo - SP, 01424-004, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.66488,
+          -23.5647
+        ]
+      },
+      {
+        "name": "Espaço 401",
+        "locality": "São Paulo",
+        "address": "Espaço 401, Rua Rui Barbosa, 401, Bela Vista, São Paulo - SP, 01326-010, Brasil",
+        "websites": [
+          "https://espaco401eventos.wixsite.com/espaco401"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://espaco401eventos.wixsite.com/espaco401"
+          }
+        ],
+        "position": [
+          -46.64511,
+          -23.55907
+        ]
+      },
+      {
+        "name": "Lumis Club",
+        "locality": "São Paulo",
+        "address": "Lumis Club, Rua Treze de Maio, 409, Bela Vista, São Paulo - SP, 04849-529, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64652,
+          -23.55667
+        ]
+      },
+      {
+        "name": "Espaço Desmanche",
+        "locality": "São Paulo",
+        "address": "Espaço Desmanche, Rua Augusta, 765, Consolação, São Paulo - SP, 01305-100, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65325,
+          -23.55244
+        ]
+      },
+      {
+        "name": "Adromedra Club",
+        "locality": "São Paulo",
+        "address": "Adromedra Club, Rua Augusta, 765, Consolação, São Paulo - SP, 01305-100, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65325,
+          -23.55244
+        ]
+      },
+      {
+        "name": "Tribus Club - Bar",
+        "locality": "São Paulo",
+        "address": "Tribus Club - Bar, Rua Augusta, 757, Consolação, São Paulo - SP, 01305-100, Brasil",
+        "websites": [
+          "https://www.facebook.com/1322962891056570"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/1322962891056570"
+          }
+        ],
+        "position": [
+          -46.65315,
+          -23.55237
+        ]
+      },
+      {
+        "name": "Private Lounge",
+        "locality": "São Paulo",
+        "address": "Private Lounge, Rua Augusta, 747, Consolação, São Paulo - SP, 01305-100, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65307,
+          -23.55234
+        ]
+      },
+      {
+        "name": "Espaço Elevate",
+        "locality": "São Paulo",
+        "address": "Espaço Elevate, Rua da Consolação, 1749, Consolação, São Paulo - SP, 01301-100, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65724,
+          -23.55189
+        ]
+      },
+      {
+        "name": "Kat Klub",
+        "locality": "São Paulo",
+        "address": "Kat Klub, Rua Augusta, 609, Consolação, São Paulo - SP, 01305-000, Brasil",
+        "websites": [
+          "https://katklub.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://katklub.com.br"
+          }
+        ],
+        "position": [
+          -46.65182,
+          -23.55183
+        ]
+      },
+      {
+        "name": "Beco 203",
+        "locality": "São Paulo",
+        "address": "Beco 203, Rua Augusta, 609, Consolação, São Paulo - SP, 01305-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65182,
+          -23.55183
+        ]
+      },
+      {
+        "name": "Resid Bar",
+        "locality": "São Paulo",
+        "address": "Resid Bar, Rua Padre João Manuel, 1115, Jardim Paulista, São Paulo - SP, 01411-000, Brasil",
+        "websites": [
+          "https://resid.club/resid-bar"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://resid.club/resid-bar"
+          }
+        ],
+        "position": [
+          -46.66693,
+          -23.56645
+        ]
+      },
+      {
+        "name": "Sphera Lounge",
+        "locality": "São Paulo",
+        "address": "Sphera Lounge, Alameda Campinas, 1631, Jardim Paulista, São Paulo - SP, 01404-002, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.66062,
+          -23.57364
+        ]
+      },
+      {
+        "name": "Le Rêve Club",
+        "locality": "São Paulo",
+        "address": "Le Rêve Club, Rua Marquês de Paranaguá, 329, Consolação, São Paulo - SP, 01303-050, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64937,
+          -23.55136
+        ]
+      },
+      {
+        "name": "Motelzinho Bar",
+        "locality": "São Paulo",
+        "address": "Motelzinho Bar, Rua Santo Antônio, 898, Bela Vista, São Paulo - SP, 01314-001, Brasil",
+        "websites": [
+          "https://linktr.ee/motelzinhobar"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://linktr.ee/motelzinhobar"
+          }
+        ],
+        "position": [
+          -46.6467,
+          -23.55272
+        ]
+      },
+      {
+        "name": "Magnolia Pocket Club",
+        "locality": "São Paulo",
+        "address": "Magnolia Pocket Club, Alameda Lorena, 1892, Jardim Paulista, São Paulo - SP, 01424-006, Brasil",
+        "websites": [
+          "https://magnoliapocketclub.com.br"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://magnoliapocketclub.com.br"
+          }
+        ],
+        "position": [
+          -46.66844,
+          -23.56151
+        ]
+      },
+      {
+        "name": "Espaço Cultural Ccpc General Club",
+        "locality": "São Paulo",
+        "address": "Espaço Cultural Ccpc General Club, Rua General Jardim, 269, República, São Paulo - SP, 01223-011, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64714,
+          -23.54483
+        ]
+      },
+      {
+        "name": "Espaco Metrópole Cafe",
+        "locality": "São Paulo",
+        "address": "Espaco Metrópole Cafe, Avenida São Luís, República, São Paulo - SP, 01046-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.6433,
+          -23.54626
+        ]
+      },
+      {
+        "name": "The Addams Club",
+        "locality": "São Paulo",
+        "address": "The Addams Club, Rua Bento Freitas, 355, República, São Paulo - SP, 01220-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64545,
+          -23.54503
+        ]
+      },
+      {
+        "name": "Shiva Disco Club",
+        "locality": "São Paulo",
+        "address": "Shiva Disco Club, Rua Bento Freitas, 353, República, São Paulo - SP, 01220-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64545,
+          -23.54499
+        ]
+      },
+      {
+        "name": "Zig Duplex",
+        "locality": "São Paulo",
+        "address": "Zig Duplex, Rua Araújo, 155, República, São Paulo - SP, 01247-090, Brasil",
+        "websites": [
+          "https://www.facebook.com/1188192704677381"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/1188192704677381"
+          }
+        ],
+        "position": [
+          -46.64455,
+          -23.54523
+        ]
+      },
+      {
+        "name": "Abc Bailão",
+        "locality": "São Paulo",
+        "address": "Abc Bailão, Rua Marquês de Itu, 182, República, São Paulo - SP, 01223-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64606,
+          -23.54373
+        ]
+      },
+      {
+        "name": "Executivo Club",
+        "locality": "São Paulo",
+        "address": "Executivo Club, Rua Sete de Abril, 425, República, São Paulo - SP, 01043-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.64258,
+          -23.54446
+        ]
+      },
+      {
+        "name": "Templo do Arguile - Hookah Lounge",
+        "locality": "São Paulo",
+        "address": "Templo do Arguile - Hookah Lounge, Rua Martim Francisco, 500, Santa Cecília, São Paulo - SP, 01226-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.65411,
+          -23.54085
+        ]
+      },
+      {
+        "name": "Vglnt.",
+        "locality": "São Paulo",
+        "address": "Vglnt., Rua Dom José de Barros, 253, República, São Paulo - SP, 01038-100, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.6399,
+          -23.54366
+        ]
+      },
+      {
+        "name": "Ultralions",
+        "locality": "São Paulo",
+        "address": "Ultralions, Rua Venceslau Brás, 61, Sé, São Paulo - SP, 01016-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.6327,
+          -23.54927
+        ]
+      },
+      {
+        "name": "Euphoria",
+        "locality": "São Paulo",
+        "address": "Euphoria, Praça Benedito Calixto, 175, Jardim Paulista, São Paulo - SP, 05406-040, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.68138,
+          -23.55796
+        ]
+      },
+      {
+        "name": "Casa do Sargento de São Paulo",
+        "locality": "São Paulo",
+        "address": "Casa do Sargento de São Paulo, Rua Scuvero, 195, Liberdade, São Paulo - SP, 01527-000, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.62652,
+          -23.56335
+        ]
+      },
+      {
+        "name": "1st Call Lounge Bar N Restaurant",
+        "locality": "São Paulo",
+        "address": "1st Call Lounge Bar N Restaurant, Rua dos Timbiras, 390, República, São Paulo - SP, 01208-012, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.63974,
+          -23.5407
+        ]
+      },
+      {
+        "name": "Disco Club",
+        "locality": "São Paulo",
+        "address": "Disco Club, Rua Joaquim Floriano, 295, Itaim Bibi, São Paulo - SP, 04534-010, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.67287,
+          -23.58423
+        ]
+      },
+      {
+        "name": "Avenue Club",
+        "locality": "São Paulo",
+        "address": "Avenue Club, Rua Cardeal Arcoverde, 1393, Pinheiros, São Paulo - SP, 05407-002, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.68537,
+          -23.55995
+        ]
+      },
+      {
+        "name": "Espaço Madaloca",
+        "locality": "São Paulo",
+        "address": "Espaço Madaloca, Rua Luís Murat, 370, Pinheiros, São Paulo - SP, 05436-050, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.68637,
+          -23.55779
+        ]
+      },
+      {
+        "name": "Café Photo",
+        "locality": "São Paulo",
+        "address": "Café Photo, Avenida Presidente Juscelino Kubitschek, 373, Itaim Bibi, São Paulo - SP, 04543-010, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.67384,
+          -23.5869
+        ]
+      },
+      {
+        "name": "O Pasquim Bar e Prosa",
+        "locality": "São Paulo",
+        "address": "O Pasquim Bar e Prosa, Rua da Cantareira, 306, Sé, São Paulo - SP, 01024-100, Brasil",
+        "websites": [
+          "https://www.opasquimbar.com.br/mercadomunicipal"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.opasquimbar.com.br/mercadomunicipal"
+          }
+        ],
+        "position": [
+          -46.62935,
+          -23.54173
+        ]
+      },
+      {
+        "name": "Picles",
+        "locality": "São Paulo",
+        "address": "Picles, Rua Cardeal Arcoverde, 1838, Pinheiros, São Paulo - SP, 05407-002, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.68921,
+          -23.56208
+        ]
+      },
+      {
+        "name": "A. F. A. I. R.",
+        "locality": "São Paulo",
+        "address": "A. F. A. I. R., Avenida Cidade Jardim, 350, Pinheiros, São Paulo - SP, 01449-070, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.68407,
+          -23.58029
+        ]
+      },
+      {
+        "name": "Trackers",
+        "locality": "São Paulo",
+        "address": "Trackers, Rua dos Pinheiros, 1243, Pinheiros, São Paulo - SP, 05422-012, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.68947,
+          -23.56823
+        ]
+      },
+      {
+        "name": "Zais",
+        "locality": "São Paulo",
+        "address": "Zais, Rua Domingos de Morais, 1630, Vila Mariana, São Paulo - SP, 04010-200, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.63564,
+          -23.59064
+        ]
+      },
+      {
+        "name": "Navarrofest",
+        "locality": "São Paulo",
+        "address": "Navarrofest, Rua Aspicuelta, 595, Pinheiros, São Paulo - SP, 05433-011, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.69079,
+          -23.55848
+        ]
+      },
+      {
+        "name": "80s Club",
+        "locality": "São Paulo",
+        "address": "80s Club, Rua Deputado Lacerda Franco, 342, Pinheiros, São Paulo - SP, 05418-001, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.69113,
+          -23.56217
+        ]
+      },
+      {
+        "name": "Vila Octo",
+        "locality": "São Paulo",
+        "address": "Vila Octo, Rua Inácio Pereira da Rocha, 494, Pinheiros, São Paulo - SP, 05432-011, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.69132,
+          -23.56095
+        ]
+      },
+      {
+        "name": "The Clock Rock Bar",
+        "locality": "São Paulo",
+        "address": "The Clock Rock Bar, Rua Turiassu, 806, Perdizes, São Paulo - SP, 05005-001, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.67102,
+          -23.53261
+        ]
+      },
+      {
+        "name": "Projeto Autobahn de Volta aos Anos 80",
+        "locality": "São Paulo",
+        "address": "Projeto Autobahn de Volta aos Anos 80, Rua Turiassu, 806, Perdizes, São Paulo - SP, 05005-001, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.67102,
+          -23.53261
+        ]
+      },
+      {
+        "name": "Squat Party",
+        "locality": "São Paulo",
+        "address": "Squat Party, Avenida Pedroso de Morais, 1036, Pinheiros, São Paulo - SP, 05419-001, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.69287,
+          -23.56122
+        ]
+      },
+      {
+        "name": "Concert Hall",
+        "locality": "São Paulo",
+        "address": "Concert Hall, Rua Max Berg, 136, Sacomã, São Paulo - SP, 04297-020, Brasil",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          -46.60274,
+          -23.62754
+        ]
+      }
+    ],
+    "researchLeads": [],
+    "testedAt": "2026-11-03T12:48:44.482Z"
+  },
+  {
+    "location": "Nairobi, Kenya",
+    "resolved": {
+      "label": "Nairobi, Kenya",
+      "position": [
+        36.82379,
+        -1.28352
+      ],
+      "locality": "Nairobi",
+      "countryCode": "KE",
+      "languageCode": "en",
+      "alternatives": []
+    },
+    "providers": [
+      {
+        "name": "AWS Places",
+        "ok": true,
+        "skipped": false,
+        "count": 69,
+        "error": ""
+      },
+      {
+        "name": "OpenStreetMap",
+        "ok": false,
+        "skipped": false,
+        "count": 0,
+        "error": "Provider temporarily unavailable"
+      },
+      {
+        "name": "Google Places",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      },
+      {
+        "name": "Brave Search",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      }
+    ],
+    "rawCount": 68,
+    "venues": [
+      {
+        "name": "Space International Limited",
+        "locality": "Nairobi",
+        "address": "Space International Limited, Moi Ave, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82499,
+          -1.28434
+        ]
+      },
+      {
+        "name": "Blue Times",
+        "locality": "Nairobi",
+        "address": "Blue Times, Chiromo Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.81131,
+          -1.27361
+        ]
+      },
+      {
+        "name": "Hillocks Inn",
+        "locality": "Nairobi",
+        "address": "Hillocks Inn, Enterprise Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.86513,
+          -1.31914
+        ]
+      },
+      {
+        "name": "Passionate Dance Crew",
+        "locality": "Kiambu",
+        "address": "Passionate Dance Crew, Kenyatta Rd, Kiambu, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          37.08305,
+          -1.03871
+        ]
+      },
+      {
+        "name": "Shisha Palace",
+        "locality": "Nairobi",
+        "address": "Shisha Palace, Moi Ave, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82389,
+          -1.28343
+        ]
+      },
+      {
+        "name": "Club Zodiak",
+        "locality": "Nairobi",
+        "address": "Club Zodiak, Cabrali St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82412,
+          -1.28334
+        ]
+      },
+      {
+        "name": "Club Notebook",
+        "locality": "Nairobi",
+        "address": "Club Notebook, Kimathi Ln, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82422,
+          -1.28425
+        ]
+      },
+      {
+        "name": "Backyard Films",
+        "locality": "Nairobi",
+        "address": "Backyard Films, Tom Mboya St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82456,
+          -1.28298
+        ]
+      },
+      {
+        "name": "I Club",
+        "locality": "Nairobi",
+        "address": "I Club, Kimathi St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82401,
+          -1.28462
+        ]
+      },
+      {
+        "name": "Express Inn Club",
+        "locality": "Nairobi",
+        "address": "Express Inn Club, Latema Rd, Nairobi, Kenya",
+        "websites": [
+          "https://www.facebook.com/210637942303398/posts/5130268963673580/?app=fbl"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.facebook.com/210637942303398/posts/5130268963673580/?app=fbl"
+          }
+        ],
+        "position": [
+          36.82494,
+          -1.28326
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "Klub Bettyz",
+        "locality": "Nairobi",
+        "address": "Klub Bettyz, Kimathi St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82397,
+          -1.28497
+        ]
+      },
+      {
+        "name": "Sixtyfour Night Club",
+        "locality": "Nairobi",
+        "address": "Sixtyfour Night Club, Kimathi St, Nairobi, Kenya",
+        "websites": [
+          "https://sixtyfour.co.ke"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://sixtyfour.co.ke"
+          }
+        ],
+        "position": [
+          36.82403,
+          -1.28499
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "Club Amicah",
+        "locality": "Nairobi",
+        "address": "Club Amicah, Tsavo Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82567,
+          -1.28291
+        ]
+      },
+      {
+        "name": "Club Sylk",
+        "locality": "Nairobi",
+        "address": "Club Sylk, Kimathi St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82178,
+          -1.28323
+        ]
+      },
+      {
+        "name": "Arfa Lounge Bar",
+        "locality": "Nairobi",
+        "address": "Arfa Lounge Bar, Kaunda St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.8226,
+          -1.28539
+        ]
+      },
+      {
+        "name": "Fahrenheit Lounge Club Fahrenheit",
+        "locality": "Nairobi",
+        "address": "Fahrenheit Lounge Club Fahrenheit, Kimathi St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82159,
+          -1.28304
+        ]
+      },
+      {
+        "name": "Pisces 3D Club",
+        "locality": "Nairobi",
+        "address": "Pisces 3D Club, River Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82545,
+          -1.28153
+        ]
+      },
+      {
+        "name": "Liddos",
+        "locality": "Nairobi",
+        "address": "Liddos, Keekorok Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82377,
+          -1.28088
+        ]
+      },
+      {
+        "name": "Club Sound",
+        "locality": "Nairobi",
+        "address": "Club Sound, Kaunda St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82192,
+          -1.2854
+        ]
+      },
+      {
+        "name": "Lazarus Inn Lounge",
+        "locality": "Nairobi",
+        "address": "Lazarus Inn Lounge, Moi Ave, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.8261,
+          -1.28561
+        ]
+      },
+      {
+        "name": "Nyanza Night Club",
+        "locality": "Nairobi",
+        "address": "Nyanza Night Club, Mfangano St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82724,
+          -1.28498
+        ]
+      },
+      {
+        "name": "Florida 2000 Discotheque",
+        "locality": "Nairobi",
+        "address": "Florida 2000 Discotheque, Moi Ave, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82591,
+          -1.2867
+        ]
+      },
+      {
+        "name": "City Platinum Club",
+        "locality": "Nairobi",
+        "address": "City Platinum Club, Moi Ave, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82595,
+          -1.28672
+        ]
+      },
+      {
+        "name": "Dodds Pub",
+        "locality": "Nairobi",
+        "address": "Dodds Pub, Moi Ave, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82609,
+          -1.28707
+        ]
+      },
+      {
+        "name": "Florida Night Club",
+        "locality": "Nairobi",
+        "address": "Florida Night Club, Banda St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.81909,
+          -1.28467
+        ]
+      },
+      {
+        "name": "Club Salt",
+        "locality": "Nairobi",
+        "address": "Club Salt, Mfangano St, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82783,
+          -1.28659
+        ]
+      },
+      {
+        "name": "New Bamboo Day & Night Club",
+        "locality": "Nairobi",
+        "address": "New Bamboo Day & Night Club, Duruma Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82934,
+          -1.28339
+        ]
+      },
+      {
+        "name": "Nectar Club",
+        "locality": "Nairobi",
+        "address": "Nectar Club, Mfangano Ln, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82807,
+          -1.28738
+        ]
+      },
+      {
+        "name": "Secrets Lounge",
+        "locality": "Nairobi",
+        "address": "Secrets Lounge, Utalii Ln, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.81581,
+          -1.28195
+        ]
+      },
+      {
+        "name": "Extreme Video Games",
+        "locality": "Nairobi",
+        "address": "Extreme Video Games, Uhuru Hwy, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.81569,
+          -1.28257
+        ]
+      },
+      {
+        "name": "The Shadows Lounge",
+        "locality": "Nairobi",
+        "address": "The Shadows Lounge, Ngara Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82254,
+          -1.2753
+        ]
+      },
+      {
+        "name": "Club Taidys",
+        "locality": "Nairobi",
+        "address": "Club Taidys, Limuru Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82203,
+          -1.27194
+        ]
+      },
+      {
+        "name": "Premier Club",
+        "locality": "Nairobi",
+        "address": "Premier Club, Limuru Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.8211,
+          -1.2707
+        ]
+      },
+      {
+        "name": "Sleep Inn Club",
+        "locality": "Nairobi",
+        "address": "Sleep Inn Club, Limuru Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82105,
+          -1.27066
+        ]
+      },
+      {
+        "name": "The Ballroom Nairobi",
+        "locality": "Nairobi",
+        "address": "The Ballroom Nairobi, Uhuru Hwy, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.81264,
+          -1.27578
+        ]
+      },
+      {
+        "name": "Bamboo Cask Lounge",
+        "locality": "Nairobi",
+        "address": "Bamboo Cask Lounge, Keiyo Rd, Nairobi, Kenya",
+        "websites": [
+          "https://bamboocask.co.ke/restaurant-menu"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://bamboocask.co.ke/restaurant-menu"
+          }
+        ],
+        "position": [
+          36.81708,
+          -1.27097
+        ],
+        "websiteResearch": "unavailable"
+      },
+      {
+        "name": "Small Villa Club",
+        "locality": "Nairobi",
+        "address": "Small Villa Club, Prof. Wangari Maathai Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82498,
+          -1.26858
+        ]
+      },
+      {
+        "name": "The Loft",
+        "locality": "Nairobi",
+        "address": "The Loft, Westlands Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.81239,
+          -1.27329
+        ]
+      },
+      {
+        "name": "Club Supermambo",
+        "locality": "Nairobi",
+        "address": "Club Supermambo, Park Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.83277,
+          -1.27041
+        ]
+      },
+      {
+        "name": "Evans",
+        "locality": "Nairobi",
+        "address": "Evans, Westlands Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.81153,
+          -1.27223
+        ]
+      },
+      {
+        "name": "Alpha Lounge",
+        "locality": "Nairobi",
+        "address": "Alpha Lounge, Baricho Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82535,
+          -1.30021
+        ]
+      },
+      {
+        "name": "Club Legend",
+        "locality": "Nairobi",
+        "address": "Club Legend, Baricho Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82539,
+          -1.30047
+        ]
+      },
+      {
+        "name": "XS Millionaires Club",
+        "locality": "Nairobi",
+        "address": "XS Millionaires Club, Baricho Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82548,
+          -1.3005
+        ]
+      },
+      {
+        "name": "Maasai Mara Connect Club",
+        "locality": "Nairobi",
+        "address": "Maasai Mara Connect Club, Parklands Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.81717,
+          -1.26709
+        ]
+      },
+      {
+        "name": "La Baita Lounge",
+        "locality": "Nairobi",
+        "address": "La Baita Lounge, Upper Hill Rd, Nairobi, Kenya",
+        "websites": [
+          "https://www.ubereats.com/ke/store/baita-restaurant/mqt7TKcHS9Otp2F5Agfzrw?diningMode=DELIVERY"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://www.ubereats.com/ke/store/baita-restaurant/mqt7TKcHS9Otp2F5Agfzrw?diningMode=DELIVERY"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://def.uber.com/en/challenge?from_service=d2ViLWVhdHMtdjI%3D&q=ZDFkYTczMjc4N2FkYjYwYTliMzZjMWEwNTYyMGY2OTg6dTNWb3BLNktpbWkvUTViSTovUmtvek5PVytTc2lhZEYwQXRrVHNmd0VkRTEwdzNHWTZOZkdVbXFCczM0eWdlalFqa25wMlpIWGlIeGpFZGtyM0xmYmJEWmJGeE9PVjQ0SVRKZ2lrSjdLYmV1U2V5dmdYRWFDYVJlUmZoOEh4KzJGV3pxVmhJS0RMTkN4T1JnRmloK1R6T0RMeEExbVN2SW9FVnl0b2VNclB5b2FSUGZvcVZiRmVtdFg4WjBYNTZMT2krM3JWRGhBcHE1MG1CK3J6VlRoUU92N2VqKzhCb1Vtd2ZzR0k3UlYrUGJFdU85bFJSbFh4bkcralh5V3hWUW1WRXY1RGVxQ0c3UWl0bUNLQnB4c1RsdkkyU0tZV2hkZ1pjSkt6Vi9HWjV2RDQxSExkOXZ3K0N3NTh1VXArZGprRVkweVFrMzVSUmd6NnpjPTpoRUlaNitXUkZRU1R4QjNmTTU3UFR3PT0%3D",
+            "checkedAt": "2026-11-03T12:48:49.125Z"
+          }
+        ],
+        "position": [
+          36.81971,
+          -1.30083
+        ],
+        "websiteResearch": "no-programming-found",
+        "programmingEvidence": ""
+      },
+      {
+        "name": "Cavalli at the Manor",
+        "locality": "Nairobi",
+        "address": "Cavalli at the Manor, Westlands Rd 55, Nairobi, Kenya",
+        "websites": [
+          "https://cavalli.ke"
+        ],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": "https://cavalli.ke"
+          },
+          {
+            "name": "Venue website (identity and programming require confirmation)",
+            "url": "https://cavalli.ke/",
+            "checkedAt": "2026-11-03T12:48:49.495Z"
+          }
+        ],
+        "position": [
+          36.81008,
+          -1.27071
+        ],
+        "websiteResearch": "evidence-found",
+        "programmingEvidence": "About Us A relaxing and pleasant atmosphere, good music, food and cocktails"
+      },
+      {
+        "name": "David Club",
+        "locality": "Nairobi",
+        "address": "David Club, Limuru Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.82484,
+          -1.26392
+        ]
+      },
+      {
+        "name": "Humidor Bar and Lounge",
+        "locality": "Nairobi",
+        "address": "Humidor Bar and Lounge, Elgon Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.81664,
+          -1.30198
+        ]
+      },
+      {
+        "name": "Eritrean Cmty Asmara Bar & Rest",
+        "locality": "Nairobi",
+        "address": "Eritrean Cmty Asmara Bar & Rest, Juja Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.83923,
+          -1.26979
+        ]
+      },
+      {
+        "name": "The Tav Irish Pub and Eatery",
+        "locality": "Nairobi",
+        "address": "The Tav Irish Pub and Eatery, Chiromo Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.8075,
+          -1.27039
+        ]
+      },
+      {
+        "name": "Goodwill Restaurant",
+        "locality": "Nairobi",
+        "address": "Goodwill Restaurant, Bujumbura Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.83717,
+          -1.26671
+        ]
+      },
+      {
+        "name": "Milan",
+        "locality": "Nairobi",
+        "address": "Milan, Chiromo Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.80704,
+          -1.26987
+        ]
+      },
+      {
+        "name": "Jameson Bar, Gallileos Waiyaki Way",
+        "locality": "Nairobi",
+        "address": "Jameson Bar, Gallileos Waiyaki Way, Chiromo Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.80537,
+          -1.26797
+        ]
+      },
+      {
+        "name": "Velvet Lounge",
+        "locality": "Nairobi",
+        "address": "Velvet Lounge, Westlands Rd, Nairobi, Kenya",
+        "websites": [],
+        "sources": [
+          {
+            "name": "AWS Places public listing",
+            "url": ""
+          }
+        ],
+        "position": [
+          36.80631,
+          -1.26681
+        ]
+      }
+    ],
+    "researchLeads": [],
+    "testedAt": "2026-11-03T12:48:50.216Z"
+  },
+  {
+    "location": "Wānaka, New Zealand",
+    "resolved": {
+      "label": "Wanaka, Otago, New Zealand",
+      "position": [
+        169.13562,
+        -44.69434
+      ],
+      "locality": "Wanaka",
+      "countryCode": "NZ",
+      "languageCode": "en",
+      "alternatives": []
+    },
+    "providers": [
+      {
+        "name": "AWS Places",
+        "ok": true,
+        "skipped": false,
+        "count": 6,
+        "error": ""
+      },
+      {
+        "name": "OpenStreetMap",
+        "ok": false,
+        "skipped": false,
+        "count": 0,
+        "error": "Provider temporarily unavailable"
+      },
+      {
+        "name": "Google Places",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      },
+      {
+        "name": "Brave Search",
+        "ok": false,
+        "skipped": true,
+        "count": 0,
+        "error": "Not configured"
+      }
+    ],
+    "rawCount": 6,
+    "venues": [],
+    "researchLeads": [],
+    "testedAt": "2026-11-03T12:48:53.333Z"
+  },
+  {
+    "location": "Springfield",
+    "error": "Several places match that name. Add the region or country and search again.",
+    "statusCode": 409,
+    "locationChoices": [
+      {
+        "label": "Springfield, IL, United States",
+        "position": [
+          -89.6436,
+          39.8013
+        ],
+        "countryCode": "US"
+      },
+      {
+        "label": "Springfield, MO, United States",
+        "position": [
+          -93.2916,
+          37.20897
+        ],
+        "countryCode": "US"
+      },
+      {
+        "label": "Springfield, VA, United States",
+        "position": [
+          -77.19166,
+          38.77917
+        ],
+        "countryCode": "US"
+      },
+      {
+        "label": "Springfield, MA, United States",
+        "position": [
+          -72.58929,
+          42.10125
+        ],
+        "countryCode": "US"
+      },
+      {
+        "label": "Springfield, MB, Canada",
+        "position": [
+          -96.63752,
+          49.86807
+        ],
+        "countryCode": "CA"
+      }
+    ]
+  }
+]

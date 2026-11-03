@@ -1200,7 +1200,9 @@
         ? `See ${Math.min(6, marketVenues.length)} club options`
         : "Club contact";
       venueStatus.className = "hint";
-      venueStatus.textContent = "";
+      venueStatus.textContent = (market.providerStatus || []).some(provider => !provider.ok)
+        ? "Discovery coverage is incomplete. Some providers are unavailable or unconfigured; verify the leads and research further."
+        : "Public leads require current programming and booking verification.";
       const budgetHotels = (market.hotels || []).slice(0, 2),
         vanStops = (market.vanStops || []).slice(0, 2),
         recordStores = (market.recordStores || []).slice(0, 4);
@@ -1221,6 +1223,14 @@
       venueDetails.append(venueSummary);
       if (venueStatus.textContent) venueDetails.append(venueStatus);
       venueDetails.append(venueGrid);
+      for (const lead of market.researchLeads || []) {
+        if (!/^https:\/\//i.test(lead.url || "")) continue;
+        const research = document.createElement("p"), source = document.createElement("a");
+        source.href = lead.url; source.target = "_blank"; source.rel = "noopener noreferrer";
+        source.textContent = lead.title || "Research source";
+        research.append(source, document.createTextNode(` — Needs research: ${lead.description || "Confirm the venue, town and programming."}`));
+        venueDetails.append(research);
+      }
       if (recordStores.length) recordDetails.append(recordSummary, recordGrid);
       if (budgetHotels.length) hotelDetails.append(hotelSummary, hotelGrid);
       if (vanStops.length) vanDetails.append(vanSummary, vanWarning, vanGrid);
