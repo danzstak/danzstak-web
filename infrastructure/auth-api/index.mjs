@@ -2106,6 +2106,13 @@ function isRecordStore(place) {
     && (descriptiveSignal || strongNameSignal || recordCategorySignal);
 }
 
+function isRadioStation(place) {
+  const description = `${place.name || ""} ${(place.categories || []).join(" ")}`.toLowerCase();
+  const positive = /\b(radio station|radio broadcaster|community radio|college radio|campus radio|internet radio|fm radio|am radio|broadcasting|radiodiffusion|radiodifusora|emisora|radiofon|radio locale|webradio)\b|ラジオ|广播电台|라디오/.test(description);
+  const negative = /\b(tv only|television only|radio repair|car radio|radio equipment|two[- ]way radio|amateur radio club|ham radio)\b/.test(description);
+  return positive && !negative && place.businessStatus !== "CLOSED_PERMANENTLY";
+}
+
 const osmAttribution = "© OpenStreetMap contributors";
 const defaultOsmOverpassEndpoints = [
   "https://overpass-api.de/api/interpreter",
@@ -2177,6 +2184,11 @@ async function overpassPlaces(point, kind, radiusMiles = 30) {
         `["shop"="music"]`, `["shop"="video"]`,
         `["name"~"record|records|vinyl|dischi|vinili|platten|schallplatten|disquaire|discos|レコード",i]`
       ]
+    : kind === "radio-station"
+      ? [
+          `["amenity"="studio"]["studio"="radio"]`, `["office"="broadcasting"]`,
+          `["name"~"radio|fm |am |webradio|community radio|college radio|campus radio|emisora|radiodiffusion|ラジオ|广播电台|라디오",i]`
+        ]
     : [
         `["amenity"="music_venue"]`, `["amenity"="nightclub"]`, `["club"="music"]`,
         `["live_music"="yes"]`, `["music"~"live|rock|punk|metal|electronic|techno|house|jazz",i]`,
@@ -2364,10 +2376,12 @@ async function webVenueResearch(point, genre = "") {
 async function multiSourceDiscovery(point, kind, { genre = "", radiusMiles = 30 } = {}) {
   const awsQueries = kind === "record-store"
     ? ["record store", "vinyl record shop", "independent record store", "used records vinyl", "new and used record shop", "music store vinyl records"]
+    : kind === "radio-station"
+      ? ["radio station", "community radio station", "college radio station", "independent radio station", "internet radio station", genre ? `${genre} radio station` : "music radio station"]
     : venueDiscoveryQueries(point, genre);
   const cacheKey = `${kind}|${point.position.map(value => value.toFixed(3)).join(",")}|${genre.toLowerCase()}|${radiusMiles}`;
   return cacheDiscovery(cacheKey, async () => {
-    const googleResult = kind === "venue" ? googlePlacesSearch(point, awsQueries, radiusMiles) : Promise.resolve({ skipped: true, places: [] });
+    const googleResult = kind === "venue" || kind === "radio-station" ? googlePlacesSearch(point, awsQueries, radiusMiles) : Promise.resolve({ skipped: true, places: [] });
     const webResult = kind === "venue" ? webVenueResearch(point, genre) : Promise.resolve({ skipped: true, leads: [] });
     const attempts = await Promise.allSettled([
       awsPlaceSearch(point, awsQueries, radiusMiles),
@@ -2458,6 +2472,84 @@ async function recordStoreWorkspace(event, method) {
   const revision = randomUUID();
   try {
     await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...Key, name: { S: "Record placement workspace" }, plan: { S: plan }, revision: { S: revision }, updatedAt: { S: new Date().toISOString() } }, ConditionExpression: data.revision ? "revision = :revision" : "attribute_not_exists(userId)", ...(data.revision ? { ExpressionAttributeValues: { ":revision": { S: data.revision } } } : {}) }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return reply(409, { error: "Another device saved changes. Reload before saving again." });
+    throw error;
+  }
+  return reply(200, { revision });
+}
+
+async function radioStationCandidates(point, genre = "", maximumMiles = 60) {
+  const discovery = await multiSourceDiscovery(point, "radio-station", { genre, radiusMiles: maximumMiles });
+  const stations = discovery.places
+    .filter(isRadioStation)
+    .filter(place => approximateMilesBetween(point.position, place.position) <= maximumMiles)
+    .sort((left, right) => approximateMilesBetween(point.position, left.position) - approximateMilesBetween(point.position, right.position))
+    .map(place => ({
+      ...place,
+      distanceMiles: Math.round(approximateMilesBetween(point.position, place.position) * 10) / 10,
+      activityEvidence: place.activityEvidence || "A current public radio listing was returned. Confirm the program, presenter, and submission policy before outreach."
+    }));
+  return { stations, providers: discovery.providers };
+}
+
+async function searchRadioStations(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const data = parseJsonBody(event);
+  const location = String(data?.location || "").trim().slice(0, 120);
+  const genre = String(data?.genre || "").trim().slice(0, 120);
+  if (location.length < 2) return reply(400, { error: "Enter a city or region." });
+  try {
+    const point = await geocodeTourPlace(location);
+    const page = Math.max(0, Math.min(20, Math.trunc(Number(data?.page) || 0)));
+    const radiusMiles = Math.max(5, Math.min(100, Number(data?.radiusMiles) || 40));
+    const discovery = await radioStationCandidates(point, genre, radiusMiles);
+    const offset = page * 20, stations = discovery.stations.slice(offset, offset + 20);
+    return reply(200, { location: point, stations, providers: discovery.providers, page, hasMore: discovery.stations.length > offset + stations.length, canExpand: radiusMiles < 100, radiusMiles });
+  } catch (error) {
+    if (error.statusCode === 422) return reply(422, { error: "That location could not be found." });
+    console.error("Radio station search failed", { name: error.name });
+    return reply(502, { error: "Radio station search is temporarily unavailable.", providers: error.providerStatuses || [] });
+  }
+}
+
+const radioStationWorkspaceId = "radio-station-workspace-v1";
+async function radioStationWorkspace(event, method) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const Key = { userId: { S: userId }, tourId: { S: radioStationWorkspaceId } };
+  if (method === "GET") {
+    const result = await db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true }));
+    return reply(200, result.Item ? { ...JSON.parse(result.Item.plan.S), revision: result.Item.revision?.S || "" } : { artist: {}, stations: [], revision: "" });
+  }
+  const data = parseJsonBody(event);
+  if (!data || !Array.isArray(data.stations) || data.stations.length > 100 || typeof data.revision !== "string") return reply(400, { error: "Provide up to 100 stations and the loaded revision." });
+  const text = (value, max = 300) => typeof value === "string" ? value.trim().slice(0, max) : "";
+  const https = value => /^https:\/\//i.test(text(value, 600)) ? text(value, 600) : "";
+  const email = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(value, 254)) ? text(value, 254).toLowerCase() : "";
+  const list = (value, clean) => Array.isArray(value) ? value.slice(0, 8).map(clean).filter(Boolean) : [];
+  const stages = new Set(["Research", "Ready to pitch", "Contacted", "Follow up", "Interested", "Interview proposed", "Confirmed", "Passed"]);
+  const stations = data.stations.map(station => {
+    if (!station || typeof station !== "object" || !text(station.name, 160)) return null;
+    const position = Array.isArray(station.position) && station.position.length === 2 ? station.position.map(Number) : [];
+    const sources = Array.isArray(station.sources) ? station.sources.slice(0, 6).map(source => source && typeof source === "object" ? { name: text(source.name, 120), url: https(source.url) } : null).filter(source => source?.name) : [];
+    return { name: text(station.name, 160), address: text(station.address), locality: text(station.locality, 160), position: position.length === 2 && position.every(Number.isFinite) ? position : [], websites: list(station.websites, https), emails: list(station.emails, email), phones: list(station.phones, item => text(item, 40)), categories: list(station.categories, item => text(item, 120)), sources, activityEvidence: text(station.activityEvidence, 1000), stage: stages.has(station.stage) ? station.stage : "Research", proposedDate: /^\d{4}-\d{2}-\d{2}$/.test(text(station.proposedDate, 10)) ? text(station.proposedDate, 10) : "", proposedTime: /^\d{2}:\d{2}$/.test(text(station.proposedTime, 5)) ? text(station.proposedTime, 5) : "", followUp: /^\d{4}-\d{2}-\d{2}$/.test(text(station.followUp, 10)) ? text(station.followUp, 10) : "", notes: text(station.notes, 2000), outreachDraft: text(station.outreachDraft, 5000) };
+  });
+  if (stations.some(station => !station)) return reply(400, { error: "Each station needs a name." });
+  const artist = data.artist && typeof data.artist === "object" ? data.artist : {};
+  const cleanedArtist = { name: text(artist.name, 120), genre: text(artist.genre, 120), hometown: text(artist.hometown, 120), epk: https(artist.epk), pitch: text(artist.pitch, 1500), contactName: text(artist.contactName, 120), contactEmail: email(artist.contactEmail) };
+  const plan = JSON.stringify({ artist: cleanedArtist, stations });
+  if (Buffer.byteLength(plan, "utf8") > 250000) return reply(400, { error: "Radio outreach workspace is too large." });
+  const revision = randomUUID();
+  try {
+    await db.send(new PutItemCommand({ TableName: toursTable, Item: { ...Key, name: { S: "Radio outreach workspace" }, plan: { S: plan }, revision: { S: revision }, updatedAt: { S: new Date().toISOString() } }, ConditionExpression: data.revision ? "revision = :revision" : "attribute_not_exists(userId)", ...(data.revision ? { ExpressionAttributeValues: { ":revision": { S: data.revision } } } : {}) }));
   } catch (error) {
     if (error.name === "ConditionalCheckFailedException") return reply(409, { error: "Another device saved changes. Reload before saving again." });
     throw error;
@@ -3889,6 +3981,8 @@ export const handler = async event => {
 
     if (method === "POST" && path === "/record-stores/search") return await searchRecordStores(event);
     if ((method === "GET" || method === "POST") && path === "/record-store-workspace") return await recordStoreWorkspace(event, method);
+    if (method === "POST" && path === "/radio-stations/search") return await searchRadioStations(event);
+    if ((method === "GET" || method === "POST") && path === "/radio-station-workspace") return await radioStationWorkspace(event, method);
 
     if (method === "POST" && path === "/tour/manual-venue") return await addManualBookingVenue(event);
 

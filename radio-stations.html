@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; img-src 'self' data: https:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>Radio Stations | DanzStak</title>
+  <meta name="description" content="Find public radio stations worldwide and save professional interview outreach leads.">
+  <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
+  <link rel="stylesheet" href="assets/record-stores.css?v=1">
+  <link rel="stylesheet" href="assets/record-placement.css?v=1">
+  <link rel="stylesheet" href="assets/radio-stations.css?v=1">
+  <link rel="stylesheet" href="assets/accessibility.css?v=364">
+</head>
+<body>
+  <a class="skip-link" href="#radioMain">Skip to radio station search</a>
+  <header><a href="feed.html"><img src="assets/danzstak-logo.png" alt="DanzStak"></a><nav><a href="feed.html">Your Mix</a><a href="booking.html">Booking Agent</a><a href="record-stores.html">Record Stores</a></nav></header>
+  <main id="radioMain" tabindex="-1">
+    <section class="hero"><div><p class="eyebrow">DanzStak interview finder</p><h1>Radio Stations</h1><p>Find public radio leads near home or along a tour, then save the stations you want to research.</p></div></section>
+    <section class="search-card" aria-labelledby="artistTitle">
+      <details><summary id="artistTitle">Add the artist and interview pitch</summary><div class="release-grid">
+        <label>Artist<input id="radioArtist" maxlength="120"></label><label>Genre<input id="radioGenre" maxlength="120"></label>
+        <label>Hometown<input id="radioHometown" maxlength="120"></label><label>Public EPK link<input id="radioEpk" type="url" placeholder="https://"></label>
+        <label>Contact name<input id="radioContactName" maxlength="120"></label><label>Contact email<input id="radioContactEmail" type="email" maxlength="254"></label>
+        <label class="wide-field">Interview pitch<textarea id="radioPitch" rows="4" maxlength="1500" placeholder="Why this release, tour, or story fits the station's listeners"></textarea></label>
+      </div></details>
+      <form id="radioStationForm"><label for="radioLocation">City or region</label><div class="search-row"><input id="radioLocation" maxlength="120" autocomplete="address-level2" placeholder="Berlin, Germany" required><button type="submit">Find stations</button></div></form>
+      <p id="radioStatus" role="status" aria-live="polite">Enter a city to find public station listings.</p>
+    </section>
+    <section id="radioResults" class="store-grid" aria-label="Radio station results"></section>
+    <div class="search-more"><button type="button" id="loadMoreRadio" hidden>Find more stations nearby</button></div>
+    <section class="placement-card" aria-labelledby="radioOutreachTitle"><div class="placement-heading"><div><p class="eyebrow">Private outreach workspace</p><h2 id="radioOutreachTitle">Stations you want to approach</h2></div><button type="button" id="saveRadioWorkspace">Save workspace</button></div><p id="radioWorkspaceStatus" role="status" aria-live="polite">Loading your station list...</p><div id="radioWorkspace" class="placement-list"></div></section>
+  </main>
+  <script src="assets/radio-stations.js?v=1" defer></script>
+</body>
+</html>

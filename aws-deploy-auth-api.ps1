@@ -193,7 +193,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "POST /tour-manager/sfs/quote", "POST /tour-manager/sfs/verify", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/share", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "POST /tour-manager/sfs/quote", "POST /tour-manager/sfs/verify", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "POST /radio-stations/search", "GET /radio-station-workspace", "POST /radio-station-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/share", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
@@ -221,6 +221,10 @@ try {
   if ($permission -notmatch "AllowRecordStoreWorkspaceFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowRecordStoreWorkspaceFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/record-store-workspace" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Record-store workspace API invoke permission failed." }
+  }
+  if ($permission -notmatch "AllowRadioStationsFromApiGateway") {
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowRadioStationsFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/radio-station*" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Radio-station API invoke permission failed." }
   }
   if ($permission -notmatch "AllowEpkFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowEpkFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/epk*" --output json | Out-Null
