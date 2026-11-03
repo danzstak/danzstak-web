@@ -654,6 +654,15 @@ async function loadDirectMessages(reset = false) {
 }
 
 let loadingConversations = false;
+async function readMessagingArrayResponse(response, key) {
+  if (!response?.ok) return { available: false, items: [] };
+  try {
+    const data = await response.json();
+    return { available: true, items: Array.isArray(data?.[key]) ? data[key] : [] };
+  } catch {
+    return { available: false, items: [] };
+  }
+}
 function renderConversationLoadError() {
   if (!conversationUsers) return;
   conversationUsers.replaceChildren();
@@ -675,6 +684,22 @@ function renderConversationLoadError() {
   panel.append(status, retry);
   conversationUsers.appendChild(panel);
 }
+function appendConversationAvailabilityWarning() {
+  if (!conversationUsers) return;
+  const panel = document.createElement("div");
+  panel.className = "message-load-error contact-load-error message-partial-warning";
+  const status = document.createElement("p");
+  status.className = "chat-note";
+  status.setAttribute("role", "status");
+  status.textContent = messageTranslate("Some chats or online statuses are temporarily unavailable.");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "message-load-retry";
+  retry.textContent = messageTranslate("Retry contacts");
+  retry.addEventListener("click", () => loadConversations());
+  panel.append(status, retry);
+  conversationUsers.appendChild(panel);
+}
 async function loadConversations() {
   if (document.hidden || loadingConversations) return;
   loadingConversations = true;
@@ -693,22 +718,31 @@ async function loadConversations() {
     const conversationResponse = usableResponse(results[0]);
     const friendsResponse = usableResponse(results[1]);
     const directoryResponse = usableResponse(results[2]);
-    if (!conversationResponse && !friendsResponse && !directoryResponse) throw new Error(messageTranslate("Contacts are temporarily unavailable"));
-    const data = conversationResponse ? await conversationResponse.json() : { conversations: [] };
-    const friendsData = friendsResponse ? await friendsResponse.json() : { friends: [] };
-    const directoryData = directoryResponse ? await directoryResponse.json() : { users: [] };
-    if (typeof window !== "undefined" && window.parent !== window && directoryResponse) {
-      const users = (directoryData.users || []).map(member => ({
+    const [conversationSource, friendsSource, directorySource] = await Promise.all([
+      readMessagingArrayResponse(conversationResponse, "conversations"),
+      readMessagingArrayResponse(friendsResponse, "friends"),
+      readMessagingArrayResponse(directoryResponse, "users")
+    ]);
+    if (!conversationSource.available && !friendsSource.available && !directorySource.available) throw new Error(messageTranslate("Contacts are temporarily unavailable"));
+    const sourcesComplete = conversationSource.available && friendsSource.available && directorySource.available;
+    if (typeof window !== "undefined" && window.parent !== window && directorySource.available) {
+      const users = directorySource.items.map(member => ({
         memberId: String(member.memberId || ""),
         online: member.online === true
       })).filter(member => /^[a-f0-9-]{36}$/.test(member.memberId));
       window.parent.postMessage({ type: "danzstak-presence-update", users }, location.origin);
     }
     const contacts = new Map();
-    for (const conversation of data.conversations || []) {
+    if (!sourcesComplete) {
+      for (const conversation of cachedConversations) {
+        const email = String(conversation.contactEmail || "").toLowerCase();
+        if (email) contacts.set(email, { ...conversation, contactEmail: email });
+      }
+    }
+    for (const conversation of conversationSource.items) {
       if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), conversation);
     }
-    for (const friend of friendsData.friends || []) {
+    for (const friend of friendsSource.items) {
       const email = String(friend.email || "").toLowerCase();
       if (!email) continue;
       const existing = contacts.get(email) || {};
@@ -723,7 +757,7 @@ async function loadConversations() {
         isFriend: true
       });
     }
-    for (const member of directoryData.users || []) {
+    for (const member of directorySource.items) {
       const email = String(member.email || "").toLowerCase();
       const existing = contacts.get(email);
       if (!email || (!existing && !member.sharedGroup)) continue;
@@ -754,7 +788,14 @@ async function loadConversations() {
       const matchesFilter = activeFilter === "all" || (activeFilter === "unread" && unread) || (activeFilter === "groups" && item.sharedGroup);
       return matchesSearch && matchesFilter;
     });
-    if (!visible.length) { const empty = document.createElement("p"); empty.className = "chat-note"; empty.textContent = messageTranslate(query ? "No friends or chats match your search." : "No friends or saved chats yet."); conversationUsers.appendChild(empty); return; }
+    if (!visible.length) {
+      const empty = document.createElement("p");
+      empty.className = "chat-note";
+      empty.textContent = messageTranslate(query ? "No friends or chats match your search." : "No friends or saved chats yet.");
+      conversationUsers.appendChild(empty);
+      if (!sourcesComplete) appendConversationAvailabilityWarning();
+      return;
+    }
     for (const conversation of visible) {
       const row = document.createElement("div"); row.className = "conversation-row";
       const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
@@ -804,6 +845,7 @@ async function loadConversations() {
       }
       row.append(button, calls); conversationUsers.appendChild(row);
     }
+    if (!sourcesComplete) appendConversationAvailabilityWarning();
     if (focusedContact) {
       const focusTarget = [...conversationUsers.querySelectorAll(".conversation-user")].find(button => button.dataset.contactEmail === focusedContact);
       focusTarget?.focus({ preventScroll: true });

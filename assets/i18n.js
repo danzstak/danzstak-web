@@ -301,6 +301,24 @@
   id:["Hapus lampiran","Edit teks pesan","Simpan","Pesan dihapus untuk semua orang.","Pesan dihapus untuk Anda.","Hapus untuk saya","Hapus untuk semua orang","Edit pesan","Hapus pesan","Muat pesan sebelumnya","Disimpan offline — akan dikirim saat Anda tersambung kembali.","Mengunggah lampiran…","Obrolan dihapus dari akun Anda.","Buka obrolan","Mulai percakapan","Anggota Suku yang sama","Tidak ada teman atau obrolan yang cocok dengan pencarian Anda.","Belum ada teman atau obrolan tersimpan.","Kontak sementara tidak tersedia. Mencoba lagi secara otomatis…"]
  };
  for(const [language,values] of Object.entries(messageActions)){const dictionary=dictionaries[language]||(dictionaries[language]={});messageActionKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const partialMessageKeys=["Some chats or online statuses are temporarily unavailable.","Retry contacts"];
+ const partialMessageGuidance={
+  es:["Algunos chats o estados en línea no están disponibles temporalmente.","Reintentar contactos"],
+  fr:["Certaines discussions ou présences en ligne sont temporairement indisponibles.","Réessayer les contacts"],
+  de:["Einige Chats oder Online-Status sind vorübergehend nicht verfügbar.","Kontakte erneut laden"],
+  pt:["Algumas conversas ou estados online estão temporariamente indisponíveis.","Tentar contatos novamente"],
+  it:["Alcune chat o alcuni stati online non sono temporaneamente disponibili.","Riprova i contatti"],
+  ko:["일부 채팅 또는 온라인 상태를 일시적으로 사용할 수 없습니다.","연락처 다시 시도"],
+  ja:["一部のチャットまたはオンライン状態を一時的に利用できません。","連絡先を再読み込み"],
+  "zh-Hans":["部分聊天或在线状态暂时不可用。","重试联系人"],
+  "zh-Hant":["部分聊天或在線狀態暫時無法使用。","重試聯絡人"],
+  fil:["Pansamantalang hindi available ang ilang chat o online status.","Subukang muli ang mga contact"],
+  hi:["कुछ चैट या ऑनलाइन स्थिति अस्थायी रूप से उपलब्ध नहीं हैं।","संपर्क फिर लोड करें"],
+  vi:["Một số cuộc trò chuyện hoặc trạng thái trực tuyến tạm thời không khả dụng.","Thử lại danh bạ"],
+  th:["แชทหรือสถานะออนไลน์บางรายการไม่พร้อมใช้งานชั่วคราว","ลองโหลดรายชื่อติดต่ออีกครั้ง"],
+  id:["Beberapa obrolan atau status online sementara tidak tersedia.","Coba lagi kontak"]
+ };
+ for(const [language,values] of Object.entries(partialMessageGuidance)){const dictionary=dictionaries[language]||(dictionaries[language]={});partialMessageKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const messageDeliveryKeys=["Delivered","Read","Sending…","edited","{count} unread message","{count} unread messages","You: {text}. Sending."];
  const messageDeliveryGuidance={
   es:["Entregado","Leído","Enviando…","editado","{count} mensaje sin leer","{count} mensajes sin leer","Tú: {text}. Enviando."],
