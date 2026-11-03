@@ -13,6 +13,8 @@ assert.match(feed, /\.message-drawer\.is-loading iframe\{visibility:hidden\}/, "
 assert.match(feed, /event\.currentTarget\.src\.includes\("messages\.html"\)/, "an unrelated initial frame load cannot dismiss the loading state");
 assert.match(feed, /drawer\.querySelector\("\.message-drawer-loading"\)\.hidden = true/, "the loading state clears when Messages is ready");
 assert.match(feed, /if \(drawer && !drawer\.hidden\)[\s\S]*?message-drawer-close[\s\S]*?return;[\s\S]*?openMessageDrawer\(\)/, "the Messages icon toggles an open drawer closed");
+assert.match(feed, /danzstak:message-drawer[\s\S]*?detail: \{ open: false \}/, "closing Messages announces that obscuring prompts may resume");
+assert.match(feed, /detail: \{ open: true \}[\s\S]*?launcher\.setAttribute\("aria-expanded", "true"\)/, "opening Messages announces its modal-like state before focus moves into it");
 assert.match(enhancements, /drawer\.classList\.contains\("is-video-call"\)[\s\S]*?drawer\.contains\(event\.target\)[\s\S]*?launcher\?\.contains\(event\.target\)[\s\S]*?message-drawer-close/,
   "clicking back into the page dismisses compact Messages without interrupting a video call");
 assert.match(enhancements, /const messageDrawerOpenClicks = new WeakSet\(\)[\s\S]*?messageDrawerOpenClicks\.add\(event\)[\s\S]*?if \(!messageDrawerOpenClicks\.has\(event\)\) return/,

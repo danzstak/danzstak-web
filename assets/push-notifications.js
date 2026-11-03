@@ -133,10 +133,15 @@
       }
     });
     prompt.append(copy, action, dismiss);
+    prompt.hidden = document.getElementById('messageDrawer')?.hidden === false;
     document.body.appendChild(prompt);
   }
 
   addEventListener('danzstak:push-enabled', () => document.querySelector('.push-alert-prompt')?.remove());
+  addEventListener('danzstak:message-drawer', event => {
+    const prompt = document.querySelector('.push-alert-prompt');
+    if (prompt) prompt.hidden = event.detail?.open === true;
+  });
   setTimeout(renewExistingSubscription, 2000);
   setTimeout(showPermissionPrompt, 12000);
 })();

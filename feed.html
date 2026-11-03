@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-femh8PN7/e/PG1SSJw60p26k0W0SLGEYlmg4yr8nBVo='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-sywjS7p2R8nrC7/nOJ5w7uy4gEC+Z7YLrULbWqkXCaE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -349,7 +349,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 <link rel="stylesheet" href="assets/feed-enhancements.css?v=478">
 <link rel="stylesheet" href="assets/profile-onboarding.css?v=2">
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">
-<link rel="stylesheet" href="assets/incoming-calls.css?v=231">
+<link rel="stylesheet" href="assets/incoming-calls.css?v=232">
   <link rel="stylesheet" href="assets/soft-ui.css?v=425">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=6" defer></script>
@@ -1483,7 +1483,7 @@ function openMessageDrawer(contact = "", answerCall = false, callId = "") {
     drawer.setAttribute("role", "dialog");
     drawer.setAttribute("aria-label", "Messages");
     drawer.innerHTML = '<div class="message-drawer-bar"><span>Chats</span><button type="button" class="message-drawer-close" aria-label="Close messages">×</button></div><div class="message-drawer-loading" role="status">Loading chats…</div><iframe title="DanzStak messages"></iframe>';
-    drawer.querySelector(".message-drawer-close").addEventListener("click", () => { drawer.hidden = true; drawer.querySelector("iframe")?.contentWindow?.postMessage({ type: "danzstak-chat-hidden" }, location.origin); });
+    drawer.querySelector(".message-drawer-close").addEventListener("click", () => { drawer.hidden = true; drawer.querySelector("iframe")?.contentWindow?.postMessage({ type: "danzstak-chat-hidden" }, location.origin); dispatchEvent(new CustomEvent("danzstak:message-drawer", { detail: { open: false } })); });
     drawer.querySelector(".message-drawer-close").addEventListener("click", () => { launcher.setAttribute("aria-expanded", "false"); (messageDrawerPreviousFocus || launcher).focus(); messageDrawerPreviousFocus = null; });
     drawer.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); drawer.querySelector(".message-drawer-close").click(); } });
     document.body.appendChild(drawer);
@@ -1505,6 +1505,7 @@ function openMessageDrawer(contact = "", answerCall = false, callId = "") {
     frame.src = target.href;
   }
   drawer.hidden = false;
+  dispatchEvent(new CustomEvent("danzstak:message-drawer", { detail: { open: true } }));
   launcher.setAttribute("aria-expanded", "true");
   drawer.querySelector(".message-drawer-close").focus();
 }
@@ -1538,6 +1539,7 @@ window.addEventListener("message", event => {
   if (event.data?.type === "danzstak-chat-read") refreshNotificationCount();
   if (event.data?.type === "danzstak-chat-minimize") {
     drawer.setAttribute("hidden", "");
+    dispatchEvent(new CustomEvent("danzstak:message-drawer", { detail: { open: false } }));
     document.getElementById("messagesNav")?.setAttribute("aria-expanded", "false");
     (messageDrawerPreviousFocus || document.getElementById("messagesNav"))?.focus();
     messageDrawerPreviousFocus = null;
@@ -1568,7 +1570,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 </script>
 
-<script src="assets/push-notifications.js?v=304" defer></script>
+<script src="assets/push-notifications.js?v=305" defer></script>
 <script src="assets/device-settings.js?v=233" defer></script>
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>

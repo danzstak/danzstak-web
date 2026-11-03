@@ -3,6 +3,10 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 const source = fs.readFileSync('assets/push-notifications.js', 'utf8');
+const callCss = fs.readFileSync('assets/incoming-calls.css', 'utf8');
+assert.match(callCss, /\.push-alert-prompt\[hidden\]\{display:none\}/, 'the chat suppression state must override the prompt grid display');
+assert.match(source, /prompt\.hidden = document\.getElementById\('messageDrawer'\)\?\.hidden === false/, 'the permission prompt must not cover an already open chat');
+assert.match(source, /danzstak:message-drawer[\s\S]*?prompt\.hidden = event\.detail\?\.open === true/, 'the permission prompt should pause while Messages is open and return after it closes');
 const start = source.indexOf('async function withDeadline(');
 const end = source.indexOf('async function state()', start);
 assert.ok(start >= 0 && end > start, 'push deadline helpers are missing');
