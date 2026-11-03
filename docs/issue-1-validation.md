@@ -86,6 +86,7 @@ All three current global OpenStreetMap Overpass mirrors were unavailable from th
 - New EPKs keep booking email, booking phone, technical rider, and hospitality rider private unless the artist explicitly opts each item into the public kit. Public API responses remove every unapproved field server-side; existing published kits retain their prior behavior until their owner saves the new visibility choices.
 - Published EPKs now expose public-only actions to copy the stable kit link and print or save the professional layout as a PDF. The action bar is keyboard accessible, adapts to mobile width, and is excluded from printed output.
 - Artists can create, replace, and revoke a private review link for a booker or manager without publishing the EPK. The 256-bit secret stays in the browser URL fragment, is sent only in a no-store API request body, and is stored server-side only as a SHA-256 hash. Private reviewers receive all EPK files and booking details but not owner publication settings; deleting the EPK also removes the private share atomically.
+- Public and private reviewers receive separate short-lived signed URLs for inline previews and actual downloads. Download responses use a sanitized artist-supplied filename and an S3-signed `Content-Disposition: attachment` override, so the Press materials download action does not merely reopen the preview.
 
 ## Known limits
 

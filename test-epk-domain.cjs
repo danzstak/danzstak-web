@@ -4,7 +4,7 @@ const { createHash } = require("node:crypto");
 
 (async () => {
   Object.assign(process.env, { MEDIA_BUCKET:"example-private-media", AWS_REGION:"us-west-1", AWS_ACCESS_KEY_ID:"AKIAEXAMPLE", AWS_SECRET_ACCESS_KEY:"test-secret", AWS_SESSION_TOKEN:"test-token" });
-  const { cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches } = await import("./infrastructure/auth-api/index.mjs");
+  const { cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkDownloadName } = await import("./infrastructure/auth-api/index.mjs");
   const owner = "0123456789abcdef01234567";
   const photoKey = `epk/${owner}/11111111-1111-4111-a111-111111111111.jpg`;
   const riderKey = `epk/${owner}/22222222-2222-4222-a222-222222222222.pdf`;
@@ -44,6 +44,9 @@ const { createHash } = require("node:crypto");
   assert.equal("publicDetails" in privateShareView, false, "a private reviewer should not receive owner-only publication settings");
   assert.equal(publicView.media[0].key, photoKey);
   assert.match(publicView.media[0].url, /^https:\/\//, "public downloads should use a signed HTTPS URL");
+  assert.match(publicView.media[0].downloadUrl, /response-content-disposition=attachment%3B%20filename%3D%22Press%20photo\.jpg%22/, "public media should have a separately signed attachment URL");
+  assert.notEqual(publicView.media[0].downloadUrl, publicView.media[0].url, "inline previews and downloads should use distinct signed responses");
+  assert.equal(epkDownloadName("Bad\r\nName / \\ \"Press\"", photoKey), "Bad-Name - - -Press-.jpg", "download names must not allow header or path injection");
   assert.equal(kit.media.some(item => "url" in item), false, "viewer serialization must not mutate stored EPK data");
   const ownerKey = { userId:{S:"artist-1"}, tourId:{S:"epk-workspace-v1"} };
   const deletion = epkDeletionPlan({ publicId:{S:"codex-band"}, plan:{S:JSON.stringify({media:[{key:photoKey},{key:photoKey.replace(owner,"fedcba9876543210fedcba98")}]})} }, owner, ownerKey);

@@ -15,6 +15,8 @@ assert.match(html, /id="deleteEpk"/, "artists must be able to permanently delete
 assert.match(client, /\/epk\/public\//, "the public EPK should load from an opaque public route");
 assert.match(client, /\/epk\/shared\//, "private review links should load from a distinct token-protected route");
 assert.match(client, /DanzStak does not show this secret again/, "private review secrets must only be disclosed when created");
+assert.match(client, /link\.href = item\.downloadUrl \|\| item\.url/, "EPK press materials should use attachment URLs while retaining inline previews");
+assert.match(api, /response-content-disposition[\s\S]*attachment; filename=/, "EPK downloads should be signed as attachments with safe filenames");
 assert.match(client, /printEpk[\s\S]*window\.print\(\)/, "the public EPK should invoke the browser's accessible print and PDF flow");
 assert.match(client, /copyEpkLink[\s\S]*navigator\.clipboard\.writeText\(location\.href\)/, "the public EPK should copy its canonical current link");
 assert.match(client, /credentials:"include"/, "private EPK operations should use opaque sessions");

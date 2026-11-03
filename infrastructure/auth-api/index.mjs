@@ -169,15 +169,22 @@ const randomValue = () =>
 
 const encodeAws = value => encodeURIComponent(value).replace(/[!'()*]/g, character => "%" + character.charCodeAt(0).toString(16).toUpperCase());
 const hmac = (key, value, encoding) => createHmac("sha256", key).update(value).digest(encoding);
-function signedMediaUrl(key, expires = 900) {
+function signedMediaUrl(key, expires = 900, responseHeaders = {}) {
   if (!mediaBucket || !key) return "";
   const region = process.env.AWS_REGION, access = process.env.AWS_ACCESS_KEY_ID, secret = process.env.AWS_SECRET_ACCESS_KEY, token = process.env.AWS_SESSION_TOKEN;
   const date = new Date(), stamp = date.toISOString().replace(/[:-]|\.\d{3}/g, ""), day = stamp.slice(0, 8), scope = `${day}/${region}/s3/aws4_request`;
   const host = `${mediaBucket}.s3.${region}.amazonaws.com`, uri = "/" + key.split("/").map(encodeAws).join("/");
-  const query = [["X-Amz-Algorithm", "AWS4-HMAC-SHA256"], ["X-Amz-Credential", `${access}/${scope}`], ["X-Amz-Date", stamp], ["X-Amz-Expires", String(expires)], ["X-Amz-Security-Token", token], ["X-Amz-SignedHeaders", "host"]].sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => `${encodeAws(name)}=${encodeAws(value)}`).join("&");
+  const responseQuery = Object.entries(responseHeaders).filter(([name, value]) => /^response-[a-z-]+$/.test(name) && value);
+  const query = [["X-Amz-Algorithm", "AWS4-HMAC-SHA256"], ["X-Amz-Credential", `${access}/${scope}`], ["X-Amz-Date", stamp], ["X-Amz-Expires", String(expires)], ["X-Amz-Security-Token", token], ["X-Amz-SignedHeaders", "host"], ...responseQuery].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([name, value]) => `${encodeAws(name)}=${encodeAws(value)}`).join("&");
   const canonical = `GET\n${uri}\n${query}\nhost:${host}\n\nhost\nUNSIGNED-PAYLOAD`, toSign = `AWS4-HMAC-SHA256\n${stamp}\n${scope}\n${sha256(canonical)}`;
   const signing = hmac(hmac(hmac(hmac("AWS4" + secret, day), region), "s3"), "aws4_request"), signature = hmac(signing, toSign, "hex");
   return `https://${host}${uri}?${query}&X-Amz-Signature=${signature}`;
+}
+
+function epkDownloadName(value, key) {
+  const extension = String(key || "").match(/\.(jpg|png|webp|pdf)$/i)?.[0]?.toLowerCase() || "";
+  const base = String(value || "press-material").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._ -]+/g, "-").replace(/[\r\n"\\/]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 120) || "press-material";
+  return base.toLowerCase().endsWith(extension) ? base : `${base}${extension}`;
 }
 
 function corsHeaders(origin) {
@@ -3184,7 +3191,14 @@ async function validatedEpkMedia(media) {
 
 function epkForViewer(kit, publicView = false, ownerView = true) {
   const copy = structuredClone(kit || {});
-  copy.media = (copy.media || []).filter(item => !publicView || item.public).map(item => ({ ...item, url: signedMediaUrl(item.key, publicView ? 3600 : 900) }));
+  copy.media = (copy.media || []).filter(item => !publicView || item.public).map(item => {
+    const expires = publicView ? 3600 : 900, downloadName = epkDownloadName(item.name, item.key);
+    return {
+      ...item,
+      url: signedMediaUrl(item.key, expires),
+      downloadUrl: signedMediaUrl(item.key, expires, { "response-content-disposition": `attachment; filename="${downloadName}"` })
+    };
+  });
   if (publicView && copy.publicDetails && typeof copy.publicDetails === "object") {
     if (copy.publicDetails.bookingEmail !== true) copy.bookingEmail = "";
     if (copy.publicDetails.bookingPhone !== true) copy.bookingPhone = "";
@@ -3637,4 +3651,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches };
+export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkDownloadName };
