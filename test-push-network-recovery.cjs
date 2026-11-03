@@ -8,8 +8,8 @@ assert.match(callCss, /\.push-alert-prompt\[hidden\]\{display:none\}/, 'the chat
 assert.match(callCss, /\.push-alert-prompt\{[^}]*right:max\(16px,env\(safe-area-inset-right\)\)/, 'the desktop notification prompt should stay clear of the left navigation');
 assert.doesNotMatch(callCss, /\.push-alert-prompt\{[^}]*left:/, 'the notification prompt must not cover lower navigation links');
 assert.match(source, /document\.body\.classList\.contains\("messages-page"\)/, 'the global permission prompt must not cover the dedicated Messages composer');
-assert.match(source, /prompt\.hidden = document\.getElementById\('messageDrawer'\)\?\.hidden === false/, 'the permission prompt must not cover an already open chat');
-assert.match(source, /danzstak:message-drawer[\s\S]*?prompt\.hidden = event\.detail\?\.open === true/, 'the permission prompt should pause while Messages is open and return after it closes');
+assert.match(source, /document\.getElementById\('messageDrawer'\)\?\.hidden === false[\s\S]*?document\.getElementById\('notificationDrawer'\)\?\.hidden === false/, 'the permission prompt must not cover an already open communication drawer');
+assert.match(source, /function syncPromptDrawerVisibility\(\)[\s\S]*?danzstak:message-drawer[\s\S]*?danzstak:notification-drawer/, 'the permission prompt should yield to Messages and Notifications and return after either closes');
 const start = source.indexOf('async function withDeadline(');
 const end = source.indexOf('async function state()', start);
 assert.ok(start >= 0 && end > start, 'push deadline helpers are missing');

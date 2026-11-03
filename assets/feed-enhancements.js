@@ -1810,6 +1810,7 @@ const notificationFeedView = document.getElementById("newsFeedView");
 function closeNotificationDrawer(restoreFocus = true) {
   if (!notificationDrawer || notificationDrawer.hidden) return false;
   notificationDrawer.hidden = true;
+  dispatchEvent(new CustomEvent("danzstak:notification-drawer", { detail: { open: false } }));
   notificationFeedView.before(featurePanel);
   notificationWorkspacePlaceholder?.remove();
   notificationWorkspacePlaceholder = null;
@@ -1870,6 +1871,7 @@ function openNotificationDrawer(opener) {
   featurePanel.hidden = false;
   notificationDrawer.querySelector(".notification-drawer-content").appendChild(featurePanel);
   notificationDrawer.hidden = false;
+  dispatchEvent(new CustomEvent("danzstak:notification-drawer", { detail: { open: true } }));
   notificationControls.forEach(control => {
     control.setAttribute("aria-expanded", "true");
     control.setAttribute("aria-pressed", "true");
