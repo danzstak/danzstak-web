@@ -1850,23 +1850,38 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
 const workspaceRoutes = new Map(["Friends", "Groups", "Photos", "Videos", "Events", "Saved", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
 const mobileMenuControl = document.querySelector(".mobile-menu-control");
 const mobileNavMenu = document.getElementById("mobileNavMenu");
-function setMobileMenu(open) {
+function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {}) {
   const shouldOpen = Boolean(open && matchMedia("(max-width: 700px)").matches);
   const wasOpen = document.body.classList.contains("mobile-menu-open");
   document.body.classList.toggle("mobile-menu-open", shouldOpen);
   mobileMenuControl?.setAttribute("aria-expanded", String(shouldOpen));
+  if (shouldOpen && updateHistory && history.state?.danzstakMenuOpen !== true) {
+    const currentState = history.state && typeof history.state === "object" ? history.state : {};
+    history.pushState({ ...currentState, danzstakMenuOpen: true }, "");
+  } else if (!shouldOpen && !fromHistory && history.state?.danzstakMenuOpen === true) {
+    const nextState = { ...history.state };
+    delete nextState.danzstakMenuOpen;
+    history.replaceState(nextState, "");
+  }
   if (shouldOpen) mobileNavMenu?.querySelector("a")?.focus({ preventScroll: true });
   else if (wasOpen) mobileMenuControl?.focus({ preventScroll: true });
 }
-mobileMenuControl?.addEventListener("click", () => setMobileMenu(!document.body.classList.contains("mobile-menu-open")));
+function closeMobileMenuFromControl() {
+  if (history.state?.danzstakMenuOpen === true) history.back();
+  else setMobileMenu(false);
+}
+mobileMenuControl?.addEventListener("click", () => {
+  if (document.body.classList.contains("mobile-menu-open")) closeMobileMenuFromControl();
+  else setMobileMenu(true);
+});
 mobileNavMenu?.addEventListener("click", event => {
   if (document.body.classList.contains("mobile-menu-open") && event.target.closest("a")) setMobileMenu(false);
 });
 document.addEventListener("click", event => {
-  if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !mobileMenuControl?.contains(event.target)) setMobileMenu(false);
+  if (document.body.classList.contains("mobile-menu-open") && !mobileNavMenu?.contains(event.target) && !mobileMenuControl?.contains(event.target)) closeMobileMenuFromControl();
 });
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape" && document.body.classList.contains("mobile-menu-open")) setMobileMenu(false);
+  if (event.key === "Escape" && document.body.classList.contains("mobile-menu-open")) closeMobileMenuFromControl();
 });
 const desktopMenuQuery = matchMedia("(min-width: 701px)");
 const closeMobileMenuOnDesktop = event => { if (event.matches) setMobileMenu(false); };
@@ -2040,6 +2055,11 @@ document.querySelector('[data-route="home"]')?.addEventListener("click", () => c
 document.getElementById("messagesNav")?.addEventListener("click", () => closeNotificationDrawer(false), { capture: true });
 
 function restoreWorkspaceRoute() {
+  if (matchMedia("(max-width: 700px)").matches && history.state?.danzstakMenuOpen === true) {
+    if (!document.body.classList.contains("mobile-menu-open")) setMobileMenu(true, { updateHistory: false, fromHistory: true });
+    return;
+  }
+  if (document.body.classList.contains("mobile-menu-open")) setMobileMenu(false, { fromHistory: true });
   if (usesMobileNotificationHistory() && history.state?.danzstakNotificationsOpen === true) {
     if (!notificationDrawer || notificationDrawer.hidden) openNotificationDrawer(notificationControls[0], { updateHistory: false });
     return;
