@@ -73,6 +73,7 @@ All three current global OpenStreetMap Overpass mirrors were unavailable from th
 - Post failures now render a compact localized connection message with a real **Try again** action instead of browser or provider text.
 - The Roll translator is module-scoped so its retry state can render even when notification UI has never initialized.
 - The browser console no longer reports the translator exception, and the full local regression, site, CSP, PWA-cache, and infrastructure suites pass.
+- A follow-up Messages pass verified that the notification-permission card is hidden while the chat drawer is open and returns after the drawer closes. When all contact sources are unavailable, the drawer now replaces the indefinite passive status with a localized **Try loading messages again** control while retaining background polling.
 
 ## Known limits
 

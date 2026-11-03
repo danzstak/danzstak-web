@@ -654,6 +654,27 @@ async function loadDirectMessages(reset = false) {
 }
 
 let loadingConversations = false;
+function renderConversationLoadError() {
+  if (!conversationUsers) return;
+  conversationUsers.replaceChildren();
+  const panel = document.createElement("div");
+  panel.className = "message-load-error contact-load-error";
+  const status = document.createElement("p");
+  status.className = "chat-note";
+  status.setAttribute?.("role", "alert");
+  status.textContent = messageTranslate("Contacts are temporarily unavailable");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "message-load-retry";
+  retry.textContent = messageTranslate("Try loading messages again");
+  retry.addEventListener("click", () => {
+    retry.disabled = true;
+    retry.textContent = messageTranslate("Loading…");
+    loadConversations();
+  });
+  panel.append(status, retry);
+  conversationUsers.appendChild(panel);
+}
 async function loadConversations() {
   if (document.hidden || loadingConversations) return;
   loadingConversations = true;
@@ -790,10 +811,7 @@ async function loadConversations() {
     const requested = contactInput.value.trim().toLowerCase();
     if (requested && conversationHeader.hidden) openConversation(cachedConversations.find(item => item.contactEmail === requested) || { contactEmail: requested, name: "DanzStak member", picture: "" });
   } catch {
-    if (!cachedConversations.length) {
-      conversationUsers.replaceChildren();
-      const unavailable = document.createElement("p"); unavailable.className = "chat-note"; unavailable.textContent = messageTranslate("Contacts are temporarily unavailable. Retrying automatically…"); conversationUsers.appendChild(unavailable);
-    }
+    if (!cachedConversations.length) renderConversationLoadError();
   } finally {
     loadingConversations = false;
     conversationUsers?.setAttribute?.("aria-busy", "false");

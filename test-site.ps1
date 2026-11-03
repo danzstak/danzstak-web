@@ -356,7 +356,7 @@ foreach ($activeChatPresenceControl in @('id="conversationPresence"', 'function 
 foreach ($activeChatActionLabel in @('function labelConversationHeaderActions(name = "")', '`${translated}: ${name}`', 'labelConversationHeaderActions(conversationName.textContent)', 'labelConversationHeaderActions()')) {
   if (-not $directMessagesJs.Contains($activeChatActionLabel)) { Add-Failure "Messages: active conversation controls do not identify or reset the selected contact: $activeChatActionLabel" }
 }
-foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'messageTranslate("Contacts are temporarily unavailable. Retrying automatically')) {
+foreach ($contactFailureBehavior in @('async function directFetch(', 'controller.abort()', 'function renderConversationLoadError()', 'messageTranslate("Contacts are temporarily unavailable")', 'retry.textContent = messageTranslate("Try loading messages again")')) {
   if (-not $directMessagesJs.Contains($contactFailureBehavior)) { Add-Failure "Messages: bounded contact loading behavior is missing: $contactFailureBehavior" }
 }
 foreach ($messageDeadlineBehavior in @('directFetch("/messages",', 'directFetch("/messages/delete?contact="', 'directFetch("/auth/session"', 'setTimeout(loadCurrentSession, 5000)', 'DanzStak is taking too long to respond. Try again.')) {
