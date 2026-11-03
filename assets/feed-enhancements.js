@@ -364,8 +364,16 @@ async function friendActionFetch(path, options = {}, timeoutMs = 10000) {
   } finally { clearTimeout(timeout); }
 }
 
-function renderOnlineFriendList(list, users) {
+function renderOnlineFriendList(list, users, presenceAvailable = true) {
   list.replaceChildren();
+  if (!presenceAvailable) {
+    const unavailable = document.createElement("p");
+    unavailable.className = "muted";
+    unavailable.setAttribute("role", "status");
+    unavailable.textContent = "Online status is temporarily unavailable. Retrying automatically…";
+    list.appendChild(unavailable);
+    return;
+  }
   const online = users.filter(person => person.online === true);
   if (!online.length) {
     const empty = document.createElement("p");
@@ -1371,20 +1379,36 @@ function renderWorkspace(name) {
         fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store", signal: friendsController.signal }),
         fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: friendsController.signal })
       ])).then(async ([friendsResult, directoryResult]) => {
-      if (friendsResult.status === "rejected" && friendsResult.reason?.name === "AbortError") throw friendsResult.reason;
       const friendsResponse = friendsResult.status === "fulfilled" ? friendsResult.value : null;
       const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
-      if (!friendsResponse?.ok) throw new Error("Friends could not be loaded");
-      const friends = (await friendsResponse.json()).friends || [];
-      const presenceAvailable = directoryResponse?.ok === true;
-      const directoryPeople = new Map(presenceAvailable
-        ? ((await directoryResponse.json()).users || [])
-          .filter(user => user.email)
-          .map(user => [String(user.email).toLowerCase(), user])
-        : []);
-      renderOnlineFriendList(onlineList, [...directoryPeople.values()]);
+      let presenceAvailable = directoryResponse?.ok === true;
+      let directoryUsers = [];
+      if (presenceAvailable) {
+        try { directoryUsers = (await directoryResponse.json()).users || []; }
+        catch { presenceAvailable = false; }
+      }
+      const directoryPeople = new Map(directoryUsers
+        .filter(user => user.email)
+        .map(user => [String(user.email).toLowerCase(), user]));
+      renderOnlineFriendList(onlineList, [...directoryPeople.values()], presenceAvailable);
       list.replaceChildren();
       list.setAttribute("aria-busy", "false");
+      if (!friendsResponse?.ok) {
+        const failure = document.createElement("p");
+        failure.className = "muted";
+        failure.setAttribute("role", "alert");
+        failure.textContent = friendsResult.status === "rejected" && friendsResult.reason?.name === "AbortError"
+          ? "Friends took too long to load."
+          : "Friends could not be loaded.";
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "secondary";
+        retry.textContent = "Retry friends";
+        retry.addEventListener("click", () => renderWorkspace("Friends"));
+        list.append(failure, retry);
+        return;
+      }
+      const friends = (await friendsResponse.json()).friends || [];
       if (!friends.length) {
         const empty = document.createElement("p");
         empty.className = "muted";
