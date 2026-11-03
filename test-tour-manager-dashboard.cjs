@@ -21,8 +21,15 @@ assert.match(backend, /bookingEmails.*1\.5/s, "The estimate must include $1.50 s
 assert.match(billingBackend, /GET" && path === "\/tour-manager\/outreach"/, "The billing API must expose authenticated outreach history");
 assert.match(billingBackend, /include its exact public link/, "Booking emails must include the saved public EPK link");
 assert.match(billing, /danzstak-tour-manager-billing/, "Billing and outreach totals must update the dashboard");
+assert.match(html, /Pay with Stripe/);
+assert.match(html, /Pay with SFS Tokens/);
+assert.match(html, /Price per contact: \$1\.50/);
+assert.match(billing, /\/tour-manager\/sfs\/quote/);
+assert.match(billing, /eth_sendTransaction/);
+assert.match(billingBackend, /\/tour-manager\/sfs\/verify/);
+assert.match(billingBackend, /SFS#TOUR_MANAGER_TRANSACTIONS/, "SFS transactions must have global replay protection");
 assert.match(css, /@media\(max-width:390px\)/, "The dashboard must have a narrow-phone layout");
-assert.match(html, /booking-billing\.js\?v=3/);
+assert.match(html, /booking-billing\.js\?v=4/);
 assert.match(html, /booking-selections\.js\?v=12/);
 
 console.log("Tour Manager dashboard checks passed: complete booking states, confirmation evidence, EPK enforcement, outreach history, expense totals, calendar, and mobile layout.");

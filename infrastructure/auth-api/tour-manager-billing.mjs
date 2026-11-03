@@ -10,6 +10,7 @@ const CONTACT_PRODUCT = "booking_contact_unlock";
 const CREDIT_KEY = "TOUR_MANAGER#BOOKING_EMAIL_CREDITS";
 const BOOKING_WORKSPACE_KEY = "booking-workspace-v1";
 const EVENT_OWNER = "STRIPE#TOUR_MANAGER_EVENTS";
+const SFS_EVENT_OWNER = "SFS#TOUR_MANAGER_TRANSACTIONS";
 const MAX_CREDITS_PER_CHECKOUT = 500;
 const WEBHOOK_TYPES = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired"]);
 const securityHeaders = { "content-type": "application/json", "cache-control": "no-store", "strict-transport-security": "max-age=63072000; includeSubDomains; preload", "x-content-type-options": "nosniff", "x-frame-options": "DENY", "referrer-policy": "no-referrer" };
@@ -25,6 +26,30 @@ function ledgerKey(userId, at, id) { return { userId: { S: userId }, tourId: { S
 function sendKey(userId, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${id}` } }; }
 function contactUnlockKey(userId, venueKey) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#CONTACT_UNLOCK#${venueKey}` } }; }
 function validVenueKey(value) { return typeof value === "string" && /^[a-f0-9]{20}$/.test(value); }
+function sfsQuoteKey(userId, quoteId) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#SFS_QUOTE#${quoteId}` } }; }
+function sfsTransactionKey(hash) { return { userId: { S: SFS_EVENT_OWNER }, tourId: { S: hash.toLowerCase() } }; }
+function validAddress(value) { return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value); }
+function validTransactionHash(value) { return typeof value === "string" && /^0x[a-fA-F0-9]{64}$/.test(value); }
+function decimalToScaledInteger(value, scale) {
+  const text = String(value ?? "").trim();
+  if (!/^\d+(?:\.\d+)?$/.test(text)) return null;
+  const [whole, fraction = ""] = text.split(".");
+  const padded = (fraction + "0".repeat(scale)).slice(0, scale);
+  const result = BigInt(whole) * 10n ** BigInt(scale) + BigInt(padded || "0");
+  return result > 0n ? result : null;
+}
+function formatTokenAmount(baseUnits, decimals) {
+  const text = baseUnits.toString().padStart(decimals + 1, "0");
+  const whole = text.slice(0, -decimals) || "0", fraction = text.slice(-decimals).replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole;
+}
+function erc20TransferData(recipient, amountBaseUnits) {
+  return `0xa9059cbb${recipient.toLowerCase().slice(2).padStart(64, "0")}${amountBaseUnits.toString(16).padStart(64, "0")}`;
+}
+function parseErc20Transfer(data) {
+  if (typeof data !== "string" || !/^0xa9059cbb[a-fA-F0-9]{128}$/.test(data)) return null;
+  return { recipient: `0x${data.slice(34, 74)}`.toLowerCase(), amount: BigInt(`0x${data.slice(74, 138)}`) };
+}
 
 export function verifyStripeSignature(payload, header, secret, currentTime = Date.now(), toleranceSeconds = 300) {
   if (typeof payload !== "string" || !payload || typeof header !== "string" || !secret?.startsWith("whsec_")) return false;
@@ -40,6 +65,11 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
   const testMode = () => env.STRIPE_SECRET_KEY?.startsWith("sk_test_");
   const paymentsAllowed = () => Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) && (testMode() || (env.TOUR_MANAGER_LIVE_PAYMENTS === "true" && env.STRIPE_SECRET_KEY.startsWith("sk_live_")));
+  const sfsConfig = () => {
+    const decimals = Number(env.SFS_TOKEN_DECIMALS), confirmations = Number(env.SFS_MIN_CONFIRMATIONS || 12), chainId = String(env.SFS_CHAIN_ID || "").toLowerCase();
+    if (!env.SFS_RPC_URL?.startsWith("https://") || !env.SFS_RATE_URL?.startsWith("https://") || !validAddress(env.SFS_TOKEN_CONTRACT) || !validAddress(env.SFS_TREASURY_ADDRESS) || !/^0x[0-9a-f]+$/.test(chainId) || !Number.isInteger(decimals) || decimals < 0 || decimals > 36 || !Number.isInteger(confirmations) || confirmations < 1 || confirmations > 1000) return null;
+    return { rpcUrl: env.SFS_RPC_URL, rateUrl: env.SFS_RATE_URL, rateBearer: env.SFS_RATE_BEARER || "", contract: env.SFS_TOKEN_CONTRACT.toLowerCase(), treasury: env.SFS_TREASURY_ADDRESS.toLowerCase(), chainId, decimals, confirmations };
+  };
   const nowIso = () => new Date(clock()).toISOString();
   const browserHeaders = event => corsHeaders(event.headers?.origin || event.headers?.Origin);
 
@@ -51,6 +81,81 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       if (!result.ok) { const error = new Error("Stripe request failed"); error.statusCode = result.status; throw error; }
       return data;
     } finally { clearTimeout(timer); }
+  }
+
+  async function fetchJson(url, options = {}, timeoutMs = 8000) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const result = await fetcher(url, { ...options, signal: controller.signal });
+      const data = await result.json().catch(() => ({}));
+      if (!result.ok) throw new Error("Payment provider request failed");
+      return data;
+    } finally { clearTimeout(timer); }
+  }
+
+  async function rpc(config, method, params) {
+    const data = await fetchJson(config.rpcUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: randomUUID(), method, params }) });
+    if (data.error || data.result === undefined) throw new Error("Blockchain provider request failed");
+    return data.result;
+  }
+
+  async function currentSfsRate(config) {
+    const headers = config.rateBearer ? { authorization: `Bearer ${config.rateBearer}` } : {};
+    const data = await fetchJson(config.rateUrl, { headers });
+    const usd = data?.usd ?? data?.price?.usd, observedAt = data?.observedAt ?? data?.timestamp;
+    const microUsd = decimalToScaledInteger(usd, 6), observedMs = Date.parse(observedAt || "");
+    if (!microUsd || !Number.isFinite(observedMs) || Math.abs(clock() - observedMs) > 15 * 60 * 1000) throw new Error("The verified SFS exchange rate is unavailable or stale");
+    return { microUsd, usd: String(usd), observedAt: new Date(observedMs).toISOString() };
+  }
+
+  async function sfsQuote(event) {
+    const headers = browserHeaders(event), config = sfsConfig();
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    if (!config) return response(503, { error: "SFS Token payments are not configured." }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const quantity = Number(parseBody(event)?.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_CREDITS_PER_CHECKOUT) return response(400, { error: `Choose 1 to ${MAX_CREDITS_PER_CHECKOUT} booking emails.` }, headers);
+    const rate = await currentSfsRate(config), usdCents = quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS, numerator = BigInt(usdCents) * 10000n * 10n ** BigInt(config.decimals), amountBaseUnits = (numerator + rate.microUsd - 1n) / rate.microUsd;
+    const quoteId = randomUUID().replaceAll("-", ""), expiresAt = new Date(clock() + 10 * 60 * 1000).toISOString();
+    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...sfsQuoteKey(userId, quoteId), quoteId: { S: quoteId }, status: { S: "pending" }, quantity: { N: String(quantity) }, usdCents: { N: String(usdCents) }, rateMicroUsd: { N: rate.microUsd.toString() }, rateObservedAt: { S: rate.observedAt }, amountBaseUnits: { S: amountBaseUnits.toString() }, tokenContract: { S: config.contract }, treasury: { S: config.treasury }, chainId: { S: config.chainId }, expiresAt: { S: expiresAt }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
+    return response(200, { quoteId, quantity, unitAmountCents: TOUR_MANAGER_EMAIL_UNIT_CENTS, totalUsdCents: usdCents, sfsUsdRate: rate.usd, rateObservedAt: rate.observedAt, tokenAmount: formatTokenAmount(amountBaseUnits, config.decimals), amountBaseUnits: amountBaseUnits.toString(), tokenDecimals: config.decimals, tokenContract: config.contract, treasuryAddress: config.treasury, chainId: config.chainId, expiresAt, transferData: erc20TransferData(config.treasury, amountBaseUnits) }, headers);
+  }
+
+  async function sfsVerify(event) {
+    const headers = browserHeaders(event), config = sfsConfig();
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    if (!config) return response(503, { error: "SFS Token payments are not configured." }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const body = parseBody(event), quoteId = String(body?.quoteId || ""), transactionHash = String(body?.transactionHash || "").toLowerCase();
+    if (!/^[a-f0-9]{32}$/.test(quoteId) || !validTransactionHash(transactionHash)) return response(400, { error: "A valid SFS quote and transaction are required." }, headers);
+    const prior = await db.send(new GetItemCommand({ TableName: tableName, Key: sfsTransactionKey(transactionHash), ConsistentRead: true }));
+    if (prior.Item) return prior.Item.userIdPaid?.S === userId && prior.Item.quoteId?.S === quoteId ? response(200, { status: "paid", creditsIssued: 0, duplicate: true, transactionHash }, headers) : response(409, { error: "This blockchain transaction was already used." }, headers);
+    const found = await db.send(new GetItemCommand({ TableName: tableName, Key: sfsQuoteKey(userId, quoteId), ConsistentRead: true })), quote = found.Item;
+    if (!quote || quote.status?.S !== "pending" || Date.parse(quote.expiresAt?.S || "") < clock()) return response(409, { error: "This SFS quote is unavailable or expired." }, headers);
+    if (quote.tokenContract?.S !== config.contract || quote.treasury?.S !== config.treasury || quote.chainId?.S !== config.chainId) return response(409, { error: "The SFS payment configuration changed. Request a new quote." }, headers);
+    const [chainId, tx, receipt, latestHex] = await Promise.all([rpc(config, "eth_chainId", []), rpc(config, "eth_getTransactionByHash", [transactionHash]), rpc(config, "eth_getTransactionReceipt", [transactionHash]), rpc(config, "eth_blockNumber", [])]);
+    if (String(chainId).toLowerCase() !== config.chainId) return response(409, { error: "The wallet transaction is on the wrong blockchain network." }, headers);
+    if (!tx || !receipt) return response(202, { status: "confirming", confirmations: 0, requiredConfirmations: config.confirmations }, headers);
+    if (receipt.status !== "0x1" || String(tx.to || "").toLowerCase() !== config.contract || String(tx.hash || "").toLowerCase() !== transactionHash || BigInt(tx.value || "0x0") !== 0n) return response(409, { error: "The SFS transaction is not a successful payment to the configured token contract." }, headers);
+    const transfer = parseErc20Transfer(tx.input), expectedAmount = BigInt(quote.amountBaseUnits?.S || "0"), blockNumber = Number.parseInt(receipt.blockNumber, 16), latest = Number.parseInt(latestHex, 16), confirmations = latest - blockNumber + 1;
+    if (!transfer || transfer.recipient !== config.treasury || transfer.amount !== expectedAmount) return response(409, { error: "The SFS transfer recipient or amount does not match the approved quote." }, headers);
+    if (!Number.isSafeInteger(confirmations) || confirmations < config.confirmations) return response(202, { status: "confirming", confirmations: Math.max(0, confirmations), requiredConfirmations: config.confirmations }, headers);
+    const processedAt = nowIso(), quantity = Number(quote.quantity?.N);
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...sfsTransactionKey(transactionHash), transactionHash: { S: transactionHash }, quoteId: { S: quoteId }, userIdPaid: { S: userId }, processedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Update: { TableName: tableName, Key: sfsQuoteKey(userId, quoteId), UpdateExpression: "SET #status = :paid, paidAt = :paidAt, transactionHash = :transactionHash", ConditionExpression: "#status = :pending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":pending": { S: "pending" }, ":paidAt": { S: processedAt }, ":transactionHash": { S: transactionHash } } } },
+        { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :quantity, purchasedCredits :quantity SET updatedAt = :updatedAt, lastSfsTransaction = :transactionHash", ExpressionAttributeValues: { ":quantity": { N: String(quantity) }, ":updatedAt": { S: processedAt }, ":transactionHash": { S: transactionHash } } } },
+        { Put: { TableName: tableName, Item: { ...ledgerKey(userId, processedAt, transactionHash.slice(2)), entryType: { S: "purchase" }, paymentMethod: { S: "sfs" }, paymentReference: { S: transactionHash }, delta: { N: String(quantity) }, status: { S: "settled" }, description: { S: `${quantity} booking email credits purchased with SFS Tokens` }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
+      ] }));
+    } catch (error) {
+      const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: sfsTransactionKey(transactionHash), ConsistentRead: true }));
+      if (duplicate.Item) return response(200, { status: "paid", creditsIssued: 0, duplicate: true, transactionHash }, headers);
+      throw error;
+    }
+    return response(200, { status: "paid", creditsIssued: quantity, transactionHash }, headers);
   }
 
   async function checkout(event) {
@@ -278,6 +383,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const method = event?.requestContext?.http?.method, path = event?.rawPath;
     if (method === "POST" && path === "/tour-manager/stripe/webhook") return webhook(event);
     if (method === "POST" && path === "/tour-manager/checkout") return checkout(event);
+    if (method === "POST" && path === "/tour-manager/sfs/quote") return sfsQuote(event);
+    if (method === "POST" && path === "/tour-manager/sfs/verify") return sfsVerify(event);
     if (method === "POST" && path === "/tour-manager/contact-unlock/checkout") return contactCheckout(event);
     if (method === "GET" && path === "/tour-manager/contact-unlocks") return contactUnlocks(event);
     if (method === "GET" && path === "/tour-manager/credits") return credits(event);
