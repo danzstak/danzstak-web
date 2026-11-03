@@ -20,6 +20,6 @@ for (const language of ['en','es','fr','de','pt','it','ko','ja','zh-Hans','zh-Ha
   assert.match(editor, new RegExp(`(?:^|\\s|[,{])(?:"${language}"|${language}):`), `${language} receives direct profile-editor copy`);
 }
 assert.match(editor, /resolveProfileLanguage/, "the editor resolves every supported locale explicitly");
-assert.match(profile, /profile-editor\.js\?v=477/, "the profile loads the simplified editor release");
+assert.match(profile, /profile-editor\.js\?v=478/, "the profile loads the simplified editor release");
 
 console.log("Simple profile-name editing checks passed: owners can tap their name and all 15 languages explain visible names without username jargon.");

@@ -468,6 +468,11 @@ details.insertAdjacentElement("afterend", tabMessage);
 details.hidden = true;
 
 async function refreshProfilePostMedia(post) {
+  if (typeof post?.refreshMedia === "function") {
+    const mediaUrl = await post.refreshMedia().catch(() => "");
+    if (mediaUrl) post.mediaUrl = mediaUrl;
+    return mediaUrl || "";
+  }
   if (!/^[a-f0-9-]{36}$/.test(String(post?.postId || ""))) return "";
   const response = await profileFetch(profileApi + "/secure-posts", { credentials: "include", cache: "no-store" }).catch(() => null);
   if (!response?.ok) return "";
@@ -524,7 +529,7 @@ function profilePostCard(post) {
   const text = document.createElement("p");
   text.textContent = post.content || "Shared media";
   article.append(meta, text);
-  if (post.postId && ["image", "video"].includes(post.mediaType)) installProfilePostMedia(article, post);
+  if ((post.postId || typeof post.refreshMedia === "function") && ["image", "video"].includes(post.mediaType)) installProfilePostMedia(article, post);
   else if (post.mediaUrl && ["image", "video"].includes(post.mediaType)) {
     const media = document.createElement(post.mediaType === "image" ? "img" : "video");
     media.className = "profile-post-media"; media.src = post.mediaUrl;
@@ -656,6 +661,13 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
       const params = new URLSearchParams();
       const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
       if (viewingOtherProfile && /^[a-f0-9-]{36}$/.test(profileMemberId)) params.set("member", profileMemberId);
+      const refreshProfileVideo = async () => {
+        const refreshedResponse = await profileFetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" }).catch(() => null);
+        if (!refreshedResponse?.ok) return "";
+        const refreshed = await refreshedResponse.json().catch(() => ({}));
+        return refreshed.mediaUrl || "";
+      };
+      const profileVideoCard = mediaUrl => profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl, refreshMedia: refreshProfileVideo });
       const videoResponse = await profileFetch(profileApi + "/profile-video?" + params, { credentials: "include", cache: "no-store" });
       if (version !== profileTabVersion) return;
       if (!videoResponse.ok && videoResponse.status !== 404) throw new Error("Profile video is temporarily unavailable.");
@@ -663,7 +675,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
         const stored = await videoResponse.json();
         if (version !== profileTabVersion) return;
         if (stored.mediaUrl) {
-          tabMessage.appendChild(profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl: stored.mediaUrl }));
+          tabMessage.appendChild(profileVideoCard(stored.mediaUrl));
         } else if (stored.mediaKey && !viewingOtherProfile) {
           const viewResponse = await profileFetch(profileApi + "/stories", {
             method: "POST", credentials: "include", cache: "no-store",
@@ -673,7 +685,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
           if (viewResponse.ok) {
             const view = await viewResponse.json();
             if (version !== profileTabVersion) return;
-            tabMessage.appendChild(profilePostCard({ content: "Profile video", mediaType: "video", mediaUrl: view.mediaUrl }));
+            tabMessage.appendChild(profileVideoCard(view.mediaUrl));
           }
         }
       }
