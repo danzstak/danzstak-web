@@ -3121,14 +3121,19 @@ function ensureCommentComposer(post) {
   emoji.className = "comment-emoji-toggle";
   emoji.textContent = "☺";
   emoji.setAttribute("aria-label", "Add emoji to comment");
+  emoji.setAttribute("aria-haspopup", "menu");
   emoji.setAttribute("aria-expanded", "false");
   const emojiMenu = document.createElement("div");
   emojiMenu.className = "comment-emoji-menu";
+  emojiMenu.id = "comment-emoji-" + crypto.randomUUID();
+  emojiMenu.setAttribute("role", "menu");
+  emoji.setAttribute("aria-controls", emojiMenu.id);
   emojiMenu.hidden = true;
   for (const symbol of ["👍", "❤️", "😂", "😮", "😢", "🔥"]) {
     const choice = document.createElement("button");
     choice.type = "button";
     choice.textContent = symbol;
+    choice.setAttribute("role", "menuitem");
     choice.setAttribute("aria-label", "Add " + symbol);
     choice.addEventListener("click", () => {
       const start = input.selectionStart ?? input.value.length;
@@ -3144,6 +3149,29 @@ function ensureCommentComposer(post) {
   emoji.addEventListener("click", () => {
     emojiMenu.hidden = !emojiMenu.hidden;
     emoji.setAttribute("aria-expanded", String(!emojiMenu.hidden));
+    if (!emojiMenu.hidden) emojiMenu.querySelector('[role="menuitem"]')?.focus();
+  });
+  emojiMenu.addEventListener("keydown", event => {
+    const choices = [...emojiMenu.querySelectorAll('[role="menuitem"]')];
+    if (event.key === "Escape") {
+      event.preventDefault();
+      emojiMenu.hidden = true;
+      emoji.setAttribute("aria-expanded", "false");
+      emoji.focus();
+      return;
+    }
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key) || !choices.length) return;
+    event.preventDefault();
+    const current = choices.indexOf(document.activeElement);
+    const next = event.key === "Home" ? 0 : event.key === "End" ? choices.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + choices.length) % choices.length;
+    choices[next].focus();
+  });
+  emojiMenu.addEventListener("focusout", () => {
+    requestAnimationFrame(() => {
+      if (emojiMenu.hidden || emojiMenu.contains(document.activeElement) || document.activeElement === emoji) return;
+      emojiMenu.hidden = true;
+      emoji.setAttribute("aria-expanded", "false");
+    });
   });
   tools.append(emoji, emojiMenu);
   const send = document.createElement("button");
