@@ -228,18 +228,32 @@
     label.append(draft);
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = "Open reviewed draft in email";
+    button.textContent = "Send reviewed email · 1 credit";
     const email = (venue.emails || []).find(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
     button.disabled = !email;
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       if (!a.name || !venue.booking?.showDate || /\[[^\]]+\]/.test(draft.value)) {
-        window.danzstakShowFeedback?.("Add your act name, proposed date, and replace draft placeholders before opening email.", { urgent: true });
+        window.danzstakShowFeedback?.("Add your act name, proposed date, and replace draft placeholders before sending.", { urgent: true });
         return;
       }
-      window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`${a.name} — booking enquiry for ${venue.booking.showDate}`)}&body=${encodeURIComponent(draft.value)}`;
+      if (dirty) {
+        window.danzstakShowFeedback?.("Save your booking workspace before sending so DanzStak can verify the venue contact.", { urgent: true });
+        return;
+      }
+      button.disabled = true;
+      button.textContent = "Sending…";
+      try {
+        await window.danzstakSendBookingEmail({ venueKey: identity(venue), to: email, subject: `${a.name} — booking enquiry for ${venue.booking.showDate}`, message: draft.value });
+        venue.booking.stage = "Contacted";
+        render();
+      } catch (error) {
+        window.danzstakShowFeedback?.(error.message, { urgent: true });
+        button.disabled = false;
+        button.textContent = "Send reviewed email · 1 credit";
+      }
     });
     const note = document.createElement("small");
-    note.textContent = email ? "Public contact, not independently verified. Check official booking instructions. Draft edits are kept in this tab and in your private account after you save. Your email app sends the message." : "No public booking email listed. Use the venue website to find its submission form.";
+    note.textContent = email ? "DanzStak reserves one credit, submits the reviewed message, and restores the credit if the email provider rejects it. Replies go to your account email." : "No public booking email listed. Use the venue website to find its submission form.";
     section.append(fit, label, button, note);
     return section;
   }
