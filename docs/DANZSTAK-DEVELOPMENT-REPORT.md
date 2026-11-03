@@ -131,6 +131,7 @@ Status as of 2026-11-04: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 - Existing account controls remain enforced independently: disabling incoming-call alerts suppresses call pushes, and disabling new-message alerts suppresses message pushes. Friend-request delivery and per-device subscription fan-out are unchanged.
 - Verification: **241 of 241** JavaScript regression programs pass, including new server-payload coverage for every language, placeholder preservation, English fallback and lock-screen privacy. Release verification, the 11-page site smoke suite, CloudFormation/embedded-Lambda syntax validation and `git diff --check` also pass.
 - Implementation commit: `50f2518a7a68ae1336ed1bc5a39b5a2f39246830` on `danzstak-patch-1`.
+- Installed-PWA follow-up: incoming-call **Answer** and **Dismiss** actions now use the same recipient language as the call title and body. The server supplies bounded action labels, the service worker safely renders them, and malformed push data falls back to a brand-only notification rather than displaying untrusted text or inserting English-only body copy. The shell cache advanced to `danzstak-shell-v627`; all 241 regressions and the full release/site/infrastructure verification remain green. Follow-up commit: `32fb2acc511da880351a76e8d5836b9dde217783`.
 - Deployment: not published to production and not merged into `main`.
 
 ## Mobile Flashes navigation
