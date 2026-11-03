@@ -23,11 +23,24 @@ Status as of 2026-11-03: test infrastructure implemented; live payments disabled
 - Email tracking: `GET /tour-manager/outreach` returns account-isolated provider submission state. A successfully accepted SES send is displayed as sent; a draft or attempted send cannot become a confirmed show.
 - Tests passing locally: workspace account isolation and optimistic revision checks; status and confirmation gating; EPK enforcement; outreach history; Stripe/contact-unlock regression tests; credit reservation/finalization/restoration; expense, calendar and narrow-phone source checks.
 
+### Worldwide radio-station discovery and outreach workspace
+
+- Status: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+- Implementation commit: `389c33c07ab36387d1b645302e1d94b537328cf1` on `codex/tour-manager-production`.
+- Discovery accepts an unrestricted worldwide city or region plus an optional genre. It geocodes through the existing worldwide locality resolver, then combines AWS Places, OpenStreetMap Overpass and Google Places when configured. Public provider failures remain visible rather than being reported as a definitive empty market.
+- Station classification recognizes public, community, college, campus, independent, internet, FM and AM radio terms while rejecting radio-repair, equipment and amateur-radio false positives. Results retain source attribution, public address, website, telephone, email and map position when providers supply them; no contact is invented.
+- The new authenticated radio workspace supports multi-station selection, artist/genre/EPK details, proposed interview date and time, follow-up date, notes, editable artist-approved outreach drafts, optimistic revision checks and account-isolated DynamoDB persistence.
+- Navigation, PWA shell caching and API Gateway deployment routes include the Radio Stations module. Backend routes are `POST /radio-stations/search`, `GET /radio-station-workspace` and `POST /radio-station-workspace`.
+- Tests passed: backend/client syntax, discovery/provider architecture, authenticated route and persistence assertions, safe external-link rendering, workspace selection, existing record-store and venue-discovery regressions, booking account isolation, Tour Manager dashboard, email-credit ledger and the 12-page site smoke suite. Mobile and desktop static rendering were inspected locally.
+- Limitation: the station workspace currently prepares and saves outreach but does not send through Tour Manager or ingest replies. Those functions remain blocked on the shared inbound/outbound conversation work below.
+
 ### Pending Tour Manager work
 
 - Status: **IN PROGRESS**.
 - Worldwide venue discovery needs live multi-provider benchmarks and current-data moderation before it can be called production complete. Provider failure must remain distinct from a true empty result.
 - Inbound reply ingestion and secure correlation to the correct outbound message are **NOT STARTED**. SES receipt rules, a reply address design, spam/virus checks, and a controlled reply parser are required.
+- Unified club, radio and record-store selections in one Tour Manager calendar are **IN PROGRESS**. Club calendar summaries exist, and radio/store workspaces persist proposed dates, but cross-workspace confirmation events and automatic calendar creation from replies are not implemented.
+- Professional Tour Book Day Sheets and PDF export are **NOT STARTED**. No PDF itinerary should be presented as operational until confirmed/proposed separation, pagination and mobile/print rendering tests pass.
 - Automatic route recalculation around fixed confirmed dates is **NOT STARTED**. Existing Amazon Location routing can calculate routes, but confirmed-stop anchoring and pending-stop optimization require a separate tested algorithm.
 - SFS Token payment implementation is **IN PROGRESS; NOT DEPLOYED**. The branch now contains a provider-independent EVM wallet checkout, timestamped SFS/USD quote, exact ERC-20 transfer verification, chain/contract/treasury/finality checks, atomic credit grant, shared credit ledger, and global transaction replay protection. It remains operationally **BLOCKED** until the chain ID, deployed token contract, decimals, treasury wallet, trusted current-rate endpoint, RPC endpoint and required confirmations are supplied and tested. No SFScoop account dependency is introduced.
 - Payment checkout UI is **COMPLETE IN DEVELOPMENT** for choosing Stripe or SFS, calculating `$1.50 × selected contacts`, displaying the full USD total, displaying an expiring verified SFS amount, and handing the exact ERC-20 transfer to a compatible injected wallet. The SFS panel was visually checked at a narrow mobile viewport. Static local testing correctly shows API fetch failures because the production API was not redirected to a mock server.
