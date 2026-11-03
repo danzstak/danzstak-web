@@ -9,7 +9,8 @@ async function renderEmptyState(presence) {
   const container = {
     children: [],
     replaceChildren() { this.children = []; },
-    appendChild(child) { this.children.push(child); }
+    appendChild(child) { this.children.push(child); },
+    append(...children) { this.children.push(...children); }
   };
   const context = vm.createContext({
     feedTranslate: value => value,
@@ -18,7 +19,13 @@ async function renderEmptyState(presence) {
         assert.equal(id, 'feedOnlineUsers');
         return container;
       },
-      createElement: tagName => ({ tagName: tagName.toUpperCase(), className: '', textContent: '' })
+      createElement: tagName => ({
+        tagName: tagName.toUpperCase(),
+        className: '',
+        textContent: '',
+        addEventListener() {}
+      }),
+      querySelector() { return null; }
     },
     loadPeopleSnapshot: async () => ({ presenceState: presence, directoryData: { users: [] }, friendsData: { friends: [] }, presenceAvailable: true }),
     location: { replace() { throw new Error('Unexpected sign-out redirect'); } },
@@ -27,6 +34,7 @@ async function renderEmptyState(presence) {
   });
   vm.runInContext(code, context);
   await context.loadOnlineUsers();
+  assert.equal(container.children[1]?.textContent, 'Find people');
   return container.children[0]?.textContent;
 }
 

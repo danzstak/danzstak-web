@@ -4,9 +4,9 @@
 
 Status as of 2026-11-03: **PASSING LOCALLY; NOT DEPLOYED BY THIS BRANCH**.
 
-- Ran 118 focused regression programs covering messaging, feed loading and actions, persistent posts/media, comments/replies, Friends and online discovery, notifications, calls, profiles, Flashes/The Roll, settings, desktop navigation and mobile navigation.
-- Result: **118 passed, 0 failed**.
-- Five initial failures were stale cache-key assertions that still required `feed-enhancements.css?v=482` and `feed-enhancements.js?v=503`; the live page correctly loads the newer `v=483` and `v=504` builds. The tests were updated without weakening their behavioral assertions for accessible feedback, friend discovery, stale-response guards or Flash captions.
+- Ran the repository's complete set of **252 Node regression programs**, including messaging, feed loading and actions, persistent posts/media, comments/replies, Friends and online discovery, notifications, calls, profiles, Flashes/The Roll, settings, navigation, PWA behavior, Booking Agent, Tour Manager, Stripe, EPK and record-store workflows.
+- Result: **252 passed, 0 failed** in four bounded test groups of 63 programs.
+- Five initial focused-audit failures were stale cache-key assertions that still required `feed-enhancements.css?v=482` and `feed-enhancements.js?v=503`; the page correctly loads the newer `v=483` and `v=504` builds. Two additional full-suite fixtures had not yet modeled the new online-user “Find people” control or secure booking reply-routing callbacks. The fixtures were brought up to date without weakening the production behavioral, account-isolation, email-credit or PWA assertions.
 - This is strong local regression evidence, not proof of every production workflow. Physical-device, multi-account and live deployed checks remain required before the complete platform objective can be marked finished.
 
 ## Booking email-to-phone Chat bridge

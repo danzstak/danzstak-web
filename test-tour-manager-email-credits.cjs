@@ -56,7 +56,25 @@ const assert = require("node:assert/strict");
   const corsHeaders = origin => origin === "https://danzstak.com" ? { "access-control-allow-origin": origin } : {};
   const event = (id, message = "Please book this tested artist for the proposed date. EPK: https://danzstak.com/epk.html?id=codex") => ({ requestContext: { http: { method: "POST" } }, rawPath: "/tour-manager/emails/send", headers: { origin: "https://danzstak.com" }, body: JSON.stringify({ venueKey: "venue-1", to: "bookings@example.com", subject: "Codex booking request", message, idempotencyKey: id }) });
   let providerCalls = 0, fail = false;
-  const service = createTourManagerBilling({ db, commands, authenticate: async () => userId, corsHeaders, tableName: "Tours", env: {}, sendBookingEmail: async () => { providerCalls += 1; if (fail) throw new Error("provider rejected"); return { messageId: "ses-message-1" }; } });
+  const service = createTourManagerBilling({
+    db,
+    commands,
+    authenticate: async () => userId,
+    corsHeaders,
+    tableName: "Tours",
+    env: {},
+    prepareBookingConversation: async () => ({ conversationId: "booking-conversation-1", replyAddress: "reply+secure-token@reply.danzstak.com" }),
+    recordBookingOutbound: async ({ conversationId, providerMessageId }) => {
+      assert.equal(conversationId, "booking-conversation-1");
+      assert.equal(providerMessageId, "ses-message-1");
+    },
+    sendBookingEmail: async ({ replyTo }) => {
+      assert.equal(replyTo, "reply+secure-token@reply.danzstak.com");
+      providerCalls += 1;
+      if (fail) throw new Error("provider rejected");
+      return { messageId: "ses-message-1" };
+    }
+  });
   const sent = await service(event("1234567890abcdef"));
   assert.equal(sent.statusCode, 200); assert.equal(providerCalls, 1); assert.equal(number(records.get(creditId), "credits"), 1); assert.equal(number(records.get(creditId), "sentEmails"), 1);
   const duplicate = await service(event("1234567890abcdef"));
