@@ -1577,7 +1577,13 @@ function renderWorkspace(name) {
     notifications.style.gap = "10px";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
+    checkbox.setAttribute("aria-label", "Show activity notification badges on this device");
     checkbox.checked = saved.Settings?.notifications !== false;
+    checkbox.addEventListener("change", () => {
+      saved.Settings = { ...(saved.Settings || {}), notifications: checkbox.checked };
+      writeSections(saved);
+      refreshNotificationCount();
+    });
     notifications.append(checkbox, document.createTextNode("Show activity notification badges on this device"));
     const presence = document.createElement("label");
     presence.style.display = "flex";
@@ -1586,6 +1592,7 @@ function renderWorkspace(name) {
     const presenceCheckbox = document.createElement("input");
     presenceCheckbox.type = "checkbox";
     presenceCheckbox.checked = true;
+    presenceCheckbox.setAttribute("aria-label", "Show me online to other users");
     presence.append(presenceCheckbox, document.createTextNode("Show me online to other users"));
     const tagsCheckbox = document.createElement("input"); tagsCheckbox.type = "checkbox"; tagsCheckbox.checked = true; tagsCheckbox.id = "allowTags"; tagsCheckbox.setAttribute("aria-label", "Allow friends to tag me in photos and videos");
     const darkCheckbox = document.createElement("input");
@@ -1677,8 +1684,8 @@ function renderWorkspace(name) {
     button.type = "button";
     button.disabled = true;
     button.textContent = "Loading Settings…";
-    const preferenceControls = [presenceCheckbox, tagsCheckbox, darkCheckbox, motionCheckbox, dataSaverCheckbox, language];
-    preferenceControls.forEach(control => { control.disabled = true; });
+    const accountPreferenceControls = [presenceCheckbox, tagsCheckbox];
+    accountPreferenceControls.forEach(control => { control.disabled = true; });
     settingsFetch({ credentials: "include", cache: "no-store" }, true)
       .then(response => {
         if (!response.ok) throw new Error("Account settings could not be loaded.");
@@ -1686,7 +1693,7 @@ function renderWorkspace(name) {
       })
       .then(data => {
         if (!isCurrentWorkspace()) return;
-        preferenceControls.forEach(control => { control.disabled = false; });
+        accountPreferenceControls.forEach(control => { control.disabled = false; });
         presenceCheckbox.checked = data.onlineVisible !== false;
         tagsCheckbox.checked = data.allowTags !== false;
         if (typeof data.darkMode === "boolean") {

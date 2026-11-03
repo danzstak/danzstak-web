@@ -78,6 +78,7 @@ All three current global OpenStreetMap Overpass mirrors were unavailable from th
 - The notification drawer now applies the selected language to its dialog and region names, close control, loading message, empty state, network failure, and Retry action. Reopening the drawer also refreshes its accessible labels after a language change. Targeted notification tests plus the complete local regression, smoke, PWA-cache, CSP, and infrastructure suites pass.
 - Notification actions now follow the selected language too: Open Tribe, View post, Open chat, Accept, and Decline retain member-specific accessible names without exposing account email addresses.
 - Accepting or declining a friend request now updates the notification badge and final empty state immediately after server confirmation, even if the follow-up count refresh is offline. Failures are announced as alerts, confirmed actions give localized feedback, and Friends/presence still refresh in the background.
+- A cloud settings outage no longer disables device-only choices. Dark mode, reduced motion, data saver, language, and notification-badge visibility remain usable; presence and tagging stay protected until account settings load. Notification-badge changes persist and refresh immediately without waiting for a cloud save.
 
 ## Known limits
 
