@@ -81,6 +81,7 @@ All three current global OpenStreetMap Overpass mirrors were unavailable from th
 - A cloud settings outage no longer disables device-only choices. Dark mode, reduced motion, data saver, language, and notification-badge visibility remain usable; presence and tagging stay protected until account settings load. Notification-badge changes persist and refresh immediately without waiting for a cloud save.
 - Active phone and video calls now tolerate a short mobile-network interruption, cancel stale recovery timers when the connection returns, and fully release camera, microphone, and call controls when the peer connection is lost. Reconnect and lost-call states are localized across all 15 supported languages; focused call tests and the complete regression suite pass.
 - Call-role controls are now explicit: outgoing callers keep the primary accessible Hang Up action without a duplicate floating button, while recipients retain the dedicated touch-friendly receiver Hang Up control requested for mobile calls.
+- Permanent EPK deletion now uses DanzStak's accessible modal confirmation instead of a blocking browser prompt. Escape and the safe default keep the EPK, keyboard focus returns to the Delete EPK opener, and the destructive choice is visually distinct.
 
 ## Known limits
 

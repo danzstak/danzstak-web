@@ -118,7 +118,13 @@
   async function uploadFiles(files) { for (const file of files) { const item = await uploadEpkFile(file); if (item) epkMedia.push(item); } renderMediaManager(); render(kitFromForm(true)); }
   async function save(publish) { const kit = kitFromForm(); if (!kit.artistName) { status.textContent = "Add the artist or act name first."; byId("artistName").focus(); return; } status.textContent = publish ? "Publishing EPK..." : "Saving private draft..."; try { const response = await request(`${api}/epk`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({kit,publish}) }, 20000); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "The EPK could not be saved."); showLink(data.publicId, data.published); status.textContent = data.published ? "EPK published. Review the public link before sending it." : "Private draft saved. The public copy is unavailable."; } catch (error) { status.textContent = error.message; } }
   async function deleteEpk() {
-    if (!window.confirm("Permanently delete this EPK and all uploaded EPK files? This cannot be undone.")) return;
+    const confirmed = await window.danzstakConfirm("Permanently delete this EPK and all uploaded EPK files? This cannot be undone.", {
+      title: "Delete this EPK?",
+      confirmLabel: "Delete EPK",
+      cancelLabel: "Keep EPK",
+      danger: true
+    });
+    if (!confirmed) return;
     const button = byId("deleteEpk");
     button.disabled = true;
     status.textContent = "Deleting EPK and private files...";
