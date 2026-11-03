@@ -1,5 +1,59 @@
 # DANZSTAK development report
 
+## ChatGPT status bridge — 2026-11-03
+
+Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
+
+### Stripe and AWS payment configuration
+
+| Item | Verified status |
+| --- | --- |
+| Stripe account | **VERIFIED** — SFScoop, account `acct_1RRZmKFgtfNMBXOV` |
+| Credential mode | **VERIFIED** — both the configured publishable key and backend secret key are Test Mode credentials for the same SFScoop account. This was confirmed with an authenticated, no-charge Stripe object create/retrieve check; matching `pk_test_`/`sk_test_` prefixes alone were not treated as proof. |
+| Booking Contact Unlock | **VERIFIED TEST PRODUCT** — product `prod_VYwF2z3cYoe72u`; price `price_1UXoMsFgtfNMBXOVSmnWDFGa`; USD $0.75; one-time; active; Test Mode |
+| Professional Tour Manager | **VERIFIED TEST PRODUCT** — product `prod_VYwFT1LQyqjsxc`; price `price_1UXoMtFgtfNMBXOV1fqlkuRf`; USD $1.50; one-time; active; Test Mode |
+| Phone-number activation | **VERIFIED TEST PRODUCT** — product `prod_VYwFZRXzQ3dNNv`; price `price_1UXoMuFgtfNMBXOVNxfRWRDp`; USD $3.00; one-time; active; Test Mode |
+| Public webhook URL | `https://api.danzstak.com/tour-manager/stripe/webhook` |
+| Stripe webhook endpoint | **DEPLOYED AND ENABLED IN TEST MODE** — endpoint `we_1UXoPzFgtfNMBXOV05UR9jPa` |
+| Required webhook events | `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `charge.refunded` |
+| AWS region and service | `us-west-1`; Lambda `DANZSTAK-TourManager-Stripe-Test`, behind HTTP API Gateway `DANZSTAK-Auth-HTTP-API` (`0872gqal4m`) |
+| AWS deployment health | **VERIFIED** — Lambda state `Active`, last update `Successful`, Node.js 20 runtime, and `TOUR_MANAGER_LIVE_PAYMENTS=false` |
+| Stripe secret access | **VERIFIED** — the backend secret is accessible from AWS Secrets Manager at `danzstak/stripe/secret-key`. The webhook signing secret exists separately at `danzstak/stripe/webhook-secret`. Secret values are not stored in GitHub, this report, or test output. |
+
+The original Live Mode products and prices remain unchanged. DANZSTAK's isolated Test deployment uses only the Test Mode catalog above, and no Live payment processing has been enabled.
+
+### Checkout, webhook and entitlement verification
+
+- **COMPLETE — automated/local entitlement tests:** correctly signed successful Checkout events grant only the intended entitlement: one selected booking contact, Professional Tour Manager access/credits, or a phone activation in `pending_provisioning`. Failed, expired, tampered and duplicate events grant nothing. Refund handling, partial-refund manual review, duplicate-refund protection and failed-send credit restoration paths pass their focused regression tests.
+- **COMPLETE — webhook security checks:** an invalid Stripe signature returns HTTP 400. A correctly signed unpaid test Checkout event returns HTTP 200 without granting an entitlement. An actual Stripe-delivered `checkout.session.expired` event reached the deployed endpoint and created no entitlement.
+- **COMPLETE — focused test programs:** `test-tour-manager-billing.cjs`, `test-booking-contact-unlock.cjs`, `test-phone-number-stripe.cjs`, `test-stripe-secret-loading.cjs`, and `test-stripe-refunds.cjs` pass.
+- **INCOMPLETE — hosted successful-card verification:** no claim is made that a Stripe-hosted successful purchase has completed end to end for all three products. One manual Stripe Test Mode Checkout per product, followed by DynamoDB entitlement inspection, is still required.
+- **INCOMPLETE — hosted refund verification:** one Test Mode refund per entitlement type must still be delivered by Stripe and checked for the expected entitlement revocation or credit restoration.
+
+### Remaining owner actions for Stripe
+
+1. Complete one Stripe-hosted Test Mode Checkout for each of the three products using a Stripe test card.
+2. Confirm the resulting Stripe-delivered success events in the endpoint delivery log and confirm the matching DynamoDB entitlements.
+3. Issue one Test Mode refund per entitlement type and confirm the corresponding revocation/restoration behavior.
+4. Keep Live payments disabled and do not merge to `main` until those manual end-to-end results are reviewed and approved.
+
+### Current DANZSTAK product status
+
+| Product area | Factual status |
+| --- | --- |
+| Chat | **IN PROGRESS; DEVELOPMENT BUILD NOT DEPLOYED.** Core direct messaging, compact WhatsApp-familiar responsive UI, editing/options, notifications and implemented call controls have automated coverage. The latest header/search/icon work is verified locally. The external booking-email-to-Chat reply bridge and its production inbound-email proof are not complete, so that workflow is not claimed operational. |
+| Booking Agent | **IN PROGRESS; NOT PRODUCTION-COMPLETE.** Worldwide locality resolution, route-oriented discovery, sourced venue leads, provider diagnostics, saved tours and contact workflow foundations exist. Live multi-provider benchmark coverage, current-data moderation and production-scale route discovery still require verification; results must not be treated as an exhaustive worldwide venue index. |
+| EPK | **IN PROGRESS; CORE DEVELOPMENT WORK EXISTS.** The editor, S3-backed media handling, revocable public sharing link and outbound EPK-link enforcement have focused regression coverage. AI research expansion, professional PDF/export completeness and a production end-to-end outreach delivery proof are not claimed complete. |
+| Tour Manager | **IN PROGRESS; TEST PAYMENT BACKEND DEPLOYED, FULL PRODUCT NOT DEPLOYED.** Saved-tour/outreach/dashboard and entitlement foundations exist, and the isolated Stripe Test webhook is active. Inbound reply correlation, automatic confirmation/calendar updates, continuous route recalculation, full delivery/bounce telemetry and the controlled 30-day/20-show/100-contact end-to-end test remain incomplete. SFS Token checkout is intentionally not active. |
+
+### Source and deployment record
+
+- Branch: `danzstak-patch-1`.
+- Source revision immediately before this report update: `9468fb24dbf32fe882b189774f1bcfae302b8f3b`.
+- Stripe Test integration implementation revision: `9b27dba7ee94837aafefe7a0ac0a4e8ceea2b855`.
+- Deployment status: **isolated Stripe Test Lambda and webhook deployed; Live payments disabled; recent website, Chat, Booking, EPK, Tour Manager and UI branch changes not deployed to production; branch not merged into `main`.**
+- This report-update commit is recorded in the GitHub history for `danzstak-patch-1`; the final pushed SHA is supplied with the report URL after publication.
+
 ## Official DanzStak platform icon
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
