@@ -2,6 +2,7 @@
 (() => {
   const api = "https://api.danzstak.com", balance = document.getElementById("bookingCreditBalance"), summary = document.getElementById("bookingCreditSummary"), status = document.getElementById("bookingCreditStatus"), activity = document.getElementById("bookingCreditActivity"), form = document.getElementById("buyBookingCredits"), quantity = document.getElementById("bookingCreditQuantity");
   const unlockedContacts = new Set();
+  window.danzstakTourManagerBilling = { credits: null, outreach: [] };
   async function request(path, options = {}) { const response = await fetch(api + path, { credentials: "include", cache: "no-store", ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Tour Manager billing is unavailable."); return data; }
   async function refresh() {
     try {
@@ -11,7 +12,16 @@
       activity.replaceChildren();
       for (const item of data.activity || []) { const row = document.createElement("li"), date = new Date(item.at); row.textContent = `${item.description}${Number.isNaN(date.getTime()) ? "" : ` — ${date.toLocaleString()}`}`; activity.append(row); }
       if (!activity.children.length) activity.append(Object.assign(document.createElement("li"), { textContent: "No activity yet." }));
+      window.danzstakTourManagerBilling.credits = data;
+      document.dispatchEvent(new CustomEvent("danzstak-tour-manager-billing", { detail: window.danzstakTourManagerBilling }));
     } catch (error) { summary.textContent = error.message; }
+  }
+  async function refreshOutreach() {
+    try {
+      const data = await request("/tour-manager/outreach");
+      window.danzstakTourManagerBilling.outreach = Array.isArray(data.messages) ? data.messages : [];
+      document.dispatchEvent(new CustomEvent("danzstak-tour-manager-billing", { detail: window.danzstakTourManagerBilling }));
+    } catch (error) { if (status && !status.textContent) status.textContent = error.message; }
   }
   form?.addEventListener("submit", async event => {
     event.preventDefault(); const count = Number(quantity.value);
@@ -19,7 +29,7 @@
     const button = form.querySelector("button"); button.disabled = true; status.textContent = "Opening secure Stripe Checkout…";
     try { const data = await request("/tour-manager/checkout", { method: "POST", body: JSON.stringify({ quantity: count }) }); location.assign(data.checkoutUrl); } catch (error) { status.textContent = error.message; button.disabled = false; }
   });
-  window.danzstakSendBookingEmail = async payload => { const id = crypto.randomUUID().replaceAll("-", ""); const data = await request("/tour-manager/emails/send", { method: "POST", body: JSON.stringify({ ...payload, idempotencyKey: id }) }); await refresh(); return data; };
+  window.danzstakSendBookingEmail = async payload => { const id = crypto.randomUUID().replaceAll("-", ""); const data = await request("/tour-manager/emails/send", { method: "POST", body: JSON.stringify({ ...payload, idempotencyKey: id }) }); await Promise.all([refresh(), refreshOutreach()]); return data; };
   window.danzstakBookingContactUnlocked = venueKey => unlockedContacts.has(String(venueKey || ""));
   window.danzstakUnlockBookingContact = async venueKey => {
     const data = await request("/tour-manager/contact-unlock/checkout", { method: "POST", body: JSON.stringify({ venueKey }) });
@@ -43,5 +53,6 @@
   if (contactResult === "success") status.textContent = "Payment received. The contact appears after Stripe verifies the payment.";
   if (contactResult === "cancelled") status.textContent = "Contact unlock cancelled. No charge was completed.";
   refresh();
+  refreshOutreach();
   refreshContactUnlocks();
 })();

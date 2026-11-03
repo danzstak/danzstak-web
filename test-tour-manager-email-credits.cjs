@@ -13,11 +13,14 @@ const assert = require("node:assert/strict");
   const userId = "user_12345678", creditId = `${userId}|TOUR_MANAGER#BOOKING_EMAIL_CREDITS`;
   records.set(creditId, { userId: { S: userId }, tourId: { S: "TOUR_MANAGER#BOOKING_EMAIL_CREDITS" }, credits: { N: "2" }, reservedCredits: { N: "0" }, sentEmails: { N: "0" } });
   records.set(`${userId}|TOUR_MANAGER#CONTACT_UNLOCK#venue-1`, { userId: { S: userId }, tourId: { S: "TOUR_MANAGER#CONTACT_UNLOCK#venue-1" }, venueKey: { S: "venue-1" }, status: { S: "active" } });
-  records.set(`${userId}|booking-workspace-v1`, { userId: { S: userId }, tourId: { S: "booking-workspace-v1" }, plan: { S: JSON.stringify({ artist: { name: "Codex" }, venues: [{ venueKey: "venue-1", name: "Club Test", emails: ["bookings@example.com"] }] }) } });
+  records.set(`${userId}|booking-workspace-v1`, { userId: { S: userId }, tourId: { S: "booking-workspace-v1" }, plan: { S: JSON.stringify({ artist: { name: "Codex", epk: "https://danzstak.com/epk.html?id=codex" }, venues: [{ venueKey: "venue-1", name: "Club Test", emails: ["bookings@example.com"] }] }) } });
   const number = (item, name) => Number(item[name]?.N || 0);
   const db = { async send(command) {
     if (command instanceof GetItemCommand) return { Item: records.get(keyOf(command.input.Key)) };
-    if (command instanceof QueryCommand) return { Items: [] };
+    if (command instanceof QueryCommand) {
+      const prefix = command.input.ExpressionAttributeValues[":prefix"]?.S || "";
+      return { Items: [...records.values()].filter(item => item.userId?.S === userId && item.tourId?.S?.startsWith(prefix)) };
+    }
     if (command instanceof UpdateItemCommand) {
       const item = records.get(keyOf(command.input.Key));
       if (command.input.ExpressionAttributeValues[":reserved"]) {
@@ -51,13 +54,15 @@ const assert = require("node:assert/strict");
     throw new Error("Unexpected command");
   }};
   const corsHeaders = origin => origin === "https://danzstak.com" ? { "access-control-allow-origin": origin } : {};
-  const event = (id, message = "Please book this tested artist for the proposed date.") => ({ requestContext: { http: { method: "POST" } }, rawPath: "/tour-manager/emails/send", headers: { origin: "https://danzstak.com" }, body: JSON.stringify({ venueKey: "venue-1", to: "bookings@example.com", subject: "Codex booking request", message, idempotencyKey: id }) });
+  const event = (id, message = "Please book this tested artist for the proposed date. EPK: https://danzstak.com/epk.html?id=codex") => ({ requestContext: { http: { method: "POST" } }, rawPath: "/tour-manager/emails/send", headers: { origin: "https://danzstak.com" }, body: JSON.stringify({ venueKey: "venue-1", to: "bookings@example.com", subject: "Codex booking request", message, idempotencyKey: id }) });
   let providerCalls = 0, fail = false;
   const service = createTourManagerBilling({ db, commands, authenticate: async () => userId, corsHeaders, tableName: "Tours", env: {}, sendBookingEmail: async () => { providerCalls += 1; if (fail) throw new Error("provider rejected"); return { messageId: "ses-message-1" }; } });
   const sent = await service(event("1234567890abcdef"));
   assert.equal(sent.statusCode, 200); assert.equal(providerCalls, 1); assert.equal(number(records.get(creditId), "credits"), 1); assert.equal(number(records.get(creditId), "sentEmails"), 1);
   const duplicate = await service(event("1234567890abcdef"));
   assert.equal(duplicate.statusCode, 200); assert.equal(providerCalls, 1, "A repeated send request must not call the provider twice");
+  const history = await service({ requestContext: { http: { method: "GET" } }, rawPath: "/tour-manager/outreach", headers: { origin: "https://danzstak.com" } });
+  assert.equal(history.statusCode, 200); assert.equal(JSON.parse(history.body).messages[0].status, "sent", "Accepted email must appear in outreach history");
   fail = true;
   const failed = await service(event("fedcba0987654321"));
   assert.equal(failed.statusCode, 502); assert.equal(number(records.get(creditId), "credits"), 1, "A provider failure must restore the reserved credit"); assert.equal(number(records.get(creditId), "reservedCredits"), 0);
