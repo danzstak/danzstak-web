@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v626";
+const CACHE = "danzstak-shell-v627";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css",
   "/assets/icon-buttons.js", "/assets/icon-buttons.css",
@@ -76,9 +76,9 @@ self.addEventListener("message", event => {
 self.addEventListener("push", event => {
   let payload = {};
   try { payload = event.data?.json() || {}; }
-  catch { payload = { body: event.data?.text() || "You have a new DanzStak notification." }; }
+  catch { payload = {}; }
   const title = String(payload.title || "DanzStak").slice(0, 80);
-  const body = String(payload.body || "You have a new notification.").slice(0, 240);
+  const body = String(payload.body || "").slice(0, 240);
   let url = "/feed.html";
   try {
     const candidate = new URL(String(payload.url || url), self.location.origin);
@@ -94,7 +94,7 @@ self.addEventListener("push", event => {
     silent: false,
     vibrate: call ? [400, 180, 400, 180, 400] : [120],
     requireInteraction: call,
-    actions: call ? [{ action: "answer", title: "Answer" }, { action: "dismiss", title: "Dismiss" }] : [],
+    actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Answer").slice(0, 40) }, { action: "dismiss", title: String(payload.dismissTitle || "Dismiss").slice(0, 40) }] : [],
     data: { url, type: call ? "call" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
   }));
 });

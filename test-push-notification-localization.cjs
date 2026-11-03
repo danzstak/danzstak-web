@@ -12,12 +12,14 @@ const languages = ["en", "es", "fr", "de", "pt", "it", "ko", "ja", "zh-Hans", "z
 assert.deepEqual(Object.keys(translations).sort(), [...languages].sort(), "push notifications must cover every supported account language");
 for (const language of languages) {
   const copy = translations[language];
-  assert.equal(copy.length, 9, `${language} must include member, call, message, and friend-request copy`);
+  assert.equal(copy.length, 11, `${language} must include member, call, message, friend-request, and call-action copy`);
   copy.forEach((value, index) => assert.ok(String(value).trim(), `${language} push value ${index} must not be empty`));
   assert.match(copy[2], /\{name\}/, `${language} call body must preserve the member-name placeholder`);
   assert.match(copy[2], /\{mode\}/, `${language} call body must preserve the call-mode placeholder`);
   assert.match(copy[6], /\{name\}/, `${language} message body must preserve the member-name placeholder`);
   assert.match(copy[8], /\{name\}/, `${language} friend-request body must preserve the member-name placeholder`);
+  assert.ok(copy[9].trim(), `${language} must localize the Answer action`);
+  assert.ok(copy[10].trim(), `${language} must localize the Dismiss action`);
 }
 
 assert.match(template, /async function pushPreferences\(userEmail,setting=''\)/, "the recipient preferences must drive push localization");
@@ -26,6 +28,7 @@ assert.match(template, /pushTranslations\[result\.Item\?\.language\?\.S\]\?resul
 assert.match(template, /notifyCall[\s\S]*?localizedPush\(preferences\.language,'call'/, "call pushes must use the recipient language");
 assert.match(template, /notifyMessage[\s\S]*?localizedPush\(preferences\.language,'message'/, "message pushes must use the recipient language");
 assert.match(template, /notifyFriendRequest[\s\S]*?localizedPush\(preferences\.language,'friend'/, "friend-request pushes must use the recipient language");
+assert.match(template, /answerTitle:copy\[9\],dismissTitle:copy\[10\]/, "call pushes must carry localized action labels to the service worker");
 assert.doesNotMatch(template, /type:'message',title:'New DanzStak message'/, "message pushes must not bypass localization");
 const notifyMessageSource = template.match(/async function notifyMessage[\s\S]*?(?=\s*async function notifyFriendRequest)/)?.[0] || "";
 assert.ok(notifyMessageSource, "the message push function must remain present");
