@@ -13,6 +13,6 @@ assert.match(source, /media\.addEventListener\('error'[\s\S]*source\.mediaUrl = 
 assert.match(source, /Retry media/, "the shared-media recovery card needs a retry action");
 assert.match(source, /if \(\['image','video'\]\.includes\(source\.mediaType\)\) installSharedPostMedia/, "media without a current URL must still get recovery behavior");
 assert.match(feedStyles, /\.shared-post-recovery\{/, "Your Mix should style shared-media recovery");
-assert.match(profileStyles, /\.shared-post-recovery\{/, "profiles should style shared-media recovery");
+assert.match(profileStyles, /\.shared-post-recovery(?:,\.profile-media-recovery)?\{/, "profiles should style shared-media recovery");
 
 console.log("Shared post media recovery checks passed.");

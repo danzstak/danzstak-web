@@ -467,6 +467,48 @@ details.insertAdjacentElement("beforebegin", tabs);
 details.insertAdjacentElement("afterend", tabMessage);
 details.hidden = true;
 
+async function refreshProfilePostMedia(post) {
+  if (!/^[a-f0-9-]{36}$/.test(String(post?.postId || ""))) return "";
+  const response = await profileFetch(profileApi + "/secure-posts", { credentials: "include", cache: "no-store" }).catch(() => null);
+  if (!response?.ok) return "";
+  const data = await response.json().catch(() => ({}));
+  const refreshed = (data.posts || []).find(candidate => candidate.postId === post.postId);
+  if (!refreshed?.mediaUrl || !["image", "video"].includes(refreshed.mediaType)) return "";
+  post.mediaUrl = refreshed.mediaUrl;
+  post.mediaType = refreshed.mediaType;
+  return post.mediaUrl;
+}
+
+function installProfilePostMedia(article, post) {
+  const recovery = document.createElement("div");
+  recovery.className = "profile-media-recovery";
+  const copy = document.createElement("span");
+  copy.textContent = profileTranslate("Media is temporarily unavailable.");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "secondary";
+  retry.textContent = profileTranslate("Retry media");
+  recovery.append(copy, retry);
+  const insert = node => { const open = article.querySelector(".profile-post-open"); if (open) open.before(node); else article.appendChild(node); };
+  const showRecovery = () => { article.querySelector(".profile-post-media")?.remove(); if (!recovery.parentNode) insert(recovery); };
+  const install = async () => {
+    retry.disabled = true;
+    const mediaUrl = post.mediaUrl || await refreshProfilePostMedia(post);
+    retry.disabled = false;
+    if (!mediaUrl) { showRecovery(); return; }
+    recovery.remove();
+    const media = document.createElement(post.mediaType === "image" ? "img" : "video");
+    media.className = "profile-post-media";
+    media.addEventListener("error", () => { post.mediaUrl = ""; showRecovery(); }, { once: true });
+    if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
+    else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
+    media.src = mediaUrl;
+    insert(media);
+  };
+  retry.addEventListener("click", () => { post.mediaUrl = ""; void install(); });
+  void install();
+}
+
 function profilePostCard(post) {
   const article = document.createElement("article");
   article.className = "profile-post-card";
@@ -482,10 +524,10 @@ function profilePostCard(post) {
   const text = document.createElement("p");
   text.textContent = post.content || "Shared media";
   article.append(meta, text);
-  if (post.mediaUrl && ["image", "video"].includes(post.mediaType)) {
+  if (post.postId && ["image", "video"].includes(post.mediaType)) installProfilePostMedia(article, post);
+  else if (post.mediaUrl && ["image", "video"].includes(post.mediaType)) {
     const media = document.createElement(post.mediaType === "image" ? "img" : "video");
-    media.className = "profile-post-media";
-    media.src = post.mediaUrl;
+    media.className = "profile-post-media"; media.src = post.mediaUrl;
     if (post.mediaType === "image") media.alt = post.content || "Profile post photo";
     else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
     article.appendChild(media);
