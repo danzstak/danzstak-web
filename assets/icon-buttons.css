@@ -1,0 +1,13 @@
+.ds-icon-button{display:inline-grid!important;place-items:center;flex:0 0 auto;width:38px;min-width:38px;height:38px;min-height:38px;padding:0!important;border-radius:50%;line-height:1;vertical-align:middle;touch-action:manipulation}
+.ds-action-icon{display:block;width:20px;height:20px;pointer-events:none}
+.ds-icon-button:hover{background-color:#edf3fb}
+.ds-icon-button:focus-visible{outline:3px solid #f4a340;outline-offset:2px}
+.ds-icon-button:active{transform:translateY(1px)}
+.ds-icon-button:disabled{cursor:not-allowed;opacity:.45;transform:none}
+.ds-icon-button.danger,.ds-icon-button[class*="delete"],.ds-icon-button[data-icon="trash"]{color:#b42318}
+.message-attach,.message-camera{display:grid;place-items:center;width:40px;min-width:40px;height:40px;padding:0;border-radius:50%;color:#53606f;cursor:pointer}
+.message-attach:hover,.message-camera:hover{background:#e7edf5;color:#1769e0}
+.message-attach:focus-within,.message-camera:focus-within{outline:3px solid #f4a340;outline-offset:2px}
+.message-attach .ds-action-icon,.message-camera .ds-action-icon{width:21px;height:21px}
+@media(pointer:coarse){.ds-icon-button{width:44px;min-width:44px;height:44px;min-height:44px}.message-attach,.message-camera{width:44px;min-width:44px;height:44px}}
+@media(prefers-reduced-motion:reduce){.ds-icon-button{transition:none!important}}

@@ -347,7 +347,9 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
     const edit = document.createElement("button");
     edit.type = "button";
     edit.className = "message-edit-choice";
+    edit.dataset.icon = "edit";
     edit.textContent = "✎ " + messageTranslate("Edit message");
+    edit.title = messageTranslate("Edit message");
     edit.setAttribute("aria-label", messageTranslate("Edit message"));
     edit.addEventListener("click", () => openMessageEditor(item, message));
     palette.appendChild(edit);
@@ -355,6 +357,7 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
   const remove = document.createElement("button");
   remove.type = "button";
   remove.className = "message-delete-choice";
+  remove.dataset.icon = "trash";
   remove.textContent = "🗑️";
   remove.title = messageTranslate("Delete message");
   remove.setAttribute("aria-label", messageTranslate("Delete message"));
