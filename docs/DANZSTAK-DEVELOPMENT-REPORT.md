@@ -56,6 +56,8 @@ Status as of 2026-11-03: **STRIPE LOCAL IMPLEMENTATION COMPLETE; STRIPE-HOSTED T
 - DANZSTAK remains functional without SFScoop, Phantom or wallet connectivity. No wallet UI, Phantom SDK, token quote, receiving wallet or SFS transaction endpoint has been added.
 - SFS activation is blocked pending approval of the network, canonical token contract/mint and decimals, receiving wallet, authoritative exchange-rate source, quote expiry/rounding, wallet challenge, finality rule, RPC provider, transaction parsing, replay protection and refund policy.
 - Architecture and mandatory negative tests: `docs/DUAL-PAYMENT-ARCHITECTURE.md`.
+- Architecture commit: `3947f43baa5fac056ec52c929469cf2f72840d72` on `danzstak-patch-1`.
+- Regression check: Tour Manager Stripe, contact unlock, assigned-number Stripe, booking-email credit lifecycle and Tour Manager dashboard tests all pass locally.
 
 ## Tour Manager production build
 
