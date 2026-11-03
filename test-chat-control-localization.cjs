@@ -7,13 +7,25 @@ const chat = fs.readFileSync("assets/chat.js", "utf8");
 const messages = fs.readFileSync("assets/direct-messages.js", "utf8");
 
 assert.match(i18n, /const chatControlKeys=\["Incoming call"[\s\S]*"Open contact profile"\]/, "call and chat controls need one complete translation key set");
-assert.match(i18n, /const callStatusKeys=\["Connected securely to \{name\}\."[\s\S]*"video"\]/, "the complete live call flow needs translated status templates");
+const callStatusKeysMatch = i18n.match(/const callStatusKeys=(\[[^;]+\]);/);
+const callStatusesMatch = i18n.match(/const callStatuses=(\{[\s\S]*?\r?\n \});\r?\n const callFailureStatuses=/);
+const callFailuresMatch = i18n.match(/const callFailureStatuses=(\{[\s\S]*?\r?\n \});\r?\n for\(const \[language,values\] of Object\.entries\(callFailureStatuses\)\)/);
+assert.ok(callStatusKeysMatch && callStatusesMatch && callFailuresMatch, "the complete live call flow needs inspectable translated status templates");
 assert.match(i18n, /const callNetworkKeys=\["DanzStak is taking too long to respond\.[\s\S]*"Request failed"\]/, "call connection and session failures need one complete translation key set");
 assert.match(i18n, /const callMediaKeys=\["Camera and microphone access is blocked\.[\s\S]*"The microphone could not start\./, "camera and microphone recovery guidance needs one complete translation key set");
 assert.match(i18n, /const conversationStatusKeys=\["Loading messages with \{name\}…"[\s\S]*"Saved chat\./, "saved conversations need translated loading and permission guidance");
 assert.match(i18n, /const messageActionKeys=\["Remove attachment"[\s\S]*"Contacts are temporarily unavailable\. Retrying automatically…"\]/, "message actions, history, offline state, and empty states need one complete translation key set");
-for (const language of ["es", "fr", "de", "pt", "it", "ko", "ja", "zh-Hans", "zh-Hant", "fil", "hi", "vi", "th", "id"]) {
+const supportedLanguages = ["es", "fr", "de", "pt", "it", "ko", "ja", "zh-Hans", "zh-Hant", "fil", "hi", "vi", "th", "id"];
+const translationContext = vm.createContext({ result: null });
+vm.runInContext(`result={keys:${callStatusKeysMatch[1]},statuses:${callStatusesMatch[1]},failures:${callFailuresMatch[1]}}`, translationContext);
+const translatedCalls = translationContext.result;
+for (const language of supportedLanguages) {
   assert.match(i18n, new RegExp(`(?:^|\\s|,)${language.includes("-") ? `"${language}"` : language}:\\[`), `${language} needs chat control translations`);
+  assert.equal(translatedCalls.statuses[language].length + translatedCalls.failures[language].length, translatedCalls.keys.length, `${language} should translate every call status`);
+  translatedCalls.failures[language].forEach((value, index) => {
+    assert.ok(String(value).trim(), `${language} call failure translation ${index + 1} cannot be blank`);
+    assert.notEqual(value, translatedCalls.keys.at(index - 2), `${language} call failure translation ${index + 1} cannot fall back to English`);
+  });
 }
 assert.match(chat, /t\("Incoming call"\)\+": "\+contactName/, "incoming calls should announce a translated label with the caller name");
 assert.match(chat, /els\.mic\.textContent=t\(track\.enabled\?"Mute":"Unmute"\)/, "live microphone state should stay translated");

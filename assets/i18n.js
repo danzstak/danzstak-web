@@ -138,6 +138,23 @@
   th:["เชื่อมต่อกับ {name} อย่างปลอดภัยแล้ว","สร้างการเชื่อมต่อ{mode}ที่ปลอดภัยแล้ว","โปรดเลือกเพื่อนหรือสมาชิกเผ่าเดียวกันก่อน","กำลังโทรหา {name}…","กำลังเรียก {name}…","{name} ไม่รับสาย","โทรไม่สำเร็จ: {error}","กำลังเชื่อมต่อกับ {name}…","{name} จบการสนทนาแล้ว","สายเรียกเข้านี้ไม่พร้อมใช้งานแล้ว","บริการโทรกำลังเชื่อมต่อใหม่โดยอัตโนมัติ…","เลือก {name} แล้ว","รับสายไม่สำเร็จ: {error}","ปฏิเสธสายแล้ว","กำลังเปิดการแจ้งเตือนสาย…","ขณะนี้สายสามารถแจ้งเตือนอุปกรณ์นี้ได้แม้ปิด DanzStak","เฉพาะเพื่อนหรือสมาชิกเผ่าเดียวกันเท่านั้นที่โทรได้","การเชื่อมต่อสายถูกขัดจังหวะ กำลังเชื่อมต่อใหม่…","สายสิ้นสุดเพราะการเชื่อมต่อขาดหาย","เสียง","วิดีโอ"],
   id:["Terhubung aman dengan {name}.","Koneksi {mode} aman tersambung.","Pilih teman atau anggota Suku yang sama terlebih dahulu.","Memanggil {name}…","Berdering ke {name}…","Tidak ada jawaban dari {name}.","Tidak dapat menelepon: {error}","Menghubungkan ke {name}…","{name} mengakhiri percakapan.","Panggilan masuk ini sudah tidak tersedia.","Layanan panggilan sedang tersambung kembali secara otomatis…","{name} dipilih.","Tidak dapat menjawab: {error}","Panggilan ditolak.","Mengaktifkan peringatan panggilan…","Panggilan sekarang dapat memberi tahu perangkat ini saat DanzStak ditutup.","Hanya teman atau anggota Suku yang sama yang dapat menelepon.","Koneksi panggilan terputus. Menyambungkan kembali…","Panggilan berakhir karena koneksi terputus.","suara","video"]
  };
+ const callFailureStatuses={
+  es:["La notificación de llamada funcionó, pero esta red no pudo conectar el audio.","El otro dispositivo respondió, pero las redes no pudieron conectar el audio."],
+  fr:["La notification d’appel a fonctionné, mais ce réseau n’a pas pu connecter l’audio.","L’autre appareil a répondu, mais les réseaux n’ont pas pu connecter l’audio."],
+  de:["Die Anrufbenachrichtigung hat funktioniert, aber dieses Netzwerk konnte die Audioverbindung nicht herstellen.","Das andere Gerät hat geantwortet, aber die Netzwerke konnten die Audioverbindung nicht herstellen."],
+  pt:["A notificação da chamada funcionou, mas esta rede não conseguiu conectar o áudio.","O outro dispositivo atendeu, mas as redes não conseguiram conectar o áudio."],
+  it:["La notifica della chiamata ha funzionato, ma questa rete non è riuscita a collegare l’audio.","L’altro dispositivo ha risposto, ma le reti non sono riuscite a collegare l’audio."],
+  ko:["통화 알림은 작동했지만 이 네트워크에서 오디오를 연결하지 못했습니다.","상대 기기가 응답했지만 네트워크 간 오디오를 연결하지 못했습니다."],
+  ja:["着信通知は届きましたが、このネットワークでは音声を接続できませんでした。","相手の端末は応答しましたが、ネットワーク間で音声を接続できませんでした。"],
+  "zh-Hans":["来电通知已送达，但此网络无法连接音频。","对方设备已接听，但双方网络无法连接音频。"],
+  "zh-Hant":["來電通知已送達，但此網路無法連接音訊。","對方裝置已接聽，但雙方網路無法連接音訊。"],
+  fil:["Gumana ang abiso sa tawag, pero hindi maikonekta ng network na ito ang audio.","Sumagot ang kabilang device, pero hindi maikonekta ng mga network ang audio."],
+  hi:["कॉल की सूचना पहुँच गई, लेकिन यह नेटवर्क ऑडियो कनेक्ट नहीं कर सका।","दूसरे डिवाइस ने जवाब दिया, लेकिन नेटवर्क ऑडियो कनेक्ट नहीं कर सके।"],
+  vi:["Thông báo cuộc gọi đã hoạt động nhưng mạng này không thể kết nối âm thanh.","Thiết bị bên kia đã trả lời nhưng hai mạng không thể kết nối âm thanh."],
+  th:["การแจ้งเตือนสายทำงานแล้ว แต่เครือข่ายนี้เชื่อมต่อเสียงไม่ได้","อุปกรณ์อีกฝ่ายรับสายแล้ว แต่เครือข่ายเชื่อมต่อเสียงกันไม่ได้"],
+  id:["Notifikasi panggilan berfungsi, tetapi jaringan ini tidak dapat menghubungkan audio.","Perangkat lain menjawab, tetapi kedua jaringan tidak dapat menghubungkan audio."]
+ };
+ for(const [language,values] of Object.entries(callFailureStatuses))callStatuses[language].push(...values);
  for(const [language,values] of Object.entries(callStatuses))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(callStatusKeys.map((key,index)=>[key,values[index]])));
  const globalCallKeys=["DanzStak member","{name} is calling by {mode}.","Could not decline the call. Please try again."];
  const globalCallGuidance={
