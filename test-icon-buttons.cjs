@@ -7,12 +7,13 @@ const source = fs.readFileSync("assets/icon-buttons.js", "utf8");
 const css = fs.readFileSync("assets/icon-buttons.css", "utf8");
 const pages = ["feed.html", "messages.html", "profile.html", "booking.html", "booking-selections.html", "record-stores.html", "epk.html"];
 
-for (const icon of ["expand", "minimize", "close", "trash", "edit", "reply", "send", "search", "settings", "bell", "share", "download", "upload", "paperclip", "camera", "calendar", "map", "phone", "video", "more", "back", "refresh", "save", "eye", "link", "menu", "chevron", "chat"]) {
+for (const icon of ["expand", "minimize", "close", "trash", "edit", "reply", "send", "search", "settings", "bell", "share", "download", "upload", "paperclip", "camera", "calendar", "map", "phone", "video", "more", "back", "refresh", "save", "eye", "link", "menu", "chevron", "chat", "home", "user", "users", "image", "film", "microphone", "bus", "disc", "folder", "bookmark", "help", "lock", "file", "logout"]) {
   assert.match(source, new RegExp(`\\b${icon}: \\[`), `shared icon registry must include ${icon}`);
 }
 assert.match(source, /setAttribute\("aria-label", label\)/, "an icon-only control must retain an accessible name");
 assert.match(source, /setAttribute\("title", label\)/, "an icon-only control must have a desktop tooltip");
 assert.match(source, /MutationObserver/, "dynamic feed, comment and chat controls must be enhanced too");
+assert.match(source, /querySelectorAll\?\.\("\[data-menu-icon\]"\)/, "drawer icons must use the shared SVG enhancer");
 assert.doesNotMatch(source, /lucide|unpkg|cdnjs|jsdelivr/i, "icons must not add a remote dependency");
 assert.match(css, /focus-visible/, "keyboard focus must be visible");
 assert.match(css, /@media\(pointer:coarse\)[\s\S]*44px/, "coarse-pointer controls must retain a 44px touch target");
@@ -20,9 +21,15 @@ assert.match(css, /disabled[^{]*\{[^}]*opacity/, "disabled state must remain vis
 
 for (const page of pages) {
   const html = fs.readFileSync(page, "utf8");
-  assert.match(html, /assets\/icon-buttons\.css\?v=1/, `${page} must load the shared icon styles`);
-  assert.match(html, /assets\/icon-buttons\.js\?v=1/, `${page} must load the shared icon behavior`);
+  assert.match(html, /assets\/icon-buttons\.css\?v=2/, `${page} must load the current shared icon styles`);
+  assert.match(html, /assets\/icon-buttons\.js\?v=2/, `${page} must load the current shared icon behavior`);
 }
+
+const feedPage = fs.readFileSync("feed.html", "utf8");
+for (const icon of ["home", "user", "users", "image", "film", "microphone", "bus", "disc", "folder", "bookmark", "settings", "help", "lock", "file", "logout"]) {
+  assert.match(feedPage, new RegExp(`data-menu-icon="${icon}"`), `mobile navigation must use the ${icon} SVG icon`);
+}
+assert.doesNotMatch(feedPage.match(/<aside class="left" id="mobileNavMenu"[\s\S]*?<\/aside>/)?.[0] || "", /🏠|👤|👥|📷|🎬|🎤|🚌|💿|🗂|🔖|⚙|🔒|📄|🚪/, "mobile navigation must not use emoji icons");
 
 const messages = fs.readFileSync("messages.html", "utf8");
 for (const icon of ["back", "bell", "edit", "phone", "video", "minimize", "more", "close", "trash", "paperclip", "camera", "send"]) assert.match(messages, new RegExp(`data-icon="${icon}"`), `Chat must use the ${icon} icon`);

@@ -30,7 +30,21 @@
     link: ["M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1", "M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1"],
     menu: ["M4 6h16", "M4 12h16", "M4 18h16"],
     chevron: ["m9 18 6-6-6-6"],
-    chat: ["M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"]
+    chat: ["M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"],
+    home: ["m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"],
+    user: ["M20 21a8 8 0 0 0-16 0", "M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"],
+    users: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z", "M22 21v-2a4 4 0 0 0-3-3.9", "M16 3.1a4 4 0 0 1 0 7.8"],
+    image: ["M3 5h18v14H3Z", "m3 16 5-5 4 4 3-3 6 6", "M16 9h.01"],
+    film: ["M3 3h18v18H3Z", "M7 3v18", "M17 3v18", "M3 8h4", "M3 16h4", "M17 8h4", "M17 16h4"],
+    microphone: ["M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z", "M19 10v2a7 7 0 0 1-14 0v-2", "M12 19v3", "M8 22h8"],
+    bus: ["M5 16V5a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v11", "M4 12h16", "M6 16h12v3H6Z", "M8 19v2", "M16 19v2", "M8 7h8"],
+    disc: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", "M12 12h.01"],
+    folder: ["M3 5h7l2 2h9v12H3Z"],
+    bookmark: ["M6 3h12v18l-6-4-6 4Z"],
+    help: ["M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4", "M12 18h.01", "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"],
+    lock: ["M5 10h14v11H5Z", "M8 10V7a4 4 0 0 1 8 0v3"],
+    file: ["M6 2h8l4 4v16H6Z", "M14 2v5h5"],
+    logout: ["M10 17l5-5-5-5", "M15 12H3", "M21 3v18h-6"]
   };
   const labels = new Map([
     ["open full screen", "expand"], ["open fullscreen", "expand"], ["exit full screen", "minimize"], ["exit fullscreen", "minimize"],
@@ -85,9 +99,19 @@
     if (control.childElementCount !== 1 || !control.firstElementChild?.classList.contains("ds-action-icon")) control.replaceChildren(svg(requested));
   }
 
+  function upgradeMenuIcon(container) {
+    if (!(container instanceof HTMLElement) || !container.matches("[data-menu-icon]")) return;
+    const requested = container.dataset.menuIcon;
+    if (!requested || !paths[requested]) return;
+    container.replaceChildren(svg(requested));
+    container.classList.add("ds-menu-icon");
+  }
+
   function enhance(root = document) {
     if (root instanceof Element) upgrade(root);
     root.querySelectorAll?.("button, a.button, a[role='button'], label[data-icon]").forEach(upgrade);
+    if (root instanceof Element) upgradeMenuIcon(root);
+    root.querySelectorAll?.("[data-menu-icon]").forEach(upgradeMenuIcon);
   }
 
   window.danzstakIcons = { create: svg, enhance, upgrade };

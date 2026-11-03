@@ -13,6 +13,8 @@ Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 - Automated verification: **238 of 238** repository test programs pass, including the new shared-icon accessibility test plus comment reply/reaction, message editing/options/keyboard, mobile message view, Roll modal, Booking startup, EPK, record-store and PWA cache regressions. Three stale cache-version assertions were updated to the versions already referenced by `feed.html`.
 - Changed components: `assets/icon-buttons.js`, `assets/icon-buttons.css`, `assets/direct-messages.js`, `assets/feed-enhancements.js`, seven core HTML pages, `service-worker.js`, and focused test files.
 - Implementation commit: `42887861b9e12134bc667dd8e6945222da69870a` on `danzstak-patch-1`.
+- Drawer-icon follow-up (2026-11-03): a live production audit found that the Your Mix navigation drawer still rendered legacy emoji even though action controls had been converted. The development branch now routes every drawer item through the same dependency-free SVG registry (home, profile, friends, Tribes, media, music tools, account/legal and logout), keeps the existing Android/Apple artwork, and advances the PWA shell cache so installed clients will not retain the emoji menu. This correction is **verified in development and not deployed**.
+- Drawer verification: the focused icon, mobile navigation/history, layout, touch-target and PWA refresh test programs pass; the 11-page site smoke suite and `git diff --check` pass. A locally served visual inspection confirmed consistent line icons, compact alignment and no emoji in the drawer. The follow-up commit is recorded below after push.
 
 ## Mobile Flashes navigation
 

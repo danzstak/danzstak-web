@@ -1,5 +1,6 @@
 .ds-icon-button{display:inline-grid!important;place-items:center;flex:0 0 auto;width:38px;min-width:38px;height:38px;min-height:38px;padding:0!important;border-radius:50%;line-height:1;vertical-align:middle;touch-action:manipulation}
 .ds-action-icon{display:block;width:20px;height:20px;pointer-events:none}
+.ds-menu-icon .ds-action-icon{width:20px;height:20px;stroke-width:2}
 .ds-icon-button:hover{background-color:#edf3fb}
 .ds-icon-button:focus-visible{outline:3px solid #f4a340;outline-offset:2px}
 .ds-icon-button:active{transform:translateY(1px)}
