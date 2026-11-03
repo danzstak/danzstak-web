@@ -1927,6 +1927,13 @@ function openNotificationDrawer(opener) {
     notificationDrawer.querySelector(".notification-drawer-close").addEventListener("click", () => closeNotificationDrawer());
     notificationDrawer.addEventListener("keydown", event => {
       if (event.key === "Escape") { event.preventDefault(); closeNotificationDrawer(); }
+      if (event.key !== "Tab") return;
+      const focusable = [...notificationDrawer.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+        .filter(element => !element.hidden && element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length);
+      if (!focusable.length) { event.preventDefault(); notificationDrawer.focus(); return; }
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     });
     document.body.appendChild(notificationDrawer);
   }
