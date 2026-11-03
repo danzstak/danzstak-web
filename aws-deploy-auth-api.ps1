@@ -53,7 +53,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Venue directory recovery protection failed." }
   }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath $Source,$Package,$PackageLock -Destination $Stage
+  Copy-Item -LiteralPath $Source,$Package,$PackageLock,(Join-Path $PSScriptRoot "infrastructure\auth-api\venue-research.mjs") -Destination $Stage
   Push-Location $Stage
   try {
     npm ci --omit=dev --ignore-scripts --no-audit --no-fund
