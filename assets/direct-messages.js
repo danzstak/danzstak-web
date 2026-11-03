@@ -528,9 +528,41 @@ function installDirectMessageMedia(item, message, mine) {
   retry.type = "button";
   retry.textContent = messageTranslate("Retry media");
   recovery.append(copy, retry);
-  const showRecovery = () => {
+  const showRecovery = (text = "Media is temporarily unavailable.") => {
+    copy.textContent = messageTranslate(text);
     item.querySelector(".message-attachment")?.remove();
     if (!recovery.parentNode) item.prepend(recovery);
+  };
+  const watchAttachment = (media, onTimeout) => {
+    let watchdog = 0;
+    let visibilityObserver = null;
+    const clearWatchdog = () => {
+      if (watchdog) clearTimeout(watchdog);
+      watchdog = 0;
+      visibilityObserver?.disconnect();
+      visibilityObserver = null;
+    };
+    const armWatchdog = (requestLoad = false) => {
+      if (media.tagName === "IMG" ? media.complete && media.naturalWidth > 0 : media.readyState >= 2) { clearWatchdog(); return; }
+      if (media.tagName === "VIDEO") {
+        media.dataset.loadRequested = "true";
+        media.preload = "metadata";
+        if (requestLoad && media.readyState === 0) media.load();
+      }
+      if (watchdog) clearTimeout(watchdog);
+      watchdog = setTimeout(() => { watchdog = 0; onTimeout(); }, 15000);
+    };
+    media.addEventListener(media.tagName === "IMG" ? "load" : "loadeddata", clearWatchdog, { once: true });
+    media.addEventListener("error", clearWatchdog, { once: true });
+    if (media.tagName === "VIDEO") media.addEventListener("pointerdown", () => armWatchdog(), { passive: true });
+    visibilityObserver = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      visibilityObserver?.disconnect();
+      visibilityObserver = null;
+      armWatchdog(true);
+    }, { root: messageList, rootMargin: "300px" });
+    visibilityObserver.observe(media);
+    return clearWatchdog;
   };
   const install = async () => {
     retry.disabled = true;
@@ -540,9 +572,10 @@ function installDirectMessageMedia(item, message, mine) {
     recovery.remove();
     const media = document.createElement(message.mediaType === "video" ? "video" : "img");
     media.className = "message-attachment";
-    media.addEventListener("error", () => { message.mediaUrl = ""; showRecovery(); }, { once: true });
     if (message.mediaType === "image") { media.alt = mine ? messageTranslate("Photo you sent") : messageFormat("Photo from {name}", { name: activeContactName }); media.loading = "lazy"; }
     else { media.controls = true; media.playsInline = true; media.preload = "metadata"; media.setAttribute("aria-label", mine ? messageTranslate("Video you sent") : messageFormat("Video from {name}", { name: activeContactName })); }
+    const clearWatchdog = watchAttachment(media, () => { message.mediaUrl = ""; showRecovery("Media is taking longer than expected."); });
+    media.addEventListener("error", () => { clearWatchdog(); message.mediaUrl = ""; showRecovery(); }, { once: true });
     media.src = mediaUrl;
     item.prepend(media);
   };
