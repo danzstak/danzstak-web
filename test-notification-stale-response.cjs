@@ -13,7 +13,7 @@ assert.match(block, /readArrayResponse\(friendsResponse, "friends"\)[\s\S]*?if \
   "stale notification responses must stop before changing badge counts or drawer content");
 assert.match(block, /\.catch\(\(\) => \{\s*if \(!isCurrentWorkspace\(\)\) return;/,
   "a stale notification failure must not replace a newer workspace with an error");
-assert.match(page, /assets\/feed-enhancements\.js\?v=503/,
+assert.match(page, /assets\/feed-enhancements\.js\?v=504/,
   "Your Mix should request the guarded notification controller");
 
 console.log("Notification stale-response checks passed: older drawer loads cannot overwrite current state.");

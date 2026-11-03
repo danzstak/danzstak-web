@@ -1,5 +1,14 @@
 # DANZSTAK development report
 
+## Core social-network regression audit
+
+Status as of 2026-11-03: **PASSING LOCALLY; NOT DEPLOYED BY THIS BRANCH**.
+
+- Ran 118 focused regression programs covering messaging, feed loading and actions, persistent posts/media, comments/replies, Friends and online discovery, notifications, calls, profiles, Flashes/The Roll, settings, desktop navigation and mobile navigation.
+- Result: **118 passed, 0 failed**.
+- Five initial failures were stale cache-key assertions that still required `feed-enhancements.css?v=482` and `feed-enhancements.js?v=503`; the live page correctly loads the newer `v=483` and `v=504` builds. The tests were updated without weakening their behavioral assertions for accessible feedback, friend discovery, stale-response guards or Flash captions.
+- This is strong local regression evidence, not proof of every production workflow. Physical-device, multi-account and live deployed checks remain required before the complete platform objective can be marked finished.
+
 ## Booking email-to-phone Chat bridge
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; LIVE AWS MAIL AND PUSH VALIDATION BLOCKED; NOT DEPLOYED**.
