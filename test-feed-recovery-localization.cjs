@@ -27,11 +27,19 @@ for (const language of languages) {
 }
 
 for (const key of keys.filter(key => !key.includes("{error}"))) {
-  assert.ok(feed.includes(`feedTranslate("${key}")`), `${key} should pass through the selected language`);
+  assert.ok(
+    feed.includes(`feedTranslate("${key}")`) || feed.includes(`renderFeedRecovery(container, "${key}"`),
+    `${key} should pass through the selected language`
+  );
 }
 assert.ok(feed.includes('feedTranslate("Posts could not be loaded. Check your connection and try again.")'), "post loading failures should use actionable product language");
 assert.ok(feed.includes('retry.addEventListener("click", loadPosts, { once: true })'), "post loading failures should provide a working retry action");
 assert.ok(feed.includes('feedStatus.replaceChildren(message, retry)'), "post loading failures should render a compact recovery state");
+assert.match(feed, /function renderFeedRecovery\(container, message, retryAction, loadingLabel = "Working…"\)/, "news and people failures should share one compact recovery control");
+assert.match(feed, /renderFeedRecovery\(container, "News is temporarily unavailable\.", loadInterestNews, "Loading news…"\)/, "news failures should provide an immediate retry");
+assert.match(feed, /renderFeedRecovery\(container, "Users are temporarily unavailable\. Retrying…", refreshPeopleLists\)/, "online-user failures should provide an immediate retry without losing background refresh");
+assert.match(feed, /renderFeedRecovery\(container, "Friends are temporarily unavailable\. Retrying…", refreshPeopleLists\)/, "friend failures should provide an immediate retry without losing background refresh");
+assert.match(feed, /status\.setAttribute\("role", "alert"\)/, "feed recovery states should be announced to assistive technology");
 assert.doesNotMatch(feed, /feedStatus\.textContent\s*=\s*feedFormat\("Unable to load posts: \{error\}"/, "raw browser and server errors should not be shown to members");
 assert.doesNotMatch(feed, /innerHTML\s*=\s*'<p class="muted">(?:Loading news|No headlines|News is temporarily unavailable)/, "network states should be rendered as text instead of untranslated HTML");
 assert.match(enhancements, /const feedTranslate = value => globalThis\.danzstakTranslate/, "shared feed recovery controls should have a module-level translator");

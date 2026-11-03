@@ -3,7 +3,8 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
 const source = readFileSync('feed.html', 'utf8');
-const code = source.slice(source.indexOf('async function loadFriends()'), source.indexOf('// CREATE THE VISUAL DISPLAY OF A POST'));
+const recovery = source.slice(source.indexOf('function renderFeedRecovery'), source.indexOf('async function loadInterestNews'));
+const code = recovery + '\n' + source.slice(source.indexOf('async function loadFriends()'), source.indexOf('// CREATE THE VISUAL DISPLAY OF A POST'));
 
 function element(tagName) {
   return {
@@ -11,7 +12,8 @@ function element(tagName) {
     append(...children) { this.children.push(...children); },
     appendChild(child) { this.children.push(child); },
     replaceChildren(...children) { this.children = [...children]; },
-    setAttribute(name, value) { this[name] = value; }
+    setAttribute(name, value) { this[name] = value; },
+    addEventListener(name, listener) { this.listeners ??= {}; this.listeners[name] = listener; }
   };
 }
 
@@ -31,7 +33,8 @@ async function render({ friendsAvailable = true, presenceAvailable = true } = {}
         directoryData: { users: presenceAvailable ? [{ email: 'friend@example.com', online: true }] : [] },
         presenceAvailable
       };
-    }
+    },
+    refreshPeopleLists() {}
   });
   vm.runInContext(code, context);
   await context.loadFriends();
@@ -49,5 +52,6 @@ async function render({ friendsAvailable = true, presenceAvailable = true } = {}
 
   const failed = await render({ friendsAvailable: false });
   assert.equal(failed.children[0].textContent, 'Friends are temporarily unavailable. Retrying…', 'friends failure must replace the loading state');
+  assert.equal(failed.children[1].textContent, 'Try again', 'friends failure must provide immediate recovery');
   console.log('Feed friend presence checks passed: online, unknown, and failed states remain accurate.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
