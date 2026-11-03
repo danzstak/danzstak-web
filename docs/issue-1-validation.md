@@ -76,6 +76,7 @@ All three current global OpenStreetMap Overpass mirrors were unavailable from th
 - A follow-up Messages pass verified that the notification-permission card is hidden while the chat drawer is open and returns after the drawer closes. When all contact sources are unavailable, the drawer now replaces the indefinite passive status with a localized **Try loading messages again** control while retaining background polling.
 - News, Online Users, and Friends now use the same compact, localized recovery pattern: failures are announced, members can retry immediately, and the existing background presence refresh remains active. The updated inline feed script passes the strict CSP hash check.
 - The notification drawer now applies the selected language to its dialog and region names, close control, loading message, empty state, network failure, and Retry action. Reopening the drawer also refreshes its accessible labels after a language change. Targeted notification tests plus the complete local regression, smoke, PWA-cache, CSP, and infrastructure suites pass.
+- Notification actions now follow the selected language too: Open Tribe, View post, Open chat, Accept, and Decline retain member-specific accessible names without exposing account email addresses.
 
 ## Known limits
 

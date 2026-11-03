@@ -28,9 +28,9 @@ assert.match(notificationBlock, /fetch\("https:\/\/api\.danzstak\.com\/friends"/
 assert.match(notificationBlock, /picture: person\.picture \|\| known\.picture/, 'online directory data must not erase a saved friend photo');
 assert.match(notificationBlock, /avatar\.href = `profile\.html\?member=\$\{encodeURIComponent\(memberId\)\}`/, 'notification avatars should open opaque member-profile URLs');
 assert.doesNotMatch(notificationBlock, /profile\.html\?email=/, 'notification profiles must never expose account emails in URLs');
-assert.match(notificationBlock, /"View post from " \+ displayName/);
-assert.match(notificationBlock, /"Open chat with " \+ displayName/);
-assert.match(notificationBlock, /label \+ " friend request from " \+ displayName/);
+assert.match(notificationBlock, /`\$\{feedTranslate\("View post"\)\}: \$\{displayName\}`/);
+assert.match(notificationBlock, /`\$\{feedTranslate\("Open chat"\)\}: \$\{displayName\}`/);
+assert.match(notificationBlock, /`\$\{feedTranslate\(label\)\}: \$\{displayName\}`/);
 assert.doesNotMatch(notificationBlock, /String\(notice\.email \|\| "DanzStak member"\)\.split\("@"\)\[0\]/);
 const authApi = readFileSync('infrastructure/auth-api/index.mjs', 'utf8');
 const engagementStart = authApi.indexOf('async function getEngagementNotifications(');

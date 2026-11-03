@@ -17,7 +17,7 @@ vm.runInContext(`result={keys:${keysMatch[1]},guidance:${guidanceMatch[1]}}`, co
 const { keys, guidance } = context.result;
 const languages = ["es", "fr", "de", "pt", "it", "ko", "ja", "zh-Hans", "zh-Hant", "fil", "hi", "vi", "th", "id"];
 
-assert.equal(keys.length, 10, "drawer states, failures, counts, and accessible notification labels should all be localized");
+assert.equal(keys.length, 11, "drawer states, failures, actions, counts, and accessible notification labels should all be localized");
 assert.deepEqual(Object.keys(guidance).sort(), [...languages].sort(), "every supported non-English locale needs notification translations");
 for (const language of languages) {
   assert.equal(guidance[language].length, keys.length, `${language} should translate every notification state`);
@@ -37,6 +37,8 @@ assert.match(feed, /notificationDrawer\.setAttribute\("aria-label", feedTranslat
 assert.match(feed, /setAttribute\("aria-label", feedTranslate\("Close notifications"\)\)/, "the notification close control should use the selected language");
 assert.match(feed, /error\.textContent = feedTranslate\("Notifications could not be loaded\."\)/, "the notification failure state should use the selected language");
 assert.match(feed, /retry\.textContent = feedTranslate\("Retry"\)/, "the notification retry action should use the selected language");
+for (const action of ["Open Tribe", "View post", "Open chat"]) assert.match(feed, new RegExp(`open\\.textContent = feedTranslate\\(\"${action}\"\\)`), `${action} should use the selected language`);
+assert.match(feed, /button\.textContent = feedTranslate\(label\)/, "friend-request actions should use the selected language");
 assert.match(feed, /typeof MutationObserver === "function"[\s\S]{0,40}new MutationObserver\(\(\) => \{ if \(lastNotificationCount !== null\) updateNotificationCount\(lastNotificationCount\); \}\)/, "language changes should immediately refresh notification labels without announcing a false count change");
 
 console.log("Notification localization checks passed: drawer states, badges, singular/plural announcements, and language changes cover all supported locales.");

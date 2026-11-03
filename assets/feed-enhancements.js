@@ -1256,25 +1256,25 @@ function renderWorkspace(name) {
           if (notice.type === "group_everyone") {
             const open = document.createElement("a");
             open.className = "primary";
-            open.textContent = "Open Tribe";
+            open.textContent = feedTranslate("Open Tribe");
             open.href = /^[a-f0-9-]{36}$/i.test(String(notice.groupId || ""))
               ? `feed.html?view=groups&tribe=${encodeURIComponent(notice.groupId)}#groups`
               : "feed.html?view=groups#groups";
-            open.setAttribute("aria-label", "Open " + (notice.groupName || "Tribe"));
+            open.setAttribute("aria-label", `${feedTranslate("Open Tribe")}: ${notice.groupName || "Tribe"}`);
             actions.appendChild(open);
           } else if (["reaction", "comment", "reply", "tag"].includes(notice.type)) {
             const open = document.createElement("a");
             open.className = "primary";
-            open.textContent = "View post";
-            open.setAttribute("aria-label", "View post from " + displayName);
+            open.textContent = feedTranslate("View post");
+            open.setAttribute("aria-label", `${feedTranslate("View post")}: ${displayName}`);
             open.href = `feed.html#post-${encodeURIComponent(notice.postId)}`;
             actions.appendChild(open);
           } else if (notice.type === "message") {
             const open = document.createElement("button");
             open.type = "button";
             open.className = "primary";
-            open.textContent = "Open chat";
-            open.setAttribute("aria-label", "Open chat with " + displayName);
+            open.textContent = feedTranslate("Open chat");
+            open.setAttribute("aria-label", `${feedTranslate("Open chat")}: ${displayName}`);
             open.addEventListener("click", () => {
               if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email);
               setTimeout(() => {
@@ -1286,8 +1286,8 @@ function renderWorkspace(name) {
           } else for (const [label, accept] of [["Accept", true], ["Decline", false]]) {
             const button = document.createElement("button");
             button.type = "button";
-            button.textContent = label;
-            button.setAttribute("aria-label", label + " friend request from " + displayName);
+            button.textContent = feedTranslate(label);
+            button.setAttribute("aria-label", `${feedTranslate(label)}: ${displayName}`);
             button.className = accept ? "primary" : "secondary";
             button.addEventListener("click", async () => {
               await respondToNotificationRequest(row, notice.email, accept);
