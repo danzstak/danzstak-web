@@ -23,6 +23,39 @@
       <details><summary>Recent credit activity</summary><ol id="bookingCreditActivity"><li>No activity yet.</li></ol></details>
       <p id="bookingCreditStatus" role="status" aria-live="polite"></p>
     </section>
+    <section class="tour-manager-dashboard" aria-labelledby="tourManagerTitle">
+      <div class="dashboard-heading"><div><p class="eyebrow">Paid Tour Manager</p><h2 id="tourManagerTitle">Tour overview</h2></div><p id="tourManagerDates">Add dates and costs below.</p></div>
+      <div class="tour-manager-stats" aria-label="Tour booking totals">
+        <div><strong id="tmSelected">0</strong><span>Selected</span></div>
+        <div><strong id="tmSent">0</strong><span>Emails sent</span></div>
+        <div><strong id="tmReplies">0</strong><span>Replies</span></div>
+        <div><strong id="tmConfirmed">0</strong><span>Confirmed</span></div>
+        <div><strong id="tmDeclined">0</strong><span>Declined</span></div>
+      </div>
+      <div class="tour-finance-summary" aria-label="Estimated tour finances">
+        <div><span>Estimated cost</span><strong id="tmTotalCost">—</strong></div>
+        <div><span>Confirmed revenue</span><strong id="tmConfirmedRevenue">—</strong></div>
+        <div><span>Projected result</span><strong id="tmProjectedResult">—</strong></div>
+        <div><span>Break even</span><strong id="tmBreakEven">—</strong></div>
+        <div><span>Booking-email spend</span><strong id="tmBookingSpend">—</strong></div>
+      </div>
+      <section class="tour-calendar-panel" aria-labelledby="tourCalendarTitle"><h3 id="tourCalendarTitle">Tour calendar</h3><ol id="tourManagerCalendar"><li>Add proposed dates to selected venues.</li></ol></section>
+      <details class="tour-budget"><summary>Tour dates, crew and expense estimate</summary>
+        <div class="tour-budget-grid">
+          <label>Tour name<input id="tmName" maxlength="100" placeholder="West Coast run"></label>
+          <label>Currency<input id="tmCurrency" maxlength="3" value="USD" aria-label="Three-letter currency code"></label>
+          <label>Departure<input id="tmDepartOn" type="date"></label><label>Return<input id="tmReturnBy" type="date"></label>
+          <label>Road distance (km)<input id="tmDistanceKm" type="number" min="0" step="1"></label><label>Vehicle<input id="tmVehicleType" maxlength="80" placeholder="Cargo van"></label>
+          <label>Fuel L/100 km<input id="tmFuelUse" type="number" min="0" step="0.1"></label><label>Fuel price / liter<input id="tmFuelPrice" type="number" min="0" step="0.01"></label>
+          <label>People traveling<input id="tmPeople" type="number" min="1" step="1" value="1"></label><label>Meals / person / day<input id="tmMeals" type="number" min="0" step="0.01"></label>
+          <label>Hotel nights<input id="tmNights" type="number" min="0" step="1"></label><label>Rooms<input id="tmRooms" type="number" min="0" step="1"></label><label>Room / night<input id="tmRoomRate" type="number" min="0" step="0.01"></label>
+          <label>Tolls<input id="tmTolls" type="number" min="0" step="0.01"></label><label>Parking<input id="tmParking" type="number" min="0" step="0.01"></label><label>Vehicle rental<input id="tmVehicleRental" type="number" min="0" step="0.01"></label>
+          <label>Equipment transport<input id="tmEquipment" type="number" min="0" step="0.01"></label><label>Crew expenses<input id="tmCrew" type="number" min="0" step="0.01"></label><label>Other costs<input id="tmMisc" type="number" min="0" step="0.01"></label>
+          <label>Contingency %<input id="tmContingency" type="number" min="0" max="100" step="0.1" value="10"></label><label>Confirmed performance revenue<input id="tmConfirmedRevenueInput" type="number" min="0" step="0.01"></label><label>Potential performance revenue<input id="tmPotentialRevenue" type="number" min="0" step="0.01"></label>
+        </div>
+        <p class="hint">Fuel, lodging, meals and profit are estimates in your selected currency. Booking-email spend uses actual successfully sent DanzStak emails at $1.50 each. It is included in the total only when the selected currency is USD; DanzStak does not invent an exchange rate.</p>
+      </details>
+    </section>
     <section class="artist-workspace" aria-labelledby="artistWorkspaceTitle">
       <h2 id="artistWorkspaceTitle">Your act, ready to pitch</h2>
       <div class="artist-fields">
@@ -47,7 +80,7 @@
     <section id="selectedVenueCards" class="selected-venue-grid" aria-label="Selected venue contacts"></section>
   </main>
   <script src="assets/app-feedback.js?v=3" defer></script>
-  <script src="assets/booking-billing.js?v=2" defer></script>
-  <script src="assets/booking-selections.js?v=11" defer></script>
+  <script src="assets/booking-billing.js?v=3" defer></script>
+  <script src="assets/booking-selections.js?v=12" defer></script>
 </body>
 </html>

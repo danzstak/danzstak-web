@@ -113,6 +113,33 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return response(200, { bookingEmailCredits: Number(found.Item?.credits?.N || 0), purchasedCredits: Number(found.Item?.purchasedCredits?.N || 0), sentEmails: Number(found.Item?.sentEmails?.N || 0), reservedCredits: Number(found.Item?.reservedCredits?.N || 0), unitAmountCents: TOUR_MANAGER_EMAIL_UNIT_CENTS, currency: "usd", priceId: TOUR_MANAGER_EMAIL_PRICE_ID, activity }, headers);
   }
 
+  async function outreach(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const result = await db.send(new QueryCommand({
+      TableName: tableName,
+      KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)",
+      ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#EMAIL_SEND#" } },
+      ConsistentRead: true,
+      ScanIndexForward: false,
+      Limit: 200
+    }));
+    const messages = (result.Items || []).map(item => ({
+      id: String(item.tourId?.S || "").slice("TOUR_MANAGER#EMAIL_SEND#".length),
+      venueKey: item.venueKey?.S || "",
+      venueName: item.venueName?.S || "Venue",
+      recipient: item.recipient?.S || "",
+      subject: item.subject?.S || "",
+      status: item.status?.S || "unknown",
+      createdAt: item.createdAt?.S || "",
+      sentAt: item.sentAt?.S || "",
+      providerAcceptedAt: item.providerAcceptedAt?.S || ""
+    }));
+    return response(200, { messages }, headers);
+  }
+
   async function loadVerifiedSession(session, expectedLive) {
     const userId = session.client_reference_id, lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null, quantity = Number(line?.quantity), metadata = session.metadata || {};
     const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PRODUCT && metadata.userId === userId && metadata.priceId === TOUR_MANAGER_EMAIL_PRICE_ID && Number(metadata.quantity) === quantity && line?.price?.id === TOUR_MANAGER_EMAIL_PRICE_ID && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === TOUR_MANAGER_EMAIL_UNIT_CENTS && Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_CREDITS_PER_CHECKOUT && session.currency === "usd" && Number(session.amount_total) === quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS;
@@ -202,11 +229,12 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!venueKey || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || subject.length < 3 || subject.length > 180 || message.length < 20 || message.length > 5000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(id)) return response(400, { error: "Choose a saved venue, reviewed email, subject, message, and valid send identifier." }, headers);
     const workspace = await db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }));
     let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
-    const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to)), artistName = String(plan.artist?.name || "").trim();
+    const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to)), artistName = String(plan.artist?.name || "").trim(), epk = String(plan.artist?.epk || "").trim();
     if (!venue) return response(409, { error: "Save this venue and its public booking email to your account before sending." }, headers);
     const contactAccess = await db.send(new GetItemCommand({ TableName: tableName, Key: contactUnlockKey(userId, venueKey), ConsistentRead: true }));
     if (contactAccess.Item?.status?.S !== "active") return response(402, { error: "Unlock this venue's booking contact before sending." }, headers);
     if (!artistName) return response(409, { error: "Add your act name and save the booking workspace before sending." }, headers);
+    if (!/^https:\/\//i.test(epk) || !message.includes(epk)) return response(409, { error: "Publish and save the artist EPK, then include its exact public link in the reviewed email." }, headers);
     const key = sendKey(userId, id), existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
     if (existing.Item) return response(existing.Item.status?.S === "sent" ? 200 : 202, { status: existing.Item.status?.S || "pending", duplicate: true, messageId: existing.Item.providerMessageId?.S || "" }, headers);
     const reservedAt = nowIso();
@@ -253,6 +281,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (method === "POST" && path === "/tour-manager/contact-unlock/checkout") return contactCheckout(event);
     if (method === "GET" && path === "/tour-manager/contact-unlocks") return contactUnlocks(event);
     if (method === "GET" && path === "/tour-manager/credits") return credits(event);
+    if (method === "GET" && path === "/tour-manager/outreach") return outreach(event);
     if (method === "POST" && path === "/tour-manager/emails/send") return sendEmail(event);
     return null;
   };

@@ -9,6 +9,7 @@ The same service sells a venue-specific booking-contact unlock using Product `pr
 - `POST /tour-manager/checkout` — authenticated DanzStak member; accepts `{ "quantity": 1..500 }` and creates a Stripe Checkout session.
 - `POST /tour-manager/stripe/webhook` — public Stripe webhook; accepts only signed Stripe events.
 - `GET /tour-manager/credits` — authenticated member; returns remaining, purchased, reserved, and sent counts plus recent ledger activity.
+- `GET /tour-manager/outreach` — authenticated member; returns the account's provider-submission state for the Tour Manager dashboard without exposing another member's records.
 - `POST /tour-manager/emails/send` — authenticated member; reserves one credit, validates the saved venue contact, submits through Amazon SES, and finalizes or restores the credit from the provider result.
 - `POST /tour-manager/contact-unlock/checkout` — authenticated member; creates a one-time Checkout only for a saved venue with a direct public contact.
 - `GET /tour-manager/contact-unlocks` — authenticated member; returns active venue-specific contact entitlements.

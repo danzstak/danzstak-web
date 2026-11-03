@@ -13,7 +13,9 @@ assert.equal(context.csvCell(undefined), '""');
 const summary = source.slice(source.indexOf('function updateControls()'), source.indexOf('function persist()'));
 const state = vm.createContext({
   venues: [{booking:{stage:'Confirmed',followUp:'2000-01-01'}}, {booking:{stage:'Declined',followUp:'2000-01-01'}}, {booking:{stage:'Contacted',followUp:'2000-01-01'}}, {booking:{stage:'Research',followUp:'2999-01-01'}}],
-  printButton:{}, downloadButton:{}, clearButton:{}, status:{}
+  printButton:{}, downloadButton:{}, clearButton:{}, status:{},
+  bookingStatus: venue => ({Contacted:'Email sent',Research:'Not contacted'}[venue.booking.stage] || venue.booking.stage),
+  renderDashboard: () => {}
 });
 vm.runInContext(summary + '; updateControls();', state);
 assert.equal(state.status.textContent, '4 selected clubs · 1 confirmed · 1 follow-ups due');

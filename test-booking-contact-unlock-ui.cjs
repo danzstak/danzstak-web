@@ -14,8 +14,8 @@ assert.match(selections, /danzstakBookingContactUnlocked/);
 assert.match(selections, /contactUnlocked \? \(venue\.emails/);
 assert.match(selections, /contactUnlocked \? \(venue\.phones/);
 assert.match(selections, /document\.addEventListener\("danzstak-contact-unlocks", render\)/);
-assert.match(page, /booking-billing\.js\?v=2/);
-assert.match(page, /booking-selections\.js\?v=11/);
+assert.match(page, /booking-billing\.js\?v=3/);
+assert.match(page, /booking-selections\.js\?v=12/);
 assert.match(deployment, /POST \/tour-manager\/contact-unlock\/checkout/);
 assert.match(deployment, /GET \/tour-manager\/contact-unlocks/);
 

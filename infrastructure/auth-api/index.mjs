@@ -3540,6 +3540,52 @@ async function privateEpkShare(event, method, publicId = "") {
   ] }));
   return reply(200, { privateShared: true, publicId: id, token });
 }
+const bookingPipelineStatuses = new Set(["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined", "No response"]);
+const legacyBookingStatuses = new Map([["Research", "Not contacted"], ["Ready to pitch", "Email prepared"], ["Contacted", "Email sent"], ["In conversation", "Reply received"], ["Hold", "Interested"]]);
+
+function cleanTourBudget(value) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const number = (input, maximum = 1000000) => Math.max(0, Math.min(maximum, Number.isFinite(Number(input)) ? Number(input) : 0));
+  const integer = (input, maximum = 10000) => Math.round(number(input, maximum));
+  const text = (input, maximum = 120) => typeof input === "string" ? input.trim().slice(0, maximum) : "";
+  const date = input => typeof input === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input) && !Number.isNaN(Date.parse(`${input}T12:00:00Z`)) ? input : "";
+  const currency = /^[A-Z]{3}$/.test(String(source.currency || "").toUpperCase()) ? String(source.currency).toUpperCase() : "USD";
+  const departOn = date(source.departOn), returnBy = date(source.returnBy);
+  const durationDays = departOn && returnBy ? Math.max(1, Math.min(365, Math.floor((Date.parse(`${returnBy}T12:00:00Z`) - Date.parse(`${departOn}T12:00:00Z`)) / 86400000) + 1)) : Math.max(1, integer(source.durationDays, 365));
+  return {
+    name: text(source.name, 100), departOn, returnBy, durationDays,
+    distanceKm: number(source.distanceKm, 200000), vehicleType: text(source.vehicleType, 80),
+    fuelLitersPer100Km: number(source.fuelLitersPer100Km, 100), fuelPricePerLiter: number(source.fuelPricePerLiter, 100),
+    tolls: number(source.tolls), parking: number(source.parking), vehicleRental: number(source.vehicleRental),
+    nights: integer(source.nights, 365), rooms: integer(source.rooms, 100), roomRate: number(source.roomRate, 10000),
+    people: Math.max(1, integer(source.people, 200)), mealPerPersonDay: number(source.mealPerPersonDay, 1000),
+    equipment: number(source.equipment), crew: number(source.crew), miscellaneous: number(source.miscellaneous),
+    contingencyPercent: Math.min(100, number(source.contingencyPercent, 100)),
+    confirmedRevenue: number(source.confirmedRevenue, 10000000), potentialRevenue: number(source.potentialRevenue, 10000000), currency
+  };
+}
+
+function tourBudgetEstimate(tour, bookingEmailCount = 0, venues = []) {
+  const fuel = tour.distanceKm / 100 * tour.fuelLitersPer100Km * tour.fuelPricePerLiter;
+  const accommodation = tour.nights * tour.rooms * tour.roomRate;
+  const meals = tour.people * tour.durationDays * tour.mealPerPersonDay;
+  const transportation = fuel + tour.tolls + tour.parking + tour.vehicleRental;
+  const base = transportation + accommodation + meals + tour.equipment + tour.crew + tour.miscellaneous;
+  const contingency = base * tour.contingencyPercent / 100;
+  const bookingEmailsUsd = Math.max(0, Math.trunc(bookingEmailCount)) * 1.5;
+  const bookingEmails = tour.currency === "USD" ? bookingEmailsUsd : 0;
+  const fees = venues.filter(venue => venue.booking?.feeCurrency === tour.currency).map(venue => ({ status: legacyBookingStatuses.get(venue.booking?.stage) || venue.booking?.status || venue.booking?.stage || "Not contacted", amount: Math.max(0, Number(venue.booking?.performanceFee) || 0) }));
+  const confirmedRevenue = Math.max(tour.confirmedRevenue, fees.filter(item => item.status === "Confirmed").reduce((sum, item) => sum + item.amount, 0));
+  const potentialRevenue = Math.max(tour.potentialRevenue, fees.filter(item => !["Declined", "No response"].includes(item.status)).reduce((sum, item) => sum + item.amount, 0));
+  const total = base + contingency + bookingEmails;
+  return { fuel, transportation, accommodation, meals, contingency, bookingEmails, bookingEmailsUsd, total, confirmedRevenue, potentialRevenue, confirmedProfit: confirmedRevenue - total, potentialProfit: potentialRevenue - total, breakEvenRevenue: total, currency: tour.currency };
+}
+
+async function sentBookingEmailCount(userId) {
+  const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#EMAIL_SEND#" } }, ProjectionExpression: "#status", ExpressionAttributeNames: { "#status": "status" }, ConsistentRead: true, Limit: 500 }));
+  return (result.Items || []).filter(item => item.status?.S === "sent").length;
+}
+
 async function bookingWorkspace(event, method) {
   const headers = corsHeaders(event.headers?.origin);
   const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
@@ -3549,7 +3595,10 @@ async function bookingWorkspace(event, method) {
   const Key = { userId: { S: userId }, tourId: { S: bookingWorkspaceId } };
   if (method === "GET") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true }));
-    return reply(200, result.Item ? { ...JSON.parse(result.Item.plan.S), revision: result.Item.revision?.S || "" } : { venues: [], artist: {}, revision: "" });
+    const bookingEmailCount = await sentBookingEmailCount(userId);
+    if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "" });
+    const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour);
+    return reply(200, { ...saved, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, saved.venues || []), revision: result.Item.revision?.S || "" });
   }
   const data = parseJsonBody(event);
   if (!data || !Array.isArray(data.venues) || data.venues.length > 100 || typeof data.revision !== "string") return reply(400, { error: "Provide up to 100 venues and the loaded revision." });
@@ -3558,16 +3607,23 @@ async function bookingWorkspace(event, method) {
   const list = (value, clean) => Array.isArray(value) ? value.slice(0, 8).map(clean).filter(Boolean) : [];
   const date = value => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value ? value : "";
   const timestamp = value => typeof value === "string" && /^\d{4}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value) && !Number.isNaN(Date.parse(value)) ? new Date(value).toISOString() : "";
-  const stages = new Set(["Research", "Ready to pitch", "Contacted", "In conversation", "Hold", "Confirmed", "Declined"]);
+  let invalidConfirmation = false;
   const venues = data.venues.map(v => {
     if (!v || typeof v !== "object" || !text(v.name)) return null;
     const b = v.booking || {};
     const sources = Array.isArray(v.sources) ? v.sources.slice(0, 6).map(source => source && typeof source === "object" ? { name: text(source.name, 120), url: https(source.url) } : null).filter(source => source?.name) : [];
-    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { stage: stages.has(b.stage) ? b.stage : "Research", showDate: date(b.showDate), followUp: date(b.followUp), deal: text(b.deal, 2000), notes: text(b.notes, 2000), outreachDraft: text(b.outreachDraft, 5000) } };
+    const requestedStatus = legacyBookingStatuses.get(b.stage) || b.status || b.stage;
+    const status = bookingPipelineStatuses.has(requestedStatus) ? requestedStatus : "Not contacted";
+    const showDate = date(b.showDate), confirmationEvidence = text(b.confirmationEvidence, 3000);
+    if (status === "Confirmed" && (!showDate || !confirmationEvidence)) invalidConfirmation = true;
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), outreachDraft: text(b.outreachDraft, 5000) } };
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
+  if (invalidConfirmation) return reply(400, { error: "A confirmed performance requires a show date and written confirmation evidence." });
   const a = data.artist || {};
-  const plan = JSON.stringify({ venues, artist: { name: text(a.name, 100), genre: text(a.genre, 100), hometown: text(a.hometown, 160), epk: https(a.epk), pitch: text(a.pitch, 1000) } });
+  const tour = cleanTourBudget(data.tour), bookingEmailCount = await sentBookingEmailCount(userId);
+  const estimate = tourBudgetEstimate(tour, bookingEmailCount, venues);
+  const plan = JSON.stringify({ venues, artist: { name: text(a.name, 100), genre: text(a.genre, 100), hometown: text(a.hometown, 160), epk: https(a.epk), pitch: text(a.pitch, 1000) }, tour });
   if (Buffer.byteLength(plan, "utf8") > 250000) return reply(400, { error: "Workspace is too large. Export a copy and reduce the list." });
   const revision = randomUUID();
   try {
@@ -3576,7 +3632,7 @@ async function bookingWorkspace(event, method) {
     if (error.name === "ConditionalCheckFailedException") return reply(409, { error: "Another device saved changes. Export your work, then reload the account workspace before saving." });
     throw error;
   }
-  return reply(200, { revision });
+  return reply(200, { revision, estimate });
 }
 
 async function saveTourPlan(event) {

@@ -7,7 +7,8 @@
   const downloadButton = document.getElementById("downloadVenueCsv");
   const clearButton = document.getElementById("clearVenueSelections");
   const storageKey = "danzstakBookingVenueSelections";
-  const stages = ["Research", "Ready to pitch", "Contacted", "In conversation", "Hold", "Confirmed", "Declined"];
+  const stages = ["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined", "No response"];
+  const legacyStages = { Research: "Not contacted", "Ready to pitch": "Email prepared", Contacted: "Email sent", "In conversation": "Reply received", Hold: "Interested" };
   let venues = [];
   let revision = "";
   let accountLoaded = false;
@@ -16,8 +17,12 @@
   const saveAccount = document.getElementById("saveBookingAccount");
   const loadAccount = document.getElementById("loadBookingAccount");
   const artistInputs = { name: "pitchArtist", genre: "pitchGenre", hometown: "pitchHometown", epk: "pitchEpk", pitch: "pitchSummary" };
+  const tourInputs = { name: "tmName", currency: "tmCurrency", departOn: "tmDepartOn", returnBy: "tmReturnBy", distanceKm: "tmDistanceKm", vehicleType: "tmVehicleType", fuelLitersPer100Km: "tmFuelUse", fuelPricePerLiter: "tmFuelPrice", people: "tmPeople", mealPerPersonDay: "tmMeals", nights: "tmNights", rooms: "tmRooms", roomRate: "tmRoomRate", tolls: "tmTolls", parking: "tmParking", vehicleRental: "tmVehicleRental", equipment: "tmEquipment", crew: "tmCrew", miscellaneous: "tmMisc", contingencyPercent: "tmContingency", confirmedRevenue: "tmConfirmedRevenueInput", potentialRevenue: "tmPotentialRevenue" };
   const artist = () => Object.fromEntries(Object.entries(artistInputs).map(([key, id]) => [key, document.getElementById(id).value.trim()]));
+  const tour = () => Object.fromEntries(Object.entries(tourInputs).map(([key, id]) => { const input = document.getElementById(id); return [key, input.type === "number" ? Number(input.value || 0) : input.value.trim()]; }));
+  const bookingStatus = venue => legacyStages[venue.booking?.stage] || venue.booking?.status || venue.booking?.stage || "Not contacted";
   const identity = v => String(v.venueKey || `${v.name || ""}|${v.address || ""}`);
+  let serverEstimate = null;
   async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -66,18 +71,67 @@
     return anchor;
   };
 
+  function localEstimate() {
+    const values = tour(), depart = Date.parse(`${values.departOn || ""}T12:00:00Z`), back = Date.parse(`${values.returnBy || ""}T12:00:00Z`);
+    const durationDays = Number.isFinite(depart) && Number.isFinite(back) && back >= depart ? Math.floor((back - depart) / 86400000) + 1 : 1;
+    const fuel = values.distanceKm / 100 * values.fuelLitersPer100Km * values.fuelPricePerLiter;
+    const accommodation = values.nights * values.rooms * values.roomRate;
+    const meals = Math.max(1, values.people) * durationDays * values.mealPerPersonDay;
+    const transportation = fuel + values.tolls + values.parking + values.vehicleRental;
+    const base = transportation + accommodation + meals + values.equipment + values.crew + values.miscellaneous;
+    const bookingEmailsUsd = Number(window.danzstakTourManagerBilling?.credits?.sentEmails || 0) * 1.5, bookingEmails = String(values.currency || "USD").toUpperCase() === "USD" ? bookingEmailsUsd : 0;
+    const fees = venues.filter(venue => String(venue.booking?.feeCurrency || "USD").toUpperCase() === String(values.currency || "USD").toUpperCase()).map(venue => ({ status: bookingStatus(venue), amount: Math.max(0, Number(venue.booking?.performanceFee) || 0) }));
+    const confirmedRevenue = Math.max(values.confirmedRevenue, fees.filter(item => item.status === "Confirmed").reduce((sum, item) => sum + item.amount, 0));
+    const potentialRevenue = Math.max(values.potentialRevenue, fees.filter(item => !["Declined", "No response"].includes(item.status)).reduce((sum, item) => sum + item.amount, 0));
+    const total = base + base * Math.min(100, values.contingencyPercent) / 100 + bookingEmails;
+    return { total, confirmedRevenue, potentialRevenue, confirmedProfit: confirmedRevenue - total, potentialProfit: potentialRevenue - total, breakEvenRevenue: total, bookingEmailsUsd };
+  }
+
+  function renderDashboard() {
+    const statuses = venues.map(bookingStatus), outreach = window.danzstakTourManagerBilling?.outreach || [];
+    document.getElementById("tmSelected").textContent = String(venues.length);
+    document.getElementById("tmSent").textContent = String(outreach.filter(item => item.status === "sent").length);
+    document.getElementById("tmReplies").textContent = String(statuses.filter(value => ["Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined"].includes(value)).length);
+    document.getElementById("tmConfirmed").textContent = String(statuses.filter(value => value === "Confirmed").length);
+    document.getElementById("tmDeclined").textContent = String(statuses.filter(value => value === "Declined").length);
+    const values = tour(), estimate = serverEstimate || localEstimate(), currency = /^[A-Z]{3}$/.test(values.currency.toUpperCase()) ? values.currency.toUpperCase() : "USD";
+    let money; try { money = new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }); } catch { money = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }); }
+    document.getElementById("tourManagerDates").textContent = values.departOn && values.returnBy ? `${values.name || "Tour"} · ${values.departOn} to ${values.returnBy}` : "Add dates and costs below.";
+    document.getElementById("tmTotalCost").textContent = money.format(estimate.total || 0);
+    document.getElementById("tmConfirmedRevenue").textContent = money.format(estimate.confirmedRevenue || 0);
+    const result = document.getElementById("tmProjectedResult"), projected = Number(estimate.potentialProfit || 0);
+    result.textContent = money.format(projected); result.classList.toggle("financial-loss", projected < 0); result.classList.toggle("financial-profit", projected >= 0);
+    document.getElementById("tmBreakEven").textContent = money.format(estimate.breakEvenRevenue || 0);
+    document.getElementById("tmBookingSpend").textContent = new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(estimate.bookingEmailsUsd || 0);
+    const calendar = document.getElementById("tourManagerCalendar"), dated = venues.filter(venue => venue.booking?.showDate).sort((a, b) => a.booking.showDate.localeCompare(b.booking.showDate));
+    calendar.replaceChildren();
+    if (!dated.length) calendar.append(Object.assign(document.createElement("li"), { textContent: "Add proposed dates to selected venues." }));
+    dated.forEach((venue, index) => {
+      if (index) {
+        const previous = dated[index - 1], gap = Math.round((Date.parse(`${venue.booking.showDate}T12:00:00Z`) - Date.parse(`${previous.booking.showDate}T12:00:00Z`)) / 86400000);
+        if (gap > 1) { const open = document.createElement("li"); open.className = "calendar-gap"; open.textContent = `${gap - 1} open night${gap === 2 ? "" : "s"} between ${previous.name} and ${venue.name}; search the route for replacement leads.`; calendar.append(open); }
+      }
+      const row = document.createElement("li"), state = bookingStatus(venue);
+      row.textContent = `${venue.booking.showDate} · ${venue.name} · ${state}${venue.booking.performanceFee ? ` · ${venue.booking.feeCurrency || "USD"} ${Number(venue.booking.performanceFee).toFixed(2)}` : ""}`;
+      if (state === "Confirmed") row.className = "calendar-confirmed";
+      calendar.append(row);
+    });
+  }
+
   function updateControls() {
     const available = venues.length > 0;
     for (const button of [printButton, downloadButton, clearButton]) if (button) button.disabled = !available;
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    const due = venues.filter(v => v.booking?.followUp && v.booking.followUp <= today && !["Confirmed", "Declined"].includes(v.booking.stage)).length;
-    const confirmed = venues.filter(v => v.booking?.stage === "Confirmed").length;
+    const due = venues.filter(v => v.booking?.followUp && v.booking.followUp <= today && !["Confirmed", "Declined"].includes(bookingStatus(v))).length;
+    const confirmed = venues.filter(v => bookingStatus(v) === "Confirmed").length;
     status.textContent = `${venues.length} selected club${venues.length === 1 ? "" : "s"} · ${confirmed} confirmed · ${due} follow-ups due`;
+    renderDashboard();
   }
 
   function persist() {
     dirty = true;
+    serverEstimate = null;
     if (accountStatus) accountStatus.textContent = "Unsaved changes. Save to your account to continue on another device.";
     try {
       sessionStorage.setItem(storageKey, JSON.stringify(venues));
@@ -96,11 +150,17 @@
     fields.append(legend);
     const booking = venue.booking && typeof venue.booking === "object" ? venue.booking : {};
     venue.booking = booking;
+    booking.status = bookingStatus(venue);
+    delete booking.stage;
     for (const [key, title, type] of [
-      ["stage", "Booking stage", "select"],
+      ["status", "Booking status", "select"],
       ["showDate", "Proposed show date", "date"],
       ["followUp", "Follow up on", "date"],
-      ["deal", "Offer / agreed deal", "text"],
+      ["performanceFee", "Performance fee", "number"],
+      ["feeCurrency", "Fee currency", "text"],
+      ["deal", "Offer / agreed terms", "text"],
+      ["replySummary", "Reply and proposed terms", "textarea"],
+      ["confirmationEvidence", "Confirmation evidence", "textarea"],
       ["notes", "Buyer, fit, and next action", "textarea"]
     ]) {
       const label = document.createElement("label");
@@ -112,14 +172,20 @@
           const option = document.createElement("option");
           option.value = stage; option.textContent = stage; input.append(option);
         }
-      } else if (type !== "textarea") input.type = type;
+      } else if (type !== "textarea") { input.type = type; if (type === "number") { input.min = "0"; input.step = "0.01"; } }
       if (type === "text" || type === "textarea") input.maxLength = 2000;
-      input.value = String(booking[key] || (key === "stage" ? "Research" : ""));
-      input.addEventListener("change", () => { booking[key] = input.value; persist(); render(); });
+      input.value = String(booking[key] || (key === "status" ? "Not contacted" : key === "feeCurrency" ? "USD" : ""));
+      input.addEventListener("change", () => {
+        booking[key] = type === "number" ? Number(input.value || 0) : input.value;
+        if (key === "status" && input.value === "Confirmed" && (!booking.showDate || !String(booking.confirmationEvidence || "").trim())) {
+          window.danzstakShowFeedback?.("A confirmed show needs its date and written evidence from the promoter.", { urgent: true });
+        }
+        persist(); render();
+      });
       label.append(input); fields.append(label);
     }
     const hint = document.createElement("small");
-    hint.textContent = "Save to your account after editing. Update stages after the buyer replies. Opening an email draft does not mark it sent.";
+    hint.textContent = "Save after editing. Confirmed requires a date and written evidence of the promoter's agreement. Drafting or sending an email does not confirm a performance.";
     fields.append(hint);
     return fields;
   }
@@ -224,9 +290,9 @@
     const categories = (venue.categories || []).map(s => String(s).toLowerCase());
     const matches = genres.filter(g => categories.some(c => c === g || c.split(/[^a-z0-9-]+/).includes(g)));
     fit.textContent = matches.length ? `Listed genre match: ${matches.join(", ")}. Check the current calendar for comparable acts.` : "Genre fit unverified. Review the venue's calendar before pitching.";
-    if (["Confirmed", "Declined"].includes(venue.booking?.stage)) {
+    if (["Confirmed", "Declined"].includes(bookingStatus(venue))) {
       const closed = document.createElement("p");
-      closed.textContent = venue.booking.stage === "Confirmed" ? "Booking confirmed by you. Keep agreed terms and production details in your notes." : "Lead closed. Change its stage if you want to reopen outreach.";
+      closed.textContent = bookingStatus(venue) === "Confirmed" ? "Confirmed with evidence. Keep the agreed fee, production terms, and promoter confirmation attached to this record." : "Lead closed. Change its status if you want to reopen outreach.";
       section.append(fit, closed);
       return section;
     }
@@ -263,8 +329,10 @@
       button.textContent = "Sending…";
       try {
         await window.danzstakSendBookingEmail({ venueKey: identity(venue), to: email, subject: `${a.name} — booking enquiry for ${venue.booking.showDate}`, message: draft.value });
-        venue.booking.stage = "Contacted";
+        venue.booking.status = "Email sent";
+        persist();
         render();
+        await saveWorkspaceSnapshot();
       } catch (error) {
         window.danzstakShowFeedback?.(error.message, { urgent: true });
         button.disabled = false;
@@ -310,6 +378,11 @@
       venues = [...saved, ...retainedAdditions];
       revision = data.revision || "";
       for (const [key, id] of Object.entries(artistInputs)) document.getElementById(id).value = data.artist?.[key] || "";
+      for (const [key, id] of Object.entries(tourInputs)) {
+        const input = document.getElementById(id), value = data.tour?.[key];
+        if (value !== undefined && value !== null && value !== "") input.value = String(value);
+      }
+      serverEstimate = data.estimate || null;
       try { sessionStorage.setItem(storageKey, JSON.stringify(venues)); } catch {}
       accountLoaded = true;
       dirty = retainedAdditions.length > 0;
@@ -325,7 +398,7 @@
     }
   }
 
-  saveAccount?.addEventListener("click", async () => {
+  async function saveWorkspaceSnapshot() {
     saveAccount.disabled = true;
     loadAccount.disabled = true;
     // Lock edits while a snapshot is saving so later changes cannot appear saved.
@@ -333,8 +406,9 @@
     const enabled = controls.filter(c => !c.disabled);
     enabled.forEach(c => { c.disabled = true; });
     try {
-      const data = await accountRequest("POST", { venues, artist: artist(), revision });
+      const data = await accountRequest("POST", { venues, artist: artist(), tour: tour(), revision });
       revision = data.revision;
+      serverEstimate = data.estimate || null;
       try { sessionStorage.removeItem("danzstakBookingMapAdditions"); } catch {}
       dirty = false;
       accountStatus.textContent = "Saved privately to your account. Available on your other devices.";
@@ -344,9 +418,11 @@
       saveAccount.disabled = false;
       loadAccount.disabled = false;
     }
-  });
+  }
+  saveAccount?.addEventListener("click", saveWorkspaceSnapshot);
   loadAccount?.addEventListener("click", () => loadWorkspace(true));
   for (const id of Object.values(artistInputs)) document.getElementById(id)?.addEventListener("change", () => { persist(); render(); });
+  for (const id of Object.values(tourInputs)) document.getElementById(id)?.addEventListener("change", () => { serverEstimate = null; persist(); renderDashboard(); });
   window.addEventListener("beforeunload", event => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });
 
   function csvCell(value) {
@@ -360,7 +436,7 @@
   }
 
   function downloadCsv() {
-    const rows = [["Venue", "Address", "Website", "Email", "Phone", "Categories", "Evidence", "Source name", "Source URL", "Listing checked", "Stage", "Proposed show date", "Follow-up date", "Deal", "Notes", "Outreach draft"]];
+    const rows = [["Venue", "Address", "Website", "Email", "Phone", "Categories", "Evidence", "Source name", "Source URL", "Listing checked", "Status", "Proposed show date", "Follow-up date", "Performance fee", "Fee currency", "Deal", "Reply summary", "Confirmation evidence", "Notes", "Outreach draft"]];
     for (const venue of venues) {
       const contactUnlocked = window.danzstakBookingContactUnlocked?.(identity(venue)) === true;
       rows.push([
@@ -374,10 +450,14 @@
       venueSources(venue).map(source => source.name).join(" | "),
       venueSources(venue).map(source => source.url).filter(url => /^https:\/\//.test(url)).join(" | "),
       listingCheckedText(venue.discoveredAt),
-      venue.booking?.stage || "Research",
+      bookingStatus(venue),
       venue.booking?.showDate,
       venue.booking?.followUp,
+      venue.booking?.performanceFee,
+      venue.booking?.feeCurrency,
       venue.booking?.deal,
+      venue.booking?.replySummary,
+      venue.booking?.confirmationEvidence,
       venue.booking?.notes,
       venue.booking?.outreachDraft
       ]);
@@ -402,6 +482,7 @@
     render();
   });
   document.addEventListener("danzstak-contact-unlocks", render);
+  document.addEventListener("danzstak-tour-manager-billing", renderDashboard);
   render();
   if (loadAccount) loadWorkspace();
 })();
