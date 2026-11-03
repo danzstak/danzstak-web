@@ -108,6 +108,7 @@ Status as of 2026-11-04: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
 - Preserved the existing privacy boundary: public member identity uses opaque member profile routes, account email addresses remain internal, external text is rendered with `textContent`, and notification links retain the established safe destinations.
 - Advanced the feed localization/behavior cache keys and PWA shell cache so installed clients receive the corrected activity text.
 - Verification: **240 of 240** JavaScript regression programs pass. Notification-specific coverage verifies every translation table, placeholder preservation, timestamp rendering, drawer behavior, focus-safe navigation, privacy, partial-source recovery and PWA refresh. Release verification, the 11-page smoke suite, infrastructure/Lambda syntax validation and `git diff --check` also pass.
+- Implementation commit: `df842addf03ba337c789b9c1d15491b27f2f3a8d` on `danzstak-patch-1`.
 - Deployment: not published to production and not merged into `main`.
 
 ## Mobile Flashes navigation
