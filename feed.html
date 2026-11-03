@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-lafTHr4v4+pSzccpC9FnPA13+LKg2UhwZMbjuG4QTg8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-cEBBZ2gB00/BfStqy17ByMAY2kBPAA2VKQZRXW2EVTo='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
@@ -334,7 +334,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   <link rel="stylesheet" href="assets/soft-ui.css?v=425">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=6" defer></script>
-<script src="assets/i18n.js?v=371" defer></script>
+<script src="assets/i18n.js?v=372" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/post-sharing.js?v=417" defer></script>
 <script src="assets/media-tags.js?v=359" defer></script>
@@ -502,6 +502,11 @@ const featureView = document.getElementById("featureView");
 const featureTitle = document.getElementById("featureTitle");
 const featureDescription = document.getElementById("featureDescription");
 const volatileFeedPreferences = new Map();
+const feedTranslate = value => window.danzstakTranslate?.(value) || value;
+const feedFormat = (key, values = {}) => Object.entries(values).reduce(
+  (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+  feedTranslate(key)
+);
 
 function readFeedPreference(key) {
   if (volatileFeedPreferences.has(key)) return volatileFeedPreferences.get(key);
@@ -530,7 +535,8 @@ async function loadInterestNews() {
   const allowed = ["music", "top", "entertainment", "technology", "sports", "business"];
   const saved = readFeedPreference("danzstak-news-interest");
   if (allowed.includes(saved)) select.value = saved;
-  container.innerHTML = '<p class="muted">Loading news…</p>';
+  container.replaceChildren();
+  const loading = document.createElement("p"); loading.className = "muted"; loading.textContent = feedTranslate("Loading news…"); container.appendChild(loading);
   try {
     const response = await fetchWithDeadline("https://api.danzstak.com/news?interest=" + encodeURIComponent(select.value), { credentials: "include", cache: "no-store" });
     if (!response.ok) throw new Error();
@@ -548,8 +554,15 @@ async function loadInterestNews() {
       const source = document.createElement("small"); source.textContent = item.source || "News";
       link.append(title, source); container.appendChild(link);
     }
-    if (!container.children.length) container.innerHTML = '<p class="muted">No headlines available right now.</p>';
-  } catch { if (version === newsLoadVersion) container.innerHTML = '<p class="muted">News is temporarily unavailable.</p>'; }
+    if (!container.children.length) {
+      const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = feedTranslate("No headlines available right now."); container.appendChild(empty);
+    }
+  } catch {
+    if (version === newsLoadVersion) {
+      container.replaceChildren();
+      const error = document.createElement("p"); error.className = "muted"; error.textContent = feedTranslate("News is temporarily unavailable."); container.appendChild(error);
+    }
+  }
 }
 document.getElementById("newsInterest")?.addEventListener("change", event => { writeFeedPreference("danzstak-news-interest", event.target.value); loadInterestNews(); });
 document.getElementById("addNewsInterest")?.addEventListener("click", () => {
@@ -563,7 +576,7 @@ async function fetchWithDeadline(url, options = {}, timeoutMs = 10000) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch(url, { ...options, signal: controller.signal }); }
   catch (error) {
-    if (error?.name === "AbortError") throw new Error("DanzStak took too long to respond. Check your connection and try again.");
+    if (error?.name === "AbortError") throw new Error(feedTranslate("DanzStak took too long to respond. Check your connection and try again."));
     throw error;
   }
   finally { clearTimeout(timer); }
@@ -643,10 +656,10 @@ async function loadOnlineUsers() {
     if (!users.length) {
       const empty = document.createElement("p"); empty.className = "muted";
       empty.textContent = presenceState.visible === false
-        ? "You are appearing offline. Turn on online visibility in Settings to be seen."
+        ? feedTranslate("You are appearing offline. Turn on online visibility in Settings to be seen.")
         : presenceState.online === true
-          ? "You are online. No other connected users are active right now."
-          : "No other connected users are active right now.";
+          ? feedTranslate("You are online. No other connected users are active right now.")
+          : feedTranslate("No other connected users are active right now.");
       container.appendChild(empty); return;
     }
     for (const user of users) {
@@ -676,20 +689,20 @@ async function loadOnlineUsers() {
     }
   } catch {
     container.replaceChildren();
-    const error = document.createElement("p"); error.className = "muted"; error.textContent = "Users are temporarily unavailable. Retrying…"; container.appendChild(error);
+    const error = document.createElement("p"); error.className = "muted"; error.textContent = feedTranslate("Users are temporarily unavailable. Retrying…"); container.appendChild(error);
   }
 }
 
 async function updateFeedFriend(path, body, button) {
   const originalLabel = button?.textContent || "";
-  if (button) { button.disabled = true; button.textContent = "Working…"; }
+  if (button) { button.disabled = true; button.textContent = feedTranslate("Working…"); }
   try {
     const response = await fetchWithDeadline("https://api.danzstak.com" + path, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "Friend request could not be updated.");
+    if (!response.ok) throw new Error(data.error || feedTranslate("Friend request could not be updated."));
     await Promise.allSettled([loadOnlineUsers(), loadFriends()]);
   } catch (error) {
-    window.danzstakShowFeedback?.(error.message || "Friend request could not be updated.", { urgent: true });
+    window.danzstakShowFeedback?.(error.message || feedTranslate("Friend request could not be updated."), { urgent: true });
     if (button?.isConnected) { button.disabled = false; button.textContent = originalLabel; }
   }
 }
@@ -708,7 +721,7 @@ async function loadFriends() {
         : []
     );
     container.replaceChildren();
-    if (!friends.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No friends yet."; container.appendChild(empty); return; }
+    if (!friends.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = feedTranslate("No friends yet."); container.appendChild(empty); return; }
     for (const friend of friends) {
       const link = document.createElement("a"); link.className = "friend-card"; link.href = "profile.html?member=" + encodeURIComponent(friend.memberId);
       const avatar = friend.picture ? document.createElement("img") : document.createElement("span");
@@ -725,7 +738,7 @@ async function loadFriends() {
     }
   } catch {
     container.replaceChildren();
-    const error = document.createElement("p"); error.className = "muted"; error.textContent = "Friends are temporarily unavailable. Retrying…"; container.appendChild(error);
+    const error = document.createElement("p"); error.className = "muted"; error.textContent = feedTranslate("Friends are temporarily unavailable. Retrying…"); container.appendChild(error);
   }
 }
 
@@ -1168,8 +1181,7 @@ async function loadPosts() {
       error
     );
 
-    feedStatus.textContent =
-      "Unable to load posts: " + error.message;
+    feedStatus.textContent = feedFormat("Unable to load posts: {error}", { error: error.message });
 
   }
 }

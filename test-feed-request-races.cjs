@@ -11,7 +11,7 @@ const document={
   getElementById:id=>id==='newsInterest'?select:id==='interestNews'?container:null,
   createElement:tag=>({tag,children:[],append(...nodes){this.children.push(...nodes);}})
 };
-const newsContext=vm.createContext({document,URL,readFeedPreference:()=>null,encodeURIComponent,fetchWithDeadline:url=>new Promise(resolve=>requests.push({url,resolve}))});
+const newsContext=vm.createContext({document,URL,readFeedPreference:()=>null,feedTranslate:value=>value,encodeURIComponent,fetchWithDeadline:url=>new Promise(resolve=>requests.push({url,resolve}))});
 vm.runInContext(newsCode,newsContext);
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 
@@ -19,6 +19,7 @@ const friendCode=source.slice(source.indexOf('async function updateFeedFriend(')
 let feedbackMessage='';
 const friendContext=vm.createContext({
   button:{textContent:'Add Friend',disabled:false,isConnected:true},
+  feedTranslate:value=>value,
   fetchWithDeadline:async()=>{throw new Error('Connection failed');},
   loadOnlineUsers:async()=>{},loadFriends:async()=>{},
   window:{danzstakShowFeedback:message=>{feedbackMessage=message;}},Promise,JSON

@@ -18,6 +18,7 @@ class AbortController {
 }
 const context = vm.createContext({
   AbortController,
+  feedTranslate: value => value,
   Number,
   Math,
   setTimeout: callback => { timerCallback = callback; return 9; },
@@ -51,7 +52,7 @@ vm.runInContext(source.slice(helperStart, helperEnd), context);
   assert.match(source, /await fetchWithDeadline\("https:\/\/api\.danzstak\.com" \+ path/);
   assert.match(source, /fetchWithDeadline\("https:\/\/api\.danzstak\.com\/profiles\?member=/);
   assert.match(source, /if \(version !== newsLoadVersion\) return/);
-  assert.match(source, /button\.textContent = "Working…"/);
+  assert.match(source, /button\.textContent = feedTranslate\("Working…"\)/);
   const rawCalls = [...source.matchAll(/\bfetch\(/g)];
   assert.equal(rawCalls.length, 1, 'only the bounded request helper may call fetch directly');
   console.log('Feed network checks passed: story and media operations recover from stalls and large uploads receive adaptive time.');

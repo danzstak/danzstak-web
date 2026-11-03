@@ -18,6 +18,7 @@ function element(tagName) {
 async function render({ friendsAvailable = true, presenceAvailable = true } = {}) {
   const container = element('div');
   const context = vm.createContext({
+    feedTranslate: value => value,
     document: {
       getElementById(id) { assert.equal(id, 'feedFriends'); return container; },
       createElement: element
