@@ -1,37 +1,47 @@
 # DANZSTAK Stripe Integration
 
 **Branch:** `danzstak-patch-1`  
-**Status:** Configuration pending verification and end-to-end tests.  
-**Important:** The product/price IDs below were provided before the owner requested a separate DANZSTAK Stripe account. They must be verified against the NEW account; do not assume they work there.
+**Status:** Test-mode implementation complete locally; Stripe-hosted checkout/webhook validation remains blocked on test secrets.
+**Account decision:** DANZSTAK intentionally uses the existing SFScoop Stripe account. Do not create a second Stripe account and do not modify SFScoop's existing checkout or webhook behavior.
 
 ## Product configuration
 
 | Feature | Price | Product ID | Price ID | Billing |
 | --- | --- | --- | --- | --- |
 | Intermediate: Unlock Booking Contact | $0.75 per venue | `prod_VYruR0GLph8xsy` | `price_1UXkB5FgtfNMBXOVVeUOGJjX` | One-time |
-| Professional: Tour Manager | $1.50 | **Verify full ID in Stripe** (previously supplied partial `prod_VYr5JI`) | `price_1UXjMtFgtfNMBXOVCLeEk8vI` | One-time |
-| DANZSTAK assigned number | Verify configured amount | `prod_VYrUnT8yvXS0Ek` | `price_1UXjlYFgtfNMBXOVD42xjrTc` | One-time |
+| Professional: Tour Manager / booking-email unit | $1.50 | `prod_VYr5JIwpaFSX7b` | `price_1UXjMtFgtfNMBXOVCLeEk8vI` | One-time |
+| DANZSTAK assigned-number activation | $3.00 expected | `prod_VYrUnT8yvXS0Ek` | `price_1UXjlYFgtfNMBXOVD42xjrTc` | One-time |
 
-These are historical configuration references, NOT confirmed live configuration for the new account. If products are recreated in the new account, replace the IDs after checking them in Stripe. Do not publish API secrets.
+The backend fails closed unless Stripe returns these exact Price and Product IDs, currency, one-time quantity and unit amount. Their current Stripe test-mode objects still need to be retrieved from the SFScoop account before activation. Do not recreate them and do not publish API secrets.
 
 ## Feature entitlements
 
 - **Beginner / Bedroom (free):** Social network and discovery of clubs, radio stations, and record stores; professional contacts locked.
 - **Intermediate / Garage ($0.75 per venue):** Unlock one verified club booking contact permanently for that user; no EPK automation, calendar, routing, or professional radio/store contacts.
-- **Professional / Rehearsal Room ($1.50 one-time):** Available club, radio, and record-store professional contacts; artist-approved EPK outreach; booking email replies in DANZSTAK Chat; confirmed-date calendar; route optimization and Tour Book. No additional per-venue unlock fee. Confirm the intended entitlement duration with the owner before implementing expiration or lifetime access.
+- **Professional / Rehearsal Room ($1.50 one-time):** A verified Tour Manager purchase activates the Professional entitlement and grants the purchased booking-email units. Available professional features remain subject to their own operational readiness and sending controls. No expiration is applied by this implementation.
 - **Assigned number:** Separate one-time product; do not assume it includes external carrier/SMS service.
 
 ## Webhook implementation checklist
 
-1. Confirm the Stripe account ID and whether each product/price belongs to the new DANZSTAK account.
-2. Deploy an authenticated HTTPS webhook receiver and record its **public endpoint URL** here: **PENDING CODEX**.
-3. In Stripe test mode, register a webhook destination for events required by the implementation. Consider `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and refund events. Determine final exact event selection from the payment design.
+1. Retrieve all three Price objects with a restricted test key from the existing SFScoop Stripe account and verify Product ID, active status, USD amount, one-time type and `livemode=false`.
+2. Public HTTPS webhook receiver: `https://api.danzstak.com/tour-manager/stripe/webhook`. The route exists in API Gateway, but the current test Lambda has no Stripe secret or webhook secret and is therefore not operational.
+3. In Stripe test mode, register that destination for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`.
 4. Verify Stripe signatures using the webhook signing secret stored only in a secure backend secret manager. Never commit `sk_` or `whsec_` credentials.
 5. Fulfill entitlements only after confirmed successful payment. Validate account, price, user, and selected venue server-side. Make processing idempotent; prevent duplicate charges/unlocks.
 6. Handle refunds, failed or delayed payments, and Stripe retries safely.
-7. Test each tier and the assigned-number entitlement with Stripe test transactions and controlled accounts.
+7. Test each tier and the assigned-number entitlement with Stripe-hosted test transactions and controlled accounts. A phone purchase creates `pending_provisioning`; it does not assign a number until a telecommunications provider confirms provisioning.
 8. Record the deployed endpoint URL, selected event names, test evidence, commit SHA, and deployment status in `docs/DANZSTAK-DEVELOPMENT-REPORT.md`.
-9. Do not enable live payments until the new account's live keys, live prices, live webhook, and entitlement tests are verified.
+9. Do not enable live payments until the existing account's live keys, live prices, live webhook, and entitlement tests are verified.
+
+## Implemented routes
+
+- `POST /tour-manager/checkout` — Tour Manager / booking-email Checkout.
+- `POST /tour-manager/contact-unlock/checkout` — one saved venue contact Checkout.
+- `POST /phone-number/checkout` — one assigned-number activation Checkout.
+- `POST /tour-manager/stripe/webhook` — common signed Stripe fulfillment endpoint for all three products.
+- `GET /tour-manager/credits`, `GET /tour-manager/contact-unlocks`, and `GET /phone-number/entitlement` — account-isolated entitlement state.
+
+All fulfillment uses DynamoDB conditional transactions and a global Stripe event record for retry idempotency. Ledger entries retain a `paymentMethod` field so a future independently verified Phantom/SFS Token processor can grant the same provider-neutral entitlements. No Phantom or token-payment path is active.
 
 ## Security note
 

@@ -2,7 +2,9 @@
 
 The Tour Manager billing endpoint sells one booking-email credit per unit of Stripe Price `price_1UXjMtFgtfNMBXOVCLeEk8vI`. The backend independently requires a USD unit amount of 150 cents; changing the Stripe Price amount without changing and reviewing the backend causes the webhook to reject the purchase.
 
-The same service sells a venue-specific booking-contact unlock using Product `prod_VYruR0GLph8xsy` and Price `price_1UXkB5FgtfNMBXOVVeUOG`. The Stripe dashboard shows that active one-time Price as USD 0.75. The backend independently verifies the Price ID, product metadata, one-unit quantity, USD currency, and 75-cent total before creating an entitlement.
+The same service sells a venue-specific booking-contact unlock using Product `prod_VYruR0GLph8xsy` and Price `price_1UXkB5FgtfNMBXOVVeUOGJjX`. The expected one-time Price is USD 0.75. The backend independently verifies the full Price ID, Product ID, product metadata, one-unit quantity, USD currency, and 75-cent total before creating an entitlement.
+
+Assigned-number activation uses Product `prod_VYrUnT8yvXS0Ek` and Price `price_1UXjlYFgtfNMBXOVD42xjrTc`, expected at USD 3.00 one time. Verified payment creates only a `pending_provisioning` entitlement. It does not assign a number or promise that the one-time payment covers carrier rental, calling or messaging costs.
 
 ## Routes
 
@@ -13,6 +15,8 @@ The same service sells a venue-specific booking-contact unlock using Product `pr
 - `POST /tour-manager/emails/send` — authenticated member; reserves one credit, validates the saved venue contact, submits through Amazon SES, and finalizes or restores the credit from the provider result.
 - `POST /tour-manager/contact-unlock/checkout` — authenticated member; creates a one-time Checkout only for a saved venue with a direct public contact.
 - `GET /tour-manager/contact-unlocks` — authenticated member; returns active venue-specific contact entitlements.
+- `POST /phone-number/checkout` — authenticated member; creates a one-time assigned-number activation Checkout.
+- `GET /phone-number/entitlement` — authenticated member; distinguishes paid/pending provisioning from an active provider-provisioned number.
 
 Official websites, maps, and source evidence remain visible without payment. Direct email and phone controls remain hidden in the Tour Manager until the signed webhook grants the account-and-venue-specific entitlement. Repeat purchases return the existing entitlement instead of opening another Checkout Session. A public contact is still only a lead and does not guarantee availability, genre fit, or acceptance of unsolicited pitches.
 

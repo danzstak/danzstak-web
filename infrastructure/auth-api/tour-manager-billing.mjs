@@ -1,13 +1,20 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UXjMtFgtfNMBXOVCLeEk8vI";
+export const TOUR_MANAGER_PRODUCT_ID = "prod_VYr5JIwpaFSX7b";
 export const TOUR_MANAGER_EMAIL_UNIT_CENTS = 150;
-export const BOOKING_CONTACT_PRICE_ID = "price_1UXkB5FgtfNMBXOVVeUOG";
+export const BOOKING_CONTACT_PRICE_ID = "price_1UXkB5FgtfNMBXOVVeUOGJjX";
 export const BOOKING_CONTACT_PRODUCT_ID = "prod_VYruR0GLph8xsy";
 export const BOOKING_CONTACT_UNIT_CENTS = 75;
+export const PHONE_NUMBER_PRICE_ID = "price_1UXjlYFgtfNMBXOVD42xjrTc";
+export const PHONE_NUMBER_PRODUCT_ID = "prod_VYrUnT8yvXS0Ek";
+export const PHONE_NUMBER_UNIT_CENTS = 300;
 const PRODUCT = "tour_manager_booking_email";
 const CONTACT_PRODUCT = "booking_contact_unlock";
+const PHONE_PRODUCT = "danzstak_phone_activation";
 const CREDIT_KEY = "TOUR_MANAGER#BOOKING_EMAIL_CREDITS";
+const PROFESSIONAL_KEY = "TOUR_MANAGER#PROFESSIONAL_ENTITLEMENT";
+const PHONE_ENTITLEMENT_KEY = "PHONE#ACTIVATION_ENTITLEMENT";
 const BOOKING_WORKSPACE_KEY = "booking-workspace-v1";
 const EVENT_OWNER = "STRIPE#TOUR_MANAGER_EVENTS";
 const MAX_CREDITS_PER_CHECKOUT = 500;
@@ -20,6 +27,8 @@ function parseBody(event) { try { return JSON.parse(rawBody(event) || "{}"); } c
 function validUserId(value) { return typeof value === "string" && /^[a-zA-Z0-9_-]{8,128}$/.test(value); }
 function checkoutKey(userId, sessionId) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#CHECKOUT#${sessionId}` } }; }
 function creditKey(userId) { return { userId: { S: userId }, tourId: { S: CREDIT_KEY } }; }
+function professionalKey(userId) { return { userId: { S: userId }, tourId: { S: PROFESSIONAL_KEY } }; }
+function phoneEntitlementKey(userId) { return { userId: { S: userId }, tourId: { S: PHONE_ENTITLEMENT_KEY } }; }
 function eventKey(eventId) { return { userId: { S: EVENT_OWNER }, tourId: { S: eventId } }; }
 function ledgerKey(userId, at, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#LEDGER#${at}#${id}` } }; }
 function sendKey(userId, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${id}` } }; }
@@ -89,6 +98,50 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return response(200, { checkoutUrl: session.url, venueKey, unitAmountCents: BOOKING_CONTACT_UNIT_CENTS, currency: "usd", testMode: testMode() }, headers);
   }
 
+  async function phoneCheckout(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    if (!paymentsAllowed()) return response(503, { error: "Phone activation payments are not configured for testing." }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const entitlement = await db.send(new GetItemCommand({ TableName: tableName, Key: phoneEntitlementKey(userId), ConsistentRead: true }));
+    if (["pending_provisioning", "active"].includes(entitlement.Item?.status?.S)) {
+      return response(200, { entitled: true, status: entitlement.Item.status.S }, headers);
+    }
+    const requestId = randomUUID();
+    const form = new URLSearchParams({
+      mode: "payment",
+      "line_items[0][price]": PHONE_NUMBER_PRICE_ID,
+      "line_items[0][quantity]": "1",
+      client_reference_id: userId,
+      "metadata[product]": PHONE_PRODUCT,
+      "metadata[userId]": userId,
+      "metadata[priceId]": PHONE_NUMBER_PRICE_ID,
+      success_url: "https://danzstak.com/messages.html?phone=payment-success",
+      cancel_url: "https://danzstak.com/messages.html?phone=payment-cancelled"
+    });
+    const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `phone-activation-${userId}-${requestId}` }, body: form.toString() });
+    if (!/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
+    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, product: { S: PHONE_PRODUCT }, priceId: { S: PHONE_NUMBER_PRICE_ID }, environment: { S: testMode() ? "test" : "live" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
+    return response(200, { checkoutUrl: session.url, unitAmountCents: PHONE_NUMBER_UNIT_CENTS, currency: "usd", testMode: testMode() }, headers);
+  }
+
+  async function phoneEntitlement(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const found = await db.send(new GetItemCommand({ TableName: tableName, Key: phoneEntitlementKey(userId), ConsistentRead: true }));
+    return response(200, {
+      entitled: ["pending_provisioning", "active"].includes(found.Item?.status?.S),
+      status: found.Item?.status?.S || "not_purchased",
+      provisioned: found.Item?.status?.S === "active",
+      unitAmountCents: PHONE_NUMBER_UNIT_CENTS,
+      currency: "usd",
+      priceId: PHONE_NUMBER_PRICE_ID
+    }, headers);
+  }
+
   async function contactUnlocks(event) {
     const headers = browserHeaders(event);
     if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
@@ -142,7 +195,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
 
   async function loadVerifiedSession(session, expectedLive) {
     const userId = session.client_reference_id, lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null, quantity = Number(line?.quantity), metadata = session.metadata || {};
-    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PRODUCT && metadata.userId === userId && metadata.priceId === TOUR_MANAGER_EMAIL_PRICE_ID && Number(metadata.quantity) === quantity && line?.price?.id === TOUR_MANAGER_EMAIL_PRICE_ID && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === TOUR_MANAGER_EMAIL_UNIT_CENTS && Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_CREDITS_PER_CHECKOUT && session.currency === "usd" && Number(session.amount_total) === quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS;
+    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PRODUCT && metadata.userId === userId && metadata.priceId === TOUR_MANAGER_EMAIL_PRICE_ID && Number(metadata.quantity) === quantity && line?.price?.id === TOUR_MANAGER_EMAIL_PRICE_ID && line?.price?.product === TOUR_MANAGER_PRODUCT_ID && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === TOUR_MANAGER_EMAIL_UNIT_CENTS && Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_CREDITS_PER_CHECKOUT && session.currency === "usd" && Number(session.amount_total) === quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS;
     if (!valid) return null;
     const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
     return item?.sessionId?.S === session.id && item.priceId?.S === TOUR_MANAGER_EMAIL_PRICE_ID && Number(item.quantity?.N) === quantity && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, quantity } : null;
@@ -154,6 +207,14 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!valid) return null;
     const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
     return item?.sessionId?.S === session.id && item.product?.S === CONTACT_PRODUCT && item.venueKey?.S === venueKey && item.priceId?.S === BOOKING_CONTACT_PRICE_ID && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, venueKey, product: CONTACT_PRODUCT } : null;
+  }
+
+  async function loadVerifiedPhoneSession(session, expectedLive) {
+    const userId = session.client_reference_id, metadata = session.metadata || {}, lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null;
+    const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PHONE_PRODUCT && metadata.userId === userId && metadata.priceId === PHONE_NUMBER_PRICE_ID && Number(line?.quantity) === 1 && line?.price?.id === PHONE_NUMBER_PRICE_ID && line?.price?.product === PHONE_NUMBER_PRODUCT_ID && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === PHONE_NUMBER_UNIT_CENTS && session.currency === "usd" && Number(session.amount_total) === PHONE_NUMBER_UNIT_CENTS;
+    if (!valid) return null;
+    const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
+    return item?.sessionId?.S === session.id && item.product?.S === PHONE_PRODUCT && item.priceId?.S === PHONE_NUMBER_PRICE_ID && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, product: PHONE_PRODUCT } : null;
   }
 
   async function markCheckoutEvent(notification, verified, status) {
@@ -173,6 +234,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
         { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
         { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :paid, paidAt = :paidAt", ConditionExpression: "#status <> :paid AND sessionId = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":paidAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
         { Update: { TableName: tableName, Key: creditKey(verified.userId), UpdateExpression: "ADD credits :quantity, purchasedCredits :quantity SET updatedAt = :updatedAt, lastSessionId = :sessionId", ExpressionAttributeValues: { ":quantity": { N: String(verified.quantity) }, ":updatedAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
+        { Update: { TableName: tableName, Key: professionalKey(verified.userId), UpdateExpression: "SET #status = :active, paymentMethod = :stripe, paymentReference = :sessionId, priceId = :priceId, activatedAt = if_not_exists(activatedAt, :activatedAt), updatedAt = :activatedAt", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":active": { S: "active" }, ":stripe": { S: "stripe" }, ":sessionId": { S: verified.session.id }, ":priceId": { S: TOUR_MANAGER_EMAIL_PRICE_ID }, ":activatedAt": { S: processedAt } } } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "purchase" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: String(verified.quantity) }, status: { S: "settled" }, description: { S: `${verified.quantity} booking email credits purchased` }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
       ] }));
     } catch (error) { const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: eventKey(notification.id), ConsistentRead: true })); if (duplicate.Item) return false; throw error; }
@@ -192,6 +254,19 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return true;
   }
 
+  async function grantPhoneEntitlement(notification, verified) {
+    const processedAt = nowIso();
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :paid, paidAt = :paidAt", ConditionExpression: "#status <> :paid AND sessionId = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":paidAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
+        { Put: { TableName: tableName, Item: { ...phoneEntitlementKey(verified.userId), status: { S: "pending_provisioning" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, priceId: { S: PHONE_NUMBER_PRICE_ID }, purchasedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "phone_activation_purchase" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "pending_provisioning" }, description: { S: "DANZSTAK phone activation purchased; provider provisioning pending" }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
+      ] }));
+    } catch (error) { const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: eventKey(notification.id), ConsistentRead: true })); if (duplicate.Item) return false; throw error; }
+    return true;
+  }
+
   async function webhook(event) {
     if (!paymentsAllowed()) return response(503, { error: "Tour Manager payment webhook is not configured." });
     const payload = rawBody(event), signature = event.headers?.["stripe-signature"] || event.headers?.["Stripe-Signature"];
@@ -206,7 +281,11 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (notification.livemode !== expectedLive) return response(400, { error: "Stripe environment mismatch." });
     const session = await stripe(`/checkout/sessions/${encodeURIComponent(supplied.id)}?expand%5B%5D=line_items`);
     if (session.id !== supplied.id) return response(409, { error: "No matching Tour Manager checkout." });
-    const verified = session.metadata?.product === CONTACT_PRODUCT ? await loadVerifiedContactSession(session, expectedLive) : await loadVerifiedSession(session, expectedLive);
+    const verified = session.metadata?.product === CONTACT_PRODUCT
+      ? await loadVerifiedContactSession(session, expectedLive)
+      : session.metadata?.product === PHONE_PRODUCT
+        ? await loadVerifiedPhoneSession(session, expectedLive)
+        : await loadVerifiedSession(session, expectedLive);
     if (!verified) return response(409, { error: "No matching Tour Manager checkout." });
     if (notification.type === "checkout.session.completed" && verified.session.payment_status !== "paid") { await markCheckoutEvent(notification, verified, "awaiting_payment"); return response(200, { received: true, awaitingPayment: true }); }
     if (notification.type === "checkout.session.async_payment_failed" || notification.type === "checkout.session.expired") { await markCheckoutEvent(notification, verified, notification.type.endsWith("failed") ? "payment_failed" : "expired"); return response(200, { received: true, creditsIssued: 0 }); }
@@ -214,6 +293,10 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (verified.product === CONTACT_PRODUCT) {
       const granted = await grantContactUnlock(notification, verified);
       return response(200, { received: true, contactUnlocked: granted, venueKey: verified.venueKey, duplicate: !granted });
+    }
+    if (verified.product === PHONE_PRODUCT) {
+      const granted = await grantPhoneEntitlement(notification, verified);
+      return response(200, { received: true, phoneActivationEntitled: granted, provisioningStatus: "pending_provisioning", duplicate: !granted });
     }
     const granted = await grantCredits(notification, verified);
     return response(200, { received: true, creditsIssued: granted ? verified.quantity : 0, duplicate: !granted });
@@ -280,6 +363,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (method === "POST" && path === "/tour-manager/checkout") return checkout(event);
     if (method === "POST" && path === "/tour-manager/contact-unlock/checkout") return contactCheckout(event);
     if (method === "GET" && path === "/tour-manager/contact-unlocks") return contactUnlocks(event);
+    if (method === "POST" && path === "/phone-number/checkout") return phoneCheckout(event);
+    if (method === "GET" && path === "/phone-number/entitlement") return phoneEntitlement(event);
     if (method === "GET" && path === "/tour-manager/credits") return credits(event);
     if (method === "GET" && path === "/tour-manager/outreach") return outreach(event);
     if (method === "POST" && path === "/tour-manager/emails/send") return sendEmail(event);

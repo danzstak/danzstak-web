@@ -58,7 +58,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Test API integration creation failed." }
   }
   $routes = aws apigatewayv2 get-routes --region $region --api-id $apiId --output json | ConvertFrom-Json
-  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /tour-manager/emails/send")) {
+  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send")) {
     if (-not ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey })) {
       aws apigatewayv2 create-route --region $region --api-id $apiId --route-key $routeKey --target "integrations/$($integration.IntegrationId)" --output json | Out-Null
       if ($LASTEXITCODE -ne 0) { throw "Test API route creation failed: $routeKey" }

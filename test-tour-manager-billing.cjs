@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const { createHmac } = require("node:crypto");
 
 (async () => {
-  const { createTourManagerBilling, verifyStripeSignature, TOUR_MANAGER_EMAIL_PRICE_ID, TOUR_MANAGER_EMAIL_UNIT_CENTS } = await import("./infrastructure/auth-api/tour-manager-billing.mjs");
+  const { createTourManagerBilling, verifyStripeSignature, TOUR_MANAGER_EMAIL_PRICE_ID, TOUR_MANAGER_PRODUCT_ID, TOUR_MANAGER_EMAIL_UNIT_CENTS } = await import("./infrastructure/auth-api/tour-manager-billing.mjs");
   class Command { constructor(input) { this.input = input; } }
   class GetItemCommand extends Command {}
   class PutItemCommand extends Command {}
@@ -33,7 +33,13 @@ const { createHmac } = require("node:crypto");
         credit.purchasedCredits = { N: String(Number(credit.purchasedCredits?.N || 0) + Number(creditUpdate.ExpressionAttributeValues[":quantity"].N)) };
         records.set(creditKey, credit);
       }
-      if (command.input.TransactItems[3]?.Put) records.set(keyOf(command.input.TransactItems[3].Put.Item), structuredClone(command.input.TransactItems[3].Put.Item));
+      if (command.input.TransactItems[3]?.Update) {
+        const entitlementUpdate = command.input.TransactItems[3].Update;
+        const entitlement = records.get(keyOf(entitlementUpdate.Key)) || structuredClone(entitlementUpdate.Key);
+        entitlement.status = entitlementUpdate.ExpressionAttributeValues[":active"];
+        records.set(keyOf(entitlementUpdate.Key), entitlement);
+      }
+      if (command.input.TransactItems[4]?.Put) records.set(keyOf(command.input.TransactItems[4].Put.Item), structuredClone(command.input.TransactItems[4].Put.Item));
       return {};
     }
     throw new Error("Unexpected command");
@@ -46,7 +52,7 @@ const { createHmac } = require("node:crypto");
     id: "cs_test_credit123", mode: "payment", payment_status: "paid", status: "complete", livemode: false,
     client_reference_id: "user_12345678", currency: "usd", amount_total: 450,
     metadata: { product: "tour_manager_booking_email", userId: "user_12345678", priceId: TOUR_MANAGER_EMAIL_PRICE_ID, quantity: "3" },
-    line_items: { data: [{ quantity: 3, price: { id: TOUR_MANAGER_EMAIL_PRICE_ID, currency: "usd", unit_amount: TOUR_MANAGER_EMAIL_UNIT_CENTS } }] },
+    line_items: { data: [{ quantity: 3, price: { id: TOUR_MANAGER_EMAIL_PRICE_ID, product: TOUR_MANAGER_PRODUCT_ID, currency: "usd", unit_amount: TOUR_MANAGER_EMAIL_UNIT_CENTS } }] },
     ...sessionOverrides
   });
   const fetcher = async (url, options = {}) => {
@@ -89,6 +95,7 @@ const { createHmac } = require("node:crypto");
   assert.equal(paid.statusCode, 200);
   assert.equal(JSON.parse(paid.body).creditsIssued, 3);
   assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS").credits.N, "3");
+  assert.equal(records.get("user_12345678|TOUR_MANAGER#PROFESSIONAL_ENTITLEMENT").status.S, "active");
   const duplicate = await service(event("POST", "/tour-manager/stripe/webhook", asyncPayload, { "stripe-signature": signed(asyncPayload) }));
   assert.equal(JSON.parse(duplicate.body).duplicate, true);
   assert.equal(records.get("user_12345678|TOUR_MANAGER#BOOKING_EMAIL_CREDITS").credits.N, "3", "Stripe retries must not issue credits twice");
