@@ -6,6 +6,7 @@ const vm = require("node:vm");
 
 const i18n = fs.readFileSync("assets/i18n.js", "utf8");
 const feed = fs.readFileSync("feed.html", "utf8");
+const enhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const keysMatch = i18n.match(/const feedRecoveryKeys=(\[[^;]+\]);/);
 const translationsMatch = i18n.match(/const feedRecovery=(\{[\s\S]*?\r?\n \});\r?\n for\(const \[language,values\] of Object\.entries\(feedRecovery\)\)/);
 
@@ -15,7 +16,7 @@ vm.runInContext(`result={keys:${keysMatch[1]},translations:${translationsMatch[1
 const { keys, translations } = context.result;
 const languages = ["es", "fr", "de", "pt", "it", "ko", "ja", "zh-Hans", "zh-Hant", "fil", "hi", "vi", "th", "id"];
 
-assert.equal(keys.length, 13, "news, presence, friend, and post recovery states should all be localized");
+assert.equal(keys.length, 14, "news, presence, friend, and post recovery states should all be localized");
 assert.deepEqual(Object.keys(translations).sort(), [...languages].sort(), "every supported non-English locale needs feed recovery translations");
 for (const language of languages) {
   assert.equal(translations[language].length, keys.length, `${language} should translate every feed recovery state`);
@@ -28,7 +29,12 @@ for (const language of languages) {
 for (const key of keys.filter(key => !key.includes("{error}"))) {
   assert.ok(feed.includes(`feedTranslate("${key}")`), `${key} should pass through the selected language`);
 }
-assert.ok(feed.includes('feedFormat("Unable to load posts: {error}"'), "post loading errors should preserve the server detail inside a localized template");
+assert.ok(feed.includes('feedTranslate("Posts could not be loaded. Check your connection and try again.")'), "post loading failures should use actionable product language");
+assert.ok(feed.includes('retry.addEventListener("click", loadPosts, { once: true })'), "post loading failures should provide a working retry action");
+assert.ok(feed.includes('feedStatus.replaceChildren(message, retry)'), "post loading failures should render a compact recovery state");
+assert.doesNotMatch(feed, /feedStatus\.textContent\s*=\s*feedFormat\("Unable to load posts: \{error\}"/, "raw browser and server errors should not be shown to members");
 assert.doesNotMatch(feed, /innerHTML\s*=\s*'<p class="muted">(?:Loading news|No headlines|News is temporarily unavailable)/, "network states should be rendered as text instead of untranslated HTML");
+assert.match(enhancements, /const feedTranslate = value => globalThis\.danzstakTranslate/, "shared feed recovery controls should have a module-level translator");
+assert.ok(enhancements.indexOf("const feedTranslate = value") < enhancements.indexOf("function updateNotificationCount"), "The Roll recovery must not depend on a translator scoped inside notification rendering");
 
 console.log("Feed recovery localization checks passed: news, presence, friends, and post failures cover all supported locales.");

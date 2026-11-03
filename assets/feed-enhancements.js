@@ -47,13 +47,13 @@ function showAppFeedback(message, { urgent = false, timeout = 4200 } = {}) {
 let lastNotificationCount = null;
 const notificationSourceCounts = { social: null, engagement: null };
 let notificationCountLoading = false;
+const feedTranslate = value => globalThis.danzstakTranslate?.(value) || value;
+const feedFormat = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), feedTranslate(key));
 function isLocalHost() {
   return location.hostname === "127.0.0.1" || location.hostname === "localhost";
 }
 
 function updateNotificationCount(count) {
-  const feedTranslate = value => globalThis.danzstakTranslate?.(value) || value;
-  const feedFormat = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), feedTranslate(key));
   const safeCount = Math.max(0, Number(count) || 0);
   for (const control of notificationControls) {
     if (!control.dataset.baseLabel) control.dataset.baseLabel = control.dataset.feature || control.textContent.trim();
