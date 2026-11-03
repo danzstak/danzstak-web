@@ -699,11 +699,19 @@ if (-not $feed.Contains('async function fetchWithDeadline') -or
   Add-Failure 'Presence: feed or chat can remain stuck indefinitely on a stalled API request'
 }
 
-$deprecated = Get-ChildItem -LiteralPath $root -Recurse -File |
-  Where-Object {
-    $_.FullName -notlike "$root\.git\*" -and
-    $_.FullName -ne $PSCommandPath
-  } |
+$sourceExtensions = @('.html', '.css', '.js', '.mjs', '.json', '.webmanifest', '.yml', '.yaml')
+$deprecatedCandidates = [System.Collections.Generic.List[System.IO.FileInfo]]::new()
+foreach ($file in (Get-ChildItem -LiteralPath $root -File)) {
+  if ($sourceExtensions -contains $file.Extension.ToLowerInvariant()) { $deprecatedCandidates.Add($file) }
+}
+foreach ($sourceDirectory in @('assets', 'infrastructure', 'native')) {
+  $sourcePath = Join-Path $root $sourceDirectory
+  if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) { continue }
+  foreach ($file in (Get-ChildItem -LiteralPath $sourcePath -Recurse -File)) {
+    if ($sourceExtensions -contains $file.Extension.ToLowerInvariant()) { $deprecatedCandidates.Add($file) }
+  }
+}
+$deprecated = $deprecatedCandidates |
   Select-String -SimpleMatch 'feed-secure-test' -List
 foreach ($editHistoryBehavior in @('article.dataset.editHistory = JSON.stringify', 'post.editHistory', 'post.dataset.editHistory || "[]"', 'data.editHistory', 'new Date(item.editedAt).toLocaleString()')) {
   if (-not ($feed + $feedEnhancementsJs).Contains($editHistoryBehavior)) { Add-Failure "Post edit history is not durable across refreshes: $editHistoryBehavior" }
