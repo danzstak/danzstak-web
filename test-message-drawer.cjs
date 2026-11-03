@@ -8,6 +8,13 @@ const enhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const chatCss = fs.readFileSync("assets/chat.css", "utf8");
 
 assert.match(feed, /drawer\.className = "message-drawer"/, "messages open in the feed drawer");
+assert.match(feed, /drawer\.setAttribute\("aria-modal", "true"\)/, "the Messages drawer identifies itself as modal");
+assert.match(feed, /function setMessageDrawerBackgroundInert\(drawer, inert\)[\s\S]*?document\.body\.children[\s\S]*?element\.inert = true[\s\S]*?element\.inert = false/,
+  "opening Messages makes the covered page inert and closing it restores only the elements it changed");
+assert.match(feed, /drawer\.hidden = true; setMessageDrawerBackgroundInert\(drawer, false\)/,
+  "the close control must restore background interaction before returning focus");
+assert.match(feed, /danzstak-chat-minimize[\s\S]*?setMessageDrawerBackgroundInert\(drawer, false\)/,
+  "minimizing Messages must also restore background interaction");
 assert.match(feed, /class="message-drawer-loading" role="status">Loading chats…/, "the drawer announces an immediate loading state");
 assert.match(feed, /\.message-drawer\.is-loading iframe\{visibility:hidden\}/, "partially rendered chat chrome stays hidden while loading");
 assert.match(feed, /event\.currentTarget\.src\.includes\("messages\.html"\)/, "an unrelated initial frame load cannot dismiss the loading state");
