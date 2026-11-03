@@ -939,7 +939,14 @@ document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
 });
 document.getElementById("headerPhone")?.addEventListener("click", () => document.getElementById("startPhone")?.click());
 document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
-document.getElementById("minimizeConversation")?.addEventListener("click", () => { document.body.classList.remove("is-conversation-open"); if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-minimize" }, location.origin); });
+document.getElementById("minimizeConversation")?.addEventListener("click", () => {
+  if (window.parent === window) {
+    closeConversationFromControl();
+    return;
+  }
+  document.body.classList.remove("is-conversation-open");
+  window.parent.postMessage({ type: "danzstak-chat-minimize" }, location.origin);
+});
 conversationHeaderActions.more?.addEventListener("click", event => {
   event.stopPropagation();
   const opening = conversationMenu.hidden;
