@@ -9,11 +9,10 @@
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-thtCYNpiZllGy0iUrOQJoPWLAhl3EErtA3dPCe31XRs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="assets/favicon-32.png?v=1" sizes="32x32" type="image/png">
-<link rel="icon" href="assets/favicon-192.png?v=1" sizes="192x192" type="image/png">
-<link rel="icon" href="assets/app-icon.svg?v=2" type="image/svg+xml">
-<link rel="shortcut icon" href="assets/favicon-32.png?v=1" type="image/png">
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1" sizes="180x180">
+<link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
+<link rel="shortcut icon" href="assets/favicon-32.png?v=3" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=3" sizes="180x180">
 <script src="assets/offline.js?v=2"></script>
 <script src="assets/display-preferences.js?v=342"></script>
 <title>DanzStak | Your Mix</title>
@@ -52,7 +51,8 @@ button { cursor: pointer; }
   font-weight: 900;
   color: white;
 }
-.logo img { width: 104px; height: 48px; object-fit: contain; object-position: center; border-radius: 8px; }
+.logo img { width: 42px; height: 42px; object-fit: contain; object-position: center; }
+.logo span { letter-spacing: -.5px; }
 
 .search {
   border: 0;
@@ -370,7 +370,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 <a class="skip-link" href="#yourMixMain">Skip to Your Mix</a>
 
 <header class="topbar">
-  <a class="logo" href="feed.html?view=feed" aria-label="DanzStak home"><img src="assets/danzstak-logo.png" alt="DanzStak"></a>
+  <a class="logo" href="feed.html?view=feed" aria-label="DanzStak home"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a>
 
   <input
     class="search"
@@ -405,7 +405,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
         <button type="button" class="menu-close" data-menu-close data-icon="close" aria-label="Close menu" title="Close menu"></button>
       </header>
       <p class="menu-section-heading">Social</p>
-      <a href="feed.html?view=feed" class="active"><span class="menu-icon" data-menu-icon="home" aria-hidden="true"></span><span class="menu-label">Your Mix</span></a>
+      <a href="feed.html?view=feed" class="active"><span class="menu-icon menu-brand-icon" aria-hidden="true"><img src="assets/danzstak-d-icon.png" alt=""></span><span class="menu-label">Your Mix</span></a>
       <a href="profile.html"><span class="menu-icon" data-menu-icon="user" aria-hidden="true"></span><span class="menu-label">My Profile</span></a>
       <a href="#friends" data-feature="Friends"><span class="menu-icon" data-menu-icon="users" aria-hidden="true"></span><span class="menu-label">Friends</span></a>
       <a href="#groups" data-feature="Groups"><span class="menu-icon" data-menu-icon="users" aria-hidden="true"></span><span class="menu-label">Tribes</span></a>

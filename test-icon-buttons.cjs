@@ -26,7 +26,8 @@ for (const page of pages) {
 }
 
 const feedPage = fs.readFileSync("feed.html", "utf8");
-for (const icon of ["home", "user", "users", "image", "film", "microphone", "bus", "disc", "folder", "bookmark", "settings", "help", "lock", "file", "logout"]) {
+assert.match(feedPage, /class="menu-icon menu-brand-icon"[^>]*>[\s\S]*?danzstak-d-icon\.png/, "Your Mix must use the official DanzStak brand mark");
+for (const icon of ["user", "users", "image", "film", "microphone", "bus", "disc", "folder", "bookmark", "settings", "help", "lock", "file", "logout"]) {
   assert.match(feedPage, new RegExp(`data-menu-icon="${icon}"`), `mobile navigation must use the ${icon} SVG icon`);
 }
 assert.doesNotMatch(feedPage.match(/<aside class="left" id="mobileNavMenu"[\s\S]*?<\/aside>/)?.[0] || "", /🏠|👤|👥|📷|🎬|🎤|🚌|💿|🗂|🔖|⚙|🔒|📄|🚪/, "mobile navigation must not use emoji icons");

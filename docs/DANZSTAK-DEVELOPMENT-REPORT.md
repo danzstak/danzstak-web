@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Official DanzStak platform icon
+
+Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
+
+- Replaced the generic blue/purple `app-icon.svg` with a transparent standalone version of the existing official metallic silver-and-orange D. The mark retains the orange play triangle and equalizer-bar identity and is stored as `assets/danzstak-d-icon.png`; the original full wordmark remains unchanged for the landing page and other full-logo uses.
+- Regenerated the 32px browser favicon, 192px and 512px PWA icons, and 180px Apple touch icon from the standalone official mark. The manifest now advertises only the verified PNG assets and no longer presents a transparent icon as maskable, avoiding unsafe platform cropping.
+- The Your Mix header now uses a compact D-plus-DANZSTAK wordmark, and the active Your Mix drawer item uses the same D instead of a generic home glyph. Phone-width header layout now preserves a usable search field and all five navigation controls without overflow.
+- Retired every reference to the generic SVG and advanced the service-worker shell cache to `danzstak-shell-v622`, so installed development clients refresh the brand artwork.
+- Asset workflow: the built-in image editing tool extracted the official D from `assets/danzstak-logo.png` onto a transparent background; deterministic local resizing produced each platform size. The final normalized source is in the repository rather than an external generated-image directory.
+- Verification: the new brand regression checks PNG dimensions and alpha support, manifest references, header/navigation markup, PWA caching and generic-icon retirement. **239 of 239** JavaScript regression programs pass, along with release verification, the 11-page site smoke suite, infrastructure template/Lambda syntax validation and `git diff --check`. Phone-width visual inspection confirmed the mark, wordmark, search and navigation remain readable at the app-panel width.
+- Deployment: not published to production and not merged into `main`.
+
 ## Global icon-based interface
 
 Status as of 2026-11-03: **COMPLETE IN DEVELOPMENT; NOT DEPLOYED**.
