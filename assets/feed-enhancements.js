@@ -1886,6 +1886,9 @@ const desktopMenuQuery = matchMedia("(min-width: 701px)");
 const closeMobileMenuOnDesktop = event => { if (event.matches) setMobileMenu(false); };
 if (desktopMenuQuery.addEventListener) desktopMenuQuery.addEventListener("change", closeMobileMenuOnDesktop);
 else desktopMenuQuery.addListener(closeMobileMenuOnDesktop);
+if (new URLSearchParams(location.search).get("menu") === "1" && matchMedia("(max-width: 700px)").matches) {
+  requestAnimationFrame(() => setMobileMenu(true));
+}
 let notificationDrawerPreviousFocus = null;
 let notificationDrawer = null;
 let notificationUnderlyingWorkspace = "";

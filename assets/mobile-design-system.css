@@ -1,0 +1,86 @@
+:root{
+  --ds-blue:#1769e0;
+  --ds-orange:#ef6c20;
+  --ds-ink:#172033;
+  --ds-muted:#667085;
+  --ds-canvas:#eef2f6;
+  --ds-surface:#fff;
+  --ds-border:#dce2ea;
+  --ds-radius:12px;
+  --ds-space-1:4px;
+  --ds-space-2:8px;
+  --ds-space-3:12px;
+  --ds-space-4:16px;
+  --ds-touch:44px;
+  --ds-mobile-header:54px;
+  color-scheme:light;
+}
+html{max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+body{max-width:100%;overflow-x:hidden;background:var(--ds-canvas);color:var(--ds-ink)}
+img,video,iframe,canvas,svg{max-width:100%}
+button,a,input,select,textarea{touch-action:manipulation}
+:focus-visible{outline:3px solid #1769e066;outline-offset:2px}
+.ds-mobile-nav{display:none}
+
+/* Shared professional-tool shell. */
+.ds-tool-page>header{min-height:58px}
+.ds-tool-page>header img{object-fit:contain}
+.ds-tool-page main{min-width:0}
+.ds-tool-page :is(.hero,.planner,.summary,.booking-board,.booking-brief,.epk-form,.epk-preview){min-width:0}
+.ds-tool-page :is(input,select,textarea,button,.button){max-width:100%}
+
+@media(max-width:700px){
+  .ds-mobile-nav{
+    position:fixed;z-index:9999;left:0;right:0;bottom:0;display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    height:calc(54px + env(safe-area-inset-bottom));
+    padding:3px max(4px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px,env(safe-area-inset-left));
+    border-top:1px solid #ffffff42;background:var(--ds-blue);box-shadow:0 -2px 12px #10182826;
+  }
+  .ds-mobile-nav a{display:grid;place-items:center;min-width:0;min-height:48px;padding:5px;border-radius:8px;color:#fff;text-decoration:none}
+  .ds-mobile-nav a[aria-current=page]{background:#ffffff22;box-shadow:inset 0 -3px 0 #fff}
+  .ds-mobile-nav .ds-action-icon{width:22px;height:22px}
+  .ds-tool-page>header{
+    position:sticky;
+    top:0;
+    z-index:100;
+    display:flex;
+    align-items:center;
+    min-height:var(--ds-mobile-header);
+    padding:6px max(8px,env(safe-area-inset-left)) 6px max(8px,env(safe-area-inset-right));
+    gap:6px;
+  }
+  .ds-tool-page>header img{width:42px;height:42px}
+  .ds-tool-page>header nav{min-width:0;display:flex;justify-content:flex-end;gap:2px;overflow-x:auto;scrollbar-width:none}
+  .ds-tool-page>header nav::-webkit-scrollbar{display:none}
+  .ds-tool-page>header :is(a,button){min-height:var(--ds-touch);padding:6px 8px;white-space:nowrap}
+  .ds-tool-page main{width:100%;margin:0;padding:var(--ds-space-3) max(8px,env(safe-area-inset-left)) calc(64px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right))}
+  .ds-tool-page :is(.hero,.planner,.summary,.booking-board,.booking-brief,.epk-form,.epk-preview){border-radius:var(--ds-radius);box-shadow:0 1px 2px #10182814}
+  .ds-tool-page :is(.hero,.planner,.summary,.booking-board,.epk-form){padding:var(--ds-space-4)}
+  .ds-tool-page :is(h1,h2,h3,p){overflow-wrap:anywhere}
+  .ds-tool-page :is(input,select,textarea){font-size:16px}
+  .ds-tool-page :is(button,.button){min-height:var(--ds-touch)}
+  .ds-tool-page .epk-preview{order:initial}
+  .ds-tool-page .epk-hero{min-height:150px;padding:var(--ds-space-4)}
+  .ds-tool-page .epk-hero h1{margin-top:58px;font-size:1.8rem}
+  .ds-tool-page .epk-body{padding:var(--ds-space-4)}
+  .ds-tool-page .form-actions{gap:var(--ds-space-2)}
+  .ds-tool-page .form-actions>*{flex:1 1 140px}
+  .ds-tool-page .map-shell,.ds-tool-page #map{max-width:100%;border-radius:var(--ds-radius);overflow:hidden}
+}
+
+@media(max-width:760px){
+  .messages-page:not(.is-conversation-open){padding-bottom:calc(54px + env(safe-area-inset-bottom))}
+  .messages-page.is-conversation-open .ds-mobile-nav{display:none}
+}
+
+/* Feed media follows the phone viewport while text retains readable gutters. */
+@media(max-width:700px){
+  .post{--post-inline-padding:12px}
+  .post>.post-media,.post>.feed-media-gallery,.post>.post-media-recovery{width:calc(100% + 24px);max-width:none;margin-left:-12px;margin-right:-12px;border-radius:0}
+  .post-media{display:block;height:auto;max-height:none;object-fit:contain;background:#0c111b}
+  .post-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;gap:2px}
+  .post-actions button{min-width:0;min-height:44px;padding:5px 2px;white-space:nowrap}
+}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}

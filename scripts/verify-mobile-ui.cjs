@@ -9,6 +9,7 @@ const baseUrl = process.env.DANZSTAK_VISUAL_BASE_URL || "http://127.0.0.1:8013";
 const outputDir = path.resolve(process.env.DANZSTAK_VISUAL_OUTPUT || "docs/screenshots/mobile-ui");
 const edgePath = process.env.DANZSTAK_EDGE_PATH || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
+const benchmarkWidths = [320, 360, 390, 414];
 fs.mkdirSync(outputDir, { recursive: true });
 
 const fixturePost = {
@@ -162,6 +163,24 @@ async function captureViewport(page, fileName) {
         await page.goBack();
         await page.waitForURL(/feed\.html/);
       }
+      await context.close();
+    }
+    for (const width of benchmarkWidths) {
+      const context = await browser.newContext({ viewport: { width, height: 860 }, deviceScaleFactor: 1, serviceWorkers: "block" });
+      const page = await context.newPage();
+      await installApiFixtures(page);
+      await page.goto(`${baseUrl}/booking.html`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#bookingMain");
+      await assertNoOverflow(page, `Booking Agent ${width}px`, true);
+      await captureViewport(page, `booking-${width}.png`);
+      await page.evaluate(() => { document.querySelectorAll("details").forEach(details => { details.open = true; }); document.querySelector(".summary")?.scrollIntoView(); });
+      await page.waitForTimeout(100);
+      await captureViewport(page, `tour-manager-${width}.png`);
+
+      await page.goto(`${baseUrl}/epk.html`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#epkMain");
+      await assertNoOverflow(page, `EPK ${width}px`, true);
+      await captureViewport(page, `epk-${width}.png`);
       await context.close();
     }
     console.log(`Mobile visual checks passed at ${widths.join(", ")}px; screenshots: ${outputDir}`);
