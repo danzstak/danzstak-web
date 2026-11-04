@@ -41,3 +41,12 @@ Create **75–100 varied sample posts** across accounts, including photo posts, 
 
 ## Deliverables
 Implementation PR, changed files, screenshots, test results, costs, staging proof and explicit production approval request.
+
+## Latest owner direction — preserve SFScoop and seed 24 accounts (supersedes earlier 25-demo-account target)
+- **Preserve all existing SFScoop posts** in DANZSTAK. Do not delete, rewrite, hide, or relabel them as fictional demo content without explicit owner approval.
+- Add **exactly 24 new fictional, removable demo accounts**, each with representative posts and profiles. The owner's intended total is 25 presences **counting the existing SFScoop presence as one**; verify that such a presence actually exists before reporting the total as 25.
+- Do not create an additional fake SFScoop account or duplicate existing SFScoop content. Do not require SFScoop authentication or API dependencies.
+- Adjust the sample post count to be natural for 24 accounts; do not overwrite real posts to meet a numeric target.
+- Clearly distinguish fictional demo accounts from genuine accounts. Preserve all real engagement and real-user statistics; demo metrics must be excluded.
+- Seed and removal scripts must target **only the 24 newly created demo accounts and their tagged content**, never SFScoop or other existing content.
+- Inspect the actual database before implementation and report what SFScoop records already exist. Stage first; request owner approval before seeding production.
