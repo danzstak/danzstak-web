@@ -145,7 +145,7 @@ button,a,input,select,textarea{touch-action:manipulation}
   }
   .post-actions button{
     display:inline-flex!important;align-items:center;justify-content:center;gap:4px!important;
-    min-width:0!important;min-height:44px!important;padding:4px 2px!important;
+    width:100%!important;min-width:0!important;max-width:none!important;min-height:44px!important;padding:4px 2px!important;
     border:0!important;border-radius:8px!important;background:transparent!important;box-shadow:none!important;
     color:#53606f!important;font-size:16px!important;line-height:1!important;white-space:nowrap;
   }

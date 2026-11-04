@@ -150,19 +150,34 @@ async function captureViewport(page, fileName) {
           const nav = document.querySelector(".topbar .topnav").getBoundingClientRect();
           const post = document.querySelector("#feed article.post");
           const postStyle = getComputedStyle(post);
-          return { headerHeight: header.height, navHeight: nav.height, postPadding: parseFloat(postStyle.paddingLeft) };
+          const contentStyle = getComputedStyle(post.querySelector(".post-content"));
+          const timeStyle = getComputedStyle(post.querySelector(".post-time"));
+          return {
+            headerHeight: header.height,
+            navHeight: nav.height,
+            postPadding: parseFloat(postStyle.paddingLeft),
+            bodyFont: parseFloat(getComputedStyle(document.body).fontSize),
+            postFont: parseFloat(contentStyle.fontSize),
+            postLineHeight: parseFloat(contentStyle.lineHeight),
+            timeFont: parseFloat(timeStyle.fontSize)
+          };
         });
         assert.ok(shellMetrics.headerHeight <= 52, `${width}px: mobile header is oversized: ${JSON.stringify(shellMetrics)}`);
         assert.ok(shellMetrics.navHeight <= 52, `${width}px: mobile navigation is oversized: ${JSON.stringify(shellMetrics)}`);
         assert.ok(shellMetrics.postPadding <= 10, `${width}px: feed cards waste horizontal space: ${JSON.stringify(shellMetrics)}`);
+        assert.ok(shellMetrics.bodyFont >= 15, `${width}px: body copy is too small to read comfortably: ${JSON.stringify(shellMetrics)}`);
+        assert.ok(shellMetrics.postFont >= 15, `${width}px: post copy is too small to read comfortably: ${JSON.stringify(shellMetrics)}`);
+        assert.ok(shellMetrics.postLineHeight / shellMetrics.postFont >= 1.35, `${width}px: post copy line spacing is too tight: ${JSON.stringify(shellMetrics)}`);
+        assert.ok(shellMetrics.timeFont >= 11, `${width}px: post metadata is too small to read: ${JSON.stringify(shellMetrics)}`);
         const reactionMetrics = await page.locator("#feed article.post .post-actions button").evaluateAll(buttons => buttons.map(button => {
           const icon = button.querySelector(".reaction-icon,.action-icon,svg");
           const count = button.querySelector(".reaction-count,.action-count,[data-count]");
           const buttonBox = button.getBoundingClientRect();
           const iconBox = icon?.getBoundingClientRect();
           const countBox = count?.getBoundingClientRect();
-          return { buttonTop: buttonBox.top, iconTop: iconBox?.top || 0, iconRight: iconBox?.right || 0, countTop: countBox?.top || 0, countLeft: countBox?.left || 0 };
+          return { buttonTop: buttonBox.top, buttonWidth: buttonBox.width, buttonHeight: buttonBox.height, iconTop: iconBox?.top || 0, iconRight: iconBox?.right || 0, countTop: countBox?.top || 0, countLeft: countBox?.left || 0 };
         }));
+        assert.ok(reactionMetrics.every(item => item.buttonHeight >= 44 && item.buttonWidth >= 44), `${width}px: reaction controls require comfortable touch targets: ${JSON.stringify(reactionMetrics)}`);
         for (const metric of reactionMetrics.filter(item => item.countLeft)) {
           const iconGap = metric.countLeft - metric.iconRight;
           assert.ok(iconGap >= 3 && iconGap <= 7, `${width}px: reaction icon/count gap must be 4–6px: ${JSON.stringify(metric)}`);
@@ -373,6 +388,25 @@ async function captureViewport(page, fileName) {
       assert.equal(anchoredHeader.position, "sticky", `${width}px: desktop app header must remain sticky`);
       assert.ok(Math.abs(anchoredHeader.top) <= 1 && anchoredHeader.height >= 50, `${width}px: hash navigation clipped the desktop header: ${JSON.stringify(anchoredHeader)}`);
       await captureViewport(page, `settings-${width}.png`);
+
+      await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
+      await page.locator('.topnav [data-feature="Friends"]').click();
+      await page.waitForSelector(".friends-workspace-list");
+      await assertNoOverflow(page, `Desktop Friends ${width}px`);
+      assert.equal(await page.locator("#featureView").isVisible(), true, `${width}px: desktop Friends workspace must be visible`);
+      assert.equal(await page.locator("#newsFeedView").isVisible(), false, `${width}px: desktop Friends must not stack over the feed`);
+      await captureViewport(page, `friends-desktop-${width}.png`);
+
+      await page.locator('.topnav [data-feature="Notifications"]').click();
+      await page.waitForSelector("#notificationDrawer:not([hidden])");
+      await assertNoOverflow(page, `Desktop Notifications ${width}px`);
+      const notificationPanel = await page.locator("#notificationDrawer").evaluate(drawer => {
+        const box = drawer.getBoundingClientRect();
+        return { width: box.width, height: box.height, right: innerWidth - box.right, top: box.top };
+      });
+      assert.ok(notificationPanel.width >= 300 && notificationPanel.width <= 430, `${width}px: desktop Notifications width is uncomfortable: ${JSON.stringify(notificationPanel)}`);
+      assert.ok(notificationPanel.height >= 180 && notificationPanel.right >= 0 && notificationPanel.top >= 0, `${width}px: desktop Notifications is clipped: ${JSON.stringify(notificationPanel)}`);
+      await captureViewport(page, `notifications-desktop-${width}.png`);
 
       await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".chat-sidebar");
