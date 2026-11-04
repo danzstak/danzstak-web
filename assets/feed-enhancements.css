@@ -85,6 +85,34 @@
 
 #featureView{scroll-margin-top:86px}@media(max-width:700px){#featureView{scroll-margin-top:12px}}
 
+/* Mobile primary destinations are mutually exclusive application screens.
+   Friends and Notifications use the full workspace route; Chat navigates to
+   messages.html. Only the menu remains a modal drawer over the active route. */
+@media(max-width:700px){
+  body[data-mobile-screen="notifications"] #featureView,
+  body[data-mobile-screen="friends"] #featureView{
+    min-height:calc(100dvh - 78px - env(safe-area-inset-bottom));
+    margin:0;
+    border-radius:0;
+    box-shadow:none;
+  }
+  body[data-mobile-screen="notifications"] #newsFeedView,
+  body[data-mobile-screen="friends"] #newsFeedView{display:none!important}
+  .notification-drawer{inset:0;width:100vw;height:100dvh;max-height:none;border:0;border-radius:0;box-shadow:none}
+  .notification-drawer-bar{min-height:calc(48px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)}
+  .notification-drawer-content{max-height:calc(100dvh - 48px - env(safe-area-inset-top));overscroll-behavior:contain}
+  .topbar{grid-template-columns:34px minmax(0,1fr)!important;padding:5px 8px!important;gap:5px!important}
+  .topbar .logo{width:34px;height:34px;overflow:hidden}
+  .topbar .logo img{width:34px;height:34px;flex:0 0 34px}
+  .topbar .logo span{display:none}
+  .topbar .search{height:34px;padding:6px 10px}
+  .topbar .topnav{gap:2px!important}
+  .topbar .topnav button{min-height:40px;padding:4px!important}
+  .topbar .nav-icon{width:22px;height:22px;flex-basis:22px}
+  .layout{margin-top:8px}
+  .mobile-menu-open .left{height:100dvh;max-height:100dvh}
+}
+
 /* Consistent workspace form rhythm and readable long content. */
 .events-workspace{display:grid;gap:14px}.events-workspace>label{display:grid;gap:7px}.events-workspace>select{width:100%;min-height:42px;padding:9px 11px;border:1px solid #ccd0d5;border-radius:8px;font:inherit}.events-workspace>.event-certification{display:flex;align-items:flex-start;gap:9px;line-height:1.5}.event-certification input{flex:0 0 18px;width:18px;height:18px;margin-top:3px}.events-workspace>.primary{justify-self:start}.events-workspace h4{margin:8px 0 0}.group-card,.notification-row p,.published-event-card p,.profile-post-card p{overflow-wrap:anywhere}.notification-actions{flex-wrap:wrap}.post-report-dialog{max-height:calc(100dvh - 32px);overflow:auto}.post-report-actions{flex-wrap:wrap}
 .dark-mode .group-create-box,.dark-mode .group-card,.dark-mode .post-inline-editor,.dark-mode .notification-row,.dark-mode .notification-row.is-read,.dark-mode .post-report-dialog{background:#1f2937;color:#f5f7fb;border-color:#3b4658}.dark-mode .group-card p,.dark-mode .notification-row.is-read p,.dark-mode .post-options-menu small{color:#b8c2d1}.dark-mode .post-option-row{color:#f5f7fb}
@@ -232,3 +260,49 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
 .dark-mode .tribe-nav{background:#3b4658}
 .dark-mode .tribe-nav button{background:#1f2937}
 .dark-mode .tribe-nav button[aria-selected="true"]{background:#253c60}
+.post-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;flex-wrap:nowrap}.reaction-icon,.reaction-count{display:inline-block;line-height:1}.reaction-count{font-size:.72em;font-weight:800;font-variant-numeric:tabular-nums}
+
+/* Mobile app shell: one compact header and one persistent five-item bottom nav. */
+@media(max-width:700px){
+  :root{--mobile-app-header:54px;--mobile-app-nav:54px}
+  body{padding-bottom:calc(var(--mobile-app-nav) + env(safe-area-inset-bottom))}
+  .topbar{
+    position:sticky!important;
+    top:0;
+    z-index:10000;
+    display:grid!important;
+    grid-template-columns:38px minmax(0,1fr)!important;
+    align-items:center;
+    min-height:var(--mobile-app-header);
+    padding:7px 10px!important;
+    gap:8px!important;
+  }
+  .topbar .logo{width:38px;height:38px;min-width:38px;overflow:hidden}
+  .topbar .logo img{width:38px;height:38px}
+  .topbar .logo span{display:none}
+  .topbar .search{grid-column:2;height:38px!important;min-height:38px;padding:7px 12px!important}
+  .topbar .topnav{
+    position:fixed;
+    z-index:9999;
+    left:0;
+    right:0;
+    bottom:0;
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    width:100%;
+    height:calc(var(--mobile-app-nav) + env(safe-area-inset-bottom));
+    padding:3px max(4px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px,env(safe-area-inset-left));
+    gap:0!important;
+    border-top:1px solid #ffffff42;
+    background:#1769e0;
+    box-shadow:0 -2px 12px #10182826;
+  }
+  .topbar .topnav button{min-width:0;min-height:48px;padding:5px!important;border-radius:8px}
+  .topbar .topnav button[aria-current=page]{box-shadow:inset 0 -3px 0 #fff}
+  .topbar .nav-count{top:1px;right:calc(50% - 22px)}
+  .layout{margin-top:8px;margin-bottom:0;padding-bottom:8px}
+  #featureView{scroll-margin-top:calc(var(--mobile-app-header) + 8px)}
+  body[data-mobile-screen="notifications"] #featureView,
+  body[data-mobile-screen="friends"] #featureView{min-height:calc(100dvh - var(--mobile-app-header) - var(--mobile-app-nav) - env(safe-area-inset-bottom))}
+  .mobile-menu-open .left{padding-bottom:calc(var(--mobile-app-nav) + env(safe-area-inset-bottom) + 8px)}
+}

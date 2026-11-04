@@ -7,7 +7,7 @@ const css = fs.readFileSync("assets/feed-enhancements.css", "utf8");
 
 assert.match(feed, /data-feature="Notifications" aria-controls="notificationDrawer" aria-expanded="false"/, "the bell names and controls its drawer");
 assert.match(source, /notificationDrawer\.className = "notification-drawer"/, "notifications open in an embedded feed drawer");
-assert.match(source, /if \(name === "Notifications" && notificationDrawer && !notificationDrawer\.hidden\)[\s\S]*?closeNotificationDrawer\(\)/, "the bell only closes a drawer that already exists and is open");
+assert.match(source, /if \(name === "Notifications" && !usesMobileNotificationHistory\(\) && notificationDrawer && !notificationDrawer\.hidden\)[\s\S]*?closeNotificationDrawer\(\)/, "the desktop bell only closes a drawer that already exists and is open");
 assert.doesNotMatch(source, /name === "Notifications" && !notificationDrawer\?\.hidden/, "the first bell click must not mistake a missing drawer for an open one");
 assert.match(source, /event\.key === "Escape"[\s\S]*?closeNotificationDrawer\(\)/, "Escape closes the notification drawer");
 assert.match(source, /notificationDrawer\.contains\(event\.target\)[\s\S]*?notificationControls\.some\(control => control\.contains\(event\.target\)\)[\s\S]*?closeNotificationDrawer\(false\)/,
@@ -25,8 +25,8 @@ assert.match(source, /async function loadNotificationSources\(\)[\s\S]*?attempt 
 assert.match(source, /if \(socialReady \|\| engagementReady\) break/, "a usable notification source prevents an unnecessary retry");
 assert.match(source, /loadNotificationSources\(\)\.then/, "the notification drawer uses the resilient source loader");
 assert.match(css, /\.notification-drawer\{position:fixed/, "the notification panel overlays rather than replaces the feed");
-assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-drawer\{top:58px;right:8px;left:8px/, "the drawer fits phone screens");
+assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-drawer\{inset:0;width:100vw;height:100dvh/, "a retained notification drawer becomes a real full-screen phone surface");
 assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-row\{display:grid;grid-template-columns:42px minmax\(0,1fr\)/, "phone notifications reserve a readable message column");
 assert.match(css, /\.notification-actions\{grid-column:2;grid-row:2;justify-content:flex-start;margin-left:0\}/, "phone notification actions sit below the message instead of squeezing it");
 
-console.log("Notification drawer checks passed: toggle, focus-safe dismissal, workspace/feed preservation, and responsive layout.");
+console.log("Notification drawer checks passed: desktop toggle, mobile full-screen fallback, focus-safe dismissal, and workspace/feed preservation.");

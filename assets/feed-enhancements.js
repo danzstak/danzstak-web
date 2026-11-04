@@ -1849,6 +1849,7 @@ const mobileMenuControl = document.querySelector(".mobile-menu-control");
 const mobileNavMenu = document.getElementById("mobileNavMenu");
 function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {}) {
   const shouldOpen = Boolean(open && matchMedia("(max-width: 700px)").matches);
+  if (shouldOpen) globalThis.danzstakActivateMobileScreen?.("menu", { preserveMenu: true });
   const wasOpen = document.body.classList.contains("mobile-menu-open");
   document.body.classList.toggle("mobile-menu-open", shouldOpen);
   mobileMenuControl?.setAttribute("aria-expanded", String(shouldOpen));
@@ -1978,6 +1979,27 @@ function openNotificationDrawer(opener, { updateHistory = true } = {}) {
   requestAnimationFrame(() => notificationDrawer.querySelector(".notification-drawer-close")?.focus({ preventScroll: true }));
 }
 
+function closeMessageDrawerForMobileNavigation() {
+  const drawer = document.getElementById("messageDrawer");
+  if (!drawer || drawer.hidden || drawer.classList.contains("is-video-call")) return;
+  drawer.querySelector(".message-drawer-close")?.click();
+}
+
+function activateMobileScreen(screen, { preserveMenu = false } = {}) {
+  if (!matchMedia("(max-width: 700px)").matches) return false;
+  const nextScreen = String(screen || "home").toLowerCase();
+  document.body.dataset.mobileScreen = nextScreen;
+  if (!preserveMenu && nextScreen !== "menu" && document.body.classList.contains("mobile-menu-open")) {
+    setMobileMenu(false, { fromHistory: true });
+  }
+  if (nextScreen !== "notifications" && notificationDrawer && !notificationDrawer.hidden) {
+    closeNotificationDrawer(false, { fromHistory: true });
+  }
+  if (nextScreen !== "chat") closeMessageDrawerForMobileNavigation();
+  return true;
+}
+globalThis.danzstakActivateMobileScreen = activateMobileScreen;
+
 document.addEventListener("click", event => {
   if (!notificationDrawer || notificationDrawer.hidden) return;
   if (notificationDrawer.contains(event.target) || notificationControls.some(control => control.contains(event.target))) return;
@@ -2003,10 +2025,11 @@ document.addEventListener("click", event => {
 function openWorkspaceRoute(name, pushHistory = true) {
   if (!workspaceRoutes.has(String(name).toLowerCase())) return false;
   const canonicalName = workspaceRoutes.get(String(name).toLowerCase());
-  if (canonicalName === "Notifications") {
+  if (canonicalName === "Notifications" && !usesMobileNotificationHistory()) {
     openNotificationDrawer(notificationControls[0], { updateHistory: pushHistory });
     return true;
   }
+  activateMobileScreen(canonicalName);
   if (typeof closeNotificationDrawer === "function") closeNotificationDrawer(false);
   document.body.classList.add("content-only");
   const homeControl = document.querySelector('[data-route="home"]');
@@ -2041,7 +2064,7 @@ document.querySelectorAll("[data-feature]").forEach(control => {
   control.addEventListener("click", event => {
     if (!workspaceRoutes.has(name.toLowerCase())) return;
     event.preventDefault();
-    if (name === "Notifications" && notificationDrawer && !notificationDrawer.hidden) {
+    if (name === "Notifications" && !usesMobileNotificationHistory() && notificationDrawer && !notificationDrawer.hidden) {
       closeNotificationDrawer();
       return;
     }
@@ -2050,7 +2073,8 @@ document.querySelectorAll("[data-feature]").forEach(control => {
 });
 
 document.querySelector('[data-route="home"]')?.addEventListener("click", () => closeNotificationDrawer(false), { capture: true });
-document.getElementById("messagesNav")?.addEventListener("click", () => closeNotificationDrawer(false), { capture: true });
+document.querySelector('[data-route="home"]')?.addEventListener("click", () => activateMobileScreen("home"), { capture: true });
+document.getElementById("messagesNav")?.addEventListener("click", () => activateMobileScreen("chat"), { capture: true });
 
 function restoreWorkspaceRoute() {
   if (matchMedia("(max-width: 700px)").matches && history.state?.danzstakMenuOpen === true) {
@@ -2067,6 +2091,7 @@ function restoreWorkspaceRoute() {
   const name = workspaceRoutes.get(location.hash.slice(1).toLowerCase()) || workspaceRoutes.get(requestedView);
   if (name) openWorkspaceRoute(name, false);
   else if (!location.hash || location.hash === "#feed" || location.hash.startsWith("#post-")) {
+    activateMobileScreen("home");
     // The regular Home URL must keep the familiar desktop rails visible.
     // Focused deep links may still remove the rails so a specific post can
     // use the available width, but `?view=feed` is the ordinary Home route.
@@ -2960,14 +2985,30 @@ function describePostControls(post) {
   });
 }
 
+function paintActionCount(button, iconText, count = 0) {
+  const icon = document.createElement("span");
+  icon.className = "reaction-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = iconText;
+  const children = [icon];
+  if (Number(count) > 0) {
+    const value = document.createElement("span");
+    value.className = "reaction-count";
+    value.setAttribute("aria-hidden", "true");
+    value.textContent = String(Number(count));
+    children.push(value);
+  }
+  button.replaceChildren(...children);
+}
+
 function paintReactionControls(up, down, reaction, counts = {}, noun = "post") {
   const positive = Boolean(reaction) && reaction !== "Dislike";
   const total = Object.entries(counts).filter(([kind]) => kind !== "Dislike").reduce((sum, [, count]) => sum + Number(count || 0), 0);
-  up.textContent = (positive ? reactionEmoji[reaction] : reactionEmoji.Like) + (total ? " · " + total : "");
+  paintActionCount(up, positive ? reactionEmoji[reaction] : reactionEmoji.Like, total);
   up.dataset.liked = String(positive); up.dataset.reaction = reaction || "";
   const upLabel = positive ? "Remove " + reaction.toLowerCase() + " reaction" : "Like " + noun;
   up.setAttribute("aria-label", upLabel); up.setAttribute("aria-pressed", String(positive)); up.title = upLabel;
-  if (down) { down.textContent = reactionEmoji.Dislike + (counts.Dislike ? " · " + counts.Dislike : ""); down.setAttribute("aria-label", reaction === "Dislike" ? "Remove dislike reaction" : "Dislike " + noun); down.setAttribute("aria-pressed", String(reaction === "Dislike")); down.dataset.selected = String(reaction === "Dislike"); }
+  if (down) { paintActionCount(down, reactionEmoji.Dislike, counts.Dislike); down.setAttribute("aria-label", reaction === "Dislike" ? "Remove dislike reaction" : "Dislike " + noun); down.setAttribute("aria-pressed", String(reaction === "Dislike")); down.dataset.selected = String(reaction === "Dislike"); }
 }
 function setReactionAppearance(post, reaction, counts = {}) {
   const like = post.querySelector(".likeBtn"); if (!like) return;
@@ -2977,6 +3018,8 @@ function updateCommentPreview(post) {
   const list = post.querySelector(".commentList"); if (!list) return;
   const composer = post.querySelector(".comments"); if (composer && list.parentElement === composer) composer.before(list);
   const items = [...list.querySelectorAll(".comment")];
+  const commentButton = post.querySelector(".commentBtn");
+  if (commentButton) paintActionCount(commentButton, "💬", items.length);
   const byId = new Map(items.map(item => [item.dataset.commentId || "",item])), children = new Map();
   for (const item of items) if (item.dataset.parentCommentId && byId.has(item.dataset.parentCommentId)) {
     const group = children.get(item.dataset.parentCommentId) || []; group.push(item); children.set(item.dataset.parentCommentId,group);

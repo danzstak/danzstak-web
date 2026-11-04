@@ -21,7 +21,7 @@ assert.doesNotMatch(enhancements, /alert\(/, "feed actions should not use blocki
 assert.match(enhancements, /function openInfoDialog\(\{ title, content \}\)/, "long informational content should use an accessible dialog");
 assert.match(enhancements, /title: "Edit history"/, "post edit history should open in the informational dialog");
 assert.match(styles, /\.info-action-content\{[^}]*overflow:auto/, "long edit histories should scroll within the dialog");
-assert.match(feed, /feed-enhancements\.css\?v=484/, "feed stylesheet cache key should be current");
-assert.match(feed, /feed-enhancements\.js\?v=513/, "feed script cache key should be current");
+assert.match(feed, /feed-enhancements\.css\?v=485/, "feed stylesheet cache key should be current");
+assert.match(feed, /feed-enhancements\.js\?v=515/, "feed script cache key should be current");
 
 console.log("Feed action feedback checks passed: post actions use compact, accessible, nonblocking status messages.");

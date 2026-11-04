@@ -17,7 +17,7 @@ assert.match(enhancements, /reelsTitle\.textContent = "The Roll"/);
 assert.match(enhancements, /canonicalName === "Groups" \? "Tribes" : canonicalName/);
 assert.match(profile, />Your Mix<\/a>/);
 assert.match(booking, />Your Mix<\/a>/);
-assert.match(messages, /aria-label="Back to Your Mix"[^>]*>Your Mix<\/a>/);
+assert.match(messages, /data-chat-return[^>]+aria-label="Back to previous DanzStak screen"[^>]*>Back<\/a>/);
 assert.ok(manifest.shortcuts.some(shortcut => shortcut.name === "Your Mix" && shortcut.url === "/feed.html"), "installed app shortcut should use Your Mix");
 
 // Stable route and API names remain unchanged for backward compatibility.

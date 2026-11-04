@@ -4,6 +4,15 @@ if (new URLSearchParams(location.search).get("embedded") === "1") {
   document.body.classList.add("embedded-messages");
 }
 
+const returnControl = document.querySelector("[data-chat-return]");
+const requestedReturn = new URLSearchParams(location.search).get("return") || "";
+if (returnControl && requestedReturn.startsWith("/") && !requestedReturn.startsWith("//")) {
+  try {
+    const safeReturn = new URL(requestedReturn, location.origin);
+    if (safeReturn.origin === location.origin) returnControl.href = safeReturn.pathname + safeReturn.search + safeReturn.hash;
+  } catch {}
+}
+
 const directApi = "https://api.danzstak.com";
 const contactInput = document.getElementById("contactEmail");
 const onlineUsers = document.getElementById("onlineUsers");

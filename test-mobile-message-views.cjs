@@ -13,6 +13,6 @@ assert.match(css, /\.chat-header \.chat-brand\{flex:0 0 70px\}/, "DanzStak brand
 assert.match(css, /\.chat-header \.chat-brand img\{width:70px;height:42px\}/, "the phone logo should be visually balanced with navigation controls");
 assert.match(css, /\.chat-header \.button\{min-height:40px;padding:6px 8px;font-size:12px;white-space:nowrap\}/, "compact phone navigation must retain reliable controls");
 assert.match(css, /body\.messages-page\{max-width:100vw;overflow-x:hidden\}/, "phone Messages must not push navigation or app prompts beyond the viewport");
-assert.match(markup, /aria-label="Back to Your Mix"[^>]*>Your Mix<\/a>/, "the phone return control should stay understandable without an oversized label");
+assert.match(markup, /data-chat-return[^>]+aria-label="Back to previous DanzStak screen"[^>]*>Back<\/a>/, "the phone return control should return to the previous app screen without an oversized label");
 
 console.log("Mobile message-view checks passed: list and conversation use separate full-width states.");
