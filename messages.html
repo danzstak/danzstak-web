@@ -13,7 +13,7 @@
 <script src="assets/offline.js?v=2"></script>
 <script src="assets/display-preferences.js?v=410"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
-<link rel="stylesheet" href="assets/chat.css?v=448">
+<link rel="stylesheet" href="assets/chat.css?v=449">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
 <link rel="stylesheet" href="assets/mobile-design-system.css?v=11">
@@ -31,7 +31,7 @@
 <header class="chat-header"><a href="feed.html" class="chat-brand" aria-label="DanzStak home"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a><div><a class="button" href="feed.html?view=feed" data-chat-return data-icon="back" aria-label="Back to previous DanzStak screen" title="Back">Back</a> <button class="button" type="button" data-logout>Logout</button></div></header>
 <main id="messagesMain" class="chat-shell" tabindex="-1">
   <section class="chat-sidebar" aria-labelledby="messagesTitle">
-    <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><div class="chat-heading-actions"><button id="enableRinging" type="button" class="chat-heading-button" data-icon="bell" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" data-icon="edit" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
+    <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><div class="chat-heading-actions"><button id="callingDevices" type="button" class="chat-heading-button" data-icon="phone" aria-label="Phone and registered devices" title="Phone and registered devices">☎</button><button id="enableRinging" type="button" class="chat-heading-button" data-icon="bell" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" data-icon="edit" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
     <label class="chat-search"><span class="chat-search-icon" data-menu-icon="search" aria-hidden="true"></span><input id="chatSearch" type="search" inputmode="search" enterkeyhint="search" placeholder="Search chats" aria-label="Search messages"></label>
     <nav class="chat-filters" aria-label="Chat filters" role="tablist"><button type="button" class="active" data-chat-filter="all" role="tab" aria-selected="true">All</button><button type="button" data-chat-filter="unread" role="tab" aria-selected="false" tabindex="-1">Unread</button><button type="button" data-chat-filter="groups" role="tab" aria-selected="false" tabindex="-1">Tribes</button></nav>
     <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers" aria-busy="true"><p class="chat-note">Loading saved chats…</p></div></section>
@@ -73,7 +73,16 @@
     </form>
   </section>
 </main>
-<script src="assets/push-notifications.js?v=307" defer></script>
+<dialog id="callingDevicesDialog" class="calling-devices-dialog" aria-labelledby="callingDevicesTitle">
+  <header><div><span class="eyebrow">SYNC Phone</span><h2 id="callingDevicesTitle">Registered devices</h2></div><button id="closeCallingDevices" type="button" data-icon="close" aria-label="Close registered devices" title="Close">×</button></header>
+  <p>Register each phone, tablet, PWA, or computer before it can make or receive SYNC calls. Registration does not expose a phone number or enable carrier calls, SMS, or emergency calling.</p>
+  <label for="deviceName">Device name</label><input id="deviceName" type="text" maxlength="60" autocomplete="off" placeholder="My Android phone">
+  <button id="registerThisDevice" type="button" class="primary">Register this device</button>
+  <p id="deviceStatus" class="device-status" role="status">Checking this device…</p>
+  <ul id="registeredDevices" class="registered-devices" aria-label="Your registered calling devices"></ul>
+</dialog>
+<script src="assets/call-devices.js?v=1" defer></script>
+<script src="assets/push-notifications.js?v=308" defer></script>
 <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
   <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
   <a role="button" data-icon="users" aria-label="Friends" title="Friends" href="feed.html?view=friends"></a>
@@ -83,7 +92,7 @@
 </nav>
 <script src="assets/icon-buttons.js?v=7" defer></script>
 <script src="assets/identity-media.js?v=1" defer></script>
-<script src="assets/chat.js?v=447" defer></script>
+<script src="assets/chat.js?v=448" defer></script>
 <script src="assets/direct-messages.js?v=483" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>

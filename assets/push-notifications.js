@@ -27,7 +27,7 @@
         cache: "no-store",
         ...options,
         signal: controller.signal,
-        headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+        headers: { "Content-Type": "application/json", ...(await globalThis.danzstakCallingDeviceHeaders?.()), ...(options.headers || {}) }
       });
     } catch (error) {
       if (error.name === "AbortError") throw new Error("Notification setup took too long. Try again.");

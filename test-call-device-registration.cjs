@@ -1,0 +1,33 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs");
+const template=fs.readFileSync("infrastructure/call-signaling/template.yaml","utf8");
+const html=fs.readFileSync("messages.html","utf8"),client=fs.readFileSync("assets/call-devices.js","utf8"),chat=fs.readFileSync("assets/chat.js","utf8"),push=fs.readFileSync("assets/push-notifications.js","utf8"),worker=fs.readFileSync("service-worker.js","utf8");
+
+assert.match(template,/CallingDevicesTable:[\s\S]*TableName: DANZSTAK-CallingDevices[\s\S]*PointInTimeRecoveryEnabled: true[\s\S]*SSEEnabled: true/,"calling devices need retained encrypted recoverable storage");
+assert.match(template,/TimeToLiveSpecification:[\s\S]*AttributeName: expiresAt[\s\S]*Enabled: true/,"short-lived registration challenges need TTL cleanup");
+for(const route of ["POST /calls/devices/challenge","POST /calls/devices/register","GET /calls/devices","PATCH /calls/devices","DELETE /calls/devices"])assert.ok(template.includes(route),`${route} must be routed`);
+assert.match(template,/challengeHash:[\s\S]*expiresAt:[\s\S]*now\(\)\+300/,"enrollment challenge must be short-lived and stored only as a hash");
+assert.match(template,/TransactWriteItemsCommand\(\{TransactItems:\[\{Delete:[\s\S]*challengeHash = :hash AND expiresAt > :now[\s\S]*\{Put:/,"challenge consumption and device creation must be atomic and replay-safe");
+assert.match(template,/tokenHash:[\s\S]*createHash\('sha256'\)\.update\(token\)/,"server must persist only a device-token hash");
+assert.match(template,/timingSafeEqual/,"device-token comparison must resist timing disclosure");
+assert.match(template,/Date\.now\(\)-lastUsed>60000/,"frequent call polling must not write last-used activity on every request");
+assert.match(template,/CALL_DEVICE_REGISTRATION_REQUIRED/,"call endpoints must return an actionable registration code");
+assert.match(template,/\['phone','video'\]\.includes\(mode\)&&!\(await authenticatedCallingDevice/,"voice and video signaling must require the registered installation");
+assert.match(template,/async function inbox\(event,user\)\{if\(!\(await authenticatedCallingDevice/,"an unregistered installation must not receive call signals");
+assert.match(template,/targets=items\.filter\(item=>item\.deviceId\?\.S&&eligible\.has/,"call push must fan out only to active registered devices");
+assert.match(template,/revokedAt = :revoked, allowCalls = :disabled REMOVE tokenHash/,"revocation must immediately invalidate the call credential");
+assert.doesNotMatch(template,/IMEI|address.?book/i,"device registration must not collect hardware IDs or address books");
+
+assert.ok(html.includes('id="callingDevices"'),"SYNC must expose a discoverable Phone and devices action");
+assert.ok(html.includes('id="registerThisDevice"'),"the current installation needs a visible registration action");
+assert.ok(html.includes("Registration does not expose a phone number"),"the UI must distinguish device enrollment from telephone service");
+assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
+assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"call requests need the current installation credential");
+assert.match(client,/confirm\(t\(`Revoke/,"lost-device revocation must require deliberate confirmation");
+assert.match(client,/renameDevice\(device\)[\s\S]*method:"PATCH"/,"registered devices must be renameable without re-enrollment");
+assert.match(chat,/path\.startsWith\("\/calls\/"\)\?await globalThis\.danzstakCallingDeviceHeaders/,"calling requests must authenticate the installation");
+assert.match(chat,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*danzstakOpenCallingDevices/,"blocked calls must open the registration recovery flow");
+assert.doesNotMatch(chat,/\/messages[\s\S]{0,120}CALL_DEVICE_REGISTRATION_REQUIRED/,"ordinary persistent messages must not be gated by device registration");
+assert.match(push,/globalThis\.danzstakCallingDeviceHeaders/,"push subscriptions must be linkable to the registered installation");
+assert.match(worker,/assets\/call-devices\.js/,"the installed PWA shell must include device registration");
+console.log("SYNC device-registration checks passed: challenge, hashed credential, call-only gate, push targeting, revocation, UI, and free Chat separation.");

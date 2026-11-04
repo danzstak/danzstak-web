@@ -325,7 +325,7 @@ foreach ($pushCapability in @(
   if (-not $template.Contains($pushCapability)) { throw "Background push capability is missing: $pushCapability" }
 }
 foreach ($pushFanout in @(
-  "async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){const preferences=await pushPreferences(recipientEmail,'callAlerts');if(!preferences.enabled)return;const [items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
+  "async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){const preferences=await pushPreferences(recipientEmail,'callAlerts');if(!preferences.enabled)return;const [items,devices,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
   "async function notifyMessage(recipientEmail,senderEmail,senderMemberId){const preferences=await pushPreferences(recipientEmail,'messageAlerts');if(!preferences.enabled)return;const [items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
   'async function notifyFriendRequest(recipientEmail,senderEmail){const preferences=await pushPreferences(recipientEmail),[items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE'
 )) {
@@ -343,7 +343,7 @@ if ($template.Contains('url:`/messages.html?contact=${encodeURIComponent(senderE
 if (-not $template.Contains("FilterExpression:'expiresAt > :n'") -or -not $template.Contains("':n':{N:String(now())}")) {
   throw 'Call inbox can return expired signaling records before DynamoDB TTL cleanup.'
 }
-foreach ($callInboxControl in @('async function inbox(user){const items=await queryAll', 'ScanIndexForward:true,ConsistentRead:true},20)', 'return json(200,{events:items.map')) {
+foreach ($callInboxControl in @('async function inbox(event,user){if(!(await authenticatedCallingDevice(event,user)))', 'ScanIndexForward:true,ConsistentRead:true},20)', 'return json(200,{events:items.map')) {
   if (-not $template.Contains($callInboxControl)) { throw "Call inbox can lose live events behind expired TTL records: $callInboxControl" }
 }
 if ($template.Contains("FilterExpression:'expiresAt > :n',ExpressionAttributeValues:{':r':{S:user.email},':n':{N:String(now())}},Limit:20")) {
