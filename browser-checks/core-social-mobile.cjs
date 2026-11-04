@@ -22,7 +22,7 @@ function fixture(pathname) {
   if (pathname === "/profiles") return { profile };
   if (pathname === "/secure-posts") return { posts: [] };
   if (pathname === "/friends") return { friends: [friend], incoming: [], outgoing: [] };
-  if (pathname === "/calls/directory" || pathname === "/people") return { users: [{ ...friend, online: true, canContact: true }] };
+  if (pathname === "/calls/directory" || pathname === "/people") return { users: [{ ...friend, online: true, canContact: true, friendStatus: "friends" }] };
   if (pathname === "/notifications") return { notifications: [{ type: "friend_request", email: friend.email, createdAt: "2026-11-04T20:15:00.000Z", unread: true }] };
   if (pathname === "/engagement-notifications") return { notifications: [{ type: "reaction", memberId: friend.memberId, name: friend.name, postId: "33333333-3333-4333-8333-333333333333", preview: "Love", createdAt: "2026-11-04T20:20:00.000Z", unread: true }] };
   if (pathname === "/stories") return { stories: [], reels: [] };
@@ -55,6 +55,12 @@ function fixture(pathname) {
         await page.goto(`http://127.0.0.1:8016/${target}`, { waitUntil: "domcontentloaded" });
         await page.locator(populatedSelector).first().waitFor({ state: "visible" });
         await page.waitForTimeout(100);
+        if (name === "friends") {
+          assert.match(await page.locator(".feed-online-row button").first().getAttribute("aria-label") || "", /^Message\b/, `${width}px accepted online friend must not offer a duplicate friend request`);
+          assert.equal(await page.locator(".friend-workspace-row").count(), 1, `${width}px accepted friend card is missing`);
+        }
+        if (name === "notifications") assert.equal(await page.locator(".notification-row").count(), 2, `${width}px populated notification sources did not remain visible together`);
+        if (name === "chat") assert.equal((await page.locator(".conversation-unread").textContent())?.trim(), "2", `${width}px unread chat badge is missing`);
         const geometry = await page.evaluate(() => ({
           width: innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
