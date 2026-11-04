@@ -98,3 +98,21 @@ This is a strict source-and-navigation rule. Three separate entry points may sha
 The other approved rules remain: native vertical/swipe fullscreen UX, one active player, 50% of **outgoing video's pixels** offscreen -> pause it and hand off to the next predominant item in the CURRENT queue, session-level sound preference where allowed, natural-end auto-next for controllable videos, privacy/expiry, accurate source labels and safe Back/Close restoration.
 
 **Acceptance:** seed two users' Roll clips, creator-only ordinary videos outside Roll, and multiple active Dailies (video, photo and text). Open each of the three entry points and verify that no item from the other two queues leaks into it; check every next and previous action and end-of-list, including older clips, expired Dailies and blocked users. Real installed Android PWA playback/swipe and sound tests, staged PR and owner approval required. This correction overrides any older wording suggesting "all videos" means all media across products.
+
+
+## Final owner navigation — four entry points, two multi-creator collections (2026-11-04)
+
+**Definitive rule from owner:** Both **The Roll** and **Dailies** are independent, multi-creator collections. **Only a video opened from The Mix or from a person's profile gets a creator-only playlist.** This overrides earlier language that treated opening a video from The Roll as creator-only, or made Dailies stop at the selected creator.
+
+| Launch surface | Before tapping | Fullscreen starting item | After swiping up / video finishes |
+| --- | --- | --- | --- |
+| **Dailies** | Horizontal creator/Daily tiles in The Mix | Exact tapped Daily | The next **Daily from any permitted creator**; never a Roll or standard Mix post |
+| **The Roll** | Horizontal left-right Roll video preview carousel | Exact tapped Roll video | The next **Roll video from any permitted creator** |
+| **Video in The Mix** | The ordinary mixed-content feed | Exact tapped video | **Only that video's creator's regular videos**, collected across their authorized posts; skip text/photos |
+| **Video on a user's profile** | That person's profile | Exact tapped video | **Only that profile member's regular videos**, collected across their authorized posts; skip text/photos |
+
+All four launch the **same fluid fullscreen vertical player**, but with an explicit, immutable-for-session playlist scope: daily / roll / creator. Horizontal swiping is for **previews before entering fullscreen**. Once open, use vertical swipe up/down for next/previous, autoplay next on natural end only when provider/player allows, and keep showing the selected scope until Close or an explicit mode change. The chosen video must play first, not reset to item 1. Do not navigate away at creator boundaries within global Roll/Dailies collections.
+
+All queues must use backend-authorized content IDs and stable creator IDs, not visible DOM cards alone. Enforce audience/privacy/block/deletion, 24-hour Daily expiry, pagination and deduplication. Daily-only ephemeral posts must not appear in creator regular-video queues unless separately published as standard videos. Keep one media/audio owner, 50%-of-video-pixels-out-of-viewport play/pause handoff, session-level user-enabled sound where supported, correct Back restoration and browser/provider autoplay fallbacks. Do not rename The Roll or create a separate Rough Cut.
+
+**Owner acceptance:** Two creators each upload Roll clips, ordinary Mix/profile videos and eligible Dailies. (1) Tap second Roll preview horizontally, open that exact clip, swipe vertically to another creator's Roll clip. (2) Tap a Daily, swipe vertically to the next Daily even if by a different member. (3) Tap creator A's Mix video -> only A's standard videos. (4) Tap creator B's profile video -> only B's standard videos. No cross-scope leakage. Test true Android PWA touch/audio, 50% handoff, stage and seek owner approval; document unsupported third-party media separately.
