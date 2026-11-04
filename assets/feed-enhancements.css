@@ -143,8 +143,9 @@
 @media(max-width:700px){.menu .menu-action{grid-template-columns:18px minmax(0,1fr);gap:4px;min-height:44px;padding:8px 4px;font-size:11px}}
 @media(max-width:360px){.menu .menu-action{grid-template-columns:16px minmax(0,1fr);gap:4px;padding-inline:2px;font-size:10px}}
 
-/* Tablet navigation uses two rows before the phone layout takes over. */
-@media(min-width:701px) and (max-width:1050px){.topbar{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;padding:10px 18px}.topbar .search{width:100%;min-width:0}.topbar .topnav{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.topbar .topnav button{min-width:0}#featureView{scroll-margin-top:132px}}
+/* Tablets keep the same compact single-row header before phone navigation takes over. */
+@media(min-width:701px) and (max-width:1050px){.topbar{display:grid;grid-template-columns:auto minmax(150px,1fr) auto;align-items:center;gap:10px;min-height:62px;padding:8px 14px}.topbar .search{width:100%;min-width:0}.topbar .topnav{grid-column:3;display:flex;gap:6px}.topbar .topnav button{flex:0 0 44px;width:44px;min-width:44px;min-height:44px;padding:6px}.topbar .topnav .app-header-prompt{flex:0 0 auto;width:auto;max-width:150px;padding-inline:10px;font-size:13px}#featureView{scroll-margin-top:76px}}
+@media(min-width:701px) and (max-width:820px){.topbar .logo{width:42px;overflow:hidden}.topbar .logo span{display:none}}
 .settings-workspace{container-type:inline-size;container-name:account-settings}
 @container account-settings (max-width:540px){.settings-row{grid-template-columns:34px minmax(0,1fr);align-items:start;padding:10px 4px}.settings-row>.settings-icon{grid-column:1;grid-row:1 / span 2}.settings-row>strong{grid-column:2;grid-row:1}.settings-row>:last-child{grid-column:2;grid-row:2;justify-self:start;margin-top:5px;min-width:0}.settings-row>input[type=checkbox]{grid-column:2;grid-row:1 / span 2;justify-self:end;margin-top:0}.settings-detail{max-width:none;text-align:left}.settings-links{flex-wrap:wrap}}
 

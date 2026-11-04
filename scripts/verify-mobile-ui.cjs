@@ -515,6 +515,25 @@ async function captureViewport(page, fileName) {
       await captureViewport(page, `settings-${width}.png`);
 
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#feed article.post");
+      const desktopHeader = await page.evaluate(() => {
+        const header = document.querySelector(".topbar");
+        const layout = document.querySelector(".layout");
+        const prompt = document.querySelector(".install-app-button");
+        const headerBox = header.getBoundingClientRect();
+        const layoutBox = layout.getBoundingClientRect();
+        return {
+          height: headerBox.height,
+          contentGap: layoutBox.top - headerBox.bottom,
+          promptInsideHeader: Boolean(prompt && header.contains(prompt)),
+          promptParentClass: prompt?.parentElement?.className || "",
+          hiddenPromptsVisible: [...header.querySelectorAll(".app-header-prompt[hidden]")].filter(button => button.getClientRects().length).length
+        };
+      });
+      assert.ok(desktopHeader.height <= 76, `${width}px: desktop/tablet header is too tall: ${JSON.stringify(desktopHeader)}`);
+      assert.ok(desktopHeader.contentGap <= 32, `${width}px: desktop/tablet header leaves a blank content band: ${JSON.stringify(desktopHeader)}`);
+      assert.equal(desktopHeader.promptInsideHeader, true, `${width}px: desktop/tablet install prompt must reuse header actions: ${JSON.stringify(desktopHeader)}`);
+      assert.equal(desktopHeader.hiddenPromptsVisible, 0, `${width}px: hidden install/update controls must remain hidden: ${JSON.stringify(desktopHeader)}`);
       const desktopIdentity = await page.locator("#mobileNavMenu").evaluate(drawer => {
         const name = drawer.querySelector("#menuProfileName");
         const close = drawer.querySelector("[data-menu-close]");

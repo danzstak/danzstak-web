@@ -50,13 +50,28 @@ updateButton.className = "app-update-button";
 updateButton.textContent = "Update DanzStak";
 updateButton.hidden = true;
 const appPromptAnchor = document.querySelector("body > header");
-if (appPromptAnchor) {
-  appPromptAnchor.insertAdjacentElement("afterend", updateButton);
-  appPromptAnchor.insertAdjacentElement("afterend", installButton);
-} else {
-  document.body.prepend(updateButton);
-  document.body.prepend(installButton);
+const appPromptHost = signedInPage && appPromptAnchor
+  ? appPromptAnchor.querySelector(".topnav, .header-actions, :scope > div:last-child")
+  : null;
+const headerPromptQuery = window.matchMedia("(min-width: 701px)");
+function placeAppPrompts() {
+  const useHeader = Boolean(appPromptHost && headerPromptQuery.matches);
+  for (const button of [installButton, updateButton]) {
+    button.classList.toggle("app-header-prompt", useHeader);
+    button.classList.toggle("button", useHeader);
+  }
+  if (useHeader) {
+    appPromptHost.append(installButton, updateButton);
+  } else if (appPromptAnchor) {
+    appPromptAnchor.insertAdjacentElement("afterend", updateButton);
+    appPromptAnchor.insertAdjacentElement("afterend", installButton);
+  } else {
+    document.body.prepend(updateButton);
+    document.body.prepend(installButton);
+  }
 }
+placeAppPrompts();
+headerPromptQuery.addEventListener?.("change", placeAppPrompts);
 let waitingWorker = null;
 let safeUpdateTimer = null;
 
