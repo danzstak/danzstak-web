@@ -10,14 +10,18 @@ assert.match(media, /soundPreferenceKey='danzstak_video_sound'/, "video sound ch
 assert.match(media, /document\.addEventListener\('volumechange'/, "native video sound changes should update the shared choice");
 assert.match(media, /document\.querySelectorAll\?\.\('video'\)/, "the shared choice should update every native video");
 assert.match(media, /youtube-nocookie\.com\/embed\//, "YouTube players should participate in shared sound state");
-assert.match(media, /controlYouTube\(frame,enabled\?'unMute':'mute'\)/, "YouTube mute state should follow the shared choice without reloading the video");
+assert.match(media, /controlYouTube\(frame,enabled&&frame===activeMedia\?'unMute':'mute'\)/, "only the active YouTube player should receive sound without reloading");
+assert.match(media, /video\.muted=!enabled\|\|video!==activeMedia/, "inactive native videos must remain muted even when site-wide video sound is enabled");
+assert.match(media, /currentRatio>=0\.5/, "the current video must retain playback while it remains substantially in frame");
+assert.match(media, /let best=null,bestRatio=0\.6/, "automatic handoff must require the next video to be substantially visible");
 assert.match(media, /event\.origin!==['"]https:\/\/www\.youtube-nocookie\.com['"]/, "only trusted YouTube player messages may change sound state");
 assert.match(media, /payload\?\.event!==['"]infoDelivery['"]/, "YouTube sound-control changes should update the shared choice");
 assert.match(media, /saveSoundPreference\(!payload\.info\.muted,frame\)/, "unmuting a YouTube video should unmute later DanzStak videos");
 assert.match(feed, /youtube-nocookie\.com\/embed\/[\s\S]*autoplay=1/, "YouTube embeds should request autoplay");
 assert.match(feed, /enablejsapi=1/, "YouTube embeds should expose playback controls to the visibility manager");
 assert.match(feed, /loop=1&playlist=/, "YouTube embeds should continue playing in The Roll");
-assert.match(media, /controlYouTube\(entry\.target,'playVideo'\)/, "visible YouTube embeds should start automatically");
+assert.match(media, /controlYouTube\(candidate,'playVideo'\)/, "the selected visible YouTube embed should start automatically");
+assert.match(media, /soundEnabled\(\)&&frame===activeMedia\?'unMute':'mute'/, "loading an inactive YouTube player must not make it audible");
 assert.match(media, /controlYouTube\(element,'pauseVideo'\)/, "off-screen YouTube embeds should pause without being replaced");
 
-console.log("Video sound checks passed: Sigmund search hint, persistent site-wide sound, and YouTube autoplay synchronization.");
+console.log("Video sound checks passed: persistent sound preference, one audible player, visibility hysteresis, and YouTube synchronization.");

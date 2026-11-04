@@ -529,3 +529,15 @@ Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 - The entire visual suite passed again against production at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Permanent coverage now includes mobile Profile and Settings plus affected Profile/Settings tablet and desktop layouts.
 - Live evidence: [Profile at 320px](screenshots/final-repeat-live-profile-320.png), [Settings at 320px](screenshots/final-repeat-live-settings-320.png), and [Profile at 768px](screenshots/final-repeat-live-profile-768.png).
 - No release-blocking defect remains in the measured scope. Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA checks remain **NOT TESTED** because those devices are unavailable in this environment; browser automation is not represented as physical-device evidence.
+
+# Single-audible video playback correction
+
+Status as of 2026-11-04: **TESTED LOCALLY; PRODUCTION DEPLOYMENT PENDING**.
+
+- Root cause: feed autoplay used a low 15% visibility threshold, so adjacent videos could both be playing while scrolling. The saved global sound preference could then unmute every eligible native and YouTube player instead of only the player that owned the viewport.
+- Correction: the shared media controller now grants playback and audio ownership to one player at a time. A new automatic candidate must be at least 60% visible; the current player keeps ownership while at least 50% visible to prevent rapid boundary switching. A deliberate user play transfers ownership immediately, pauses and mutes the previous player, and backgrounding the app pauses all tracked players.
+- Native videos and YouTube embeds use the same ownership rule. The global sound preference is retained, but inactive videos remain muted even when sound is enabled.
+- New dynamic regression coverage verifies overlap hysteresis, scroll handoff, manual transfer and background pause. Existing media-visibility, persistent sound-preference and YouTube synchronization tests were strengthened to require a single audible source.
+- Functional/integration gate: all repository regression checks passed, followed by the 11-page site smoke suite and infrastructure validation. The new focused playback tests also passed independently.
+- The installed-PWA cache advances to `danzstak-shell-v642`, and all pages that load the shared controller reference `assets/media-visibility.js?v=385` so a stale controller cannot remain active after release.
+- No post data, user media, payment logic, entitlement logic, Chat delivery, Booking Agent, EPK or Tour Manager business logic was changed.

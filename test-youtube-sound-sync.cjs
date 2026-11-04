@@ -48,7 +48,7 @@ messageHandler({
   data: JSON.stringify({ event: "infoDelivery", info: { muted: false } })
 });
 assert.equal(stored.get("danzstak_video_sound"), "on", "unmuting YouTube should save sound on for the device");
-assert.equal(video.muted, false, "unmuting YouTube should unmute native DanzStak videos too");
+assert.equal(video.muted, true, "unmuting YouTube must keep inactive native DanzStak videos muted");
 
 messageHandler({
   origin: "https://malicious.example", source: playerWindow,
