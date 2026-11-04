@@ -15,8 +15,8 @@
   --ds-mobile-header:50px;
   color-scheme:light;
 }
-html{max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
-body{max-width:100%;overflow-x:hidden;background:var(--ds-canvas);color:var(--ds-ink)}
+html{max-width:100%;overflow-x:hidden;overflow-x:clip;-webkit-text-size-adjust:100%}
+body{max-width:100%;overflow-x:hidden;overflow-x:clip;background:var(--ds-canvas);color:var(--ds-ink)}
 img,video,iframe,canvas,svg{max-width:100%}
 button,a,input,select,textarea{touch-action:manipulation}
 :focus-visible{outline:3px solid #1769e066;outline-offset:2px}

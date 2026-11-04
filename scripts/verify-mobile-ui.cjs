@@ -349,7 +349,44 @@ async function captureViewport(page, fileName) {
       await page.goto(`${baseUrl}/feed.html?view=feed#settings`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".settings-workspace .settings-row");
       await assertNoOverflow(page, `Desktop Settings ${width}px`);
+      const anchoredHeader = await page.locator(".topbar").evaluate(header => {
+        const box = header.getBoundingClientRect();
+        return { top: box.top, height: box.height, position: getComputedStyle(header).position };
+      });
+      assert.equal(anchoredHeader.position, "sticky", `${width}px: desktop app header must remain sticky`);
+      assert.ok(Math.abs(anchoredHeader.top) <= 1 && anchoredHeader.height >= 50, `${width}px: hash navigation clipped the desktop header: ${JSON.stringify(anchoredHeader)}`);
       await captureViewport(page, `settings-${width}.png`);
+
+      await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".chat-sidebar");
+      await page.evaluate(() => openConversation({ contactEmail: "friend@danzstak.invalid", name: "Mobile Friend", memberId: "22222222-2222-4222-8222-222222222222", online: true, canContact: true }));
+      await page.waitForSelector("#conversationHeader:not([hidden])");
+      await assertNoOverflow(page, `Desktop Chat ${width}px`);
+      const desktopChat = await page.evaluate(() => {
+        const shell = document.querySelector(".chat-shell").getBoundingClientRect();
+        const sidebar = document.querySelector(".chat-sidebar").getBoundingClientRect();
+        const conversation = document.querySelector(".conversation").getBoundingClientRect();
+        const actions = document.querySelector(".conversation-header-actions").getBoundingClientRect();
+        const nameElement = document.querySelector("#conversationName");
+        const name = nameElement.getBoundingClientRect();
+        return {
+          shellWidth: shell.width,
+          sidebarWidth: sidebar.width,
+          conversationWidth: conversation.width,
+          panelsAligned: Math.abs(sidebar.right - conversation.left),
+          nameRight: name.right,
+          actionsLeft: actions.left,
+          nameText: nameElement.textContent.trim(),
+          nameClientWidth: nameElement.clientWidth,
+          nameScrollWidth: nameElement.scrollWidth
+        };
+      });
+      assert.ok(desktopChat.sidebarWidth >= 280 && desktopChat.conversationWidth >= 360, `${width}px: desktop Chat panes are not usable: ${JSON.stringify(desktopChat)}`);
+      assert.ok(desktopChat.panelsAligned <= 1, `${width}px: desktop Chat panes have a gap or overlap: ${JSON.stringify(desktopChat)}`);
+      assert.ok(desktopChat.nameRight <= desktopChat.actionsLeft + 1, `${width}px: desktop Chat contact name overlaps actions: ${JSON.stringify(desktopChat)}`);
+      assert.equal(desktopChat.nameText, "Mobile Friend", `${width}px: desktop Chat contact name changed unexpectedly`);
+      assert.ok(desktopChat.nameScrollWidth <= desktopChat.nameClientWidth + 1, `${width}px: desktop Chat contact name is visually truncated: ${JSON.stringify(desktopChat)}`);
+      await captureViewport(page, `chat-desktop-${width}.png`);
       await context.close();
     }
     console.log(`Mobile visual checks passed at ${widths.join(", ")}px; screenshots: ${outputDir}`);
