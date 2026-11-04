@@ -9,6 +9,9 @@ const feed = readFileSync(join(__dirname, 'feed.html'), 'utf8');
 assert.match(source, /function renderOnlineFriendList\(list, users, presenceAvailable = true\)/, 'Friends has a dedicated online-user discovery list with an explicit availability state');
 assert.match(source, /const online = users\.filter\(person => person\.online === true\)/, 'only currently online people appear in the discovery list');
 assert.match(source, /action\.textContent = feedTranslate\("Add Friend"\)/, 'an unconnected online member has one clear localized Add Friend action');
+assert.match(source, /const labelAction = template => action\.setAttribute\("aria-label", template\.replace\("\{name\}", displayName\)\)/, 'every repeated friend action receives a member-specific accessible name');
+for (const label of ["Message {name}", "Message {name} from your Tribe", "Accept friend request from {name}", "Accepting friend request from {name}", "Send friend request to {name}", "Sending friend request to {name}", "Friend request sent to {name}.", "Friends with {name}"])
+  assert.ok(source.includes(`"${label}"`), `friend action state must identify the affected member: ${label}`);
 assert.match(source, /const requestTarget = \/\^\[a-f0-9-\]\{36\}\$\/\.test\(memberId\) \? \{ memberId \} : \{ email: person\.email \}/, 'online discovery uses an opaque member ID whenever available');
 assert.match(source, /action\.textContent = feedTranslate\("Accept"\)/, 'incoming requests can be accepted from the same localized list');
 assert.match(source, /action\.textContent = feedTranslate\("Requested"\)/, 'sent requests have an understandable localized state');
@@ -19,6 +22,6 @@ assert.doesNotMatch(source, /Add a friend by email/, 'ordinary users are not req
 assert.match(css, /\.friend-discovery-list\{display:grid;/, 'online-user discovery uses a responsive compact grid');
 assert.match(css, /\.friend-workspace-row\{grid-template-columns:minmax\(0,1fr\)\}\.friend-message-action\{width:100%;min-width:0\}/, 'mobile friend actions stack without clipping off screen');
 assert.match(feed, /assets\/feed-enhancements\.css\?v=484/, 'the feed loads the current friend discovery styles');
-assert.match(feed, /assets\/feed-enhancements\.js\?v=513/, 'the feed loads the current localized friend discovery behavior');
+assert.match(feed, /assets\/feed-enhancements\.js\?v=514/, 'the feed loads the current localized friend discovery behavior');
 
 console.log('Friend discovery checks passed: the Friends button lists online users with one-tap relationship actions and no email lookup.');

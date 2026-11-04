@@ -317,6 +317,24 @@
   id:["Menerima…","Mengirim…","Permintaan pertemanan tidak dapat diterima.","Permintaan pertemanan tidak dapat dikirim.","Memuat teman terlalu lama.","Teman tidak dapat dimuat.","Muat ulang teman","Buka profil","Pesan Suku","Layanan teman terlalu lama merespons. Coba lagi.","DanzStak tidak dapat terhubung ke teman saat ini. Periksa koneksi Anda lalu coba lagi."]
  };
  for(const [language,values] of Object.entries(friendActions)){const dictionary=dictionaries[language]||(dictionaries[language]={});friendActionKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const friendAccessibleKeys=["Message {name}","Message {name} from your Tribe","Accept friend request from {name}","Accepting friend request from {name}","Send friend request to {name}","Sending friend request to {name}","Friends with {name}"];
+ const friendAccessible={
+  es:["Enviar mensaje a {name}","Enviar mensaje a {name} de tu Tribu","Aceptar la solicitud de amistad de {name}","Aceptando la solicitud de amistad de {name}","Enviar una solicitud de amistad a {name}","Enviando una solicitud de amistad a {name}","Amigos con {name}"],
+  fr:["Envoyer un message à {name}","Envoyer un message à {name} de votre Tribu","Accepter la demande d’amitié de {name}","Acceptation de la demande d’amitié de {name}","Envoyer une demande d’amitié à {name}","Envoi d’une demande d’amitié à {name}","Ami avec {name}"],
+  de:["Nachricht an {name}","Nachricht an {name} aus deinem Tribe","Freundschaftsanfrage von {name} annehmen","Freundschaftsanfrage von {name} wird angenommen","Freundschaftsanfrage an {name} senden","Freundschaftsanfrage an {name} wird gesendet","Mit {name} befreundet"],
+  pt:["Enviar mensagem para {name}","Enviar mensagem para {name} da sua Tribo","Aceitar solicitação de amizade de {name}","Aceitando solicitação de amizade de {name}","Enviar solicitação de amizade para {name}","Enviando solicitação de amizade para {name}","Amigo de {name}"],
+  it:["Invia un messaggio a {name}","Invia un messaggio a {name} della tua Tribù","Accetta la richiesta di amicizia di {name}","Accettazione della richiesta di amicizia di {name}","Invia una richiesta di amicizia a {name}","Invio della richiesta di amicizia a {name}","Amico di {name}"],
+  ko:["{name}님에게 메시지 보내기","내 트라이브의 {name}님에게 메시지 보내기","{name}님의 친구 요청 수락","{name}님의 친구 요청 수락 중","{name}님에게 친구 요청 보내기","{name}님에게 친구 요청 전송 중","{name}님과 친구"],
+  ja:["{name}にメッセージを送る","トライブの{name}にメッセージを送る","{name}からの友達リクエストを承認","{name}からの友達リクエストを承認中","{name}に友達リクエストを送る","{name}に友達リクエストを送信中","{name}と友達"],
+  "zh-Hans":["给{name}发消息","给你部落中的{name}发消息","接受{name}的好友请求","正在接受{name}的好友请求","向{name}发送好友请求","正在向{name}发送好友请求","已与{name}成为好友"],
+  "zh-Hant":["傳訊息給{name}","傳訊息給你部落中的{name}","接受{name}的好友邀請","正在接受{name}的好友邀請","傳送好友邀請給{name}","正在傳送好友邀請給{name}","已和{name}成為好友"],
+  fil:["Magpadala ng mensahe kay {name}","Magpadala ng mensahe kay {name} mula sa iyong Tribu","Tanggapin ang friend request ni {name}","Tinatanggap ang friend request ni {name}","Magpadala ng friend request kay {name}","Ipinapadala ang friend request kay {name}","Kaibigan si {name}"],
+  hi:["{name} को संदेश भेजें","अपनी ट्राइब के {name} को संदेश भेजें","{name} का दोस्ती अनुरोध स्वीकार करें","{name} का दोस्ती अनुरोध स्वीकार किया जा रहा है","{name} को दोस्ती अनुरोध भेजें","{name} को दोस्ती अनुरोध भेजा जा रहा है","{name} के दोस्त"],
+  vi:["Nhắn tin cho {name}","Nhắn tin cho {name} trong Bộ lạc của bạn","Chấp nhận lời mời kết bạn từ {name}","Đang chấp nhận lời mời kết bạn từ {name}","Gửi lời mời kết bạn đến {name}","Đang gửi lời mời kết bạn đến {name}","Bạn bè với {name}"],
+  th:["ส่งข้อความถึง {name}","ส่งข้อความถึง {name} จากเผ่าของคุณ","ยอมรับคำขอเป็นเพื่อนจาก {name}","กำลังยอมรับคำขอเป็นเพื่อนจาก {name}","ส่งคำขอเป็นเพื่อนไปยัง {name}","กำลังส่งคำขอเป็นเพื่อนไปยัง {name}","เป็นเพื่อนกับ {name}"],
+  id:["Kirim pesan kepada {name}","Kirim pesan kepada {name} dari Suku Anda","Terima permintaan pertemanan dari {name}","Menerima permintaan pertemanan dari {name}","Kirim permintaan pertemanan kepada {name}","Mengirim permintaan pertemanan kepada {name}","Berteman dengan {name}"]
+ };
+ for(const [language,values] of Object.entries(friendAccessible)){const dictionary=dictionaries[language]||(dictionaries[language]={});friendAccessibleKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const settingsDetailKeys=["Profile posting and tagging","Allow friends to tag me","Your DanzStak activity","Download my data","Manage profile posting and tagging permissions","Allow friends to tag me in photos and videos","Manage call and message alerts","Manage app and device settings","View your DanzStak activity","Download my DanzStak data","Log out of DanzStak","Preparing…"];
  const settingsDetails={
   es:["Publicaciones y etiquetas del perfil","Permitir que mis amigos me etiqueten","Tu actividad en DanzStak","Descargar mis datos","Administrar quién publica y etiqueta en tu perfil","Permitir que mis amigos me etiqueten en fotos y videos","Administrar alertas de llamadas y mensajes","Administrar la app y la configuración del dispositivo","Ver tu actividad en DanzStak","Descargar mis datos de DanzStak","Cerrar sesión en DanzStak","Preparando…"],
@@ -695,6 +713,20 @@
    if(!result&&(match=trimmed.match(/^Photo shared by (.+)$/)))result=fill(templates.photo,{name:match[1]});
    if(!result&&(match=trimmed.match(/^Video shared by (.+)$/)))result=fill(templates.video,{name:match[1]});
    if(!result&&(match=trimmed.match(/^Video in The Roll from (.+)$/)))result=fill(templates.roll,{name:match[1]});
+  }
+  if(!result){
+   const fill=(template,values)=>template.replace(/\{(\w+)\}/g,(_,key)=>values[key]??"");
+   const friendPatterns=[
+    [/^Message (.+) from your Tribe$/,"Message {name} from your Tribe"],
+    [/^Message (.+)$/,"Message {name}"],
+    [/^Accept friend request from (.+)$/,"Accept friend request from {name}"],
+    [/^Accepting friend request from (.+)$/,"Accepting friend request from {name}"],
+    [/^Send friend request to (.+)$/,"Send friend request to {name}"],
+    [/^Sending friend request to (.+)$/,"Sending friend request to {name}"],
+    [/^Friend request sent to (.+)\.$/,"Friend request sent to {name}."],
+    [/^Friends with (.+)$/,"Friends with {name}"]
+   ];
+   for(const [pattern,key] of friendPatterns){const match=trimmed.match(pattern),template=dictionary[key];if(match&&template){result=fill(template,{name:match[1]});break;}}
   }
   if(!result){const members=trimmed.match(/^(\d+) matching members?\.$/);if(members&&memberCountLabels[language])result=memberCountLabels[language](members[1]);}
   if(!result){const views=trimmed.match(/^(\d[\d,.]*) views?$/);if(views&&viewCountLabels[language])result=viewCountLabels[language](views[1]);}

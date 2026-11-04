@@ -415,38 +415,46 @@ function renderOnlineFriendList(list, users, presenceAvailable = true) {
     name.setAttribute("data-no-translate", "");
     const action = document.createElement("button");
     action.type = "button";
+    const labelAction = template => action.setAttribute("aria-label", template.replace("{name}", displayName));
     if (person.friendStatus === "friends" || person.sharedGroup) {
       action.textContent = feedTranslate(person.friendStatus === "friends" ? "Message" : "Tribe Message");
+      labelAction(person.friendStatus === "friends" ? "Message {name}" : "Message {name} from your Tribe");
       action.addEventListener("click", () => openMessageDrawer(person.email));
     } else if (person.friendStatus === "incoming") {
       action.textContent = feedTranslate("Accept");
+      labelAction("Accept friend request from {name}");
       action.addEventListener("click", async () => {
         action.disabled = true; action.textContent = feedTranslate("Accepting…");
+        labelAction("Accepting friend request from {name}");
         try {
           const response = await friendActionFetch("/friends/respond", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: person.email, accept: true }) });
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || feedTranslate("Friend request could not be accepted."));
           action.textContent = feedTranslate("Friends");
+          labelAction("Friends with {name}");
           window.danzstakShowFeedback?.(feedFormat("You are now friends."));
           renderWorkspace("Friends");
-        } catch (error) { action.disabled = false; action.textContent = feedTranslate("Accept"); window.danzstakShowFeedback?.(error.message, { urgent: true }); }
+        } catch (error) { action.disabled = false; action.textContent = feedTranslate("Accept"); labelAction("Accept friend request from {name}"); window.danzstakShowFeedback?.(error.message, { urgent: true }); }
       });
     } else if (person.friendStatus === "outgoing") {
       action.textContent = feedTranslate("Requested");
+      labelAction("Friend request sent to {name}.");
       action.disabled = true;
     } else {
       action.textContent = feedTranslate("Add Friend");
-      action.setAttribute("aria-label", `${feedTranslate("Add Friend")}: ${displayName}`);
+      labelAction("Send friend request to {name}");
       action.addEventListener("click", async () => {
         action.disabled = true; action.textContent = feedTranslate("Sending…");
+        labelAction("Sending friend request to {name}");
         try {
           const requestTarget = /^[a-f0-9-]{36}$/.test(memberId) ? { memberId } : { email: person.email };
           const response = await friendActionFetch("/friends/request", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestTarget) });
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || feedTranslate("Friend request could not be sent."));
           action.textContent = feedTranslate(data.alreadyFriends ? "Friends" : "Requested");
+          labelAction(data.alreadyFriends ? "Friends with {name}" : "Friend request sent to {name}.");
           window.danzstakShowFeedback?.(data.alreadyFriends ? feedTranslate("You are now friends.") : feedFormat("Friend request sent to {name}.", { name: displayName }));
-        } catch (error) { action.disabled = false; action.textContent = feedTranslate("Add Friend"); window.danzstakShowFeedback?.(error.message, { urgent: true }); }
+        } catch (error) { action.disabled = false; action.textContent = feedTranslate("Add Friend"); labelAction("Send friend request to {name}"); window.danzstakShowFeedback?.(error.message, { urgent: true }); }
       });
     }
     row.append(avatarWrap, name, action);

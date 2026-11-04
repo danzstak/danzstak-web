@@ -333,6 +333,14 @@ for (const [language] of window.danzstakLanguages) {
     ["Cancel reply to Sigmund", "Sigmund"],
     ["View post from Sigmund", "Sigmund"],
     ["Show more posts. 12 remaining.", "12"],
+    ["Message Sigmund", "Sigmund"],
+    ["Message Sigmund from your Tribe", "Sigmund"],
+    ["Accept friend request from Sigmund", "Sigmund"],
+    ["Accepting friend request from Sigmund", "Sigmund"],
+    ["Send friend request to Sigmund", "Sigmund"],
+    ["Sending friend request to Sigmund", "Sigmund"],
+    ["Friend request sent to Sigmund.", "Sigmund"],
+    ["Friends with Sigmund", "Sigmund"],
   ]) {
     const translated = window.danzstakTranslate(source);
     if (language !== "en") assert.notEqual(translated, source, `${language} needs a localized social template for: ${source}`);
