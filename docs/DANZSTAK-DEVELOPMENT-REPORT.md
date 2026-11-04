@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Compact mobile Settings actions — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defect found:** narrow-phone Settings forced every short action such as `Manage`, `View`, `Download`, and `Logout` onto a second grid row below its title. The controls worked, but the repeated two-line pattern wasted vertical space and made the account screen look less cohesive than the surrounding social interface.
+- **Root correction:** Settings rows with an explicit action control now receive one semantic layout class and use a three-column phone grid: icon, wrapping title, and action. Long labels can wrap without pushing the control below them, and every action retains a 44px minimum touch target. Checkbox, select, alert, legal-link, and descriptive rows retain their appropriate multi-line layouts instead of being forced into the action pattern.
+- **Permanent quality gate:** the real-browser verifier identifies every Settings action row, requires at least six real actions, rejects controls that do not vertically overlap their title row, requires a 43px-or-larger measured target, and retains overflow and iPhone input-zoom checks. This tests rendered geometry rather than relying on a CSS string.
+- **Test evidence:** the complete local regression suite passed, including social persistence, Friends/presence, Chat/calls, Notifications, all 15 languages, media sizing and single-audio ownership, Booking, worldwide discovery, EPK, Tour Manager, Stripe Test Mode entitlements/refunds, PWA refresh, 11-page smoke checks and infrastructure. Local and production Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live evidence: [compact 320px Settings actions](screenshots/settings-actions-v662-live/settings-320.png).
+- **Production state:** implementation commit `7a4d792` is on `danzstak-patch-1` and `main`. Production serves `danzstak-shell-v662`; a fresh browser reports an activated controlling worker, only v662 in CacheStorage, and standalone display-mode support. Stripe remains Test Mode and live payments remain disabled.
+- **Remaining limitation:** no remotely controllable physical Android or iPhone was available. Responsive browser and standalone-PWA behavior are verified; final tactile inspection on physical installed devices remains manual and is not represented as complete.
+
 ### Tablet EPK editor and preview balance — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
