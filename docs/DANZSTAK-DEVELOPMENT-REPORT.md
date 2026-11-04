@@ -4,6 +4,20 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Mobile menu density correction — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL DEVICE CHECK REMAINS**.
+
+- **Root cause:** `feed.html` still declared the phone menu as a two-column grid while `feed-enhancements.css` later converted the same element to a drawer and repeated smaller row/icon rules. The competing implementations made density dependent on cascade order. The page-local grid is removed; the shared drawer now owns one vertical layout with `justify-content:flex-start`, zero distributed flex gap, and natural document flow.
+- **Corrected layout:** navigation rows measure 48px (within the required 44–52px); icons measure 20–22px; icon-to-label gaps measure 10px; the profile header is 58px or less; section-heading margins are at most 8px/4px; subtle dividers separate Social, Music & Entertainment and Account; the drawer is white without a nested white card; and the drawer remains independently scrollable with safe-area/fixed-bottom-navigation clearance.
+- **Automated geometry coverage:** the Playwright/Edge suite now opens and measures the real menu at 320, 360, 390 and 414px. It fails on stretched rows, viewport-distributed content, wrong icon sizes, excessive heading margins, oversized profile headers, incorrect label gaps, missing independent scrolling or horizontal overflow. The wider suite also passed 375, 430, 768, 1024 and 1366px.
+- **Functional/integration gate:** the complete `test-regressions.ps1` run passed from a clean start, including authentication, Chat, Stripe/refunds, Booking Agent, EPK, Tour Manager, exclusive mobile navigation, PWA refresh, 11-page site smoke and infrastructure validation. `git diff --check` passed. No payment, authentication or backend logic changed.
+- **Development evidence:** [320px menu](screenshots/menu-density-local/menu-320.png), [360px menu](screenshots/menu-density-local/menu-360.png), [390px menu](screenshots/menu-density-local/menu-390.png), and [414px menu](screenshots/menu-density-local/menu-414.png).
+- **Production deployment:** implementation commit `24bb182aef10b82437c74bcfc846df1165914fc1` was fast-forwarded to `main`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `858`, region `us-west-1`, succeeded from 2026-11-04 07:04:47 to 07:05:36 Europe/Berlin.
+- **Live verification:** the full visual suite passed against `https://danzstak.com` at every listed width. Live captures: [320px menu](screenshots/menu-density-live/menu-320.png), [360px menu](screenshots/menu-density-live/menu-360.png), [390px menu](screenshots/menu-density-live/menu-390.png), and [414px menu](screenshots/menu-density-live/menu-414.png). Production health checks passed. A fresh service-worker browser reached the active worker and verified only the expected `danzstak-shell-v646` cache.
+- **CDN/PWA status:** Amplify Hosting published the release; this account has no customer-managed CloudFront distribution for `danzstak.com`, so no customer invalidation ID exists. The versioned stylesheet is `assets/feed-enhancements.css?v=487` and the service-worker cache advanced from v645 to v646.
+- **Remaining limitation:** the browser matrix is automated Edge/Chromium evidence. A remotely controllable physical Android or iPhone was not available; installed Android/iPhone PWA visual confirmation remains a manual device check and is not claimed complete.
+
 ### Mobile visual-acceptance correction — 2026-11-04
 
 Status: **DEPLOYED AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE DEVICE CHECK REMAINS**.
