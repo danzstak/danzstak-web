@@ -463,7 +463,7 @@ Status as of 2026-11-04: **COMPLETE IN REPOSITORY; DAILY PUBLIC MONITOR IMPLEMEN
 
 # Mobile quality challenge
 
-Status as of 2026-11-04: **PRE-DEPLOYMENT TESTS COMPLETE; PRODUCTION DEPLOYMENT PENDING**.
+Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 
 ## Independent audit findings and corrections
 
@@ -480,6 +480,15 @@ Status as of 2026-11-04: **PRE-DEPLOYMENT TESTS COMPLETE; PRODUCTION DEPLOYMENT 
 - Visual: the browser measurement suite passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. The suite verifies edge-aligned video, inline reaction counts, exclusive primary screens, no horizontal overflow, compact headers/navigation, non-overlapping Chat controls and an in-viewport composer.
 - Before evidence: [Booking at 390px](screenshots/quality-challenge-before/booking-390.png), [EPK at 390px](screenshots/quality-challenge-before/epk-390.png), [Chat list at 390px](screenshots/quality-challenge-before/chat-list-390.png), and [Chat conversation at 390px](screenshots/quality-challenge-before/chat-conversation-390.png).
 - Corrected local evidence: [Booking at 390px](screenshots/quality-challenge-after/booking-390.png), [EPK at 390px](screenshots/quality-challenge-after/epk-390.png), [Record Stores at 390px](screenshots/quality-challenge-after/record-stores-390.png), [Chat list at 320px](screenshots/quality-challenge-after/chat-list-320.png), and [Chat conversation at 320px](screenshots/quality-challenge-after/chat-conversation-320.png). Complete capture sets cover all measured widths.
+
+## Production deployment and post-deployment verification
+
+- Application commit `7cd1d045309d5b8941310a7001036db4a3edbd21` was fast-forwarded to `main` after the complete regression and visual suites passed. No Stripe, entitlement, payment, authentication or backend business logic was changed by this release.
+- AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `851` completed successfully in `us-west-1`, from 2026-11-04 04:33:17 to 04:34:10 Europe/Berlin. Amplify Hosting owns CDN delivery; there is no customer-managed CloudFront distribution or separate invalidation ID.
+- The read-only production health check passed after deployment: the core pages and versioned CSS/JavaScript assets returned HTTP 200, the manifest remained valid, and production served the expected assets.
+- The browser PWA verifier found `https://danzstak.com/service-worker.js` activated and controlling the page. The only browser cache was the new `danzstak-shell-v639`, confirming that the verifier was not rendering the prior shell.
+- The expanded visual suite was rerun against `https://danzstak.com` and passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. The production captures confirm a dedicated mobile Chat screen and fixed composer, non-overlapping Chat header controls, compact shared professional-tool headers, common bottom navigation, and no measured horizontal overflow.
+- Live evidence: [Booking at 390px](screenshots/quality-challenge-live/booking-390.png), [EPK at 390px](screenshots/quality-challenge-live/epk-390.png), [Record Stores at 390px](screenshots/quality-challenge-live/record-stores-390.png), [Chat list at 320px](screenshots/quality-challenge-live/chat-list-320.png), and [Chat conversation at 320px](screenshots/quality-challenge-live/chat-conversation-320.png). These are production screenshots, not local mockups.
 
 ## Honest limitations
 
