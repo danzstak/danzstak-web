@@ -29,12 +29,14 @@ const languages = ["es", "fr", "de", "pt", "it", "ko", "ja", "zh-Hans", "zh-Hant
       const result = await page.evaluate(() => {
         const dialog = document.querySelector("#callingDevicesDialog").getBoundingClientRect();
         const labels = [...document.querySelectorAll("#callingDevicesDialog button")].map(button => button.textContent.trim()).filter(Boolean);
-        return { lang: document.documentElement.lang, dialogLeft: dialog.left, dialogRight: dialog.right, scrollWidth: document.documentElement.scrollWidth, labels, status: document.querySelector("#deviceStatus")?.textContent.trim() || "" };
+        return { lang: document.documentElement.lang, dialogLeft: dialog.left, dialogRight: dialog.right, scrollWidth: document.documentElement.scrollWidth, labels, status: document.querySelector("#deviceStatus")?.textContent.trim() || "", heading: document.querySelector("#callingDevicesTitle")?.textContent.trim() || "", intro: document.querySelector("#callingDevicesDialog > p")?.textContent.trim() || "" };
       });
       assert.equal(result.lang, language, `${language} should remain selected`);
       assert.ok(result.dialogLeft >= 0 && result.dialogRight <= 320, `${language} dialog overflows horizontally`);
       assert.equal(result.scrollWidth, 320, `${language} page overflows horizontally`);
       assert.ok(result.status && result.status !== "This device is not registered for calls.", `${language} status fell back to English`);
+      assert.ok(result.heading && result.heading !== "Registered devices", `${language} heading fell back to English`);
+      assert.ok(result.intro && !result.intro.startsWith("Register each phone"), `${language} explanation fell back to English`);
       for (const english of ["Rename", "Turn calls off", "Revoke"]) assert.ok(!result.labels.includes(english), `${language} action fell back to ${english}`);
       await context.close();
     }
