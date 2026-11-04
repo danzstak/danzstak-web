@@ -87,3 +87,36 @@ These are example states, **not real user exposures**.
 For each phase: separate PR, exact automated and real-source tests with consent and authorization, two-account isolation/false-positive checks, provider downtime, deletion and export tests, international translations, accessible 320–430px mobile UI, **verified phone-accessible staging PWA preview**, evidence-linked report and **owner approval before deployment**. Do not release an invented dashboard or new subscriptions from written instructions alone.
 
 **Outcome:** Users can truthfully see what data exposure was found, what has been requested, what was confirmed removed, and what persists or reappears—not a pretend promise that everything online is gone.
+
+## Owner directive — subscription monetization (2026-11-04)
+
+The owner confirms that **Privacy Shield should be an optional recurring subscription business**, built on ongoing broker scans, opt-out support, honest removal progress, and reappearance alerts. A one-time “take it down” sale is insufficient because data brokers periodically recirculate personal information. Use DANZSTAK's own Stripe account only; no SFScoop account, products, webhooks, customer data or credentials.
+
+### Proposed tier and pricing hypotheses — NOT approved Stripe prices
+
+| Tier | Illustrative price | Scope and guardrails |
+| --- | --- | --- |
+| Free DIY | $0 | Privacy education; links to official free government and broker self-opt-outs; personal data controls; optionally a modest clearly limited exposure overview if technically/privacy-feasible. No paywall on privacy rights or core DANZSTAK account controls. |
+| Monitor | **$2.99/month or $29/year** (proposal) | Consent-based scans of a clearly enumerated set of **actually supported** public broker sources; progress dashboard, history, exposure/reappearance alerts, and user-guided removal notices. Scanning frequency and broker coverage must be accurately stated at checkout. No claim of automated submissions if none occur. |
+| Managed | **$6.99/month or $69/year** (proposal, later) | Everything in Monitor plus validated opt-out/removal request handling for **only** explicitly supported brokers where user authorization and site terms permit; periodic verified source rechecks; bounded support and retries. Do not launch before real end-to-end removal evidence and cost review. |
+| Family, dark-web or expanded coverage | **Later, price TBD** | Separate future research and consent/legal/vendor approval. Do not claim all-Tor monitoring or dark-web removal. |
+
+These prices are **brainstorming hypotheses, not owner-finalized purchase terms**. The MVP with 5–10 researched brokers is a **pilot** and must not advertise the Managed plan as broad automated coverage. Scale source coverage and prove unit economics before launching a paid tier. No arbitrary “unlimited removals,” no invented source counts or claims that monitoring occurs continuously if rechecks are periodic.
+
+### Market pricing and competitiveness — verified public reference pages, Nov 2026
+
+- Optery Free Basic offers self-service and exposure reports; Core advertises **$3.99/month or $39/year** for 380+ supported sites (vendor claim): https://www.optery.com/pricing/
+- EasyOptOuts advertises **$19.99/year** and removal from 200+ high-visibility broker sites, with three scans per year (vendor claim): https://www.easyoptouts.com/pricing
+- Incogni Standard advertises **$7.99/month effective price billed annually** ($95.88/year) for 420+ data brokers; monthly billing is more expensive (vendor claim): https://incogni.com/pricing
+- Codex must refresh actual prices and terms before proposing DANZSTAK's launch catalog and **confront the competition gap**. Do not sell a 10-broker-only pilot as equivalent to established 200–400+ site subscriptions. Differentiation should be verifiable source-by-source evidence, understandable status, privacy safeguards, and integrated account UX—not fabricated coverage.
+
+### Subscription implementation and operating rules
+
+1. Present a truly optional, clearly priced recurring subscription only **after** owner approval of launch scope, actual broker coverage, provider/site permissions and cost model; show monthly/annual billing amount, renewal date, exact included sites/actions, frequency, jurisdiction, exclusions, refund terms and cancellation path. Free DIY stays fully available.
+2. Model recurring scanning and follow-up cost per subscriber: vendor search/API charges, engineering, per-source recheck frequency, notification/email, verification, manual support, disputes, incident response, taxes, Stripe fees and GDPR/consumer compliance. Test sensitivity at 100, 1,000 and 10,000 subscribers and repeat exposures. No negative-margin “unlimited” service.
+3. Use server-verified DANZSTAK-specific Stripe subscriptions and signed webhooks, idempotent enrollment/renewal/update/cancellation, entitlement reconciliation, failed payments, refunds, billing proration policy and self-service customer portal. **No direct automatic Stripe writes, live charges or subscriptions before explicit owner approval.**
+4. A member can cancel monitoring, stop/delete their scanned identifiers, request data export and revoke removal authorizations; define clear expiration/retention of history and consent records. No dark patterns, unsolicited outreach, sale of personal information, or use of Privacy Shield data for ads or DANZSTAK Phone caller targeting.
+5. Display **exact actual check dates and source coverage**. A subscription must not be sold as a guarantee of deletion or immunity from spam; any disputed/out-of-scope broker remains correctly labeled. Alerts for reappearance are useful only if the source has actually been checked.
+6. First deliverable: revised documented business case and optional prototype pricing UI with **synthetic data**, not real subscriptions. Include comparison of a lean in-house tool vs licensed removal provider. Separate PR, tests, owner-verified staging PWA and report before launch.
+
+**Owner gate:** Subscription-based revenue direction is approved *as a strategy*, **not** these exact prices or any real Stripe billing activation.
