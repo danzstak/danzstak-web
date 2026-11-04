@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Issue #24 — private Make Plans invitations — 2026-11-05
+
+Status: **IMPLEMENTED AND PASSING THE LOCAL RELEASE GATE; PRODUCTION DEPLOYMENT IN PROGRESS WITH OWNER APPROVAL**.
+
+- Added a private **Make plans** flow to an accepted one-to-one Chat: title, future date/time, IANA timezone, optional public meeting place and note, Pending/Going/Maybe/Declined/Cancelled responses, inviter edit/cancel, and user-triggered `.ics` calendar export.
+- Added an encrypted, point-in-time-recoverable DynamoDB plan table and authenticated API routes. Reads and writes are participant-scoped; create/edit re-check accepted friendship; writes use deterministic idempotency, a daily invitation limit, optimistic revisions and two-participant DynamoDB transactions.
+- Plan API responses omit account email addresses. Notification links do not put emails into URLs; the existing signed-in Chat handoff carries the selected contact internally. The client uses text-only DOM rendering for user content.
+- Corrected two integration defects found during testing: the title field ID did not match the current dialog, and the privacy-safe API response no longer included emails that the old client filter expected. Added permanent regression coverage for both paths.
+- Functional/integration evidence: `test-make-plans.cjs`, page script-scope, call-notification privacy, infrastructure validation, and the complete `test-regressions.ps1` suite pass. The full suite covers authentication, persistent social content, Friends, Notifications, Chat/calls, media/audio, Booking Agent, EPK, Tour Manager, Stripe safeguards, PWA refresh, 11-page smoke testing and infrastructure.
+- Visual evidence: Edge/Playwright passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Checks require no horizontal overflow, usable touch geometry and a responsive full-screen phone dialog. Captures are in `docs/screenshots/mobile-ui/make-plans-*.png`; the 390px result was manually inspected.
+- Known limitation: the current social stack has no general account-block model. New and changed invitations require an accepted friendship, while both original participants retain their own invitation history after an unfriend. Push delivery is not claimed for this MVP; in-app Buzz notification is implemented.
+
 ## ChatGPT status bridge — 2026-11-04
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.

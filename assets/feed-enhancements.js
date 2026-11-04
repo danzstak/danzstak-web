@@ -1295,7 +1295,9 @@ function renderWorkspace(name) {
             if (!memberId) avatar.setAttribute("aria-hidden", "true");
           }
           const message = document.createElement("p");
-          message.textContent = notice.type === "message"
+          message.textContent = notice.type === "plan"
+            ? notice.preview
+            : notice.type === "message"
             ? `${displayName}: ${notice.preview || feedTranslate("New message")}`
             : notice.type === "group_everyone"
               ? feedFormat("{name} notified @everyone in {group}: {preview}", { name: displayName, group: notice.groupName || feedTranslate("your Tribe"), preview: notice.preview || feedTranslate("New announcement") })
@@ -1335,6 +1337,16 @@ function renderWorkspace(name) {
             open.textContent = feedTranslate("View post");
             open.setAttribute("aria-label", `${feedTranslate("View post")}: ${displayName}`);
             open.href = `feed.html#post-${encodeURIComponent(notice.postId)}`;
+            actions.appendChild(open);
+          } else if (notice.type === "plan") {
+            const open = document.createElement("button");
+            open.type = "button";
+            open.className = "primary";
+            open.textContent = feedTranslate("Open chat");
+            open.addEventListener("click", () => {
+              sessionStorage.setItem("danzstakRequestedPlan", String(notice.planId || ""));
+              if (typeof window.openMessageDrawer === "function") window.openMessageDrawer(notice.email);
+            });
             actions.appendChild(open);
           } else if (notice.type === "message") {
             const open = document.createElement("button");
