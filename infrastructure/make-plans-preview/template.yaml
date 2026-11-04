@@ -218,6 +218,14 @@ Resources:
             ApiId: !Ref ReviewApi
             Path: /{proxy+}
             Method: ANY
+        CorsPreflight:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ReviewApi
+            Path: /{proxy+}
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
 
   ReviewApi:
     Type: AWS::Serverless::HttpApi

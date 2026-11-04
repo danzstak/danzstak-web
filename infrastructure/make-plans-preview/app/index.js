@@ -17,6 +17,7 @@ async function planRows(id){return (await db.send(new QueryCommand({TableName,In
 async function notify(u,type,plan,message,stamp){await db.send(new PutCommand({TableName,Item:{pk:userPk(u),sk:`NOTICE#${stamp}#${plan.planId}`,kind:'notice',type,message,planId:plan.planId,createdAt:stamp,read:false}}))}
 async function writePlanRows(items,expected){await db.send(new TransactWriteCommand({TransactItems:items.map(item=>({Put:{TableName,Item:item,...(expected?{ConditionExpression:'revision=:r',ExpressionAttributeValues:{':r':expected}}:{ConditionExpression:'attribute_not_exists(pk) AND attribute_not_exists(sk)'})}}))}))}
 async function handler(event){
+  if(event.requestContext?.http?.method==='OPTIONS')return {statusCode:204,headers:{'cache-control':'no-store'},body:''};
   const u=actor(event);if(!u)return json(401,{error:'Authentication required.'});
   const method=event.requestContext.http.method,path=event.rawPath,data=body(event),stamp=now();
   try{
