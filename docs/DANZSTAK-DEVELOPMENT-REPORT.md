@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### DANZSTAK-owned Stripe sandbox catalog — 2026-11-04
+
+Status: **CATALOG CREATED AND VERIFIED IN THE DANZSTAK SANDBOX; NOT CONNECTED TO THE APPLICATION BACKEND; NO PAYMENT ACTIVATION**.
+
+- **Owner direction and scope:** after reviewing the current GitHub Stripe instructions, the owner explicitly changed the account scope to DANZSTAK only. The Stripe CLI was authorized to the isolated **DANZSTAK sandbox** account `acct_1UXmCbDoNxcsrqZs`. No SFScoop Stripe product, price, webhook, key, payment or bank configuration was read or modified during this catalog operation.
+- **Garage / one contact unlock:** Product `prod_VZBs9swmu7Xenf`; default Price `price_1UY3VADoNxcsrqZs5VMSJ04J`; USD $0.75; active; one-time; `livemode=false`. Metadata identifies `contact_unlock` and tier `garage`.
+- **Rehearsal Room / Professional Tour Manager:** Product `prod_VZBtDXmAr9Qso0`; default Price `price_1UY3WPDoNxcsrqZsBvGsCdRY`; USD $1.50 per unit; active; one-time; `livemode=false`. Metadata identifies the Professional Tour Manager entitlement and booking-email unit. The product does not promise a booking.
+- **Phone Number Activation:** Product `prod_VZBuoQg7RrEZFZ`; default Price `price_1UY3WuDoNxcsrqZsvRAdWrKF`; USD $3.00; active; one-time; `livemode=false`. Metadata and the product description explicitly keep provisioning pending until provider confirmation and exclude carrier, rental, calling, messaging and recurring-service costs.
+- **Verification:** fresh Stripe CLI reads returned exactly these three sandbox Products and three Prices. Every Price is active, USD, `type=one_time`, `recurring=null`, `livemode=false`, and points to its documented Product; every Product points back to its default Price.
+- **Important limitation:** this created catalog is external Stripe sandbox state only. The current deployed DANZSTAK backend, AWS secrets and webhook have **not** been switched to account `acct_1UXmCbDoNxcsrqZs`; Checkout has not been generated or tested in this account; charges and payouts are disabled because this sandbox account is not fully activated. Future products will be added only from new instructions published through the GitHub project. No Live Mode objects were created.
+
 ### Compact tablet/desktop header and PWA controls — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
