@@ -24,3 +24,10 @@ A real in-app notification (e.g., a message from Mary) should also alert the rec
 - Tapping alert opens correct chat; mark-read updates badge; no duplicate alerts; notification preferences and permission denial work.
 - Test Android installed PWA and iOS installed PWA where available. Document real device/OS/browser and whether delivery was verified or unavailable.
 - Provide PR, screenshots, test results, verified staging PWA URL and deployed SHA; owner approval before production release.
+
+
+## Call and voicemail notification types — 2026-11-04
+- Use **separate, accurate event types** for incoming call alert, missed incoming call, new voicemail and ordinary new message; a message push is not a substitute for call alert. An Android notification screenshot displaying "New DanzStak message" does not prove the call rang.
+- Only a server-authoritative, genuinely missed incoming call creates **"Missed call from [display name]"** in Buzz and the private chat history, with time and Call back. See [voicemail/missed-call Issue #28](https://github.com/Danzstak/Danzstak-web/issues/28). Deduplicate by call ID, handle cancel/decline/failed media distinct from a missed call, and preserve chat records across refresh/offline.
+- On opted-in supported mobile PWAs, send appropriate privacy-safe push; tappable notification opens the correct authenticated chat. Separate audio/ringing expectations from push delivery and respect Android notification categories/importance, silent/Do Not Disturb, lockscreen privacy and quiet hours. Never claim OS-level ringtone in unsupported browsers.
+- Short, manually recorded voicemail from an unanswered call is its **own** message bubble and can trigger a distinct "New voice message" notification; no recording without user action. Both features remain pending implementation and device tests.
