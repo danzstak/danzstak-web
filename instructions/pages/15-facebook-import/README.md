@@ -121,3 +121,13 @@ For large archives offer bulk policies by missing-content category (e.g. import 
 
 ### Acceptance
 Test export fixtures with video references but no video file, shared images absent, news article URL without preview metadata, unavailable source URL, missing attribution, and complete originals. Confirm post preview visually matches the resulting feed card and that counts/selection/privacy remain correct after refresh and resume.
+
+## Critical product goal — avoid disappointing post-import profiles
+Before any imported posts are published, provide a **Preview My DANZSTAK Profile** step using the actual selected/importable data and the real DANZSTAK profile/feed renderer. Do not use a fabricated Facebook-like preview that hides missing media.
+- Show clear counts: **Complete posts**, **Text-only/incomplete posts**, **Link-only posts**, **Skipped posts**, and **Missing media/previews**. Explain in plain language that a Facebook export may omit shared images, videos and news previews.
+- Let users switch between **Show all selected**, **Show complete posts only**, **Review incomplete posts**, and **Keep incomplete posts private**. The preview must update as choices change.
+- Provide a visible comparison of the expected new profile appearance with the current existing DANZSTAK profile, without altering any existing posts.
+- Offer **Back to selection**, **Change privacy**, and **Confirm import**. No public publishing without explicit final confirmation.
+- On large archives, use paginated/virtualized previews and an accurate representative sample; do not falsely claim to have visually rendered all thousands of posts at once.
+- Ensure no empty media placeholders or broken article cards remain in the resulting profile; show source links only when valid and permitted.
+- Test that the final imported profile visually matches the preview, including missing-media handling, privacy, chronological order and partial failures.
