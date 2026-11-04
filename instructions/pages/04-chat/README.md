@@ -1,3 +1,15 @@
+## Owner naming decision — the chat entry control is the SYNC button (2026-11-04)
+
+**Owner's exact correction:** "I want to name the chatbot SYNC" followed by **"It's the SYNC button."** Treat **SYNC** (uppercase) as the **user-visible name/label of the existing DANZSTAK chat launcher button**—not a request to create a separate AI chatbot, rename internal APIs, replace the Chats backend, or rebrand every conversation screen as SYNC.
+
+**Expected member experience:** The familiar, well-placed SYNC button, with a compact chat/message icon where appropriate, **opens the existing DANZSTAK Chat / Messenger–WhatsApp-style inbox** and preserves unread badge/notifications. Label its visible caption **SYNC** (not generic "Messages" where that control is labeled) and give it a clear accessible name such as "SYNC — open chats". On a tiny phone, keep the control readable, thumb-friendly and discoverable without consuming disproportionate screen space. Inside the Chat destination, existing plain "Chats", contact names and conversation labels remain understandable; don't indiscriminately relabel every Chat UI string or create a fake AI conversation.
+
+**Current actual source cues (main):** In `feed.html`, the existing top feed entry `#messagesNav` currently has `aria-label="Messages"` and `title="Messages"` and opens `messages.html` via its existing drawer/route logic. `messages.html` has a Chat bottom-nav link (`data-icon="chat"` / `aria-label="Chat"`) and a `Chats` inbox heading. Audit all true Chat entry points (phone/desktop/menu), choose consistent **SYNC** launcher presentation, and preserve existing route URLs `messages.html`, screen state, message count/badges, notification targeting, sign-in permissions, Back, accessibility, localization and keyboard/navigation behavior. The SYNC button must actually open Chats, not a dead click target.
+
+**Do not block core P0 reliability:** SMS phone verification #21, real two-way calling/ringing #27 and actual message send/receive remain highest functional gates. SYNC naming is an **in-place, owner-approved label/launcher UX change**, not a separate product, extra subscription, bot that reads private conversations or backend migration.
+
+**Codex acceptance:** visible and accessible SYNC launcher on mobile and desktop in light mode; tap/click routes to actual existing chat; unread count, existing conversations, back/close, keyboard focus and 320–430px responsiveness work. Provide isolated PR/staging evidence and owner approval before deployment. **Documentation update does not mean site label changed yet.**
+
 ## Final Chat UX design standard — Messenger navigation, WhatsApp functionality, DANZSTAK finish (owner directive, 2026-11-04)
 
 **Owner's exact design goal:** "A cross between Messenger and WhatsApp should be the DANZSTAK cleaner better functioning." This is the **top-priority final product UX standard** for the existing Chats/Phone module, not a request to install Meta/WhatsApp products, copy trademarked visuals or replace the existing backend.
