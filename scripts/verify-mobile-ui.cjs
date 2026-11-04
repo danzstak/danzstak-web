@@ -67,6 +67,26 @@ async function assertNoOverflow(page, label, enforceMobileHeader = false) {
   if (enforceMobileHeader) assert.ok(metrics.headerHeight <= 64, `${label}: mobile header is too tall (${metrics.headerHeight}px)`);
 }
 
+async function assertNoIosInputZoom(page, label) {
+  const undersized = await page.locator("input, textarea, select").evaluateAll(controls => controls
+    .filter(control => {
+      const type = String(control.getAttribute("type") || "text").toLowerCase();
+      const style = getComputedStyle(control);
+      const box = control.getBoundingClientRect();
+      return !["checkbox", "radio", "file", "range", "hidden", "submit", "button"].includes(type)
+        && style.display !== "none" && style.visibility !== "hidden" && box.width > 0 && box.height > 0;
+    })
+    .map(control => ({
+      tag: control.tagName.toLowerCase(),
+      id: control.id,
+      name: control.getAttribute("name") || "",
+      className: control.className,
+      fontSize: parseFloat(getComputedStyle(control).fontSize)
+    }))
+    .filter(control => control.fontSize < 16));
+  assert.deepEqual(undersized, [], `${label}: text controls below 16px can trigger disruptive iOS focus zoom: ${JSON.stringify(undersized)}`);
+}
+
 async function assertExclusiveFeedScreen(page, expected) {
   const state = await page.evaluate(() => ({
     primary: document.body.dataset.mobileScreen || "",
@@ -144,6 +164,7 @@ async function captureViewport(page, fileName) {
       }
       await assertNoOverflow(page, `Home ${width}px`, width <= 430);
       if (width <= 430) {
+        await assertNoIosInputZoom(page, `Home ${width}px`);
         await assertExclusiveFeedScreen(page, "home");
         const shellMetrics = await page.evaluate(() => {
           const header = document.querySelector(".topbar").getBoundingClientRect();
@@ -253,11 +274,13 @@ async function captureViewport(page, fileName) {
         await page.waitForURL(/messages\.html/);
         await page.waitForSelector(".chat-sidebar");
         await assertNoOverflow(page, "Chat list 390px", true);
+        await assertNoIosInputZoom(page, "Chat list 390px");
         assert.equal(await page.locator("#messageDrawer").count(), 0, "mobile Chat must not use a feed popup");
         await captureViewport(page, "chat-list-390.png");
 
         await page.evaluate(() => openConversation({ contactEmail: "friend@danzstak.invalid", name: "Mobile Friend", memberId: "22222222-2222-4222-8222-222222222222", online: true, canContact: true }));
         await page.waitForSelector("body.is-conversation-open");
+        await assertNoIosInputZoom(page, "Chat conversation 390px");
         assert.equal(await page.locator(".chat-sidebar").isVisible(), false, "conversation must hide Chat list");
         await captureViewport(page, "chat-conversation-390.png");
         await page.goBack();
@@ -274,6 +297,7 @@ async function captureViewport(page, fileName) {
       await page.goto(`${baseUrl}/booking.html`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector("#bookingMain");
       await assertNoOverflow(page, `Booking Agent ${width}px`, true);
+      await assertNoIosInputZoom(page, `Booking Agent ${width}px`);
       const bookingHeader = await page.locator("body.ds-tool-page>header").evaluate(header => ({ height: header.getBoundingClientRect().height, navVisible: getComputedStyle(header.querySelector("nav")).display !== "none" }));
       assert.ok(bookingHeader.height <= 60, `${width}px: professional-tool header is oversized: ${JSON.stringify(bookingHeader)}`);
       assert.equal(bookingHeader.navVisible, false, `${width}px: desktop tool links must not duplicate mobile navigation`);
@@ -302,17 +326,20 @@ async function captureViewport(page, fileName) {
       await page.goto(`${baseUrl}/epk.html`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector("#epkMain");
       await assertNoOverflow(page, `EPK ${width}px`, true);
+      await assertNoIosInputZoom(page, `EPK ${width}px`);
       await captureViewport(page, `epk-${width}.png`);
 
       await page.goto(`${baseUrl}/record-stores.html`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector("#recordStoreMain");
       await assertNoOverflow(page, `Record Stores ${width}px`, true);
+      await assertNoIosInputZoom(page, `Record Stores ${width}px`);
       assert.equal(await page.locator(".ds-mobile-nav").isVisible(), true, `${width}px: Record Stores must share mobile navigation`);
       await captureViewport(page, `record-stores-${width}.png`);
 
       await page.goto(`${baseUrl}/profile.html`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector("#profileContent:not([hidden])");
       await assertNoOverflow(page, `Profile ${width}px`, true);
+      await assertNoIosInputZoom(page, `Profile ${width}px`);
       const profileHeader = await page.locator("body.profile-page>header").evaluate(header => {
         const headerBox = header.getBoundingClientRect();
         const actions = [...header.querySelectorAll(".header-actions .button")].map(item => {
@@ -332,6 +359,7 @@ async function captureViewport(page, fileName) {
       await page.goto(`${baseUrl}/feed.html?view=feed#settings`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".settings-workspace .settings-row");
       await assertNoOverflow(page, `Settings ${width}px`, true);
+      await assertNoIosInputZoom(page, `Settings ${width}px`);
       const settingsGeometry = await page.locator(".settings-workspace .settings-row").evaluateAll(rows => rows.map(row => {
         const rowBox = row.getBoundingClientRect();
         const children = [...row.children].map(child => child.getBoundingClientRect()).filter(box => box.width && box.height);
@@ -343,6 +371,7 @@ async function captureViewport(page, fileName) {
       await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".chat-sidebar");
       await assertNoOverflow(page, `Chat ${width}px`, true);
+      await assertNoIosInputZoom(page, `Chat ${width}px`);
       assert.equal(await page.locator(".conversation-call-actions").first().isVisible().catch(() => false), false, `${width}px: conversation list must not waste width on per-row call controls`);
       assert.equal(await page.locator(".chat-header [data-logout]").isVisible(), false, `${width}px: mobile Chat must not duplicate account actions`);
       await captureViewport(page, `chat-list-${width}.png`);

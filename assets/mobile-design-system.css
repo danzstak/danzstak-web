@@ -108,7 +108,7 @@ button,a,input,select,textarea{touch-action:manipulation}
     gap:7px!important;
   }
   .topbar .logo,.topbar .logo img{width:34px!important;height:34px!important;min-width:34px!important}
-  .topbar .search{height:34px!important;min-height:34px!important;padding:6px 11px!important;font-size:13px}
+  .topbar .search{height:34px!important;min-height:34px!important;padding:6px 11px!important;font-size:16px}
   .topbar .topnav{
     height:calc(50px + env(safe-area-inset-bottom))!important;
     padding:3px max(3px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(3px,env(safe-area-inset-left))!important;
@@ -182,6 +182,8 @@ button,a,input,select,textarea{touch-action:manipulation}
   body:has(>.install-app-button:not([hidden])) .topbar .search{padding-right:44px!important}
   .messages-page>.install-app-button{display:none!important}
   .profile-onboarding{padding:11px!important}
+  .profile-onboarding input:not([type=hidden]){font-size:16px}
+  .settings-row select{font-size:16px}
   .profile-onboarding-copy{margin-bottom:8px}
   .profile-onboarding form{grid-template-columns:minmax(0,1fr) auto;gap:7px}
   .profile-onboarding button{width:auto;min-width:112px;padding-inline:12px}
@@ -195,6 +197,7 @@ button,a,input,select,textarea{touch-action:manipulation}
 
 @media(max-width:760px){
   .messages-page:not(.is-conversation-open){padding-bottom:calc(54px + env(safe-area-inset-bottom))}
+  .messages-page .chat-search input{font-size:16px!important}
   .messages-page.is-conversation-open .ds-mobile-nav{display:none}
 }
 
