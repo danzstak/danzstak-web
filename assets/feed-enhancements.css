@@ -201,6 +201,10 @@
   .settings-workspace{gap:0}
   .settings-heading{margin:2px 0 6px;font-size:1.2rem}
   .settings-row{min-height:64px;gap:4px 9px;padding:9px 2px}
+  .settings-row.settings-action-row{grid-template-columns:34px minmax(0,1fr) auto;align-items:center;min-height:58px}
+  .settings-row.settings-action-row>.settings-icon{grid-column:1;grid-row:1}
+  .settings-row.settings-action-row>strong{grid-column:2;grid-row:1}
+  .settings-row.settings-action-row>:last-child{grid-column:3;grid-row:1;align-self:center;justify-self:end;min-height:44px;margin-top:0}
   .settings-row>strong{font-size:14px;line-height:1.25}
   .settings-row label,.settings-detail{font-size:13px;line-height:1.35}
   .settings-row input[type=checkbox]{width:22px;height:22px}

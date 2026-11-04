@@ -1647,6 +1647,7 @@ function renderWorkspace(name) {
     heading.textContent = window.danzstakTranslate?.("Settings and privacy") || "Settings and privacy";
     const settingRow = (icon, title, control) => {
       const row = document.createElement("div"); row.className = "settings-row";
+      if (control?.matches?.(".secondary")) row.classList.add("settings-action-row");
       const symbol = document.createElement("span"); symbol.className = "settings-icon"; symbol.setAttribute("aria-hidden", "true");
       const iconSvg = window.danzstakIcons?.create(icon);
       if (iconSvg) symbol.append(iconSvg); else symbol.textContent = "•";

@@ -453,6 +453,14 @@ async function captureViewport(page, fileName) {
         return { rowRight: rowBox.right, childRight: Math.max(0, ...children.map(box => box.right)), height: rowBox.height };
       }));
       assert.ok(settingsGeometry.every(item => item.childRight <= item.rowRight + 1), `${width}px: Settings control overflows its row: ${JSON.stringify(settingsGeometry)}`);
+      const settingsActionGeometry = await page.locator(".settings-workspace .settings-action-row").evaluateAll(rows => rows.map(row => {
+        const label = row.querySelector(":scope > strong")?.getBoundingClientRect();
+        const control = row.lastElementChild?.getBoundingClientRect();
+        return { labelTop: label?.top || 0, labelBottom: label?.bottom || 0, controlTop: control?.top || 0, controlBottom: control?.bottom || 0, controlHeight: control?.height || 0 };
+      }));
+      assert.ok(settingsActionGeometry.length >= 6, `${width}px: Settings action rows were not identified`);
+      assert.ok(settingsActionGeometry.every(item => Math.min(item.labelBottom, item.controlBottom) - Math.max(item.labelTop, item.controlTop) > 0), `${width}px: Settings action fell onto a separate row: ${JSON.stringify(settingsActionGeometry)}`);
+      assert.ok(settingsActionGeometry.every(item => item.controlHeight >= 43), `${width}px: Settings action is not comfortably tappable: ${JSON.stringify(settingsActionGeometry)}`);
       await captureViewport(page, `settings-${width}.png`);
 
       await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
