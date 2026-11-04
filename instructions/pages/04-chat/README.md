@@ -106,3 +106,13 @@ The Plus and Pro minutes are **totals**, not an additional 500/1,000 on top of S
 - Test with two DANZSTAK accounts, under/exactly/over 250 minutes using accelerated clocks, two simultaneous sessions, dropped calls, midnight and month boundaries, UI warnings, plan changes, failed/refunded Stripe events, account isolation, and real-device PWA flows. Stage, document results and request owner approval before paid release.
 
 **Do not create/activate Plus or Pro live subscriptions or enable metered billing until owner explicitly approves the catalog, ongoing operating costs and test evidence.**
+
+
+## Owner update — voicemail when a call goes unanswered (2026-11-04)
+
+- In the phone PWA, after a genuine **no-answer**, missed, declined or unavailable call, offer an optional **Leave voice message** action. The owner reports missing audible ringback even after a PWA update; the ringback and hidden Video Call defects must still be fixed under [Issue #27](https://github.com/Danzstak/Danzstak-web/issues/27).
+- Only start microphone recording after an explicit user tap and permission. Cap an initial voicemail at 60 seconds; provide stop, preview/playback, re-record, send and cancel, plus a text fallback if the mic is inaccessible. Never record the live call or the recipient without consent.
+- Store-and-forward to the specific private Chat, even when recipient is offline, with in-app/opted-in push notice, clear sender/time/duration and safe playback/deletion. No unsupported claims of delivered/read receipt.
+- This is **not music or general audio upload hosting**. Follow the narrowly scoped voicemail exception documented with [Issue #28](https://github.com/Danzstak/Danzstak-web/issues/28): purpose-specific authenticated user-recorded short voice, strict server-side validation, quota, retention, privacy and no arbitrary audio-file uploads. Resolve the audio-only policy conflict before implementation.
+- A missed/unanswered call and voicemail do **not** consume the optional DS-alias 250 connected minutes per month; ordinary free chat is unaffected. Estimate storage and bandwidth before enabling a paid backend.
+- Test two different accounts on different devices, offline delivery, Safari/Android recording formats, microphone errors, timeout/decline/cancel/retry, unauthorized requests, blocked user, data isolation, idempotent uploads, expiry and deletion. Provide an authentic phone-accessible staging PWA and owner approval before any production deployment.
