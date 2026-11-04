@@ -27,6 +27,11 @@ const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, "http://localhost");
 
   if (request.method === "GET" && url.pathname === "/auth/session") return json(response, 200, { authenticated: true, user: { email } });
+  if (request.method === "GET" && url.pathname === "/epk") return json(response, 200, { kit: null, published: false });
+  if (request.method === "GET" && url.pathname === "/booking-pipeline") return json(response, 200, { venues: [], artist: {}, tour: {}, revision: "" });
+  if (request.method === "GET" && url.pathname === "/tours") return json(response, 200, { tours: [] });
+  if (request.method === "GET" && url.pathname === "/tour-manager/credits") return json(response, 200, { bookingEmailCredits: 0, purchasedCredits: 0, sentEmails: 0, reservedCredits: 0 });
+  if (request.method === "GET" && url.pathname === "/tour-manager/outreach") return json(response, 200, { messages: [] });
   if (request.method === "GET" && url.pathname === "/secure-posts") return json(response, 200, { posts: posts.filter(post => post.userEmail === email) });
   if (request.method === "POST" && url.pathname === "/secure-posts") {
     const body = await readBody(request), postId = "10000000-0000-4000-8000-000000000001";
@@ -94,6 +99,9 @@ server.listen(0, "127.0.0.1", async () => {
     assert.strictEqual(result.mode, "authenticated-isolated-synthetic");
     assert.ok(result.verified.includes("private post persistence and cleanup"));
     assert.ok(result.verified.includes("private Chat delivery and cleanup"));
+    assert.ok(result.verified.includes("private EPK state"));
+    assert.ok(result.verified.includes("private Booking workspace state"));
+    assert.ok(result.verified.includes("private Tour Manager credit and outreach state"));
     assert.strictEqual(posts.length, 0, "post cleanup must leave no records");
     assert.strictEqual(messages.length, 0, "message cleanup must leave no records");
     assert.ok(!success.stdout.includes(tokenA) && !success.stdout.includes(tokenB), "session tokens must never be logged");

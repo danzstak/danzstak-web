@@ -71,6 +71,19 @@ async function main() {
     assert.match(emailB, /^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Synthetic account B must expose a valid account email");
     assert.notStrictEqual(emailA, emailB, "Synthetic sessions must belong to different accounts");
 
+    const [epk, booking, tours, credits, outreach] = await Promise.all([
+      expectOk("A", "/epk"),
+      expectOk("A", "/booking-pipeline"),
+      expectOk("A", "/tours"),
+      expectOk("A", "/tour-manager/credits"),
+      expectOk("A", "/tour-manager/outreach"),
+    ]);
+    assert.ok(epk.kit === null || epk.kit === undefined || typeof epk.kit === "object", "Private EPK response must be structurally valid");
+    assert.ok(Array.isArray(booking.venues), "Booking workspace must return a venue list");
+    assert.ok(Array.isArray(tours.tours), "Saved tours must return a tour list");
+    for (const field of ["bookingEmailCredits", "purchasedCredits", "sentEmails", "reservedCredits"]) assert.ok(Number.isFinite(Number(credits[field])), `Tour Manager ${field} must be numeric`);
+    assert.ok(Array.isArray(outreach.messages), "Tour Manager outreach must return an activity list");
+
     const post = await expectOk("A", "/secure-posts", {
       method: "POST",
       body: JSON.stringify({
@@ -132,6 +145,9 @@ async function main() {
         "private post persistence and cleanup",
         "private Chat delivery and cleanup",
         "recipient notification",
+        "private EPK state",
+        "private Booking workspace state",
+        "private Tour Manager credit and outreach state",
         "post-cleanup verification",
         "message-cleanup verification",
       ],
