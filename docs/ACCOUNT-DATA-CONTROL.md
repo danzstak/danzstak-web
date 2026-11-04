@@ -29,6 +29,8 @@ The UI must use the factual statuses `Request received`, `In progress`, `Complet
 
 Every phase must be idempotent, store progress, retry bounded failures, and resume without repeating destructive side effects.
 
+The source-level orchestration is implemented in `infrastructure/auth-api/account-erasure.mjs`. It intentionally delegates persistence to audited adapters so tests can prove ordering and coverage without touching production accounts. The DynamoDB, S3, and Cognito adapters and scheduled worker must be complete before the routes are deployed.
+
 ## Limited-retention exceptions
 
 | Category | Treatment | Maximum / review rule |

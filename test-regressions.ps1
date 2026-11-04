@@ -8,10 +8,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Regression failed: $($test.Name)" }
   }
 
-  $accountDataControlTest = Join-Path $PSScriptRoot 'test-account-data-control.mjs'
-  Write-Host 'Running test-account-data-control.mjs...'
-  & node $accountDataControlTest
-  if ($LASTEXITCODE -ne 0) { throw 'Regression failed: test-account-data-control.mjs' }
+  foreach ($name in @('test-account-data-control.mjs', 'test-account-erasure.mjs')) {
+    Write-Host "Running $name..."
+    & node (Join-Path $PSScriptRoot $name)
+    if ($LASTEXITCODE -ne 0) { throw "Regression failed: $name" }
+  }
 
   foreach ($name in @('test-release-verification.ps1', 'test-site.ps1', 'test-infrastructure.ps1')) {
     Write-Host "Running $name..."
