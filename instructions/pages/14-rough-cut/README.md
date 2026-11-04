@@ -1,24 +1,18 @@
-# 14 — Rough Cut video rail
+# 14 — RETIRED: Rough Cut is not a separate DANZSTAK feature
 
-## Placement
-Insert **Rough Cut** immediately after the fourth ordinary Home Feed post. Dailies appear at the top, then the composer and four regular posts, then the Rough Cut rail, then the normal feed resumes. Do not count Dailies, ads or skeleton placeholders as regular posts. If fewer than four posts are loaded, defer the rail until four are rendered. Do not repeatedly inject it on pagination.
+**Superseded by explicit owner decision, 2026-11-04. DO NOT IMPLEMENT THE OLD ROUGH CUT / ROUGH CUTS RAIL.**
 
-## UX
-- Title: **Rough Cut** with a restrained clapperboard icon and a **See all** entry.
-- Mobile-first horizontal row of short-video previews; tapping opens a dedicated, accessible video viewer.
-- Use externally hosted supported videos, no rehosting. Preserve source attribution and link out when embedding is restricted.
-- Visible mute/unmute control, muted autoplay for the in-view eligible video, strict single active player shared with the rest of the feed and Dailies.
-- Light-mode DANZSTAK branding, familiar social UI patterns; responsive desktop adaptation.
+The owner has chosen the final movie-production-themed names:
 
-## Acceptance
-- Placement after exactly four loaded regular posts; remains stable on refresh, pagination and navigation.
-- No audio overlap with feed or Dailies.
-- Mobile 360/390px tests, accessible controls, screenshots, PWA preview, owner review.
-- Do not claim deployed until verified; no production deployment without approval.
+- **The Mix** — main social feed
+- **Dailies** — ephemeral 24-hour story strip; far-left own-profile photo with a clapperboard displaying SCENE 1 · TAKE N and the real current local date/time
+- **The Roll** — existing immersive, vertical, swipe-to-next video feed
 
-## Latest owner-approved mobile layout — horizontal swipe carousel
-- After **exactly four regular vertical feed posts**, render a **Rough Cuts** section (plural display heading) with a horizontally swipeable row of video cards. This is a separate carousel inside the vertical feed, not a full-screen takeover.
-- Users swipe **left/right** through Rough Cuts without changing the main feed scroll position; support touch momentum and accessible keyboard controls. Show a partial next card or other subtle affordance to communicate horizontal scrolling.
-- Video previews should be mobile-sized, aspect-ratio-consistent and have clear creator attribution. Tapping opens the player; muted autoplay may occur only for the eligible visible video and must obey the global single-player rule.
-- Resume ordinary vertical feed posts immediately below the Rough Cuts carousel. Do not insert multiple carousels accidentally during pagination.
-- Verify at 360/390px, with real phone screenshots and horizontal swipe tests.
+The former instruction to insert a distinct **Rough Cut / Rough Cuts** video carousel after four posts is **cancelled**. No extra player, separate branded rail, additional video product or new navigation route should be built solely because this historical file or older tickets mention Rough Cut. If the feed needs a future short-video entry point, reuse and link to **The Roll**, subject to a separate owner-reviewed scope.
+
+For current work read:
+- [Dailies canonical spec](../13-flashes/README.md)
+- [The Roll playback and scrolling spec](../../01-video-playback.md)
+- [The Mix feed naming](../01-home-feed/README.md)
+
+**Preserve existing content and playback links during terminology migration.** Do not delete user videos or alter storage just to change labels. This is an instruction update only, not a deployed rename.
