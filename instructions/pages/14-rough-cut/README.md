@@ -15,3 +15,10 @@ Insert **Rough Cut** immediately after the fourth ordinary Home Feed post. Daili
 - No audio overlap with feed or Dailies.
 - Mobile 360/390px tests, accessible controls, screenshots, PWA preview, owner review.
 - Do not claim deployed until verified; no production deployment without approval.
+
+## Latest owner-approved mobile layout — horizontal swipe carousel
+- After **exactly four regular vertical feed posts**, render a **Rough Cuts** section (plural display heading) with a horizontally swipeable row of video cards. This is a separate carousel inside the vertical feed, not a full-screen takeover.
+- Users swipe **left/right** through Rough Cuts without changing the main feed scroll position; support touch momentum and accessible keyboard controls. Show a partial next card or other subtle affordance to communicate horizontal scrolling.
+- Video previews should be mobile-sized, aspect-ratio-consistent and have clear creator attribution. Tapping opens the player; muted autoplay may occur only for the eligible visible video and must obey the global single-player rule.
+- Resume ordinary vertical feed posts immediately below the Rough Cuts carousel. Do not insert multiple carousels accidentally during pagination.
+- Verify at 360/390px, with real phone screenshots and horizontal swipe tests.
