@@ -210,3 +210,26 @@ For DANZSTAK Phone, each browser/PWA installation that originates or receives vo
 - With two controlled DANZSTAK accounts, receive an English message; long-press → **Copy** → paste into a separate translation app and verify the exact copied text. Repeat incoming/outgoing, Italian, multi-paragraph text, emoji, URL, long message and optional partial text selection.
 - Test copy failure/restricted clipboard, screen-reader/keyboard menu, background/resume, failed network and different message author. Prevent accidental **Delete** taps; no copied text in analytics/logging.
 - Codex: deliver a narrow independent PR, actual automated/manual phone checks, before/after screenshots, staging PWA and owner review. Keep P0 ringing repair (#27) separate. **Spec only; not a tested or deployed feature.**
+
+
+## Real-world language barrier — optional in-chat translation (2026-11-04)
+
+**Owner use case:** Two DANZSTAK users communicate in different languages (concretely English and Italian). One presently must copy messages into a separate translation app. Make that workflow immediately possible with the **Copy** control above, then implement a distinct, opt-in **Translate** action so they can actually understand each other without constantly switching applications. This product feature must not depend on the separate P0 phone-ringing/audio fixes.
+
+### User experience, simple and respectful
+1. Every real text message, incoming or outgoing, provides **Copy** and optional **Translate** in its message-actions menu (long-press/right-click/keyboard/accessible alternative). Copy works regardless of translation service availability.
+2. On **Translate**, offer an understandable per-user target language (English or Italian as first demonstration; reuse the app's existing language list only where actually supported). Provide **Show translation / Show original** without changing the durable original post, its sender, timestamps, receipts or attachments. Make it visually clear which text is the user's original and which is a machine-generated translation; warn translations may be imperfect, especially idioms and slang.
+3. Let each member optionally set **My preferred chat language** (separate from the other person's UI language) and remember it safely. **No need for the other member to have the same setting or install a translator.**
+4. Initial MVP is **explicit per-message translation**. A later opt-in "Translate messages in this conversation automatically" may be prototyped only if privacy, provider cost and data-sharing disclosure pass review; **off by default**. If supported, either party can change their own setting without changing the other's experience.
+5. Sending: messages remain in the language the author actually typed. Optionally preview a translated draft before sending in a separate reviewed milestone; **never silently rewrite or auto-send an AI translation** as though it was the author's own message.
+6. Privacy: first audit feasible **on-device translation**. If a server/third-party translation provider is required, disclose the provider, precisely what message text would be transmitted, retention/processing and privacy safeguards **before user consent**; transmit only the selected text on deliberate action. No automatic surveillance, chat scanning, provider reuse for training/ads, silent analytics storage, or sharing entire history. Obtain approval of provider contract, security, GDPR/cross-border processing and per-message costs before activating paid APIs. Do not use a third-party translator SDK or API as a required dependency for normal messaging.
+7. Performance/comfort: low-clutter labels, accurate status and failures, partial/slow network retry, original accessible offline, preserve scroll and selection, accessible screen reader announcement, 320–430px mobile and long/emoji/URLs/links/multiline/Italian accents. Copy works even when translation provider is unavailable or denied.
+8. Keep basic social chat free; evaluate unit economics before offering any expensive AI translation service, no new Stripe product or forced subscription. Preserve existing conversations and secure authorization.
+
+### Codex release gate
+- Ship **Copy** quickly as a small independently testable PR, without waiting for translation research.
+- Develop **Translate** as a separate isolated PR following a privacy/vendor/cost feasibility review; a synthetic-data demo is not evidence of working real chat translations.
+- Two controlled participants exchange English and Italian texts, each chooses their own preferred language, taps Translate and toggles original/translation, copy remains functional, and different permissions/providers/consent refusals are handled honestly. Test no text leaks to unrelated accounts, malicious prompt strings/HTML, rate limits, PWA caching, offline, Android/iOS real phone availability and all localizations.
+- Provide owner verified staging PWA, SHA, results, costs/privacy limitations and explicit approval before production or live provider calls.
+
+**Product principle:** people should not need a shared language to be friends, and machine translation must remain under their control.
