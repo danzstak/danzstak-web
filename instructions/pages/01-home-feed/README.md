@@ -39,3 +39,12 @@ Follow `instructions/00c-design-direction-80-20.md`: familiar social-network int
 - Optional embeds from Facebook/Instagram or user-imported Meta-origin content are **not exempt** from the applicable third-party service rules, copyrights, creator permissions, and technical limits; support them as optional links/embeds with graceful fallback, never as a core dependency.
 - Independence does not eliminate relevant laws, safety obligations or DANZSTAK's own community standards; maintain protections for unlawful content, harassment, abuse, impersonation, privacy and unauthorized copyrighted media.
 - Codex must verify genuine independent content posting and event publishing with Facebook connections absent/blocked, and test upload, persistence and playback using DANZSTAK-controlled assets. Owner approval still required before launch.
+
+
+## Cinematic public naming — final owner choice (2026-11-04)
+
+- **The Mix** is the main social feed; ordinary post composer is **Add to Mix**.
+- **Dailies** is the 24-hour stories row formerly shown as **Flashes** in the current live `feed.html`. Replace public labels, notifications, accessibility text, translations and composer options consistently, but don't rename internal APIs/storage without a compatibility migration.
+- Far-left Dailies tile always shows the **current signed-in member's genuine profile photo** with a small upper clapperboard overlay showing **SCENE 1 · TAKE N** (number of their active unexpired Dailies) and the real dynamically updating local date/time. Include a plus-to-create affordance. Underlying authentic photo remains visible. See [Dailies instructions](../13-flashes/README.md).
+- **The Roll** remains the existing separate immersive swipe-up/swipe-down video experience; no **Rough Cut / Rough Cuts** rail after four posts, no renamed Roll product, no second video feed. See [The Roll spec](../../01-video-playback.md) and [retired older rail instructions](../14-rough-cut/README.md).
+- These are UI/copy/design changes; no changes to existing user relationships, content persistence, privacy, share URLs, 24h expiry, or media audio isolation. Require actual code PR, mobile staging and owner approval before live deploy.
