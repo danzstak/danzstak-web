@@ -842,3 +842,15 @@ Status as of 2026-11-04: **DEPLOYED AND BROWSER-PLAYBACK VERIFIED; PHYSICAL-DEVI
 - Production application commit: `8e2986877c3ce5c4704bb6cb16794dd877269e93`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `857` succeeded in `us-west-1` from 2026-11-04 06:47:30 to 06:48:26 Europe/Berlin.
 - Post-deployment public health passed. The service worker was activated and controlling the page with only `danzstak-shell-v645` present. The actual-browser playback test was rerun using the deployed `media-visibility.js?v=388` and passed native/YouTube playback coordination. The production visual suite also passed at every measured width.
 - Browser compatibility verified through desktop Chromium and Chromium mobile viewport/PWA behavior. Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA playback remain **NOT TESTED** in this environment and require owner/device acceptance; this limitation is not represented as a pass.
+
+# Authenticated isolated production health checks
+
+Status as of 2026-11-04: **IMPLEMENTED, LIVE-PROBED, AND READY FOR MERGE**.
+
+- The daily production-health workflow now has an opt-in authenticated job in addition to the existing public read-only probe. It uses two dedicated synthetic accounts and opaque session secrets stored only in GitHub Actions; no token or password is committed or printed.
+- The authenticated probe reads private EPK, Booking workspace, saved-tour, Tour Manager credit and outreach state. It creates a private synthetic post and a private Chat message between the isolated accounts, verifies persistence, recipient delivery and notification, then removes the post, message and both synthetic conversation views. Cleanup also runs after failures.
+- The synthetic accounts are friends only with one another and are not real customer accounts. The probe excludes Stripe charges, outbound email, public posts and promotional outreach.
+- Controlled local integration coverage passed both the healthy path and an injected notification outage. Both paths verified cleanup and secret redaction. The complete repository regression suite passed twice after the final implementation, including the 11-page site smoke suite and infrastructure validation.
+- A real authenticated probe against `https://api.danzstak.com` passed all 19 HTTP checks on 2026-11-04. It verified the two independent production sessions, private professional-tool reads, private post persistence, Chat delivery, recipient notification and post-run deletion. Session secrets were rotated after the pass.
+- GitHub Actions run `41862376295` was dispatched for independent hosted-runner confirmation, but both jobs remained in GitHub's queued state without receiving a runner. This runner-capacity state is reported honestly and is not represented as a workflow pass; the live API probe and previously green pull-request CI provide the available release evidence.
+- Development branch: `codex/authenticated-health-checks`. Pull request: [#33](https://github.com/danzstak/danzstak-web/pull/33). Production deployment remains pending merge and the existing AWS Amplify `main` workflow.
