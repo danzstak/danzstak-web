@@ -4,6 +4,18 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Online-user identity, CSP and full release revalidation — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defect found:** the 230px desktop right rail shortened the online member name `Mobile Friend` to `Mobil…` because a full text `Message` control competed with the avatar and name. The first local browser run also proved that modifying the feed's protected inline script without updating its Content Security Policy hash causes the browser to reject the entire feed script; this was caught before release.
+- **Root correction:** the narrow online-user action now uses the shared Chat icon while retaining a complete `Message Mobile Friend` accessible name and matching tooltip. Row gaps and inline padding were reduced slightly so the complete member name fits without reducing type size or touch geometry. The strict CSP hash was recalculated for the exact current feed script; `unsafe-inline` was not introduced.
+- **Permanent browser gate:** desktop verification now requires the full online member name with no horizontal text overflow, a 38×38px-or-larger Chat control, the expected shared icon, complete accessible label and matching tooltip. The existing CSP regression test verifies the exact current inline-script hash, and the real browser must successfully render a post before any visual assertions proceed.
+- **Functional, media and integration evidence:** the complete `test-regressions.ps1` gate passed. This includes authentication, Feed/Friends/Chat/calls, Notifications, all 15 languages, responsive media, no startup autoplay, 60% visibility pause, one-audio-owner handoff, YouTube synchronization, Booking Agent, worldwide discovery, Record Stores, EPK, Tour Manager, Stripe Test Mode entitlements/refunds, PWA refresh, 11-page smoke checks and infrastructure validation.
+- **Visual evidence:** the complete local and production Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Browser measurements reject horizontal overflow, undersized audio/reaction controls, overlapping primary screens, iOS-focus text below 16px and clipped identities. Live evidence: [complete desktop online identity](screenshots/online-identity-v658-live/home-1366.png), [compact 390px feed](screenshots/online-identity-v658-live/home-390.png), and [comfortable 390px menu](screenshots/online-identity-v658-live/menu-390.png).
+- **Production state:** implementation commit `7e60d81` is on `danzstak-patch-1` and `main`. Production serves `danzstak-shell-v658`; a fresh browser reports the worker activated and controlling, only v658 in CacheStorage, and standalone display-mode support. The complete live matrix passed after propagation.
+- **Scope and limitation:** no authentication, payment, entitlement, discovery or messaging backend logic changed. Stripe remains Test Mode and live payments remain disabled. No remotely controllable physical Android or iPhone was available, so installed-device tactile validation remains manual and is not represented as complete.
+
 ### Cross-viewport profile identity and Record Store spacing audit — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
