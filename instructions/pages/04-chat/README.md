@@ -345,3 +345,26 @@ For DANZSTAK Phone, each browser/PWA installation that originates or receives vo
 - Stage a real authenticated Chats inbox with the avatars in the top horizontal row and real conversation list below; tap avatars to open actual threads. Show before/after screenshots at 320, 360, 390, 414, 430px and desktop with verified phone-accessible PWA preview and exact commit SHA.
 - Two-account tests: friends/avatar display, accurate presence, thread deep-link, permissions, blocks, unread changes, multi-select/copy, translation only where implemented, message persistence, alerts and responsive keyboard. Preserve existing API and core messaging data.
 - Implement in an isolated PR with pass/fail evidence; physical Android/iOS review noted honestly. No merge or production deployment without owner approval. **This is a product spec, not an implemented or tested screen.**
+
+
+## Final owner P1 — real SMS code for personal phone verification (2026-11-04)
+
+Owner says: "User should add their phone number and then get a text message to verify it." **This must be an actually working optional personal-mobile-number feature**, not placeholder UI, fake local code validation or the paid $3 DANZSTAK in-app alias.
+
+### User flow (one DANZSTAK account; no additional registration)
+1. From the main Account Settings and an obvious **Phone & verification** entry in Chats, choose **Add my mobile number**. Select international country code and enter own number (support country-appropriate input, E.164 on backend). Clearly label **optional**, and **private by default**.
+2. Tap **Send verification text**. Server sends a **real SMS** via an approved SMS provider to that number with a time-limited one-time **6-digit code**. Show partially masked destination and editable number, e.g., "Enter the six-digit code sent to •••• 1234". No SMS is claimed sent unless the provider acknowledges the attempt.
+3. Member enters the code; backend validates the correct number, code, expiry, retry rate and already-used status; then show **Phone verified** and a masked number in both Account Settings and Chat phone settings. Verification means possession of the number at that time, not government ID/real-world identity.
+4. Provide **Resend code** with cooldown, **Wrong/expired code** errors, **Change number** (fresh challenge required), and **Remove number**. Handle unsupported country, provider failure, SMS blocked/not delivered, duplicate number linked to another account, and account recovery without locking out members.
+5. Do **not require a number for ordinary DANZSTAK signup, Friends or free Chat**, and never automatically create/buy the optional internal $3 DS alias. A DS alias is NOT a real carrier number and cannot receive this SMS. Never use verified numbers for contact discovery, ads, solicitation or share them with friends without a separate user opt-in.
+
+### Security, privacy and implementation
+- Inspect existing AWS Cognito, SES/SNS, other approved SMS provider options, production messaging account policy and actual current frontend/backend code; choose a reliable, international, low-cost real-SMS integration and estimate per-country send cost + abuse/fraud exposure before any payable provider activation. Obtain owner approval for SMS spend, provider terms and secrets handling first. DANZSTAK only, not SFScoop.
+- Backend issues cryptographically random one-time codes, stores a salted/hashed or otherwise safely protected verifier with short expiry, bounded attempts, resend throttling, send limits, replay prevention, rate limits by account/IP/number, and anti-enumeration controls. Never log code/full number or expose them in browser storage, URL, exception logs, analytics, push or other user profiles. Verify exact E.164 number and authenticated account binding; handle concurrent retries/rebinding/revocation.
+- Add account data export/deletion support for phone verification records, minimal required retention, encryption in transit/at rest, privacy disclosure and vendor processor compliance. Preserve existing Cognito sessions/account data and existing independent calling devices.
+- No pretend success in Test Mode: distinguish mocked OTP tests from **owner-approved real handset SMS delivery**. No production rollout or new billable SMS provider until explicit owner review.
+
+### Acceptance
+- Test two authorized accounts, with a real Android handset receiving a *real* code after its owner enters an international phone number, and a second test for another supported country format when feasible. Correct code yields durable server-confirmed verified state; wrong/expired/reused codes fail; resend cooldown, changed/removed number, masked display, unauthorized-number probes, rate limits and recovery all pass.
+- Verify fully functional navigation at 320/360/390/414/430px including actual installed phone PWA; free accounts can skip verification; no number appears on the public profile/chat or in another user's data. Provide exact SMS provider, sender eligibility/country restrictions, unit costs, test pass/fail, browser screenshot (masked numbers), phone-accessible staging PWA, SHA and owner approval before merge/deploy.
+- This verifies a personal mobile number only. It **does not repair** the separate P0 no-ringtone/no-two-way-WebRTC-audio bug (#27), which requires actual call tests.
