@@ -187,3 +187,26 @@ For DANZSTAK Phone, each browser/PWA installation that originates or receives vo
 - Deliver small isolated chat UX PR, tests and screenshots, verified staging PWA, release SHA and explicit owner approval gate. **Do not merge chat UX changes with the P0 calling bug if that increases risk or delays the ringing fix.**
 
 **Desired feel:** calm as a direct conversation, familiar as a messenger, and recognizably DANZSTAK.
+
+
+## Owner requirement — Copy message text for outside translation (2026-11-04)
+
+**Owner use case:** Their partner does not speak English. Members must be able to **copy incoming or outgoing message text** from any DANZSTAK one-to-one Chat bubble and paste it into a translation app of their choice. This is part of comfortable conversation-first messaging and must work with international text.
+
+### Exact current UI conflict
+- In current \`assets/direct-messages.js\`, \`directMessageItem()\` attaches a 550ms \`pointerdown\` timer that opens \`openMessageReactions()\` and a \`contextmenu\` listener that calls \`preventDefault()\` (current \`main\` approximately lines 579–581). Thus the usual Android long-press text-selection/copy interface is displaced by the reaction popup.
+- \`openMessageReactions()\` (approximately line 359) offers emoji reactions, owner Edit, and Delete but **no Copy action**. Correct this instead of adding a confusing second long-press gesture or implementing a different messenger.
+- The displayed plain text is sourced from \`message.content\` via \`.message-text\`; copy the **actual message content**, not timestamps, read receipts, markup, attachment URLs, person/account metadata, other messages, or placeholder text.
+
+### UX and behavior
+1. A member **long-presses a text bubble** (or opens its options using right-click, Shift+F10, or the accessible message actions) and sees a prominent, labeled **Copy** action alongside reactions and any permitted Edit/Delete actions. Available for **both received and sent** messages; no paywall or phone number required.
+2. Tapping **Copy** copies **that message's exact plain text** to the device clipboard via an explicit user interaction; close the menu and briefly show **Copied** feedback only if the clipboard write succeeds. On denial or unsupported clipboard, provide a safe, selectable text fallback and an honest failure message, not a false “Copied.”
+3. Let the user **select and copy part of a long message** using ordinary text selection (or a clear **Select text** mode); preserve native selection handles on touch screens where possible. Reconcile existing long-press reaction handler and \`preventDefault\` to avoid the selection getting trapped; don't disable text selection in CSS.
+4. Make multiline, emoji, URLs, Unicode, Italian, English and the app's other localized content copy correctly. Copy user-authored text verbatim without HTML or escaped metadata. Opening links, replies, reaction counts, edit/delete, attachments and the scroll position must still work.
+5. Do **not automatically send private message contents to any translator, analytics endpoint, external API or server**. A user may voluntarily paste the copied text into Google Translate, DeepL, a phone translator, etc. Any future direct **Translate** option must separately specify explicit consent, translation provider and privacy handling.
+6. Keep the Copy action understandable on 320/360/390/414/430px screens, with labeled ~44px touch targets, keyboard/screen-reader access, correct placement above keyboard, translated menu labels and Android/iOS PWA compatibility.
+
+### Test and acceptance
+- With two controlled DANZSTAK accounts, receive an English message; long-press → **Copy** → paste into a separate translation app and verify the exact copied text. Repeat incoming/outgoing, Italian, multi-paragraph text, emoji, URL, long message and optional partial text selection.
+- Test copy failure/restricted clipboard, screen-reader/keyboard menu, background/resume, failed network and different message author. Prevent accidental **Delete** taps; no copied text in analytics/logging.
+- Codex: deliver a narrow independent PR, actual automated/manual phone checks, before/after screenshots, staging PWA and owner review. Keep P0 ringing repair (#27) separate. **Spec only; not a tested or deployed feature.**
