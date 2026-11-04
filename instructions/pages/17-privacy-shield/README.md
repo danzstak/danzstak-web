@@ -32,6 +32,17 @@ Normal account privacy controls and access to free government rights/removal mec
 **Acceptance criterion:** A member should be able to open Privacy Shield, see a legitimately discovered broker listing, **review a correctly addressed removal request**, send it using the official authorized channel, and later see an accurate state change backed by a source response/recheck. Not merely receive a generic letter generator. Test 320–430px installed-PWA layout, 15 supported languages (or verified current list), secure per-account boundaries, source failures and retention. All phases require a PR, evidence, staging preview and explicit owner approval before production.
 
 
+## Audience — everyday members, not only musicians
+
+**Owner clarification (2026-11-04):** DANZSTAK serves ordinary people worldwide as well as musicians. Privacy Shield is a **general consumer privacy service**: a parent, teacher, retired person, student, shop worker or musician should be able to understand and use it. No artist profile, EPK, booking account, music subscription, DANZSTAK internal number, real personal telephone number, or paid social account tier is a prerequisite.
+
+- Make `Privacy & Data` accessible from the main account Settings for all members. Everyday free functions: understand what DANZSTAK holds, privacy settings, export and request deletion of owned DANZSTAK account data. This is distinct from optional external data-broker removals.
+- For Privacy Shield, use simple language: **Where was my information found? Can I ask for removal? Did they confirm? Has it returned?** Avoid technical jargon, scare tactics or fabricated privacy scores.
+- Support typical personal information concerns across demographics: names, email, telephone numbers and addresses voluntarily supplied by the verified user. No unnecessary government ID collection; do not automatically import or expose social contacts.
+- Translate workflows into all actually supported DANZSTAK languages; design for accessible phone PWA, screen readers and people with no technical expertise. Price and scope must be clearly understandable.
+- Keep all normal DANZSTAK social participation, account deletion/export, and links to free public opt-out rights **free**. Optional subscription value is verified outside-broker monitoring/removal *assistance*, not a requirement to protect one's DANZSTAK account.
+- Test with distinct non-artist member profiles and a musician profile; verify same eligibility, privacy controls, account isolation and correctly scoped notices. Never market the service as exclusively for bands, DJs or EPK users.
+
 ## Core product: understandable monitoring dashboard (owner priority)
 
 Member dashboard must display source/category, type of exposure (e.g. phone, email, address), first detected, last checked, evidence and confidence, legal/technical removal eligibility, user consent/authorization and exact request timeline, with these **distinct truthful states**:
