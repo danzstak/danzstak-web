@@ -4,6 +4,15 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### SYNC phone audio output and honest ringback — 2026-11-05
+
+Status: **IMPLEMENTED AND PASSING THE LOCAL RELEASE GATE; PRODUCTION DEPLOYMENT PENDING**.
+
+- **Root defect:** audio-only WebRTC tracks were assigned to `remoteVideo`, but the video grid is intentionally hidden for phone calls. A call could therefore signal and connect while the remote voice remained attached to a hidden video output. Caller-side waiting also provided only text and could not produce or mute a lifecycle-safe ringback tone.
+- **Root correction:** phone calls now route remote tracks to a dedicated audio element outside the video-only grid; video calls retain the visible video output. Both outputs are stopped, detached and reset during call replacement, failure, hang-up, page hide and unload. When browser autoplay policy blocks remote sound, the interface truthfully shows a localized **Hear call** control that retries playback from the user's gesture instead of implying that audio is already working.
+- **Waiting-call behavior:** an outgoing call unlocks audio from the user's call-button gesture, pauses coordinated feed media, and begins a modest local ringback only after the signaling service acknowledges the offer. It never claims that the other physical device is audibly ringing. Answer, rejection/hang-up, timeout, failure, navigation and teardown stop the tone; one accessible control mutes or restores it without ending the call.
+- **Responsive and localization evidence:** the video-call action is no longer hidden on very narrow phones. Edge/Playwright passed 320, 360, 375, 390, 414, 430, 768 and 1024px with both phone/video actions visible, 44px phone touch targets, no document overflow, live ringback state, simulated autoplay rejection, visible recovery and successful user retry. Static/dynamic checks cover dedicated output routing, cleanup, one ringback cadence and all 14 non-English translation dictionaries. These tests prove the browser path and layout; real audible two-device WebRTC on physical Android/iPhone remains required and is not represented as complete.
+
 ### Compact Chat contact shortcuts — 2026-11-05
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL PHONE CHECK REMAINS**.

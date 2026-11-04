@@ -209,6 +209,24 @@
  };
  for(const [language,values] of Object.entries(callFailureStatuses))callStatuses[language].push(...values);
  for(const [language,values] of Object.entries(callStatuses))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(callStatusKeys.map((key,index)=>[key,values[index]])));
+ const remoteAudioKeys=["Hear call","The call connected. Tap Hear call to start the other person's audio."];
+ const remoteAudioGuidance={
+  es:["Escuchar llamada","La llamada se conectó. Toca Escuchar llamada para oír a la otra persona."],
+  fr:["Écouter l’appel","L’appel est connecté. Touchez Écouter l’appel pour entendre l’autre personne."],
+  de:["Anruf hören","Der Anruf ist verbunden. Tippe auf Anruf hören, um die andere Person zu hören."],
+  pt:["Ouvir chamada","A chamada foi conectada. Toque em Ouvir chamada para escutar a outra pessoa."],
+  it:["Ascolta chiamata","La chiamata è connessa. Tocca Ascolta chiamata per sentire l’altra persona."],
+  ko:["통화 듣기","통화가 연결되었습니다. 상대방의 음성을 들으려면 통화 듣기를 누르세요."],
+  ja:["通話を聞く","通話が接続されました。相手の音声を聞くには「通話を聞く」をタップしてください。"],
+  "zh-Hans":["收听通话","通话已连接。点按“收听通话”即可听到对方声音。"],
+  "zh-Hant":["收聽通話","通話已連線。點按「收聽通話」即可聽到對方聲音。"],
+  fil:["Pakinggan ang tawag","Nakakonekta ang tawag. I-tap ang Pakinggan ang tawag para marinig ang kausap."],
+  hi:["कॉल सुनें","कॉल जुड़ गई है। दूसरे व्यक्ति की आवाज़ सुनने के लिए कॉल सुनें पर टैप करें।"],
+  vi:["Nghe cuộc gọi","Cuộc gọi đã kết nối. Nhấn Nghe cuộc gọi để nghe người bên kia."],
+  th:["ฟังสาย","เชื่อมต่อสายแล้ว แตะ ฟังสาย เพื่อได้ยินเสียงอีกฝ่าย"],
+  id:["Dengarkan panggilan","Panggilan tersambung. Ketuk Dengarkan panggilan untuk mendengar lawan bicara."]
+ };
+ for(const [language,values] of Object.entries(remoteAudioGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(remoteAudioKeys.map((key,index)=>[key,values[index]])));
  const globalCallKeys=["DanzStak member","{name} is calling by {mode}.","Could not decline the call. Please try again."];
  const globalCallGuidance={
   es:["Miembro de DanzStak","{name} está llamando por {mode}.","No se pudo rechazar la llamada. Inténtalo de nuevo."],

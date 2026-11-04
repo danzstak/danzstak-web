@@ -2,7 +2,8 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const source=fs.readFileSync('assets/chat.js','utf8');
 const extract=name=>source.match(new RegExp('(?:async )?function '+name+'\\([^\\n]+'))[0];
 function setup(){
- const state=vm.createContext({document:{hidden:false},autoAnswer:false,pending:{eventId:'old-offer',callId:'old-call'},peer:null,channel:null,stream:null,callId:'old-call',contact:'caller@example.com',callTimer:null,connectionLossTimer:null,polling:false,pollFailures:0,pollRetryVisible:false,t:value=>value,clearTimeout(){},stopRing(){},setCallMode(){},disableChat(){},restoreCallFocus(){},signal:async()=>{},setStatus(value){state.status=value;},els:{localVideo:{srcObject:{}},remoteVideo:{srcObject:{}},videoGrid:{},mediaControls:{},receiverHangup:{}},events:[],request:async()=>({events:state.events}),handleEvent:async()=>false});
+ const mediaElement=()=>({srcObject:{},hidden:false,pause(){}});
+ const state=vm.createContext({document:{hidden:false},autoAnswer:false,pending:{eventId:'old-offer',callId:'old-call'},peer:null,channel:null,stream:null,callId:'old-call',contact:'caller@example.com',callTimer:null,connectionLossTimer:null,polling:false,pollFailures:0,pollRetryVisible:false,t:value=>value,clearTimeout(){},stopRing(){},stopRingback(){},setCallMode(){},disableChat(){},restoreCallFocus(){},signal:async()=>{},setStatus(value){state.status=value;},els:{localVideo:mediaElement(),remoteVideo:mediaElement(),remoteAudio:mediaElement(),resumeAudio:{hidden:false},videoGrid:{},mediaControls:{},receiverHangup:{}},events:[],request:async()=>({events:state.events}),handleEvent:async()=>false});
  vm.runInContext(extract('end')+'\n'+extract('poll'),state);return state;
 }
 (async()=>{
