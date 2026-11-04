@@ -131,6 +131,16 @@ async function captureViewport(page, fileName) {
       await assertNoOverflow(page, `Home ${width}px`, width <= 430);
       if (width <= 430) {
         await assertExclusiveFeedScreen(page, "home");
+        const shellMetrics = await page.evaluate(() => {
+          const header = document.querySelector(".topbar").getBoundingClientRect();
+          const nav = document.querySelector(".topbar .topnav").getBoundingClientRect();
+          const post = document.querySelector("#feed article.post");
+          const postStyle = getComputedStyle(post);
+          return { headerHeight: header.height, navHeight: nav.height, postPadding: parseFloat(postStyle.paddingLeft) };
+        });
+        assert.ok(shellMetrics.headerHeight <= 52, `${width}px: mobile header is oversized: ${JSON.stringify(shellMetrics)}`);
+        assert.ok(shellMetrics.navHeight <= 52, `${width}px: mobile navigation is oversized: ${JSON.stringify(shellMetrics)}`);
+        assert.ok(shellMetrics.postPadding <= 10, `${width}px: feed cards waste horizontal space: ${JSON.stringify(shellMetrics)}`);
         const reactionMetrics = await page.locator("#feed article.post .post-actions button").evaluateAll(buttons => buttons.map(button => {
           const icon = button.querySelector(".reaction-icon,.action-icon,svg");
           const count = button.querySelector(".reaction-count,.action-count,[data-count]");
@@ -140,10 +150,11 @@ async function captureViewport(page, fileName) {
           return { buttonTop: buttonBox.top, iconTop: iconBox?.top || 0, iconRight: iconBox?.right || 0, countTop: countBox?.top || 0, countLeft: countBox?.left || 0 };
         }));
         for (const metric of reactionMetrics.filter(item => item.countLeft)) {
-          assert.ok(metric.countLeft >= metric.iconRight, `${width}px: reaction count must be right of icon`);
+          const iconGap = metric.countLeft - metric.iconRight;
+          assert.ok(iconGap >= 3 && iconGap <= 7, `${width}px: reaction icon/count gap must be 4–6px: ${JSON.stringify(metric)}`);
           assert.ok(Math.abs(metric.countTop - metric.iconTop) <= 5, `${width}px: reaction count baseline drift`);
         }
-        assert.ok(reactionMetrics.filter(item => item.countLeft).length >= 3, `${width}px: Like, Dislike, and Comment require measurable inline counts: ${JSON.stringify(reactionMetrics)}`);
+        assert.ok(reactionMetrics.filter(item => item.countLeft).length >= 4, `${width}px: Like, Dislike, Comment, and Share require measurable inline counts: ${JSON.stringify(reactionMetrics)}`);
       }
       await captureViewport(page, `home-${width}.png`);
       if (width === 390) {

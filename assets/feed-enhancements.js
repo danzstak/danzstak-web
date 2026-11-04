@@ -2393,7 +2393,17 @@ function addShareButton(post) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "shareBtn";
-  button.textContent = "➜";
+  const shareIcon = document.createElement("span");
+  shareIcon.className = "reaction-icon";
+  shareIcon.setAttribute("aria-hidden", "true");
+  const shareSvg = window.danzstakIcons?.create?.("share");
+  if (shareSvg) shareIcon.appendChild(shareSvg); else shareIcon.textContent = "↗";
+  const shareCount = document.createElement("span");
+  shareCount.className = "reaction-count";
+  shareCount.setAttribute("aria-hidden", "true");
+  shareCount.textContent = String(Number(post.dataset.shareCount || 0));
+  button.appendChild(shareIcon);
+  button.appendChild(shareCount);
   button.setAttribute("aria-label", "Share post");
   button.title = "Share post";
   button.addEventListener("click", async () => {
@@ -2988,13 +2998,15 @@ function describePostControls(post) {
   });
 }
 
-function paintActionCount(button, iconText, count = 0) {
+function paintActionCount(button, iconText, count = 0, { showZero = true } = {}) {
   const icon = document.createElement("span");
   icon.className = "reaction-icon";
   icon.setAttribute("aria-hidden", "true");
-  icon.textContent = iconText;
+  const iconName = String(iconText || "").startsWith("icon:") ? String(iconText).slice(5) : "";
+  const iconSvg = iconName ? window.danzstakIcons?.create?.(iconName) : null;
+  if (iconSvg) icon.appendChild(iconSvg); else icon.textContent = iconText;
   const children = [icon];
-  if (Number(count) > 0) {
+  if (showZero || Number(count) > 0) {
     const value = document.createElement("span");
     value.className = "reaction-count";
     value.setAttribute("aria-hidden", "true");
@@ -3007,11 +3019,11 @@ function paintActionCount(button, iconText, count = 0) {
 function paintReactionControls(up, down, reaction, counts = {}, noun = "post") {
   const positive = Boolean(reaction) && reaction !== "Dislike";
   const total = Object.entries(counts).filter(([kind]) => kind !== "Dislike").reduce((sum, [, count]) => sum + Number(count || 0), 0);
-  paintActionCount(up, positive ? reactionEmoji[reaction] : reactionEmoji.Like, total);
+  paintActionCount(up, positive && reaction !== "Like" ? reactionEmoji[reaction] : "icon:thumbs-up", total);
   up.dataset.liked = String(positive); up.dataset.reaction = reaction || "";
   const upLabel = positive ? "Remove " + reaction.toLowerCase() + " reaction" : "Like " + noun;
   up.setAttribute("aria-label", upLabel); up.setAttribute("aria-pressed", String(positive)); up.title = upLabel;
-  if (down) { paintActionCount(down, reactionEmoji.Dislike, counts.Dislike); down.setAttribute("aria-label", reaction === "Dislike" ? "Remove dislike reaction" : "Dislike " + noun); down.setAttribute("aria-pressed", String(reaction === "Dislike")); down.dataset.selected = String(reaction === "Dislike"); }
+  if (down) { paintActionCount(down, "icon:thumbs-down", counts.Dislike); down.setAttribute("aria-label", reaction === "Dislike" ? "Remove dislike reaction" : "Dislike " + noun); down.setAttribute("aria-pressed", String(reaction === "Dislike")); down.dataset.selected = String(reaction === "Dislike"); }
 }
 function setReactionAppearance(post, reaction, counts = {}) {
   const like = post.querySelector(".likeBtn"); if (!like) return;
@@ -3022,7 +3034,7 @@ function updateCommentPreview(post) {
   const composer = post.querySelector(".comments"); if (composer && list.parentElement === composer) composer.before(list);
   const items = [...list.querySelectorAll(".comment")];
   const commentButton = post.querySelector(".commentBtn");
-  if (commentButton) paintActionCount(commentButton, "💬", items.length);
+  if (commentButton) paintActionCount(commentButton, "icon:chat", items.length);
   const byId = new Map(items.map(item => [item.dataset.commentId || "",item])), children = new Map();
   for (const item of items) if (item.dataset.parentCommentId && byId.has(item.dataset.parentCommentId)) {
     const group = children.get(item.dataset.parentCommentId) || []; group.push(item); children.set(item.dataset.parentCommentId,group);
