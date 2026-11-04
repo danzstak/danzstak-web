@@ -131,3 +131,24 @@ Before any imported posts are published, provide a **Preview My DANZSTAK Profile
 - On large archives, use paginated/virtualized previews and an accurate representative sample; do not falsely claim to have visually rendered all thousands of posts at once.
 - Ensure no empty media placeholders or broken article cards remain in the resulting profile; show source links only when valid and permitted.
 - Test that the final imported profile visually matches the preview, including missing-media handling, privacy, chronological order and partial failures.
+
+## Owner requirement — large-scale batch cleanup and deletion
+Users may have tens of thousands of posts from decades of Facebook use. Many reshares can become meaningless caption-only entries such as “WTF” when source media or article previews are unavailable. Never force one-by-one deletion.
+
+### Before import
+- Add **Bulk Cleanup** to import preview: filter **Missing image**, **Missing video**, **Missing article/link preview**, **Commentary-only reshares**, **Short captions with missing context**, **Empty/unusable**, and date ranges.
+- Allow **Select all matching** across all pages of results (not just currently visible rows), with an accurate count and exclusions. Offer **Exclude selected from import**; this must not delete the user's Facebook originals or other DANZSTAK posts.
+- Provide a safe suggested filter for low-context captions, but do not automatically discard meaningful short posts solely due to word count. Let users review examples before bulk exclusion.
+
+### After import — own posts only
+- Provide **Manage Posts → Bulk Cleanup** in the user's DANZSTAK profile management.
+- Support the same filters, bulk selection, select-all-matching, preview and **Delete selected** with explicit confirmation showing the number of posts and irreversible/retention implications.
+- Require server-side ownership authorization for every affected record; no ability to delete another user's content, existing SFScoop posts, or unrelated real accounts.
+- Prefer a recoverable trash/undo window where technically feasible, with an explicit retention policy and permanent-delete option. Avoid false promises of recovery.
+- Process large deletes as resumable, auditable background jobs with progress, partial-failure reporting, rate limits and idempotency; preserve unaffected posts, attachments and interactions.
+- Ensure selected counts remain correct when filters change or new posts arrive; avoid accidentally selecting newly created posts outside the reviewed set.
+
+### Acceptance
+- Synthetic tests at 100, 1,000, 10,000 and 50,000 posts; filter and delete only targeted items.
+- Verify zero unauthorized deletions, no deletion of SFScoop/existing unrelated content, correct counts, interruption/retry behavior and mobile UI.
+- Before/after PWA screenshots, test report and owner approval before production deployment.
