@@ -4,6 +4,16 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### SYNC chat launcher — 2026-11-04
+
+Status: **COMPLETE ON ISOLATED REVIEW BRANCH; NOT DEPLOYED**.
+
+- **Owner naming implemented:** the existing Chat launcher is now visibly named **SYNC** on the desktop feed, shared phone navigation, Profile account navigation, and the application menu. Its accessible name is `SYNC — open chats`; every launcher still opens the existing `messages.html` inbox. Internal `Chats` headings, contact names, conversations, unread behavior, routes, and contextual person-to-person `Message` actions were deliberately not renamed.
+- **Consistency correction:** Booking Agent, Record Stores, EPK Builder, Profile, and the Chats page now share the same visible phone caption. The previously missing application-menu chat destination is present as SYNC with the existing chat icon. No AI bot, second inbox, new message backend, payment, or private-conversation reader was introduced.
+- **PWA and accessibility:** the phone label is rendered without altering the five equal navigation destinations. Coarse-pointer browser measurements pass at 320, 390, and 430px with a 44×48px SYNC touch target; desktop retains its nonduplicated navigation. The PWA shell advances to `danzstak-shell-v668` and the shared mobile design system to `v12` so installed apps cannot retain the former generic label after an approved release.
+- **Evidence:** the dedicated static contract, route/link checks, mobile navigation, drawer, unread-badge, PWA-shell, responsive-media, localization, smoke, security, and infrastructure checks pass. The complete uninterrupted `test-regressions.ps1` gate passed. The browser geometry verifier passed at 320, 390, 430, and 1024px. Review evidence: [Chats at 320px with visible SYNC](screenshots/sync-launcher/messages-320.png).
+- **Deployment state and limitation:** this work is confined to `codex/sync-chat-launcher` for review. It has not been merged, staged on an externally reachable authenticated PWA, or deployed to production. Real two-device message/call proof, physical Android/iPhone tactile review, personal-number SMS verification, and the broader Issue #39 inbox redesign remain separate P0 gates and are not claimed by this naming change.
+
 ### Consistent current destination across mobile navigation — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.

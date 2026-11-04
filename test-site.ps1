@@ -411,7 +411,7 @@ foreach ($pushPromptPage in @('feed.html', 'profile.html', 'messages.html')) {
   if (-not $pushMarkup.Contains('assets/incoming-calls.css?v=')) { Add-Failure "${pushPromptPage}: background alert prompt styling is not loaded" }
 }
 $profileMarkup = Get-Content -LiteralPath (Join-Path $root 'profile.html') -Raw -Encoding utf8
-foreach ($profileShell in @('background:#f0f2f5', 'class="header-actions"', 'href="messages.html">Messages</a>', 'aria-label="Account navigation"')) {
+foreach ($profileShell in @('background:#f0f2f5', 'class="header-actions"', 'href="messages.html" aria-label="SYNC — open chats">SYNC</a>', 'aria-label="Account navigation"')) {
   if (-not $profileMarkup.Contains($profileShell)) { Add-Failure "Profiles: familiar responsive navigation shell is missing: $profileShell" }
 }
 foreach ($notificationHistoryUi in @('notice.unread !== false', 'row.classList.toggle("is-read"', 'notificationSourceCounts.engagement = 0')) {
