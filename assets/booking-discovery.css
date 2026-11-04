@@ -10,4 +10,5 @@
 .venue-quick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .venue-quick-actions a { color: #075fcb; font-weight: 700; }
 #venueQuickMore { display: block; margin: 12px auto 0; background: #fff; font-weight: 800; }
+#venueQuickMore[hidden] { display: none; }
 @media(max-width:680px){.venue-quick-row,.venue-quick-results{grid-template-columns:1fr}}

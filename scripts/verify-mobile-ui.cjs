@@ -269,6 +269,7 @@ async function captureViewport(page, fileName) {
       assert.equal(bookingPrimary.background, "rgb(23, 105, 224)", `${width}px: Booking Agent primary action is not DANZSTAK blue: ${JSON.stringify(bookingPrimary)}`);
       assert.equal(bookingPrimary.color, "rgb(255, 255, 255)", `${width}px: Booking Agent primary action lacks readable contrast: ${JSON.stringify(bookingPrimary)}`);
       assert.ok(bookingPrimary.height >= 42, `${width}px: Booking Agent primary action is too small: ${JSON.stringify(bookingPrimary)}`);
+      assert.equal(await page.locator("#venueQuickMore").isVisible(), false, `${width}px: empty Find more clubs control must remain hidden before a search`);
       await captureViewport(page, `booking-${width}.png`);
       await page.evaluate(() => {
         document.querySelectorAll("details").forEach(details => { details.open = true; });
@@ -403,6 +404,23 @@ async function captureViewport(page, fileName) {
       assert.equal(desktopChat.nameText, "Mobile Friend", `${width}px: desktop Chat contact name changed unexpectedly`);
       assert.ok(desktopChat.nameScrollWidth <= desktopChat.nameClientWidth + 1, `${width}px: desktop Chat contact name is visually truncated: ${JSON.stringify(desktopChat)}`);
       await captureViewport(page, `chat-desktop-${width}.png`);
+
+      await page.goto(`${baseUrl}/booking.html`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#bookingMain");
+      await assertNoOverflow(page, `Desktop Booking Agent ${width}px`);
+      assert.equal(await page.locator("body.booking-page>header nav").isVisible(), true, `${width}px: desktop Booking Agent navigation must remain available`);
+      assert.equal(await page.locator("body.booking-page>.ds-mobile-nav").isVisible(), false, `${width}px: mobile navigation must not duplicate desktop Booking Agent navigation`);
+      assert.equal(await page.locator("#venueQuickMore").isVisible(), false, `${width}px: desktop Booking Agent must not show an empty pre-search control`);
+      await captureViewport(page, `booking-desktop-${width}.png`);
+
+      await page.goto(`${baseUrl}/epk.html`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#epkMain");
+      await assertNoOverflow(page, `Desktop EPK ${width}px`);
+      assert.equal(await page.locator("body.ds-tool-page>header nav").isVisible(), true, `${width}px: desktop EPK navigation must remain available`);
+      assert.equal(await page.locator("body.ds-tool-page>.ds-mobile-nav").isVisible(), false, `${width}px: mobile navigation must not duplicate desktop EPK navigation`);
+      const epkColumns = await page.locator(".epk-layout").evaluate(layout => getComputedStyle(layout).gridTemplateColumns.split(" ").filter(Boolean).length);
+      if (width >= 1024) assert.equal(epkColumns, 2, `${width}px: desktop EPK must keep editor and preview side by side`);
+      await captureViewport(page, `epk-desktop-${width}.png`);
       await context.close();
     }
     console.log(`Mobile visual checks passed at ${widths.join(", ")}px; screenshots: ${outputDir}`);

@@ -17,6 +17,8 @@ assert.match(agent, /savedPanel = document\.createElement\("details"\)/, "saved 
 assert.match(agent, /bookingBoard\.children\[1\]\.after\(routeResults, savedPanel\)/, "new route results should appear before saved gigs");
 assert.doesNotMatch(agent, /document\.querySelector\("\.summary"\)\.hidden = true/, "the Tour Manager estimate must remain reachable inside its disclosure");
 assert.match(html, /<body class="ds-tool-page booking-page">/, "Booking Agent must opt into the shared professional action hierarchy");
+assert.match(html, /id="venueQuickMore" class="secondary" hidden/, "Find more clubs must start as an explicitly hidden secondary action");
+assert.match(fs.readFileSync("assets/booking-discovery.css", "utf8"), /#venueQuickMore\[hidden\]\s*\{\s*display:\s*none;/, "the pre-search Find more clubs action must not override its hidden state");
 assert.match(map, /document\.getElementById\("routeSearchAction"\)/, "Search this area must invoke the stable route action");
 assert.match(map, /mapElement\.addEventListener\("pointerdown"/, "route drawing must begin from mobile-safe pointer input");
 assert.match(map, /mapElement\.addEventListener\("pointermove"/, "route drawing must follow the user's freehand path");
