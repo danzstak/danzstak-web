@@ -21,7 +21,7 @@
 - In-app Buzz records for new/changed/cancelled invitations. Push is deliberately not claimed or enabled for this MVP until staging provider/device delivery is verified.
 - User-triggered `.ics` export after Going. No third-party calendar write, GPS, paywall, phone number, automatic message or public address request.
 - Offline/error feedback remains in the dialog and preserves the form for retry.
-- PWA shell includes the new assets under isolated preview cache `danzstak-shell-issue24-preview-v1`.
+- PWA shell includes the new assets under isolated preview cache `danzstak-shell-v668-issue24-preview`.
 
 ## Tests run
 
