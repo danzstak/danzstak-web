@@ -446,6 +446,7 @@ Required webhook events:
 - `charge.refunded`
 
 Controlled manual Test Checkouts and full refunds have now passed for all three purchases. Live processing remains disabled and requires explicit owner approval plus a separate Live configuration review; Test Mode keys, endpoint secrets and sessions must never be reused as Live credentials.
+
 # Permanent quality assurance standard
 
 Status as of 2026-11-04: **COMPLETE IN REPOSITORY; DAILY PUBLIC MONITOR IMPLEMENTED; AUTHENTICATED SYNTHETIC COVERAGE IN PROGRESS**.
