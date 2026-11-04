@@ -19,9 +19,10 @@
 <link rel="stylesheet" href="assets/mobile-design-system.css?v=11">
 <link rel="stylesheet" href="assets/responsive-media.css?v=4">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=233">
+<link rel="stylesheet" href="assets/phone-verification.css?v=1">
 <title>Messages | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
-<script src="assets/brand-language-aliases.js?v=7" defer></script>
+<script src="assets/brand-language-aliases.js?v=8" defer></script>
 <script src="assets/i18n.js?v=388" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
@@ -31,7 +32,7 @@
 <header class="chat-header"><a href="feed.html" class="chat-brand" aria-label="DanzStak home"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a><div><a class="button" href="feed.html?view=feed" data-chat-return data-icon="back" aria-label="Back to previous DanzStak screen" title="Back">Back</a> <button class="button" type="button" data-logout>Logout</button></div></header>
 <main id="messagesMain" class="chat-shell" tabindex="-1">
   <section class="chat-sidebar" aria-labelledby="messagesTitle">
-    <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><div class="chat-heading-actions"><button id="enableRinging" type="button" class="chat-heading-button" data-icon="bell" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" data-icon="edit" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
+    <div class="chats-heading"><h1 id="messagesTitle">Chats</h1><div class="chat-heading-actions"><button id="phoneVerificationOpen" type="button" class="chat-heading-button" data-icon="smartphone" aria-label="Phone and verification" title="Phone and verification"></button><button id="enableRinging" type="button" class="chat-heading-button" data-icon="bell" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" data-icon="edit" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
     <label class="chat-search"><span class="chat-search-icon" data-menu-icon="search" aria-hidden="true"></span><input id="chatSearch" type="search" inputmode="search" enterkeyhint="search" placeholder="Search chats" aria-label="Search messages"></label>
     <nav class="chat-filters" aria-label="Chat filters" role="tablist"><button type="button" class="active" data-chat-filter="all" role="tab" aria-selected="true">All</button><button type="button" data-chat-filter="unread" role="tab" aria-selected="false" tabindex="-1">Unread</button><button type="button" data-chat-filter="groups" role="tab" aria-selected="false" tabindex="-1">Tribes</button></nav>
     <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers" aria-busy="true"><p class="chat-note">Loading saved chats…</p></div></section>
@@ -73,6 +74,22 @@
     </form>
   </section>
 </main>
+<dialog id="phoneVerificationDialog" class="phone-verification-dialog" aria-labelledby="phoneVerificationTitle">
+  <div class="phone-verification-header"><div><p class="phone-kicker">Optional account setting</p><h2 id="phoneVerificationTitle">Phone &amp; verification</h2></div><button id="phoneVerificationClose" type="button" data-icon="close" aria-label="Close phone settings" title="Close"></button></div>
+  <p class="phone-privacy-note">Your personal mobile number is private by default. It is not required for Chat, Friends, signup, or calls inside DanzStak. Verification confirms possession of the number at this time; it is not identity proof.</p>
+  <p id="phoneVerificationStatus" class="phone-verification-status" role="status" aria-live="polite">Loading phone settings…</p>
+  <form id="phoneNumberForm" class="phone-verification-form">
+    <div class="phone-number-fields"><label>Country calling code<input id="phoneCountryCode" type="tel" inputmode="tel" autocomplete="tel-country-code" maxlength="8" placeholder="+1" required></label><label>Mobile number<input id="phoneLocalNumber" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="40" placeholder="415 555 0100" required></label></div>
+    <p class="phone-field-help">Use your own mobile number. International numbers are normalized securely on the server.</p>
+    <button id="phoneSendCode" class="primary" type="submit">Send verification text</button>
+  </form>
+  <form id="phoneCodeForm" class="phone-verification-form" hidden>
+    <label>Six-digit code<input id="phoneVerificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required></label>
+    <div class="phone-form-actions"><button id="phoneConfirmCode" class="primary" type="submit">Verify</button><button id="phoneResendCode" class="secondary" type="button">Resend code</button><button id="phoneChangeNumber" class="secondary" type="button">Change number</button></div>
+  </form>
+  <div id="phoneVerifiedActions" class="phone-verification-form" hidden><div class="phone-form-actions"><button id="phoneReplaceNumber" class="secondary" type="button">Change number</button><button id="phoneRemoveNumber" class="danger-outline" type="button">Remove number</button></div></div>
+  <section class="ds-number-section" aria-labelledby="dsNumberTitle"><h3 id="dsNumberTitle">DANZSTAK number</h3><p>This separate optional number works only inside DANZSTAK. It is not a carrier phone number, cannot receive ordinary SMS, and is not personal-number verification.</p><p class="phone-field-help">The $3 in-app-number pilot is not activated from this verification screen.</p></section>
+</dialog>
 <script src="assets/push-notifications.js?v=307" defer></script>
 <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
   <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
@@ -85,6 +102,7 @@
 <script src="assets/identity-media.js?v=1" defer></script>
 <script src="assets/chat.js?v=447" defer></script>
 <script src="assets/direct-messages.js?v=483" defer></script>
+<script src="assets/phone-verification.js?v=1" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">

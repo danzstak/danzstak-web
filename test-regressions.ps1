@@ -8,7 +8,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Regression failed: $($test.Name)" }
   }
 
-  foreach ($name in @('test-account-data-control.mjs', 'test-account-erasure.mjs', 'test-account-erasure-dynamodb.mjs', 'test-account-export-media.mjs')) {
+  foreach ($name in @('test-account-data-control.mjs', 'test-account-erasure.mjs', 'test-account-erasure-dynamodb.mjs', 'test-account-export-media.mjs', 'test-personal-phone-verification.mjs', 'test-personal-phone-service.mjs', 'test-personal-phone-dynamodb.mjs')) {
     Write-Host "Running $name..."
     & node (Join-Path $PSScriptRoot $name)
     if ($LASTEXITCODE -ne 0) { throw "Regression failed: $name" }

@@ -18,7 +18,8 @@ export const ACCOUNT_TABLES = Object.freeze({
   calls: "DANZSTAK-CallSignals",
   conversations: "DanzStak-Conversations",
   messages: "DanzStak-Messages",
-  messageReactions: "DanzStak-MessageReactions"
+  messageReactions: "DanzStak-MessageReactions",
+  phoneVerifications: "DANZSTAK-PhoneVerifications"
 });
 
 export function deletedMemberAddress(userId) {
@@ -71,6 +72,7 @@ export async function runAccountErasurePhase(phase, context, adapters) {
     collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.profileNames, { userEmail: accountEmail }));
     collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.presence, { email: accountEmail }));
     collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.pushSubscriptions, { userEmail: accountEmail }));
+    collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.phoneVerifications, { userId }));
   } else if (phase === "shared_conversations") {
     collect(await requireAdapter(adapters, "migrateSharedConversations")({
       userId,

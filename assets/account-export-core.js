@@ -56,6 +56,11 @@
       },
       tours: sources.tours?.tours || [],
       bookingWorkspace: sources.bookingWorkspace || { venues: [], artist: {} },
+      phoneVerification: sources.phoneVerification ? {
+        state: String(sources.phoneVerification.state || "none"),
+        verified: sources.phoneVerification.verified === true,
+        maskedNumber: String(sources.phoneVerification.maskedNumber || "")
+      } : { state: "unavailable", verified: false, maskedNumber: "" },
       media: mediaManifest(sources.mediaManifest),
       incompleteSources: Array.isArray(sources.incompleteSources) ? sources.incompleteSources : []
     };

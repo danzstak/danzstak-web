@@ -20,6 +20,7 @@ for (const phase of DELETION_PHASES) await runAccountErasurePhase(phase, context
 assert.ok(calls.some(([name, table, match]) => name === "deleteWhere" && table === ACCOUNT_TABLES.friends && match.friendEmail === "owner@example.com"));
 assert.ok(calls.some(([name, table, match]) => name === "deleteWhere" && table === ACCOUNT_TABLES.calls && match.senderEmail === "owner@example.com"));
 assert.ok(calls.some(([name]) => name === "migrateSharedConversations"), "shared messages must be migrated, not bulk deleted");
+assert.ok(calls.some(([name, table, match]) => name === "deleteWhere" && table === ACCOUNT_TABLES.phoneVerifications && match.userId === "member-123"), "private phone verification records and claims must be erased");
 assert.equal(calls.filter(([name]) => name === "deleteMediaPrefix").length, 4);
 assert.ok(calls.some(([name]) => name === "deleteIdentity"), "identity is deleted only in the final phase");
 

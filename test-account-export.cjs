@@ -31,6 +31,7 @@ const archive = buildAccountArchive({
     artist: { name: 'Owner Band', epkUrl: 'https://example.com/epk' },
     venues: [{ id: 'venue-1', name: 'The Club', stage: 'contacted' }]
   },
+    phoneVerification: { state: 'verified', verified: true, maskedNumber: '•••• 0100', providerAvailable: true },
   mediaManifest: { complete: true, files: [{ archivePath: 'media/uploads/photo.jpg', size: 42, modifiedAt: '2026-10-26T11:00:00.000Z', downloadUrl: 'https://signed.example' }] },
   incompleteSources: ['supportTickets']
 }, engagement, { 'friend@example.com': [{ messageId: 'message-1' }] }, '2026-10-26T12:00:00.000Z');
@@ -40,6 +41,7 @@ assert.deepEqual(archive.stories.map(story => story.storyId), ['mine-story']);
 assert.equal(archive.messagesByContact['friend@example.com'][0].messageId, 'message-1');
 assert.equal(archive.bookingWorkspace.artist.name, 'Owner Band');
 assert.equal(archive.bookingWorkspace.venues[0].stage, 'contacted');
+assert.deepEqual(archive.phoneVerification, { state: 'verified', verified: true, maskedNumber: '•••• 0100' });
 assert.deepEqual(archive.incompleteSources, ['supportTickets']);
 assert.equal(archive.formatVersion, 2);
 assert.equal(archive.notIncluded.includes('Uploaded media binary files'), false);
