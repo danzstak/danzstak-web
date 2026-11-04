@@ -51,3 +51,17 @@ Root-cause analysis, changed file paths, PR, test results, before/after screensh
 - Codex: independent small PR, reproducible pass/fail evidence, SHA, verified **phone-accessible staging PWA**, exact provider limitations and **owner approval before merge/deploy**. This specification does not establish a completed feature.
 
 **User promise:** Open the Roll and hear the active video, swipe, hear the next, never overlapping videos, no need to press sound on each video.
+
+
+## Owner clarification — Keep existing Roll, polish like Instagram (2026-11-04)
+
+**Exact final intent:** The public name stays **The Roll** and it remains the same **existing DANZSTAK video product/content destination**. Do not rename it, replace it, move its videos into a separate product or revive Rough Cut. The owner wants a **better feeling, smoother, more polished Instagram-Reels-familiar user experience**, NOT a copied Instagram UI or an account/API integration.
+
+- Retain existing accounts, creator identities, uploaded videos, external embeds, share/source links, rights checks, privacy, engagement records and route/Back behavior. Improve the existing Roll player in-place, not a new feed or migration.
+- Improve mobile touch UX: natural full-height vertical swipes, one clear video per viewport, fluid snap and no jitter, clipping, huge black gaps or generic cards. Fit video to device aspect without distorting/cropping key content; subtle overlay creator name/caption and unobtrusive real actions. Keep a small discoverable Close/Back and accessible mute button.
+- Maintain previously approved **50%-out-of-view pause / >=50%-visible next play** handoff, with exactly one active media owner and tie stability. Entering fullscreen is a deliberate gesture: play audio when allowed; **keep the session-level audio preference while swiping** so a person doesn't unmute each clip. Only request a further gesture when browser/provider restrictions require it, and be truthful about limitations.
+- The Mix remains an independent scrollable social feed (muted by default); Dailies remains a separate 24-hour feature. Do not install Instagram SDK, require Meta login, replicate proprietary visuals or rehost videos that were supplied as external embeds.
+- Quality bar is perceived smoothness on **real Android PWA**, not just a static mockup: test repeated swipes, rapid reversals, load/transition times, mixed native and supported embed sources, audio bleed, tap targets, accessibility and background/call interruptions. Compare real before/after staging recordings/screenshots. If a provider cannot be controlled, give a graceful fallback rather than fake smooth autoplay.
+- Codex implementation on its development branch, isolated PR, real device tests, staging preview and explicit owner approval before production deployment.
+
+**Design sentence:** "The Roll keeps its name and content; only the viewing experience becomes more fluid, immersive and comfortable."
