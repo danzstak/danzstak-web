@@ -30,3 +30,12 @@ Follow `instructions/00c-design-direction-80-20.md`: familiar social-network int
 - **Add Event** creates a structured event; once published with its flyer and/or promo video, **one linked event card appears in The Mix**. The publish action may be labeled **"Add to Mix"**. Do not make a second feed. Preserve owner-selected audience/privacy.
 - Keep both ordinary text posts and event cards easy to create, distinguish at a glance, and read on phones. No popups or autoplay with sound. This is part of the "comfortable UX" / one signup experience.
 - See [Events specification](../08-events/README.md) and GitHub issue tracking for media types, persistence, moderation, real tests and launch gates. These instructions are not a deployment.
+
+
+## Owner directive: independence from Facebook terms (2026-11-04)
+
+- **The Mix and Add to Mix are DANZSTAK-native products.** Publish original posts, event flyers and authorized promo videos on DANZSTAK's own infrastructure and under DANZSTAK's own Terms, Privacy Policy and moderation rules — **not Facebook's feed or posting policies**. Use Facebook-familiar UX patterns only; never copy its proprietary branding, artwork, source code or controlled assets.
+- **No mandatory Facebook login, approval, SDK, API, account connection, posting permission or dependency** for Add to Mix, Add Event, discovery, comments, sharing, or normal use. Own content and uploaded event media must remain available if Facebook stops working or changes its rules. Do not cross-post to Facebook unless user explicitly chooses and an approved integration independently permits it.
+- Optional embeds from Facebook/Instagram or user-imported Meta-origin content are **not exempt** from the applicable third-party service rules, copyrights, creator permissions, and technical limits; support them as optional links/embeds with graceful fallback, never as a core dependency.
+- Independence does not eliminate relevant laws, safety obligations or DANZSTAK's own community standards; maintain protections for unlawful content, harassment, abuse, impersonation, privacy and unauthorized copyrighted media.
+- Codex must verify genuine independent content posting and event publishing with Facebook connections absent/blocked, and test upload, persistence and playback using DANZSTAK-controlled assets. Owner approval still required before launch.
