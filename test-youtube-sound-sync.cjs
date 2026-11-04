@@ -13,7 +13,7 @@ const video = {
   closest: () => null, addEventListener() {}, pause() {}, play: () => Promise.resolve(), getAttribute: () => ""
 };
 const frame = {
-  tagName: "IFRAME", src: "https://www.youtube-nocookie.com/embed/demo?autoplay=1&mute=1&enablejsapi=1",
+  tagName: "IFRAME", src: "https://www.youtube-nocookie.com/embed/demo?autoplay=0&mute=1&enablejsapi=1",
   dataset: {}, contentWindow: playerWindow, isConnected: true,
   matches: selector => selector === "video,iframe.reel-player",
   closest: () => null, addEventListener(name, handler) { if (name === "load") this.onLoad = handler; }

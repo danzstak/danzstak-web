@@ -3,6 +3,7 @@
  const tracked=new Set(),visible=new WeakMap(),ratios=new WeakMap(),manualPlayback=new WeakSet();
  let activeMedia=null,audibleMedia=null;
  const soundEnabled=()=>Boolean(audibleMedia);
+ const mutedAutoplayEnabled=()=>{try{return localStorage.getItem('danzstak_muted_autoplay')==='on';}catch{return false;}};
  let applyingSound=false;
  const isYouTubeFrame=element=>element?.tagName==='IFRAME'&&element.src?.includes('youtube-nocookie.com/embed/');
  function controlYouTube(frame,command){
@@ -14,8 +15,9 @@
   const button=audioButton(element);if(!button)return;
   const enabled=element===audibleMedia;
   const label=enabled?'Mute video':'Unmute video';
-  button.setAttribute('aria-label',label);button.setAttribute('title',label);button.setAttribute('aria-pressed',String(enabled));button.dataset.icon=enabled?'volume-2':'volume-x';
-  if(globalThis.danzstakIcons?.create)button.replaceChildren(globalThis.danzstakIcons.create(button.dataset.icon));
+  const icon=enabled?'volume-2':'volume-x',replaceIcon=button.dataset.icon!==icon||!button.firstElementChild?.classList?.contains('ds-action-icon');
+  button.setAttribute('aria-label',label);button.setAttribute('title',label);button.setAttribute('aria-pressed',String(enabled));button.dataset.icon=icon;
+  if(replaceIcon&&globalThis.danzstakIcons?.create)button.replaceChildren(globalThis.danzstakIcons.create(icon));
  }
  function updateYouTubeSound(){
   document.querySelectorAll?.('iframe.reel-player[src*="youtube-nocookie.com/embed/"]').forEach(frame=>{
@@ -51,6 +53,7 @@
   button.addEventListener('click',event=>{
    event.preventDefault();event.stopPropagation();
    const enabling=audibleMedia!==element;
+   if(enabling&&(ratios.get(element)||0)<0.6)return;
    saveSoundPreference(enabling,element);
    if(enabling){if(element.tagName==='VIDEO')element.play().catch(()=>{});else controlYouTube(element,'playVideo');}
   });
@@ -83,7 +86,7 @@
    // only code path allowed to restore the saved sound preference. This avoids
    // an audible frame when another autoplay observer calls play() before the
    // play event reaches the ownership guard on mobile browsers.
-   video.preload='none';video.muted=true;video.autoplay=!dataSaverEnabled();video.loop=true;
+   video.preload='none';video.muted=true;video.autoplay=false;video.loop=true;
    let pointerStartedPaused=false;
    video.addEventListener('pointerdown',()=>{pointerStartedPaused=video.paused;if(pointerStartedPaused)manualPlayback.add(video);else manualPlayback.delete(video);},{passive:true});
    // Some mobile/WebView builds expose native controls but fail to complete the
@@ -133,7 +136,7 @@
   return best;
  }
  function reconcilePlayback(){
-  if(document.hidden)return;
+  if(document.hidden||!mutedAutoplayEnabled())return;
   if(activeMedia&&visible.get(activeMedia)!==false&&(ratios.get(activeMedia)||0)>=0.5)return;
   const candidate=bestAutomaticCandidate();
   if(!candidate)return;
@@ -142,17 +145,17 @@
   if(!dataSaverEnabled())candidate.play().catch(()=>{});
  }
  const observer=new IntersectionObserver(entries=>{
-  for(const entry of entries){const ratio=entry.isIntersecting?entry.intersectionRatio:0,inView=ratio>=0.15;ratios.set(entry.target,ratio);visible.set(entry.target,inView);if(!inView){manualPlayback.delete(entry.target);pause(entry.target);clearActive(entry.target);continue;}if(entry.target.tagName!=='VIDEO'||document.hidden)continue;const feedVideo=isFeedVideo(entry.target);if(feedVideo&&dataSaverEnabled())continue;entry.target.preload=feedVideo?'auto':'metadata';if(entry.target.readyState===0)entry.target.load?.();}
+  for(const entry of entries){const ratio=entry.isIntersecting?entry.intersectionRatio:0,inView=ratio>=0.6;ratios.set(entry.target,ratio);visible.set(entry.target,inView);if(!inView){manualPlayback.delete(entry.target);pause(entry.target);clearActive(entry.target);continue;}if(entry.target.tagName!=='VIDEO'||document.hidden)continue;const feedVideo=isFeedVideo(entry.target);if(feedVideo&&dataSaverEnabled())continue;entry.target.preload=feedVideo?'auto':'metadata';if(entry.target.readyState===0)entry.target.load?.();}
   reconcilePlayback();
  }, {threshold:[0,0.15,0.5,0.6,1]});
- function track(element){if(!eligible(element)||tracked.has(element))return;ensureAudioControl(element);tracked.add(element);observer.observe(element);if(isYouTubeFrame(element))listenToYouTube(element);if(element.tagName==='VIDEO'){element.muted=true;if(element.dataset?.visibilityPrepared!=='1'){if(element.dataset)element.dataset.visibilityPrepared='1';prepareVideoPreview(element);element.addEventListener('play',()=>{const manual=manualPlayback.has(element);manualPlayback.delete(element);if(document.hidden||(visible.get(element)===false&&!manual)){element.pause();return;}if(!claimPlayback(element,manual))element.pause();});}}}
+ function track(element){if(!eligible(element)||tracked.has(element))return;ensureAudioControl(element);tracked.add(element);observer.observe(element);if(isYouTubeFrame(element))listenToYouTube(element);if(element.tagName==='VIDEO'){element.muted=true;if(element.dataset?.visibilityPrepared!=='1'){if(element.dataset)element.dataset.visibilityPrepared='1';prepareVideoPreview(element);element.addEventListener('play',()=>{const manual=manualPlayback.has(element);manualPlayback.delete(element);if(document.hidden||(ratios.get(element)||0)<0.6){element.pause();clearActive(element);return;}if(!claimPlayback(element,manual))element.pause();});}}}
  function added(root){
   if(root?.tagName==='VIDEO'&&eligible(root))root.muted=true;
   root.querySelectorAll?.('video').forEach(video=>{if(eligible(video))video.muted=true;});
   if(eligible(root))track(root);root.querySelectorAll?.('video,iframe.reel-player').forEach(track);
   updateYouTubeSound();
  }
- function removed(root){for(const media of [...tracked])if(media===root||root.contains?.(media)){if(media.tagName==='VIDEO')media.pause();observer.unobserve(media);tracked.delete(media);clearActive(media);}}
+ function removed(root){for(const media of [...tracked])if((media===root||root.contains?.(media))&&!media.isConnected){if(media.tagName==='VIDEO')media.pause();observer.unobserve(media);tracked.delete(media);clearActive(media);}}
  added(document.body);
  applySoundPreference();
  new MutationObserver(records=>{for(const record of records){record.removedNodes.forEach(removed);record.addedNodes.forEach(added);}}).observe(document.body,{childList:true,subtree:true});
@@ -165,5 +168,12 @@
   if(payload.info.muted===(frame!==audibleMedia))return;
   saveSoundPreference(!payload.info.muted,frame);
  });
- document.addEventListener('visibilitychange',()=>{if(document.hidden)for(const media of [...tracked])pause(media);});
+ function pauseAll(){for(const media of [...tracked])pause(media);activeMedia=null;audibleMedia=null;applySoundPreference();}
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseAll();});
+ globalThis.addEventListener?.('pagehide',pauseAll);
+ globalThis.addEventListener?.('blur',pauseAll);
+ globalThis.addEventListener?.('danzstak:message-drawer',event=>{if(event.detail?.open)pauseAll();});
+ globalThis.addEventListener?.('danzstak:notification-drawer',event=>{if(event.detail?.open)pauseAll();});
+ document.addEventListener('click',event=>{if(event.target?.closest?.('[data-feature],#messagesNav,.mobile-menu-control'))pauseAll();},true);
+ globalThis.danzstakMediaCoordinator={pauseAll,autoplayEnabled:mutedAutoplayEnabled};
 })();

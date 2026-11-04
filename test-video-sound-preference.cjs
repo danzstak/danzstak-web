@@ -24,10 +24,13 @@ assert.match(media, /let best=null,bestRatio=0\.6/, "automatic handoff must requ
 assert.match(media, /event\.origin!==['"]https:\/\/www\.youtube-nocookie\.com['"]/, "only trusted YouTube player messages may change sound state");
 assert.match(media, /payload\?\.event!==['"]infoDelivery['"]/, "YouTube sound-control changes should update the shared choice");
 assert.match(media, /saveSoundPreference\(!payload\.info\.muted,frame\)/, "unmuting a YouTube video should unmute later DanzStak videos");
-assert.match(feed, /youtube-nocookie\.com\/embed\/[\s\S]*autoplay=1/, "YouTube embeds should request autoplay");
+assert.match(feed, /youtube-nocookie\.com\/embed\/[\s\S]*autoplay=0/, "YouTube embeds must not request autoplay");
+assert.doesNotMatch(feed, /[?&]autoplay=(?:1|true)/, "no supported external provider may request startup autoplay");
 assert.match(feed, /enablejsapi=1/, "YouTube embeds should expose playback controls to the visibility manager");
 assert.match(feed, /loop=1&playlist=/, "YouTube embeds should continue playing in The Roll");
-assert.match(media, /controlYouTube\(candidate,'playVideo'\)/, "the selected visible YouTube embed should start automatically");
+assert.match(media, /mutedAutoplayEnabled\(\)/, "muted viewport autoplay must be opt-in and disabled by default");
+assert.match(media, /inView=ratio>=0\.6/, "players must be at least 60% visible before becoming playback eligible");
+assert.match(media, /globalThis\.danzstakMediaCoordinator=\{pauseAll,autoplayEnabled:mutedAutoplayEnabled\}/, "all navigation surfaces must share one playback coordinator");
 assert.match(media, /frame===audibleMedia\?'unMute':'mute'/, "loading an inactive YouTube player must not make it audible");
 assert.match(media, /controlYouTube\(element,'pauseVideo'\)/, "off-screen YouTube embeds should pause without being replaced");
 

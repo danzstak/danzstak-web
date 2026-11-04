@@ -569,3 +569,14 @@ Status as of 2026-11-04: **DEPLOYED AND BROWSER-VERIFIED; PHYSICAL-DEVICE ACCEPT
 - Production application commit: `5c13e754403fe4aecb2b61c7337c76b606bcb3f8`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `856` succeeded in `us-west-1` from 2026-11-04 05:49:55 to 05:50:50 Europe/Berlin.
 - Post-deployment public health passed. The browser found the service worker activated and controlling the live page with only `danzstak-shell-v644` present. The production visual suite passed again at every measured width, including the visible control's placement, touch target, label and muted default.
 - Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA audio behavior remains **NOT TESTED** in this environment. The release is not represented as physically accepted until owner/device testing confirms the control and single-audio behavior.
+
+# Startup autoplay and background-audio root correction
+
+Status as of 2026-11-04: **IMPLEMENTED LOCALLY; RELEASE GATES IN PROGRESS**.
+
+- Root cause: provider embed URLs still requested autoplay, native feed and Roll renderers still set `autoplay`, The Roll retained a second playback observer, and the shared coordinator used a 15% pause boundary. A YouTube iframe could therefore begin outside the intended viewport policy while multiple controllers competed over playback.
+- All supported provider URLs now request autoplay off. Native feed, Flash-preview and Roll videos explicitly set `autoplay=false`. The Roll observer records 60% visibility but no longer starts playback, leaving one shared coordinator as the only playback authority.
+- Playback eligibility is now 60% visibility. Falling below 60% pauses the player, clears audio focus and prevents automatic audio restoration. Muted viewport autoplay is an explicit opt-in preference and defaults off; ordinary application startup performs no playback.
+- Opening Chat, Notifications, Friends or Menu, hiding/changing the browser tab, page navigation and window blur invoke the coordinator's shared `pauseAll` path. Unsupported cross-origin embeds are click-to-load and safely deactivated when off-screen.
+- `scripts/verify-media-playback.cjs` performs real Chromium media playback with live `MediaStream` video clocks plus a controlled YouTube IFrame API endpoint. It verifies paused startup, explicit play, elapsed playback time, 60% scroll pause, navigation pause, muted return, previous-player shutdown, YouTube API play/unmute and off-screen pause/mute. This is playback testing, not geometry-only testing.
+- Automated VM regressions additionally cover rapid visibility changes, late insertion, single-audio ownership, provider URL parameters, backgrounding and player cleanup. The planned PWA cache is `danzstak-shell-v645`; deployment and physical-device acceptance are pending.

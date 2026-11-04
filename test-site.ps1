@@ -289,9 +289,9 @@ foreach ($storyViewerBehavior in @('aria-labelledby", "storyViewerCaption"', 'me
 }
 if ($feed -notmatch 'async\s+function\s+openStoryViewer\s*\(\s*story\s*(?:,|\))' -or
     -not $feed.Contains('setInterval(loadStories, 45 * 60 * 1000)') -or
-    -not $feed.Contains('video.autoplay = readFeedPreference("danzstak_data_saver") !== "1";') -or
+    -not $feed.Contains('video.autoplay = false;') -or
     -not $feed.Contains('viewer.showModal();')) {
-  Add-Failure 'Stories: media viewer, autoplay, or signed-URL refresh is incomplete'
+  Add-Failure 'Stories: media viewer, no-autoplay policy, or signed-URL refresh is incomplete'
 }
 
 $serviceWorker = Get-Content -LiteralPath (Join-Path $root 'service-worker.js') -Raw -Encoding utf8
@@ -429,7 +429,7 @@ foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver',
 foreach ($legalSettingsBehavior in @('"Legal and privacy"', 'privacyLink.href = "privacy.html"', 'termsLink.href = "terms.html"', 'legalLinks.append(privacyLink, termsLink)')) {
   if (-not $feedEnhancements.Contains($legalSettingsBehavior)) { Add-Failure "Settings: legal navigation is incomplete: $legalSettingsBehavior" }
 }
-foreach ($dataSaverBehavior in @('function applyDataSaver(enabled)', '!document.hidden && !dataSaverEnabled()', 'video.autoplay = !dataSaverEnabled()', 'load.textContent = "Load " + reel.platform + " video"', 'load.replaceWith(createFrame())')) {
+foreach ($dataSaverBehavior in @('function applyDataSaver(enabled)', 'video.autoplay = false', 'load.textContent = "Load " + reel.platform + " video"', 'load.replaceWith(createFrame())')) {
   if (-not $feedEnhancements.Contains($dataSaverBehavior)) { Add-Failure "Settings: Data saver does not control active Story or Reel media: $dataSaverBehavior" }
 }
 $logoutJs = Get-Content -LiteralPath (Join-Path $root 'assets\logout.js') -Raw -Encoding utf8

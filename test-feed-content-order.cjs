@@ -24,7 +24,7 @@ assert.match(
   /if \(posts\.length >= 4\) posts\[3\]\.insertAdjacentElement\("afterend", reelsRail\);/,
   "The Roll must be inserted after the fourth visible post"
 );
-assert.match(enhancements, /video\.autoplay = !dataSaverEnabled\(\);/, "The Roll videos should autoplay unless data saver is enabled");
+assert.match(enhancements, /video\.autoplay = false;/, "The Roll videos must require explicit playback instead of starting when the app opens");
 assert.match(enhancements, /video\.muted = true;/, "autoplay videos must be muted for browser compatibility");
 assert.match(enhancements, /intersectionRatio >= 0\.6/, "only sufficiently visible Roll videos should play");
 assert.match(enhancements, /Videos shared to The Roll will appear here\./, "The Roll needs a visible empty-state placeholder");

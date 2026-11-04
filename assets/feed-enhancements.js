@@ -284,9 +284,8 @@ function applyDataSaver(enabled) {
   document.documentElement.classList.toggle("data-saver", enabled);
   document.querySelectorAll("video").forEach(video => {
     video.preload = enabled ? "none" : "metadata";
-    video.autoplay = !enabled;
+    video.autoplay = false;
     if (enabled) video.pause();
-    else if (video.dataset.inView === "true" || video.closest(".story")) video.play().catch(() => {});
   });
   if (typeof renderPlayableReels === "function" && typeof reelsList !== "undefined") renderPlayableReels();
 }
@@ -3546,15 +3545,14 @@ const reelPlaybackObserver = new IntersectionObserver(entries => {
   for (const entry of entries) {
     const video = entry.target;
     video.dataset.inView = String(entry.isIntersecting && entry.intersectionRatio >= 0.6);
-    if (video.dataset.inView === "true" && !document.hidden && !dataSaverEnabled()) video.play().catch(() => {});
-    else video.pause();
+    if (video.dataset.inView !== "true") video.pause();
   }
 }, { threshold: [0, 0.6, 1] });
 const reelForm = document.createElement("div");
 reelForm.className = "reel-import-form";
 const reelUrl = document.createElement("input");
 reelUrl.type = "url";
-reelUrl.placeholder = "Paste a supported autoplay video link";
+  reelUrl.placeholder = "Paste a supported video link";
 reelUrl.setAttribute("aria-label", "External video URL");
 const reelPermission = document.createElement("label");
 const reelPermissionCheck = document.createElement("input");
@@ -3652,15 +3650,15 @@ function reelPlayer(url) {
   else if (host.endsWith("youtube.com")) match = [null, url.searchParams.get("v") || path.match(/^\/(?:shorts|embed)\/([^/?#]+)/)?.[1]];
   if (match?.[1]) {
     const videoId = encodeURIComponent(match[1]);
-    return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=1&mute=1&playsinline=1&enablejsapi=1&loop=1&playlist=" + videoId };
+    return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=0&mute=1&playsinline=1&enablejsapi=1&loop=1&playlist=" + videoId };
   }
-  if (host.endsWith("vimeo.com") && (match = path.match(/\/(\d+)/))) return { kind: "iframe", src: "https://player.vimeo.com/video/" + match[1] + "?autoplay=1&muted=1&playsinline=1" };
-  if (host.endsWith("tiktok.com") && (match = path.match(/\/video\/(\d+)/))) return { kind: "iframe", src: "https://www.tiktok.com/player/v1/" + match[1] + "?autoplay=1&loop=1&muted=1" };
-  if (host.endsWith("facebook.com") || host === "fb.watch") return { kind: "iframe", src: "https://www.facebook.com/plugins/video.php?show_text=false&autoplay=true&href=" + encodeURIComponent(url.href) };
-  if ((host.endsWith("dailymotion.com") && (match = path.match(/\/video\/([^/?#]+)/))) || (host === "dai.ly" && (match = path.match(/^\/([^/?#]+)/)))) return { kind: "iframe", src: "https://www.dailymotion.com/embed/video/" + encodeURIComponent(match[1]) + "?autoplay=1&mute=1" };
-  if (host.endsWith("streamable.com") && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", src: "https://streamable.com/e/" + encodeURIComponent(match[1]) + "?autoplay=1" };
-  if (host === "clips.twitch.tv" && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", src: "https://clips.twitch.tv/embed?autoplay=true&muted=true&clip=" + encodeURIComponent(match[1]) + "&parent=" + encodeURIComponent(location.hostname) };
-  if (host.endsWith("twitch.tv") && (match = path.match(/^\/videos\/(\d+)/))) return { kind: "iframe", src: "https://player.twitch.tv/?autoplay=true&muted=true&video=" + match[1] + "&parent=" + encodeURIComponent(location.hostname) };
+  if (host.endsWith("vimeo.com") && (match = path.match(/\/(\d+)/))) return { kind: "iframe", src: "https://player.vimeo.com/video/" + match[1] + "?autoplay=0&muted=1&playsinline=1" };
+  if (host.endsWith("tiktok.com") && (match = path.match(/\/video\/(\d+)/))) return { kind: "iframe", src: "https://www.tiktok.com/player/v1/" + match[1] + "?autoplay=0&loop=1&muted=1" };
+  if (host.endsWith("facebook.com") || host === "fb.watch") return { kind: "iframe", src: "https://www.facebook.com/plugins/video.php?show_text=false&autoplay=false&href=" + encodeURIComponent(url.href) };
+  if ((host.endsWith("dailymotion.com") && (match = path.match(/\/video\/([^/?#]+)/))) || (host === "dai.ly" && (match = path.match(/^\/([^/?#]+)/)))) return { kind: "iframe", src: "https://www.dailymotion.com/embed/video/" + encodeURIComponent(match[1]) + "?autoplay=0&mute=1" };
+  if (host.endsWith("streamable.com") && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", src: "https://streamable.com/e/" + encodeURIComponent(match[1]) + "?autoplay=0" };
+  if (host === "clips.twitch.tv" && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", src: "https://clips.twitch.tv/embed?autoplay=false&muted=true&clip=" + encodeURIComponent(match[1]) + "&parent=" + encodeURIComponent(location.hostname) };
+  if (host.endsWith("twitch.tv") && (match = path.match(/^\/videos\/(\d+)/))) return { kind: "iframe", src: "https://player.twitch.tv/?autoplay=false&muted=true&video=" + match[1] + "&parent=" + encodeURIComponent(location.hostname) };
   return null;
 }
 
@@ -3714,7 +3712,7 @@ function renderPlayableReels() {
       video.playsInline = true;
       const rollLabel = "Video in The Roll from " + (reel.authorName || "a DanzStak member");
       video.setAttribute("aria-label", window.danzstakTranslate?.(rollLabel) || rollLabel);
-      video.autoplay = !dataSaverEnabled();
+      video.autoplay = false;
       video.muted = true;
       video.loop = true;
       video.preload = "none";
@@ -3733,7 +3731,7 @@ function renderPlayableReels() {
         video.controls = true;
         video.playsInline = true;
         video.setAttribute("aria-label", "Video in The Roll");
-        video.autoplay = !dataSaverEnabled();
+        video.autoplay = false;
         video.muted = true;
         video.loop = true;
         video.preload = "none";
@@ -3838,7 +3836,7 @@ addReel.addEventListener("click", async () => {
   try { parsed = new URL(reelUrl.value.trim()); }
   catch { reelStatus.textContent = "Enter a valid video link."; reelUrl.focus(); return; }
   if (!isApprovedVideoUrl(parsed)) { reelStatus.textContent = "Use a recognized video platform or a direct HTTPS video-file link."; reelUrl.focus(); return; }
-  if (!reelPlayer(parsed)) { reelStatus.textContent = "This link cannot autoplay inside DanzStak. Use a supported public video or direct HTTPS video-file link."; reelUrl.focus(); return; }
+  if (!reelPlayer(parsed)) { reelStatus.textContent = "This link cannot play inside DanzStak. Use a supported public video or direct HTTPS video-file link."; reelUrl.focus(); return; }
   if (!reelPermissionCheck.checked) { reelStatus.textContent = "Confirm ownership or permission before sharing."; reelPermissionCheck.focus(); return; }
   addReel.disabled = true;
   try {
@@ -3906,7 +3904,6 @@ placeReelsRail();
 document.addEventListener("visibilitychange", () => {
   reelsList.querySelectorAll("video.reel-player").forEach(video => {
     if (document.hidden || video.dataset.inView !== "true") video.pause();
-    else if (!dataSaverEnabled()) video.play().catch(() => {});
   });
 });
 document.getElementById("feed").addEventListener("keydown", event => {

@@ -87,11 +87,14 @@ intersect([
   { target: first, isIntersecting: true, intersectionRatio: 0.8 },
   { target: second, isIntersecting: true, intersectionRatio: 0.2 }
 ]);
-assert.equal(first.plays, 1, "the substantially visible first video starts");
-assert.equal(first.muted, true, "automatic playback remains muted until the user explicitly enables audio");
+assert.equal(first.plays, 0, "the substantially visible first video does not start without user interaction");
+assert.equal(first.muted, true, "visibility never enables audio");
 assert.equal(second.plays, 0, "the barely visible next video does not start");
 assert.equal(second.muted, true, "the next video remains inaudible");
 
+first.emit("pointerdown");
+first.play();
+assert.equal(first.plays, 1, "the user can explicitly start the eligible visible video");
 first.muted = false;
 documentEvents.volumechange({ target: first });
 assert.equal(first.muted, false, "explicit user unmute grants audio to the active video");
@@ -107,11 +110,15 @@ intersect([
   { target: first, isIntersecting: true, intersectionRatio: 0.4 },
   { target: second, isIntersecting: true, intersectionRatio: 0.8 }
 ]);
-assert.equal(second.plays, 1, "playback transfers once the previous video leaves the active frame");
+assert.equal(second.plays, 0, "the next visible video still does not autoplay after the previous video leaves");
 assert.equal(first.paused, true, "the previous video is paused before the next video plays");
 assert.equal(first.muted, true, "the previous video is muted after handoff");
 assert.equal(second.muted, true, "automatic handoff never restarts audio without user interaction");
 
+intersect([
+  { target: first, isIntersecting: true, intersectionRatio: 0.8 },
+  { target: second, isIntersecting: true, intersectionRatio: 0.2 }
+]);
 first.emit("pointerdown");
 first.play();
 assert.equal(second.paused, true, "a direct user play pauses the previous active video");
