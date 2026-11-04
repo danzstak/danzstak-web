@@ -1,3 +1,19 @@
+## Owner priority shift — Chat is DANZSTAK P0 number one (2026-11-04)
+
+**Owner explicitly corrected the development ranking: "The chatbot is the biggest issue."** Treat this as **the existing DANZSTAK Chats/messaging experience**, not authorization to build an unrelated AI chatbot or a new provider. **P0 #1: make the core chat product comfortable AND actually reliable before polishing video feeds or progressing optional enhancements.**
+
+**Execution priority within the Chat area:**
+1. **Functional core:** prove with two real member accounts that direct chats reliably open, send, receive, persist, load prior history, respect authorization/privacy, show accurate unread/replies and remain usable through network errors, app background/foreground, page reload and keyboard-open mobile screens. Fix blocking failures, with reproducible root cause and a small PR.
+2. **Calling blocker stays a separate P0 [#27](https://github.com/Danzstak/Danzstak-web/issues/27):** actual incoming ringtone/alerts (where PWA platform permits), caller ringback, *audible two-way remote voice*, discoverable Voice and Video actions and real two-phone testing. Chat must not be called ready while these user-reported failures remain. A CSS-only or caller-only ringback PR is insufficient.
+3. **Comfortable interface [#39]:** original light-mode DANZSTAK identity; Messenger-familiar inbox with **real authorized member profile-photo row**, search and conversation previews; WhatsApp-familiar bubble threads with compact name/contact header, clear call controls, easy composer and natural spacing. Tap inbox avatar opens conversation; tap header avatar/name opens Contact Details, with Back restoring draft/scroll/search. Cut oversized call/action panels, fake states, dead whitespace and cookie-cutter blocks.
+4. **Basic actual message actions:** native select/copy incoming/outgoing text (including partial text), sensible reply/edit/delete according to ownership, multi-select and copy; never break reactions. Real notifications/attachments where supported, without double alerts or unsafe permissions.
+5. **After the reliable core is demonstrated:** optional translation/automatic language detection, phone-number verification [#21](https://github.com/Danzstak/Danzstak-web/issues/21), voicemail [#28](https://github.com/Danzstak/Danzstak-web/issues/28) and monetization enhancements. Do not let these delay working ordinary chat or genuine calls.
+
+**Owner-specified order relative to other work:** Chat and the P0 calling repair come **before the new creator-content deletion UX (#40), account-exit/recovery UX (#32) and video polish (#8/#11)** in the development lineup. Preserve their recorded requirements, security/privacy safeguards and existing work; this reprioritization is not permission to remove anything or bypass active security obligations.
+
+**Hard acceptance:** Two distinct real accounts on actual phone/PWA devices (Android first), 320/360/390/414/430px; message round-trip, persisted thread, copy/selection, notifications and failure recovery; incoming/outgoing calling with real two-way audio/video or a precisely disclosed unsupported platform; no silent audio failures or fake connected states; usability screenshots/video, exact SHA, tests pass/fail, reliable staging URL and owner review before deployment. Separate small PRs for messaging UX and media/calling repairs. **This issue records a priority, not completed code or a running Codex job.**
+
+
 # Chat — priority personal messaging experience
 
 ## Immediate owner priority
