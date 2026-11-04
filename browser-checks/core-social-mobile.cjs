@@ -7,26 +7,28 @@ const { chromium } = require("playwright");
 
 const widths = [320, 360, 390, 414, 430];
 const pages = [
-  ["home", "feed.html?view=feed"],
-  ["friends", "feed.html?view=friends"],
-  ["notifications", "feed.html?view=notifications"],
-  ["chat", "messages.html"],
-  ["profile", "profile.html"],
+  ["home", "feed.html?view=feed", ".post-composer"],
+  ["friends", "feed.html?view=friends", ".friend-workspace-row"],
+  ["notifications", "feed.html?view=notifications", ".notification-row"],
+  ["chat", "messages.html", ".conversation-row"],
+  ["profile", "profile.html", ".profile"],
 ];
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
 
 function fixture(pathname) {
   const profile = { memberId: "11111111-1111-4111-8111-111111111111", name: "DanzStak Test Artist", username: "testartist", bio: "Independent artist testing the DanzStak mobile experience.", picture: "", cover: "", website: "https://example.com" };
+  const friend = { memberId: "22222222-2222-4222-8222-222222222222", email: "tour-friend@danzstak.invalid", name: "Tour Friend", picture: "" };
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111", email: "test-artist@danzstak.invalid" } };
   if (pathname === "/profiles") return { profile };
   if (pathname === "/secure-posts") return { posts: [] };
-  if (pathname === "/friends") return { friends: [], incoming: [], outgoing: [] };
-  if (pathname === "/calls/directory" || pathname === "/people") return { users: [] };
-  if (pathname === "/notifications" || pathname === "/engagement-notifications") return { notifications: [] };
+  if (pathname === "/friends") return { friends: [friend], incoming: [], outgoing: [] };
+  if (pathname === "/calls/directory" || pathname === "/people") return { users: [{ ...friend, online: true, canContact: true }] };
+  if (pathname === "/notifications") return { notifications: [{ type: "friend_request", email: friend.email, createdAt: "2026-11-04T20:15:00.000Z", unread: true }] };
+  if (pathname === "/engagement-notifications") return { notifications: [{ type: "reaction", memberId: friend.memberId, name: friend.name, postId: "33333333-3333-4333-8333-333333333333", preview: "Love", createdAt: "2026-11-04T20:20:00.000Z", unread: true }] };
   if (pathname === "/stories") return { stories: [], reels: [] };
   if (pathname === "/groups") return { groups: [] };
   if (pathname === "/news") return { articles: [] };
-  if (pathname === "/conversations") return { conversations: [] };
+  if (pathname === "/conversations") return { conversations: [{ ...friend, contactEmail: friend.email, preview: "The tour route looks good.", updatedAt: "2026-11-04T20:10:00.000Z", unread: 2, online: true, canContact: true }] };
   if (pathname === "/calls/devices") return { devices: [] };
   if (pathname === "/calls/inbox") return { events: [] };
   if (pathname === "/settings/presence") return { visible: true };
@@ -41,7 +43,7 @@ function fixture(pathname) {
   const results = [];
   try {
     for (const width of widths) {
-      for (const [name, target] of pages) {
+      for (const [name, target, populatedSelector] of pages) {
         const context = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: "block" });
         const page = await context.newPage();
         const errors = [];
@@ -51,18 +53,34 @@ function fixture(pathname) {
           return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(url.pathname)) });
         });
         await page.goto(`http://127.0.0.1:8016/${target}`, { waitUntil: "domcontentloaded" });
-        await page.waitForTimeout(700);
+        await page.locator(populatedSelector).first().waitFor({ state: "visible" });
+        await page.waitForTimeout(100);
         const geometry = await page.evaluate(() => ({
           width: innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
           bodyWidth: document.body.scrollWidth,
           mobileNavs: [...document.querySelectorAll(".ds-mobile-nav")].filter(element => getComputedStyle(element).display !== "none").length,
           visibleDialogs: [...document.querySelectorAll("dialog,[role=dialog]")].filter(element => !element.hidden && getComputedStyle(element).display !== "none").length,
+          skipLink: (() => {
+            const element = document.querySelector(".skip-link");
+            if (!element) return null;
+            const rect = element.getBoundingClientRect();
+            return { focused: element.matches(":focus"), top: rect.top, bottom: rect.bottom, transform: getComputedStyle(element).transform, activeTag: document.activeElement?.tagName || "" };
+          })(),
         }));
         assert.equal(errors.length, 0, `${name} ${width}px browser errors: ${errors.join(" | ")}`);
         assert.ok(geometry.scrollWidth <= width && geometry.bodyWidth <= width, `${name} overflows at ${width}px: ${JSON.stringify(geometry)}`);
         assert.ok(geometry.mobileNavs <= 1, `${name} renders duplicate mobile navigation at ${width}px`);
         assert.equal(geometry.visibleDialogs, 0, `${name} opens an unsolicited dialog at ${width}px`);
+        assert.ok(!geometry.skipLink?.focused, `${name} moves initial focus to the keyboard-only skip link at ${width}px: ${JSON.stringify(geometry.skipLink)}`);
+        assert.ok(!geometry.skipLink || geometry.skipLink.bottom <= 0, `${name} exposes the keyboard-only skip link without keyboard navigation at ${width}px: ${JSON.stringify(geometry.skipLink)}`);
+        if (captureDir) {
+          fs.mkdirSync(captureDir, { recursive: true });
+          // Viewport captures preserve fixed-element composition accurately; Chromium's
+          // stitched full-page mode can paint offscreen fixed skip links and navigation
+          // at misleading document coordinates.
+          await page.screenshot({ path: path.join(captureDir, `${name}-${width}.png`), clip: { x: 0, y: 0, width, height: 844 } });
+        }
         await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
         await page.waitForTimeout(50);
         const footerClearance = await page.evaluate(() => {
@@ -72,10 +90,6 @@ function fixture(pathname) {
           return { footerBottom: footerRect.bottom, navTop: navRect.top };
         });
         if (footerClearance) assert.ok(footerClearance.footerBottom <= footerClearance.navTop, `${name} footer is covered by mobile navigation at ${width}px: ${JSON.stringify(footerClearance)}`);
-        if (captureDir) {
-          fs.mkdirSync(captureDir, { recursive: true });
-          await page.screenshot({ path: path.join(captureDir, `${name}-${width}.png`), fullPage: true });
-        }
         results.push(`${name}-${width}`);
         await context.close();
       }
