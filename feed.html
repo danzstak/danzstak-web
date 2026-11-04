@@ -336,21 +336,14 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .topnav button { padding: 10px 6px; }
-  .menu {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
-  }
-  .menu a, .menu .menu-action {
-    padding: 11px 8px;
-    font-size: 14px;
-  }
+  /* The shared mobile design system owns the drawer layout. Keeping a second
+     grid implementation here made menu density depend on stylesheet order. */
   .stories { grid-template-columns: repeat(3,78%); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
   .story { scroll-snap-align: start; }
 }
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=426">
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=486">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=487">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
 <link rel="stylesheet" href="assets/profile-onboarding.css?v=2">

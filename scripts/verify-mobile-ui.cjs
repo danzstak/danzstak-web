@@ -10,6 +10,7 @@ const outputDir = path.resolve(process.env.DANZSTAK_VISUAL_OUTPUT || "docs/scree
 const edgePath = process.env.DANZSTAK_EDGE_PATH || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
 const benchmarkWidths = [320, 360, 390, 414];
+const menuWidths = new Set([320, 360, 390, 414]);
 const desktopProfileWidths = [768, 1024, 1366];
 fs.mkdirSync(outputDir, { recursive: true });
 
@@ -170,6 +171,45 @@ async function captureViewport(page, fileName) {
         assert.ok(reactionMetrics.filter(item => item.countLeft).length >= 4, `${width}px: Like, Dislike, Comment, and Share require measurable inline counts: ${JSON.stringify(reactionMetrics)}`);
       }
       await captureViewport(page, `home-${width}.png`);
+      if (menuWidths.has(width)) {
+        await page.locator(".mobile-menu-control").click();
+        await page.waitForSelector("body.mobile-menu-open");
+        const menuGeometry = await page.locator("#mobileNavMenu").evaluate(drawer => {
+          const menu = drawer.querySelector(".menu");
+          const rows = [...menu.querySelectorAll(":scope > a, :scope > .menu-action")].map(row => {
+            const box = row.getBoundingClientRect();
+            const icon = row.querySelector(".menu-icon")?.getBoundingClientRect();
+            const label = row.querySelector(".menu-label")?.getBoundingClientRect();
+            return { height: box.height, iconSize: Math.max(icon?.width || 0, icon?.height || 0), labelOffset: label && icon ? label.left - icon.right : 0 };
+          });
+          const headings = [...menu.querySelectorAll(".menu-section-heading")].map(heading => {
+            const style = getComputedStyle(heading);
+            return { marginTop: parseFloat(style.marginTop), marginBottom: parseFloat(style.marginBottom) };
+          });
+          const style = getComputedStyle(menu);
+          return {
+            rows,
+            headings,
+            profileHeight: menu.querySelector(".menu-profile-header").getBoundingClientRect().height,
+            direction: style.flexDirection,
+            justify: style.justifyContent,
+            gap: parseFloat(style.gap) || 0,
+            scrollable: drawer.scrollHeight > drawer.clientHeight,
+            overflowY: getComputedStyle(drawer).overflowY
+          };
+        });
+        assert.equal(menuGeometry.direction, "column", `${width}px: menu must flow vertically`);
+        assert.equal(menuGeometry.justify, "flex-start", `${width}px: menu must not distribute rows across viewport height`);
+        assert.ok(menuGeometry.rows.every(row => row.height >= 44 && row.height <= 52), `${width}px: menu rows must remain 44–52px: ${JSON.stringify(menuGeometry.rows)}`);
+        assert.ok(menuGeometry.rows.every(row => row.iconSize >= 20 && row.iconSize <= 22), `${width}px: menu icons must remain 20–22px: ${JSON.stringify(menuGeometry.rows)}`);
+        assert.ok(menuGeometry.rows.every(row => row.labelOffset >= 8 && row.labelOffset <= 12), `${width}px: icon/label spacing must remain compact: ${JSON.stringify(menuGeometry.rows)}`);
+        assert.ok(menuGeometry.headings.every(heading => heading.marginTop <= 8 && heading.marginBottom <= 4), `${width}px: section heading margins are oversized: ${JSON.stringify(menuGeometry.headings)}`);
+        assert.ok(menuGeometry.profileHeight <= 60, `${width}px: profile header is oversized (${menuGeometry.profileHeight}px)`);
+        assert.equal(menuGeometry.overflowY, "auto", `${width}px: drawer must own vertical scrolling`);
+        assert.equal(menuGeometry.scrollable, true, `${width}px: full menu should scroll independently on a phone viewport`);
+        await captureViewport(page, `menu-${width}.png`);
+        await page.locator("[data-menu-close]").click();
+      }
       if (width === 390) {
         await page.locator("#feed article.post video.ds-responsive-media").scrollIntoViewIfNeeded();
         await captureViewport(page, "video-390.png");
