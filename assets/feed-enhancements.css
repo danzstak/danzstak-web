@@ -205,6 +205,7 @@
 .settings-workspace{container-type:inline-size;container-name:account-settings}
 .settings-workspace>h3{font-size:1.25rem;line-height:1.25}
 .settings-row{min-height:58px}
+.danger-outline{border:1px solid #b42318!important;background:#fff!important;color:#b42318!important}.account-deletion-dialog{width:min(92vw,560px);border:0;border-radius:14px;padding:20px;box-shadow:0 24px 70px #10182840}.account-deletion-dialog::backdrop{background:#10182899}.account-deletion-dialog h2{margin:0 0 12px;font-size:1.25rem}.account-deletion-content{display:grid;gap:14px}.account-deletion-content label{display:grid;gap:7px;font-weight:700}.account-deletion-content input{width:100%;min-height:44px;padding:9px 11px;border:1px solid #98a2b3;border-radius:8px;font:inherit}.account-deletion-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}.account-deletion-actions .danger{background:#b42318;color:#fff;border-color:#b42318}.account-deletion-actions a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
 .settings-row input[type=checkbox]{accent-color:#1769e0;cursor:pointer}
 .settings-row select{min-height:44px;padding:7px 30px 7px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#172033;font:inherit;font-size:14px}
 .settings-row :is(button,a){font-size:14px}

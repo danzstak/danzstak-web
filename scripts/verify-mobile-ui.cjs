@@ -75,6 +75,11 @@ async function installApiFixtures(page) {
       { deviceId: "11111111-1111-4111-8111-111111111111", label: "Chrome on Android", current: true, lastUsedAt: 1793970000, expiresAt: 1796562000 },
       { deviceId: "22222222-2222-4222-8222-222222222222", label: "Safari on iPhone or iPad", current: false, lastUsedAt: 1793883600, expiresAt: 1796475600 }
     ] });
+    if (pathname === "/account-deletion") {
+      if (route.request().method() === "POST") return json(route, { requestId: "deletion-test-request", status: "request_received", graceEndsAt: 1794355200, canCancel: true });
+      if (route.request().method() === "DELETE") return json(route, { requestId: "deletion-test-request", status: "cancelled", canCancel: false });
+      return json(route, { status: "not_requested", canCancel: false });
+    }
     if (pathname === "/profile" || pathname === "/profiles") return json(route, { profile: { name: "DanzStak Test Artist", username: "testartist", memberId: "11111111-1111-4111-8111-111111111111", isOwner: true, location: "Berlin, Germany", bio: "Independent artist testing DanzStak on mobile." } });
     if (pathname === "/stories") return json(route, { stories: [fixtureStory], reels: [fixtureReel] });
     return json(route, {});
@@ -500,6 +505,37 @@ async function captureViewport(page, fileName) {
       assert.ok(securityGeometry.every(item => item.buttonRight <= item.rowRight + 1), `${width}px: Account Security action overflows its device row: ${JSON.stringify(securityGeometry)}`);
       assert.ok(securityGeometry.every(item => item.buttonHeight >= 43), `${width}px: Account Security sign-out action is not comfortably tappable: ${JSON.stringify(securityGeometry)}`);
       await captureViewport(page, `settings-${width}.png`);
+      const deleteControl = page.getByRole("button", { name: "Review permanent account deletion" });
+      await deleteControl.click();
+      const deletionDialog = page.locator(".account-deletion-dialog");
+      await deletionDialog.waitFor({ state: "visible" });
+      const deletionGeometry = await deletionDialog.evaluate(dialog => {
+        const box = dialog.getBoundingClientRect();
+        return { left: box.left, right: box.right, width: box.width, viewport: innerWidth, labelledBy: dialog.getAttribute("aria-labelledby") };
+      });
+      assert.ok(deletionGeometry.left >= 0 && deletionGeometry.right <= deletionGeometry.viewport + 1, `${width}px: deletion dialog overflows the viewport: ${JSON.stringify(deletionGeometry)}`);
+      assert.equal(deletionGeometry.labelledBy, "accountDeletionTitle", `${width}px: deletion dialog must retain an accessible name`);
+      assert.equal(await deletionDialog.getByRole("link", { name: "Verify identity to continue" }).getAttribute("href"), "https://api.danzstak.com/auth/account-deletion/reauth", `${width}px: deletion must require the forced reauthentication route`);
+      await captureViewport(page, `account-deletion-${width}.png`);
+      await deletionDialog.getByRole("button", { name: "Close" }).click();
+      await page.waitForFunction(button => document.activeElement === button, await deleteControl.elementHandle());
+
+      if (width === 390) {
+        await page.goto(`${baseUrl}/feed.html?view=settings&deletion=verified`, { waitUntil: "domcontentloaded" });
+        await page.waitForSelector(".settings-workspace .settings-row");
+        await page.getByRole("button", { name: "Review permanent account deletion" }).click();
+        const confirmation = page.getByRole("textbox", { name: "Type DELETE MY DANZSTAK ACCOUNT to confirm account deletion" });
+        await confirmation.fill("DELETE");
+        await page.getByRole("button", { name: "Request account deletion" }).click();
+        await page.getByText("Type the exact phrase: DELETE MY DANZSTAK ACCOUNT").waitFor();
+        await confirmation.fill("DELETE MY DANZSTAK ACCOUNT");
+        await page.getByRole("button", { name: "Request account deletion" }).click();
+        await page.getByRole("button", { name: "Cancel deletion request" }).waitFor();
+        await page.getByRole("button", { name: "Cancel deletion request" }).click();
+        await page.getByRole("link", { name: "Verify identity to continue" }).waitFor();
+        await page.getByRole("button", { name: "Close" }).click();
+      }
+
       if (width === 320) {
         await page.evaluate(() => window.danzstakSetLanguage("it"));
         await page.waitForFunction(() => document.querySelector("#accountSecurityHeading")?.textContent === "Dispositivi connessi");
