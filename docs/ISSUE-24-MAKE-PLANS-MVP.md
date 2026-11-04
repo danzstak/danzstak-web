@@ -51,13 +51,14 @@ The original preview correctly could not use production cookies or API CORS. A s
 - A controlled three-account run passed: A/B friend request and acceptance, A invitation, B Going response, C empty plan list, C mutation rejection, stale-revision rejection, inviter cancellation and two private Buzz notices.
 - A separate retry run passed deterministic idempotency: the same key returned the same plan with `replayed: true`, left one stored invitation, and rejected an invalid IANA timezone.
 - `node test-make-plans-preview.cjs` passed the review UI at 320, 360, 390 and 414px with no horizontal/dialog overflow and 44px action targets. Evidence: [320px](screenshots/issue-24-make-plans/staging-review-320.png), [360px](screenshots/issue-24-make-plans/staging-review-360.png), [390px](screenshots/issue-24-make-plans/staging-review-390.png), [414px](screenshots/issue-24-make-plans/staging-review-414.png).
-- Amplify DEVELOPMENT job `6` deployed commit `254afa1e165e427cb8154d02f454e94a59857d0f`. `node scripts/verify-make-plans-staging.cjs` then passed the actual hosted UI across three fresh browser accounts: create A/B/C, A requests B, B accepts A, B opens the 1:1 Chat and sends a plan, A signs in and responds Going, and C signs in with zero visible plans. [Hosted 390px evidence](screenshots/issue-24-make-plans/staging-live-390.png).
+- Amplify DEVELOPMENT job `8` deployed commit `2c24f312cc3e20187f8583461fb0a9e03d7a44fe`. `node scripts/verify-make-plans-staging.cjs` then passed the actual hosted UI across three fresh browser accounts: create A/B/C, accepted friendship, 1:1 Chat entry, create and edit, edit resets invitee to Pending, Maybe/Going/Declined, New York DST-boundary storage, user-triggered `.ics` content, offline draft preservation, authenticated `?plan=` deep link, history retained after unfriend, new invite blocked after unfriend, and zero plans for C. [Hosted 390px evidence](screenshots/issue-24-make-plans/staging-live-390.png).
 - A clean hosted-browser check found the service worker activated and controlling the page with the sole cache `danzstak-shell-v668-issue24-preview`.
 
 The isolated preview is real persistent staging, not a static demonstration. Remaining work is:
 
-1. verify successful edit, Maybe/Declined, history after unfriend, DST boundaries, `.ics`, offline/reconnect and deep links in the hosted build;
-2. complete owner and physical Android/iPhone review;
-3. merge only after owner approval, then deploy the already-integrated production implementation through the normal release gates.
+1. complete owner and physical Android/iPhone review;
+2. merge only after owner approval, then deploy the already-integrated production implementation through the normal release gates.
+
+CloudFormation service validation and the repository infrastructure gate passed, and both staging stacks reached `CREATE_COMPLETE`/`UPDATE_COMPLETE`. `cfn-lint` and `cfn-guard` are not installed in this workstation, so those optional local/compliance layers were not run; AWS service validation and successful stack deployment are not represented as substitutes for them.
 
 Production deployment and merge remain prohibited until explicit owner approval.
