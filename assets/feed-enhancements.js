@@ -3620,13 +3620,27 @@ async function loadInternalReels(posts = []) {
 }
 
 function reelPlatform(hostname) {
-  const host = hostname.replace(/^www\./, "");
+  const host = hostname.replace(/^www\./, "").toLowerCase();
   if (host.includes("tiktok.com")) return "TikTok";
   if (host.includes("facebook.com") || host === "fb.watch") return "Facebook";
   if (host.includes("instagram.com")) return "Instagram";
   if (host.includes("youtube.com") || host === "youtu.be") return "YouTube";
   if (host.includes("vimeo.com")) return "Vimeo";
+  if (host.includes("twitch.tv")) return "Twitch";
+  if (host.includes("dailymotion.com") || host === "dai.ly") return "Dailymotion";
+  if (host.includes("rumble.com")) return "Rumble";
+  if (host.includes("streamable.com")) return "Streamable";
+  if (host.includes("kick.com")) return "Kick";
+  if (host.includes("snapchat.com")) return "Snapchat";
+  if (host === "x.com" || host.endsWith(".x.com") || host.includes("twitter.com")) return "X";
   return "External Video";
+}
+
+function reelSourceLabel(url) {
+  const host = url.hostname.replace(/^www\./, "").toLowerCase();
+  if (host.endsWith(".amazonaws.com") && host.includes("danzstak")) return "DanzStak video";
+  const platform = reelPlatform(host);
+  return platform === "External Video" ? "External video" : platform + " video";
 }
 
 function isApprovedVideoUrl(url) {
@@ -3783,7 +3797,7 @@ function renderPlayableReels() {
     const platform = document.createElement("strong");
     platform.textContent = reel.internal ? reel.authorName : reel.platform;
     const source = document.createElement("small");
-    source.textContent = reel.internal ? reel.content : reelUrlValue.hostname;
+    source.textContent = reel.internal ? reel.content : feedTranslate(reelSourceLabel(reelUrlValue));
     details.append(platform, source);
     const reelMemberId = String(reel.memberId || "");
     const reelAuthorName = String(reel.authorName || reel.displayName || "").trim();

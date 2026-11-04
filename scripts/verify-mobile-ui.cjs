@@ -310,10 +310,15 @@ async function captureViewport(page, fileName) {
         const rollGeometry = await page.locator('.reels-rail.roll-fullscreen').evaluate(rail => {
           const box = rail.getBoundingClientRect();
           const card = rail.querySelector('.reel-card').getBoundingClientRect();
-          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, cardLeft: card.left, cardRight: card.right, viewportWidth: innerWidth, viewportHeight: innerHeight };
+          const sourceText = rail.querySelector('.reel-card .reel-details small')?.textContent?.trim() || '';
+          const sourceLink = rail.querySelector('.reel-card .reel-details a[target="_blank"]')?.href || '';
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, cardLeft: card.left, cardRight: card.right, sourceText, sourceLink, viewportWidth: innerWidth, viewportHeight: innerHeight };
         });
         assert.ok(rollGeometry.left === 0 && rollGeometry.right === rollGeometry.viewportWidth && rollGeometry.top === 0 && rollGeometry.bottom === rollGeometry.viewportHeight, `The Roll must own the phone viewport: ${JSON.stringify(rollGeometry)}`);
         assert.ok(rollGeometry.cardLeft >= 0 && rollGeometry.cardRight <= rollGeometry.viewportWidth + 1, `The Roll card overflows the phone: ${JSON.stringify(rollGeometry)}`);
+        assert.equal(rollGeometry.sourceText, 'DanzStak video', `The Roll should identify hosted media without exposing AWS infrastructure: ${JSON.stringify(rollGeometry)}`);
+        assert.doesNotMatch(rollGeometry.sourceText, /(?:https?:\/\/|amazonaws\.com|\bs3[.-])/i, `The Roll must not print raw URLs or bucket hosts: ${JSON.stringify(rollGeometry)}`);
+        assert.match(rollGeometry.sourceLink, /^https:\/\/danzstak-call-signaling-mediabucket-[^.]+\.s3\.us-west-1\.amazonaws\.com\/visual-fixture\.mp4$/, `The friendly label must not change the actual source link: ${JSON.stringify(rollGeometry)}`);
         await captureViewport(page, 'roll-fullscreen-390.png');
         await page.locator('.roll-close').click();
         await page.waitForSelector('.reels-rail:not(.roll-fullscreen)');
