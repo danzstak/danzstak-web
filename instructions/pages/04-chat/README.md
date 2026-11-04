@@ -305,7 +305,7 @@ For DANZSTAK Phone, each browser/PWA installation that originates or receives vo
 ### A. Chats home: familiar, scannable inbox (draw from Messenger)
 - Clear DANZSTAK-branded **Chats** heading, prominent **Search chats** field, compact compose-new-chat action, and simple **All / Unread / Tribes** filters if those features actually exist.
 - **Each conversation row** shows avatar, person's display name, latest message preview (privacy-aware), localized timestamp/day, and a high-contrast **unread dot/count** only when server-reconciled. Display when message sent by you vs contact; optionally show delivery/read state only if proven. Clear tap affordance, one-tap open, consistent row heights, no giant empty cards.
-- An **optional compact horizontal recent/favorite contacts strip** only if it adds value and is derived from real member relationships with permission; no forced "Stories" carousel, forced "Create Story", algorithmic people suggestions, Facebook/Meta icons, marketing badges, or intrusive AI search prompts. Do not put professional upsells here.
+- A **required compact horizontal recent/favorite contacts strip** with circular member photos at the top of the Chats inbox, derived from real permitted relationships and recent conversations; see the explicit owner directive below. No forced Stories carousel, algorithms, Meta branding, advertising or professional upsells.
 - One shared secure DANZSTAK account/session; match existing backend message persistence, unread counts and push notifications. Avoid duplicate navigations or a second chat implementation.
 
 ### B. Open conversation: relaxed, WhatsApp-familiar thread (draw from earlier screenshot)
@@ -322,3 +322,26 @@ For DANZSTAK Phone, each browser/PWA installation that originates or receives vo
 4. Brand principle: **“Messenger's browsable inbox + WhatsApp's comfortable conversation + DANZSTAK identity”** — *interaction inspiration only, not a clone or reliance on Meta*.
 
 **Status:** design instructions only. Not an implemented redesign or a claim of tested device behavior.
+
+
+
+## Owner final inbox choice — member avatars across the top (2026-11-04)
+
+**Owner explicit direction:** “Put the users images across the top like a fb chatbot with the functionality of a WhatsApp.” The familiar visual reference is **Messenger's horizontal contact-avatar strip**, combined with **WhatsApp-style functional conversations and calls**. Keep DANZSTAK's own brand, light-mode design, data and servers. This instruction overrides the earlier suggestion that the avatar strip is optional: **a compact tappable top row is required in the Chats inbox**.
+
+### Chats inbox design
+- Directly below the compact **Chats header and search** (before the scrollable conversation list), display a **horizontal swipeable row of circular profile photos** from actual permitted contacts / friends or recent conversations, with short names and accurate online/availability indicators *only when backed by presence data*. Never populate with fake or promotional profiles. Preserve account/member privacy, block lists and consent; no public phone numbers.
+- **Tap picture → opens that person's existing one-to-one conversation** under the current authenticated account. If permission to message does not exist, don't silently start an unauthorized chat. Place current conversation list below, with previews, time, unread badges and search. Use stable user order (recent/favorites or owner/user-controlled), not an engagement-maximizing or hidden feed algorithm.
+- A missing avatar displays a tasteful initials fallback. Test avatars with long names, 0/1/many friends, muted/blocked/revoked contacts, inaccessible images, offline and long horizontal contact lists. Do not make a top row into mandatory Stories, Meta AI, ads, or a separate social graph.
+- Make the strip comfortable: ~48–64px circular pictures, one row, sensible gutters, minimal vertical height, no excess top whitespace. Smooth horizontal scrolling without taking over vertical chat scroll; accessible names/touch targets, contrast and keyboard navigation, 320/360/390/414/430px mobile and wider screens.
+
+### Opened chat: WhatsApp-level functionality
+- Keep a compact header with avatar, contact name/status, and **both Voice and Video** actions discoverable; ordinary app messaging does not depend on a phone number. Support secure durable messages, read/unread status only where proven, reactions/reply, photo/video attachment, safe links, smooth scroll, keyboard-safe bottom composer, emoji, block/report, and permissioned notifications.
+- **Copy a selected word, an entire message, or a batch of selected bubbles**; provide opt-in single/batch translation and independent per-user auto-translation (off by default), preserving the original language for learners.
+- A missed call belongs in the same conversation with caller/time; voicemail and functional speakerphone are planned under issues #28 and #27. A voice/video button is **not** evidence the calls work: ringtone, bidirectional audio and actual video must pass two-device hardware tests. Don't introduce unsupported microphone recordings or pretend unsupported functionality is available.
+- Never clone Meta/WhatsApp branding or reuse their APIs. The reference is only for user comprehension and flow. Do not introduce dark mode: DANZSTAK remains light mode with its own style.
+
+### Codex acceptance
+- Stage a real authenticated Chats inbox with the avatars in the top horizontal row and real conversation list below; tap avatars to open actual threads. Show before/after screenshots at 320, 360, 390, 414, 430px and desktop with verified phone-accessible PWA preview and exact commit SHA.
+- Two-account tests: friends/avatar display, accurate presence, thread deep-link, permissions, blocks, unread changes, multi-select/copy, translation only where implemented, message persistence, alerts and responsive keyboard. Preserve existing API and core messaging data.
+- Implement in an isolated PR with pass/fail evidence; physical Android/iOS review noted honestly. No merge or production deployment without owner approval. **This is a product spec, not an implemented or tested screen.**
