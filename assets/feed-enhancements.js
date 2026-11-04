@@ -3650,15 +3650,17 @@ function reelPlayer(url) {
   else if (host.endsWith("youtube.com")) match = [null, url.searchParams.get("v") || path.match(/^\/(?:shorts|embed)\/([^/?#]+)/)?.[1]];
   if (match?.[1]) {
     const videoId = encodeURIComponent(match[1]);
-    return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=0&mute=1&playsinline=1&enablejsapi=1&loop=1&playlist=" + videoId };
+    const portrait = path.startsWith("/shorts/");
+    return { kind: "iframe", provider: "youtube", layout: portrait ? "portrait" : "landscape", aspect: portrait ? "9/16" : "16/9", src: "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=0&mute=1&playsinline=1&enablejsapi=1&loop=1&playlist=" + videoId };
   }
-  if (host.endsWith("vimeo.com") && (match = path.match(/\/(\d+)/))) return { kind: "iframe", src: "https://player.vimeo.com/video/" + match[1] + "?autoplay=0&muted=1&playsinline=1" };
-  if (host.endsWith("tiktok.com") && (match = path.match(/\/video\/(\d+)/))) return { kind: "iframe", src: "https://www.tiktok.com/player/v1/" + match[1] + "?autoplay=0&loop=1&muted=1" };
-  if (host.endsWith("facebook.com") || host === "fb.watch") return { kind: "iframe", src: "https://www.facebook.com/plugins/video.php?show_text=false&autoplay=false&href=" + encodeURIComponent(url.href) };
-  if ((host.endsWith("dailymotion.com") && (match = path.match(/\/video\/([^/?#]+)/))) || (host === "dai.ly" && (match = path.match(/^\/([^/?#]+)/)))) return { kind: "iframe", src: "https://www.dailymotion.com/embed/video/" + encodeURIComponent(match[1]) + "?autoplay=0&mute=1" };
-  if (host.endsWith("streamable.com") && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", src: "https://streamable.com/e/" + encodeURIComponent(match[1]) + "?autoplay=0" };
-  if (host === "clips.twitch.tv" && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", src: "https://clips.twitch.tv/embed?autoplay=false&muted=true&clip=" + encodeURIComponent(match[1]) + "&parent=" + encodeURIComponent(location.hostname) };
-  if (host.endsWith("twitch.tv") && (match = path.match(/^\/videos\/(\d+)/))) return { kind: "iframe", src: "https://player.twitch.tv/?autoplay=false&muted=true&video=" + match[1] + "&parent=" + encodeURIComponent(location.hostname) };
+  if (host.endsWith("vimeo.com") && (match = path.match(/\/(\d+)/))) return { kind: "iframe", provider: "vimeo", layout: "landscape", aspect: "16/9", src: "https://player.vimeo.com/video/" + match[1] + "?autoplay=0&muted=1&playsinline=1" };
+  if (host.endsWith("tiktok.com") && (match = path.match(/\/video\/(\d+)/))) return { kind: "iframe", provider: "tiktok", layout: "portrait", aspect: "9/16", src: "https://www.tiktok.com/player/v1/" + match[1] + "?autoplay=0&loop=1&muted=1" };
+  if (host.endsWith("instagram.com") && (match = path.match(/^\/(reel|p|tv)\/([^/?#]+)/))) return { kind: "iframe", provider: "instagram", layout: match[1] === "p" ? "square" : "portrait", aspect: match[1] === "p" ? "1/1" : "9/16", src: "https://www.instagram.com/" + match[1] + "/" + encodeURIComponent(match[2]) + "/embed/" };
+  if (host.endsWith("facebook.com") || host === "fb.watch") return { kind: "iframe", provider: "facebook", layout: "landscape", aspect: "16/9", src: "https://www.facebook.com/plugins/video.php?show_text=false&autoplay=false&href=" + encodeURIComponent(url.href) };
+  if ((host.endsWith("dailymotion.com") && (match = path.match(/\/video\/([^/?#]+)/))) || (host === "dai.ly" && (match = path.match(/^\/([^/?#]+)/)))) return { kind: "iframe", provider: "dailymotion", layout: "landscape", aspect: "16/9", src: "https://www.dailymotion.com/embed/video/" + encodeURIComponent(match[1]) + "?autoplay=0&mute=1" };
+  if (host.endsWith("streamable.com") && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", provider: "streamable", layout: "landscape", aspect: "16/9", src: "https://streamable.com/e/" + encodeURIComponent(match[1]) + "?autoplay=0" };
+  if (host === "clips.twitch.tv" && (match = path.match(/^\/([^/?#]+)/))) return { kind: "iframe", provider: "twitch", layout: "landscape", aspect: "16/9", src: "https://clips.twitch.tv/embed?autoplay=false&muted=true&clip=" + encodeURIComponent(match[1]) + "&parent=" + encodeURIComponent(location.hostname) };
+  if (host.endsWith("twitch.tv") && (match = path.match(/^\/videos\/(\d+)/))) return { kind: "iframe", provider: "twitch", layout: "landscape", aspect: "16/9", src: "https://player.twitch.tv/?autoplay=false&muted=true&video=" + match[1] + "&parent=" + encodeURIComponent(location.hostname) };
   return null;
 }
 
@@ -3743,6 +3745,9 @@ function renderPlayableReels() {
         const frame = document.createElement("iframe");
         frame.className = "reel-player";
         frame.src = playerInfo.src;
+        frame.dataset.provider = playerInfo.provider || "external";
+        frame.dataset.videoLayout = playerInfo.layout || "landscape";
+        frame.style.setProperty("--ds-media-aspect", playerInfo.aspect || "16/9");
         frame.title = reel.platform + " reel player";
         frame.loading = "lazy";
         frame.referrerPolicy = "strict-origin-when-cross-origin";

@@ -12,5 +12,8 @@ assert.match(source, /open\.href = reelUrlValue\.href/, "source links should use
 assert.match(source, /rel = "noopener noreferrer nofollow ugc"/, "member links should be isolated and marked as user-generated content");
 assert.match(source, /data\.reels\.flatMap\(reel => \{/, "cloud records should be filtered before entering The Roll");
 assert.doesNotMatch(source, /reelPlatform\(new URL\((?:reel|result\.reel)\.url\)/, "cloud records must not use unchecked URL construction");
+assert.match(source, /provider: "tiktok", layout: "portrait", aspect: "9\/16"/, "TikTok must not be forced into a landscape box");
+assert.match(source, /provider: "instagram"[\s\S]*aspect: match\[1\] === "p" \? "1\/1" : "9\/16"/, "Instagram posts and reels need provider-appropriate framing");
+assert.match(source, /frame\.style\.setProperty\("--ds-media-aspect", playerInfo\.aspect/, "provider geometry must reach the rendered iframe");
 
 console.log("Roll URL-safety checks passed: malformed records are dropped and only approved HTTPS video links reach players or anchors.");

@@ -47,7 +47,12 @@
   if(!supportsAudioButton(element)||element.closest?.('.danzstak-media-shell'))return;
   const parent=element.parentNode;if(!parent)return;
   const shell=document.createElement('div');shell.className='danzstak-media-shell';
-  if(element.classList?.contains?.('reel-player'))shell.classList.add('danzstak-reel-shell');
+  if(element.classList?.contains?.('reel-player')){
+   shell.classList.add('danzstak-reel-shell');
+   if(element.dataset?.videoLayout)shell.dataset.videoLayout=element.dataset.videoLayout;
+   const mediaAspect=element.style?.getPropertyValue?.('--ds-media-aspect');
+   if(mediaAspect)shell.style.setProperty('--ds-media-aspect',mediaAspect);
+  }
   parent.insertBefore(shell,element);shell.append(element);
   const button=document.createElement('button');button.type='button';button.className='danzstak-audio-toggle';button.dataset.icon='volume-x';
   button.addEventListener('click',event=>{

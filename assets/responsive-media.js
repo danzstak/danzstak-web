@@ -16,6 +16,21 @@
     const layout = ratio < .82 ? "portrait" : ratio > 1.18 ? "landscape" : "square";
     video.dataset.videoLayout = layout;
     video.style.setProperty("--ds-media-aspect", `${width}/${height}`);
+    const shell = video.closest(".danzstak-media-shell");
+    if (shell) {
+      shell.dataset.videoLayout = layout;
+      shell.style.setProperty("--ds-media-aspect", `${width}/${height}`);
+    }
+  }
+
+  function classifyFrame(frame) {
+    if (frame.dataset.videoLayout) return;
+    let url;
+    try { url = new URL(frame.src); } catch { return; }
+    const host = url.hostname.replace(/^www\./, "");
+    const portrait = host === "www.tiktok.com" || host === "tiktok.com" || host.endsWith("instagram.com");
+    frame.dataset.videoLayout = portrait ? "portrait" : "landscape";
+    frame.style.setProperty("--ds-media-aspect", portrait ? "9/16" : "16/9");
   }
 
   function enhance(node) {
@@ -26,7 +41,7 @@
       node.playsInline = true;
       if (node.videoWidth && node.videoHeight) classify(node);
       else node.addEventListener("loadedmetadata", () => classify(node), { once: true });
-    }
+    } else classifyFrame(node);
   }
 
   function scan(root = document) {
