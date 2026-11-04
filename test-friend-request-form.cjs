@@ -26,7 +26,7 @@ assert.match(css, /\.friend-workspace-row\{grid-template-columns:minmax\(0,1fr\)
 assert.match(css, /\.friend-message-action,.friend-message-action\.ds-icon-button\{width:44px;min-width:44px;min-height:44px;/, 'the compact friend message control keeps a usable mobile touch target');
 assert.match(feed, /assets\/feed-enhancements\.css\?v=495/, 'the feed loads the current friend discovery styles');
 assert.match(css, /@media\(max-width:700px\)\{\.friend-discovery-row button\.ds-icon-button\{width:44px;min-width:44px;height:44px;min-height:44px\}\}/, 'online-user Chat icons keep a full phone touch target');
-assert.match(feed, /assets\/feed-enhancements\.js\?v=523/, 'the feed loads the current localized friend discovery behavior');
+assert.match(feed, /assets\/feed-enhancements\.js\?v=524/, 'the feed loads the current localized friend discovery behavior');
 assert.match(source, /action\.dataset\.icon = "chat";[\s\S]*labelAction\(person\.friendStatus === "friends" \? "Message \{name\}"/, 'accepted online users use the same accessible Chat icon as saved friends');
 
 console.log('Friend discovery checks passed: the Friends button lists online users with one-tap relationship actions and no email lookup.');

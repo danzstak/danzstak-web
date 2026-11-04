@@ -185,6 +185,7 @@ async function captureViewport(page, fileName) {
       }
       await assertNoOverflow(page, `Home ${width}px`, width <= 430);
       if (width <= 430) {
+        assert.equal(await page.locator(".mobile-menu-control").getAttribute("aria-current"), null, `${width}px: Home must not highlight the secondary Menu destination`);
         await assertNoIosInputZoom(page, `Home ${width}px`);
         await assertExclusiveFeedScreen(page, "home");
         const shellMetrics = await page.evaluate(() => {
@@ -340,6 +341,7 @@ async function captureViewport(page, fileName) {
         await page.locator('.topnav [data-feature="Friends"]').click();
         await page.waitForTimeout(100);
         await assertExclusiveFeedScreen(page, "friends");
+        assert.equal(await page.locator(".mobile-menu-control").getAttribute("aria-current"), null, "Friends must retain its own primary navigation state");
         assert.equal(await page.locator("#profileOnboarding").isVisible(), false, "Friends must not inherit the Home identity-onboarding card");
         await page.waitForSelector(".friend-discovery-row button[data-icon='chat']");
         const onlineMessageAction = await page.locator(".friend-discovery-row button[data-icon='chat']").evaluate(action => {
@@ -401,6 +403,7 @@ async function captureViewport(page, fileName) {
       assert.equal(bookingPrimary.background, "rgb(23, 105, 224)", `${width}px: Booking Agent primary action is not DANZSTAK blue: ${JSON.stringify(bookingPrimary)}`);
       assert.equal(bookingPrimary.color, "rgb(255, 255, 255)", `${width}px: Booking Agent primary action lacks readable contrast: ${JSON.stringify(bookingPrimary)}`);
       assert.ok(bookingPrimary.height >= 42, `${width}px: Booking Agent primary action is too small: ${JSON.stringify(bookingPrimary)}`);
+      assert.equal(await page.locator('.ds-mobile-nav a[aria-current="page"]').getAttribute("data-icon"), "menu", `${width}px: Booking Agent must identify its Menu navigation section`);
       assert.equal(await page.locator("#venueQuickMore").isVisible(), false, `${width}px: empty Find more clubs control must remain hidden before a search`);
       await captureViewport(page, `booking-${width}.png`);
       await page.evaluate(() => {
@@ -420,6 +423,7 @@ async function captureViewport(page, fileName) {
       await page.waitForSelector("#epkMain");
       await assertNoOverflow(page, `EPK ${width}px`, true);
       await assertNoIosInputZoom(page, `EPK ${width}px`);
+      assert.equal(await page.locator('.ds-mobile-nav a[aria-current="page"]').getAttribute("data-icon"), "menu", `${width}px: EPK must identify its Menu navigation section`);
       await captureViewport(page, `epk-${width}.png`);
 
       await page.goto(`${baseUrl}/record-stores.html`, { waitUntil: "domcontentloaded" });
@@ -427,6 +431,7 @@ async function captureViewport(page, fileName) {
       await assertNoOverflow(page, `Record Stores ${width}px`, true);
       await assertNoIosInputZoom(page, `Record Stores ${width}px`);
       assert.equal(await page.locator(".ds-mobile-nav").isVisible(), true, `${width}px: Record Stores must share mobile navigation`);
+      assert.equal(await page.locator('.ds-mobile-nav a[aria-current="page"]').getAttribute("data-icon"), "menu", `${width}px: Record Stores must identify its Menu navigation section`);
       const recordStoreSpacing = await page.evaluate(() => {
         const search = document.querySelector(".search-card").getBoundingClientRect();
         const placement = document.querySelector(".placement-card").getBoundingClientRect();
@@ -453,6 +458,7 @@ async function captureViewport(page, fileName) {
       assert.ok(profileHeader.height <= 64, `${width}px: Profile header is oversized: ${JSON.stringify(profileHeader)}`);
       assert.equal(await page.locator("body.profile-page>header .header-actions").isVisible(), false, `${width}px: Profile must not retain desktop text navigation on mobile`);
       assert.equal(await page.locator("body.profile-page>.ds-mobile-nav").isVisible(), true, `${width}px: Profile must share primary mobile navigation`);
+      assert.equal(await page.locator('body.profile-page>.ds-mobile-nav a[aria-current="page"]').getAttribute("data-icon"), "menu", `${width}px: Profile must identify its Menu navigation section`);
       for (let index = 1; index < profileHeader.actions.length; index += 1) {
         assert.ok(profileHeader.actions[index - 1].right <= profileHeader.actions[index].left + 1, `${width}px: Profile header actions overlap: ${JSON.stringify(profileHeader)}`);
       }
@@ -462,6 +468,7 @@ async function captureViewport(page, fileName) {
       await page.waitForSelector(".settings-workspace .settings-row");
       await assertNoOverflow(page, `Settings ${width}px`, true);
       await assertNoIosInputZoom(page, `Settings ${width}px`);
+      assert.equal(await page.locator(".mobile-menu-control").getAttribute("aria-current"), "page", `${width}px: Settings must keep the Menu destination highlighted`);
       const settingsGeometry = await page.locator(".settings-workspace .settings-row").evaluateAll(rows => rows.map(row => {
         const rowBox = row.getBoundingClientRect();
         const children = [...row.children].map(child => child.getBoundingClientRect()).filter(box => box.width && box.height);

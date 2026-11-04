@@ -1854,12 +1854,22 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
 const workspaceRoutes = new Map(["Friends", "Groups", "Photos", "Videos", "Events", "Saved", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
 const mobileMenuControl = document.querySelector(".mobile-menu-control");
 const mobileNavMenu = document.getElementById("mobileNavMenu");
+const directMobileDestinations = new Set(["Friends", "Notifications"]);
+function syncMobileMenuCurrent(menuOpen = document.body.classList.contains("mobile-menu-open")) {
+  const workspaceName = featurePanel.dataset.workspaceName || "";
+  const representsCurrentScreen = menuOpen || (!featurePanel.hidden && !directMobileDestinations.has(workspaceName));
+  if (representsCurrentScreen) mobileMenuControl?.setAttribute("aria-current", "page");
+  else mobileMenuControl?.removeAttribute("aria-current");
+  mobileMenuControl?.setAttribute("aria-pressed", String(representsCurrentScreen));
+}
+globalThis.danzstakSyncMobileMenuCurrent = syncMobileMenuCurrent;
 function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {}) {
   const shouldOpen = Boolean(open && matchMedia("(max-width: 700px)").matches);
   if (shouldOpen) globalThis.danzstakActivateMobileScreen?.("menu", { preserveMenu: true });
   const wasOpen = document.body.classList.contains("mobile-menu-open");
   document.body.classList.toggle("mobile-menu-open", shouldOpen);
   mobileMenuControl?.setAttribute("aria-expanded", String(shouldOpen));
+  globalThis.danzstakSyncMobileMenuCurrent?.(shouldOpen);
   if (shouldOpen && updateHistory && history.state?.danzstakMenuOpen !== true) {
     const currentState = history.state && typeof history.state === "object" ? history.state : {};
     history.pushState({ ...currentState, danzstakMenuOpen: true }, "");
@@ -2052,6 +2062,7 @@ function openWorkspaceRoute(name, pushHistory = true) {
   const pageHeading = document.getElementById("pageHeading");
   if (pageHeading) pageHeading.textContent = visibleName;
   featurePanel.dataset.workspaceName = canonicalName;
+  globalThis.danzstakSyncMobileMenuCurrent?.(false);
   document.querySelectorAll(".menu a").forEach(link => link.classList.toggle("active", link.dataset.feature === canonicalName));
   document.querySelectorAll("[data-feature]").forEach(control => {
     const active = control.dataset.feature === canonicalName;
@@ -2083,7 +2094,7 @@ document.querySelectorAll("[data-feature]").forEach(control => {
 });
 
 document.querySelector('[data-route="home"]')?.addEventListener("click", () => closeNotificationDrawer(false), { capture: true });
-document.querySelector('[data-route="home"]')?.addEventListener("click", () => activateMobileScreen("home"), { capture: true });
+document.querySelector('[data-route="home"]')?.addEventListener("click", () => { activateMobileScreen("home"); globalThis.danzstakSyncMobileMenuCurrent?.(false); }, { capture: true });
 document.getElementById("messagesNav")?.addEventListener("click", () => activateMobileScreen("chat"), { capture: true });
 
 function restoreWorkspaceRoute() {
@@ -2111,6 +2122,8 @@ function restoreWorkspaceRoute() {
     if (document.body.classList.contains("content-only")) home?.removeAttribute("aria-current");
     else home?.setAttribute("aria-current", "page");
     featurePanel.hidden = true;
+    featurePanel.dataset.workspaceName = "";
+    globalThis.danzstakSyncMobileMenuCurrent?.(false);
     document.getElementById("newsFeedView").hidden = false;
     const pageHeading = document.getElementById("pageHeading");
     if (pageHeading) pageHeading.textContent = "Your Mix";
