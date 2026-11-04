@@ -4,6 +4,19 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Whole-interface typography, spacing and interaction re-audit — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defect found:** the shared phone reaction grid looked aligned, but at 320px the Save action collapsed to a 38px-wide target while Like, Dislike, Comment and Share remained 58px wide. This violated the 44px touch-target contract and made the final action less comfortable than its neighbors.
+- **Root correction:** every reaction-grid action now owns its complete grid cell (`width:100%`, no maximum-width constraint) while retaining the existing five-column layout, inline icon/count alignment and 44px minimum height. The shared stylesheet URL advanced to `mobile-design-system.css?v=9`, and the PWA shell advanced from cache v652 to `danzstak-shell-v653` so browser and installed-PWA clients request the corrected asset.
+- **Expanded quality gate:** the browser suite now measures body/post font size, post line-height ratio, timestamp readability and every reaction target's width/height at phone widths. Desktop/tablet coverage now opens Friends through the real navigation, verifies that it replaces rather than stacks over the feed, and measures the Notifications panel for clipping and uncomfortable width at 768, 1024 and 1366px.
+- **Functional and integration evidence:** the complete `test-regressions.ps1` gate passed after the final correction. This includes authentication, Feed/Friends/Chat/calls, Notifications, all 15 languages, Booking Agent, worldwide discovery, EPK, Tour Manager, Stripe Test Mode entitlements/refunds, media sizing, no-startup-autoplay, one-audio-owner handoff, YouTube sound synchronization, PWA refresh, 11-page smoke checks and infrastructure validation.
+- **Visual evidence:** local and production Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px with no horizontal overflow, primary-screen overlap, undersized reaction control, unreadable core feed type, cramped post line spacing or clipped Friends/Notifications surface. Live captures: [320px Home](screenshots/social-desktop-audit-live/home-320.png), [390px reactions/video](screenshots/social-desktop-audit-live/reactions-390.png), [320px menu](screenshots/social-desktop-audit-live/menu-320.png), [390px Chat](screenshots/social-desktop-audit-live/chat-conversation-390.png), [768px Friends](screenshots/social-desktop-audit-live/friends-desktop-768.png), and [1366px Notifications](screenshots/social-desktop-audit-live/notifications-desktop-1366.png).
+- **Production deployment:** implementation commit `520efd0` was pushed to `danzstak-patch-1` and fast-forwarded to `main`. Public propagation changed the production worker from v652 to v653 on the fourth bounded check. A fresh browser reached the activated controlling worker and reported only `danzstak-shell-v653` in CacheStorage. The live visual matrix, release verification and 11-page site smoke test passed afterward.
+- **AWS metadata limitation:** the AWS CLI session is expired, so an Amplify job ID and AWS-side timestamp were not guessed. The exact owner action to restore AWS job metadata is `aws login`; the public deployment itself is independently verified and does not require a retry.
+- **Remaining limitation:** no remotely controllable physical Android or iPhone was available. Browser automation verifies the responsive website and standalone-PWA behavior, but final tactile/installed-PWA inspection on the owner's physical devices remains manual and is not represented as complete.
+
 ### Desktop/tablet UX and release revalidation — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
