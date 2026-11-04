@@ -55,3 +55,21 @@ A first-time Facebook user should understand basic feed/profile/friends/chat tas
 2. Small isolated PRs rather than a giant redesign; preserve working auth, Friends, messages, calls, discovery, payment protections and user data.
 3. Test single-account login and navigation through all **available** products, permitted and unauthorized account access, paid/free entitlements, logout and deep-link flows, browser/PWA refresh, accessibility, and phone widths 320/360/390/414/430px plus desktop. Capture clear before/after screenshots.
 4. Publish exact tested commit, tests passed/failed, phone-accessible staging PWA URL and known limitations for **owner approval before deployment**. Filing this spec alone does not mean the UI is changed.
+
+
+## Founding ownership principle — users control their original content (2026-11-04)
+
+**Owner decision:** "Users own their content on DANZSTAK. If they want to delete their content they can delete it from everything on DANZSTAK."
+
+DANZSTAK must not claim ownership of original works merely because they were posted. A member retains whatever intellectual-property rights they legitimately hold in their original text, photos, videos and other media; platform terms should request only the limited permission necessary to host, display and share the content according to the member's audience settings, subject to legal/privacy requirements. Do not tell members they automatically own somebody else's copyrighted material or that uploading confers rights they did not hold.
+
+**Every eligible original publication has understandable creator-controlled distribution choices:**
+- **Remove from here** removes the selected publication/location only, preserving other separately authorized publications and first-party reshares.
+- **Delete everywhere** is an explicit, confirmed creator action which stops distribution of that original content through all DANZSTAK surfaces and every in-service reshare/repost referencing the original content, including other members' feeds, story/video rails, profile entries, search/previews and old in-service links. The same rule applies to original **text posts, photos, videos, captions when part of their original publication, and event/media posts**, not just videos; exact delete scope for authored comments or private chat messages needs dedicated safeguards so it does not erase other people's legitimate content.
+- A resharer can remove **their own share**, not revoke the original creator's asset. When the original is withdrawn, a resharer's independently authored caption/comment may remain with an accurate unavailable-original placeholder, preserving their speech without exposing the withdrawn content. Reshares must be references to a revocable original rather than uncontrolled new content ownership.
+- No guarantee of deletion from **external sites, downloaded files, screenshots or unrelated independent reuploads**. Authorized security/legal holds, account export/deletion and compliance are separate and must be truthfully explained; the member-facing first-party withdrawal should take effect promptly and persist across caches and devices.
+- **Dailies** expire automatically at 24 hours; **The Roll, The Mix and profile content** otherwise remain until creator deletion, privacy change, account deletion or legal/moderation action. Daily expiry must not globally delete a separate persistent publication sharing the same underlying asset.
+
+**Implementation requirements:** server-side ownership authorization and stable canonical content IDs, distinct publication/share IDs, idempotent deletion and revocation across fanout, API/media URLs/caches, clear confirmation for Delete everywhere, no extra fees, audits without copying deleted content, and tested negative/permission cases. Design not complete until genuine two-account tests prove a multi-share original is unavailable after creator Delete everywhere while others' independently authored content remains intact where appropriate.
+
+See [cross-content deletion Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40). Do not advertise the control as currently working before Codex produces code, actual tests, staged review and owner approval.
