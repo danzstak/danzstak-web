@@ -31,7 +31,8 @@ assert.match(directMessages, /function createCallActionIcon\(kind\)/, "chat list
 assert.match(directMessages, /\[\["phone", "startPhone"\], \["video", "startVideo"\]\]/, "chat list call actions distinguish phone and video calls");
 assert.match(chatCss, /\.call-action-icon\{[^}]*stroke:currentColor/, "call icons inherit the surrounding interface color");
 assert.match(chatCss, /\.message-form\{grid-template-columns:minmax\(0,1fr\) auto!important\}/, "message text and send stay on one composer row");
-assert.match(chatCss, /\.conversation-header-actions\{grid-column:3;grid-row:1\/3;align-self:center\}/, "call actions stay aligned beside the contact name and presence");
+assert.match(chatCss, /\.conversation-header-actions\{grid-column:4;grid-row:1\/3;align-self:center\}/, "call actions stay aligned beside the contact name and presence");
+assert.match(chatCss, /\.conversation-back\{grid-column:1;grid-row:1\/3/, "the mobile conversation has a dedicated leading Back control");
 assert.match(chatCss, /\.embedded-messages>\.site-ownership\{display:none\}/, "the embedded chat hides the standalone legal footer");
 assert.match(chatCss, /\.embedded-messages \.chats-heading h1\{position:absolute;width:1px;height:1px/, "the embedded drawer keeps one visible Chats heading while preserving the iframe heading for assistive technology");
 assert.match(chatCss, /\.embedded-messages \.chats-heading\{position:static;min-height:0;height:0/, "the embedded list must not reserve an empty heading row");

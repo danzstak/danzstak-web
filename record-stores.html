@@ -12,12 +12,13 @@
   <link rel="stylesheet" href="assets/record-stores-pagination.css?v=1">
   <link rel="stylesheet" href="assets/record-placement.css?v=1">
   <link rel="stylesheet" href="assets/accessibility.css?v=364">
-  <link rel="stylesheet" href="assets/icon-buttons.css?v=3">
+  <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
+  <link rel="stylesheet" href="assets/mobile-design-system.css?v=5">
 </head>
-<body>
+<body class="ds-tool-page">
   <a class="skip-link" href="#recordStoreMain">Skip to record store search</a>
-  <header><a href="feed.html"><img src="assets/danzstak-logo.png" alt="DanzStak"></a><nav><a href="feed.html">Your Mix</a><a href="booking.html">Booking Agent</a></nav></header>
-  <main id="recordStoreMain" tabindex="-1">
+  <header><a href="feed.html"><img src="assets/danzstak-d-icon.png" alt="DanzStak"></a><nav><a href="feed.html">Your Mix</a><a href="booking.html">Booking Agent</a></nav></header>
+  <main id="recordStoreMain" class="record-store-main" tabindex="-1">
     <section class="hero">
       <span class="record-icon" aria-hidden="true">💿</span>
       <div><p class="eyebrow">DanzStak crate finder</p><h1>Record Stores</h1><p>Find independent shops near home, a gig, or the next town on tour.</p></div>
@@ -44,7 +45,14 @@
     <div class="search-more"><button type="button" id="loadMoreStores" hidden>Find more stores nearby</button></div>
     <section class="placement-card" aria-labelledby="placementTitle"><div class="placement-heading"><div><p class="eyebrow">Private outreach workspace</p><h2 id="placementTitle">Stores you want to approach</h2></div><button type="button" id="savePlacement">Save workspace</button></div><p id="placementStatus" role="status" aria-live="polite">Loading your store list...</p><div id="placementStores" class="placement-list"></div></section>
   </main>
+  <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
+    <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
+    <a role="button" data-icon="users" aria-label="Friends" title="Friends" href="feed.html?view=friends"></a>
+    <a role="button" data-icon="chat" aria-label="Chat" title="Chat" href="messages.html"></a>
+    <a role="button" data-icon="bell" aria-label="Buzz" title="Buzz" href="feed.html?view=notifications"></a>
+    <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1"></a>
+  </nav>
   <script src="assets/record-stores.js?v=4" defer></script>
-  <script src="assets/icon-buttons.js?v=3" defer></script>
+  <script src="assets/icon-buttons.js?v=4" defer></script>
 </body>
 </html>

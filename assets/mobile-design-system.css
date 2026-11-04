@@ -50,8 +50,8 @@ button,a,input,select,textarea{touch-action:manipulation}
     padding:6px max(8px,env(safe-area-inset-left)) 6px max(8px,env(safe-area-inset-right));
     gap:6px;
   }
-  .ds-tool-page>header img{width:42px;height:42px}
-  .ds-tool-page>header nav{min-width:0;display:flex;justify-content:flex-end;gap:2px;overflow-x:auto;scrollbar-width:none}
+  .ds-tool-page>header img{width:34px;height:34px}
+  .ds-tool-page>header nav{display:none}
   .ds-tool-page>header nav::-webkit-scrollbar{display:none}
   .ds-tool-page>header :is(a,button){min-height:var(--ds-touch);padding:6px 8px;white-space:nowrap}
   .ds-tool-page main{width:100%;margin:0;padding:var(--ds-space-3) max(8px,env(safe-area-inset-left)) calc(64px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right))}
@@ -67,6 +67,13 @@ button,a,input,select,textarea{touch-action:manipulation}
   .ds-tool-page .form-actions{gap:var(--ds-space-2)}
   .ds-tool-page .form-actions>*{flex:1 1 140px}
   .ds-tool-page .map-shell,.ds-tool-page #map{max-width:100%;border-radius:var(--ds-radius);overflow:hidden}
+}
+
+/* Record Stores uses the same professional-tool shell as Booking and EPK. */
+.ds-tool-page .record-icon{line-height:1}
+@media(max-width:700px){
+  .ds-tool-page .record-store-main{width:100%;margin:0;padding:var(--ds-space-3) max(8px,env(safe-area-inset-left)) calc(64px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-right))}
+  .ds-tool-page .record-store-main :is(.hero,.search-card,.placement-card){border-radius:var(--ds-radius);box-shadow:0 1px 2px #10182814}
 }
 
 /* The feed shell is deliberately last in the cascade. Older page styles remain

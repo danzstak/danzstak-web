@@ -460,3 +460,29 @@ Status as of 2026-11-04: **COMPLETE IN REPOSITORY; DAILY PUBLIC MONITOR IMPLEMEN
 - Deployment verification: policy/scheduler commit `fa7b27ce55968a37b0c1b1f29ca738620a5f708d` was fast-forwarded to `main`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `850` succeeded in `us-west-1` from 2026-11-04 03:54:56 to 03:55:51 Europe/Berlin. Post-deployment public health checks passed, the browser verifier found the live service worker activated and controlling the page, and its only cache was `danzstak-shell-v638`. There is no customer-managed CloudFront distribution; Amplify Hosting owns CDN delivery.
 - Authenticated daily checks for sign-in, post persistence, private Chat/notifications, and private professional-tool records are **IN PROGRESS**, not claimed as complete. They require approved isolated synthetic accounts and cleanup rules. Routine monitoring will not create real charges, send booking emails, or modify real customer data.
 - Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA verification remains a release checklist requirement and must be recorded as **NOT TESTED** when devices are unavailable.
+
+# Mobile quality challenge
+
+Status as of 2026-11-04: **PRE-DEPLOYMENT TESTS COMPLETE; PRODUCTION DEPLOYMENT PENDING**.
+
+## Independent audit findings and corrections
+
+- Professional tools had three separate mobile header patterns. Booking and EPK repeated desktop text navigation above the shared bottom navigation, while Record Stores was outside the shared mobile shell entirely. All three now use the official standalone D, the same compact header, the same five-destination bottom navigation, and the same safe-area spacing.
+- Record Stores lacked the shared mobile navigation and could strand users in a separate-looking tool. It now participates in the common mobile application shell without changing discovery or saved-workspace behavior.
+- Chat conversation rows spent scarce phone width on duplicate call buttons. Calls remain available inside the selected conversation; list rows now dedicate the full width to identity, message preview, time, presence, and unread state.
+- Chat kept the app-level header above an open conversation and placed the conversation-close action at the trailing edge. Open mobile conversations now own the viewport, hide the redundant app header, use a leading Back control tied to browser history, preserve the fixed composer, and retain functional phone/video/more controls.
+- The visual harness previously checked Chat only at 390px and did not include Record Stores. It now measures Chat list/conversation geometry and all three professional tools at 320, 360, 390, and 414px, including header height, duplicate navigation, control overlap, composer visibility, and horizontal overflow.
+- The service-worker shell advances to `danzstak-shell-v639`; shared design, Chat and icon assets have new document versions so installed PWAs cannot remain on the previous geometry.
+
+## Pre-deployment evidence
+
+- Functional/integration: all 251 repository regression checks passed, followed by 11-page site smoke tests and infrastructure validation. Authentication, sessions, payments, entitlement/refund behavior, social features, Chat, Booking Agent, EPK, Tour Manager and PWA tests remained green.
+- Visual: the browser measurement suite passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. The suite verifies edge-aligned video, inline reaction counts, exclusive primary screens, no horizontal overflow, compact headers/navigation, non-overlapping Chat controls and an in-viewport composer.
+- Before evidence: [Booking at 390px](screenshots/quality-challenge-before/booking-390.png), [EPK at 390px](screenshots/quality-challenge-before/epk-390.png), [Chat list at 390px](screenshots/quality-challenge-before/chat-list-390.png), and [Chat conversation at 390px](screenshots/quality-challenge-before/chat-conversation-390.png).
+- Corrected local evidence: [Booking at 390px](screenshots/quality-challenge-after/booking-390.png), [EPK at 390px](screenshots/quality-challenge-after/epk-390.png), [Record Stores at 390px](screenshots/quality-challenge-after/record-stores-390.png), [Chat list at 320px](screenshots/quality-challenge-after/chat-list-320.png), and [Chat conversation at 320px](screenshots/quality-challenge-after/chat-conversation-320.png). Complete capture sets cover all measured widths.
+
+## Honest limitations
+
+- Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA checks are **NOT TESTED** in this automated environment. Browser viewport and service-worker tests do not replace physical-device evidence.
+- The browser fixtures verify visible control behavior and layout without mutating real users, creating charges, or sending email. Real-user content and third-party media can expose additional cases; production monitoring and regression additions remain mandatory.
+- No claim of pixel perfection or universal device coverage is made. The release meets the measured acceptance gates above and retains the documented manual-device requirement.

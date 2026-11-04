@@ -205,6 +205,9 @@ async function captureViewport(page, fileName) {
       await page.goto(`${baseUrl}/booking.html`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector("#bookingMain");
       await assertNoOverflow(page, `Booking Agent ${width}px`, true);
+      const bookingHeader = await page.locator("body.ds-tool-page>header").evaluate(header => ({ height: header.getBoundingClientRect().height, navVisible: getComputedStyle(header.querySelector("nav")).display !== "none" }));
+      assert.ok(bookingHeader.height <= 60, `${width}px: professional-tool header is oversized: ${JSON.stringify(bookingHeader)}`);
+      assert.equal(bookingHeader.navVisible, false, `${width}px: desktop tool links must not duplicate mobile navigation`);
       await captureViewport(page, `booking-${width}.png`);
       await page.evaluate(() => { document.querySelectorAll("details").forEach(details => { details.open = true; }); document.querySelector(".summary")?.scrollIntoView(); });
       await page.waitForTimeout(100);
@@ -214,6 +217,32 @@ async function captureViewport(page, fileName) {
       await page.waitForSelector("#epkMain");
       await assertNoOverflow(page, `EPK ${width}px`, true);
       await captureViewport(page, `epk-${width}.png`);
+
+      await page.goto(`${baseUrl}/record-stores.html`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#recordStoreMain");
+      await assertNoOverflow(page, `Record Stores ${width}px`, true);
+      assert.equal(await page.locator(".ds-mobile-nav").isVisible(), true, `${width}px: Record Stores must share mobile navigation`);
+      await captureViewport(page, `record-stores-${width}.png`);
+
+      await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".chat-sidebar");
+      await assertNoOverflow(page, `Chat ${width}px`, true);
+      assert.equal(await page.locator(".conversation-call-actions").first().isVisible().catch(() => false), false, `${width}px: conversation list must not waste width on per-row call controls`);
+      assert.equal(await page.locator(".chat-header [data-logout]").isVisible(), false, `${width}px: mobile Chat must not duplicate account actions`);
+      await captureViewport(page, `chat-list-${width}.png`);
+      await page.evaluate(() => openConversation({ contactEmail: "friend@danzstak.invalid", name: "Mobile Friend", memberId: "22222222-2222-4222-8222-222222222222", online: true, canContact: true }));
+      await page.waitForSelector("body.is-conversation-open");
+      const chatGeometry = await page.evaluate(() => {
+        const header = document.querySelector(".conversation-header").getBoundingClientRect();
+        const actions = document.querySelector(".conversation-header-actions").getBoundingClientRect();
+        const name = document.querySelector("#conversationName").getBoundingClientRect();
+        const form = document.querySelector(".message-form").getBoundingClientRect();
+        return { headerRight: header.right, actionsRight: actions.right, nameRight: name.right, actionsLeft: actions.left, formBottom: form.bottom, viewportHeight: innerHeight };
+      });
+      assert.ok(chatGeometry.actionsRight <= chatGeometry.headerRight + 1, `${width}px: Chat header controls overflow`);
+      assert.ok(chatGeometry.nameRight <= chatGeometry.actionsLeft + 1, `${width}px: Chat name overlaps header controls`);
+      assert.ok(chatGeometry.formBottom <= chatGeometry.viewportHeight + 1, `${width}px: Chat composer falls below viewport`);
+      await captureViewport(page, `chat-conversation-${width}.png`);
       await context.close();
     }
     console.log(`Mobile visual checks passed at ${widths.join(", ")}px; screenshots: ${outputDir}`);

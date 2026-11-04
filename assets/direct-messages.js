@@ -64,6 +64,14 @@ const conversationHeaderActions = {
   more: document.getElementById("conversationMore"),
   close: document.getElementById("closeConversation")
 };
+if (conversationHeader && conversationAvatar && conversationHeaderActions.close) {
+  conversationHeaderActions.close.classList.add("conversation-back");
+  conversationHeaderActions.close.dataset.icon = "back";
+  conversationHeaderActions.close.title = messageTranslate("Back to chats");
+  conversationHeaderActions.close.setAttribute("aria-label", messageTranslate("Back to chats"));
+  window.danzstakIcons?.upgrade(conversationHeaderActions.close);
+  conversationHeader.insertBefore(conversationHeaderActions.close, conversationAvatar);
+}
 const conversationMenu = document.getElementById("conversationMenu");
 const headerDeleteChat = document.getElementById("headerDeleteChat");
 let directContact = "";
