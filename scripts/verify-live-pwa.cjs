@@ -1,6 +1,6 @@
 const { chromium } = require("playwright-core");
 
-const expectedCache = process.env.DANZSTAK_EXPECTED_CACHE || "danzstak-shell-v640";
+const expectedCache = process.env.DANZSTAK_EXPECTED_CACHE || "danzstak-shell-v641";
 const baseUrl = process.env.DANZSTAK_LIVE_URL || "https://danzstak.com";
 
 (async () => {

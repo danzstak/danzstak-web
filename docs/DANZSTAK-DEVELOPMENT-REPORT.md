@@ -511,3 +511,16 @@ Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 - Post-deployment public health checks passed. The live browser reported the active service worker in the `activated` state, controlling the page, with only `danzstak-shell-v640` present. The live visual suite passed again at every measured width from 320px through 1366px.
 - Production visual inspection: [live corrected Friends screen at 390px](screenshots/zero-defect-friends-live-390.png). The accepted-friend card and Chat action remain on one line, the touch target is not clipped, and the primary bottom navigation remains unobstructed.
 - Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA verification remains **NOT TESTED** because those devices are unavailable in this environment; live browser automation and service-worker checks are not represented as physical-device evidence.
+
+# Repeated final quality-assurance pass
+
+Status as of 2026-11-04: **PRE-DEPLOYMENT QUALITY GATE PASSED; PRODUCTION VERIFICATION PENDING**.
+
+- The visual release gate previously omitted the standalone Profile and Settings screens. The browser suite now renders and measures Profile and Settings at 320, 360, 390 and 414px in addition to its existing feed, Friends, Chat, Notifications, menu, media, Booking Agent, EPK, Record Stores and Tour Manager coverage.
+- The expanded audit exposed a root mobile-shell defect on Profile: its desktop Your Mix, Messages and Logout actions were compressed into three small phone header buttons, the PWA install prompt occupied a second header row, and Profile lacked the shared bottom navigation used by the rest of the application.
+- The competing legacy phone-header rules were removed. Profile now uses the shared 50px DanzStak header, compact official D, icon-sized install action and five-destination mobile navigation. Desktop account navigation remains unchanged.
+- Regression coverage requires the shared shell, all five primary destinations, hidden desktop account actions on phones, compact official mark, non-overlapping header geometry, visible bottom navigation, no Settings control overflow and no browser-level horizontal overflow.
+- Before/after evidence: [previous 320px Profile](screenshots/profile-shell-before-320.png) and [corrected 320px Profile](screenshots/profile-shell-after-320.png).
+- Functional, integration, security and stability gate: all 251 repository regression checks passed, including authentication/session isolation, social persistence, Chat/calls, media recovery, Booking/EPK/Tour Manager, Stripe signature/idempotency/refund/entitlement tests, PWA/offline behavior, accessibility and security-origin checks. The 11-page site smoke suite and infrastructure validation also passed.
+- Visual gate: browser measurements and captures passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. The service-worker cache advances to `danzstak-shell-v641` for reliable installed-PWA delivery.
+- No backend business logic, Stripe configuration, entitlement behavior or payment mode was changed by this UI release.

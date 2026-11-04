@@ -4,15 +4,18 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
 const profile = fs.readFileSync("profile.html", "utf8");
+const mobile = fs.readFileSync("assets/mobile-design-system.css", "utf8");
 
-assert.match(profile, /@media\(max-width:600px\)\{html,body\{[^}]+\}header\{position:sticky;align-items:center;flex-direction:row;/,
-  "phone profile navigation must remain in one compact row");
-assert.match(profile, /header\{position:sticky;align-items:center;flex-direction:row;gap:5px;width:100vw;max-width:100vw;/,
-  "phone profile navigation must be constrained to the visual viewport");
-assert.match(profile, /\.header-actions\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\);flex:1 1 0;width:calc\(100vw - 75px\);min-width:0;/,
-  "all three account actions must share the available phone width");
-assert.match(profile, /\.header-actions \.button\{width:100%;min-width:0;min-height:40px;/,
-  "phone account actions must shrink without clipping while retaining usable height");
+assert.match(profile, /assets\/mobile-design-system\.css\?v=6/,
+  "the profile must load the shared mobile application shell");
+assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">[\s\S]*?data-icon="home"[\s\S]*?data-icon="users"[\s\S]*?data-icon="chat"[\s\S]*?data-icon="bell"[\s\S]*?data-icon="menu"/,
+  "the profile must expose the same five primary mobile destinations as the rest of DanzStak");
+assert.match(mobile, /body\.profile-page>header \.brand span,body\.profile-page>header \.header-actions\{display:none\}/,
+  "desktop account actions must not consume the phone profile header");
+assert.match(mobile, /body\.profile-page>header \.brand img\{width:34px;height:34px;/,
+  "the phone profile header must use the compact official brand mark");
+assert.doesNotMatch(profile, /\.header-actions\{display:grid;grid-template-columns:repeat\(3/,
+  "the retired three-text-button phone header must not remain as a competing layout");
 assert.match(profile, /html,body\{max-width:100%;overflow-x:hidden;overflow-x:clip\}/,
   "profile content must not create a browser-level horizontal scrollbar on phones");
 assert.match(profile, /main,\.card,\.profile\{min-width:0;max-width:100%\}/,
@@ -20,4 +23,4 @@ assert.match(profile, /main,\.card,\.profile\{min-width:0;max-width:100%\}/,
 assert.match(fs.readFileSync("assets/profile-editor.css", "utf8"), /\.profile-tabs\{[^}]*overflow-x:auto/,
   "profile tabs must keep their own intentional horizontal scrolling");
 
-console.log("Profile mobile-header checks passed: all account actions fit one compact row.");
+console.log("Profile mobile-header checks passed: the compact shared app shell replaces desktop text navigation on phones.");

@@ -48,7 +48,8 @@ async function installApiFixtures(page) {
     if (pathname === "/messages/conversations") return json(route, { conversations: [{ contactEmail: "friend@danzstak.invalid", name: "Mobile Friend", memberId: "22222222-2222-4222-8222-222222222222", preview: "See you at the show.", unread: 2, online: true, canContact: true, updatedAt: "2026-11-04T12:20:00.000Z" }] });
     if (pathname === "/messages") return json(route, { messages: [{ messageId: "message-1", senderEmail: "friend@danzstak.invalid", content: "See you at the show.", createdAt: "2026-11-04T12:20:00.000Z" }] });
     if (pathname === "/settings/posts") return json(route, { pinned: [], saved: [], muted: [] });
-    if (pathname === "/profile") return json(route, { profile: { name: "DanzStak Test Artist", memberId: "11111111-1111-4111-8111-111111111111" } });
+    if (pathname === "/settings/presence") return json(route, { onlineVisible: true, allowTags: true, callAlerts: true, messageAlerts: true, reduceMotion: false, dataSaver: false, language: "en" });
+    if (pathname === "/profile" || pathname === "/profiles") return json(route, { profile: { name: "DanzStak Test Artist", username: "testartist", memberId: "11111111-1111-4111-8111-111111111111", isOwner: true, location: "Berlin, Germany", bio: "Independent artist testing DanzStak on mobile." } });
     if (pathname === "/stories") return json(route, { stories: [] });
     return json(route, {});
   });
@@ -223,6 +224,36 @@ async function captureViewport(page, fileName) {
       await assertNoOverflow(page, `Record Stores ${width}px`, true);
       assert.equal(await page.locator(".ds-mobile-nav").isVisible(), true, `${width}px: Record Stores must share mobile navigation`);
       await captureViewport(page, `record-stores-${width}.png`);
+
+      await page.goto(`${baseUrl}/profile.html`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#profileContent:not([hidden])");
+      await assertNoOverflow(page, `Profile ${width}px`, true);
+      const profileHeader = await page.locator("body.profile-page>header").evaluate(header => {
+        const headerBox = header.getBoundingClientRect();
+        const actions = [...header.querySelectorAll(".header-actions .button")].map(item => {
+          const box = item.getBoundingClientRect();
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom };
+        });
+        return { height: headerBox.height, left: headerBox.left, right: headerBox.right, actions };
+      });
+      assert.ok(profileHeader.height <= 64, `${width}px: Profile header is oversized: ${JSON.stringify(profileHeader)}`);
+      assert.equal(await page.locator("body.profile-page>header .header-actions").isVisible(), false, `${width}px: Profile must not retain desktop text navigation on mobile`);
+      assert.equal(await page.locator("body.profile-page>.ds-mobile-nav").isVisible(), true, `${width}px: Profile must share primary mobile navigation`);
+      for (let index = 1; index < profileHeader.actions.length; index += 1) {
+        assert.ok(profileHeader.actions[index - 1].right <= profileHeader.actions[index].left + 1, `${width}px: Profile header actions overlap: ${JSON.stringify(profileHeader)}`);
+      }
+      await captureViewport(page, `profile-${width}.png`);
+
+      await page.goto(`${baseUrl}/feed.html?view=feed#settings`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".settings-workspace .settings-row");
+      await assertNoOverflow(page, `Settings ${width}px`, true);
+      const settingsGeometry = await page.locator(".settings-workspace .settings-row").evaluateAll(rows => rows.map(row => {
+        const rowBox = row.getBoundingClientRect();
+        const children = [...row.children].map(child => child.getBoundingClientRect()).filter(box => box.width && box.height);
+        return { rowRight: rowBox.right, childRight: Math.max(0, ...children.map(box => box.right)), height: rowBox.height };
+      }));
+      assert.ok(settingsGeometry.every(item => item.childRight <= item.rowRight + 1), `${width}px: Settings control overflows its row: ${JSON.stringify(settingsGeometry)}`);
+      await captureViewport(page, `settings-${width}.png`);
 
       await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".chat-sidebar");

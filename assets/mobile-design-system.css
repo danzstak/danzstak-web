@@ -69,6 +69,20 @@ button,a,input,select,textarea{touch-action:manipulation}
   .ds-tool-page .map-shell,.ds-tool-page #map{max-width:100%;border-radius:var(--ds-radius);overflow:hidden}
 }
 
+/* Profile uses the same phone application shell without changing its desktop account navigation. */
+@media(max-width:700px){
+  body.profile-page{padding-bottom:calc(54px + env(safe-area-inset-bottom))}
+  body.profile-page>header{
+    position:sticky;top:0;z-index:100;display:flex;align-items:center;
+    width:100%;min-height:var(--ds-mobile-header);padding:6px max(8px,env(safe-area-inset-right)) 6px max(8px,env(safe-area-inset-left));
+    overflow:visible;background:var(--ds-blue);
+  }
+  body.profile-page>header .brand{display:flex;flex:0 0 34px;width:34px;min-width:34px;height:34px;overflow:hidden}
+  body.profile-page>header .brand img{width:34px;height:34px;margin:0;border-radius:0;object-fit:contain}
+  body.profile-page>header .brand span,body.profile-page>header .header-actions{display:none}
+  body.profile-page main{margin-top:var(--ds-space-3)}
+}
+
 /* Record Stores uses the same professional-tool shell as Booking and EPK. */
 .ds-tool-page .record-icon{line-height:1}
 @media(max-width:700px){
