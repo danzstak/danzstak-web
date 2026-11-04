@@ -26,7 +26,7 @@ assert.ok(html.includes('id="registerThisDevice"'),"the current installation nee
 assert.ok(html.includes("Registration does not expose a phone number"),"the UI must distinguish device enrollment from telephone service");
 assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"call requests need the current installation credential");
-assert.match(client,/confirm\(t\(`Revoke/,"lost-device revocation must require deliberate confirmation");
+assert.match(client,/confirm\(`\$\{t\("Revoke"\)\} \$\{device\.name\}\? \$\{t\("It will stop receiving SYNC calls\."\)\}`\)/,"lost-device revocation must require deliberate localized confirmation");
 assert.match(client,/renameDevice\(device\)[\s\S]*method:"PATCH"/,"registered devices must be renameable without re-enrollment");
 assert.match(client,/activity\.textContent=lastActive\(device\.lastUsedAt\)/,"device management must show the server-recorded last active time");
 assert.match(chat,/path\.startsWith\("\/calls\/"\)\?await globalThis\.danzstakCallingDeviceHeaders/,"calling requests must authenticate the installation");

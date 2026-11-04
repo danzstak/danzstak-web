@@ -4,6 +4,14 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Registered-device localization follow-up — 2026-11-04
+
+Status: **COMPLETE AND TESTED; PRODUCTION RELEASE PENDING**.
+
+- **Independent defect found:** the newly released calling-device manager respected the selected language for dates but most visible status, action, recovery, and confirmation text still fell back to English. The revoke confirmation also interpolated a device name before translation, making the full sentence impossible to translate safely.
+- **Root correction:** the shared translation dictionary now covers the device manager in all 15 supported languages. Android, Apple, and generic device names; registration state; last activity; call permission; rename, disable, and revoke actions; validation; service recovery; and revoke consequences all follow the account language. Dynamic device names remain user-authored and are inserted around translated text rather than sent through the dictionary.
+- **Cache and regression protection:** the shared i18n asset advances to `v=389`, the calling-device client advances to `v=2`, and the PWA shell advances to `danzstak-shell-v671`. `test-call-device-localization.cjs` verifies every key has a non-empty, non-English fallback in all 14 non-English dictionaries. A real Edge/Playwright browser pass opens the populated manager at 320px in every supported language and verifies selected language, translated state/actions, and no horizontal overflow. The complete repository regression gate also passes.
+
 ### Explicit SYNC calling-device registration — 2026-11-04
 
 Status: **DEPLOYED AND AUTOMATICALLY VERIFIED; PHYSICAL TWO-DEVICE CALL TEST REQUIRED**.

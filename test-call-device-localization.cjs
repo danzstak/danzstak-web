@@ -1,0 +1,31 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+
+const i18n = fs.readFileSync("assets/i18n.js", "utf8");
+const devices = fs.readFileSync("assets/call-devices.js", "utf8");
+const keysMatch = i18n.match(/const callingDeviceKeys=(\[[^;]+\]);/);
+const translationsMatch = i18n.match(/const callingDevices=(\{[\s\S]*?\r?\n \});\r?\n for\(const \[language,values\] of Object\.entries\(callingDevices\)\)/);
+
+assert.ok(keysMatch && translationsMatch, "calling-device translations must remain inspectable");
+const context = vm.createContext({ result: null });
+vm.runInContext(`result={keys:${keysMatch[1]},translations:${translationsMatch[1]}}`, context);
+const { keys, translations } = context.result;
+const languages = ["es", "fr", "de", "pt", "it", "ko", "ja", "zh-Hans", "zh-Hant", "fil", "hi", "vi", "th", "id"];
+
+for (const language of languages) {
+  assert.equal(translations[language].length, keys.length, `${language} must translate every calling-device label`);
+  translations[language].forEach((value, index) => {
+    assert.ok(String(value).trim(), `${language} calling-device translation ${index + 1} cannot be blank`);
+    assert.notEqual(value, keys[index], `${language} calling-device translation ${index + 1} cannot fall back to English`);
+  });
+}
+
+for (const key of ["Last active", "This device is registered for SYNC calls.", "Calls allowed", "Incoming calls off", "Rename", "Turn calls off", "Allow calls", "Revoke", "Registering this device…", "It will stop receiving SYNC calls."]) {
+  assert.ok(devices.includes(`t(${JSON.stringify(key)})`), `calling-device UI must translate ${key}`);
+}
+assert.doesNotMatch(devices, /t\(`Revoke \$\{device\.name\}/, "dynamic revoke text must not bypass the translation dictionary");
+
+console.log("Calling-device localization checks passed for all 15 supported languages.");
