@@ -40,6 +40,13 @@ import {
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import QRCode from "qrcode";
+import {
+  DELETION_CONFIRMATION,
+  cancelDeletionRequest,
+  createDeletionRequest,
+  deletionRequestKey,
+  publicDeletionStatus
+} from "./account-data-control.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
@@ -89,6 +96,7 @@ const issuer =
 const sessionCookieName = "__Host-danzstak_session";
 const oauthCookieName = "__Host-danzstak_oauth";
 const legalCookieName = "__Host-danzstak_legal";
+const deletionProofCookieName = "__Host-danzstak_delete_proof";
 const legalVersion = "2026-10-26";
 const sessionLifetimeSeconds = 30 * 24 * 60 * 60;
 const recentAuthenticationSeconds = 10 * 60;
@@ -529,7 +537,7 @@ async function verifyIdToken(token, expectedNonce, expectedSub) {
 }
 
 // START SECURE COGNITO LOGIN OR SIGNUP
-async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null) {
+async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null, purpose = null) {
   const state = randomValue();
   const verifier = randomValue();
   const nonce = randomValue();
@@ -550,6 +558,10 @@ async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null)
   if (mobile) {
     pendingItem.mobilePlatform = { S: mobile.platform };
     pendingItem.mobileChallenge = { S: mobile.challenge };
+  }
+  if (purpose?.type === "account_deletion_reauth" && purpose.userId) {
+    pendingItem.purpose = { S: purpose.type };
+    pendingItem.expectedUserId = { S: purpose.userId };
   }
 
   await db.send(new PutItemCommand({
@@ -575,7 +587,7 @@ async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null)
   url.searchParams.set("nonce", nonce);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
-  if (mode === "reauth") url.searchParams.set("prompt", "login");
+  if (mode === "reauth" || purpose?.type === "account_deletion_reauth") url.searchParams.set("prompt", "login");
 
   const browserCookie = secureCookie(
     oauthCookieName,
@@ -812,6 +824,27 @@ async function completeLogin(event) {
       401,
       "Cognito identity verification failed",
       [expiredBrowserCookie]
+    );
+  }
+
+  if (pending.purpose?.S === "account_deletion_reauth") {
+    if (!pending.expectedUserId?.S || !safeEqual(pending.expectedUserId.S, user.sub)) {
+      return redirect(siteUrl + "/feed.html?view=settings&deletion=identity-mismatch", [expiredBrowserCookie]);
+    }
+    const proof = randomValue();
+    await db.send(new PutItemCommand({
+      TableName: tableName,
+      Item: {
+        sessionId: { S: sha256("delete-proof:" + proof) },
+        type: { S: "account_deletion_proof" },
+        userId: { S: user.sub },
+        expiresAt: { N: String(now() + 600) }
+      },
+      ConditionExpression: "attribute_not_exists(sessionId)"
+    }));
+    return redirect(
+      siteUrl + "/feed.html?view=settings&deletion=verified",
+      [secureCookie(deletionProofCookieName, proof, 600), expiredBrowserCookie]
     );
   }
 
@@ -1084,6 +1117,145 @@ async function getAuthenticatedSession(event, { touch = true } = {}) {
 
 async function getAuthenticatedUser(event) {
   return (await getAuthenticatedSession(event))?.userId || null;
+}
+
+async function startAccountDeletionReauth(event) {
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return errorResponse(401, "Authentication required");
+  return startLogin("login", "", null, { type: "account_deletion_reauth", userId });
+}
+
+function deletionItemToRequest(item) {
+  if (!item || item.type?.S !== "account_deletion_request") return null;
+  return {
+    requestId: item.requestId?.S || "",
+    userId: item.userId?.S || "",
+    accountEmail: item.accountEmail?.S || "",
+    status: item.status?.S || "request_received",
+    phaseIndex: Number(item.phaseIndex?.N || 0),
+    requestedAt: Number(item.requestedAt?.N || 0),
+    graceEndsAt: Number(item.graceEndsAt?.N || 0),
+    updatedAt: Number(item.updatedAt?.N || 0),
+    completedAt: item.completedAt?.N ? Number(item.completedAt.N) : null,
+    failure: item.failure?.S || null
+  };
+}
+
+async function accountDeletionStatus(event) {
+  const headers = corsHeaders(event.headers?.origin || event.headers?.Origin);
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required" }) };
+  const result = await db.send(new GetItemCommand({
+    TableName: tableName,
+    Key: { sessionId: { S: deletionRequestKey(userId) } },
+    ConsistentRead: true
+  }));
+  return { statusCode: 200, headers, body: JSON.stringify(publicDeletionStatus(deletionItemToRequest(result.Item), now())) };
+}
+
+async function requestAccountDeletion(event) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const headers = corsHeaders(origin);
+  if (!allowedOrigins.has(origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "DanzStak origin required" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required" }) };
+  let body;
+  try { body = JSON.parse(event.body || "{}"); }
+  catch { return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid deletion request" }) }; }
+  const proof = getCookie(event, deletionProofCookieName);
+  if (!proof || !/^[a-f0-9]{64}$/.test(proof)) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: "Verify your account again before requesting deletion", reauthRequired: true }) };
+  }
+  const proofKey = { sessionId: { S: sha256("delete-proof:" + proof) } };
+  const proofResult = await db.send(new GetItemCommand({ TableName: tableName, Key: proofKey, ConsistentRead: true }));
+  const proofItem = proofResult.Item;
+  if (proofItem?.type?.S !== "account_deletion_proof" || proofItem.userId?.S !== userId || Number(proofItem.expiresAt?.N || 0) <= now()) {
+    return { statusCode: 403, headers, cookies: [clearCookie(deletionProofCookieName)], body: JSON.stringify({ error: "Account verification expired", reauthRequired: true }) };
+  }
+  const requestKey = { sessionId: { S: deletionRequestKey(userId) } };
+  const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: requestKey, ConsistentRead: true }));
+  if (existing.Item) {
+    return { statusCode: 200, headers, cookies: [clearCookie(deletionProofCookieName)], body: JSON.stringify(publicDeletionStatus(deletionItemToRequest(existing.Item), now())) };
+  }
+  const accountEmail = await accountForSub(userId);
+  let request;
+  try {
+    request = createDeletionRequest({
+      userId,
+      accountEmail,
+      confirmation: body.confirmation,
+      proofVerified: true,
+      requestId: body.requestId,
+      now: now()
+    });
+  } catch (error) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: error.message }) };
+  }
+  try {
+    await db.send(new TransactWriteItemsCommand({ TransactItems: [
+      { Delete: {
+        TableName: tableName,
+        Key: proofKey,
+        ConditionExpression: "#type = :proof AND userId = :userId",
+        ExpressionAttributeNames: { "#type": "type" },
+        ExpressionAttributeValues: { ":proof": { S: "account_deletion_proof" }, ":userId": { S: userId } }
+      } },
+      { Put: {
+        TableName: tableName,
+        Item: {
+          ...requestKey,
+          type: { S: "account_deletion_request" },
+          requestId: { S: request.requestId },
+          userId: { S: request.userId },
+          accountEmail: { S: request.accountEmail },
+          status: { S: request.status },
+          phaseIndex: { N: String(request.phaseIndex) },
+          requestedAt: { N: String(request.requestedAt) },
+          graceEndsAt: { N: String(request.graceEndsAt) },
+          updatedAt: { N: String(request.updatedAt) }
+        },
+        ConditionExpression: "attribute_not_exists(sessionId)"
+      } }
+    ] }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException" || error.name === "TransactionCanceledException") {
+      return { statusCode: 409, headers, cookies: [clearCookie(deletionProofCookieName)], body: JSON.stringify({ error: "Deletion verification was already used. Verify again." }) };
+    }
+    throw error;
+  }
+  return { statusCode: 202, headers, cookies: [clearCookie(deletionProofCookieName)], body: JSON.stringify(publicDeletionStatus(request, now())) };
+}
+
+async function cancelAccountDeletion(event) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const headers = corsHeaders(origin);
+  if (!allowedOrigins.has(origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "DanzStak origin required" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required" }) };
+  const key = { sessionId: { S: deletionRequestKey(userId) } };
+  const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
+  let cancelled;
+  try { cancelled = cancelDeletionRequest(deletionItemToRequest(existing.Item), now()); }
+  catch (error) { return { statusCode: 409, headers, body: JSON.stringify({ error: error.message }) }; }
+  try {
+    await db.send(new UpdateItemCommand({
+      TableName: tableName,
+      Key: key,
+      UpdateExpression: "SET #status = :cancelled, updatedAt = :updated",
+      ConditionExpression: "#status = :received AND graceEndsAt > :now",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":cancelled": { S: "cancelled" },
+        ":received": { S: "request_received" },
+        ":updated": { N: String(cancelled.updatedAt) },
+        ":now": { N: String(now()) }
+      }
+    }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "This deletion request can no longer be cancelled" }) };
+    throw error;
+  }
+  return { statusCode: 200, headers, body: JSON.stringify(publicDeletionStatus(cancelled, now())) };
 }
 
 const groupCategories = new Set(["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"]);
@@ -5042,6 +5214,22 @@ export const handler = async event => {
 
     if (method === "POST" && path === "/auth/sessions/revoke-others") {
       return await revokeOtherAccountSessions(event);
+    }
+
+    if (method === "GET" && path === "/auth/account-deletion/reauth") {
+      return await startAccountDeletionReauth(event);
+    }
+
+    if (method === "GET" && path === "/account-deletion") {
+      return await accountDeletionStatus(event);
+    }
+
+    if (method === "POST" && path === "/account-deletion") {
+      return await requestAccountDeletion(event);
+    }
+
+    if (method === "DELETE" && path === "/account-deletion") {
+      return await cancelAccountDeletion(event);
     }
 
     if (method === "GET" && path === "/secure-posts") {

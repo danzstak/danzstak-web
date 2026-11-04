@@ -287,6 +287,18 @@ Resources:
   ReauthenticateRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /auth/reauth', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  AccountDeletionReauthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /auth/account-deletion/reauth', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  AccountDeletionStatusRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /account-deletion', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  AccountDeletionRequestRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /account-deletion', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  AccountDeletionCancelRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /account-deletion', Target: !Sub 'integrations/${AuthIntegrationId}'}
   EngagementInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -294,6 +306,20 @@ Resources:
       FunctionName: !Ref AuthFunctionName
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/engagement*'
+  AccountDeletionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/account-deletion*'
+  AccountDeletionReauthInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/auth/account-deletion/reauth'
   ReactionsInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
