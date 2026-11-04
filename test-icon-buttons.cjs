@@ -14,6 +14,11 @@ assert.match(source, /setAttribute\("aria-label", label\)/, "an icon-only contro
 assert.match(source, /setAttribute\("title", label\)/, "an icon-only control must have a desktop tooltip");
 assert.match(source, /MutationObserver/, "dynamic feed, comment and chat controls must be enhanced too");
 assert.match(source, /back: \["M19 12H5", "M12 19 5 12l7-7"\]/, "the back icon must render a complete left arrow rather than a clipped diagonal");
+assert.match(source, /close: \["M18 6 6 18", "M6 6l12 12"\]/, "the close icon must render both strokes of the X");
+assert.match(source, /expand: \["M8 3H3v5", "M3 3l6 6", "M16 3h5v5", "M21 3l-6 6", "M16 21h5v-5", "M21 21l-6-6", "M8 21H3v-5", "M3 21l6-6"\]/, "the expand icon must render four complete outward corners");
+assert.match(source, /minimize: \["M4 14h6v6", "M10 14l-6 6", "M14 10l6-6", "M14 10h6V4"\]/, "the minimize icon must render complete inward corners");
+assert.match(source, /download: \["M12 3v12", "M7 10l5 5 5-5", "M5 21h14"\]/, "the download icon arrow must be self-contained");
+assert.doesNotMatch(source, /"m6-12 12 12"|"m16 6-6-6"|"m7-5 5 5 5-5"/, "shared icons must not depend on a previous SVG path's cursor position");
 assert.match(source, /getAttribute\("data-ds-icon"\) !== requested/, "changing an action must replace its previous SVG instead of leaving the wrong icon visible");
 assert.match(source, /querySelectorAll\?\.\("\[data-menu-icon\]"\)/, "drawer icons must use the shared SVG enhancer");
 assert.doesNotMatch(source, /lucide|unpkg|cdnjs|jsdelivr/i, "icons must not add a remote dependency");
@@ -24,7 +29,7 @@ assert.match(css, /disabled[^{]*\{[^}]*opacity/, "disabled state must remain vis
 for (const page of pages) {
   const html = fs.readFileSync(page, "utf8");
   assert.match(html, /assets\/icon-buttons\.css\?v=4/, `${page} must load the current shared icon styles`);
-  assert.match(html, /assets\/icon-buttons\.js\?v=6/, `${page} must load the current shared icon behavior`);
+  assert.match(html, /assets\/icon-buttons\.js\?v=7/, `${page} must load the current shared icon behavior`);
 }
 
 const feedPage = fs.readFileSync("feed.html", "utf8");

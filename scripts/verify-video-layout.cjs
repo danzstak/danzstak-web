@@ -32,7 +32,7 @@ function asset(name) {
       </style><main id="native"></main><section class="reels-list" id="providers"></section>`);
       await page.addStyleTag(asset("feed-enhancements.css?v=487"));
       await page.addStyleTag(asset("responsive-media.css?v=3"));
-      await page.addScriptTag(asset("icon-buttons.js?v=6"));
+      await page.addScriptTag(asset("icon-buttons.js?v=7"));
 
       await page.evaluate(() => {
         const native = document.querySelector("#native");

@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const profile = fs.readFileSync("profile.html", "utf8");
 const mobile = fs.readFileSync("assets/mobile-design-system.css", "utf8");
 
-assert.match(profile, /assets\/mobile-design-system\.css\?v=10/,
+assert.match(profile, /assets\/mobile-design-system\.css\?v=11/,
   "the profile must load the shared mobile application shell");
 assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">[\s\S]*?data-icon="home"[\s\S]*?data-icon="users"[\s\S]*?data-icon="chat"[\s\S]*?data-icon="bell"[\s\S]*?data-icon="menu"/,
   "the profile must expose the same five primary mobile destinations as the rest of DanzStak");

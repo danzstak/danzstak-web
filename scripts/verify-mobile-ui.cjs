@@ -28,6 +28,25 @@ const fixturePost = {
   commentCount: 2,
   shareCount: 3
 };
+const fixtureStoryImage = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#1769e0"/><stop offset="1" stop-color="#ef6c20"/></linearGradient></defs><rect width="720" height="1280" fill="url(#g)"/><text x="360" y="620" text-anchor="middle" fill="white" font-family="Arial" font-size="72" font-weight="700">DANZSTAK</text><text x="360" y="710" text-anchor="middle" fill="white" font-family="Arial" font-size="46">FLASH</text></svg>');
+const fixtureStory = {
+  storyId: "55555555-5555-4555-8555-555555555555",
+  content: "Tonight at the show",
+  displayName: "DanzStak Test Artist",
+  memberId: "11111111-1111-4111-8111-111111111111",
+  mediaType: "image",
+  mediaUrl: fixtureStoryImage,
+  isOwner: true
+};
+const fixtureReel = {
+  id: "66666666-6666-4666-8666-666666666666",
+  url: "https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com/visual-fixture.mp4",
+  authorName: "DanzStak Test Artist",
+  memberId: "11111111-1111-4111-8111-111111111111",
+  content: "DanzStak Roll layout verification",
+  sharedAt: "2026-11-04T12:30:00.000Z",
+  isOwner: true
+};
 
 function json(route, body, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -52,7 +71,7 @@ async function installApiFixtures(page) {
     if (pathname === "/settings/posts") return json(route, { pinned: [], saved: [], muted: [] });
     if (pathname === "/settings/presence") return json(route, { onlineVisible: true, allowTags: true, callAlerts: true, messageAlerts: true, reduceMotion: false, dataSaver: false, language: "en" });
     if (pathname === "/profile" || pathname === "/profiles") return json(route, { profile: { name: "DanzStak Test Artist", username: "testartist", memberId: "11111111-1111-4111-8111-111111111111", isOwner: true, location: "Berlin, Germany", bio: "Independent artist testing DanzStak on mobile." } });
-    if (pathname === "/stories") return json(route, { stories: [] });
+    if (pathname === "/stories") return json(route, { stories: [fixtureStory], reels: [fixtureReel] });
     return json(route, {});
   });
 }
@@ -248,6 +267,36 @@ async function captureViewport(page, fileName) {
         await page.locator("[data-menu-close]").click();
       }
       if (width === 390) {
+        await page.waitForSelector('.story[data-story-id] .story-open');
+        await page.locator('.story[data-story-id] .story-open').click();
+        await page.waitForSelector('#storyViewer[open]');
+        const storyGeometry = await page.locator('#storyViewer').evaluate(viewer => {
+          const box = viewer.getBoundingClientRect();
+          const media = viewer.querySelector('.story-viewer-media').getBoundingClientRect();
+          const close = viewer.querySelector('.story-viewer-close').getBoundingClientRect();
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, mediaWidth: media.width, closeWidth: close.width, closeHeight: close.height, viewportWidth: innerWidth, viewportHeight: innerHeight };
+        });
+        assert.ok(storyGeometry.left >= 0 && storyGeometry.right <= storyGeometry.viewportWidth + 1 && storyGeometry.top >= 0 && storyGeometry.bottom <= storyGeometry.viewportHeight + 1, `Flash viewer must fit the phone viewport: ${JSON.stringify(storyGeometry)}`);
+        assert.ok(storyGeometry.mediaWidth >= storyGeometry.viewportWidth * .8, `Flash media wastes phone width: ${JSON.stringify(storyGeometry)}`);
+        assert.ok(storyGeometry.closeWidth >= 44 && storyGeometry.closeHeight >= 44, `Flash close action needs a comfortable touch target: ${JSON.stringify(storyGeometry)}`);
+        await captureViewport(page, 'flash-viewer-390.png');
+        await page.locator('.story-viewer-close').click();
+        await page.waitForFunction(() => !document.getElementById('storyViewer')?.open);
+
+        await page.waitForSelector('.reels-list .reel-card');
+        await page.locator('.roll-open').click();
+        await page.waitForSelector('.reels-rail.roll-fullscreen');
+        const rollGeometry = await page.locator('.reels-rail.roll-fullscreen').evaluate(rail => {
+          const box = rail.getBoundingClientRect();
+          const card = rail.querySelector('.reel-card').getBoundingClientRect();
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, cardLeft: card.left, cardRight: card.right, viewportWidth: innerWidth, viewportHeight: innerHeight };
+        });
+        assert.ok(rollGeometry.left === 0 && rollGeometry.right === rollGeometry.viewportWidth && rollGeometry.top === 0 && rollGeometry.bottom === rollGeometry.viewportHeight, `The Roll must own the phone viewport: ${JSON.stringify(rollGeometry)}`);
+        assert.ok(rollGeometry.cardLeft >= 0 && rollGeometry.cardRight <= rollGeometry.viewportWidth + 1, `The Roll card overflows the phone: ${JSON.stringify(rollGeometry)}`);
+        await captureViewport(page, 'roll-fullscreen-390.png');
+        await page.locator('.roll-close').click();
+        await page.waitForSelector('.reels-rail:not(.roll-fullscreen)');
+
         await page.locator("#feed article.post video.ds-responsive-media").scrollIntoViewIfNeeded();
         await captureViewport(page, "video-390.png");
         await page.locator("#feed article.post .post-actions").scrollIntoViewIfNeeded();
