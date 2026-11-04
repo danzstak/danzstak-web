@@ -1,6 +1,6 @@
 # Issue #24 — Make Plans MVP review evidence
 
-**Branch:** `codex/issue-24`  
+**Branch:** `codex/issue-24`
 **Status:** IN PROGRESS — implementation and local browser verification complete; isolated AWS staging and real-account end-to-end verification pending.
 
 ## Audit
@@ -35,12 +35,18 @@
 
 Phone screenshots: [320px](screenshots/issue-24-make-plans/make-plans-320.png), [360px](screenshots/issue-24-make-plans/make-plans-360.png), [390px](screenshots/issue-24-make-plans/make-plans-390.png), [414px](screenshots/issue-24-make-plans/make-plans-414.png).
 
-## Required staging gate
+## Staging review
 
-The AWS CLI session expired before an isolated staging target could be inspected or deployed. No URL is invented and no production resource is modified. After `aws login` completes, the remaining work is:
+AWS Amplify DEVELOPMENT branch job `1` succeeded and serves the tested PWA shell at:
 
-1. verify or create an isolated preview Amplify branch and isolated plan API/table (never the production API/table);
-2. deploy the exact tested commit;
+`https://codex-issue-24.d31oovi2mos5iz.amplifyapp.com`
+
+The hosted `messages.html`, Make Plans assets and `danzstak-shell-v668-issue24-preview` worker were independently fetched with HTTP 200. Production `main` and `https://danzstak.com` were not changed. Draft review PR: `https://github.com/danzstak/danzstak-web/pull/26`.
+
+This is currently a **visual/PWA owner-review environment**, not a claimed two-account backend proof. Existing DANZSTAK authentication cookies and API origin controls are correctly production-host scoped; weakening them or attaching an untested preview origin to the production API would violate the isolation requirement. Remaining work is:
+
+1. create an isolated staging auth/API/table target (never the production API/table);
+2. point a subsequent preview commit at that isolated API;
 3. use two controlled accounts to create/accept/maybe/decline/edit/cancel across sessions;
 4. deny an unrelated third account and a no-longer-friend account by direct API;
 5. verify DST cases, `.ics`, offline/reconnect, deep links, stale PWA update and supported phone browsers;
