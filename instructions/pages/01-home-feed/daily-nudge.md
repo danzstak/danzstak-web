@@ -9,6 +9,7 @@ DANZSTAK should help people put their phones away and engage with actual people,
 ### Owner's examples (retain spirit and exact intent)
 
 - “Did you say buongiorno to the lady at the deli?”
+- “Don't forget to take your lady for gelato.”
 - “Did you plant a tree today?”
 - “Did you make a salad from your garden?”
 - “Did you smell the fresh air today?”
