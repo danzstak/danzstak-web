@@ -35,6 +35,20 @@ Draft further lines with similarly human voice. Use sensible localization: “bu
 6. No notifications, badges, streaks, rewards, click targets, tracking pixels, campaigns or behavioral advertising. Do not gate ordinary social use on opening it. Keep it free.
 7. Accessibility: accessible label for one fleeting thought, readable contrast and typography, 44px dismissal control where appropriate; keyboard/focus semantics; reduced-motion support.
 
+## Owner update — worldwide languages and independent device messages (2026-11-04)
+
+**Required:** These Little Word of the Day messages are for DANZSTAK members worldwide, including the owner's friends in many countries. English-only nudges are not acceptable.
+
+- **Languages:** Translate the full approved nudge library into every currently supported DANZSTAK app language (the development report identifies 15), and make the catalog expandable without a hard-coded 15-language limit. Select the member's configured app language, with sensible locale variants and clearly defined fallback (rather than blank text). Verify actual supported locale codes from the language implementation before coding; do not assume which languages are present.
+- **Quality:** Preserve the gentle humor, warmth and everyday context in each language, using culturally natural translations. “Did you say buongiorno to the lady at the deli?” should sound like something a real person would say locally. Handle text expansion, long words, accents, non-Latin scripts and right-to-left layout where needed. No fake claim of certified translation: automated translations need review/QA; the app should never display raw English as though translated.
+- **Per-device variety:** Do **not** use a single global daily phrase or choose by account ID alone. Each independently installed browser/PWA gets its own privacy-safe local random installation seed and daily choice from a substantial, curated library. Selection must be stable throughout the local calendar day and not change just by reloading, switching routes, reconnecting, or changing languages. On the same device, changing app language changes the translation of the *same* chosen prompt.
+- **Different devices:** Two devices for the same person should select independently, so members around the world are not all served the same nudge. True guaranteed uniqueness across millions of devices is impossible without central allocation; do not build cross-device tracking to force it. Allow occasional chance duplicates and add a short local no-repeat history.
+- **Only once per device per day:** Persist shown/dismissed state locally and keep it hidden after the initial ~7-second display or explicit dismissal until the device's next local day. Handle timezone or daylight-saving changes without creating repeat popups.
+- **No tracking/costs:** No device fingerprinting, hardware identifiers, server-side user profiling, per-open AI API calls, mandatory GPS, location-derived messages, or analytics of personal behavior. Use curated localized phrases packaged and cached for offline PWA use.
+- **Verification:** Automated tests for each supported locale (including missing-translation fallback), device A vs B independent daily selections, same-device stable choice and once-per-day display, translation-only language switches, next-day rotation, local DST/timezone changes, reduced motion, tiny-phone header overflow, focus and screen readers. Use several independently seeded virtual devices and document collision probability/limitations rather than claiming all devices are guaranteed to get unique text.
+
+This update overrides any earlier wording that implies the *same* daily phrase across users or devices. It remains a specification, **not** proof of implementation.
+
 ## Required evidence before owner review
 
 - Separate implementation branch and small PR, not direct production change.
