@@ -20,3 +20,11 @@ Investigate screening **user-uploaded video files** with audio/video digital fin
 
 ## Release gate
 This is a **research/design task only** until the owner approves first-party video upload architecture, vendor, cost and policy. No production deployment, billing, or user-media upload change without approval.
+
+## Owner direction — quarantine reported videos and posts
+- When a credible copyright complaint is received, immediately restrict the reported item from public feeds, profiles, search, Dailies, Rough Cuts, shares, embeds and public URLs while it is triaged. Do not treat an unverified report as a final infringement finding.
+- For preliminary review, keep the item visible in the uploader's **private content-management dashboard**, with a clear status, complaint details as legally appropriate, and appeal/review controls. Playback may be allowed only where legally appropriate and access-controlled; do not promise the uploader continued playback in every case.
+- For a legally sufficient DMCA takedown notice, promptly remove or disable access to the allegedly infringing material in accordance with applicable law. An uploader-only playable copy is **not automatically sufficient**. The uploader may retain a nonplayable record/metadata and appropriate counter-notification path.
+- Implement server-side restrictions on original and derived media, signed URLs, CDN caches, thumbnails and API endpoints; hiding a UI card alone is inadequate.
+- Notify uploader, record audit trail and decisions, support counter-notice and lawful restoration procedures, and apply repeat-infringer policy. Prevent arbitrary third-party reports from permanently removing content without review.
+- Test all states: public -> reported/private review -> valid notice/disabled -> restored or removed, including direct URLs, mobile clients, cached video and unauthorized viewers.
