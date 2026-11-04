@@ -27,6 +27,14 @@ Status: **COMPLETE, DEPLOYED, AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL 
 - **Production deployment:** implementation commit `8d54f81c0a082720002720f3f841b73d06875e2b` was fast-forwarded to `main`. AWS Amplify app `d31oovi2mos5iz`, job `863`, region `us-west-1`, succeeded from 2026-11-04 09:07:22 to 09:08:15 Europe/Berlin.
 - **Live verification:** the production matrix passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Production health returned PASS. A fresh browser reached an activated controlling worker with only `danzstak-shell-v651` in CacheStorage.
 
+#### Professional-tool desktop and empty-control follow-up
+
+- **Independent defect found:** `#venueQuickMore` started with the correct HTML `hidden` attribute, but its author stylesheet forced `display:block`. The result was an empty 151×44px bordered control beneath Club Finder before any search. This was visible at 768, 1024 and 1366px and had escaped the phone-only professional-tool screenshots.
+- **Correction:** an explicit `#venueQuickMore[hidden]{display:none}` rule now preserves the hidden state, and the action is intentionally styled as secondary when results later reveal it. The visual suite now fails if this control appears before a search on phone or desktop.
+- **Expanded desktop evidence:** Booking Agent and EPK now render in the automated gate at 768, 1024 and 1366px. It verifies no overflow, desktop navigation presence, absence of duplicate mobile navigation, and a two-column EPK editor/preview at 1024px and wider. Development captures: [Booking Agent](screenshots/pro-tools-desktop-audit-2/booking-desktop-1024.png) and [EPK](screenshots/pro-tools-desktop-audit-2/epk-desktop-1024.png). Live captures: [Booking Agent](screenshots/pro-tools-desktop-live/booking-desktop-1024.png) and [EPK](screenshots/pro-tools-desktop-live/epk-desktop-1024.png).
+- **Tests and live state:** the complete regression gate passed before release. The live visual matrix passed at all nine widths, production health returned PASS, and a fresh controlled browser contains only `danzstak-shell-v652`. Production `main` is implementation commit `860aed6`.
+- **AWS metadata limitation:** the AWS CLI session expired immediately after the `main` push, so the Amplify job ID and AWS-side timestamps were not guessed. The public release is independently verified live. To recover the missing AWS job metadata, the exact owner action is `aws login`; no code or deployment retry is required.
+
 ### Whole-product UX quality pass — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
