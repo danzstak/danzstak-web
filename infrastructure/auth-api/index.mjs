@@ -58,8 +58,9 @@ import {
   failDeletionPhase,
   publicDeletionStatus
 } from "./account-data-control.mjs";
-import { ACCOUNT_TABLES, runAccountErasurePhase } from "./account-erasure.mjs";
+import { ACCOUNT_TABLES, accountMediaPrefixes, runAccountErasurePhase } from "./account-erasure.mjs";
 import { createDynamoAccountErasureAdapters } from "./account-erasure-dynamodb.mjs";
+import { accountMediaExportEntry, publicMediaManifest } from "./account-export-media.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
@@ -1291,6 +1292,30 @@ async function cancelAccountDeletion(event) {
     throw error;
   }
   return { statusCode: 200, headers, body: JSON.stringify(publicDeletionStatus(cancelled, now())) };
+}
+
+async function getAccountExportMedia(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const accountEmail = await accountForSub(userId);
+  if (!accountEmail || !mediaBucket) return { statusCode: 503, headers, body: JSON.stringify({ error: "Media export is not configured." }) };
+  const prefixes = accountMediaPrefixes(accountEmail), objects = [];
+  let complete = true;
+  for (const Prefix of prefixes) {
+    let ContinuationToken;
+    do {
+      const page = await s3.send(new ListObjectsV2Command({ Bucket: mediaBucket, Prefix, ContinuationToken, MaxKeys: 250 }));
+      objects.push(...(page.Contents || []));
+      ContinuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+      if (objects.length >= 2000 && ContinuationToken) { complete = false; break; }
+    } while (ContinuationToken);
+    if (!complete) break;
+  }
+  const files = objects.slice(0, 2000).map(object => accountMediaExportEntry(object, prefixes, (key, filename) => signedMediaUrl(key, 900, {
+    "response-content-disposition": `attachment; filename="${String(filename).replace(/[\r\n"\\]/g, "-")}"`
+  }))).filter(Boolean);
+  const manifest = publicMediaManifest(files, complete && objects.length <= 2000);
+  return { statusCode: 200, headers, body: JSON.stringify({ ...manifest, files }) };
 }
 
 async function dueAccountDeletionRequests(limit = 5) {
@@ -5379,6 +5404,9 @@ export const handler = async event => {
 
     if (method === "DELETE" && path === "/account-deletion") {
       return await cancelAccountDeletion(event);
+    }
+    if (method === "GET" && path === "/account-export/media") {
+      return await getAccountExportMedia(event);
     }
 
     if (method === "GET" && path === "/secure-posts") {
