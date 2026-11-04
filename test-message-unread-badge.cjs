@@ -7,7 +7,7 @@ const styles = fs.readFileSync("assets/chat.css", "utf8");
 assert.match(client, /badge\.className = "conversation-unread"/, "saved chats need a visible unread badge");
 assert.match(client, /Number\(conversation\.unread\) > 99 \? "99\+"/, "large unread counts must stay compact");
 assert.match(client, /messageFormat\(Number\(conversation\.unread\) === 1 \? "\{count\} unread message" : "\{count\} unread messages"/, "unread counts need a localized accessible label");
-assert.match(client, /conversation\.unread = 0; markChatRead/, "opening a chat must clear its local unread state immediately");
+assert.match(client, /conversation\.unread = 0;\s+markChatRead\(conversation\.contactEmail/, "opening a chat must clear its local unread state immediately");
 assert.match(styles, /\.conversation-unread\{[^}]*border-radius:999px/, "unread counts need a compact messenger-style badge");
 
 console.log("Message unread-badge checks passed: compact counts, accessible labels, and immediate local clearing.");

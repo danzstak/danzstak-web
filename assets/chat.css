@@ -135,3 +135,19 @@ body.is-conversation-open>.install-app-button,body.is-conversation-open>.app-upd
 .message-loading-state{padding:28px 12px}.message-load-error{display:grid;justify-items:center;gap:10px;padding:24px 12px}.message-load-error .system-message{margin:0}.message-load-retry{min-height:36px;padding:7px 12px;border:1px solid #c8d0dc;border-radius:10px;background:#edf1f6;color:#172033;font-weight:750;cursor:pointer}.message-load-retry:hover,.message-load-retry:focus-visible{background:#dfe8f4;outline:2px solid #1769e0;outline-offset:2px}.dark-mode .message-load-retry{border-color:#526074;background:#253247;color:#f5f7fb}
 .chat-header .chat-brand img{width:42px;height:42px;border-radius:0;object-fit:contain}.chat-header .chat-brand span{display:inline;color:#172033;font-size:1.2rem;font-weight:900;letter-spacing:-.02em;transform:none}.chat-search-icon{display:grid;place-items:center;flex:0 0 18px;width:18px;height:18px;color:#667085}.chat-search-icon .ds-action-icon{display:block;width:18px;height:18px}@media(max-width:560px){.chat-header .chat-brand{flex:0 0 auto}.chat-header .chat-brand img{width:38px;height:38px}.chat-header .chat-brand span{display:none}}
 .conversation-status{flex:0 0 auto;min-height:0;margin:0;padding:6px 14px;border-bottom:1px solid #e7eaf0;background:#f8f9fb;color:#526173;font-size:12px;line-height:1.35}.embedded-messages.is-conversation-open #callStatus{display:block}.dark-mode .conversation-status{border-color:#3b4658;background:#253044;color:#c7d0dd}
+
+/* Real permitted contacts, not a Stories or promotional carousel. */
+.chat-contact-strip{display:flex;gap:10px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity;margin:2px -4px 10px;padding:3px 4px 5px;scrollbar-width:none}
+.chat-contact-strip[hidden]{display:none}
+.chat-contact-strip::-webkit-scrollbar{display:none}
+.chat-contact{flex:0 0 58px;display:grid;justify-items:center;gap:4px;min-width:58px;min-height:78px;padding:2px;border:0;border-radius:10px;background:transparent;color:#172033;scroll-snap-align:start}
+.chat-contact:hover{background:#edf4ff}
+.chat-contact:focus-visible{outline:3px solid #f4a340;outline-offset:1px}
+.chat-contact-avatar-wrap{position:relative;display:block;width:52px;height:52px}
+.chat-contact-avatar{display:grid;width:52px;height:52px;place-items:center;border:1px solid #d5dde8;border-radius:50%;background:#dbeafe;color:#1558a6;object-fit:cover;font-size:18px;font-weight:900}
+.chat-contact-online{position:absolute;right:0;bottom:1px;width:13px;height:13px;border:2px solid #f8f9fb;border-radius:50%;background:#20b15a}
+.chat-contact-name{display:block;width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font-size:11px;font-weight:750}
+.dark-mode .chat-contact{color:#f5f7fb}
+.dark-mode .chat-contact:hover{background:#253c60}
+.dark-mode .chat-contact-avatar{border-color:#526074;background:#263a55;color:#dceaff}
+.dark-mode .chat-contact-online{border-color:#253044}

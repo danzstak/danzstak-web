@@ -4,6 +4,15 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Compact Chat contact shortcuts — 2026-11-05
+
+Status: **IMPLEMENTED AND PASSING THE LOCAL RELEASE GATE; PRODUCTION DEPLOYMENT PENDING**.
+
+- **User-facing improvement:** Messages now places a compact, horizontally swipeable photo row directly below Chat search. It is built only from the signed-in user's real permitted Friends and Tribe contacts, excludes contacts the backend marks unavailable, and opens the existing persistent conversation rather than creating a duplicate or exposing an email address.
+- **Truthful identity and presence:** shortcuts reuse the existing secure profile-photo recovery path, show names with truncation instead of shrinking the interface, and display an online marker only when the backend explicitly reports `online === true`. Keyboard focus survives inbox polling for both the shortcut row and the full conversation list.
+- **Responsive evidence:** Edge/Playwright passed at 320, 360, 390, 414, 430 and 1024px with ten permitted contacts plus one blocked fixture. The check requires real horizontal scrolling, zero document overflow, correct online state, absence of the blocked contact, and successful opening of the selected persistent conversation. A separate permanent Feed geometry test passed at 701, 768, 820, 880 and 1024px and found no composer or feed-card overflow.
+- **Integration evidence:** Chat shortcut, conversation-focus, conversation polling, unread-badge, mobile-history, calling-device, one-answer, call-notification, PWA-refresh, page-script-scope and infrastructure checks pass. The complete `test-regressions.ps1` gate also passes, including authentication, persistent social content, Friends/presence, Notifications, Chat/calls, media/audio ownership, Booking Agent, EPK, Tour Manager, Stripe safeguards, PWA refresh, site smoke and infrastructure. Live deployment verification remains required before this status can advance to deployed.
+
 ### Core social mobile QA matrix — 2026-11-04
 
 Status: **PASSING LOCALLY; NO PRODUCTION CHANGE REQUIRED**.
