@@ -59,3 +59,6 @@ The action tile must be labeled **Take 1**, never **Create**. Keep the dated cla
 - Keep the current local date on the clapperboard, the real user profile picture visible below it, and a plus control to add a Daily. The tile must remain tappable and accessible with a clear “Add Daily” action even when the label is a number.
 - This supersedes earlier UI copy requirements specifying **Take 1** as the tile label; no other Dailies terminology changes.
 - Test zero, one, multiple, deletion and 24-hour expiration transitions, including correct count after app reload.
+
+## Latest owner-approved label format — overrides previous count-only label
+Display **Take** immediately before the active Daily count under the creator tile. Examples: **Take 0**, **Take 1**, **Take 3**. The number is the signed-in user's current active/unexpired Daily count, not a lifetime total. Keep the dated clapperboard above the real profile picture and the plus affordance. Do not display “0 Dailies”, “1 Daily”, or “3 Dailies” as the tile's primary label. Accessible label must clarify the count and the add action, e.g. “Take 3 — 3 active Dailies; add a Daily.” Update after creation, deletion and expiry.
