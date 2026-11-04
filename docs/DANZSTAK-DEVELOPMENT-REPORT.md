@@ -6,13 +6,13 @@ Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISA
 
 ### Publication verification — 2026-11-04
 
-- **VERIFIED — repository:** development and verification were performed on `danzstak-patch-1`. The latest implementation revision for this update is `fa000ba8ffa3cf7a600cc471d7cbc8229c2f0a71`; the report-publication commit is the branch head immediately following that revision and is supplied with the GitHub report URL after push.
+- **VERIFIED — repository:** development and verification were performed on `danzstak-patch-1`. The latest implementation revision for this update is `62b8a08cfb7e6b806411b5ba9613b392af94c676`; the report-publication commit is the branch head immediately following that revision and is supplied with the GitHub report URL after push.
 - **VERIFIED — Stripe account and catalog:** a fresh authenticated Stripe API read identified account `acct_1RRZmKFgtfNMBXOV` with dashboard name **SFScoop**. The three Test Mode Products and Prices listed below are active, `livemode: false`, USD, one-time, have the expected amounts, and each Price points to its documented Product.
 - **VERIFIED — webhook registration:** Stripe endpoint `we_1UXoPzFgtfNMBXOV05UR9jPa` is enabled in Test Mode at `https://api.danzstak.com/tour-manager/stripe/webhook` with exactly the five required events documented below.
 - **VERIFIED — AWS deployment:** `DANZSTAK-TourManager-Stripe-Test` in `us-west-1` is `Active`, its last update is `Successful`, its runtime is Node.js 20, and `TOUR_MANAGER_LIVE_PAYMENTS=false`. API Gateway still exposes `POST /tour-manager/stripe/webhook`.
 - **VERIFIED — secret availability:** AWS Secrets Manager contains both `danzstak/stripe/secret-key` and the separately stored `danzstak/stripe/webhook-secret`. Secret values were neither displayed nor written to this report.
-- **VERIFIED — signature rejection:** a fresh unsigned/invalidly signed request to the deployed HTTPS endpoint returned HTTP 400. This confirms fail-closed signature handling at the public receiver; it does not replace the pending manual Stripe-hosted successful-card and refund tests.
-- **UNCHANGED OWNER ACTION:** complete one Stripe-hosted Test Mode Checkout and one Test Mode refund for each purchase type, then inspect the Stripe delivery record and matching DynamoDB entitlement. Until those controlled tests pass, Live payments must remain disabled and this branch must not be merged into `main`.
+- **VERIFIED — signature rejection:** a fresh unsigned/invalidly signed request to the deployed HTTPS endpoint returned HTTP 400. This confirms fail-closed signature handling at the public receiver.
+- **COMPLETE — controlled hosted payment and refund gate:** all three Stripe-hosted Test Mode Checkout payments completed, all three `checkout.session.completed` events were processed once by the signed DANZSTAK webhook, and all three full Test Mode refunds produced the correct product-specific reversal. Live payments remain disabled and this branch remains unmerged from `main` pending owner review.
 
 ### Stripe and AWS payment configuration
 
@@ -37,24 +37,30 @@ The original Live Mode products and prices remain unchanged. DANZSTAK's isolated
 - **COMPLETE — automated/local entitlement tests:** correctly signed successful Checkout events grant only the intended entitlement: one selected booking contact, Professional Tour Manager access/credits, or a phone activation in `pending_provisioning`. Failed, expired, tampered and duplicate events grant nothing. Refund handling, partial-refund manual review, duplicate-refund protection and failed-send credit restoration paths pass their focused regression tests.
 - **COMPLETE — webhook security checks:** an invalid Stripe signature returns HTTP 400. A correctly signed unpaid test Checkout event returns HTTP 200 without granting an entitlement. An actual Stripe-delivered `checkout.session.expired` event reached the deployed endpoint and created no entitlement.
 - **COMPLETE — focused test programs:** `test-tour-manager-billing.cjs`, `test-booking-contact-unlock.cjs`, `test-phone-number-stripe.cjs`, `test-stripe-secret-loading.cjs`, and `test-stripe-refunds.cjs` pass.
-- **INCOMPLETE — hosted successful-card verification:** no claim is made that a Stripe-hosted successful purchase has completed end to end for all three products. One manual Stripe Test Mode Checkout per product, followed by DynamoDB entitlement inspection, is still required.
-- **INCOMPLETE — hosted refund verification:** one Test Mode refund per entitlement type must still be delivered by Stripe and checked for the expected entitlement revocation or credit restoration.
+- **PASS — hosted successful-card verification:** Booking Contact Unlock, Booking Email Credit/Professional Tour Manager, and Phone Number Activation completed end to end through Stripe-hosted Test Mode Checkout, the deployed signed webhook and DynamoDB. Each Stripe event has `pending_webhooks=0`, each event is recorded once in the webhook-event table, and the resulting entitlement belongs only to its intended product.
+- **PASS — hosted refund verification:** one full Test Mode refund per entitlement type was issued. Stripe produced one `charge.refunded` event per purchase with `pending_webhooks=0`; the webhook recorded each event once and applied the expected product-specific reversal.
 
 ### Manual Stripe Checkout sessions — 2026-11-04
 
-- **READY FOR OWNER PAYMENT — Booking Contact Unlock:** authenticated Test Mode session `cs_test_a198wBvarNng6MJw3kiqd1TSQ31a3QeCsdIZ3gTCAZJKj61E7mbfbVqlaZ`; USD $0.75; Price `price_1UXoMsFgtfNMBXOVSmnWDFGa`; Product `prod_VYwF2z3cYoe72u`; saved controlled test venue `7a8b9c0d1e2f3a4b5c6d`; Stripe status `open/unpaid`; DynamoDB status `pending`.
-- **READY FOR OWNER PAYMENT — Booking Email Credit:** authenticated Test Mode session `cs_test_a12WXMufmdM108ocssWrLJuclWBL9B15KQNhsF9IJi1emRemln354ODDyC`; quantity 1; USD $1.50; Price `price_1UXoMtFgtfNMBXOV1fqlkuRf`; Product `prod_VYwFT1LQyqjsxc`; Stripe status `open/unpaid`; DynamoDB status `pending`.
-- **READY FOR OWNER PAYMENT — Phone Number Activation:** authenticated Test Mode session `cs_test_a1AGXNAfvPU5nR99jxo3VPgTr9G1jptIMrcQNlryKAbLbgHPXUfvh0tsIU`; USD $3.00; Price `price_1UXoMuFgtfNMBXOVNxfRWRDp`; Product `prod_VYwFZRXzQ3dNNv`; Stripe status `open/unpaid`; DynamoDB status `pending`.
+- **PASS — Booking Contact Unlock:** authenticated Test Mode session `cs_test_a198wBvarNng6MJw3kiqd1TSQ31a3QeCsdIZ3gTCAZJKj61E7mbfbVqlaZ`; USD $0.75; Price `price_1UXoMsFgtfNMBXOVSmnWDFGa`; Product `prod_VYwF2z3cYoe72u`; saved controlled test venue `7a8b9c0d1e2f3a4b5c6d`. Stripe reports `complete/paid`; event `evt_1UXrojFgtfNMBXOVexq4A9dW` has zero pending webhooks; DynamoDB marks the checkout `paid` and the exact selected venue contact `active`; the matching ledger entry is `settled`.
+- **PASS — Booking Email Credit and Professional entitlement:** authenticated Test Mode session `cs_test_a12WXMufmdM108ocssWrLJuclWBL9B15KQNhsF9IJi1emRemln354ODDyC`; quantity 1; USD $1.50; Price `price_1UXoMtFgtfNMBXOV1fqlkuRf`; Product `prod_VYwFT1LQyqjsxc`. Stripe reports `complete/paid`; event `evt_1UXrv5FgtfNMBXOVwdZsyWRl` has zero pending webhooks; DynamoDB marks the checkout `paid`, adds exactly one purchased/available booking-email credit, activates the Professional entitlement, and records one settled ledger entry.
+- **PASS — Phone Number Activation purchase:** authenticated Test Mode session `cs_test_a1AGXNAfvPU5nR99jxo3VPgTr9G1jptIMrcQNlryKAbLbgHPXUfvh0tsIU`; USD $3.00; Price `price_1UXoMuFgtfNMBXOVNxfRWRDp`; Product `prod_VYwFZRXzQ3dNNv`. Stripe reports `complete/paid`; event `evt_1UXrsBFgtfNMBXOVVjpQrVeM` has zero pending webhooks; DynamoDB marks the checkout `paid`, creates the separate phone entitlement as `pending_provisioning`, and records the ledger as `pending_provisioning`. No phone number is falsely claimed provisioned.
 - The three sessions were created through the deployed authenticated DANZSTAK routes and independently retrieved from Stripe to verify Price, Product, amount, currency, quantity and `livemode=false`. No API secret was exposed.
 - **FIXED AND DEPLOYED — phone Checkout invoke permission:** the phone route initially exposed a missing API Gateway-to-Lambda resource-policy permission and returned HTTP 500. AWS now has a path-scoped `AllowDanzStakPhoneStripeTestApi` statement for `/phone-number/*`; the deployment script and regression suite preserve that permission. The regenerated phone Checkout succeeds.
-- **NOT YET TESTED — successful payment fulfillment:** these sessions are deliberately unpaid. After the owner completes each hosted Test Mode payment, inspect the Stripe delivery, DynamoDB purchase record and product-specific entitlement before changing this status. Phone purchase success must remain `pending_provisioning`; it must not claim that a telephone number was provisioned.
+- **PASS — no duplicate or cross-product grants:** the controlled account contains one contact entitlement for the selected saved venue, one Professional entitlement, one booking-email credit balance, and one phone activation entitlement. Contact and phone payments did not add email credits; the email-credit payment did not create a contact or phone entitlement. Each success event has one processed-event record and one matching purchase ledger record.
+
+### Controlled Test Mode refunds — 2026-11-04
+
+- **PASS — Contact Unlock refund:** refund `re_3UXrXaFgtfNMBXOV0XFVh7c1` succeeded for USD $0.75. Stripe event `evt_3UXrXaFgtfNMBXOV09gEyHf8` has zero pending webhooks. DynamoDB marks the checkout and selected-venue entitlement `refunded` and creates one `contact_unlock_refund` ledger entry; no unrelated entitlement changed.
+- **PASS — Booking Email Credit refund:** refund `re_3UXrv2FgtfNMBXOV0uCTBF6P` succeeded for USD $1.50. Stripe event `evt_3UXrv2FgtfNMBXOV0gG1p3JY` has zero pending webhooks. DynamoDB reduces purchased and available credits from 1 to 0, marks the Professional entitlement and checkout `refunded`, and creates one `purchase_refund` ledger entry with delta -1.
+- **PASS — Phone Activation refund:** refund `re_3UXrsAFgtfNMBXOV0dwLo2eg` succeeded for USD $3.00. Stripe event `evt_3UXrsAFgtfNMBXOV0OX50kcE` has zero pending webhooks. DynamoDB marks the checkout and phone entitlement `refunded`, retains `provisioningActionRequired=true`, and creates one `phone_activation_refund` ledger entry. No real phone number was assigned.
+- **PASS — webhook response path:** every success/refund event has zero pending Stripe deliveries and exactly one processed-event record in `DANZSTAK-Tours`. Each record is written only on the handler's verified HTTP 200 success path; the entitlement and ledger transactions are present for all six events.
 
 ### Remaining owner actions for Stripe
 
-1. Complete the three generated Stripe-hosted Test Mode Checkouts using a Stripe test card before they expire.
-2. Confirm the resulting Stripe-delivered success events in the endpoint delivery log and confirm the matching DynamoDB entitlements.
-3. Issue one Test Mode refund per entitlement type and confirm the corresponding revocation/restoration behavior.
-4. Keep Live payments disabled and do not merge to `main` until those manual end-to-end results are reviewed and approved.
+1. Review the completed Test Mode evidence in this report and Stripe Dashboard.
+2. Decide whether to approve a later Live Mode rollout. No Live activation or `main` merge is included in this work.
+3. Before any Live rollout, repeat deployment/configuration review with Live endpoint-specific secrets and explicitly approved Live catalog IDs; do not reuse Test Mode webhook secrets or Checkout sessions.
 
 ### Current DANZSTAK product status
 
@@ -80,10 +86,18 @@ The original Live Mode products and prices remain unchanged. DANZSTAK's isolated
 - Visual verification: the real local Settings workspace rendered without the Dark mode row, without a leftover gap, and retained compact aligned controls. Automated verification: **243 of 243** JavaScript regression programs pass, plus release verification, the 11-page site smoke suite, infrastructure validation and `git diff --check`.
 - Implementation commit: `fa000ba8ffa3cf7a600cc471d7cbc8229c2f0a71`.
 
+### Multilingual feed comments and replies
+
+- **COMPLETE IN DEVELOPMENT; NOT DEPLOYED TO THE WEBSITE:** the complete comment interaction now follows the member's selected DanzStak language across all 15 supported locales. This includes the composer placeholder, emoji and send controls, relevant/newest sorting, Reply, named reply context, cancel-reply control, accessible labels and compact timestamps.
+- Switching language while comments are already visible refreshes their interface copy and localized relative timestamps in place. Member names and user-written comments remain separate from interface translation and are never rewritten.
+- Accessibility remains intact: the reply target is preserved in accessible names, each timestamp exposes its full localized date and time, keyboard behavior is unchanged, and the existing single-row Reply/trash layout is preserved.
+- Verification: the new comment-localization regression and runtime language harness cover all locales and dynamic name preservation. All **244 of 244** JavaScript regression programs pass, together with release verification, the 11-page site smoke suite, infrastructure validation and `git diff --check`.
+- Implementation commit: `62b8a08cfb7e6b806411b5ba9613b392af94c676`.
+
 ### Source and deployment record
 
 - Branch: `danzstak-patch-1`.
-- Implementation revision immediately before this report update: `fa000ba8ffa3cf7a600cc471d7cbc8229c2f0a71`.
+- Implementation revision immediately before this report update: `62b8a08cfb7e6b806411b5ba9613b392af94c676`.
 - Stripe Test integration implementation revision: `9b27dba7ee94837aafefe7a0ac0a4e8ceea2b855`.
 - Deployment status: **isolated Stripe Test Lambda and webhook deployed; Live payments disabled; recent website, Chat, Booking, EPK, Tour Manager and UI branch changes not deployed to production; branch not merged into `main`.**
 - This report-update commit is recorded in the GitHub history for `danzstak-patch-1`; the final pushed SHA is supplied with the report URL after publication.
@@ -260,21 +274,21 @@ All three objects were created in Test Mode only under SFScoop and re-read from 
 - **PASS — deployed endpoint security:** an invalid signature returns HTTP 400. A correctly signed unpaid Test Checkout event returns HTTP 200 without granting an entitlement.
 - **PASS — actual Stripe-delivered expiration path:** Test Checkout Session `cs_test_a1Y7aDZfrsV76Juxv9TeWVHY8vk04nSTqLRB3b8BDBTRmgHwL286gmADuW` was expired through Stripe. Stripe delivered `checkout.session.expired`; the DynamoDB checkout changed to `expired`; booking-email credits and Professional entitlement remained absent.
 - **PASS — regression programs:** Tour Manager billing, booking-contact unlock, phone activation, refunds and secret-loading suites pass. Site smoke tests pass for 11 pages. `git diff --check` passes.
-- **PENDING — hosted successful-card purchase:** Stripe Checkout deliberately blocks automated form completion. One manual Test Mode Checkout using a Stripe test card is still required to demonstrate Stripe-hosted successful payment delivery against the deployed endpoint. Local signed-success and atomic entitlement tests already pass, but they are not being misreported as a hosted payment.
+- **PASS — hosted successful-card purchases:** all three manual Stripe-hosted Test Mode payments reached the deployed signed webhook and created only the intended DynamoDB purchase and entitlement records. The phone purchase remained `pending_provisioning` until its controlled refund and never claimed an assigned number.
+- **PASS — hosted refunds:** full Test Mode refunds for Contact Unlock, Booking Email Credit/Professional Tour Manager and Phone Activation were delivered through `charge.refunded`, processed once, and applied the correct scoped reversal. No Live transaction was refunded.
 
-### Remaining blocker before approval
+### Remaining review gate before Live Mode
 
-1. Complete one controlled manual Test Mode Checkout for each purchase type, then verify the Stripe-delivered success event and resulting DynamoDB entitlement. Use Stripe test cards only; no real charge is required.
-2. After those three manual successes, exercise one Test Mode refund per entitlement type and confirm revocation/restoration behavior through the deployed webhook.
-3. Keep Live Mode disabled and do not merge to `main` until the owner reviews those results.
+1. Owner review of the completed Test Mode payment/refund evidence is required before any Live Mode work.
+2. Keep Live Mode disabled and do not merge to `main` until explicitly approved.
 
 ## Stripe products and Tour Manager credits
 
-Status as of 2026-11-03: test infrastructure implemented; live payments disabled.
+Status as of 2026-11-04: Test Mode checkout, signed webhook, scoped entitlement and controlled full-refund verification complete for all three products; Live payments disabled.
 
 ## Dual payment architecture
 
-Status as of 2026-11-03: **STRIPE TEST INFRASTRUCTURE DEPLOYED; MANUAL HOSTED SUCCESS TEST PENDING; SFS/PHANTOM BLOCKED AND DISABLED**.
+Status as of 2026-11-04: **STRIPE TEST INFRASTRUCTURE AND CONTROLLED HOSTED PAYMENT/REFUND TESTS COMPLETE; LIVE MODE DISABLED; SFS/PHANTOM BLOCKED AND DISABLED**.
 
 - Stripe remains under the existing SFScoop Stripe account. Three matching Test Mode Products were created with owner authorization; no Live Product, bank connection, SFScoop payment workflow, liquidity pool or token contract was changed.
 - DANZSTAK entitlements and the transaction ledger are provider-neutral. Professional Tour Manager, venue contact unlocks, assigned-number activation and booking-email credits store the payment method and immutable provider reference separately from the entitlement key.
@@ -339,7 +353,7 @@ Status as of 2026-11-03: **STRIPE TEST INFRASTRUCTURE DEPLOYED; MANUAL HOSTED SU
 - Expected amount: USD 1.50 one time for each booking-email credit.
 - Implementation: Checkout quantities, signed webhook verification, immediate and delayed payment handling, DynamoDB credit ledger, duplicate-event protection, booking-email reservation, provider acceptance, failed-send restoration, and balance/history UI are integrated on `danzstak-patch-1`.
 - Test status: local signature, amount, delayed-payment, idempotency, ledger, reservation, final deduction, failed-send restoration, and Amazon SES mailbox-simulator tests pass.
-- Matching Test Price: `price_1UXoMtFgtfNMBXOV1fqlkuRf` on Product `prod_VYwFT1LQyqjsxc`, verified active and `livemode: false`. The deployed endpoint processed an actual Stripe-delivered expiration event; a manual successful Test Checkout remains pending.
+- Matching Test Price: `price_1UXoMtFgtfNMBXOV1fqlkuRf` on Product `prod_VYwFT1LQyqjsxc`, verified active and `livemode: false`. The deployed endpoint processed an actual Stripe-delivered expiration event, a successful hosted Checkout, and a full controlled refund with the expected credit and Professional-entitlement reversal.
 
 ### DANZSTAK phone number
 
@@ -371,4 +385,4 @@ Required webhook events:
 - `checkout.session.expired`
 - `charge.refunded`
 
-Before Live processing is considered, complete controlled manual Test Checkouts for all three purchases and verify the resulting Stripe-delivered events and DynamoDB entitlements. Do not activate live processing until all products have complete test-mode checkout, webhook, duplicate-event, entitlement, provisioning-failure, refund and recovery tests.
+Controlled manual Test Checkouts and full refunds have now passed for all three purchases. Live processing remains disabled and requires explicit owner approval plus a separate Live configuration review; Test Mode keys, endpoint secrets and sessions must never be reused as Live credentials.
