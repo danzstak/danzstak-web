@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8fa">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://cognito-idp.us-west-1.amazonaws.com https://dr3dwdkzqb.execute-api.us-west-1.amazonaws.com; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>Make Plans review · DanzStak</title>
+  <link rel="icon" href="/assets/favicon-32.png">
+  <link rel="stylesheet" href="/assets/plans-review.css">
+</head>
+<body>
+  <header class="review-topbar"><img src="/assets/danzstak-d-icon.png" alt=""><div><strong>DANZSTAK</strong><span>Private Make Plans review</span></div><button type="button" id="signOut" class="quiet" hidden>Sign out</button></header>
+  <main>
+    <section id="authCard" class="card auth-card">
+      <p class="eyebrow">ISOLATED STAGING</p><h1>Review Make Plans safely</h1>
+      <p>Create temporary reviewer names. This preview uses separate authentication and data; it cannot read production users, friends, Chats, or invitations.</p>
+      <form id="authForm"><label>Reviewer name<input id="username" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9_\-]+" required placeholder="reviewer-a"></label><label>Password<input id="password" type="password" autocomplete="current-password" minlength="10" required placeholder="10+ characters"></label><div class="auth-actions"><button type="submit" name="mode" value="signin">Sign in</button><button type="submit" name="mode" value="signup" class="secondary">Create reviewer</button></div><p id="authStatus" class="status" role="status"></p></form>
+    </section>
+
+    <section id="app" hidden>
+      <nav class="review-tabs" aria-label="Review sections"><button type="button" class="active" data-view="friends">Friends</button><button type="button" data-view="plans">Plans <span id="planCount">0</span></button><button type="button" data-view="buzz">Buzz <span id="buzzCount">0</span></button></nav>
+      <section id="friendsView" class="view">
+        <div class="card"><p class="eyebrow">ACCEPTED FRIENDS ONLY</p><h1>Start from a real 1:1 Chat</h1><p>Find another staging reviewer, send a friend request, then open the conversation. Make Plans stays unavailable until both people are accepted friends.</p><form id="friendSearch" class="inline-form"><input id="friendName" required placeholder="Exact reviewer name" aria-label="Reviewer name"><button type="submit">Find</button></form><div id="directoryResult"></div></div>
+        <div class="card"><h2>Your friends</h2><div id="friendList" class="list"><p class="empty">No staging friends yet.</p></div></div>
+      </section>
+      <section id="chatView" class="view" hidden>
+        <div class="chat-shell"><header class="chat-head"><button type="button" id="backToFriends" class="icon" aria-label="Back">←</button><div class="avatar" id="chatAvatar">R</div><div><strong id="chatName">Reviewer</strong><span>Private 1:1 Chat</span></div><button type="button" id="makePlan" class="plan-button">＋ Make plans</button></header><div class="chat-body"><div class="privacy-note"><strong>Plans remain private.</strong><span>Only you and this accepted friend can see or change the invitation.</span></div></div></div>
+      </section>
+      <section id="plansView" class="view" hidden><div class="card"><h1>Your private plans</h1><p>Invitations update across accounts and sessions. Calendar files download only when you request them.</p><div id="planList" class="list"></div></div></section>
+      <section id="buzzView" class="view" hidden><div class="card"><h1>Buzz</h1><p>Private invitation, response, change, and cancellation notices.</p><div id="noticeList" class="list"></div></div></section>
+    </section>
+  </main>
+
+  <dialog id="planDialog"><form id="planForm"><header><div><p class="eyebrow">PRIVATE INVITATION</p><h2 id="planHeading">Make plans</h2></div><button type="button" id="closePlan" class="icon" aria-label="Close">×</button></header><label>What are you planning?<input id="planTitle" maxlength="100" required placeholder="Record-store visit"></label><label>Date and time<input id="planStart" type="datetime-local" required></label><label>Time zone<input id="planZone" required readonly></label><label>Public meeting place <span>optional</span><input id="planPlace" maxlength="160" placeholder="Venue lobby"></label><label>Note <span>optional</span><textarea id="planNote" maxlength="500" rows="3" placeholder="Bring the new seven-inch."></textarea></label><p id="planStatus" class="status" role="status"></p><footer><button type="button" id="cancelPlanEdit" class="secondary">Cancel</button><button type="submit">Send private invite</button></footer></form></dialog>
+  <script src="/assets/plans-review.js" defer></script>
+</body>
+</html>

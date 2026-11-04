@@ -1,0 +1,266 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >-
+  Isolated Make Plans review backend — keeps preview identities and invitations
+  separate from production while providing real authenticated persistence.
+
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@3
+  com.aws.cloudformation.Context:
+    arch: Cognito JWT -> HTTP API -> Lambda -> encrypted DynamoDB
+    must:
+      - staging data and identities never share production stores
+      - every plan read/write is participant-scoped
+    ref:
+      - at: docs/ISSUE-24-MAKE-PLANS-MVP.md
+        has: Issue 24 behavior and review evidence
+        scope: feature
+
+Parameters:
+  AllowedOrigin:
+    Type: String
+    AllowedPattern: '^https://[a-z0-9.-]+$'
+    Description: Exact HTTPS origin of the isolated Amplify review branch.
+
+Resources:
+  ReviewUserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: isolated self-service reviewer identities; avoids production auth/cookies
+        must:
+          - no production identity federation or user migration
+        mutable: change-with-constraints
+    Properties:
+      UserPoolName: !Sub '${AWS::StackName}-users'
+      UsernameConfiguration:
+        CaseSensitive: false
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 10
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+          TemporaryPasswordValidityDays: 1
+      UserPoolAddOns:
+        AdvancedSecurityMode: ENFORCED
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate: []
+      LambdaConfig:
+        PreSignUp: !GetAtt ReviewAutoConfirmFunction.Arn
+
+  ReviewAutoConfirmRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: log-only execution role for isolated review-account confirmation
+        must:
+          - no application data permissions
+        mutable: change-with-constraints
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: write-function-logs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*'
+
+  ReviewAutoConfirmFunction:
+    Type: AWS::Lambda::Function
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: confirms username-only staging reviewers; avoids collecting email or phone data
+        must:
+          - staging pool only
+          - never auto-verify email or phone attributes
+        mutable: change-with-constraints
+    Properties:
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      Role: !GetAtt ReviewAutoConfirmRole.Arn
+      Timeout: 3
+      Code:
+        ZipFile: |
+          exports.handler = async event => {
+            event.response.autoConfirmUser = true;
+            event.response.autoVerifyEmail = false;
+            event.response.autoVerifyPhone = false;
+            return event;
+          };
+
+  ReviewAutoConfirmPermission:
+    Type: AWS::Lambda::Permission
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: permits only this Cognito pool to invoke its confirmation trigger
+        must:
+          - SourceArn remains scoped to ReviewUserPool
+        mutable: change-with-constraints
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ReviewAutoConfirmFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt ReviewUserPool.Arn
+
+  ReviewUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: public browser client; no client secret is stored in the PWA
+        must:
+          - GenerateSecret remains false
+          - only password and refresh-token auth flows are enabled
+        mutable: change-with-constraints
+    Properties:
+      ClientName: !Sub '${AWS::StackName}-pwa'
+      UserPoolId: !Ref ReviewUserPool
+      GenerateSecret: false
+      EnableTokenRevocation: true
+      PreventUserExistenceErrors: ENABLED
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 1
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+
+  ReviewData:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: single isolated store for profiles, friendships, plan participant copies, and notices
+        must:
+          - point-in-time recovery stays enabled
+          - participant copies update atomically with optimistic revision checks
+        mutable: change-with-constraints
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: gsi1sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: gsi1
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: gsi1sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  ReviewApiFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: small isolated review API; shared handler keeps authorization rules consistent
+        must:
+          - authorize every request from API Gateway JWT claims
+          - never accept caller identity from request bodies
+          - plan mutations require participant membership and current revision
+        mutable: change-with-constraints
+    Properties:
+      CodeUri: app/
+      Handler: index.handler
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ReviewData
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReviewData
+      Events:
+        Proxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ReviewApi
+            Path: /{proxy+}
+            Method: ANY
+        CorsPreflight:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ReviewApi
+            Path: /{proxy+}
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
+
+  ReviewApi:
+    Type: AWS::Serverless::HttpApi
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: TLS API boundary with Cognito JWT validation and exact-origin CORS
+        must:
+          - default authorizer remains enabled
+          - CORS origin remains exact; never wildcard with Authorization
+        mutable: change-with-constraints
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: [!Ref AllowedOrigin]
+        AllowHeaders: [authorization, content-type, idempotency-key]
+        AllowMethods: [GET, POST, PATCH, OPTIONS]
+        MaxAge: 600
+      Auth:
+        DefaultAuthorizer: ReviewJwt
+        Authorizers:
+          ReviewJwt:
+            JwtConfiguration:
+              issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ReviewUserPool}'
+              audience: [!Ref ReviewUserPoolClient]
+            IdentitySource: '$request.header.Authorization'
+
+Outputs:
+  ApiUrl:
+    Description: Authenticated staging API base URL.
+    Value: !Sub 'https://${ReviewApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}'
+  UserPoolId:
+    Description: Isolated review user-pool ID.
+    Value: !Ref ReviewUserPool
+  UserPoolClientId:
+    Description: Public browser client ID; this is not a secret.
+    Value: !Ref ReviewUserPoolClient
+  Region:
+    Description: Region used by the browser Cognito client.
+    Value: !Ref AWS::Region

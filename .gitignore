@@ -39,6 +39,7 @@ build/Release
 
 # Dependency directories
 node_modules/
+infrastructure/make-plans-preview/packaged.yaml
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)

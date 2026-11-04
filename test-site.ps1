@@ -296,7 +296,7 @@ if ($feed -notmatch 'async\s+function\s+openStoryViewer\s*\(\s*story\s*(?:,|\))'
 
 $serviceWorker = Get-Content -LiteralPath (Join-Path $root 'service-worker.js') -Raw -Encoding utf8
 if (-not $serviceWorker.Contains('/assets/display-preferences.js')) { Add-Failure 'PWA: shared display preferences are unavailable offline' }
-if ($serviceWorker -notmatch 'const CACHE = "danzstak-shell-v\d+";' -or
+if ($serviceWorker -notmatch 'const CACHE = "danzstak-shell-v\d+(?:-[a-z0-9-]+)?";' -or
     $serviceWorker -notmatch 'skipWaiting\(\)' -or
     $serviceWorker -notmatch 'clients\.claim\(\)') {
   Add-Failure 'service-worker.js: installed-app cache update activation is incomplete'
