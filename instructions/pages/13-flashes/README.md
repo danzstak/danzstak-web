@@ -45,3 +45,6 @@ The public UI name is **Dailies**, never Flashes. Existing internal identifiers 
 - The date is a visual cue only. **Daily expiration remains exactly 24 hours from server-side creation timestamp**, not at local midnight.
 - Handle timezone changes and daylight-saving transitions; never rely on a fixed timezone or device clock for authoritative expiry.
 - Verify date rollover, timezone formatting, and mobile legibility in tests/screenshots.
+
+## Final visual stacking clarification (owner approved)
+The **dated clapperboard sits above the user's profile picture** within the Create Daily tile: the user's real profile photo must remain visible **underneath** the slate overlay, not replaced by an icon or generic illustration. Put the compact date on the slate; position the slate toward the top portion of the tile, with the avatar/photo clearly visible below it. Maintain the plus affordance and Create Daily label. Provide a neutral initials fallback only when no profile photo exists. Test both states and screenshot the final mobile layout.
