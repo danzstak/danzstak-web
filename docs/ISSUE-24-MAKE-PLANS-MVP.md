@@ -1,7 +1,7 @@
 # Issue #24 — Make Plans MVP review evidence
 
 **Branch:** `codex/issue-24`
-**Status:** IN PROGRESS — implementation and local browser verification complete; isolated AWS staging and real-account end-to-end verification pending.
+**Status:** IN PROGRESS — implementation, isolated AWS staging, real A/B/C API verification and responsive browser review complete; owner review and physical-device evidence pending.
 
 ## Audit
 
@@ -43,13 +43,20 @@ AWS Amplify DEVELOPMENT branch job `2` deployed commit `60d232ba645edc3b7c676a7c
 
 The hosted `messages.html` and Make Plans assets were independently fetched with HTTP 200. A clean browser verified that the worker activated, controlled the page and contained only `danzstak-shell-v668-issue24-preview`. Production `main` and `https://danzstak.com` were not changed. Draft review PR: `https://github.com/danzstak/danzstak-web/pull/26`.
 
-This is currently a **visual/PWA owner-review environment**, not a claimed two-account backend proof. Existing DANZSTAK authentication cookies and API origin controls are correctly production-host scoped; weakening them or attaching an untested preview origin to the production API would violate the isolation requirement. Remaining work is:
+The original preview correctly could not use production cookies or API CORS. A separate staging target now removes that review blocker without weakening production:
 
-1. create an isolated staging auth/API/table target (never the production API/table);
-2. point a subsequent preview commit at that isolated API;
-3. use two controlled accounts to create/accept/maybe/decline/edit/cancel across sessions;
-4. deny an unrelated third account and a no-longer-friend account by direct API;
-5. verify DST cases, `.ics`, offline/reconnect, deep links, stale PWA update and supported phone browsers;
-6. open a draft PR and supply the verified staging URL for owner approval.
+- CloudFormation stack `danzstak-make-plans-preview` in `us-west-1` provisions an isolated Cognito user pool, exact-origin JWT-authorized HTTP API, Lambda and encrypted/PITR DynamoDB store.
+- Staging API: `https://dr3dwdkzqb.execute-api.us-west-1.amazonaws.com` (JWT required; unauthenticated requests are rejected by API Gateway).
+- Review entry point: `/plans-review.html`. It collects username/password only, keeps the ID token in session storage, and cannot read production accounts, friends, Chats, plans or notifications.
+- A controlled three-account run passed: A/B friend request and acceptance, A invitation, B Going response, C empty plan list, C mutation rejection, stale-revision rejection, inviter cancellation and two private Buzz notices.
+- A separate retry run passed deterministic idempotency: the same key returned the same plan with `replayed: true`, left one stored invitation, and rejected an invalid IANA timezone.
+- `node test-make-plans-preview.cjs` passed the review UI at 320, 360, 390 and 414px with no horizontal/dialog overflow and 44px action targets. Evidence: [320px](screenshots/issue-24-make-plans/staging-review-320.png), [360px](screenshots/issue-24-make-plans/staging-review-360.png), [390px](screenshots/issue-24-make-plans/staging-review-390.png), [414px](screenshots/issue-24-make-plans/staging-review-414.png).
+
+The isolated preview is real persistent staging, not a static demonstration. Remaining work is:
+
+1. publish the new review entry point through the Amplify development branch and re-verify its service worker/cache;
+2. verify successful edit, Maybe/Declined, history after unfriend, DST boundaries, `.ics`, offline/reconnect and deep links in the hosted build;
+3. complete owner and physical Android/iPhone review;
+4. merge only after owner approval, then deploy the already-integrated production implementation through the normal release gates.
 
 Production deployment and merge remain prohibited until explicit owner approval.
