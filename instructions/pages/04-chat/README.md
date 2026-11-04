@@ -1,3 +1,13 @@
+## Final owner correction — ambitious Chat features, reliability at every step (2026-11-04)
+
+Owner says: **"With AI building the chatbot all of those functionalities that we wish we had in the other chat bot we are going to have in DANZSTAK."** **Previous assistant interpretation of "fewer features" was incorrect.** The intention is **not** a pared-back messenger or a rule against adding capabilities. Codex/AI-assisted development should help implement **the complete desired DANZSTAK chat/communications feature set**, including features that were previously impractical in the older chatbot. Keep the platforms' code, data and account operations independent; do not modify SFScoop.
+
+**Strategic direction:** ambitious functionality with simple, comfortable, non-cookie-cutter day-to-day interaction. The goal is for each feature to be truly usable and integrated, not a cluttered menu or decorative control. Scope includes reliable two-way messaging, replies, copy/multiselect, optional on-demand and opt-in automatic translation, attachments, real user photos/contact details, search/read states, push notifications, real personal phone number SMS verification, secure device registration, optional internal DS aliases, dependable voice/video calls/ringback/ringtone, missed calls and voicemail, and other already approved Chat/Phone capabilities. Retain current detailed requirements/tickets; do **not** remove features because another chat product omitted them.
+
+**Delivery priority is not a feature cap:** P0 functional Chat, real phone SMS verification (#21) and genuinely working calling (#27) are the immediate urgent blockers. Codex may design and implement other planned capabilities in small, independently testable PRs without holding them indefinitely. Stage and integrate each feature only once real account/API/device tests pass; the same high reliability bar applies to advanced functionality. Review accessibility, privacy/permissions, vendor costs and owner approval for paid integrations and production.
+
+**Acceptance:** demonstrate the core on two real phones while also tracking the full feature roadmap; show working controls and honest failures, not fake Verified/Connected labels. This directive **supersedes previous "avoid feature bloat" or "fewer features" wording when construed as a limitation of the DANZSTAK feature vision**. Distinguish AI as a coding aid from an embedded AI assistant: this comment is not an instruction to introduce an AI correspondent that reads private messages.
+
 
 ## Owner critical order — make Chat and Phone genuinely work, avoid feature bloat (2026-11-04)
 
