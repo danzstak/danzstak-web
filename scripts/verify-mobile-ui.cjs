@@ -593,7 +593,7 @@ async function captureViewport(page, fileName) {
       assert.equal(await page.locator("body.ds-tool-page>header nav").isVisible(), true, `${width}px: desktop EPK navigation must remain available`);
       assert.equal(await page.locator("body.ds-tool-page>.ds-mobile-nav").isVisible(), false, `${width}px: mobile navigation must not duplicate desktop EPK navigation`);
       const epkColumns = await page.locator(".epk-layout").evaluate(layout => getComputedStyle(layout).gridTemplateColumns.split(" ").filter(Boolean).length);
-      if (width >= 1024) assert.equal(epkColumns, 2, `${width}px: desktop EPK must keep editor and preview side by side`);
+      if (width >= 768) assert.equal(epkColumns, 2, `${width}px: tablet/desktop EPK must keep editor and preview side by side`);
       await captureViewport(page, `epk-desktop-${width}.png`);
       await context.close();
     }
