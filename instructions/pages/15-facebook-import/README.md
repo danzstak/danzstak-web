@@ -88,3 +88,13 @@ Before upload/confirmation, prominently explain in plain language: **“Your Fac
 - When a valid original-source URL is present, offer a clearly labeled source link if permitted; otherwise show text only or skip an empty record.
 - Preview counts must distinguish **commentary-only imports**, **original media included in archive**, **external references**, and **skipped missing/third-party media**.
 - Test fixtures must cover: commentary plus absent shared video, commentary plus URL, pure share with no commentary, own original media with included file, and malformed references.
+
+## Mandatory incomplete-post review and user decision
+- During preview, detect when an exported Facebook post references a photo, video, attachment or metadata that is **not available in the archive or not safely importable**. Do not infer missing content solely because a post lacks media; only flag a missing asset when evidence indicates it was expected.
+- Show a clear **Incomplete post** indicator and list the missing elements (e.g. “Video unavailable”, “Image missing”, “Original link unavailable”, “Date or attribution missing”). Distinguish unavailable data from unverified metadata.
+- For each incomplete item, ask: **“This post is missing a video/image/other information. Do you want to import the available content anyway?”**
+- Offer **Import text only**, **Skip this post**, and **Review details** where applicable. Do not create broken media placeholders or empty cards.
+- For large archives, support a bulk policy for incomplete posts: **Skip all incomplete**, **Import available text only**, or **Review individually**. Default to **Review individually** or hold incomplete posts out of final import until an explicit decision; never silently publish them.
+- Preview and final confirmation must show counts for complete posts, incomplete posts accepted, skipped posts, and missing media/metadata. Apply the chosen privacy setting to imported text-only posts.
+- Preserve available user-authored captions and valid source links where permitted. Never fabricate missing files or download third-party content without permission.
+- Test missing image, missing video, missing attribution/date, missing link, pure share with no usable content, and mixed large-archive cases, including mobile usability.
