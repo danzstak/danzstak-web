@@ -63,3 +63,11 @@ Context: Existing SFScoop posts imported from Facebook required tedious per-post
 - Enforce upload limits, archive validation, quotas and cost controls; explain unsupported media and link-only reshares.
 - Verify privacy rules for every batch, with explicit user confirmation and safe Only Me initial selection. Never auto-publish on partial failure.
 - Test with synthetic archives at 100, 1,000, 10,000 and 50,000 entries, including large media, malformed data, cancellation, resume and deduplication. Report real measured performance rather than invented throughput.
+
+## Required upfront user notice — third-party shares and ownership
+Before upload/confirmation, prominently explain in plain language: **“Your Facebook archive may include posts, photos or videos shared from other people. DANZSTAK will not automatically copy or rehost third-party images or videos. These items may be skipped or shown as links to the original source when available. Review what will transfer before importing.”**
+- Do not imply that possession of an export proves copyright ownership. Classify likely originals, reshares and uncertain-origin content conservatively; provide review when uncertain.
+- In the preview and completion summary show **Eligible originals**, **Link-only shares**, **Skipped third-party content**, and **Uncertain / needs review** counts with reasons.
+- Require acknowledgement of this notice before final import; no silent copying of third-party media.
+- Users can import their own authored text where appropriate; apply copyright and privacy rules to embedded media separately.
+- Verify the notice on Android/iPhone and desktop, including large archives and JSON/HTML exports.
