@@ -49,6 +49,7 @@ const widths = [320, 360, 390, 414, 430, 1024];
       assert.equal(geometry.scrollWidth, width, `page overflows at ${width}px`);
       assert.ok(geometry.buttonWidth >= 44 && geometry.buttonHeight >= 44, `device control is below 44px at ${width}px: ${JSON.stringify(geometry)}`);
       assert.equal(geometry.rows, 1, `registered device row missing at ${width}px`);
+      await page.locator('.registered-devices li').filter({ hasText: 'Last active' }).waitFor();
       assert.equal(callHeaders['x-danzstak-device-id'], '11111111-1111-4111-8111-111111111111');
       assert.equal(callHeaders['x-danzstak-device-token'], 'b'.repeat(43));
       results.push(`${width}px`);

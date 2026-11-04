@@ -28,6 +28,7 @@ assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential 
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"call requests need the current installation credential");
 assert.match(client,/confirm\(t\(`Revoke/,"lost-device revocation must require deliberate confirmation");
 assert.match(client,/renameDevice\(device\)[\s\S]*method:"PATCH"/,"registered devices must be renameable without re-enrollment");
+assert.match(client,/activity\.textContent=lastActive\(device\.lastUsedAt\)/,"device management must show the server-recorded last active time");
 assert.match(chat,/path\.startsWith\("\/calls\/"\)\?await globalThis\.danzstakCallingDeviceHeaders/,"calling requests must authenticate the installation");
 assert.match(chat,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*danzstakOpenCallingDevices/,"blocked calls must open the registration recovery flow");
 assert.match(chat,/signal\("answer",peer\.localDescription,offer\.eventId\)/,"the answering installation must bind its answer to the exact incoming offer");
