@@ -414,9 +414,14 @@ function renderOnlineFriendList(list, users, presenceAvailable = true) {
     name.setAttribute("data-no-translate", "");
     const action = document.createElement("button");
     action.type = "button";
-    const labelAction = template => action.setAttribute("aria-label", template.replace("{name}", displayName));
+    const labelAction = template => {
+      const label = feedFormat(template, { name: displayName });
+      action.setAttribute("aria-label", label);
+      if (action.dataset?.icon) action.title = label;
+    };
     if (person.friendStatus === "friends" || person.sharedGroup) {
       action.textContent = feedTranslate(person.friendStatus === "friends" ? "Message" : "Tribe Message");
+      action.dataset.icon = "chat";
       labelAction(person.friendStatus === "friends" ? "Message {name}" : "Message {name} from your Tribe");
       action.addEventListener("click", () => openMessageDrawer(person.email));
     } else if (person.friendStatus === "incoming") {

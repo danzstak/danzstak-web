@@ -326,6 +326,14 @@ async function captureViewport(page, fileName) {
         await page.locator('.topnav [data-feature="Friends"]').click();
         await page.waitForTimeout(100);
         await assertExclusiveFeedScreen(page, "friends");
+        await page.waitForSelector(".friend-discovery-row button[data-icon='chat']");
+        const onlineMessageAction = await page.locator(".friend-discovery-row button[data-icon='chat']").evaluate(action => {
+          const box = action.getBoundingClientRect();
+          return { width: box.width, height: box.height, label: action.getAttribute("aria-label"), title: action.title };
+        });
+        assert.ok(onlineMessageAction.width >= 44 && onlineMessageAction.height >= 44, `Friends online-message action needs a 44px phone target: ${JSON.stringify(onlineMessageAction)}`);
+        assert.equal(onlineMessageAction.label, "Message Mobile Friend", "Friends online-message icon needs the complete member name");
+        assert.equal(onlineMessageAction.title, onlineMessageAction.label, "Friends online-message icon needs a matching tooltip");
         await captureViewport(page, "friends-390.png");
 
         await page.locator('.topnav [data-feature="Notifications"]').click();
@@ -522,6 +530,7 @@ async function captureViewport(page, fileName) {
       }
       await page.locator('.topnav [data-feature="Friends"]').click();
       await page.waitForSelector(".friends-workspace-list");
+      await page.waitForSelector(".friend-discovery-row button[data-icon='chat']");
       await assertNoOverflow(page, `Desktop Friends ${width}px`);
       assert.equal(await page.locator("#featureView").isVisible(), true, `${width}px: desktop Friends workspace must be visible`);
       assert.equal(await page.locator("#newsFeedView").isVisible(), false, `${width}px: desktop Friends must not stack over the feed`);
