@@ -4,6 +4,19 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Flash and The Roll visual-state audit — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defects found:** the Flash viewer's circular Close control computed to only 38×38px on phones. The visible Close icon rendered as one diagonal slash, while Expand/Minimize and Download could render incomplete fragments. The shared icon registry created each SVG command as a separate `<path>`, but those definitions incorrectly used relative commands that depended on another path's drawing cursor.
+- **Root correction:** Flash Close now has a true 44×44px mobile target. Close, Expand, Minimize and Download now use complete, self-contained SVG paths, so every browser receives the same complete geometry. The shared icon script advanced to `icon-buttons.js?v=7`, the mobile design system advanced to `mobile-design-system.css?v=11`, and the PWA shell advanced to `danzstak-shell-v655`.
+- **New permanent visual coverage:** the real-browser matrix now supplies an actual image Flash and an external-video Roll item, opens both real full-screen surfaces at 390px, measures Flash media width and Close geometry, verifies that The Roll owns the viewport without overflow, and captures both states. Static icon regression checks reject the malformed relative path fragments.
+- **Functional/integration evidence:** `test-regressions.ps1` passed completely after the correction. Coverage includes Feed, Friends, Chat/calls, Notifications, media visibility, single-audible-player handoff, YouTube sound synchronization, Flashes, The Roll, Booking Agent, worldwide discovery, EPK, Tour Manager, Stripe Test Mode entitlements/refunds, PWA refresh, 11-page smoke checks and infrastructure validation.
+- **Visual evidence:** both local and production Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live captures: [390px Flash viewer](screenshots/story-roll-audit-v655-live/flash-viewer-390.png) and [390px Roll full screen](screenshots/story-roll-audit-v655-live/roll-fullscreen-390.png). Manual inspection confirmed full media geometry, complete X/Expand artwork, an accessible Close target and a visible bottom-right audio control.
+- **Production deployment:** implementation commit `a780566` was pushed to `danzstak-patch-1` and `main`. Public propagation reached v655 after bounded checks. A fresh production browser reports an activated, controlling service worker, only `danzstak-shell-v655` in CacheStorage, and standalone display-mode support. The full live visual matrix passed afterward.
+- **AWS metadata limitation:** the AWS CLI session remains expired, so an Amplify job ID was not guessed. The exact owner action for AWS-side job metadata is `aws login`; the public deployment and active PWA version are independently verified.
+- **Remaining limitation:** a remotely controllable physical Android or iPhone was not available. Installed-device tactile validation remains manual and is not represented as complete.
+
 ### Whole-interface typography, spacing and interaction re-audit — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
