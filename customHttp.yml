@@ -15,6 +15,12 @@ customHeaders:
     headers:
       - key: 'X-Frame-Options'
         value: 'SAMEORIGIN'
+  - pattern: '/plans-review.html'
+    headers:
+      - key: 'X-Frame-Options'
+        value: 'DENY'
+      - key: 'Content-Security-Policy'
+        value: "default-src 'self'; connect-src 'self' https://cognito-idp.us-west-1.amazonaws.com https://dr3dwdkzqb.execute-api.us-west-1.amazonaws.com; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
   - pattern: '/'
     headers:
       - key: 'X-Frame-Options'
