@@ -4,6 +4,16 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Core social mobile QA matrix — 2026-11-04
+
+Status: **PASSING LOCALLY; NO PRODUCTION CHANGE REQUIRED**.
+
+- **Rendered scope:** a new Edge/Playwright check renders Home, Friends, Notifications, Chat and Profile at 320, 360, 390, 414 and 430px with authenticated, controlled API fixtures: 25 page/viewport combinations in total.
+- **Measured acceptance checks:** every combination has zero uncaught page errors, no document or body horizontal overflow, no duplicate mobile navigation, no unsolicited dialog, and no footer content hidden beneath the fixed mobile navigation at the bottom of the page.
+- **Visual review:** representative captures were inspected for compact header and navigation geometry, dedicated one-screen Friends/Notifications workspaces, WhatsApp-familiar Chat, profile layout, typography and spacing. A suspected footer/navigation collision in full-page stitched captures was investigated with live viewport rectangles and proved to be a screenshot-compositing artifact rather than an interactive-page defect. The permanent check now measures the real bottom-of-page geometry so a genuine regression will fail.
+- **Integration evidence:** the complete `test-regressions.ps1` gate passes after the browser matrix, including authentication, persistent social content, Friends and presence, Notifications, Chat and calls, media sizing and single-audio ownership, Booking Agent, EPK, Tour Manager, Stripe safeguards, PWA refresh, site smoke and infrastructure.
+- **Deployment decision:** no application code or production asset changed during this audit, so no deployment or cache-version churn was appropriate. Physical installed-PWA tactile testing and the previously documented two-account/two-device call test remain manual release evidence rather than claimed completion.
+
 ### Registered-device localization follow-up — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND LIVE-VERIFIED**.
