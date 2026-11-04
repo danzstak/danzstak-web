@@ -1647,7 +1647,7 @@ function renderWorkspace(name) {
     heading.textContent = window.danzstakTranslate?.("Settings and privacy") || "Settings and privacy";
     const settingRow = (icon, title, control) => {
       const row = document.createElement("div"); row.className = "settings-row";
-      if (control?.matches?.(".secondary")) row.classList.add("settings-action-row");
+      if (control?.matches?.(".secondary, .danger-outline")) row.classList.add("settings-action-row");
       const symbol = document.createElement("span"); symbol.className = "settings-icon"; symbol.setAttribute("aria-hidden", "true");
       const iconSvg = window.danzstakIcons?.create(icon);
       if (iconSvg) symbol.append(iconSvg); else symbol.textContent = "•";
@@ -1760,6 +1760,7 @@ function renderWorkspace(name) {
     sessionInfo.textContent = "Stay signed in until you sign out";
     const logout = document.createElement("button");
     logout.type = "button"; logout.className = "secondary"; logout.dataset.logout = ""; logout.textContent = "Logout"; logout.setAttribute("aria-label", "Log out of DanzStak");
+    const deleteAccount = window.danzstakAccountDeletionControl?.();
     const button = document.createElement("button");
     button.className = "primary";
     button.type = "button";
@@ -1835,6 +1836,7 @@ function renderWorkspace(name) {
       settingRow("download", "Download my data", exportButton),
       settingRow("clock", "Session", sessionInfo),
       settingRow("file", "Legal and privacy", legalLinks),
+      ...(deleteAccount ? [settingRow("trash", "Delete my account", deleteAccount)] : []),
       settingRow("logout", "Account", logout),
       button
     );
