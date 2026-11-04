@@ -28,3 +28,11 @@ This is a **research/design task only** until the owner approves first-party vid
 - Implement server-side restrictions on original and derived media, signed URLs, CDN caches, thumbnails and API endpoints; hiding a UI card alone is inadequate.
 - Notify uploader, record audit trail and decisions, support counter-notice and lawful restoration procedures, and apply repeat-infringer policy. Prevent arbitrary third-party reports from permanently removing content without review.
 - Test all states: public -> reported/private review -> valid notice/disabled -> restored or removed, including direct URLs, mobile clients, cached video and unauthorized viewers.
+
+## Owner concern — malicious and retaliatory reports
+- Separate **community reports** (spam, harassment, impersonation, etc.) from **formal copyright/DMCA notices**. A community report must not be presented as a valid copyright takedown request.
+- Do not automatically remove ordinary reported content based solely on report count or coordinated mass reporting. Use evidence-based triage, rate limits, duplicate-report aggregation, reviewer audit logs, proportional interventions and appeal mechanisms.
+- For copyright claims, validate required notice elements and route legally sufficient notices for prompt statutory handling. Never delay a sufficient DMCA notice solely because a complainant has low reputation or previously made poor reports.
+- Use anti-abuse controls for repeated demonstrably bad-faith community reports; avoid punishing good-faith reporters or chilling legitimate complaints. Escalate suspected fraudulent DMCA submissions for appropriate review, noting 17 U.S.C. §512(f) misrepresentation provisions.
+- Protect privacy: do not disclose reporter identities unnecessarily; explain to uploaders the category of action, applicable policy and review/appeal options.
+- Add tests for coordinated false reports, duplicate reports, malicious rivals, legitimate high-volume reports, formal notices and counter-notifications. Ensure report count alone cannot trigger a copyright strike.
