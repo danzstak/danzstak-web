@@ -1,7 +1,10 @@
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const widths = [320, 360, 390, 414, 430, 1024];
+const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : '';
 
 (async () => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
@@ -49,9 +52,14 @@ const widths = [320, 360, 390, 414, 430, 1024];
       assert.equal(geometry.scrollWidth, width, `page overflows at ${width}px`);
       assert.ok(geometry.buttonWidth >= 44 && geometry.buttonHeight >= 44, `device control is below 44px at ${width}px: ${JSON.stringify(geometry)}`);
       assert.equal(geometry.rows, 1, `registered device row missing at ${width}px`);
+      assert.equal(await page.locator('#deviceName').isHidden(), true, `completed registration form remains visible at ${width}px`);
       await page.locator('.registered-devices li').filter({ hasText: 'Last active' }).waitFor();
       assert.equal(callHeaders['x-danzstak-device-id'], '11111111-1111-4111-8111-111111111111');
       assert.equal(callHeaders['x-danzstak-device-token'], 'b'.repeat(43));
+      if (captureDir) {
+        fs.mkdirSync(captureDir, { recursive: true });
+        await page.screenshot({ path: path.join(captureDir, `calling-devices-${width}.png`), fullPage: true });
+      }
       results.push(`${width}px`);
       await context.close();
     }
