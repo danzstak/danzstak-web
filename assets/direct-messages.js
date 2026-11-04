@@ -51,6 +51,7 @@ function createCallActionIcon(kind) {
   return svg;
 }
 const conversationUsers = document.getElementById("conversationUsers");
+const chatContacts = document.getElementById("chatContacts");
 const deleteChat = document.getElementById("deleteChat");
 const chatSearch = document.getElementById("chatSearch");
 const conversationHeader = document.getElementById("conversationHeader");
@@ -743,6 +744,10 @@ async function readMessagingArrayResponse(response, key) {
 }
 function renderConversationLoadError() {
   if (!conversationUsers) return;
+  if (typeof chatContacts !== "undefined" && chatContacts) {
+    chatContacts.replaceChildren();
+    chatContacts.hidden = true;
+  }
   conversationUsers.replaceChildren();
   const panel = document.createElement("div");
   panel.className = "message-load-error contact-load-error";
@@ -761,6 +766,55 @@ function renderConversationLoadError() {
   });
   panel.append(status, retry);
   conversationUsers.appendChild(panel);
+}
+function openConversationFromInbox(conversation) {
+  conversation.unread = 0;
+  markChatRead(conversation.contactEmail, conversation.updatedAt || new Date().toISOString());
+  openConversation(conversation);
+}
+function renderChatContactStrip(conversations) {
+  if (typeof chatContacts === "undefined" || !chatContacts) return;
+  chatContacts.replaceChildren();
+  const eligible = conversations
+    .filter(conversation => conversation?.contactEmail && conversation.canContact !== false)
+    .sort((left, right) => {
+      const recent = String(right.updatedAt || "").localeCompare(String(left.updatedAt || ""));
+      return recent || String(left.name || "").localeCompare(String(right.name || ""));
+    });
+  chatContacts.hidden = eligible.length === 0;
+  for (const conversation of eligible) {
+    const name = conversation.name || "DanzStak member";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chat-contact";
+    button.dataset.contactEmail = conversation.contactEmail;
+    button.setAttribute("aria-label", `${messageTranslate("Chats")}: ${name}`);
+    button.title = name;
+    const avatarWrap = document.createElement("span");
+    avatarWrap.className = "chat-contact-avatar-wrap";
+    const avatar = conversation.picture ? document.createElement("img") : document.createElement("span");
+    avatar.className = "chat-contact-avatar";
+    if (conversation.picture) {
+      avatar.src = conversation.picture;
+      avatar.alt = "";
+      window.danzstakIdentityMedia?.install(avatar, conversation);
+    } else avatar.textContent = name.charAt(0).toUpperCase();
+    avatarWrap.appendChild(avatar);
+    if (conversation.online === true) {
+      const onlineDot = document.createElement("span");
+      onlineDot.className = "chat-contact-online";
+      onlineDot.setAttribute("role", "img");
+      onlineDot.setAttribute("aria-label", messageTranslate("Online"));
+      onlineDot.title = messageTranslate("Online");
+      avatarWrap.appendChild(onlineDot);
+    }
+    const label = document.createElement("span");
+    label.className = "chat-contact-name";
+    label.textContent = name;
+    button.append(avatarWrap, label);
+    button.addEventListener("click", () => openConversationFromInbox(conversation));
+    chatContacts.appendChild(button);
+  }
 }
 function appendConversationAvailabilityWarning() {
   if (!conversationUsers) return;
@@ -852,13 +906,16 @@ async function loadConversations() {
       });
     }
     cachedConversations = [...contacts.values()];
-    const focusedContact = document.activeElement?.closest?.(".conversation-user")?.dataset.contactEmail || "";
+    const focusedControl = document.activeElement?.closest?.(".conversation-user,.chat-contact");
+    const focusedContact = focusedControl?.dataset.contactEmail || "";
+    const focusedSelector = focusedControl?.classList.contains("chat-contact") ? ".chat-contact" : ".conversation-user";
     const activeContact = String(contactInput?.value || "").trim().toLowerCase();
     if (activeContact && !conversationHeader.hidden) {
       const activeConversation = cachedConversations.find(item => item.contactEmail === activeContact);
       if (activeConversation) updateConversationPresence(activeConversation);
     }
     conversationUsers.replaceChildren();
+    renderChatContactStrip(cachedConversations);
     const query = chatSearch?.value.trim().toLowerCase() || "";
     const visible = cachedConversations.filter(item => {
       const matchesSearch = !query || (item.name + " " + item.contactEmail + " " + item.preview).toLowerCase().includes(query);
@@ -908,7 +965,7 @@ async function loadConversations() {
         meta.appendChild(badge);
       }
       copy.append(name, preview); button.append(avatarWrap, copy, meta);
-      button.addEventListener("click", () => { conversation.unread = 0; markChatRead(conversation.contactEmail, conversation.updatedAt || new Date().toISOString()); openConversation(conversation); });
+      button.addEventListener("click", () => openConversationFromInbox(conversation));
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [kind, targetId] of [["phone", "startPhone"], ["video", "startVideo"]]) {
         const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.appendChild(createCallActionIcon(kind)); call.title = `${messageTranslate(targetId === "startPhone" ? "Phone call" : "Video call")}: ${publicName}`; call.setAttribute("aria-label", call.title);
@@ -920,7 +977,7 @@ async function loadConversations() {
     }
     if (!sourcesComplete) appendConversationAvailabilityWarning();
     if (focusedContact) {
-      const focusTarget = [...conversationUsers.querySelectorAll(".conversation-user")].find(button => button.dataset.contactEmail === focusedContact);
+      const focusTarget = [...document.querySelectorAll(focusedSelector)].find(button => button.dataset.contactEmail === focusedContact);
       focusTarget?.focus({ preventScroll: true });
     }
     const requested = contactInput.value.trim().toLowerCase();

@@ -4,6 +4,16 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Real-contact avatar strip in Chats — 2026-11-04
+
+Status: **COMPLETE ON ISOLATED REVIEW BRANCH; NOT DEPLOYED**.
+
+- **Implemented behavior:** the Chats inbox now places a compact horizontal row of circular member photos directly below Search. It is populated from the existing authenticated merge of saved conversations, accepted Friends, and shared-Tribe members—never promotional or fabricated profiles. Stable recency ordering uses the conversation timestamp and then display name. A missing picture uses the member initial; signed/expired pictures retain the shared identity-media recovery path.
+- **Authorization and privacy:** contacts explicitly reported by the backend as `canContact: false` are excluded from the shortcut row. Confirmed `online === true` is the only state that renders a green presence dot. Tapping a permitted avatar clears the same local unread state and opens the same existing conversation path as its inbox row; it does not create a second chat backend or put account emails in a route. Polling restores keyboard focus to the same surface instead of unexpectedly moving a list-row user into the avatar strip.
+- **Responsive and accessibility evidence:** the real application code was exercised in Chromium with mocked authorized API responses at 320, 360, 390, 414, 430, and 1024px. Ten permitted contacts produced a horizontally scrollable row at every width; the blocked fixture never appeared; `Chats: Alice` was exposed as the accessible name; the confirmed online marker rendered; and tapping Alice opened the existing conversation. Compact shortcuts use 52px photos, 58px columns, native horizontal scrolling, visible focus, initials fallback, and do not take over vertical inbox scrolling.
+- **Quality gate:** the dedicated authorization/layout contract, conversation focus/polling, message avatar, partial-outage, unread, race, history, PWA-shell, site, security, infrastructure, and complete uninterrupted `test-regressions.ps1` suite pass. The browser matrix is functional/geometry evidence; automated screenshot capture on this Windows host stalled after rendering, so this report does not misrepresent it as visual-device evidence.
+- **Deployment and remaining proof:** branch `codex/chat-contact-avatar-strip` advances `chat.css` to v449, `direct-messages.js` to v484, and the review PWA shell to v668. It has not been merged or deployed. An externally reachable authenticated staging PWA with two disposable accounts, screenshot/device review at 320–430px, block/revoke changes, a long real contact list, and physical Android/iPhone swipe/tap testing remain required before production approval.
+
 ### Consistent current destination across mobile navigation — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
