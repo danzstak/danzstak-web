@@ -18,6 +18,12 @@ Status: **COMPLETE, DEPLOYED, AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL 
 - **Deployment scope:** frontend UX, shared icons, tests, versioned assets and PWA cache only. Authentication, payment, entitlement, discovery and messaging backend logic were not changed. Stripe remains Test Mode and live payments remain disabled.
 - **Remaining limitation:** no remotely controllable physical Android or iPhone was available. Android Chrome/installed PWA and iPhone Safari/installed PWA confirmation on physical devices remains manual and is not represented as completed.
 
+#### Narrow-phone follow-up
+
+- A second 320px inspection found two cascade conflicts: the shared icon component's `display:inline-grid!important` kept desktop Minimize and Video actions visible despite the mobile hide rules, truncating the contact name; and the install/update shortcut remained above the menu backdrop. The mobile rules now explicitly win those conflicts. At 320–360px Chat shows the complete name with Phone and More; at wider phone widths it restores Video while continuing to hide desktop Minimize. Install/update shortcuts are absent while the menu is open.
+- The browser suite now fails if desktop Minimize is visible on any tested phone, if Video remains below 370px, if the contact name's content exceeds its box, or if install/update shortcuts overlap an open menu. Local evidence: [320px Chat](screenshots/ux-polish-v649-final-local/chat-conversation-320.png) and [320px menu](screenshots/ux-polish-v649-final-local/menu-320.png). Live evidence: [320px Chat](screenshots/ux-polish-v649-live/chat-conversation-320.png) and [320px menu](screenshots/ux-polish-v649-live/menu-320.png).
+- Implementation commit `9795dfc3e8885e2f70f5e54ae5ad6bb12fb510cb` was deployed by AWS Amplify app `d31oovi2mos5iz`, job `861`, region `us-west-1`, from 2026-11-04 08:16:26 to 08:17:18 Europe/Berlin. The complete regression gate and local/live visual matrices passed. Production health returned PASS; the active controlling worker contains only `danzstak-shell-v649`.
+
 ### Video black-strip correction — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL ANDROID CHECK REMAINS**.
