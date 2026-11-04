@@ -10,6 +10,7 @@ assert.match(html, /onlineDot\.className = "feed-online-dot"/);
 assert.match(html, /onlineDot\.setAttribute\("aria-label", "Online"\)/);
 assert.match(html, /if \(user\.picture\) \{ avatar\.src = user\.picture;/);
 assert.match(html, /row\.append\(avatarWrap, name, action\)/);
+assert.match(html, /action\.title = action\.getAttribute\("aria-label"\);[\s\S]*action\.dataset\.icon = "chat";/, "narrow online-user message actions must use the shared accessible Chat icon");
 assert.match(css, /\.feed-online-row\{[^}]*grid-template-columns:34px minmax\(0,1fr\) auto/);
 assert.match(css, /\.feed-online-dot\{[^}]*background:#20b15a/);
 assert.match(html, /assets\/feed-enhancements\.css\?v=\d+/);

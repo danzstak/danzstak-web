@@ -506,6 +506,20 @@ async function captureViewport(page, fileName) {
       assert.equal(desktopIdentity.text, "DanzStak Test Artist", `${width}px: desktop profile shortcut lost the signed-in name`);
       assert.ok(desktopIdentity.scrollHeight <= desktopIdentity.clientHeight + 4, `${width}px: desktop profile shortcut clips the signed-in name: ${JSON.stringify(desktopIdentity)}`);
       assert.equal(desktopIdentity.closeVisible, false, `${width}px: desktop sidebar must not reserve a visible mobile Close control`);
+      if (await page.locator("#feedOnlineUsers .feed-online-row:visible").count()) {
+        const onlineIdentity = await page.locator("#feedOnlineUsers .feed-online-row").evaluate(row => {
+          const name = row.querySelector("[aria-label$=', online']");
+          const action = row.querySelector("button");
+          const actionBox = action.getBoundingClientRect();
+          return { name: name.textContent.trim(), nameClientWidth: name.clientWidth, nameScrollWidth: name.scrollWidth, actionWidth: actionBox.width, actionHeight: actionBox.height, icon: action.dataset.icon, label: action.getAttribute("aria-label"), title: action.title };
+        });
+        assert.equal(onlineIdentity.name, "Mobile Friend", `${width}px: online-user identity changed unexpectedly`);
+        assert.ok(onlineIdentity.nameScrollWidth <= onlineIdentity.nameClientWidth + 1, `${width}px: right-rail online-user name is truncated: ${JSON.stringify(onlineIdentity)}`);
+        assert.equal(onlineIdentity.icon, "chat", `${width}px: narrow online-user action should use the shared Chat icon`);
+        assert.ok(onlineIdentity.actionWidth >= 38 && onlineIdentity.actionHeight >= 38, `${width}px: online-user Chat action is too small: ${JSON.stringify(onlineIdentity)}`);
+        assert.equal(onlineIdentity.label, "Message Mobile Friend", `${width}px: icon-only online-user action lacks a complete accessible name`);
+        assert.equal(onlineIdentity.title, onlineIdentity.label, `${width}px: online-user Chat action lacks a matching tooltip`);
+      }
       await page.locator('.topnav [data-feature="Friends"]').click();
       await page.waitForSelector(".friends-workspace-list");
       await assertNoOverflow(page, `Desktop Friends ${width}px`);
