@@ -498,7 +498,7 @@ Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 
 # Zero-defect UX follow-up
 
-Status as of 2026-11-04: **PRE-DEPLOYMENT QUALITY GATE PASSED; LIVE VERIFICATION PENDING**.
+Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 
 - Independent review of the deployed Friends screen found that an accepted friend's Message action was forced onto a separate full-width row on phones. The action duplicated the visual weight of the friend card, wasted vertical space, and made the relationship between the friend and action less immediate.
 - Root cause: a mobile responsive rule explicitly changed `.friend-workspace-row` to a one-column grid and stretched `.friend-message-action` to 100% width. The renderer also produced a text-only control instead of using the shared icon system.
@@ -507,3 +507,7 @@ Status as of 2026-11-04: **PRE-DEPLOYMENT QUALITY GATE PASSED; LIVE VERIFICATION
 - Functional/integration evidence: all 251 repository regression checks, the 11-page site smoke suite and infrastructure validation passed after the correction.
 - Visual evidence: the complete browser suite passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. [Corrected Friends screen at 390px](screenshots/zero-defect-friends-after-390.png).
 - No backend, Stripe, entitlement, authentication, payment, booking, EPK or message-delivery business logic was changed.
+- Production application commit: `5728692460b1132ead67717076b831fae50105dd`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `852` succeeded in `us-west-1` from 2026-11-04 04:48:41 to 04:49:34 Europe/Berlin.
+- Post-deployment public health checks passed. The live browser reported the active service worker in the `activated` state, controlling the page, with only `danzstak-shell-v640` present. The live visual suite passed again at every measured width from 320px through 1366px.
+- Production visual inspection: [live corrected Friends screen at 390px](screenshots/zero-defect-friends-live-390.png). The accepted-friend card and Chat action remain on one line, the touch target is not clipped, and the primary bottom navigation remains unobstructed.
+- Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA verification remains **NOT TESTED** because those devices are unavailable in this environment; live browser automation and service-worker checks are not represented as physical-device evidence.
