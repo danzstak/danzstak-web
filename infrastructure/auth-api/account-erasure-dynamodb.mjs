@@ -103,7 +103,10 @@ export function createDynamoAccountErasureAdapters({ db, s3, cognito, commands, 
 
   async function deleteOwnedSocialContent({ userId, accountEmail }) {
     const ownedPosts = (await scanAll(tables.posts)).filter(item => string(item.userId) === userId || string(item.userEmail) === accountEmail);
-    let deleted = 0;
+    let deleted = 0, anonymized = 0, retained = 0;
+    const ownerHash = createHash("sha256").update(`${userId}:${accountEmail}`).digest("hex").slice(0, 24);
+    const revokedOwnerId = `DELETED_ACCOUNT#${ownerHash}`;
+    const revokedOwnerEmail = `deleted+${ownerHash}@deleted.invalid`;
     for (const post of ownedPosts) {
       const postId = string(post.postId);
       const [comments, reactions] = await Promise.all([
@@ -112,7 +115,27 @@ export function createDynamoAccountErasureAdapters({ db, s3, cognito, commands, 
       ]);
       deleted += await deleteItems(tables.comments, comments);
       deleted += await deleteItems(tables.reactions, reactions);
-      deleted += await deleteItems(tables.posts, [post]);
+      if (string(post.sharedPostId)) {
+        deleted += await deleteItems(tables.posts, [post]);
+      } else {
+        const revokedAt = new Date().toISOString();
+        await db.send(new PutItemCommand({
+          TableName: tables.posts,
+          Item: {
+            postId: post.postId,
+            userId: { S: revokedOwnerId },
+            userEmail: { S: revokedOwnerEmail },
+            audience: post.audience?.S === "public" ? { S: "public" } : { S: "private" },
+            createdAt: post.createdAt || { S: revokedAt },
+            sourceContentId: post.sourceContentId || post.postId,
+            sourceRevoked: { BOOL: true },
+            revokedAt: { S: revokedAt },
+            revokedBy: { S: revokedOwnerId }
+          }
+        }));
+        anonymized += 1;
+        retained += 1;
+      }
     }
     if (tables.postViews) {
       const ownedIds = new Set(ownedPosts.map(post => string(post.postId)));
@@ -120,7 +143,7 @@ export function createDynamoAccountErasureAdapters({ db, s3, cognito, commands, 
       const views = (await scanAll(tables.postViews)).filter(item => ownedIds.has(string(item.postId)) || string(item.viewerKey).endsWith(`#${viewerHash}`));
       deleted += await deleteItems(tables.postViews, views);
     }
-    return { deleted };
+    return { deleted, anonymized, retained };
   }
 
   async function lookupUserIdByEmail(email) {

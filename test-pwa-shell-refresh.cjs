@@ -43,7 +43,7 @@ for (const [file, expected] of [
   ["booking.html", "assets/mobile-design-system.css?v=11"],
   ["epk.html", "assets/mobile-design-system.css?v=11"],
   ["profile.html", "assets/mobile-design-system.css?v=11"],
-  ["feed.html", "assets/feed-enhancements.css?v=495"],
+  ["feed.html", "assets/feed-enhancements.css?v=496"],
   ["feed.html", "assets/pwa.js?v=424"],
   ["messages.html", "assets/pwa.js?v=424"],
   ["profile.html", "assets/pwa.js?v=424"],
@@ -52,9 +52,9 @@ for (const [file, expected] of [
   ["feed.html", "assets/identity-media.js?v=1"],
   ["messages.html", "assets/identity-media.js?v=1"],
   ["profile.html", "assets/identity-media.js?v=1"],
-  ["feed.html", "assets/feed-enhancements.js?v=524"],
+  ["feed.html", "assets/feed-enhancements.js?v=525"],
   ["feed.html", "assets/profile-onboarding.js?v=8"],
-  ["feed.html", "assets/post-sharing.js?v=420"],
+  ["feed.html", "assets/post-sharing.js?v=421"],
   ["feed.html", "assets/people-search.js?v=422"],
   ["feed.html", "assets/media-visibility.js?v=390"],
   ["messages.html", "assets/media-visibility.js?v=390"],
@@ -65,7 +65,7 @@ for (const [file, expected] of [
   ["profile.html", "assets/profile-sharing.js?v=416"],
   ["profile.html", "assets/profile-editor.js?v=482"],
   ["booking.html", "assets/booking-agent.js?v=479"],
-  ["profile.html", "assets/post-sharing.js?v=420"],
+  ["profile.html", "assets/post-sharing.js?v=421"],
   ["profile.html", "assets/profile.js?v=419"]
 ]) {
   assert.ok(read(file).includes(expected), `${file} must reference ${expected}`);

@@ -19,7 +19,8 @@ const oldConversation = conversationId(owner, friend), tombstone = deletedMember
 const messageMedia = `${accountMediaPrefixes(owner)[2]}photo.jpg`;
 const tables = new Map(Object.entries({
   [ACCOUNT_TABLES.posts]: [
-    { postId: { S: "post-owned" }, userId: { S: userId }, userEmail: { S: owner }, content: { S: "mine" } },
+    { postId: { S: "post-owned" }, userId: { S: userId }, userEmail: { S: owner }, content: { S: "mine" }, audience: { S: "public" }, createdAt: { S: "2026-01-01" }, mediaKey: { S: "users/private/post.jpg" } },
+    { postId: { S: "share-owned" }, userId: { S: userId }, userEmail: { S: owner }, content: { S: "my share" }, sharedPostId: { S: "post-friend" }, createdAt: { S: "2026-01-02" } },
     { postId: { S: "post-friend" }, userId: { S: friendId }, userEmail: { S: friend }, content: { S: "friend" } }
   ],
   [ACCOUNT_TABLES.comments]: [
@@ -117,7 +118,16 @@ const adapters = createDynamoAccountErasureAdapters({
 
 const social = await adapters.deleteOwnedSocialContent({ userId, accountEmail: owner });
 assert.ok(social.deleted >= 4);
-assert.deepEqual(tables.get(ACCOUNT_TABLES.posts).map(item => scalar(item.postId)), ["post-friend"]);
+assert.equal(social.anonymized, 1);
+assert.equal(social.retained, 1);
+assert.deepEqual(tables.get(ACCOUNT_TABLES.posts).map(item => scalar(item.postId)).sort(), ["post-friend", "post-owned"]);
+const revokedSource = tables.get(ACCOUNT_TABLES.posts).find(item => scalar(item.postId) === "post-owned");
+assert.equal(scalar(revokedSource.sourceRevoked), true, "account deletion must revoke canonical source content for every share");
+assert.match(scalar(revokedSource.userId), /^DELETED_ACCOUNT#/);
+assert.match(scalar(revokedSource.userEmail), /^deleted\+/);
+assert.equal(revokedSource.content, undefined, "a retained revocation marker must contain no source text");
+assert.equal(revokedSource.mediaKey, undefined, "a retained revocation marker must contain no source media key");
+assert.equal(tables.get(ACCOUNT_TABLES.posts).some(item => scalar(item.postId) === "share-owned"), false, "the departing member's own reshare placement must be deleted");
 assert.equal(tables.get(ACCOUNT_TABLES.comments).some(item => scalar(item.postId) === "post-owned"), false, "other members' engagement on a deleted post must be removed with the post");
 assert.equal(tables.get(ACCOUNT_TABLES.postViews).length, 0, "owned-post views and the deleting member's daily view keys must be erased");
 await adapters.deleteWhere(ACCOUNT_TABLES.comments, { userId, accountEmail: owner });

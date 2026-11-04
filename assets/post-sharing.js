@@ -59,7 +59,7 @@
     if (!dialog) { dialog = document.createElement('dialog'); dialog.className = 'post-share-dialog'; document.body.appendChild(dialog); }
     dialog.replaceChildren();
     const title = document.createElement('h2'); title.id = 'postShareTitle'; title.textContent = 'Share post'; dialog.setAttribute('aria-labelledby', title.id);
-    const note = document.createElement('p'); note.textContent = 'The original author stays credited. The shared content disappears if the original is removed or becomes unavailable to the viewer.';
+    const note = document.createElement('p'); note.textContent = 'The original author stays credited. Removing one placement keeps authorized shares working. If the creator deletes the original everywhere, your own comment can remain with a small removed-content notice.';
     const comment = document.createElement('textarea'); comment.maxLength = 5000; comment.placeholder = 'Add your own comment (optional)'; comment.setAttribute('aria-label', 'Your comment on the shared post');
     const destinationLabel = document.createElement('label'); destinationLabel.textContent = 'Share to';
     const destination = document.createElement('select'); destination.setAttribute('aria-label', 'Share destination');
@@ -100,10 +100,20 @@
     } catch { feedback.textContent = 'Your Mix is ready. Tribes could not be loaded right now.'; }
   }
   window.danzstakSharePost = post => { void openShareDialog(post); };
+  function renderUnavailableOriginal(card, state) {
+    card.replaceChildren();
+    const notice = document.createElement('p');
+    notice.className = 'shared-post-unavailable';
+    notice.textContent = state === 'creator_deleted'
+      ? (window.danzstakTranslate?.('Original content removed by its creator.') || 'Original content removed by its creator.')
+      : (window.danzstakTranslate?.('Content unavailable') || 'Content unavailable');
+    card.appendChild(notice);
+  }
   window.danzstakRenderSharedPost = (article, post) => {
     if (!post.sharedPostId || article.querySelector(".shared-post-card")) return;
     const card = document.createElement('div'); card.className = 'shared-post-card';
-    if (!post.sharedPost) card.textContent = 'The original post is no longer available to you.';
+    card.dataset.sourcePostId = post.sharedPostId;
+    if (!post.sharedPost) renderUnavailableOriginal(card, post.sharedPostState);
     else {
       const source = post.sharedPost, memberId = String(source.authorMemberId || ''), validMemberId = /^[a-f0-9-]{36}$/.test(memberId), name = document.createElement(validMemberId ? 'a' : 'strong'); name.textContent = source.authorName;
       if (validMemberId) { name.href = 'profile.html?member=' + encodeURIComponent(memberId); name.className = 'shared-post-author'; }
@@ -113,4 +123,20 @@
     }
     const actions = article.querySelector('.post-actions'); if (actions) actions.before(card); else article.appendChild(card);
   };
+  const renderLoadedShares = posts => {
+    for (const post of Array.isArray(posts) ? posts : []) {
+      if (!post?.sharedPostId) continue;
+      const article = document.getElementById('post-' + post.postId);
+      if (article) window.danzstakRenderSharedPost(article, post);
+    }
+  };
+  window.addEventListener('danzstak:posts-loaded', event => renderLoadedShares(event.detail?.posts));
+  queueMicrotask(() => renderLoadedShares(window.danzstakLoadedPosts));
+  window.addEventListener('danzstak:source-revoked', event => {
+    const sourcePostId = String(event.detail?.postId || '');
+    if (!sourcePostId) return;
+    document.querySelectorAll('.shared-post-card').forEach(card => {
+      if (card.dataset.sourcePostId === sourcePostId) renderUnavailableOriginal(card, 'creator_deleted');
+    });
+  });
 })();

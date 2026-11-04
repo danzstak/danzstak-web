@@ -80,6 +80,11 @@
   id:["Media postingan belum dapat dihapus. Coba lagi.","Postingan tidak dapat dihapus dari server."]
  };
  for(const [language,values] of Object.entries(deletionFeedback)){const dictionary=dictionaries[language]||(dictionaries[language]={});deletionFeedbackKeys.forEach((key,index)=>dictionary[key]=values[index]);}
+ const contentOwnershipKeys=["Original content removed by its creator.","Content unavailable"];
+ const contentOwnership={
+  es:["Contenido original eliminado por su creador.","Contenido no disponible"],fr:["Contenu original supprimé par son créateur.","Contenu indisponible"],de:["Originalinhalt vom Ersteller entfernt.","Inhalt nicht verfügbar"],pt:["Conteúdo original removido por quem o criou.","Conteúdo indisponível"],it:["Contenuto originale rimosso dal suo creatore.","Contenuto non disponibile"],ko:["원본 콘텐츠가 작성자에 의해 삭제되었습니다.","콘텐츠를 사용할 수 없습니다"],ja:["元のコンテンツは作成者によって削除されました。","コンテンツを利用できません"],"zh-Hans":["原始内容已被创作者删除。","内容不可用"],"zh-Hant":["原始內容已被創作者刪除。","內容無法使用"],fil:["Inalis ng lumikha ang orihinal na content.","Hindi available ang content"],hi:["मूल सामग्री उसके निर्माता ने हटा दी है।","सामग्री उपलब्ध नहीं है"],vi:["Nội dung gốc đã được người tạo xóa.","Nội dung không khả dụng"],th:["ผู้สร้างได้นำเนื้อหาต้นฉบับออกแล้ว","เนื้อหาไม่พร้อมใช้งาน"],id:["Konten asli telah dihapus oleh pembuatnya.","Konten tidak tersedia"]
+ };
+ for(const [language,values] of Object.entries(contentOwnership)){const dictionary=dictionaries[language]||(dictionaries[language]={});contentOwnershipKeys.forEach((key,index)=>dictionary[key]=values[index]);}
  const connectionActionKeys=["No friends or Tribe members available yet.","Offline — calls can ring through notifications when enabled","Not connected","Users are temporarily unavailable. Retrying automatically…","Friend request sent to {name}.","You are now friends.","Friend request declined.","Accept"];
  const connectionActions={
   es:["Aún no hay amigos ni miembros de una Tribu disponibles.","Desconectado — las llamadas pueden sonar mediante notificaciones si están activadas","Sin conexión","Los usuarios no están disponibles temporalmente. Reintentando automáticamente…","Solicitud de amistad enviada a {name}.","Ahora son amigos.","Solicitud de amistad rechazada.","Aceptar"],
