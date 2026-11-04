@@ -20,3 +20,12 @@ Verify no music upload route, audio object storage or first-party streaming path
 - Establish a DMCA notice-and-takedown process, designated-agent/contact requirements where applicable, repeat-infringer policy, user notification, counter-notification handling, recordkeeping and timely action on sufficiently valid notices. Refer legal details for qualified review; do not automatically treat an allegation as adjudicated infringement.
 - Do not assume the owner's confirmation authorizes new first-party video storage or upload infrastructure. Preserve the existing external-video embed/link approach until the owner explicitly approves a hosting change.
 - Codex should document current video posting behavior and propose any needed changes separately, with costs and copyright/security implications, before implementation.
+
+## Latest owner decision — DANZSTAK hosts user-uploaded videos
+- **Direct first-party video uploads are approved as a product requirement**, including recordings from phones (concerts, festivals, clubs, travel, daily life) and other user-owned video sources. This supersedes earlier external-embed-only assumptions for video, **not** the permanent ban on audio-only music files.
+- Permit supported video containers such as MP4/MOV with embedded audio, subject to security validation, format and size limits, content rights and moderation. Do not allow disguised audio-only files; verify actual media streams server-side.
+- Preserve support for externally embedded videos alongside native uploads.
+- Plan mobile-first resumable uploads, upload progress, private staging/quarantine, malware/format validation, transcoding to streaming-friendly variants, thumbnails, access controls, moderation/fingerprinting review, CDN delivery, safe deletion and storage lifecycle.
+- Integrate proposed audio/video fingerprinting with a documented rights-review process; matches are not conclusive infringement and no-match is not proof of permission. A user filming a concert does not automatically own the music or performance rights.
+- Estimate AWS storage, processing, bandwidth, CDN and fingerprint vendor costs before enabling public uploads. Do not provision paid services, deploy hosting infrastructure or expose uploads in production without explicit owner approval of costs and implementation plan.
+- Require a legal-reviewable DMCA policy and agent-registration process; do not claim safe harbor automatically.
