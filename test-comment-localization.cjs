@@ -33,8 +33,8 @@ assert.match(feed, /new Intl\.RelativeTimeFormat\(locale/, "comment timestamps m
 assert.match(feed, /time\.title = parsed\.toLocaleString\(locale/, "comment timestamps must expose the full localized date and time");
 assert.match(feed, /attributeFilter: \["lang"\]/, "comment translations must observe live language changes");
 assert.match(feed, /dataset\.replyName/, "member names must be preserved separately from translated interface copy");
-assert.match(html, /assets\/i18n\.js\?v=388/);
-assert.match(html, /assets\/feed-enhancements\.js\?v=524/);
-assert.match(serviceWorker, /danzstak-shell-v668/);
+assert.match(html, /assets\/i18n\.js\?v=389/);
+assert.match(html, /assets\/feed-enhancements\.js\?v=525/);
+assert.match(serviceWorker, /danzstak-shell-v669/);
 
 console.log("Comment localization checks passed: all 15 languages cover composing, sorting, named replies, accessibility labels, and live language changes.");

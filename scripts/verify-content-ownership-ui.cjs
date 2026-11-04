@@ -1,0 +1,19 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),{chromium}=require("playwright-core");
+const base=process.env.DANZSTAK_VISUAL_BASE_URL||"http://127.0.0.1:8013",out=path.resolve(process.env.DANZSTAK_VISUAL_OUTPUT||"docs/screenshots/content-ownership-local"),edge=process.env.DANZSTAK_EDGE_PATH||"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+fs.mkdirSync(out,{recursive:true});
+const share={postId:"77777777-7777-4777-8777-777777777777",content:"My caption stays because I wrote it.",authorName:"Test Resharer",userId:"11111111-1111-4111-8111-111111111111",createdAt:"2026-11-04T12:05:00.000Z",audience:"public",commentPolicy:"everyone",isOwner:true,isReshare:true,sharedPostId:"88888888-8888-4888-8888-888888888888",sourceContentId:"88888888-8888-4888-8888-888888888888",sharedPostState:"creator_deleted",sharedPost:null};
+const json=(route,body)=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(body)});
+(async()=>{assert.ok(fs.existsSync(edge));const browser=await chromium.launch({executablePath:edge,headless:true,args:["--disable-gpu"]});try{
+ for(const width of [320,390]){const context=await browser.newContext({viewport:{width,height:820},serviceWorkers:"block"}),page=await context.newPage();
+  await page.route("https://api.danzstak.com/**",route=>{const p=new URL(route.request().url()).pathname;if(p==="/auth/session")return json(route,{authenticated:true,email:"owner@danzstak.invalid",name:"Test Resharer",memberId:share.userId});if(p==="/profile"||p==="/profiles")return json(route,{profile:{name:"Test Resharer",username:"test-resharer",memberId:share.userId,isOwner:true}});if(p==="/posts"||p==="/secure-posts")return json(route,{posts:[share]});if(p==="/engagement")return json(route,{myReaction:"",reactionCounts:{},comments:[]});if(p==="/settings/presence")return json(route,{language:"en",onlineVisible:true});if(p==="/settings/posts")return json(route,{pinned:[],saved:[],muted:[]});if(p==="/stories")return json(route,{stories:[],reels:[]});return json(route,{});});
+  await page.goto(`${base}/feed.html?view=feed`,{waitUntil:"domcontentloaded"});await page.addStyleTag({content:".push-alert-prompt,.profile-onboarding{display:none!important}"});await page.waitForSelector("article.post");
+  await page.waitForTimeout(250);if(!(await page.locator(".shared-post-unavailable").count()))throw new Error("Shared source placeholder was not rendered: "+await page.locator("article.post").evaluate(node=>node.outerHTML));
+  const state=await page.locator("article.post").evaluate(post=>({text:post.innerText,media:post.querySelectorAll("img.post-media,video.post-media,iframe,.shared-post-card a").length,overflow:document.body.scrollWidth>document.documentElement.clientWidth+1}));
+  assert.match(state.text,/My caption stays because I wrote it\./);assert.match(state.text,/Original content removed by its creator\./);assert.equal(state.media,0,"revoked source must expose no original media or link");assert.equal(state.overflow,false);
+  await page.locator("article.post").scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,`creator-deleted-share-${width}.png`)});
+  await page.locator(".post-menu-toggle").click();await page.getByText("Remove share",{exact:true}).waitFor();assert.equal(await page.getByText("Delete everywhere",{exact:true}).count(),0,"a resharer must not receive the creator-only action");
+  await page.screenshot({path:path.join(out,`reshare-actions-${width}.png`),fullPage:true});await context.close();
+ }
+ console.log("Content ownership visual checks passed at 320px and 390px: caption retained, compact creator-deleted placeholder, no source media/link, no overflow, and resharer-only removal action.");
+}finally{await browser.close();}})().catch(error=>{console.error(error);process.exitCode=1});

@@ -1559,7 +1559,7 @@ async function getSecurePosts(event) {
   }
 
   const rawPosts = (await scanAll({ TableName: postsTable, ConsistentRead: true }))
-    .filter(item => item.postId?.S && item.content?.S && item.createdAt?.S);
+    .filter(item => item.postId?.S && item.createdAt?.S && (item.content?.S || item.sourceRevoked?.BOOL === true));
   const viewerEmail = await accountForSub(userId);
   const friendAuthors = [...new Set(rawPosts
     .filter(item => item.userId?.S !== userId && item.audience?.S === "friends" && item.userEmail?.S)
@@ -1586,18 +1586,22 @@ async function getSecurePosts(event) {
     }
   }
 
-  const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S))));
+  const canView = item => Boolean(item) && (item.userId?.S === userId || (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S))));
+  const visiblePosts = rawPosts.filter(item => item.sourceRevoked?.BOOL !== true && canView(item));
+  const allSources = new Map(rawPosts.map(item => [item.postId.S,item]));
+  const referencedSources = visiblePosts.map(item => allSources.get(item.sharedPostId?.S)).filter(item => item && canView(item));
   const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));
-  const authorProfiles = typeof loadFeedAuthorProfiles === "function" ? await loadFeedAuthorProfiles([...visiblePosts,...tagNames]) : new Map();
-  const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
+  const authorProfiles = typeof loadFeedAuthorProfiles === "function" ? await loadFeedAuthorProfiles([...visiblePosts,...referencedSources,...tagNames]) : new Map();
+  const authorNames = await loadFeedAuthorNames([...visiblePosts,...referencedSources,...tagNames], authorProfiles);
   const authorName = email => authorNames.get(String(email || "").trim().toLowerCase()) || "DanzStak member";
   const authorPicture = email => authorProfiles.get(String(email || "").trim().toLowerCase())?.picture || "";
-  const visibleSources = new Map(visiblePosts.map(item => [item.postId.S,item]));
-  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
+  const sharedSourceState = item => !item || !canView(item) ? "unavailable" : item.sourceRevoked?.BOOL === true ? "creator_deleted" : "available";
+  const sharedPreview = item => sharedSourceState(item) === "available" ? ({postId:item.postId.S,sourceContentId:item.sourceContentId?.S || item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
       isOwner: item.userId?.S === userId,
+      mixRemoved: item.mixRemoved?.BOOL === true,
       featured: item.featured?.BOOL === true,
       profileOwnerMemberId: item.profileOwnerId?.S ?? "",
       canRemoveFromProfile: item.profileOwnerId?.S === userId && item.userId?.S !== userId,
@@ -1609,7 +1613,10 @@ async function getSecurePosts(event) {
       viewCount: Math.max(0,Number(item.viewCount?.N || 0)),
       taggedUsers:(item.taggedUsers?.L || []).map(tag => ({memberId:tag.M?.memberId?.S || "",name:authorNames.get(tag.M?.userEmail?.S) || tag.M?.name?.S || "DanzStak member",isMe:tag.M?.memberId?.S === userId})),
       sharedPostId:item.sharedPostId?.S || "",
-      sharedPost:sharedPreview(visibleSources.get(item.sharedPostId?.S)),
+      sourceContentId:item.sourceContentId?.S || item.sharedPostId?.S || item.postId.S,
+      isReshare:Boolean(item.sharedPostId?.S),
+      sharedPostState:item.sharedPostId?.S ? sharedSourceState(allSources.get(item.sharedPostId.S)) : "",
+      sharedPost:sharedPreview(allSources.get(item.sharedPostId?.S)),
       audience: item.audience?.S ?? "public",
       groupId: item.groupId?.S || "",
       groupName: item.groupId?.S ? groupNames.get(item.groupId.S) || "Tribe" : "",
@@ -1632,6 +1639,7 @@ async function postForEngagement(postId, userId) {
   const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
   const post = found.Item;
   if (!post) return { error: "Post not found.", statusCode: 404 };
+  if (post.sourceRevoked?.BOOL === true) return { error: "Post is not available.", statusCode: 404 };
   if (post.userId?.S === userId) return { post };
   if (post.groupId?.S) {
     const access = await requireGroupMember(post.groupId.S, userId);
@@ -1988,9 +1996,15 @@ async function createSecurePost(event) {
     if (typeof data.sharedPostId !== "string" || !/^[a-f0-9-]{36}$/.test(data.sharedPostId) || data.importSource !== undefined) return {statusCode:400,headers,body:JSON.stringify({error:"Invalid shared post."})};
     let sourceId = data.sharedPostId;
     for (let depth=0;depth<5;depth++) {
-      const access = await postForEngagement(sourceId,userId);
-      if (!access.post || access.post.audience?.S !== "public") return {statusCode:403,headers,body:JSON.stringify({error:"Only available Public posts can be shared."})};
-      sharedSource = access.post;
+      if (depth === 0) {
+        const access = await postForEngagement(sourceId,userId);
+        if (!access.post || access.post.audience?.S !== "public") return {statusCode:403,headers,body:JSON.stringify({error:"Only available Public posts can be shared."})};
+        sharedSource = access.post;
+      } else {
+        const source = await db.send(new GetItemCommand({TableName:postsTable,Key:{postId:{S:sourceId}},ConsistentRead:true}));
+        if (!source.Item || source.Item.sourceRevoked?.BOOL === true || source.Item.audience?.S !== "public") return {statusCode:403,headers,body:JSON.stringify({error:"Only available Public posts can be shared."})};
+        sharedSource = source.Item;
+      }
       if (!sharedSource.sharedPostId?.S) break;
       sourceId = sharedSource.sharedPostId.S;
     }
@@ -2088,6 +2102,7 @@ async function createSecurePost(event) {
       content: { S: content },
       ...(location ? {location:{S:location}} : {}),
       ...(sharedSource ? {sharedPostId:{S:sharedSource.postId.S}} : {}),
+      sourceContentId: { S: sharedSource?.sourceContentId?.S || sharedSource?.postId?.S || postId },
       ...(requestedGroupId ? { groupId: { S: requestedGroupId } } : {}),
       createdAt: { S: createdAt },
       audience: { S: audience },
@@ -2112,6 +2127,7 @@ async function createSecurePost(event) {
     headers,
     body: JSON.stringify({
       postId,
+      sourceContentId: sharedSource?.sourceContentId?.S || sharedSource?.postId?.S || postId,
       userId,
       userEmail,
       profileOwnerMemberId: profileOwnerId,
@@ -2135,10 +2151,13 @@ async function deleteSecurePost(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const postId = String(event.pathParameters?.postId || "");
   if (!/^[a-f0-9-]{36}$/.test(postId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid post." }) };
+  const scope = String(event.queryStringParameters?.scope || "everywhere");
+  if (!["placement", "everywhere"].includes(scope)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose Remove from here or Delete everywhere." }) };
   const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Post not found." }) };
   const isAuthor = found.Item.userId?.S === userId;
   const isProfileOwner = found.Item.profileOwnerId?.S === userId;
+  const isReshare = Boolean(found.Item.sharedPostId?.S);
   if (!isAuthor && !isProfileOwner) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the author or profile owner can remove this post." }) };
   if (isProfileOwner && !isAuthor) {
     await db.send(new UpdateItemCommand({
@@ -2150,16 +2169,26 @@ async function deleteSecurePost(event) {
     }));
     return { statusCode: 200, headers, body: JSON.stringify({ deleted: false, removedFromProfile: true }) };
   }
+  if (scope === "everywhere" && isReshare) return { statusCode: 403, headers, body: JSON.stringify({ error: "You can remove your share, but only the original creator can delete the source content everywhere." }) };
+  if (scope === "placement" && !isReshare) {
+    await db.send(new UpdateItemCommand({
+      TableName: postsTable,
+      Key: { postId: { S: postId } },
+      UpdateExpression: "SET mixRemoved = :removed, updatedAt = :updated, sourceContentId = if_not_exists(sourceContentId, :source)",
+      ConditionExpression: "userId = :owner AND attribute_not_exists(sourceRevoked)",
+      ExpressionAttributeValues: { ":removed": { BOOL: true }, ":updated": { S: new Date().toISOString() }, ":source": { S: postId }, ":owner": { S: userId } }
+    }));
+    return { statusCode: 200, headers, body: JSON.stringify({ deleted: false, removedFromHere: true, sourceContentId: found.Item.sourceContentId?.S || postId }) };
+  }
   let linkedStories = [];
-  let mediaKey = "";
-  if (found.Item.mediaKey?.S) {
+  let mediaKey = found.Item.mediaKey?.S || found.Item.revokedMediaKey?.S || "";
+  if (mediaKey) {
     const ownerPrefix = sha256(found.Item.userEmail?.S || "").slice(0, 24);
-    if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
-    mediaKey = found.Item.mediaKey.S;
+    if (!mediaKey.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
     linkedStories = await scanAll({
       TableName: storiesTable,
       FilterExpression: "mediaKey = :media AND userEmail = :owner",
-      ExpressionAttributeValues: { ":media": { S: found.Item.mediaKey.S }, ":owner": { S: found.Item.userEmail?.S || "" } },
+      ExpressionAttributeValues: { ":media": { S: mediaKey }, ":owner": { S: found.Item.userEmail?.S || "" } },
       ProjectionExpression: "storyId"
     });
   }
@@ -2168,25 +2197,51 @@ async function deleteSecurePost(event) {
     queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true }),
     found.Item.userEmail?.S ? queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: found.Item.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true }) : Promise.resolve([])
   ]);
-  if (mediaKey) {
+  if (!isReshare && found.Item.sourceRevoked?.BOOL !== true) {
+    const set = ["sourceRevoked = :revoked", "revokedAt = :revokedAt", "revokedBy = :owner", "sourceContentId = if_not_exists(sourceContentId, :source)"];
+    const values = { ":revoked": { BOOL: true }, ":revokedAt": { S: new Date().toISOString() }, ":owner": { S: userId }, ":source": { S: postId } };
+    if (mediaKey) { set.push("revokedMediaKey = :media"); values[":media"] = { S: mediaKey }; }
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: postsTable,
+        Key: { postId: { S: postId } },
+        UpdateExpression: `SET ${set.join(", ")} REMOVE content, mediaKey, mediaType, reel, #location, taggedUsers, editHistory, featured`,
+        ExpressionAttributeNames: { "#location": "location" },
+        ExpressionAttributeValues: values,
+        ConditionExpression: "userId = :owner AND attribute_not_exists(sourceRevoked)"
+      }));
+    } catch (error) {
+      if (error?.name !== "ConditionalCheckFailedException") throw error;
+      const concurrent = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
+      if (concurrent.Item?.userId?.S !== userId || concurrent.Item?.sourceRevoked?.BOOL !== true) throw error;
+      mediaKey = concurrent.Item.revokedMediaKey?.S || "";
+    }
+  }
+  if (mediaKey && !isReshare) {
     const mediaCleanupPending = await runCleanup([
       () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey }))
     ]);
     if (mediaCleanupPending) {
       console.error("Post media deletion remains pending", { postId, mediaKey });
-      return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
+      return { statusCode: 503, headers, body: JSON.stringify({ error: "The original is no longer visible, but media cleanup is still pending. Try again.", deleted: false, revokedEverywhere: true }) };
     }
+    await db.send(new UpdateItemCommand({TableName:postsTable,Key:{postId:{S:postId}},UpdateExpression:"REMOVE revokedMediaKey",ConditionExpression:"userId = :owner AND sourceRevoked = :revoked",ExpressionAttributeValues:{":owner":{S:userId},":revoked":{BOOL:true}}}));
   }
-  await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
+  if (isReshare) await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
   const cleanupTasks = [
     ...reactions.map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
     ...comments.map(item => () => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
     ...notices.filter(item => item.postId?.S === postId).map(item => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } }))),
-    ...linkedStories.map(item => () => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } })))
+    ...(!isReshare
+      ? linkedStories.map(item => () => db.send(new DeleteItemCommand({
+          TableName: storiesTable,
+          Key: { storyId: item.storyId }
+        })))
+      : [])
   ];
   const cleanupPending = await runCleanup(cleanupTasks);
   if (cleanupPending) console.error("Post deletion cleanup remains pending", { postId, cleanupPending });
-  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true, cleanupPending }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ deleted: isReshare, removedFromHere: isReshare, revokedEverywhere: !isReshare, sourceContentId: found.Item.sourceContentId?.S || found.Item.sharedPostId?.S || postId, cleanupPending }) };
 }
 
 async function resolveMediaTags(ids, ownerId, previous, declined) {
@@ -2240,6 +2295,10 @@ async function updateSecurePost(event) {
   if (Object.prototype.hasOwnProperty.call(data, "featured")) {
     if (typeof data.featured !== "boolean") return {statusCode:400,headers,body:JSON.stringify({error:"Featured must be true or false."})};
     updates.push("featured = :featured"); values[":featured"] = {BOOL:data.featured};
+  }
+  if (Object.prototype.hasOwnProperty.call(data, "reel")) {
+    if (typeof data.reel !== "boolean" || found.Item.mediaType?.S !== "video") return {statusCode:400,headers,body:JSON.stringify({error:"The Roll placement must belong to a video."})};
+    updates.push("reel = :reel"); values[":reel"] = {BOOL:data.reel};
   }
   if (Object.prototype.hasOwnProperty.call(data,"taggedMembers")) {
     if (!["image","video"].includes(found.Item.mediaType?.S)) return {statusCode:400,headers,body:JSON.stringify({error:"Tag people on photos or videos only."})};
