@@ -544,3 +544,12 @@ Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 - Production application commit: `af44f29020d181188bac0f56c6b9f18f89b6da1d`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `854` succeeded in `us-west-1` from 2026-11-04 05:21:20 to 05:22:14 Europe/Berlin.
 - Post-deployment public health passed. The browser PWA verifier found the worker activated and controlling the page, with only `danzstak-shell-v642` present; the prior media controller cache was not retained.
 - The live browser visual suite passed again at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA playback remain **NOT TESTED** because those devices are unavailable in this environment; automated browser evidence is not represented as physical-device evidence.
+
+## Physical-device failure and initialization-race correction
+
+Status as of 2026-11-04: **IN PROGRESS — OWNER REPORTED AUDIO BLEED AFTER CACHE CLEAR**.
+
+- The first release passed automated playback arbitration but failed physical-device acceptance. It is not treated as complete.
+- Root cause found in the initialization path: a newly inserted feed video inherited the saved sound-on preference before playback ownership was assigned. A second autoplay observer could start that unowned video, producing a short or continuing overlap on mobile even though the later `play` event attempted to arbitrate ownership.
+- The initialization path now forces every new native player to remain muted. Only the central playback owner may restore the saved sound preference. Native Roll videos are also included in automatic ownership selection rather than relying solely on their separate visibility observer.
+- Regression coverage now inserts a new video after the controller is already running and verifies that it cannot become audible before autoplay begins. Production deployment and physical-device retest are pending.

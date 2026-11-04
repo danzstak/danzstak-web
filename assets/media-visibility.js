@@ -56,7 +56,11 @@
   video.addEventListener('loadedmetadata',setLayout);
   if(video.readyState>=1)setLayout();
   if(isFeedVideo(video)){
-   video.preload='none';video.muted=!soundEnabled();video.autoplay=!dataSaverEnabled();video.loop=true;
+   // Every newly discovered player starts silent. The playback owner is the
+   // only code path allowed to restore the saved sound preference. This avoids
+   // an audible frame when another autoplay observer calls play() before the
+   // play event reaches the ownership guard on mobile browsers.
+   video.preload='none';video.muted=true;video.autoplay=!dataSaverEnabled();video.loop=true;
    let pointerStartedPaused=false;
    video.addEventListener('pointerdown',()=>{pointerStartedPaused=video.paused;if(pointerStartedPaused)manualPlayback.add(video);else manualPlayback.delete(video);},{passive:true});
    // Some mobile/WebView builds expose native controls but fail to complete the
@@ -101,7 +105,7 @@
  }
  function bestAutomaticCandidate(){
   let best=null,bestRatio=0.6;
-  for(const media of tracked){const ratio=ratios.get(media)||0;if(ratio<bestRatio)continue;if(!(isFeedVideo(media)||isYouTubeFrame(media)))continue;best=media;bestRatio=ratio;}
+  for(const media of tracked){const ratio=ratios.get(media)||0;if(ratio<bestRatio)continue;if(!(isFeedVideo(media)||media?.classList?.contains?.('reel-player')||isYouTubeFrame(media)))continue;best=media;bestRatio=ratio;}
   return best;
  }
  function reconcilePlayback(){

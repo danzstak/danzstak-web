@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 let intersect;
+let mutate;
 const documentEvents = {};
 
 function feedVideo(name) {
@@ -66,7 +67,7 @@ const context = {
     observe() {}
     unobserve() {}
   },
-  MutationObserver: class { observe() {} },
+  MutationObserver: class { constructor(handler) { mutate = handler; } observe() {} },
   addEventListener() {},
   dispatchEvent() {}
 };
@@ -76,6 +77,11 @@ vm.runInNewContext(fs.readFileSync("assets/media-visibility.js", "utf8"), contex
 
 assert.equal(first.muted, true, "videos begin muted until the coordinator selects an active source");
 assert.equal(second.muted, true, "inactive videos begin muted even when sound preference is on");
+
+const inserted = feedVideo("inserted");
+inserted.querySelectorAll = () => [];
+mutate([{ removedNodes: [], addedNodes: [inserted] }]);
+assert.equal(inserted.muted, true, "a newly inserted video must remain silent before any autoplay observer can start it");
 
 intersect([
   { target: first, isIntersecting: true, intersectionRatio: 0.8 },
