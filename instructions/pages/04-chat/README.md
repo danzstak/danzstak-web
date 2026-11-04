@@ -81,3 +81,28 @@ Build on separate PR, provide exact tests, screenshots, staging PWA URL and depl
 - Existing draft phone PR #3 may supply useful implementation, but is **not deployed**, and testing/provider integration/physical phones are incomplete. Audit it before reimplementing; no carrier integration scope creep. Test alias uniqueness, concurrent activation, double charges, refunds, blocked calls, contact lookup, cross-account access, mobile PWA behavior and unnumbered-account chat. Supply staging PWA and owner approval before release.
 
 **This decision takes precedence over any earlier language suggesting a telecom provider must supply the internal DANZSTAK numbers.**
+
+
+## Owner pricing decision — 250 minutes monthly with optional paid upgrades (2026-11-04)
+
+**Owner confirmed** that the optional DANZSTAK in-network DS-number service must **not be unlimited**. Starter includes **250 connected voice-call minutes each month**; after the allowance, offer an **explicit, paid higher plan**. This is NOT authorization to switch on live payments or to activate a new Stripe subscription yet.
+
+### Proposed catalog — engineering and owner approval required for upsell prices
+| Tier | Included voice minutes per month | Proposed price | Billing |
+|---|---:|---:|---|
+| Starter | 250 | $3 activation once | No recurring charge on base plan |
+| Plus | 500 total | $3 / month | Optional subscription, pending owner cost approval |
+| Pro | 1,000 total | $5 / month | Optional subscription, pending owner cost approval |
+
+The Plus and Pro minutes are **totals**, not an additional 500/1,000 on top of Starter. The existing $3 Starter activation is separate from the proposed upgrades; do not bill activation again when changing tiers. The upgraded minute levels and subscription amounts are **proposals**, not finalized prices or existing Stripe products. Determine whether a prepaid minute pack is economically superior and report it for owner review; do not silently add it to the catalog. Never claim Starter is cost-free to operate forever merely because its activation is one-time.
+
+### Required behavior
+- Count **actual connected 1:1 voice minutes**, not dialing, ringing, unanswered calls, failed signaling, or time in the messaging UI; no fake billing from client timers. Define whether allowance follows the DS-number holder's account for inbound and outbound routed calls; prevent double accounting, reconnect exploits, simultaneous-call overages and abuse. Account for fractional seconds accurately; define a documented rounding rule. If video calling is included, separately estimate its much larger TURN bandwidth and do not imply the voice allowance automatically covers video.
+- Display in `messages.html` under **My DANZSTAK number**: current plan, monthly allowance, used/remaining minutes, next reset date, upgrade/manage/cancel options, and exact charges before confirmation. Preserve normal free messaging (and existing account-based calls unless separately owner-approved) independent from the paid DS-number feature.
+- Define a transparent recurring allowance reset (e.g. consistent UTC cycle keyed to activation/subscription anniversary) and show the user the renewal/reset date in their locale. Implement idempotent atomic metering, graceful reconnection handling, per-session usage ledger and recovery after server outages.
+- Notify in the UI at ~80% and ~95% of quota; offer **Upgrade plan**, not an automatic charge. When exhausted, refuse *new DS-number-routed voice calls* with a clear explanation and upgrade path. Handle an active call approaching its limit with an advance warning and a narrowly bounded, documented grace period; do not unexpectedly bill or silently allow unlimited minutes. No ability to make ordinary emergency calls through a DS number; disclose that this is an in-app internet calling service.
+- Handle upgrades/downgrades, cancellation, expired/unpaid subscription, refunds/chargebacks and failures using **server-verified DANZSTAK-only Stripe webhook entitlements**. No sensitive tokens or live secrets in source. Specify whether upgrades take effect immediately, how partial periods are prorated, and the effective date of downgrades/cancellations; don't implement monetary rules without owner approval.
+- Codex must first measure estimated relay/TURN/voice costs under realistic network conditions, include Stripe recurring fees and taxes, expected per-tier margins, and abuse/spam costs. The existing phone pilot PR #3 is still draft and needs review; reuse tested code rather than creating a parallel call system.
+- Test with two DANZSTAK accounts, under/exactly/over 250 minutes using accelerated clocks, two simultaneous sessions, dropped calls, midnight and month boundaries, UI warnings, plan changes, failed/refunded Stripe events, account isolation, and real-device PWA flows. Stage, document results and request owner approval before paid release.
+
+**Do not create/activate Plus or Pro live subscriptions or enable metered billing until owner explicitly approves the catalog, ongoing operating costs and test evidence.**
