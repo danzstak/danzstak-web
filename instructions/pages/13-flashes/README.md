@@ -164,3 +164,11 @@ Use the same lightweight, stable fullscreen vertical transitions as The Roll, **
 - Tests: Daily at 23h59 still accessible, at 24h0000 unavailable even through direct URL/API and active fullscreen; concurrently shared Roll/Mix item remains playable after Daily expiry; regular videos remain after days/months until authorized deletion; deleting one publication preserves other intended shares. Test UTC/local-midnight/DST, blocking, privacy, storage lifecycle and Android PWA. No production deployment before owner review.
 
 **Supersedes any accidental interpretation that The Roll, The Mix or member profile videos expire after one day.**
+
+## Deleting a Daily versus the original video everywhere (2026-11-04)
+
+**A Daily has a 24-hour lifecycle, but it may reference an original video also published in The Roll or The Mix and reshared by other accounts.** Auto-expiration or the creator selecting **Remove from here** on the Daily must unpublish only the Daily reference: do NOT erase persistent video instances, authorized reshares, or other creators' original commentary.
+
+When the **original video owner** explicitly chooses **Delete everywhere** and confirms, that owner's original video becomes unavailable in every DANZSTAK publication—including Dailies and all reshares/crossposts by others, plus active fullscreen playback queues and media URLs. Do not allow resharing users to invoke creator-level global deletion; they can remove their own reshare. Preserve independent resharer captions if policy permits with an unavailable-video placeholder. No promise of removing downloaded/off-network copies. This needs durable server ownership IDs, parent-video references and safe storage lifecycle; see [Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40).
+
+Test crossposting V to Daily + Roll + Mix, third-party reshares, both deletion choices, 24h Daily expiration, browser reload/expired media while viewer open and correct creator permissions. Owner review and tested PR required before production.
