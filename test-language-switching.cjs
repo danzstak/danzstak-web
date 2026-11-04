@@ -157,6 +157,17 @@ for (const [language] of window.danzstakLanguages) {
     "Finding users online…",
     "No other users are online right now. Your accepted friends remain listed below.",
     "Find friends and see who is online",
+    "Accepting…",
+    "Sending…",
+    "Friend request could not be accepted.",
+    "Friend request could not be sent.",
+    "Friends took too long to load.",
+    "Friends could not be loaded.",
+    "Retry friends",
+    "Open profile",
+    "Tribe Message",
+    "The friend service took too long to respond. Try again.",
+    "DanzStak cannot connect to friends right now. Check your connection and try again.",
   ]) {
     const translated = window.danzstakTranslate(source);
     if (language !== "en")
