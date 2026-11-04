@@ -4,6 +4,22 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Video black-strip correction — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL ANDROID CHECK REMAINS**.
+
+- **Root causes:** the shared media component painted every native video and audio-control wrapper black before metadata was available; native feed video also kept a 16:9 fallback/capped-height box that could differ from portrait and square sources. In The Roll, YouTube's audio wrapper used `flex:1` and forced the iframe to `height:100%`, discarding the provider's intended aspect ratio and creating arbitrary black player area above/below the content.
+- **Correction:** feed/native wrappers are transparent and line-height zero, native video uses its intrinsic metadata ratio without a forced black 16:9 fallback or height cap, and the measured ratio propagates to its audio wrapper. Roll provider descriptors now carry explicit layout/aspect data; YouTube Shorts, TikTok and Instagram Reels use 9:16, Instagram posts use 1:1, and standard YouTube, Vimeo, Facebook, Dailymotion, Streamable and Twitch use 16:9. The audio wrapper retains that ratio in cards and uses intentional contain behavior only in fullscreen.
+- **Preserved behavior:** the visible Mute/Unmute control remains bottom-right; videos still start muted and paused; 60% viewport eligibility, single active player/audio owner, navigation/background pause and provider API controls remain intact. External video files are not copied or hosted by DANZSTAK.
+- **Provider limitation:** DANZSTAK now removes only layout-owned black area. A third-party player may still letterbox video inside its cross-origin iframe when the provider itself does not expose the source aspect ratio; that internal player rendering cannot be safely cropped or rewritten and is not claimed as fixed.
+- **New browser regression:** `scripts/verify-video-layout.cjs` renders real HTML video elements backed by 16:9, 1:1 and 9:16 MediaStreams plus controlled YouTube, TikTok, Instagram, Facebook and Vimeo frames. At 320, 390, 414 and 1024px it asserts exact ratio, zero wrapper top/bottom gap, transparent DANZSTAK backgrounds and non-overlapping provider cards. `scripts/verify-media-playback.cjs` separately confirms actual native/YouTube playback, audio focus and viewport pause.
+- **Functional/integration tests:** the full `test-regressions.ps1` release gate passed cleanly, including audio/autoplay, Chat, Stripe/refunds, Booking Agent, EPK, Tour Manager, PWA refresh, 11-page site smoke and infrastructure checks. The complete mobile visual suite passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px before and after deployment.
+- **Development screenshots:** [320px video matrix](screenshots/video-black-bars-local/video-layout-320.png), [390px video matrix](screenshots/video-black-bars-local/video-layout-390.png), [414px video matrix](screenshots/video-black-bars-local/video-layout-414.png), and [1024px video matrix](screenshots/video-black-bars-local/video-layout-1024.png).
+- **Production deployment:** commit `01388f1b7ab5da2eed5c7b86f05b90d5c240949f` was fast-forwarded to `main`. AWS Amplify app `d31oovi2mos5iz`, job `859`, region `us-west-1`, succeeded from 2026-11-04 07:23:02 to 07:23:56 Europe/Berlin.
+- **Live verification:** the same provider/native layout and real-playback harnesses passed using assets from `https://danzstak.com`. Live captures: [320px](screenshots/video-black-bars-live/video-layout-320.png), [390px](screenshots/video-black-bars-live/video-layout-390.png), [414px](screenshots/video-black-bars-live/video-layout-414.png), and [1024px](screenshots/video-black-bars-live/video-layout-1024.png). Production health returned PASS. A fresh service-worker browser reached `activated`, controlled the live page, and contained only `danzstak-shell-v647`.
+- **Asset versions:** `responsive-media.css?v=3`, `responsive-media.js?v=2`, `media-visibility.js?v=389`, `feed-enhancements.js?v=521`, and PWA cache `danzstak-shell-v647`.
+- **Remaining limitation:** no remotely controllable physical Android device was available. Android Chrome/installed-PWA confirmation on the owner's device remains manual and is not represented as completed.
+
 ### Mobile menu density correction — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL DEVICE CHECK REMAINS**.
