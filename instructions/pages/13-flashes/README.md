@@ -62,3 +62,10 @@ The action tile must be labeled **Take 1**, never **Create**. Keep the dated cla
 
 ## Latest owner-approved label format — overrides previous count-only label
 Display **Take** immediately before the active Daily count under the creator tile. Examples: **Take 0**, **Take 1**, **Take 3**. The number is the signed-in user's current active/unexpired Daily count, not a lifetime total. Keep the dated clapperboard above the real profile picture and the plus affordance. Do not display “0 Dailies”, “1 Daily”, or “3 Dailies” as the tile's primary label. Accessible label must clarify the count and the add action, e.g. “Take 3 — 3 active Dailies; add a Daily.” Update after creation, deletion and expiry.
+
+## Latest visual naming — cinematic slate (supersedes Take-only display)
+- The creator tile's clapperboard displays **SCENE 1 · TAKE N**, with **N** equal to the signed-in user's current active, unexpired Daily count (e.g. SCENE 1 · TAKE 3). **SCENE 1** is fixed visual movie-set terminology, not a claim about the number of scenes.
+- Display the real current local date compactly on the slate; the user's real profile photo must remain clearly visible beneath the slate. Keep a plus affordance to add a Daily.
+- The viewer-facing section heading remains **Dailies**; expiry remains 24 hours server-side.
+- Make the slate legible on 360px mobile and verify zero, one and multiple active Dailies and midnight rollover.
+- This is the current owner design direction and overrides earlier Take-only primary labels.
