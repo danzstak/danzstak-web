@@ -17,6 +17,13 @@ Status: **COMPLETE, DEPLOYED, AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL 
 - **AWS metadata limitation:** the AWS CLI session is expired, so an Amplify job ID and AWS-side timestamp were not guessed. The exact owner action to restore AWS job metadata is `aws login`; the public deployment itself is independently verified and does not require a retry.
 - **Remaining limitation:** no remotely controllable physical Android or iPhone was available. Browser automation verifies the responsive website and standalone-PWA behavior, but final tactile/installed-PWA inspection on the owner's physical devices remains manual and is not represented as complete.
 
+#### iPhone form-focus follow-up
+
+- **Independent defect found:** the compact Feed search and first-run display-name field rendered at approximately 13px, Chat search rendered at 13px, and the Settings language selector rendered at 14px. Mobile Safari can automatically zoom the entire page when focusing editable controls below 16px, disrupting navigation and making the interface feel unstable even though static screenshots look correct.
+- **Correction:** these text-entry and selection controls now render at 16px on phone/tablet breakpoints while retaining their compact 34–42px container geometry. Booking, EPK, Record Stores and Profile already met the same rule and were left unchanged.
+- **Permanent browser gate:** the real-browser matrix now inspects every visible editable input, textarea and select across Feed, Chat list, open Chat, Profile, Settings, Booking Agent, EPK and Record Stores. It fails with the exact element identity and computed size if any applicable mobile control is below 16px.
+- **Tests and deployment:** the complete regression suite passed after the final correction, including authentication, social features, Chat/calls, media/audio, Booking/EPK/Tour Manager, Stripe Test Mode, PWA refresh, site smoke and infrastructure. Implementation commit `8593ae0` was pushed to `danzstak-patch-1` and `main`. Production propagated from cache v653 to `danzstak-shell-v654`; a fresh live browser is activated, controlled and contains only v654. The complete live visual/input matrix passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Evidence: [320px Feed](screenshots/ios-font-audit-live/home-320.png), [390px Chat list](screenshots/ios-font-audit-live/chat-list-390.png), and [320px Settings](screenshots/ios-font-audit-live/settings-320.png).
+
 ### Desktop/tablet UX and release revalidation — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
