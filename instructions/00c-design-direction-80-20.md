@@ -86,3 +86,16 @@ See [cross-content deletion Issue #40](https://github.com/Danzstak/Danzstak-web/
 Settings must make **Download my information** and **Delete account and my content** obvious and **free** to all users. Durable deletion must proceed after login shutdown, with secure confirmation, retries, status/receipt, real disposable-account integration tests and owner-approved staging. The technical deletion workflow is P0 [Issue #32](https://github.com/Danzstak/Danzstak-web/issues/32); creator-level cross-share revocation is [Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40).
 
 **Policy claim may be published as live only after Codex actually implements and verifies all relevant systems; this document does not prove deployment.**
+
+
+## Optional account return — private 30-day restore, not mandatory deletion delay (owner request, 2026-11-04)
+
+Owner wants former members who return and log in soon after leaving to be given a **choice to restore their content**. **Proposed recovery window: 30 days**, configurable/subject to owner approval. This does NOT supersede owner control to delete permanently without a waiting period.
+
+**Exit choices displayed openly in Privacy & Data:**
+1. **Leave with 30-day recovery** (optional): make entire account and originals publicly unavailable across DANZSTAK and dependent shares promptly, while keeping an encrypted, private, time-limited recovery archive. Be accurate: this data **still exists privately on our servers** until recovery expires or member chooses permanent deletion.
+2. **Delete permanently now — no restore**: promptly withdraw originals everywhere and start actual permanent purge without mandatory grace period; disclose backups/legal exceptions, no promise of future restore.
+
+For the recoverable state, a subsequent **authenticated login before the exact deadline** opens a dedicated choice: **Restore my account and content / Delete permanently now / Sign out**. Logging in alone must never silently republish posts or cancel deletion. Restoring must be deliberate, respect original privacy settings, moderation/legal decisions and other members' independent deletions, and explain that previously withdrawn dependent reshares may become accessible again if their shares still exist. Do not automatically reenable payments, subscriptions, DS phone assignments or other paid features without new consent/eligibility. The expired or immediately deleted archive must be purged and cannot be restored; returning users then create a new account.
+
+Strong account verification and explicit confirmation are required; durable scheduled purge and precise time/date reporting must be backend-verified. Export is always optional and free. Keep a truthful deletion receipt and disclose backup schedules. **[Implementation task: #32](https://github.com/Danzstak/Danzstak-web/issues/32)**, with [share revocation #40](https://github.com/Danzstak/Danzstak-web/issues/40). Documentation does not mean Codex has shipped this feature.
