@@ -23,3 +23,18 @@ jobs:
           node-version: 24
       - name: Check production without charges, email, or user-data mutation
         run: node scripts/production-health-check.cjs
+
+  authenticated-isolated-synthetic:
+    if: ${{ vars.DANZSTAK_AUTHENTICATED_HEALTH_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DANZSTAK_SYNTHETIC_SESSION_A: ${{ secrets.DANZSTAK_SYNTHETIC_SESSION_A }}
+      DANZSTAK_SYNTHETIC_SESSION_B: ${{ secrets.DANZSTAK_SYNTHETIC_SESSION_B }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Verify private account workflows and remove synthetic data
+        run: node scripts/authenticated-production-health-check.cjs

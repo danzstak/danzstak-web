@@ -97,7 +97,11 @@ The monitor:
 - fails the workflow when a critical public check fails, allowing normal GitHub Actions failure notifications to alert maintainers; and
 - can be run manually before and after a release.
 
-Authenticated synthetic coverage for sign-in, post persistence, private Chat, private notifications, EPK persistence, Booking Agent account state, and Tour Manager account state is **NOT YET AUTOMATED**. It requires an isolated synthetic Cognito account, isolated test records, explicit cleanup rules, and secrets approved for CI. Until that harness exists, these checks remain mandatory release checks and must not be represented as daily automated coverage.
+The same workflow contains an opt-in authenticated job that runs `scripts/authenticated-production-health-check.cjs`. It requires two owner-approved, isolated synthetic accounts whose 64-character mobile session tokens are stored only in the `DANZSTAK_SYNTHETIC_SESSION_A` and `DANZSTAK_SYNTHETIC_SESSION_B` repository secrets. The job remains disabled unless the repository variable `DANZSTAK_AUTHENTICATED_HEALTH_ENABLED` is exactly `true`.
+
+When enabled, the authenticated monitor verifies two independent sessions, creates a private synthetic post, reads it back, sends a uniquely marked Chat message between the two synthetic friends, observes the recipient notification, removes the message for both accounts, removes the post, and verifies both removals. Cleanup also runs after failures. It does not create Checkout Sessions, charge a card, send email, use real customer accounts, or publish synthetic content.
+
+Authenticated EPK persistence, Booking Agent account state, and Tour Manager account state are **NOT YET INCLUDED** in the daily monitor. The two isolated accounts and their repository secrets must be provisioned and the opt-in variable enabled before sign-in, post, Chat and notification coverage may be represented as active production monitoring. Until then, those checks remain mandatory release checks.
 
 Stripe daily monitoring must never create a Checkout Session or charge. Signed webhook processing, entitlement changes, refunds, and email delivery are tested in controlled Test Mode release tests, not by the public daily monitor.
 
