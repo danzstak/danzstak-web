@@ -1711,6 +1711,11 @@ function renderWorkspace(name) {
     activityButton.textContent = "View";
     activityButton.setAttribute("aria-label", "View your DanzStak activity");
     activityButton.addEventListener("click", () => openAccountActivity(activityButton));
+    const phoneVerification = document.createElement("a");
+    phoneVerification.className = "secondary";
+    phoneVerification.href = "messages.html?phone-settings=1";
+    phoneVerification.textContent = "Manage";
+    phoneVerification.setAttribute("aria-label", "Manage optional personal phone verification");
     const profilePermissions = document.createElement("a");
     profilePermissions.className = "secondary";
     profilePermissions.href = "profile.html?edit=privacy";
@@ -1833,6 +1838,7 @@ function renderWorkspace(name) {
       settingRow("bell", "Call and message alerts", alertSettings),
       settingRow("smartphone", "App and device settings", appSettings),
       settingRow("activity", "Your DanzStak activity", activityButton),
+      settingRow("phone", "Phone and verification", phoneVerification),
       settingRow("download", "Download my data", exportButton),
       settingRow("clock", "Session", sessionInfo),
       settingRow("file", "Legal and privacy", legalLinks),

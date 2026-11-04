@@ -1,0 +1,25 @@
+.phone-verification-dialog{width:min(560px,calc(100% - 24px));max-height:min(760px,calc(100dvh - 24px));margin:auto;padding:0;border:0;border-radius:16px;background:#fff;color:#172033;box-shadow:0 20px 70px #15325d40;overflow:auto}
+.phone-verification-dialog::backdrop{background:#10213c80;backdrop-filter:blur(2px)}
+.phone-verification-header{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px 12px;border-bottom:1px solid #dce4ef;background:#fff}
+.phone-verification-header h2{margin:2px 0 0;font-size:1.22rem;line-height:1.25}
+.phone-kicker{margin:0;color:#64748b;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.phone-verification-header button{width:44px;height:44px;flex:0 0 44px;border:0;border-radius:50%;background:#edf3fb;color:#26364e}
+.phone-privacy-note,.phone-verification-status,.phone-verification-form,.ds-number-section{margin:14px 18px}
+.phone-privacy-note{padding:12px;border:1px solid #bed5f1;border-radius:10px;background:#f3f8fe;font-size:.9rem;line-height:1.45}
+.phone-verification-status{min-height:22px;color:#34455f;font-weight:650}
+.phone-verification-status[data-state="error"]{color:#a62020}
+.phone-verification-status[data-state="verified"]{color:#166534}
+.phone-verification-form{display:grid;gap:12px}
+.phone-verification-form[hidden]{display:none}
+.phone-number-fields{display:grid;grid-template-columns:minmax(120px,.42fr) minmax(0,1fr);gap:10px}
+.phone-verification-form label{display:grid;gap:6px;color:#34455f;font-size:.86rem;font-weight:700}
+.phone-verification-form input{width:100%;min-height:46px;box-sizing:border-box;border:1px solid #b8c6d8;border-radius:10px;padding:10px 12px;background:#fff;color:#172033;font:inherit;font-size:16px}
+.phone-verification-form input:focus{outline:3px solid #1769e033;outline-offset:1px;border-color:#1769e0}
+.phone-verification-form button{min-height:44px}
+.phone-field-help{margin:0;color:#64748b;font-size:.82rem;line-height:1.4}
+.phone-form-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.ds-number-section{padding:14px;border-top:1px solid #dce4ef}
+.ds-number-section h3{margin:0 0 6px;font-size:1rem}.ds-number-section p{margin:5px 0;line-height:1.42}
+body.phone-settings-open{overflow:hidden}
+@media(max-width:600px){.phone-verification-dialog{width:100%;max-width:none;height:100dvh;max-height:100dvh;border-radius:0;margin:0}.phone-verification-header{padding-top:max(12px,env(safe-area-inset-top));}.phone-number-fields{grid-template-columns:118px minmax(0,1fr)}.phone-privacy-note,.phone-verification-status,.phone-verification-form,.ds-number-section{margin-left:14px;margin-right:14px}.phone-verification-dialog{padding-bottom:max(16px,env(safe-area-inset-bottom))}}
+@media(max-width:340px){.phone-number-fields{grid-template-columns:1fr}.phone-form-actions>*{flex:1 1 auto}}

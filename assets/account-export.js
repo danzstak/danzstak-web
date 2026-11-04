@@ -56,7 +56,8 @@
         engagementNotifications: "/engagement-notifications",
         tours: "/tours",
         bookingWorkspace: "/booking-pipeline",
-        mediaManifest: "/account-export/media"
+        mediaManifest: "/account-export/media",
+        phoneVerification: "/phone-verification"
       };
       const names = Object.keys(endpoints);
       const results = await Promise.allSettled(names.map(name => request(endpoints[name], controller.signal, name === "groups" ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "list" }) } : {})));

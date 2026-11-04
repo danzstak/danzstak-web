@@ -29,7 +29,39 @@ Parameters:
     Type: String
     Default: DISABLED
     AllowedValues: [ENABLED, DISABLED]
+  PhoneNotifyConfigurationId:
+    Type: String
+    Default: nc-disabled
+    Description: Owner-approved AWS End User Messaging Notify configuration. The Lambda feature flag remains disabled until this is configured and tested.
 Resources:
+  PhoneVerificationTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Stores private, account-bound phone verification state, non-reversible number digests, uniqueness claims, and bounded rate counters without plaintext codes or numbers.
+        must: [Never expose this table to clients, Keep TTL enabled for challenges and rate counters, Keep point-in-time recovery and encryption enabled.]
+    Properties:
+      TableName: DANZSTAK-PhoneVerifications
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      SSESpecification: {SSEEnabled: true}
+      AttributeDefinitions: [{AttributeName: recordKey, AttributeType: S}]
+      KeySchema: [{AttributeName: recordKey, KeyType: HASH}]
+      TimeToLiveSpecification: {AttributeName: ttl, Enabled: true}
+  PhoneVerificationSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: danzstak/phone-verification-secret
+      Description: HMAC pepper for DanzStak personal phone verification records; never returned to browsers or logs.
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: pepper
+        PasswordLength: 64
+        ExcludePunctuation: true
   PostViewsTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -268,6 +300,18 @@ Resources:
   AccountExportMediaRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /account-export/media', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  PhoneVerificationStatusRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /phone-verification', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  PhoneVerificationSendRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /phone-verification/send', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  PhoneVerificationConfirmRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /phone-verification/confirm', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  PhoneVerificationRemoveRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /phone-verification', Target: !Sub 'integrations/${AuthIntegrationId}'}
   EngagementInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -296,6 +340,38 @@ Resources:
       FunctionName: !Ref AuthFunctionName
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/account-export/media'
+  PhoneVerificationInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/phone-verification*'
+      SourceAccount: !Ref AWS::AccountId
+  PhoneVerificationPolicy:
+    Type: AWS::IAM::Policy
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Gives the existing Auth API only the data and owner-approved Notify send permissions needed for optional personal-number possession verification.
+        must: [Keep PHONE_VERIFICATION_ENABLED false until owner approves spend and real-device staging, Never grant Notify resource creation or account spend changes.]
+    Properties:
+      PolicyName: DanzStakPhoneVerification
+      Roles: [!Ref AuthRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PrivatePhoneVerificationState
+            Effect: Allow
+            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:UpdateItem]
+            Resource: !GetAtt PhoneVerificationTable.Arn
+          - Sid: ReadPhoneVerificationPepper
+            Effect: Allow
+            Action: [secretsmanager:GetSecretValue]
+            Resource: !Ref PhoneVerificationSecret
+          - Sid: SendOwnerApprovedVerificationTemplate
+            Effect: Allow
+            Action: [sms-voice:SendNotifyTextMessage]
+            Resource: !Sub 'arn:${AWS::Partition}:sms-voice:${AWS::Region}:${AWS::AccountId}:notify-configuration/${PhoneNotifyConfigurationId}'
   AccountErasurePolicy:
     Type: AWS::IAM::Policy
     Metadata:
@@ -333,6 +409,7 @@ Resources:
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-Conversations'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-Messages'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-MessageReactions'
+              - !GetAtt PhoneVerificationTable.Arn
           - Sid: EraseOwnedMedia
             Effect: Allow
             Action: [s3:ListBucket]

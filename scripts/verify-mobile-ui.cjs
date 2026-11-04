@@ -70,6 +70,7 @@ async function installApiFixtures(page) {
     if (pathname === "/messages") return json(route, { messages: [{ messageId: "message-1", senderEmail: "friend@danzstak.invalid", content: "See you at the show.", createdAt: "2026-11-04T12:20:00.000Z" }] });
     if (pathname === "/settings/posts") return json(route, { pinned: [], saved: [], muted: [] });
     if (pathname === "/settings/presence") return json(route, { onlineVisible: true, allowTags: true, callAlerts: true, messageAlerts: true, reduceMotion: false, dataSaver: false, language: "en" });
+    if (pathname === "/phone-verification") return json(route, { configured: true, state: "none", verified: false, maskedNumber: "", providerAvailable: false });
     if (pathname === "/account-deletion") {
       if (route.request().method() === "POST") return json(route, { requestId: "deletion-test-request", status: "request_received", graceEndsAt: 1794355200, canCancel: true });
       if (route.request().method() === "DELETE") return json(route, { requestId: "deletion-test-request", status: "cancelled", canCancel: false });
@@ -528,6 +529,25 @@ async function captureViewport(page, fileName) {
       assert.equal(await page.locator(".chat-header [data-logout]").isVisible(), false, `${width}px: mobile Chat must not duplicate account actions`);
       assert.equal(await page.locator("#chatSearch").getAttribute("placeholder"), "Search chats", `${width}px: Chat search wording is too long for a narrow phone`);
       await captureViewport(page, `chat-list-${width}.png`);
+      await page.locator("#phoneVerificationOpen").click();
+      await page.waitForSelector("#phoneVerificationDialog[open]");
+      const phoneGeometry = await page.locator("#phoneVerificationDialog").evaluate(dialog => {
+        const box = dialog.getBoundingClientRect();
+        const send = dialog.querySelector("#phoneSendCode").getBoundingClientRect();
+        const inputs = [...dialog.querySelectorAll("input")]
+          .filter(input => input.getBoundingClientRect().height > 0)
+          .map(input => ({ fontSize: parseFloat(getComputedStyle(input).fontSize), height: input.getBoundingClientRect().height }));
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height, sendHeight: send.height, inputs };
+      });
+      assert.ok(phoneGeometry.left >= -1 && phoneGeometry.right <= width + 1, `${width}px: phone verification dialog overflows horizontally: ${JSON.stringify(phoneGeometry)}`);
+      assert.ok(phoneGeometry.top >= -1 && phoneGeometry.bottom <= 861, `${width}px: phone verification dialog overflows vertically: ${JSON.stringify(phoneGeometry)}`);
+      assert.ok(phoneGeometry.sendHeight >= 44, `${width}px: phone verification send control is too small`);
+      assert.ok(phoneGeometry.inputs.every(input => input.fontSize >= 16 && input.height >= 44), `${width}px: phone verification inputs are not mobile-safe: ${JSON.stringify(phoneGeometry.inputs)}`);
+      assert.equal(await page.locator("#phoneSendCode").isDisabled(), true, `${width}px: SMS send must remain unavailable without a configured provider`);
+      await page.getByText("Verification texts are not enabled yet. No text will be sent.").waitFor();
+      await captureViewport(page, `phone-verification-${width}.png`);
+      await page.locator("#phoneVerificationClose").click();
+      await page.locator("#phoneVerificationDialog").waitFor({ state: "hidden" });
       await page.evaluate(() => openConversation({ contactEmail: "friend@danzstak.invalid", name: "Mobile Friend", memberId: "22222222-2222-4222-8222-222222222222", online: true, canContact: true }));
       await page.waitForSelector("body.is-conversation-open");
       const chatGeometry = await page.evaluate(() => {
