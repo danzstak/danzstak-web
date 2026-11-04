@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Centered Roll media and separated native-video audio controls — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defects found:** landscape media in The Roll full-screen view was pinned near the top of a tall black stage, leaving an unbalanced void below it. The shared custom Mute/Unmute control also occupied the same bottom-right control strip as native HTML5 fullscreen and overflow controls in both Feed and Roll players.
+- **Root correction:** Roll media now has one semantic `reel-media-stage` which behaves as normal document flow in the card and as a centered flex stage in full-screen mode. The player remains aspect-ratio preserving with `object-fit: contain`; no source pixels are cropped to hide the defect. Native HTML5 media is marked with a shared `danzstak-native-video-shell`, and its DANZSTAK audio control is raised above the native control strip. Provider embeds retain their existing supported control placement.
+- **Permanent quality gate:** the real-browser suite measures the full-screen player and stage rectangles, rejects an off-center player, requires the custom audio target to remain attached to the video frame, and requires a 50–58px separation from the native control strip. Static regression coverage verifies the semantic stage, native-shell marker, provider/native control distinction, asset versions and PWA cache version.
+- **Functional, visual and integration evidence:** the complete `test-regressions.ps1` gate passed after the final correction, including social persistence, Friends/presence, Notifications, Chat/calls, all 15 languages, startup-autoplay prevention, viewport pause and one-audio ownership, Booking Agent, worldwide discovery, Record Stores, EPK, Tour Manager, Stripe signature/idempotency/refund safeguards, PWA refresh, site smoke, security and infrastructure. Local and deployed Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live evidence: [native-video control separation at 390px](screenshots/roll-stage-v665-live/video-390.png) and [centered full-screen Roll media at 390px](screenshots/roll-stage-v665-live/roll-fullscreen-390.png).
+- **Deployment state:** implementation commit `e7e8cf3` is on `danzstak-patch-1` and `main`. Production serves `danzstak-shell-v665`; a fresh live browser reports an activated controlling worker, only v665 in CacheStorage, and standalone display-mode support. The complete deployed viewport matrix passed on 2026-11-04 Europe/Berlin.
+- **Scope and limitations:** no authentication, payment, entitlement, discovery, messaging, media URL or external-hosting behavior changed. Stripe remains DANZSTAK sandbox/Test only and Live payments remain disabled. No remotely controllable physical Android or iPhone was available, so final installed-device tactile and provider-specific physical playback checks remain manual and are not represented as complete.
+
 ### Artist-facing Roll source labels — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
