@@ -10,6 +10,7 @@ DANZSTAK should help people put their phones away and engage with actual people,
 
 - “Did you say buongiorno to the lady at the deli?”
 - “Don't forget to take your lady for gelato.”
+- “Did you go for a walk after dinner?”
 - “Did you plant a tree today?”
 - “Did you make a salad from your garden?”
 - “Did you smell the fresh air today?”
