@@ -14,3 +14,9 @@
 
 ## Acceptance
 Verify no music upload route, audio object storage or first-party streaming path is introduced. Test external playback, provider fallback, pause on navigation and audio isolation. Report any conflicting requirements rather than implementing hosting.
+
+## Video posting and DMCA compliance — owner confirmation
+- Users may post videos, including videos with embedded sound/music, subject to applicable rights and moderation rules. **Audio-only uploads remain prohibited** (FLAC, MP3, WAV, AIFF, AAC, OGG and equivalent).
+- Establish a DMCA notice-and-takedown process, designated-agent/contact requirements where applicable, repeat-infringer policy, user notification, counter-notification handling, recordkeeping and timely action on sufficiently valid notices. Refer legal details for qualified review; do not automatically treat an allegation as adjudicated infringement.
+- Do not assume the owner's confirmation authorizes new first-party video storage or upload infrastructure. Preserve the existing external-video embed/link approach until the owner explicitly approves a hosting change.
+- Codex should document current video posting behavior and propose any needed changes separately, with costs and copyright/security implications, before implementation.
