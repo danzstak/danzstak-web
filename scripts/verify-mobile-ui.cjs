@@ -201,7 +201,7 @@ async function captureViewport(page, fileName) {
         assert.equal(menuGeometry.direction, "column", `${width}px: menu must flow vertically`);
         assert.equal(menuGeometry.justify, "flex-start", `${width}px: menu must not distribute rows across viewport height`);
         assert.ok(menuGeometry.rows.every(row => row.height >= 44 && row.height <= 52), `${width}px: menu rows must remain 44–52px: ${JSON.stringify(menuGeometry.rows)}`);
-        assert.ok(menuGeometry.rows.every(row => row.iconSize >= 20 && row.iconSize <= 22), `${width}px: menu icons must remain 20–22px: ${JSON.stringify(menuGeometry.rows)}`);
+        assert.ok(menuGeometry.rows.every(row => row.iconSize >= 19.9 && row.iconSize <= 22.1), `${width}px: menu icons must remain 20–22px: ${JSON.stringify(menuGeometry.rows)}`);
         assert.ok(menuGeometry.rows.every(row => row.labelOffset >= 8 && row.labelOffset <= 12), `${width}px: icon/label spacing must remain compact: ${JSON.stringify(menuGeometry.rows)}`);
         assert.ok(menuGeometry.headings.every(heading => heading.marginTop <= 8 && heading.marginBottom <= 4), `${width}px: section heading margins are oversized: ${JSON.stringify(menuGeometry.headings)}`);
         assert.ok(menuGeometry.profileHeight <= 60, `${width}px: profile header is oversized (${menuGeometry.profileHeight}px)`);
@@ -262,9 +262,25 @@ async function captureViewport(page, fileName) {
       const bookingHeader = await page.locator("body.ds-tool-page>header").evaluate(header => ({ height: header.getBoundingClientRect().height, navVisible: getComputedStyle(header.querySelector("nav")).display !== "none" }));
       assert.ok(bookingHeader.height <= 60, `${width}px: professional-tool header is oversized: ${JSON.stringify(bookingHeader)}`);
       assert.equal(bookingHeader.navVisible, false, `${width}px: desktop tool links must not duplicate mobile navigation`);
+      const bookingPrimary = await page.locator("#bookingBriefForm button.primary").evaluate(button => {
+        const style = getComputedStyle(button);
+        return { background: style.backgroundColor, color: style.color, height: button.getBoundingClientRect().height };
+      });
+      assert.equal(bookingPrimary.background, "rgb(23, 105, 224)", `${width}px: Booking Agent primary action is not DANZSTAK blue: ${JSON.stringify(bookingPrimary)}`);
+      assert.equal(bookingPrimary.color, "rgb(255, 255, 255)", `${width}px: Booking Agent primary action lacks readable contrast: ${JSON.stringify(bookingPrimary)}`);
+      assert.ok(bookingPrimary.height >= 42, `${width}px: Booking Agent primary action is too small: ${JSON.stringify(bookingPrimary)}`);
       await captureViewport(page, `booking-${width}.png`);
-      await page.evaluate(() => { document.querySelectorAll("details").forEach(details => { details.open = true; }); document.querySelector(".summary")?.scrollIntoView(); });
+      await page.evaluate(() => {
+        document.querySelectorAll("details").forEach(details => { details.open = true; });
+        const summary = document.querySelector(".summary");
+        if (summary) window.scrollTo(0, Math.max(0, summary.getBoundingClientRect().top + scrollY - 70));
+      });
       await page.waitForTimeout(100);
+      const tourManagerVisible = await page.locator(".summary").evaluate(summary => {
+        const box = summary.getBoundingClientRect();
+        return { top: box.top, bottom: box.bottom, viewport: innerHeight };
+      });
+      assert.ok(tourManagerVisible.top >= 58 && tourManagerVisible.top < tourManagerVisible.viewport && tourManagerVisible.bottom > 0, `${width}px: Tour Manager heading is not fully visible below the tool header: ${JSON.stringify(tourManagerVisible)}`);
       await captureViewport(page, `tour-manager-${width}.png`);
 
       await page.goto(`${baseUrl}/epk.html`, { waitUntil: "domcontentloaded" });

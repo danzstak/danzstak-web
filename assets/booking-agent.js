@@ -829,7 +829,6 @@
       fieldset.before(details);
       details.append(summary, fieldset);
     });
-  document.querySelector(".summary").hidden = true;
   $("finishLine").hidden = true;
   $("finishLine").nextElementSibling.hidden = true;
   function contactLink(label, value, href) {
