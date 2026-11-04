@@ -19,6 +19,9 @@ assert.match(css, /\.mobile-menu-open \.left\{transform:translateX\(0\);visibili
 assert.match(css, /width:min\(340px,86vw\)/, "the drawer uses the requested compact responsive maximum width");
 assert.match(css, /env\(safe-area-inset-top\)/, "the drawer respects the phone safe area");
 assert.match(css, /\.menu-profile-header\{display:flex;align-items:center/, "the profile shortcut and close control share one compact row");
+assert.match(css, /\.menu-profile-header>\.menu-profile-link\{flex:1 1 auto!important;width:auto;max-width:calc\(100% - 52px\)\}/, "the profile shortcut must shrink so the Close control stays inside the drawer");
+assert.match(css, /\.menu-profile-copy strong\{display:-webkit-box;overflow:hidden;white-space:normal;line-height:1\.1;[^}]*-webkit-line-clamp:2\}/, "long profile names must wrap to two compact lines instead of colliding with Close");
+assert.match(css, /\.menu-close,\.menu-close\.ds-icon-button\{flex:0 0 44px;width:44px;min-width:44px;height:44px;min-height:44px\}/, "the menu Close control must be a complete 44px touch target");
 assert.match(css, /\.content-only \.layout>\.left\{display:block\}/, "the mobile drawer remains available in focused workspace views");
 assert.match(css, /\.topbar \.topnav\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important\}/, "the phone header makes room for the Menu control");
 assert.match(css, /\.menu \.menu-action\{grid-template-columns:18px minmax\(0,1fr\)/, "menu actions share the compact phone navigation layout");

@@ -43,7 +43,7 @@ for (const [file, expected] of [
   ["booking.html", "assets/mobile-design-system.css?v=11"],
   ["epk.html", "assets/mobile-design-system.css?v=11"],
   ["profile.html", "assets/mobile-design-system.css?v=11"],
-  ["feed.html", "assets/feed-enhancements.css?v=489"],
+  ["feed.html", "assets/feed-enhancements.css?v=490"],
   ["feed.html", "assets/identity-media.js?v=1"],
   ["messages.html", "assets/identity-media.js?v=1"],
   ["profile.html", "assets/identity-media.js?v=1"],

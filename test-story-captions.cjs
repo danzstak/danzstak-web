@@ -17,7 +17,7 @@ assert.equal(context.storyDisplayCaption({ content: "Backstage in Tacoma", media
 assert.equal(context.storyDisplayCaption({ content: "", mediaType: "image" }), "Photo Flash");
 assert.match(source, /item\.title = storyDisplayCaption\(story\)/);
 assert.match(source, /story-viewer-caption"\)\.textContent = storyDisplayCaption\(story\)/);
-assert.match(source, /feed-enhancements\.css\?v=489/, "the live feed should load the compact empty-Flash treatment");
+assert.match(source, /feed-enhancements\.css\?v=490/, "the live feed should load the compact empty-Flash treatment");
 assert.match(styles, /\.stories \.story-empty\{position:absolute!important;width:1px!important;height:1px!important/, "the empty-state announcement should remain accessible without rendering a second empty card");
 
 console.log("Flash caption checks passed: uploaded filenames are hidden while user captions remain intact.");

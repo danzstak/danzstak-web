@@ -229,8 +229,14 @@ async function captureViewport(page, fileName) {
       if (menuWidths.has(width)) {
         await page.locator(".mobile-menu-control").click();
         await page.waitForSelector("body.mobile-menu-open");
+        await page.waitForFunction(() => Math.abs(document.querySelector("#mobileNavMenu")?.getBoundingClientRect().left || 0) <= 1);
         const menuGeometry = await page.locator("#mobileNavMenu").evaluate(drawer => {
           const menu = drawer.querySelector(".menu");
+          const drawerBox = drawer.getBoundingClientRect();
+          const headerBox = menu.querySelector(".menu-profile-header").getBoundingClientRect();
+          const closeBox = menu.querySelector("[data-menu-close]").getBoundingClientRect();
+          const profileName = menu.querySelector(".menu-profile-copy strong");
+          const profileNameStyle = getComputedStyle(profileName);
           const rows = [...menu.querySelectorAll(":scope > a, :scope > .menu-action")].map(row => {
             const box = row.getBoundingClientRect();
             const icon = row.querySelector(".menu-icon")?.getBoundingClientRect();
@@ -246,6 +252,16 @@ async function captureViewport(page, fileName) {
             rows,
             headings,
             profileHeight: menu.querySelector(".menu-profile-header").getBoundingClientRect().height,
+            drawerLeft: drawerBox.left,
+            drawerRight: drawerBox.right,
+            headerLeft: headerBox.left,
+            headerRight: headerBox.right,
+            closeLeft: closeBox.left,
+            closeRight: closeBox.right,
+            closeWidth: closeBox.width,
+            closeHeight: closeBox.height,
+            profileNameWhiteSpace: profileNameStyle.whiteSpace,
+            profileNameHeight: profileName.getBoundingClientRect().height,
             direction: style.flexDirection,
             justify: style.justifyContent,
             gap: parseFloat(style.gap) || 0,
@@ -260,6 +276,11 @@ async function captureViewport(page, fileName) {
         assert.ok(menuGeometry.rows.every(row => row.labelOffset >= 8 && row.labelOffset <= 12), `${width}px: icon/label spacing must remain compact: ${JSON.stringify(menuGeometry.rows)}`);
         assert.ok(menuGeometry.headings.every(heading => heading.marginTop <= 8 && heading.marginBottom <= 4), `${width}px: section heading margins are oversized: ${JSON.stringify(menuGeometry.headings)}`);
         assert.ok(menuGeometry.profileHeight <= 60, `${width}px: profile header is oversized (${menuGeometry.profileHeight}px)`);
+        assert.ok(menuGeometry.headerLeft >= menuGeometry.drawerLeft && menuGeometry.headerRight <= menuGeometry.drawerRight + 1, `${width}px: menu header escapes its drawer: ${JSON.stringify(menuGeometry)}`);
+        assert.ok(menuGeometry.closeLeft >= menuGeometry.headerLeft && menuGeometry.closeRight <= menuGeometry.headerRight + 1, `${width}px: menu Close control is clipped outside its header: ${JSON.stringify(menuGeometry)}`);
+        assert.ok(menuGeometry.closeWidth >= 43.9 && menuGeometry.closeHeight >= 43.9, `${width}px: menu Close control requires a 44px touch target: ${JSON.stringify(menuGeometry)}`);
+        assert.equal(menuGeometry.profileNameWhiteSpace, "normal", `${width}px: profile names must wrap instead of disappearing behind an ellipsis: ${JSON.stringify(menuGeometry)}`);
+        assert.ok(menuGeometry.profileNameHeight <= 34, `${width}px: profile name wrapping makes the menu header too tall: ${JSON.stringify(menuGeometry)}`);
         assert.equal(menuGeometry.overflowY, "auto", `${width}px: drawer must own vertical scrolling`);
         assert.equal(menuGeometry.scrollable, true, `${width}px: full menu should scroll independently on a phone viewport`);
         assert.equal(await page.locator("body>.install-app-button:visible,body>.app-update-button:visible").count(), 0, `${width}px: install/update shortcuts must not overlap the open menu`);
