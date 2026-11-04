@@ -514,7 +514,7 @@ Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 
 # Repeated final quality-assurance pass
 
-Status as of 2026-11-04: **PRE-DEPLOYMENT QUALITY GATE PASSED; PRODUCTION VERIFICATION PENDING**.
+Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 
 - The visual release gate previously omitted the standalone Profile and Settings screens. The browser suite now renders and measures Profile and Settings at 320, 360, 390 and 414px in addition to its existing feed, Friends, Chat, Notifications, menu, media, Booking Agent, EPK, Record Stores and Tour Manager coverage.
 - The expanded audit exposed a root mobile-shell defect on Profile: its desktop Your Mix, Messages and Logout actions were compressed into three small phone header buttons, the PWA install prompt occupied a second header row, and Profile lacked the shared bottom navigation used by the rest of the application.
@@ -524,3 +524,8 @@ Status as of 2026-11-04: **PRE-DEPLOYMENT QUALITY GATE PASSED; PRODUCTION VERIFI
 - Functional, integration, security and stability gate: all 251 repository regression checks passed, including authentication/session isolation, social persistence, Chat/calls, media recovery, Booking/EPK/Tour Manager, Stripe signature/idempotency/refund/entitlement tests, PWA/offline behavior, accessibility and security-origin checks. The 11-page site smoke suite and infrastructure validation also passed.
 - Visual gate: browser measurements and captures passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. The service-worker cache advances to `danzstak-shell-v641` for reliable installed-PWA delivery.
 - No backend business logic, Stripe configuration, entitlement behavior or payment mode was changed by this UI release.
+- Production application commit: `230012af2c24c848a9a2c6a4420668c4c23ca82c`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `853` succeeded in `us-west-1` from 2026-11-04 05:03:47 to 05:04:43 Europe/Berlin.
+- Post-deployment checks passed against `https://danzstak.com`: core pages and versioned assets returned HTTP 200; the active service worker was activated and controlling the page; its only cache was `danzstak-shell-v641`; standalone display mode remained supported.
+- The entire visual suite passed again against production at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Permanent coverage now includes mobile Profile and Settings plus affected Profile/Settings tablet and desktop layouts.
+- Live evidence: [Profile at 320px](screenshots/final-repeat-live-profile-320.png), [Settings at 320px](screenshots/final-repeat-live-settings-320.png), and [Profile at 768px](screenshots/final-repeat-live-profile-768.png).
+- No release-blocking defect remains in the measured scope. Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA checks remain **NOT TESTED** because those devices are unavailable in this environment; browser automation is not represented as physical-device evidence.

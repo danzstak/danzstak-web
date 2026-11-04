@@ -10,6 +10,7 @@ const outputDir = path.resolve(process.env.DANZSTAK_VISUAL_OUTPUT || "docs/scree
 const edgePath = process.env.DANZSTAK_EDGE_PATH || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
 const benchmarkWidths = [320, 360, 390, 414];
+const desktopProfileWidths = [768, 1024, 1366];
 fs.mkdirSync(outputDir, { recursive: true });
 
 const fixturePost = {
@@ -274,6 +275,23 @@ async function captureViewport(page, fileName) {
       assert.ok(chatGeometry.nameRight <= chatGeometry.actionsLeft + 1, `${width}px: Chat name overlaps header controls`);
       assert.ok(chatGeometry.formBottom <= chatGeometry.viewportHeight + 1, `${width}px: Chat composer falls below viewport`);
       await captureViewport(page, `chat-conversation-${width}.png`);
+      await context.close();
+    }
+    for (const width of desktopProfileWidths) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1, serviceWorkers: "block" });
+      const page = await context.newPage();
+      await installApiFixtures(page);
+      await page.goto(`${baseUrl}/profile.html`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector("#profileContent:not([hidden])");
+      await assertNoOverflow(page, `Desktop Profile ${width}px`);
+      assert.equal(await page.locator("body.profile-page>header .header-actions").isVisible(), true, `${width}px: desktop Profile account navigation must remain available`);
+      assert.equal(await page.locator("body.profile-page>.ds-mobile-nav").isVisible(), false, `${width}px: mobile navigation must not duplicate desktop Profile navigation`);
+      await captureViewport(page, `profile-${width}.png`);
+
+      await page.goto(`${baseUrl}/feed.html?view=feed#settings`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".settings-workspace .settings-row");
+      await assertNoOverflow(page, `Desktop Settings ${width}px`);
+      await captureViewport(page, `settings-${width}.png`);
       await context.close();
     }
     console.log(`Mobile visual checks passed at ${widths.join(", ")}px; screenshots: ${outputDir}`);
