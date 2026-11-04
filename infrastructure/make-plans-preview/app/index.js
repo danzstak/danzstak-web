@@ -34,6 +34,9 @@ async function handler(event){
     if(method==='POST'&&path==='/friends/respond'){
       const target=clean(data.username,64).toLowerCase(),status=data.status==='accepted'?'accepted':'declined';const current=await friendship(u,target);if(current?.direction!=='incoming'||current.status!=='pending')return json(409,{error:'No pending request from that reviewer.'});const mine=await profile(u),theirs=await profile(target);await db.send(new TransactWriteCommand({TransactItems:[{Put:{TableName,Item:{...current,status,updatedAt:stamp}}},{Put:{TableName,Item:{pk:userPk(target),sk:friendSk(u),kind:'friend',otherUser:u,otherDisplayName:mine?.displayName||u,status,direction:'outgoing',updatedAt:stamp}}}]}));return json(200,{ok:true,status});
     }
+    if(method==='POST'&&path==='/friends/remove'){
+      const target=clean(data.username,64).toLowerCase();if(!target)return json(400,{error:'Choose a friend to remove.'});await db.send(new TransactWriteCommand({TransactItems:[{Delete:{TableName,Key:{pk:userPk(u),sk:friendSk(target)}}},{Delete:{TableName,Key:{pk:userPk(target),sk:friendSk(u)}}}]}));return json(200,{ok:true});
+    }
     if(method==='GET'&&path==='/plans')return json(200,{plans:(await queryUser(u,'PLAN#')).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).map(planView)});
     if(method==='GET'&&path==='/notifications')return json(200,{notifications:(await queryUser(u,'NOTICE#')).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,50)});
     if(method==='POST'&&path==='/plans'){
@@ -43,7 +46,7 @@ async function handler(event){
       const rows=await planRows(match[1]);if(rows.length!==2||!rows.some(x=>x.gsi1sk===u))return json(404,{error:'Plan not found.'});const current=rows[0],expected=Number(data.revision);if(expected!==current.revision)return json(409,{error:'This plan changed. Refresh and try again.',revision:current.revision});let next={...current,revision:current.revision+1,updatedAt:stamp};delete next.pk;delete next.sk;delete next.gsi1sk;
       if(match[2]==='response'){const response=['going','maybe','declined'].includes(data.response)?data.response:null;if(!response)return json(400,{error:'Choose Going, Maybe, or Declined.'});next.responses={...current.responses,[u]:response};next.status=Object.values(next.responses).includes('declined')?'declined':Object.values(next.responses).every(x=>x==='going')?'going':'pending'}
       else if(match[2]==='cancel'){if(u!==current.inviter)return json(403,{error:'Only the inviter can cancel this plan.'});next.status='cancelled'}
-      else {if(method!=='PATCH'||u!==current.inviter)return json(403,{error:'Only the inviter can edit this plan.'});next={...next,title:clean(data.title||current.title,100),startAt:clean(data.startAt||current.startAt,40),timeZone:clean(data.timeZone||current.timeZone,80),place:clean(data.place,160),note:clean(data.note,500),status:'changed'}}
+      else {if(method!=='PATCH'||u!==current.inviter)return json(403,{error:'Only the inviter can edit this plan.'});next={...next,title:clean(data.title||current.title,100),startAt:clean(data.startAt||current.startAt,40),timeZone:clean(data.timeZone||current.timeZone,80),place:clean(data.place,160),note:clean(data.note,500),status:'changed',responses:{[current.inviter]:'going',[current.invitee]:'pending'}}}
       const updated=rows.map(row=>({...next,pk:row.pk,sk:row.sk,gsi1sk:row.gsi1sk}));await writePlanRows(updated,current.revision);const other=u===current.inviter?current.invitee:current.inviter;await notify(other,match[2]==='cancel'?'plan_cancelled':match[2]==='response'?'plan_response':'plan_changed',next,`${u} updated ${next.title}.`,stamp);return json(200,{plan:planView(next)});
     }
     return json(404,{error:'Not found.'});
