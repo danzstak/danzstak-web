@@ -36,3 +36,16 @@ Follow `instructions/00c-design-direction-80-20.md`: familiar social-network int
 7. Standard event creation and posting are **free**. Do not put paid promotion, featured placement, Stripe or separate account signup in the basic publish flow.
 
 **Implementation gates:** Audit existing actual Events/feed backend and client code before coding; instruction scaffold is not a live feature. Isolated implementation PR with real API persistence and integration, end-to-end two-user tests for create/view/edit/cancel, private audience authorization, upload failure/retry, safe video/audio, timezones, mobile 320–430px, PWA cache, full social regressions, 15 languages, before/after screenshots, phone-accessible staging URL and owner approval before deployment. Do not report done from a spec or screenshot.
+
+
+## Owner requirement: event posted-by attribution (2026-11-04)
+
+**Every event published into The Mix must clearly show who posted it, as a normal social post does.**
+
+- In **The Mix event card header** show the authenticated publisher's profile avatar (if provided), their chosen DANZSTAK **display name**, a safe link to their profile when the audience can view it, and an accurate **"Posted by [display name] · [relative or localized publishing time]"** context. Avoid duplicating the name clumsily; e.g. render a normal post header like "**Alex Rivera** · Posted 2 hours ago". Do not display private legal names, emails, phone numbers or authentication identifiers.
+- Also show **"Posted by [display name]"** on the event detail page, with publish timestamp if useful. If **organizer/venue differs from the person who submitted the listing**, label them separately (e.g. **"Organizer: Club…"** vs **"Posted by: Alex…"**) and **do not falsely imply the poster is the organizer or verified representative**.
+- Attribution is **derived from the server-authenticated account**, not supplied as an arbitrary author ID from the client. Protect against spoofing/impersonation, unauthorized edits and viewing blocked/private profiles. Resolve display-name changes consistently and support closed/deleted account fallbacks without leaking historical PII.
+- Store \`createdByUserId\`, \`createdAt\` and \`updatedAt\` (or reuse existing canonical fields) for both the event and linked feed post; these are distinct from **event start date/time**. If edited, show optional "Edited" metadata without changing who originally posted the event.
+- Respect event audience visibility and profile privacy. Never expose private invitation participants through the byline. Ensure accessible text, translation, safe truncation, mobile wrapping at 320–430px and real two-user testing for attribution, edits, profile links and deleted accounts.
+
+**Acceptance:** After member A publishes a flyer/video event, account B sees an event card in **The Mix** identifying **A as the poster and when it was published**, and the event detail displays the same accurate attribution. No unverified identities may be forged through direct API requests.
