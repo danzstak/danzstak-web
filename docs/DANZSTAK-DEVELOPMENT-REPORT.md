@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Home-only identity setup and clean Friends workspace — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defect found:** the first-run `What should people call you?` identity card was a sibling of both the Feed and feature workspace. Opening Friends hid the Feed but left the identity card visible below the Friends content on desktop and silently below the phone's full-height workspace. This mixed unrelated setup with friend discovery and wasted a large section of the desktop page.
+- **Root correction:** identity onboarding now tracks explicit eligibility, dismissal, and the mutually exclusive Home/feature route. A small attribute observer synchronizes the card whenever the Feed or feature workspace changes: incomplete members still receive the simple name step on Home, but Friends, Notifications, Settings and every other feature workspace cannot inherit it. Returning Home restores an eligible, undismissed setup step; choosing `Not now` or the friend-discovery continuation remains dismissed for the current page session.
+- **Permanent quality gate:** static tests verify the Home-only state contract and both observed route surfaces. The real-browser suite requires the incomplete-profile fixture to see onboarding on Home, then requires the card to be absent from Friends on phone and at every desktop/tablet width. This guards the actual rendered state instead of only matching CSS.
+- **Functional, visual and integration evidence:** the complete `test-regressions.ps1` gate passed, including authentication, persistent social content, Friends/presence, Notifications, Chat/calls, all 15 languages, media/audio ownership, Booking Agent, worldwide discovery, Record Stores, EPK, Tour Manager, Stripe safeguards, PWA refresh, site smoke, security and infrastructure. Local and deployed Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live evidence: [clean dedicated Friends workspace at 768px](screenshots/onboarding-scope-v666-live/friends-desktop-768.png).
+- **Deployment state:** implementation commit `089f1ef` is on `danzstak-patch-1` and `main`. Production serves `danzstak-shell-v666`; a fresh live browser reports an activated controlling worker, only v666 in CacheStorage, and standalone display-mode support. The complete deployed viewport matrix passed on 2026-11-04 Europe/Berlin.
+- **Scope and limitations:** no profile API, authentication, relationship, payment, entitlement or messaging behavior changed. Stripe remains DANZSTAK sandbox/Test only and Live payments remain disabled. No remotely controllable physical Android or iPhone was available, so final installed-device tactile inspection remains manual and is not represented as complete.
+
 ### Centered Roll media and separated native-video audio controls — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
