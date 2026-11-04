@@ -38,3 +38,10 @@ The public UI name is **Dailies**, never Flashes. Existing internal identifiers 
 - Keep the profile photo unobscured; provide high-contrast icon backing, minimum comfortable touch target, and fallback initials/avatar when no photo exists.
 - Tapping opens the Daily composer, never immediately posts. Confirm before publishing.
 - Mobile-first at 360/390px, with screenshots showing both avatar-present and avatar-missing cases.
+
+## Real date on Create Daily clapperboard
+- Show the **actual current date** on the clapperboard/slate overlay, not hard-coded sample text.
+- Use the viewer's local calendar date and locale for display, updating when the local date changes (including an open PWA crossing midnight). Format compactly to fit mobile; e.g. `NOV 04` or `04 NOV`, with a full accessible date label.
+- The date is a visual cue only. **Daily expiration remains exactly 24 hours from server-side creation timestamp**, not at local midnight.
+- Handle timezone changes and daylight-saving transitions; never rely on a fixed timezone or device clock for authoritative expiry.
+- Verify date rollover, timezone formatting, and mobile legibility in tests/screenshots.
