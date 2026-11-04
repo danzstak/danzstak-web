@@ -325,7 +325,9 @@ foreach ($pushCapability in @(
   if (-not $template.Contains($pushCapability)) { throw "Background push capability is missing: $pushCapability" }
 }
 foreach ($pushFanout in @(
-  "async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){const preferences=await pushPreferences(recipientEmail,'callAlerts');if(!preferences.enabled)return;const [items,devices,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
+  "async function callPushTargets(recipientEmail,excludedDeviceId=''){const [items,devices]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
+  "async function notifyCall(recipientEmail,senderEmail,senderMemberId,mode,callId){const preferences=await pushPreferences(recipientEmail,'callAlerts');if(!preferences.enabled)return;const [targets,profile]=await Promise.all([callPushTargets(recipientEmail),publicProfile(senderEmail)]",
+  "async function notifyCallResolved(recipientEmail,callId,answeredByDeviceId){const targets=await callPushTargets(recipientEmail,answeredByDeviceId)",
   "async function notifyMessage(recipientEmail,senderEmail,senderMemberId){const preferences=await pushPreferences(recipientEmail,'messageAlerts');if(!preferences.enabled)return;const [items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE",
   'async function notifyFriendRequest(recipientEmail,senderEmail){const preferences=await pushPreferences(recipientEmail),[items,profile]=await Promise.all([queryAll({TableName:process.env.PUSH_SUBSCRIPTIONS_TABLE'
 )) {

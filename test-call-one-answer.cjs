@@ -28,6 +28,7 @@ class DynamoDBClient {
       return { Item: { kind: { S: "registered" }, deviceId: { S: deviceId }, tokenHash: { S: crypto.createHash("sha256").update(token).digest("hex") }, allowCalls: { BOOL: true }, lastUsedAt: { S: new Date().toISOString() } } };
     }
     if (request.commandName === "GetItemCommand" && input.TableName === "friends") return { Item: { status: { S: "friends" } } };
+    if (request.commandName === "QueryCommand" && ["push", "devices"].includes(input.TableName)) return { Items: [] };
     if (request.commandName === "TransactWriteItemsCommand") {
       const claim = input.TransactItems[0].Put.Item.eventId.S;
       if (claims.has(claim)) { const error = new Error("claim conflict"); error.name = "TransactionCanceledException"; throw error; }
@@ -52,7 +53,7 @@ const fakeRequire = id => {
   throw new Error(`Unexpected module: ${id}`);
 };
 
-const runtime = { env: { CALLING_DEVICES_TABLE: "devices", FRIENDS_TABLE: "friends", CALLS_TABLE: "calls", USER_POOL_ID: "pool" } };
+const runtime = { env: { CALLING_DEVICES_TABLE: "devices", PUSH_SUBSCRIPTIONS_TABLE: "push", FRIENDS_TABLE: "friends", CALLS_TABLE: "calls", USER_POOL_ID: "pool" } };
 const moduleShim = { exports: {} };
 new Function("require", "module", "exports", "process", "Buffer", "URL", "console", `${source.join("\n")}\nmodule.exports.__test={send};`)(fakeRequire, moduleShim, moduleShim.exports, runtime, Buffer, URL, console);
 const { send } = moduleShim.exports.__test;
@@ -76,5 +77,6 @@ const user = { email: "callee@example.test", userId: "55555555-5555-4555-8555-55
   assert.equal(consumeOffer.Delete.Key.eventId.S, "1762286400000#44444444-4444-4444-8444-444444444444");
   assert.equal(consumeOffer.Delete.ExpressionAttributeValues[":mode"].S, "phone");
   assert.equal(deliverAnswer.Put.Item.signalType.S, "answer");
-  console.log("One-answer-wins check passed: concurrent registered devices produce one committed answer and one explicit conflict.");
+  assert.match(source.join("\n"), /notifyCallResolved\(user\.email,callId,callingDevice\.deviceId\.S\)/, "the winning answer must notify every other registered device immediately");
+  console.log("One-answer-wins check passed: concurrent registered devices produce one committed answer, one explicit conflict, and immediate resolution fanout.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

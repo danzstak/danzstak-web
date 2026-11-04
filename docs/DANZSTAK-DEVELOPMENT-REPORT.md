@@ -14,6 +14,15 @@ Status: **PASSING LOCALLY; NO PRODUCTION CHANGE REQUIRED**.
 - **Integration evidence:** the complete `test-regressions.ps1` gate passes after the browser matrix, including authentication, persistent social content, Friends and presence, Notifications, Chat and calls, media sizing and single-audio ownership, Booking Agent, EPK, Tour Manager, Stripe safeguards, PWA refresh, site smoke and infrastructure.
 - **Deployment decision:** no application code or production asset changed during this audit, so no deployment or cache-version churn was appropriate. Physical installed-PWA tactile testing and the previously documented two-account/two-device call test remain manual release evidence rather than claimed completion.
 
+### Immediate multi-device call resolution — 2026-11-04
+
+Status: **IMPLEMENTED; RELEASE GATE IN PROGRESS; NOT YET DEPLOYED**.
+
+- **Reliability gap:** the atomic one-answer transaction already prevented two devices from answering one call, but another registered device could continue ringing until its next two-second inbox poll noticed that the offer was gone.
+- **Root correction:** after the answer transaction commits, the backend now sends a silent `call-resolved` push to every other active, calls-enabled registered device. The winning device is explicitly excluded by device ID. The service worker closes the existing notification with the exact call tag and posts the opaque call ID to open DanzStak windows; Feed/Profile incoming-call surfaces and the full Messages call surface stop ringtone, vibration and losing peer state immediately. The push contains no account email, message content or public profile data.
+- **Correctness and fallback:** push remains an acceleration path, not the one-answer authority. The DynamoDB transaction still claims and consumes the exact live offer before delivering one answer. A device without an active push subscription continues to stop safely on its next inbox reconciliation, and a concurrent losing answer still receives `CALL_ALREADY_ANSWERED`.
+- **Focused evidence:** the executable one-answer harness passes one committed transaction, one conflict and resolution fanout. Service-worker tests prove that resolution displays no new notification, closes the matching existing call notification and messages open clients. Foreground tests prove immediate popup dismissal; device-registration and infrastructure checks verify winner exclusion, registered-device targeting, valid embedded Lambda syntax and PWA shell v673. The complete repository regression gate and AWS deployment review remain required before release.
+
 ### Registered-device localization follow-up — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND LIVE-VERIFIED**.

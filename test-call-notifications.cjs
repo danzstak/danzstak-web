@@ -9,10 +9,10 @@ const controls=()=>({handlers:{},hidden:true,setAttribute(){},focus(){this.focus
 const popup=controls(),answer=controls(),decline=controls(),label={};
 popup.querySelector=selector=>selector==='[data-answer]'?answer:selector==='[data-decline]'?decline:label;
 const first={eventId:'offer-1',callId:'11111111-1111-1111-1111-111111111111',signalType:'offer',senderEmail:'caller@example.com',senderName:'Caller Name',mode:'phone'};
-let events=[first],poll,notifications=0,fetches=0;const drawers=[];
+let events=[first],poll,notifications=0,fetches=0,serviceMessage;const drawers=[];
 class Notification {constructor(){notifications++;}}Notification.permission='granted';
 const context=vm.createContext({document:{hidden:false,addEventListener(){},activeElement:null,createElement:()=>popup,body:{appendChild(){}}},HTMLElement:class {},window:{Notification,openMessageDrawer:(...args)=>drawers.push(args)},Notification,
- navigator:{vibrate(){},serviceWorker:{ready:Promise.resolve({showNotification:async()=>notifications++})}},setInterval:fn=>{poll=fn;},URL,location:{href:'https://danzstak.com/feed.html'},
+ navigator:{vibrate(){},serviceWorker:{ready:Promise.resolve({showNotification:async()=>notifications++}),addEventListener(name,fn){if(name==='message')serviceMessage=fn;}}},setInterval:fn=>{poll=fn;},URL,location:{href:'https://danzstak.com/feed.html'},
  AbortController,setTimeout,clearTimeout,fetch:async()=>{fetches++;return {ok:true,json:async()=>({events})};}});
 vm.runInContext(source,context);
 (async()=>{
@@ -20,15 +20,17 @@ vm.runInContext(source,context);
  answer.handlers.click();assert.equal(popup.hidden,true);assert.equal(drawers.length,1);assert.equal(drawers[0][2],first.callId,'answer targets the selected call');await poll();assert.equal(popup.hidden,true,'answer handoff cannot immediately re-display the unacknowledged offer');
  events=[{...first,eventId:'offer-2',callId:'22222222-2222-2222-2222-222222222222'}];await poll();assert.equal(popup.hidden,false,'a distinct call still appears');await decline.handlers.click();assert.equal(popup.hidden,true);await poll();assert.equal(popup.hidden,true,'declined call stays dismissed while its old offer expires');
  events=[{...first,eventId:'offer-3',callId:'33333333-3333-3333-3333-333333333333'}];await poll();assert.equal(popup.hidden,false);
+ serviceMessage({data:{type:'DANZSTAK_CALL_RESOLVED',callId:events[0].callId}});assert.equal(popup.hidden,true,'another registered device answering must immediately stop this page ringtone');
  const expired=events[0];events=[];await poll();assert.equal(popup.hidden,true,'expired or answered elsewhere offers close the popup');events=[expired];await poll();assert.equal(popup.hidden,true,'a stale expired offer cannot reopen the popup');
  const beforeHidden=fetches;context.document.hidden=true;await poll();assert.equal(fetches,beforeHidden,"hidden pages rely on push rather than duplicate polling");context.document.hidden=false;await poll();assert.ok(fetches>beforeHidden);
- const handlers={},pushes=[];const worker={location:{origin:'https://danzstak.com'},addEventListener:(name,fn)=>handlers[name]=fn,registration:{showNotification:async(title,options)=>pushes.push({title,options})}};
+ const handlers={},pushes=[],closed=[],clientMessages=[];const worker={location:{origin:'https://danzstak.com'},addEventListener:(name,fn)=>handlers[name]=fn,registration:{showNotification:async(title,options)=>pushes.push({title,options}),getNotifications:async()=>[{close:()=>closed.push(first.callId)}]},clients:{matchAll:async()=>[{postMessage:message=>clientMessages.push(message)}]}};
  vm.runInNewContext(fs.readFileSync('service-worker.js','utf8'),{self:worker,URL});let pending;
  handlers.push({data:{json:()=>({type:'call',tag:'call-'+first.callId,url:'/messages.html?member=11111111-1111-1111-1111-111111111111',answerTitle:'Rispondi',dismissTitle:'Ignora'})},waitUntil:value=>pending=value});await pending;
  assert.equal(pushes[0].options.data.callId,first.callId);
  assert.equal(pushes.length,1);assert.equal(pushes[0].options.tag,'call-'+first.callId);assert.equal(pushes[0].options.actions.length,2);assert.deepEqual(Array.from(pushes[0].options.actions,action=>action.title),['Rispondi','Ignora'],'the installed app must use the recipient-language call actions supplied by the server');assert.equal(pushes[0].options.badge,'/assets/notification-badge.png');assert.equal(pushes[0].options.silent,false);assert.deepEqual(Array.from(pushes[0].options.vibrate),[400,180,400,180,400]);
  handlers.push({data:{json:()=>({type:'message',tag:'message-test',body:'New message'})},waitUntil:value=>pending=value});await pending;assert.equal(pushes[1].options.requireInteraction,false);assert.equal(pushes[1].options.actions.length,0);assert.equal(pushes[1].options.silent,false);assert.deepEqual(Array.from(pushes[1].options.vibrate),[120],'texts request one brief vibration rather than a call pattern');
  handlers.push({data:{json:()=>{throw Error('bad payload');},text:()=> 'untrusted fallback text'},waitUntil:value=>pending=value});await pending;assert.equal(pushes[2].title,'DanzStak');assert.equal(pushes[2].options.body,'','malformed push data must not expose untrusted text or add English-only fallback copy');
+ handlers.push({data:{json:()=>({type:'call-resolved',callId:first.callId})},waitUntil:value=>pending=value});await pending;assert.equal(pushes.length,3,'a resolution event must not display another notification');assert.equal(closed.length,1,'the existing ringing notification must close');assert.equal(JSON.stringify(clientMessages[0]),JSON.stringify({type:'DANZSTAK_CALL_RESOLVED',callId:first.callId}),'open pages must receive the immediate resolution event');
  const chat=fs.readFileSync('assets/chat.js','utf8');const handle=chat.match(/async function handleEvent\(event\)\{[^\n]+/)[0];let accepted=0;
  assert.match(chat,/requestedMember=\/\^\[a-f0-9-\]\{36\}\$\//,'chat routes must validate opaque member IDs');
  assert.match(chat,/user\.memberId===requestedMember&&allowedContacts\.has\(user\.email\)/,'a push may only open an allowed friend or Tribe conversation');
@@ -39,5 +41,6 @@ vm.runInContext(source,context);
  assert.match(chat,/Call alerts enabled — tap to enable sound in this session/,'enabled devices must retain a user gesture for in-page ringtone audio');
  const state=vm.createContext({pending:null,peer:null,autoAnswer:true,autoAnswerDeadline:Date.now()+60000,requestedCallId:first.callId,requestedContact:null,Date,t:value=>value,tf:(key,values)=>Object.entries(values).reduce((text,[name,value])=>text.replaceAll(`{${name}}`,value),key),els:{email:{},incomingLabel:{}},accept:async()=>accepted++,ring(){throw Error('Unexpected ring');}});
  vm.runInContext(handle,state);await state.handleEvent({...first,callId:'unrelated'});assert.equal(accepted,0);assert.equal(state.pending,null);await state.handleEvent(first);assert.equal(accepted,1,'the opaque call ID is sufficient to automatically answer the selected call');assert.match(state.els.incomingLabel.textContent,/Caller Name/);assert.doesNotMatch(state.els.incomingLabel.textContent,/@/,'in-call prompt uses the profile display name');
- console.log('Call notification checks passed: one background notifier, answer/decline handoffs, distinct calls, and branded call actions.');
+ assert.match(chat,/DANZSTAK_CALL_RESOLVED/,'Messages must stop a losing device when another registered device answers');
+ console.log('Call notification checks passed: one background notifier, answer/decline handoffs, immediate multi-device resolution, distinct calls, and branded call actions.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -61,6 +61,21 @@
     // The service worker owns background notifications; polling only updates this page.
   }
 
+  function resolveCall(callId) {
+    if (!current || current.callId !== callId) return false;
+    handledCalls.set(current.callId, Date.now() + 120000);
+    popup.hidden = true;
+    current = null;
+    navigator.vibrate?.(0);
+    previousFocus?.focus();
+    previousFocus = null;
+    return true;
+  }
+
+  navigator.serviceWorker?.addEventListener?.("message", event => {
+    if (event.data?.type === "DANZSTAK_CALL_RESOLVED") resolveCall(String(event.data.callId || ""));
+  });
+
   async function acknowledge(eventId) {
     await api("/calls/ack", { method: "POST", body: JSON.stringify({ eventIds: [eventId] }) });
   }
@@ -121,14 +136,10 @@
         const ended = (inbox.events || []).find(event => event.signalType === "hangup" && event.callId === current.callId);
         const activeOffer = (inbox.events || []).some(event => event.signalType === "offer" && event.callId === current.callId);
         if (ended || !activeOffer) {
-          handledCalls.set(current.callId, Date.now() + 120000);
+          const resolvedCallId = current.callId;
           await acknowledge(current.eventId).catch(() => {});
           if (ended) await acknowledge(ended.eventId).catch(() => {});
-          popup.hidden = true;
-          current = null;
-          navigator.vibrate?.(0);
-          previousFocus?.focus();
-          previousFocus = null;
+          resolveCall(resolvedCallId);
         }
         return;
       }

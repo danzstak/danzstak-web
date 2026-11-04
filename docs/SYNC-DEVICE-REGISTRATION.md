@@ -1,6 +1,6 @@
 # SYNC calling-device registration
 
-Status: **Implemented on draft PR #47; local/fixture tested; not deployed.**
+Status: **Registered-device baseline deployed; immediate multi-device answer resolution implemented and under release verification.**
 
 SYNC device registration authorizes one browser/PWA installation to participate in DanzStak account-to-account voice or video signaling. It does not verify a handset subscriber, activate a carrier number, enable PSTN/SMS/emergency calling, or gate ordinary Chat, Friends, profiles, or signup.
 
@@ -30,8 +30,9 @@ sequenceDiagram
     B->>API: POST answer bound to same offer event
     API->>C: Atomic claim + consume offer + deliver one answer
     API-->>A: 202 accepted (winner)
+    API-->>B: Silent call-resolved push (all other eligible devices)
     API-->>B: 409 CALL_ALREADY_ANSWERED (loser)
-    B->>B: Stop local ring/media state
+    B->>B: Close ringing notification and stop local ring/media state
 
     P->>API: DELETE /calls/devices?deviceId=…
     API->>D: Mark revoked, disable calls, remove credential hash
@@ -63,7 +64,7 @@ sequenceDiagram
 
 `DANZSTAK-CallSignals` remains the short-lived signaling table. A successful answer adds `CLAIM#<callId>` and removes the exact offer in the same DynamoDB transaction that writes the answer for the caller. The claim expires with the call window.
 
-Push subscriptions remain separate records. A subscription is call-eligible only when it is linked to an active registered device with `allowCalls=true`. Denying push permission does not prevent foreground call polling.
+Push subscriptions remain separate records. A subscription is call-eligible only when it is linked to an active registered device with `allowCalls=true`. Denying push permission does not prevent foreground call polling. After the one-answer transaction commits, the backend sends a silent `call-resolved` push to every other eligible registered device, excluding the winning device. The service worker closes the matching ringing notification and tells open DanzStak pages to stop their local ringtone and vibration. The push contains only the opaque call ID; account addresses and message content are not included.
 
 ## Security and operating risk
 
@@ -72,6 +73,6 @@ Push subscriptions remain separate records. A subscription is call-eligible only
 - Device activity writes are throttled to roughly once per minute so two-second foreground polling does not create a DynamoDB write on every request.
 - Call records and answer claims expire automatically. Calling devices are durable security records and must be explicitly revoked.
 - Ten active devices is an abuse/safety cap, not a paid entitlement.
-- Other ringing devices currently stop on their next inbox reconciliation or receive the explicit conflict if they answer concurrently. A dedicated answer-cancel push is a future latency improvement, not evidence that multiple answers can commit.
+- Devices without an active push subscription still stop on their next two-second inbox reconciliation. Push delivery is a latency improvement rather than the correctness boundary; the DynamoDB transaction remains the authoritative one-answer control.
 - Production release requires an isolated AWS review stack, two accounts, at least two real receiving installations, push-denied foreground coverage, real two-way audio/video, revoke/reinstall tests, and owner approval.
 

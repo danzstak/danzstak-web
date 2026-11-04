@@ -68,4 +68,5 @@ els.incoming.addEventListener("keydown",event=>{if(event.key==="Escape"){event.p
 for(const button of [els.phone,els.video])button.addEventListener("click",event=>{const target=els.email.value.trim().toLowerCase();if(!allowedContacts.has(target)){event.stopImmediatePropagation();setStatus(t("Only friends or members of the same Tribe can call."));}},true);
 window.addEventListener("danzstak:push-enabled",()=>setCallAlertButtonState(true));
 window.addEventListener("danzstak:call-device-registered",()=>{pollFailures=0;poll();});
+navigator.serviceWorker?.addEventListener?.("message",event=>{const resolvedCallId=String(event.data?.callId||"");if(event.data?.type!=="DANZSTAK_CALL_RESOLVED"||!resolvedCallId||resolvedCallId!==callId||(!pending&&!peer))return;void end(false).then(()=>setStatus(t("This call was answered on another device.")));});
 syncCallAlertButtonState();refreshDirectory();if(!embeddedMode||autoAnswer)poll();setInterval(refreshDirectory,30000);setInterval(()=>{if(!embeddedMode||autoAnswer||peer||pending)poll();},2000);window.addEventListener("beforeunload",()=>{peer?.close();stream?.getTracks().forEach(t=>t.stop());});

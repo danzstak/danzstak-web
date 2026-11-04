@@ -17,7 +17,9 @@ assert.match(template,/ConditionExpression:'senderEmail = :caller AND callId = :
 assert.match(template,/FilterExpression:'expiresAt > :n AND attribute_exists\(signalType\)'/,"internal answer claims must never leak into the signaling inbox");
 assert.match(template,/callingDevice=\['phone','video'\]\.includes\(mode\)\?await authenticatedCallingDevice[\s\S]*\['phone','video'\]\.includes\(mode\)&&!callingDevice/,"voice and video signaling must require the registered installation");
 assert.match(template,/async function inbox\(event,user\)\{if\(!\(await authenticatedCallingDevice/,"an unregistered installation must not receive call signals");
-assert.match(template,/targets=items\.filter\(item=>item\.deviceId\?\.S&&eligible\.has/,"call push must fan out only to active registered devices");
+assert.match(template,/return items\.filter\(item=>item\.deviceId\?\.S&&eligible\.has/,"call push must fan out only to active registered devices");
+assert.match(template,/item\.deviceId\?\.S!==excludedDeviceId/,"call resolution push must exclude the device that won the answer");
+assert.match(template,/type:'call-resolved'[\s\S]*notifyCallResolved\(user\.email,callId,callingDevice\.deviceId\.S\)/,"winning answers must immediately resolve ringing on other registered devices");
 assert.match(template,/revokedAt = :revoked, allowCalls = :disabled REMOVE tokenHash/,"revocation must immediately invalidate the call credential");
 assert.doesNotMatch(template,/IMEI|address.?book/i,"device registration must not collect hardware IDs or address books");
 
@@ -33,7 +35,9 @@ assert.match(chat,/path\.startsWith\("\/calls\/"\)\?await globalThis\.danzstakCa
 assert.match(chat,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*danzstakOpenCallingDevices/,"blocked calls must open the registration recovery flow");
 assert.match(chat,/signal\("answer",peer\.localDescription,offer\.eventId\)/,"the answering installation must bind its answer to the exact incoming offer");
 assert.match(chat,/CALL_ALREADY_ANSWERED[\s\S]*This call was answered on another device/,"losing installations must stop with a truthful one-answer result");
+assert.match(chat,/DANZSTAK_CALL_RESOLVED/,"open Messages screens must stop immediately when another device answers");
 assert.doesNotMatch(chat,/\/messages[\s\S]{0,120}CALL_DEVICE_REGISTRATION_REQUIRED/,"ordinary persistent messages must not be gated by device registration");
 assert.match(push,/globalThis\.danzstakCallingDeviceHeaders/,"push subscriptions must be linkable to the registered installation");
 assert.match(worker,/assets\/call-devices\.js/,"the installed PWA shell must include device registration");
-console.log("SYNC device-registration checks passed: challenge, hashed credential, call-only gate, push targeting, revocation, UI, and free Chat separation.");
+assert.match(worker,/getNotifications\(\{ tag: `call-\$\{callId\}` \}\)/,"the service worker must close the old ringing notification");
+console.log("SYNC device-registration checks passed: challenge, hashed credential, call-only gate, push targeting, immediate answer resolution, revocation, UI, and free Chat separation.");

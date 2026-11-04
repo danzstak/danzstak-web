@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v672";
+const CACHE = "danzstak-shell-v673";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css",
   "/assets/icon-buttons.js", "/assets/icon-buttons.css", "/assets/mobile-design-system.css", "/assets/responsive-media.js", "/assets/responsive-media.css",
@@ -77,6 +77,17 @@ self.addEventListener("push", event => {
   let payload = {};
   try { payload = event.data?.json() || {}; }
   catch { payload = {}; }
+  if (payload.type === "call-resolved") {
+    const callId = String(payload.callId || "");
+    if (!/^[a-f0-9-]{36}$/.test(callId)) return;
+    event.waitUntil(Promise.all([
+      self.registration.getNotifications({ tag: `call-${callId}` })
+        .then(notifications => notifications.forEach(notification => notification.close())),
+      self.clients.matchAll({ type: "window", includeUncontrolled: true })
+        .then(clients => clients.forEach(client => client.postMessage({ type: "DANZSTAK_CALL_RESOLVED", callId })))
+    ]));
+    return;
+  }
   const title = String(payload.title || "DanzStak").slice(0, 80);
   const body = String(payload.body || "").slice(0, 240);
   let url = "/feed.html";
