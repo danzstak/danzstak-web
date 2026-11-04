@@ -283,3 +283,16 @@ For DANZSTAK Phone, each browser/PWA installation that originates or receives vo
 4. Supply precise vendor support/cost, test pass/fail counts, staging phone PWA URL, tested commit, actual provider vs mocked results, and **owner approval before production or enabling any paid vendor**. A written instruction or translated demo string is not a working translation service.
 
 **Goal:** a member chooses their own language once; DANZSTAK makes each newly viewed incoming conversation easy to understand without making the sender change languages.
+
+
+## Owner clarification — learning a language means originals first (2026-11-04)
+
+**Owner's personal example:** "I don't use that feature on WhatsApp because sto ancora imparando l'italiano" — they are still learning Italian and **do not want all Italian text silently turned into English**. This is an explicit UX and user-choice requirement.
+
+- **Default: original messages.** Automatic translation remains **OFF** unless the individual member explicitly chooses it. Do not infer auto-translate merely from the person's preferred app language or a manual translation request.
+- A member learning Italian can read incoming Italian **as written**, highlight one word or sentence to copy, choose **Translate** only when needed, or select multiple bubbles and translate a batch on demand. They can toggle original/translation without losing the Italian.
+- Members who want convenience can voluntarily enable **Auto-translate incoming** to their chosen language, with the privacy consent required by the existing translation specification. The other member's setting is independent.
+- Never alter stored messages. An optional **Show original and translation together** view may help learners, but is never forced.
+- Test: A uses an English UI and auto-translate OFF, sees authentic Italian, can manually translate one or a batch. B opts in and automatically sees translations. Turning it off returns original display; no provider call without consent.
+
+**This overrides any suggestion that all users should auto-translate by default just because the feature exists.**
