@@ -9,8 +9,8 @@
 - Dark/black lines appear around embedded video players.
 
 ## Required behavior
-1. **No audible autoplay on app launch.** An offscreen player must never start playing audibly.
-2. When scrolling, at most one video may play at a time. Pause videos leaving the visible region; do not rely solely on muting them.
+1. **Autoplay is required for eligible in-view videos, muted by default.** When the feed opens, the first sufficiently visible video should autoplay silently where browser/provider policies allow. Never autoplay an offscreen player or start audio without a user action.
+2. As the user scrolls, automatically play the most-visible eligible video (muted by default) and pause all others. At most one video may be playing at a time; offscreen players must pause, not merely mute. Use intersection visibility thresholds and robust lifecycle cleanup.
 3. Provide a clearly visible, accessible mute/unmute button on each playable video; initial state must be muted. Unmuting requires a user action.
 4. Respect browser autoplay policies. If an external provider blocks programmatic control, show a click-to-play state rather than falsely claiming playback control.
 5. Prevent playback from persisting after route changes, tab changes, modal close, or component unmount.
@@ -19,8 +19,8 @@
 8. Do not modify unrelated feeds or authentication.
 
 ## Acceptance tests
-- Initial page load: zero audible videos.
-- Scroll through 5+ video posts: never two simultaneous audio streams.
+- Initial page load: the first visible eligible video autoplays silently, where permitted; zero audible videos.
+- Scroll through 5+ video posts: the visible video autoplays silently; previous players pause; never two simultaneous audio streams.
 - Unmute a visible video, then scroll it offscreen: it pauses.
 - Navigate away from feed: all players stop.
 - Test on Android Chrome, desktop Chrome, and any available Safari environment.
