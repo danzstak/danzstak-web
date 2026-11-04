@@ -15,6 +15,8 @@ DANZSTAK should help people put their phones away and engage with actual people,
 - “Did you go for a walk after dinner?”
 - “Put down the remote and start jamming.”
 - “The next hit song might be inside you.”
+- “Dreams become goals. Goals become reality.”
+- “You can't stop reality from being real.”
 - “Did you plant a tree today?”
 - “Did you make a salad from your garden?”
 - “Did you smell the fresh air today?”
