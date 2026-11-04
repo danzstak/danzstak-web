@@ -1,3 +1,14 @@
+## SYNC as central DANZSTAK communications pillar — owner product priority (2026-11-04)
+
+Owner says: **"SYNC will be very important to DANZSTAK."** This makes the **SYNC chat-launch button and the complete reliable communications experience it opens a flagship/core product priority**, not a throwaway decorative renaming exercise. Keep the exact public launcher label **SYNC**, with the DJ-console transport-button visual reference (restrained illuminated green when active), but do **not** rename the underlying internal messaging API or build another redundant chatbot.
+
+**The member experience:** SYNC is visible, immediately discoverable, and opens one dependable, familiar communications destination. Within it: a clean Messenger-like inbox/contact strip, comfortable WhatsApp-like conversations, authorized photo/avatar navigation, reliable message persistence and notifications, actual phone-number SMS verification for opt-in personal numbers, working in-network voice/video including real recipient ring/remote audio, optional DS in-app identity and the existing approved advanced features as they pass tests. Chats and calling remain free without a paid number or mandatory verification. No fake verified/call/online states.
+
+**Order of execution:** prioritize a fast working SYNC launcher and basic send/receive/history, genuine SMS OTP (#21), and two-device ringtone/two-way-call repairs (#27); then iteratively deliver polished UX, media, translation and other approved options. This is a **full-feature vision**, not a request to cut enhancements. Stability, real Android PWA usability, privacy and genuine functioning are release blockers. No production claim or launch before a tested PR, staging, pass/fail matrix, and owner review.
+
+**Success criterion:** ordinary users quickly find the SYNC button, enter real Chats, can message and call each other without frustration, and trust that status and verification are truthful. Preserve DANZSTAK's independent visual identity and users' privacy; do not touch any other company or product.
+
+
 ## Owner naming decision — the chat entry control is the SYNC button (2026-11-04)
 
 **Owner's exact correction:** "I want to name the chatbot SYNC" followed by **"It's the SYNC button."** Treat **SYNC** (uppercase) as the **user-visible name/label of the existing DANZSTAK chat launcher button**—not a request to create a separate AI chatbot, rename internal APIs, replace the Chats backend, or rebrand every conversation screen as SYNC.
