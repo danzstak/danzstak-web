@@ -2443,10 +2443,12 @@ function paintPostSaveButton(post) {
   const button = post.querySelector(".saveBtn");
   if (!button) return;
   const saved = post.dataset.saved === "true";
-  button.textContent = saved ? "✓ Saved" : "🔖 Save";
+  button.textContent = saved ? "Saved" : "Save";
   button.setAttribute("aria-label", saved ? "Remove post from Saved" : "Save post");
   button.setAttribute("aria-pressed", String(saved));
   button.title = saved ? "Remove from Saved" : "Save post";
+  button.dataset.icon = "bookmark";
+  window.danzstakIcons?.upgrade?.(button);
 }
 
 function addSaveButton(post) {

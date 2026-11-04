@@ -11,10 +11,10 @@ assert.match(css, /--ds-mobile-header:50px/, "the shared mobile header dimension
 assert.match(css, /\.ds-mobile-nav\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/, "the shared mobile nav must keep five equal destinations");
 assert.match(css, /\.post>\.post-media[\s\S]*margin-left:-10px/, "phone media must extend through the card gutters consistently");
 assert.match(css, /\.post-actions\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/, "post actions must remain one compact row");
-assert.match(worker, /danzstak-shell-v637/);
+assert.match(worker, /danzstak-shell-v638/);
 assert.match(worker, /\/assets\/mobile-design-system\.css/, "the installed PWA must cache the shared mobile system");
 
-for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=3/, `${file} must load the same mobile design system`);
+for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=4/, `${file} must load the same mobile design system`);
 for (const file of ["messages.html", "booking.html", "epk.html"]) {
   const html = pages.find(([name]) => name === file)[1];
   assert.match(html, /class="ds-mobile-nav"/, `${file} must expose the consistent mobile navigation`);
