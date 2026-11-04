@@ -82,3 +82,14 @@ Dailies auto-expire exactly 24h after publication; **expiration is not Delete ev
 - Dailies expire at 24 hours; regular Mix/Roll/profile items have no automatic lifetime. Automatic Daily expiry is **not** creator-requested Delete everywhere and must not revoke persistent copies of the same asset. Subject to law, abuse controls and ownership of underlying rights. Full tests: [Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40).
 
 **This supersedes earlier video-only scope language; implementation and genuine mobile/two-account testing are required.**
+
+
+## Final reshare placeholder UX — deleted original leaves a small gap (2026-11-04)
+
+When a creator chooses **Delete everywhere** for original text, photo or video, every other user's DANZSTAK reshare of that content **loses the original itself**, but the location of the reshare can remain as a **small original-removed placeholder** instead of silently erasing another person's independently written caption. Recommended neutral copy: **“Original content removed by its creator.”** This is the owner's intended *“hole where they shared content that wasn't theirs.”*
+
+- Preserve separately authored text by resharers when permitted. **Never display the deleted original's words, image, video, poster frame, quoted preview, audio, metadata, or old playable link** inside the hole. No enormous empty player or broken thumbnail. The resharer may remove their own leftover shared card.
+- The creator's global deletion must be enforced through API/share graph/media authorization/CDN/cache revocation, not only a local UI replacement. Media-only Roll/creator/Dailies playlists should drop the dead video instead of pausing on a gap.
+- If the original is merely unavailable to one viewer (privacy, block, network, moderation), use an accurate privacy-safe **Content unavailable** placeholder without falsely announcing creator deletion.
+- **Remove from here** by the creator leaves other shares authorized and working; the small original-removed placeholder is specifically for global deletion. The person sharing somebody else's work cannot use Delete everywhere on that work.
+- This does not promise erasure of externally downloaded copies or separate independently reuploaded media. See [cross-content deletion Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40).
