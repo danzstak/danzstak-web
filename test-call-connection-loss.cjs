@@ -29,6 +29,7 @@ function setup(state = "disconnected") {
     t: value => value,
     tf: value => value,
     setStatus(value) { context.statuses.push(value); },
+    stopRingback() {},
     clearTimeout(value) { context.cleared.push(value); },
     setTimeout(callback) { context.timerCallback = callback; return 37; },
     async signal(type,payload) { context.signals.push({type,payload}); },

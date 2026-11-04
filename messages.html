@@ -13,7 +13,7 @@
 <script src="assets/offline.js?v=2"></script>
 <script src="assets/display-preferences.js?v=410"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
-<link rel="stylesheet" href="assets/chat.css?v=448">
+<link rel="stylesheet" href="assets/chat.css?v=449">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
 <link rel="stylesheet" href="assets/mobile-design-system.css?v=11">
@@ -56,6 +56,7 @@
       <figure class="local-video"><video id="localVideo" autoplay muted playsinline></video><figcaption>You</figcaption></figure>
     </div>
     <div id="mediaControls" class="media-controls" aria-label="Call controls" hidden>
+      <button id="toggleRingback" type="button" class="ringback-button" aria-label="Mute" aria-pressed="false" hidden>🔊</button>
       <button id="toggleMic" type="button">Mute</button>
       <button id="toggleCamera" type="button">Camera off</button>
       <button id="hangUp" type="button" class="danger hangup-button" aria-label="Hang up the current call">📞 Hang Up</button>
@@ -83,7 +84,7 @@
 </nav>
 <script src="assets/icon-buttons.js?v=7" defer></script>
 <script src="assets/identity-media.js?v=1" defer></script>
-<script src="assets/chat.js?v=447" defer></script>
+<script src="assets/chat.js?v=448" defer></script>
 <script src="assets/direct-messages.js?v=483" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
