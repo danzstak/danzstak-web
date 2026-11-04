@@ -128,3 +128,13 @@ Owner correction: **"Less cookie cutter."** Reference Instagram **only for natur
 - Testing must establish perceived smoothness on a physical Android PWA: 6+ authorized videos/slides, 20+ quick and slow forward/backward swipes, no simultaneous audio, accurate 50% handoff, no content crossing modes, sensible preloading on constrained networks, provider-specific fallbacks and Back returning to the exact origin. Compare before/after recordings, measured dropped frames/time-to-first-frame, a tested staging URL/SHA, and obtain owner approval before production.
 
 **Design target:** the interface disappears; the video feels effortless. This is a build/test assignment, not a completed change.
+
+
+## Final owner retention — only Dailies expire automatically (2026-11-04)
+
+The owner has confirmed content retention separately from fullscreen navigation:
+- **The Roll** clips, **The Mix** videos/posts and **profile videos** are **persistent**: they do not disappear after 24 hours or after a viewing session. Keep them in their permitted viewer playlists until the user deletes the publication, changes its visibility, deletes their account, or a required legal/moderation removal occurs.
+- **Dailies** are the one exception: individual Daily items expire exactly **24 hours after server-trusted publication**, and must immediately be excluded from the Daily-only queue/API and any live fullscreen view. See the [Dailies retention specification](pages/13-flashes/README.md).
+- If one underlying video is crossposted as a Daily and a regular Roll/Mix/profile post, expiry of the Daily removes **only the Daily publication**. Do not delete media referenced by a surviving authorized regular post; use backend publication IDs and asset reference accounting. Member-initiated deletes must respect intended scope, ownership and any shared references.
+- Playback mode remains distinct from content lifetime: opening The Roll plays Roll-only videos across creators; opening Dailies plays available Dailies only; opening a Mix or profile video plays that creator's persistent regular videos only. Swipe/50% pixel-threshold and session audio behavior do not reset retention or extend Daily lifetime.
+- Codex tests should verify regular video playback days after publication while Dailies vanish at precisely the 24h boundary; verify delete semantics, mixed crossposting, fullscreen queue updates, pagination and links without duplicate/phantom media. No implementation claims until real code/phone tests and owner approval.
