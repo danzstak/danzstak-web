@@ -3745,8 +3745,10 @@ function renderPlayableReels() {
       reelPlaybackObserver.observe(video);
       return video;
     };
+    const mediaStage = document.createElement("div");
+    mediaStage.className = "reel-media-stage";
     if (playerInfo?.kind === "video") {
-      card.appendChild(reel.internal ? createInternalVideo() : (() => {
+      mediaStage.appendChild(reel.internal ? createInternalVideo() : (() => {
         const video = document.createElement("video");
         video.className = "reel-player";
         video.src = playerInfo.src;
@@ -3782,16 +3784,17 @@ function renderPlayableReels() {
         load.className = "reel-player reel-load-button";
         load.textContent = "Load " + reel.platform + " video";
         load.addEventListener("click", () => load.replaceWith(createFrame()));
-        card.appendChild(load);
-      } else card.appendChild(createFrame());
+        mediaStage.appendChild(load);
+      } else mediaStage.appendChild(createFrame());
     } else if (reel.internal) {
-      card.appendChild(createInternalRecovery());
+      mediaStage.appendChild(createInternalRecovery());
     } else {
       const unavailable = document.createElement("div");
       unavailable.className = "reel-player-fallback";
       unavailable.textContent = "This source does not provide an embeddable player.";
-      card.appendChild(unavailable);
+      mediaStage.appendChild(unavailable);
     }
+    card.appendChild(mediaStage);
     const details = document.createElement("div");
     details.className = "reel-details";
     const platform = document.createElement("strong");

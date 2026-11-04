@@ -47,6 +47,7 @@
   if(!supportsAudioButton(element)||element.closest?.('.danzstak-media-shell'))return;
   const parent=element.parentNode;if(!parent)return;
   const shell=document.createElement('div');shell.className='danzstak-media-shell';
+  if(element.tagName==='VIDEO')shell.classList.add('danzstak-native-video-shell');
   if(element.classList?.contains?.('reel-player')){
    shell.classList.add('danzstak-reel-shell');
    if(element.dataset?.videoLayout)shell.dataset.videoLayout=element.dataset.videoLayout;

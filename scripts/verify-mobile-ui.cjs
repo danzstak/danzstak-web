@@ -177,7 +177,7 @@ async function captureViewport(page, fileName) {
           return { width: buttonBox.width, height: buttonBox.height, right: shellBox.right - buttonBox.right, bottom: shellBox.bottom - buttonBox.bottom, label: button.getAttribute("aria-label"), pressed: button.getAttribute("aria-pressed") };
         });
         assert.ok(audioGeometry.width >= 44 && audioGeometry.height >= 44, `${width}px: audio control must retain a 44px touch target: ${JSON.stringify(audioGeometry)}`);
-        assert.ok(audioGeometry.right >= 8 && audioGeometry.right <= 14 && audioGeometry.bottom >= 8 && audioGeometry.bottom <= 14, `${width}px: audio control must remain in the video bottom-right corner: ${JSON.stringify(audioGeometry)}`);
+        assert.ok(audioGeometry.right >= 8 && audioGeometry.right <= 14 && audioGeometry.bottom >= 50 && audioGeometry.bottom <= 58, `${width}px: native-video audio control must remain above the browser control strip: ${JSON.stringify(audioGeometry)}`);
         assert.equal(audioGeometry.label, "Unmute video", `${width}px: videos must begin with a visible muted-state control`);
         assert.equal(audioGeometry.pressed, "false", `${width}px: autoplay audio must not begin enabled`);
       }
@@ -310,12 +310,19 @@ async function captureViewport(page, fileName) {
         const rollGeometry = await page.locator('.reels-rail.roll-fullscreen').evaluate(rail => {
           const box = rail.getBoundingClientRect();
           const card = rail.querySelector('.reel-card').getBoundingClientRect();
+          const shell = rail.querySelector('.reel-card .danzstak-reel-shell')?.getBoundingClientRect();
+          const player = rail.querySelector('.reel-card .danzstak-reel-shell .reel-player')?.getBoundingClientRect();
+          const audio = rail.querySelector('.reel-card .danzstak-reel-shell .danzstak-audio-toggle')?.getBoundingClientRect();
           const sourceText = rail.querySelector('.reel-card .reel-details small')?.textContent?.trim() || '';
           const sourceLink = rail.querySelector('.reel-card .reel-details a[target="_blank"]')?.href || '';
-          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, cardLeft: card.left, cardRight: card.right, sourceText, sourceLink, viewportWidth: innerWidth, viewportHeight: innerHeight };
+          const playerCenterOffset = shell && player ? Math.abs((shell.top + shell.bottom - player.top - player.bottom) / 2) : null;
+          const audioInset = shell && audio ? { right: shell.right - audio.right, bottom: shell.bottom - audio.bottom } : null;
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, cardLeft: card.left, cardRight: card.right, playerCenterOffset, audioInset, sourceText, sourceLink, viewportWidth: innerWidth, viewportHeight: innerHeight };
         });
         assert.ok(rollGeometry.left === 0 && rollGeometry.right === rollGeometry.viewportWidth && rollGeometry.top === 0 && rollGeometry.bottom === rollGeometry.viewportHeight, `The Roll must own the phone viewport: ${JSON.stringify(rollGeometry)}`);
         assert.ok(rollGeometry.cardLeft >= 0 && rollGeometry.cardRight <= rollGeometry.viewportWidth + 1, `The Roll card overflows the phone: ${JSON.stringify(rollGeometry)}`);
+        assert.ok(rollGeometry.playerCenterOffset !== null && rollGeometry.playerCenterOffset <= 2, `Landscape Roll media should be centered in its stage without distortion: ${JSON.stringify(rollGeometry)}`);
+        assert.ok(rollGeometry.audioInset && rollGeometry.audioInset.right >= 8 && rollGeometry.audioInset.right <= 14 && rollGeometry.audioInset.bottom >= 50 && rollGeometry.audioInset.bottom <= 58, `The Roll audio control must stay above native controls at the video bottom-right: ${JSON.stringify(rollGeometry)}`);
         assert.equal(rollGeometry.sourceText, 'DanzStak video', `The Roll should identify hosted media without exposing AWS infrastructure: ${JSON.stringify(rollGeometry)}`);
         assert.doesNotMatch(rollGeometry.sourceText, /(?:https?:\/\/|amazonaws\.com|\bs3[.-])/i, `The Roll must not print raw URLs or bucket hosts: ${JSON.stringify(rollGeometry)}`);
         assert.match(rollGeometry.sourceLink, /^https:\/\/danzstak-call-signaling-mediabucket-[^.]+\.s3\.us-west-1\.amazonaws\.com\/visual-fixture\.mp4$/, `The friendly label must not change the actual source link: ${JSON.stringify(rollGeometry)}`);

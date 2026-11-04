@@ -15,8 +15,10 @@ assert.match(media, /youtube-nocookie\.com\/embed\//, "YouTube players should pa
 assert.match(media, /controlYouTube\(frame,frame===audibleMedia\?'unMute':'mute'\)/, "only the explicitly audible YouTube player should receive sound without reloading");
 assert.match(media, /video\.muted=video!==audibleMedia/, "every native video except the explicitly audible player must remain muted");
 assert.match(media, /className='danzstak-audio-toggle'/, "supported players receive a shared visible audio control");
+assert.match(media, /if\(element\.tagName==='VIDEO'\)shell\.classList\.add\('danzstak-native-video-shell'\)/, "native players must be distinguishable from provider embeds so custom audio does not cover browser controls");
 assert.match(media, /const label=enabled\?'Mute video':'Unmute video'/, "the audio control exposes its actual state accessibly");
 assert.match(css, /\.danzstak-audio-toggle\{[^}]*right:12px;bottom:12px[^}]*width:44px;height:44px[^}]*border-radius:50%/, "the audio control must be a bottom-right circular mobile touch target");
+assert.match(css, /\.danzstak-native-video-shell>\.danzstak-audio-toggle\{bottom:54px\}/, "native-video audio controls must clear the browser's own control strip");
 assert.match(icons, /"volume-2"/, "the icon system must provide an enabled-audio speaker");
 assert.match(icons, /"volume-x"/, "the icon system must provide a muted speaker");
 assert.match(media, /currentRatio>=0\.5/, "the current video must retain playback while it remains substantially in frame");
