@@ -460,3 +460,8 @@ The owner supplied **two photographs of a real DJ transport/controller section**
 - Visual and functional acceptance: compare resting vs active SYNC at 320/360/390/414/430px, accessible contrast in both states, click/touch opens Chats, Back restores feed, proper unread badge, no route regressions. Provide screenshot/video in staging and get owner approval before deployment. The photographs are explanatory only; don't attach them to public GitHub without owner's permission.
 
 **Owner meaning:** SYNC is not an arbitrary software label; it comes from the button on a DJ console. It should feel like a DANZSTAK control.
+
+
+## Owner meaning — SYNC is how members sync up with each other (2026-11-04)
+
+Owner's words: **"This is how users will sync up."** SYNC is the one prominent DJ-console-inspired button that members use to **connect with one another** on DANZSTAK. Tap SYNC to open the actual member-to-member Chats and Phone experience: find a friend, send a message, have a real voice/video conversation, and—where independently implemented and accepted—make plans to meet in person. The DJ sync metaphor is about people getting connected, not a music-beat-matching tool, not a separate AI bot or another app. Preserve recognizable uppercase **SYNC** entry branding and clean Messenger/WhatsApp-familiar functionality, with DANZSTAK's distinctive simple UX. Prioritize reliable tested communications; do not mark unimplemented features as live.
