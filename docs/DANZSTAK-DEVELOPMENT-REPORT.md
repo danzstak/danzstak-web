@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Cross-viewport profile identity and Record Store spacing audit — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defects found:** the phone-menu containment fix reserved 52px for Close at every viewport even though Close is hidden on tablet/desktop, reducing the 768px sidebar identity to fragments. The Record Store page also left its empty pagination wrapper in layout before any search; its margins plus the outreach card margin created an unnecessary 60px blank band.
+- **Root correction:** Close-space reservation is now scoped to phone widths only, leaving the full signed-in profile name readable in the desktop/tablet rail. Record Store pagination now hides and reveals its wrapper and button together; when unused, it consumes no layout height and the following outreach card uses a compact 16px top margin. Search pagination behavior itself is unchanged.
+- **Permanent visual gate:** desktop/tablet Feed checks now require the exact fixture identity, reject clipped name geometry and verify that mobile Close remains absent. Every phone Record Store capture verifies that the unused pagination wrapper is semantically hidden, computes to `display:none`, and leaves no more than 36px between the search and outreach cards.
+- **Test and deployment evidence:** the complete regression suite passed, including authentication, social features, Chat/calls, Notifications, media/audio coordination, worldwide discovery, Record Stores, Booking, EPK, Tour Manager, Stripe Test Mode, PWA refresh, smoke and infrastructure. Local and live visual matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live evidence: [complete 768px sidebar identity](screenshots/desktop-record-spacing-v657-live/home-768.png) and [compact 320px Record Store flow](screenshots/desktop-record-spacing-v657-live/record-stores-320.png).
+- **Production state:** implementation commit `1bfbf48` is on `danzstak-patch-1` and `main`; production serves `danzstak-shell-v657`. A fresh browser reports the worker activated and controlling with only v657 in CacheStorage.
+- **Remaining limitation:** no remotely controllable physical Android or iPhone was available; physical installed-device inspection remains manual.
+
 ### Mobile menu containment and Settings control audit — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
