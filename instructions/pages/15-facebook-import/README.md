@@ -98,3 +98,26 @@ Before upload/confirmation, prominently explain in plain language: **“Your Fac
 - Preview and final confirmation must show counts for complete posts, incomplete posts accepted, skipped posts, and missing media/metadata. Apply the chosen privacy setting to imported text-only posts.
 - Preserve available user-authored captions and valid source links where permitted. Never fabricate missing files or download third-party content without permission.
 - Test missing image, missing video, missing attribution/date, missing link, pure share with no usable content, and mixed large-archive cases, including mobile usability.
+
+## Owner requirement — faithful visual migration preview and missing-attachment decisions
+The importer's central promise is **no surprises after import**. Users accustomed to their Facebook profile must see how each exported item will actually render on DANZSTAK, including any lost media, article previews, external embeds or metadata.
+
+### Two-sided preview
+- Where the archive contains sufficient source information, show **Facebook export contents** versus **DANZSTAK result preview**. Clearly label the left/source view as a reconstruction from the export, **not a live screenshot or complete original Facebook post**.
+- If source material is insufficient to reconstruct the original, show a structured list of known fields and missing references instead of inventing an original image/card.
+- Render the actual DANZSTAK post card on the right, using the same rendering logic as the feed, with no fabricated media.
+- On mobile, use stacked views or an accessible toggle instead of cramped side-by-side columns.
+
+### Missing content categories
+- Missing **video**: ask whether to import the caption/text without video.
+- Missing **photo/image**: ask whether to import text without photo.
+- Missing **news article/link preview**: explain whether the source URL exists, whether a link-only post is possible, and whether preview metadata (headline, thumbnail, excerpt) is absent. Do not scrape or synthesize missing article content as if originally present.
+- Missing **other attachment, event metadata, attribution or timestamp**: identify the specific missing field when verifiable; avoid claiming it is missing if it was never present in the source.
+- For an empty reshare with no user-authored text or usable link, recommend **Skip** rather than creating a blank post.
+
+### Decision controls
+For each flagged item: **Import available content**, **Skip post**, **Review details**. If a valid source URL is available, optionally **Import as link**. Show exactly which parts will appear on DANZSTAK.
+For large archives offer bulk policies by missing-content category (e.g. import text-only captions, skip missing-video shares, review missing-article posts). No silent import of incomplete posts.
+
+### Acceptance
+Test export fixtures with video references but no video file, shared images absent, news article URL without preview metadata, unavailable source URL, missing attribution, and complete originals. Confirm post preview visually matches the resulting feed card and that counts/selection/privacy remain correct after refresh and resume.
