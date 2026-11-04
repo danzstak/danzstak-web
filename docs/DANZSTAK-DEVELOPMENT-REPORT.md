@@ -547,9 +547,11 @@ Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 
 ## Physical-device failure and initialization-race correction
 
-Status as of 2026-11-04: **IN PROGRESS — OWNER REPORTED AUDIO BLEED AFTER CACHE CLEAR**.
+Status as of 2026-11-04: **DEPLOYED; PHYSICAL-DEVICE ACCEPTANCE PENDING**.
 
 - The first release passed automated playback arbitration but failed physical-device acceptance. It is not treated as complete.
 - Root cause found in the initialization path: a newly inserted feed video inherited the saved sound-on preference before playback ownership was assigned. A second autoplay observer could start that unowned video, producing a short or continuing overlap on mobile even though the later `play` event attempted to arbitrate ownership.
 - The initialization path now forces every new native player to remain muted. Only the central playback owner may restore the saved sound preference. Native Roll videos are also included in automatic ownership selection rather than relying solely on their separate visibility observer.
-- Regression coverage now inserts a new video after the controller is already running and verifies that it cannot become audible before autoplay begins. Production deployment and physical-device retest are pending.
+- Regression coverage now inserts a new video after the controller is already running and verifies that it cannot become audible before autoplay begins.
+- All repository regressions, site smoke checks, infrastructure validation and browser layout measurements passed after the correction. Application commit `1f26aaae00f643c0693495ff72f179c4ba30329b` was deployed by AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `855` in `us-west-1`; the job succeeded from 2026-11-04 05:32:44 to 05:33:36 Europe/Berlin.
+- Post-deployment public health passed. The service worker is activated and controlling the live page with only `danzstak-shell-v643` present. Physical-device acceptance remains pending and the release is not represented as solving the reported phone behavior until the owner retests it.
