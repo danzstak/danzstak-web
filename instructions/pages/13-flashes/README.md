@@ -51,3 +51,11 @@ The **dated clapperboard sits above the user's profile picture** within the Take
 
 ## Final UI copy
 The action tile must be labeled **Take 1**, never **Create**. Keep the dated clapperboard above the signed-in user's profile picture. The accessible label should explain: 'Take 1 — add a Daily that disappears after 24 hours.' This is only a label change; the user still reviews content before publishing.
+
+## Latest owner decision — dynamic active Dailies count (supersedes Take 1 label)
+- The label beneath the signed-in user's dated clapperboard/profile-photo tile must display the **current number of that user's active, unexpired Dailies**, not static “Create” or “Take 1” text.
+- Examples: **0 Dailies**, **1 Daily**, **3 Dailies** (correct singular/plural).
+- Count only the signed-in user's own Dailies with server-authoritative expiry in the future, excluding deleted/expired items. Update after publishing, deleting, expiry and feed refresh; do not count all-time posts.
+- Keep the current local date on the clapperboard, the real user profile picture visible below it, and a plus control to add a Daily. The tile must remain tappable and accessible with a clear “Add Daily” action even when the label is a number.
+- This supersedes earlier UI copy requirements specifying **Take 1** as the tile label; no other Dailies terminology changes.
+- Test zero, one, multiple, deletion and 24-hour expiration transitions, including correct count after app reload.
