@@ -14,3 +14,8 @@ The existing DANZSTAK landing page is approved visually. **Do not redesign or re
 
 ## Acceptance
 Provide before/after screenshots, playback and navigation tests, external provider limitations, PR and verified PWA preview. No production deployment without owner approval.
+
+## Owner's preferred featured music
+- Preferred album: **Return to Forever — Romantic Warrior (1976)**, featuring Chick Corea, Stanley Clarke, Lenny White and Al Di Meola. This is a music selection reference, **not** authorization to copy or host the recording or album artwork.
+- Locate and use only an authorized external embed/player URL once approved by the owner; if no suitable embeddable source is available, present a tasteful album reference and an external listen link rather than an unauthorized upload or broken player.
+- Preserve existing landing page visuals and signup CTA. Do not label this album as a DJ mix; it is a jazz-fusion album.
