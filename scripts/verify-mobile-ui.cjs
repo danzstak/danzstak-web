@@ -404,6 +404,15 @@ async function captureViewport(page, fileName) {
       await assertNoOverflow(page, `Record Stores ${width}px`, true);
       await assertNoIosInputZoom(page, `Record Stores ${width}px`);
       assert.equal(await page.locator(".ds-mobile-nav").isVisible(), true, `${width}px: Record Stores must share mobile navigation`);
+      const recordStoreSpacing = await page.evaluate(() => {
+        const search = document.querySelector(".search-card").getBoundingClientRect();
+        const placement = document.querySelector(".placement-card").getBoundingClientRect();
+        const more = document.querySelector("#recordStoreMore");
+        return { gap: placement.top - search.bottom, moreHidden: more.hidden, moreDisplay: getComputedStyle(more).display };
+      });
+      assert.equal(recordStoreSpacing.moreHidden, true, `${width}px: unused record-store pagination row should remain hidden before a search`);
+      assert.equal(recordStoreSpacing.moreDisplay, "none", `${width}px: hidden record-store pagination row still consumes layout space`);
+      assert.ok(recordStoreSpacing.gap <= 36, `${width}px: record-store cards have an excessive empty gap: ${JSON.stringify(recordStoreSpacing)}`);
       await captureViewport(page, `record-stores-${width}.png`);
 
       await page.goto(`${baseUrl}/profile.html`, { waitUntil: "domcontentloaded" });
@@ -489,6 +498,14 @@ async function captureViewport(page, fileName) {
       await captureViewport(page, `settings-${width}.png`);
 
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
+      const desktopIdentity = await page.locator("#mobileNavMenu").evaluate(drawer => {
+        const name = drawer.querySelector("#menuProfileName");
+        const close = drawer.querySelector("[data-menu-close]");
+        return { text: name.textContent.trim(), clientHeight: name.clientHeight, scrollHeight: name.scrollHeight, closeVisible: Boolean(close.offsetWidth || close.offsetHeight) };
+      });
+      assert.equal(desktopIdentity.text, "DanzStak Test Artist", `${width}px: desktop profile shortcut lost the signed-in name`);
+      assert.ok(desktopIdentity.scrollHeight <= desktopIdentity.clientHeight + 4, `${width}px: desktop profile shortcut clips the signed-in name: ${JSON.stringify(desktopIdentity)}`);
+      assert.equal(desktopIdentity.closeVisible, false, `${width}px: desktop sidebar must not reserve a visible mobile Close control`);
       await page.locator('.topnav [data-feature="Friends"]').click();
       await page.waitForSelector(".friends-workspace-list");
       await assertNoOverflow(page, `Desktop Friends ${width}px`);

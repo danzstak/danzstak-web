@@ -4,6 +4,14 @@
   margin: 16px;
 }
 
+.search-more[hidden] {
+  display: none;
+}
+
+.search-more[hidden] + .placement-card {
+  margin-top: 16px;
+}
+
 .search-more button {
   min-height: 44px;
   padding: 10px 16px;

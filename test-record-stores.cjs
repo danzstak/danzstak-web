@@ -17,6 +17,8 @@ assert.match(api, /osmFailureBackoffMs = 5 \* 60 \* 1000/, "a failed OpenStreetM
 assert.match(api, /osmBackoffUntil > Date\.now\(\)/, "new city searches should not repeatedly wait on a provider already known to be unavailable");
 assert.match(api, /osmBackoffUntil = 0/, "a healthy OpenStreetMap response should close the circuit breaker");
 assert.match(client, /loadMoreStores/, "dense cities should support paged store results");
+assert.match(page, /class="search-more" id="recordStoreMore" hidden/, "the unused record-store pagination row must not create blank space before a search");
+assert.match(client, /function setLoadMoreVisible\(visible\) \{ loadMore\.hidden = !visible; if \(loadMoreWrap\) loadMoreWrap\.hidden = !visible; \}/, "record-store pagination must reveal and hide its complete row together");
 assert.match(api, /audio visual\|audio[\s\S]*music company\|music center/, "audio, instrument, video and generic music retailers should be excluded");
 assert.match(api, /Number\(data\?\.radiusMiles\) \|\| 30/, "pagination should keep a stable radius until the user explicitly searches wider");
 assert.match(api, /stores\.slice\(offset, offset \+ 20\)/, "dense music cities should return focused paginated results");
