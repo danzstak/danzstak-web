@@ -207,6 +207,7 @@ async function captureViewport(page, fileName) {
         assert.ok(menuGeometry.profileHeight <= 60, `${width}px: profile header is oversized (${menuGeometry.profileHeight}px)`);
         assert.equal(menuGeometry.overflowY, "auto", `${width}px: drawer must own vertical scrolling`);
         assert.equal(menuGeometry.scrollable, true, `${width}px: full menu should scroll independently on a phone viewport`);
+        assert.equal(await page.locator("body>.install-app-button:visible,body>.app-update-button:visible").count(), 0, `${width}px: install/update shortcuts must not overlap the open menu`);
         await captureViewport(page, `menu-${width}.png`);
         await page.locator("[data-menu-close]").click();
       }
@@ -325,6 +326,12 @@ async function captureViewport(page, fileName) {
       assert.ok(chatGeometry.actionsRight <= chatGeometry.headerRight + 1, `${width}px: Chat header controls overflow`);
       assert.ok(chatGeometry.nameRight <= chatGeometry.actionsLeft + 1, `${width}px: Chat name overlaps header controls`);
       assert.ok(chatGeometry.formBottom <= chatGeometry.viewportHeight + 1, `${width}px: Chat composer falls below viewport`);
+      assert.equal(await page.locator("#minimizeConversation").isVisible(), false, `${width}px: phone Chat must not show the redundant desktop minimize action`);
+      if (width <= 360) {
+        assert.equal(await page.locator("#headerVideo").isVisible(), false, `${width}px: video call must collapse before it truncates the contact name`);
+        const nameFit = await page.locator("#conversationName").evaluate(name => ({ clientWidth: name.clientWidth, scrollWidth: name.scrollWidth }));
+        assert.ok(nameFit.scrollWidth <= nameFit.clientWidth + 1, `${width}px: Chat contact name is truncated: ${JSON.stringify(nameFit)}`);
+      }
       await captureViewport(page, `chat-conversation-${width}.png`);
       await context.close();
     }
