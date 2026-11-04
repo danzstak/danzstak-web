@@ -29,7 +29,7 @@ The UI must use the factual statuses `Request received`, `In progress`, `Complet
 
 Every phase must be idempotent, store progress, retry bounded failures, and resume without repeating destructive side effects.
 
-The source-level orchestration is implemented in `infrastructure/auth-api/account-erasure.mjs`. It intentionally delegates persistence to audited adapters so tests can prove ordering and coverage without touching production accounts. The DynamoDB, S3, and Cognito adapters and scheduled worker must be complete before the routes are deployed.
+The source-level orchestration is implemented in `infrastructure/auth-api/account-erasure.mjs`. It intentionally delegates persistence to audited adapters so tests can prove ordering and coverage without touching production accounts. `infrastructure/auth-api/account-erasure-dynamodb.mjs` implements the DynamoDB, S3, and Cognito operations and is tested with synthetic service state. The scheduled worker, least-privilege deployment policy, and isolated AWS integration test must be complete before the routes are deployed.
 
 ## Limited-retention exceptions
 
