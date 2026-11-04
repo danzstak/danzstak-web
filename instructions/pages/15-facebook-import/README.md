@@ -26,3 +26,10 @@ The **last item** in the DANZSTAK navigation menu must be **Import Facebook Data
 - No writes occur before consent; duplicate imports do not duplicate content.
 - Unauthorized imports and malicious archives rejected.
 - Mobile 360/390px screenshots, PR, test evidence and PWA preview before owner approval.
+
+## Owner update — two entry points and built-in instructions
+- Provide **Import Facebook Data** in exactly two primary locations: (1) the **bottom-most item** of the main navigation menu and (2) a clearly labeled action within **Edit Profile**. Both must open the **same** import workflow; do not implement two divergent import systems.
+- Show step-by-step, user-facing guidance before upload: open Facebook's settings/Accounts Center, find the **Download your information** flow, choose the Facebook profile and available data categories, request/download the export, then return to DANZSTAK to upload the downloaded archive. Meta's UI labels can change, so link to official current help rather than hard-coding a fragile click path as guaranteed.
+- Include help for locating downloaded ZIP files on Android, iPhone and desktop, plus supported formats, size limits, privacy and processing explanation, and what will/won't import.
+- Offer a clear **How to export from Facebook** guide, **Choose file**, **Preview**, and **Import selected** steps, with progress and errors.
+- Verify both entry points at 360/390px mobile and desktop, plus navigation/back behavior and accessible labels.
