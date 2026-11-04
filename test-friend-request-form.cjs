@@ -20,8 +20,11 @@ assert.match(source, /onlineHeading\.textContent = feedTranslate\("Users online"
 assert.match(source, /friendsHeading\.textContent = feedTranslate\("Your friends"\)/, 'accepted friends remain visible below a localized heading');
 assert.doesNotMatch(source, /Add a friend by email/, 'ordinary users are not required to know account email addresses');
 assert.match(css, /\.friend-discovery-list\{display:grid;/, 'online-user discovery uses a responsive compact grid');
-assert.match(css, /\.friend-workspace-row\{grid-template-columns:minmax\(0,1fr\)\}\.friend-message-action\{width:100%;min-width:0\}/, 'mobile friend actions stack without clipping off screen');
-assert.match(feed, /assets\/feed-enhancements\.css\?v=485/, 'the feed loads the current friend discovery styles');
-assert.match(feed, /assets\/feed-enhancements\.js\?v=518/, 'the feed loads the current localized friend discovery behavior');
+assert.match(source, /message\.dataset\.icon = "chat"/, 'the friend message action uses the shared recognizable Chat icon');
+assert.match(source, /message\.title = `\$\{feedTranslate\("Message"\)\}: \$\{displayName\.textContent\}`/, 'the compact friend message action keeps a descriptive desktop tooltip');
+assert.match(css, /\.friend-workspace-row\{grid-template-columns:minmax\(0,1fr\) 44px\}/, 'mobile friend rows reserve one compact action column instead of creating a second row');
+assert.match(css, /\.friend-message-action,.friend-message-action\.ds-icon-button\{width:44px;min-width:44px;min-height:44px;/, 'the compact friend message control keeps a usable mobile touch target');
+assert.match(feed, /assets\/feed-enhancements\.css\?v=486/, 'the feed loads the current friend discovery styles');
+assert.match(feed, /assets\/feed-enhancements\.js\?v=519/, 'the feed loads the current localized friend discovery behavior');
 
 console.log('Friend discovery checks passed: the Friends button lists online users with one-tap relationship actions and no email lookup.');

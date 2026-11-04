@@ -1504,7 +1504,9 @@ function renderWorkspace(name) {
         message.type = "button";
         message.className = "friend-message-action";
         message.textContent = feedTranslate("Message");
+        message.dataset.icon = "chat";
         message.setAttribute("aria-label", `${feedTranslate("Message")}: ${displayName.textContent}`);
+        message.title = `${feedTranslate("Message")}: ${displayName.textContent}`;
         message.addEventListener("click", () => openMessageDrawer(person.email));
         row.append(link, message);
         list.appendChild(row);

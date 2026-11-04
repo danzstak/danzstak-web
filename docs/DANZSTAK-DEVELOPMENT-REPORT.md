@@ -495,3 +495,15 @@ Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 - Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA checks are **NOT TESTED** in this automated environment. Browser viewport and service-worker tests do not replace physical-device evidence.
 - The browser fixtures verify visible control behavior and layout without mutating real users, creating charges, or sending email. Real-user content and third-party media can expose additional cases; production monitoring and regression additions remain mandatory.
 - No claim of pixel perfection or universal device coverage is made. The release meets the measured acceptance gates above and retains the documented manual-device requirement.
+
+# Zero-defect UX follow-up
+
+Status as of 2026-11-04: **PRE-DEPLOYMENT QUALITY GATE PASSED; LIVE VERIFICATION PENDING**.
+
+- Independent review of the deployed Friends screen found that an accepted friend's Message action was forced onto a separate full-width row on phones. The action duplicated the visual weight of the friend card, wasted vertical space, and made the relationship between the friend and action less immediate.
+- Root cause: a mobile responsive rule explicitly changed `.friend-workspace-row` to a one-column grid and stretched `.friend-message-action` to 100% width. The renderer also produced a text-only control instead of using the shared icon system.
+- Correction: accepted friends now retain a single-row card at mobile widths with a dedicated 44px action column. The action uses the shared Chat icon while preserving its member-specific accessible label, desktop tooltip, and existing message-opening behavior.
+- Regression coverage now requires the single-row grid, minimum 44px touch target, shared Chat icon, accessible name and tooltip. The service-worker cache advances to `danzstak-shell-v640` so installed PWAs cannot retain the old layout.
+- Functional/integration evidence: all 251 repository regression checks, the 11-page site smoke suite and infrastructure validation passed after the correction.
+- Visual evidence: the complete browser suite passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. [Corrected Friends screen at 390px](screenshots/zero-defect-friends-after-390.png).
+- No backend, Stripe, entitlement, authentication, payment, booking, EPK or message-delivery business logic was changed.

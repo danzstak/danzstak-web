@@ -17,6 +17,6 @@ assert.match(feed, /matchMedia\("\(max-width: 700px\)"\)\.matches[\s\S]*?locatio
 assert.match(feed, /target\.searchParams\.set\("return", location\.pathname \+ location\.search \+ location\.hash\)/, "the dedicated Chat screen retains its previous DanzStak route");
 assert.match(css, /body\[data-mobile-screen="notifications"\] #newsFeedView,[\s\S]*?display:none!important/, "Notifications hides the underlying feed on mobile");
 assert.match(css, /\.notification-drawer\{inset:0;width:100vw;height:100dvh/, "a retained notification drawer can never be a floating phone popup");
-assert.match(feed, /assets\/feed-enhancements\.js\?v=518/, "the feed loads the exclusive navigation build");
+assert.match(feed, /assets\/feed-enhancements\.js\?v=519/, "the feed loads the exclusive navigation build");
 
 console.log("Mobile notification checks passed: Notifications is a dedicated workspace, Chat is a real screen, and primary panels cannot stack.");
