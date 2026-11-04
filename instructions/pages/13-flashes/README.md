@@ -30,3 +30,11 @@ Add a horizontal **Dailies** strip at the top of the mobile-first Home Feed, abo
 
 ## Terminology update
 The public UI name is **Dailies**, never Flashes. Existing internal identifiers may be migrated safely; do not break existing data. The separate **Rough Cut** video rail appears after four regular feed posts.
+
+## Create Daily tile — owner-approved visual requirement
+- First tile in the Dailies strip must show the **signed-in user's actual profile picture** prominently, not a generic placeholder when an avatar exists.
+- Overlay a small **clapperboard / film slate icon** with a visible plus indicator, anchored at the lower-right of the avatar/tile to communicate **Add to Dailies**.
+- Tile label: **Create Daily** (or **Add to Dailies** if the user already has an active Daily); the icon and full tile must be tappable and keyboard-accessible.
+- Keep the profile photo unobscured; provide high-contrast icon backing, minimum comfortable touch target, and fallback initials/avatar when no photo exists.
+- Tapping opens the Daily composer, never immediately posts. Confirm before publishing.
+- Mobile-first at 360/390px, with screenshots showing both avatar-present and avatar-missing cases.
