@@ -145,3 +145,8 @@ Owner's rule is **"If the user opens Dailies, it plays just the Dailies."** Dail
 - Preserve member photo and timestamped clapperboard on far-left creator tile; SCENE 1 · TAKE N counts unique user-uploaded video assets, **not** active Dailies. Preserve 24h server expiry, secure permissions, error/expired-media fallback and Back returning to the origin.
 
 **Acceptance:** Tap an eligible Daily from member A; UP reaches a Daily from member B (once any A Dailies ahead in the defined sequence are exhausted) without leaving fullscreen or needing to tap "Next creator". No ordinary video ever appears. Test multiple authors, mixed media, boundaries, expiry, blocks and Android PWA audio and navigation with owner approval before deployment.
+
+
+## Final owner polish — less cookie-cutter Dailies viewing (2026-11-04)
+
+Use the same lightweight, stable fullscreen vertical transitions as The Roll, **without a generic card carousel or excess framing**. Dailies is a multi-user 24-hour photo/video/text collection entered from the existing horizontal avatar strip. Start on the tapped Daily, then swipe UP/DOWN through all viewer-permitted active Dailies (including other creators); never mix in standard videos. Preload the next accessible item modestly, use readable pauseable image/text timing, pause the outgoing video at the 50%-offscreen pixel threshold, preserve session sound settings where allowed and enforce expiry while the viewer is open. One media owner only. Keep the far-left authentic-profile-photo/clapperboard creator tile, but the slate is a small film-set nod rather than cluttering the viewer. Verify smooth Android PWA transitions, permissions, Back/Close, audio and real before/after screenshots; no production deployment without owner signoff.
