@@ -532,7 +532,7 @@ Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 
 # Single-audible video playback correction
 
-Status as of 2026-11-04: **TESTED LOCALLY; PRODUCTION DEPLOYMENT PENDING**.
+Status as of 2026-11-04: **DEPLOYED AND VERIFIED IN PRODUCTION**.
 
 - Root cause: feed autoplay used a low 15% visibility threshold, so adjacent videos could both be playing while scrolling. The saved global sound preference could then unmute every eligible native and YouTube player instead of only the player that owned the viewport.
 - Correction: the shared media controller now grants playback and audio ownership to one player at a time. A new automatic candidate must be at least 60% visible; the current player keeps ownership while at least 50% visible to prevent rapid boundary switching. A deliberate user play transfers ownership immediately, pauses and mutes the previous player, and backgrounding the app pauses all tracked players.
@@ -541,3 +541,6 @@ Status as of 2026-11-04: **TESTED LOCALLY; PRODUCTION DEPLOYMENT PENDING**.
 - Functional/integration gate: all repository regression checks passed, followed by the 11-page site smoke suite and infrastructure validation. The new focused playback tests also passed independently.
 - The installed-PWA cache advances to `danzstak-shell-v642`, and all pages that load the shared controller reference `assets/media-visibility.js?v=385` so a stale controller cannot remain active after release.
 - No post data, user media, payment logic, entitlement logic, Chat delivery, Booking Agent, EPK or Tour Manager business logic was changed.
+- Production application commit: `af44f29020d181188bac0f56c6b9f18f89b6da1d`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `854` succeeded in `us-west-1` from 2026-11-04 05:21:20 to 05:22:14 Europe/Berlin.
+- Post-deployment public health passed. The browser PWA verifier found the worker activated and controlling the page, with only `danzstak-shell-v642` present; the prior media controller cache was not retained.
+- The live browser visual suite passed again at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA playback remain **NOT TESTED** because those devices are unavailable in this environment; automated browser evidence is not represented as physical-device evidence.
