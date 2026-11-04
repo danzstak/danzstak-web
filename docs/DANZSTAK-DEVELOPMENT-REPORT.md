@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Artist-facing Roll source labels — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defect found:** shared direct-video records displayed their raw URL hostname below the player. A DANZSTAK-hosted fixture therefore exposed the long internal S3 bucket name inside a narrow phone card, creating visible truncation and leaking infrastructure jargon that has no value to artists.
+- **Root correction:** The Roll now derives a bounded friendly source label from the already-approved URL. DANZSTAK S3 media displays `DanzStak video`; supported providers display names such as `YouTube video`, `Vimeo video`, `TikTok video`, `Twitch video`, or `Dailymotion video`; unknown approved direct-video hosts display `External video`. The normalized external URL remains the real secure source-link target and playback URL, so attribution/navigation behavior was not weakened.
+- **Permanent quality gate:** the URL-safety regression executes the label helper against DANZSTAK S3, YouTube and an unknown direct-video host, rejects the former raw-hostname assignment, and retains all approved-URL protections. The real-browser suite uses the exact long S3 fixture, requires the visible label to equal `DanzStak video`, rejects URL/S3/AWS text, and proves that the `Open on source` anchor still points to the original HTTPS video.
+- **Functional, visual and integration evidence:** the complete `test-regressions.ps1` gate passed after the final changes, including persistent social data, Friends/presence, Notifications, Chat/calls, all 15 languages, media sizing and one-audio ownership, Booking Agent, worldwide discovery, Record Stores, EPK, Tour Manager, Stripe signature/idempotency/refund safeguards, PWA refresh, site smoke, security and infrastructure. Local and deployed Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live evidence: [friendly Roll source metadata at 390px](screenshots/roll-source-v664-live/roll-fullscreen-390.png).
+- **Deployment state:** implementation commit `3c12467` is on `danzstak-patch-1` and `main`. Production serves `danzstak-shell-v664`; a fresh live browser reports an activated controlling worker, only v664 in CacheStorage, and standalone display-mode support. Production browser verification completed at 2026-11-04 13:59 Europe/Berlin. A test-harness follow-up also guarantees the live-PWA verifier closes its Edge process after both success and failure instead of hanging after a propagation miss.
+- **Scope and limitations:** no payment, entitlement, authentication, discovery, messaging, media URL or playback behavior changed. Stripe remains sandbox/Test only and Live payments remain disabled. No remotely controllable physical Android or iPhone was available, so final installed-device tactile inspection remains manual and is not represented as complete.
+
 ### DANZSTAK-owned Stripe sandbox catalog — 2026-11-04
 
 Status: **CATALOG CREATED AND VERIFIED IN THE DANZSTAK SANDBOX; NOT CONNECTED TO THE APPLICATION BACKEND; NO PAYMENT ACTIVATION**.
