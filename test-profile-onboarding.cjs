@@ -8,7 +8,7 @@ const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 
 assert.match(feed, /id="profileOnboarding"[^>]*hidden/, 'the identity prompt is present but hidden until an incomplete profile is confirmed');
 assert.match(feed, /What should people call you\?/, 'the prompt uses ordinary language rather than profile jargon');
-assert.match(feed, /assets\/profile-onboarding\.js\?v=7/, 'the live feed loads current first-login identity behavior');
+assert.match(feed, /assets\/profile-onboarding\.js\?v=8/, 'the live feed loads current first-login identity behavior');
 assert.match(feed, /assets\/profile-onboarding\.css\?v=2/, 'the live feed loads responsive identity styling');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.css"/, 'the installed app keeps the identity layout available offline');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.js"/, 'the installed app keeps the identity behavior available offline');
@@ -43,6 +43,9 @@ assert.match(source, /throw new Error\(messages\.offline\)/, 'connection failure
 assert.match(source, /identityLanguage/, 'identity setup resolves every supported locale explicitly');
 assert.match(source, /\.topnav \[data-feature="Friends"\]/, 'the next action opens the existing online-user and friend workspace');
 assert.match(source, /next\.hidden = false/, 'saving a name reveals friend discovery instead of silently dismissing onboarding');
+assert.match(source, /const homeIsActive = newsFeedView && featureView && !newsFeedView\.hidden && featureView\.hidden/, 'identity onboarding is limited to the active Home feed');
+assert.match(source, /routeObserver\.observe\(newsFeedView,[\s\S]*routeObserver\.observe\(featureView/, 'identity onboarding follows exclusive workspace navigation');
+assert.match(source, /onboardingDismissed \|\| !onboardingEligible \|\| !homeIsActive/, 'dismissed, ineligible, and non-Home states cannot leak onboarding into another workspace');
 assert.match(css, /@media\(max-width:700px\)/, 'the identity card stacks on phones');
 assert.doesNotMatch(source, /profile\.email|username@|email address/i, 'identity onboarding never exposes or requests an account email');
 

@@ -150,6 +150,8 @@ async function captureViewport(page, fileName) {
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.addStyleTag({ content: ".push-alert-prompt{display:none!important}" });
       await page.waitForSelector("#feed article.post");
+      await page.waitForSelector("#profileOnboarding:not([hidden])");
+      assert.equal(await page.locator("#profileOnboarding").isVisible(), true, `${width}px: incomplete profiles should receive name setup on Home`);
       if (width <= 430) {
         await page.locator("#feed article.post").evaluate(post => {
           if (post.querySelector("video.post-media")) return;
@@ -338,6 +340,7 @@ async function captureViewport(page, fileName) {
         await page.locator('.topnav [data-feature="Friends"]').click();
         await page.waitForTimeout(100);
         await assertExclusiveFeedScreen(page, "friends");
+        assert.equal(await page.locator("#profileOnboarding").isVisible(), false, "Friends must not inherit the Home identity-onboarding card");
         await page.waitForSelector(".friend-discovery-row button[data-icon='chat']");
         const onlineMessageAction = await page.locator(".friend-discovery-row button[data-icon='chat']").evaluate(action => {
           const box = action.getBoundingClientRect();
@@ -574,6 +577,7 @@ async function captureViewport(page, fileName) {
       await assertNoOverflow(page, `Desktop Friends ${width}px`);
       assert.equal(await page.locator("#featureView").isVisible(), true, `${width}px: desktop Friends workspace must be visible`);
       assert.equal(await page.locator("#newsFeedView").isVisible(), false, `${width}px: desktop Friends must not stack over the feed`);
+      assert.equal(await page.locator("#profileOnboarding").isVisible(), false, `${width}px: desktop Friends must not append Home identity onboarding`);
       await captureViewport(page, `friends-desktop-${width}.png`);
 
       await page.locator('.topnav [data-feature="Notifications"]').click();

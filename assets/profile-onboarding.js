@@ -13,7 +13,20 @@
   const menuProfileName = document.getElementById("menuProfileName");
   const menuProfileImage = document.getElementById("menuProfileImage");
   const menuProfileFallback = document.getElementById("menuProfileFallback");
+  const newsFeedView = document.getElementById("newsFeedView");
+  const featureView = document.getElementById("featureView");
   let currentProfile = {};
+  let onboardingEligible = false;
+  let onboardingDismissed = false;
+  function syncOnboardingVisibility() {
+    const homeIsActive = newsFeedView && featureView && !newsFeedView.hidden && featureView.hidden;
+    panel.hidden = onboardingDismissed || !onboardingEligible || !homeIsActive;
+  }
+  if (newsFeedView && featureView) {
+    const routeObserver = new MutationObserver(syncOnboardingVisibility);
+    routeObserver.observe(newsFeedView, { attributes: true, attributeFilter: ["hidden"] });
+    routeObserver.observe(featureView, { attributes: true, attributeFilter: ["hidden"] });
+  }
   function updateMenuProfile(profile = {}) {
     const name = String(profile.name || "").trim() || "My Profile";
     if (menuProfileName) menuProfileName.textContent = name;
@@ -87,7 +100,7 @@
   findPeople.textContent = words.find;
   done.textContent = words.done;
 
-  const closeOnboarding = () => { panel.hidden = true; };
+  const closeOnboarding = () => { onboardingDismissed = true; syncOnboardingVisibility(); };
   findPeople.addEventListener("click", () => {
     closeOnboarding();
     document.querySelector('.topnav [data-feature="Friends"]')?.click();
@@ -124,10 +137,11 @@
       const genericName = !normalizedName || ["danzstak member", "danzstak user", "new member"].includes(normalizedName);
       const genericHandle = !normalizedHandle || ["danzstak-member", "danzstak.member", "danzstak_member", "member", "new-member"].includes(normalizedHandle);
       if (!genericName && !genericHandle) return;
+      onboardingEligible = true;
       nameInput.value = genericName ? "" : profile.name;
       handleInput.value = genericHandle ? suggestedHandle(nameInput.value) : profile.handle;
-      panel.hidden = false;
-      nameInput.focus({ preventScroll: true });
+      syncOnboardingVisibility();
+      if (!panel.hidden) nameInput.focus({ preventScroll: true });
     } catch { /* Profile editing remains available if onboarding cannot load. */ }
   }
 
