@@ -133,3 +133,15 @@ Owner's rule is **"If the user opens Dailies, it plays just the Dailies."** Dail
 - Leftmost Dailies entry remains member's real photo with timestamped clapperboard SCENE 1 · TAKE N; **N is their distinct uploaded video asset count**, not current Daily count. This visual label does not change playback scope.
 
 **Acceptance:** open Dailies with 2 creators' Dailies and separate Roll/Mix videos; next/previous/fullscreen/end-of-list never shows a non-Daily. Expired or unauthorized Dailies cannot leak. Validate Android PWA swipe, sound, readable photo/text slides, Back/Close and 24-hour expiry, then request owner approval before deployment.
+
+
+## Final owner navigation — multi-creator Dailies advance by vertical swipe (2026-11-04)
+
+**Owner confirms Dailies and The Roll are both collections containing content from different people.** This supersedes older instructions to restrict Dailies fullscreen playback to just the selected person's Dailies or to require a separate "Next creator" button.
+
+- The **horizontal row** of member photographs/available Dailies at the top of The Mix remains the **entry-point selector**. Tap a Daily -> open **that exact Daily fullscreen**. **Swipe UP/DOWN** advances to next/previous currently authorized, unexpired **Daily, including a Daily by another member**, in stable ordering. An individual member's multiple Dailies may be grouped but crossing member boundaries is part of ordinary vertical navigation, with no modal or forced confirmation.
+- **Dailies-only category always stays Dailies-only**. The fullscreen sequence can include supported Daily video, photo and text entries (24-hour ephemeral content); it never pulls in ordinary Roll clips or Mix videos. Video advances after natural end where possible, other Daily types after a readable/pausable interval; manual swipe obeys 50% visible-video-pixel handoff with one active audio source.
+- In contrast, tapping the horizontal **The Roll** preview carousel opens the multi-creator **Roll-only** fullscreen queue. Tapping video in The Mix or on a person's profile opens **creator-only regular videos**. Never conflate these three scopes. See [Roll playback source of truth](../../01-video-playback.md).
+- Preserve member photo and timestamped clapperboard on far-left creator tile; SCENE 1 · TAKE N counts unique user-uploaded video assets, **not** active Dailies. Preserve 24h server expiry, secure permissions, error/expired-media fallback and Back returning to the origin.
+
+**Acceptance:** Tap an eligible Daily from member A; UP reaches a Daily from member B (once any A Dailies ahead in the defined sequence are exhausted) without leaving fullscreen or needing to tap "Next creator". No ordinary video ever appears. Test multiple authors, mixed media, boundaries, expiry, blocks and Android PWA audio and navigation with owner approval before deployment.
