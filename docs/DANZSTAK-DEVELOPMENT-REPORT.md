@@ -4,6 +4,18 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### SYNC phone-call remote audio playback — 2026-11-04
+
+Status: **IMPLEMENTED AND LOCALLY VERIFIED ON THE STACKED `codex/call-remote-audio-playback` REVIEW BRANCH; PHYSICAL TWO-DEVICE AUDIO TEST REQUIRED; NOT DEPLOYED**.
+
+- **Root cause:** every incoming WebRTC stream was attached to `remoteVideo`. Phone calls intentionally hide the entire `videoGrid`, so the only remote media element was inside a hidden video-only surface. Signaling could connect and notifications could ring while the other person's audio had no reliable, independent playback path.
+- **Correction:** phone calls now attach their remote stream to a dedicated `remoteAudio` element outside `videoGrid`; video calls retain `remoteVideo`. Switching streams first pauses and detaches both remote players, preventing duplicate output. Hang-up, connection failure, page hide and unload pause and detach remote media so sound cannot bleed after a call ends.
+- **Browser audio policy:** DanzStak explicitly requests playback after the user starts or accepts a call. If a browser still blocks playback, the status says exactly what happened and exposes a 44px `Hear call` button for a user-gesture retry. No unsupported Android speaker-route toggle was added and successful signaling is not represented as proof of audible output.
+- **Automated evidence:** implementation commit `91c10d97e262ad332b1b85efccf0bc504282da68`. All focused `test-call*.cjs` checks pass. New `test-call-remote-audio.cjs` covers independent phone audio, blocked-playback recovery, successful retry, stream detachment and the old hidden-video regression. The complete uninterrupted `test-regressions.ps1` gate passed, including authentication, persistent social features, Chat/call lifecycle, single-audio media ownership, Booking Agent, EPK, Tour Manager, Stripe safeguards, PWA refresh, site smoke and infrastructure.
+- **Rendered-browser evidence:** headless Microsoft Edge passed at 320, 390, 430 and 1024px. At every width, remote phone audio is outside the hidden video grid and outside any hidden ancestor, the recovery control renders 89.14×44px, no horizontal overflow occurs, and the video grid remains hidden for phone calls.
+- **PWA/release state:** `messages.html` advances to `chat.js?v=449` and the review branch uses `danzstak-shell-v669`. This is intentionally stacked on draft PR #36 (`codex/mobile-call-ringback`) so it reviews only the remote-audio correction. Production was not changed.
+- **Remaining verification:** browser automation cannot hear speakers or prove NAT traversal. Before production approval, use two authenticated physical devices to test Android Chrome/installed PWA and iPhone Safari/installed PWA in both directions on Wi-Fi and cellular, including microphone permission, answer, audible remote voice, hang-up cleanup and the `Hear call` fallback. TURN relay remains a possible requirement on restrictive networks and is not provisioned or claimed here.
+
 ### Mobile video-call access and honest outgoing ringback — 2026-11-04
 
 Status: **IMPLEMENTED AND VERIFIED ON THE ISOLATED `codex/mobile-call-ringback` STAGING PWA; NOT DEPLOYED TO PRODUCTION**.
