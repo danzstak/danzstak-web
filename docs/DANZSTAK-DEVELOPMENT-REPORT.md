@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Compact tablet/desktop header and PWA controls — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defects found:** at 768px and 1024px the main Feed header switched to two rows, consuming roughly twice the expected height. The temporary Install/Update action was inserted as a separate document row at every wide viewport, creating another blank band between the header and content. During visual verification, the first correction also exposed a cascade defect that rendered both Install and Update even while one retained the `hidden` attribute.
+- **Root correction:** signed-in layouts at 701px and above now place the PWA actions inside each page's existing header action group; phones keep the established in-flow install affordance. Feed tablets use one compact 62px row with a bounded search field and 44px navigation targets. At the narrowest tablet width the full wordmark collapses to the official D icon instead of wrapping the header. Messages no longer shrinks its desktop workspace for a separate prompt row, and its dedicated phone screen suppresses wide-header prompts. A specific `hidden` rule prevents later navigation-button styles from overriding PWA control state.
+- **Permanent quality gate:** static tests verify responsive prompt reparenting, phone fallback placement, viewport-change handling and hidden-state precedence. The real-browser suite measures header height, content/header gap, prompt ownership and hidden-prompt geometry at 768, 1024 and 1366px; it retains all existing phone, Feed, Friends, Notifications, Chat, media, Booking, EPK, Record Store and Settings checks.
+- **Functional, visual and integration evidence:** the complete `test-regressions.ps1` suite passed after the final correction, including authentication, persistent posts/media, Friends/presence, Notifications, Chat/calls, all 15 languages, no-autoplay/single-audio media coordination, Booking Agent, worldwide discovery, Record Stores, EPK, Tour Manager, Stripe Test Mode entitlements/refunds, PWA refresh, site smoke, security and infrastructure. Local and deployed Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live evidence: [compact 768px single-row header](screenshots/header-density-v663-live/home-768.png).
+- **Production state:** implementation commit `97627233fa5e38533d4746404749d3b1db42b0d6` is on `danzstak-patch-1` and `main`. Production serves `danzstak-shell-v663`; a fresh browser reports an activated controlling worker, only v663 in CacheStorage, and standalone display-mode support. Production browser verification completed at 2026-11-04 13:30 Europe/Berlin. Stripe remains Test Mode and live payments remain disabled.
+- **AWS metadata and device limitations:** the AWS CLI session expired during verification, so an Amplify job ID was not guessed; the exact owner action for AWS-side job metadata is `aws login`. Public deployment and active PWA state were independently verified. No remotely controllable physical Android or iPhone was available, so final installed-device tactile inspection remains manual and is not represented as complete.
+
 ### Compact mobile Settings actions — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
