@@ -4,6 +4,16 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Narrow-phone Chat search wording — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defect found:** at 320px the Chat search field and 16px iPhone-safe text control were correctly sized, but the placeholder `Search DanzStak messages` was visibly clipped. The control technically worked while looking unfinished.
+- **Root correction:** the field now uses the familiar concise label `Search chats`. The wording is localized in all 15 supported account languages; the complete screen-reader label remains `Search messages`. The 16px input size, search keyboard hint and existing filtering behavior are unchanged.
+- **Permanent gate and evidence:** the real-browser phone matrix now requires the concise placeholder before capturing Chat. Localization, mobile keyboard, static navigation and the complete regression suite passed. Local and production visual matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live evidence: [unclipped 320px Chat search](screenshots/chat-search-v660-live/chat-list-320.png).
+- **Production state:** implementation commit `0a7b539` is on `danzstak-patch-1` and `main`. Production serves `danzstak-shell-v660`; a fresh browser reports an activated controlling worker with only v660 in CacheStorage. Stripe remains Test Mode and live payments remain disabled.
+- **Remaining limitation:** no remotely controllable physical Android or iPhone was available; physical installed-PWA tactile verification remains manual.
+
 ### Consistent Friends messaging actions — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
