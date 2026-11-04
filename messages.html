@@ -14,6 +14,7 @@
 <script src="assets/display-preferences.js?v=410"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
 <link rel="stylesheet" href="assets/chat.css?v=448">
+<link rel="stylesheet" href="assets/make-plans.css?v=1">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
 <link rel="stylesheet" href="assets/mobile-design-system.css?v=11">
@@ -49,7 +50,7 @@
     <button id="deleteChat" type="button" class="secondary delete-chat" data-icon="trash" disabled hidden aria-label="Delete chat" title="Delete chat">🗑️</button>
   </section>
   <section class="conversation" aria-label="Conversation">
-    <header id="conversationHeader" class="conversation-header" hidden><a id="conversationAvatar" class="conversation-avatar" href="profile.html" aria-label="Open contact profile">D</a><a id="conversationName" class="conversation-name" href="profile.html">Select a chat</a><span id="conversationPresence" class="conversation-presence" hidden>Online</span><div class="conversation-header-actions"><button id="headerPhone" type="button" data-icon="phone" title="Phone call" aria-label="Phone call"><svg class="call-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1.5 1.5 0 0 1 1.5-.36c1.1.36 2.28.56 3.5.56a1.5 1.5 0 0 1 1.5 1.5v3.5a1.5 1.5 0 0 1-1.5 1.5A18.3 18.3 0 0 1 2.1 3.6a1.5 1.5 0 0 1 1.5-1.5h3.5a1.5 1.5 0 0 1 1.5 1.5c0 1.23.2 2.4.56 3.5.17.54.04 1.13-.36 1.53z"/></svg></button><button id="headerVideo" type="button" data-icon="video" title="Video call" aria-label="Video call"><svg class="call-action-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="13" height="14" rx="2.5"/><path d="m15.5 10 5-3v10l-5-3z"/></svg></button><button id="minimizeConversation" type="button" data-icon="minimize" title="Minimize chat" aria-label="Minimize chat">−</button><button id="conversationMore" type="button" data-icon="more" title="More chat options" aria-label="More chat options" aria-expanded="false" aria-controls="conversationMenu">⋮</button><button id="closeConversation" type="button" data-icon="close" title="Close chat" aria-label="Close chat">×</button></div><div id="conversationMenu" class="conversation-menu" role="menu" hidden><button id="headerDeleteChat" type="button" data-icon="trash" role="menuitem" aria-label="Delete chat" title="Delete chat">🗑️</button></div></header>
+    <header id="conversationHeader" class="conversation-header" hidden><a id="conversationAvatar" class="conversation-avatar" href="profile.html" aria-label="Open contact profile">D</a><a id="conversationName" class="conversation-name" href="profile.html">Select a chat</a><span id="conversationPresence" class="conversation-presence" hidden>Online</span><div class="conversation-header-actions"><button id="makePlans" type="button" data-icon="calendar" title="Make plans" aria-label="Make plans">Make plans</button><button id="headerPhone" type="button" data-icon="phone" title="Phone call" aria-label="Phone call"><svg class="call-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.5 15.5 0 0 0 6.6 6.6l2.2-2.2a1.5 1.5 0 0 1 1.5-.36c1.1.36 2.28.56 3.5.56a1.5 1.5 0 0 1 1.5 1.5v3.5a1.5 1.5 0 0 1-1.5 1.5A18.3 18.3 0 0 1 2.1 3.6a1.5 1.5 0 0 1 1.5-1.5h3.5a1.5 1.5 0 0 1 1.5 1.5c0 1.23.2 2.4.56 3.5.17.54.04 1.13-.36 1.53z"/></svg></button><button id="headerVideo" type="button" data-icon="video" title="Video call" aria-label="Video call"><svg class="call-action-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="13" height="14" rx="2.5"/><path d="m15.5 10 5-3v10l-5-3z"/></svg></button><button id="minimizeConversation" type="button" data-icon="minimize" title="Minimize chat" aria-label="Minimize chat">−</button><button id="conversationMore" type="button" data-icon="more" title="More chat options" aria-label="More chat options" aria-expanded="false" aria-controls="conversationMenu">⋮</button><button id="closeConversation" type="button" data-icon="close" title="Close chat" aria-label="Close chat">×</button></div><div id="conversationMenu" class="conversation-menu" role="menu" hidden><button id="headerDeleteChat" type="button" data-icon="trash" role="menuitem" aria-label="Delete chat" title="Delete chat">🗑️</button></div></header>
     <p id="callStatus" class="call-status conversation-status" role="status">Ready to start a secure call.</p>
     <div id="videoGrid" class="video-grid" hidden>
       <figure><video id="remoteVideo" autoplay playsinline></video><figcaption id="remoteLabel">Waiting for contact</figcaption></figure>
@@ -73,6 +74,21 @@
     </form>
   </section>
 </main>
+<dialog id="plansDialog" class="plans-dialog" aria-labelledby="plansTitle">
+  <form id="plansForm" class="plans-form">
+    <header><div><span class="plans-kicker">Private invitation</span><h2 id="plansTitle">Make plans</h2></div><button type="button" class="plans-close" data-icon="close" aria-label="Close">×</button></header>
+    <p id="plansIntro">Invite this friend to do something together. Only you two can see it.</p>
+    <input id="planId" type="hidden"><input id="planRevision" type="hidden" value="0">
+    <label>What do you want to do?<input id="planTitle" maxlength="100" required placeholder="Coffee, a show, rehearsal…"></label>
+    <label>When?<input id="planWhen" type="datetime-local" required></label>
+    <label>Timezone<select id="planTimezone" required></select></label>
+    <label>Public meeting place <span>(optional)</span><input id="planLocation" maxlength="200" placeholder="Venue or café — not a private address"></label>
+    <label>Note <span>(optional)</span><textarea id="planNote" maxlength="1000" rows="3" placeholder="Anything your friend should know"></textarea></label>
+    <p id="plansStatus" class="plans-status" role="status" aria-live="polite"></p>
+    <div class="plans-actions"><button type="button" class="secondary plans-cancel" hidden>Cancel plan</button><button type="submit" class="primary plans-save">Send invitation</button></div>
+  </form>
+  <section id="plansList" class="plans-list" aria-label="Plans with this friend"></section>
+</dialog>
 <script src="assets/push-notifications.js?v=307" defer></script>
 <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
   <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
@@ -85,6 +101,7 @@
 <script src="assets/identity-media.js?v=1" defer></script>
 <script src="assets/chat.js?v=447" defer></script>
 <script src="assets/direct-messages.js?v=483" defer></script>
+<script src="assets/make-plans.js?v=1" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">

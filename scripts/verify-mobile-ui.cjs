@@ -8,7 +8,7 @@ const { chromium } = require("playwright-core");
 const baseUrl = process.env.DANZSTAK_VISUAL_BASE_URL || "http://127.0.0.1:8013";
 const outputDir = path.resolve(process.env.DANZSTAK_VISUAL_OUTPUT || "docs/screenshots/mobile-ui");
 const edgePath = process.env.DANZSTAK_EDGE_PATH || "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
+const widths = process.env.DANZSTAK_VISUAL_WIDTHS ? process.env.DANZSTAK_VISUAL_WIDTHS.split(",").map(Number).filter(Number.isFinite) : [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
 const benchmarkWidths = [320, 360, 390, 414];
 const menuWidths = new Set([320, 360, 390, 414]);
 const desktopProfileWidths = [768, 1024, 1366];
@@ -68,6 +68,7 @@ async function installApiFixtures(page) {
     if (pathname === "/engagement-notifications") return json(route, { notifications: [] });
     if (pathname === "/messages/conversations") return json(route, { conversations: [{ contactEmail: "friend@danzstak.invalid", name: "Mobile Friend", memberId: "22222222-2222-4222-8222-222222222222", preview: "See you at the show.", unread: 2, online: true, canContact: true, updatedAt: "2026-11-04T12:20:00.000Z" }] });
     if (pathname === "/messages") return json(route, { messages: [{ messageId: "message-1", senderEmail: "friend@danzstak.invalid", content: "See you at the show.", createdAt: "2026-11-04T12:20:00.000Z" }] });
+    if (pathname === "/plans") return json(route, { plans: [{ planId: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", title: "Coffee after the show", startAt: "2026-11-08T18:00:00.000Z", timezone: "Europe/Berlin", location: "Public café", note: "", inviterEmail: "friend@danzstak.invalid", recipientEmail: "mobile-test@danzstak.invalid", status: "pending", revision: 1, changed: false, createdAt: "2026-11-04T12:20:00.000Z", updatedAt: "2026-11-04T12:20:00.000Z", role: "invitee" }] });
     if (pathname === "/settings/posts") return json(route, { pinned: [], saved: [], muted: [] });
     if (pathname === "/settings/presence") return json(route, { onlineVisible: true, allowTags: true, callAlerts: true, messageAlerts: true, reduceMotion: false, dataSaver: false, language: "en" });
     if (pathname === "/profile" || pathname === "/profiles") return json(route, { profile: { name: "DanzStak Test Artist", username: "testartist", memberId: "11111111-1111-4111-8111-111111111111", isOwner: true, location: "Berlin, Germany", bio: "Independent artist testing DanzStak on mobile." } });
@@ -512,6 +513,13 @@ async function captureViewport(page, fileName) {
         assert.ok(nameFit.scrollWidth <= nameFit.clientWidth + 1, `${width}px: Chat contact name is truncated: ${JSON.stringify(nameFit)}`);
       }
       await captureViewport(page, `chat-conversation-${width}.png`);
+      await page.locator("#makePlans").click();
+      await page.waitForSelector("#plansDialog[open]");
+      await assertNoOverflow(page, `Make Plans ${width}px`);
+      const plansGeometry = await page.locator("#plansDialog").evaluate(dialog => ({ width: dialog.getBoundingClientRect().width, viewport: innerWidth, scrollWidth: dialog.scrollWidth, clientWidth: dialog.clientWidth }));
+      assert.ok(plansGeometry.width <= plansGeometry.viewport + 1, `${width}px: Make Plans exceeds viewport`);
+      assert.ok(plansGeometry.scrollWidth <= plansGeometry.clientWidth + 1, `${width}px: Make Plans has horizontal overflow`);
+      await captureViewport(page, `make-plans-${width}.png`);
       await context.close();
     }
     for (const width of desktopProfileWidths) {

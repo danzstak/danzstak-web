@@ -841,3 +841,9 @@ Status as of 2026-11-04: **DEPLOYED AND BROWSER-PLAYBACK VERIFIED; PHYSICAL-DEVI
 - Production application commit: `8e2986877c3ce5c4704bb6cb16794dd877269e93`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `857` succeeded in `us-west-1` from 2026-11-04 06:47:30 to 06:48:26 Europe/Berlin.
 - Post-deployment public health passed. The service worker was activated and controlling the page with only `danzstak-shell-v645` present. The actual-browser playback test was rerun using the deployed `media-visibility.js?v=388` and passed native/YouTube playback coordination. The production visual suite also passed at every measured width.
 - Browser compatibility verified through desktop Chromium and Chromium mobile viewport/PWA behavior. Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA playback remain **NOT TESTED** in this environment and require owner/device acceptance; this limitation is not represented as a pass.
+# Issue #24 Make Plans — 2026-11-04
+
+- **IN PROGRESS:** private accepted-friend invitations are implemented on isolated branch `codex/issue-24`; production is unchanged. The evidence and honest staging blockers are recorded in [ISSUE-24-MAKE-PLANS-MVP.md](ISSUE-24-MAKE-PLANS-MVP.md).
+- **COMPLETE locally:** plan create/list/edit/cancel/RSVP APIs, participant-only DynamoDB records, idempotency, optimistic revisions, rate limiting, in-app notices, Chat composer, `.ics` export, PWA asset caching, infrastructure syntax checks and a 320–1366px browser matrix.
+- **BLOCKED:** AWS CLI authentication expired before an isolated staging environment could be verified. `aws login` is open and must complete before a real staging URL or two-account AWS result can be reported. No production deployment occurred.
+

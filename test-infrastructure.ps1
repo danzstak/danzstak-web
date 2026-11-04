@@ -160,7 +160,7 @@ foreach ($paginationControl in @('async function scanAll(input,maximumItems=5000
 if (-not $template.Contains("scanAll({TableName:process.env.PRESENCE_TABLE,FilterExpression:'expiresAt > :n',ExpressionAttributeValues:{':n':{N:String(now())}},ConsistentRead:true})")) {
   throw 'Online directory presence reads can report a fresh heartbeat as offline.'
 }
-foreach ($socialListPagination in @('async function getFriends(user){const items=await queryAll', 'async function notifications(user){const [friends,chats]=await Promise.all([queryAll', 'async function getConversations(user){const items=await queryAll', 'async function mapLimit(items,limit,work)', 'const friends=await mapLimit(items,10', 'const conversations=await mapLimit(items.filter')) {
+foreach ($socialListPagination in @('async function getFriends(user){const items=await queryAll', 'async function notifications(user){const [friends,chats,plans]=await Promise.all([queryAll', 'async function getConversations(user){const items=await queryAll', 'async function mapLimit(items,limit,work)', 'const friends=await mapLimit(items,10', 'const conversations=await mapLimit(items.filter')) {
   if (-not $template.Contains($socialListPagination)) { throw "Friends, Notifications, or saved conversations can stop at one DynamoDB page: $socialListPagination" }
 }
 foreach ($savedChatControl in @('if(!allowed&&!state.Item?.preview?.S)return json(403', 'return json(200,{messages,nextCursor,canContact:allowed})', 'canContact:allowed')) {
