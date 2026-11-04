@@ -12,7 +12,10 @@ assert.match(template,/tokenHash:[\s\S]*createHash\('sha256'\)\.update\(token\)/
 assert.match(template,/timingSafeEqual/,"device-token comparison must resist timing disclosure");
 assert.match(template,/Date\.now\(\)-lastUsed>60000/,"frequent call polling must not write last-used activity on every request");
 assert.match(template,/CALL_DEVICE_REGISTRATION_REQUIRED/,"call endpoints must return an actionable registration code");
-assert.match(template,/\['phone','video'\]\.includes\(mode\)&&!\(await authenticatedCallingDevice/,"voice and video signaling must require the registered installation");
+assert.match(template,/CLAIM#\$\{callId\}[\s\S]*TransactWriteItemsCommand[\s\S]*CALL_ALREADY_ANSWERED/,"one device must atomically claim an incoming call before its answer is delivered");
+assert.match(template,/ConditionExpression:'senderEmail = :caller AND callId = :callId AND #mode = :mode AND signalType = :offer AND expiresAt > :now'/,"answer claims must consume only the matching live offer and media mode");
+assert.match(template,/FilterExpression:'expiresAt > :n AND attribute_exists\(signalType\)'/,"internal answer claims must never leak into the signaling inbox");
+assert.match(template,/callingDevice=\['phone','video'\]\.includes\(mode\)\?await authenticatedCallingDevice[\s\S]*\['phone','video'\]\.includes\(mode\)&&!callingDevice/,"voice and video signaling must require the registered installation");
 assert.match(template,/async function inbox\(event,user\)\{if\(!\(await authenticatedCallingDevice/,"an unregistered installation must not receive call signals");
 assert.match(template,/targets=items\.filter\(item=>item\.deviceId\?\.S&&eligible\.has/,"call push must fan out only to active registered devices");
 assert.match(template,/revokedAt = :revoked, allowCalls = :disabled REMOVE tokenHash/,"revocation must immediately invalidate the call credential");
@@ -27,6 +30,8 @@ assert.match(client,/confirm\(t\(`Revoke/,"lost-device revocation must require d
 assert.match(client,/renameDevice\(device\)[\s\S]*method:"PATCH"/,"registered devices must be renameable without re-enrollment");
 assert.match(chat,/path\.startsWith\("\/calls\/"\)\?await globalThis\.danzstakCallingDeviceHeaders/,"calling requests must authenticate the installation");
 assert.match(chat,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*danzstakOpenCallingDevices/,"blocked calls must open the registration recovery flow");
+assert.match(chat,/signal\("answer",peer\.localDescription,offer\.eventId\)/,"the answering installation must bind its answer to the exact incoming offer");
+assert.match(chat,/CALL_ALREADY_ANSWERED[\s\S]*This call was answered on another device/,"losing installations must stop with a truthful one-answer result");
 assert.doesNotMatch(chat,/\/messages[\s\S]{0,120}CALL_DEVICE_REGISTRATION_REQUIRED/,"ordinary persistent messages must not be gated by device registration");
 assert.match(push,/globalThis\.danzstakCallingDeviceHeaders/,"push subscriptions must be linkable to the registered installation");
 assert.match(worker,/assets\/call-devices\.js/,"the installed PWA shell must include device registration");
