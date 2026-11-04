@@ -19,3 +19,11 @@ This branch contains **specifications and visual references**, not production co
 - Never deploy or merge without the project's established approval process.
 
 **Important:** GitHub instructions are not automatically executed by Codex. Codex must be directed/configured to read this branch.
+
+
+## Platform-wide owner pricing and member-choice policy (2026-11-04)
+
+- **Affordable optional products:** no individual optional consumer charge of $50 or more without an explicit new owner decision. Avoid expensive bundles, surprise fees and coercive upsells. Measure vendor, payment and support costs before pricing.
+- **No lock-in:** no annual or multiyear consumer subscriptions. Monthly services must be genuinely month-to-month and cancellable any time without a cancellation fee. The default is deliberate member authorization for a new month's payment, not silent renewal.
+- **Privacy Shield:** genuinely supported data-broker exposure discovery and initial member-authorized opt-out requests are free. Monitoring of supported sources costs **$4 USD for one month**; one reminder 3–4 days before expiry, and **renewal only if the member chooses and pays again**. No automatic charge and no annual offer. See [Issue #31](https://github.com/Danzstak/Danzstak-web/issues/31).
+- **Free rights stay free:** ordinary social accounts, Chat, account data export/deletion, and links to free government removal tools are not paywalled. Live payments and outside provider access require owner approval. Use only DANZSTAK billing; stay out of SFScoop.
