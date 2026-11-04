@@ -41,6 +41,6 @@ assert(
 );
 
 const feedHtml = fs.readFileSync("feed.html", "utf8");
-assert.match(feedHtml, /assets\/feed-enhancements\.js\?v=512/, "Feed should load the localized guarded Friends workspace build");
+assert.match(feedHtml, /assets\/feed-enhancements\.js\?v=513/, "Feed should load the localized guarded Friends workspace build");
 
 console.log("Friends stale-response guard checks passed.");

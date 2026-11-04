@@ -297,9 +297,29 @@ for (const [language] of window.danzstakLanguages) {
         `${language} needs localized social actions for: ${source}`,
       );
   }
+  for (const source of [
+    "Write a comment…",
+    "Cancel",
+    "Add emoji to comment",
+    "Post comment",
+    "Most relevant ▾",
+    "Newest ▾",
+    "Comment order: most relevant. Activate for newest first.",
+    "Comment order: newest first. Activate for most relevant.",
+    "Reply",
+    "this comment",
+    "now",
+    "Friend",
+  ]) {
+    const translated = window.danzstakTranslate(source);
+    if (language !== "en") assert.notEqual(translated, source, `${language} needs localized comment controls for: ${source}`);
+  }
   for (const [source, preserved] of [
     ["Open Sigmund profile", "Sigmund"],
     ["Reply to Sigmund", "Sigmund"],
+    ["Reply to Sigmund…", "Sigmund"],
+    ["Replying to Sigmund", "Sigmund"],
+    ["Cancel reply to Sigmund", "Sigmund"],
     ["View post from Sigmund", "Sigmund"],
     ["Show more posts. 12 remaining.", "12"],
   ]) {

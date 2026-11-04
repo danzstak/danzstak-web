@@ -3022,11 +3022,47 @@ function createCommentReactions(post, item, comment) {
   item.appendChild(controls);
 }
 
+function formatCommentTimestamp(time) {
+  const parsed = new Date(time?.dateTime || "");
+  if (Number.isNaN(parsed.getTime())) { time.textContent = feedTranslate("now"); return; }
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 60000));
+  const locale = document.documentElement.lang || undefined;
+  try {
+    const relative = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style: "narrow" });
+    time.textContent = elapsedMinutes < 1 ? relative.format(0, "minute") : elapsedMinutes < 60 ? relative.format(-elapsedMinutes, "minute") : elapsedMinutes < 1440 ? relative.format(-Math.floor(elapsedMinutes / 60), "hour") : elapsedMinutes < 10080 ? relative.format(-Math.floor(elapsedMinutes / 1440), "day") : parsed.toLocaleDateString(locale, { month: "short", day: "numeric" });
+  } catch { time.textContent = elapsedMinutes < 1 ? feedTranslate("now") : parsed.toLocaleDateString([], { month: "short", day: "numeric" }); }
+  time.title = parsed.toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
+}
+
+function refreshCommentInterfaceLanguage(root = document) {
+  for (const input of root.querySelectorAll?.(".comment-composer input") || []) input.placeholder = input.dataset.replyToName ? feedTranslate("Reply to " + input.dataset.replyToName + "…") : feedTranslate("Write a comment…");
+  for (const button of root.querySelectorAll?.(".comment-emoji-toggle") || []) button.setAttribute("aria-label", feedTranslate("Add emoji to comment"));
+  for (const button of root.querySelectorAll?.(".comment-send") || []) button.setAttribute("aria-label", feedTranslate("Post comment"));
+  for (const sort of root.querySelectorAll?.(".comment-sort") || []) {
+    const newest = sort.closest("article")?.dataset.commentSort === "newest";
+    sort.textContent = feedTranslate(newest ? "Newest ▾" : "Most relevant ▾");
+    sort.setAttribute("aria-label", feedTranslate(newest ? "Comment order: newest first. Activate for most relevant." : "Comment order: most relevant. Activate for newest first."));
+  }
+  for (const button of root.querySelectorAll?.(".comment-reply-button") || []) {
+    const name = button.dataset.replyName || "this comment";
+    button.textContent = feedTranslate("Reply");
+    button.setAttribute("aria-label", feedTranslate("Reply to " + (name === "this comment" ? feedTranslate(name) : name)));
+  }
+  for (const label of root.querySelectorAll?.(".comment-reply-context[data-reply-name], .comment-replying-label[data-reply-name]") || []) label.textContent = feedTranslate("Replying to " + label.dataset.replyName);
+  for (const button of root.querySelectorAll?.(".comment-reply-cancel[data-reply-name]") || []) {
+    button.textContent = feedTranslate("Cancel");
+    button.setAttribute("aria-label", feedTranslate("Cancel reply to " + button.dataset.replyName));
+  }
+  for (const time of root.querySelectorAll?.(".comment-time") || []) formatCommentTimestamp(time);
+}
+
+if (typeof MutationObserver === "function") new MutationObserver(() => refreshCommentInterfaceLanguage()).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
+
 function clearCommentReply(input) {
   if (!input) return;
   delete input.dataset.replyToCommentId;
   delete input.dataset.replyToName;
-  input.placeholder = "Write a comment…";
+  input.placeholder = feedTranslate("Write a comment…");
   const composer = input.closest(".comment-composer");
   composer?.querySelector(".comment-replying")?.remove();
 }
@@ -3037,7 +3073,7 @@ function beginCommentReply(post, comment, item) {
   const name = comment.authorName || "DanzStak member";
   input.dataset.replyToCommentId = comment.commentId;
   input.dataset.replyToName = name;
-  input.placeholder = "Reply to " + name + "…";
+  input.placeholder = feedTranslate("Reply to " + name + "…");
   const composer = input.closest(".comment-composer");
   composer?.querySelector(".comment-replying")?.remove();
   if (composer) {
@@ -3049,11 +3085,15 @@ function beginCommentReply(post, comment, item) {
       replying.appendChild(targetAvatar);
     }
     const label = document.createElement("span");
-    label.textContent = "Replying to " + name;
+    label.className = "comment-replying-label";
+    label.dataset.replyName = name;
+    label.textContent = feedTranslate("Replying to " + name);
     const cancel = document.createElement("button");
     cancel.type = "button";
-    cancel.textContent = "Cancel";
-    cancel.setAttribute("aria-label", "Cancel reply to " + name);
+    cancel.className = "comment-reply-cancel";
+    cancel.dataset.replyName = name;
+    cancel.textContent = feedTranslate("Cancel");
+    cancel.setAttribute("aria-label", feedTranslate("Cancel reply to " + name));
     cancel.addEventListener("click", () => { clearCommentReply(input); input.focus(); });
     replying.append(label, cancel);
     composer.prepend(replying);
@@ -3096,7 +3136,7 @@ hydratePostComposerAvatar();
 function ensureCommentComposer(post) {
   const comments = post.querySelector(".comments"), input = comments?.querySelector(":scope > input, .comment-composer input");
   if (!comments || !input || input.closest(".comment-composer")) return;
-  input.placeholder = "Write a comment…";
+  input.placeholder = feedTranslate("Write a comment…");
   const composer = document.createElement("div");
   composer.className = "comment-composer";
   const avatar = document.createElement("span");
@@ -3117,7 +3157,7 @@ function ensureCommentComposer(post) {
   emoji.type = "button";
   emoji.className = "comment-emoji-toggle";
   emoji.textContent = "☺";
-  emoji.setAttribute("aria-label", "Add emoji to comment");
+  emoji.setAttribute("aria-label", feedTranslate("Add emoji to comment"));
   emoji.setAttribute("aria-expanded", "false");
   const emojiMenu = document.createElement("div");
   emojiMenu.className = "comment-emoji-menu";
@@ -3147,7 +3187,7 @@ function ensureCommentComposer(post) {
   send.type = "button";
   send.className = "comment-send";
   send.textContent = "➤";
-  send.setAttribute("aria-label", "Post comment");
+  send.setAttribute("aria-label", feedTranslate("Post comment"));
   send.addEventListener("click", () => saveComment(post, input));
   input.replaceWith(composer);
   field.append(input, tools, send);
@@ -3157,13 +3197,13 @@ function ensureCommentComposer(post) {
     const sort = document.createElement("button");
     sort.type = "button";
     sort.className = "comment-sort";
-    sort.textContent = "Most relevant ▾";
-    sort.setAttribute("aria-label", "Comment order: most relevant. Activate for newest first.");
+    sort.textContent = feedTranslate("Most relevant ▾");
+    sort.setAttribute("aria-label", feedTranslate("Comment order: most relevant. Activate for newest first."));
     sort.addEventListener("click", () => {
       const newest = post.dataset.commentSort !== "newest";
       post.dataset.commentSort = newest ? "newest" : "relevant";
-      sort.textContent = newest ? "Newest ▾" : "Most relevant ▾";
-      sort.setAttribute("aria-label", newest ? "Comment order: newest first. Activate for most relevant." : "Comment order: most relevant. Activate for newest first.");
+      sort.textContent = feedTranslate(newest ? "Newest ▾" : "Most relevant ▾");
+      sort.setAttribute("aria-label", feedTranslate(newest ? "Comment order: newest first. Activate for most relevant." : "Comment order: most relevant. Activate for newest first."));
       updateCommentPreview(post);
     });
     post.querySelector(".commentList")?.before(sort);
@@ -3191,14 +3231,10 @@ function renderPersistentComment(post, comment) {
   if (memberId) author.href = profileUrl;
   author.textContent = comment.authorName || "DanzStak member";
   const time = document.createElement("time"); time.className = "comment-time"; time.dateTime = comment.createdAt || "";
-  const parsed = comment.createdAt ? new Date(comment.createdAt) : null;
-  if (parsed && !Number.isNaN(parsed.getTime())) {
-    const minutes = Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 60000));
-    time.textContent = minutes < 1 ? "now" : minutes < 60 ? minutes + "m" : minutes < 1440 ? Math.floor(minutes / 60) + "h" : minutes < 10080 ? Math.floor(minutes / 1440) + "d" : parsed.toLocaleDateString([], { month: "short", day: "numeric" });
-  } else time.textContent = "now";
+  formatCommentTimestamp(time);
   const body = document.createElement("div"); body.className = "comment-content"; body.textContent = comment.content;
   item.dataset.reactionTotal = String(comment.reactionTotal || 0); item.dataset.createdAt = comment.createdAt || "";
-  if (comment.replyToName) { const context = document.createElement("span"); context.className = "comment-reply-context"; context.textContent = "Replying to " + comment.replyToName; bubble.appendChild(context); }
+  if (comment.replyToName) { const context = document.createElement("span"); context.className = "comment-reply-context"; context.dataset.replyName = comment.replyToName; context.textContent = feedTranslate("Replying to " + comment.replyToName); bubble.appendChild(context); }
   bubble.append(author, time, body);
   item.append(avatar, bubble);
   createCommentReactions(post,item,comment);
@@ -3212,8 +3248,9 @@ function renderPersistentComment(post, comment) {
   reply.type = "button";
   reply.className = "comment-reply-button";
   reply.dataset.icon = "reply";
-  reply.textContent = "Reply";
-  reply.setAttribute("aria-label", "Reply to " + (comment.authorName || "this comment"));
+  reply.dataset.replyName = comment.authorName || "this comment";
+  reply.textContent = feedTranslate("Reply");
+  reply.setAttribute("aria-label", feedTranslate("Reply to " + (comment.authorName || feedTranslate("this comment"))));
   reply.addEventListener("click", () => beginCommentReply(post, comment, item));
   actionLeft.appendChild(reply);
   if (reactions) actionLeft.appendChild(reactions);

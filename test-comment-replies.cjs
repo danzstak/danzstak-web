@@ -8,12 +8,12 @@ const feed = fs.readFileSync("feed.html", "utf8");
 
 for (const required of [
   "function beginCommentReply(post, comment, item)",
-  'input.placeholder = "Reply to " + name + "…"',
-  'reply.textContent = "Reply"',
-  'reply.setAttribute("aria-label", "Reply to "',
+  'input.placeholder = feedTranslate("Reply to " + name + "…")',
+  'reply.textContent = feedTranslate("Reply")',
+  'reply.setAttribute("aria-label", feedTranslate("Reply to "',
   "parentCommentId = String(input.dataset?.replyToCommentId",
   "ensureCommentComposer(post)",
-  'send.setAttribute("aria-label", "Post comment")'
+  'send.setAttribute("aria-label", feedTranslate("Post comment"))'
 ]) assert.ok(ui.includes(required), `Comment reply UI is missing: ${required}`);
 assert.ok(ui.includes('if (comment.authorPicture) { const image = document.createElement("img")'), "Comments must use the member's profile photo when available");
 assert.ok(ui.includes('profile.html?member=${encodeURIComponent(memberId)}'), "Comment authors must link to an opaque member profile URL");
