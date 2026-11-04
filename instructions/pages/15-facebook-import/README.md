@@ -71,3 +71,11 @@ Before upload/confirmation, prominently explain in plain language: **“Your Fac
 - Require acknowledgement of this notice before final import; no silent copying of third-party media.
 - Users can import their own authored text where appropriate; apply copyright and privacy rules to embedded media separately.
 - Verify the notice on Android/iPhone and desktop, including large archives and JSON/HTML exports.
+
+## Strict default for repost-heavy accounts
+- Do **not** import Facebook reshares/reposts of other people's images or videos as DANZSTAK-hosted posts/media by default. This includes memes and third-party content even if included in the export archive.
+- Do not equate archive inclusion or past Facebook visibility with ownership or permission to republish. Metadata is imperfect: when provenance is uncertain, mark **Needs review** and exclude from automatic import rather than guessing ownership.
+- Show a pre-import summary with **total entries**, **eligible original posts**, **third-party shares excluded**, **link-only items available**, and **items needing review**. Example counts in UX mockups must be labeled illustrative, never treated as real user data.
+- If a user has mostly shared third-party content, clearly explain why their imported DANZSTAK feed may contain substantially fewer posts.
+- Allow an original-source link/reference only when supported and permitted, without copying third-party media; otherwise skip it. Do not imply all reposts are categorically illegal—rights and permissions can vary—but maintain conservative default import behavior.
+- Never silently import an excluded third-party item, and never count it as successfully imported.
