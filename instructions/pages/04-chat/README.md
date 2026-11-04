@@ -1,3 +1,16 @@
+
+## Owner critical order — make Chat and Phone genuinely work, avoid feature bloat (2026-11-04)
+
+**Owner priority:** "The chatbot is the biggest issue"; "Phone #: verification and functionality"; "What's the use of having a chatbot if it's just going to frustrate users? That's why we didn't add a lot of things to the SFScoop chatbot." DANZSTAK's existing Chat/Phone is **P0 #1**. **Do not add a new AI bot, overbuilt translation or optional paid complexity** before ordinary messaging and phone functions reliably work. This is an instruction about DANZSTAK only, not SFScoop.
+
+**Release-gate minimum:** (1) account-to-account text messages truly send/receive/persist, Chat inbox, notification and contact navigation work, basic Copy/Reply is usable; (2) a member can optionally enter personal mobile number, receive **real 6-digit SMS**, submit valid OTP to backend, and see verified/private masked number with secure resend/change/remove; do not mark verified from mock/test UI; (3) actual DANZSTAK internet voice/video calls have visible controls, caller ringback, real recipient alert where device/OS permits, audible **two-way** audio/video, reliable hangup and error states; prove on **two real phones** and when the app reloads or backgrounded where supported.
+
+**Do not conflate concepts:** personal number verification (#21) is private and *optional*, free Chat works with no phone number; internal **DS-prefixed paid account alias** is a separate DANZSTAK-only identifier that cannot receive external SMS or call PSTN; phone-app device registration (#29) distinct from personal OTP; caller/callee audio/ringing defects are independently P0 #27. No new SMS vendor, billed messages, DS Stripe products or deployment without owner-approved security/pricing/country coverage.
+
+**UX:** simple Chats inbox and easy conversation first; readable bubbles, small useful controls, no false statuses or empty decorative panels. Only implement additional translation, voicemail, monetization, extra toggles after working basics. QA requires real personal test SMS on an approved handset/provider and real two-account two-device Chat/voice/video, exact failure reasons, security/permissions, Android PWA staging, code SHA and owner signoff. These are not currently verified live.
+
+**Supersedes earlier "SMS verification later" ordering in this document.**
+
 ## Owner priority shift — Chat is DANZSTAK P0 number one (2026-11-04)
 
 **Owner explicitly corrected the development ranking: "The chatbot is the biggest issue."** Treat this as **the existing DANZSTAK Chats/messaging experience**, not authorization to build an unrelated AI chatbot or a new provider. **P0 #1: make the core chat product comfortable AND actually reliable before polishing video feeds or progressing optional enhancements.**
