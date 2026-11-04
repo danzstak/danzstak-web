@@ -17,3 +17,11 @@
 
 ## Verification
 Test create/edit/privacy/delete/export/import flows on mobile and desktop; verify unauthorized access is denied, bulk operations do not touch unrelated users or SFScoop content, and exports accurately represent stored user content. Submit PR, screenshots, tests, PWA preview and owner review before production deployment.
+
+## Owner-approved per-content Do Not Share control
+- Add a **Do Not Share** switch to the post composer and Edit Post for user-created text posts, photographs, externally embedded videos and other supported creator content. It is independent of visibility (Public/Friends/Only Me).
+- When enabled, authorized viewers may still view the content on the creator's profile/feed according to its visibility, but other DANZSTAK users must not be able to use built-in **Share**, **Repost**, **Embed** or forwarding actions to redistribute that post. Hide/disable those controls with an explanatory label; enforce the restriction in backend APIs, not just the UI.
+- Preserve this setting on imported posts where applicable and through edits; respect it in all feed, profile, search, notification and sharing entry points. Never allow an API bypass to create a repost of a restricted item.
+- Provide a clear author-facing indicator and accessible explanation. Authors may change the setting later; changing it cannot recall copies legitimately shared before the restriction was enabled, so disclose that limit.
+- Avoid claiming screenshots, screen recording, manual copying or external-site sharing can be fully prevented. Do not promise technical DRM that is not implemented.
+- Verify Public + Do Not Share, Friends + Do Not Share, private content, author edits, direct-link access, API rejection and mobile UI. Do not block the author from editing or deleting their own content.
