@@ -37,11 +37,11 @@ Phone screenshots: [320px](screenshots/issue-24-make-plans/make-plans-320.png), 
 
 ## Staging review
 
-AWS Amplify DEVELOPMENT branch job `1` succeeded and serves the tested PWA shell at:
+AWS Amplify DEVELOPMENT branch job `2` deployed commit `60d232ba645edc3b7c676a7c961aa337e6ba07dd` and serves the tested PWA shell at:
 
 `https://codex-issue-24.d31oovi2mos5iz.amplifyapp.com`
 
-The hosted `messages.html`, Make Plans assets and `danzstak-shell-v668-issue24-preview` worker were independently fetched with HTTP 200. Production `main` and `https://danzstak.com` were not changed. Draft review PR: `https://github.com/danzstak/danzstak-web/pull/26`.
+The hosted `messages.html` and Make Plans assets were independently fetched with HTTP 200. A clean browser verified that the worker activated, controlled the page and contained only `danzstak-shell-v668-issue24-preview`. Production `main` and `https://danzstak.com` were not changed. Draft review PR: `https://github.com/danzstak/danzstak-web/pull/26`.
 
 This is currently a **visual/PWA owner-review environment**, not a claimed two-account backend proof. Existing DANZSTAK authentication cookies and API origin controls are correctly production-host scoped; weakening them or attaching an untested preview origin to the production API would violate the isolation requirement. Remaining work is:
 
