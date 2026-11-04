@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Mobile menu containment and Settings control audit — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defects found:** at 320px the mobile menu's Close button extended about 35px beyond its profile header and about 17px beyond the drawer itself. The profile shortcut inherited a higher-specificity `flex:0 0 auto` rule intended for normal menu rows, so it refused to shrink for Close. Correcting containment then exposed the signed-in name's single-line ellipsis. Settings' generated Manage anchors also appeared as small browser-default underlined links instead of matching the adjacent controls.
+- **Root correction:** the profile shortcut now has an explicit shrinkable flex contract, Close owns a complete 44×44px slot inside the header, and long profile names wrap to at most two compact lines. Generated Settings links now share the button geometry, neutral surface and 44px coarse-pointer target. Menu rows, sections, independent scrolling and the 86vw/340px drawer limit remain unchanged.
+- **Permanent visual gate:** the real-browser matrix waits for the drawer transition to settle, then measures drawer/header/Close rectangles, rejects any containment escape, requires a 44px Close target, verifies wrapped profile-name behavior and retains all prior density, icon-spacing, independent-scroll and safe-area assertions.
+- **Functional/integration evidence:** the complete `test-regressions.ps1` gate passed, including authentication, Feed/Friends/Chat/calls, Notifications, all 15 languages, media sizing and audio ownership, Booking Agent, worldwide discovery, EPK, Tour Manager, Stripe Test Mode entitlements/refunds, PWA refresh, 11-page smoke checks and infrastructure validation.
+- **Visual and production evidence:** local and live Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live captures: [contained 320px menu](screenshots/menu-settings-v656-live/menu-320.png) and [consistent 320px Settings controls](screenshots/menu-settings-v656-live/settings-320.png). Implementation commit `c1a8a9d` is on `danzstak-patch-1` and `main`; production serves `danzstak-shell-v656`. A fresh browser reports the v656 worker activated and controlling with only the v656 cache present.
+- **Remaining limitation:** no remotely controllable physical Android or iPhone was available. Browser automation proves responsive and standalone-PWA behavior, but physical installed-device inspection remains manual.
+
 ### Flash and The Roll visual-state audit — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
