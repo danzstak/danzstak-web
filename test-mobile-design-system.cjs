@@ -23,20 +23,21 @@ assert.match(chatCss, /body\.is-conversation-open #headerVideo\{display:none!imp
 assert.match(profileCss, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/, "phone profile tabs must render complete labels without horizontal clipping");
 assert.match(feedCss, /\.settings-row input\[type=checkbox\]\{accent-color:#1769e0/, "settings controls must use the shared application styling");
 assert.match(feedCss, /mobile-menu-open>\.install-app-button,[^{]*mobile-menu-open>\.app-update-button\{display:none!important\}/, "install shortcuts must not compete with an open mobile menu");
-assert.match(worker, /danzstak-shell-v667/);
+assert.match(worker, /danzstak-shell-v668/);
 assert.match(worker, /\/assets\/mobile-design-system\.css/, "the installed PWA must cache the shared mobile system");
 
-for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=11/, `${file} must load the same mobile design system`);
+for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=12/, `${file} must load the same mobile design system`);
 for (const file of ["messages.html", "booking.html", "record-stores.html", "epk.html", "profile.html"]) {
   const html = pages.find(([name]) => name === file)[1];
   assert.match(html, /class="ds-mobile-nav"/, `${file} must expose the consistent mobile navigation`);
-  for (const destination of ["Home", "Friends", "Chat", "Buzz", "Menu"]) assert.match(html, new RegExp(`aria-label="${destination}"`), `${file} is missing ${destination}`);
+  for (const destination of ["Home", "Friends", "Buzz", "Menu"]) assert.match(html, new RegExp(`aria-label="${destination}"`), `${file} is missing ${destination}`);
+  assert.match(html, /data-icon="chat"[^>]*data-launcher-label="SYNC"[^>]*aria-label="SYNC — open chats"/, `${file} must expose the visible, accessible SYNC launcher`);
 }
 for (const file of ["booking.html", "record-stores.html", "epk.html", "profile.html"]) {
   const html = pages.find(([name]) => name === file)[1];
   assert.match(html, /data-icon="menu"[^>]*aria-current="page"/, `${file} must identify its secondary Menu destination`);
 }
-assert.match(pages.find(([name]) => name === "messages.html")[1], /data-icon="chat"[^>]*aria-current="page"/, "Chat must identify its direct mobile destination");
+assert.match(pages.find(([name]) => name === "messages.html")[1], /data-icon="chat"[^>]*data-launcher-label="SYNC"[^>]*aria-current="page"/, "SYNC must identify its direct mobile destination");
 assert.match(fs.readFileSync("assets/feed-enhancements.js", "utf8"), /function syncMobileMenuCurrent[\s\S]*directMobileDestinations\.has\(workspaceName\)/, "Feed workspaces must synchronize the shared Menu current state");
 
 console.log("Shared mobile design-system checks passed: consistent tokens, edge media, action geometry, tool navigation, and PWA caching.");
