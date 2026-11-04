@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Consistent Friends messaging actions — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defect found:** the Friends screen presented the same Message action two different ways: an oversized text button beside online users and a compact Chat icon beside saved friends. The text action reduced room for long member names and made one screen feel internally inconsistent.
+- **Root correction:** accepted online users and shared-Tribe contacts now use the same shared Chat icon, complete localized member-specific accessible name, and desktop tooltip as saved friends. Add Friend, Accept, Requested and other ambiguous relationship states retain text. The Friends phone workspace gives the icon a true 44×44px target; the narrow desktop right rail remains compact at 38×38px.
+- **Permanent quality gate:** the 390px real-browser Friends flow now requires the online Chat action, exact `Message Mobile Friend` accessible name, matching tooltip and 44×44px touch geometry. Desktop Friends must also render the shared Chat action. Static coverage verifies localization, relationship-state behavior, cache versions and defensive rendering in partial-response test fixtures.
+- **Evidence:** the complete regression gate passed, including social persistence, Friends/presence, Chat/calls, Notifications, all languages, video sizing/audio ownership, Booking, EPK, Tour Manager, Stripe Test Mode and infrastructure. Local and live browser matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live evidence: [consistent 390px Friends actions](screenshots/friend-actions-v659-live/friends-390.png).
+- **Production state:** implementation commit `eec8a13` is on `danzstak-patch-1` and `main`. Production serves `danzstak-shell-v659`; a fresh browser reports an activated controlling worker with only v659 in CacheStorage. Stripe remains Test Mode and live payments remain disabled.
+- **Remaining limitation:** no remotely controllable physical Android or iPhone was available; physical installed-PWA tactile verification remains manual.
+
 ### Online-user identity, CSP and full release revalidation — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
