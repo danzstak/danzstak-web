@@ -4,6 +4,20 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Desktop/tablet UX and release revalidation — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent findings and root causes:** desktop hash navigation to Settings scrolled the document while the global `overflow-x:hidden` rule made the document a scroll container, clipping the 66px sticky application header to a narrow blue strip. Desktop/tablet Chat also assigned `#conversationName` to the avatar grid column because an earlier ID selector overrode the later class selector; the visible name collapsed to `Mo...` despite available space. At 768px the redundant desktop Minimize action consumed the final space needed for a complete contact identity.
+- **Corrections:** horizontal clipping now uses `overflow-x:clip` with the existing hidden fallback, preserving sticky positioning without introducing page overflow. Chat gives the avatar, complete name/presence and action cluster distinct grid columns; the phone rule explicitly retains its own name column; and Minimize is hidden through tablet widths where Chat already owns the application screen. No authentication, payment, discovery, entitlement or messaging backend logic changed.
+- **New browser regression coverage:** the Edge/Playwright matrix now asserts that the desktop Settings header remains sticky, fully visible and at least 50px tall after hash navigation. It also opens a real desktop Chat at 768, 1024 and 1366px and fails on unusable pane widths, pane gaps/overlap, name/action collision or any visually truncated contact name.
+- **Functional/integration gate:** the complete `test-regressions.ps1` suite passed after the final changes, including authentication, Feed/Friends/Chat/calls, notifications, 15-language coverage, Booking Agent, worldwide venue discovery, EPK, Tour Manager, Stripe entitlements/refunds, audio/autoplay coordination, PWA refresh, site smoke, security and infrastructure. The dedicated real-browser media test passed no-startup-autoplay, explicit native/YouTube playback, 60% visibility pause, navigation pause, muted return and one audio owner.
+- **Video sizing gate:** the real-browser provider matrix passed at 320, 390, 414 and 1024px for native 16:9, 1:1 and 9:16 media plus YouTube, TikTok, Instagram, Facebook and Vimeo. Intended ratios were retained and no DANZSTAK-created black strip appeared. Live evidence: [390px video matrix](screenshots/desktop-sticky-chat-live/video-layout/video-layout-390.png).
+- **Visual verification:** the complete local and production matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px with no horizontal overflow or primary-screen overlap. Live evidence: [desktop Settings](screenshots/desktop-sticky-chat-live/settings-1366.png) and [tablet split-pane Chat](screenshots/desktop-sticky-chat-live/chat-desktop-768.png).
+- **Production deployment:** implementation commit `460e9cf9f9dfbe79ca91bae168ec312c573160f1` was fast-forwarded to `main`. AWS Amplify app `d31oovi2mos5iz`, job `862`, region `us-west-1`, succeeded from 2026-11-04 08:42:59 to 08:43:50 Europe/Berlin.
+- **Live PWA and health:** a fresh production browser reached an `activated`, controlling service worker with only `danzstak-shell-v650` in CacheStorage. The read-only production health check returned PASS for the landing page, Feed, Chat, Booking Agent, EPK, manifest, worker and versioned critical assets. Live real-browser media playback and provider-layout suites passed using assets served from `https://danzstak.com`.
+- **Remaining limitation:** browser automation cannot replace a physical-device check. A remotely controllable Android or iPhone was not available, so installed Android/iPhone PWA confirmation remains manual and is not represented as complete.
+
 ### Whole-product UX quality pass — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED IN LIVE BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
