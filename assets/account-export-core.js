@@ -18,6 +18,15 @@
     return { comments, reactions };
   }
 
+  function mediaManifest(source) {
+    const files = Array.isArray(source?.files) ? source.files.map(file => ({
+      archivePath: String(file.archivePath || ""),
+      size: Math.max(0, Number(file.size || 0)),
+      modifiedAt: String(file.modifiedAt || "")
+    })).filter(file => /^media\/[a-z-]+\/(?!.*(?:^|\/)\.\.(?:\/|$))[^\0]+$/i.test(file.archivePath)) : [];
+    return { complete: source?.complete === true, totalBytes: files.reduce((total, file) => total + file.size, 0), files };
+  }
+
   function buildAccountArchive(sources, engagementByPost, messagesByContact, generatedAt = new Date().toISOString()) {
     const posts = Array.isArray(sources.posts?.posts) ? sources.posts.posts : [];
     const activity = ownedActivity(posts, engagementByPost);
@@ -25,10 +34,10 @@
     const reels = Array.isArray(sources.stories?.reels) ? sources.stories.reels.filter(item => item.isOwner === true) : [];
     return {
       format: "DanzStak account export",
-      formatVersion: 1,
+      formatVersion: 2,
       generatedAt,
-      notice: "Media URLs in this JSON may expire. Keep original media files in your own backup.",
-      notIncluded: ["Uploaded media binary files", "Support ticket correspondence"],
+      notice: "When this JSON is inside a DanzStak ZIP archive, media files are stored under the media folder. Keep the ZIP in your own backup.",
+      notIncluded: ["Support ticket correspondence"],
       account: sources.account || {},
       profile: sources.profile?.profile || {},
       settings: sources.settings || {},
@@ -47,9 +56,10 @@
       },
       tours: sources.tours?.tours || [],
       bookingWorkspace: sources.bookingWorkspace || { venues: [], artist: {} },
+      media: mediaManifest(sources.mediaManifest),
       incompleteSources: Array.isArray(sources.incompleteSources) ? sources.incompleteSources : []
     };
   }
 
-  return { buildAccountArchive, ownedActivity };
+  return { buildAccountArchive, mediaManifest, ownedActivity };
 });

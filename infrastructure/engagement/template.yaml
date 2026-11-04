@@ -265,6 +265,9 @@ Resources:
   AccountDeletionCancelRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /account-deletion', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  AccountExportMediaRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /account-export/media', Target: !Sub 'integrations/${AuthIntegrationId}'}
   EngagementInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -286,6 +289,13 @@ Resources:
       FunctionName: !Ref AuthFunctionName
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/auth/account-deletion/reauth'
+  AccountExportMediaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/account-export/media'
   AccountErasurePolicy:
     Type: AWS::IAM::Policy
     Metadata:
@@ -327,6 +337,9 @@ Resources:
             Effect: Allow
             Action: [s3:ListBucket]
             Resource: !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}'
+            Condition:
+              StringLike:
+                s3:prefix: [users/*, stories/*, messages/*, epk/*]
           - Sid: MoveDeliveredAndEraseOwnedMedia
             Effect: Allow
             Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
