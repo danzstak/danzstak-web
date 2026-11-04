@@ -73,3 +73,16 @@ DANZSTAK must not claim ownership of original works merely because they were pos
 **Implementation requirements:** server-side ownership authorization and stable canonical content IDs, distinct publication/share IDs, idempotent deletion and revocation across fanout, API/media URLs/caches, clear confirmation for Delete everywhere, no extra fees, audits without copying deleted content, and tested negative/permission cases. Design not complete until genuine two-account tests prove a multi-share original is unavailable after creator Delete everywhere while others' independently authored content remains intact where appropriate.
 
 See [cross-content deletion Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40). Do not advertise the control as currently working before Codex produces code, actual tests, staged review and owner approval.
+
+
+## Account exit policy — remove original content from active DANZSTAK servers (2026-11-04)
+
+**Owner's requirement:** if a member permanently leaves DANZSTAK, none of their original content should remain on **active DANZSTAK-owned servers** after the documented deletion process completes. Deleting the account MUST trigger free, owner-authorized Delete Everywhere for all that account's original text, photos, videos, Dailies, posts and eligible other media, plus withdrawal of dependent shares across other members' feeds. This is not satisfied by merely hiding UI cards, revoking login, anonymizing author labels or deleting a profile.
+
+**Concrete technical product contract:** Purge source content from active backend databases, media storage and derivative images/previews/transcodes, CDN/app caches and search, notification/public previews, generated exports and durable queues. Stop all old playback URLs/deep links; ensure old backups cannot revive withdrawn content. Keep only minimal non-content revocation metadata for integrity where needed. Resharers' independently authored captions may remain with a compact "Original content removed by its creator" placeholder. Do not destroy another member's separate work without authorization.
+
+**Honest exceptions:** Backup/version expiry and legal/security holds may prevent immediate deletion of every byte; inventory, minimize, restrict access, disclose exact retention categories and purge schedules, and provide accurate completion status. Copies saved externally or independently reuploaded cannot be promised erased. DANZSTAK should not claim absolute immediate or universal erasure before the full backend/storage audit and proof.
+
+Settings must make **Download my information** and **Delete account and my content** obvious and **free** to all users. Durable deletion must proceed after login shutdown, with secure confirmation, retries, status/receipt, real disposable-account integration tests and owner-approved staging. The technical deletion workflow is P0 [Issue #32](https://github.com/Danzstak/Danzstak-web/issues/32); creator-level cross-share revocation is [Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40).
+
+**Policy claim may be published as live only after Codex actually implements and verifies all relevant systems; this document does not prove deployment.**
