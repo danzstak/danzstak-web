@@ -69,3 +69,22 @@ Display **Take** immediately before the active Daily count under the creator til
 - The viewer-facing section heading remains **Dailies**; expiry remains 24 hours server-side.
 - Make the slate legible on 360px mobile and verify zero, one and multiple active Dailies and midnight rollover.
 - This is the current owner design direction and overrides earlier Take-only primary labels.
+
+
+## Final owner naming and movie-slate requirement (2026-11-04)
+
+**Owner's exact naming decision:**
+- **Dailies** is the 24-hour story-strip public product name. **Flashes** is retired as display text. Existing old internal IDs can be maintained as migration aliases so stored stories and user state are not lost.
+- **The Roll** remains the single swipeable, fullscreen video destination. **Rough Cut / Rough Cuts is retired**, not a second video feed, rail, or label. The earlier "Rough Cut after four feed posts" requirement is **withdrawn**. If a video teaser or entry is later wanted in The Mix, it must link to the existing Roll, not create another player or feature.
+- **The Mix** remains the central social feed.
+
+**Far-left Dailies creator tile — a nod to film crews:**
+- **Pin the signed-in member's own creator tile at the far left** of the horizontal Dailies row, ahead of friends' Dailies. It is always visible with the member's **actual, account-authorized profile photo** (initials fallback only when absent). Never substitute a fake profile photo.
+- Layer a **compact black-and-white film clapperboard / slate over the top of their photo**, leaving their face/profile image visibly recognizable underneath. Overlay the real **local date and time** (a small readable timestamp, using member's locale/timezone; e.g. "04 NOV · 18:45") and **SCENE 1 · TAKE N**, where N is the current server-authoritative count of active, unexpired Dailies as specified above. Include a small plus affordance. Movie terminology is a visual wink, not a complex production workflow.
+- Update the displayed **local clock/time** during an open PWA as minutes and day boundaries change; respond to locale/timezone changes. Never hard-code date/time or depend on a static screenshot. The label must not imply a Daily was *published* at the current time: this is the **slate's current local timestamp**, distinct from the actual server-recorded createdAt/expiresAt of each Daily. Real Daily metadata, if shown, uses its actual creation time.
+- Tapping the entire own-photo/slate tile opens the authenticated **Add Daily** composer, without publishing automatically. Provide labeled 44px+ touch target and a meaningful accessible name with member's name, active count, "Add Daily" and timestamp where relevant; don't make the slate/text tiny or visually overpower the photo.
+- Friends' tiles follow horizontally as real authorized avatar/story previews with unseen markers; preserve tap/pause/expiry/privacy, no forced auto-sound, no duplicate horizontal rows or excessive wasted vertical space.
+
+**Codex tests:** at 320, 360, 390, 414, 430px and desktop prove leftmost identity, authentic avatar vs fallback, slate layered over photo, accurate live local date+time and update at minute/midnight/timezone changes, correct server-derived TAKE N (0/1/multiple, deletion/expiry), real 24h expiration, composer open but no accidental publish, original feed/nav intact, one active audio owner. Real phone-accessible staging PWA and before/after snapshots; owner approval before merge/deployment.
+
+**This section overrides all conflicting earlier mentions of the Rough Cut rail and any Flashes public label.** Specification only, not proof the live interface changed.
