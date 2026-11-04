@@ -4,6 +4,18 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Mobile video-call access and honest outgoing ringback — 2026-11-04
+
+Status: **IMPLEMENTED AND LOCALLY VERIFIED ON `codex/mobile-call-ringback`; REVIEW/STAGING ONLY; NOT DEPLOYED TO PRODUCTION**.
+
+- **Root causes:** a narrow-screen CSS rule deliberately hid the Video call control below 371px, so the action disappeared on common 320px and 360px phones. Outgoing calls also had no caller-side ringback controller: server acceptance changed the label to `Ringing` even though that response proves only that signaling was queued, not that the recipient device was audibly ringing.
+- **Correction:** Phone, Video and More now remain visible as independent 44px controls at every supported phone width. A shared Web Audio ringback starts only after `/calls/signal` returns `accepted: true`, keeps the honest `Calling` status, pauses coordinated DanzStak media, and offers a visible speaker button that mutes ringback without ending the call. Incoming and outgoing tones are mutually exclusive.
+- **Lifecycle safety:** outgoing sound stops on answer, WebRTC connection, decline/hang-up, 60-second timeout, signaling failure, connection failure, `pagehide`, and `beforeunload`. A later callback cannot emit a second tone after cleanup, repeated starts replace the existing cadence, and a new call does not inherit a stale muted state. Incoming alerts still follow browser audio-activation limits rather than promising background sound a browser may block.
+- **Automated evidence:** implementation commit `65f41c948c1ebdfd041bc91825d0760b22b57698`. The complete `test-regressions.ps1` gate passed, including authentication, social persistence, Friends/presence, Notifications, Chat/call signaling and cleanup, media single-audio ownership, Booking Agent, worldwide discovery, EPK, Tour Manager, Stripe safeguards, PWA refresh, site smoke, security and infrastructure. New `test-call-ringback.cjs` verifies accepted-signal gating, honest status, one cadence, mute state, audio isolation, and all cleanup contracts.
+- **Visual evidence:** local Edge/Playwright geometry and screenshots passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px with no horizontal overflow or contact/control overlap. Both call controls measure at least 44×44px. Review captures: [320px Chat](screenshots/call-ringback-review/chat-conversation-320.png) and [360px Chat](screenshots/call-ringback-review/chat-conversation-360.png).
+- **PWA/release state:** asset references advance to `chat.css?v=449` and `chat.js?v=448`; the review build uses `danzstak-shell-v668`. Production remains on its existing release and was not changed. A phone-accessible staging preview is the next release step; no production merge/deployment is authorized by this issue.
+- **Remaining verification:** automated browsers cannot prove speaker audibility or carrier/device volume. Two authenticated accounts on physical Android Chrome/installed PWA and iPhone Safari/installed PWA must confirm perceived ringback volume, incoming notification behavior under each browser's audio policy, answer/hang-up timing, and real microphone/camera transport before production approval.
+
 ### Consistent current destination across mobile navigation — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
