@@ -3,6 +3,7 @@ import { ACCOUNT_TABLES, accountMediaPrefixes, conversationId, deletedMemberAddr
 
 const KEY_FIELDS = Object.freeze({
   [ACCOUNT_TABLES.posts]: ["postId"],
+  [ACCOUNT_TABLES.postViews]: ["postId", "viewerKey"],
   [ACCOUNT_TABLES.comments]: ["postId", "commentId"],
   [ACCOUNT_TABLES.reactions]: ["postId", "userId"],
   [ACCOUNT_TABLES.notifications]: ["userEmail", "eventId"],
@@ -112,6 +113,12 @@ export function createDynamoAccountErasureAdapters({ db, s3, cognito, commands, 
       deleted += await deleteItems(tables.comments, comments);
       deleted += await deleteItems(tables.reactions, reactions);
       deleted += await deleteItems(tables.posts, [post]);
+    }
+    if (tables.postViews) {
+      const ownedIds = new Set(ownedPosts.map(post => string(post.postId)));
+      const viewerHash = createHash("sha256").update(userId).digest("hex");
+      const views = (await scanAll(tables.postViews)).filter(item => ownedIds.has(string(item.postId)) || string(item.viewerKey).endsWith(`#${viewerHash}`));
+      deleted += await deleteItems(tables.postViews, views);
     }
     return { deleted };
   }
@@ -239,7 +246,8 @@ export function createDynamoAccountErasureAdapters({ db, s3, cognito, commands, 
   }
 
   async function deleteSessions({ userId }) {
-    return deleteWhere(sessionsTable, { userId });
+    const items = (await scanAll(sessionsTable)).filter(item => string(item.userId) === userId && string(item.type) !== "account_deletion_request");
+    return { deleted: await deleteItems(sessionsTable, items) };
   }
 
   async function deleteIdentity({ userId }) {

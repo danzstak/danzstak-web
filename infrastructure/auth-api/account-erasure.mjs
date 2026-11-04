@@ -3,6 +3,7 @@ import { DELETION_PHASES } from "./account-data-control.mjs";
 
 export const ACCOUNT_TABLES = Object.freeze({
   posts: "DANZSTAK-Posts",
+  postViews: "DANZSTAK-Engagement-PostViews",
   comments: "DANZSTAK-Comments",
   reactions: "DANZSTAK-Reactions",
   notifications: "DANZSTAK-EngagementNotifications",

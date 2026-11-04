@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { createDynamoAccountErasureAdapters } from "./infrastructure/auth-api/account-erasure-dynamodb.mjs";
 import { ACCOUNT_TABLES, accountMediaPrefixes, conversationId, deletedMemberAddress } from "./infrastructure/auth-api/account-erasure.mjs";
 
@@ -17,6 +18,22 @@ const owner = "owner@example.com", friend = "friend@example.com", userId = "owne
 const oldConversation = conversationId(owner, friend), tombstone = deletedMemberAddress(userId), newConversation = conversationId(tombstone, friend);
 const messageMedia = `${accountMediaPrefixes(owner)[2]}photo.jpg`;
 const tables = new Map(Object.entries({
+  [ACCOUNT_TABLES.posts]: [
+    { postId: { S: "post-owned" }, userId: { S: userId }, userEmail: { S: owner }, content: { S: "mine" } },
+    { postId: { S: "post-friend" }, userId: { S: friendId }, userEmail: { S: friend }, content: { S: "friend" } }
+  ],
+  [ACCOUNT_TABLES.comments]: [
+    { postId: { S: "post-owned" }, commentId: { S: "comment-friend" }, userId: { S: friendId }, userEmail: { S: friend } },
+    { postId: { S: "post-friend" }, commentId: { S: "comment-owner" }, userId: { S: userId }, userEmail: { S: owner } }
+  ],
+  [ACCOUNT_TABLES.reactions]: [
+    { postId: { S: "post-owned" }, userId: { S: friendId }, userEmail: { S: friend } },
+    { postId: { S: "post-friend" }, userId: { S: userId }, userEmail: { S: owner } }
+  ],
+  [ACCOUNT_TABLES.postViews]: [
+    { postId: { S: "post-owned" }, viewerKey: { S: `2026-11-04#${createHash("sha256").update(friendId).digest("hex")}` } },
+    { postId: { S: "post-friend" }, viewerKey: { S: `2026-11-04#${createHash("sha256").update(userId).digest("hex")}` } }
+  ],
   [ACCOUNT_TABLES.friends]: [
     { userEmail: { S: owner }, friendEmail: { S: friend }, status: { S: "friends" } },
     { userEmail: { S: friend }, friendEmail: { S: owner }, status: { S: "friends" } }
@@ -97,6 +114,16 @@ const adapters = createDynamoAccountErasureAdapters({
   db: fakeDb, s3: fakeS3, cognito: fakeCognito, mediaBucket: "media", userPoolId: "pool", sessionsTable: "Sessions",
   commands: { ScanCommand, QueryCommand, DeleteItemCommand, PutItemCommand, UpdateItemCommand, ListObjectsV2Command, DeleteObjectsCommand, CopyObjectCommand, AdminDeleteUserCommand, ListUsersCommand }
 });
+
+const social = await adapters.deleteOwnedSocialContent({ userId, accountEmail: owner });
+assert.ok(social.deleted >= 4);
+assert.deepEqual(tables.get(ACCOUNT_TABLES.posts).map(item => scalar(item.postId)), ["post-friend"]);
+assert.equal(tables.get(ACCOUNT_TABLES.comments).some(item => scalar(item.postId) === "post-owned"), false, "other members' engagement on a deleted post must be removed with the post");
+assert.equal(tables.get(ACCOUNT_TABLES.postViews).length, 0, "owned-post views and the deleting member's daily view keys must be erased");
+await adapters.deleteWhere(ACCOUNT_TABLES.comments, { userId, accountEmail: owner });
+await adapters.deleteWhere(ACCOUNT_TABLES.reactions, { userId, accountEmail: owner, actorUserId: userId });
+assert.equal(tables.get(ACCOUNT_TABLES.comments).length, 0);
+assert.equal(tables.get(ACCOUNT_TABLES.reactions).length, 0);
 
 const migrated = await adapters.migrateSharedConversations({ userId, accountEmail: owner, tombstoneEmail: tombstone });
 assert.equal(migrated.retained, 3);

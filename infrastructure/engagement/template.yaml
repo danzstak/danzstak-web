@@ -16,6 +16,19 @@ Parameters:
   AuthRoleName:
     Type: String
     Default: DANZSTAK-Auth-API-role-zjknf4ur
+  SessionsTable:
+    Type: String
+    Default: DANZSTAK-Sessions
+  MediaBucketName:
+    Type: String
+    Default: danzstak-call-signaling-mediabucket-abx9qfpinhje
+  UserPoolId:
+    Type: String
+    Default: us-east-1_qA4B46ilc
+  AccountDeletionWorkerState:
+    Type: String
+    Default: DISABLED
+    AllowedValues: [ENABLED, DISABLED]
 Resources:
   SessionDevicesTable:
     Type: AWS::DynamoDB::Table
@@ -320,6 +333,78 @@ Resources:
       FunctionName: !Ref AuthFunctionName
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/GET/auth/account-deletion/reauth'
+  AccountErasurePolicy:
+    Type: AWS::IAM::Policy
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: The disabled-by-default account-erasure worker needs explicit access to remove one verified member across DanzStak-owned stores after the grace period.
+        must:
+          - Keep the worker disabled until isolated synthetic-account testing passes.
+          - Preserve minimized payment records and another participant's delivered-message copy.
+          - Never grant table creation, deletion, backup deletion, or wildcard Cognito administration.
+    Properties:
+      PolicyName: DanzStakAccountErasure
+      Roles: [!Ref AuthRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: EraseMemberRecords
+            Effect: Allow
+            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:Scan]
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${SessionsTable}'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Posts'
+              - !GetAtt PostViewsTable.Arn
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Comments'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Reactions'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-EngagementNotifications'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Friends'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Stories'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-GroupMembers'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Tours'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-UserSettings'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-ProfileNames'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Presence'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-PushSubscriptions'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-CallSignals'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-Conversations'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-Messages'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-MessageReactions'
+          - Sid: EraseOwnedMedia
+            Effect: Allow
+            Action: [s3:ListBucket]
+            Resource: !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}'
+          - Sid: MoveDeliveredAndEraseOwnedMedia
+            Effect: Allow
+            Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}/users/*'
+              - !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}/stories/*'
+              - !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}/messages/*'
+              - !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}/epk/*'
+              - !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}/shared-messages/*'
+          - Sid: DeleteVerifiedCognitoIdentity
+            Effect: Allow
+            Action: [cognito-idp:AdminDeleteUser, cognito-idp:ListUsers]
+            Resource: !Sub 'arn:${AWS::Partition}:cognito-idp:us-east-1:${AWS::AccountId}:userpool/${UserPoolId}'
+  AccountDeletionSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Process verified account deletion requests after their grace period; disabled until isolated staging tests pass.
+      ScheduleExpression: rate(5 minutes)
+      State: !Ref AccountDeletionWorkerState
+      Targets:
+        - Id: DanzStakAccountDeletionWorker
+          Arn: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AuthFunctionName}'
+          Input: '{"source":"danzstak.account-data-control","detail":{"action":"process-account-deletions"}}'
+  AccountDeletionSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt AccountDeletionSchedule.Arn
+      SourceAccount: !Ref AWS::AccountId
   ReactionsInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:

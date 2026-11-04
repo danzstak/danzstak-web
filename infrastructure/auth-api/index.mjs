@@ -23,9 +23,17 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import {
   CognitoIdentityProviderClient,
-  ListUsersCommand
+  ListUsersCommand,
+  AdminDeleteUserCommand
 } from "@aws-sdk/client-cognito-identity-provider";
-import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand,
+  CopyObjectCommand
+} from "@aws-sdk/client-s3";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import {
@@ -42,11 +50,16 @@ import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import QRCode from "qrcode";
 import {
   DELETION_CONFIRMATION,
+  beginDeletionPhase,
   cancelDeletionRequest,
+  completeDeletionPhase,
   createDeletionRequest,
   deletionRequestKey,
+  failDeletionPhase,
   publicDeletionStatus
 } from "./account-data-control.mjs";
+import { ACCOUNT_TABLES, runAccountErasurePhase } from "./account-erasure.mjs";
+import { createDynamoAccountErasureAdapters } from "./account-erasure-dynamodb.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
@@ -77,6 +90,28 @@ const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
 const siteUrl = process.env.SITE_URL;
 const mediaBucket = process.env.MEDIA_BUCKET;
+
+const accountErasureAdapters = tableName ? createDynamoAccountErasureAdapters({
+  db,
+  s3,
+  cognito,
+  sessionsTable: tableName,
+  mediaBucket,
+  userPoolId,
+  tables: { ...ACCOUNT_TABLES, tours: toursTable, postViews: process.env.POST_VIEWS_TABLE || ACCOUNT_TABLES.postViews },
+  commands: {
+    ScanCommand,
+    QueryCommand,
+    DeleteItemCommand,
+    PutItemCommand,
+    UpdateItemCommand,
+    ListObjectsV2Command,
+    DeleteObjectsCommand,
+    CopyObjectCommand,
+    AdminDeleteUserCommand,
+    ListUsersCommand
+  }
+}) : null;
 
 const callbackUrl = "https://api.danzstak.com/auth/callback";
 const allowedOrigin = "https://danzstak.com";
@@ -1256,6 +1291,116 @@ async function cancelAccountDeletion(event) {
     throw error;
   }
   return { statusCode: 200, headers, body: JSON.stringify(publicDeletionStatus(cancelled, now())) };
+}
+
+async function dueAccountDeletionRequests(limit = 5) {
+  const requests = [];
+  let ExclusiveStartKey;
+  do {
+    const page = await db.send(new ScanCommand({
+      TableName: tableName,
+      ConsistentRead: true,
+      FilterExpression: "#type = :request AND graceEndsAt <= :now AND (#status = :received OR #status = :progress OR #status = :failed)",
+      ExpressionAttributeNames: { "#type": "type", "#status": "status" },
+      ExpressionAttributeValues: {
+        ":request": { S: "account_deletion_request" },
+        ":now": { N: String(now()) },
+        ":received": { S: "request_received" },
+        ":progress": { S: "in_progress" },
+        ":failed": { S: "failed" }
+      },
+      ExclusiveStartKey
+    }));
+    requests.push(...(page.Items || []));
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey && requests.length < limit);
+  return requests.slice(0, limit);
+}
+
+async function sendAccountDeletionReceipt(request) {
+  if (!request?.accountEmail || !request?.requestId) return false;
+  try {
+    await ses.send(new SendEmailCommand({
+      FromEmailAddress: "DanzStak Privacy <support@danzstak.com>",
+      Destination: { ToAddresses: [request.accountEmail] },
+      Content: { Simple: {
+        Subject: { Data: "Your DanzStak account deletion is complete", Charset: "UTF-8" },
+        Body: { Text: { Data: `Your active DanzStak account data has been removed. Receipt: ${request.requestId}\n\nLimited records may remain only for payment, safety, legal, delivered-message, backup, or cache obligations described in the DanzStak Privacy Policy. This receipt does not contain your deleted content.`, Charset: "UTF-8" } }
+      } }
+    }));
+    return true;
+  } catch (error) {
+    console.error("Account deletion receipt delivery failed", { requestId: request.requestId, errorName: error?.name || "Error" });
+    return false;
+  }
+}
+
+async function processAccountDeletionQueue(limit = 5) {
+  if (!accountErasureAdapters) throw new Error("Account erasure is not configured");
+  const items = await dueAccountDeletionRequests(limit);
+  const results = [];
+  for (const item of items) {
+    const request = deletionItemToRequest(item), key = { sessionId: item.sessionId }, claim = beginDeletionPhase(request, now());
+    if (!claim.phase) continue;
+    const lockToken = randomValue(), lockUntil = now() + 300;
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: tableName,
+        Key: key,
+        UpdateExpression: "SET #status = :progress, updatedAt = :updated, lockToken = :lock, lockUntil = :lockUntil REMOVE failure",
+        ConditionExpression: "phaseIndex = :phaseIndex AND (#status = :received OR #status = :progress OR #status = :failed) AND (attribute_not_exists(lockUntil) OR lockUntil < :now)",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: {
+          ":progress": { S: "in_progress" }, ":received": { S: "request_received" }, ":failed": { S: "failed" },
+          ":updated": { N: String(now()) }, ":lock": { S: lockToken }, ":lockUntil": { N: String(lockUntil) },
+          ":phaseIndex": { N: String(request.phaseIndex) }, ":now": { N: String(now()) }
+        }
+      }));
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") continue;
+      throw error;
+    }
+    try {
+      const summary = await runAccountErasurePhase(claim.phase, request, accountErasureAdapters);
+      const completed = completeDeletionPhase({ ...claim.request, status: "in_progress" }, claim.phase, now());
+      const expressionValues = {
+        ":phaseIndex": { N: String(completed.phaseIndex) }, ":status": { S: completed.status },
+        ":updated": { N: String(completed.updatedAt) }, ":lock": { S: lockToken },
+        ":summary": { S: JSON.stringify(summary) }
+      };
+      let updateExpression = "SET phaseIndex = :phaseIndex, #status = :status, updatedAt = :updated, lastPhaseSummary = :summary REMOVE lockToken, lockUntil, failure";
+      if (completed.completedAt) {
+        updateExpression = "SET phaseIndex = :phaseIndex, #status = :status, updatedAt = :updated, completedAt = :completed, expiresAt = :expires, lastPhaseSummary = :summary REMOVE lockToken, lockUntil, failure";
+        expressionValues[":completed"] = { N: String(completed.completedAt) };
+        expressionValues[":expires"] = { N: String(completed.completedAt + 35 * 86400) };
+      }
+      await db.send(new UpdateItemCommand({
+        TableName: tableName,
+        Key: key,
+        UpdateExpression: updateExpression,
+        ConditionExpression: "lockToken = :lock",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: expressionValues
+      }));
+      if (completed.completedAt) await sendAccountDeletionReceipt(request);
+      results.push({ requestId: request.requestId, phase: claim.phase, status: completed.status, summary });
+    } catch (error) {
+      const failed = failDeletionPhase({ ...claim.request, status: "in_progress" }, claim.phase, error, now());
+      await db.send(new UpdateItemCommand({
+        TableName: tableName,
+        Key: key,
+        UpdateExpression: "SET #status = :failed, updatedAt = :updated, failure = :failure REMOVE lockToken, lockUntil",
+        ConditionExpression: "lockToken = :lock",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: {
+          ":failed": { S: failed.status }, ":updated": { N: String(failed.updatedAt) },
+          ":failure": { S: failed.failure }, ":lock": { S: lockToken }
+        }
+      }));
+      results.push({ requestId: request.requestId, phase: claim.phase, status: "failed" });
+    }
+  }
+  return { processed: results.length, results };
 }
 
 const groupCategories = new Set(["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"]);
@@ -5162,6 +5307,10 @@ export const handler = async event => {
   try {
     if (Array.isArray(event?.Records) && event.Records.some(record => record?.EventSource === "aws:sns")) {
       return await tourManagerBilling(event);
+    }
+
+    if (event?.source === "danzstak.account-data-control" && event?.detail?.action === "process-account-deletions") {
+      return await processAccountDeletionQueue(5);
     }
     if (path?.startsWith("/tour-manager/") || path?.startsWith("/phone-number/")) {
       if (method === "POST" && ["/tour-manager/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout"].includes(path)) await ensureStripeSecrets();
