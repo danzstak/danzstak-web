@@ -21,3 +21,9 @@ Follow `instructions/00c-design-direction-80-20.md`: familiar social-network int
 - Functional testing: not verified
 - PWA preview: not verified
 - Owner approval: pending
+
+
+## Owner feature — invite friends who aren't DANZSTAK members yet (2026-11-04)
+
+- Show **Invite to DANZSTAK** in Friends; **Invite by Text** should use the member's own phone SMS composer to share a localized invitation with `https://danzstak.com/`. The sender chooses the recipient and confirms Send. Use OS Share and Copy Link fallbacks. Do not require contact-list upload or a paid DS alias.
+- Keep this distinct from existing in-app friend requests (which target DANZSTAK accounts). An SMS composer launch does not prove delivery or grant friendship automatically. See [Issue #30](https://github.com/Danzstak/Danzstak-web/issues/30) for full requirements and staging/owner approval gates.
