@@ -29,3 +29,12 @@ Verify no music upload route, audio object storage or first-party streaming path
 - Integrate proposed audio/video fingerprinting with a documented rights-review process; matches are not conclusive infringement and no-match is not proof of permission. A user filming a concert does not automatically own the music or performance rights.
 - Estimate AWS storage, processing, bandwidth, CDN and fingerprint vendor costs before enabling public uploads. Do not provision paid services, deploy hosting infrastructure or expose uploads in production without explicit owner approval of costs and implementation plan.
 - Require a legal-reviewable DMCA policy and agent-registration process; do not claim safe harbor automatically.
+
+## Owner decision — album cover sharing via external image sources
+- Users may share album/release covers and discuss records, but **DANZSTAK must not ingest, copy, cache, or rehost externally sourced album artwork** as a first-party media asset.
+- Render album covers from legitimate, authorized external image/metadata providers using permitted embed or image URLs, with source attribution and a link to the album/release where practical. Follow provider terms, hotlinking restrictions and image licensing; do not assume any arbitrary external URL is authorized for embedding.
+- Users may post their own photos of records/collections under normal photo-upload rules, but owning a physical record alone does not establish copyright ownership of its printed cover art.
+- If a provider disallows embedding, the image fails, or licensing is unclear, show a graceful linked card or text-only release reference rather than silently copying artwork to S3/CDN.
+- Prevent server-side image proxies, thumbnail generators, social-preview crawlers, backups or caching pipelines from inadvertently storing third-party album artwork. Review browser/CDN behavior and use provider-approved approaches.
+- Preserve first-party user-uploaded video hosting approval and the ban on audio-only music files. This rule applies specifically to externally sourced album-cover images.
+- Test links, attribution, broken images, provider restrictions, mobile feed display and storage audit. Do not imply ownership of the artwork when a user simply owns the record.
