@@ -7,8 +7,8 @@ const source = fs.readFileSync("assets/icon-buttons.js", "utf8");
 const css = fs.readFileSync("assets/icon-buttons.css", "utf8");
 const pages = ["feed.html", "messages.html", "profile.html", "booking.html", "booking-selections.html", "record-stores.html", "epk.html"];
 
-for (const icon of ["expand", "minimize", "close", "trash", "edit", "reply", "send", "search", "settings", "bell", "share", "download", "upload", "paperclip", "camera", "calendar", "map", "phone", "video", "more", "back", "refresh", "save", "eye", "link", "menu", "chevron", "chat", "home", "user", "users", "image", "film", "microphone", "bus", "disc", "folder", "bookmark", "help", "lock", "file", "logout", "tag", "moon", "sparkles", "wifi", "globe", "smartphone", "activity", "clock"]) {
-  assert.match(source, new RegExp(`\\b${icon}: \\[`), `shared icon registry must include ${icon}`);
+for (const icon of ["expand", "minimize", "close", "trash", "edit", "reply", "send", "search", "settings", "bell", "share", "download", "upload", "paperclip", "camera", "calendar", "map", "phone", "video", "more", "back", "refresh", "save", "eye", "link", "menu", "chevron", "chat", "home", "user", "users", "image", "film", "microphone", "bus", "disc", "folder", "bookmark", "help", "lock", "file", "logout", "tag", "moon", "sparkles", "wifi", "globe", "smartphone", "activity", "clock", "volume-2", "volume-x"]) {
+  assert.match(source, new RegExp(`(?:\\b|\")${icon.replace("-", "\\-")}\"?: \\[`), `shared icon registry must include ${icon}`);
 }
 assert.match(source, /setAttribute\("aria-label", label\)/, "an icon-only control must retain an accessible name");
 assert.match(source, /setAttribute\("title", label\)/, "an icon-only control must have a desktop tooltip");
@@ -22,7 +22,7 @@ assert.match(css, /disabled[^{]*\{[^}]*opacity/, "disabled state must remain vis
 for (const page of pages) {
   const html = fs.readFileSync(page, "utf8");
   assert.match(html, /assets\/icon-buttons\.css\?v=4/, `${page} must load the current shared icon styles`);
-  assert.match(html, /assets\/icon-buttons\.js\?v=4/, `${page} must load the current shared icon behavior`);
+  assert.match(html, /assets\/icon-buttons\.js\?v=5/, `${page} must load the current shared icon behavior`);
 }
 
 const feedPage = fs.readFileSync("feed.html", "utf8");

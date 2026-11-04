@@ -47,12 +47,13 @@ messageHandler({
   origin: "https://www.youtube-nocookie.com", source: playerWindow,
   data: JSON.stringify({ event: "infoDelivery", info: { muted: false } })
 });
-assert.equal(stored.get("danzstak_video_sound"), "on", "unmuting YouTube should save sound on for the device");
+assert.equal(context.danzstakMediaSound.enabled(), true, "an explicit YouTube unmute should grant current audio focus");
+assert.equal(stored.has("danzstak_video_sound"), false, "YouTube audio must not persist into later players or visits");
 assert.equal(video.muted, true, "unmuting YouTube must keep inactive native DanzStak videos muted");
 
 messageHandler({
   origin: "https://malicious.example", source: playerWindow,
   data: JSON.stringify({ event: "infoDelivery", info: { muted: true } })
 });
-assert.equal(stored.get("danzstak_video_sound"), "on", "untrusted player messages must not change sound settings");
+assert.equal(context.danzstakMediaSound.enabled(), true, "untrusted player messages must not change sound focus");
 console.log("YouTube sound synchronization checks passed.");

@@ -88,9 +88,13 @@ intersect([
   { target: second, isIntersecting: true, intersectionRatio: 0.2 }
 ]);
 assert.equal(first.plays, 1, "the substantially visible first video starts");
-assert.equal(first.muted, false, "the active video receives the saved sound preference");
+assert.equal(first.muted, true, "automatic playback remains muted until the user explicitly enables audio");
 assert.equal(second.plays, 0, "the barely visible next video does not start");
 assert.equal(second.muted, true, "the next video remains inaudible");
+
+first.muted = false;
+documentEvents.volumechange({ target: first });
+assert.equal(first.muted, false, "explicit user unmute grants audio to the active video");
 
 intersect([
   { target: first, isIntersecting: true, intersectionRatio: 0.7 },
@@ -106,13 +110,17 @@ intersect([
 assert.equal(second.plays, 1, "playback transfers once the previous video leaves the active frame");
 assert.equal(first.paused, true, "the previous video is paused before the next video plays");
 assert.equal(first.muted, true, "the previous video is muted after handoff");
-assert.equal(second.muted, false, "only the new active video is audible");
+assert.equal(second.muted, true, "automatic handoff never restarts audio without user interaction");
 
 first.emit("pointerdown");
 first.play();
 assert.equal(second.paused, true, "a direct user play pauses the previous active video");
-assert.equal(first.muted, false, "manual playback explicitly transfers audio to the selected video");
+assert.equal(first.muted, true, "manual playback transfers playback ownership but remains muted until explicitly unmuted");
 assert.equal(second.muted, true, "manual playback leaves every other video muted");
+
+first.muted = false;
+documentEvents.volumechange({ target: first });
+assert.equal(first.muted, false, "the selected video can be explicitly unmuted again");
 
 document.hidden = true;
 documentEvents.visibilitychange();

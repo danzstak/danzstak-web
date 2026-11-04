@@ -555,3 +555,14 @@ Status as of 2026-11-04: **DEPLOYED; PHYSICAL-DEVICE ACCEPTANCE PENDING**.
 - Regression coverage now inserts a new video after the controller is already running and verifies that it cannot become audible before autoplay begins.
 - All repository regressions, site smoke checks, infrastructure validation and browser layout measurements passed after the correction. Application commit `1f26aaae00f643c0693495ff72f179c4ba30329b` was deployed by AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `855` in `us-west-1`; the job succeeded from 2026-11-04 05:32:44 to 05:33:36 Europe/Berlin.
 - Post-deployment public health passed. The service worker is activated and controlling the live page with only `danzstak-shell-v643` present. Physical-device acceptance remains pending and the release is not represented as solving the reported phone behavior until the owner retests it.
+
+# Visible video audio controls and no-surprise-audio policy
+
+Status as of 2026-11-04: **IMPLEMENTED LOCALLY; RELEASE GATES IN PROGRESS**.
+
+- Supported HTML5 and YouTube players now receive one shared, visible bottom-right Mute/Unmute control. It uses the shared speaker/crossed-speaker SVG artwork, an accessible state label and tooltip, a 44px circular touch target, and a semi-transparent high-contrast surface.
+- Autoplay always starts muted. Audio permission is no longer stored as a device-wide preference or transferred to the next video. Explicitly unmuting a player grants it sole audio focus; all other tracked native and YouTube players are muted or paused immediately.
+- Leaving the viewport clears playback and audio ownership. Returning may resume muted autoplay where permitted, but cannot restore audio without another user action.
+- YouTube uses its supported player API. Other cross-origin providers retain their native controls rather than receiving a DanzStak button that cannot reliably control their audio. External files are neither hosted nor downloaded.
+- The browser visual gate now measures the audio control at mobile widths, including its bottom-right placement, 44px touch target, accessible label and muted default. Functional regressions cover late player insertion, native/YouTube audio focus, automatic handoff, manual transfer and background pause.
+- The planned installed-PWA cache is `danzstak-shell-v644`. Production deployment and physical Android/iPhone acceptance are pending.

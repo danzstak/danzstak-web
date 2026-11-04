@@ -129,6 +129,17 @@ async function captureViewport(page, fileName) {
         });
         assert.ok(mediaGeometry.left <= 1.5 && mediaGeometry.right <= 1.5, `${width}px: video edges must align with the post grid: ${JSON.stringify(mediaGeometry)}`);
         assert.ok(Math.abs(mediaGeometry.width - mediaGeometry.postWidth) <= 3, `${width}px: video must fill the post width`);
+        await page.waitForSelector("#feed article.post .danzstak-audio-toggle");
+        const audioGeometry = await page.locator("#feed article.post .danzstak-media-shell").evaluate(shell => {
+          const button = shell.querySelector(".danzstak-audio-toggle");
+          const shellBox = shell.getBoundingClientRect();
+          const buttonBox = button.getBoundingClientRect();
+          return { width: buttonBox.width, height: buttonBox.height, right: shellBox.right - buttonBox.right, bottom: shellBox.bottom - buttonBox.bottom, label: button.getAttribute("aria-label"), pressed: button.getAttribute("aria-pressed") };
+        });
+        assert.ok(audioGeometry.width >= 44 && audioGeometry.height >= 44, `${width}px: audio control must retain a 44px touch target: ${JSON.stringify(audioGeometry)}`);
+        assert.ok(audioGeometry.right >= 8 && audioGeometry.right <= 14 && audioGeometry.bottom >= 8 && audioGeometry.bottom <= 14, `${width}px: audio control must remain in the video bottom-right corner: ${JSON.stringify(audioGeometry)}`);
+        assert.equal(audioGeometry.label, "Unmute video", `${width}px: videos must begin with a visible muted-state control`);
+        assert.equal(audioGeometry.pressed, "false", `${width}px: autoplay audio must not begin enabled`);
       }
       await assertNoOverflow(page, `Home ${width}px`, width <= 430);
       if (width <= 430) {

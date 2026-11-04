@@ -55,6 +55,8 @@
     smartphone: ["M7 2h10v20H7Z", "M11 18h2"],
     activity: ["M3 12h4l2-7 4 14 2-7h6"],
     clock: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z", "M12 6v6l4 2"]
+    ,"volume-2": ["M11 5 6 9H2v6h4l5 4Z", "M15.5 8.5a5 5 0 0 1 0 7", "M18.5 5.5a9 9 0 0 1 0 13"]
+    ,"volume-x": ["M11 5 6 9H2v6h4l5 4Z", "m16 9 5 5", "m21 9-5 5"]
   };
   const labels = new Map([
     ["open full screen", "expand"], ["open fullscreen", "expand"], ["exit full screen", "minimize"], ["exit fullscreen", "minimize"],
