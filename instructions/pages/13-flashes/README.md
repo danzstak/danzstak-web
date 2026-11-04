@@ -88,3 +88,16 @@ Display **Take** immediately before the active Daily count under the creator til
 **Codex tests:** at 320, 360, 390, 414, 430px and desktop prove leftmost identity, authentic avatar vs fallback, slate layered over photo, accurate live local date+time and update at minute/midnight/timezone changes, correct server-derived TAKE N (0/1/multiple, deletion/expiry), real 24h expiration, composer open but no accidental publish, original feed/nav intact, one active audio owner. Real phone-accessible staging PWA and before/after snapshots; owner approval before merge/deployment.
 
 **This section overrides all conflicting earlier mentions of the Rough Cut rail and any Flashes public label.** Specification only, not proof the live interface changed.
+
+
+## Latest owner correction — TAKE N is total user-uploaded videos (2026-11-04)
+
+**Final and authoritative:** In the far-left Dailies creator tile, display **SCENE 1 · TAKE N**, where **N is the number of actual videos the signed-in user has uploaded to DANZSTAK**. This **replaces the previous interpretation based on active/unexpired Dailies**. Examples: 0 uploaded videos → SCENE 1 · TAKE 0; 12 uploaded videos → SCENE 1 · TAKE 12. Keep the user's real profile picture under the clapperboard, plus affordance and live local date/time.
+
+- Derive the count from authoritative server-side user-owned video-upload records **across DANZSTAK** (The Roll, video posts in The Mix and video Dailies when actually uploaded), **not** text posts, photos, imported external YouTube/Instagram links, uncompleted uploads, or all-time Daily post count.
+- Each distinct successfully uploaded video asset should contribute once even if the user shares the same video in The Mix and The Roll. Agree and document how deletes and 24-hour Daily expirations affect the count, using reliable aggregate metadata rather than resurrecting or exposing deleted media.
+- Update the label after confirmed uploads/deletions and refresh. Never fabricate a number or pull it from the number of visible Dailies. If backend counting is not yet supported, implement/test the authoritative count first or show a clearly honest pending state.
+- Preserve server-enforced **24-hour Dailies expiry** independently; the slate's TAKE number does not control expiry or signify Daily post count.
+- Test 0, 1, 12 uploaded videos, repeated shares, pasted external links, deleted videos, expired Dailies, failed uploads and cross-device updates. Mobile PWA screenshots and owner-approved deployment required.
+
+**Overrides all earlier statements in this file that define TAKE N as the number of currently active Dailies, including the previous "Latest visual naming" section.**
