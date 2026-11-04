@@ -193,7 +193,7 @@ for (const [language] of window.danzstakLanguages) {
     "Enable call alerts",
     "Call alerts enabled — tap to enable sound in this session",
     "Start a new chat",
-    "Search DanzStak messages",
+    "Search chats",
     "Chat filters",
     "Saved chats",
     "Loading saved chats…",

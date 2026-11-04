@@ -461,6 +461,7 @@ async function captureViewport(page, fileName) {
       await assertNoIosInputZoom(page, `Chat ${width}px`);
       assert.equal(await page.locator(".conversation-call-actions").first().isVisible().catch(() => false), false, `${width}px: conversation list must not waste width on per-row call controls`);
       assert.equal(await page.locator(".chat-header [data-logout]").isVisible(), false, `${width}px: mobile Chat must not duplicate account actions`);
+      assert.equal(await page.locator("#chatSearch").getAttribute("placeholder"), "Search chats", `${width}px: Chat search wording is too long for a narrow phone`);
       await captureViewport(page, `chat-list-${width}.png`);
       await page.evaluate(() => openConversation({ contactEmail: "friend@danzstak.invalid", name: "Mobile Friend", memberId: "22222222-2222-4222-8222-222222222222", online: true, canContact: true }));
       await page.waitForSelector("body.is-conversation-open");
