@@ -1,8 +1,10 @@
-# Daily Nudge — fleeting human-world thought in the DANZSTAK header
+# Little Word of the Day (Daily Nudge) — fleeting human-world thought in the DANZSTAK header
 
 **Owner idea — 2026-11-04. Status: product specification only, not implemented or tested.**
 
 ## Purpose
+
+**Owner's preferred framing:** a *little word of the day* — actually a short, sometimes cheeky question or sentence, not necessarily a single dictionary word. Keep it small, human, and fleeting; it should feel like a passing thought, not a lecture or an additional content feed.
 
 DANZSTAK should help people put their phones away and engage with actual people, places and nature. Add a **short, playful "Daily Nudge"** to the signed-in app's top header. This is **not** a word dictionary, advertising slot, daily-streak system, forced onboarding banner or motivational lecture. The spirit is affectionate, irreverent and gently punk rock. It is for *all* members, not only musicians.
 
