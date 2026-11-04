@@ -446,3 +446,15 @@ Required webhook events:
 - `charge.refunded`
 
 Controlled manual Test Checkouts and full refunds have now passed for all three purchases. Live processing remains disabled and requires explicit owner approval plus a separate Live configuration review; Test Mode keys, endpoint secrets and sessions must never be reused as Live credentials.
+# Permanent quality assurance standard
+
+Status as of 2026-11-04: **COMPLETE IN REPOSITORY; DAILY PUBLIC MONITOR IMPLEMENTED; AUTHENTICATED SYNTHETIC COVERAGE IN PROGRESS**.
+
+- The mandatory policy is `docs/QUALITY-ASSURANCE-POLICY.md`: functional, real-browser visual, and integration testing are release gates; critical/high failures stop deployment; the live site and PWA must be tested again after deployment.
+- The version-controlled release record is `docs/RELEASE-CHECKLIST.md`. It records changed features, passed/failed/not-run tests, reviewed and deployed commits, timestamp, AWS job, PWA cache, device evidence, known issues, and rollback procedure.
+- `.github/workflows/daily-production-health.yml` schedules the read-only public monitor once daily and supports manual release verification. GitHub Actions workflow failures provide the current maintainer alert path.
+- `scripts/production-health-check.cjs` checks public availability, core page shells, PWA manifest/icons, service worker/cache identity, and versioned JavaScript/CSS delivery. It uses GET requests only and has no checkout, charge, email, account, post, message, or database mutation path.
+- `test-quality-assurance-policy.cjs` prevents removal of the release gates and prevents the daily monitor from acquiring write, payment, or email-send operations.
+- Validation on 2026-11-04: all 251 repository regression checks passed, including the new policy safety test, site smoke checks and infrastructure validation. The read-only monitor also passed against `https://danzstak.com`, all checked pages/assets returned HTTP 200, the manifest was valid, and the live service worker reported `danzstak-shell-v638`.
+- Authenticated daily checks for sign-in, post persistence, private Chat/notifications, and private professional-tool records are **IN PROGRESS**, not claimed as complete. They require approved isolated synthetic accounts and cleanup rules. Routine monitoring will not create real charges, send booking emails, or modify real customer data.
+- Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA verification remains a release checklist requirement and must be recorded as **NOT TESTED** when devices are unavailable.
