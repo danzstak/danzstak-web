@@ -6,7 +6,7 @@ Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISA
 
 ### Publication verification — 2026-11-04
 
-- **VERIFIED — repository:** development and verification were performed on `danzstak-patch-1`. The latest implementation revision for this update is `62b8a08cfb7e6b806411b5ba9613b392af94c676`; the report-publication commit is the branch head immediately following that revision and is supplied with the GitHub report URL after push.
+- **VERIFIED — repository:** development and verification were performed on `danzstak-patch-1`. The latest implementation revision for this update is `cb483714f19cbc167e2316eb2b06621dbeee62fb`; the report-publication commit is the branch head immediately following that revision and is supplied with the GitHub report URL after push.
 - **VERIFIED — Stripe account and catalog:** a fresh authenticated Stripe API read identified account `acct_1RRZmKFgtfNMBXOV` with dashboard name **SFScoop**. The three Test Mode Products and Prices listed below are active, `livemode: false`, USD, one-time, have the expected amounts, and each Price points to its documented Product.
 - **VERIFIED — webhook registration:** Stripe endpoint `we_1UXoPzFgtfNMBXOV05UR9jPa` is enabled in Test Mode at `https://api.danzstak.com/tour-manager/stripe/webhook` with exactly the five required events documented below.
 - **VERIFIED — AWS deployment:** `DANZSTAK-TourManager-Stripe-Test` in `us-west-1` is `Active`, its last update is `Successful`, its runtime is Node.js 20, and `TOUR_MANAGER_LIVE_PAYMENTS=false`. API Gateway still exposes `POST /tour-manager/stripe/webhook`.
@@ -94,10 +94,18 @@ The original Live Mode products and prices remain unchanged. DANZSTAK's isolated
 - Verification: the new comment-localization regression and runtime language harness cover all locales and dynamic name preservation. All **244 of 244** JavaScript regression programs pass, together with release verification, the 11-page site smoke suite, infrastructure validation and `git diff --check`.
 - Implementation commit: `62b8a08cfb7e6b806411b5ba9613b392af94c676`.
 
+### Multilingual friend discovery and requests
+
+- **COMPLETE IN DEVELOPMENT; NOT DEPLOYED TO THE WEBSITE:** the Friends workspace's full request lifecycle now follows the selected DanzStak language across all 15 supported locales. Previously untranslated progress, timeout, connection, retry, profile-opening and Tribe-message states no longer fall back to English for Italian or other supported-language members.
+- The existing simple workflow remains unchanged: members can search by display name, see users who are online, add or accept a friend with one action, open a profile, and message accepted friends without knowing an account email address.
+- Safety and identity behavior remain intact: opaque member IDs are preferred for friend requests and profile routes, displayed member names are never translated, accepted friends remain visible when offline, and provider failures remain visibly different from an empty online list.
+- Verification: the runtime language harness now requires all friend progress and recovery copy in every supported language. All **244 of 244** JavaScript regression programs pass, together with release verification, infrastructure validation and `git diff --check`.
+- Implementation commit: `cb483714f19cbc167e2316eb2b06621dbeee62fb`.
+
 ### Source and deployment record
 
 - Branch: `danzstak-patch-1`.
-- Implementation revision immediately before this report update: `62b8a08cfb7e6b806411b5ba9613b392af94c676`.
+- Implementation revision immediately before this report update: `cb483714f19cbc167e2316eb2b06621dbeee62fb`.
 - Stripe Test integration implementation revision: `9b27dba7ee94837aafefe7a0ac0a4e8ceea2b855`.
 - Deployment status: **isolated Stripe Test Lambda and webhook deployed; Live payments disabled; recent website, Chat, Booking, EPK, Tour Manager and UI branch changes not deployed to production; branch not merged into `main`.**
 - This report-update commit is recorded in the GitHub history for `danzstak-patch-1`; the final pushed SHA is supplied with the report URL after publication.
