@@ -79,3 +79,12 @@ Before upload/confirmation, prominently explain in plain language: **“Your Fac
 - If a user has mostly shared third-party content, clearly explain why their imported DANZSTAK feed may contain substantially fewer posts.
 - Allow an original-source link/reference only when supported and permitted, without copying third-party media; otherwise skip it. Do not imply all reposts are categorically illegal—rights and permissions can vary—but maintain conservative default import behavior.
 - Never silently import an excluded third-party item, and never count it as successfully imported.
+
+## Facebook JSON reality — captions and share references are not media files
+- Do not assume that Facebook JSON exports include the image/video associated with a reshared post. Exports may contain the account holder's **own accompanying words**, timestamps, URLs or references without the third-party media bytes.
+- Inspect the actual supported Facebook JSON/HTML export structures and bundled media paths before writing import logic. Support format variation gracefully and document tested versions.
+- Preserve user-authored commentary where present and permitted, even if the original shared media is absent; label it as **Imported commentary on a Facebook share** when appropriate.
+- Do not fabricate media, scrape it from Facebook, generate broken players, or assume a share reference grants republishing rights.
+- When a valid original-source URL is present, offer a clearly labeled source link if permitted; otherwise show text only or skip an empty record.
+- Preview counts must distinguish **commentary-only imports**, **original media included in archive**, **external references**, and **skipped missing/third-party media**.
+- Test fixtures must cover: commentary plus absent shared video, commentary plus URL, pure share with no commentary, own original media with included file, and malformed references.
