@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Free account data control — Issue #32 — 2026-11-04
+
+Status: **IN PROGRESS ON `codex/account-data-control`; SECURITY AND REQUEST-LIFECYCLE FOUNDATION TESTED; ERASURE EXECUTOR AND USER INTERFACE NOT COMPLETE; NOT DEPLOYED**.
+
+- **Audit result:** every authenticated member already has a free JSON export in Settings, but it is assembled through multiple client requests, does not package media binaries, and the repository explicitly documented account erasure as unfinished. No existing deletion button or backend was treated as functional.
+- **Implemented foundation:** destructive reauthentication now starts a fresh Cognito authorization with `prompt=login`, binds the request to the already authenticated Cognito subject, and returns a one-use HttpOnly `__Host-` proof valid for ten minutes. Creating a deletion request requires the exact confirmation phrase and atomically consumes that identity-bound proof. Requests have an idempotent identifier, a seven-day cancellable grace period, factual public statuses, ordered resumable phase definitions, and a documented limited-retention result rather than an unqualified deletion claim.
+- **API/IaC:** development routes are defined for `GET /auth/account-deletion/reauth`, `GET /account-deletion`, `POST /account-deletion`, and `DELETE /account-deletion`, with scoped API Gateway invoke permissions. These routes are source-only and have not been deployed.
+- **Tests:** the complete local `test-regressions.ps1` gate passed, including new request-lifecycle tests for recent reauthentication, exact confirmation, grace-period enforcement, cancellation, ordered phase progression, one-use proof consumption, atomic request creation, and API route wiring. Site and infrastructure smoke checks also passed.
+- **Still required before review or staging:** implement and test the actual resumable erasure worker across social content, connections, groups, professional tools, private messaging state, shared-message anonymization, media, sessions, and Cognito identity; make the export complete and practical for media; add the Settings confirmation/status/receipt experience; validate distinct synthetic accounts so another member's message copy is preserved; then perform staging browser and accessibility testing. No production member data will be used for deletion tests.
+- **Deployment:** none. Production remains unchanged. This work must not be described as an operational deletion feature until the executor and end-to-end staging tests pass.
+
 ### Consistent current destination across mobile navigation — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
