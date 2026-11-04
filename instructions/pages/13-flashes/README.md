@@ -120,3 +120,16 @@ Display **Take** immediately before the active Daily count under the creator til
 
 ### Acceptance
 Using two test accounts and three video Dailies plus a photo and text Daily, tap a member avatar from The Mix. Viewer opens fullscreen at the selected item; plays that member's clips back-to-back on natural completion, with vertical swipes next/previous, no horizontal card browsing; photo/text slides display correctly and auto-advance at readable pace. Verify active audio follows the sound toggle, pause/next at 50% out-of-frame, no simultaneous audio, repeat swipe, 24-hour expiry while player open, block/privacy, empty/one/many items, returning to the same Mix scroll position and cross-player audio shutdown. Run real-phone Android PWA tests and explain any provider autoplay limitations; stage tested implementation and seek owner approval. **This specification alone is not implementation.**
+
+
+## Dailies-only viewing queue — final owner clarification (2026-11-04)
+
+Owner's rule is **"If the user opens Dailies, it plays just the Dailies."** Dailies is a standalone collection of 24-hour photo/video/text story items, not a route into The Roll or ordinary member video library.
+
+- Tapping the Dailies feature/category opens a vertically navigable fullscreen **Dailies-only** queue of current accessible unexpired Dailies. Tapping a person's Daily avatar/photo opens the selected Daily first, with that person's active Dailies grouped together if available. Navigating after this creator's items may show other Dailies only via a clear Next creator progression; **never show Roll or normal Mix video posts**.
+- Preserve the horizontal *avatar entry strip* in The Mix, but **no horizontal gallery traversal in fullscreen**. Photos and text are legitimate Dailies and advance at a readable interval; videos advance at natural end where possible and use 50% offscreen visible-pixel handoff during manual vertical swipe.
+- At Daily expiry or deletion, remove from the current queue on next authorized refresh/transition and never stream expired content. Account privacy and blocking enforced server-side.
+- The separate **The Roll** category plays only content actually in The Roll. A user's ordinary video library plays only their own standard video posts across DANZSTAK, excluding Daily-only ephemeral media unless separately published as a standard video. The same fullscreen player implementation may be reused, but the queues cannot merge or silently switch.
+- Leftmost Dailies entry remains member's real photo with timestamped clapperboard SCENE 1 · TAKE N; **N is their distinct uploaded video asset count**, not current Daily count. This visual label does not change playback scope.
+
+**Acceptance:** open Dailies with 2 creators' Dailies and separate Roll/Mix videos; next/previous/fullscreen/end-of-list never shows a non-Daily. Expired or unauthorized Dailies cannot leak. Validate Android PWA swipe, sound, readable photo/text slides, Back/Close and 24-hour expiry, then request owner approval before deployment.
