@@ -1,9 +1,9 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v635";
+const CACHE = "danzstak-shell-v636";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css",
-  "/assets/icon-buttons.js", "/assets/icon-buttons.css", "/assets/mobile-design-system.css",
+  "/assets/icon-buttons.js", "/assets/icon-buttons.css", "/assets/mobile-design-system.css", "/assets/responsive-media.js", "/assets/responsive-media.css",
   "/assets/media-tags.js",
   "/assets/post-sharing.js", "/assets/post-views.js",
   "/assets/profile-sharing.js",

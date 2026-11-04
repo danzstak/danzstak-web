@@ -108,6 +108,26 @@ async function captureViewport(page, fileName) {
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.addStyleTag({ content: ".push-alert-prompt{display:none!important}" });
       await page.waitForSelector("#feed article.post");
+      if (width <= 430) {
+        await page.locator("#feed article.post").evaluate(post => {
+          if (post.querySelector("video.post-media")) return;
+          const video = document.createElement("video");
+          video.className = "post-media";
+          video.controls = true;
+          video.playsInline = true;
+          video.poster = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900"><defs><linearGradient id="g"><stop stop-color="#1769e0"/><stop offset="1" stop-color="#ef6c20"/></linearGradient></defs><rect width="1600" height="900" fill="url(#g)"/><text x="800" y="470" text-anchor="middle" fill="white" font-family="Arial" font-size="90" font-weight="700">DANZSTAK VIDEO</text></svg>');
+          post.querySelector(".post-actions")?.before(video);
+        });
+        await page.waitForSelector("#feed article.post video.ds-responsive-media");
+        const mediaGeometry = await page.locator("#feed article.post").evaluate(post => {
+          const media = post.querySelector("video.ds-responsive-media");
+          const postBox = post.getBoundingClientRect();
+          const mediaBox = media.getBoundingClientRect();
+          return { left: Math.abs(mediaBox.left - postBox.left), right: Math.abs(mediaBox.right - postBox.right), width: mediaBox.width, postWidth: postBox.width };
+        });
+        assert.ok(mediaGeometry.left <= 1.5 && mediaGeometry.right <= 1.5, `${width}px: video edges must align with the post grid: ${JSON.stringify(mediaGeometry)}`);
+        assert.ok(Math.abs(mediaGeometry.width - mediaGeometry.postWidth) <= 3, `${width}px: video must fill the post width`);
+      }
       await assertNoOverflow(page, `Home ${width}px`, width <= 430);
       if (width <= 430) {
         await assertExclusiveFeedScreen(page, "home");
@@ -127,6 +147,8 @@ async function captureViewport(page, fileName) {
       }
       await captureViewport(page, `home-${width}.png`);
       if (width === 390) {
+        await page.locator("#feed article.post video.ds-responsive-media").scrollIntoViewIfNeeded();
+        await captureViewport(page, "video-390.png");
         await page.locator("#feed article.post .post-actions").scrollIntoViewIfNeeded();
         await captureViewport(page, "reactions-390.png");
         await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));

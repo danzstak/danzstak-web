@@ -76,7 +76,7 @@ button,a,input,select,textarea{touch-action:manipulation}
 
 /* Feed media follows the phone viewport while text retains readable gutters. */
 @media(max-width:700px){
-  .post{--post-inline-padding:12px}
+  .post{--post-inline-padding:12px;padding:12px!important}
   .post>.post-media,.post>.feed-media-gallery,.post>.post-media-recovery{width:calc(100% + 24px);max-width:none;margin-left:-12px;margin-right:-12px;border-radius:0}
   .post-media{display:block;height:auto;max-height:none;object-fit:contain;background:#0c111b}
   .post-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;gap:2px}

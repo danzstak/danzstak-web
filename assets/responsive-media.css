@@ -1,0 +1,72 @@
+:root{--ds-media-radius:12px;--ds-media-background:#0b0d12;--ds-media-control-size:44px}
+
+.ds-responsive-media{
+  display:block;
+  width:100%;
+  max-width:100%;
+  margin:0;
+  border:0;
+  background:var(--ds-media-background);
+}
+video.ds-responsive-media{
+  height:auto;
+  aspect-ratio:var(--ds-media-aspect,auto 16/9);
+  object-fit:contain;
+  object-position:center;
+}
+iframe.ds-responsive-media{
+  aspect-ratio:var(--ds-media-aspect,16/9);
+  min-height:0;
+}
+.ds-responsive-media[data-video-layout="portrait"]{--ds-media-aspect:9/16}
+.ds-responsive-media[data-video-layout="square"]{--ds-media-aspect:1/1}
+.ds-responsive-media[data-video-layout="landscape"]{--ds-media-aspect:16/9}
+
+/* A feed card owns the text gutter; direct media spans the complete card grid. */
+.post>.ds-responsive-media,.post>.feed-media-gallery{
+  width:calc(100% + (var(--post-inline-padding,12px) * 2));
+  max-width:none;
+  margin-inline:calc(var(--post-inline-padding,12px) * -1);
+  border-radius:0;
+}
+.feed-media-gallery{overflow:hidden;background:var(--ds-media-background)}
+.feed-media-gallery .ds-responsive-media{width:100%;margin:0;border-radius:0}
+
+/* The Roll owns a fixed preview shape; its player decides contain versus provider framing. */
+.reel-card{line-height:normal}
+.reel-player.ds-responsive-media{width:100%;margin:0;border-radius:0;background:var(--ds-media-background)}
+video.reel-player.ds-responsive-media{object-fit:contain}
+iframe.reel-player.ds-responsive-media{object-fit:initial}
+
+/* Attachments and EPK players keep their local component radius. */
+.message-attachment.ds-responsive-media,.message-media-preview .ds-responsive-media{border-radius:10px}
+.epk-video-frame,.video-embed{overflow:hidden;border-radius:var(--ds-media-radius);background:var(--ds-media-background)}
+.epk-video-frame>.ds-responsive-media,.video-embed>.ds-responsive-media{border-radius:inherit}
+
+.ds-media-control{
+  position:absolute;
+  z-index:3;
+  display:grid;
+  place-items:center;
+  width:var(--ds-media-control-size);
+  height:var(--ds-media-control-size);
+  min-width:var(--ds-media-control-size);
+  min-height:var(--ds-media-control-size);
+  padding:0;
+  border:1px solid #fff7;
+  border-radius:50%;
+  background:#111b;
+  color:#fff;
+  box-shadow:0 2px 10px #0005;
+}
+.ds-media-control--sound{right:10px;bottom:10px}
+.ds-media-control--fullscreen{right:10px;top:10px}
+.ds-media-control:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+@media(max-width:700px){
+  .post>.ds-responsive-media,.post>.feed-media-gallery{
+    width:calc(100% + 24px);
+    margin-inline:-12px;
+  }
+  .ds-media-control{--ds-media-control-size:42px}
+}
