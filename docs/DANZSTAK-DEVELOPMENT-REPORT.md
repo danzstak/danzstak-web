@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Tablet EPK editor and preview balance — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defect found:** the EPK workspace collapsed to one column at every width below 821px. At 768px the empty preview was also ordered ahead of the editor, consuming roughly 235px before the first editable field and making a tablet-sized professional tool feel like an overgrown phone page.
+- **Root correction:** the single-column EPK transition now begins below 701px. At 768px the editor and live preview remain side-by-side; phones retain the existing form-first flow, so an artist reaches the useful fields before the preview. The EPK stylesheet reference advanced to `assets/epk.css?v=2`, and the PWA shell advanced to `danzstak-shell-v661`.
+- **Permanent quality gate:** the real-browser verifier now requires two EPK columns at 768px and above, while retaining phone overflow, readable-form, navigation, media, Chat, Friends, Notifications, Booking, Record Store, Settings and Tour Manager checks. This prevents the tablet workspace from silently regressing to a long single-column page.
+- **Test evidence:** the complete local regression suite passed. The complete local and production Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. A fresh production browser reports an activated controlling service worker with only `danzstak-shell-v661` in CacheStorage. Live evidence: [balanced 768px EPK workspace](screenshots/epk-tablet-v661-live-verified/epk-desktop-768.png).
+- **Production state:** implementation commit `6e1afcf` is on `danzstak-patch-1` and `main`. Stripe remains Test Mode and live payments remain disabled. No authentication, payment, entitlement, discovery, EPK persistence or outreach backend behavior changed.
+- **Remaining limitation:** no remotely controllable physical Android or iPhone was available. Responsive browser and standalone-PWA behavior are verified; final tactile inspection on physical installed devices remains manual and is not represented as complete.
+
 ### Narrow-phone Chat search wording — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
