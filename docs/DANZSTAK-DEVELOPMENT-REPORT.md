@@ -4,6 +4,17 @@
 
 Status: **CURRENT FOR `danzstak-patch-1`; TEST PAYMENTS ONLY; LIVE PAYMENTS DISABLED**.
 
+### Consistent current destination across mobile navigation — 2026-11-04
+
+Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
+
+- **Independent defect found:** the shared five-icon mobile bar correctly highlighted Home and Chat, but Profile and the professional tools displayed no current destination. Settings and other secondary Feed workspaces also cleared Home without identifying Menu, leaving a user with no visual indication of where the current screen belongs.
+- **Root correction:** Booking Agent, Record Stores, EPK Builder and Profile now identify Menu as their current mobile section. Feed workspaces synchronize the same state dynamically: Home, Friends and Buzz retain their direct destinations; Tribes, Photos, Videos, Events, Saved and Settings identify Menu; opening the drawer temporarily identifies Menu and closing it restores the underlying route. The shared routes and browser-history behavior are unchanged.
+- **Accessibility and quality gate:** current state uses the existing semantic `aria-current="page"` contract and visible blue-bar treatment, while the Feed Menu button also keeps `aria-pressed` synchronized. Static tests require exactly the appropriate destination in every shared shell. The real-browser matrix checks Home and Friends do not falsely select Menu and requires Menu current state on Booking, EPK, Record Stores, Profile and Settings.
+- **Functional, visual and integration evidence:** the complete `test-regressions.ps1` gate passed, including authentication, persistent social content, Friends/presence, Notifications, Chat/calls, all 15 languages, media/audio ownership, Booking Agent, worldwide discovery, Record Stores, EPK, Tour Manager, Stripe safeguards, PWA refresh, site smoke, security and infrastructure. Local and deployed Edge/Playwright matrices passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live evidence: [Booking Agent with current Menu destination at 320px](screenshots/mobile-current-v667-live/booking-320.png).
+- **Deployment state:** implementation commit `2e4bc23` is on `danzstak-patch-1` and `main`. Production serves `danzstak-shell-v667`; a fresh live browser reports an activated controlling worker, only v667 in CacheStorage, and standalone display-mode support. The complete deployed viewport matrix passed on 2026-11-04 Europe/Berlin.
+- **Scope and limitations:** no routing destinations, authentication, payment, entitlement, discovery or messaging behavior changed. Stripe remains DANZSTAK sandbox/Test only and Live payments remain disabled. No remotely controllable physical Android or iPhone was available, so final installed-device tactile inspection remains manual and is not represented as complete.
+
 ### Home-only identity setup and clean Friends workspace — 2026-11-04
 
 Status: **COMPLETE, DEPLOYED, AND VERIFIED ON THE LIVE PWA IN BROWSER AUTOMATION; PHYSICAL ANDROID/IPHONE CHECK REMAINS**.
