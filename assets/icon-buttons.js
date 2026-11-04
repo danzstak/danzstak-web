@@ -23,7 +23,7 @@
     phone: ["M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.8 2.1Z"],
     video: ["M15 10 21 6v12l-6-4", "M3 6h12v12H3Z"],
     more: ["M5 12h.01", "M12 12h.01", "M19 12h.01"],
-    back: ["M19 12H5", "m12 19-7-7 7-7"],
+    back: ["M19 12H5", "M12 19 5 12l7-7"],
     refresh: ["M20 6v5h-5", "M4 18v-5h5", "M6.1 9A7 7 0 0 1 18 6l2 5", "M17.9 15A7 7 0 0 1 6 18l-2-5"],
     save: ["M5 3h12l2 2v16H5Z", "M8 3v6h8V3", "M8 21v-7h8v7"],
     eye: ["M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"],
@@ -78,6 +78,7 @@
     node.setAttribute("stroke-linejoin", "round");
     node.setAttribute("aria-hidden", "true");
     node.classList.add("ds-action-icon");
+    node.setAttribute("data-ds-icon", name);
     for (const data of paths[name] || paths.more) {
       const path = document.createElementNS(namespace, "path");
       path.setAttribute("d", data);
@@ -108,7 +109,8 @@
     if (!control.hasAttribute("title")) control.setAttribute("title", label);
     control.dataset.icon = requested;
     control.classList.add("ds-icon-button");
-    if (control.childElementCount !== 1 || !control.firstElementChild?.classList.contains("ds-action-icon")) control.replaceChildren(svg(requested));
+    const currentIcon = control.firstElementChild;
+    if (control.childElementCount !== 1 || !currentIcon?.classList.contains("ds-action-icon") || currentIcon.getAttribute("data-ds-icon") !== requested) control.replaceChildren(svg(requested));
   }
 
   function upgradeMenuIcon(container) {

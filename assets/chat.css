@@ -110,7 +110,25 @@ body.is-conversation-open>.install-app-button,body.is-conversation-open>.app-upd
   .conversation-call-actions{display:none}
   .messages-page>.install-app-button,.messages-page>.app-update-button{max-width:calc(100vw - 24px)}
   body:not(.is-conversation-open) .chat-sidebar{min-height:calc(100dvh - 60px)}
+
+  /* Keep the phone header readable without shrinking its touch controls. */
+  body.is-conversation-open .conversation-header{
+    grid-template-columns:44px minmax(0,1fr) auto;
+    grid-template-rows:auto auto;
+    min-height:60px;
+    gap:0 7px;
+    padding:7px 8px;
+  }
+  body.is-conversation-open .conversation-back{grid-column:1;grid-row:1/3;width:44px;min-width:44px;height:44px;min-height:44px}
+  body.is-conversation-open .conversation-avatar{display:none}
+  body.is-conversation-open .conversation-name{grid-column:2;grid-row:1;align-self:end;display:block;min-width:0;font-size:15px;line-height:1.25}
+  body.is-conversation-open .conversation-presence{grid-column:2;grid-row:2;align-self:start;font-size:11px;line-height:1.25}
+  body.is-conversation-open .conversation-header-actions{grid-column:3;grid-row:1/3;align-self:center;gap:2px}
+  body.is-conversation-open .conversation-header-actions button{width:44px;min-width:44px;height:44px;min-height:44px}
+  body.is-conversation-open #minimizeConversation{display:none}
 }
+
+@media(max-width:370px){body.is-conversation-open #headerVideo{display:none}}
 
 .message-loading-state{padding:28px 12px}.message-load-error{display:grid;justify-items:center;gap:10px;padding:24px 12px}.message-load-error .system-message{margin:0}.message-load-retry{min-height:36px;padding:7px 12px;border:1px solid #c8d0dc;border-radius:10px;background:#edf1f6;color:#172033;font-weight:750;cursor:pointer}.message-load-retry:hover,.message-load-retry:focus-visible{background:#dfe8f4;outline:2px solid #1769e0;outline-offset:2px}.dark-mode .message-load-retry{border-color:#526074;background:#253247;color:#f5f7fb}
 .chat-header .chat-brand img{width:42px;height:42px;border-radius:0;object-fit:contain}.chat-header .chat-brand span{display:inline;color:#172033;font-size:1.2rem;font-weight:900;letter-spacing:-.02em;transform:none}.chat-search-icon{display:grid;place-items:center;flex:0 0 18px;width:18px;height:18px;color:#667085}.chat-search-icon .ds-action-icon{display:block;width:18px;height:18px}@media(max-width:560px){.chat-header .chat-brand{flex:0 0 auto}.chat-header .chat-brand img{width:38px;height:38px}.chat-header .chat-brand span{display:none}}

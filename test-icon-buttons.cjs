@@ -13,6 +13,8 @@ for (const icon of ["expand", "minimize", "close", "trash", "edit", "reply", "se
 assert.match(source, /setAttribute\("aria-label", label\)/, "an icon-only control must retain an accessible name");
 assert.match(source, /setAttribute\("title", label\)/, "an icon-only control must have a desktop tooltip");
 assert.match(source, /MutationObserver/, "dynamic feed, comment and chat controls must be enhanced too");
+assert.match(source, /back: \["M19 12H5", "M12 19 5 12l7-7"\]/, "the back icon must render a complete left arrow rather than a clipped diagonal");
+assert.match(source, /getAttribute\("data-ds-icon"\) !== requested/, "changing an action must replace its previous SVG instead of leaving the wrong icon visible");
 assert.match(source, /querySelectorAll\?\.\("\[data-menu-icon\]"\)/, "drawer icons must use the shared SVG enhancer");
 assert.doesNotMatch(source, /lucide|unpkg|cdnjs|jsdelivr/i, "icons must not add a remote dependency");
 assert.match(css, /focus-visible/, "keyboard focus must be visible");
@@ -22,7 +24,7 @@ assert.match(css, /disabled[^{]*\{[^}]*opacity/, "disabled state must remain vis
 for (const page of pages) {
   const html = fs.readFileSync(page, "utf8");
   assert.match(html, /assets\/icon-buttons\.css\?v=4/, `${page} must load the current shared icon styles`);
-  assert.match(html, /assets\/icon-buttons\.js\?v=5/, `${page} must load the current shared icon behavior`);
+  assert.match(html, /assets\/icon-buttons\.js\?v=6/, `${page} must load the current shared icon behavior`);
 }
 
 const feedPage = fs.readFileSync("feed.html", "utf8");

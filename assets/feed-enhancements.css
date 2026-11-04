@@ -187,6 +187,24 @@
 
 .menu-label{overflow-wrap:anywhere;hyphens:auto}.topbar .topnav button{white-space:normal;overflow-wrap:anywhere;hyphens:auto;line-height:1.25}.settings-row select{max-width:100%;min-width:0}.settings-workspace label{overflow-wrap:anywhere}.settings-row>strong{overflow-wrap:anywhere}
 
+/* Settings should look like the same application as the feed, not a collection
+   of browser-default controls. */
+.settings-workspace{container-type:inline-size;container-name:account-settings}
+.settings-workspace>h3{font-size:1.25rem;line-height:1.25}
+.settings-row{min-height:58px}
+.settings-row input[type=checkbox]{accent-color:#1769e0;cursor:pointer}
+.settings-row select{min-height:38px;padding:7px 30px 7px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#172033;font:inherit;font-size:14px}
+.settings-row :is(button,a){font-size:14px}
+@media(max-width:520px){
+  .settings-workspace{gap:0}
+  .settings-heading{margin:2px 0 6px;font-size:1.2rem}
+  .settings-row{min-height:64px;gap:4px 9px;padding:9px 2px}
+  .settings-row>strong{font-size:14px;line-height:1.25}
+  .settings-row label,.settings-detail{font-size:13px;line-height:1.35}
+  .settings-row input[type=checkbox]{width:22px;height:22px}
+  .settings-row select{width:min(190px,100%)}
+}
+
 .topbar .topnav button{position:relative;display:flex;align-items:center;justify-content:center;min-height:40px;padding:8px}.mobile-menu-control{display:none!important}.nav-icon{display:block;flex:0 0 24px;width:24px;height:24px}.nav-count{position:absolute;top:2px;right:8px;min-width:18px;height:18px;padding:1px 4px;border:2px solid #1769e0;border-radius:12px;background:#d52d48;color:#fff;font-size:10px;line-height:12px;font-weight:800}.nav-count[hidden]{display:none}@media(max-width:700px){.topbar .topnav{grid-template-columns:repeat(5,minmax(0,1fr))!important}.mobile-menu-control{display:flex!important}}
 
 /* Home is menu + feed; selecting a section opens a focused full-page view. */
