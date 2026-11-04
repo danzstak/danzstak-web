@@ -572,11 +572,15 @@ Status as of 2026-11-04: **DEPLOYED AND BROWSER-VERIFIED; PHYSICAL-DEVICE ACCEPT
 
 # Startup autoplay and background-audio root correction
 
-Status as of 2026-11-04: **IMPLEMENTED LOCALLY; RELEASE GATES IN PROGRESS**.
+Status as of 2026-11-04: **DEPLOYED AND BROWSER-PLAYBACK VERIFIED; PHYSICAL-DEVICE ACCEPTANCE PENDING**.
 
 - Root cause: provider embed URLs still requested autoplay, native feed and Roll renderers still set `autoplay`, The Roll retained a second playback observer, and the shared coordinator used a 15% pause boundary. A YouTube iframe could therefore begin outside the intended viewport policy while multiple controllers competed over playback.
 - All supported provider URLs now request autoplay off. Native feed, Flash-preview and Roll videos explicitly set `autoplay=false`. The Roll observer records 60% visibility but no longer starts playback, leaving one shared coordinator as the only playback authority.
 - Playback eligibility is now 60% visibility. Falling below 60% pauses the player, clears audio focus and prevents automatic audio restoration. Muted viewport autoplay is an explicit opt-in preference and defaults off; ordinary application startup performs no playback.
 - Opening Chat, Notifications, Friends or Menu, hiding/changing the browser tab, page navigation and window blur invoke the coordinator's shared `pauseAll` path. Unsupported cross-origin embeds are click-to-load and safely deactivated when off-screen.
 - `scripts/verify-media-playback.cjs` performs real Chromium media playback with live `MediaStream` video clocks plus a controlled YouTube IFrame API endpoint. It verifies paused startup, explicit play, elapsed playback time, 60% scroll pause, navigation pause, muted return, previous-player shutdown, YouTube API play/unmute and off-screen pause/mute. This is playback testing, not geometry-only testing.
-- Automated VM regressions additionally cover rapid visibility changes, late insertion, single-audio ownership, provider URL parameters, backgrounding and player cleanup. The planned PWA cache is `danzstak-shell-v645`; deployment and physical-device acceptance are pending.
+- Automated VM regressions additionally cover rapid visibility changes, late insertion, single-audio ownership, provider URL parameters, backgrounding and player cleanup.
+- Functional/integration gate: all repository regression checks passed in one clean run, followed by the 11-page site smoke suite and infrastructure validation. The responsive browser suite passed locally at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px.
+- Production application commit: `8e2986877c3ce5c4704bb6cb16794dd877269e93`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `857` succeeded in `us-west-1` from 2026-11-04 06:47:30 to 06:48:26 Europe/Berlin.
+- Post-deployment public health passed. The service worker was activated and controlling the page with only `danzstak-shell-v645` present. The actual-browser playback test was rerun using the deployed `media-visibility.js?v=388` and passed native/YouTube playback coordination. The production visual suite also passed at every measured width.
+- Browser compatibility verified through desktop Chromium and Chromium mobile viewport/PWA behavior. Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA playback remain **NOT TESTED** in this environment and require owner/device acceptance; this limitation is not represented as a pass.

@@ -7,6 +7,7 @@ const { chromium } = require("playwright-core");
 
 const edgePath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
 const root = path.resolve(__dirname, "..");
+const assetBase = String(process.env.DANZSTAK_MEDIA_ASSET_BASE || "").replace(/\/$/, "");
 
 (async () => {
   assert.ok(fs.existsSync(edgePath), `Microsoft Edge not found at ${edgePath}`);
@@ -28,10 +29,10 @@ const root = path.resolve(__dirname, "..");
       *{box-sizing:border-box}body{margin:0;background:#eee}.stage{height:620px;margin:20px 0 500px;background:#111}.stage video,.stage iframe{display:block;width:100%;height:100%;border:0}.danzstak-media-shell{height:100%}
     </style><main id="root"></main>`);
     console.log("Browser playback: shell loaded");
-    await page.addScriptTag({ path: path.join(root, "assets", "icon-buttons.js") });
+    await page.addScriptTag(assetBase ? { url: `${assetBase}/assets/icon-buttons.js?v=5` } : { path: path.join(root, "assets", "icon-buttons.js") });
     console.log("Browser playback: icons loaded");
-    await page.addStyleTag({ path: path.join(root, "assets", "responsive-media.css") });
-    await page.addScriptTag({ path: path.join(root, "assets", "media-visibility.js") });
+    await page.addStyleTag(assetBase ? { url: `${assetBase}/assets/responsive-media.css?v=2` } : { path: path.join(root, "assets", "responsive-media.css") });
+    await page.addScriptTag(assetBase ? { url: `${assetBase}/assets/media-visibility.js?v=388` } : { path: path.join(root, "assets", "media-visibility.js") });
     console.log("Browser playback: coordinator loaded");
 
     await page.evaluate(() => {
