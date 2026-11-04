@@ -42,3 +42,8 @@ Test create/edit/privacy/delete/export/import flows on mobile and desktop; verif
 - Respect the original creator's **Do Not Share / Protected Content** controls at the time of sharing; deny unauthorized repost requests server-side. Re-evaluate visibility and deletion on reads so shared wrappers do not expose restricted or removed originals.
 - For imported third-party media or external embeds, do not falsely assert that the DANZSTAK user who shared a link is the original copyright owner; use accurate source attribution where known.
 - Test original shares, re-shares of shares, renamed profiles, deleted originals, privacy changes, protected content, and unauthorized API attempts on mobile/desktop.
+
+## Latest owner visual decision — tag, not watermark
+- Attribution must look like a familiar **friend/location tag**: small inline tag icon and clickable **Shared from [Original Creator]** label near the sharer's name or post header. Do **not** place a large watermark over images or video.
+- Keep the attribution visually subtle, legible, keyboard accessible and mobile-friendly; original creator identity still comes from trusted immutable provenance.
+- Do not obscure or alter original media files. A small UI tag is the default; any optional media overlay requires separate approval.
