@@ -53,3 +53,13 @@ Context: Existing SFScoop posts imported from Facebook required tedious per-post
 - Test mixed originals/reshares, bulk selection, date filters, privacy batch changes, per-post overrides, duplicate imports, empty selection, permission failures, and undo/delete where supported.
 - Verify public/friends/private visibility through backend authorization, not just client-side labels.
 - Ensure no imported posts appear publicly before user confirmation.
+
+## Large Facebook archives — required scalability
+- Design for archives containing **thousands to tens of thousands of posts** and substantial photo collections. Never render every record at once on mobile.
+- Use server-side or worker-backed parsing where appropriate, paginated/virtualized previews, filters by year/date/type/original-versus-reshare, and selection across all matching results (not merely the visible page).
+- Allow users to select all eligible originals, a date range, a category, or individual items. Show accurate selection counts and estimated storage impact before confirmation.
+- Import in bounded, idempotent batches with persisted job status, retry/resume/cancel, partial-failure reporting, and safe rollback/removal of imported items. Avoid request timeouts and repeated uploads where feasible.
+- Provide mobile-friendly progress showing processed/imported/skipped/failed counts; do not require the phone screen to remain open for the entire import.
+- Enforce upload limits, archive validation, quotas and cost controls; explain unsupported media and link-only reshares.
+- Verify privacy rules for every batch, with explicit user confirmation and safe Only Me initial selection. Never auto-publish on partial failure.
+- Test with synthetic archives at 100, 1,000, 10,000 and 50,000 entries, including large media, malformed data, cancellation, resume and deduplication. Report real measured performance rather than invented throughput.
