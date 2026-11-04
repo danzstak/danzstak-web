@@ -38,3 +38,8 @@ Verify no music upload route, audio object storage or first-party streaming path
 - Prevent server-side image proxies, thumbnail generators, social-preview crawlers, backups or caching pipelines from inadvertently storing third-party album artwork. Review browser/CDN behavior and use provider-approved approaches.
 - Preserve first-party user-uploaded video hosting approval and the ban on audio-only music files. This rule applies specifically to externally sourced album-cover images.
 - Test links, attribution, broken images, provider restrictions, mobile feed display and storage audit. Do not imply ownership of the artwork when a user simply owns the record.
+
+## Overarching owner-approved hosting rule
+**If a user does not own the content or have sufficient permission/license to upload and host it, DANZSTAK must not host a copy.** This applies to album artwork, photographs, videos and other creative works. Ownership of a physical item is not ownership of its copyrighted artwork. Use authorized external links/embeds where permitted, or decline hosting; never silently scrape, copy, cache or rehost third-party material.
+
+Users must affirm they have the necessary rights before upload. The platform should provide reporting, review, takedown and appeal processes rather than pretending it can perfectly verify ownership automatically. Preserve the permanent audio-only file prohibition and the approved plan for authorized user-uploaded videos.
