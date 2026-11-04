@@ -558,11 +558,14 @@ Status as of 2026-11-04: **DEPLOYED; PHYSICAL-DEVICE ACCEPTANCE PENDING**.
 
 # Visible video audio controls and no-surprise-audio policy
 
-Status as of 2026-11-04: **IMPLEMENTED LOCALLY; RELEASE GATES IN PROGRESS**.
+Status as of 2026-11-04: **DEPLOYED AND BROWSER-VERIFIED; PHYSICAL-DEVICE ACCEPTANCE PENDING**.
 
 - Supported HTML5 and YouTube players now receive one shared, visible bottom-right Mute/Unmute control. It uses the shared speaker/crossed-speaker SVG artwork, an accessible state label and tooltip, a 44px circular touch target, and a semi-transparent high-contrast surface.
 - Autoplay always starts muted. Audio permission is no longer stored as a device-wide preference or transferred to the next video. Explicitly unmuting a player grants it sole audio focus; all other tracked native and YouTube players are muted or paused immediately.
 - Leaving the viewport clears playback and audio ownership. Returning may resume muted autoplay where permitted, but cannot restore audio without another user action.
 - YouTube uses its supported player API. Other cross-origin providers retain their native controls rather than receiving a DanzStak button that cannot reliably control their audio. External files are neither hosted nor downloaded.
 - The browser visual gate now measures the audio control at mobile widths, including its bottom-right placement, 44px touch target, accessible label and muted default. Functional regressions cover late player insertion, native/YouTube audio focus, automatic handoff, manual transfer and background pause.
-- The planned installed-PWA cache is `danzstak-shell-v644`. Production deployment and physical Android/iPhone acceptance are pending.
+- Functional/integration gate: all repository regressions, the 11-page site smoke suite and infrastructure validation passed. The complete local visual suite passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px.
+- Production application commit: `5c13e754403fe4aecb2b61c7337c76b606bcb3f8`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `856` succeeded in `us-west-1` from 2026-11-04 05:49:55 to 05:50:50 Europe/Berlin.
+- Post-deployment public health passed. The browser found the service worker activated and controlling the live page with only `danzstak-shell-v644` present. The production visual suite passed again at every measured width, including the visible control's placement, touch target, label and muted default.
+- Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA audio behavior remains **NOT TESTED** in this environment. The release is not represented as physically accepted until owner/device testing confirms the control and single-audio behavior.
