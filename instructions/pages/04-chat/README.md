@@ -296,3 +296,29 @@ For DANZSTAK Phone, each browser/PWA installation that originates or receives vo
 - Test: A uses an English UI and auto-translate OFF, sees authentic Italian, can manually translate one or a batch. B opts in and automatically sees translations. Turning it off returns original display; no provider call without consent.
 
 **This overrides any suggestion that all users should auto-translate by default just because the feature exists.**
+
+
+## Owner visual reference — Messenger-style inbox plus WhatsApp-style thread (2026-11-04)
+
+**Owner direction:** “A mix of both others chatbots” with an Android **Messenger conversation-list screenshot** (large recognizable inbox, search, profile-photo rows, message previews, time and unread indicators) and an earlier **WhatsApp conversation screenshot** (compact person header, obvious voice/video actions, tightly organized bubbles, bottom message composer and keyboard-safe layout). These are *two reference apps, not DANZSTAK integration partners*. Build an original, familiar, comfortable DANZSTAK messaging UI using the practical strengths of both. **Do not clone their logos, trade dress, branded artwork, exact visual assets, Meta AI, Facebook authentication or proprietary APIs.**
+
+### A. Chats home: familiar, scannable inbox (draw from Messenger)
+- Clear DANZSTAK-branded **Chats** heading, prominent **Search chats** field, compact compose-new-chat action, and simple **All / Unread / Tribes** filters if those features actually exist.
+- **Each conversation row** shows avatar, person's display name, latest message preview (privacy-aware), localized timestamp/day, and a high-contrast **unread dot/count** only when server-reconciled. Display when message sent by you vs contact; optionally show delivery/read state only if proven. Clear tap affordance, one-tap open, consistent row heights, no giant empty cards.
+- An **optional compact horizontal recent/favorite contacts strip** only if it adds value and is derived from real member relationships with permission; no forced "Stories" carousel, forced "Create Story", algorithmic people suggestions, Facebook/Meta icons, marketing badges, or intrusive AI search prompts. Do not put professional upsells here.
+- One shared secure DANZSTAK account/session; match existing backend message persistence, unread counts and push notifications. Avoid duplicate navigations or a second chat implementation.
+
+### B. Open conversation: relaxed, WhatsApp-familiar thread (draw from earlier screenshot)
+- Compact back/avatar/name/real online/last-seen state with visible **Voice** and **Video** actions, and compact overflow. On constrained phone widths, consider a tidy **centered two-button row directly below the compact recipient header** per owner and P0 issue #27. Never hide Video, bury it under a Delete-only menu, or crowd contact identity.
+- Readable left/right message bubbles, comfortable moderate width, neatly placed timestamp + substantiated read receipts, small unobtrusive reactions, clear replies/quoted context, visible date breaks when meaningful. **Light mode only** with DANZSTAK's blue/neutral branding and restrained colors; screenshot dark backgrounds are examples of interaction layout, **not** a request for dark mode.
+- Calm full-height thread with message space maximized. Remove redundant “You can message X directly” ribbon from ordinary conversations unless it contains actionable status, and never show large Mute/Hang Up strips except in a compact, accurate **active-call** surface. P0 incoming ringback/speaker/remote audio issues remain separate, unsolved until real phones work.
+- Pinned compact **composer above Android/iOS keyboard**: emoji access, writable text, attach/photo/camera, simple send. If a microphone button is proposed when empty, validate actual voice-note scope and privacy/backend/cost first; do not turn an icon into a fake function, silently record, or bypass the existing narrow voicemail/audio-hosting policy. Keep current working messaging actions until a tested replacement exists.
+- Long press / select single word or several bubbles → **Copy / Copy selected / Translate / Translate selected** with text still selectable by the OS and original language visible by default. Auto-translate only after each member explicitly enables it; support language learners. Preserve all existing link/media safety and message authorization.
+
+### Codex rollout and acceptance
+1. Make **before/after mock/reference screenshots** for Chats list and active conversation at 320, 360, 390, 414, 430px and desktop; owner reviews a phone-accessible staging PWA before merge. Do not simply style a fixture; verify actual account data and message APIs.
+2. Split small PRs: inbox density/readability; compact conversation/header/composer (without breaking text sending); selection/copy; translation with separate privacy approval. Keep **real two-way calls, ringtone, speakerphone, missing camera** under P0 #27 and its draft PR #36, and do not mark working from a visible icon.
+3. Test conversation loading/persistence, accurate unread state, keyboard open/shut + safe areas, back navigation, no fake "last seen", 15-language text expansion, screen reader labels, 44px controls, no horizontal overflow, Android/iOS PWA refresh, session/account isolation, existing calls and attachments. Record exact pass/fail results and screenshots.
+4. Brand principle: **“Messenger's browsable inbox + WhatsApp's comfortable conversation + DANZSTAK identity”** — *interaction inspiration only, not a clone or reliance on Meta*.
+
+**Status:** design instructions only. Not an implemented redesign or a claim of tested device behavior.
