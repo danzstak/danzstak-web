@@ -1,3 +1,19 @@
+## Standalone-grade SYNC — single backend, future separate app — owner-approved direction (2026-11-04)
+
+**Owner:** "I would like SYNC to be so tight that it can be an app on its own." **Owner confirmed: "Yes."** Design and deliver SYNC inside DANZSTAK as a **self-contained, dependable messenger/communications product** whose frontend can ultimately be packaged separately **without rebuilding the chat data, phone services, auth or contact relationships**. This is a *future option*, not permission to launch or brand a second app now.
+
+**Keep one actual backend, one account and one source of truth.** Continue to use DANZSTAK Cognito/member identities, existing secure messaging/history, privacy/block rules, contacts, call signaling, notifications, attachments, verified phone state and DS in-network alias. A future SYNC standalone client should use the same authorized services and data, not duplicate user profiles, conversations, push identities or charge members for normal messaging. SYNC remains the DJ-console-inspired **button** that opens existing communications inside DANZSTAK.
+
+**Engineering direction:** 
+- Audit `messages.html`, `assets/direct-messages.js`, `assets/chat.js`, `assets/chat.css`, `feed.html` `#messagesNav`, Cognito/session routing, API/push/service worker and phone registration. Map hidden dependencies on feed globals/DOM and refactor only as needed using small PRs.
+- Make opening `messages.html` directly work as a complete mobile-first SYNC screen on a newly launched PWA, including authenticated deep-link return, chats, history, search, avatars, contact details, notification state, drafts, media, Voice/Video actions and privacy. Existing feed SYNC button opens that same experience. Preserve navigation/back and shared unread state.
+- Build stable client/service interfaces and test with **two app entry points using one backend** on real phones, avoiding divergent messages, duplicate alerts, separate sign-ups, conflicting registration or broken payments. Modular architecture and standalone quality matter more than launching another shell immediately.
+- Keep current urgent P0 **real messaging reliability (#39), actual optional phone SMS OTP (#21), two-way calling/ringtone (#27)** and device enrollment (#29) as release blockers. Do not postpone concrete fixes for a speculative future client. Preserve full feature vision, Messenger/WhatsApp familiarity, distinctive uncluttered SYNC design and actual call security.
+- A separate app/PWA/store build, domain, app name rights review or new deployment occurs **only after owner approval** and a report on store-background calling/push limitations, shared identity, costs, privacy, testing and support.
+
+**Codex deliverable:** evidence-backed direct-entry SYNC staging PWA, real two-account tests from both DANZSTAK and independent chat entry, phone screens at 320–430px, background/notifications/keyboard and logout, exact commit SHA, pass/fail, modularization summary and owner review. Create **no duplicate backend or live second product** merely from this spec. Track future-ready architecture in [Issue #43](https://github.com/Danzstak/Danzstak-web/issues/43). Requirements are not deployment evidence.
+
+
 ## SYNC as central DANZSTAK communications pillar — owner product priority (2026-11-04)
 
 Owner says: **"SYNC will be very important to DANZSTAK."** This makes the **SYNC chat-launch button and the complete reliable communications experience it opens a flagship/core product priority**, not a throwaway decorative renaming exercise. Keep the exact public launcher label **SYNC**, with the DJ-console transport-button visual reference (restrained illuminated green when active), but do **not** rename the underlying internal messaging API or build another redundant chatbot.
