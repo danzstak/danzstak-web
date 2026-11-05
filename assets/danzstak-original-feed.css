@@ -1,0 +1,159 @@
+/* DANZSTAK / THE MIX — original light-mode art direction, v1.
+   Scoped deliberately: no changes to messaging, auth, data, or media playback. */
+body.danzstak-original {
+  --mix-ink:#172338;
+  --mix-blue:#1757c9;
+  --mix-accent:#e76b27;
+  --mix-surface:#ffffff;
+  --mix-line:#d8e2ec;
+  --mix-muted:#526277;
+  color:var(--mix-ink);
+  background-color:#e9eff4;
+  background-image:
+    radial-gradient(circle at 12% 2%,rgba(47,117,199,.13),transparent 28rem),
+    radial-gradient(circle at 92% 23%,rgba(231,107,39,.075),transparent 30rem),
+    repeating-linear-gradient(120deg,transparent 0 43px,rgba(30,72,120,.025) 44px,transparent 45px 88px);
+  background-attachment:fixed;
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+body.danzstak-original .topbar {
+  background:linear-gradient(115deg,#101e35 0%,#17355c 52%,#1857a0 100%);
+  border-bottom:3px solid var(--mix-accent);
+  box-shadow:0 8px 22px rgba(13,38,74,.15);
+}
+body.danzstak-original .logo {
+  font-weight:900;
+  letter-spacing:.065em;
+  font-size:clamp(1rem,1.5vw,1.28rem);
+}
+body.danzstak-original .topbar .search {
+  border:1px solid rgba(255,255,255,.43);
+  border-radius:12px;
+  box-shadow:inset 0 1px 3px rgba(6,31,75,.08);
+}
+body.danzstak-original .topnav button {
+  min-width:44px;
+  min-height:44px;
+  border-radius:12px;
+}
+body.danzstak-original .topnav button:hover,
+body.danzstak-original .topnav button:focus-visible {
+  background:rgba(255,255,255,.18);
+}
+body.danzstak-original .layout {
+  max-width:1380px;
+  grid-template-columns:minmax(184px,222px) minmax(0,720px) minmax(190px,244px);
+  gap:clamp(12px,1.6vw,20px);
+  margin-top:18px;
+  align-items:start;
+}
+body.danzstak-original :is(.panel,.post) {
+  border:1px solid var(--mix-line);
+  border-radius:15px;
+  background:var(--mix-surface);
+  box-shadow:0 4px 18px rgba(19,45,80,.055);
+}
+body.danzstak-original .panel {padding:14px;margin-bottom:12px}
+body.danzstak-original .post {padding:12px 14px;margin-bottom:12px}
+body.danzstak-original .left .panel.menu {padding:10px 8px}
+body.danzstak-original .menu-section-heading {
+  margin:12px 11px 5px;
+  color:#58728e;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.11em;
+  font-weight:850;
+}
+body.danzstak-original .menu :is(a,.menu-action) {
+  border-radius:10px;
+  min-height:42px;
+  margin:1px 0;
+  gap:9px;
+  font-size:14px;
+  color:var(--mix-ink);
+}
+body.danzstak-original .menu a.active {
+  background:#e9f1fd;
+  color:var(--mix-blue);
+  box-shadow:inset 3px 0 var(--mix-accent);
+}
+body.danzstak-original .menu :is(a,.menu-action):hover {
+  background:#edf4fb;
+}
+body.danzstak-original .post-header {
+  padding-bottom:8px;
+  border-bottom:1px solid #edf1f5;
+}
+body.danzstak-original .post-avatar,
+body.danzstak-original .composer-avatar {
+  border:2px solid #fff;
+  box-shadow:0 0 0 1px #b7c8dc;
+}
+body.danzstak-original .post .post-author-details strong {
+  color:#142746;
+  letter-spacing:-.01em;
+}
+body.danzstak-original #feed .post :is(img,video) {
+  max-width:100%;
+}
+body.danzstak-original #feed .post :is(button,a):focus-visible,
+body.danzstak-original .menu :is(a,button):focus-visible {
+  outline:3px solid var(--mix-accent);
+  outline-offset:2px;
+}
+body.danzstak-original #newsFeedView .post-composer {
+  border-top:3px solid var(--mix-blue);
+}
+body.danzstak-original #newsFeedView .post-composer textarea {
+  background:#f2f6fa;
+  border:1px solid #dae4ee;
+  border-radius:12px;
+}
+body.danzstak-original #newsFeedView .post-composer :is(button,.primary) {
+  font-weight:750;
+}
+body.danzstak-original #storiesRail {
+  gap:9px;
+  margin-block:8px 13px;
+}
+body.danzstak-original .right .panel {
+  border-top:3px solid #dbe7f5;
+}
+body.danzstak-original .right :is(h3,h2) {
+  color:#193356;
+  letter-spacing:-.02em;
+}
+@media(max-width:1050px) {
+  body.danzstak-original .layout {
+    grid-template-columns:minmax(170px,210px) minmax(0,720px);
+    justify-content:center;
+  }
+}
+@media(max-width:700px) {
+  body.danzstak-original {background:#edf2f6;background-image:none}
+  body.danzstak-original .topbar {
+    background:#16375f;
+    border-bottom:2px solid var(--mix-accent);
+  }
+  body.danzstak-original .layout {
+    display:block;
+    margin:0;
+    padding:8px 0 0;
+  }
+  body.danzstak-original .panel,
+  body.danzstak-original .post {
+    border-radius:12px;
+    box-shadow:none;
+    margin-bottom:9px;
+  }
+  body.danzstak-original #yourMixMain {min-width:0}
+  body.danzstak-original #newsFeedView .post-composer {padding:10px 12px}
+  body.danzstak-original .post {padding:10px 11px}
+  body.danzstak-original .right {display:none}
+  body.danzstak-original #storiesRail {margin:6px 0 10px}
+}
+@media(prefers-reduced-motion:reduce){
+  body.danzstak-original *,
+  body.danzstak-original *::before,
+  body.danzstak-original *::after {scroll-behavior:auto!important}
+}
