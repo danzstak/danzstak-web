@@ -970,7 +970,7 @@ Status as of 2026-11-04: **IMPLEMENTED, LIVE-PROBED, AND READY FOR MERGE**.
 
 # Issue #49 — compact mobile Feed and Dailies identity
 
-Status as of 2026-11-05: **IMPLEMENTED AND LOCALLY VERIFIED; REVIEW PREVIEW PENDING; PRODUCTION FROZEN**.
+Status as of 2026-11-05: **IMPLEMENTED, LOCALLY VERIFIED, AND AVAILABLE IN REVIEW PREVIEW; PRODUCTION FROZEN**.
 
 - Work is isolated on `codex/issue-49-mobile-feed`. Production remains unchanged in accordance with release-process blocker Issue #50.
 - The collapsed Add to Mix composer now uses less phone height, preserves 44px touch controls, and exposes accessible icon-only Photo and clapperboard Video actions rather than text-heavy buttons.
@@ -982,4 +982,5 @@ Status as of 2026-11-05: **IMPLEMENTED AND LOCALLY VERIFIED; REVIEW PREVIEW PEND
 - Functional/regression evidence: all **262** repository `test-*.cjs` checks passed in one clean run. Focused composer, Dailies, CSP, PWA, accessibility, media, social, Booking/EPK/Tour Manager and Stripe regressions are included in that count.
 - Actual-browser evidence: the Issue #49 Dailies/Feed geometry and interaction suite passed at 320, 360, 390, 430 and 1024px. The populated Feed suite passed at 320, 360, 390, 414 and 430px. Tablet Feed layout passed at 701, 768, 820, 880 and 1024px. No tested viewport overflowed.
 - Review captures: [320px](screenshots/issue-49/feed-after-320.png), [360px](screenshots/issue-49/feed-after-360.png), [390px](screenshots/issue-49/feed-after-390.png), [430px](screenshots/issue-49/feed-after-430.png), and [1024px](screenshots/issue-49/feed-after-1024.png).
+- Draft pull request: [#54](https://github.com/danzstak/danzstak-web/pull/54). Review preview: `https://codex-issue-49-mobile-feed.d31oovi2mos5iz.amplifyapp.com/feed.html`. The preview returned HTTP 200 and was independently checked for Dailies markup, Feed CSS `v498`, Feed JS `v527`, the current CSP hash, and PWA shell `v681`. This is a DEVELOPMENT preview, not production.
 - Physical Android/iPhone and installed-device testing are **NOT TESTED** in this environment. No production deployment, production cache invalidation or owner acceptance is claimed.
