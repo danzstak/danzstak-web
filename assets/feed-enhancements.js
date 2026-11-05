@@ -374,6 +374,46 @@ async function friendActionFetch(path, options = {}, timeoutMs = 10000) {
   } finally { clearTimeout(timeout); }
 }
 
+async function removeAcceptedFriend(memberId, button) {
+  if (!/^[a-f0-9-]{36}$/.test(String(memberId || "")) || button?.dataset.pending === "true") return false;
+  const decision = await openChoiceDialog({
+    title: feedTranslate("Remove friend"),
+    description: feedTranslate("Remove this friend?"),
+    choices: [{ label: feedTranslate("Remove friend"), value: "remove" }],
+    selected: ""
+  });
+  if (decision !== "remove") return false;
+  const originalLabel = button.getAttribute("aria-label") || feedTranslate("Remove friend");
+  button.dataset.pending = "true";
+  button.disabled = true;
+  button.setAttribute("aria-label", feedTranslate("Removing…"));
+  button.title = feedTranslate("Removing…");
+  try {
+    const response = await friendActionFetch("/friends/remove", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.removed !== true) throw new Error(result.error || feedTranslate("Friend could not be removed."));
+    globalThis.danzstakShowFeedback?.(feedTranslate("Friend removed."));
+    renderWorkspace("Friends");
+    globalThis.refreshPeopleLists?.();
+    return true;
+  } catch (error) {
+    globalThis.danzstakShowFeedback?.(error.message || feedTranslate("Friend could not be removed."), { urgent: true });
+    return false;
+  } finally {
+    if (button.isConnected) {
+      delete button.dataset.pending;
+      button.disabled = false;
+      button.setAttribute("aria-label", originalLabel);
+      button.title = originalLabel;
+    }
+  }
+}
+
 function renderOnlineFriendList(list, users, presenceAvailable = true) {
   list.replaceChildren();
   if (!presenceAvailable) {
@@ -1524,7 +1564,18 @@ function renderWorkspace(name) {
         message.setAttribute("aria-label", `${feedTranslate("Message")}: ${displayName.textContent}`);
         message.title = `${feedTranslate("Message")}: ${displayName.textContent}`;
         message.addEventListener("click", () => openMessageDrawer(person.email));
-        row.append(link, message);
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "friend-remove-action";
+        remove.textContent = feedTranslate("Remove friend");
+        remove.dataset.icon = "trash";
+        remove.setAttribute("aria-label", feedFormat("Remove {name} from your friends", { name: displayName.textContent }));
+        remove.title = remove.getAttribute("aria-label");
+        remove.addEventListener("click", () => removeAcceptedFriend(friendMemberId, remove));
+        const actions = document.createElement("div");
+        actions.className = "friend-workspace-actions";
+        actions.append(message, remove);
+        row.append(link, actions);
         list.appendChild(row);
       }
     }).catch(error => {

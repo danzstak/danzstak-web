@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Accepted-friend removal — 2026-11-05
+
+Status: **TESTED LOCALLY; DEPLOYMENT PENDING**.
+
+- Added a compact, accessible trash action beside Message in the Friends workspace. It uses a nonblocking confirmation dialog, preserves 44px phone touch targets, prevents duplicate requests, reports success/failure clearly and keeps both actions on one row without exposing account email addresses.
+- Added authenticated `POST /friends/remove`. The client submits only the friend's opaque member ID; the server resolves the account internally and atomically deletes both accepted-friend relationship rows with DynamoDB transaction conditions. Missing or non-accepted relationships fail safely without partially changing either account.
+- Added complete removal guidance for all 15 supported non-English languages. The action, confirmation, pending, success and recovery text follows the member's selected language.
+- Functional/security evidence: `test-friend-removal.cjs` covers opaque identity, atomic two-way cleanup, confirmation/cancellation, duplicate-request protection, failure recovery, privacy and localization. The complete `test-regressions.ps1` suite passes, including infrastructure syntax, authentication, Friends/presence, Chat/calls, posts/media/audio, Booking Agent, EPK, Tour Manager, Stripe safeguards, PWA refresh, the bounded live release verifier and 11-page smoke testing.
+- Visual evidence: the Friends workspace passed the existing Edge/Playwright mobile matrix at 320, 390 and 414px with no horizontal overflow; the 390px result was manually inspected. Generated screenshot files remain outside this release because they belong to the owner's existing working set.
+- Scope: removing a friend ends the accepted relationship and therefore stops new friend-only access. It does not delete either member's existing messages or Make Plans history and is not an account-block feature.
+
 ## Issue #24 — private Make Plans invitations — 2026-11-05
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; CONTROLLED TWO-ACCOUNT HUMAN ACCEPTANCE REMAINS**.
