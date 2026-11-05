@@ -246,7 +246,6 @@
   });
   bookingMode.value = "direction";
   $("startCity").closest("label").firstChild.textContent = "Home city";
-  $("startCity").value = "";
   $("startCity").placeholder = "City, region, country";
   $("endCity").closest("label").firstChild.textContent =
     "Turnaround city (only if known)";
