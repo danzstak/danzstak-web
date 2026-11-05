@@ -1,33 +1,28 @@
-const { readFileSync } = require('node:fs');
-const { join } = require('node:path');
-const assert = require('node:assert/strict');
+const { readFileSync } = require("node:fs");
+const assert = require("node:assert/strict");
 
-const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
-const css = readFileSync(join(__dirname, 'assets/feed-enhancements.css'), 'utf8');
-const feed = readFileSync(join(__dirname, 'feed.html'), 'utf8');
+const source = readFileSync("assets/feed-enhancements.js", "utf8");
+const css = readFileSync("assets/feed-enhancements.css", "utf8");
+const feed = readFileSync("feed.html", "utf8");
+const start = source.indexOf('if (name === "Friends")');
+const end = source.indexOf('if (["Photos", "Videos"].includes(name))', start);
+const workspace = source.slice(start, end);
 
-assert.match(source, /function renderOnlineFriendList\(list, users, presenceAvailable = true\)/, 'Friends has a dedicated online-user discovery list with an explicit availability state');
-assert.match(source, /const online = users\.filter\(person => person\.online === true\)/, 'only currently online people appear in the discovery list');
-assert.match(source, /action\.textContent = feedTranslate\("Add Friend"\)/, 'an unconnected online member has one clear localized Add Friend action');
-assert.match(source, /const labelAction = template => \{[\s\S]*feedFormat\(template, \{ name: displayName \}\)[\s\S]*action\.setAttribute\("aria-label", label\)/, 'every repeated friend action receives a localized member-specific accessible name');
-for (const label of ["Message {name}", "Message {name} from your Tribe", "Accept friend request from {name}", "Accepting friend request from {name}", "Send friend request to {name}", "Sending friend request to {name}", "Friend request sent to {name}.", "Friends with {name}"])
-  assert.ok(source.includes(`"${label}"`), `friend action state must identify the affected member: ${label}`);
-assert.match(source, /const requestTarget = \/\^\[a-f0-9-\]\{36\}\$\/\.test\(memberId\) \? \{ memberId \} : \{ email: person\.email \}/, 'online discovery uses an opaque member ID whenever available');
-assert.match(source, /action\.textContent = feedTranslate\("Accept"\)/, 'incoming requests can be accepted from the same localized list');
-assert.match(source, /action\.textContent = feedTranslate\("Requested"\)/, 'sent requests have an understandable localized state');
-assert.match(source, /action\.textContent = feedTranslate\(person\.friendStatus === "friends" \? "Message" : "Tribe Message"\)/, 'existing connections can be messaged instead of receiving duplicate requests');
-assert.match(source, /onlineHeading\.textContent = feedTranslate\("Users online"\)/, 'the top Friends workspace section has a localized Users online heading');
-assert.match(source, /friendsHeading\.textContent = feedTranslate\("Your friends"\)/, 'accepted friends remain visible below a localized heading');
-assert.doesNotMatch(source, /Add a friend by email/, 'ordinary users are not required to know account email addresses');
-assert.match(css, /\.friend-discovery-list\{display:grid;/, 'online-user discovery uses a responsive compact grid');
-assert.match(source, /message\.dataset\.icon = "chat"/, 'the friend message action uses the shared recognizable Chat icon');
-assert.match(source, /message\.title = `\$\{feedTranslate\("Message"\)\}: \$\{displayName\.textContent\}`/, 'the compact friend message action keeps a descriptive desktop tooltip');
-assert.match(css, /\.friend-workspace-row\{grid-template-columns:minmax\(0,1fr\) auto\}/, 'mobile friend rows reserve one compact action column instead of creating a second row');
-assert.match(css, /\.friend-workspace-actions\{display:flex;align-items:center;gap:6px;flex-wrap:nowrap\}/, 'friend actions stay together without wrapping');
-assert.match(css, /\.friend-message-action,.friend-message-action\.ds-icon-button,.friend-remove-action,.friend-remove-action\.ds-icon-button\{width:44px;min-width:44px;min-height:44px;/, 'the compact friend controls keep usable mobile touch targets');
-assert.match(feed, /assets\/feed-enhancements\.css\?v=499/, 'the feed loads the current friend discovery styles');
-assert.match(css, /@media\(max-width:700px\)\{\.friend-discovery-row button\.ds-icon-button\{width:44px;min-width:44px;height:44px;min-height:44px\}\}/, 'online-user Chat icons keep a full phone touch target');
-assert.match(feed, /assets\/feed-enhancements\.js\?v=528/, 'the feed loads the current localized friend discovery behavior');
-assert.match(source, /action\.dataset\.icon = "chat";[\s\S]*labelAction\(person\.friendStatus === "friends" \? "Message \{name\}"/, 'accepted online users use the same accessible Chat icon as saved friends');
+for (const tab of ["All Friends", "Online", "Requests", "Find Friends"])
+  assert.ok(workspace.includes(`"${tab}"`), `${tab} must remain available`);
+assert.match(workspace, /return count && value !== "find" \? `\$\{feedTranslate\(label\)\}/, "tab labels and counts use translations");
+assert.match(workspace, /presenceAvailable: false, shown: 24/, "large friend lists begin with a bounded page");
+assert.match(workspace, /message\.textContent = feedTranslate\("Message \(SYNC\)"\)/, "accepted friends have a direct SYNC action");
+assert.match(workspace, /more\.textContent = feedTranslate\("More"\)/, "relationship actions stay in More");
+assert.match(workspace, /removeAcceptedFriend\(memberId, more\)/, "More preserves confirmed remove and block behavior");
+assert.match(workspace, /\[\[true, "Confirm", "primary"\], \[false, "Delete", "secondary"\]\]/, "requests expose confirm and delete actions in place");
+assert.match(workspace, /danzstakMountPeopleFinder/, "Find Friends uses member discovery");
+assert.match(workspace, /event\.key === 'ArrowRight'/, "tabs support keyboard navigation");
+assert.doesNotMatch(workspace, /Add a friend by email/, "ordinary users are not required to know account emails");
+assert.match(css, /\.friends-directory-list\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/, "desktop uses a compact two-column directory");
+assert.match(css, /@media\(max-width:700px\)[\s\S]*\.friends-directory-list\{grid-template-columns:1fr\}/, "mobile uses one readable column");
+assert.match(css, /\.friend-sync-action,.friend-more-action,.friend-request-actions button\{min-height:44px/, "mobile controls keep usable touch targets");
+assert.match(feed, /assets\/feed-enhancements\.css\?v=499/, "feed loads current Friends styles");
+assert.match(feed, /assets\/feed-enhancements\.js\?v=529/, "feed loads current Friends behavior");
 
-console.log('Friend discovery checks passed: the Friends button lists online users with one-tap relationship actions and no email lookup.');
+console.log("Friend directory checks passed: compact tabs, paging, requests, discovery, SYNC and safe relationship actions.");

@@ -7,7 +7,7 @@ const feed = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const css = fs.readFileSync("assets/responsive-media.css", "utf8");
 const icons = fs.readFileSync("assets/icon-buttons.js", "utf8");
 
-assert.match(people, /placeholder = "Example: Sigmund"/, "friend search should show Sigmund as the example");
+assert.match(people, /search\.placeholder = options\.placeholder \|\| "Example: Sigmund"/, "friend search should show Sigmund as the example");
 assert.doesNotMatch(media, /localStorage\.setItem\([^)]*danzstak_video_sound/, "audio must not silently persist across videos or visits");
 assert.match(media, /document\.addEventListener\('volumechange'/, "native video sound changes should update the shared choice");
 assert.match(media, /document\.querySelectorAll\?\.\('video'\)/, "the shared choice should update every native video");

@@ -9,7 +9,7 @@ const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8016")
 const widths = [320, 360, 390, 414, 430];
 const pages = [
   ["home", "feed.html?view=feed", ".post-composer"],
-  ["friends", "feed.html?view=friends", ".friend-workspace-row"],
+  ["friends", "feed.html?view=friends", ".friend-directory-row"],
   ["notifications", "feed.html?view=notifications", ".notification-row"],
   ["chat", "messages.html", ".conversation-row"],
   ["profile", "profile.html", ".profile"],
@@ -58,7 +58,7 @@ function fixture(pathname) {
         await page.waitForTimeout(100);
         if (name === "friends") {
           assert.match(await page.locator(".feed-online-row button").first().getAttribute("aria-label") || "", /^Message\b/, `${width}px accepted online friend must not offer a duplicate friend request`);
-          assert.equal(await page.locator(".friend-workspace-row").count(), 1, `${width}px accepted friend card is missing`);
+          assert.equal(await page.locator(".friend-directory-row").count(), 1, `${width}px accepted friend card is missing`);
         }
         if (name === "notifications") {
           assert.equal(await page.locator(".notification-row").count(), 2, `${width}px populated notification sources did not remain visible together`);

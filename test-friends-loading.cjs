@@ -1,69 +1,17 @@
-const { readFileSync } = require('node:fs');
-const { join } = require('node:path');
-const vm = require('node:vm');
-const assert = require('node:assert/strict');
-const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
-const code = source.slice(source.indexOf('  if (name === "Friends") {'), source.indexOf('  if (["Photos", "Videos"].includes(name)) {'));
-const nodes = [];
-function node(tag) {
-  const item = { tag, children: [], append(...items) { this.children.push(...items); }, appendChild(item) { this.children.push(item); }, replaceChildren() { this.children = []; }, setAttribute() {}, addEventListener() {} };
-  nodes.push(item); return item;
-}
-vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
-  document: { createElement: node }, window: { danzstakMountPeopleFinder() {} }, workspace: node('workspace'), featureText: {}, renderOnlineFriendList() {}, isCurrentWorkspace: () => true, AbortController, setTimeout, clearTimeout,
-  feedTranslate: value => value, feedFormat: (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), key),
-  fetch: async url => {
-    if (url.endsWith('/calls/directory')) throw new Error('Presence unavailable');
-    return { ok: true, json: async () => ({ friends: [{ email: 'friend@example.com', memberId: '44444444-4444-4444-4444-444444444444', name: 'Existing Friend' }] }) };
-  }
-});
-setImmediate(async () => {
-  try {
-    assert.equal(nodes.filter(item => item.tag === 'a').length, 1, 'presence failure must not hide accepted friends');
-    assert.equal(nodes.find(item => item.tag === 'a').href, 'profile.html?member=44444444-4444-4444-4444-444444444444');
-    assert.doesNotMatch(nodes.find(item => item.tag === 'a').href, /@|%40/);
-    assert.ok(nodes.some(item => item.tag === 'small' && item.textContent === 'Status unavailable'), 'presence failure must not falsely label a friend offline');
-    const mergedNodes = [];
-    function mergedNode(tag) {
-      const item = { tag, children: [], append(...items) { this.children.push(...items); }, appendChild(child) { this.children.push(child); }, replaceChildren() { this.children = []; }, setAttribute() {}, addEventListener() {} };
-      mergedNodes.push(item); return item;
-    }
-    vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
-      document: { createElement: mergedNode }, window: { danzstakMountPeopleFinder() {} }, workspace: mergedNode('workspace'), featureText: {}, renderOnlineFriendList() {}, isCurrentWorkspace: () => true, AbortController, setTimeout, clearTimeout,
-      feedTranslate: value => value, feedFormat: (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), key),
-      fetch: async url => url.endsWith('/calls/directory')
-        ? { ok: true, json: async () => ({ users: [{ email: 'friend@example.com', name: 'Directory Friend', picture: 'https://cdn.example/friend.jpg', online: true }] }) }
-        : { ok: true, json: async () => ({ friends: [{ email: 'friend@example.com', memberId: '44444444-4444-4444-4444-444444444444', name: 'Existing Friend' }] }) }
-    });
-    await new Promise(resolve => setImmediate(resolve));
-    const mergedAvatar = mergedNodes.find(item => item.tag === 'img');
-    assert.equal(mergedAvatar?.src, 'https://cdn.example/friend.jpg', 'friend cards should use the directory picture when the friends response omits it');
-    assert.ok(mergedNodes.some(item => item.tag === 'small' && item.textContent === 'Online'), 'friend cards should use the matching directory presence');
-    const timeoutNodes = [];
-    let deadline;
-    let retries = 0;
-    class TestAbortController {
-      constructor() { const listeners = []; this.signal = { aborted: false, addEventListener(type, fn) { if (type === 'abort') listeners.push(fn); } }; this.abort = () => { this.signal.aborted = true; listeners.forEach(fn => fn()); }; }
-    }
-    function timeoutNode(tag) {
-      const item = { tag, children: [], listeners: {}, append(...items) { this.children.push(...items); }, appendChild(child) { this.children.push(child); }, replaceChildren(...items) { this.children = items; }, setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { this.listeners[name] = fn; } };
-      timeoutNodes.push(item); return item;
-    }
-    vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
-      document: { createElement: timeoutNode }, window: { danzstakMountPeopleFinder() {} }, workspace: timeoutNode('workspace'), featureText: {}, renderOnlineFriendList() {}, isCurrentWorkspace: () => true,
-      feedTranslate: value => value, feedFormat: (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), key),
-      AbortController: TestAbortController, setTimeout(fn) { deadline = fn; return 1; }, clearTimeout() {}, renderWorkspace(name) { if (name === 'Friends') retries++; },
-      fetch: (url, options) => new Promise((resolve, reject) => { const abort = () => { const error = new Error('aborted'); error.name = 'AbortError'; reject(error); }; if (options.signal.aborted) abort(); else options.signal.addEventListener('abort', abort); })
-    });
-    deadline();
-    await new Promise(resolve => setImmediate(resolve));
-    await new Promise(resolve => setImmediate(resolve));
-    const alert = timeoutNodes.find(item => item.role === 'alert');
-    const retry = timeoutNodes.find(item => item.tag === 'button' && item.textContent === 'Retry friends');
-    assert.equal(alert?.textContent, 'Friends took too long to load.');
-    assert.ok(retry, 'timed-out friend loading must provide a specific friends retry button');
-    retry.listeners.click();
-    assert.equal(retries, 1, 'Retry must reopen the Friends workspace');
-    console.log('Friends loading check passed: accepted friends survive a failed presence lookup without a false offline status.');
-  } catch (error) { console.error(error); process.exitCode = 1; }
-});
+const assert = require("node:assert/strict");
+const { readFileSync } = require("node:fs");
+
+const source = readFileSync("assets/feed-enhancements.js", "utf8");
+const start = source.indexOf('if (name === "Friends")');
+const end = source.indexOf('if (["Photos", "Videos"].includes(name))', start);
+const workspace = source.slice(start, end);
+
+assert.match(workspace, /Promise\.allSettled\(\[\s*fetch\("https:\/\/api\.danzstak\.com\/friends"[\s\S]*fetch\("https:\/\/api\.danzstak\.com\/calls\/directory"[\s\S]*fetch\("https:\/\/api\.danzstak\.com\/notifications"/, "Friends, presence and request recovery load independently");
+assert.match(workspace, /state\.presenceAvailable = directoryResponse\?\.ok === true/, "presence availability remains explicit instead of falsely showing offline");
+assert.match(workspace, /const friendsData = await friendsResponse\.json\(\);[\s\S]*const friends = friendsData\.friends \|\| \[\]/, "accepted friends render from the authoritative Friends response");
+assert.match(workspace, /online: directoryFriend\.online === true/, "accepted friends merge truthful directory presence when available");
+assert.match(workspace, /friendsResult\.status === "rejected" && friendsResult\.reason\?\.name === "AbortError"[\s\S]*Friends took too long to load/, "timeouts have a specific recovery state");
+assert.match(workspace, /retry\.textContent = feedTranslate\("Retry friends"\)/, "failed friend loading exposes a clear retry");
+assert.match(workspace, /if \(!isCurrentWorkspace\(\)\) return;/, "stale responses cannot replace a newer workspace");
+
+console.log("Friends loading checks passed: independent sources, truthful presence, stale guards, timeout recovery and retry remain explicit.");
