@@ -2,7 +2,7 @@
 
 ## Issue #24 — private Make Plans invitations — 2026-11-05
 
-Status: **IMPLEMENTED AND PASSING THE LOCAL RELEASE GATE; PRODUCTION DEPLOYMENT IN PROGRESS WITH OWNER APPROVAL**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; CONTROLLED TWO-ACCOUNT HUMAN ACCEPTANCE REMAINS**.
 
 - Added a private **Make plans** flow to an accepted one-to-one Chat: title, future date/time, IANA timezone, optional public meeting place and note, Pending/Going/Maybe/Declined/Cancelled responses, inviter edit/cancel, and user-triggered `.ics` calendar export.
 - Added an encrypted, point-in-time-recoverable DynamoDB plan table and authenticated API routes. Reads and writes are participant-scoped; create/edit re-check accepted friendship; writes use deterministic idempotency, a daily invitation limit, optimistic revisions and two-participant DynamoDB transactions.
@@ -10,6 +10,9 @@ Status: **IMPLEMENTED AND PASSING THE LOCAL RELEASE GATE; PRODUCTION DEPLOYMENT 
 - Corrected two integration defects found during testing: the title field ID did not match the current dialog, and the privacy-safe API response no longer included emails that the old client filter expected. Added permanent regression coverage for both paths.
 - Functional/integration evidence: `test-make-plans.cjs`, page script-scope, call-notification privacy, infrastructure validation, and the complete `test-regressions.ps1` suite pass. The full suite covers authentication, persistent social content, Friends, Notifications, Chat/calls, media/audio, Booking Agent, EPK, Tour Manager, Stripe safeguards, PWA refresh, 11-page smoke testing and infrastructure.
 - Visual evidence: Edge/Playwright passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Checks require no horizontal overflow, usable touch geometry and a responsive full-screen phone dialog. Captures are in `docs/screenshots/mobile-ui/make-plans-*.png`; the 390px result was manually inspected.
+- The first live visual pass found that keeping every call action visible compressed the contact name at 768px. The root layout was corrected by narrowing the tablet conversation-list column instead of hiding functional phone/video controls or shrinking their 44px touch targets. The full live matrix then passed at all nine widths.
+- **Production release:** feature commit `32926a1bbe0dcfd1920c4053e40ec59e6f81934a` and tablet correction `70d83ac923c3fc5a48cfde86aa7e584e3fb09647` were fast-forwarded to `main`. Reviewed CloudFormation change set `issue24-9aecbfea980c` added the retained `DanzStak-Plans` table, six plan routes and one invoke permission, with only in-place Lambda/API/IAM modifications and no replacements. Stack `DANZSTAK-Call-Signaling` reached `UPDATE_COMPLETE` in `us-west-1`; point-in-time recovery is `ENABLED` and every plan resource reports `CREATE_COMPLETE`.
+- AWS Amplify app `d31oovi2mos5iz`, branch `main`, jobs `908` and `909` succeeded. Live no-cache probes confirmed `danzstak-shell-v677`, `chat.css?v=451`, the Make Plans assets, and an unauthenticated `/plans` response of HTTP 401. The bounded release verifier and 11-page site smoke test pass. The final Edge/Playwright matrix also passes directly against `https://danzstak.com` at all nine widths.
 - Known limitation: the current social stack has no general account-block model. New and changed invitations require an accepted friendship, while both original participants retain their own invitation history after an unfriend. Push delivery is not claimed for this MVP; in-app Buzz notification is implemented.
 
 ## ChatGPT status bridge — 2026-11-04

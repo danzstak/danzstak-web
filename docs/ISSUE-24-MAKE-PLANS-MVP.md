@@ -1,7 +1,7 @@
 # Issue #24 — Make Plans MVP review evidence
 
 **Branch:** `codex/issue-24-release`
-**Status:** RELEASE CANDIDATE — implementation, full local regression testing and responsive browser verification pass. The owner subsequently authorized merge and deployment; production verification is recorded in the central development report.
+**Status:** DEPLOYED — implementation, full regression testing, reviewed AWS infrastructure deployment and live responsive browser verification pass. Production evidence is recorded in the central development report.
 
 ## Audit
 
