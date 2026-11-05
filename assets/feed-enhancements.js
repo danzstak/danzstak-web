@@ -377,27 +377,31 @@ async function friendActionFetch(path, options = {}, timeoutMs = 10000) {
 async function removeAcceptedFriend(memberId, button) {
   if (!/^[a-f0-9-]{36}$/.test(String(memberId || "")) || button?.dataset.pending === "true") return false;
   const decision = await openChoiceDialog({
-    title: feedTranslate("Remove friend"),
-    description: feedTranslate("Remove this friend?"),
-    choices: [{ label: feedTranslate("Remove friend"), value: "remove" }],
+    title: feedTranslate("Friend options"),
+    description: feedTranslate("Remove this friend, or block them from finding and contacting you."),
+    choices: [
+      { label: feedTranslate("Remove friend"), value: "remove" },
+      { label: feedTranslate("Block member"), value: "block" }
+    ],
     selected: ""
   });
-  if (decision !== "remove") return false;
+  if (!['remove', 'block'].includes(decision)) return false;
+  const blocking = decision === "block";
   const originalLabel = button.getAttribute("aria-label") || feedTranslate("Remove friend");
   button.dataset.pending = "true";
   button.disabled = true;
-  button.setAttribute("aria-label", feedTranslate("Removing…"));
-  button.title = feedTranslate("Removing…");
+  button.setAttribute("aria-label", feedTranslate(blocking ? "Blocking…" : "Removing…"));
+  button.title = feedTranslate(blocking ? "Blocking…" : "Removing…");
   try {
-    const response = await friendActionFetch("/friends/remove", {
+    const response = await friendActionFetch(blocking ? "/friends/block" : "/friends/remove", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ memberId })
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok || result.removed !== true) throw new Error(result.error || feedTranslate("Friend could not be removed."));
-    globalThis.danzstakShowFeedback?.(feedTranslate("Friend removed."));
+    if (!response.ok || (blocking ? result.blocked !== true : result.removed !== true)) throw new Error(result.error || feedTranslate(blocking ? "Member could not be blocked." : "Friend could not be removed."));
+    globalThis.danzstakShowFeedback?.(feedTranslate(blocking ? "Member blocked." : "Friend removed."));
     renderWorkspace("Friends");
     globalThis.refreshPeopleLists?.();
     return true;
@@ -411,6 +415,84 @@ async function removeAcceptedFriend(memberId, button) {
       button.setAttribute("aria-label", originalLabel);
       button.title = originalLabel;
     }
+  }
+}
+
+async function renderBlockedMembers(container) {
+  if (!container?.isConnected) return;
+  const loading = document.createElement("p");
+  loading.className = "muted blocked-members-status";
+  loading.setAttribute("role", "status");
+  loading.textContent = feedTranslate("Loading blocked members…");
+  container.replaceChildren(loading);
+  try {
+    const response = await friendActionFetch("/friends/blocked", { credentials: "include", cache: "no-store" });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || feedTranslate("Blocked members could not be loaded."));
+    const members = Array.isArray(result.members) ? result.members : [];
+    container.replaceChildren();
+    if (!members.length) {
+      const empty = document.createElement("p");
+      empty.className = "muted blocked-members-status";
+      empty.textContent = feedTranslate("No blocked members.");
+      container.appendChild(empty);
+      return;
+    }
+    for (const member of members) {
+      const memberId = String(member.memberId || "");
+      if (!/^[a-f0-9-]{36}$/.test(memberId)) continue;
+      const row = document.createElement("div");
+      row.className = "blocked-member-row";
+      const avatar = document.createElement(member.picture ? "img" : "span");
+      avatar.className = "blocked-member-avatar";
+      if (member.picture) { avatar.src = member.picture; avatar.alt = ""; avatar.loading = "lazy"; avatar.referrerPolicy = "no-referrer"; }
+      else { avatar.textContent = String(member.name || "D").trim().slice(0, 1).toUpperCase() || "D"; avatar.setAttribute("aria-hidden", "true"); }
+      const name = document.createElement("strong");
+      name.textContent = String(member.name || feedTranslate("DanzStak member"));
+      const unblock = document.createElement("button");
+      unblock.type = "button";
+      unblock.className = "secondary blocked-member-unblock";
+      unblock.textContent = feedTranslate("Unblock");
+      unblock.setAttribute("aria-label", feedFormat("Unblock {name}", { name: name.textContent }));
+      unblock.addEventListener("click", async () => {
+        const decision = await openChoiceDialog({
+          title: feedTranslate("Unblock member?"),
+          description: feedTranslate("They may find and contact you again where your privacy settings allow."),
+          choices: [{ label: feedTranslate("Unblock"), value: "unblock" }],
+          selected: ""
+        });
+        if (decision !== "unblock") return;
+        unblock.disabled = true;
+        const original = unblock.textContent;
+        unblock.textContent = feedTranslate("Unblocking…");
+        try {
+          const unblockResponse = await friendActionFetch("/friends/unblock", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ memberId }) });
+          const unblockResult = await unblockResponse.json().catch(() => ({}));
+          if (!unblockResponse.ok || unblockResult.unblocked !== true) throw new Error(unblockResult.error || feedTranslate("Member could not be unblocked."));
+          globalThis.danzstakShowFeedback?.(feedTranslate("Member unblocked."));
+          globalThis.refreshPeopleLists?.();
+          await renderBlockedMembers(container);
+        } catch (error) {
+          globalThis.danzstakShowFeedback?.(error.message || feedTranslate("Member could not be unblocked."), { urgent: true });
+          if (unblock.isConnected) { unblock.disabled = false; unblock.textContent = original; }
+        }
+      });
+      row.append(avatar, name, unblock);
+      container.appendChild(row);
+    }
+  } catch (error) {
+    const failed = document.createElement("div");
+    failed.className = "blocked-members-recovery";
+    const message = document.createElement("p");
+    message.className = "muted";
+    message.textContent = error.message || feedTranslate("Blocked members could not be loaded.");
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "secondary";
+    retry.textContent = feedTranslate("Retry");
+    retry.addEventListener("click", () => renderBlockedMembers(container));
+    failed.append(message, retry);
+    container.replaceChildren(failed);
   }
 }
 
@@ -1800,6 +1882,9 @@ function renderWorkspace(name) {
     });
     const alertSettings = document.createElement("div");
     alertSettings.className = "alert-preferences";
+    const blockedMembers = document.createElement("div");
+    blockedMembers.className = "blocked-members";
+    blockedMembers.setAttribute("aria-label", feedTranslate("Blocked members"));
     const callAlertsCheckbox = document.createElement("input");
     callAlertsCheckbox.type = "checkbox";
     callAlertsCheckbox.checked = true;
@@ -1893,6 +1978,7 @@ function renderWorkspace(name) {
       settingRow("wifi", "Data saver", dataSaverCheckbox),
       settingRow("globe", "Language", language),
       settingRow("bell", "Call and message alerts", alertSettings),
+      settingRow("lock", feedTranslate("Blocked members"), blockedMembers),
       settingRow("smartphone", "App and device settings", appSettings),
       settingRow("activity", "Your DanzStak activity", activityButton),
       settingRow("download", "Download my data", exportButton),
@@ -1901,6 +1987,7 @@ function renderWorkspace(name) {
       settingRow("logout", "Account", logout),
       button
     );
+    renderBlockedMembers(blockedMembers);
   }
 }
 

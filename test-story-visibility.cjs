@@ -36,6 +36,7 @@ const ctx = vm.createContext({
   ListUsersCommand,
   cognito:{send:async command=>{const email=command.input.Filter.match(/"(.*)"/)[1];return {Users:[{Attributes:[{Name:'email',Value:email},{Name:'sub',Value:`member-${email}`},{Name:'name',Value:email==='someone@example.com'?'Public Story Author':email==='friend@example.com'?'Friend Story Author':'Current Member'}]}]};}},
   publicProfile:async(email,account)=>({memberId:account.Attributes.find(value=>value.Name==='sub').Value,name:account.Attributes.find(value=>value.Name==='name').Value}),
+  blockedStatus:status=>status==='blocked'||status==='blocked_by',
   mapLimit:async(values,_limit,task)=>Promise.all(values.map(task)),
   console:{warn(){}}, signedMediaUrl:(_,key)=>'https://media.test/'+key, json:(_,payload)=>payload
 });

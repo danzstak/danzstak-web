@@ -221,6 +221,18 @@ async function batchGetFriendships(viewerEmail, friendEmails) {
   return items;
 }
 
+async function isBlockedPair(viewerEmail, memberEmail) {
+  if (!viewerEmail || !memberEmail || viewerEmail === memberEmail) return false;
+  const relationship = await db.send(new GetItemCommand({
+    TableName: friendsTable,
+    Key: { userEmail: { S: viewerEmail }, friendEmail: { S: memberEmail } },
+    ConsistentRead: true,
+    ProjectionExpression: "#status",
+    ExpressionAttributeNames: { "#status": "status" }
+  }));
+  return ["blocked", "blocked_by"].includes(relationship.Item?.status?.S);
+}
+
 const sha256 = value =>
   createHash("sha256").update(value).digest("hex");
 
@@ -1074,6 +1086,7 @@ async function canViewProfileMedia(viewerEmail, profileEmail) {
     Key: { userEmail: { S: viewerEmail }, friendEmail: { S: profileEmail } },
     ConsistentRead: true
   }));
+  if (["blocked", "blocked_by"].includes(friendship.Item?.status?.S)) return false;
   if (friendship.Item?.status?.S === "friends") return true;
   const memberships = await scanAll({
     TableName: groupsTable,
@@ -1218,20 +1231,22 @@ async function getSecurePosts(event) {
   const rawPosts = (await scanAll({ TableName: postsTable, ConsistentRead: true }))
     .filter(item => item.postId?.S && item.content?.S && item.createdAt?.S);
   const viewerEmail = await accountForSub(userId);
-  const friendAuthors = [...new Set(rawPosts
-    .filter(item => item.userId?.S !== userId && item.audience?.S === "friends" && item.userEmail?.S)
+  const otherAuthors = [...new Set(rawPosts
+    .filter(item => item.userId?.S !== userId && item.userEmail?.S)
     .map(item => item.userEmail.S))];
   const friendEmails = new Set();
+  const blockedEmails = new Set();
   const viewerGroupIds = new Set();
   const groupNames = new Map([
     ["default-0", "Visual Artist"], ["default-1", "DJs & Producers"], ["default-2", "Fans"], ["default-3", "Venues"], ["default-4", "Events"],
     ["default-5", "Scenes"], ["default-6", "Bands"], ["default-7", "Industry"], ["default-8", "Politics"], ["default-9", "Religion"]
   ]);
 
-  if (viewerEmail && friendAuthors.length) {
-    const friendships = await batchGetFriendships(viewerEmail, friendAuthors);
+  if (viewerEmail && otherAuthors.length) {
+    const friendships = await batchGetFriendships(viewerEmail, otherAuthors);
     for (const item of friendships) {
       if (item.status?.S === "friends" && item.friendEmail?.S) friendEmails.add(item.friendEmail.S);
+      if (["blocked", "blocked_by"].includes(item.status?.S) && item.friendEmail?.S) blockedEmails.add(item.friendEmail.S);
     }
   }
 
@@ -1243,7 +1258,7 @@ async function getSecurePosts(event) {
     }
   }
 
-  const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S))));
+  const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || (!blockedEmails.has(item.userEmail?.S) && (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S)))));
   const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));
   const authorProfiles = typeof loadFeedAuthorProfiles === "function" ? await loadFeedAuthorProfiles([...visiblePosts,...tagNames]) : new Map();
   const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
@@ -1290,14 +1305,15 @@ async function postForEngagement(postId, userId) {
   const post = found.Item;
   if (!post) return { error: "Post not found.", statusCode: 404 };
   if (post.userId?.S === userId) return { post };
+  const viewerEmail = await accountForSub(userId);
+  if (!viewerEmail) return { error: "Account email could not be verified.", statusCode: 409 };
+  if (post.userEmail?.S && await isBlockedPair(viewerEmail, post.userEmail.S)) return { error: "Post is not available.", statusCode: 403 };
   if (post.groupId?.S) {
     const access = await requireGroupMember(post.groupId.S, userId);
     return access.error ? access : { post };
   }
   if (post.audience?.S === "public") return { post };
   if (post.audience?.S !== "friends" || !post.userEmail?.S) return { error: "Post is not available.", statusCode: 403 };
-  const viewerEmail = await accountForSub(userId);
-  if (!viewerEmail) return { error: "Account email could not be verified.", statusCode: 409 };
   const friendship = await db.send(new BatchGetItemCommand({
     RequestItems: {
       [friendsTable]: {
@@ -1348,10 +1364,20 @@ async function getEngagement(event) {
   const postId = String(event.queryStringParameters?.postId || "");
   const access = await postForEngagement(postId, userId);
   if (!access.post) return { statusCode: access.statusCode, headers, body: JSON.stringify({ error: access.error }) };
-  const [reactionItems, commentItems] = await Promise.all([
+  const [reactionItemsRaw, commentItemsRaw] = await Promise.all([
     queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ConsistentRead: true }),
     queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ConsistentRead: true })
   ]);
+  const viewerEmail = await accountForSub(userId);
+  const interactionEmails = [...new Set([...reactionItemsRaw, ...commentItemsRaw].map(item => item.userEmail?.S).filter(email => email && email !== viewerEmail))];
+  const blockedEmails = new Set();
+  if (viewerEmail && interactionEmails.length) {
+    for (const item of await batchGetFriendships(viewerEmail, interactionEmails)) {
+      if (["blocked", "blocked_by"].includes(item.status?.S) && item.friendEmail?.S) blockedEmails.add(item.friendEmail.S);
+    }
+  }
+  const reactionItems = reactionItemsRaw.filter(item => !blockedEmails.has(item.userEmail?.S));
+  const commentItems = commentItemsRaw.filter(item => !blockedEmails.has(item.userEmail?.S));
   const commentReactionItems = reactionItems.filter(item => item.commentId?.S);
   const authorProfiles = await loadFeedAuthorProfiles([...commentItems, ...commentReactionItems]);
   const authorNames = await loadFeedAuthorNames([...commentItems, ...commentReactionItems], authorProfiles);

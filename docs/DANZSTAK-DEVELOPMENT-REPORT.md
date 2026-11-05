@@ -1,5 +1,18 @@
 # DANZSTAK development report
 
+## Account blocking and privacy boundaries — 2026-11-05
+
+Status: **TESTED LOCALLY; DEPLOYMENT PENDING**.
+
+- Added a blocker-owned, two-way relationship state. Blocking atomically writes `blocked` for the member taking the action and `blocked_by` for the other account; only the original blocker can reverse it. Requests use opaque member IDs, resolve account addresses only on the server and return generic unavailable responses where identity details would disclose a block.
+- Blocking now prevents new direct messages and calls, friend requests, public-directory and online discovery, shared-Tribe contact eligibility, profile-media access, notification delivery from the blocked account, and visibility of that account's Feed posts, comments, reactions, Flashes and Roll entries. Direct access to public or Tribe posts is also denied rather than relying only on client filtering.
+- Existing one-to-one message history remains readable but becomes non-contactable, so blocking does not silently destroy either member's records. Existing Make Plans history also remains; new or changed plans already require an accepted friendship, and plan notifications from blocked inviters are suppressed.
+- Friends now offers a clear choice between **Remove friend** and **Block member** in the same accessible dialog. Settings includes an independently recoverable **Blocked members** manager with public identity only and an explicit unblock confirmation. All requests contain only opaque member IDs; account email addresses are not rendered or returned by the manager.
+- Complete action, confirmation, progress, success, empty and recovery text is present in all 15 supported non-English locales.
+- Functional/security evidence: `test-account-blocking.cjs`, page script-scope, infrastructure validation and the complete `test-regressions.ps1` gate pass. The full suite covers authentication, Friends/presence, Notifications, Chat/calls, Feed/profile/media privacy, persistent social data, Booking Agent, EPK, Tour Manager, Stripe safeguards, PWA refresh, the bounded live-release verifier and 11-page smoke testing.
+- Visual evidence: Edge/Playwright passes at 320, 390, 414, 768 and 1024px with zero document overflow, a compact friend privacy action, the two-choice dialog, opaque block/unblock requests, Settings recovery and 44px phone touch geometry. The browser pass found and corrected a real CSS-specificity defect that had reduced the Unblock touch target to 34px at 320px.
+- Pending release work: deploy the reviewed signaling routes and Auth API enforcement, publish PWA shell `v680` with `i18n.js?v=394`, `feed-enhancements.js?v=526` and `feed-enhancements.css?v=497`, then repeat live route, asset, browser, release and site-smoke verification. No production behavior is claimed until those steps pass.
+
 ## Accepted-friend removal — 2026-11-05
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; CONTROLLED TWO-ACCOUNT HUMAN ACCEPTANCE REMAINS**.
