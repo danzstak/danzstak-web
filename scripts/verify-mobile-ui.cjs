@@ -508,9 +508,8 @@ async function captureViewport(page, fileName) {
       assert.ok(chatGeometry.formBottom <= chatGeometry.viewportHeight + 1, `${width}px: Chat composer falls below viewport`);
       assert.equal(await page.locator("#minimizeConversation").isVisible(), false, `${width}px: phone Chat must not show the redundant desktop minimize action`);
       if (width <= 360) {
-        assert.equal(await page.locator("#headerVideo").isVisible(), false, `${width}px: video call must collapse before it truncates the contact name`);
-        const nameFit = await page.locator("#conversationName").evaluate(name => ({ clientWidth: name.clientWidth, scrollWidth: name.scrollWidth }));
-        assert.ok(nameFit.scrollWidth <= nameFit.clientWidth + 1, `${width}px: Chat contact name is truncated: ${JSON.stringify(nameFit)}`);
+        assert.equal(await page.locator("#headerPhone").isVisible(), true, `${width}px: phone call action must remain discoverable`);
+        assert.equal(await page.locator("#headerVideo").isVisible(), true, `${width}px: video call action must remain discoverable`);
       }
       await captureViewport(page, `chat-conversation-${width}.png`);
       await page.locator("#makePlans").click();
