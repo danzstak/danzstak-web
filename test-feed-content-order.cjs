@@ -31,7 +31,7 @@ assert.match(enhancements, /Videos shared to The Roll will appear here\./, "The 
 assert.match(feedHtml, /video\.post-media \{ height:auto; max-height:none; object-fit:contain; object-position:center center; \}/, "the post box should follow and center each video's real aspect ratio");
 assert.match(feedHtml, /img\.post-media \{ height:auto; max-height:none; object-fit:contain; object-position:center center; \}/, "the post box should follow and center each image's real aspect ratio");
 assert.match(feedHtml, /\.post \{ --post-inline-padding:20px; \}/, "feed cards expose their current media gutter");
-assert.match(feedHtml, /\.post > \.post-media \{ width:calc\(100% \+ var\(--post-inline-padding\) \+ var\(--post-inline-padding\)\); margin:12px calc\(0px - var\(--post-inline-padding\)\) 0; border-radius:0; \}/, "feed photos and videos should reach both edges of the post card evenly");
+assert.match(feedHtml, /\.post > \.post-media \{ width:calc\(100% \+ var\(--post-inline-padding\) \+ var\(--post-inline-padding\)\); max-width:none; margin:12px calc\(0px - var\(--post-inline-padding\)\) 0; border-radius:0; \}/, "feed photos and videos should reach both edges of the post card evenly without a global max-width clamp");
 assert.match(feedHtml, /#feed > \.post \{ width:100%; margin-left:auto; margin-right:auto; \}/, "post boxes should remain centered in the feed column");
 assert.match(enhancementCss, /\.reels-list \.reel-card\{flex:0 0 100%;width:100%;min-width:0/, "each Roll video card should fill the post box");
 assert.match(enhancementCss, /\.reels-list video\.reel-player\{height:auto;max-height:none;aspect-ratio:auto\}/, "Roll cards should grow or shrink around the video's real aspect ratio");

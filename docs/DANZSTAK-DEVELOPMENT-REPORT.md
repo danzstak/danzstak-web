@@ -1,5 +1,18 @@
 # DANZSTAK development report
 
+## Issue #55 — shared design foundation and populated Feed/Profile proof — 2026-11-05
+
+Status: **IN PROGRESS ON `codex/issue-55-design-foundation`; LOCAL FUNCTIONAL AND VISUAL GATES PASS; PRODUCTION UNCHANGED**.
+
+- This review slice is stacked on the already reviewed Issue #49 compact Feed/Dailies branch so it does not duplicate or conflict with that work. It establishes the shared visual foundation requested by Issue #55; it does not claim that the entire platform-wide overhaul is complete.
+- Root cause: DANZSTAK had two competing token families (`--ds-*` and `--ui-*`) plus page-specific Facebook-like colors and cascade-dependent `!important` overrides. The shared mobile stylesheet now owns semantic brand, accent, canvas, surface, ink, border, focus, typography, radius, shadow, spacing and shell-width tokens. Legacy aliases resolve through those tokens while pages are migrated incrementally.
+- Feed and Profile now use one light-mode DANZSTAK canvas, the official blue/orange identity, shared surfaces and typography, compact responsive geometry and a restrained original background treatment. Profile renders the member's real cover and avatar as a coherent music-first hero rather than a detached generic card. No fixture content ships in the application.
+- Browser measurement found and corrected a real desktop media defect: a global `max-width:100%` rule constrained negative-margin Feed media, leaving a 41px right-side inset at 1366px. Direct post media now explicitly removes that constraint while retaining source aspect ratios and mobile full bleed.
+- PWA shell cache advanced from `danzstak-shell-v681` to `danzstak-shell-v682`; shared mobile design CSS references advance to `v12`. User data and offline drafts are not removed.
+- Functional/integration evidence: the complete `test-regressions.ps1` gate passes, including authentication, Feed/Profile, Friends, Chat/calls, notifications, media and single-audible-video safeguards, Booking Agent, worldwide discovery, EPK, Tour Manager, Stripe/refund safeguards, PWA refresh, 11-page site smoke testing and infrastructure validation. Stale test expectations for the reviewed Dailies rename and new semantic Profile canvas were corrected; no failing product behavior was waived.
+- Visual evidence: `browser-checks/design-system-profile-feed.cjs` renders authenticated, populated Feed and Profile fixtures at 320, 390, 430 and 1366px. All eight views pass zero-overflow, shared-token, typography, branded-header, 44px phone navigation, full-bleed media, real cover/avatar integration, profile hierarchy and surface-geometry assertions. Captures are in `docs/screenshots/issue-55-foundation/`.
+- Remaining scope: migrate the remaining screens from legacy aliases, complete the shared component inventory, and perform staged visual/accessibility review for Friends, Chat, Notifications, Booking, EPK, Record Stores and Tour Manager. A development PWA preview and post-deployment browser verification are still required before owner review. No production deployment or merge has occurred.
+
 ## Account blocking and privacy boundaries — 2026-11-05
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; CONTROLLED TWO-ACCOUNT HUMAN ACCEPTANCE REMAINS**.
