@@ -1593,11 +1593,10 @@ function renderWorkspace(name) {
       const avatarWrap = document.createElement("span");
       avatarWrap.className = "friend-directory-avatar";
       avatarWrap.appendChild(friendAvatar(person));
-      const dot = document.createElement("span");
-      dot.className = person.online === true ? "friend-presence online" : "friend-presence";
-      dot.setAttribute("aria-label", person.online === true ? feedTranslate("Online") : statusText);
-      dot.setAttribute("role", "img");
-      avatarWrap.appendChild(dot);
+      const presence = document.createElement("span");
+      presence.className = person.online === true ? "friend-presence online" : "friend-presence";
+      presence.setAttribute("aria-hidden", "true");
+      avatarWrap.appendChild(presence);
       const details = document.createElement("span");
       details.className = "friend-details";
       const displayName = document.createElement("strong");

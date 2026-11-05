@@ -17,6 +17,7 @@ assert.match(workspace, /state = \{ view: "all", friends: \[\], incoming: \[\], 
 assert.match(workspace, /people\.slice\(0, state\.shown\)/, "All Friends uses the current page limit");
 assert.match(workspace, /state\.shown \+= 24/, "Show more reveals another bounded page");
 assert.match(workspace, /state\.friends\.filter\(person => person\.online === true\)/, "Online tab filters accepted friends by truthful presence");
+  assert.match(workspace, /presence\.setAttribute\("aria-hidden", "true"\)/, "decorative presence dots do not duplicate the visible status for assistive technology");
 assert.match(workspace, /message\.textContent = feedTranslate\("Message \(SYNC\)"\)/, "friends have a clearly labeled SYNC action");
 assert.match(workspace, /more\.textContent = feedTranslate\("More"\)/, "destructive friendship controls live behind More");
 assert.doesNotMatch(workspace, /dataset\.icon = "trash"/, "friend rows do not expose a trash button");
