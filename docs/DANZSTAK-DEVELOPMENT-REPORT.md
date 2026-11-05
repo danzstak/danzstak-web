@@ -2,7 +2,7 @@
 
 ## Account blocking and privacy boundaries — 2026-11-05
 
-Status: **TESTED LOCALLY; DEPLOYMENT PENDING**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; CONTROLLED TWO-ACCOUNT HUMAN ACCEPTANCE REMAINS**.
 
 - Added a blocker-owned, two-way relationship state. Blocking atomically writes `blocked` for the member taking the action and `blocked_by` for the other account; only the original blocker can reverse it. Requests use opaque member IDs, resolve account addresses only on the server and return generic unavailable responses where identity details would disclose a block.
 - Blocking now prevents new direct messages and calls, friend requests, public-directory and online discovery, shared-Tribe contact eligibility, profile-media access, notification delivery from the blocked account, and visibility of that account's Feed posts, comments, reactions, Flashes and Roll entries. Direct access to public or Tribe posts is also denied rather than relying only on client filtering.
@@ -11,7 +11,10 @@ Status: **TESTED LOCALLY; DEPLOYMENT PENDING**.
 - Complete action, confirmation, progress, success, empty and recovery text is present in all 15 supported non-English locales.
 - Functional/security evidence: `test-account-blocking.cjs`, page script-scope, infrastructure validation and the complete `test-regressions.ps1` gate pass. The full suite covers authentication, Friends/presence, Notifications, Chat/calls, Feed/profile/media privacy, persistent social data, Booking Agent, EPK, Tour Manager, Stripe safeguards, PWA refresh, the bounded live-release verifier and 11-page smoke testing.
 - Visual evidence: Edge/Playwright passes at 320, 390, 414, 768 and 1024px with zero document overflow, a compact friend privacy action, the two-choice dialog, opaque block/unblock requests, Settings recovery and 44px phone touch geometry. The browser pass found and corrected a real CSS-specificity defect that had reduced the Unblock touch target to 34px at 320px.
-- Pending release work: deploy the reviewed signaling routes and Auth API enforcement, publish PWA shell `v680` with `i18n.js?v=394`, `feed-enhancements.js?v=526` and `feed-enhancements.css?v=497`, then repeat live route, asset, browser, release and site-smoke verification. No production behavior is claimed until those steps pass.
+- Production release: implementation commit `a83cd3248669cd082c357199173e594a60b0f6a1` was fast-forwarded to `main` and `codex/issue-24-release`. Reviewed CloudFormation change set `account-blocking-a83cd32` added only `FriendBlockRoute`, `FriendUnblockRoute` and `GetBlockedFriendsRoute`; `SignalingFunction` and `SignalingIntegration` were updated in place with `Replacement: False`, and no resource was deleted or replaced. Stack `DANZSTAK-Call-Signaling` reached `UPDATE_COMPLETE` in `us-west-1` at 2026-11-05 01:22:53 UTC.
+- The established Auth API deployment updated `DANZSTAK-Auth-API` with cross-service post, engagement and profile-media enforcement. Lambda is `Active`, its last update succeeded at 2026-11-05 01:26:27 UTC, and its deployed code hash is `UgBrUdvbRdBbkZDnVM23SD/FMVOc6QnZIg1rsiTci20=`.
+- AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `915` succeeded for the implementation commit. No-cache live probes confirmed `danzstak-shell-v680`, `i18n.js?v=394`, `feed-enhancements.js?v=526` and `feed-enhancements.css?v=497`. Unauthenticated same-origin API probes returned HTTP 401 for `GET /friends/blocked`, `POST /friends/block` and `POST /friends/unblock`, proving that all deployed routes are present and authentication-gated.
+- Post-deployment evidence: the same Edge/Playwright account-blocking matrix passes directly against `https://danzstak.com` at 320, 390, 414, 768 and 1024px; the bounded live release verifier and 11-page site smoke test also pass. A controlled two-account check should still confirm the human-visible block/unblock experience and retained read-only message history; that manual evidence is not represented as complete.
 
 ## Accepted-friend removal — 2026-11-05
 

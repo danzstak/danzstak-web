@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const { chromium } = require("playwright-core");
 
 const widths = [320, 390, 414, 768, 1024];
+const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8016").replace(/\/$/, "");
 const own = { memberId: "11111111-1111-4111-8111-111111111111", name: "Privacy Test Artist", handle: "privacytest" };
 const friend = { memberId: "22222222-2222-4222-8222-222222222222", email: "friend@danzstak.invalid", name: "Tour Friend", picture: "" };
 const blocked = { memberId: "33333333-3333-4333-8333-333333333333", name: "Blocked Member", picture: "", blockedAt: "2026-11-05T00:00:00.000Z" };
@@ -41,7 +42,7 @@ function commonFixture(pathname) {
         }
         return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(commonFixture(url.pathname)) });
       });
-      await friendPage.goto("http://127.0.0.1:8016/feed.html?view=friends", { waitUntil: "domcontentloaded" });
+      await friendPage.goto(`${baseUrl}/feed.html?view=friends`, { waitUntil: "domcontentloaded" });
       await friendPage.locator(".friend-remove-action").waitFor({ state: "visible" });
       await friendPage.locator(".friend-remove-action").click();
       const choices = friendPage.locator(".choice-action-dialog .choice-action-button");
@@ -69,7 +70,7 @@ function commonFixture(pathname) {
         }
         return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(commonFixture(url.pathname)) });
       });
-      await settingsPage.goto("http://127.0.0.1:8016/feed.html?view=settings", { waitUntil: "domcontentloaded" });
+      await settingsPage.goto(`${baseUrl}/feed.html?view=settings`, { waitUntil: "domcontentloaded" });
       const unblock = settingsPage.getByRole("button", { name: "Unblock Blocked Member" });
       await unblock.waitFor({ state: "visible" });
       const box = await unblock.boundingBox();
