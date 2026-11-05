@@ -2393,7 +2393,12 @@ if (composerActions && publishButton) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "secondary";
-    button.textContent = label;
+    button.classList.add("composer-media-button", `composer-media-${kind}`);
+    button.innerHTML = kind === "image"
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM7 15l3-3 3 3 2-2 3 3M9 9h.01"/></svg><span class="sr-only">Photo</span>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16v10H4zM4 9l2-4h4L8 9m6 0 2-4h4l-2 4M4 13h16"/></svg><span class="sr-only">Video</span>';
+    button.setAttribute("aria-label", label);
+    button.title = label;
     const input = document.createElement("input");
     input.type = "file";
     input.accept = accept;
@@ -3357,6 +3362,8 @@ function hydratePostComposerAvatar() {
     if (!avatar.isConnected) return;
     avatar.textContent = String(profile.name || "D").trim().charAt(0).toUpperCase() || "D";
     avatar.style.backgroundImage = "";
+    const dailyAvatar = document.querySelector(".story-create-avatar");
+    if (dailyAvatar) dailyAvatar.textContent = String(profile.name || "D").trim().charAt(0).toUpperCase() || "D";
     if (!profile.picture) return;
     const image = new Image();
     image.referrerPolicy = "no-referrer";
@@ -3366,6 +3373,10 @@ function hydratePostComposerAvatar() {
       avatar.textContent = "";
     };
     image.src = profile.picture;
+    if (dailyAvatar) {
+      dailyAvatar.style.backgroundImage = `url("${profile.picture}")`;
+      dailyAvatar.textContent = "";
+    }
   });
 }
 

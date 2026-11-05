@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-fcH/za7Vep8++sfkvComr7DNSs+rAPHAs252QmZ3fRk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-QZ8jKYgYOEj9eeceNlOPJd6dFCBEFkphKX7fieAelIs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -343,7 +343,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 }
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=497">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=498">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
 <link rel="stylesheet" href="assets/profile-onboarding.css?v=2">
@@ -352,7 +352,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 <link rel="stylesheet" href="assets/responsive-media.css?v=4">
 <link rel="stylesheet" href="assets/mobile-design-system.css?v=11">
 <script src="assets/languages.js?v=231" defer></script>
-<script src="assets/brand-language-aliases.js?v=7" defer></script>
+<script src="assets/brand-language-aliases.js?v=8" defer></script>
 <script src="assets/i18n.js?v=394" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/identity-media.js?v=1"></script>
@@ -452,7 +452,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 
     <div id="newsFeedView">
     <section class="panel post-composer" id="postComposer">
-      <h3 class="composer-title"><span class="composer-avatar" aria-hidden="true">D</span><span>Create a Post</span></h3>
+      <h3 class="composer-title"><span class="composer-avatar" aria-hidden="true">D</span><span>Add to Mix</span></h3>
 
       <textarea
         id="postText"
@@ -471,7 +471,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
             <option value="private">Just me</option>
           </select>
         </div>
-        <label class="story-share-control story-option" title="Add a photo or video to share this post to Flashes"><input id="shareToStory" type="checkbox" disabled><span>Flashes</span></label>
+        <label class="story-share-control story-option" title="Add a photo or video to share this post to Dailies"><input id="shareToStory" type="checkbox" disabled><span>Dailies</span></label>
         <label class="story-share-control reels-option" title="Add a video before sharing it to The Roll"><input id="shareToReels" type="checkbox" disabled><span>The Roll</span></label>
 
         <button class="primary" id="publishBtn" type="button">
@@ -480,9 +480,9 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
       </div>
     </section>
 
-    <section id="storiesRail" class="stories" aria-label="Flashes">
-      <button type="button" class="story story-create" aria-label="Add a photo or video to Flashes"><span class="story-create-art" aria-hidden="true"><img src="assets/story-book.svg" alt=""></span><span class="story-create-caption"><b aria-hidden="true">+</b><span class="story-create-label">Flashes</span></span></button>
-      <div id="storiesLoading" class="story"><span>Loading Flashes</span></div>
+    <section id="storiesRail" class="stories" aria-label="Dailies">
+      <button type="button" class="story story-create" aria-label="Add a photo or video to Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small>TAKE 0</small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><b aria-hidden="true">+</b><span class="story-create-label">Dailies</span></span></button>
+      <div id="storiesLoading" class="story"><span>Loading Dailies</span></div>
     </section>
 
     <p id="feedStatus" class="muted" role="status">
@@ -918,7 +918,27 @@ function storyDisplayCaption(story) {
   const content = String(story?.content || "").trim();
   const uploadedFileName = /^[^/\\]{1,180}\.(?:avif|gif|heic|jpe?g|png|webp|m4v|mov|mp4|webm)$/i.test(content);
   if (content && !uploadedFileName) return content;
-  return story?.mediaType === "video" ? "Video Flash" : "Photo Flash";
+  return story?.mediaType === "video" ? "Video Daily" : "Photo Daily";
+}
+
+function formatDailyClock(date = new Date()) {
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
+}
+
+function updateDailyCreatorSlate(takeCount = 0) {
+  if (typeof document === "undefined" || typeof document.querySelector !== "function") return;
+  const slate = document.querySelector(".daily-clapper");
+  if (!slate) return;
+  slate.querySelector("small").textContent = `TAKE ${Math.max(0, Number(takeCount) || 0)}`;
+  const clock = slate.querySelector("time");
+  const now = new Date();
+  clock.dateTime = now.toISOString();
+  clock.textContent = formatDailyClock(now);
+}
+
+if (typeof document !== "undefined" && typeof document.querySelector === "function") {
+  updateDailyCreatorSlate();
+  if (typeof setInterval === "function") setInterval(() => updateDailyCreatorSlate(document.querySelectorAll('.story[data-story-owner="true"][data-media-type="video"]').length), 30000);
 }
 
 async function refreshStoryMedia(story) {
@@ -939,7 +959,7 @@ async function openStoryViewer(story, { updateHistory = true } = {}) {
     viewer.id = "storyViewer";
     viewer.className = "story-viewer";
     viewer.setAttribute("aria-labelledby", "storyViewerCaption");
-    viewer.innerHTML = '<button type="button" class="story-viewer-close" aria-label="Close Flash">×</button><div class="story-viewer-media"></div><p class="story-viewer-caption" id="storyViewerCaption"></p>';
+    viewer.innerHTML = '<button type="button" class="story-viewer-close" aria-label="Close Daily">×</button><div class="story-viewer-media"></div><p class="story-viewer-caption" id="storyViewerCaption"></p>';
     viewer.querySelector(".story-viewer-close").addEventListener("click", () => closeStoryViewer());
     viewer.addEventListener("click", event => { if (event.target === viewer) closeStoryViewer(); });
     viewer.addEventListener("cancel", event => { event.preventDefault(); closeStoryViewer(); });
@@ -999,23 +1019,26 @@ addEventListener("popstate", restoreStoryViewerFromHistory);
 async function loadStories() {
   try {
     const response = await fetchWithDeadline("https://api.danzstak.com/stories", { credentials: "include", cache: "no-store" });
-    if (!response.ok) throw new Error(feedTranslate("Flashes could not be loaded. Check your connection and try again."));
+    if (!response.ok) throw new Error(feedTranslate("Dailies could not be loaded. Check your connection and try again."));
     const data = await response.json();
     lastStoriesLoad = Date.now();
     document.getElementById("storiesLoading")?.remove();
     storiesRail.querySelector(".story-empty")?.remove();
     storiesRail.querySelectorAll(".story[data-story-id]").forEach(item => item.remove());
     const visibleStories = (data.stories || []).slice(0, 12);
-    for (const story of visibleStories) {
+    updateDailyCreatorSlate((data.stories || []).filter(story => story.isOwner && story.mediaType === "video").length);
+    for (const [storyIndex, story] of visibleStories.entries()) {
       const item = document.createElement("article");
       item.className = "story";
       item.dataset.storyId = story.storyId;
+      item.dataset.storyOwner = story.isOwner ? "true" : "false";
+      item.dataset.mediaType = story.mediaType || "";
       item.title = storyDisplayCaption(story);
       const open = document.createElement("button");
       open.type = "button";
       open.className = "story-open";
       const storyAuthor = story.displayName || "DanzStak member";
-      open.setAttribute("aria-label", "Open Flash from " + storyAuthor + ": " + storyDisplayCaption(story));
+      open.setAttribute("aria-label", "Open Daily from " + storyAuthor + ": " + storyDisplayCaption(story));
       const storyCopy = document.createElement("span");
       storyCopy.className = "story-card-copy";
       const author = document.createElement("strong");
@@ -1026,21 +1049,38 @@ async function loadStories() {
       open.appendChild(storyCopy);
       const storyMemberId = String(story.memberId || "");
       if (!story.isOwner && /^[a-f0-9-]{36}$/.test(storyMemberId)) {
+        item.classList.add("story-has-profile-link");
         const profile = document.createElement("a");
         profile.className = "story-author-link";
         profile.href = "profile.html?member=" + encodeURIComponent(storyMemberId);
         profile.textContent = storyAuthor;
+        profile.title = storyAuthor;
         profile.setAttribute("aria-label", "Open " + storyAuthor + " profile");
         item.appendChild(profile);
         author.hidden = true;
       } else if (story.isOwner) {
+        item.classList.add("story-has-profile-link");
         const profile = document.createElement("a");
         profile.className = "story-author-link";
         profile.href = "profile.html";
         profile.textContent = storyAuthor;
+        profile.title = storyAuthor;
         profile.setAttribute("aria-label", "Open your profile");
         item.appendChild(profile);
         author.hidden = true;
+      }
+      if (storyAuthor.length > 28) {
+        const fullName = document.createElement("button");
+        fullName.type = "button";
+        fullName.className = "story-name-more";
+        fullName.textContent = "…";
+        fullName.title = `Show full creator name: ${storyAuthor}`;
+        fullName.setAttribute("aria-label", `Show full creator name: ${storyAuthor}`);
+        fullName.addEventListener("click", event => {
+          event.stopPropagation();
+          window.danzstakShowFeedback?.(storyAuthor);
+        });
+        item.appendChild(fullName);
       }
       const markStoryUnavailable = () => {
         item.classList.add("story-media-unavailable");
@@ -1074,7 +1114,18 @@ async function loadStories() {
         video.loop = true;
         video.playsInline = true;
         video.preload = readFeedPreference("danzstak_data_saver") === "1" ? "none" : "metadata";
-        video.setAttribute("aria-label", "Video Flash from " + storyAuthor + ": " + storyDisplayCaption(story));
+        video.setAttribute("aria-label", "Video Daily from " + storyAuthor + ": " + storyDisplayCaption(story));
+        const slate = document.createElement("span");
+        slate.className = "story-video-slate";
+        slate.innerHTML = `<strong>SCENE ${storyIndex + 1}</strong><small>TAKE 1</small><time>${formatDailyClock(new Date(story.createdAt || Date.now()))}</time>`;
+        item.appendChild(slate);
+        video.addEventListener("loadedmetadata", () => {
+          if (!Number.isFinite(video.duration)) return;
+          const minutes = Math.floor(video.duration / 60);
+          const seconds = Math.floor(video.duration % 60).toString().padStart(2, "0");
+          slate.querySelector("time").textContent = `${minutes}:${seconds}`;
+          slate.querySelector("time").setAttribute("aria-label", `Duration ${minutes} minutes ${Number(seconds)} seconds`);
+        });
         item.appendChild(video);
         const installStoryVideo = async (allowRefresh = true) => {
           const mediaUrl = story.mediaUrl || (allowRefresh ? await refreshStoryMedia(story) : "");
@@ -1094,20 +1145,20 @@ async function loadStories() {
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "story-delete";
-        remove.setAttribute("aria-label", "Delete Flash");
+        remove.setAttribute("aria-label", "Delete Daily");
         remove.textContent = "🗑️";
         remove.addEventListener("keydown", event => event.stopPropagation());
         remove.addEventListener("click", async event => {
           event.stopPropagation();
-          if (!(await window.danzstakConfirm("This Flash will be permanently removed.", { title: "Delete this Flash?", confirmLabel: "Delete Flash", danger: true }))) return;
+          if (!(await window.danzstakConfirm("This Daily will be permanently removed.", { title: "Delete this Daily?", confirmLabel: "Delete Daily", danger: true }))) return;
           remove.disabled = true;
           try {
             const deleted = await fetchWithDeadline("https://api.danzstak.com/stories/" + encodeURIComponent(story.storyId), { method: "DELETE", credentials: "include" });
-            if (!deleted.ok) throw new Error("Flash could not be deleted.");
+            if (!deleted.ok) throw new Error("Daily could not be deleted.");
             item.remove();
           } catch (error) {
             remove.disabled = false;
-            window.danzstakShowFeedback?.(error.message || "Flash could not be deleted.", { urgent: true });
+            window.danzstakShowFeedback?.(error.message || "Daily could not be deleted.", { urgent: true });
           }
         });
         item.appendChild(remove);
@@ -1118,7 +1169,7 @@ async function loadStories() {
       const empty = document.createElement("div");
       empty.className = "story story-empty";
       empty.setAttribute("role", "status");
-      empty.innerHTML = "<span><strong>No Flashes yet</strong><small>Add a photo or video to start.</small></span>";
+      empty.innerHTML = "<span><strong>No Dailies yet</strong><small>Add a photo or video to start.</small></span>";
       storiesRail.appendChild(empty);
     }
   } catch (error) {
@@ -1128,7 +1179,7 @@ async function loadStories() {
     unavailable.setAttribute("role", "status");
     const message = document.createElement("span");
     const title = document.createElement("strong");
-    title.textContent = feedTranslate("Flashes could not be loaded. Check your connection and try again.");
+    title.textContent = feedTranslate("Dailies could not be loaded. Check your connection and try again.");
     const retry = document.createElement("button");
     retry.type = "button";
     retry.className = "secondary";
@@ -1155,11 +1206,11 @@ createStoryInput.addEventListener("change", async () => {
   if (!file) return;
   const mediaType = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "";
   if (!mediaType || !createStoryInput.accept.split(",").includes(file.type)) {
-    window.danzstakShowFeedback?.("Flashes must use a supported photo or video file.", { urgent: true });
+    window.danzstakShowFeedback?.("Dailies must use a supported photo or video file.", { urgent: true });
     createStoryInput.value = "";
     return;
   }
-  if (!(await window.danzstakConfirm("Confirm that you created this Flash and own all material in it, including any music inside a video.", { title: "Publish this Flash?", confirmLabel: "Choose and publish" }))) {
+  if (!(await window.danzstakConfirm("Confirm that you created this Daily and own all material in it, including any music inside a video.", { title: "Publish this Daily?", confirmLabel: "Choose and publish" }))) {
     createStoryInput.value = "";
     return;
   }
@@ -1171,25 +1222,25 @@ createStoryInput.addEventListener("change", async () => {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contentType: file.type })
     });
-    if (!ticketResponse.ok) throw new Error("Flash upload could not start.");
+    if (!ticketResponse.ok) throw new Error("Daily upload could not start.");
     const ticket = await ticketResponse.json();
     const uploadResponse = await fetchWithDeadline(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file }, mediaUploadDeadline(file));
-    if (!uploadResponse.ok) throw new Error("Flash media could not be uploaded.");
+    if (!uploadResponse.ok) throw new Error("Daily media could not be uploaded.");
     uploadedStoryKey = ticket.mediaKey;
     const publishResponse = await fetchWithDeadline("https://api.danzstak.com/stories", {
       method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: file.name || "Your Flash", audience: postAudience.value, mediaKey: ticket.mediaKey, mediaType: ticket.mediaType, dedicatedMedia: true, originalContentCertified: true })
+      body: JSON.stringify({ content: file.name || "Your Daily", audience: postAudience.value, mediaKey: ticket.mediaKey, mediaType: ticket.mediaType, dedicatedMedia: true, originalContentCertified: true })
     });
-    if (!publishResponse.ok) throw new Error("Flash could not be published.");
+    if (!publishResponse.ok) throw new Error("Daily could not be published.");
     uploadedStoryKey = "";
     await loadStories();
   } catch (error) {
     await discardUploadedMedia(uploadedStoryKey);
-    window.danzstakShowFeedback?.(error.message || "Flash could not be published.", { urgent: true });
+    window.danzstakShowFeedback?.(error.message || "Daily could not be published.", { urgent: true });
   } finally {
     createStoryInput.value = "";
     createStoryButton.disabled = false;
-    createStoryButton.querySelector(".story-create-label").textContent = "Flashes";
+    createStoryButton.querySelector(".story-create-label").textContent = "Dailies";
   }
 });
 
@@ -1478,10 +1529,10 @@ publishBtn.addEventListener("click", async () => {
           method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
           body: JSON.stringify({ contentType: selectedMedia.file.type })
         });
-        if (!storyTicketResponse.ok) throw new Error("Flash upload could not start");
+        if (!storyTicketResponse.ok) throw new Error("Daily upload could not start");
         const storyTicket = await storyTicketResponse.json();
         const storyUploadResponse = await fetchWithDeadline(storyTicket.uploadUrl, { method: "PUT", headers: { "Content-Type": selectedMedia.file.type }, body: selectedMedia.file }, mediaUploadDeadline(selectedMedia.file));
-        if (!storyUploadResponse.ok) throw new Error("Flash media upload failed");
+        if (!storyUploadResponse.ok) throw new Error("Daily media upload failed");
         uploadedStoryKey = storyTicket.mediaKey;
         const storyResponse = await fetchWithDeadline("https://api.danzstak.com/stories", {
           method: "POST",
@@ -1489,13 +1540,13 @@ publishBtn.addEventListener("click", async () => {
           credentials: "include",
           body: JSON.stringify({ content, audience, mediaKey: storyTicket.mediaKey, mediaType: storyTicket.mediaType, dedicatedMedia: true, originalContentCertified: true })
         });
-        if (!storyResponse.ok) throw new Error("Flash could not be published");
+        if (!storyResponse.ok) throw new Error("Daily could not be published");
         uploadedStoryKey = "";
         await loadStories();
       } catch (storyError) {
         await discardUploadedMedia(uploadedStoryKey);
         console.error("DanzStak Story error:", storyError);
-        window.danzstakShowFeedback?.("Your post was saved, but the Flash could not be published.", { urgent: true });
+        window.danzstakShowFeedback?.("Your post was saved, but the Daily could not be published.", { urgent: true });
       }
     }
 
@@ -1748,7 +1799,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=526" defer></script>
+<script src="assets/feed-enhancements.js?v=527" defer></script>
 <script src="assets/profile-onboarding.js?v=8" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=298" defer></script>

@@ -15,13 +15,14 @@ const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 const terms = fs.readFileSync("terms.html", "utf8");
 const privacy = fs.readFileSync("privacy.html", "utf8");
 
-assert.match(feed, /<span>Flashes<\/span>/, "composer should use Flashes");
+assert.match(feed, /<span>Dailies<\/span>/, "composer should use Dailies");
 assert.doesNotMatch(feed, /<span>Story<\/span>/, "composer should not expose the old Story label");
 assert.match(feed, /<span>The Roll<\/span>/, "composer should use The Roll");
 assert.match(messages, />Tribes<\/button>/, "messenger filter should use Tribes");
 assert.match(enhancements, /Add to The Roll/, "Roll action should use DanzStak branding");
 assert.match(enhancements, /Create Tribe/, "group creation should use Tribes branding");
 assert.match(aliases, /dictionary\.Flashes/, "localized Flashes alias should exist");
+assert.match(aliases, /dictionary\.Dailies/, "localized Dailies alias should exist");
 assert.match(aliases, /dictionary\.Tribes/, "localized Tribes alias should exist");
 for (const [name, content] of Object.entries({ sharing, peopleSearch, enhancements, profile })) {
   assert.doesNotMatch(content, /your (?:DanzStak )?feed|your feed|feed result|feed posts|return to the feed/i,
