@@ -48,7 +48,7 @@
       body = await response.json().catch(() => ({}));
     if (!response.ok)
       throw Object.assign(
-        new Error(body.error || t("Plans are temporarily unavailable.")),
+        new Error(t(body.error || "Plans are temporarily unavailable.")),
         { response, body },
       );
     return body;
