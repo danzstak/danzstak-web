@@ -18,7 +18,7 @@ const privacy = fs.readFileSync("privacy.html", "utf8");
 assert.match(feed, /<span>Dailies<\/span>/, "composer should use Dailies");
 assert.doesNotMatch(feed, /<span>Story<\/span>/, "composer should not expose the old Story label");
 assert.match(feed, /<span>The Roll<\/span>/, "composer should use The Roll");
-assert.match(messages, />Tribes<\/button>/, "messenger filter should use Tribes");
+assert.match(messages, />Chats<\/button>.*>Calls<\/button>.*>Contacts<\/button>/, "SYNC should expose its three real product sections");
 assert.match(enhancements, /Add to The Roll/, "Roll action should use DanzStak branding");
 assert.match(enhancements, /Create Tribe/, "group creation should use Tribes branding");
 assert.match(aliases, /dictionary\.Flashes/, "localized Flashes alias should exist");
