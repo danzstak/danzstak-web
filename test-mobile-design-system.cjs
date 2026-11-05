@@ -11,6 +11,11 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const pages = ["feed.html", "messages.html", "booking.html", "record-stores.html", "epk.html", "profile.html"].map(file => [file, fs.readFileSync(file, "utf8")]);
 
 assert.match(css, /--ds-mobile-header:50px/, "the shared mobile header dimension must be explicit");
+for (const token of ["--ds-brand", "--ds-accent", "--ds-ink-soft", "--ds-surface-subtle", "--ds-font", "--ds-shadow-sm", "--ds-radius-lg"]) {
+  assert.match(css, new RegExp(`${token}:`), `the shared visual system must define ${token}`);
+}
+assert.match(css, /--ui-blue:var\(--ds-brand\)/, "legacy UI controls must resolve through the shared brand token");
+assert.match(css, /background-image:radial-gradient/, "the light canvas must carry a restrained DANZSTAK brand accent");
 assert.match(css, /html\{[^}]*overflow-x:hidden;overflow-x:clip/, "horizontal containment must not create a scroll container that breaks sticky headers");
 assert.match(css, /body\{[^}]*overflow-x:hidden;overflow-x:clip/, "body containment must preserve sticky headers during hash navigation");
 assert.match(css, /\.ds-mobile-nav\{[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/, "the shared mobile nav must keep five equal destinations");
@@ -23,10 +28,10 @@ assert.doesNotMatch(chatCss, /body\.is-conversation-open #headerVideo\{display:n
 assert.match(profileCss, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/, "phone profile tabs must render complete labels without horizontal clipping");
 assert.match(feedCss, /\.settings-row input\[type=checkbox\]\{accent-color:#1769e0/, "settings controls must use the shared application styling");
 assert.match(feedCss, /mobile-menu-open>\.install-app-button,[^{]*mobile-menu-open>\.app-update-button\{display:none!important\}/, "install shortcuts must not compete with an open mobile menu");
-assert.match(worker, /danzstak-shell-v680/);
+assert.match(worker, /danzstak-shell-v682/);
 assert.match(worker, /\/assets\/mobile-design-system\.css/, "the installed PWA must cache the shared mobile system");
 
-for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=11/, `${file} must load the same mobile design system`);
+for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=12/, `${file} must load the same mobile design system`);
 for (const file of ["messages.html", "booking.html", "record-stores.html", "epk.html", "profile.html"]) {
   const html = pages.find(([name]) => name === file)[1];
   assert.match(html, /class="ds-mobile-nav"/, `${file} must expose the consistent mobile navigation`);

@@ -13,12 +13,12 @@ assert.doesNotMatch(script, /\bconfirm\(/, "feed composer and Flashes should not
 assert.ok((script.match(/window\.danzstakConfirm/g) || []).length >= 2, "Flash certification and deletion should use the shared accessible dialog");
 for (const message of [
   "Friend request could not be updated.",
-  "Flash could not be deleted.",
-  "Flashes must use a supported photo or video file.",
+  "Daily could not be deleted.",
+  "Dailies must use a supported photo or video file.",
   "Posts must be 5000 characters or fewer.",
   "Certify that this is your original content before posting.",
   "Post was not saved: "
 ]) assert.ok(script.includes(message), `feed feedback should retain: ${message}`);
 assert.ok((script.match(/window\.danzstakShowFeedback\?\./g) || []).length >= 8, "all inline feed failures should use the shared feedback surface");
 
-console.log("Feed inline feedback checks passed: composer, Flash, and friend errors are accessible and nonblocking.");
+console.log("Feed inline feedback checks passed: composer, Dailies, and friend errors are accessible and nonblocking.");

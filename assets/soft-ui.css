@@ -1,4 +1,4 @@
-:root{--ui-blue:#0866ff;--ui-ink:#1c1e21;--ui-border:#d7dce2;--ui-muted:#f0f2f5}
+:root{--ui-blue:var(--ds-brand,#1769e0);--ui-ink:var(--ds-ink,#172033);--ui-border:var(--ds-border,#d9e1eb);--ui-muted:var(--ds-surface-subtle,#f6f8fb)}
 .skip-link{position:fixed;z-index:40000;top:8px;left:8px;padding:10px 14px;border:2px solid #fff;border-radius:8px;background:#172033;color:#fff;font-weight:800;text-decoration:none;box-shadow:0 4px 16px #10182866;transform:translateY(-150%);transition:transform .12s}.skip-link:focus{outline:3px solid #ffb84d;outline-offset:2px;transform:translateY(0)}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}img,video{max-width:100%}button,.button,input,textarea,select{box-sizing:border-box;max-width:100%}
 video::-webkit-media-controls-overlay-play-button,video::-webkit-media-controls-start-playback-button{display:none!important;-webkit-appearance:none!important}

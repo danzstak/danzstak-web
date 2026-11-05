@@ -94,7 +94,8 @@ assert.equal(
   "textarea guidance should be translated without changing its value",
 );
 assert.equal(window.danzstakTranslate("Your Mix"), "あなたのミックス");
-assert.equal(window.danzstakTranslate("Flashes"), "フラッシュ");
+assert.equal(window.danzstakTranslate("Flashes"), "Dailies");
+assert.equal(window.danzstakTranslate("Dailies"), "Dailies");
 assert.equal(window.danzstakTranslate("The Roll"), "ザ・ロール");
 assert.equal(window.danzstakTranslate("Tribes"), "トライブ");
 window.danzstakSetLanguage("ko");
@@ -104,13 +105,13 @@ assert.equal(
   "⚙ 설정 및 개인정보",
 );
 assert.equal(window.danzstakTranslate("Your Mix"), "나의 믹스");
-assert.equal(window.danzstakTranslate("Flashes"), "플래시");
+assert.equal(window.danzstakTranslate("Flashes"), "Dailies");
 assert.equal(window.danzstakTranslate("The Roll"), "더 롤");
 assert.equal(window.danzstakTranslate("Tribes"), "트라이브");
 assert.equal(input.attrs.placeholder, "메시지 입력");
 window.danzstakSetLanguage("it");
 assert.equal(window.danzstakTranslate("Your Mix"), "Il tuo Mix");
-assert.equal(window.danzstakTranslate("Flashes"), "Flash");
+assert.equal(window.danzstakTranslate("Flashes"), "Dailies");
 assert.equal(window.danzstakTranslate("The Roll"), "The Roll");
 assert.equal(window.danzstakTranslate("Tribes"), "Tribù");
 assert.equal(window.danzstakTranslate("Back to Your Mix"), "Torna al tuo Mix");
@@ -121,7 +122,7 @@ assert.equal(ui.nodeValue, "Mga setting");
 window.danzstakSetLanguage("en");
 assert.equal(ui.nodeValue, "Settings");
 assert.equal(window.danzstakTranslate("Your Mix"), "Your Mix");
-assert.equal(window.danzstakTranslate("Flashes"), "Flashes");
+assert.equal(window.danzstakTranslate("Flashes"), "Dailies");
 assert.equal(window.danzstakTranslate("The Roll"), "The Roll");
 assert.equal(window.danzstakTranslate("Tribes"), "Tribes");
 assert.equal(input.attrs.placeholder, "Write a message");

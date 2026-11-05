@@ -10,8 +10,8 @@ const manifest = JSON.parse(fs.readFileSync("manifest.webmanifest", "utf8"));
 
 assert.match(feed, /<span class="menu-label">Your Mix<\/span>/);
 assert.match(feed, /<span class="menu-label">Tribes<\/span>/);
-assert.match(feed, /aria-label="Flashes"/);
-assert.match(feed, /<span class="story-create-label">Flashes<\/span>/);
+assert.match(feed, /aria-label="Dailies"/);
+assert.match(feed, /<span class="story-create-label">Dailies<\/span>/);
 assert.match(feed, /<span>The Roll<\/span>/);
 assert.match(enhancements, /reelsTitle\.textContent = "The Roll"/);
 assert.match(enhancements, /canonicalName === "Groups" \? "Tribes" : canonicalName/);
@@ -25,4 +25,4 @@ assert.match(feed, /data-feature="Groups"/);
 assert.match(feed, /id="shareToReels"/);
 assert.match(enhancements, /if \(name === "Groups"\)/);
 
-console.log("Branded navigation checks passed: Your Mix, Flashes, The Roll, and Tribes use stable routes.");
+console.log("Branded navigation checks passed: Your Mix, Dailies, The Roll, and Tribes use stable routes.");

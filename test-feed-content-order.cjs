@@ -15,7 +15,7 @@ assert.ok(composer >= 0, "the feed composer must exist");
 assert.ok(stories > composer, "Flashes must render directly after the composer");
 assert.ok(feed > stories, "Flashes must render before saved feed posts");
 assert.match(feedHtml, /className = "story story-empty";/, "Flashes need an accessible empty-state status");
-assert.match(feedHtml, /No Flashes yet/, "the Flashes status should explain that no media is available yet");
+assert.match(feedHtml, /No Dailies yet/, "the Dailies status should explain that no media is available yet");
 assert.match(enhancementCss, /\.stories \.story-empty\{[^}]*position:absolute!important[^}]*clip-path:inset\(50%\)!important/, "the empty Flashes status should remain accessible without rendering a second empty card");
 assert.match(enhancementCss, /\.stories \.story-empty::before\{display:none\}/, "the empty Flashes status should not inherit the dark media overlay");
 assert.match(enhancementCss, /\.stories \.story-create\{[^}]*background:#fff!important/, "the Flashes creation control should remain a distinct action card");
@@ -31,7 +31,7 @@ assert.match(enhancements, /Videos shared to The Roll will appear here\./, "The 
 assert.match(feedHtml, /video\.post-media \{ height:auto; max-height:none; object-fit:contain; object-position:center center; \}/, "the post box should follow and center each video's real aspect ratio");
 assert.match(feedHtml, /img\.post-media \{ height:auto; max-height:none; object-fit:contain; object-position:center center; \}/, "the post box should follow and center each image's real aspect ratio");
 assert.match(feedHtml, /\.post \{ --post-inline-padding:20px; \}/, "feed cards expose their current media gutter");
-assert.match(feedHtml, /\.post > \.post-media \{ width:calc\(100% \+ var\(--post-inline-padding\) \+ var\(--post-inline-padding\)\); margin:12px calc\(0px - var\(--post-inline-padding\)\) 0; border-radius:0; \}/, "feed photos and videos should reach both edges of the post card evenly");
+assert.match(feedHtml, /\.post > \.post-media \{ width:calc\(100% \+ var\(--post-inline-padding\) \+ var\(--post-inline-padding\)\); max-width:none; margin:12px calc\(0px - var\(--post-inline-padding\)\) 0; border-radius:0; \}/, "feed photos and videos should reach both edges of the post card evenly without a global max-width clamp");
 assert.match(feedHtml, /#feed > \.post \{ width:100%; margin-left:auto; margin-right:auto; \}/, "post boxes should remain centered in the feed column");
 assert.match(enhancementCss, /\.reels-list \.reel-card\{flex:0 0 100%;width:100%;min-width:0/, "each Roll video card should fill the post box");
 assert.match(enhancementCss, /\.reels-list video\.reel-player\{height:auto;max-height:none;aspect-ratio:auto\}/, "Roll cards should grow or shrink around the video's real aspect ratio");

@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Issue #55 — shared design foundation and populated Feed/Profile proof — 2026-11-05
+
+Status: **IN PROGRESS ON `codex/issue-55-design-foundation`; LOCAL FUNCTIONAL AND VISUAL GATES PASS; PRODUCTION UNCHANGED**.
+
+- This review slice is stacked on the already reviewed Issue #49 compact Feed/Dailies branch so it does not duplicate or conflict with that work. It establishes the shared visual foundation requested by Issue #55; it does not claim that the entire platform-wide overhaul is complete.
+- Root cause: DANZSTAK had two competing token families (`--ds-*` and `--ui-*`) plus page-specific Facebook-like colors and cascade-dependent `!important` overrides. The shared mobile stylesheet now owns semantic brand, accent, canvas, surface, ink, border, focus, typography, radius, shadow, spacing and shell-width tokens. Legacy aliases resolve through those tokens while pages are migrated incrementally.
+- Feed and Profile now use one light-mode DANZSTAK canvas, the official blue/orange identity, shared surfaces and typography, compact responsive geometry and a restrained original background treatment. Profile renders the member's real cover and avatar as a coherent music-first hero rather than a detached generic card. No fixture content ships in the application.
+- Browser measurement found and corrected a real desktop media defect: a global `max-width:100%` rule constrained negative-margin Feed media, leaving a 41px right-side inset at 1366px. Direct post media now explicitly removes that constraint while retaining source aspect ratios and mobile full bleed.
+- PWA shell cache advanced from `danzstak-shell-v681` to `danzstak-shell-v682`; shared mobile design CSS references advance to `v12`. User data and offline drafts are not removed.
+- Functional/integration evidence: the complete `test-regressions.ps1` gate passes, including authentication, Feed/Profile, Friends, Chat/calls, notifications, media and single-audible-video safeguards, Booking Agent, worldwide discovery, EPK, Tour Manager, Stripe/refund safeguards, PWA refresh, 11-page site smoke testing and infrastructure validation. Stale test expectations for the reviewed Dailies rename and new semantic Profile canvas were corrected; no failing product behavior was waived.
+- Visual evidence: `browser-checks/design-system-profile-feed.cjs` renders authenticated, populated Feed and Profile fixtures at 320, 390, 430 and 1366px. All eight views pass zero-overflow, shared-token, typography, branded-header, 44px phone navigation, full-bleed media, real cover/avatar integration, profile hierarchy and surface-geometry assertions. Captures are in `docs/screenshots/issue-55-foundation/`.
+- Isolated staging evidence: AWS Amplify app `d31oovi2mos5iz`, DEVELOPMENT branch `codex/issue-55-design-foundation`, job `1` succeeded in `us-west-1` from 2026-11-05 17:44:53 to 17:45:43 Europe/Berlin. The phone-accessible preview is `https://codex-issue-55-design-foundation.d31oovi2mos5iz.amplifyapp.com/`. No-cache probes confirmed `mobile-design-system.css?v=12` and `danzstak-shell-v682`; the same populated browser matrix passed directly against the hosted Feed and Profile at 320, 390, 430 and 1366px. This proves browser rendering and interaction fixtures, not physical-device installed-PWA behavior.
+- Remaining scope: migrate the remaining screens from legacy aliases, complete the shared component inventory, and perform visual/accessibility review for Friends, Chat, Notifications, Booking, EPK, Record Stores and Tour Manager. Physical Android/iPhone installed-PWA inspection and owner/ChatGPT acceptance remain unverified. No production deployment or merge has occurred.
+
 ## Account blocking and privacy boundaries — 2026-11-05
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; CONTROLLED TWO-ACCOUNT HUMAN ACCEPTANCE REMAINS**.
@@ -967,3 +981,20 @@ Status as of 2026-11-04: **IMPLEMENTED, LIVE-PROBED, AND READY FOR MERGE**.
 - A real authenticated probe against `https://api.danzstak.com` passed all 19 HTTP checks on 2026-11-04. It verified the two independent production sessions, private professional-tool reads, private post persistence, Chat delivery, recipient notification and post-run deletion. Session secrets were rotated after the pass.
 - GitHub Actions run `41862376295` was dispatched for independent hosted-runner confirmation, but both jobs remained in GitHub's queued state without receiving a runner. This runner-capacity state is reported honestly and is not represented as a workflow pass; the live API probe and previously green pull-request CI provide the available release evidence.
 - Development branch: `codex/authenticated-health-checks`. Pull request: [#33](https://github.com/danzstak/danzstak-web/pull/33). Production deployment remains pending merge and the existing AWS Amplify `main` workflow.
+
+# Issue #49 — compact mobile Feed and Dailies identity
+
+Status as of 2026-11-05: **IMPLEMENTED, LOCALLY VERIFIED, AND AVAILABLE IN REVIEW PREVIEW; PRODUCTION FROZEN**.
+
+- Work is isolated on `codex/issue-49-mobile-feed`. Production remains unchanged in accordance with release-process blocker Issue #50.
+- The collapsed Add to Mix composer now uses less phone height, preserves 44px touch controls, and exposes accessible icon-only Photo and clapperboard Video actions rather than text-heavy buttons.
+- The public 24-hour product name is now **Dailies** in live Feed markup, accessibility labels, creator controls and localization aliases. Internal story API/storage names remain unchanged for compatibility.
+- The creator tile uses the signed-in member's existing profile image and fallback initial. Its clapper displays `SCENE 1`, a deterministic `TAKE N` derived from the member's active returned video-Daily records, and the member device's real local date/time. This is not represented as a lifetime cross-module upload count because the current API does not expose one.
+- Video Daily cards show deterministic scene order and use the browser's real `loadedmetadata` duration when media metadata becomes available. No duration or availability is invented.
+- Creator names may wrap across three lines; unusually long names also receive an accessible full-name affordance and profile link rather than colliding with the slate, play indicator or delete control.
+- Installed-PWA cache advances from `danzstak-shell-v680` to `v681`; Feed assets advance to CSS `v498`, JS `v527`, and brand aliases `v8`.
+- Functional/regression evidence: all **262** repository `test-*.cjs` checks passed in one clean run. Focused composer, Dailies, CSP, PWA, accessibility, media, social, Booking/EPK/Tour Manager and Stripe regressions are included in that count.
+- Actual-browser evidence: the Issue #49 Dailies/Feed geometry and interaction suite passed at 320, 360, 390, 430 and 1024px. The populated Feed suite passed at 320, 360, 390, 414 and 430px. Tablet Feed layout passed at 701, 768, 820, 880 and 1024px. No tested viewport overflowed.
+- Review captures: [320px](screenshots/issue-49/feed-after-320.png), [360px](screenshots/issue-49/feed-after-360.png), [390px](screenshots/issue-49/feed-after-390.png), [430px](screenshots/issue-49/feed-after-430.png), and [1024px](screenshots/issue-49/feed-after-1024.png).
+- Draft pull request: [#56](https://github.com/danzstak/danzstak-web/pull/56). Review preview: `https://codex-issue-49-mobile-feed.d31oovi2mos5iz.amplifyapp.com/feed.html`. The preview returned HTTP 200 and was independently checked for Dailies markup, Feed CSS `v498`, Feed JS `v527`, the current CSP hash, and PWA shell `v681`. This is a DEVELOPMENT preview, not production.
+- Physical Android/iPhone and installed-device testing are **NOT TESTED** in this environment. No production deployment, production cache invalidation or owner acceptance is claimed.
