@@ -1162,3 +1162,13 @@ Status as of 2026-11-06: **IN PROGRESS; REVIEW PWA DEPLOYED AND BROWSER-VERIFIED
 - Review branch commit `440a080e5d3342fe16591e8f6cbe86bdeb287b85` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, development job `13`, which succeeded in `us-west-1` at 2026-11-06 23:04:52 Europe/Berlin. Hosted verification confirmed Booking Agent `v483`, workspace CSS `v6`, conversation `v479`, map `v448`, and service-worker cache `danzstak-shell-v702`.
 - Review PWA: `https://codex-issue-55-booking-workspace.d31oovi2mos5iz.amplifyapp.com/booking.html`. Controlled browser providers verify UI and orchestration, not completeness of live third-party data. A live-provider benchmark and physical Android/iPhone installed-PWA acceptance are still required. Production is unchanged.
 - Review capture: [390px band-ready tour sheet](screenshots/issue-55-booking-workspace/tour-sheet-390.png).
+
+## Booking Agent — sparse-market nearby discovery
+
+Status as of 2026-11-06: **IMPLEMENTED AND LOCALLY TESTED; BACKEND NOT DEPLOYED**.
+
+- Weak local searches now expand once when fewer than ten supported venue leads are found, instead of accepting a five-result market as adequately researched. The expanded search remains bounded to 75 miles and preserves every venue's actual town, address, and distance.
+- This improves sparse corridors such as Medford without hard-coding cities or venues and without claiming a nearby venue is located in the requested town.
+- Regression coverage verifies the ten-result expansion trigger and the existing 40-to-75-mile safety bound.
+- The complete repository regression suite passed, including worldwide discovery, Booking and Tour Manager workflows, authentication, Stripe, Chat, media/audio coordination, PWA behavior, the 11-page site smoke suite, and infrastructure validation.
+- This change modifies `infrastructure/auth-api/index.mjs`; it has not been deployed to the review Lambda or production. Live provider behavior remains unchanged until an authorized backend deployment.
