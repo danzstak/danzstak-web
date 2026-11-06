@@ -4,6 +4,17 @@ on:
   schedule:
     - cron: "17 11 * * *"
   workflow_dispatch:
+    inputs:
+      booking_provider_smoke:
+        description: Run authenticated read-only Booking provider discovery
+        required: false
+        default: false
+        type: boolean
+      booking_query:
+        description: Public city and genre query (no private data)
+        required: false
+        default: punk clubs in Tacoma, Washington, United States
+        type: string
 
 permissions:
   contents: read
@@ -38,3 +49,18 @@ jobs:
           node-version: 24
       - name: Verify private account workflows and remove synthetic data
         run: node scripts/authenticated-production-health-check.cjs
+
+  authenticated-booking-provider-smoke:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.booking_provider_smoke }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DANZSTAK_SYNTHETIC_SESSION_A: ${{ secrets.DANZSTAK_SYNTHETIC_SESSION_A }}
+      DANZSTAK_BOOKING_SMOKE_QUERY: ${{ inputs.booking_query }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Verify authenticated real-provider venue discovery without mutations
+        run: node scripts/booking-provider-smoke.cjs
