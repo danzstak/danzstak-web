@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Issue #55 — compact Booking Agent workspace — 2026-11-06
+
+Status: **IMPLEMENTED AND VERIFIED IN DEVELOPMENT; STAGING AND OWNER REVIEW PENDING; NOT DEPLOYED**.
+
+- Replaced the separate hero, identity and conversational-request cards with one orange-accented planning workspace. The first screen now asks one plain-language question, keeps saved Act/Home details immediately editable, and places **Plan my run** and **Example** on the same row at every tested phone width.
+- Adopted the reviewed DanzStak music-tool header shared with Record Stores. Direct club search remains a separate compact choice; map/manual entry and detailed genre, crew, vehicle and budget controls remain available behind their existing disclosures. No discovery, saved-tour, map, Stripe, contact-unlock or Tour Manager behavior was removed.
+- Prevented the advanced route form's initial warning from appearing in the conversational status area before a member starts a request. The status remains live and copies route progress after submission.
+- Added the scoped `assets/booking-workspace.css`, the static design regression `test-booking-workspace-design.cjs`, and the real-browser matrix `browser-checks/booking-workspace-design.cjs`. The PWA advances to `danzstak-shell-v695`, caches the new stylesheet and loads `booking-conversation.js?v=477`.
+- Real-browser evidence passes at 320, 360, 390, 430, 768 and 1366px: no horizontal overflow, a ≤64px header, one shared planning card, 44px controls, same-row actions, closed optional tools and the Club Finder beginning within the first phone viewport. Current captures are in `docs/screenshots/issue-55-booking-workspace/`; baseline captures are in `docs/screenshots/issue-55-booking-baseline/`.
+- Functional/integration evidence: all focused Booking, identity, map, discovery, PWA and design checks pass. The complete `test-regressions.ps1` gate passes through every JavaScript regression, bounded live-release verification, the 11-page site smoke suite and the 140,566-byte infrastructure template validation. No product failure was waived.
+- Deployment boundary: no AWS backend, static production asset, service worker or live payment configuration changed. An isolated Amplify staging preview and owner review are required before any production merge/deployment.
+
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND PROVIDER-SPECIFIC DEVICE ACCEPTANCE REMAIN**.

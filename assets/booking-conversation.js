@@ -5,6 +5,7 @@
   const brief = document.getElementById("bookingBrief");
   const status = document.getElementById("bookingBriefStatus");
   if (!form || !brief || !status) return;
+  let requestStarted = false;
   const field = id => document.getElementById(id);
   const setValue = (id, value) => {
     const control = field(id);
@@ -109,6 +110,7 @@
 
   form.addEventListener("submit", event => {
     event.preventDefault();
+    requestStarted = true;
     const parsed = parseTourBrief(brief.value);
     if (!brief.value.trim()) { status.textContent = "Describe where you are starting, how long you have, and where you want to go."; brief.focus(); return; }
     applyTourBrief(parsed);
@@ -134,7 +136,9 @@
   window.danzstakParseTourBrief = parseTourBrief;
   const routeStatus = field("routeSearchStatus");
   if (routeStatus && typeof MutationObserver !== "undefined") {
-    new MutationObserver(() => { status.textContent = routeStatus.textContent; })
+    new MutationObserver(() => {
+      if (requestStarted) status.textContent = routeStatus.textContent;
+    })
       .observe(routeStatus, { childList: true, characterData: true, subtree: true });
   }
 })();
