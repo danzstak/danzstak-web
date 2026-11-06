@@ -19,7 +19,7 @@ for (const token of ["--ds-brand", "--ds-accent", "--ds-ink", "--ds-canvas", "--
 assert.doesNotMatch(art, /#feed \.post :is\(img,video\)\s*\{[^}]*max-width:100%/, "Feed art direction must not reintroduce inset media");
 assert.match(art, /\.menu :is\(a,\.menu-action\)[\s\S]*min-height:max\(44px,var\(--ds-touch\)\)/, "menu rows must preserve the shared 44px target");
 assert.match(art, /@media\(min-width:701px\)[\s\S]*post-composer:not\(\.is-expanded\)[\s\S]*height:46px!important/, "the initial desktop composer must be a compact prompt");
-assert.match(worker, /danzstak-shell-v690/);
+assert.match(worker, /danzstak-shell-v691/);
 assert.match(worker, /\/assets\/danzstak-original-feed\.css/, "the installed PWA must cache the art-direction layer");
 
 console.log("Original Feed art-direction checks passed: shared tokens, edge media, touch targets, and PWA caching.");
