@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Issue #25 — localized Daily Nudge — 2026-11-06
+
+Status: **STAGING DEPLOYED AND VERIFIED; OWNER REVIEW PENDING; NOT MERGED OR DEPLOYED TO PRODUCTION**.
+
+- Added one fleeting, nonblocking thought beneath the signed-in Home header. It appears no more than once per local device/day, can be dismissed with a 44px accessible control, leaves automatically after about seven seconds, pauses its timer while focused or hovered, respects reduced motion and never adds a permanent header row.
+- Selection uses a locally generated random installation seed plus the local calendar date. The same installation/day remains stable across reloads and language changes, independent installations can vary, and a short local history prevents immediate repeats. No account identifier, location, tracking, notification, AI request, analytics event or network service is used.
+- The complete 14-message owner-approved catalog and surface labels are packaged for all 15 supported app languages with English fallback and regional Chinese normalization. Changing the app language translates the same selected thought instead of silently choosing a different one.
+- Independent visual review found that the earlier fixed-position implementation could cover the composer/feed. The root cause was corrected: the temporary surface now sits in normal document flow at the top of `#yourMixMain`, pushes content only while visible, and cannot cover either the header or feed. The browser regression now measures both non-overlap conditions and rejects fixed positioning. The review matrix covers 320, 360, 390, 414, 430, 768, 1024 and 1366px, including once-per-day suppression, live language changes, timed removal, touch geometry and overflow.
+- PWA assets are `daily-nudge-core.js?v=1`, `daily-nudge.js?v=1` and `daily-nudge.css?v=1`; the reconciled shell cache is `danzstak-shell-v695`. No user data or offline drafts are removed.
+- Functional/integration evidence after reconciliation with production baseline `54c18a4`: the complete `test-regressions.ps1` gate passes through every JavaScript test, the bounded release verifier, all 11 smoke pages and infrastructure validation. The eight-width Daily Nudge browser matrix also passes locally.
+- Isolated staging: AWS Amplify app `d31oovi2mos5iz`, DEVELOPMENT branch `codex/issue-25-daily-nudge`, job `4` succeeded in `us-west-1` for implementation commit `2257cb615d6ce6f3b410c8ec4f3923c4aaa78efc`. The preview is `https://codex-issue-25-daily-nudge.d31oovi2mos5iz.amplifyapp.com/feed.html`; no-cache probes confirm the three Daily Nudge assets and `danzstak-shell-v695`.
+- Hosted verification: the same browser matrix passes directly against exact-head staging at 320, 360, 390, 414, 430, 768, 1024 and 1366px with zero horizontal overflow, a 44px dismiss target, no header or feed overlap, in-flow placement, once-per-day reload suppression, Italian-to-Japanese live translation and timed removal.
+- Release boundary: this remains an isolated review branch. Production is unchanged, and physical Android/iPhone installed-PWA timing, screen-reader and touch review remain unverified.
+
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND PROVIDER-SPECIFIC DEVICE ACCEPTANCE REMAIN**.
