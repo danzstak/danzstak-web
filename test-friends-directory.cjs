@@ -17,7 +17,7 @@ assert.match(workspace, /state = \{ view: "all", friends: \[\], incoming: \[\], 
 assert.match(workspace, /people\.slice\(0, state\.shown\)/, "All Friends uses the current page limit");
 assert.match(workspace, /state\.shown \+= 24/, "Show more reveals another bounded page");
 assert.match(workspace, /state\.friends\.filter\(person => person\.online === true\)/, "Online tab filters accepted friends by truthful presence");
-  assert.match(workspace, /presence\.setAttribute\("aria-hidden", "true"\)/, "decorative presence dots do not duplicate the visible status for assistive technology");
+assert.match(workspace, /presence\.setAttribute\("aria-hidden", "true"\)/, "decorative presence dots do not duplicate the visible status for assistive technology");
 assert.match(workspace, /message\.textContent = feedTranslate\("Message \(SYNC\)"\)/, "friends have a clearly labeled SYNC action");
 assert.match(workspace, /more\.textContent = feedTranslate\("More"\)/, "destructive friendship controls live behind More");
 assert.doesNotMatch(workspace, /dataset\.icon = "trash"/, "friend rows do not expose a trash button");
@@ -30,7 +30,7 @@ assert.doesNotMatch(people.match(/window\.danzstakMountPeopleFinder[\s\S]*?\n  }
 assert.match(css, /\.friends-toolbar\{display:grid;grid-template-columns:minmax\(190px,280px\) minmax\(0,1fr\)/, "desktop header keeps search and tabs adjacent without stretching the field");
 assert.match(css, /\.friends-directory-list\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/, "desktop directory uses a compact two-column list");
 assert.match(css, /\.friend-directory-row\{display:grid;grid-template-columns:minmax\(0,1fr\) auto/, "identity and actions share one compact row");
-assert.match(css, /\.friend-sync-action,.friend-more-action,.friend-request-actions button\{min-height:38px/, "desktop actions are compact");
+assert.match(css, /\.friend-sync-action,.friend-more-action,.friend-request-actions button\{min-height:44px/, "friend actions retain accessible 44px touch targets");
 assert.match(css, /@media\(max-width:700px\)[\s\S]*\.friend-sync-action,.friend-more-action,.friend-request-actions button\{min-height:44px/, "mobile actions retain 44px touch targets");
 assert.match(css, /\.friends-filter\[hidden\]\{display:none!important\}/, "view-specific search controls cannot leak into another tab");
 

@@ -1667,15 +1667,20 @@ function renderWorkspace(name) {
       return row;
     }
 
-    function renderCurrentView() {
-      if (!isCurrentWorkspace()) return;
-      content.replaceChildren();
+    function updateTabStates() {
       for (const [value, label] of views) {
         const button = tabButtons.get(value);
+        if (!button) continue;
         button.textContent = tabLabel(value, label);
         button.setAttribute("aria-selected", String(value === state.view));
         button.tabIndex = value === state.view ? 0 : -1;
       }
+    }
+
+    function renderCurrentView() {
+      if (!isCurrentWorkspace()) return;
+      content.replaceChildren();
+      updateTabStates();
       searchLabel.hidden = state.view === "find" || state.view === "requests";
       if (state.view === "find") {
         const finderHost = document.createElement("div");
@@ -1729,6 +1734,10 @@ function renderWorkspace(name) {
       state.friends = state.friends.map(person => presenceById.has(String(person.memberId || ""))
         ? { ...person, online: presenceById.get(String(person.memberId)) }
         : person);
+      if (state.view === "find") {
+        updateTabStates();
+        return;
+      }
       renderCurrentView();
     };
 

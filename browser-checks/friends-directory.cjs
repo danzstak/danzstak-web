@@ -88,18 +88,39 @@ function payload(pathname, url) {
       await peopleSearch.fill("Liana");
       await page.locator(".friend-name-results").getByText("Liana Rossi", { exact: true }).waitFor({ state: "visible" });
       assert.equal(await page.getByRole("searchbox", { name: "Search friends" }).isVisible(), false, `${width}px Find Friends should have only one search control`);
+
+      await peopleSearch.focus();
+      await page.evaluate(users => window.danzstakApplyFriendsDirectoryPresence?.(users), directory.map((person, index) => ({
+        memberId: person.memberId,
+        online: index % 2 === 0
+      })));
+      assert.equal(await peopleSearch.inputValue(), "Liana", `${width}px presence refresh must preserve the Find Friends query`);
+      assert.equal(await page.locator(".friend-name-results").getByText("Liana Rossi", { exact: true }).isVisible(), true, `${width}px presence refresh must preserve Find Friends results`);
+      assert.equal(await peopleSearch.evaluate(element => document.activeElement === element), true, `${width}px presence refresh must preserve Find Friends focus`);
       if (width === 390) await page.screenshot({ path: join(screenshotDir, "friends-find-390.png"), fullPage: true });
 
       const geometry = await page.evaluate(() => ({
         viewport: innerWidth,
         documentWidth: document.documentElement.scrollWidth,
         bodyWidth: document.body.scrollWidth,
-        tabs: [...document.querySelectorAll(".friends-tab")].map(tab => ({ width: tab.getBoundingClientRect().width, height: tab.getBoundingClientRect().height })),
-        rows: [...document.querySelectorAll(".user-search-result")].map(row => ({ left: row.getBoundingClientRect().left, right: row.getBoundingClientRect().right }))
+        tabList: (() => {
+          const rect = document.querySelector(".friends-tabs")?.getBoundingClientRect();
+          return rect ? { left: rect.left, right: rect.right, scrollWidth: document.querySelector(".friends-tabs").scrollWidth, clientWidth: document.querySelector(".friends-tabs").clientWidth } : null;
+        })(),
+        tabs: [...document.querySelectorAll(".friends-tab")].map(tab => {
+          const rect = tab.getBoundingClientRect();
+          return { left: rect.left, right: rect.right, width: rect.width, height: rect.height };
+        }),
+        rows: [...document.querySelectorAll(".user-search-result")].map(row => ({ left: row.getBoundingClientRect().left, right: row.getBoundingClientRect().right })),
+        actions: [...document.querySelectorAll(".user-search-result button, .friend-request-actions button")].map(button => ({ height: button.getBoundingClientRect().height }))
       }));
       assert.ok(geometry.documentWidth <= width && geometry.bodyWidth <= width, `${width}px Friends overflow: ${JSON.stringify(geometry)}`);
-      assert.ok(geometry.tabs.every(tab => tab.height >= 42), `${width}px tabs should retain usable touch geometry`);
+      assert.equal(geometry.tabs.length, 4, `${width}px should render all four Friends tabs`);
+      assert.ok(geometry.tabs.every(tab => tab.height >= 44), `${width}px tabs should retain 44px touch geometry`);
+      assert.ok(geometry.tabs.every(tab => tab.left >= geometry.tabList.left - 0.5 && tab.right <= geometry.tabList.right + 0.5), `${width}px all Friends tabs should remain visible without horizontal scrolling`);
+      assert.ok(geometry.tabList.scrollWidth <= geometry.tabList.clientWidth + 1, `${width}px Friends tabs should not require horizontal scrolling`);
       assert.ok(geometry.rows.every(row => row.left >= 0 && row.right <= width + 0.5), `${width}px search rows should remain in the viewport`);
+      if (width <= 430) assert.ok(geometry.actions.every(action => action.height >= 44), `${width}px Friends actions should retain 44px touch geometry`);
       assert.equal(errors.length, 0, `${width}px page errors: ${errors.join(" | ")}`);
 
       await page.getByRole("tab", { name: "All Friends (100)" }).click();

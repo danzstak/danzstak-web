@@ -23,6 +23,6 @@ assert.match(css, /\.friends-directory-list\{display:grid;grid-template-columns:
 assert.match(css, /@media\(max-width:700px\)[\s\S]*\.friends-directory-list\{grid-template-columns:1fr\}/, "mobile uses one readable column");
 assert.match(css, /\.friend-sync-action,.friend-more-action,.friend-request-actions button\{min-height:44px/, "mobile controls keep usable touch targets");
 assert.match(feed, /assets\/feed-enhancements\.css\?v=499/, "feed loads current Friends styles");
-assert.match(feed, /assets\/feed-enhancements\.js\?v=529/, "feed loads current Friends behavior");
+assert.match(feed, /assets\/feed-enhancements\.js\?v=530/, "feed loads current Friends behavior");
 
 console.log("Friend directory checks passed: compact tabs, paging, requests, discovery, SYNC and safe relationship actions.");
