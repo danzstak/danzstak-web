@@ -1,12 +1,12 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v695";
+const CACHE = "danzstak-shell-v696";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css",
   "/assets/icon-buttons.js", "/assets/icon-buttons.css", "/assets/mobile-design-system.css", "/assets/danzstak-original-feed.css", "/assets/responsive-media.js", "/assets/responsive-media.css",
   "/assets/media-tags.js",
   "/assets/post-sharing.js", "/assets/post-views.js",
-  "/assets/profile-sharing.js",
+  "/assets/profile-sharing.js", "/assets/invite-friends.js", "/assets/invite-friends.css",
   "/assets/facebook-import.js", "/assets/facebook-import.css", "/assets/facebook-import-worker.js", "/assets/facebook-import-core.js", "/assets/vendor/fflate-0.8.3.js",
   "/assets/people-search.js",
   "/assets/mobile-keyboard.js",

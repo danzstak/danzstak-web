@@ -1541,7 +1541,13 @@ function renderWorkspace(name) {
     search.placeholder = feedTranslate("Search friends");
     search.setAttribute("aria-label", feedTranslate("Search friends"));
     searchLabel.append(searchText, search);
-    toolbar.appendChild(searchLabel);
+    const invite = document.createElement("button");
+    invite.type = "button";
+    invite.className = "secondary friends-invite-action";
+    invite.textContent = feedTranslate("Invite a Friend");
+    invite.setAttribute("aria-label", feedTranslate("Invite a Friend"));
+    invite.addEventListener("click", () => window.danzstakInviteFriends?.open(invite));
+    toolbar.append(searchLabel, invite);
 
     const tabs = document.createElement("div");
     tabs.className = "friends-tabs";

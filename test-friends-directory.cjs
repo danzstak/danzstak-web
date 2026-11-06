@@ -27,7 +27,8 @@ assert.match(workspace, /notificationsResult/, "legacy APIs still recover incomi
 assert.match(people, /labelText\.className = "visually-hidden"/, "member search has one concise visible field and an accessible label");
 assert.doesNotMatch(people.match(/window\.danzstakMountPeopleFinder[\s\S]*?\n  };/)?.[0] || "", /Type their name\. They do not need to be online\./, "the dedicated Find Friends tab removes redundant permanent instructions");
 
-assert.match(css, /\.friends-toolbar\{display:grid;grid-template-columns:minmax\(190px,280px\) minmax\(0,1fr\)/, "desktop header keeps search and tabs adjacent without stretching the field");
+assert.match(css, /\.friends-toolbar\{display:grid;grid-template-columns:minmax\(190px,260px\) auto minmax\(360px,1fr\)/, "desktop header keeps search, invitation, and tabs adjacent without stretching the field");
+assert.match(workspace, /invite\.textContent = feedTranslate\("Invite a Friend"\)/, "Friends exposes the user-controlled invitation flow");
 assert.match(css, /\.friends-directory-list\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/, "desktop directory uses a compact two-column list");
 assert.match(css, /\.friend-directory-row\{display:grid;grid-template-columns:minmax\(0,1fr\) auto/, "identity and actions share one compact row");
 assert.match(css, /\.friend-sync-action,.friend-more-action,.friend-request-actions button\{min-height:44px/, "friend actions retain accessible 44px touch targets");

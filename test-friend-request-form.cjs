@@ -22,7 +22,7 @@ assert.doesNotMatch(workspace, /Add a friend by email/, "ordinary users are not 
 assert.match(css, /\.friends-directory-list\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/, "desktop uses a compact two-column directory");
 assert.match(css, /@media\(max-width:700px\)[\s\S]*\.friends-directory-list\{grid-template-columns:1fr\}/, "mobile uses one readable column");
 assert.match(css, /\.friend-sync-action,.friend-more-action,.friend-request-actions button\{min-height:44px/, "mobile controls keep usable touch targets");
-assert.match(feed, /assets\/feed-enhancements\.css\?v=502/, "feed loads current Friends styles");
-assert.match(feed, /assets\/feed-enhancements\.js\?v=532/, "feed loads current Friends behavior");
+assert.match(feed, /assets\/feed-enhancements\.css\?v=503/, "feed loads current Friends styles");
+assert.match(feed, /assets\/feed-enhancements\.js\?v=533/, "feed loads current Friends behavior");
 
 console.log("Friend directory checks passed: compact tabs, paging, requests, discovery, SYNC and safe relationship actions.");
