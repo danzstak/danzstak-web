@@ -82,6 +82,12 @@ async function assertViewport(page, width, state) {
       assert.equal(errors.length, 0, `${width}px browser errors: ${errors.join(" | ")}`);
       assert.equal((await page.locator("#messagesTitle").textContent()).trim(), "SYNC");
       assert.deepEqual(await page.locator("[data-chat-filter]").allTextContents(), ["Chats", "Calls", "Contacts"]);
+      for (const tab of await page.locator("[data-chat-filter]").all()) {
+        const box = await tab.boundingBox();
+        assert.ok(box && box.height >= 44, `${width}px SYNC section tabs must preserve a 44px touch target`);
+        const hit = await page.evaluate(({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest?.("[data-chat-filter]")), { x: box.x + box.width / 2, y: box.y + box.height / 2 });
+        assert.equal(hit, true, `${width}px SYNC section tab must be hit-testable at its center`);
+      }
       assert.equal(await page.locator(".conversation-row").count(), 1, "Chats must contain saved conversations, not every directory contact");
       await page.getByRole("tab", { name: "Calls" }).click();
       await page.locator('.conversation-row[data-sync-section="calls"]').first().waitFor();
@@ -157,6 +163,41 @@ async function assertViewport(page, width, state) {
       if (capture && width === 390) await page.screenshot({ path: path.join(output, "sync-active-video-390.png"), fullPage: true });
       await context.close();
     }
+
+    const navigationContext = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, serviceWorkers: "block", ...(previewCredentials ? { httpCredentials: previewCredentials } : {}) });
+    const navigationPage = await navigationContext.newPage();
+    const navigationErrors = [];
+    navigationPage.on("pageerror", error => navigationErrors.push(error.message));
+    await navigationPage.route("https://api.danzstak.com/**", route => {
+      const endpoint = new URL(route.request().url()).pathname;
+      if (endpoint === "/auth/session") return json(route, { authenticated: true, user: { sub: uuid(20), email: "owner@example.test" } });
+      if (endpoint === "/profiles") return json(route, { profile: { name: "Review Artist", picture: "" } });
+      if (endpoint === "/posts") return json(route, { posts: [] });
+      if (endpoint === "/friends") return json(route, { friends: [] });
+      if (endpoint === "/calls/directory") return json(route, { users: [] });
+      if (endpoint === "/calls/presence") return json(route, { ok: true });
+      return json(route, {});
+    });
+    await navigationPage.goto(`${baseUrl}/feed.html`, { waitUntil: "domcontentloaded" });
+    await navigationPage.locator(".mobile-menu-control").click();
+    await navigationPage.locator("body.mobile-menu-open").waitFor();
+    await navigationPage.waitForTimeout(250);
+    assert.equal(await navigationPage.locator("#messageDrawer").count(), 0, "opening Menu must not open the SYNC drawer");
+    const menuBox = await navigationPage.locator("#mobileNavMenu").boundingBox();
+    assert.ok(menuBox && menuBox.width >= 300 && menuBox.x >= 0, "the settled mobile Menu must fill its intended drawer width");
+    assert.equal(await navigationPage.locator("#mobileNavMenu .menu-label").first().isVisible(), true, "mobile Menu labels must remain visible after the transition");
+    if (capture) await navigationPage.screenshot({ path: path.join(output, "sync-feed-menu-390.png"), fullPage: false });
+    const syncMenuLink = navigationPage.locator('#mobileNavMenu a[href="messages.html"]');
+    await syncMenuLink.waitFor({ state: "visible" });
+    assert.equal((await syncMenuLink.textContent()).trim(), "SYNC", "the mobile Menu must name the destination SYNC");
+    await syncMenuLink.click();
+    await navigationPage.waitForURL(/\/messages\.html(?:\?|$)/, { waitUntil: "commit" });
+    assert.deepEqual(navigationErrors, [], "Feed → Menu → SYNC must not raise browser errors");
+    await navigationPage.goBack({ waitUntil: "commit" });
+    await navigationPage.waitForURL(/\/feed\.html(?:\?|$)/, { waitUntil: "commit" });
+    assert.equal(await navigationPage.locator("body").evaluate(node => node.classList.contains("mobile-menu-open")), false, "Back from SYNC must restore Feed without reopening Menu");
+    if (capture) await navigationPage.screenshot({ path: path.join(output, "sync-feed-return-390.png"), fullPage: false });
+    await navigationContext.close();
     console.log(`SYNC four-state verification passed at ${widths.join(", ")}px.`);
   } finally {
     await browser.close();

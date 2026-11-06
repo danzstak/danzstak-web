@@ -8,7 +8,10 @@ const enhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const chatCss = fs.readFileSync("assets/chat.css", "utf8");
 
 assert.match(feed, /drawer\.className = "message-drawer"/, "messages open in the feed drawer");
-assert.match(feed, /class="message-drawer-loading" role="status">Loading chats…/, "the drawer announces an immediate loading state");
+assert.match(feed, /class="message-drawer-loading" role="status">Loading SYNC…/, "the drawer announces an immediate branded loading state");
+assert.match(feed, /id="messagesNav"[^>]*aria-label="SYNC"[^>]*title="SYNC"/, "the Feed launcher uses the same SYNC identity as the standalone screen");
+assert.match(feed, /message-drawer-bar"><span>SYNC<\/span>/, "desktop embedded messaging has one consistent SYNC heading");
+assert.match(feed, /href="messages\.html"[^>]*>[\s\S]*?menu-label">SYNC<\/span>/, "the mobile Menu has an intentional standalone SYNC destination");
 assert.match(feed, /\.message-drawer\.is-loading iframe\{visibility:hidden\}/, "partially rendered chat chrome stays hidden while loading");
 assert.match(feed, /event\.currentTarget\.src\.includes\("messages\.html"\)/, "an unrelated initial frame load cannot dismiss the loading state");
 assert.match(feed, /drawer\.querySelector\("\.message-drawer-loading"\)\.hidden = true/, "the loading state clears when Messages is ready");
