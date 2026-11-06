@@ -2,7 +2,7 @@
 
 ## Issue #30 — user-controlled Invite a Friend handoff — 2026-11-06
 
-Status: **IN PROGRESS — IMPLEMENTED AND LOCALLY VERIFIED; HOSTED STAGING AND PHYSICAL SMS/SHARE-SHEET ACCEPTANCE PENDING**.
+Status: **IN PROGRESS — IMPLEMENTED AND HOSTED-STAGING VERIFIED; PHYSICAL SMS/SHARE-SHEET AND INDEPENDENT REVIEW REMAIN**.
 
 - Added one reusable **Invite a Friend** flow to the compact Friends directory, SYNC inbox and the existing owner-profile invitation action. The member can edit the short invitation, then choose **Text message (SMS)**, **Share via apps**, or **Copy invitation link**.
 - The SMS option uses the device's own composer with the cross-platform iOS/Android `sms:` body format. DANZSTAK supplies no recipient, never sends automatically, never reads or uploads contacts, and does not claim delivery. The share option uses the standards-based Web Share API; copy remains the universal fallback. All routes use the public `https://danzstak.com/` signup/sign-in landing page.
@@ -10,6 +10,7 @@ Status: **IN PROGRESS — IMPLEMENTED AND LOCALLY VERIFIED; HOSTED STAGING AND P
 - Accessibility and layout: modal focus returns to its opener, controls retain at least 44px touch geometry, the dialog fits 320–1366px without horizontal overflow, and the actions remain explicit text rather than ambiguous icons.
 - Functional/integration evidence: the complete `test-regressions.ps1` gate passes, including all JavaScript checks, 11-page smoke testing and infrastructure validation. `test-invite-friends.cjs` verifies iOS/Android URI generation, Unicode encoding, no recipient collection, localization coverage, entry points and PWA caching.
 - Browser evidence: Friends and SYNC invitation flows pass in Microsoft Edge/Chromium at 320, 390, 430 and 1366px; the expanded Friends directory matrix still passes 320, 360, 390, 430, 768 and 1366px. Current captures are in `docs/screenshots/issue-30-invite-friends/`.
+- Hosted staging evidence: AWS Amplify app `d31oovi2mos5iz`, DEVELOPMENT branch `codex/issue-30-invite-friends`, exact-head job `2` succeeded in `us-west-1` for `229b59a18302bbd934eabe1a65f3c9df70f85182` at 2026-11-06 13:42:41 Europe/Berlin. The public review URL is `https://codex-issue-30-invite-friends.d31oovi2mos5iz.amplifyapp.com/feed.html?view=friends`. Both invitation and full Friends browser matrices pass against that hosted build.
 - PWA assets advance to `invite-friends.js?v=1`, `invite-friends.css?v=1`, `feed-enhancements.js?v=533`, `feed-enhancements.css?v=503`, `i18n.js?v=396`, `profile-sharing.js?v=417` and `danzstak-shell-v696`. No drafts, messages, contacts or member data are cleared.
 - Verification boundary: automated browsers prove rendering, encoding, fallback behavior and focus. They do not prove that a physical Android/iPhone opens a particular installed SMS application, that an OS share target receives the payload, or that an invitation is delivered. Those remain explicit physical-device acceptance checks. No telecom provider, paid SMS service, address-book permission, referral backend or automatic friendship was added.
 
