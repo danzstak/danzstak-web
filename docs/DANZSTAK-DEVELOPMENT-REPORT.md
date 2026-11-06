@@ -2,7 +2,7 @@
 
 ## Issue #55 — professional EPK editor and live preview — 2026-11-06
 
-Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING REVIEW PENDING; PRODUCTION UNCHANGED**.
+Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; INDEPENDENT REVIEW PENDING; PRODUCTION UNCHANGED**.
 
 - Root cause: the complete EPK feature existed, but its six long sections rendered as one uninterrupted form. On phones, artists had to scroll through the entire editor before reaching the live preview, while mixed hard-coded styling made the tool look disconnected from the rest of DANZSTAK.
 - The editor now has six numbered progressive sections—Artist basics, Story, Music and links, Press materials, Proof and production, and Booking contact—with compact section navigation and a direct live-preview route. Existing field IDs, API payloads, privacy choices, uploads, draft/publish/unpublish behavior, private review links, print/PDF and permanent deletion are preserved.
@@ -11,6 +11,8 @@ Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING REVIEW PENDING; PRODUCTION U
 - Focused functional evidence: EPK builder, domain isolation, network recovery, PWA refresh, shared design-system and new EPK information-architecture checks pass.
 - Actual-browser evidence: `browser-checks/epk-design-system.cjs` passes Microsoft Edge/Chromium at 320, 390, 430 and 1366px with populated account data, no page errors, zero horizontal overflow, six working editor sections, a bound live preview and at least 44px phone application controls. Captures are in `docs/screenshots/issue-55-epk/`.
 - Integration evidence: the complete `test-regressions.ps1` gate passes, including all JavaScript checks, the bounded live-release verifier, 11-page smoke testing and infrastructure validation. No failure was waived.
+- Staging evidence: AWS Amplify DEVELOPMENT branch `codex/issue-55-epk` in `us-west-1` successfully serves `https://codex-issue-55-epk.d31oovi2mos5iz.amplifyapp.com/epk.html`. No-cache probes confirm EPK CSS `v3`, media CSS `v6`, client JavaScript `v12`, and `danzstak-shell-v697`. The same four-width browser interaction and geometry matrix passes directly against the hosted build.
+- Review artifact: draft pull request [#77](https://github.com/danzstak/danzstak-web/pull/77), implementation commit `90d5824669728754707319c732b06a38858f9595`.
 - Verification boundary: browser fixtures prove layout, interaction and existing client/API wiring, not a physical Android/iPhone installed PWA or real booker receipt. No production deployment is authorized by this review slice.
 
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
