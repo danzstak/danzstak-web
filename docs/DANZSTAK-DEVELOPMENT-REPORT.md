@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Issue #8 — The Roll fullscreen playback session — 2026-11-06
+
+Status: **TESTED LOCALLY; PRODUCTION DEPLOYMENT AUTHORIZED BUT BLOCKED BY EXPIRED AWS SESSION**.
+
+- Replaced the competing Roll-only playback observer with the shared DanzStak media coordinator. The fullscreen Roll uses a deterministic 50% visibility handoff, keeps exactly one active/audible player, pauses media on close/background/navigation, and never enables surprise feed audio.
+- Fullscreen now opens the selected Roll card rather than always jumping to the first item. Direct videos and YouTube players end naturally and advance to the next card; YouTube no longer requests looping. Unsupported cross-origin providers remain click-to-play when they cannot be controlled safely.
+- The fullscreen experience uses one vertical, viewport-height, scroll-snapped queue with compact overlay metadata and controls. It removes the separate footer-style frame, preserves native/provider controls, supplies a 44px selected-card fullscreen action, traps focus and isolates the background.
+- PWA assets advance to `assets/feed-enhancements.js?v=529`, `assets/media-visibility.js?v=391` and `danzstak-shell-v694` without deleting drafts or user data.
+- Functional/integration evidence: all focused media, YouTube, accessibility, responsive-media, script-scope and PWA checks pass. The complete `test-regressions.ps1` gate passed through every JavaScript test and the final 11-page site smoke check after installing the locked backend test dependencies; no product failure was waived.
+- Responsive browser evidence: the existing full Feed/Profile browser matrix passed at 320, 390, 430 and 1366px with zero reported layout failures. Physical Android/iPhone playback, provider-specific network behavior and an installed-PWA sound handoff remain owner acceptance boundaries.
+- Deployment blocker: `aws sts get-caller-identity` reports that the local AWS session expired. Per the AWS authentication safety workflow, Codex has not run `aws login` without a separate explicit login confirmation. No production deployment has occurred from this branch yet.
+
 ## Issue #13 — private Facebook import review and date selection — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND REAL ARCHIVE ACCEPTANCE REMAIN**.

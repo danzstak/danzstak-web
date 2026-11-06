@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const feedHtml = fs.readFileSync("feed.html", "utf8");
 const enhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const enhancementCss = fs.readFileSync("assets/feed-enhancements.css", "utf8");
+const mediaVisibility = fs.readFileSync("assets/media-visibility.js", "utf8");
 
 const composer = feedHtml.indexOf('<section class="panel post-composer" id="postComposer">', feedHtml.indexOf('<div id="newsFeedView">'));
 const stories = feedHtml.indexOf('<section id="storiesRail"');
@@ -26,7 +27,8 @@ assert.match(
 );
 assert.match(enhancements, /video\.autoplay = false;/, "The Roll videos must require explicit playback instead of starting when the app opens");
 assert.match(enhancements, /video\.muted = true;/, "autoplay videos must be muted for browser compatibility");
-assert.match(enhancements, /intersectionRatio >= 0\.6/, "only sufficiently visible Roll videos should play");
+assert.match(mediaVisibility, /const thresholdFor=element=>inSession\(element\)\?0\.5:0\.6/, "the feed must require 60% visibility while fullscreen Roll handoff occurs at exactly 50%");
+assert.match(enhancements, /danzstakMediaCoordinator\?\.startSession\?\./, "fullscreen Roll playback must use the shared single-player coordinator");
 assert.match(enhancements, /Videos shared to The Roll will appear here\./, "The Roll needs a visible empty-state placeholder");
 assert.match(feedHtml, /video\.post-media \{ height:auto; max-height:none; object-fit:contain; object-position:center center; \}/, "the post box should follow and center each video's real aspect ratio");
 assert.match(feedHtml, /img\.post-media \{ height:auto; max-height:none; object-fit:contain; object-position:center center; \}/, "the post box should follow and center each image's real aspect ratio");
