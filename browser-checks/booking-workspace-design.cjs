@@ -151,6 +151,7 @@ function fixture(pathname, populated = true) {
         assert.doesNotMatch(await page.locator(".tour-calendar tbody tr").last().textContent(), /≈\d+ road mi/, "missing intermediate geometry must not become one false long return leg");
         assert.ok((await page.locator(".tour-calendar tbody tr").allTextContents()).some(text => /≈\d+ road mi/.test(text)), "the day sheet should expose estimated leg mileage");
         assert.match(await page.locator(".proposed-calendar > summary").textContent(), /8 proposed shows/);
+        assert.ok(await page.locator(".tour-lead-status", { hasText: /Sourced lead|Contact found/ }).count() >= 1, "proposed clubs need a visible evidence status");
         assert.doesNotMatch(await page.locator('[data-route-cost="total"]').textContent(), /—/, "route cost must calculate");
         await page.locator('[data-route-budget-input="averageShowPay"]').fill("1000");
         await page.locator('[data-route-budget-input="averageMerchPerShow"]').fill("200");

@@ -1447,7 +1447,7 @@
     details.className = "proposed-calendar";
     summary.textContent = `${days}-day target calendar · ${shows} proposed shows`;
     intro.className = "hint";
-    intro.textContent = "This is a working pitch plan, not a confirmed tour. A show becomes real only after the venue agrees. Leg miles are estimates; use the route map for live navigation.";
+    intro.textContent = "This is a working pitch plan, not a confirmed tour. Sourced lead means a public source was found—not that the venue agreed. Leg miles are estimates; use the route map for live navigation.";
     details.open = true;
     tableBox.className = "tour-day-sheet";
     table.className = "tour-calendar";
@@ -1496,7 +1496,13 @@
       if (venue) {
         usedVenues.add(venueKey(venue));
         cityCell.textContent = market.stop;
-        venueCell.textContent = venue.name;
+        const venueName = document.createElement("strong"),
+          venueStatus = document.createElement("span");
+        venueName.textContent = venue.name;
+        venueStatus.className = "tour-lead-status sourced";
+        venueStatus.textContent = venue.bookingSuitability === "contact-found" ? "Contact found" : "Sourced lead";
+        venueStatus.title = "Public source found; booking and availability are not confirmed.";
+        venueCell.append(venueName, venueStatus);
         planCell.textContent = "Show target · arrive 4:00 PM · soundcheck 5:00 PM";
         showIndex += 1;
       } else {
@@ -1504,7 +1510,8 @@
           label = returningHome ? `Return toward ${data.route.start?.label || "home"}` : market?.stop || data.route.start?.label;
         row.className = "off";
         cityCell.textContent = label || "Route day";
-        venueCell.textContent = shouldShow ? "Find a room" : "Travel / rest";
+        venueCell.textContent = shouldShow ? "Research needed" : "Travel / rest";
+        if (shouldShow) venueCell.classList.add("needs-research");
         planCell.textContent = returningHome ? "Safe return drive; finish with everyone and the vehicle home." : shouldShow ? "No sourced club lead yet; research this market." : "Drive toward the next show; load-in buffer, laundry, or sleep.";
       }
       const destinationPosition = finalHomeDay

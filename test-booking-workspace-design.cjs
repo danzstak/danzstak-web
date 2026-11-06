@@ -19,7 +19,7 @@ assert.match(html, /<details class="booking-tools">[\s\S]*?<summary>Use the map 
 assert.match(html, /<details class="planner-drawer">[\s\S]*?<summary>More tour options: genre, crew, van and budget<\/summary>/);
 assert.match(html, /assets\/booking-workspace\.css\?v=6/);
 assert.match(html, /assets\/booking-map\.js\?v=448/);
-assert.match(html, /assets\/booking-agent\.js\?v=487/);
+assert.match(html, /assets\/booking-agent\.js\?v=488/);
 assert.match(html, /assets\/booking-conversation\.js\?v=479/);
 
 assert.match(css, /\.booking-start[\s\S]*grid-template-columns: minmax\(270px, \.8fr\) minmax\(420px, 1\.2fr\)/);
@@ -61,6 +61,10 @@ assert.match(agent, /Leg miles are estimates/);
 assert.match(agent, /directMiles \* 1\.18/);
 assert.match(agent, /≈\$\{legMiles\} road mi/);
 assert.match(agent, /Never carry an older city across a stop whose geometry is unavailable/);
+assert.match(agent, /Sourced lead means a public source was found/);
+assert.match(agent, /venue\.bookingSuitability === "contact-found" \? "Contact found" : "Sourced lead"/);
+assert.match(agent, /Public source found; booking and availability are not confirmed/);
+assert.match(css, /\.tour-lead-status/);
 assert.match(agent, /currentCalendar\.replaceWith\(renderProposedCalendar\(data\)\)/);
 assert.match(agent, /Club research and contacts/);
 assert.match(agent, /researchMarkets\.append\(section\)/, "city-by-city research must stay behind one optional workspace instead of stretching the primary day sheet");
@@ -69,7 +73,7 @@ assert.doesNotMatch(agent, /Choose the first date and the date the act must be h
 assert.match(map, /danzstak:booking-selection/);
 assert.match(map, /window\.danzstakToggleBookingVenue/);
 
-assert.match(worker, /danzstak-shell-v706/);
+assert.match(worker, /danzstak-shell-v707/);
 assert.match(worker, /"\/assets\/booking-workspace\.css"/);
 
 console.log("Booking workspace design checks passed: one compact planning card, truthful status timing, shared tool header, optional advanced controls, and PWA coverage.");

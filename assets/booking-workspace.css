@@ -292,6 +292,21 @@
 .booking-page .tour-calendar tbody th { color: #1769e0; font-variant-numeric: tabular-nums; }
 .booking-page .tour-calendar tr.off td,
 .booking-page .tour-calendar tr.off th { background: #f4f6f8; color: #667085; }
+.booking-page .tour-calendar td strong { display: block; }
+.booking-page .tour-lead-status {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border: 1px solid #8ca5c7;
+  border-radius: 999px;
+  color: #365579;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .03em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+.booking-page .tour-calendar td.needs-research { color: #8a5a00; font-weight: 850; }
 .booking-page .route-select-venue,
 .booking-page .market-research { width: 100%; margin-top: 10px; }
 
