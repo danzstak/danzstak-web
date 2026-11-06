@@ -110,7 +110,7 @@ button,a,input,select,textarea{touch-action:manipulation}
 
 /* Profile uses the same phone application shell without changing its desktop account navigation. */
 @media(max-width:700px){
-  body.profile-page{padding-bottom:calc(54px + env(safe-area-inset-bottom))}
+  body.profile-page{padding-bottom:calc(54px + env(safe-area-inset-bottom) + 2px)}
   body.profile-page>header{
     position:sticky;top:0;z-index:100;display:flex;align-items:center;
     width:100%;min-height:var(--ds-mobile-header);padding:6px max(8px,env(safe-area-inset-right)) 6px max(8px,env(safe-area-inset-left));
@@ -133,7 +133,7 @@ button,a,input,select,textarea{touch-action:manipulation}
    available to desktop, while phones get one measured geometry system. */
 @media(max-width:700px){
   :root{--mobile-app-header:50px;--mobile-app-nav:50px}
-  body{padding-bottom:calc(50px + env(safe-area-inset-bottom))}
+  body{padding-bottom:calc(50px + env(safe-area-inset-bottom) + 2px)}
   .topbar{
     min-height:50px!important;
     grid-template-columns:34px minmax(0,1fr)!important;
@@ -230,7 +230,7 @@ button,a,input,select,textarea{touch-action:manipulation}
 }
 
 @media(max-width:760px){
-  .messages-page:not(.is-conversation-open){padding-bottom:calc(54px + env(safe-area-inset-bottom))}
+  .messages-page:not(.is-conversation-open){padding-bottom:calc(54px + env(safe-area-inset-bottom) + 2px)}
   .messages-page .chat-search input{font-size:16px!important}
   .messages-page.is-conversation-open .ds-mobile-nav{display:none}
 }
