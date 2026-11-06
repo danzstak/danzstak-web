@@ -28,3 +28,84 @@ jobs:
       - name: Run complete local regression suite
         shell: pwsh
         run: .\test-regressions.ps1
+
+  responsive-accessibility-security:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install pinned browser test runtime
+        shell: pwsh
+        run: npm install --no-save --ignore-scripts playwright@1.56.1
+      - name: Run responsive, accessibility, and security checks
+        shell: pwsh
+        run: |
+          node test-news-workspace.cjs
+          node test-touch-targets.cjs
+          node test-feed-csp.cjs
+          node test-external-link-privacy.cjs
+          .\test-site.ps1
+      - name: Render the affected News workspace
+        shell: pwsh
+        run: |
+          $server = Start-Process python -ArgumentList '-m','http.server','8146','--bind','127.0.0.1' -PassThru -WindowStyle Hidden
+          try {
+            $ready = $false
+            foreach ($attempt in 1..20) {
+              try {
+                $response = Invoke-WebRequest -Uri 'http://127.0.0.1:8146/feed.html?view=news' -UseBasicParsing -TimeoutSec 2
+                if ($response.StatusCode -eq 200) { $ready = $true; break }
+              } catch {}
+              Start-Sleep -Milliseconds 500
+            }
+            if (-not $ready) { throw 'Local review server did not become ready.' }
+            node browser-checks/news-workspace.cjs
+          } finally {
+            if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
+          }
+
+  release-evidence:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Validate permanent release policy
+        shell: pwsh
+        run: |
+          node test-quality-assurance-policy.cjs
+          .\test-release-verification.ps1
+      - name: Require review evidence for application changes
+        shell: pwsh
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          $base = if ($env:BASE_REF) { "origin/$env:BASE_REF" } else { 'HEAD^' }
+          $changed = @(git diff --name-only "$base...HEAD")
+          $application = @($changed | Where-Object { $_ -match '^(?:assets/|browser-checks/|infrastructure/|native/|[^/]+\.html$|manifest\.webmanifest$|service-worker\.js$)' })
+          if ($application.Count -eq 0) {
+            Write-Host 'No application change requires visual release evidence.'
+            exit 0
+          }
+          if ($changed -notcontains 'docs/DANZSTAK-DEVELOPMENT-REPORT.md') {
+            throw 'Application changes must update docs/DANZSTAK-DEVELOPMENT-REPORT.md.'
+          }
+          $visual = @($application | Where-Object { $_ -match '^(?:assets/.*\.(?:css|js)|browser-checks/|[^/]+\.html$)' })
+          $screenshots = @($changed | Where-Object { $_ -match '^docs/screenshots/.+\.png$' })
+          if ($visual.Count -gt 0 -and $screenshots.Count -eq 0) {
+            throw 'Visual application changes must include reviewed PNG evidence under docs/screenshots/.'
+          }
+          if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
+            if ($env:PR_BODY -notmatch '(?i)staging|preview') { throw 'The pull request must identify staging or preview evidence.' }
+            if ($env:PR_BODY -notmatch '(?i)browser|viewport|responsive') { throw 'The pull request must identify browser or responsive evidence.' }
+            if ($env:PR_BODY -notmatch '(?i)production') { throw 'The pull request must state the production deployment boundary.' }
+          }
+          Write-Host "Release evidence passed for $($application.Count) application files and $($screenshots.Count) screenshots."
