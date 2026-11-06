@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Issue #35 — password visibility ownership audit — 2026-11-06
+
+Status: **BLOCKED ON AN AUTHENTICATION-ARCHITECTURE DECISION; NOT IMPLEMENTED OR DEPLOYED**.
+
+- The repository contains no DanzStak-controlled password input. Sign-in, signup, mobile sign-in, recovery and recent reauthentication are routed through Amazon Cognito Managed Login v2 with PKCE; Cognito owns the credential DOM.
+- A read-only live browser audit at 320, 360, 390, 414, 430 and 1366px found two secure new-password fields on signup but only one shared 16 × 16 **Show password** checkbox. The control reveals both fields together, so the requested independent 44px eye controls are not present. The strict audit correctly reports `acceptanceSatisfied: false`.
+- Managed Login branding supports styles/assets, not arbitrary supported DOM or JavaScript injection. A local landing-page eye would be a false fix, and cross-origin script injection is not permitted. A custom Cognito UI would be an authentication-architecture change requiring separate security review and explicit authorization.
+- Added `browser-checks/cognito-password-visibility-audit.cjs`, the static ownership regression `test-password-field-ownership.cjs`, and the route-by-route evidence report `docs/ISSUE-35-PASSWORD-VISIBILITY-AUDIT.md`. No credentials or real password values were entered or captured.
+- No production AWS, Cognito, Lambda, frontend, PWA or authentication configuration changed. Owner/security decision required: accept the provider limitation or authorize a custom Cognito authentication UI review.
+
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND PROVIDER-SPECIFIC DEVICE ACCEPTANCE REMAIN**.
