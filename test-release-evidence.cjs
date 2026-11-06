@@ -41,6 +41,9 @@ const reviewImages = [
   "docs/screenshots/issue-55-epk/epk-430.png",
   "docs/screenshots/issue-55-epk/epk-1366.png",
 ];
+for (const width of [320, 390, 430, 1366]) {
+  for (const position of ["top", "middle", "bottom"]) reviewImages.push(`docs/screenshots/issue-55-epk/epk-${width}-${position}.png`);
+}
 for (const image of reviewImages) {
   assert.ok(fs.existsSync(image), `${image} is required visual review evidence.`);
   assert.ok(fs.statSync(image).size > 10_000, `${image} is too small to be credible rendered evidence.`);
@@ -50,5 +53,10 @@ const workflow = read(".github/workflows/review.yml");
 for (const check of ["regression", "responsive-accessibility-security", "release-evidence"]) {
   assert.ok(workflow.includes(`${check}:`), `Review workflow must publish required check ${check}.`);
 }
+assert.ok(fs.existsSync("scripts/verify-pr-release-evidence.cjs"), "The exact-head release verifier is required.");
+const verifier = read("scripts/verify-pr-release-evidence.cjs");
+assert.match(verifier, /pull\.head\?\.sha/, "Release evidence must bind to the current PR head SHA.");
+assert.match(verifier, /d31oovi2mos5iz\.amplifyapp\.com/, "Release evidence must bind staging to the isolated Amplify app.");
+assert.match(verifier, /fetch\(preview/, "Release evidence must verify that staging is reachable.");
 
 console.log("Release evidence checks passed: staged preview, test boundary, responsive captures, and required workflow contexts are present.");

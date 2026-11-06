@@ -2,6 +2,7 @@ name: Review checks
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   workflow_dispatch:
 
 permissions:
@@ -91,4 +92,6 @@ jobs:
       - name: Validate review and release evidence
         env:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
-        run: node test-release-evidence.cjs
+        run: |
+          node test-release-evidence.cjs
+          node scripts/verify-pr-release-evidence.cjs

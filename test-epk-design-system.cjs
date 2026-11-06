@@ -15,15 +15,16 @@ for (const id of ["epkBasics", "epkStory", "epkLinks", "epkMedia", "epkProductio
 }
 assert.match(html, /href="#epkPreview">View live preview/, "phone users need a direct route to the live preview");
 assert.match(html, /class="epk-preview-column"[\s\S]*What bookers see/, "the preview must have a clear professional context");
-assert.match(html, /assets\/epk\.css\?v=3/);
+assert.match(html, /assets\/epk\.css\?v=4/);
 assert.match(html, /assets\/epk-media\.css\?v=6/);
 assert.match(html, /assets\/epk\.js\?v=12/);
 assert.match(css, /\.epk-step-nav\{[^}]*overflow-x:auto/, "narrow screens need a contained, non-overflowing section navigator");
 assert.match(css, /\.epk-step>summary\{[^}]*min-height:60px/, "section summaries must be comfortable touch targets");
-assert.match(css, /@media\(max-width:700px\)[\s\S]*\.epk-save-actions\{[^}]*bottom:58px/, "save and publish controls must stay above mobile navigation");
+assert.match(css, /\.epk-save-actions\{position:static;/, "save and publish controls must remain in normal flow and never cover editor fields");
+assert.doesNotMatch(css, /\.epk-save-actions\{[^}]*position:sticky/, "save and publish controls must not float over editor content");
 assert.match(css, /var\(--ds-brand/, "EPK styling must consume shared DANZSTAK tokens");
 assert.doesNotMatch(html + client, /🗑️/, "EPK actions must not use cartoon emoji controls");
 assert.match(mediaCss, /\.epk-media-item button \{ min-height: 44px;/, "media controls must remain touch accessible");
-assert.match(worker, /danzstak-shell-v697/);
+assert.match(worker, /danzstak-shell-v698/);
 
 console.log("EPK design checks passed: compact section navigation, progressive disclosure, live-preview access, shared tokens and accessible actions.");
