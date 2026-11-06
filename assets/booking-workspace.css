@@ -347,6 +347,7 @@
   .booking-page .tour-calendar tbody td:first-of-type { color: #667085; font-size: 12px; font-weight: 750; }
   .booking-page .tour-calendar tbody td:nth-of-type(2) { font-weight: 850; }
   .booking-page .tour-calendar tbody td:nth-of-type(3) { color: #1769e0; font-weight: 750; }
+  .booking-page .tour-calendar tbody td:nth-of-type(4) { color: #344054; font-size: 12px; font-weight: 750; }
   .booking-page .tour-calendar tbody td:last-child { color: #566274; font-size: 12px; }
   .booking-page .tool-header {
     min-height: 56px;

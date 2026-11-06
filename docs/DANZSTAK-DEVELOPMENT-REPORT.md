@@ -1199,3 +1199,13 @@ Status as of 2026-11-07: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION 
 - Focused Booking tests and the actual-browser suite passed at 320, 360, 390, 430, 768, and 1366px. The complete repository regression suite then passed, including the 11-page site smoke suite and infrastructure validation.
 - Review commit `49267597d4b1de8b533d229351e272850ec1ccdf` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, job `20`, which succeeded in `us-west-1` from 2026-11-06 23:58:33 to 23:59:27 Europe/Berlin.
 - Hosted verification confirmed Booking Agent `v485` and installed-PWA cache `danzstak-shell-v704`, then reran the browser suite successfully against the review PWA at all six target widths. Production and the shared Booking Lambda remain unchanged.
+
+## Booking Agent — day-by-day sleep plan
+
+Status as of 2026-11-07: **IMPLEMENTED AND BROWSER-TESTED; REVIEW DEPLOYMENT PENDING**.
+
+- Every day now includes a compact sleep plan alongside the city, club, arrival, and soundcheck. The plan follows the selected touring style: host/couch, budget room, or sleeper van.
+- Real hotel and van-rest leads are named when the provider returned them. Missing data stays explicit (`Host or couch lead needed`, `Budget room needed`, or `Sleeper van · parking permission needed`) rather than inventing a hotel, price, parking permission, or private DIY address.
+- The final return day is labeled `Home`. The sleep plan remains visible in phone cards and as a dedicated desktop table column.
+- Asset identifiers advance to Booking Agent `v486` and installed-PWA shell `danzstak-shell-v705`.
+- Focused functional and PWA checks passed. The actual-browser Booking suite passed at 320, 360, 390, 430, 768, and 1366px, including explicit sleep-plan and final-home assertions.

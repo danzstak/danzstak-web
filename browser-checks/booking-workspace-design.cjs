@@ -146,6 +146,8 @@ function fixture(pathname, populated = true) {
           assert.ok(marketText.some(value => value.includes(expected)), `${expected} must be included along the route`);
         }
         assert.equal(await page.locator(".tour-calendar tbody tr").count(), 10, "day sheet should cover the complete requested run");
+        assert.match(await page.locator(".tour-calendar tbody tr").first().textContent(), /host or couch lead needed/i, "each road day needs an honest sleep plan");
+        assert.match(await page.locator(".tour-calendar tbody tr").last().textContent(), /Home/, "the final return day should sleep at home");
         assert.match(await page.locator(".proposed-calendar > summary").textContent(), /8 proposed shows/);
         assert.doesNotMatch(await page.locator('[data-route-cost="total"]').textContent(), /—/, "route cost must calculate");
         await page.locator('[data-route-budget-input="averageShowPay"]').fill("1000");

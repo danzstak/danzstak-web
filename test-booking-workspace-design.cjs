@@ -19,7 +19,7 @@ assert.match(html, /<details class="booking-tools">[\s\S]*?<summary>Use the map 
 assert.match(html, /<details class="planner-drawer">[\s\S]*?<summary>More tour options: genre, crew, van and budget<\/summary>/);
 assert.match(html, /assets\/booking-workspace\.css\?v=6/);
 assert.match(html, /assets\/booking-map\.js\?v=448/);
-assert.match(html, /assets\/booking-agent\.js\?v=485/);
+assert.match(html, /assets\/booking-agent\.js\?v=486/);
 assert.match(html, /assets\/booking-conversation\.js\?v=479/);
 
 assert.match(css, /\.booking-start[\s\S]*grid-template-columns: minmax\(270px, \.8fr\) minmax\(420px, 1\.2fr\)/);
@@ -52,6 +52,11 @@ assert.match(agent, /data-route-budget-input="averageMerchPerShow"/);
 assert.match(agent, /Projected money in/);
 assert.match(agent, /Break-even per show/);
 assert.match(agent, /projectedIncome - finishBudget/);
+assert.match(agent, /<th>Sleep plan<\/th>/);
+assert.match(agent, /Sleeper van · parking permission needed/);
+assert.match(agent, /permission required/);
+assert.match(agent, /Budget room needed/);
+assert.match(agent, /Host or couch lead needed/);
 assert.match(agent, /currentCalendar\.replaceWith\(renderProposedCalendar\(data\)\)/);
 assert.match(agent, /Club research and contacts/);
 assert.match(agent, /researchMarkets\.append\(section\)/, "city-by-city research must stay behind one optional workspace instead of stretching the primary day sheet");
@@ -60,7 +65,7 @@ assert.doesNotMatch(agent, /Choose the first date and the date the act must be h
 assert.match(map, /danzstak:booking-selection/);
 assert.match(map, /window\.danzstakToggleBookingVenue/);
 
-assert.match(worker, /danzstak-shell-v704/);
+assert.match(worker, /danzstak-shell-v705/);
 assert.match(worker, /"\/assets\/booking-workspace\.css"/);
 
 console.log("Booking workspace design checks passed: one compact planning card, truthful status timing, shared tool header, optional advanced controls, and PWA coverage.");

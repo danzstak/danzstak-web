@@ -1442,7 +1442,8 @@
       body = document.createElement("tbody"),
       days = Math.max(1, Number(data.route.requestedDays) || number("days") || 1),
       shows = Math.max(1, Math.min(days, Number(data.route.requestedShows) || number("showCount") || 1)),
-      markets = targetTourMarkets(data);
+      markets = targetTourMarkets(data),
+      sleepStyle = document.querySelector('input[name="style"]:checked')?.value || "couch";
     details.className = "proposed-calendar";
     summary.textContent = `${days}-day target calendar · ${shows} proposed shows`;
     intro.className = "hint";
@@ -1450,7 +1451,7 @@
     details.open = true;
     tableBox.className = "tour-day-sheet";
     table.className = "tour-calendar";
-    head.innerHTML = "<tr><th>Day</th><th>Date</th><th>City</th><th>Club to pitch</th><th>Road plan</th></tr>";
+    head.innerHTML = "<tr><th>Day</th><th>Date</th><th>City</th><th>Club to pitch</th><th>Sleep plan</th><th>Road plan</th></tr>";
     const startValue = data.route.departOn || departInput.value,
       hasStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startValue),
       start = hasStartDate ? new Date(`${startValue}T12:00:00Z`) : null;
@@ -1473,6 +1474,7 @@
         dateCell = document.createElement("td"),
         cityCell = document.createElement("td"),
         venueCell = document.createElement("td"),
+        sleepCell = document.createElement("td"),
         planCell = document.createElement("td"),
         dateLabel = date ? date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }) : "date open";
       const venueKey = venue => venue.venueKey || `${market?.stop}|${venue.name}`.toLowerCase(),
@@ -1493,10 +1495,25 @@
         venueCell.textContent = shouldShow ? "Find a room" : "Travel / rest";
         planCell.textContent = returningHome ? "Safe return drive; finish with everyone and the vehicle home." : shouldShow ? "No sourced club lead yet; research this market." : "Drive toward the next show; load-in buffer, laundry, or sleep.";
       }
+      if (finalHomeDay) {
+        sleepCell.textContent = "Home";
+      } else if (sleepStyle === "bus") {
+        const restLead = market?.vanStops?.[0];
+        sleepCell.textContent = restLead
+          ? `${restLead.name} · permission required`
+          : "Sleeper van · parking permission needed";
+      } else if (sleepStyle === "hotel") {
+        sleepCell.textContent = market?.hotels?.[0]?.name || "Budget room needed";
+      } else {
+        const fallbackRoom = market?.hotels?.[0]?.name;
+        sleepCell.textContent = fallbackRoom
+          ? `Host first · backup ${fallbackRoom}`
+          : "Host or couch lead needed";
+      }
       dayCell.scope = "row";
       dayCell.textContent = String(day + 1);
       dateCell.textContent = dateLabel;
-      row.append(dayCell, dateCell, cityCell, venueCell, planCell);
+      row.append(dayCell, dateCell, cityCell, venueCell, sleepCell, planCell);
       body.append(row);
     }
     summary.textContent = `${days}-day target calendar · ${showIndex} proposed shows`;
