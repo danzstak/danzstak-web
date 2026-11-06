@@ -1228,9 +1228,12 @@ Status as of 2026-11-07: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION 
 
 ## Booking Agent — visible venue evidence state
 
-Status as of 2026-11-07: **IMPLEMENTED AND BROWSER-TESTED; REVIEW DEPLOYMENT PENDING**.
+Status as of 2026-11-07: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION UNCHANGED**.
 
 - Every proposed club now carries a compact `Sourced lead` or `Contact found` status in the day sheet. An empty show target says `Research needed` instead of resembling a real booking.
 - The calendar explains that a sourced public listing is not venue agreement or availability. Detailed source attribution, activity evidence, and contact actions remain in the optional research workspace.
 - Asset identifiers advance to Booking Agent `v488` and installed-PWA shell `danzstak-shell-v707`.
 - Focused Booking/PWA tests and the actual-browser suite passed at 320, 360, 390, 430, 768, and 1366px, including a visible evidence-status assertion.
+- The complete repository regression suite passed, including the 11-page site smoke suite and infrastructure validation.
+- Review commit `002520fcd5c7cf07f829d6b7a28db176618ed6f3` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, job `26`, which succeeded in `us-west-1` from 2026-11-07 00:23:06 to 00:23:59 Europe/Berlin.
+- Hosted verification confirmed Booking Agent `v488` and installed-PWA cache `danzstak-shell-v707`, then reran the browser suite successfully against the review PWA at all six target widths. Production and the shared Booking Lambda remain unchanged.
