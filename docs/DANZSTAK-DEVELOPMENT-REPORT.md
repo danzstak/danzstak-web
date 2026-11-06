@@ -1078,7 +1078,7 @@ Status as of 2026-11-06: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 
 # Issue #55 — compact menu, Settings, desktop header, and tablet Chat audit
 
-Status as of 2026-11-06: **IMPLEMENTED AND LOCALLY VERIFIED; DEPLOYMENT PENDING**.
+Status as of 2026-11-06: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 
 - A fresh browser audit of the current production baseline found four root layout defects beyond the previously released Notification correction: the Feed art-direction layer restored oversized menu-section margins, the profile shortcut inherited navigation-row margins and stretched the menu header, the 761–900px SYNC layout forced a 360px sidebar that truncated conversation names, and the desktop Feed header exceeded the compact-header gate.
 - Menu headings now use the shared compact spacing, the profile shortcut has no inherited margin and retains a 44px phone target, tablet SYNC constrains its sidebar to 250–290px so the active contact and controls fit, and the desktop header uses a tighter vertical inset without shrinking any touch target.
@@ -1087,4 +1087,8 @@ Status as of 2026-11-06: **IMPLEMENTED AND LOCALLY VERIFIED; DEPLOYMENT PENDING*
 - Functional/integration evidence: the complete repository regression suite passed after a clean dependency install, including every `test-*.cjs` check, the 11-page site smoke suite, infrastructure validation, authentication, social persistence, Chat/calls, media/audio coordination, Booking/EPK/Tour Manager, Stripe entitlements/refunds, PWA/offline behavior, accessibility, and security-origin checks.
 - Actual-browser evidence: the full cross-product visual suite passed at 320, 360, 375, 390, 414, 430, 768, 1024, and 1366px. It verifies menu density, Settings geometry, Home/Feed, Friends, Notifications, Chat list/conversation, Profile, Booking, Record Stores, EPK, Tour Manager, media/reactions, safe-area clearance, no horizontal overflow, and the corrected tablet contact-name geometry.
 - Review captures: [compact menu at 320px](screenshots/issue-55-settings-audit/menu-320.png), [Settings at 390px](screenshots/issue-55-settings-audit/settings-390.png), [tablet Chat at 768px](screenshots/issue-55-settings-audit/chat-desktop-768.png), and [desktop Feed at 1366px](screenshots/issue-55-settings-audit/home-1366.png).
-- Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA remain **NOT TESTED** in this environment. No production deployment is claimed in this pre-merge entry.
+- Pull request [#68](https://github.com/danzstak/danzstak-web/pull/68) merged after GitHub Review run `42171464646` passed. Production application commit: `6efda02ba05392094cddf1bc3a311cd77d5fb609`.
+- The established AWS Amplify `main` workflow delivered the release to `danzstak.com` by 2026-11-06 07:05 Europe/Berlin. Public release checks confirmed service worker `danzstak-shell-v692`, Feed enhancement CSS `v500`, and SYNC CSS `v4`.
+- Post-deployment production verification reran the full actual-browser suite successfully at 320, 360, 375, 390, 414, 430, 768, 1024, and 1366px. A fresh browser registered an activated controlling service worker and reported only `danzstak-shell-v692` in Cache Storage, so the previous installed-PWA shell was not retained.
+- Live captures: [compact menu at 320px](screenshots/issue-55-settings-live/menu-320.png), [Settings at 390px](screenshots/issue-55-settings-live/settings-390.png), [tablet Chat at 768px](screenshots/issue-55-settings-live/chat-desktop-768.png), and [desktop Feed at 1366px](screenshots/issue-55-settings-live/home-1366.png).
+- Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA remain **NOT TESTED** in this environment; this limitation is not represented as a pass.
