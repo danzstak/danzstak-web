@@ -28,3 +28,39 @@ jobs:
       - name: Run complete local regression suite
         shell: pwsh
         run: .\test-regressions.ps1
+
+  responsive-accessibility-security:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Run responsive, accessibility, and security checks
+        shell: pwsh
+        run: |
+          node .\test-mobile-design-system.cjs
+          node .\test-navigation-layout.cjs
+          node .\test-touch-targets.cjs
+          node .\test-feed-csp.cjs
+          node .\test-external-link-privacy.cjs
+
+  release-evidence:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify release safeguards and required project guidance
+        shell: pwsh
+        run: |
+          .\test-release-verification.ps1
+          if (-not (Test-Path -LiteralPath .\docs\QUALITY-ASSURANCE-POLICY.md)) {
+            throw 'Missing quality assurance policy.'
+          }
+          if (-not (Test-Path -LiteralPath .\docs\RELEASE-CHECKLIST.md)) {
+            throw 'Missing release checklist.'
+          }
+          if (-not (Test-Path -LiteralPath .\CLAUDE.md)) {
+            throw 'Missing root development brief.'
+          }
