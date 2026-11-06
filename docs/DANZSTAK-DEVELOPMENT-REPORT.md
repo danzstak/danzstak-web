@@ -1046,7 +1046,7 @@ Status as of 2026-11-06: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 
 # Issue #55 / PR #60 — original Feed art direction
 
-Status as of 2026-11-06: **IMPLEMENTED AND LOCALLY VERIFIED; APPROVED FOR RELEASE, DEPLOYMENT PENDING**.
+Status as of 2026-11-06: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 
 - Rebased the scoped Feed art-direction work on production commit `83ed913ca3fdae637f4fd9161792c14fcd4fb2cd` so it includes the current Record Stores release and avoids restoring older application code.
 - Consolidated Feed presentation around shared `--ds-*` design tokens, a compact branded header, tighter post/media alignment, consistent focus treatment, and mobile-safe 44px controls without changing the existing HTML/CSS/browser-JavaScript architecture.
@@ -1055,4 +1055,6 @@ Status as of 2026-11-06: **IMPLEMENTED AND LOCALLY VERIFIED; APPROVED FOR RELEAS
 - Functional/integration gate: the complete repository regression suite passed after the final correction, including the 11-page site smoke suite and infrastructure validation.
 - Actual-browser gate: the Feed interaction and geometry suite passed at 320, 390, 430, and 1366px. It verified no horizontal overflow, aligned image/video posts, minimum target sizes, keyboard focus, the compact desktop composer, expansion, and draft preservation. Screenshots: [320px](screenshots/issue-60-feed-art-direction/after-feed-320.png), [390px](screenshots/issue-60-feed-art-direction/after-feed-390.png), [430px](screenshots/issue-60-feed-art-direction/after-feed-430.png), and [1366px](screenshots/issue-60-feed-art-direction/after-feed-1366.png).
 - The browser fixtures validate layout and interaction with controlled data; they do not claim authenticated production-content playback. Existing repository media/audio regressions passed, but physical Android/iPhone and installed-PWA acceptance remain **NOT TESTED** in this environment.
-- Pull request: [#60](https://github.com/danzstak/danzstak-web/pull/60). Exact release commit, Amplify job, live verification, and production deployment status will be recorded after the approved deployment completes.
+- Pull request [#60](https://github.com/danzstak/danzstak-web/pull/60) merged as production commit `8ec9e16f8c6afe2aade13214bb69e33a297a41a3` after GitHub Review checks run `42163154575` passed.
+- AWS Amplify app `d31oovi2mos5iz`, `main` job `925`, succeeded in `us-west-1` from 2026-11-06 05:34:30 to 05:35:26 Europe/Berlin.
+- Post-deployment verification confirmed HTTP 200 with Feed art-direction CSS `v6`, Feed enhancements JavaScript `v528`, and service worker `danzstak-shell-v689` on `danzstak.com`. The browser interaction and geometry suite then passed again against production at 320, 390, 430, and 1366px.
