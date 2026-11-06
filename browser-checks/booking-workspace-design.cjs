@@ -148,6 +148,11 @@ function fixture(pathname, populated = true) {
         assert.equal(await page.locator(".tour-calendar tbody tr").count(), 10, "day sheet should cover the complete requested run");
         assert.match(await page.locator(".proposed-calendar > summary").textContent(), /8 proposed shows/);
         assert.doesNotMatch(await page.locator('[data-route-cost="total"]').textContent(), /—/, "route cost must calculate");
+        await page.locator('[data-route-budget-input="averageShowPay"]').fill("1000");
+        await page.locator('[data-route-budget-input="averageMerchPerShow"]').fill("200");
+        assert.equal(await page.locator('[data-route-cost="income"]').textContent(), "$9,600", "eight shows must project show pay plus merch income");
+        assert.match(await page.locator('[data-route-cost-label="net"]').textContent(), /Projected profit/);
+        assert.doesNotMatch(await page.locator('[data-route-cost="breakEven"]').textContent(), /—/, "break-even per show must calculate");
         assert.equal(await page.locator(".route-research-workspace").evaluate(element => element.open), false, "city-by-city research should not stretch the primary tour sheet");
         assert.match(await page.locator(".route-research-workspace > summary").textContent(), /Club research and contacts/);
         await page.locator(".route-research-workspace > summary").click();

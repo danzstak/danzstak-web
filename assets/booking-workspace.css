@@ -212,6 +212,29 @@
 .booking-page .route-cost-summary h3,
 .booking-page .route-cost-summary p { margin: 0 0 8px; }
 .booking-page .route-cost-summary p { color: #566274; }
+.booking-page .route-income-controls {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.booking-page .route-income-controls label {
+  display: grid;
+  gap: 4px;
+  color: #566274;
+  font-size: 12px;
+  font-weight: 750;
+}
+.booking-page .route-income-controls input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 9px;
+  border: 1px solid #adb8c7;
+  border-radius: 8px;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+}
 .booking-page .route-cost-summary dl {
   display: grid;
   grid-template-columns: repeat(3,minmax(0,1fr));
@@ -226,6 +249,8 @@
 .booking-page .route-cost-summary dt { color: #667085; font-size: 12px; font-weight: 750; }
 .booking-page .route-cost-summary dd { margin: 3px 0 0; font-weight: 850; }
 .booking-page .route-cost-summary .total { background: #fff0df; }
+.booking-page .route-cost-summary .route-net { background: #e9f8ef; }
+.booking-page .route-cost-summary.route-loss .route-net { background: #fff0ef; }
 .booking-page .tour-sheet-workspace {
   display: grid;
   grid-template-columns: minmax(0,1fr) minmax(260px,340px);

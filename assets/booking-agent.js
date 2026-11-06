@@ -424,6 +424,15 @@
     1e3,
     "0.01",
   );
+  addNumberField("Average show pay", "averageShowPay", 150, 0, 1e6, "1");
+  addNumberField(
+    "Average merch profit/show",
+    "averageMerchPerShow",
+    150,
+    0,
+    1e6,
+    "1",
+  );
   const conditionLabel = document.createElement("label"),
     conditionSelect = document.createElement("select");
   conditionLabel.append(
@@ -462,6 +471,9 @@
   addSummaryRow("Budget needed to finish", "finishBudget");
   addSummaryRow("Minimum net per show", "perShowCost");
   addSummaryRow("Break-even merch items", "merchBreakEven");
+  addSummaryRow("Projected show pay", "projectedShowPay");
+  addSummaryRow("Projected merch profit", "projectedMerch");
+  addSummaryRow("Projected tour result", "projectedTourNet");
   const settlementArticle = $("settlementMethod").closest("article"),
     settlementConfirmation = $("settlementConfirmed").closest("label");
   function closeoutField(labelText, id, options = {}) {
@@ -543,7 +555,11 @@
       ),
       finishBudget = total + reserve,
       shows = Math.max(1, number("showCount")),
-      merchProfit = number("merchProfit");
+      merchProfit = number("merchProfit"),
+      projectedShowPay = shows * number("averageShowPay"),
+      projectedMerch = shows * number("averageMerchPerShow"),
+      projectedIncome = projectedShowPay + projectedMerch,
+      projectedNet = projectedIncome - finishBudget;
     $("fuelCost").textContent = money.format(fuel);
     $("lodgingCost").textContent = money.format(lodging);
     $("mealCost").textContent = money.format(meals);
@@ -559,13 +575,28 @@
       meals,
       road: vehicle + extras,
       total,
-      finish: finishBudget
+      finish: finishBudget,
+      income: projectedIncome,
+      net: projectedNet,
+      breakEven: finishBudget / shows,
     };
     for (const [name, value] of Object.entries(routeCosts)) {
       const output = document.querySelector(`[data-route-cost="${name}"]`);
       if (output) output.textContent = money.format(value);
     }
     $("perShowCost").textContent = money.format(finishBudget / shows);
+    $("projectedShowPay").textContent = money.format(projectedShowPay);
+    $("projectedMerch").textContent = money.format(projectedMerch);
+    $("projectedTourNet").textContent = `${projectedNet >= 0 ? "Profit " : "Loss "}${money.format(Math.abs(projectedNet))}`;
+    const routeBudget = document.querySelector(".route-cost-summary");
+    if (routeBudget) {
+      routeBudget.classList.toggle("route-loss", projectedNet < 0);
+      routeBudget.classList.toggle("route-profit", projectedNet >= 0);
+      const netLabel = routeBudget.querySelector('[data-route-cost-label="net"]');
+      if (netLabel) netLabel.textContent = projectedNet >= 0 ? "Projected profit" : "Projected loss";
+      const netOutput = routeBudget.querySelector('[data-route-cost="net"]');
+      if (netOutput) netOutput.textContent = money.format(Math.abs(projectedNet));
+    }
     $("merchBreakEven").textContent = merchProfit
       ? Math.ceil(finishBudget / merchProfit).toLocaleString() + " items"
       : "Set item profit";
@@ -1201,7 +1232,15 @@
     summary.className = "route-summary";
     summary.append(title, details, status);
     budget.className = "route-cost-summary";
-    budget.innerHTML = '<h3>Working tour cost</h3><p>Planning estimates update from the route and your crew settings.</p><dl><div><dt>Fuel</dt><dd data-route-cost="fuel">—</dd></div><div><dt>Lodging</dt><dd data-route-cost="lodging">—</dd></div><div><dt>Crew per diem</dt><dd data-route-cost="meals">—</dd></div><div><dt>Vehicle + road costs</dt><dd data-route-cost="road">—</dd></div><div class="total"><dt>Estimated tour</dt><dd data-route-cost="total">—</dd></div><div><dt>Finish-line reserve</dt><dd data-route-cost="finish">—</dd></div></dl>';
+    budget.innerHTML = '<h3>Working tour money</h3><p>Change the expected show pay or merch profit here. Costs still use your crew and van settings.</p><div class="route-income-controls"><label>Pay per show<input type="number" min="0" max="1000000" step="1" data-route-budget-input="averageShowPay"></label><label>Merch profit/show<input type="number" min="0" max="1000000" step="1" data-route-budget-input="averageMerchPerShow"></label></div><dl><div><dt>Fuel</dt><dd data-route-cost="fuel">—</dd></div><div><dt>Lodging</dt><dd data-route-cost="lodging">—</dd></div><div><dt>Crew per diem</dt><dd data-route-cost="meals">—</dd></div><div><dt>Vehicle + road costs</dt><dd data-route-cost="road">—</dd></div><div class="total"><dt>Estimated tour</dt><dd data-route-cost="total">—</dd></div><div><dt>Finish-line reserve</dt><dd data-route-cost="finish">—</dd></div><div><dt>Projected money in</dt><dd data-route-cost="income">—</dd></div><div><dt>Break-even per show</dt><dd data-route-cost="breakEven">—</dd></div><div class="route-net"><dt data-route-cost-label="net">Projected result</dt><dd data-route-cost="net">—</dd></div></dl>';
+    budget.querySelectorAll("[data-route-budget-input]").forEach(input => {
+      const source = $(input.dataset.routeBudgetInput);
+      input.value = source.value;
+      input.addEventListener("input", () => {
+        source.value = input.value;
+        recalculate();
+      });
+    });
     workspace.className = "tour-sheet-workspace";
     daySheet.className = "tour-sheet-main";
     daySheet.append(summary, renderProposedCalendar(data), renderRouteMap(data));

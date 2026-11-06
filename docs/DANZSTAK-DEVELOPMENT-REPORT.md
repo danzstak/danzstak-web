@@ -1187,3 +1187,13 @@ Status as of 2026-11-06: **IMPLEMENTED, TESTED, AND READY FOR REVIEW; PRODUCTION
 - Review commit `966d8f5ab7ebaa85fed24a8a62d37c6b3a69117f` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, job `18`, which succeeded in `us-west-1` from 2026-11-06 23:48:50 to 23:49:40 Europe/Berlin. No production deployment occurred.
 - Hosted verification confirmed Booking Agent `v484` and service-worker cache `danzstak-shell-v703`, then reran the actual-browser Booking suite successfully against the review PWA at 320, 360, 390, 430, 768, and 1366px. Review URL: `https://codex-issue-55-booking-workspace.d31oovi2mos5iz.amplifyapp.com/booking.html`.
 - The sparse-market Lambda change remains **NOT DEPLOYED**. It requires a separately authorized backend deployment and live provider verification; this static review deployment does not change the review or production Lambda.
+
+## Booking Agent — projected tour income and break-even
+
+Status as of 2026-11-06: **IMPLEMENTED AND TESTED; REVIEW DEPLOYMENT PENDING**.
+
+- The working tour-money card now includes editable average show pay and average merch profit per show, projected money in, break-even per show, and a plainly labeled projected profit or loss. It uses the requested show count and the same finish-line budget as the cost calculator, so the income side cannot silently ignore the road reserve.
+- The same values remain available in the advanced tour calculator, with projected show pay, merch profit, and overall result shown alongside the existing cost and safety calculations.
+- Actual-browser coverage changes both income inputs on the generated eight-show tour, verifies the resulting `$9,600` projected income, verifies break-even is calculated, and confirms the result changes to projected profit.
+- Asset identifiers advance to Booking Agent `v485` and installed-PWA shell `danzstak-shell-v704` so installed review clients cannot retain the previous calculator.
+- Focused Booking tests and the actual-browser suite passed at 320, 360, 390, 430, 768, and 1366px. The complete repository regression suite then passed, including the 11-page site smoke suite and infrastructure validation.
