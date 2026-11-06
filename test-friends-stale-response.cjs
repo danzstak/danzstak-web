@@ -18,6 +18,6 @@ const catchMutation = block.indexOf("content.replaceChildren();", catchStart);
 assert(directoryParsed >= 0 && firstGuard > directoryParsed && firstGuard < friendsParsed, "directory parsing is guarded before friend state changes");
 assert(friendsParsed >= 0 && secondGuard > friendsParsed && secondGuard < stateMutation, "accepted-friend parsing is guarded before rendering");
 assert(catchStart >= 0 && catchGuard > catchStart && catchGuard < catchMutation, "stale failures cannot replace the current workspace");
-assert.match(readFileSync("feed.html", "utf8"), /assets\/feed-enhancements\.js\?v=531/, "Feed loads the guarded Friends directory build");
+assert.match(readFileSync("feed.html", "utf8"), /assets\/feed-enhancements\.js\?v=532/, "Feed loads the guarded Friends directory build");
 
 console.log("Friends stale-response guard checks passed.");

@@ -34,7 +34,7 @@ assert.match(feed, /time\.title = parsed\.toLocaleString\(locale/, "comment time
 assert.match(feed, /attributeFilter: \["lang"\]/, "comment translations must observe live language changes");
 assert.match(feed, /dataset\.replyName/, "member names must be preserved separately from translated interface copy");
 assert.match(html, /assets\/i18n\.js\?v=395/);
-assert.match(html, /assets\/feed-enhancements\.js\?v=531/);
-assert.match(serviceWorker, /danzstak-shell-v693/);
+assert.match(html, /assets\/feed-enhancements\.js\?v=532/);
+assert.match(serviceWorker, /danzstak-shell-v695/);
 
 console.log("Comment localization checks passed: all 15 languages cover composing, sorting, named replies, accessibility labels, and live language changes.");
