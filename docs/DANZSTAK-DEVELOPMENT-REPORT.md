@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Issue #25 — localized Daily Nudge — 2026-11-06
+
+Status: **IMPLEMENTED AND TESTED ON AN ISOLATED BRANCH; STAGING PWA AND PHYSICAL DEVICE REVIEW BLOCKED BY EXPIRED LOCAL AWS SESSION; NOT MERGED OR DEPLOYED**.
+
+- Added one fleeting, nonblocking thought beneath the signed-in Home header. It appears no more than once per local device/day, can be dismissed with a 44px accessible control, leaves automatically after about seven seconds, pauses its timer while focused or hovered, respects reduced motion and never adds a permanent header row.
+- Selection uses a locally generated random installation seed plus the local calendar date. The same installation/day remains stable across reloads and language changes, independent installations can vary, and a short local history prevents immediate repeats. No account identifier, location, tracking, notification, AI request, analytics event or network service is used.
+- The complete 14-message owner-approved catalog and surface labels are packaged for all 15 supported app languages with English fallback and regional Chinese normalization. Changing the app language translates the same selected thought instead of silently choosing a different one.
+- Responsive placement measures the actual header at runtime, stays fixed outside document flow, clears header controls and avoids layout shift. Browser evidence passes at 320, 360, 390, 414, 430, 768, 1024 and 1366px with zero horizontal overflow, a 44px dismiss target, once-per-day reload suppression, Italian-to-Japanese live translation and timed removal. Captures are in `docs/screenshots/issue-25-daily-nudge/`.
+- Functional/integration evidence: `test-daily-nudge.cjs` verifies all 210 localized prompt entries, deterministic local-day selection, no-repeat history, per-device variation, privacy boundaries, accessibility and offline packaging. `browser-checks/daily-nudge.cjs` passes the eight-width real-browser matrix. The complete `test-regressions.ps1` gate passes with exit code 0, including authentication, social data, Friends, Chat/calls, notifications, media/audio isolation, Booking, EPK, Tour Manager, Stripe safeguards, all 11 smoke pages and infrastructure validation.
+- PWA assets: `daily-nudge-core.js?v=1`, `daily-nudge.js?v=1`, `daily-nudge.css?v=1`; proposed shell cache `danzstak-shell-v694`. No user data or offline drafts are removed.
+- Release boundary: Issue #25 requires a phone-accessible staging PWA and owner approval before merge or production deployment. The local AWS session is expired, so no Amplify staging branch was created and no production change was attempted. Physical Android/iPhone installed-PWA timing, screen-reader and touch review remain unverified.
+
 ## Issue #13 — private Facebook import review and date selection — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND REAL ARCHIVE ACCEPTANCE REMAIN**.
