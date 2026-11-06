@@ -226,7 +226,14 @@ function openChoiceDialog({ title, description, choices, selected }) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "choice-action-button";
-      button.textContent = choice.label + (choice.value === selected ? " ✓" : "");
+      const label = document.createElement("strong");
+      label.textContent = choice.label + (choice.value === selected ? " ✓" : "");
+      button.appendChild(label);
+      if (choice.description) {
+        const detail = document.createElement("small");
+        detail.textContent = choice.description;
+        button.appendChild(detail);
+      }
       button.setAttribute("aria-pressed", String(choice.value === selected));
       button.addEventListener("click", () => finish(choice.value));
       list.appendChild(button);
@@ -904,6 +911,8 @@ function renderWorkspace(name) {
         if (typeof window.createPostElement !== "function") continue;
         const article = window.createPostElement(post.content, post.authorName, post.createdAt, post.audience, post.mediaUrl, post.mediaType, post.postId, post.isOwner, post.userId, post.commentPolicy, post.editHistory, post.location, post.authorPicture, post.groupId, post.groupName);
         article.dataset.viewCount = String(post.viewCount || 0);
+        article.dataset.sharedPostId = String(post.sharedPostId || "");
+        article.dataset.sharedPostUnavailableReason = String(post.sharedPostUnavailableReason || "");
         window.danzstakRenderSharedPost?.(article, post);
         window.danzstakRenderMediaTags?.(article, post);
         target.appendChild(article);
@@ -3076,7 +3085,7 @@ function addPostDeleteButton(post) {
       showAppFeedback(`Post privacy changed to ${values[next]}.`);
     });
     option("Move to archive", "Hide this post from your account.", () => hidePostForAccount(post));
-  option("Delete post", "Permanently remove your post, or hide another member's post from Your Mix.", async () => {
+  option("Delete post", "Remove this placement or withdraw your original content from DanzStak.", async () => {
     const postId = post.dataset.postId;
     if (post.dataset.isOwner !== "true") {
       if (await window.danzstakConfirm("You did not create this post. It will only be removed from Your Mix.", { title: "Remove this post from Your Mix?", confirmLabel: "Remove from My Mix", danger: true })) await removePostFromThisFeed();
@@ -3086,10 +3095,29 @@ function addPostDeleteButton(post) {
       showAppFeedback("This post is missing its server ID. Refresh the page and try again.", { urgent: true });
       return;
     }
-    if (post.dataset.isOwner === "true" && !(await window.danzstakConfirm("The post and its uploaded media will be permanently deleted.", { title: "Delete this post?", confirmLabel: "Delete post", danger: true }))) return;
+    const isShare = Boolean(post.dataset.sharedPostId);
+    let scope = "placement";
+    if (isShare) {
+      if (!(await window.danzstakConfirm("This removes your shared post only. The creator's original and other people's shares stay available.", { title: "Remove your share?", confirmLabel: "Remove share", danger: true }))) return;
+    } else {
+      scope = await openChoiceDialog({
+        title: "Remove your content",
+        description: "Choose whether to remove only this post or withdraw your original content from every DanzStak share.",
+        selected: "",
+        choices: [
+          { label: "Remove from here", value: "placement", description: "Only this placement disappears. Existing authorized shares keep working." },
+          { label: "Delete everywhere", value: "everywhere", description: "Withdraw the original from all DanzStak locations and shares." }
+        ]
+      });
+      if (!scope) return;
+      const confirmed = scope === "everywhere"
+        ? await window.danzstakConfirm("This deletes your original content from everywhere on DanzStak, including shares by other users. Their own captions may remain beside a small removed-content notice. Downloads, screenshots, external shares, or unrelated reuploads cannot be erased.", { title: "Delete everywhere?", confirmLabel: "Delete everywhere", danger: true })
+        : await window.danzstakConfirm("Only this placement will be removed. Existing authorized shares and other publications stay available.", { title: "Remove from here?", confirmLabel: "Remove from here", danger: true });
+      if (!confirmed) return;
+    }
     if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
       try {
-        const response = await postActionFetch("/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
+        const response = await postActionFetch("/secure-posts/" + encodeURIComponent(postId) + "?scope=" + encodeURIComponent(scope), { method: "DELETE", credentials: "include" });
         if (response.status === 403) {
           post.dataset.isOwner = "false";
           if (await window.danzstakConfirm("You did not create this post. It will only be removed from Your Mix.", { title: "Remove this post from Your Mix?", confirmLabel: "Remove from My Mix", danger: true })) await removePostFromThisFeed();
@@ -3101,7 +3129,20 @@ function addPostDeleteButton(post) {
     }
     post.remove();
     if (postId && Array.isArray(window.danzstakLoadedPosts)) {
-      window.danzstakLoadedPosts = window.danzstakLoadedPosts.filter(item => String(item.postId) !== String(postId));
+      window.danzstakLoadedPosts = window.danzstakLoadedPosts
+        .filter(item => String(item.postId) !== String(postId))
+        .map(item => scope === "everywhere" && String(item.sharedPostId) === String(postId) ? { ...item, sharedPost: null, sharedPostUnavailableReason: "creator_deleted" } : item);
+      if (scope === "everywhere") {
+        document.querySelectorAll(".post").forEach(article => {
+          if (String(article.dataset.sharedPostId || "") !== String(postId)) return;
+          article.dataset.sharedPostUnavailableReason = "creator_deleted";
+          const shared = article.querySelector(".shared-post-card");
+          if (shared) {
+            shared.classList.add("is-original-removed");
+            shared.textContent = "Original content removed by its creator.";
+          }
+        });
+      }
       window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts } }));
     }
   });
