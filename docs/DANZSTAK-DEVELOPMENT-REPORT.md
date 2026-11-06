@@ -1172,3 +1172,16 @@ Status as of 2026-11-06: **IMPLEMENTED AND LOCALLY TESTED; BACKEND NOT DEPLOYED*
 - Regression coverage verifies the ten-result expansion trigger and the existing 40-to-75-mile safety bound.
 - The complete repository regression suite passed, including worldwide discovery, Booking and Tour Manager workflows, authentication, Stripe, Chat, media/audio coordination, PWA behavior, the 11-page site smoke suite, and infrastructure validation.
 - This change modifies `infrastructure/auth-api/index.mjs`; it has not been deployed to the review Lambda or production. Live provider behavior remains unchanged until an authorized backend deployment.
+
+## Booking Agent — compact musician-facing tour sheet
+
+Status as of 2026-11-06: **IMPLEMENTED, TESTED, AND READY FOR REVIEW; PRODUCTION UNCHANGED**.
+
+- Compared the current result flow directly with the owner-supplied Claude tour-sheet reference. The primary result now stays focused on the route summary, day-by-day schedule, map, and working costs instead of rendering a long stack of city research drawers.
+- Club contacts, alternate rooms, cheap sleep leads, van-rest research, and record stores now live behind one optional `Club research and contacts` disclosure. Automatic research continues while the disclosure is closed, and its summary updates with the live sourced-lead count.
+- At phone widths the tour calendar becomes readable day cards—day, date, city, club, arrival/soundcheck plan—instead of a clipped desktop table or horizontally scrolling database view. Desktop retains the compact table and sticky cost card.
+- Asset identifiers advance to Booking Agent `v484` and installed-PWA shell `danzstak-shell-v703`.
+- Focused Booking regressions passed. The actual-browser Booking suite passed at 320, 360, 390, 430, 768, and 1366px with no page errors or document overflow, 44px touch targets, a closed research workspace by default, a complete ten-day phone schedule, and no horizontal day-sheet scrolling on phones.
+- The complete repository regression suite passed, including authentication, social persistence, Chat/calls, media/audio coordination, Booking/EPK/Tour Manager, Stripe entitlements/refunds, PWA behavior, the 11-page site smoke suite, and infrastructure validation.
+- Updated review capture: [390px compact day sheet](screenshots/issue-55-booking-workspace/tour-sheet-390.png). This uses controlled provider fixtures to verify interface behavior; it does not claim fixture clubs are real or live.
+- The review branch is not production. The sparse-market Lambda change and this static/PWA update still require an authorized review deployment before live verification.

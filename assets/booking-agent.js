@@ -1215,8 +1215,22 @@
         seenMarkets.add(key);
         return true;
       }),
+      researchWorkspace = document.createElement("details"),
+      researchHeading = document.createElement("summary"),
+      researchIntro = document.createElement("p"),
+      researchMarkets = document.createElement("div"),
       firstDate = new Date(`${data.route.departOn || departInput.value}T12:00:00Z`),
       travelDays = Math.max(1, Number(data.route.requestedDays) || number("days") || 1);
+    researchWorkspace.className = "route-research-workspace";
+    researchIntro.className = "hint";
+    researchIntro.textContent = "Open a city only when you need alternate clubs, public contacts, a cheap sleep lead, or a record store. The day sheet above stays the working tour.";
+    researchMarkets.className = "route-research-markets";
+    const updateResearchHeading = () => {
+      const venueCount = displayedMarkets.reduce((total, market) => total + (market.venues?.length || 0), 0);
+      researchHeading.textContent = `Club research and contacts · ${venueCount} lead${venueCount === 1 ? "" : "s"} in ${displayedMarkets.length} market${displayedMarkets.length === 1 ? "" : "s"}`;
+    };
+    updateResearchHeading();
+    researchWorkspace.append(researchHeading, researchIntro, researchMarkets);
     displayedMarkets.forEach((market, index) => {
       if (Number.isNaN(firstDate.getTime())) return;
       const date = new Date(firstDate);
@@ -1316,6 +1330,7 @@
           });
           market.venues.push(...additions);
           additions.forEach(place => venueGrid.append(placeCard(place, "club")));
+          updateResearchHeading();
           const currentCalendar = daySheet.querySelector(".proposed-calendar");
           if (currentCalendar && additions.length) currentCalendar.replaceWith(renderProposedCalendar(data));
           marketPage = Number(result.page || marketPage);
@@ -1372,8 +1387,9 @@
       if (recordStores.length) section.append(recordDetails);
       if (budgetHotels.length) section.append(hotelDetails);
       if (vanStops.length) section.append(vanDetails);
-      routeResults.append(section);
+      researchMarkets.append(section);
     }
+    if (displayedMarkets.length) routeResults.append(researchWorkspace);
     void runRouteResearch(automaticResearch, renderGeneration);
   }
 

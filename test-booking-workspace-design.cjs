@@ -19,7 +19,7 @@ assert.match(html, /<details class="booking-tools">[\s\S]*?<summary>Use the map 
 assert.match(html, /<details class="planner-drawer">[\s\S]*?<summary>More tour options: genre, crew, van and budget<\/summary>/);
 assert.match(html, /assets\/booking-workspace\.css\?v=6/);
 assert.match(html, /assets\/booking-map\.js\?v=448/);
-assert.match(html, /assets\/booking-agent\.js\?v=483/);
+assert.match(html, /assets\/booking-agent\.js\?v=484/);
 assert.match(html, /assets\/booking-conversation\.js\?v=479/);
 
 assert.match(css, /\.booking-start[\s\S]*grid-template-columns: minmax\(270px, \.8fr\) minmax\(420px, 1\.2fr\)/);
@@ -32,6 +32,8 @@ assert.match(css, /\.route-cost-summary/);
 assert.match(css, /\.market-research/);
 assert.match(css, /\.tour-sheet-workspace/);
 assert.match(css, /table\.tour-calendar/);
+assert.match(css, /\.route-research-workspace/);
+assert.match(css, /\.tour-calendar tbody tr[\s\S]*grid-template-columns: 48px minmax\(0,1fr\)/, "phone day sheet must become readable cards instead of a clipped desktop table");
 
 assert.match(conversation, /let requestStarted = false/);
 assert.match(conversation, /requestStarted = true/);
@@ -46,11 +48,14 @@ assert.match(agent, /Research clubs in/);
 assert.match(agent, /Add to booking list/);
 assert.match(agent, /route-cost-summary/);
 assert.match(agent, /currentCalendar\.replaceWith\(renderProposedCalendar\(data\)\)/);
+assert.match(agent, /Club research and contacts/);
+assert.match(agent, /researchMarkets\.append\(section\)/, "city-by-city research must stay behind one optional workspace instead of stretching the primary day sheet");
+assert.doesNotMatch(agent, /routeResults\.append\(section\)/, "individual city drawers must not clutter the primary result stack");
 assert.doesNotMatch(agent, /Choose the first date and the date the act must be home\./);
 assert.match(map, /danzstak:booking-selection/);
 assert.match(map, /window\.danzstakToggleBookingVenue/);
 
-assert.match(worker, /danzstak-shell-v702/);
+assert.match(worker, /danzstak-shell-v703/);
 assert.match(worker, /"\/assets\/booking-workspace\.css"/);
 
 console.log("Booking workspace design checks passed: one compact planning card, truthful status timing, shared tool header, optional advanced controls, and PWA coverage.");

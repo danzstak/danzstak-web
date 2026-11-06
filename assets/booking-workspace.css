@@ -234,6 +234,31 @@
 }
 .booking-page .tour-sheet-main { display: grid; gap: 12px; min-width: 0; }
 .booking-page .tour-sheet-workspace .route-cost-summary { position: sticky; top: 72px; }
+.booking-page .route-research-workspace {
+  overflow: hidden;
+  border: 1px solid #d8dee8;
+  border-radius: 12px;
+  background: #fff;
+}
+.booking-page .route-research-workspace > summary {
+  min-height: 48px;
+  padding: 13px 16px;
+  cursor: pointer;
+  font-weight: 850;
+}
+.booking-page .route-research-workspace > .hint {
+  margin: 0;
+  padding: 0 16px 12px;
+}
+.booking-page .route-research-markets {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+.booking-page .route-research-markets .route-market {
+  margin: 0;
+  background: #f8fafc;
+}
 .booking-page .tour-day-sheet { overflow-x: auto; margin-top: 10px; border: 1px solid #d8dee8; border-radius: 8px; background: #fff; }
 .booking-page table.tour-calendar { display: table; width: 100%; min-width: 680px; margin: 0; border-collapse: collapse; font-size: 13px; }
 .booking-page .tour-calendar th,
@@ -261,6 +286,43 @@
   .booking-page .tour-sheet-workspace { grid-template-columns: 1fr; }
   .booking-page .tour-sheet-workspace .route-cost-summary { position: static; grid-row: 2; }
   .booking-page .route-cost-summary dl { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .booking-page .tour-day-sheet { overflow: visible; border: 0; background: transparent; }
+  .booking-page table.tour-calendar { display: block; min-width: 0; background: transparent; }
+  .booking-page .tour-calendar thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+  .booking-page .tour-calendar tbody { display: grid; gap: 8px; }
+  .booking-page .tour-calendar tbody tr {
+    display: grid;
+    grid-template-columns: 48px minmax(0,1fr);
+    padding: 9px 10px;
+    border: 1px solid #d8dee8;
+    border-radius: 9px;
+    background: #fff;
+  }
+  .booking-page .tour-calendar tbody th {
+    grid-column: 1;
+    grid-row: 1 / span 4;
+    padding: 2px 8px 0 0;
+    border: 0;
+    font-size: 18px;
+  }
+  .booking-page .tour-calendar tbody td {
+    grid-column: 2;
+    min-width: 0;
+    padding: 2px 0;
+    border: 0;
+    overflow-wrap: anywhere;
+  }
+  .booking-page .tour-calendar tbody td:first-of-type { color: #667085; font-size: 12px; font-weight: 750; }
+  .booking-page .tour-calendar tbody td:nth-of-type(2) { font-weight: 850; }
+  .booking-page .tour-calendar tbody td:nth-of-type(3) { color: #1769e0; font-weight: 750; }
+  .booking-page .tour-calendar tbody td:last-child { color: #566274; font-size: 12px; }
   .booking-page .tool-header {
     min-height: 56px;
     padding: 6px 10px;

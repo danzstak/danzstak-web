@@ -148,6 +148,9 @@ function fixture(pathname, populated = true) {
         assert.equal(await page.locator(".tour-calendar tbody tr").count(), 10, "day sheet should cover the complete requested run");
         assert.match(await page.locator(".proposed-calendar > summary").textContent(), /8 proposed shows/);
         assert.doesNotMatch(await page.locator('[data-route-cost="total"]').textContent(), /—/, "route cost must calculate");
+        assert.equal(await page.locator(".route-research-workspace").evaluate(element => element.open), false, "city-by-city research should not stretch the primary tour sheet");
+        assert.match(await page.locator(".route-research-workspace > summary").textContent(), /Club research and contacts/);
+        await page.locator(".route-research-workspace > summary").click();
         const firstMarket = page.locator(".route-market").first();
         await firstMarket.evaluate(element => {
           element.open = true;
@@ -160,10 +163,10 @@ function fixture(pathname, populated = true) {
           documentWidth: document.documentElement.scrollWidth,
           viewportWidth: innerWidth,
           workspaceColumns: getComputedStyle(document.querySelector(".tour-sheet-workspace")).gridTemplateColumns,
-          daySheetScrollable: document.querySelector(".tour-day-sheet").scrollWidth >= document.querySelector(".tour-day-sheet").clientWidth
+          daySheetScrollable: document.querySelector(".tour-day-sheet").scrollWidth > document.querySelector(".tour-day-sheet").clientWidth + 1
         }));
         assert.ok(tourGeometry.documentWidth <= tourGeometry.viewportWidth + 1, `tour sheet overflow: ${JSON.stringify(tourGeometry)}`);
-        assert.equal(tourGeometry.daySheetScrollable, true);
+        assert.equal(tourGeometry.daySheetScrollable, false, "phone day sheet should read as cards without horizontal scrolling");
         await page.locator(".tour-sheet-workspace").screenshot({ path: path.join(output, "tour-sheet-390.png") });
       }
       await page.evaluate(() => {
