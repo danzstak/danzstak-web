@@ -45,10 +45,15 @@ function fixture(url) {
         const rect = element.getBoundingClientRect();
         const button = element.querySelector("button").getBoundingClientRect();
         const header = document.querySelector(".topbar").getBoundingClientRect();
+        const feed = document.querySelector("#newsFeedView").getBoundingClientRect();
+        const style = getComputedStyle(element);
         return {
           left: rect.left, right: rect.right, width: rect.width, height: rect.height,
           buttonWidth: button.width, buttonHeight: button.height,
           overlapsHeaderControls: rect.top < header.bottom - 1,
+          overlapsFeed: rect.bottom > feed.top + 1,
+          parentId: element.parentElement?.id,
+          position: style.position,
           documentWidth: document.documentElement.scrollWidth,
           viewport: innerWidth,
           text: element.querySelector("p").textContent.trim(),
@@ -59,6 +64,9 @@ function fixture(url) {
       assert.ok(result.buttonWidth >= 44 && result.buttonHeight >= 44, `${width}px dismiss target must be 44px`);
       assert.equal(result.documentWidth, result.viewport, `${width}px page must not overflow`);
       assert.equal(result.overlapsHeaderControls, false, `${width}px nudge must not block the header`);
+      assert.equal(result.overlapsFeed, false, `${width}px nudge must not cover the feed`);
+      assert.equal(result.parentId, "yourMixMain", `${width}px nudge must be inside the primary content flow`);
+      assert.notEqual(result.position, "fixed", `${width}px nudge must not be a floating overlay`);
       assert.ok(result.text.length > 10 && result.label === "Daily Nudge", `${width}px nudge needs readable semantics`);
       assert.equal(errors.length, 0, `${width}px page errors: ${errors.join("; ")}`);
       await page.screenshot({ path: path.join(output, `daily-nudge-${width}.png`), fullPage: false });

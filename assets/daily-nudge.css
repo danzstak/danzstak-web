@@ -1,14 +1,12 @@
 .daily-nudge{
-  position:fixed;
-  z-index:90;
-  top:var(--daily-nudge-top,70px);
-  left:50%;
+  position:relative;
   display:grid;
   grid-template-columns:30px minmax(0,1fr) 44px;
   align-items:center;
   gap:8px;
-  width:min(calc(100vw - 24px),580px);
+  width:min(100%,580px);
   min-height:54px;
+  margin:0 auto 10px;
   padding:6px 6px 6px 10px;
   border:1px solid color-mix(in srgb,var(--ds-brand,#1769e0) 24%,#d9e1eb);
   border-left:4px solid var(--ds-accent,#ef6c20);
@@ -17,19 +15,18 @@
   color:var(--ds-ink,#172033);
   box-shadow:0 12px 32px #1018282b;
   opacity:0;
-  transform:translate(-50%,-10px);
+  transform:translateY(-6px);
   pointer-events:none;
   transition:opacity .18s ease,transform .18s ease;
-  backdrop-filter:blur(10px);
 }
-.daily-nudge.is-visible{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.daily-nudge.is-visible{opacity:1;transform:translateY(0);pointer-events:auto}
 .daily-nudge.is-leaving{animation:daily-nudge-out .22s ease forwards;pointer-events:none}
 .daily-nudge-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ds-brand,#1769e0);color:#fff;font-size:15px;font-weight:900;box-shadow:inset 0 -2px 0 #0002}
 .daily-nudge p{min-width:0;margin:0;font-size:14px;line-height:1.3;font-weight:700;overflow-wrap:anywhere}
 .daily-nudge button{display:grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ds-ink-soft,#475467);font-size:26px;line-height:1}
 .daily-nudge button:hover{background:#edf4ff;color:var(--ds-brand-strong,#0d55bd)}
 .daily-nudge button:focus-visible{outline:3px solid var(--ds-focus,#f59e0b);outline-offset:1px}
-@keyframes daily-nudge-out{to{opacity:0;transform:translate(-50%,-8px)}}
-@media(max-width:700px){.daily-nudge{width:calc(100vw - 16px);grid-template-columns:26px minmax(0,1fr) 44px;gap:6px;padding-left:8px}.daily-nudge-mark{width:26px;height:26px;font-size:13px}.daily-nudge p{font-size:13px}}
-@media(max-width:359px){.daily-nudge{width:calc(100vw - 12px)}.daily-nudge p{font-size:12px}}
+@keyframes daily-nudge-out{to{opacity:0;transform:translateY(-6px)}}
+@media(max-width:700px){.daily-nudge{width:100%;max-width:none;grid-template-columns:26px minmax(0,1fr) 44px;gap:6px;padding-left:8px}.daily-nudge-mark{width:26px;height:26px;font-size:13px}.daily-nudge p{font-size:13px}}
+@media(max-width:359px){.daily-nudge p{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.daily-nudge,.daily-nudge.is-leaving{transition:none;animation:none}}

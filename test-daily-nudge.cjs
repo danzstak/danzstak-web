@@ -43,8 +43,10 @@ assert.match(ui, /7000/, "the fleeting surface should remain for about seven sec
 assert.match(ui, /focus-within/, "focused content must not disappear automatically");
 assert.match(ui, /prefers-reduced-motion/, "dismissal must respect reduced motion");
 assert.match(css, /min-width:44px;min-height:44px/, "dismiss must retain a phone-sized target");
-assert.match(css, /width:calc\(100vw - 16px\)/, "phone surface must stay within the viewport");
-assert.match(ui, /getBoundingClientRect\(\)\.bottom/, "the temporary surface must clear the actual responsive header height");
+assert.match(css, /width:100%;max-width:none/, "phone surface must follow the feed width");
+assert.doesNotMatch(css, /position:fixed/, "the nudge must remain in document flow and never cover feed content");
+assert.match(ui, /getElementById\("yourMixMain"\)/, "the nudge must use the feed's primary content host");
+assert.match(ui, /heading\.insertAdjacentElement\("afterend", surface\)/, "the nudge must precede the feed without overlaying it");
 assert.match(feed, /daily-nudge-core\.js\?v=1/);
 assert.match(feed, /daily-nudge\.js\?v=1/);
 assert.match(feed, /daily-nudge\.css\?v=1/);

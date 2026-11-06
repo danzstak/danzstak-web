@@ -64,10 +64,6 @@
     dismiss.title = labels[2];
     copy.textContent = core.text(index, document.documentElement.lang);
   }
-  function position() {
-    const bottom = Math.max(0, document.querySelector(".topbar")?.getBoundingClientRect().bottom || 0);
-    surface.style.setProperty("--daily-nudge-top", `${Math.round(bottom + 8)}px`);
-  }
   function close() {
     if (closed) return;
     closed = true;
@@ -92,10 +88,10 @@
   surface.addEventListener("focusin", () => clearTimeout(timer));
   new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
   render();
-  document.querySelector(".topbar")?.insertAdjacentElement("afterend", surface);
-  position();
-  addEventListener("resize", position, { passive: true });
-  if (typeof ResizeObserver === "function") new ResizeObserver(position).observe(document.querySelector(".topbar"));
+  const host = document.getElementById("yourMixMain");
+  const heading = document.getElementById("pageHeading");
+  if (!host || !heading || heading.parentElement !== host) return;
+  heading.insertAdjacentElement("afterend", surface);
   requestAnimationFrame(() => surface.classList.add("is-visible"));
   schedule();
 })();
