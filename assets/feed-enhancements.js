@@ -3663,6 +3663,11 @@ rollClose.setAttribute("aria-label", "Close The Roll fullscreen");
 const usesMobileRollHistory = () => matchMedia("(max-width: 700px)").matches;
 let rollPlaceholder = null;
 let rollBackgroundState = [];
+const rollSessionStatus = document.createElement("p");
+rollSessionStatus.className = "roll-session-status";
+rollSessionStatus.setAttribute("role", "status");
+rollSessionStatus.setAttribute("aria-live", "polite");
+rollSessionStatus.hidden = true;
 function isolateRollFullscreen() {
   if (rollPlaceholder) return;
   rollPlaceholder = document.createComment("The Roll feed position");
@@ -3685,7 +3690,7 @@ function restoreRollBackground() {
   reelsRail.removeAttribute("aria-modal");
   reelsRail.removeAttribute("aria-labelledby");
 }
-function setRollFullscreen(open, { updateHistory = true, fromHistory = false } = {}) {
+function setRollFullscreen(open, { updateHistory = true, fromHistory = false, startCard = null } = {}) {
   const shouldOpen = Boolean(open);
   if (!shouldOpen && !fromHistory && history.state?.danzstakRollOpen === true) {
     if (usesMobileRollHistory()) {
@@ -3705,11 +3710,18 @@ function setRollFullscreen(open, { updateHistory = true, fromHistory = false } =
     history.pushState({ ...currentState, danzstakRollOpen: true }, "");
   }
   if (shouldOpen) {
-    reelsList.scrollTop = 0;
+    const targetCard = startCard?.isConnected && reelsList.contains(startCard)
+      ? startCard
+      : reelsList.querySelector(".reel-card");
+    reelsList.scrollTop = targetCard?.offsetTop || 0;
+    const first = targetCard?.querySelector("video.reel-player,iframe.reel-player")
+      || reelsList.querySelector("video.reel-player,iframe.reel-player");
+    const started = window.danzstakMediaCoordinator?.startSession?.(reelsList, first, { sound: !dataSaverEnabled() });
+    if (!started && first?.tagName === "VIDEO" && !dataSaverEnabled()) { first.muted = true; first.play().catch(() => {}); }
     rollClose.focus({ preventScroll: true });
-    const first = reelsList.querySelector("video.reel-player");
-    if (first && !dataSaverEnabled()) first.play().catch(() => {});
   } else {
+    window.danzstakMediaCoordinator?.endSession?.(reelsList);
+    rollSessionStatus.hidden = true;
     restoreRollBackground();
     rollOpen.focus({ preventScroll: true });
   }
@@ -3726,7 +3738,7 @@ reelsRail.addEventListener("keydown", event => {
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 });
-reelsHeading.append(reelsTitle, reelsSourceNote, rollOpen, rollClose);
+reelsHeading.append(reelsTitle, reelsSourceNote, rollSessionStatus, rollOpen, rollClose);
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
 function restoreRollFullscreenFromHistory(event) {
@@ -3737,13 +3749,25 @@ function restoreRollFullscreenFromHistory(event) {
 }
 addEventListener("popstate", restoreRollFullscreenFromHistory);
 restoreRollFullscreenFromHistory({ state: history.state });
-const reelPlaybackObserver = new IntersectionObserver(entries => {
-  for (const entry of entries) {
-    const video = entry.target;
-    video.dataset.inView = String(entry.isIntersecting && entry.intersectionRatio >= 0.6);
-    if (video.dataset.inView !== "true") video.pause();
+function advanceRollCard(media) {
+  if (!reelsRail.classList.contains("roll-fullscreen")) return;
+  const card = media?.closest?.(".reel-card"), next = card?.nextElementSibling;
+  if (!next?.classList.contains("reel-card")) {
+    rollSessionStatus.textContent = feedTranslate("End of The Roll");
+    rollSessionStatus.hidden = false;
+    return;
   }
-}, { threshold: [0, 0.6, 1] });
+  next.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+addEventListener("danzstak:media-ended", event => {
+  const media = event.detail?.media;
+  if (media && reelsList.contains(media)) advanceRollCard(media);
+});
+addEventListener("danzstak:media-sound-blocked", event => {
+  if (!reelsRail.classList.contains("roll-fullscreen") || !reelsList.contains(event.detail?.media)) return;
+  rollSessionStatus.textContent = feedTranslate("Tap the speaker to turn sound on.");
+  rollSessionStatus.hidden = false;
+});
 const reelForm = document.createElement("div");
 reelForm.className = "reel-import-form";
 const reelUrl = document.createElement("input");
@@ -3861,7 +3885,7 @@ function reelPlayer(url) {
   if (match?.[1]) {
     const videoId = encodeURIComponent(match[1]);
     const portrait = path.startsWith("/shorts/");
-    return { kind: "iframe", provider: "youtube", layout: portrait ? "portrait" : "landscape", aspect: portrait ? "9/16" : "16/9", src: "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=0&mute=1&playsinline=1&enablejsapi=1&loop=1&playlist=" + videoId };
+    return { kind: "iframe", provider: "youtube", layout: portrait ? "portrait" : "landscape", aspect: portrait ? "9/16" : "16/9", src: "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=0&mute=1&playsinline=1&enablejsapi=1&loop=0" };
   }
   if (host.endsWith("vimeo.com") && (match = path.match(/\/(\d+)/))) return { kind: "iframe", provider: "vimeo", layout: "landscape", aspect: "16/9", src: "https://player.vimeo.com/video/" + match[1] + "?autoplay=0&muted=1&playsinline=1" };
   if (host.endsWith("tiktok.com") && (match = path.match(/\/video\/(\d+)/))) return { kind: "iframe", provider: "tiktok", layout: "portrait", aspect: "9/16", src: "https://www.tiktok.com/player/v1/" + match[1] + "?autoplay=0&loop=1&muted=1" };
@@ -3875,7 +3899,7 @@ function reelPlayer(url) {
 }
 
 function renderPlayableReels() {
-  reelPlaybackObserver.disconnect();
+  window.danzstakMediaCoordinator?.endSession?.(reelsList);
   reelsList.replaceChildren();
   const reels = getReels();
   if (!reels.length) {
@@ -3890,6 +3914,13 @@ function renderPlayableReels() {
     if (!reel.internal && !reelUrlValue) continue;
     const card = document.createElement("article");
     card.className = "reel-card";
+    const fullscreenTrigger = document.createElement("button");
+    fullscreenTrigger.type = "button";
+    fullscreenTrigger.className = "reel-fullscreen-trigger";
+    fullscreenTrigger.setAttribute("aria-label", feedTranslate("Open this video in The Roll"));
+    fullscreenTrigger.title = feedTranslate("Open this video in The Roll");
+    fullscreenTrigger.innerHTML = '<span aria-hidden="true">&#x26F6;</span>';
+    fullscreenTrigger.addEventListener("click", () => setRollFullscreen(true, { startCard: card }));
     const playerInfo = reel.internal ? (reel.mediaUrl ? { kind: "video", src: reel.mediaUrl } : null) : reelPlayer(reelUrlValue);
     const createInternalRecovery = () => {
       const recovery = document.createElement("div");
@@ -3926,17 +3957,18 @@ function renderPlayableReels() {
       video.setAttribute("aria-label", window.danzstakTranslate?.(rollLabel) || rollLabel);
       video.autoplay = false;
       video.muted = true;
-      video.loop = true;
+      video.loop = false;
       video.preload = "none";
+      video.addEventListener("ended", () => advanceRollCard(video));
       video.addEventListener("error", () => {
         reel.mediaUrl = "";
         video.replaceWith(createInternalRecovery());
       }, { once: true });
-      reelPlaybackObserver.observe(video);
       return video;
     };
     const mediaStage = document.createElement("div");
     mediaStage.className = "reel-media-stage";
+    mediaStage.appendChild(fullscreenTrigger);
     if (playerInfo?.kind === "video") {
       mediaStage.appendChild(reel.internal ? createInternalVideo() : (() => {
         const video = document.createElement("video");
@@ -3947,9 +3979,9 @@ function renderPlayableReels() {
         video.setAttribute("aria-label", "Video in The Roll");
         video.autoplay = false;
         video.muted = true;
-        video.loop = true;
+        video.loop = false;
         video.preload = "none";
-        reelPlaybackObserver.observe(video);
+        video.addEventListener("ended", () => advanceRollCard(video));
         return video;
       })());
     } else if (playerInfo?.kind === "iframe") {

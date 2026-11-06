@@ -48,7 +48,7 @@ assert.match(ui, /getBoundingClientRect\(\)\.bottom/, "the temporary surface mus
 assert.match(feed, /daily-nudge-core\.js\?v=1/);
 assert.match(feed, /daily-nudge\.js\?v=1/);
 assert.match(feed, /daily-nudge\.css\?v=1/);
-assert.match(worker, /danzstak-shell-v694/);
+assert.match(worker, /danzstak-shell-v695/);
 for (const asset of ["daily-nudge-core.js", "daily-nudge.js", "daily-nudge.css"]) assert.ok(worker.includes(`/assets/${asset}`), `${asset} must work offline`);
 
 console.log("Daily Nudge checks passed: 14 prompts, 15 locales, stable per-device choice, local-day rotation, privacy, accessibility and offline shell.");

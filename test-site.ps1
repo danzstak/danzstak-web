@@ -144,6 +144,7 @@ foreach ($dedicatedStoryControl in @('aria-label="Add a photo or video to Dailie
   if (-not $feed.Contains($dedicatedStoryControl)) { Add-Failure "Stories: dedicated Your Story upload is incomplete: $dedicatedStoryControl" }
 }
 $feedEnhancements = Get-Content -LiteralPath (Join-Path $root 'assets\feed-enhancements.js') -Raw -Encoding utf8
+$mediaVisibility = Get-Content -LiteralPath (Join-Path $root 'assets\media-visibility.js') -Raw -Encoding utf8
 if ($feedEnhancements.Contains('Reel saved on this device until cloud sync is available.') -or
     -not $feedEnhancements.Contains('if (!response.ok || !result.reel) throw new Error')) {
   Add-Failure 'Reels: failed cloud publication is still presented as a saved Reel'
@@ -687,8 +688,8 @@ if ($termsMenuIndex -lt 0 -or $androidMenuIndex -lt $termsMenuIndex -or $appleMe
 if ($feed.Contains('This DanzStak section is being prepared.') -or $feed.Contains('const featureCopy =')) {
   Add-Failure 'Feed workspaces still run the retired placeholder click handler before the functional router'
 }
-foreach ($reelPlaybackBehavior in @('const reelPlaybackObserver = new IntersectionObserver', 'entry.intersectionRatio >= 0.6', 'reelPlaybackObserver.observe(video)', 'document.hidden || video.dataset.inView !== "true"')) {
-  if (-not $feedEnhancements.Contains($reelPlaybackBehavior)) { Add-Failure "Reels do not pause off-screen or while the app is hidden: $reelPlaybackBehavior" }
+foreach ($reelPlaybackBehavior in @('const thresholdFor=element=>inSession(element)?0.5:0.6', 'const observer=new IntersectionObserver', "document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseAll();})", 'startSession,endSession,reconcile:reconcilePlayback')) {
+  if (-not $mediaVisibility.Contains($reelPlaybackBehavior)) { Add-Failure "The shared Roll playback coordinator does not pause off-screen or hidden media: $reelPlaybackBehavior" }
 }
 if ($feed.Contains('window.location.assign("./")') -or
     -not $feed.Contains('history.replaceState(null, "", location.pathname);')) {
