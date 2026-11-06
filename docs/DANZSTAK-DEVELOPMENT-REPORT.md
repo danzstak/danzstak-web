@@ -1,5 +1,18 @@
 # DANZSTAK development report
 
+## Issue #52 — saved Booking identity — 2026-11-06
+
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND CONTROLLED TWO-ACCOUNT HUMAN ACCEPTANCE REMAIN**.
+
+- Booking now places the member's saved **Act name** and **Home city** above the natural-language tour request. Existing Booking workspace values are authoritative; EPK and Profile values are suggestions only when the workspace is empty. The act name remains optional for discovery.
+- The account-scoped `PATCH /booking-pipeline/identity` endpoint updates only the reviewed identity fields, preserves saved venues and tour settings, and uses the existing workspace revision for conflict protection. Unauthenticated requests remain denied.
+- The identity panel was compacted after review: two responsive fields, one 44px Save target, concise status, no horizontal overflow, and measured height limits at phone and desktop widths. PWA shell cache advanced from `danzstak-shell-v682` to `danzstak-shell-v683` and caches the new identity client.
+- Functional/integration evidence: the complete `test-regressions.ps1` gate passed after reconciliation with current `main`. This includes authentication, account isolation, Booking/Tour Manager, EPK, Stripe/refunds, Chat/calls, media/audio coordination, PWA refresh, all 11 site smoke pages and the 140,566-byte infrastructure template validation. No product failure was waived.
+- Visual evidence: `browser-checks/booking-identity.cjs` passed at 320, 360, 390, 430 and 1024px. It verifies field precedence, save payload, top placement, 44px touch geometry, compact measured height and zero horizontal overflow. Current captures are in `docs/screenshots/issue-52/`.
+- Release: owner-authorized PR `#53` merged as production commit `5551fcd42e9473937256b389f0622f0deedea24b`. AWS Amplify app `d31oovi2mos5iz`, production branch `main`, job `919` succeeded in `us-west-1` from 2026-11-06 03:58:56 to 03:59:50 Europe/Berlin. `DANZSTAK-Auth-API` was deployed successfully through the established guarded script.
+- Post-deployment evidence: no-cache probes returned HTTP 200 for `booking.html`, `assets/booking-identity.js` and `service-worker.js`; the page references identity client v1 and the live worker reports `danzstak-shell-v683`. The unauthenticated Booking workspace probe returned HTTP 403 as expected.
+- Remaining verification: the owner should confirm the flow in an installed Android/iPhone PWA with a real signed-in account. A controlled two-account human check of cross-account isolation remains recommended; automated account-isolation coverage passes. No unrelated production resources or payment configuration changed.
+
 ## Issue #55 — shared design foundation and populated Feed/Profile proof — 2026-11-05
 
 Status: **FOUNDATION SLICE DEPLOYED AND VERIFIED ON THE LIVE PWA; PLATFORM-WIDE ISSUE #55 REMAINS IN PROGRESS; PHYSICAL INSTALLED-PWA REVIEW REMAINS**.
