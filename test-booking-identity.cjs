@@ -19,7 +19,7 @@ assert.doesNotMatch(html, /Prefer boxes\? Enter your home town/, "the redundant 
 assert.match(html, /id="saveBookingIdentity"/);
 assert.match(html, /assets\/booking-identity\.js\?v=1/);
 assert.match(css, /\.booking-identity-fields\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
-assert.match(css, /@media\(max-width:600px\)[\s\S]*\.booking-identity-fields\{grid-template-columns:1fr/);
+assert.match(css, /@media\(max-width:600px\)[\s\S]*\.booking-identity-fields\{grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
 assert.match(client, /request\("\/booking-pipeline"\)/);
 assert.match(client, /request\("\/epk"\)/);
 assert.match(client, /request\("\/profiles"\)/);
@@ -33,7 +33,7 @@ assert.match(api, /currentRevision !== data\.revision/);
 assert.match(api, /venues: Array\.isArray\(saved\.venues\) \? saved\.venues : \[\]/, "identity saves must preserve selected venues");
 assert.match(api, /method === "PATCH" && path === "\/booking-pipeline\/identity"/);
 assert.match(deploy, /PATCH \/booking-pipeline\/identity/);
-assert.match(serviceWorker, /danzstak-shell-v681/);
+assert.match(serviceWorker, /danzstak-shell-v683/);
 assert.match(serviceWorker, /"\/assets\/booking-identity\.js"/);
 
 console.log("Booking identity checks passed: top placement, canonical fallbacks, scoped persistence, conflict safety, responsive layout, and PWA caching.");

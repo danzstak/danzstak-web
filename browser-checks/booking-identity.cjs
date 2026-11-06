@@ -40,6 +40,8 @@ const widths = [320, 360, 390, 430, 1024];
       assert.ok(order.identity < order.brief, `${width}px identity must precede tour request`);
       const geometry = await page.locator(".booking-identity").boundingBox();
       assert.ok(geometry.width <= width && geometry.x >= 0 && geometry.x + geometry.width <= width + 1, `${width}px identity must fit the viewport`);
+      const maxIdentityHeight = width <= 600 ? 235 : 210;
+      assert.ok(geometry.height <= maxIdentityHeight, `${width}px identity must stay compact (received ${geometry.height}px)`);
       const saveBox = await page.locator("#saveBookingIdentity").boundingBox();
       assert.ok(saveBox.height >= 44, `${width}px save target must remain touchable`);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, `${width}px page must not overflow horizontally`);
