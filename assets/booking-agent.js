@@ -1447,7 +1447,7 @@
     details.className = "proposed-calendar";
     summary.textContent = `${days}-day target calendar · ${shows} proposed shows`;
     intro.className = "hint";
-    intro.textContent = "This is a working pitch plan, not a confirmed tour. A show becomes real only after the venue agrees.";
+    intro.textContent = "This is a working pitch plan, not a confirmed tour. A show becomes real only after the venue agrees. Leg miles are estimates; use the route map for live navigation.";
     details.open = true;
     tableBox.className = "tour-day-sheet";
     table.className = "tour-calendar";
@@ -1463,6 +1463,18 @@
       ));
     let showIndex = 0;
     const usedVenues = new Set();
+    let lastPosition = Array.isArray(data.route.start?.position) ? data.route.start.position : null;
+    const estimatedRoadMiles = (left, right) => {
+      if (![left, right].every(position => Array.isArray(position) && position.length === 2 && position.every(Number.isFinite))) return null;
+      const toRadians = value => value * Math.PI / 180,
+        [leftLon, leftLat] = left,
+        [rightLon, rightLat] = right,
+        latDelta = toRadians(rightLat - leftLat),
+        lonDelta = toRadians(rightLon - leftLon),
+        a = Math.sin(latDelta / 2) ** 2 + Math.cos(toRadians(leftLat)) * Math.cos(toRadians(rightLat)) * Math.sin(lonDelta / 2) ** 2,
+        directMiles = 3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return Math.max(0, Math.round((directMiles * 1.18) / 5) * 5);
+    };
     for (let day = 0; day < days; day += 1) {
       const date = start ? new Date(start) : null;
       if (date) date.setUTCDate(date.getUTCDate() + day);
@@ -1495,6 +1507,18 @@
         venueCell.textContent = shouldShow ? "Find a room" : "Travel / rest";
         planCell.textContent = returningHome ? "Safe return drive; finish with everyone and the vehicle home." : shouldShow ? "No sourced club lead yet; research this market." : "Drive toward the next show; load-in buffer, laundry, or sleep.";
       }
+      const destinationPosition = finalHomeDay
+          ? data.route.start?.position
+          : market?.position,
+        legMiles = estimatedRoadMiles(lastPosition, destinationPosition);
+      if (legMiles !== null) {
+        planCell.textContent = `${legMiles ? `≈${legMiles} road mi` : "Local day"} · ${planCell.textContent}`;
+      }
+      // Never carry an older city across a stop whose geometry is unavailable;
+      // doing so would turn several unknown legs into one misleading long leg.
+      lastPosition = Array.isArray(destinationPosition) && destinationPosition.length === 2 && destinationPosition.every(Number.isFinite)
+        ? destinationPosition
+        : null;
       if (finalHomeDay) {
         sleepCell.textContent = "Home";
       } else if (sleepStyle === "bus") {

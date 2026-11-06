@@ -1212,3 +1212,13 @@ Status as of 2026-11-07: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION 
 - The complete repository regression suite passed after the final wording and PWA-version changes, including the 11-page site smoke suite and infrastructure validation.
 - Review commit `2a0484a8099de11d6e3fd4c9dcf26120016753e6` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, job `22`, which succeeded in `us-west-1` from 2026-11-07 00:09:56 to 00:10:45 Europe/Berlin.
 - Hosted verification confirmed Booking Agent `v486` and installed-PWA cache `danzstak-shell-v705`, then reran the browser suite successfully against the review PWA at all six target widths. Production and the shared Booking Lambda remain unchanged.
+
+## Booking Agent — estimated daily road legs
+
+Status as of 2026-11-07: **IMPLEMENTED AND BROWSER-TESTED; REVIEW DEPLOYMENT PENDING**.
+
+- Each day now shows an approximate road-mile leg or `Local day` alongside the load-in plan. The estimate is explicitly labeled and the day-sheet guidance directs musicians to the route map for live navigation.
+- Estimates use available market coordinates and are rounded to five-mile increments. When an intermediate town has no usable geometry, DanzStak omits the leg estimate instead of carrying an older city forward and inventing one misleading long drive.
+- The actual-browser regression fixture intentionally includes fallback markets without coordinates. It verifies useful known legs appear and verifies the final return does not collapse unknown intermediate legs into a false mileage claim.
+- Asset identifiers advance to Booking Agent `v487` and installed-PWA shell `danzstak-shell-v706`.
+- Focused Booking/PWA tests and the actual-browser suite passed at 320, 360, 390, 430, 768, and 1366px after correcting the missing-geometry case.
