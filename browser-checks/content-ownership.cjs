@@ -11,6 +11,7 @@ const sharerId = "22222222-2222-4222-8222-222222222222";
 const sourceId = "33333333-3333-4333-8333-333333333333";
 const shareId = "44444444-4444-4444-8444-444444444444";
 const output = path.resolve("docs/screenshots/issue-40-content-ownership");
+const baseUrl = String(process.env.DANZSTAK_BROWSER_BASE_URL || "http://127.0.0.1:8188").replace(/\/$/, "");
 fs.mkdirSync(output, { recursive: true });
 
 function fixture(url) {
@@ -21,12 +22,12 @@ function fixture(url) {
     {
       postId: sourceId, userId: ownerId, authorName: "Creator Test", content: "Original recording that must disappear globally.",
       createdAt: "2026-11-06T10:00:00.000Z", audience: "public", isOwner: true, mediaType: "image",
-      mediaUrl: "http://127.0.0.1:8188/assets/danzstak-share-fb-v2.jpg", commentPolicy: "everyone"
+      mediaUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`, commentPolicy: "everyone"
     },
     {
       postId: shareId, userId: sharerId, authorName: "Tour Friend", content: "My own caption stays after the creator withdraws the original.",
       createdAt: "2026-11-06T10:05:00.000Z", audience: "public", isOwner: false, sharedPostId: sourceId,
-      sharedPost: { postId: sourceId, userId: ownerId, authorName: "Creator Test", content: "Original recording that must disappear globally.", mediaType: "image", mediaUrl: "http://127.0.0.1:8188/assets/danzstak-share-fb-v2.jpg" },
+      sharedPost: { postId: sourceId, userId: ownerId, authorName: "Creator Test", content: "Original recording that must disappear globally.", mediaType: "image", mediaUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg` },
       commentPolicy: "everyone"
     }
   ] };
@@ -49,7 +50,7 @@ function fixture(url) {
         requests.push(new URL(route.request().url()).pathname);
         return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(new URL(route.request().url()))) });
       });
-      await page.goto("http://127.0.0.1:8188/feed.html?view=feed", { waitUntil: "domcontentloaded" });
+      await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       const source = page.locator(`.post[data-post-id="${sourceId}"]`);
       const share = page.locator(`.post[data-post-id="${shareId}"]`);
       await source.waitFor({ timeout: 10000 }).catch(error => { throw new Error(`${error.message}; requests=${requests.join(",")}; errors=${errors.join(" | ")}`); });

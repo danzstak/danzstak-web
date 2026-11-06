@@ -13,7 +13,8 @@ Status: **IN PROGRESS — IMPLEMENTED AND LOCALLY VERIFIED; PROTECTED STAGING AN
 - Functional/integration evidence: the complete `test-regressions.ps1` gate passes with exit code 0 after installing the locked Auth API test dependencies. This includes authentication and account isolation, Feed/Profile/Friends/Chat, media and audio coordination, Booking, EPK, Tour Manager, Stripe/refund safeguards, strict Feed CSP, all 11 site smoke pages and the 140,566-byte infrastructure template. No product failure was waived.
 - Responsive browser evidence: the ownership flow passes at 320, 360, 390, 430 and 1024px in Edge/Playwright. Captures are in `docs/screenshots/issue-40-content-ownership/`; the 320px result was manually inspected and shows the share caption, compact creator-withdrawal tombstone, one-row actions and zero horizontal overflow.
 - PWA assets advance to `assets/feed-enhancements.css?v=501`, `assets/feed-enhancements.js?v=530`, `assets/post-sharing.js?v=422` and `danzstak-shell-v696`. No offline drafts or user data are deleted.
-- Deployment status: **NOT DEPLOYED**. Production remains unchanged. Protected staging, hosted browser verification and independent review are still required before this work can be considered releasable.
+- Protected staging: Amplify DEVELOPMENT job `1` succeeded in `us-west-1` from 2026-11-06 21:09:33 to 21:10:20 Europe/Berlin. The preview is `https://codex-issue-40-content-ownership.d31oovi2mos5iz.amplifyapp.com/`; no-cache probes confirmed CSS v501, Feed enhancements v530, sharing v422 and `danzstak-shell-v696`.
+- Hosted browser evidence: the same ownership matrix passes directly against the Amplify preview at 320, 360, 390, 430 and 1024px. Production remains unchanged. Independent review and physical installed-PWA owner acceptance are still required before this work can be considered production-ready.
 
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
