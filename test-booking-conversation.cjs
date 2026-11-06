@@ -17,6 +17,11 @@ const context = vm.createContext({
 vm.runInContext(fs.readFileSync("assets/booking-conversation.js", "utf8"), context);
 
 const parse = context.window.danzstakParseTourBrief;
+controls.get("bandName").value = "Route Test";
+controls.get("startCity").value = "Tacoma, WA";
+listeners["bookingBriefExample:click"]();
+assert.match(controls.get("bookingBrief").value, /^Route Test\. DIY punk\. From Tacoma, WA and travel south, then back home\./);
+assert.doesNotMatch(controls.get("bookingBrief").value, /Momo|The Rats/);
 const screenshotBrief = parse("Tour San Francisco to Seattle and back in 10 days give me clubs to play");
 assert.equal(screenshotBrief.home, "San Francisco");
 assert.equal(screenshotBrief.destination, "Seattle");
@@ -101,7 +106,7 @@ const bookingConversation = fs.readFileSync("assets/booking-conversation.js", "u
 const bookingAgent = fs.readFileSync("assets/booking-agent.js", "utf8");
 const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 assert.match(markup, /id="bookingBriefForm"/);
-assert.match(markup, /assets\/booking-conversation\.js\?v=477/);
+assert.match(markup, /assets\/booking-conversation\.js\?v=478/);
 assert.match(markup, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/, "manual fields and the venue map should stay behind one optional disclosure");
 assert.match(bookingConversation, /details\.booking-tools/,
   "a missing plain-language field should reveal the optional manual controls before moving focus");

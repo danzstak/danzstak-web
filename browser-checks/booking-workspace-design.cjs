@@ -32,7 +32,7 @@ function fixture(pathname) {
       });
 
       await page.goto(`${origin}/booking.html`, { waitUntil: "domcontentloaded" });
-      await page.waitForFunction(() => document.getElementById("bookingIdentityStatus")?.textContent.includes("loaded"));
+      await page.waitForFunction(() => document.getElementById("bookingIdentityStatus")?.textContent.trim() === "Saved.");
       await page.waitForTimeout(80);
 
       const geometry = await page.evaluate(() => {
@@ -56,6 +56,7 @@ function fixture(pathname) {
           identity: rect(".booking-identity"),
           brief: rect(".booking-brief"),
           finder: rect(".venue-quick-search"),
+          finderAction: rect("#venueQuickForm button"),
           samePlanningCard: document.querySelector(".booking-identity").closest(".booking-start") === document.querySelector(".booking-start") && document.querySelector(".booking-brief").closest(".booking-start") === document.querySelector(".booking-start"),
           actionsShareRow: Math.abs(actionBoxes[0].top - actionBoxes[1].top) <= 1,
           minimumTarget: Math.min(...visibleTargets.map(box => box.height)),
@@ -72,15 +73,49 @@ function fixture(pathname) {
       assert.equal(geometry.actionsShareRow, true, `${width}px primary and example actions must share one row`);
       assert.ok(geometry.minimumTarget >= 44, `${width}px touch target below 44px: ${JSON.stringify(geometry)}`);
       assert.ok(geometry.start.width <= width && geometry.start.left >= 0 && geometry.start.right <= width + 1, `${width}px planning card does not fit`);
-      assert.ok(geometry.identity.top > geometry.start.top && geometry.brief.top > geometry.identity.top, `${width}px planning order is incorrect`);
-      assert.ok(width >= 700 || geometry.finder.top < 844, `${width}px club finder should begin within the first phone viewport`);
+      assert.ok(geometry.identity.top > geometry.start.top, `${width}px identity must follow the heading`);
+      if (width < 700) assert.ok(geometry.brief.top >= geometry.identity.bottom - 1, `${width}px mobile planning order is incorrect`);
+      else assert.ok(Math.abs(geometry.brief.top - geometry.identity.top) <= 1, `${width}px desktop identity and request should share a row`);
+      assert.ok(width >= 700 || geometry.finderAction.bottom <= 844, `${width}px actionable club search should fit in the first phone viewport: ${JSON.stringify(geometry)}`);
       assert.equal(geometry.mapClosed, true);
       assert.equal(geometry.optionsClosed, true);
       assert.equal(geometry.primaryStatus, "", `${width}px should not show an advanced-form warning before the user starts`);
 
       await page.locator("#bookingBriefExample").click();
       assert.match(await page.locator("#bookingBrief").inputValue(), /DIY punk/i);
+      assert.match(await page.locator("#bookingBrief").inputValue(), /Tacoma, WA, United States/i);
+      assert.doesNotMatch(await page.locator("#bookingBrief").inputValue(), /Momo|The Rats\./i);
+      await page.locator("#startCity").fill("");
+      await page.locator("#bookingBrief").fill("DIY punk. Travel south for 10 days and play 8 shows.");
+      await page.locator("#bookingBriefForm button[type=submit]").click();
+      assert.match(await page.locator("#bookingBriefStatus").textContent(), /press Plan my run again/i);
+      await page.locator("#bandName").fill("The Test Rats");
+      await page.locator("#startCity").fill("Tacoma, WA, United States");
+      await page.locator("#bookingBriefExample").click();
+      assert.equal((await page.locator("#bookingBriefStatus").textContent()).trim(), "", "Example should clear a stale validation error");
+      await page.locator("#venueQuickQuery").fill("punk clubs in Tacoma");
+      await page.locator("#venueQuickForm button").click();
+      await page.waitForTimeout(60);
+      await page.evaluate(() => {
+        document.querySelector(".booking-tools").open = false;
+        document.querySelector(".planner-drawer").open = false;
+        document.activeElement?.blur();
+        window.scrollTo(0, 0);
+      });
+      await page.waitForTimeout(50);
       await page.screenshot({ path: path.join(output, `booking-${width}.png`), fullPage: true });
+      await page.locator("#bandName").fill("");
+      await page.locator("#startCity").fill("");
+      await page.locator("#bookingBrief").fill("");
+      await page.evaluate(() => {
+        document.getElementById("bookingIdentityStatus").textContent = "Add your home city, then save.";
+        document.getElementById("venueQuickStatus").textContent = "";
+        document.getElementById("venueQuickQuery").value = "";
+        document.activeElement?.blur();
+        window.scrollTo(0, 0);
+      });
+      await page.waitForTimeout(50);
+      await page.screenshot({ path: path.join(output, `booking-empty-${width}.png`), fullPage: true });
       await context.close();
     }
     console.log(`Booking workspace browser checks passed at ${widths.join(", ")}px.`);
