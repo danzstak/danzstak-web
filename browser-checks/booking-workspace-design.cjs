@@ -10,11 +10,40 @@ const output = path.resolve("docs/screenshots/issue-55-booking-workspace");
 const widths = [320, 360, 390, 430, 768, 1366];
 fs.mkdirSync(output, { recursive: true });
 
+let venueFixture = 0;
 function fixture(pathname, populated = true) {
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111" } };
   if (pathname === "/booking-pipeline") return { venues: [], artist: populated ? { name: "The Test Rats", hometown: "Tacoma, WA, United States" } : {}, tour: {}, revision: "revision-1" };
   if (pathname === "/epk") return { kit: populated ? { artistName: "The Test Rats", hometown: "Tacoma, WA, United States" } : {} };
   if (pathname === "/profiles") return { profile: populated ? { name: "The Test Rats", location: "Tacoma, WA, United States" } : {} };
+  if (pathname === "/tour/route") return {
+    route: {
+      start: { label: "Seattle, Washington", position: [-122.3321, 47.6062] },
+      end: { label: "Seattle, Washington", position: [-122.3321, 47.6062] },
+      turnaround: { label: "San Francisco, California", position: [-122.4194, 37.7749] },
+      stops: [
+        { label: "Tacoma, Washington", position: [-122.4443, 47.2529] },
+        { label: "Portland, Oregon", position: [-122.6765, 45.5231] },
+        { label: "Medford, Oregon", position: [-122.8756, 42.3265] },
+        { label: "San Francisco, California", position: [-122.4194, 37.7749] }
+      ],
+      itineraryMarkets: ["Seattle, Washington", "Tacoma, Washington", "Portland, Oregon", "Medford, Oregon", "San Francisco, California"],
+      distanceMiles: 1660, durationHours: 30.5, minimumDrivingDays: 4,
+      requestedDays: 10, requestedShows: 8, departOn: "", returnBy: "", direction: "south", local: false
+    },
+    candidates: [{ stop: "Seattle, Washington", position: [-122.3321, 47.6062], venues: [{
+      venueKey: "fixture-seattle-club", name: "Seattle Test Club", address: "100 Test Ave, Seattle, WA",
+      position: [-122.33, 47.61], categories: ["Live music venue"], websites: ["https://example.com/seattle"],
+      emails: [], phones: [], sources: [{ name: "Official venue website", url: "https://example.com/seattle" }],
+      activityEvidence: "Current events listed", discoveredAt: "2026-11-06T00:00:00Z", bookingSuitability: "needs-research"
+    }], hotels: [], vanStops: [], recordStores: [] }]
+  };
+  if (pathname === "/venues/search") return { venues: [{
+    venueKey: `fixture-researched-club-${++venueFixture}`, name: "Researched Route Club", address: "200 Route St",
+    position: [-122.5, 45.5], categories: ["Live music venue"], websites: ["https://example.com/route-club"],
+    emails: ["booking@example.com"], phones: [], sources: [{ name: "Official venue website", url: "https://example.com/route-club" }],
+    activityEvidence: "Current calendar found", discoveredAt: "2026-11-06T00:00:00Z", bookingSuitability: "contact-found"
+  }], page: 0, radiusMiles: 25, hasMore: false, canExpand: false };
   return {};
 }
 
@@ -95,7 +124,7 @@ function fixture(pathname, populated = true) {
       await page.locator("#startCity").fill("");
       await page.locator("#bookingBrief").fill("DIY punk. Travel south for 10 days and play 8 shows.");
       await page.locator("#bookingBriefForm button[type=submit]").click();
-      assert.match(await page.locator("#bookingBriefStatus").textContent(), /press Plan my run again/i);
+      assert.match(await page.locator("#bookingBriefStatus").textContent(), /press Find venues and build route again/i);
       await page.locator("#bandName").fill("The Test Rats");
       await page.locator("#startCity").fill("Tacoma, WA, United States");
       await page.locator("#bookingBriefExample").click();
@@ -104,6 +133,39 @@ function fixture(pathname, populated = true) {
       assert.equal(await page.locator("#venueQuickQuery").evaluate(element => document.activeElement === element), true, `${width}px query must remain usable with the keyboard focused`);
       await page.locator("#venueQuickForm button").click();
       await page.waitForTimeout(60);
+      if (width === 390) {
+        await page.locator("#startCity").fill("Seattle, Washington");
+        await page.locator("#bookingBrief").fill("Punk. Seattle to San Francisco and home. 10 days. 8 shows.");
+        await page.locator("#bookingBriefForm button[type=submit]").click();
+        await page.locator(".tour-day-sheet").waitFor();
+        await page.locator(".place-card", { hasText: "Researched Route Club" }).first().waitFor({ state: "attached" });
+        await page.waitForFunction(() => document.getElementById("routeSearchStatus")?.textContent.includes("Route research finished"));
+        assert.ok(await page.locator(".route-market").count() >= 27, "the full Seattle–San Francisco corridor should remain visible");
+        const marketText = await page.locator(".route-market > summary").allTextContents();
+        for (const expected of ["Tacoma", "Olympia", "Portland", "Salem", "Eugene", "Medford", "Redding", "Sacramento"]) {
+          assert.ok(marketText.some(value => value.includes(expected)), `${expected} must be included along the route`);
+        }
+        assert.equal(await page.locator(".tour-calendar tbody tr").count(), 10, "day sheet should cover the complete requested run");
+        assert.match(await page.locator(".proposed-calendar > summary").textContent(), /8 proposed shows/);
+        assert.doesNotMatch(await page.locator('[data-route-cost="total"]').textContent(), /—/, "route cost must calculate");
+        const firstMarket = page.locator(".route-market").first();
+        await firstMarket.evaluate(element => {
+          element.open = true;
+          element.querySelectorAll("details").forEach(details => { details.open = true; });
+        });
+        const select = firstMarket.locator(".route-select-venue").first();
+        await select.click();
+        assert.match(await page.locator("#selectedVenueCount").textContent(), /1 club selected/);
+        const tourGeometry = await page.evaluate(() => ({
+          documentWidth: document.documentElement.scrollWidth,
+          viewportWidth: innerWidth,
+          workspaceColumns: getComputedStyle(document.querySelector(".tour-sheet-workspace")).gridTemplateColumns,
+          daySheetScrollable: document.querySelector(".tour-day-sheet").scrollWidth >= document.querySelector(".tour-day-sheet").clientWidth
+        }));
+        assert.ok(tourGeometry.documentWidth <= tourGeometry.viewportWidth + 1, `tour sheet overflow: ${JSON.stringify(tourGeometry)}`);
+        assert.equal(tourGeometry.daySheetScrollable, true);
+        await page.locator(".tour-sheet-workspace").screenshot({ path: path.join(output, "tour-sheet-390.png") });
+      }
       await page.evaluate(() => {
         document.querySelector(".booking-tools").open = false;
         document.querySelector(".planner-drawer").open = false;

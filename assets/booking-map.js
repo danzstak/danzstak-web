@@ -70,7 +70,20 @@
     if (selectionCount) selectionCount.textContent = `${count} club${count === 1 ? "" : "s"} selected`;
     if (openSelections) openSelections.disabled = count === 0;
     persistSelectedVenues();
+    window.dispatchEvent(new CustomEvent("danzstak:booking-selection", { detail: { count } }));
   }
+
+  function toggleSelectedVenue(place) {
+    if (!place || typeof place !== "object" || !String(place.name || "").trim()) return false;
+    const key = venueIdentity(place);
+    if (selectedVenues.has(key)) selectedVenues.delete(key);
+    else selectedVenues.set(key, place);
+    updateSelectionUi();
+    return selectedVenues.has(key);
+  }
+
+  window.danzstakBookingVenueSelected = place => selectedVenues.has(venueIdentity(place || {}));
+  window.danzstakToggleBookingVenue = toggleSelectedVenue;
 
   function useBounds(bounds, scope) {
     searchBounds = boundsPayload(bounds);
@@ -296,10 +309,8 @@
     select.type = "button";
     select.className = "map-select-venue";
     select.addEventListener("click", () => {
-      if (selectedVenues.has(key)) selectedVenues.delete(key);
-      else selectedVenues.set(key, place);
+      toggleSelectedVenue(place);
       sync();
-      updateSelectionUi();
     });
     sync();
     box.append(select);

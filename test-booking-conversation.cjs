@@ -106,14 +106,14 @@ const bookingConversation = fs.readFileSync("assets/booking-conversation.js", "u
 const bookingAgent = fs.readFileSync("assets/booking-agent.js", "utf8");
 const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 assert.match(markup, /id="bookingBriefForm"/);
-assert.match(markup, /assets\/booking-conversation\.js\?v=478/);
+assert.match(markup, /assets\/booking-conversation\.js\?v=479/);
 assert.match(markup, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/, "manual fields and the venue map should stay behind one optional disclosure");
 assert.match(bookingConversation, /details\.booking-tools/,
   "a missing plain-language field should reveal the optional manual controls before moving focus");
 assert.match(markup, /Where do you want to play\?/);
 assert.match(markup, /More tour options: genre, crew, van and budget/);
 assert.match(bookingAgent, /target calendar/);
-assert.match(bookingAgent, /Arrive 4:00 PM · Soundcheck 5:00 PM/);
-assert.match(bookingAgent, /safe return drive; everyone and the vehicle finish at home/);
+assert.match(bookingAgent, /arrive 4:00 PM · soundcheck 5:00 PM/);
+assert.match(bookingAgent, /Safe return drive; finish with everyone and the vehicle home/);
 assert.match(authApi, /San Jose, California[\s\S]*Santa Cruz, California[\s\S]*Portland, Oregon[\s\S]*Seattle, Washington/);
 console.log("Conversational Booking Agent checks passed: natural route, genre, act, days, date, direction, and one-click planning.");

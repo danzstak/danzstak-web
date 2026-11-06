@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="assets/accessibility.css?v=364" />
     <link rel="stylesheet" href="assets/icon-buttons.css?v=4" />
     <link rel="stylesheet" href="assets/mobile-design-system.css?v=13" />
-    <link rel="stylesheet" href="assets/booking-workspace.css?v=2" />
+    <link rel="stylesheet" href="assets/booking-workspace.css?v=6" />
   </head>
   <body class="ds-tool-page booking-page">
     <a class="skip-link" href="#bookingMain">Skip to Booking Agent</a>
@@ -69,7 +69,8 @@
         <form id="bookingBriefForm">
           <label for="bookingBrief">Describe the tour</label>
           <textarea id="bookingBrief" rows="3" maxlength="600" placeholder="Punk. Seattle to San Francisco and home. 10 days. 8 shows."></textarea>
-          <div class="booking-brief-actions"><button type="submit" class="primary">Plan my run</button><button type="button" class="secondary" id="bookingBriefExample">Example</button></div>
+          <div class="booking-brief-actions"><button type="submit" class="primary">Find venues and build route</button><button type="button" class="secondary" id="bookingBriefExample">Example</button></div>
+          <p class="hint">Exact dates are optional while researching. Add them before approving outreach.</p>
           <p id="bookingBriefStatus" role="status" aria-live="polite"></p>
         </form>
       </section>
@@ -672,7 +673,7 @@
       crossorigin="anonymous"
       defer
     ></script>
-    <script src="assets/booking-map.js?v=447" defer></script>
+    <script src="assets/booking-map.js?v=448" defer></script>
     <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
       <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
       <a role="button" data-icon="users" aria-label="Friends" title="Friends" href="feed.html?view=friends"></a>
@@ -687,7 +688,7 @@
     <script src="assets/app-feedback.js?v=3" defer></script>
     <script src="assets/logout.js?v=311" defer></script>
     <script src="assets/booking-identity.js?v=1" defer></script>
-    <script src="assets/booking-agent.js?v=480" defer></script>
-    <script src="assets/booking-conversation.js?v=478" defer></script>
+    <script src="assets/booking-agent.js?v=483" defer></script>
+    <script src="assets/booking-conversation.js?v=479" defer></script>
   </body>
 </html>

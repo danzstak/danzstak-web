@@ -203,6 +203,48 @@
   grid-column: 1 / -1;
 }
 
+.booking-page .route-cost-summary {
+  padding: 14px;
+  border: 1px solid #d8dee8;
+  border-radius: 12px;
+  background: #fff;
+}
+.booking-page .route-cost-summary h3,
+.booking-page .route-cost-summary p { margin: 0 0 8px; }
+.booking-page .route-cost-summary p { color: #566274; }
+.booking-page .route-cost-summary dl {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 8px;
+  margin: 0;
+}
+.booking-page .route-cost-summary dl div {
+  padding: 9px;
+  border-radius: 9px;
+  background: #f4f7fb;
+}
+.booking-page .route-cost-summary dt { color: #667085; font-size: 12px; font-weight: 750; }
+.booking-page .route-cost-summary dd { margin: 3px 0 0; font-weight: 850; }
+.booking-page .route-cost-summary .total { background: #fff0df; }
+.booking-page .tour-sheet-workspace {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(260px,340px);
+  gap: 16px;
+  align-items: start;
+}
+.booking-page .tour-sheet-main { display: grid; gap: 12px; min-width: 0; }
+.booking-page .tour-sheet-workspace .route-cost-summary { position: sticky; top: 72px; }
+.booking-page .tour-day-sheet { overflow-x: auto; margin-top: 10px; border: 1px solid #d8dee8; border-radius: 8px; background: #fff; }
+.booking-page table.tour-calendar { display: table; width: 100%; min-width: 680px; margin: 0; border-collapse: collapse; font-size: 13px; }
+.booking-page .tour-calendar th,
+.booking-page .tour-calendar td { padding: 9px 10px; border-bottom: 1px solid #e5e9ef; text-align: left; vertical-align: top; }
+.booking-page .tour-calendar thead th { background: #172033; color: #fff; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.booking-page .tour-calendar tbody th { color: #1769e0; font-variant-numeric: tabular-nums; }
+.booking-page .tour-calendar tr.off td,
+.booking-page .tour-calendar tr.off th { background: #f4f6f8; color: #667085; }
+.booking-page .route-select-venue,
+.booking-page .market-research { width: 100%; margin-top: 10px; }
+
 .booking-page .booking-tools,
 .booking-page .planner-drawer {
   margin: 10px 0;
@@ -216,6 +258,9 @@
 }
 
 @media (max-width: 700px) {
+  .booking-page .tour-sheet-workspace { grid-template-columns: 1fr; }
+  .booking-page .tour-sheet-workspace .route-cost-summary { position: static; grid-row: 2; }
+  .booking-page .route-cost-summary dl { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .booking-page .tool-header {
     min-height: 56px;
     padding: 6px 10px;
@@ -315,6 +360,12 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
+  .booking-page .booking-brief-actions button {
+    padding-inline: 9px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
   .booking-page .booking-brief-actions .secondary {
     padding-inline: 10px;
     background: transparent;
@@ -328,6 +379,11 @@
     border-radius: 0;
   }
 
+  .booking-page .venue-quick-search .eyebrow,
+  .booking-page .venue-quick-search > div:first-child > p:last-child {
+    display: none;
+  }
+
   .booking-page .venue-quick-search > #venueQuickStatus,
   .booking-page .venue-quick-search > .venue-quick-results,
   .booking-page .venue-quick-search > #venueQuickMore {
@@ -339,16 +395,6 @@
   .booking-page .tool-brand span,
   .booking-page .tool-header nav a:first-child {
     display: none;
-  }
-
-  .booking-page .booking-identity-fields {
-    grid-template-columns: 1fr;
-  }
-
-  .booking-page .booking-identity-fields label {
-    grid-template-columns: 68px minmax(0, 1fr);
-    align-items: center;
-    gap: 7px;
   }
 
   .booking-page .venue-quick-row {
