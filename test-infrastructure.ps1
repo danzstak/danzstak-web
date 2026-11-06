@@ -176,6 +176,12 @@ foreach ($logoutPresenceBehavior in @('const presenceTable = "DANZSTAK-Presence"
 }
 if (-not $engagementTemplate.Contains('Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Presence')) { throw 'Auth API lacks permission to clear presence during logout' }
 if (-not $engagementTemplate.Contains('Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DanzStak-UserSettings')) { throw 'Auth API lacks permission to enforce muted post notifications' }
+foreach ($sessionDeviceControl in @('SessionDevicesTable:', 'TableName: DANZSTAK-SessionDevices', 'PointInTimeRecoveryEnabled: true', 'TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}', "RouteKey: 'GET /auth/sessions'", "RouteKey: 'DELETE /auth/sessions/{deviceId}'", "RouteKey: 'POST /auth/sessions/revoke-others'", "RouteKey: 'GET /auth/reauth'")) {
+  if (-not $engagementTemplate.Contains($sessionDeviceControl)) { throw "Account session-device infrastructure is missing: $sessionDeviceControl" }
+}
+foreach ($sessionDeployControl in @('SESSION_DEVICES_TABLE', 'AccountSessionDevices', 'GET /auth/sessions', 'DELETE /auth/sessions/{deviceId}', 'POST /auth/sessions/revoke-others', 'GET /auth/reauth')) {
+  if (-not $authDeploy.Contains($sessionDeployControl)) { throw "Auth API session-device deployment is missing: $sessionDeployControl" }
+}
 if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
   throw 'Raw media URL access is not restricted to the authenticated owner.'
 }
