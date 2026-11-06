@@ -2,16 +2,18 @@
 
 ## Issue #48 — SYNC mobile messaging and call-state rescue — 2026-11-06
 
-Status: **OWNER-APPROVED FOR RELEASE; LOCAL FUNCTIONAL, INTEGRATION AND RESPONSIVE BROWSER GATES PASS; PRODUCTION DEPLOYMENT VERIFICATION IN PROGRESS**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND REAL TWO-ACCOUNT/TWO-DEVICE CALL ACCEPTANCE REMAIN**.
 
 - Reconciled the reviewed SYNC work onto production baseline `c3387d5`. Mobile SYNC now has exclusive inbox, conversation, incoming-call and active-call screens; browser Back returns from a conversation to the inbox; the compact composer remains fixed; and the call surfaces use honest connection states rather than claiming an unverified remote connection.
 - Corrected review defects at their source: SYNC section tabs now meet the 44px coarse-pointer target, the Feed header/drawer consistently says SYNC, and the Feed menu contains an intentional Social → SYNC route. That route closes the menu, opens the dedicated messaging screen and returns to the Feed through browser history without stacking a desktop drawer over mobile content.
 - PWA cache advances to `danzstak-shell-v686`; `messages.html` loads `assets/sync.css?v=3`. No user messages, drafts or offline data are deleted.
 - Functional/integration evidence: the complete `test-regressions.ps1` gate passes with exit code 0. It covers authentication, account isolation, Feed/Friends/Buzz, SYNC messaging/calls, media and single-audible-video safeguards, Booking Agent, EPK, Tour Manager, Stripe/refunds, PWA refresh, all 11 site smoke pages and the 140,566-byte infrastructure template. No failure was waived.
 - Responsive browser evidence: `browser-checks/sync-four-states.cjs` passes at 320, 360, 390, 414, 430, 768 and 1024px. It checks zero overflow, 44px tabs, visible/hit-testable Phone and Video actions, a real Video action invoking `getUserMedia`, exclusive call states, Feed → Menu → SYNC → Back navigation, and visible compact menu labels. Current captures are in `docs/screenshots/issue-48/`, including the Feed menu and return path.
-- Implementation commit: `ff46440` (`Fix Feed-to-SYNC navigation and touch targets`) on `codex/issue-48-sync-integration`, prepared for PR branch `codex/issue-48-sync-redesign`.
+- Implementation commit: `ff46440` (`Fix Feed-to-SYNC navigation and touch targets`) and evidence commit `9dee301` on PR branch `codex/issue-48-sync-redesign`. GitHub CI `regression` passed for exact head `9dee3013de323389072edd89b3b24044bc6abf27`.
 - Verification boundary: automated browser evidence proves layout, navigation, state transitions and local camera/microphone request behavior. It does **not** prove a real two-account/two-device audio or video connection, physical Android/iPhone hardware behavior, installed-PWA permission recovery or carrier/network variability. Those remain explicitly unverified.
-- Production deployment: owner authorization was received in this Codex session. Exact production commit, Amplify job, cache probes and post-deployment browser results will be recorded after the release completes. No Stripe, SFScoop or unrelated backend configuration is changed by this release.
+- Protected staging: Amplify DEVELOPMENT job `7` succeeded in `us-west-1` for exact head `9dee3013de323389072edd89b3b24044bc6abf27` from 2026-11-06 04:28:22 to 04:29:17 Europe/Berlin. The access-controlled preview returned HTTP 401 without credentials, and the full seven-width SYNC browser matrix passed against the authenticated hosted build.
+- Production release: after explicit owner authorization in this Codex session, PR `#58` merged as `45b5e98cda1b25f207f8d2f3022f8456b89745a7`. AWS Amplify app `d31oovi2mos5iz`, production branch `main`, job `921` succeeded in `us-west-1` from 2026-11-06 04:31:52 to 04:32:50 Europe/Berlin.
+- Post-deployment evidence: no-cache probes returned the `danzstak-shell-v686` worker, `assets/sync.css?v=3`, and the Feed → SYNC route. The same real-browser SYNC matrix passed directly against `https://danzstak.com` at 320, 360, 390, 414, 430, 768 and 1024px; the bounded live-release verifier and all 11 site smoke pages also passed. No Stripe, SFScoop or unrelated backend configuration changed.
 
 ## Issue #52 — saved Booking identity — 2026-11-06
 
