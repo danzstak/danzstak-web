@@ -10,11 +10,11 @@ const output = path.resolve("docs/screenshots/issue-55-booking-workspace");
 const widths = [320, 360, 390, 430, 768, 1366];
 fs.mkdirSync(output, { recursive: true });
 
-function fixture(pathname) {
+function fixture(pathname, populated = true) {
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111" } };
-  if (pathname === "/booking-pipeline") return { venues: [], artist: { name: "The Test Rats", hometown: "Tacoma, WA, United States" }, tour: {}, revision: "revision-1" };
-  if (pathname === "/epk") return { kit: { artistName: "The Test Rats", hometown: "Tacoma, WA, United States" } };
-  if (pathname === "/profiles") return { profile: { name: "The Test Rats", location: "Tacoma, WA, United States" } };
+  if (pathname === "/booking-pipeline") return { venues: [], artist: populated ? { name: "The Test Rats", hometown: "Tacoma, WA, United States" } : {}, tour: {}, revision: "revision-1" };
+  if (pathname === "/epk") return { kit: populated ? { artistName: "The Test Rats", hometown: "Tacoma, WA, United States" } : {} };
+  if (pathname === "/profiles") return { profile: populated ? { name: "The Test Rats", location: "Tacoma, WA, United States" } : {} };
   return {};
 }
 
@@ -28,7 +28,7 @@ function fixture(pathname) {
       page.on("pageerror", error => errors.push(error.message));
       await page.route("https://api.danzstak.com/**", route => {
         const requestUrl = new URL(route.request().url());
-        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(requestUrl.pathname)) });
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(requestUrl.pathname, true)) });
       });
 
       await page.goto(`${origin}/booking.html`, { waitUntil: "domcontentloaded" });
@@ -41,6 +41,9 @@ function fixture(pathname) {
           return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
         };
         const actionBoxes = [...document.querySelectorAll(".booking-brief-actions button")].map(button => button.getBoundingClientRect());
+        const finderButton = document.querySelector("#venueQuickForm button");
+        const finderButtonBox = finderButton.getBoundingClientRect();
+        const finderHit = document.elementFromPoint(finderButtonBox.left + finderButtonBox.width / 2, finderButtonBox.top + finderButtonBox.height / 2);
         const visibleTargets = [...document.querySelectorAll(".tool-header a, .booking-start button")]
           .map(element => element.getBoundingClientRect())
           .filter(box => box.width > 0 && box.height > 0);
@@ -57,6 +60,8 @@ function fixture(pathname) {
           brief: rect(".booking-brief"),
           finder: rect(".venue-quick-search"),
           finderAction: rect("#venueQuickForm button"),
+          mobileNav: rect(".ds-mobile-nav"),
+          finderActionHitTestable: finderHit === finderButton || finderButton.contains(finderHit),
           samePlanningCard: document.querySelector(".booking-identity").closest(".booking-start") === document.querySelector(".booking-start") && document.querySelector(".booking-brief").closest(".booking-start") === document.querySelector(".booking-start"),
           actionsShareRow: Math.abs(actionBoxes[0].top - actionBoxes[1].top) <= 1,
           minimumTarget: Math.min(...visibleTargets.map(box => box.height)),
@@ -77,6 +82,8 @@ function fixture(pathname) {
       if (width < 700) assert.ok(geometry.brief.top >= geometry.identity.bottom - 1, `${width}px mobile planning order is incorrect`);
       else assert.ok(Math.abs(geometry.brief.top - geometry.identity.top) <= 1, `${width}px desktop identity and request should share a row`);
       assert.ok(width >= 700 || geometry.finderAction.bottom <= 844, `${width}px actionable club search should fit in the first phone viewport: ${JSON.stringify(geometry)}`);
+      assert.ok(width >= 700 || geometry.finderAction.bottom <= geometry.mobileNav.top - 8, `${width}px Club Finder action must clear fixed navigation by 8px: ${JSON.stringify(geometry)}`);
+      assert.ok(width >= 700 || geometry.finderActionHitTestable, `${width}px Club Finder action must win center-point hit testing`);
       assert.equal(geometry.mapClosed, true);
       assert.equal(geometry.optionsClosed, true);
       assert.equal(geometry.primaryStatus, "", `${width}px should not show an advanced-form warning before the user starts`);
@@ -94,6 +101,7 @@ function fixture(pathname) {
       await page.locator("#bookingBriefExample").click();
       assert.equal((await page.locator("#bookingBriefStatus").textContent()).trim(), "", "Example should clear a stale validation error");
       await page.locator("#venueQuickQuery").fill("punk clubs in Tacoma");
+      assert.equal(await page.locator("#venueQuickQuery").evaluate(element => document.activeElement === element), true, `${width}px query must remain usable with the keyboard focused`);
       await page.locator("#venueQuickForm button").click();
       await page.waitForTimeout(60);
       await page.evaluate(() => {
@@ -103,20 +111,28 @@ function fixture(pathname) {
         window.scrollTo(0, 0);
       });
       await page.waitForTimeout(50);
-      await page.screenshot({ path: path.join(output, `booking-${width}.png`), fullPage: true });
-      await page.locator("#bandName").fill("");
-      await page.locator("#startCity").fill("");
-      await page.locator("#bookingBrief").fill("");
-      await page.evaluate(() => {
-        document.getElementById("bookingIdentityStatus").textContent = "Add your home city, then save.";
-        document.getElementById("venueQuickStatus").textContent = "";
-        document.getElementById("venueQuickQuery").value = "";
-        document.activeElement?.blur();
-        window.scrollTo(0, 0);
-      });
-      await page.waitForTimeout(50);
-      await page.screenshot({ path: path.join(output, `booking-empty-${width}.png`), fullPage: true });
+      await page.screenshot({ path: path.join(output, `booking-${width}.png`), fullPage: width >= 700 });
       await context.close();
+
+      const emptyContext = await browser.newContext({ viewport: { width, height: width < 700 ? 844 : 900 }, serviceWorkers: "block", reducedMotion: "reduce" });
+      const emptyPage = await emptyContext.newPage();
+      await emptyPage.route("https://api.danzstak.com/**", route => {
+        const requestUrl = new URL(route.request().url());
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(requestUrl.pathname, false)) });
+      });
+      await emptyPage.goto(`${origin}/booking.html`, { waitUntil: "domcontentloaded" });
+      await emptyPage.waitForFunction(() => document.getElementById("bookingIdentityStatus")?.textContent.trim() === "Add your home city, then save.");
+      const emptyState = await emptyPage.evaluate(() => ({
+        act: document.getElementById("bandName").value,
+        home: document.getElementById("startCity").value,
+        brief: document.getElementById("bookingBrief").value,
+        query: document.getElementById("venueQuickQuery").value,
+        results: document.getElementById("venueQuickResults").children.length,
+        status: document.getElementById("venueQuickStatus").textContent.trim()
+      }));
+      assert.deepEqual(emptyState, { act: "", home: "", brief: "", query: "", results: 0, status: "" }, `${width}px fresh empty context leaked populated state`);
+      await emptyPage.screenshot({ path: path.join(output, `booking-empty-${width}.png`), fullPage: width >= 700 });
+      await emptyContext.close();
     }
     console.log(`Booking workspace browser checks passed at ${widths.join(", ")}px.`);
   } finally {

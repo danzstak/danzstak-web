@@ -350,4 +350,15 @@
     align-items: center;
     gap: 7px;
   }
+
+  .booking-page .venue-quick-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  .booking-page .venue-quick-row button {
+    min-width: 86px;
+    padding-inline: 9px;
+  }
 }
