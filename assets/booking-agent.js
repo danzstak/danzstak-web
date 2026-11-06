@@ -424,6 +424,15 @@
     1e3,
     "0.01",
   );
+  addNumberField("Average show pay", "averageShowPay", 150, 0, 1e6, "1");
+  addNumberField(
+    "Average merch profit/show",
+    "averageMerchPerShow",
+    150,
+    0,
+    1e6,
+    "1",
+  );
   const conditionLabel = document.createElement("label"),
     conditionSelect = document.createElement("select");
   conditionLabel.append(
@@ -462,6 +471,9 @@
   addSummaryRow("Budget needed to finish", "finishBudget");
   addSummaryRow("Minimum net per show", "perShowCost");
   addSummaryRow("Break-even merch items", "merchBreakEven");
+  addSummaryRow("Projected show pay", "projectedShowPay");
+  addSummaryRow("Projected merch profit", "projectedMerch");
+  addSummaryRow("Projected tour result", "projectedTourNet");
   const settlementArticle = $("settlementMethod").closest("article"),
     settlementConfirmation = $("settlementConfirmed").closest("label");
   function closeoutField(labelText, id, options = {}) {
@@ -543,7 +555,11 @@
       ),
       finishBudget = total + reserve,
       shows = Math.max(1, number("showCount")),
-      merchProfit = number("merchProfit");
+      merchProfit = number("merchProfit"),
+      projectedShowPay = shows * number("averageShowPay"),
+      projectedMerch = shows * number("averageMerchPerShow"),
+      projectedIncome = projectedShowPay + projectedMerch,
+      projectedNet = projectedIncome - finishBudget;
     $("fuelCost").textContent = money.format(fuel);
     $("lodgingCost").textContent = money.format(lodging);
     $("mealCost").textContent = money.format(meals);
@@ -553,7 +569,34 @@
     $("perPersonCost").textContent = money.format(total / people);
     $("reserveCost").textContent = money.format(reserve);
     $("finishBudget").textContent = money.format(finishBudget);
+    const routeCosts = {
+      fuel,
+      lodging,
+      meals,
+      road: vehicle + extras,
+      total,
+      finish: finishBudget,
+      income: projectedIncome,
+      net: projectedNet,
+      breakEven: finishBudget / shows,
+    };
+    for (const [name, value] of Object.entries(routeCosts)) {
+      const output = document.querySelector(`[data-route-cost="${name}"]`);
+      if (output) output.textContent = money.format(value);
+    }
     $("perShowCost").textContent = money.format(finishBudget / shows);
+    $("projectedShowPay").textContent = money.format(projectedShowPay);
+    $("projectedMerch").textContent = money.format(projectedMerch);
+    $("projectedTourNet").textContent = `${projectedNet >= 0 ? "Profit " : "Loss "}${money.format(Math.abs(projectedNet))}`;
+    const routeBudget = document.querySelector(".route-cost-summary");
+    if (routeBudget) {
+      routeBudget.classList.toggle("route-loss", projectedNet < 0);
+      routeBudget.classList.toggle("route-profit", projectedNet >= 0);
+      const netLabel = routeBudget.querySelector('[data-route-cost-label="net"]');
+      if (netLabel) netLabel.textContent = projectedNet >= 0 ? "Projected profit" : "Projected loss";
+      const netOutput = routeBudget.querySelector('[data-route-cost="net"]');
+      if (netOutput) netOutput.textContent = money.format(Math.abs(projectedNet));
+    }
     $("merchBreakEven").textContent = merchProfit
       ? Math.ceil(finishBudget / merchProfit).toLocaleString() + " items"
       : "Set item profit";
@@ -770,7 +813,29 @@
   let latestRoute = null,
     lastSearchSignature = "",
     searchVariation = 0,
-    seenVenueKeys = new Set();
+    seenVenueKeys = new Set(),
+    routeRenderGeneration = 0;
+
+  async function runRouteResearch(tasks, generation) {
+    if (!tasks.length) return;
+    const started = Date.now(), deadline = started + 5 * 60 * 1000;
+    let cursor = 0, completed = 0;
+    const worker = async () => {
+      while (cursor < tasks.length && Date.now() < deadline && generation === routeRenderGeneration) {
+        const task = tasks[cursor++];
+        await task();
+        completed += 1;
+        if (generation === routeRenderGeneration) {
+          routeStatus.textContent = `Researched ${completed} of ${tasks.length} additional route markets. You can use every finished market now.`;
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, tasks.length) }, worker));
+    if (generation !== routeRenderGeneration) return;
+    routeStatus.textContent = completed === tasks.length
+      ? `Route research finished across ${tasks.length} additional markets. Review the sourced clubs and add the ones you want to contact.`
+      : `Five-minute research window completed (${completed} of ${tasks.length} additional markets). Retry any unfinished market without rebuilding the route.`;
+  }
   routeAction.type = "button";
   routeAction.id = "routeSearchAction";
   routeAction.className = "primary-route";
@@ -871,7 +936,8 @@
       address = document.createElement("p"),
       evidence = document.createElement("p"),
       contacts = document.createElement("div"),
-      notice = document.createElement("small");
+      notice = document.createElement("small"),
+      select = document.createElement("button");
     heading.textContent = place.name;
     address.textContent =
       place.address +
@@ -940,21 +1006,48 @@
     notice.textContent = place.bookingSuitability === "contact-found"
       ? "Public contact found. Verify that it books this kind of show; DanzStak has not contacted this location."
       : `Needs research. ${(place.suitabilityReasons || []).join(" ") || "Confirm current programming and find the correct public booking contact."}`;
+    if (placeType === "club") {
+      const syncSelection = () => {
+        const selected = window.danzstakBookingVenueSelected?.(place) === true;
+        select.textContent = selected ? "Remove from booking list" : "Add to booking list";
+        select.setAttribute("aria-pressed", String(selected));
+      };
+      select.type = "button";
+      select.className = "route-select-venue";
+      select.addEventListener("click", () => {
+        window.danzstakToggleBookingVenue?.(place);
+        syncSelection();
+      });
+      window.addEventListener("danzstak:booking-selection", syncSelection);
+      syncSelection();
+    }
     card.className = "place-card";
     card.append(heading, address);
     if (evidence.textContent) card.append(evidence);
     card.append(contacts, notice);
+    if (placeType === "club") card.append(select);
     return card;
   }
   function orderedCandidateMarkets(data) {
     const candidates = (data.candidates || []).filter(market =>
-        market?.stop &&
-        !/^tour corridor stop\b/i.test(market.stop) &&
-        Array.isArray(market.venues) && market.venues.length > 0
+        market?.stop && !/^tour corridor stop\b/i.test(market.stop) && Array.isArray(market.venues)
       ),
       itinerary = routeItineraryMarkets(data.route, candidates),
-      marketKey = value => String(value || "").split(",")[0].trim().toLowerCase();
-    return itinerary.map(stop => candidates.find(market => marketKey(market.stop) === marketKey(stop)) || null).filter(Boolean);
+      marketKey = value => String(value || "").split(",")[0].trim().toLowerCase(),
+      routePoints = [data.route?.start, ...(data.route?.stops || []), data.route?.turnaround, data.route?.end].filter(Boolean);
+    return itinerary.map(stop => {
+      const existing = candidates.find(market => marketKey(market.stop) === marketKey(stop));
+      if (existing) return existing;
+      const point = routePoints.find(candidate => marketKey(candidate?.label) === marketKey(stop));
+      const discoveredMarket = {
+        stop,
+        position: Array.isArray(point?.position) ? point.position : [],
+        venues: [], hotels: [], vanStops: [], recordStores: [],
+        researchPending: true
+      };
+      if (Array.isArray(data.candidates)) data.candidates.push(discoveredMarket);
+      return discoveredMarket;
+    });
   }
   function evenlySampleMarkets(markets, count) {
     if (!count || !markets.length) return [];
@@ -1111,12 +1204,16 @@
   }
   function renderRoute(data) {
     latestRoute = data;
+    const renderGeneration = ++routeRenderGeneration;
     saveTour.disabled = false;
     routeResults.replaceChildren();
-    const summary = document.createElement("section"),
+    const workspace = document.createElement("div"),
+      daySheet = document.createElement("div"),
+      summary = document.createElement("section"),
       title = document.createElement("h3"),
       details = document.createElement("p"),
       status = document.createElement("p"),
+      budget = document.createElement("section"),
       turnaround = data.route.turnaround?.label;
     title.textContent = data.route.local
       ? `Local booking near ${data.route.start.label}`
@@ -1129,20 +1226,50 @@
       ? "Club and hotel leads near the selected home market."
       : `${data.route.distanceMiles.toLocaleString()} road miles, about ${data.route.durationHours.toFixed(1)} wheel hours, and at least ${data.route.minimumDrivingDays} driving days.`;
     status.className = "hint";
-    status.textContent = `Travel window ${data.route.departOn || departInput.value} through ${data.route.returnBy || returnInput.value}. Dates stay proposed until each venue confirms.`;
+    status.textContent = data.route.departOn && data.route.returnBy
+      ? `Travel window ${data.route.departOn} through ${data.route.returnBy}. Dates stay proposed until each venue confirms.`
+      : "Venue research can continue without dates. Add the travel window before approving outreach.";
     summary.className = "route-summary";
     summary.append(title, details, status);
-    routeResults.append(summary, renderProposedCalendar(data), renderRouteMap(data));
-    const targetMarkets = targetTourMarkets(data),
+    budget.className = "route-cost-summary";
+    budget.innerHTML = '<h3>Working tour money</h3><p>Change the expected show pay or merch profit here. Costs still use your crew and van settings.</p><div class="route-income-controls"><label>Pay per show<input type="number" min="0" max="1000000" step="1" data-route-budget-input="averageShowPay"></label><label>Merch profit/show<input type="number" min="0" max="1000000" step="1" data-route-budget-input="averageMerchPerShow"></label></div><dl><div><dt>Fuel</dt><dd data-route-cost="fuel">—</dd></div><div><dt>Lodging</dt><dd data-route-cost="lodging">—</dd></div><div><dt>Crew per diem</dt><dd data-route-cost="meals">—</dd></div><div><dt>Vehicle + road costs</dt><dd data-route-cost="road">—</dd></div><div class="total"><dt>Estimated tour</dt><dd data-route-cost="total">—</dd></div><div><dt>Finish-line reserve</dt><dd data-route-cost="finish">—</dd></div><div><dt>Projected money in</dt><dd data-route-cost="income">—</dd></div><div><dt>Break-even per show</dt><dd data-route-cost="breakEven">—</dd></div><div class="route-net"><dt data-route-cost-label="net">Projected result</dt><dd data-route-cost="net">—</dd></div></dl>';
+    budget.querySelectorAll("[data-route-budget-input]").forEach(input => {
+      const source = $(input.dataset.routeBudgetInput);
+      input.value = source.value;
+      input.addEventListener("input", () => {
+        source.value = input.value;
+        recalculate();
+      });
+    });
+    workspace.className = "tour-sheet-workspace";
+    daySheet.className = "tour-sheet-main";
+    daySheet.append(summary, renderProposedCalendar(data), renderRouteMap(data));
+    workspace.append(daySheet, budget);
+    routeResults.append(workspace);
+    const routeMarkets = orderedCandidateMarkets(data),
       seenMarkets = new Set(),
-      displayedMarkets = targetMarkets.filter(market => {
+      displayedMarkets = routeMarkets.filter(market => {
         const key = String(market.stop || "").split(",")[0].trim().toLowerCase();
         if (!key || seenMarkets.has(key)) return false;
         seenMarkets.add(key);
         return true;
-      }).slice(0, 8),
+      }),
+      researchWorkspace = document.createElement("details"),
+      researchHeading = document.createElement("summary"),
+      researchIntro = document.createElement("p"),
+      researchMarkets = document.createElement("div"),
       firstDate = new Date(`${data.route.departOn || departInput.value}T12:00:00Z`),
       travelDays = Math.max(1, Number(data.route.requestedDays) || number("days") || 1);
+    researchWorkspace.className = "route-research-workspace";
+    researchIntro.className = "hint";
+    researchIntro.textContent = "Open a city only when you need alternate clubs, public contacts, a cheap sleep lead, or a record store. The day sheet above stays the working tour.";
+    researchMarkets.className = "route-research-markets";
+    const updateResearchHeading = () => {
+      const venueCount = displayedMarkets.reduce((total, market) => total + (market.venues?.length || 0), 0);
+      researchHeading.textContent = `Club research and contacts · ${venueCount} lead${venueCount === 1 ? "" : "s"} in ${displayedMarkets.length} market${displayedMarkets.length === 1 ? "" : "s"}`;
+    };
+    updateResearchHeading();
+    researchWorkspace.append(researchHeading, researchIntro, researchMarkets);
     displayedMarkets.forEach((market, index) => {
       if (Number.isNaN(firstDate.getTime())) return;
       const date = new Date(firstDate);
@@ -1159,6 +1286,7 @@
       empty.append(emptyTitle, emptyText);
       routeResults.append(empty);
     }
+    const automaticResearch = [];
     for (const market of displayedMarkets) {
       const section = document.createElement("details"),
         heading = document.createElement("summary"),
@@ -1167,6 +1295,7 @@
         venueSummary = document.createElement("summary"),
         venueGrid = document.createElement("div"),
         venueStatus = document.createElement("p"),
+        researchButton = document.createElement("button"),
         recordDetails = document.createElement("details"),
         recordSummary = document.createElement("summary"),
         recordGrid = document.createElement("div"),
@@ -1198,7 +1327,12 @@
         ? `See ${Math.min(6, marketVenues.length)} club options`
         : "Club contact";
       venueStatus.className = "hint";
-      venueStatus.textContent = "";
+      venueStatus.textContent = marketVenues.length
+        ? `${marketVenues.length} sourced club lead${marketVenues.length === 1 ? "" : "s"} in this market.`
+        : "Waiting for live venue research in this market.";
+      researchButton.type = "button";
+      researchButton.className = "secondary market-research";
+      researchButton.textContent = marketVenues.length ? `Find more clubs in ${market.stop}` : `Research clubs in ${market.stop}`;
       const budgetHotels = (market.hotels || []).slice(0, 2),
         vanStops = (market.vanStops || []).slice(0, 2),
         recordStores = (market.recordStores || []).slice(0, 4);
@@ -1211,14 +1345,79 @@
       marketVenues.slice(0, 6).forEach((place) =>
         venueGrid.append(placeCard(place, "club")),
       );
+      let marketPage = 0, marketRadius = 25, marketHasMore = false, marketCanExpand = true, researching = false;
+      const researchMarket = async (automatic = false) => {
+        if (researching || renderGeneration !== routeRenderGeneration) return;
+        researching = true;
+        researchButton.disabled = true;
+        venueStatus.textContent = `Researching current public venue sources in ${market.stop}…`;
+        const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 30000);
+        try {
+          const response = await fetch("https://api.danzstak.com/venues/search", {
+            method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `${genreInput.value} live music venues in ${market.stop}`, page: marketPage, radiusMiles: marketRadius }),
+            signal: controller.signal
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || "Venue research failed.");
+          const known = new Set(market.venues.map(place => place.venueKey || `${place.name}|${place.address}`.toLowerCase()));
+          const additions = (result.venues || []).filter(place => {
+            const key = place.venueKey || `${place.name}|${place.address}`.toLowerCase();
+            if (known.has(key)) return false;
+            known.add(key);
+            return true;
+          });
+          market.venues.push(...additions);
+          additions.forEach(place => venueGrid.append(placeCard(place, "club")));
+          updateResearchHeading();
+          const currentCalendar = daySheet.querySelector(".proposed-calendar");
+          if (currentCalendar && additions.length) currentCalendar.replaceWith(renderProposedCalendar(data));
+          marketPage = Number(result.page || marketPage);
+          marketRadius = Number(result.radiusMiles || marketRadius);
+          marketHasMore = result.hasMore === true;
+          marketCanExpand = result.canExpand === true;
+          market.researchPending = false;
+          venueSummary.textContent = `${market.venues.length} club option${market.venues.length === 1 ? "" : "s"}`;
+          venueStatus.textContent = market.venues.length
+            ? `${market.venues.length} sourced lead${market.venues.length === 1 ? "" : "s"}. Verify the current calendar before pitching.`
+            : (result.coverageNotice || "No relevant venue lead was returned yet.");
+          researchButton.textContent = marketHasMore ? `Load more clubs in ${market.stop}` : marketCanExpand ? `Search farther around ${market.stop}` : `Research ${market.stop} again`;
+          if (automatic && marketHasMore && marketPage < 2) {
+            marketPage += 1;
+            researching = false;
+            await researchMarket(true);
+            return;
+          }
+          if (automatic && !market.venues.length && marketCanExpand && marketRadius < 75) {
+            marketPage = 0;
+            marketRadius += 25;
+            researching = false;
+            await researchMarket(true);
+            return;
+          }
+        } catch (error) {
+          venueStatus.textContent = error.name === "AbortError"
+            ? `Research timed out in ${market.stop}; use Retry without rebuilding the tour.`
+            : `${error.message} Retry this market without rebuilding the tour.`;
+          researchButton.textContent = `Retry ${market.stop}`;
+        } finally {
+          clearTimeout(timer);
+          researching = false;
+          researchButton.disabled = false;
+        }
+      };
+      researchButton.addEventListener("click", () => {
+        if (marketHasMore) marketPage += 1;
+        else if (marketCanExpand && market.venues.length) { marketPage = 0; marketRadius = Math.min(150, marketRadius + 25); }
+        void researchMarket(false);
+      });
+      if (!marketVenues.length) automaticResearch.push(() => researchMarket(true));
       recordStores.forEach((place) => recordGrid.append(placeCard(place, "record-store")));
       budgetHotels.forEach((place) =>
         hotelGrid.append(placeCard(place, "hotel")),
       );
       vanStops.forEach((place) => vanGrid.append(placeCard(place, "van-rest")));
-      venueDetails.append(venueSummary);
-      if (venueStatus.textContent) venueDetails.append(venueStatus);
-      venueDetails.append(venueGrid);
+      venueDetails.append(venueSummary, venueStatus, venueGrid, researchButton);
       if (recordStores.length) recordDetails.append(recordSummary, recordGrid);
       if (budgetHotels.length) hotelDetails.append(hotelSummary, hotelGrid);
       if (vanStops.length) vanDetails.append(vanSummary, vanWarning, vanGrid);
@@ -1227,24 +1426,35 @@
       if (recordStores.length) section.append(recordDetails);
       if (budgetHotels.length) section.append(hotelDetails);
       if (vanStops.length) section.append(vanDetails);
-      routeResults.append(section);
+      researchMarkets.append(section);
     }
+    if (displayedMarkets.length) routeResults.append(researchWorkspace);
+    void runRouteResearch(automaticResearch, renderGeneration);
   }
 
   function renderProposedCalendar(data) {
     const details = document.createElement("details"),
       summary = document.createElement("summary"),
       intro = document.createElement("p"),
-      list = document.createElement("ol"),
+      tableBox = document.createElement("div"),
+      table = document.createElement("table"),
+      head = document.createElement("thead"),
+      body = document.createElement("tbody"),
       days = Math.max(1, Number(data.route.requestedDays) || number("days") || 1),
       shows = Math.max(1, Math.min(days, Number(data.route.requestedShows) || number("showCount") || 1)),
-      markets = targetTourMarkets(data);
+      markets = targetTourMarkets(data),
+      sleepStyle = document.querySelector('input[name="style"]:checked')?.value || "couch";
     details.className = "proposed-calendar";
     summary.textContent = `${days}-day target calendar · ${shows} proposed shows`;
     intro.className = "hint";
-    intro.textContent = "This is a working pitch plan, not a confirmed tour. A show becomes real only after the venue agrees.";
-    list.className = "tour-calendar";
-    const start = new Date(`${data.route.departOn || departInput.value}T12:00:00Z`);
+    intro.textContent = "This is a working pitch plan, not a confirmed tour. Sourced lead means a public source was found—not that the venue agreed. Leg miles are estimates; use the route map for live navigation.";
+    details.open = true;
+    tableBox.className = "tour-day-sheet";
+    table.className = "tour-calendar";
+    head.innerHTML = "<tr><th>Day</th><th>Date</th><th>City</th><th>Club to pitch</th><th>Sleep plan</th><th>Road plan</th></tr>";
+    const startValue = data.route.departOn || departInput.value,
+      hasStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startValue),
+      start = hasStartDate ? new Date(`${startValue}T12:00:00Z`) : null;
     const needsHomeDay = !data.route.local && days > 1,
       showDays = needsHomeDay ? days - 1 : days,
       restCount = Math.max(0, showDays - shows),
@@ -1253,37 +1463,95 @@
       ));
     let showIndex = 0;
     const usedVenues = new Set();
+    let lastPosition = Array.isArray(data.route.start?.position) ? data.route.start.position : null;
+    const estimatedRoadMiles = (left, right) => {
+      if (![left, right].every(position => Array.isArray(position) && position.length === 2 && position.every(Number.isFinite))) return null;
+      const toRadians = value => value * Math.PI / 180,
+        [leftLon, leftLat] = left,
+        [rightLon, rightLat] = right,
+        latDelta = toRadians(rightLat - leftLat),
+        lonDelta = toRadians(rightLon - leftLon),
+        a = Math.sin(latDelta / 2) ** 2 + Math.cos(toRadians(leftLat)) * Math.cos(toRadians(rightLat)) * Math.sin(lonDelta / 2) ** 2,
+        directMiles = 3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return Math.max(0, Math.round((directMiles * 1.18) / 5) * 5);
+    };
     for (let day = 0; day < days; day += 1) {
-      const date = new Date(start);
-      date.setUTCDate(date.getUTCDate() + day);
+      const date = start ? new Date(start) : null;
+      if (date) date.setUTCDate(date.getUTCDate() + day);
       const finalHomeDay = needsHomeDay && day === days - 1,
         shouldShow = !finalHomeDay && !restDays.has(day) && showIndex < shows,
         market = markets[Math.min(markets.length - 1, showIndex)],
-        item = document.createElement("li"),
-        dayHeading = document.createElement("strong"),
-        dayDetail = document.createElement("span"),
-        dateLabel = date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+        row = document.createElement("tr"),
+        dayCell = document.createElement("th"),
+        dateCell = document.createElement("td"),
+        cityCell = document.createElement("td"),
+        venueCell = document.createElement("td"),
+        sleepCell = document.createElement("td"),
+        planCell = document.createElement("td"),
+        dateLabel = date ? date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }) : "date open";
       const venueKey = venue => venue.venueKey || `${market?.stop}|${venue.name}`.toLowerCase(),
         venue = shouldShow && market
           ? market.venues.find(candidate => !usedVenues.has(venueKey(candidate)))
           : null;
       if (venue) {
         usedVenues.add(venueKey(venue));
-        dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · SHOW TARGET`;
-        dayDetail.textContent = `${market.stop} — ${venue.name} · Arrive 4:00 PM · Soundcheck 5:00 PM`;
+        cityCell.textContent = market.stop;
+        const venueName = document.createElement("strong"),
+          venueStatus = document.createElement("span");
+        venueName.textContent = venue.name;
+        venueStatus.className = "tour-lead-status sourced";
+        venueStatus.textContent = venue.bookingSuitability === "contact-found" ? "Contact found" : "Sourced lead";
+        venueStatus.title = "Public source found; booking and availability are not confirmed.";
+        venueCell.append(venueName, venueStatus);
+        planCell.textContent = "Show target · arrive 4:00 PM · soundcheck 5:00 PM";
         showIndex += 1;
       } else {
         const returningHome = finalHomeDay || showIndex >= shows,
           label = returningHome ? `Return toward ${data.route.start?.label || "home"}` : market?.stop || data.route.start?.label;
-        dayHeading.textContent = `Day ${day + 1} · ${dateLabel} · TRAVEL / REST`;
-        dayDetail.textContent = `${label || "Route day"} — ${returningHome ? "safe return drive; everyone and the vehicle finish at home." : shouldShow ? "No additional club lead for this date; booking research needed." : "drive toward the next show, load-in buffer, laundry or sleep."}`;
+        row.className = "off";
+        cityCell.textContent = label || "Route day";
+        venueCell.textContent = shouldShow ? "Research needed" : "Travel / rest";
+        if (shouldShow) venueCell.classList.add("needs-research");
+        planCell.textContent = returningHome ? "Safe return drive; finish with everyone and the vehicle home." : shouldShow ? "No sourced club lead yet; research this market." : "Drive toward the next show; load-in buffer, laundry, or sleep.";
       }
-      item.append(dayHeading, dayDetail);
-      list.append(item);
+      const destinationPosition = finalHomeDay
+          ? data.route.start?.position
+          : market?.position,
+        legMiles = estimatedRoadMiles(lastPosition, destinationPosition);
+      if (legMiles !== null) {
+        planCell.textContent = `${legMiles ? `≈${legMiles} road mi` : "Local day"} · ${planCell.textContent}`;
+      }
+      // Never carry an older city across a stop whose geometry is unavailable;
+      // doing so would turn several unknown legs into one misleading long leg.
+      lastPosition = Array.isArray(destinationPosition) && destinationPosition.length === 2 && destinationPosition.every(Number.isFinite)
+        ? destinationPosition
+        : null;
+      if (finalHomeDay) {
+        sleepCell.textContent = "Home";
+      } else if (sleepStyle === "bus") {
+        const restLead = market?.vanStops?.[0];
+        sleepCell.textContent = restLead
+          ? `${restLead.name} · permission required`
+          : "Sleeper van · parking permission needed";
+      } else if (sleepStyle === "hotel") {
+        sleepCell.textContent = market?.hotels?.[0]?.name || "Budget room needed";
+      } else {
+        const fallbackRoom = market?.hotels?.[0]?.name;
+        sleepCell.textContent = fallbackRoom
+          ? `Host first · backup ${fallbackRoom}`
+          : "Host or couch lead needed";
+      }
+      dayCell.scope = "row";
+      dayCell.textContent = String(day + 1);
+      dateCell.textContent = dateLabel;
+      row.append(dayCell, dateCell, cityCell, venueCell, sleepCell, planCell);
+      body.append(row);
     }
     summary.textContent = `${days}-day target calendar · ${showIndex} proposed shows`;
     if (showIndex < shows) intro.textContent += ` ${shows} shows requested; ${shows - showIndex} still need club leads.`;
-    details.append(summary, intro, list);
+    table.append(head, body);
+    tableBox.append(table);
+    details.append(summary, intro, tableBox);
     return details;
   }
 
@@ -1412,11 +1680,6 @@
       routeStatus.textContent =
         "Enter a turnaround city or at least one tour stop.";
       $("endCity").focus();
-      return;
-    }
-    if (!departOn || !returnBy) {
-      routeStatus.textContent =
-        "Choose the first date and the date the act must be home.";
       return;
     }
     bookingBoard.hidden = false;

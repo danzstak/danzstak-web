@@ -1,5 +1,29 @@
 # DANZSTAK development report
 
+## Issue #55 — compact Booking Agent workspace — 2026-11-06
+
+Status: **REVISED AFTER TWO INDEPENDENT QA PASSES; LOCAL FUNCTIONAL, VISUAL AND INTEGRATION GATES PASS; EXACT-HEAD HOSTED STAGING, REAL-ACCOUNT BOOKING PROOF AND INDEPENDENT APPROVAL PENDING; NOT DEPLOYED**.
+
+- Replaced the separate hero, identity and conversational-request cards with one orange-accented planning workspace. The first screen now asks one plain-language question, keeps saved Act/Home details immediately editable, and places **Plan my run** and **Example** on the same row at every tested phone width.
+- Adopted the reviewed DanzStak music-tool header shared with Record Stores. Direct club search remains a separate compact choice; map/manual entry and detailed genre, crew, vehicle and budget controls remain available behind their existing disclosures. No discovery, saved-tour, map, Stripe, contact-unlock or Tour Manager behavior was removed.
+- Prevented the advanced route form's initial warning from appearing in the conversational status area before a member starts a request. The status remains live and copies route progress after submission.
+- Added the scoped `assets/booking-workspace.css`, the static design regression `test-booking-workspace-design.cjs`, and the real-browser matrix `browser-checks/booking-workspace-design.cjs`. The PWA advances to `danzstak-shell-v695`, caches the new stylesheet and loads `booking-conversation.js?v=477`.
+- Real-browser evidence passes at 320, 360, 390, 430, 768 and 1366px: no horizontal overflow, a ≤64px header, one shared planning card, 44px controls, same-row actions, closed optional tools and the Club Finder beginning within the first phone viewport. Current captures are in `docs/screenshots/issue-55-booking-workspace/`; baseline captures are in `docs/screenshots/issue-55-booking-baseline/`.
+- Functional/integration evidence: all focused Booking, identity, map, discovery, PWA and design checks pass. The complete `test-regressions.ps1` gate passes through every JavaScript regression, bounded live-release verification, the 11-page site smoke suite and the 140,566-byte infrastructure template validation. No product failure was waived.
+- Staging evidence: AWS Amplify app `d31oovi2mos5iz`, DEVELOPMENT branch `codex/issue-55-booking-workspace`, job `1` succeeded in `us-west-1` from 2026-11-06 17:03:44 to 17:04:33 Europe/Berlin. No-cache probes returned HTTP 200 for `booking.html`, `assets/booking-workspace.css?v=1`, `assets/booking-conversation.js?v=477` and `service-worker.js`; the hosted worker reports `danzstak-shell-v695`.
+- Hosted visual evidence: the same Booking workspace browser matrix passed directly against `https://codex-issue-55-booking-workspace.d31oovi2mos5iz.amplifyapp.com/` at 320, 360, 390, 430, 768 and 1366px. This verifies the hosted responsive layout and fixture-driven interactions; it does not replace physical installed-PWA acceptance.
+- Independent QA correction: review found the first revision remained too boxed, used a hard-coded fictitious member example, had stale **Find the run** validation wording and relied on geometry fixtures rather than real-account product proof. The revised UI removes card outlines/shadows from the primary planning and Club Finder surfaces, places identity and request side-by-side on desktop, compacts phone copy, and keeps the actionable **Find clubs** button inside the first 844px phone viewport while preserving 44px targets.
+- The **Example** action now uses the saved account act/home city when available, creates an editable directional loop, has a generic no-account fallback, clears stale validation and contains no production Momo/The Rats sample. Incomplete requests consistently say **Plan my run**. Browser coverage now verifies the saved-home example, missing-home recovery, visible/clickable Club Finder action, empty and populated states, closed optional panels and desktop row layout.
+- Revised exact-source staging: implementation commit `8251cd6d754582b8fb7dd4f6b5a0f1b5ae14be8a`; Amplify DEVELOPMENT job `4` succeeded in `us-west-1` from 2026-11-06 19:12:01 to 19:12:54 Europe/Berlin. No-cache hosted probes returned HTTP 200 for `booking.html`, `assets/booking-workspace.css?v=2`, `assets/booking-conversation.js?v=478` and `service-worker.js`; the hosted worker reports `danzstak-shell-v696`. The hosted browser matrix passed at 320, 360, 390, 430, 768 and 1366px.
+- Current evidence includes updated populated captures and separate empty-account captures in `docs/screenshots/issue-55-booking-workspace/`. The complete regression gate passed again after the QA corrections. The staging browser session had no authenticated DanzStak account and the live venue endpoint correctly denied an unauthenticated probe with HTTP 403, so non-fabricated real-provider results, saved-tour persistence and installed-device keyboard/navigation remain explicitly **UNVERIFIED**, not represented as passing.
+- Added a separate, manually triggered, authenticated and read-only real-provider smoke path: `.github/workflows/booking-provider-smoke.yml` runs `scripts/booking-provider-smoke.cjs` with the existing controlled synthetic-session secret. It verifies authentication, locality resolution, provider diagnostics and at least one HTTPS source-attributed venue/research lead while outputting only counts/provider states—never the session, account identity, contacts or venue records. It is intentionally not scheduled to bound provider cost and performs no mutation. Static secret-safety/read-only coverage passes, and the authorized Tacoma execution is recorded below.
+- Pre-merge execution path: the existing default-branch `daily-production-health.yml` now exposes an opt-in `booking_provider_smoke` dispatch input and checks out the requested PR ref. The provider job is excluded from scheduled health runs, uses only the controlled session secret, performs the same read-only venue search and can therefore produce real-provider evidence before the new standalone workflow reaches `main`. Repository inspection confirms both synthetic-session secret names exist; secret values were neither retrieved nor logged.
+- Authenticated real-provider evidence: manually dispatched GitHub Actions run `42275608628` checked out exact implementation head `91a5c546836ec3e59b6e79fe5b071aaf1e92e571`; its public, authenticated and Booking-provider jobs all completed successfully. The Booking smoke resolved Tacoma, Washington for a public punk-club query and returned 20 real results, including 10 venues with HTTPS source attribution, with no account identity, contact details, tokens or venue records printed. The run performed no mutation, email or payment. Provider evidence is explicit: AWS Places was healthy with 60 upstream candidates, OpenStreetMap was temporarily unavailable, and Google Places plus Brave Search were not configured. Coverage is therefore real but partial and is not represented as complete multi-provider indexing.
+- Second independent QA found that the 320px **Find clubs** control was visually covered by the fixed navigation and that the earlier empty-state captures were produced by clearing a populated page. The root layout now keeps the narrow-phone query and action in one compact row. Browser acceptance measures an 8px clearance above the fixed navigation, verifies the action wins center-point hit testing, preserves query focus, and performs the real click. Empty-state evidence now comes from a fresh isolated browser context whose API fixtures contain no saved act, city or EPK identity.
+- The corrected local browser matrix passes at 320, 360, 390, 430, 768 and 1366px. Phone evidence is captured at the actual viewport instead of using stitched full-page images, so fixed-navigation collisions cannot be hidden by screenshot composition. Representative 320px and 390px populated and empty captures were manually inspected. The complete `test-regressions.ps1` gate passes again, including Booking, authentication, account isolation, responsive media/audio, Chat, EPK, Tour Manager, Stripe/refunds, PWA refresh, site smoke and infrastructure validation.
+- Repository release-gate correction: the active `main` ruleset requires `regression`, `responsive-accessibility-security` and `release-evidence`, while `.github/workflows/review.yml` previously emitted only `regression`. The workflow now preserves the full regression job and adds the two missing required contexts. Their commands exercise the shared mobile design system, responsive media, touch targets, skip navigation, link integrity, origin/authentication security, Booking workspace, PWA refresh, bounded release verification, site smoke and infrastructure validation. Both new command groups pass locally; the ruleset itself was not weakened.
+- Release boundary: the owner authorized deployment, but PR `#82` remains unmerged and production unchanged pending independent re-review and the protected checks. No AWS backend or live payment configuration changed in this frontend revision, and repository protections were not bypassed.
+
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND PROVIDER-SPECIFIC DEVICE ACCEPTANCE REMAIN**.
@@ -1120,3 +1144,96 @@ Status as of 2026-11-06: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 - Post-deployment production verification reran the full actual-browser suite successfully at 320, 360, 375, 390, 414, 430, 768, 1024, and 1366px. A fresh browser registered an activated controlling service worker and reported only `danzstak-shell-v692` in Cache Storage, so the previous installed-PWA shell was not retained.
 - Live captures: [compact menu at 320px](screenshots/issue-55-settings-live/menu-320.png), [Settings at 390px](screenshots/issue-55-settings-live/settings-390.png), [tablet Chat at 768px](screenshots/issue-55-settings-live/chat-desktop-768.png), and [desktop Feed at 1366px](screenshots/issue-55-settings-live/home-1366.png).
 - Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA remain **NOT TESTED** in this environment; this limitation is not represented as a pass.
+
+# Booking Agent — route-wide research and band-ready day sheet
+
+Status as of 2026-11-06: **IN PROGRESS; REVIEW PWA DEPLOYED AND BROWSER-VERIFIED; PRODUCTION UNCHANGED**.
+
+- The natural-language planner now treats dates as optional during research. A musician can ask for a route, genre, duration and show target in one sentence, then add exact travel dates before approving outreach.
+- Route results no longer discard towns without an initial provider hit or truncate the visible corridor to eight markets. The Seattle–San Francisco round-trip regression retains all 27 corridor markets, including Tacoma, Olympia, Portland, Salem, Eugene, Medford, Redding and Sacramento.
+- Missing markets research permitted public providers progressively with three concurrent workers and a five-minute overall research window. Each completed market becomes usable immediately. Per-market Retry / Find more / Search farther controls preserve the route when a provider times out or has incomplete coverage.
+- Sourced club cards now have a direct Add to booking list control synchronized with the existing map selection and private Booking workspace. Venue source, current-activity evidence and honest needs-research states remain visible; this work does not invent contacts, availability or confirmation.
+- The route result is now a band-facing tour sheet modeled on the supplied workflow reference: day, date, city, club to pitch, road plan, arrival and soundcheck target, interactive route map, and live fuel/lodging/per-diem/vehicle/road/finish-reserve calculations. Progressive venue results refresh the day sheet instead of leaving researched clubs out of the calendar.
+- Provider quality now has a manually triggered six-locality benchmark in addition to the one-query smoke. It sequentially checks Tacoma, Medford, Novara, Eindhoven, Tokyo and São Paulo without printing venue records, contacts, account identity or session material. Authorized GitHub Actions run [`42304180720`](https://github.com/danzstak/danzstak-web/actions/runs/42304180720) checked out exact head `0fb7987e810ed8247604a77453b5e5b1da2cd9d7` and passed all public, authenticated and Booking-provider jobs. All six localities resolved and returned source-attributed results: Tacoma 20 venues / 10 sourced, Medford 5 / 1, Novara 20 / 8, Eindhoven 20 / 5, Tokyo 20 / 6 and São Paulo 20 / 10. This proves bounded multi-continent operation, not exhaustive worldwide indexing. It also identifies Medford as a weak-coverage market that still needs stronger fallback providers.
+- Live provider diagnostics in the worldwide run remain candid: AWS Places was healthy for all six searches; OpenStreetMap was unavailable; Google Places and Brave Search were not configured. The day-sheet workflow can operate with the healthy provider, but reliable multi-source discovery is still **IN PROGRESS** until at least one independent fallback is configured and live-tested.
+- Installed-PWA cache advances to `danzstak-shell-v702`; Booking workspace CSS is `v6`, Booking Agent JavaScript is `v483`, Booking map JavaScript is `v448`, and conversational planning JavaScript is `v479`.
+- Focused functional checks passed: conversational parsing, Booking workspace contract, worldwide discovery contract and startup safety. The complete repository regression gate then passed, including authentication, Stripe entitlements/refunds, Chat, media/audio, EPK, Tour Manager, PWA, the 11-page site smoke suite and infrastructure validation.
+- Actual-browser checks passed locally and against the hosted review PWA at 320, 360, 390, 430, 768 and 1366px with no page errors or horizontal document overflow, 44px minimum visible controls, optional-date planning, 27-market I-5 coverage, automatic venue research, eight show targets across a ten-day sheet, venue selection and calculated tour cost.
+- Review branch commit `440a080e5d3342fe16591e8f6cbe86bdeb287b85` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, development job `13`, which succeeded in `us-west-1` at 2026-11-06 23:04:52 Europe/Berlin. Hosted verification confirmed Booking Agent `v483`, workspace CSS `v6`, conversation `v479`, map `v448`, and service-worker cache `danzstak-shell-v702`.
+- Review PWA: `https://codex-issue-55-booking-workspace.d31oovi2mos5iz.amplifyapp.com/booking.html`. Controlled browser providers verify UI and orchestration, not completeness of live third-party data. A live-provider benchmark and physical Android/iPhone installed-PWA acceptance are still required. Production is unchanged.
+- Review capture: [390px band-ready tour sheet](screenshots/issue-55-booking-workspace/tour-sheet-390.png).
+
+## Booking Agent — sparse-market nearby discovery
+
+Status as of 2026-11-06: **IMPLEMENTED AND LOCALLY TESTED; BACKEND NOT DEPLOYED**.
+
+- Weak local searches now expand once when fewer than ten supported venue leads are found, instead of accepting a five-result market as adequately researched. The expanded search remains bounded to 75 miles and preserves every venue's actual town, address, and distance.
+- This improves sparse corridors such as Medford without hard-coding cities or venues and without claiming a nearby venue is located in the requested town.
+- Regression coverage verifies the ten-result expansion trigger and the existing 40-to-75-mile safety bound.
+- The complete repository regression suite passed, including worldwide discovery, Booking and Tour Manager workflows, authentication, Stripe, Chat, media/audio coordination, PWA behavior, the 11-page site smoke suite, and infrastructure validation.
+- This change modifies `infrastructure/auth-api/index.mjs`; it has not been deployed to the review Lambda or production. Live provider behavior remains unchanged until an authorized backend deployment.
+
+## Booking Agent — compact musician-facing tour sheet
+
+Status as of 2026-11-06: **IMPLEMENTED, TESTED, AND READY FOR REVIEW; PRODUCTION UNCHANGED**.
+
+- Compared the current result flow directly with the owner-supplied Claude tour-sheet reference. The primary result now stays focused on the route summary, day-by-day schedule, map, and working costs instead of rendering a long stack of city research drawers.
+- Club contacts, alternate rooms, cheap sleep leads, van-rest research, and record stores now live behind one optional `Club research and contacts` disclosure. Automatic research continues while the disclosure is closed, and its summary updates with the live sourced-lead count.
+- At phone widths the tour calendar becomes readable day cards—day, date, city, club, arrival/soundcheck plan—instead of a clipped desktop table or horizontally scrolling database view. Desktop retains the compact table and sticky cost card.
+- Asset identifiers advance to Booking Agent `v484` and installed-PWA shell `danzstak-shell-v703`.
+- Focused Booking regressions passed. The actual-browser Booking suite passed at 320, 360, 390, 430, 768, and 1366px with no page errors or document overflow, 44px touch targets, a closed research workspace by default, a complete ten-day phone schedule, and no horizontal day-sheet scrolling on phones.
+- The complete repository regression suite passed, including authentication, social persistence, Chat/calls, media/audio coordination, Booking/EPK/Tour Manager, Stripe entitlements/refunds, PWA behavior, the 11-page site smoke suite, and infrastructure validation.
+- Updated review capture: [390px compact day sheet](screenshots/issue-55-booking-workspace/tour-sheet-390.png). This uses controlled provider fixtures to verify interface behavior; it does not claim fixture clubs are real or live.
+- Review commit `966d8f5ab7ebaa85fed24a8a62d37c6b3a69117f` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, job `18`, which succeeded in `us-west-1` from 2026-11-06 23:48:50 to 23:49:40 Europe/Berlin. No production deployment occurred.
+- Hosted verification confirmed Booking Agent `v484` and service-worker cache `danzstak-shell-v703`, then reran the actual-browser Booking suite successfully against the review PWA at 320, 360, 390, 430, 768, and 1366px. Review URL: `https://codex-issue-55-booking-workspace.d31oovi2mos5iz.amplifyapp.com/booking.html`.
+- The sparse-market Lambda change remains **NOT DEPLOYED**. It requires a separately authorized backend deployment and live provider verification; this static review deployment does not change the review or production Lambda.
+
+## Booking Agent — projected tour income and break-even
+
+Status as of 2026-11-07: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION UNCHANGED**.
+
+- The working tour-money card now includes editable average show pay and average merch profit per show, projected money in, break-even per show, and a plainly labeled projected profit or loss. It uses the requested show count and the same finish-line budget as the cost calculator, so the income side cannot silently ignore the road reserve.
+- The same values remain available in the advanced tour calculator, with projected show pay, merch profit, and overall result shown alongside the existing cost and safety calculations.
+- Actual-browser coverage changes both income inputs on the generated eight-show tour, verifies the resulting `$9,600` projected income, verifies break-even is calculated, and confirms the result changes to projected profit.
+- Asset identifiers advance to Booking Agent `v485` and installed-PWA shell `danzstak-shell-v704` so installed review clients cannot retain the previous calculator.
+- Focused Booking tests and the actual-browser suite passed at 320, 360, 390, 430, 768, and 1366px. The complete repository regression suite then passed, including the 11-page site smoke suite and infrastructure validation.
+- Review commit `49267597d4b1de8b533d229351e272850ec1ccdf` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, job `20`, which succeeded in `us-west-1` from 2026-11-06 23:58:33 to 23:59:27 Europe/Berlin.
+- Hosted verification confirmed Booking Agent `v485` and installed-PWA cache `danzstak-shell-v704`, then reran the browser suite successfully against the review PWA at all six target widths. Production and the shared Booking Lambda remain unchanged.
+
+## Booking Agent — day-by-day sleep plan
+
+Status as of 2026-11-07: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION UNCHANGED**.
+
+- Every day now includes a compact sleep plan alongside the city, club, arrival, and soundcheck. The plan follows the selected touring style: host/couch, budget room, or sleeper van.
+- Real hotel and van-rest leads are named when the provider returned them. Missing data stays explicit (`Host or couch lead needed`, `Budget room needed`, or `Sleeper van · parking permission needed`) rather than inventing a hotel, price, parking permission, or private DIY address.
+- The final return day is labeled `Home`. The sleep plan remains visible in phone cards and as a dedicated desktop table column.
+- Asset identifiers advance to Booking Agent `v486` and installed-PWA shell `danzstak-shell-v705`.
+- Focused functional and PWA checks passed. The actual-browser Booking suite passed at 320, 360, 390, 430, 768, and 1366px, including explicit sleep-plan and final-home assertions.
+- The complete repository regression suite passed after the final wording and PWA-version changes, including the 11-page site smoke suite and infrastructure validation.
+- Review commit `2a0484a8099de11d6e3fd4c9dcf26120016753e6` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, job `22`, which succeeded in `us-west-1` from 2026-11-07 00:09:56 to 00:10:45 Europe/Berlin.
+- Hosted verification confirmed Booking Agent `v486` and installed-PWA cache `danzstak-shell-v705`, then reran the browser suite successfully against the review PWA at all six target widths. Production and the shared Booking Lambda remain unchanged.
+
+## Booking Agent — estimated daily road legs
+
+Status as of 2026-11-07: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION UNCHANGED**.
+
+- Each day now shows an approximate road-mile leg or `Local day` alongside the load-in plan. The estimate is explicitly labeled and the day-sheet guidance directs musicians to the route map for live navigation.
+- Estimates use available market coordinates and are rounded to five-mile increments. When an intermediate town has no usable geometry, DanzStak omits the leg estimate instead of carrying an older city forward and inventing one misleading long drive.
+- The actual-browser regression fixture intentionally includes fallback markets without coordinates. It verifies useful known legs appear and verifies the final return does not collapse unknown intermediate legs into a false mileage claim.
+- Asset identifiers advance to Booking Agent `v487` and installed-PWA shell `danzstak-shell-v706`.
+- Focused Booking/PWA tests and the actual-browser suite passed at 320, 360, 390, 430, 768, and 1366px after correcting the missing-geometry case.
+- The complete repository regression suite passed after the missing-geometry correction, including the 11-page site smoke suite and infrastructure validation.
+- Review commit `2c8e048cc9b4547c547778debb7057f51a4eeb20` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, job `24`, which succeeded in `us-west-1` from 2026-11-07 00:17:26 to 00:18:21 Europe/Berlin.
+- Hosted verification confirmed Booking Agent `v487` and installed-PWA cache `danzstak-shell-v706`, then reran the browser suite successfully against the review PWA at all six target widths. Production and the shared Booking Lambda remain unchanged.
+
+## Booking Agent — visible venue evidence state
+
+Status as of 2026-11-07: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION UNCHANGED**.
+
+- Every proposed club now carries a compact `Sourced lead` or `Contact found` status in the day sheet. An empty show target says `Research needed` instead of resembling a real booking.
+- The calendar explains that a sourced public listing is not venue agreement or availability. Detailed source attribution, activity evidence, and contact actions remain in the optional research workspace.
+- Asset identifiers advance to Booking Agent `v488` and installed-PWA shell `danzstak-shell-v707`.
+- Focused Booking/PWA tests and the actual-browser suite passed at 320, 360, 390, 430, 768, and 1366px, including a visible evidence-status assertion.
+- The complete repository regression suite passed, including the 11-page site smoke suite and infrastructure validation.
+- Review commit `002520fcd5c7cf07f829d6b7a28db176618ed6f3` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, job `26`, which succeeded in `us-west-1` from 2026-11-07 00:23:06 to 00:23:59 Europe/Berlin.
+- Hosted verification confirmed Booking Agent `v488` and installed-PWA cache `danzstak-shell-v707`, then reran the browser suite successfully against the review PWA at all six target widths. Production and the shared Booking Lambda remain unchanged.

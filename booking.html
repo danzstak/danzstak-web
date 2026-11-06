@@ -30,27 +30,30 @@
     <link rel="stylesheet" href="assets/accessibility.css?v=364" />
     <link rel="stylesheet" href="assets/icon-buttons.css?v=4" />
     <link rel="stylesheet" href="assets/mobile-design-system.css?v=13" />
+    <link rel="stylesheet" href="assets/booking-workspace.css?v=6" />
   </head>
   <body class="ds-tool-page booking-page">
     <a class="skip-link" href="#bookingMain">Skip to Booking Agent</a>
-    <header>
-      <a class="brand" href="feed.html"
-        ><img src="assets/danzstak-d-icon.png" alt="DanzStak"
-      /></a>
-      <nav>
-        <a href="feed.html">Your Mix</a><a href="support.html">Support</a
-        ><button type="button" data-logout>Logout</button>
+    <header class="tool-header">
+      <a class="tool-brand" href="feed.html" aria-label="DanzStak Your Mix"
+        ><img src="assets/danzstak-d-icon.png" alt="" /><span>DANZSTAK</span></a
+      >
+      <nav aria-label="Music tools">
+        <a href="feed.html">Your Mix</a><a href="record-stores.html">Record Stores</a
+        ><a href="epk.html">EPK</a>
       </nav>
     </header>
-    <main id="bookingMain" tabindex="-1">
-      <section class="hero booking-lead">
+    <main id="bookingMain" class="booking-main" tabindex="-1">
+      <section class="booking-start" aria-labelledby="bookingBriefTitle">
+        <div class="booking-lead">
         <p class="eyebrow">DanzStak Booking Agent</p>
-        <h1>Tell us the run. We’ll find the clubs.</h1>
-      </section>
-      <section class="booking-identity" aria-labelledby="bookingIdentityTitle">
+        <h1 id="bookingBriefTitle">Where do you want to play?</h1>
+        <p>Tell us the run in one sentence. We’ll find real clubs and build the route.</p>
+        </div>
+        <section class="booking-identity" aria-labelledby="bookingIdentityTitle">
         <div class="booking-identity-heading">
           <div>
-            <p class="eyebrow">Your booking identity</p>
+            <p class="eyebrow">Booking as</p>
             <h2 id="bookingIdentityTitle">Act and home city</h2>
           </div>
           <button type="button" id="saveBookingIdentity" class="secondary" aria-label="Save booking identity" title="Save booking identity">Save</button>
@@ -61,19 +64,16 @@
         </div>
         <p class="hint">Used to start routes and booking drafts. You can browse before adding an act name.</p>
         <p id="bookingIdentityStatus" class="booking-identity-status" role="status" aria-live="polite">Loading your saved details…</p>
-      </section>
-      <section class="booking-brief" aria-labelledby="bookingBriefTitle">
-        <div>
-          <p class="eyebrow">Ask the Booking Agent</p>
-          <h2 id="bookingBriefTitle">Where do you want to play?</h2>
-          <p>Type it like you would tell a friend. No booking jargon.</p>
-        </div>
+        </section>
+      <section class="booking-brief" aria-label="Tour request">
         <form id="bookingBriefForm">
-          <label for="bookingBrief">Tour request</label>
-          <textarea id="bookingBrief" rows="3" maxlength="600" placeholder="The Rats. Punk. Momo to Berlin and home. 10 days."></textarea>
-          <div class="booking-brief-actions"><button type="submit" class="primary">Find the run</button><button type="button" class="secondary" id="bookingBriefExample">Show me an example</button></div>
+          <label for="bookingBrief">Describe the tour</label>
+          <textarea id="bookingBrief" rows="3" maxlength="600" placeholder="Punk. Seattle to San Francisco and home. 10 days. 8 shows."></textarea>
+          <div class="booking-brief-actions"><button type="submit" class="primary">Find venues and build route</button><button type="button" class="secondary" id="bookingBriefExample">Example</button></div>
+          <p class="hint">Exact dates are optional while researching. Add them before approving outreach.</p>
           <p id="bookingBriefStatus" role="status" aria-live="polite"></p>
         </form>
+      </section>
       </section>
       <section class="venue-quick-search" aria-labelledby="venueQuickTitle">
         <div><p class="eyebrow">Club finder</p><h2 id="venueQuickTitle">Find real places to play</h2><p>Ask for a city and music style. Every result shows where it came from; a listing is not a confirmed booking.</p></div>
@@ -673,7 +673,7 @@
       crossorigin="anonymous"
       defer
     ></script>
-    <script src="assets/booking-map.js?v=447" defer></script>
+    <script src="assets/booking-map.js?v=448" defer></script>
     <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
       <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
       <a role="button" data-icon="users" aria-label="Friends" title="Friends" href="feed.html?view=friends"></a>
@@ -688,7 +688,7 @@
     <script src="assets/app-feedback.js?v=3" defer></script>
     <script src="assets/logout.js?v=311" defer></script>
     <script src="assets/booking-identity.js?v=1" defer></script>
-    <script src="assets/booking-agent.js?v=480" defer></script>
-    <script src="assets/booking-conversation.js?v=476" defer></script>
+    <script src="assets/booking-agent.js?v=488" defer></script>
+    <script src="assets/booking-conversation.js?v=479" defer></script>
   </body>
 </html>
