@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v694";
+const CACHE = "danzstak-shell-v695";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css",
   "/assets/icon-buttons.js", "/assets/icon-buttons.css", "/assets/mobile-design-system.css", "/assets/danzstak-original-feed.css", "/assets/responsive-media.js", "/assets/responsive-media.css",
@@ -58,6 +58,7 @@ self.addEventListener("fetch", event => {
 });
 
 let lastShellRefresh = 0;
+const activeConversations = new Map();
 async function refreshAppShell() {
   if (Date.now() - lastShellRefresh < 60 * 60 * 1000) return;
   lastShellRefresh = Date.now();
@@ -71,7 +72,40 @@ async function refreshAppShell() {
 self.addEventListener("message", event => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
   if (event.data?.type === "REFRESH_SHELL" && event.data?.allow !== false) event.waitUntil(refreshAppShell());
+  if (event.data?.type === "DANZSTAK_ACTIVE_CONVERSATION" && event.source?.id) {
+    const memberId = String(event.data.memberId || "");
+    if (/^[a-f0-9-]{36}$/i.test(memberId)) activeConversations.set(event.source.id, memberId.toLowerCase());
+    else activeConversations.delete(event.source.id);
+  }
 });
+
+async function setAppBadge(value) {
+  try {
+    if (typeof self.navigator?.setAppBadge === "function") await self.navigator.setAppBadge(value);
+  } catch { /* Badging is optional and must never block a notification. */ }
+}
+
+async function clearAppBadge() {
+  try {
+    if (typeof self.navigator?.clearAppBadge === "function") await self.navigator.clearAppBadge();
+  } catch { /* Badging is optional. */ }
+}
+
+async function visibleConversationClient(memberId) {
+  if (!memberId) return null;
+  const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  for (const client of clients) {
+    if (client.visibilityState !== "visible" && !client.focused) continue;
+    const tracked = activeConversations.get(client.id);
+    let routed = "";
+    try {
+      const clientUrl = new URL(client.url);
+      if (clientUrl.pathname === "/messages.html") routed = String(clientUrl.searchParams.get("member") || "").toLowerCase();
+    } catch { /* Ignore an unavailable client URL. */ }
+    if (tracked === memberId || routed === memberId) return client;
+  }
+  return null;
+}
 
 self.addEventListener("push", event => {
   let payload = {};
@@ -96,7 +130,15 @@ self.addEventListener("push", event => {
     if (candidate.origin === self.location.origin && /^\/(?:feed|messages|profile)\.html$/.test(candidate.pathname)) url = candidate.pathname + candidate.search + candidate.hash;
   } catch { /* Keep the safe feed destination. */ }
   const call = payload.type === "call";
-  event.waitUntil(self.registration.showNotification(title, {
+  const messageMemberId = payload.type === "message" ? String(new URL(url, self.location.origin).searchParams.get("member") || "").toLowerCase() : "";
+  event.waitUntil((async () => {
+    const activeClient = await visibleConversationClient(messageMemberId);
+    if (activeClient) {
+      activeClient.postMessage({ type: "DANZSTAK_MESSAGE_VISIBLE", memberId: messageMemberId });
+      return;
+    }
+    await setAppBadge(1);
+    await self.registration.showNotification(title, {
     body,
     icon: "/assets/favicon-192.png",
     badge: "/assets/notification-badge.png",
@@ -107,7 +149,8 @@ self.addEventListener("push", event => {
     requireInteraction: call,
     actions: call ? [{ action: "answer", title: String(payload.answerTitle || "Answer").slice(0, 40) }, { action: "dismiss", title: String(payload.dismissTitle || "Dismiss").slice(0, 40) }] : [],
     data: { url, type: call ? "call" : "notification", callId: call && String(payload.tag || "").startsWith("call-") ? String(payload.tag).slice(5) : "" }
-  }));
+    });
+  })());
 });
 
 self.addEventListener("notificationclick", event => {
@@ -117,7 +160,7 @@ self.addEventListener("notificationclick", event => {
   if (event.action === "answer" && event.notification.data?.type === "call") destinationUrl.searchParams.set("answer", "1");
   if (event.action === "answer" && event.notification.data?.type === "call" && event.notification.data?.callId) destinationUrl.searchParams.set("callId", event.notification.data.callId);
   const destination = destinationUrl.href;
-  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async clients => {
+  event.waitUntil(clearAppBadge().then(() => self.clients.matchAll({ type: "window", includeUncontrolled: true })).then(async clients => {
     for (const client of clients) {
       if (new URL(client.url).origin !== self.location.origin || client.frameType === "nested") continue;
       try {

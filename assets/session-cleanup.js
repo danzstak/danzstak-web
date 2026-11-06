@@ -26,7 +26,7 @@
     catch { /* Session storage is optional. */ }
   };
 
-  window.danzstakDisablePush = async () => {
+  window.danzstakDisablePush ||= async () => {
     try {
       sessionStorage.removeItem("danzstak_push_synced");
       sessionStorage.removeItem("danzstak_push_prompt_dismissed");

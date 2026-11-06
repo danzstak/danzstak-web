@@ -163,8 +163,8 @@ foreach ($pushClientControl in @('registration.pushManager.subscribe', 'applicat
   if (-not $pushClient.Contains($pushClientControl)) { Add-Failure "Messages: background call subscription is missing: $pushClientControl" }
 }
 $sessionCleanupForPush = Get-Content -LiteralPath (Join-Path $root 'assets\session-cleanup.js') -Raw -Encoding utf8
-foreach ($pushLogoutControl in @('window.danzstakDisablePush = async () =>', 'method: "DELETE"', 'await subscription.unsubscribe()', 'await window.danzstakDisablePush?.()', 'controller.abort()', 'Promise.race([', 'sessionStorage.removeItem("danzstak_push_synced")', 'sessionStorage.removeItem("danzstak_push_prompt_dismissed")')) {
-  if (-not ($sessionCleanupForPush + $logoutJs + $homeJs).Contains($pushLogoutControl)) { Add-Failure "Logout: this device can remain subscribed to the previous account: $pushLogoutControl" }
+foreach ($pushLogoutControl in @('window.danzstakDisablePush = disable', 'method: "DELETE"', 'subscription.unsubscribe()', 'await window.danzstakDisablePush?.()', 'controller.abort()', 'Promise.race([', 'sessionStorage.removeItem("danzstak_push_synced")')) {
+  if (-not ($pushClient + $sessionCleanupForPush + $logoutJs + $homeJs).Contains($pushLogoutControl)) { Add-Failure "Logout: this device can remain subscribed to the previous account: $pushLogoutControl" }
 }
 foreach ($pushCleanupPage in @('index.html', 'feed.html', 'profile.html', 'messages.html')) {
   $pushCleanupMarkup = Get-Content -LiteralPath (Join-Path $root $pushCleanupPage) -Raw -Encoding utf8
@@ -404,9 +404,10 @@ if (-not $profileEditorJs.Contains('purpose: "profile"') -or $profileEditorJs.Co
   Add-Failure 'Profile media must use permanent uploads and retain files after ambiguous save failures'
 }
 $pushNotificationsJs = Get-Content -LiteralPath (Join-Path $root 'assets\push-notifications.js') -Raw -Encoding utf8
-foreach ($pushPromptControl in @('Never miss a DanzStak call', 'setTimeout(showPermissionPrompt, 12000)', 'danzstak_push_prompt_dismissed', 'new URLSearchParams(location.search).get("embedded")')) {
-  if (-not $pushNotificationsJs.Contains($pushPromptControl)) { Add-Failure "Push alerts: permission prompt behavior is missing: $pushPromptControl" }
+foreach ($pushOptInControl in @('async function enable()', 'Notification.requestPermission()', 'window.danzstakEnablePush = enable', 'setTimeout(renewExistingSubscription, 2000)')) {
+  if (-not $pushNotificationsJs.Contains($pushOptInControl)) { Add-Failure "Push alerts: explicit opt-in behavior is missing: $pushOptInControl" }
 }
+if ($pushNotificationsJs.Contains('showPermissionPrompt') -or $pushNotificationsJs.Contains('setTimeout(showPermissionPrompt')) { Add-Failure 'Push alerts: page load still promotes notification permission before a member opens device settings' }
 foreach ($pushPromptPage in @('feed.html', 'profile.html', 'messages.html')) {
   $pushMarkup = Get-Content -LiteralPath (Join-Path $root $pushPromptPage) -Raw -Encoding utf8
   if (-not $pushMarkup.Contains('assets/push-notifications.js?v=')) { Add-Failure "${pushPromptPage}: background alert setup is not loaded" }

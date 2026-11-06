@@ -91,6 +91,13 @@ let selectedMessageMedia = null;
 let selectedMessageMediaUrl = "";
 let mobileHistoryConversation = null;
 
+function syncActivePushConversation(memberId = "") {
+  const message = { type: "DANZSTAK_ACTIVE_CONVERSATION", memberId: String(memberId || "") };
+  globalThis.navigator?.serviceWorker?.ready
+    .then(registration => (globalThis.navigator.serviceWorker.controller || registration.active)?.postMessage(message))
+    .catch(() => {});
+}
+
 function usesMobileConversationHistory() {
   return window.parent === window && window.matchMedia?.("(max-width: 760px)").matches === true;
 }
@@ -406,6 +413,7 @@ function updateConversationPresence(conversation) {
 function openConversation(conversation, { updateHistory = true } = {}) {
   closeConversation();
   document.body.classList.add("is-conversation-open");
+  syncActivePushConversation(conversation.memberId);
   if (document.body?.dataset) {
     const callMode = document.body.dataset.callMode;
     document.body.dataset.syncScreen = callMode === "video" ? "video-call" : callMode === "phone" ? "voice-call" : "conversation";
@@ -445,6 +453,7 @@ function openConversation(conversation, { updateHistory = true } = {}) {
 }
 
 function closeConversation({ focusList = false, preserveDraft = true } = {}) {
+  syncActivePushConversation("");
   const closingContact = contactInput.value.trim().toLowerCase();
   if (closingContact && preserveDraft) saveChatDraft(closingContact, messageInput.value);
   conversationVersion += 1;
@@ -477,6 +486,8 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: false }, location.origin);
   if (focusList) conversationUsers?.querySelector(".conversation-user")?.focus();
 }
+
+globalThis.addEventListener?.("pagehide", () => syncActivePushConversation(""));
 
 function renderMessageLoadingState() {
   const status = document.createElement("p");
@@ -1080,7 +1091,12 @@ window.addEventListener("popstate", event => {
   if (document.body.classList.contains("is-conversation-open")) closeConversation({ focusList: true });
 });
 
-window.addEventListener("message", event => { if (event.source === window.parent && event.origin === location.origin && event.data?.type === "danzstak-chat-hidden") document.body.classList.remove("is-conversation-open"); });
+window.addEventListener("message", event => {
+  if (event.source === window.parent && event.origin === location.origin && event.data?.type === "danzstak-chat-hidden") {
+    document.body.classList.remove("is-conversation-open");
+    syncActivePushConversation("");
+  }
+});
 
 onlineUsers?.addEventListener("click", event => {
   if (!event.target.closest("button")) return;

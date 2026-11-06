@@ -70,8 +70,34 @@
     return subscription;
   }
 
+  async function disable() {
+    try { sessionStorage.removeItem("danzstak_push_synced"); } catch (_) {}
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+    const registration = await withDeadline(navigator.serviceWorker.ready, 10000, "Notification service is not ready. Try again.");
+    const subscription = await withDeadline(registration.pushManager.getSubscription(), 10000, "Notification status took too long.");
+    if (!subscription) {
+      dispatchEvent(new CustomEvent("danzstak:push-disabled"));
+      return false;
+    }
+    let serverRemoved = false;
+    try {
+      await api("/push/subscribe", {
+        method: "DELETE",
+        body: JSON.stringify({ endpoint: subscription.endpoint })
+      });
+      serverRemoved = true;
+    } finally {
+      // Always stop this browser locally. A failed server delete is safe to
+      // retry because expired endpoints are also removed after a 404/410.
+      await withDeadline(subscription.unsubscribe(), 10000, "Notification removal took too long.").catch(() => false);
+    }
+    dispatchEvent(new CustomEvent("danzstak:push-disabled"));
+    return serverRemoved;
+  }
+
   window.danzstakPushState = state;
   window.danzstakEnablePush = enable;
+  window.danzstakDisablePush = disable;
 
   async function renewExistingSubscription() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window) || Notification.permission !== "granted") return;
@@ -92,61 +118,7 @@
     } catch (_) { /* Retry on the next page load without disturbing the signed-in experience. */ }
   }
 
-  async function showPermissionPrompt() {
-    if (new URLSearchParams(location.search).get("embedded") === "1") return;
-    if (document.body.classList.contains("messages-page")) return;
-    try {
-      if (sessionStorage.getItem("danzstak_push_prompt_dismissed") === "1") return;
-    } catch (_) {}
-    const current = await state().catch(() => "unsupported");
-    if (!['prompt', 'incomplete'].includes(current) || document.querySelector('.push-alert-prompt')) return;
-    const prompt = document.createElement('aside');
-    prompt.className = 'push-alert-prompt';
-    prompt.setAttribute('role', 'status');
-    const copy = document.createElement('div');
-    const title = document.createElement('strong');
-    title.textContent = 'Never miss a DanzStak call';
-    const detail = document.createElement('span');
-    detail.textContent = 'Receive call and message notifications while DanzStak is in the background. Sound follows your device settings.';
-    copy.append(title, detail);
-    const action = document.createElement('button');
-    action.type = 'button';
-    action.className = 'primary';
-    action.textContent = current === 'incomplete' ? 'Finish setup' : 'Enable alerts';
-    const dismiss = document.createElement('button');
-    dismiss.type = 'button';
-    dismiss.className = 'push-alert-dismiss';
-    dismiss.textContent = 'Not now';
-    dismiss.addEventListener('click', () => {
-      try { sessionStorage.setItem('danzstak_push_prompt_dismissed', '1'); } catch (_) {}
-      prompt.remove();
-    });
-    action.addEventListener('click', async () => {
-      action.disabled = true;
-      action.textContent = 'Enabling...';
-      try {
-        await enable();
-        prompt.remove();
-      } catch (error) {
-        detail.textContent = error.message;
-        action.textContent = 'Try again';
-        action.disabled = false;
-      }
-    });
-    prompt.append(copy, action, dismiss);
-    prompt.hidden = document.getElementById('messageDrawer')?.hidden === false
-      || document.getElementById('notificationDrawer')?.hidden === false;
-    document.body.appendChild(prompt);
-  }
-
-  addEventListener('danzstak:push-enabled', () => document.querySelector('.push-alert-prompt')?.remove());
-  function syncPromptDrawerVisibility() {
-    const prompt = document.querySelector('.push-alert-prompt');
-    if (prompt) prompt.hidden = document.getElementById('messageDrawer')?.hidden === false
-      || document.getElementById('notificationDrawer')?.hidden === false;
-  }
-  addEventListener('danzstak:message-drawer', syncPromptDrawerVisibility);
-  addEventListener('danzstak:notification-drawer', syncPromptDrawerVisibility);
+  // Renew a subscription that the member explicitly enabled in App and
+  // device settings. Never surface a permission prompt during page load.
   setTimeout(renewExistingSubscription, 2000);
-  setTimeout(showPermissionPrompt, 12000);
 })();
