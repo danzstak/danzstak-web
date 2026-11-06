@@ -32,10 +32,12 @@ assert.equal(decodeURIComponent(android.split("body=")[1]), "Ciao Sigmund! https
 assert.doesNotMatch(android, /^sms:[+\d]/, "DanzStak never chooses or stores a recipient number");
 
 for (const html of [feed, messages, profile]) {
-  assert.match(html, /assets\/invite-friends\.js\?v=1/);
-  assert.match(html, /assets\/invite-friends\.css\?v=1/);
+  assert.match(html, /assets\/invite-friends\.js\?v=2/);
+  assert.match(html, /assets\/invite-friends\.css\?v=2/);
 }
 assert.match(feed, /assets\/feed-enhancements\.js\?v=533/);
+assert.match(source, /close\.dataset\.icon\s*=\s*["']close["']/);
+assert.doesNotMatch(styles, /invite-friends-close::before/);
 assert.match(messages, /data-invite-friends/);
 assert.match(profile, /assets\/profile-sharing\.js\?v=417/);
 assert.match(worker, /danzstak-shell-v696/);

@@ -38,6 +38,8 @@
     heading.textContent = translate("Invite a Friend");
     headingWrap.append(kicker, heading);
     const close = createButton("Close", "invite-friends-close", () => dialog.close());
+    close.textContent = "";
+    close.dataset.icon = "close";
     close.setAttribute("aria-label", translate("Close invitation"));
     close.title = translate("Close");
     header.append(headingWrap, close);
