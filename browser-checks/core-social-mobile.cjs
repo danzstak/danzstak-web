@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
 
+const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8016").replace(/\/$/, "");
 const widths = [320, 360, 390, 414, 430];
 const pages = [
   ["home", "feed.html?view=feed", ".post-composer"],
@@ -52,14 +53,21 @@ function fixture(pathname) {
           const url = new URL(route.request().url());
           return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(url.pathname)) });
         });
-        await page.goto(`http://127.0.0.1:8016/${target}`, { waitUntil: "domcontentloaded" });
+        await page.goto(`${baseUrl}/${target}`, { waitUntil: "domcontentloaded" });
         await page.locator(populatedSelector).first().waitFor({ state: "visible" });
         await page.waitForTimeout(100);
         if (name === "friends") {
           assert.match(await page.locator(".feed-online-row button").first().getAttribute("aria-label") || "", /^Message\b/, `${width}px accepted online friend must not offer a duplicate friend request`);
           assert.equal(await page.locator(".friend-workspace-row").count(), 1, `${width}px accepted friend card is missing`);
         }
-        if (name === "notifications") assert.equal(await page.locator(".notification-row").count(), 2, `${width}px populated notification sources did not remain visible together`);
+        if (name === "notifications") {
+          assert.equal(await page.locator(".notification-row").count(), 2, `${width}px populated notification sources did not remain visible together`);
+          const notificationTargets = await page.locator(".notification-row a, .notification-row button").evaluateAll(elements => elements.map(element => {
+            const rect = element.getBoundingClientRect();
+            return { label: element.getAttribute("aria-label") || element.textContent?.trim() || "", width: rect.width, height: rect.height };
+          }));
+          assert.ok(notificationTargets.every(target => target.width >= 44 && target.height >= 44), `${width}px notification actions must retain 44px touch targets: ${JSON.stringify(notificationTargets)}`);
+        }
         if (name === "chat") assert.equal((await page.locator(".conversation-unread").textContent())?.trim(), "2", `${width}px unread chat badge is missing`);
         const geometry = await page.evaluate(() => ({
           width: innerWidth,

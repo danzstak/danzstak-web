@@ -26,7 +26,7 @@ assert.match(source, /if \(socialReady \|\| engagementReady\) break/, "a usable 
 assert.match(source, /loadNotificationSources\(\)\.then/, "the notification drawer uses the resilient source loader");
 assert.match(css, /\.notification-drawer\{position:fixed/, "the notification panel overlays rather than replaces the feed");
 assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-drawer\{inset:0;width:100vw;height:100dvh/, "a retained notification drawer becomes a real full-screen phone surface");
-assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-row\{display:grid;grid-template-columns:42px minmax\(0,1fr\)/, "phone notifications reserve a readable message column");
+assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.notification-row\{display:grid;grid-template-columns:44px minmax\(0,1fr\)/, "phone notifications reserve a readable message column with a full touch-sized avatar");
 assert.match(css, /\.notification-actions\{grid-column:2;grid-row:2;justify-content:flex-start;margin-left:0\}/, "phone notification actions sit below the message instead of squeezing it");
 
 console.log("Notification drawer checks passed: desktop toggle, mobile full-screen fallback, focus-safe dismissal, and workspace/feed preservation.");

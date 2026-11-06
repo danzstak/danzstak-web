@@ -54,7 +54,7 @@ for (const language of expectedLanguages) {
   assert.ok(values.every(value => String(value).trim()), `${language} block-management translations must not be blank`);
 }
 
-assert.match(feed, /assets\/feed-enhancements\.css\?v=498/);
+assert.match(feed, /assets\/feed-enhancements\.css\?v=499/);
 assert.match(feed, /assets\/i18n\.js\?v=394/);
 assert.match(feed, /assets\/feed-enhancements\.js\?v=528/);
 

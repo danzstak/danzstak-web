@@ -1058,3 +1058,17 @@ Status as of 2026-11-06: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 - Pull request [#60](https://github.com/danzstak/danzstak-web/pull/60) merged as production commit `8ec9e16f8c6afe2aade13214bb69e33a297a41a3` after GitHub Review checks run `42163154575` passed.
 - AWS Amplify app `d31oovi2mos5iz`, `main` job `925`, succeeded in `us-west-1` from 2026-11-06 05:34:30 to 05:35:26 Europe/Berlin.
 - Post-deployment verification confirmed HTTP 200 with Feed art-direction CSS `v6`, Feed enhancements JavaScript `v528`, and service worker `danzstak-shell-v689` on `danzstak.com`. The browser interaction and geometry suite then passed again against production at 320, 390, 430, and 1366px.
+
+# Issue #55 — Notifications touch geometry and shared mobile-shell clearance
+
+Status as of 2026-11-06: **IMPLEMENTED AND LOCALLY VERIFIED; PRODUCTION DEPLOYMENT PENDING**.
+
+- The independent mobile audit found two root geometry defects on the current production baseline: Notification avatars/actions were smaller than the 44px mobile touch-target standard, and fractional layout rounding could place the fixed bottom navigation approximately 0.28px over the document footer at 320px.
+- Notification rows now reserve a 44px avatar column and render avatar and action controls at a measured minimum of 44px. The shared phone shell adds two pixels of rounding clearance to Feed/Profile, Chat inbox, and professional-tool page bottoms instead of relying on per-page overrides.
+- The shared mobile design asset advances to `v13`, Feed enhancement CSS to `v499`, and the installed-PWA cache to `danzstak-shell-v690` so an installed client cannot retain the previous geometry.
+- Regression coverage now checks the exact shared-shell clearance, the 44px Notification geometry, cache references, and all affected page references. The complete repository regression suite passed after dependency installation, including all `test-*.cjs` checks, the 11-page site smoke suite, infrastructure validation, authentication, social persistence, Chat/calls, media playback, Booking/EPK/Tour Manager, Stripe verification/entitlements/refunds, PWA/offline behavior, accessibility, and security-origin checks.
+- Actual-browser evidence: the core social suite passed 25 page/viewport combinations across Home, Friends, Chat, Notifications, and Profile at 320, 360, 390, 414, and 430px. It found no horizontal overflow, no primary-screen overlap, no fixed-navigation/footer collision, and no visible Notification link or button below 44px.
+- Visual evidence: [Notifications at 320px](screenshots/issue-55-notifications/notifications-320.png), [Notifications at 390px](screenshots/issue-55-notifications/notifications-390.png), and [Notifications at 430px](screenshots/issue-55-notifications/notifications-430.png). The full capture set is retained beside these examples for cross-screen review.
+- These screenshots use controlled browser fixtures so actions can be inspected without mutating real members. Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA verification remains **NOT TESTED** in this environment.
+- No Stripe, entitlement, payment, authentication, Booking Agent, EPK, Tour Manager, message-delivery, or notification-delivery business logic changed in this scoped correction.
+- Production remains unchanged. Deployment is authorized by the owner but awaits a refreshed AWS CLI session before an exact-head staging/production release can be performed and verified.
