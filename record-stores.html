@@ -8,24 +8,24 @@
   <title>Record Stores | DanzStak</title>
   <meta name="description" content="Find independent record stores around the world and along a DanzStak tour route.">
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="assets/record-stores.css?v=1">
+  <link rel="stylesheet" href="assets/record-stores.css?v=2">
   <link rel="stylesheet" href="assets/record-stores-pagination.css?v=2">
-  <link rel="stylesheet" href="assets/record-placement.css?v=1">
+  <link rel="stylesheet" href="assets/record-placement.css?v=2">
   <link rel="stylesheet" href="assets/accessibility.css?v=364">
   <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
   <link rel="stylesheet" href="assets/mobile-design-system.css?v=12">
 </head>
 <body class="ds-tool-page">
   <a class="skip-link" href="#recordStoreMain">Skip to record store search</a>
-  <header><a href="feed.html"><img src="assets/danzstak-d-icon.png" alt="DanzStak"></a><nav><a href="feed.html">Your Mix</a><a href="booking.html">Booking Agent</a></nav></header>
+  <header class="tool-header"><a class="tool-brand" href="feed.html" aria-label="DanzStak Your Mix"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a><nav aria-label="Music tools"><a href="feed.html">Your Mix</a><a href="booking.html">Booking Agent</a></nav></header>
   <main id="recordStoreMain" class="record-store-main" tabindex="-1">
-    <section class="hero">
-      <span class="record-icon" aria-hidden="true">💿</span>
-      <div><p class="eyebrow">DanzStak crate finder</p><h1>Record Stores</h1><p>Find independent shops near home, a gig, or the next town on tour.</p></div>
+    <section class="hero" aria-labelledby="recordStoresTitle">
+      <span class="record-icon" data-menu-icon="disc" aria-hidden="true"></span>
+      <div><p class="eyebrow">Release placement</p><h1 id="recordStoresTitle">Record Stores</h1><p>Find independent shops near home, a gig, or the next town on tour.</p></div>
     </section>
     <section class="search-card" aria-labelledby="releaseTitle">
-      <details>
-        <summary id="releaseTitle">Add the release you want stores to carry</summary>
+      <details class="release-details">
+        <summary id="releaseTitle">Prepare release outreach</summary>
         <div class="release-grid">
           <label>Artist<input id="releaseArtist" maxlength="120"></label><label>Release title<input id="releaseTitleInput" maxlength="160"></label>
           <label>Format<input id="releaseFormat" maxlength="80" placeholder="LP, 7-inch, CD, cassette"></label><label>Genre<input id="releaseGenre" maxlength="120"></label>
@@ -35,15 +35,15 @@
           <label>Contact email<input id="releaseContactEmail" type="email" maxlength="254"></label><label>Terms offered<input id="releaseTerms" maxlength="1000" placeholder="Wholesale, consignment, return terms, minimum order"></label>
         </div>
       </details>
-      <form id="recordStoreForm">
-        <label for="recordStoreLocation">City or region</label>
-        <div class="search-row"><input id="recordStoreLocation" maxlength="120" autocomplete="address-level2" placeholder="Portland, Oregon" required><button type="submit">Find stores</button></div>
+      <form id="recordStoreForm" class="store-search-form">
+        <label for="recordStoreLocation">Where should we look?</label>
+        <div class="search-row"><input id="recordStoreLocation" maxlength="120" autocomplete="address-level2" placeholder="City or region" required><button type="submit" data-icon="search" aria-label="Find record stores" title="Find record stores">Find stores</button></div>
       </form>
-      <p id="recordStoreStatus" role="status" aria-live="polite">Enter a city to start digging.</p>
+      <p id="recordStoreStatus" class="store-status" role="status" aria-live="polite">Enter a city or region to find record stores.</p>
     </section>
     <section id="recordStoreResults" class="store-grid" aria-label="Record store results"></section>
     <div class="search-more" id="recordStoreMore" hidden><button type="button" id="loadMoreStores" hidden>Find more stores nearby</button></div>
-    <section class="placement-card" aria-labelledby="placementTitle"><div class="placement-heading"><div><p class="eyebrow">Private outreach workspace</p><h2 id="placementTitle">Stores you want to approach</h2></div><button type="button" id="savePlacement">Save workspace</button></div><p id="placementStatus" role="status" aria-live="polite">Loading your store list...</p><div id="placementStores" class="placement-list"></div></section>
+    <section class="placement-card" aria-labelledby="placementTitle"><div class="placement-heading"><div><p class="eyebrow">Private outreach</p><h2 id="placementTitle">Selected stores</h2></div><button type="button" id="savePlacement">Save workspace</button></div><p id="placementStatus" role="status" aria-live="polite">Loading your store list...</p><div id="placementStores" class="placement-list"></div></section>
   </main>
   <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
     <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
@@ -52,7 +52,7 @@
     <a role="button" data-icon="bell" aria-label="Buzz" title="Buzz" href="feed.html?view=notifications"></a>
     <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1" aria-current="page"></a>
   </nav>
-  <script src="assets/record-stores.js?v=5" defer></script>
+  <script src="assets/record-stores.js?v=6" defer></script>
   <script src="assets/icon-buttons.js?v=7" defer></script>
 </body>
 </html>

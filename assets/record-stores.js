@@ -17,13 +17,16 @@
   function renderResults(stores, append = false) {
     if (!append) { results.replaceChildren(); seenStores = new Set(); } stores.forEach(store => {
       const identity = store.venueKey || `${store.name || ""}|${store.address || ""}`.toLowerCase(); if (seenStores.has(identity)) return; seenStores.add(identity);
-      const card = document.createElement("article"), links = document.createElement("div"), add = document.createElement("button");
+      const card = document.createElement("article"), heading = document.createElement("div"), mark = text("span", "D", "store-card-mark"), identityCopy = document.createElement("div"), links = document.createElement("div"), add = document.createElement("button");
       card.className = "store-card"; links.className = "store-links";
-      card.append(text("h2", store.name || "Record store"), text("p", store.address || store.locality || "Address not listed", "store-address"));
+      heading.className = "store-card-heading"; mark.setAttribute("aria-hidden", "true");
+      identityCopy.append(text("h2", store.name || "Record store"), text("p", store.address || store.locality || "Address not listed", "store-address"));
+      heading.append(mark, identityCopy); card.append(heading);
       (store.websites || []).filter(url => /^https:\/\//.test(url)).slice(0,1).forEach(url => links.append(safeLink("Official website", url)));
       (store.emails || []).filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)).slice(0,2).forEach((email, index) => links.append(safeLink(index ? `Email ${index + 1}` : "Email store", `mailto:${email}`)));
       (store.phones || []).filter(phone => /^\+?[0-9 ()-]{7,24}$/.test(phone)).slice(0,2).forEach((phone, index) => links.append(safeLink(index ? `Call ${index + 1}: ${phone}` : `Call ${phone}`, `tel:${phone.replace(/[^+0-9]/g, "")}`)));
       if (Array.isArray(store.position) && store.position.length === 2) links.append(safeLink("Map", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${store.position[1]},${store.position[0]}`)}`));
+      if (!links.childElementCount) card.append(text("p", "Public contact details are not listed. Open the map to verify this store before outreach.", "store-contact-note"));
       add.type = "button"; add.textContent = workspace.stores.some(item => item.name === store.name && item.address === store.address) ? "Added to outreach" : "Add to outreach"; add.disabled = add.textContent.startsWith("Added");
       add.addEventListener("click", () => { workspace.stores.push({ ...store, stage:"Research", followUp:"", notes:"", outreachDraft:draftFor(store) }); add.textContent = "Added to outreach"; add.disabled = true; renderPlacement(); placementStatus.textContent = `${store.name} added. Save the workspace when ready.`; });
       card.append(links, add); results.append(card);
