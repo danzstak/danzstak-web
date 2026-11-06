@@ -74,6 +74,7 @@ if (conversationHeader && conversationAvatar && conversationHeaderActions.close)
   conversationHeader.insertBefore(conversationHeaderActions.close, conversationAvatar);
 }
 const conversationMenu = document.getElementById("conversationMenu");
+const headerMakePlansMenu = document.getElementById("headerMakePlansMenu");
 const headerDeleteChat = document.getElementById("headerDeleteChat");
 let directContact = "";
 let activeContactName = messageTranslate("Contact");
@@ -111,6 +112,11 @@ function closeConversationFromControl() {
 }
 function setConversationActionsEnabled(enabled) {
   for (const button of conversationActions) button.disabled = !enabled;
+  for (const button of [conversationHeaderActions.phone, conversationHeaderActions.video]) {
+    if (!button) continue;
+    button.disabled = !enabled;
+    button.setAttribute("aria-disabled", String(!enabled));
+  }
   if (messageMedia) messageMedia.disabled = !enabled;
   if (messageCamera) messageCamera.disabled = !enabled;
 }
@@ -191,7 +197,7 @@ async function directFetch(path, options = {}, timeoutMs = 10000) {
   }
   finally { clearTimeout(timer); }
 }
-let activeFilter = "all";
+let activeFilter = "chats";
 const chatReadKey = "danzstak_chat_read";
 const chatDraftKey = "danzstak_chat_drafts";
 let memoryChatDrafts = {};
@@ -400,6 +406,10 @@ function updateConversationPresence(conversation) {
 function openConversation(conversation, { updateHistory = true } = {}) {
   closeConversation();
   document.body.classList.add("is-conversation-open");
+  if (document.body?.dataset) {
+    const callMode = document.body.dataset.callMode;
+    document.body.dataset.syncScreen = callMode === "video" ? "video-call" : callMode === "phone" ? "voice-call" : "conversation";
+  }
   if (updateHistory) rememberMobileConversation(conversation);
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: true }, location.origin);
   contactInput.value = conversation.contactEmail;
@@ -440,6 +450,7 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   conversationVersion += 1;
   loadingMessages = false;
   document.querySelector(".message-reaction-palette")?.remove();
+  if (document.body?.dataset) document.body.dataset.syncScreen = activeFilter;
   closeConversationMenu();
   conversationHeader.hidden = true;
   conversationName.href = "profile.html";
@@ -872,7 +883,7 @@ async function loadConversations() {
       }
     }
     for (const conversation of conversationSource.items) {
-      if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), conversation);
+      if (conversation.contactEmail) contacts.set(conversation.contactEmail.toLowerCase(), { ...conversation, hasConversation: true });
     }
     for (const friend of friendsSource.items) {
       const email = String(friend.email || "").toLowerCase();
@@ -886,7 +897,8 @@ async function loadConversations() {
         picture: friend.picture || existing.picture || "",
         preview: existing.preview || messageTranslate("Start a conversation"),
         updatedAt: existing.updatedAt || "",
-        isFriend: true
+        isFriend: true,
+        hasConversation: existing.hasConversation === true
       });
     }
     for (const member of directorySource.items) {
@@ -902,7 +914,8 @@ async function loadConversations() {
         preview: existing?.preview || messageTranslate("Shared Tribe member"),
         updatedAt: existing?.updatedAt || "",
         sharedGroup: existing?.sharedGroup === true || member.sharedGroup === true,
-        online: member.online === true
+        online: member.online === true,
+        hasConversation: existing?.hasConversation === true
       });
     }
     cachedConversations = [...contacts.values()];
@@ -919,20 +932,28 @@ async function loadConversations() {
     const query = chatSearch?.value.trim().toLowerCase() || "";
     const visible = cachedConversations.filter(item => {
       const matchesSearch = !query || (item.name + " " + item.contactEmail + " " + item.preview).toLowerCase().includes(query);
-      const unread = Number(item.unread || 0) > 0;
-      const matchesFilter = activeFilter === "all" || (activeFilter === "unread" && unread) || (activeFilter === "groups" && item.sharedGroup);
+      const matchesFilter = activeFilter === "chats"
+        ? item.hasConversation === true
+        : activeFilter === "calls"
+          ? item.canContact !== false
+          : activeFilter === "contacts";
       return matchesSearch && matchesFilter;
     });
     if (!visible.length) {
       const empty = document.createElement("p");
       empty.className = "chat-note";
-      empty.textContent = messageTranslate(query ? "No friends or chats match your search." : "No friends or saved chats yet.");
+      const emptyBySection = activeFilter === "chats"
+        ? "No saved conversations yet. Open Contacts to start one."
+        : activeFilter === "calls"
+          ? "No contacts are currently available to call."
+          : "No permitted contacts are available yet.";
+      empty.textContent = messageTranslate(query ? "No contacts match your search." : emptyBySection);
       conversationUsers.appendChild(empty);
       if (!sourcesComplete) appendConversationAvailabilityWarning();
       return;
     }
     for (const conversation of visible) {
-      const row = document.createElement("div"); row.className = "conversation-row";
+      const row = document.createElement("div"); row.className = "conversation-row"; row.dataset.syncSection = activeFilter;
       const button = document.createElement("button"); button.type = "button"; button.className = "conversation-user";
       button.dataset.contactEmail = conversation.contactEmail;
       const isActiveContact = activeContact && conversation.contactEmail === activeContact && !conversationHeader.hidden;
@@ -992,9 +1013,9 @@ async function loadConversations() {
 
 chatSearch?.addEventListener("input", loadConversations);
 document.getElementById("newChat")?.addEventListener("click", () => {
-  activeFilter = "all";
+  activeFilter = "contacts";
   chatFilters.forEach(item => {
-    const selected = item.dataset.chatFilter === "all";
+    const selected = item.dataset.chatFilter === "contacts";
     item.classList.toggle("active", selected);
     item.setAttribute("aria-selected", String(selected));
     item.tabIndex = selected ? 0 : -1;
@@ -1005,7 +1026,20 @@ document.getElementById("newChat")?.addEventListener("click", () => {
   chatSearch?.focus();
 });
 const chatFilters = [...document.querySelectorAll("[data-chat-filter]")];
-chatFilters.forEach(button => button.addEventListener("click", () => { chatFilters.forEach(item => { const selected = item === button; item.classList.toggle("active", selected); item.setAttribute("aria-selected", String(selected)); item.tabIndex = selected ? 0 : -1; }); activeFilter = button.dataset.chatFilter; loadConversations(); }));
+const syncSectionNote = document.getElementById("syncSectionNote");
+const syncSectionCopy = {
+  chats: "Your saved conversations.",
+  calls: "Start a secure voice or video call with an available contact.",
+  contacts: "Friends and shared Tribe members you are permitted to contact."
+};
+document.body.dataset.syncScreen = activeFilter;
+chatFilters.forEach(button => button.addEventListener("click", () => {
+  chatFilters.forEach(item => { const selected = item === button; item.classList.toggle("active", selected); item.setAttribute("aria-selected", String(selected)); item.tabIndex = selected ? 0 : -1; });
+  activeFilter = button.dataset.chatFilter;
+  document.body.dataset.syncScreen = activeFilter;
+  if (syncSectionNote) syncSectionNote.textContent = messageTranslate(syncSectionCopy[activeFilter] || syncSectionCopy.chats);
+  loadConversations();
+}));
 document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
   if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
   const current = chatFilters.indexOf(document.activeElement);
@@ -1029,8 +1063,9 @@ conversationHeaderActions.more?.addEventListener("click", event => {
   const opening = conversationMenu.hidden;
   conversationMenu.hidden = !opening;
   conversationHeaderActions.more.setAttribute("aria-expanded", String(opening));
-  if (opening) headerDeleteChat?.focus();
+  if (opening) (headerMakePlansMenu || headerDeleteChat)?.focus();
 });
+headerMakePlansMenu?.addEventListener("click", () => { closeConversationMenu(); document.getElementById("makePlans")?.click(); });
 headerDeleteChat?.addEventListener("click", () => { closeConversationMenu(); deleteChat?.click(); });
 conversationMenu?.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); closeConversationMenu({ restoreFocus: true }); } });
 document.addEventListener("click", event => { if (!conversationMenu?.hidden && !conversationHeader.contains(event.target)) closeConversationMenu(); });

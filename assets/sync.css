@@ -1,0 +1,137 @@
+/* SYNC product shell: one coherent layer over the legacy chat implementation. */
+:root{
+  --sync-blue:#1769e0;
+  --sync-orange:#ef7d21;
+  --sync-ink:#172033;
+  --sync-muted:#667085;
+  --sync-line:#e2e7ee;
+  --sync-surface:#fff;
+  --sync-soft:#f4f6f9;
+  --sync-call:#08111f;
+  --sync-call-panel:#101d30;
+}
+.messages-page{background:var(--sync-soft);color:var(--sync-ink)}
+.sync-wordmark{margin-inline:auto;color:var(--sync-ink);font-size:.88rem;letter-spacing:.14em}
+.sync-kicker{display:block;margin-bottom:1px;color:var(--sync-orange);font-size:.68rem;font-weight:850;letter-spacing:.12em;text-transform:uppercase}
+.chats-heading h1{margin:0;font-size:1.55rem;letter-spacing:-.03em}
+.sync-sections{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px!important;padding:4px!important;border:1px solid var(--sync-line);border-radius:12px;background:#edf1f6}
+.sync-sections button{min-width:0!important;min-height:44px!important;padding:7px 5px!important;border:0!important;border-radius:9px!important;background:transparent!important;color:var(--sync-muted)!important;font-size:.82rem!important;font-weight:800!important;box-shadow:none!important}
+.sync-sections button.active{background:var(--sync-surface)!important;color:var(--sync-blue)!important;box-shadow:0 1px 3px #10182818!important}
+.sync-section-note{min-height:18px;margin:8px 2px;color:var(--sync-muted);font-size:.76rem;line-height:1.35}
+.chat-sidebar{background:var(--sync-surface)}
+.conversation-row{border-bottom:1px solid #eef1f5}
+.conversation-row[data-sync-section="calls"] .conversation-user small{font-size:0}
+.conversation-row[data-sync-section="calls"] .conversation-user small::after{content:"Available for a secure SYNC call";font-size:.76rem}
+.conversation-row[data-sync-section="contacts"] .conversation-user small{font-size:0}
+.conversation-row[data-sync-section="contacts"] .conversation-user small::after{content:"Open contact";font-size:.76rem}
+body[data-sync-screen="calls"] .chat-contact-strip,
+body[data-sync-screen="contacts"] .chat-contact-strip{display:none}
+body[data-sync-screen="calls"] .conversation-call-actions{display:flex}
+body[data-sync-screen="contacts"] .conversation-call-actions{display:none}
+.conversation-user,.conversation-call{border-radius:10px!important}
+.conversation-header-actions #headerPhone,
+.conversation-header-actions #headerVideo{width:44px;min-width:44px;height:44px;min-height:44px}
+.conversation-user:focus-visible,.conversation-call:focus-visible,.chat-heading-button:focus-visible,.new-chat-button:focus-visible{outline:3px solid #f3a449!important;outline-offset:1px}
+
+/* Incoming and active calls are primary screens, never cards inside the inbox. */
+.sync-call-screen{
+  position:fixed!important;
+  z-index:10020!important;
+  inset:0!important;
+  display:flex!important;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%!important;
+  min-height:100dvh!important;
+  padding:calc(30px + env(safe-area-inset-top,0px)) 22px calc(30px + env(safe-area-inset-bottom,0px))!important;
+  border:0!important;
+  border-radius:0!important;
+  background:radial-gradient(circle at 50% 24%,#1f4167 0,#0c1a2c 42%,#050b14 100%)!important;
+  color:#fff!important;
+  text-align:center;
+}
+.sync-call-screen[hidden]{display:none!important}
+.sync-call-avatar{display:grid;place-items:center;width:112px;height:112px;margin-bottom:10px;border:2px solid #ffffffb8;border-radius:50%;background:linear-gradient(145deg,#214b78,#0c2038);box-shadow:0 18px 50px #0008;color:#fff;font-size:2.4rem;font-weight:900}
+.sync-call-kicker{color:#cbd8e8;font-size:.78rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.sync-call-screen strong{max-width:min(420px,90vw);font-size:clamp(1.5rem,7vw,2.35rem);line-height:1.15}
+.sync-call-screen p{margin:0;color:#bdc9d8}
+.sync-call-screen .call-actions{display:flex;gap:42px;margin-top:44px}
+.sync-call-screen .call-actions button{width:76px;min-width:76px;height:76px;min-height:76px;padding:8px!important;border:0!important;border-radius:50%!important;color:#fff!important;font-size:.78rem!important;font-weight:800!important}
+.sync-call-screen #declineCall{background:#df3347!important}
+.sync-call-screen #acceptCall{background:#21a55b!important}
+
+body[data-call-mode="video"],body[data-call-mode="phone"]{overflow:hidden!important;background:var(--sync-call)!important}
+body[data-call-mode="video"] .chat-header,body[data-call-mode="phone"] .chat-header,
+body[data-call-mode="video"] .chat-sidebar,body[data-call-mode="phone"] .chat-sidebar,
+body[data-call-mode="video"] .ds-mobile-nav,body[data-call-mode="phone"] .ds-mobile-nav,
+body[data-call-mode="video"] .site-ownership,body[data-call-mode="phone"] .site-ownership{display:none!important}
+body[data-call-mode] .chat-shell{display:block!important;width:100%!important;height:100dvh!important;min-height:0!important;margin:0!important;padding:0!important}
+body[data-call-mode] .conversation{position:fixed;z-index:10010;inset:0;display:flex!important;height:100dvh!important;min-height:0!important;border:0!important;border-radius:0!important;background:var(--sync-call)!important;color:#fff!important}
+body[data-call-mode] .conversation-header{position:absolute;z-index:4;top:0;right:0;left:0;border:0!important;background:linear-gradient(#020711cc,transparent)!important;color:#fff!important}
+body[data-call-mode] .conversation-header a,body[data-call-mode] .conversation-presence{color:#fff!important}
+body[data-call-mode] .conversation-header-actions button{border-color:#ffffff26!important;background:#07111dbd!important;color:#fff!important}
+body[data-call-mode] .conversation-header-actions #makePlans,
+body[data-call-mode] .conversation-header-actions #headerPhone,
+body[data-call-mode] .conversation-header-actions #headerVideo,
+body[data-call-mode] .conversation-header-actions #minimizeConversation,
+body[data-call-mode] .conversation-header-actions #conversationMore,
+body[data-call-mode] .conversation-header-actions #closeConversation{display:none!important}
+body[data-call-mode] .conversation-status{position:absolute;z-index:4;top:64px;right:12px;left:12px;border:0!important;border-radius:999px;background:#02071199!important;color:#dfe8f4!important;text-align:center}
+body[data-call-mode] .message-list,body[data-call-mode] .message-form,body[data-call-mode] #remoteAudio{display:none!important}
+body[data-call-mode="video"] .video-grid{display:grid!important;position:absolute;inset:0;width:100%;height:100%;padding:0!important;background:#020711}
+body[data-call-mode="video"] .video-grid>figure:first-child{position:absolute;inset:0;width:100%!important;max-width:none!important;height:100%!important;margin:0!important;border:0!important;border-radius:0!important}
+body[data-call-mode="video"] #remoteVideo{width:100%;height:100%;object-fit:cover;background:#020711}
+body[data-call-mode="video"] .video-grid>figure:first-child figcaption{display:none}
+body[data-call-mode="video"] .video-grid .local-video{position:absolute;z-index:3;top:88px;right:14px;width:min(29vw,160px);aspect-ratio:3/4;margin:0!important;overflow:hidden;border:2px solid #fff;border-radius:16px;background:#16263a;box-shadow:0 10px 30px #0008}
+body[data-call-mode="video"] #localVideo{width:100%;height:100%;object-fit:cover}
+body[data-call-mode="video"] .local-video figcaption{position:absolute;right:6px;bottom:5px;color:#fff;font-size:.7rem;text-shadow:0 1px 4px #000}
+body[data-call-mode="phone"] .video-grid{display:none!important}
+body[data-call-mode="phone"] .conversation::before{content:"SYNC";position:absolute;inset:0;display:grid;place-items:center;padding-top:0;background:radial-gradient(circle,#24486e 0,#0b1727 48%,#030811 100%);color:#fff;font-size:1.35rem;font-weight:900;letter-spacing:.12em}
+body[data-call-mode] .media-controls{position:absolute!important;z-index:5;right:0;bottom:calc(26px + env(safe-area-inset-bottom,0px));left:0;display:flex!important;justify-content:center;gap:14px;padding:0 14px!important;background:transparent!important}
+body[data-call-mode] .media-controls[hidden]{display:none!important}
+body[data-call-mode] .media-controls button{width:56px;min-width:56px;height:56px;min-height:56px;padding:6px!important;border:1px solid #ffffff42!important;border-radius:50%!important;background:#f4f7fb26!important;color:#fff!important;font-size:.7rem!important;font-weight:800!important;backdrop-filter:blur(12px)}
+body[data-call-mode] .media-controls .hangup-button{background:#df3347!important;border-color:#df3347!important}
+
+@media(max-width:760px){
+  .chat-header{height:56px!important;min-height:56px!important;padding:6px 10px!important}
+  .sync-wordmark{font-size:.78rem}
+  body:not(.is-conversation-open) .chat-sidebar{min-height:calc(100dvh - 56px)!important;padding:12px 12px calc(82px + env(safe-area-inset-bottom,0px))!important}
+  .chats-heading{margin-bottom:10px!important}
+  .chat-search{min-height:42px!important}
+  .sync-section-note{margin-bottom:5px}
+  .conversation-row{min-height:66px}
+  .conversation-user{min-height:64px!important;padding:7px 4px!important}
+  .conversation-list-avatar,.conversation-avatar-wrap{width:46px!important;height:46px!important}
+  .conversation-call-actions{gap:1px!important}
+  .conversation-call{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important}
+  body[data-sync-screen="calls"] .conversation-row{grid-template-columns:minmax(0,1fr) auto!important}
+  body[data-sync-screen="calls"] .conversation-call-actions{display:flex!important}
+  .chat-contact-strip{margin-bottom:6px!important}
+  body.is-conversation-open:not([data-call-mode]) .conversation{background:#fff!important}
+  body.is-conversation-open:not([data-call-mode]) .conversation-header{min-height:58px!important}
+  body.is-conversation-open:not([data-call-mode]) .message-list{padding-bottom:18px!important}
+  body.is-conversation-open:not([data-call-mode]) .message-form{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))!important}
+}
+
+@media(max-width:560px){
+  body.is-conversation-open:not([data-call-mode]) .conversation-header-actions #makePlans{display:none!important}
+  .conversation-menu #headerMakePlansMenu{display:block}
+}
+
+@media(min-width:561px){
+  .conversation-menu #headerMakePlansMenu{display:none}
+}
+
+.conversation-menu #headerMakePlansMenu{color:var(--sync-ink)!important}
+.conversation-menu #headerMakePlansMenu:hover,
+.conversation-menu #headerMakePlansMenu:focus-visible{background:#edf6ff!important}
+
+@media(min-width:761px){
+  .chat-shell{grid-template-columns:minmax(310px,360px) minmax(0,1fr)!important;max-width:1280px!important;border:1px solid var(--sync-line);border-radius:16px;overflow:hidden;box-shadow:0 16px 44px #10182812}
+  .chat-sidebar{border-right:1px solid var(--sync-line)}
+  .conversation{background:#fff}
+}
+
+@media(prefers-reduced-motion:reduce){.sync-call-screen,.conversation{scroll-behavior:auto!important}}

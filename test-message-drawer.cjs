@@ -8,7 +8,10 @@ const enhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const chatCss = fs.readFileSync("assets/chat.css", "utf8");
 
 assert.match(feed, /drawer\.className = "message-drawer"/, "messages open in the feed drawer");
-assert.match(feed, /class="message-drawer-loading" role="status">Loading chats…/, "the drawer announces an immediate loading state");
+assert.match(feed, /class="message-drawer-loading" role="status">Loading SYNC…/, "the drawer announces an immediate branded loading state");
+assert.match(feed, /id="messagesNav"[^>]*aria-label="SYNC"[^>]*title="SYNC"/, "the Feed launcher uses the same SYNC identity as the standalone screen");
+assert.match(feed, /message-drawer-bar"><span>SYNC<\/span>/, "desktop embedded messaging has one consistent SYNC heading");
+assert.match(feed, /href="messages\.html"[^>]*>[\s\S]*?menu-label">SYNC<\/span>/, "the mobile Menu has an intentional standalone SYNC destination");
 assert.match(feed, /\.message-drawer\.is-loading iframe\{visibility:hidden\}/, "partially rendered chat chrome stays hidden while loading");
 assert.match(feed, /event\.currentTarget\.src\.includes\("messages\.html"\)/, "an unrelated initial frame load cannot dismiss the loading state");
 assert.match(feed, /drawer\.querySelector\("\.message-drawer-loading"\)\.hidden = true/, "the loading state clears when Messages is ready");
@@ -25,8 +28,8 @@ assert.match(feed, /event\.data\?\.type === "danzstak-call-mode"\) drawer\.class
 assert.match(feed, /event\.data\?\.type === "danzstak-chat-view"\) drawer\.classList\.toggle\("is-conversation", event\.data\.open === true\)/, "ordinary conversations stay in the compact conversation drawer");
 assert.match(feed, /\.message-drawer\.is-conversation:not\(\.is-video-call\) \.message-drawer-bar\{display:none\}/, "an open conversation must not waste space on a second Chats header");
 assert.match(feed, /\.message-drawer\.is-conversation:not\(\.is-video-call\) iframe\{height:100%\}/, "the conversation frame must reclaim the removed header space");
-assert.match(messages, /aria-label="Phone call"><svg class="call-action-icon"/, "conversation header exposes a consistent phone action");
-assert.match(messages, /aria-label="Video call"><svg class="call-action-icon"/, "conversation header exposes a consistent video action");
+assert.match(messages, /aria-label="Phone call"[^>]*disabled[^>]*><svg class="call-action-icon"/, "conversation header exposes a safe, consistent phone action");
+assert.match(messages, /aria-label="Video call"[^>]*disabled[^>]*><svg class="call-action-icon"/, "conversation header exposes a safe, consistent video action");
 assert.match(directMessages, /function createCallActionIcon\(kind\)/, "chat list call actions use the same consistent icons");
 assert.match(directMessages, /\[\["phone", "startPhone"\], \["video", "startVideo"\]\]/, "chat list call actions distinguish phone and video calls");
 assert.match(chatCss, /\.call-action-icon\{[^}]*stroke:currentColor/, "call icons inherit the surrounding interface color");
