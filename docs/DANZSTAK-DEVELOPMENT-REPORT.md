@@ -1061,7 +1061,7 @@ Status as of 2026-11-06: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 
 # Issue #55 — Notifications touch geometry and shared mobile-shell clearance
 
-Status as of 2026-11-06: **IMPLEMENTED AND LOCALLY VERIFIED; PRODUCTION DEPLOYMENT PENDING**.
+Status as of 2026-11-06: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 
 - The independent mobile audit found two root geometry defects on the current production baseline: Notification avatars/actions were smaller than the 44px mobile touch-target standard, and fractional layout rounding could place the fixed bottom navigation approximately 0.28px over the document footer at 320px.
 - Notification rows now reserve a 44px avatar column and render avatar and action controls at a measured minimum of 44px. The shared phone shell adds two pixels of rounding clearance to Feed/Profile, Chat inbox, and professional-tool page bottoms instead of relying on per-page overrides.
@@ -1071,4 +1071,7 @@ Status as of 2026-11-06: **IMPLEMENTED AND LOCALLY VERIFIED; PRODUCTION DEPLOYME
 - Visual evidence: [Notifications at 320px](screenshots/issue-55-notifications/notifications-320.png), [Notifications at 390px](screenshots/issue-55-notifications/notifications-390.png), and [Notifications at 430px](screenshots/issue-55-notifications/notifications-430.png). The full capture set is retained beside these examples for cross-screen review.
 - These screenshots use controlled browser fixtures so actions can be inspected without mutating real members. Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA verification remains **NOT TESTED** in this environment.
 - No Stripe, entitlement, payment, authentication, Booking Agent, EPK, Tour Manager, message-delivery, or notification-delivery business logic changed in this scoped correction.
-- Production remains unchanged. Deployment is authorized by the owner but awaits a refreshed AWS CLI session before an exact-head staging/production release can be performed and verified.
+- Pull request [#66](https://github.com/danzstak/danzstak-web/pull/66) merged after GitHub Review checks run `42167715215` passed. Production application commit: `a4a89f289cc92eb74bd8a8c44ae7f2eeb4de4cde`.
+- The established AWS Amplify `main` deployment delivered the release to `danzstak.com` by 2026-11-06 06:23 Europe/Berlin. The AWS CLI session expired before deployment metadata could be read, so this report does not invent an Amplify job number or completion timestamp.
+- Post-deployment public health passed: the landing page, Feed, Chat, Booking, EPK, manifest, service worker, and versioned assets returned HTTP 200. The browser found the worker activated and controlling the page with only `danzstak-shell-v690` cached; Feed CSS `v499` and mobile design system `v13` were live.
+- The core social browser suite passed again against production for all 25 Home, Friends, Chat, Notifications, and Profile combinations at 320, 360, 390, 414, and 430px. Live captures: [Notifications at 320px](screenshots/issue-55-notifications-live/notifications-320.png), [Notifications at 390px](screenshots/issue-55-notifications-live/notifications-390.png), and [Notifications at 430px](screenshots/issue-55-notifications-live/notifications-430.png).
