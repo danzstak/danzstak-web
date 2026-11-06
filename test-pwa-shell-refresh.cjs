@@ -48,7 +48,7 @@ for (const [file, expected] of [
   ["messages.html", "assets/pwa.js?v=424"],
   ["profile.html", "assets/pwa.js?v=424"],
   ["record-stores.html", "assets/record-stores-pagination.css?v=2"],
-  ["record-stores.html", "assets/record-stores.js?v=5"],
+  ["record-stores.html", "assets/record-stores.js?v=6"],
   ["feed.html", "assets/identity-media.js?v=1"],
   ["messages.html", "assets/identity-media.js?v=1"],
   ["profile.html", "assets/identity-media.js?v=1"],
