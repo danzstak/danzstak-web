@@ -3,22 +3,22 @@
   min-height: 104px;
   place-items: center;
   padding: 18px;
-  border: 2px dashed #8aa5c8;
-  border-radius: 12px;
-  background: #f6f9fd;
+  border: 2px dashed var(--ds-border-strong,#8aa5c8);
+  border-radius: var(--ds-radius,12px);
+  background: var(--ds-surface-subtle,#f6f9fd);
   text-align: center;
   cursor: pointer;
 }
 
-.epk-drop-zone.is-dragging { border-color: #1769e0; background: #e8f2ff; }
+.epk-drop-zone.is-dragging { border-color: var(--ds-brand,#1769e0); background: var(--ds-brand-soft,#e8f2ff); }
 .epk-drop-zone input { max-width: 100%; }
 #epkUploadProgress { width: 100%; margin-top: 10px; }
 .epk-media-list { display: grid; gap: 10px; margin-top: 12px; }
-.epk-media-item { display: grid; grid-template-columns: 72px minmax(130px,1fr) minmax(130px,180px); gap: 8px; align-items: center; padding: 10px; border: 1px solid #d7dee8; border-radius: 10px; }
+.epk-media-item { display: grid; grid-template-columns: 72px minmax(130px,1fr) minmax(130px,180px); gap: 8px; align-items: center; padding: 10px; border: 1px solid var(--ds-border,#d7dee8); border-radius: var(--ds-radius-sm,10px); }
 .epk-media-item img { width: 72px; height: 72px; grid-row: span 2; object-fit: cover; border-radius: 8px; }
-.epk-media-item button { min-height: 38px; }
+.epk-media-item button { min-height: 44px; }
 .epk-media-delete,
-.epk-delete { min-width: 42px; font-size: 1.05rem; line-height: 1; }
+.epk-delete { min-width: 44px; font-size: 1.05rem; line-height: 1; }
 .epk-media-delete { border-color: #d92d20; background: #fff; color: #b42318; }
 .epk-media-delete:hover,
 .epk-media-delete:focus-visible { background: #fff1f0; }
@@ -41,7 +41,7 @@
 .form-actions .danger { border-color: #b42318; background: #fff; color: #b42318; }
 .form-actions .danger:hover,
 .form-actions .danger:focus-visible { background: #fff1f0; }
-.epk-private-share { margin-top: 18px; border: 1px solid #d8dee8; border-radius: 12px; padding: 12px; }
+.epk-private-share { margin-top: 14px; border: 1px solid var(--ds-border,#d8dee8); border-radius: var(--ds-radius,12px); padding: 12px; }
 .epk-private-share summary { cursor: pointer; font-weight: 800; }
 #publicLinkRow, #privateLinkRow { overflow-wrap: anywhere; }
 

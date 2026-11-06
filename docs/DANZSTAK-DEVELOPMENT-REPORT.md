@@ -1,5 +1,18 @@
 # DANZSTAK development report
 
+## Issue #55 — professional EPK editor and live preview — 2026-11-06
+
+Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING REVIEW PENDING; PRODUCTION UNCHANGED**.
+
+- Root cause: the complete EPK feature existed, but its six long sections rendered as one uninterrupted form. On phones, artists had to scroll through the entire editor before reaching the live preview, while mixed hard-coded styling made the tool look disconnected from the rest of DANZSTAK.
+- The editor now has six numbered progressive sections—Artist basics, Story, Music and links, Press materials, Proof and production, and Booking contact—with compact section navigation and a direct live-preview route. Existing field IDs, API payloads, privacy choices, uploads, draft/publish/unpublish behavior, private review links, print/PDF and permanent deletion are preserved.
+- The preview is labeled in booker-facing terms, remains live as the artist edits, and uses the shared DANZSTAK light-mode tokens. The official shared trash icon replaces emoji deletion controls. Phone publish/save controls stay above application navigation; secondary unpublish remains visible without consuming the primary action bar.
+- PWA cache advances to `danzstak-shell-v697`; EPK CSS advances to `v3`, media CSS to `v6`, and client JavaScript to `v12`. No EPK draft, upload, public link or user data is cleared.
+- Focused functional evidence: EPK builder, domain isolation, network recovery, PWA refresh, shared design-system and new EPK information-architecture checks pass.
+- Actual-browser evidence: `browser-checks/epk-design-system.cjs` passes Microsoft Edge/Chromium at 320, 390, 430 and 1366px with populated account data, no page errors, zero horizontal overflow, six working editor sections, a bound live preview and at least 44px phone application controls. Captures are in `docs/screenshots/issue-55-epk/`.
+- Integration evidence: the complete `test-regressions.ps1` gate passes, including all JavaScript checks, the bounded live-release verifier, 11-page smoke testing and infrastructure validation. No failure was waived.
+- Verification boundary: browser fixtures prove layout, interaction and existing client/API wiring, not a physical Android/iPhone installed PWA or real booker receipt. No production deployment is authorized by this review slice.
+
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND PROVIDER-SPECIFIC DEVICE ACCEPTANCE REMAIN**.
