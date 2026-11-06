@@ -19,7 +19,7 @@ The frontend is serverless HTML, CSS, and browser JavaScript; it is not React. S
 | SYNC | `messages.html`, `chat.css`, `chat.js`, `direct-messages.js` | Shared mobile, icon, and media assets | Dedicated Issue #48 review |
 | Booking Agent | `booking.html`, `booking-agent*.css/js`, `booking-discovery.*`, `booking-map.js` | Shared mobile and icon assets | Page redesign intentionally deferred to Issue #52 |
 | Record Stores | `record-stores.html`, `record-stores*.css/js`, `record-placement.css` | Shared mobile and icon assets | Inventory complete; visual migration pending |
-| EPK | `epk.html`, `epk*.css/js` | Shared mobile, icon, and media assets | Inventory complete; visual migration pending |
+| EPK | `epk.html`, `epk*.css/js` | Shared mobile, icon, and media assets | Compact editor and public-preview migration complete in review branch |
 | Tour Manager | Booking workspace components and authenticated API routes | Booking and shared tool styles | Inventory complete; visual migration pending |
 
 ## Root causes found
@@ -54,6 +54,14 @@ The canvas uses restrained blue/orange light-mode accents. User media and conten
 - Profile identity, biography, controls, tabs, and details follow one left-aligned hierarchy on desktop and mobile.
 - Direct Feed media now reaches both post edges at desktop and mobile widths without distortion.
 - Shared asset version is `mobile-design-system.css?v=12`; review PWA cache is `danzstak-shell-v682`.
+
+## EPK editor slice
+
+- Six long form blocks are now progressive, numbered editor sections with a compact section navigator instead of one uninterrupted wall of fields.
+- The existing private draft, public choices, media upload, publish, unpublish, private review, print/PDF and deletion workflows remain connected to their original controls and APIs.
+- Phone users can jump directly between editing and the live booker preview. Publish and private-save actions remain reachable above the fixed application navigation without obscuring the rest of the editor.
+- The EPK editor and preview consume the shared DANZSTAK semantic tokens, use the official icon family, and remove cartoon emoji controls.
+- Focused static and real-browser checks cover 320, 390, 430 and 1366px, zero overflow, section interaction, live preview binding and phone touch geometry. Physical-device installed-PWA behavior remains a separate review gate.
 
 ## Evidence and gates
 

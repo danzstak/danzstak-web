@@ -2,6 +2,7 @@ name: Review checks
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   workflow_dispatch:
 
 permissions:
@@ -28,3 +29,69 @@ jobs:
       - name: Run complete local regression suite
         shell: pwsh
         run: .\test-regressions.ps1
+
+  responsive-accessibility-security:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Run responsive, accessibility, and security checks
+        shell: pwsh
+        run: |
+          node test-epk-design-system.cjs
+          node test-responsive-media.cjs
+          node test-touch-targets.cjs
+          node test-skip-navigation.cjs
+          node test-icon-buttons.cjs
+          node test-feed-csp.cjs
+          node test-social-origins.cjs
+          node test-static-link-integrity.cjs
+      - name: Install browser test driver
+        shell: pwsh
+        run: npm install --no-save --no-package-lock playwright@1.55.0
+      - name: Render the EPK review matrix
+        shell: pwsh
+        run: |
+          $server = Start-Process python -ArgumentList '-m','http.server','8144','--bind','127.0.0.1' -WindowStyle Hidden -PassThru
+          try {
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 20; $attempt += 1) {
+              try {
+                Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8144/epk.html' -TimeoutSec 2 | Out-Null
+                $ready = $true
+                break
+              } catch {
+                Start-Sleep -Milliseconds 250
+              }
+            }
+            if (-not $ready) { throw 'Local review server did not become ready.' }
+            node browser-checks/epk-design-system.cjs
+          } finally {
+            if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
+          }
+      - name: Upload responsive review captures
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: epk-responsive-review-${{ github.event.pull_request.number || github.run_id }}
+          path: docs/screenshots/issue-55-epk/
+          if-no-files-found: error
+          retention-days: 14
+
+  release-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Validate review and release evidence
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          node test-release-evidence.cjs
+          node scripts/verify-pr-release-evidence.cjs
