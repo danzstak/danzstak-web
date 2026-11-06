@@ -6,7 +6,16 @@ const apiUrl = String(process.env.DANZSTAK_HEALTH_API_URL || "https://api.danzst
 const siteOrigin = String(process.env.DANZSTAK_HEALTH_SITE_ORIGIN || "https://danzstak.com").replace(/\/$/, "");
 const token = String(process.env.DANZSTAK_SYNTHETIC_SESSION_A || "");
 const query = String(process.env.DANZSTAK_BOOKING_SMOKE_QUERY || "punk clubs in Tacoma, Washington, United States").trim();
+const matrixMode = String(process.env.DANZSTAK_BOOKING_SMOKE_MATRIX || "").toLowerCase() === "true";
 const timeoutMs = Number(process.env.DANZSTAK_HEALTH_TIMEOUT_MS || 35000);
+const benchmarkQueries = [
+  "punk clubs in Tacoma, Washington, United States",
+  "live music venues in Medford, Oregon, United States",
+  "live music clubs in Novara, Italy",
+  "techno and live electronic music venues in Eindhoven, Netherlands",
+  "live houses in Tokyo, Japan",
+  "rock music venues in Sao Paulo, Brazil"
+];
 
 assert.match(token, /^[a-f0-9]{64}$/i, "DANZSTAK_SYNTHETIC_SESSION_A must be a controlled 64-character session token");
 assert.ok(query.length >= 3 && query.length <= 240, "DANZSTAK_BOOKING_SMOKE_QUERY must be 3–240 characters");
@@ -35,13 +44,10 @@ async function request(path, options = {}) {
   }
 }
 
-async function main() {
-  const session = await request("/auth/session");
-  assert.equal(session.authenticated, true, "Controlled smoke session must be authenticated");
-
+async function checkQuery(searchQuery) {
   const data = await request("/venues/search", {
     method: "POST",
-    body: JSON.stringify({ query, page: 0, radiusMiles: 40 })
+    body: JSON.stringify({ query: searchQuery, page: 0, radiusMiles: 40 })
   });
 
   assert.equal(typeof data.location?.label, "string", "Venue discovery must resolve a locality label");
@@ -63,9 +69,8 @@ async function main() {
   const sourcedResearchCount = data.researchLeads.filter(lead => /^https:\/\//i.test(String(lead?.url || ""))).length;
   assert.ok(sourcedVenueCount + sourcedResearchCount > 0, "Real-provider smoke must return at least one source-attributed venue or research lead");
 
-  process.stdout.write(JSON.stringify({
+  return {
     status: "PASS",
-    mode: "authenticated-read-only-real-provider",
     localityResolved: true,
     venueCount: data.venues.length,
     sourcedVenueCount,
@@ -73,6 +78,24 @@ async function main() {
     sourcedResearchCount,
     providerStates,
     expandedRadius: Number(data.radiusMiles || 0) > 40
+  };
+}
+
+async function main() {
+  const session = await request("/auth/session");
+  assert.equal(session.authenticated, true, "Controlled smoke session must be authenticated");
+
+  const queries = matrixMode ? benchmarkQueries : [query];
+  const results = [];
+  for (const searchQuery of queries) {
+    results.push(await checkQuery(searchQuery));
+  }
+
+  process.stdout.write(JSON.stringify({
+    status: "PASS",
+    mode: matrixMode ? "authenticated-read-only-worldwide-provider-matrix" : "authenticated-read-only-real-provider",
+    queryCount: results.length,
+    results
   }, null, 2) + "\n");
 }
 

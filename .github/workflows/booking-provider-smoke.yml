@@ -7,6 +7,11 @@ on:
         description: Public city and genre query (no private data)
         required: false
         default: punk clubs in Tacoma, Washington, United States
+      worldwide_matrix:
+        description: Run the bounded six-locality worldwide benchmark instead of one query
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -22,6 +27,7 @@ jobs:
     env:
       DANZSTAK_SYNTHETIC_SESSION_A: ${{ secrets.DANZSTAK_SYNTHETIC_SESSION_A }}
       DANZSTAK_BOOKING_SMOKE_QUERY: ${{ inputs.query }}
+      DANZSTAK_BOOKING_SMOKE_MATRIX: ${{ inputs.worldwide_matrix }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
