@@ -9,7 +9,7 @@ const origin = process.env.DANZSTAK_DESIGN_ORIGIN || "http://127.0.0.1:8022";
 const widths = [320, 390, 430, 1366];
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const postId = "33333333-3333-4333-8333-333333333333";
-const output = path.resolve("docs/screenshots/issue-55-foundation");
+const output = path.resolve(process.env.DANZSTAK_DESIGN_OUTPUT || "docs/screenshots/issue-55-foundation");
 fs.mkdirSync(output, { recursive: true });
 
 const profile = {
