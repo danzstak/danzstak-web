@@ -6,6 +6,9 @@ const path = require("node:path");
 const { chromium } = require("playwright");
 
 const baseUrl = process.env.DANZSTAK_LOCAL_URL || "http://127.0.0.1:8016";
+const previewCredentials = process.env.DANZSTAK_PREVIEW_USER && process.env.DANZSTAK_PREVIEW_PASSWORD
+  ? { username: process.env.DANZSTAK_PREVIEW_USER, password: process.env.DANZSTAK_PREVIEW_PASSWORD }
+  : null;
 const widths = [320, 360, 390, 414, 430, 768, 1024];
 const output = path.resolve(__dirname, "..", "docs", "screenshots", "issue-48");
 const capture = process.env.UPDATE_SCREENSHOTS === "1";
@@ -27,7 +30,7 @@ async function assertViewport(page, width, state) {
   try {
     for (const width of widths) {
       const height = width < 700 ? 844 : 768;
-      const context = await browser.newContext({ viewport: { width, height }, hasTouch: width < 700, isMobile: width < 700, serviceWorkers: "block" });
+      const context = await browser.newContext({ viewport: { width, height }, hasTouch: width < 700, isMobile: width < 700, serviceWorkers: "block", ...(previewCredentials ? { httpCredentials: previewCredentials } : {}) });
       const page = await context.newPage();
       await page.addInitScript(() => {
         window.__syncMediaRequests = [];
