@@ -15,6 +15,7 @@ $ApiId = "0872gqal4m"
 $AuthIntegrationId = "5pipi5a"
 $ToursTable = "DANZSTAK-Tours"
 $VenueDirectoryTable = "DANZSTAK-VenueDirectory"
+$SessionDevicesTable = "DANZSTAK-SessionDevices"
 
 $previousErrorPreference = $ErrorActionPreference
 $ErrorActionPreference = "SilentlyContinue"
@@ -96,6 +97,12 @@ try {
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DanzStak-UserSettings"
       },
       @{
+        Sid = "AccountSessionDevices"
+        Effect = "Allow"
+        Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:UpdateItem", "dynamodb:Query")
+        Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/$SessionDevicesTable"
+      },
+      @{
         Sid = "DeletePostStoryReferences"
         Effect = "Allow"
         Action = @("dynamodb:Scan", "dynamodb:DeleteItem")
@@ -166,6 +173,9 @@ try {
   $postViewsTable = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Engagement --query "Stacks[0].Outputs[?OutputKey=='PostViewsTableName'].OutputValue | [0]" --output text
   if ($LASTEXITCODE -ne 0) { throw "Post view configuration could not be resolved." }
   if ($postViewsTable -and $postViewsTable -ne 'None') { $variables.POST_VIEWS_TABLE = [string]$postViewsTable }
+  $sessionDevicesTable = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Engagement --query "Stacks[0].Outputs[?OutputKey=='SessionDevicesTableName'].OutputValue | [0]" --output text
+  if ($LASTEXITCODE -ne 0 -or -not $sessionDevicesTable -or $sessionDevicesTable -eq 'None') { throw "Session device registry configuration could not be resolved." }
+  $variables.SESSION_DEVICES_TABLE = [string]$sessionDevicesTable
   @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
   aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }
@@ -202,7 +212,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/share", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/share", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "GET /auth/sessions", "DELETE /auth/sessions/{deviceId}", "POST /auth/sessions/revoke-others", "GET /auth/reauth", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null

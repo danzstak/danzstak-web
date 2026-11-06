@@ -71,6 +71,10 @@ async function installApiFixtures(page) {
     if (pathname === "/plans") return json(route, { plans: [{ planId: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", title: "Coffee after the show", startAt: "2026-11-08T18:00:00.000Z", timezone: "Europe/Berlin", location: "Public café", note: "", inviterEmail: "friend@danzstak.invalid", recipientEmail: "mobile-test@danzstak.invalid", status: "pending", revision: 1, changed: false, createdAt: "2026-11-04T12:20:00.000Z", updatedAt: "2026-11-04T12:20:00.000Z", role: "invitee" }] });
     if (pathname === "/settings/posts") return json(route, { pinned: [], saved: [], muted: [] });
     if (pathname === "/settings/presence") return json(route, { onlineVisible: true, allowTags: true, callAlerts: true, messageAlerts: true, reduceMotion: false, dataSaver: false, language: "en" });
+    if (pathname === "/auth/sessions") return json(route, { devices: [
+      { deviceId: "11111111-1111-4111-8111-111111111111", label: "Chrome on Android", current: true, lastUsedAt: 1793970000, expiresAt: 1796562000 },
+      { deviceId: "22222222-2222-4222-8222-222222222222", label: "Safari on iPhone or iPad", current: false, lastUsedAt: 1793883600, expiresAt: 1796475600 }
+    ] });
     if (pathname === "/profile" || pathname === "/profiles") return json(route, { profile: { name: "DanzStak Test Artist", username: "testartist", memberId: "11111111-1111-4111-8111-111111111111", isOwner: true, location: "Berlin, Germany", bio: "Independent artist testing DanzStak on mobile." } });
     if (pathname === "/stories") return json(route, { stories: [fixtureStory], reels: [fixtureReel] });
     return json(route, {});
@@ -484,7 +488,26 @@ async function captureViewport(page, fileName) {
       assert.ok(settingsActionGeometry.length >= 6, `${width}px: Settings action rows were not identified`);
       assert.ok(settingsActionGeometry.every(item => Math.min(item.labelBottom, item.controlBottom) - Math.max(item.labelTop, item.controlTop) > 0), `${width}px: Settings action fell onto a separate row: ${JSON.stringify(settingsActionGeometry)}`);
       assert.ok(settingsActionGeometry.every(item => item.controlHeight >= 43), `${width}px: Settings action is not comfortably tappable: ${JSON.stringify(settingsActionGeometry)}`);
+      await page.getByRole("button", { name: "Review signed-in devices" }).click();
+      await page.waitForSelector("#accountSecurityPanel:not([hidden]) .account-security-device");
+      await assertNoOverflow(page, `Account Security ${width}px`, true);
+      const securityGeometry = await page.locator(".account-security-device").evaluateAll(rows => rows.map(row => {
+        const rowBox = row.getBoundingClientRect();
+        const buttonBox = row.querySelector("button")?.getBoundingClientRect();
+        return { rowLeft: rowBox.left, rowRight: rowBox.right, buttonRight: buttonBox?.right || rowBox.right, buttonHeight: buttonBox?.height || 44 };
+      }));
+      assert.equal(securityGeometry.length, 2, `${width}px: Account Security should render both fixture sessions`);
+      assert.ok(securityGeometry.every(item => item.buttonRight <= item.rowRight + 1), `${width}px: Account Security action overflows its device row: ${JSON.stringify(securityGeometry)}`);
+      assert.ok(securityGeometry.every(item => item.buttonHeight >= 43), `${width}px: Account Security sign-out action is not comfortably tappable: ${JSON.stringify(securityGeometry)}`);
       await captureViewport(page, `settings-${width}.png`);
+      if (width === 320) {
+        await page.evaluate(() => window.danzstakSetLanguage("it"));
+        await page.waitForFunction(() => document.querySelector("#accountSecurityHeading")?.textContent === "Dispositivi connessi");
+        await assertNoOverflow(page, "Account Security Italian 320px", true);
+        assert.equal(await page.getByRole("button", { name: "Controlla i dispositivi connessi" }).isVisible(), true, "Italian account-security review control must remain understandable");
+        await captureViewport(page, "settings-it-320.png");
+        await page.evaluate(() => window.danzstakSetLanguage("en"));
+      }
 
       await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".chat-sidebar");
@@ -546,6 +569,9 @@ async function captureViewport(page, fileName) {
       });
       assert.equal(anchoredHeader.position, "sticky", `${width}px: desktop app header must remain sticky`);
       assert.ok(Math.abs(anchoredHeader.top) <= 1 && anchoredHeader.height >= 50, `${width}px: hash navigation clipped the desktop header: ${JSON.stringify(anchoredHeader)}`);
+      await page.getByRole("button", { name: "Review signed-in devices" }).click();
+      await page.waitForSelector("#accountSecurityPanel:not([hidden]) .account-security-device");
+      await assertNoOverflow(page, `Desktop Account Security ${width}px`);
       await captureViewport(page, `settings-${width}.png`);
 
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
