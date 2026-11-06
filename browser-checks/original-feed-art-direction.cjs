@@ -9,7 +9,7 @@ const origin = process.env.DANZSTAK_FEED_ORIGIN || "http://127.0.0.1:8024";
 const credentials = process.env.DANZSTAK_PREVIEW_USER && process.env.DANZSTAK_PREVIEW_PASSWORD
   ? { username: process.env.DANZSTAK_PREVIEW_USER, password: process.env.DANZSTAK_PREVIEW_PASSWORD }
   : null;
-const widths = [320, 390, 430, 1366];
+const widths = [320, 360, 390, 430, 1366];
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const imagePostId = "33333333-3333-4333-8333-333333333333";
 const videoPostId = "44444444-4444-4444-8444-444444444444";

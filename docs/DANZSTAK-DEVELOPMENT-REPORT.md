@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Issue #50 — protected release gate — 2026-11-06
+
+Status: **IN PROGRESS — ENFORCEABLE REPOSITORY CHECKS IMPLEMENTED; OWNER-ONLY GITHUB/AWS SETTINGS AND INDEPENDENT REVIEW REMAIN**.
+
+- Added a non-production release-governance slice with a mandatory PR template, exact-head evidence verifier, separate responsive/accessibility/security browser job, and a version-controlled governance policy. Codex self-testing is explicitly evidence rather than independent approval.
+- Added the required reconciliation for Amplify jobs 896, 904, 906, 908, 909 and 911. It records the feature/commit/window evidence available in Git, identifies missing initiator/approval evidence without guessing, and documents rollback boundaries that preserve user data.
+- Current read-only audit evidence: the public GitHub API returned no repository rulesets and exposed only the `github-pages` Environment, with administrator bypass allowed. A protected `production` Environment and verified `main` ruleset are therefore not proven and must be configured by the repository owner.
+- Required owner actions are documented precisely in `docs/RELEASE-GOVERNANCE.md`: PR-only `main`, one independent human approval, stale-approval dismissal, current required checks, conversation resolution, no force push/deletion/admin bypass, and a protected production Environment restricted to `main`.
+- This branch is not deployed to production. Its independent verdict remains **UNVERIFIED** until an authorized human reviews an isolated staging preview and the owner applies the account-level controls. No production release is authorized by this report entry.
+
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND PROVIDER-SPECIFIC DEVICE ACCEPTANCE REMAIN**.
