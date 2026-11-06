@@ -16,19 +16,19 @@ Codex may implement, test, publish a review branch, and deploy an isolated stagi
 
 No direct pushes, force pushes, fast-forwards, or administrator bypasses to `main` are permitted for ordinary releases. Emergency hotfixes still require explicit owner authorization and a retrospective PR and incident record.
 
-## Repository settings the owner must apply
+## Repository protection state
 
-GitHub account administration cannot be truthfully replaced by repository files. In **Settings → Rules → Rulesets**, create an active branch ruleset targeting `main`:
+Active GitHub ruleset `Protect production main` (ID `26689955`) now targets the default branch with no bypass actors. The GitHub API was read back after creation and verified these enforced properties:
 
 - Require a pull request before merging.
-- Require 1 approval and require review from Code Owners when an independent reviewer is listed.
+- Require 1 approval.
 - Dismiss stale approvals and require approval of the most recent reviewable push.
 - Require conversation resolution.
 - Require status checks `regression`, `responsive-accessibility-security`, and `release-evidence`, with the branch required to be current.
 - Block force pushes and deletions.
-- Do not permit repository administrators or automation accounts to bypass the ruleset for ordinary releases.
+- No repository administrator or automation bypass actor is configured.
 
-In **Settings → Environments**, create `production`, add the owner/independent reviewer as required reviewers, prevent self-review where available, restrict deployment branches to `main`, and apply a short wait timer if desired. Production deployment credentials must be scoped to that environment. Staging uses a separate environment and hostname and must not mutate production data.
+The remaining account-level requirement is a protected deployment environment. In **Settings → Environments**, create `production`, add the independent reviewer as a required reviewer, prevent self-review where available, restrict deployment branches to `main`, and apply a short wait timer if desired. Production deployment credentials must be scoped to that environment. Staging uses a separate environment and hostname and must not mutate production data.
 
 In AWS Amplify, disable any path that deploys an unreviewed branch to the production domain. The production branch may build only after the protected `main` update and environment approval. Keep the access-controlled preview branch separate.
 

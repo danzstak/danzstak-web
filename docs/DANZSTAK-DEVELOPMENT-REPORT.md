@@ -2,14 +2,14 @@
 
 ## Issue #50 — protected release gate — 2026-11-06
 
-Status: **IN PROGRESS — ENFORCEABLE REPOSITORY CHECKS AND ISOLATED STAGING VERIFIED; OWNER-ONLY GITHUB SETTINGS AND INDEPENDENT REVIEW REMAIN**.
+Status: **IN PROGRESS — MAIN RULESET AND ISOLATED STAGING VERIFIED; PROTECTED DEPLOYMENT ENVIRONMENT AND INDEPENDENT REVIEW REMAIN**.
 
 - Added a non-production release-governance slice with a mandatory PR template, exact-head evidence verifier, separate responsive/accessibility/security browser job, and a version-controlled governance policy. Codex self-testing is explicitly evidence rather than independent approval.
 - Added the required reconciliation for Amplify jobs 896, 904, 906, 908, 909 and 911. It records the feature/commit/window evidence available in Git, identifies missing initiator/approval evidence without guessing, and documents rollback boundaries that preserve user data.
 - Isolated staging is now available at `https://codex-issue-50-release-gate.d31oovi2mos5iz.amplifyapp.com/feed.html`. AWS Amplify app `d31oovi2mos5iz`, DEVELOPMENT branch `codex/issue-50-release-gate`, job `1` succeeded in `us-west-1` from 2026-11-06 12:32:43 to 12:33:28 Europe/Berlin. Production `main` and `danzstak.com` were not changed.
 - Post-staging browser evidence: the populated Feed/Profile matrix passed directly against the hosted preview at 320, 360, 390, 430 and 1366px. It verified no horizontal overflow, exact direct-image and direct-video alignment to the Feed grid, 44px menu targets, compact composer geometry, visible keyboard focus, DANZSTAK blue/orange tokens and Profile containment. GitHub `regression` and `responsive-accessibility-security` also passed for source SHA `d86b493410defd197a171fe938c8e3dd51c4e540`.
-- Current read-only audit evidence: the public GitHub API returned no repository rulesets and exposed only the `github-pages` Environment, with administrator bypass allowed. A protected `production` Environment and verified `main` ruleset are therefore not proven and must be configured by the repository owner.
-- Required owner actions are documented precisely in `docs/RELEASE-GOVERNANCE.md`: PR-only `main`, one independent human approval, stale-approval dismissal, current required checks, conversation resolution, no force push/deletion/admin bypass, and a protected production Environment restricted to `main`.
+- Active GitHub ruleset `Protect production main` (ID `26689955`) was created through the authenticated owner API and read back successfully. It targets the default branch, has zero bypass actors, requires pull requests, one approval, stale-review dismissal, most-recent-push approval, resolved conversations and strict current checks `regression`, `responsive-accessibility-security` and `release-evidence`; deletion and non-fast-forward pushes are blocked.
+- Remaining owner-bound action: identify the independent human reviewer's GitHub account and configure a protected `production` Environment with that required reviewer, self-review prevention and a `main`-only deployment policy. The existing account exposes only `github-pages`; this report does not misrepresent the production environment as complete.
 - This branch is not deployed to production. Its independent verdict remains **UNVERIFIED** until an authorized human reviews the exact source SHA on the isolated staging preview and the owner applies the account-level controls. No production release is authorized by this report entry.
 
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
