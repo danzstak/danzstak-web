@@ -28,3 +28,38 @@ jobs:
       - name: Run complete local regression suite
         shell: pwsh
         run: .\test-regressions.ps1
+
+  responsive-accessibility-security:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Verify responsive, accessible and security boundaries
+        shell: pwsh
+        run: |
+          node test-mobile-design-system.cjs
+          node test-responsive-media.cjs
+          node test-touch-targets.cjs
+          node test-skip-navigation.cjs
+          node test-static-link-integrity.cjs
+          node test-social-origins.cjs
+          node test-authentication.cjs
+
+  release-evidence:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Verify releasable PWA and infrastructure evidence
+        shell: pwsh
+        run: |
+          node test-pwa-shell-refresh.cjs
+          .\test-release-verification.ps1
+          .\test-site.ps1
+          .\test-infrastructure.ps1
