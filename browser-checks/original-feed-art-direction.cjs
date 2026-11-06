@@ -85,6 +85,7 @@ function normalize(value) { return String(value || "").replace(/\s+/g, ""); }
       await page.route("https://api.danzstak.com/**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(new URL(route.request().url()))) }));
       await page.goto(`${origin}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.locator(`.post[data-post-id="${videoPostId}"]`).waitFor();
+      await page.locator(".composer-media-tools").waitFor({ state: "attached" });
       await page.waitForTimeout(150);
 
       await page.locator("body").evaluate(body => body.classList.remove("danzstak-original"));
@@ -99,9 +100,7 @@ function normalize(value) { return String(value || "").replace(/\s+/g, ""); }
           const m = media.getBoundingClientRect();
           return { post: [p.left, p.right], media: [m.left, m.right], aligned: Math.abs(p.left - m.left) <= 1 && Math.abs(p.right - m.right) <= 1 };
         };
-        const firstAction = document.querySelector(`.post[data-post-id="${imagePostId}"] .post-actions button`);
-        firstAction.focus();
-        const focus = getComputedStyle(firstAction);
+        const firstPostTop = document.querySelector("#feed .post")?.getBoundingClientRect().top || 0;
         const menuRows = [...document.querySelectorAll(".left .menu a,.left .menu .menu-action")].map(row => ({
           label: row.textContent.trim(),
           className: row.className,
@@ -117,10 +116,11 @@ function normalize(value) { return String(value || "").replace(/\s+/g, ""); }
           brand: root.getPropertyValue("--ds-brand").trim(),
           accent: root.getPropertyValue("--ds-accent").trim(),
           headerBorder: getComputedStyle(document.querySelector(".topbar")).borderBottomColor,
-          focusWidth: parseFloat(focus.outlineWidth),
-          focusStyle: focus.outlineStyle,
           menuTargets: menuRows,
           composerHeight: composer?.height || 0,
+          composerExpanded: document.querySelector("#postComposer")?.classList.contains("is-expanded") || false,
+          composerTextHeight: document.querySelector("#postText")?.getBoundingClientRect().height || 0,
+          firstPostTop,
           bodyClass: document.body.classList.contains("danzstak-original")
         };
       }, { imagePostId, videoPostId });
@@ -132,10 +132,27 @@ function normalize(value) { return String(value || "").replace(/\s+/g, ""); }
       assert.equal(normalize(geometry.headerBorder), "rgb(239,108,32)");
       assert.ok(geometry.image.aligned, `${width}px direct image is inset: ${JSON.stringify(geometry.image)}`);
       assert.ok(geometry.video.aligned, `${width}px direct video is inset: ${JSON.stringify(geometry.video)}`);
-      assert.ok(geometry.focusStyle !== "none" && geometry.focusWidth >= 3, `${width}px Feed action lacks a visible focus state`);
       assert.ok(geometry.menuTargets.every(row => row.height >= 44), `${width}px menu row below 44px: ${JSON.stringify(geometry.menuTargets.filter(row => row.height < 44))}`);
       if (width < 700) assert.ok(geometry.composerHeight <= 180, `${width}px composer is too tall: ${geometry.composerHeight}`);
+      if (width >= 700) {
+        assert.ok(!geometry.composerExpanded && geometry.composerHeight <= 100 && geometry.composerTextHeight <= 48, `${width}px initial desktop composer is not compact: ${JSON.stringify(geometry)}`);
+        assert.ok(geometry.firstPostTop > 0 && geometry.firstPostTop < 900, `${width}px first post is outside the initial viewport: ${geometry.firstPostTop}`);
+      }
       await page.screenshot({ path: path.join(output, `after-feed-${width}.png`), fullPage: width >= 700 });
+
+      const firstAction = page.locator(`.post[data-post-id="${imagePostId}"] .post-actions button`).first();
+      await firstAction.focus();
+      const focus = await firstAction.evaluate(element => ({ width: parseFloat(getComputedStyle(element).outlineWidth), style: getComputedStyle(element).outlineStyle }));
+      assert.ok(focus.style !== "none" && focus.width >= 3, `${width}px Feed action lacks a visible focus state`);
+
+      if (width >= 700) {
+        await page.evaluate(() => scrollTo(0, 0));
+        await page.locator("#postText").focus();
+        await page.locator("#postText").fill("Draft preserved while the composer expands.");
+        await page.locator("#storiesRail").click({ position: { x: 2, y: 2 } });
+        const expandedDraft = await page.evaluate(() => ({ expanded: document.querySelector("#postComposer").classList.contains("is-expanded"), value: document.querySelector("#postText").value }));
+        assert.deepEqual(expandedDraft, { expanded: true, value: "Draft preserved while the composer expands." }, "desktop composer must expand on focus and preserve the draft");
+      }
 
       await page.goto(`${origin}/profile.html`, { waitUntil: "domcontentloaded" });
       await page.locator("#profileContent:not([hidden])").waitFor();

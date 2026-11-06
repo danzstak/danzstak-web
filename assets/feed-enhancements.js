@@ -2338,12 +2338,28 @@ const publishButton = document.getElementById("publishBtn");
 if (composerActions && publishButton) {
   const composerPanel = document.getElementById("postComposer");
   const composerText = document.getElementById("postText");
-  const expandComposer = () => composerPanel?.classList.add("is-expanded");
+  const applyCollapsedDesktopSizing = collapsed => {
+    if (!composerText) return;
+    const compact = collapsed && matchMedia("(min-width: 701px)").matches;
+    if (compact) {
+      composerText.style.setProperty("min-height", "46px", "important");
+      composerText.style.setProperty("height", "46px", "important");
+    } else {
+      composerText.style.removeProperty("min-height");
+      composerText.style.removeProperty("height");
+    }
+  };
+  const expandComposer = () => { composerPanel?.classList.add("is-expanded"); applyCollapsedDesktopSizing(false); };
   const collapseComposer = () => {
-    if (!composerText?.value.trim() && !window.danzstakSelectedMedia) composerPanel?.classList.remove("is-expanded");
+    if (!composerText?.value.trim() && !window.danzstakSelectedMedia) {
+      composerPanel?.classList.remove("is-expanded");
+      applyCollapsedDesktopSizing(true);
+    }
   };
   composerText?.addEventListener("focus", expandComposer);
   composerText?.addEventListener("input", expandComposer);
+  if (composerText?.value.trim()) expandComposer(); else collapseComposer();
+  addEventListener("resize", () => applyCollapsedDesktopSizing(!composerPanel?.classList.contains("is-expanded")), { passive: true });
   composerPanel?.querySelector(".post-location-picker")?.addEventListener("toggle", event => {
     if (event.currentTarget.open) expandComposer();
   });
