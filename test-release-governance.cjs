@@ -17,6 +17,7 @@ for (const check of ["regression", "responsive-accessibility-security", "release
   assert.match(workflow, new RegExp(`^  ${check}:`, "m"), `review workflow must expose required ${check} check`);
 }
 assert.match(workflow, /playwright@1\.56\.1/, "browser review runtime must be pinned");
+assert.match(workflow, /mcr\.microsoft\.com\/playwright:v1\.56\.1-noble/, "browser and OS dependencies must use the matching pinned Playwright container");
 assert.match(workflow, /original-feed-art-direction\.cjs/, "review must render real responsive pages");
 assert.match(browserProof, /\[320, 360, 390, 430, 1366\]/, "browser proof must cover all required phone widths and desktop");
 for (const heading of ["Source SHA", "Preview / staging", "Functional tests", "Responsive / accessibility evidence", "Security / privacy review", "UX review", "Deployment state", "Rollback", "Independent reviewer verdict", "Owner production decision"]) {

@@ -43,6 +43,7 @@ jobs:
 
   responsive-accessibility-security:
     runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.56.1-noble
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -51,8 +52,6 @@ jobs:
           node-version: 24
       - name: Install pinned browser test runtime
         run: npm install --no-save --ignore-scripts playwright@1.56.1
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
       - name: Run security and accessibility regressions
         run: |
           node test-social-origins.cjs
