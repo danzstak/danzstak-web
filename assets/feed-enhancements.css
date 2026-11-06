@@ -315,7 +315,7 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
 /* Mobile app shell: one compact header and one persistent five-item bottom nav. */
 @media(max-width:700px){
   :root{--mobile-app-header:54px;--mobile-app-nav:54px}
-  body{padding-bottom:calc(var(--mobile-app-nav) + env(safe-area-inset-bottom))}
+  body{padding-bottom:calc(var(--mobile-app-nav) + env(safe-area-inset-bottom) + 2px)}
   .topbar{
     position:sticky!important;
     top:0;

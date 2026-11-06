@@ -74,6 +74,6 @@ context.button = button;
   assert.match(styles, /\.friend-directory-actions,\.friend-request-actions\{display:flex;align-items:center;gap:6px;flex-wrap:nowrap/);
   assert.match(styles, /\.friend-sync-action,.friend-more-action,.friend-request-actions button\{min-height:44px/, "mobile friend controls retain a 44px touch target");
   assert.match(feed, /feed-enhancements\.js\?v=531/);
-  assert.match(feed, /feed-enhancements\.css\?v=500/);
+  assert.match(feed, /feed-enhancements\.css\?v=501/);
   console.log("Friend-removal checks passed: opaque identity, atomic relationship cleanup, confirmation, recovery, localization, and mobile controls.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
