@@ -134,4 +134,9 @@ body[data-call-mode] .media-controls .hangup-button{background:#df3347!important
   .conversation{background:#fff}
 }
 
+/* Tablet split view needs enough room for the contact name and header actions. */
+@media(min-width:761px) and (max-width:900px){
+  .chat-shell{grid-template-columns:minmax(250px,290px) minmax(0,1fr)!important}
+}
+
 @media(prefers-reduced-motion:reduce){.sync-call-screen,.conversation{scroll-behavior:auto!important}}
