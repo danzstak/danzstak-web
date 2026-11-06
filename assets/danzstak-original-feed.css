@@ -75,9 +75,6 @@ body.danzstak-original .menu :is(a,.menu-action) {
   font-size:14px;
   color:var(--ds-ink);
 }
-body.danzstak-original .menu .app-menu-link {
-  min-height:44px;
-}
 body.danzstak-original .menu a.active {
   background:var(--ds-brand-soft);
   color:var(--ds-brand);

@@ -68,7 +68,7 @@ function fixture(url) {
 function normalize(value) { return String(value || "").replace(/\s+/g, ""); }
 
 (async () => {
-  const browser = await chromium.launch({ channel: "msedge", headless: true });
+  const browser = await chromium.launch({ headless: true });
   try {
     for (const width of widths) {
       const height = width < 700 ? 844 : 900;
