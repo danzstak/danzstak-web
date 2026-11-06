@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Issue #13 — private Facebook import review and date selection — 2026-11-06
+
+Status: **IMPLEMENTED AND TESTED; PRODUCTION DEPLOYMENT PENDING THIS RELEASE**.
+
+- Corrected the import safety default from **Public** to **Only me**. Imported posts begin unselected, and nothing is published until the member selects items, reviews missing-media/shared-source warnings, chooses an audience and confirms the final import. Wider Friends or Public visibility remains an explicit member choice, including per-post overrides.
+- Added inclusive **From** and **Through** date controls plus a **Select date range** action. Members can now select only eligible posts within a chosen period without losing the existing individual-selection workflow.
+- Preserved the existing preview, deduplication, media review, third-party/shared-source approval and item-level audience controls. No Facebook archive is uploaded by the browser test and no real account data is included in screenshots.
+- Responsive browser evidence: `browser-checks/facebook-import-privacy.cjs` passes at 320, 390, 430 and 1366px. It verifies the Only Me default, zero preselection, inclusive range selection, explicit Friends selection, 44px controls, a reachable sticky dialog header and zero horizontal overflow. Captures are in `docs/screenshots/issue-13-import-privacy/`.
+- Functional/integration evidence: `test-facebook-import.cjs`, PWA shell refresh and script-scope checks pass. The complete `test-regressions.ps1` gate passes with exit code 0, including authentication, account isolation, social features, media/audio coordination, Booking, EPK, Tour Manager, Stripe safeguards, all 11 smoke pages and infrastructure validation.
+- Release assets: Profile references `facebook-import.css?v=341` and `facebook-import.js?v=343`; the PWA shell advances to `danzstak-shell-v693`. No offline drafts or user data are deleted.
+- Verification boundary: automated browser evidence covers desktop and responsive browser behavior. Physical Android/iPhone installed-PWA interaction and a real Facebook archive import remain owner acceptance checks and are not represented as complete.
+
 ## Issue #48 — SYNC mobile messaging and call-state rescue — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND REAL TWO-ACCOUNT/TWO-DEVICE CALL ACCEPTANCE REMAIN**.
