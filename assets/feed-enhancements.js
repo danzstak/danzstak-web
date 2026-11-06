@@ -58,6 +58,10 @@ function isLocalHost() {
 
 function updateNotificationCount(count) {
   const safeCount = Math.max(0, Number(count) || 0);
+  try {
+    if (safeCount && typeof navigator.setAppBadge === "function") navigator.setAppBadge(safeCount).catch(() => {});
+    else if (!safeCount && typeof navigator.clearAppBadge === "function") navigator.clearAppBadge().catch(() => {});
+  } catch { /* Badging is an optional enhancement. */ }
   for (const control of notificationControls) {
     if (!control.dataset.baseLabel) control.dataset.baseLabel = control.dataset.feature || control.textContent.trim();
     const translatedLabel = feedTranslate(control.dataset.baseLabel);

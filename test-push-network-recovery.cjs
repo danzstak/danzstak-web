@@ -3,13 +3,10 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 const source = fs.readFileSync('assets/push-notifications.js', 'utf8');
-const callCss = fs.readFileSync('assets/incoming-calls.css', 'utf8');
-assert.match(callCss, /\.push-alert-prompt\[hidden\]\{display:none\}/, 'the chat suppression state must override the prompt grid display');
-assert.match(callCss, /\.push-alert-prompt\{[^}]*right:max\(16px,env\(safe-area-inset-right\)\)/, 'the desktop notification prompt should stay clear of the left navigation');
-assert.doesNotMatch(callCss, /\.push-alert-prompt\{[^}]*left:/, 'the notification prompt must not cover lower navigation links');
-assert.match(source, /document\.body\.classList\.contains\("messages-page"\)/, 'the global permission prompt must not cover the dedicated Messages composer');
-assert.match(source, /document\.getElementById\('messageDrawer'\)\?\.hidden === false[\s\S]*?document\.getElementById\('notificationDrawer'\)\?\.hidden === false/, 'the permission prompt must not cover an already open communication drawer');
-assert.match(source, /function syncPromptDrawerVisibility\(\)[\s\S]*?danzstak:message-drawer[\s\S]*?danzstak:notification-drawer/, 'the permission prompt should yield to Messages and Notifications and return after either closes');
+assert.doesNotMatch(source, /showPermissionPrompt|setTimeout\([^)]*requestPermission/, 'page load must never schedule a notification permission prompt');
+assert.match(source, /async function enable\(\)[\s\S]*Notification\.requestPermission\(\)/, 'permission may be requested only inside the explicit enable action');
+assert.match(source, /async function disable\(\)[\s\S]*method: "DELETE"[\s\S]*subscription\.unsubscribe\(\)/, 'disable must revoke the server subscription and the browser endpoint');
+assert.match(source, /window\.danzstakDisablePush = disable/, 'device settings must receive a functional disable action from the push module');
 const start = source.indexOf('async function withDeadline(');
 const end = source.indexOf('async function state()', start);
 assert.ok(start >= 0 && end > start, 'push deadline helpers are missing');
@@ -45,7 +42,8 @@ vm.runInContext(source.slice(start, end), context);
     'withDeadline(navigator.serviceWorker.ready, 10000',
     'withDeadline(registration.pushManager.getSubscription(), 10000',
     'withDeadline(registration.pushManager.subscribe({',
-    'signal: controller.signal'
+    'signal: controller.signal',
+    'withDeadline(subscription.unsubscribe(), 10000'
   ]) assert.ok(source.includes(required), `Push operation bypasses deadline recovery: ${required}`);
   console.log('Push network checks passed: API, service-worker, status, and subscription operations are bounded.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
