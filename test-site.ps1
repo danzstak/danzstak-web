@@ -425,7 +425,7 @@ foreach ($notificationAccessibility in @('list.setAttribute("aria-label", feedTr
 foreach ($protectedProfileMedia in @('if (stored.mediaUrl)', 'stored.mediaKey && !viewingOtherProfile')) {
   if (-not $profileEditorJs.Contains($protectedProfileMedia)) { Add-Failure "Profiles: media authorization safeguard is missing: $protectedProfileMedia" }
 }
-foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Stay signed in until you sign out', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: false', 'language: language.value')) {
+foreach ($settingsBehavior in @('danzstak_reduce_motion', 'danzstak_data_saver', 'Sessions expire 30 days after sign-in', '"Account", logout', 'Settings saved to your DanzStak account.', 'darkMode: false', 'language: language.value')) {
   if (-not $feedEnhancements.Contains($settingsBehavior)) { Add-Failure "Settings: persistent control is missing: $settingsBehavior" }
 }
 foreach ($legalSettingsBehavior in @('"Legal and privacy"', 'privacyLink.href = "privacy.html"', 'termsLink.href = "terms.html"', 'legalLinks.append(privacyLink, termsLink)')) {
