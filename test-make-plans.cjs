@@ -22,6 +22,6 @@ assert.match(template,/GET \/plans/);
 assert.match(template,/POST \/plans\/{planId}\/respond/);
 assert.match(template,/PATCH \/plans\/{planId}/);
 assert.match(template,/type:'plan'/);
-assert.match(worker,/danzstak-shell-v688/);
+assert.match(worker,/danzstak-shell-v689/);
 assert.match(worker,/assets\/make-plans\.js/);
 console.log("PASS: Make Plans MVP structure, privacy guards, optimistic revisions, calendar export, mobile layout, and PWA shell coverage");
