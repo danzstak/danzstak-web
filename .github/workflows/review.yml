@@ -2,6 +2,7 @@ name: Review checks
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   workflow_dispatch:
 
 permissions:
@@ -12,6 +13,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  release-evidence:
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Verify current review and release evidence
+        run: node scripts/verify-pr-release-evidence.cjs
+
   regression:
     runs-on: windows-latest
     timeout-minutes: 20
@@ -28,3 +41,38 @@ jobs:
       - name: Run complete local regression suite
         shell: pwsh
         run: .\test-regressions.ps1
+
+  responsive-accessibility-security:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.56.1-noble
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install pinned browser test runtime
+        run: npm install --no-save --ignore-scripts playwright@1.56.1
+      - name: Run security and accessibility regressions
+        run: |
+          node test-social-origins.cjs
+          node test-feed-csp.cjs
+          node test-dialog-focus.cjs
+          node test-skip-navigation.cjs
+          node test-exclusive-mobile-screens.cjs
+          node test-static-link-integrity.cjs
+          node test-pwa-shell-refresh.cjs
+      - name: Start isolated static preview
+        run: python3 -m http.server 8024 --bind 127.0.0.1 > /tmp/danzstak-preview.log 2>&1 &
+      - name: Verify real rendered Feed and Profile
+        env:
+          DANZSTAK_FEED_ORIGIN: http://127.0.0.1:8024
+        run: node browser-checks/original-feed-art-direction.cjs
+      - name: Upload rendered evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: responsive-review-${{ github.sha }}
+          path: docs/screenshots/issue-60-feed-art-direction/
+          if-no-files-found: error
+          retention-days: 14
