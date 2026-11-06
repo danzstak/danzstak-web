@@ -2,12 +2,15 @@
 
 ## Issue #54 — compact Friends directory — 2026-11-06
 
-Status: **IN PROGRESS — RECONCILED WITH CURRENT MAIN; EXACT-HEAD TESTS AND STAGING REVALIDATION PENDING**.
+Status: **IN PROGRESS — EXACT-HEAD STAGING VERIFIED; INDEPENDENT REVIEW AND PHYSICAL/TWO-ACCOUNT ACCEPTANCE REMAIN**.
 
 - Friends provides four simultaneously visible 44px tabs: **All Friends**, **Online**, **Requests**, and **Find Friends**. The directory uses compact responsive rows with profile identity, truthful presence, **Message (SYNC)** and a confirmed **More** relationship flow. Lists page in bounded batches and member discovery remains available for offline, privacy-eligible accounts.
 - Background presence updates do not rebuild Find Friends. Entered query, rendered results, selection and keyboard focus survive a real-shaped `danzstak-presence-update`; only matching presence rows and counts update.
 - The current reconciliation preserves the production Roll playback correction, Facebook-import privacy flow, Feed/Profile foundation, SYNC navigation, blocking/privacy behavior and Booking identity. Candidate assets are `feed-enhancements.css?v=502`, `feed-enhancements.js?v=532`, `i18n.js?v=395` and `danzstak-shell-v695`; no drafts or member data are cleared.
 - The browser review matrix covers 320, 360, 390, 430, 768 and 1366px with 100-friend paging, 10 online members, requests, local search, member discovery, keyboard tabs, the More dialog, 44px hit geometry and zero overflow. Fixture captures are in `docs/screenshots/issue-54/` and demonstrate rendering rather than real member state.
+- Reconciliation commit `15acb3db55d3bf839eb7ee97e02415e0b0cc4cd3` preserves current `main` and passed the complete `test-regressions.ps1` gate, including all JavaScript checks, the 11-page site smoke suite and infrastructure validation. Focused Friends and core-social browser matrices also passed locally.
+- Staging deployment: AWS Amplify app `d31oovi2mos5iz`, DEVELOPMENT branch `codex/issue-54-friends-redesign`, job `18` succeeded in `us-west-1` at 2026-11-06 13:17:04 Europe/Berlin for that exact commit. The preview is `https://codex-issue-54-friends-redesign.d31oovi2mos5iz.amplifyapp.com/feed.html?view=friends`.
+- Hosted verification: the Friends matrix passed against staging at 320, 360, 390, 430, 768 and 1366px, and the core-social mobile matrix passed 25 page/viewport combinations. Production was not changed.
 - Acceptance boundary: the DEVELOPMENT frontend uses the production identity/API origin, so real relationship mutations are not performed merely to manufacture evidence. A controlled two-account add/accept/remove/block/SYNC check and physical installed-PWA review remain required before those boundaries can be claimed.
 
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
