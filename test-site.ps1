@@ -73,9 +73,10 @@ foreach ($bookingClientControl in @('Send me out and bring me home', 'First show
 foreach ($bookingAccessibilityControl in @('tourNameLabel.append(document.createTextNode("Tour name"),tourName)', 'savedPanel.setAttribute("aria-labelledby","savedToursTitle")', 'routeStatus.setAttribute("role","status")', 'saveStatus.setAttribute("role","status")')) {
   if (-not $bookingClientCompact.Contains(($bookingAccessibilityControl -replace '\s+', ''))) { Add-Failure "Booking Agent: accessible route or saved-tour feedback is missing: $bookingAccessibilityControl" }
 }
-foreach ($bookingInteraction in @('$("startCity").value=""', '$("startCity").placeholder="City, region, country"', '$("endCity").disabled=local', '$("tourStops").disabled=local', '$("endCity").addEventListener("focus",useDestinationMode)', '$("tourStops").addEventListener("focus",useDestinationMode)', 'routeAction.textContent=local?"Find clubs near home":"Start route"')) {
+foreach ($bookingInteraction in @('$("startCity").placeholder="City, region, country"', '$("endCity").disabled=local', '$("tourStops").disabled=local', '$("endCity").addEventListener("focus",useDestinationMode)', '$("tourStops").addEventListener("focus",useDestinationMode)', 'routeAction.textContent=local?"Find clubs near home":"Start route"')) {
   if (-not $bookingClientCompact.Contains(($bookingInteraction -replace '\s+', ''))) { Add-Failure "Booking Agent: interactive route control is missing: $bookingInteraction" }
 }
+if ($bookingClientCompact.Contains('$("startCity").value=""')) { Add-Failure 'Booking Agent: startup must not erase the saved Home city' }
 if (-not $bookingClientCompact.Contains('routeOptions.append(modeLabel,routePicker,directionLabel,departLabel,returnLabel,)') -or -not $bookingClientCompact.Contains('routeFieldset.querySelector(".two").after(routeOptions)')) {
   Add-Failure 'Booking Agent: route controls do not follow the performer and genre choices'
 }

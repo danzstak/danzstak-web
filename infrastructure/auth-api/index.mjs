@@ -3698,6 +3698,44 @@ async function bookingWorkspace(event, method) {
   return reply(200, { revision, estimate });
 }
 
+async function bookingIdentity(event) {
+  const headers = corsHeaders(event.headers?.origin);
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const data = parseJsonBody(event);
+  if (!data || typeof data !== "object" || Array.isArray(data) || typeof data.revision !== "string") return reply(400, { error: "Provide the loaded booking revision." });
+  const name = typeof data.name === "string" ? data.name.trim().slice(0, 100) : null;
+  const hometown = typeof data.hometown === "string" ? data.hometown.trim().slice(0, 160) : null;
+  if (name === null || hometown === null || !hometown) return reply(400, { error: "Add a valid home city before saving." });
+  const Key = { userId: { S: userId }, tourId: { S: bookingWorkspaceId } };
+  const current = await db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true }));
+  const currentRevision = current.Item?.revision?.S || "";
+  if (currentRevision !== data.revision) return reply(409, { error: "Your booking details changed on another device. Reload them before saving." });
+  let saved = {};
+  try { saved = current.Item?.plan?.S ? JSON.parse(current.Item.plan.S) : {}; } catch { return reply(409, { error: "Your saved booking workspace needs to be reloaded before editing." }); }
+  const plan = JSON.stringify({
+    venues: Array.isArray(saved.venues) ? saved.venues : [],
+    artist: { ...(saved.artist && typeof saved.artist === "object" && !Array.isArray(saved.artist) ? saved.artist : {}), name, hometown },
+    tour: saved.tour && typeof saved.tour === "object" && !Array.isArray(saved.tour) ? saved.tour : cleanTourBudget({})
+  });
+  if (Buffer.byteLength(plan, "utf8") > 250000) return reply(400, { error: "Workspace is too large. Export a copy and reduce the list." });
+  const revision = randomUUID(), timestamp = new Date().toISOString();
+  try {
+    await db.send(new PutItemCommand({
+      TableName: toursTable,
+      Item: { ...(current.Item || {}), ...Key, name: { S: "Booking workspace" }, plan: { S: plan }, revision: { S: revision }, updatedAt: { S: timestamp } },
+      ConditionExpression: currentRevision ? "revision = :revision" : "attribute_not_exists(userId)",
+      ...(currentRevision ? { ExpressionAttributeValues: { ":revision": { S: currentRevision } } } : {})
+    }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return reply(409, { error: "Your booking details changed on another device. Reload them before saving." });
+    throw error;
+  }
+  return reply(200, { artist: { name, hometown }, revision, updatedAt: timestamp });
+}
+
 async function saveTourPlan(event) {
   const headers = corsHeaders(event.headers?.origin);
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -3957,6 +3995,7 @@ export const handler = async event => {
     if (method === "POST" && path === "/tour/manual-venue") return await addManualBookingVenue(event);
 
     if ((method === "GET" || method === "POST") && path === "/booking-pipeline") return await bookingWorkspace(event, method);
+    if (method === "PATCH" && path === "/booking-pipeline/identity") return await bookingIdentity(event);
     if ((method === "GET" || method === "POST" || method === "DELETE") && path === "/epk") return await epkWorkspace(event, method);
     if (method === "POST" && path === "/epk/share") return await privateEpkShare(event, method);
     const epkPublicMatch = path.match(/^\/epk\/public\/([a-z0-9-]{3,64})$/i);
