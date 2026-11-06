@@ -2,7 +2,7 @@
 
 ## Issue #20 — explicit PWA push lifecycle and active-chat suppression — 2026-11-06
 
-Status: **IN PROGRESS — LOCAL FUNCTIONAL/BROWSER GATES PASS; STAGING AND PHYSICAL DEVICE DELIVERY REMAIN**.
+Status: **IN PROGRESS — LOCAL AND HOSTED STAGING GATES PASS; PHYSICAL DEVICE DELIVERY REMAINS**.
 
 - Removed the page-load notification promotion. DanzStak now requests browser permission only after the member chooses **Enable alerts** in App and device settings; already-approved subscriptions may still renew silently so they do not expire from the server.
 - Added a real device-level disable path owned by the push module. It deletes the authenticated server subscription, unsubscribes the browser endpoint, clears sync state and preserves a logout-safe fallback without maintaining two competing implementations.
@@ -12,6 +12,8 @@ Status: **IN PROGRESS — LOCAL FUNCTIONAL/BROWSER GATES PASS; STAGING AND PHYSI
 - PWA assets advance to `assets/push-notifications.js?v=309`, `assets/feed-enhancements.js?v=530`, `assets/direct-messages.js?v=486` and `danzstak-shell-v695`; no account data, offline drafts or messages are deleted.
 - Automated evidence: `test-pwa-push.cjs`, push recovery/localization, messaging races, notification/call, PWA and site/infrastructure checks pass. The complete `test-regressions.ps1` gate passes in one run with exit code 0 after installing the committed backend test dependencies.
 - Actual-browser evidence: `scripts/verify-pwa-push.cjs` passes in Edge/Chromium at 390×844. It waits beyond the former 12-second prompt delay, proves zero permission requests and no opt-in banner, then verifies explicit enable and disable against controlled Web Push fixtures with no page errors.
+- Review release: implementation commit `a9ab9c2cdd9cb2c069c8db6d0ffea84a615a5a53` is published on branch `codex/issue-20-pwa-push` in PR `#84`. AWS Amplify development job `1` succeeded in `us-west-1` without changing production. The staging PWA is `https://codex-issue-20-pwa-push.d31oovi2mos5iz.amplifyapp.com`.
+- Hosted evidence: no-cache reads from staging returned HTTP 200 and the exact `push-notifications.js?v=309`, `feed-enhancements.js?v=530` and `danzstak-shell-v695` release assets. The same 390×844 Edge/Chromium check passes directly against staging, including the former 12-second auto-prompt window, explicit permission enable and device-level disable.
 - Verification boundary: no production deployment is authorized by Issue #20. A real background/closed-PWA delivery from account A to account B, Android installed-PWA delivery, eligible iOS Home Screen delivery, OS denial recovery and provider outcome evidence remain **UNVERIFIED** until physical devices and controlled accounts are available. Push fanout for engagement replies/mentions and server-enforced quiet hours also remains incomplete; in-app Buzz continues to work and these gaps are not represented as finished.
 
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
