@@ -29,12 +29,33 @@ async function assertViewport(page, width, state) {
       const height = width < 700 ? 844 : 768;
       const context = await browser.newContext({ viewport: { width, height }, hasTouch: width < 700, isMobile: width < 700, serviceWorkers: "block" });
       const page = await context.newPage();
+      await page.addInitScript(() => {
+        window.__syncMediaRequests = [];
+        const stream = new MediaStream();
+        Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: {
+          getUserMedia: async constraints => {
+            window.__syncMediaRequests.push(constraints);
+            return stream;
+          }
+        } });
+        window.RTCPeerConnection = class MockPeerConnection {
+          constructor() { this.iceGatheringState = "complete"; this.connectionState = "new"; this.localDescription = null; }
+          addTrack() {}
+          addEventListener() {}
+          removeEventListener() {}
+          createDataChannel() { return { addEventListener() {}, close() {} }; }
+          async createOffer() { return { type: "offer", sdp: "test-offer" }; }
+          async setLocalDescription(description) { this.localDescription = description; }
+          close() { this.connectionState = "closed"; }
+        };
+      });
       const errors = [];
       page.on("pageerror", error => errors.push(error.message));
       await page.route("https://api.danzstak.com/**", route => {
         const endpoint = new URL(route.request().url()).pathname;
         if (endpoint === "/auth/session") return json(route, { authenticated: true, user: { sub: uuid(20), email: "owner@example.test" } });
         if (endpoint === "/calls/presence") return json(route, { ok: true });
+        if (endpoint === "/calls/signal") return json(route, { accepted: true });
         if (endpoint === "/conversations") return json(route, { conversations: [
           { contactEmail: "alice@example.test", memberId: uuid(1), name: "Alice Rivera", preview: "See you at soundcheck", updatedAt: "2026-11-04T18:00:00.000Z", unread: 2, canContact: true }
         ] });
@@ -74,6 +95,19 @@ async function assertViewport(page, width, state) {
       await page.locator(".conversation-user").first().click();
       await page.locator("body.is-conversation-open").waitFor();
       assert.equal(await page.locator("body").getAttribute("data-sync-screen"), "conversation");
+      for (const id of ["headerPhone", "headerVideo"]) {
+        const action = page.locator(`#${id}`);
+        await action.waitFor({ state: "visible" });
+        assert.equal(await action.isDisabled(), false, `${width}px ${id} must be enabled for a permitted contact`);
+        const box = await action.boundingBox();
+        assert.ok(box && box.width >= 44 && box.height >= 44, `${width}px ${id} must preserve a 44px touch target`);
+        assert.ok(box.x >= 0 && box.x + box.width <= width, `${width}px ${id} is clipped by the viewport`);
+        const hit = await page.evaluate(({ id, x, y }) => {
+          const target = document.elementFromPoint(x, y);
+          return target?.id === id || target?.closest?.(`#${id}`)?.id === id;
+        }, { id, x: box.x + box.width / 2, y: box.y + box.height / 2 });
+        assert.equal(hit, true, `${width}px ${id} must be hit-testable at its center`);
+      }
       await assertViewport(page, width, "conversation");
       if (capture && width === 390) await page.screenshot({ path: path.join(output, "sync-conversation-390.png"), fullPage: true });
 
@@ -92,11 +126,28 @@ async function assertViewport(page, width, state) {
       await page.evaluate(() => {
         document.getElementById("incomingCall").hidden = true;
         document.getElementById("incomingCall").style.removeProperty("display");
-        document.body.dataset.callMode = "video";
-        document.body.dataset.syncScreen = "video-call";
-        document.getElementById("videoGrid").hidden = false;
-        document.getElementById("mediaControls").hidden = false;
       });
+      await page.locator("#headerVideo").click();
+      await page.waitForTimeout(250);
+      if (await page.locator("body").getAttribute("data-call-mode") !== "video") {
+        const diagnostics = await page.evaluate(() => ({
+          headerDisabled: document.getElementById("headerVideo")?.disabled,
+          startDisabled: document.getElementById("startVideo")?.disabled,
+          contact: document.getElementById("contactEmail")?.value,
+          status: document.getElementById("callStatus")?.textContent,
+          errors: window.__syncMediaRequests
+        }));
+        throw new Error(`${width}px Video action did not start: ${JSON.stringify(diagnostics)}`);
+      }
+      await page.waitForFunction(() => document.body.dataset.callMode === "video" || document.getElementById("callStatus")?.textContent?.startsWith("Could not call:"));
+      const callMode = await page.locator("body").getAttribute("data-call-mode");
+      const callStatus = (await page.locator("#callStatus").textContent()).trim();
+      assert.equal(callMode, "video", `${width}px Video action failed to enter camera flow: ${callStatus}`);
+      await page.waitForFunction(() => window.__syncMediaRequests.length === 1);
+      const mediaRequest = await page.evaluate(() => window.__syncMediaRequests[0]);
+      assert.equal(mediaRequest.audio, true, `${width}px video call must request microphone access`);
+      assert.equal(typeof mediaRequest.video, "object", `${width}px video call must request camera access`);
+      assert.equal(await page.locator("body").getAttribute("data-sync-screen"), "video-call");
       const videoBox = await page.locator("#videoGrid").boundingBox();
       assert.ok(videoBox && Math.round(videoBox.width) === width && Math.round(videoBox.height) === height, `${width}px active video must own the viewport`);
       await assertViewport(page, width, "active video");

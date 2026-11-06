@@ -29,6 +29,8 @@ body[data-sync-screen="contacts"] .chat-contact-strip{display:none}
 body[data-sync-screen="calls"] .conversation-call-actions{display:flex}
 body[data-sync-screen="contacts"] .conversation-call-actions{display:none}
 .conversation-user,.conversation-call{border-radius:10px!important}
+.conversation-header-actions #headerPhone,
+.conversation-header-actions #headerVideo{width:44px;min-width:44px;height:44px;min-height:44px}
 .conversation-user:focus-visible,.conversation-call:focus-visible,.chat-heading-button:focus-visible,.new-chat-button:focus-visible{outline:3px solid #f3a449!important;outline-offset:1px}
 
 /* Incoming and active calls are primary screens, never cards inside the inbox. */
@@ -112,6 +114,19 @@ body[data-call-mode] .media-controls .hangup-button{background:#df3347!important
   body.is-conversation-open:not([data-call-mode]) .message-list{padding-bottom:18px!important}
   body.is-conversation-open:not([data-call-mode]) .message-form{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))!important}
 }
+
+@media(max-width:560px){
+  body.is-conversation-open:not([data-call-mode]) .conversation-header-actions #makePlans{display:none!important}
+  .conversation-menu #headerMakePlansMenu{display:block}
+}
+
+@media(min-width:561px){
+  .conversation-menu #headerMakePlansMenu{display:none}
+}
+
+.conversation-menu #headerMakePlansMenu{color:var(--sync-ink)!important}
+.conversation-menu #headerMakePlansMenu:hover,
+.conversation-menu #headerMakePlansMenu:focus-visible{background:#edf6ff!important}
 
 @media(min-width:761px){
   .chat-shell{grid-template-columns:minmax(310px,360px) minmax(0,1fr)!important;max-width:1280px!important;border:1px solid var(--sync-line);border-radius:16px;overflow:hidden;box-shadow:0 16px 44px #10182812}

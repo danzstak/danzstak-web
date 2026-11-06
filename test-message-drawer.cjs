@@ -25,8 +25,8 @@ assert.match(feed, /event\.data\?\.type === "danzstak-call-mode"\) drawer\.class
 assert.match(feed, /event\.data\?\.type === "danzstak-chat-view"\) drawer\.classList\.toggle\("is-conversation", event\.data\.open === true\)/, "ordinary conversations stay in the compact conversation drawer");
 assert.match(feed, /\.message-drawer\.is-conversation:not\(\.is-video-call\) \.message-drawer-bar\{display:none\}/, "an open conversation must not waste space on a second Chats header");
 assert.match(feed, /\.message-drawer\.is-conversation:not\(\.is-video-call\) iframe\{height:100%\}/, "the conversation frame must reclaim the removed header space");
-assert.match(messages, /aria-label="Phone call"><svg class="call-action-icon"/, "conversation header exposes a consistent phone action");
-assert.match(messages, /aria-label="Video call"><svg class="call-action-icon"/, "conversation header exposes a consistent video action");
+assert.match(messages, /aria-label="Phone call"[^>]*disabled[^>]*><svg class="call-action-icon"/, "conversation header exposes a safe, consistent phone action");
+assert.match(messages, /aria-label="Video call"[^>]*disabled[^>]*><svg class="call-action-icon"/, "conversation header exposes a safe, consistent video action");
 assert.match(directMessages, /function createCallActionIcon\(kind\)/, "chat list call actions use the same consistent icons");
 assert.match(directMessages, /\[\["phone", "startPhone"\], \["video", "startVideo"\]\]/, "chat list call actions distinguish phone and video calls");
 assert.match(chatCss, /\.call-action-icon\{[^}]*stroke:currentColor/, "call icons inherit the surrounding interface color");

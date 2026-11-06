@@ -74,6 +74,7 @@ if (conversationHeader && conversationAvatar && conversationHeaderActions.close)
   conversationHeader.insertBefore(conversationHeaderActions.close, conversationAvatar);
 }
 const conversationMenu = document.getElementById("conversationMenu");
+const headerMakePlansMenu = document.getElementById("headerMakePlansMenu");
 const headerDeleteChat = document.getElementById("headerDeleteChat");
 let directContact = "";
 let activeContactName = messageTranslate("Contact");
@@ -111,6 +112,11 @@ function closeConversationFromControl() {
 }
 function setConversationActionsEnabled(enabled) {
   for (const button of conversationActions) button.disabled = !enabled;
+  for (const button of [conversationHeaderActions.phone, conversationHeaderActions.video]) {
+    if (!button) continue;
+    button.disabled = !enabled;
+    button.setAttribute("aria-disabled", String(!enabled));
+  }
   if (messageMedia) messageMedia.disabled = !enabled;
   if (messageCamera) messageCamera.disabled = !enabled;
 }
@@ -400,7 +406,10 @@ function updateConversationPresence(conversation) {
 function openConversation(conversation, { updateHistory = true } = {}) {
   closeConversation();
   document.body.classList.add("is-conversation-open");
-  if (document.body?.dataset) document.body.dataset.syncScreen = "conversation";
+  if (document.body?.dataset) {
+    const callMode = document.body.dataset.callMode;
+    document.body.dataset.syncScreen = callMode === "video" ? "video-call" : callMode === "phone" ? "voice-call" : "conversation";
+  }
   if (updateHistory) rememberMobileConversation(conversation);
   if (window.parent !== window) window.parent.postMessage({ type: "danzstak-chat-view", open: true }, location.origin);
   contactInput.value = conversation.contactEmail;
@@ -1054,8 +1063,9 @@ conversationHeaderActions.more?.addEventListener("click", event => {
   const opening = conversationMenu.hidden;
   conversationMenu.hidden = !opening;
   conversationHeaderActions.more.setAttribute("aria-expanded", String(opening));
-  if (opening) headerDeleteChat?.focus();
+  if (opening) (headerMakePlansMenu || headerDeleteChat)?.focus();
 });
+headerMakePlansMenu?.addEventListener("click", () => { closeConversationMenu(); document.getElementById("makePlans")?.click(); });
 headerDeleteChat?.addEventListener("click", () => { closeConversationMenu(); deleteChat?.click(); });
 conversationMenu?.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); closeConversationMenu({ restoreFocus: true }); } });
 document.addEventListener("click", event => { if (!conversationMenu?.hidden && !conversationHeader.contains(event.target)) closeConversationMenu(); });
