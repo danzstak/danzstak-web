@@ -1190,10 +1190,12 @@ Status as of 2026-11-06: **IMPLEMENTED, TESTED, AND READY FOR REVIEW; PRODUCTION
 
 ## Booking Agent — projected tour income and break-even
 
-Status as of 2026-11-06: **IMPLEMENTED AND TESTED; REVIEW DEPLOYMENT PENDING**.
+Status as of 2026-11-07: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION UNCHANGED**.
 
 - The working tour-money card now includes editable average show pay and average merch profit per show, projected money in, break-even per show, and a plainly labeled projected profit or loss. It uses the requested show count and the same finish-line budget as the cost calculator, so the income side cannot silently ignore the road reserve.
 - The same values remain available in the advanced tour calculator, with projected show pay, merch profit, and overall result shown alongside the existing cost and safety calculations.
 - Actual-browser coverage changes both income inputs on the generated eight-show tour, verifies the resulting `$9,600` projected income, verifies break-even is calculated, and confirms the result changes to projected profit.
 - Asset identifiers advance to Booking Agent `v485` and installed-PWA shell `danzstak-shell-v704` so installed review clients cannot retain the previous calculator.
 - Focused Booking tests and the actual-browser suite passed at 320, 360, 390, 430, 768, and 1366px. The complete repository regression suite then passed, including the 11-page site smoke suite and infrastructure validation.
+- Review commit `49267597d4b1de8b533d229351e272850ec1ccdf` deployed through AWS Amplify app `d31oovi2mos5iz`, branch `codex/issue-55-booking-workspace`, job `20`, which succeeded in `us-west-1` from 2026-11-06 23:58:33 to 23:59:27 Europe/Berlin.
+- Hosted verification confirmed Booking Agent `v485` and installed-PWA cache `danzstak-shell-v704`, then reran the browser suite successfully against the review PWA at all six target widths. Production and the shared Booking Lambda remain unchanged.
