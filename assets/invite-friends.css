@@ -1,0 +1,19 @@
+.invite-friends-dialog{width:min(94vw,520px);max-height:min(88dvh,720px);padding:0;border:0;border-radius:16px;background:var(--ds-surface,#fff);color:var(--ds-ink,#172033);box-shadow:0 24px 70px #1018284d}
+.invite-friends-dialog::backdrop{background:#10182899}
+.invite-friends-panel{display:grid;gap:12px;padding:18px}
+.invite-friends-panel header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.invite-friends-panel h2{margin:2px 0 0;font-size:1.35rem;line-height:1.2}
+.invite-friends-kicker{color:var(--ds-accent,#1769e0);font-size:.72rem;font-weight:900;letter-spacing:.12em}
+.invite-friends-close{display:grid;place-items:center;width:44px;min-width:44px;height:44px;padding:0;border:0;border-radius:50%;background:var(--ds-surface-subtle,#f2f5f9);color:var(--ds-ink,#172033);font-size:0}
+.invite-friends-intro,.invite-friends-privacy,.invite-friends-status{margin:0;color:var(--ds-muted,#667085);line-height:1.45}
+.invite-friends-message{display:grid;gap:6px;font-weight:800}
+.invite-friends-message textarea{width:100%;min-height:104px;resize:vertical;border:1px solid var(--ds-border,#d9e1eb);border-radius:10px;padding:10px 12px;background:#fff;color:#172033;font:inherit;font-weight:500;line-height:1.45}
+.invite-friends-url{margin:0;padding:9px 11px;border-radius:8px;background:var(--ds-surface-subtle,#f2f5f9);color:var(--ds-accent,#1769e0);font-weight:800;overflow-wrap:anywhere}
+.invite-friends-status{min-height:1.35em}
+.invite-friends-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.invite-friends-dialog .invite-friends-actions button{min-height:46px!important;padding:9px 12px!important;border-radius:9px;font:inherit;font-weight:800}
+.invite-friends-actions button:first-child{grid-column:1/-1}
+.invite-friends-privacy{font-size:.82rem}
+.friends-invite-action{min-height:44px;white-space:nowrap}
+@media(max-width:430px){.invite-friends-dialog{width:calc(100vw - 16px);max-height:calc(100dvh - 24px);border-radius:14px}.invite-friends-panel{gap:10px;padding:14px}.invite-friends-actions{grid-template-columns:1fr}.invite-friends-actions button:first-child{grid-column:auto}}
+@media(prefers-reduced-motion:no-preference){.invite-friends-dialog[open]{animation:invite-friends-enter .16s ease-out}@keyframes invite-friends-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}}

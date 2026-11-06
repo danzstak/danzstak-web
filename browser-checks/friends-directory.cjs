@@ -69,6 +69,24 @@ function payload(pathname, url) {
       assert.equal(await page.getByRole("button", { name: /Message \(SYNC\):/ }).count(), 24, `${width}px should expose one clear SYNC action per visible friend`);
       assert.equal(await page.getByRole("button", { name: /More options for/ }).count(), 24, `${width}px should use safe More menus instead of exposed delete buttons`);
 
+      const invite = page.getByRole("button", { name: "Invite a Friend" });
+      await invite.click();
+      const inviteDialog = page.getByRole("dialog", { name: "Invite a Friend" });
+      await inviteDialog.waitFor({ state: "visible" });
+      assert.equal(await inviteDialog.getByRole("textbox", { name: "Invitation message" }).inputValue().then(value => value.includes("DANZSTAK")), true, `${width}px invitation should provide editable copy`);
+      assert.equal(await inviteDialog.getByRole("button", { name: "Text message (SMS)" }).isVisible(), true);
+      assert.equal(await inviteDialog.getByRole("button", { name: "Share via apps" }).isVisible(), true);
+      assert.equal(await inviteDialog.getByRole("button", { name: "Copy invitation link" }).isVisible(), true);
+      const inviteGeometry = await inviteDialog.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height, viewportWidth: innerWidth, viewportHeight: innerHeight };
+      });
+      assert.ok(inviteGeometry.left >= 0 && inviteGeometry.right <= width, `${width}px invite dialog must fit horizontally`);
+      assert.ok(inviteGeometry.top >= 0 && inviteGeometry.bottom <= inviteGeometry.viewportHeight, `${width}px invite dialog must fit vertically`);
+      if (width === 390) await page.screenshot({ path: join(screenshotDir, "friends-invite-390.png"), fullPage: false });
+      await inviteDialog.getByRole("button", { name: "Close invitation" }).click();
+      assert.equal(await invite.evaluate(element => document.activeElement === element), true, `${width}px closing invite should restore focus`);
+
       await page.getByRole("tab", { name: "Online (10)" }).click();
       assert.equal(await page.locator(".friend-directory-row").count(), 10, `${width}px Online tab should contain accepted online friends only`);
       await page.getByRole("tab", { name: "Requests (2)" }).click();

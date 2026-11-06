@@ -26,7 +26,7 @@ for (const language of languages) {
   assert.notEqual(translations[language][0], keys[0], `${language} must localize the primary action`);
 }
 
-assert.match(html, /assets\/i18n\.js\?v=394/);
+assert.match(html, /assets\/i18n\.js\?v=396/);
 assert.match(html, /assets\/make-plans\.js\?v=3/);
 assert.match(plans, /new Error\(t\(body\.error \|\| "Plans are temporarily unavailable\."\)\)/, "server plan errors should follow the selected language");
 assert.match(i18n, /\.plan-card h3,\.plan-card p/, "artist-entered plan details must never be machine-translated");
