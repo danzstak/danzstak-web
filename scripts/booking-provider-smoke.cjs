@@ -48,7 +48,13 @@ async function main() {
   assert.ok(Array.isArray(data.venues), "Venue discovery must return a venues array");
   assert.ok(Array.isArray(data.researchLeads), "Venue discovery must return a research-leads array");
   assert.ok(data.providers && typeof data.providers === "object", "Venue discovery must disclose provider status");
-  const providerStates = Object.fromEntries(Object.entries(data.providers).map(([name, value]) => [name, String(value?.status || value || "unknown")]));
+  const providerStates = Object.fromEntries(data.providers.map(provider => [
+    String(provider?.name || "Unknown provider"),
+    {
+      status: provider?.skipped ? "not-configured" : provider?.ok ? "ok" : "unavailable",
+      count: Number.isFinite(Number(provider?.count)) ? Number(provider.count) : 0
+    }
+  ]));
   assert.ok(Object.keys(providerStates).length > 0, "At least one discovery provider must report status");
 
   const sourcedVenueCount = data.venues.filter(venue =>

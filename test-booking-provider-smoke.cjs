@@ -11,6 +11,8 @@ assert.match(script, /DANZSTAK_SYNTHETIC_SESSION_A/);
 assert.match(script, /authorization: `Bearer \$\{token\}`/);
 assert.match(script, /authenticated-read-only-real-provider/);
 assert.match(script, /sourcedVenueCount \+ sourcedResearchCount > 0/);
+assert.match(script, /String\(provider\?\.name \|\| "Unknown provider"\)/, "Provider evidence must use public provider names instead of numeric array indexes");
+assert.match(script, /provider\?\.skipped \? "not-configured" : provider\?\.ok \? "ok" : "unavailable"/, "Provider evidence must report a bounded public status");
 assert.doesNotMatch(script, /console\.(?:log|error)\([^\n]*(?:token|session\.user)/i, "Smoke output must not expose the session or account identity");
 assert.doesNotMatch(script, /method:\s*"(?:PUT|PATCH|DELETE)"/, "Provider smoke must remain read-only");
 assert.match(workflow, /workflow_dispatch:/);
