@@ -751,7 +751,7 @@ function renderWorkspace(name) {
     featurePanel.appendChild(workspace);
   }
   workspace.replaceChildren();
-  workspace.classList.remove("settings-workspace", "events-workspace", "groups-workspace");
+  workspace.classList.remove("settings-workspace", "events-workspace", "groups-workspace", "news-workspace");
   const saved = readSections();
 
   if (name === "Saved") {
@@ -759,6 +759,69 @@ function renderWorkspace(name) {
     const list = document.createElement("div"); list.className = "published-events saved-posts";
     workspace.appendChild(list);
     renderSavedPosts(list);
+    return;
+  }
+
+  if (name === "News") {
+    workspace.classList.add("news-workspace");
+    const translate = value => window.danzstakTranslate?.(value) || value;
+    featureText.textContent = translate("Choose a topic and open trusted headlines without leaving your saved DanzStak screen.");
+    const intro = document.createElement("div");
+    intro.className = "news-workspace-intro";
+    const introCopy = document.createElement("div");
+    const eyebrow = document.createElement("p");
+    eyebrow.className = "news-workspace-eyebrow";
+    eyebrow.textContent = translate("News for You");
+    const heading = document.createElement("h2");
+    heading.textContent = translate("What is happening now");
+    const guidance = document.createElement("p");
+    guidance.textContent = translate("Headlines open on their original publisher. DanzStak does not rewrite the source.");
+    introCopy.append(eyebrow, heading, guidance);
+    const globe = document.createElement("span");
+    globe.className = "news-workspace-mark";
+    globe.setAttribute("aria-hidden", "true");
+    globe.append(window.danzstakIcons?.create?.("globe") || document.createTextNode(""));
+    intro.append(introCopy, globe);
+
+    const categories = [["music", "Music"], ["top", "Top News"], ["entertainment", "Entertainment"], ["technology", "Technology"], ["sports", "Sports"], ["business", "Business"]];
+    const tabs = document.createElement("div");
+    tabs.className = "news-category-tabs";
+    tabs.setAttribute("role", "tablist");
+    tabs.setAttribute("aria-label", translate("Choose your news interest"));
+    const list = document.createElement("div");
+    list.className = "interest-news news-workspace-list";
+    list.setAttribute("aria-live", "polite");
+    let selected = window.danzstakGetNewsInterest?.() || "music";
+    const buttons = new Map();
+    const choose = interest => {
+      selected = interest;
+      for (const [value, button] of buttons) {
+        const active = value === selected;
+        button.setAttribute("aria-selected", String(active));
+        button.tabIndex = active ? 0 : -1;
+      }
+      window.danzstakLoadNews?.(interest, list, 18);
+    };
+    for (const [value, label] of categories) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "news-category-tab";
+      button.setAttribute("role", "tab");
+      button.textContent = translate(label);
+      button.addEventListener("click", () => choose(value));
+      button.addEventListener("keydown", event => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+        event.preventDefault();
+        const index = categories.findIndex(([key]) => key === selected);
+        const next = event.key === "Home" ? 0 : event.key === "End" ? categories.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + categories.length) % categories.length;
+        buttons.get(categories[next][0])?.focus();
+        choose(categories[next][0]);
+      });
+      buttons.set(value, button);
+      tabs.appendChild(button);
+    }
+    workspace.append(intro, tabs, list);
+    choose(selected);
     return;
   }
 
@@ -2001,7 +2064,7 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
   friendsLink.insertAdjacentElement("afterend", groupsLink);
 }
 
-const workspaceRoutes = new Map(["Friends", "Groups", "Photos", "Videos", "Events", "Saved", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
+const workspaceRoutes = new Map(["Friends", "Groups", "News", "Photos", "Videos", "Events", "Saved", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
 const mobileMenuControl = document.querySelector(".mobile-menu-control");
 const mobileNavMenu = document.getElementById("mobileNavMenu");
 const directMobileDestinations = new Set(["Friends", "Notifications"]);
