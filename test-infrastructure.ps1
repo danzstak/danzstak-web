@@ -94,13 +94,14 @@ foreach ($routeFallbackControl in @('while (points.length >= 3)', 'if (!directio
 if (-not $authApi.Contains('const items = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :meta"')) {
   throw 'The Groups directory still stops at the first DynamoDB scan page.'
 }
-foreach ($authoritativeDeleteControl in @('async function runCleanup(tasks, attempts = 3)', 'await Promise.allSettled(batch.map(task => task()))', 'const cleanupPending = await runCleanup(cleanupTasks)', 'JSON.stringify({ deleted: true, cleanupPending })')) {
+foreach ($authoritativeDeleteControl in @('async function runCleanup(tasks, attempts = 3)', 'await Promise.allSettled(batch.map(task => task()))', 'const cleanupPending = await runCleanup(cleanupTasks)', 'deletedEverywhere: true, cleanupPending')) {
   if (-not $authApi.Contains($authoritativeDeleteControl)) { throw "Post deletion can reappear or abandon cleanup without retries: $authoritativeDeleteControl" }
 }
 $postDeletion = [regex]::Match($authApi, 'async function deleteSecurePost[\s\S]*?async function updateSecurePost').Value
-if ($postDeletion.IndexOf('TableName: postsTable, Key: { postId: { S: postId } }') -lt 0 -or
-    $postDeletion.IndexOf('const cleanupPending = await runCleanup(cleanupTasks)') -lt $postDeletion.LastIndexOf('TableName: postsTable, Key: { postId: { S: postId } }')) {
-  throw 'Post deletion must remove the primary database record before dependent media and engagement cleanup.'
+if ($postDeletion.IndexOf('UpdateExpression: "SET deletedEverywhere = :yes') -lt 0 -or
+    $postDeletion.IndexOf('const cleanupPending = await runCleanup(cleanupTasks)') -lt $postDeletion.IndexOf('UpdateExpression: "SET deletedEverywhere = :yes') -or
+    $postDeletion.IndexOf('new DeleteObjectCommand') -gt $postDeletion.IndexOf('UpdateExpression: "SET deletedEverywhere = :yes')) {
+  throw 'Post withdrawal must revoke owned media, durably tombstone the original, and only then clean dependent engagement records.'
 }
 foreach ($retiredCleanupLimit in @('TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId", Limit: 500', 'TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, Limit: 100')) {
   if ($authApi.Contains($retiredCleanupLimit)) { throw "A deletion or engagement path still uses a partial DynamoDB page: $retiredCleanupLimit" }

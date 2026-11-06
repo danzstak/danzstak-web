@@ -1,5 +1,20 @@
 # DANZSTAK development report
 
+## Issue #40 — creator-controlled content withdrawal — 2026-11-06
+
+Status: **IN PROGRESS — IMPLEMENTED AND LOCALLY VERIFIED; PROTECTED STAGING AND INDEPENDENT REVIEW PENDING**.
+
+- Added two owner-only choices for an original post: **Remove from here** hides that publication while preserving authorized DanzStak shares; **Delete everywhere** withdraws the original from every first-party DanzStak placement. A member who reshared content can remove only their own share.
+- Global withdrawal is server-authoritative and durable. The canonical source row becomes a minimal creator-deletion tombstone instead of being physically removed, uploaded media is revoked before the withdrawal commits, and original text, preview metadata and media references are removed. This lets any number of existing shares resolve consistently without a fragile client-only fan-out.
+- Other members' own share captions remain, beside the compact notice **Original content removed by its creator.** The withdrawn original text, media, preview and playable controls are not rendered. Missing or privacy-inaccessible sources retain the generic unavailable message so the API does not disclose why an inaccessible post cannot be viewed.
+- The warning accurately explains that DanzStak cannot erase downloads, screenshots, external shares or unrelated reuploads. Dailies expiry remains separate from creator-requested global withdrawal.
+- Added regression coverage for owner boundaries, share-owner boundaries, placement removal, idempotent global withdrawal, media revocation/retry behavior, durable tombstones and inaccessible-source privacy. `browser-checks/content-ownership.cjs` verifies the complete dialog/tombstone interaction, 44px choices, no leaked original content and no horizontal overflow at 320, 360, 390, 430 and 1024px.
+- Browser testing also found and corrected a pre-existing initialization race: the deferred sharing renderer could miss posts loaded by the inline Feed script. The sharing client now reconciles the current loaded-post collection on startup and on subsequent post-load events.
+- Functional/integration evidence: the complete `test-regressions.ps1` gate passes with exit code 0 after installing the locked Auth API test dependencies. This includes authentication and account isolation, Feed/Profile/Friends/Chat, media and audio coordination, Booking, EPK, Tour Manager, Stripe/refund safeguards, strict Feed CSP, all 11 site smoke pages and the 140,566-byte infrastructure template. No product failure was waived.
+- Responsive browser evidence: the ownership flow passes at 320, 360, 390, 430 and 1024px in Edge/Playwright. Captures are in `docs/screenshots/issue-40-content-ownership/`; the 320px result was manually inspected and shows the share caption, compact creator-withdrawal tombstone, one-row actions and zero horizontal overflow.
+- PWA assets advance to `assets/feed-enhancements.css?v=501`, `assets/feed-enhancements.js?v=530`, `assets/post-sharing.js?v=422` and `danzstak-shell-v696`. No offline drafts or user data are deleted.
+- Deployment status: **NOT DEPLOYED**. Production remains unchanged. Protected staging, hosted browser verification and independent review are still required before this work can be considered releasable.
+
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND PROVIDER-SPECIFIC DEVICE ACCEPTANCE REMAIN**.

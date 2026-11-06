@@ -1229,7 +1229,7 @@ async function getSecurePosts(event) {
   }
 
   const rawPosts = (await scanAll({ TableName: postsTable, ConsistentRead: true }))
-    .filter(item => item.postId?.S && item.content?.S && item.createdAt?.S);
+    .filter(item => item.postId?.S && item.createdAt?.S && (item.content?.S || item.deletedEverywhere?.BOOL === true));
   const viewerEmail = await accountForSub(userId);
   const otherAuthors = [...new Set(rawPosts
     .filter(item => item.userId?.S !== userId && item.userEmail?.S)
@@ -1258,14 +1258,16 @@ async function getSecurePosts(event) {
     }
   }
 
-  const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || (!blockedEmails.has(item.userEmail?.S) && (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S)))));
+  const viewerCanSee = item => item.userId?.S === userId || (!blockedEmails.has(item.userEmail?.S) && (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S))));
+  const sourceVisiblePosts = rawPosts.filter(viewerCanSee);
+  const visiblePosts = sourceVisiblePosts.filter(item => item.placementRemoved?.BOOL !== true && item.deletedEverywhere?.BOOL !== true);
   const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));
   const authorProfiles = typeof loadFeedAuthorProfiles === "function" ? await loadFeedAuthorProfiles([...visiblePosts,...tagNames]) : new Map();
   const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
   const authorName = email => authorNames.get(String(email || "").trim().toLowerCase()) || "DanzStak member";
   const authorPicture = email => authorProfiles.get(String(email || "").trim().toLowerCase())?.picture || "";
-  const visibleSources = new Map(visiblePosts.map(item => [item.postId.S,item]));
-  const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
+  const visibleSources = new Map(sourceVisiblePosts.map(item => [item.postId.S,item]));
+  const sharedPreview = item => item && item.deletedEverywhere?.BOOL !== true ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
       userId: item.userId?.S ?? null,
@@ -1282,6 +1284,7 @@ async function getSecurePosts(event) {
       taggedUsers:(item.taggedUsers?.L || []).map(tag => ({memberId:tag.M?.memberId?.S || "",name:authorNames.get(tag.M?.userEmail?.S) || tag.M?.name?.S || "DanzStak member",isMe:tag.M?.memberId?.S === userId})),
       sharedPostId:item.sharedPostId?.S || "",
       sharedPost:sharedPreview(visibleSources.get(item.sharedPostId?.S)),
+      sharedPostUnavailableReason:visibleSources.get(item.sharedPostId?.S)?.deletedEverywhere?.BOOL === true ? "creator_deleted" : "",
       audience: item.audience?.S ?? "public",
       groupId: item.groupId?.S || "",
       groupName: item.groupId?.S ? groupNames.get(item.groupId.S) || "Tribe" : "",
@@ -1674,6 +1677,7 @@ async function createSecurePost(event) {
       const access = await postForEngagement(sourceId,userId);
       if (!access.post || access.post.audience?.S !== "public") return {statusCode:403,headers,body:JSON.stringify({error:"Only available Public posts can be shared."})};
       sharedSource = access.post;
+      if (sharedSource.deletedEverywhere?.BOOL === true || sharedSource.placementRemoved?.BOOL === true) return {statusCode:410,headers,body:JSON.stringify({error:"The original post is no longer available to share."})};
       if (!sharedSource.sharedPostId?.S) break;
       sourceId = sharedSource.sharedPostId.S;
     }
@@ -1818,6 +1822,8 @@ async function deleteSecurePost(event) {
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const postId = String(event.pathParameters?.postId || "");
   if (!/^[a-f0-9-]{36}$/.test(postId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid post." }) };
+  const requestedScope = String(event.queryStringParameters?.scope || "");
+  if (requestedScope && !["placement", "everywhere"].includes(requestedScope)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid deletion scope." }) };
   const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Post not found." }) };
   const isAuthor = found.Item.userId?.S === userId;
@@ -1833,9 +1839,25 @@ async function deleteSecurePost(event) {
     }));
     return { statusCode: 200, headers, body: JSON.stringify({ deleted: false, removedFromProfile: true }) };
   }
+  const isShare = Boolean(found.Item.sharedPostId?.S);
+  if (isShare && requestedScope === "everywhere") return { statusCode: 403, headers, body: JSON.stringify({ error: "A shared post can only be removed from your own account." }) };
+  const scope = isShare ? "placement" : requestedScope || "everywhere";
+  if (scope === "placement" && !isShare) {
+    if (found.Item.deletedEverywhere?.BOOL === true) return { statusCode: 410, headers, body: JSON.stringify({ error: "This post was already deleted everywhere." }) };
+    if (found.Item.placementRemoved?.BOOL === true) return { statusCode: 200, headers, body: JSON.stringify({ deleted: false, removedFromHere: true, alreadyRemoved: true }) };
+    const removedAt = new Date().toISOString();
+    await db.send(new UpdateItemCommand({
+      TableName: postsTable,
+      Key: { postId: { S: postId } },
+      UpdateExpression: "SET placementRemoved = :yes, placementRemovedAt = :now, updatedAt = :now",
+      ConditionExpression: "userId = :owner AND attribute_not_exists(deletedEverywhere)",
+      ExpressionAttributeValues: { ":yes": { BOOL: true }, ":now": { S: removedAt }, ":owner": { S: userId } }
+    }));
+    return { statusCode: 200, headers, body: JSON.stringify({ deleted: false, removedFromHere: true }) };
+  }
   let linkedStories = [];
   let mediaKey = "";
-  if (found.Item.mediaKey?.S) {
+  if (!isShare && found.Item.mediaKey?.S) {
     const ownerPrefix = sha256(found.Item.userEmail?.S || "").slice(0, 24);
     if (!found.Item.mediaKey.S.startsWith(`users/${ownerPrefix}/`)) return { statusCode: 409, headers, body: JSON.stringify({ error: "Post media ownership could not be verified." }) };
     mediaKey = found.Item.mediaKey.S;
@@ -1860,7 +1882,18 @@ async function deleteSecurePost(event) {
       return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
     }
   }
-  await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
+  if (isShare) {
+    await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
+  } else {
+    const deletedAt = new Date().toISOString();
+    await db.send(new UpdateItemCommand({
+      TableName: postsTable,
+      Key: { postId: { S: postId } },
+      UpdateExpression: "SET deletedEverywhere = :yes, deletedAt = :now, updatedAt = :now REMOVE content, mediaKey, mediaType, reel, location, taggedUsers, editHistory, profileOwnerId, profileOwnerEmail, placementRemoved, placementRemovedAt",
+      ConditionExpression: "userId = :owner",
+      ExpressionAttributeValues: { ":yes": { BOOL: true }, ":now": { S: deletedAt }, ":owner": { S: userId } }
+    }));
+  }
   const cleanupTasks = [
     ...reactions.map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
     ...comments.map(item => () => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
@@ -1869,7 +1902,7 @@ async function deleteSecurePost(event) {
   ];
   const cleanupPending = await runCleanup(cleanupTasks);
   if (cleanupPending) console.error("Post deletion cleanup remains pending", { postId, cleanupPending });
-  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true, cleanupPending }) };
+  return { statusCode: 200, headers, body: JSON.stringify(isShare ? { deleted: true, removedShare: true, cleanupPending } : { deleted: true, deletedEverywhere: true, cleanupPending }) };
 }
 
 async function resolveMediaTags(ids, ownerId, previous, declined) {

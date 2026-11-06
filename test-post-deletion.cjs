@@ -78,15 +78,24 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
   assert.equal(profileOwner.deletes.length, 0, 'a profile owner must not delete the author post');
   assert.equal(profileOwner.mediaDeletes.length, 0, 'a profile owner must not delete author media');
 
+  const placement = harness();
+  const placementResponse = await placement.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId }, queryStringParameters: { scope: 'placement' } });
+  assert.equal(placementResponse.statusCode, 200);
+  assert.deepEqual(JSON.parse(placementResponse.body), { deleted: false, removedFromHere: true });
+  assert.match(placement.updates[0].UpdateExpression, /placementRemoved/, 'remove-from-here must keep a durable source record for existing shares');
+  assert.equal(placement.deletes.length, 0, 'remove-from-here must not delete the source graph');
+  assert.equal(placement.mediaDeletes.length, 0, 'remove-from-here must keep authorized shared media working');
+
   const owner = harness({ failMediaAttempts: 2 });
   const response = await owner.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId } });
   assert.equal(response.statusCode, 200);
-  assert.deepEqual(JSON.parse(response.body), { deleted: true, cleanupPending: 0 });
+  assert.deepEqual(JSON.parse(response.body), { deleted: true, deletedEverywhere: true, cleanupPending: 0 });
   assert.equal(owner.mediaAttempts(), 3, 'temporary media deletion failures must be retried');
   assert.equal(owner.mediaDeletes.length, 1);
   assert.equal(owner.mediaDeletes[0].Bucket, 'media');
   assert.equal(owner.mediaDeletes[0].Key, mediaKey);
-  assert.ok(owner.deletes.some(item => item.TableName === 'posts' && item.Key.postId.S === postId), 'post record must be permanently deleted');
+  assert.ok(owner.updates.some(item => item.TableName === 'posts' && /deletedEverywhere/.test(item.UpdateExpression)), 'the source record must become a durable creator-deleted tombstone');
+  assert.ok(!owner.deletes.some(item => item.TableName === 'posts' && item.Key.postId.S === postId), 'the canonical source ID must remain so dependent shares can render an honest tombstone');
   assert.ok(owner.deletes.some(item => item.TableName === 'reactions'), 'post reactions must be deleted');
   assert.ok(owner.deletes.some(item => item.TableName === 'comments'), 'post comments must be deleted');
   assert.ok(owner.deletes.some(item => item.TableName === 'notices' && item.Key.eventId.S === 'notice'), 'post notifications must be deleted');
@@ -99,5 +108,5 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
   assert.deepEqual(JSON.parse(unavailableResponse.body), { error: 'Post media could not be removed yet. Try again.', deleted: false });
   assert.equal(storageUnavailable.mediaAttempts(), 3, 'storage deletion receives the full retry budget');
   assert.equal(storageUnavailable.deletes.length, 0, 'the post and its database graph must remain retryable when media deletion is unavailable');
-  console.log('Post deletion checks passed: author-only destruction, safe profile removal, database cleanup, media retry, and unrelated-record preservation.');
+  console.log('Post deletion checks passed: author-only withdrawal, remove-here preservation, durable tombstones, media retry, graph cleanup, and unrelated-record preservation.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

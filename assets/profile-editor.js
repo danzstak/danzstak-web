@@ -518,6 +518,8 @@ function profilePostCard(post) {
   const article = document.createElement("article");
   article.className = "profile-post-card";
   if (post.postId) { article.dataset.postId = post.postId; article.dataset.isOwner = String(post.isOwner === true); article.dataset.viewCount = String(post.viewCount || 0); }
+  article.dataset.sharedPostId = String(post.sharedPostId || "");
+  article.dataset.sharedPostUnavailableReason = String(post.sharedPostUnavailableReason || "");
   const meta = document.createElement("div");
   meta.className = "profile-post-meta";
   const time = document.createElement("time");

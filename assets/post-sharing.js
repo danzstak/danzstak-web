@@ -103,7 +103,11 @@
   window.danzstakRenderSharedPost = (article, post) => {
     if (!post.sharedPostId || article.querySelector(".shared-post-card")) return;
     const card = document.createElement('div'); card.className = 'shared-post-card';
-    if (!post.sharedPost) card.textContent = 'The original post is no longer available to you.';
+    if (!post.sharedPost) {
+      const creatorDeleted = post.sharedPostUnavailableReason === 'creator_deleted';
+      card.classList.toggle('is-original-removed', creatorDeleted);
+      card.textContent = creatorDeleted ? 'Original content removed by its creator.' : 'The original post is no longer available to you.';
+    }
     else {
       const source = post.sharedPost, memberId = String(source.authorMemberId || ''), validMemberId = /^[a-f0-9-]{36}$/.test(memberId), name = document.createElement(validMemberId ? 'a' : 'strong'); name.textContent = source.authorName;
       if (validMemberId) { name.href = 'profile.html?member=' + encodeURIComponent(memberId); name.className = 'shared-post-author'; }
@@ -113,4 +117,15 @@
     }
     const actions = article.querySelector('.post-actions'); if (actions) actions.before(card); else article.appendChild(card);
   };
+  function renderLoadedSharedPosts(posts = window.danzstakLoadedPosts) {
+    if (!Array.isArray(posts)) return;
+    const byId = new Map(posts.map(post => [String(post.postId || ''), post]));
+    document.querySelectorAll('.post[data-post-id]').forEach(article => {
+      const post = byId.get(String(article.dataset.postId || ''));
+      if (post) window.danzstakRenderSharedPost(article, post);
+    });
+  }
+  window.addEventListener('danzstak:posts-loaded', event => renderLoadedSharedPosts(event.detail?.posts));
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => renderLoadedSharedPosts(), { once: true });
+  else renderLoadedSharedPosts();
 })();
