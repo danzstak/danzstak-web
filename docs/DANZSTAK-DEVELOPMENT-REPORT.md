@@ -1,5 +1,18 @@
 # DANZSTAK development report
 
+## Issue #55 — responsive News workspace — 2026-11-06
+
+Status: **IMPLEMENTED AND LOCALLY VERIFIED; ISOLATED STAGING AND INDEPENDENT REVIEW PENDING; PRODUCTION UNCHANGED**.
+
+- Root cause: News existed only in the desktop right rail, and the rail is intentionally hidden below 1050px. Phone and tablet members therefore had no News destination, no history-aware route, and no way to change interests without a desktop viewport.
+- Added a compact News destination to the existing menu and workspace router. `feed.html?view=news` and `#news` now open one dedicated primary screen, participate in browser Back/Forward behavior, preserve the current topic across refresh, and continue using the existing provider-backed `https://api.danzstak.com/news` endpoint rather than static or invented headlines.
+- The shared loader now supports the desktop rail and full workspace independently with per-container race protection, bounded result counts, retry states, safe HTTP(S)-only URLs, credential rejection, `noopener noreferrer`, and no-referrer external navigation. The desktop rail remains a compact six-headline view.
+- The workspace provides six localized topic tabs, Arrow/Home/End keyboard interaction, 44px phone targets, a single-column phone list and responsive desktop grid. New visible guidance is translated across all 15 supported languages. Headline text and source names remain publisher-provided user-facing content rather than being rewritten by DanzStak.
+- PWA assets advance to Feed CSS `v501`, Feed behavior `v530`, i18n `v395`, and shell `danzstak-shell-v699`; no post, draft, preference or account data is cleared.
+- Focused static evidence: News routing, provider reuse, safe URLs, keyboard semantics, localization, CSS geometry, request races, recovery localization, CSP hash, script scope and PWA refresh checks pass.
+- Actual-browser evidence: controlled provider fixtures pass in Microsoft Edge/Chromium at 320, 390, 430 and 1366px. The suite verifies a real routed workspace, eight safe headline cards, unsafe/credential URL rejection, category requests and persistence, keyboard selection, >=44px phone topic targets, zero horizontal overflow, secure publisher-link attributes and the unchanged desktop sidebar. Captures are in `docs/screenshots/issue-55-news/`.
+- Verification boundary: controlled fixtures prove layout, navigation, request wiring and safety behavior, not the completeness or editorial quality of third-party headlines. Physical Android/iPhone installed-PWA behavior remains **NOT TESTED**. No production deployment is authorized by this branch.
+
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND PROVIDER-SPECIFIC DEVICE ACCEPTANCE REMAIN**.

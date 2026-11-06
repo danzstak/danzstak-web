@@ -36,7 +36,7 @@ assert.ok(feed.includes('feedTranslate("Posts could not be loaded. Check your co
 assert.ok(feed.includes('retry.addEventListener("click", loadPosts, { once: true })'), "post loading failures should provide a working retry action");
 assert.ok(feed.includes('feedStatus.replaceChildren(message, retry)'), "post loading failures should render a compact recovery state");
 assert.match(feed, /function renderFeedRecovery\(container, message, retryAction, loadingLabel = "Working…"\)/, "news and people failures should share one compact recovery control");
-assert.match(feed, /renderFeedRecovery\(container, "News is temporarily unavailable\.", loadInterestNews, "Loading news…"\)/, "news failures should provide an immediate retry");
+assert.match(feed, /renderFeedRecovery\(container, "News is temporarily unavailable\.", \(\) => loadInterestNews\(/, "news failures should provide an immediate retry that preserves the selected workspace");
 assert.match(feed, /renderFeedRecovery\(container, "Users are temporarily unavailable\. Retrying…", refreshPeopleLists\)/, "online-user failures should provide an immediate retry without losing background refresh");
 assert.match(feed, /renderFeedRecovery\(container, "Friends are temporarily unavailable\. Retrying…", refreshPeopleLists\)/, "friend failures should provide an immediate retry without losing background refresh");
 assert.match(feed, /status\.setAttribute\("role", "alert"\)/, "feed recovery states should be announced to assistive technology");

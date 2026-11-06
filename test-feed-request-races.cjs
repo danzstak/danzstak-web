@@ -3,7 +3,7 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
 const source = readFileSync('feed.html','utf8');
-const newsCode = source.slice(source.indexOf('let newsLoadVersion = 0;'), source.indexOf('document.getElementById("newsInterest")?.addEventListener'));
+const newsCode = source.slice(source.indexOf('const newsLoadVersions = new WeakMap();'), source.indexOf('document.getElementById("newsInterest")?.addEventListener'));
 const requests=[];
 const select={value:'music'};
 const container={children:[],_html:'',replaceChildren(){this.children=[];this._html='';},appendChild(node){this.children.push(node);},set innerHTML(value){this._html=value;this.children=[];},get innerHTML(){return this._html;}};
@@ -11,7 +11,7 @@ const document={
   getElementById:id=>id==='newsInterest'?select:id==='interestNews'?container:null,
   createElement:tag=>({tag,children:[],append(...nodes){this.children.push(...nodes);}})
 };
-const newsContext=vm.createContext({document,URL,readFeedPreference:()=>null,feedTranslate:value=>value,encodeURIComponent,fetchWithDeadline:url=>new Promise(resolve=>requests.push({url,resolve}))});
+const newsContext=vm.createContext({document,window:{},URL,WeakMap,readFeedPreference:()=>null,writeFeedPreference:()=>{},feedTranslate:value=>value,encodeURIComponent,fetchWithDeadline:url=>new Promise(resolve=>requests.push({url,resolve}))});
 vm.runInContext(newsCode,newsContext);
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 
