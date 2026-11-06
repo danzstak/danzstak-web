@@ -512,7 +512,12 @@ async function captureViewport(page, fileName) {
         assert.equal(await page.locator("#headerVideo").isVisible(), true, `${width}px: video call action must remain discoverable`);
       }
       await captureViewport(page, `chat-conversation-${width}.png`);
-      await page.locator("#makePlans").click();
+      if (await page.locator("#makePlans").isVisible()) {
+        await page.locator("#makePlans").click();
+      } else {
+        await page.locator("#conversationMore").click();
+        await page.locator("#headerMakePlansMenu").click();
+      }
       await page.waitForSelector("#plansDialog[open]");
       await assertNoOverflow(page, `Make Plans ${width}px`);
       const plansGeometry = await page.locator("#plansDialog").evaluate(dialog => ({ width: dialog.getBoundingClientRect().width, viewport: innerWidth, scrollWidth: dialog.scrollWidth, clientWidth: dialog.clientWidth }));
