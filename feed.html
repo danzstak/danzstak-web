@@ -343,6 +343,17 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
   .stories { grid-template-columns: repeat(3,78%); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
   .story { scroll-snap-align: start; }
 }
+
+/* QA: compact, unboxed Feed — Dailies first, composer second. */
+#newsFeedView{display:flex;flex-direction:column;gap:0}
+#newsFeedView #storiesRail{order:0;margin:0 0 8px!important;border:0!important;border-top:0!important;box-shadow:none!important;background:transparent!important;padding-top:0!important}
+#newsFeedView #postComposer{order:1;margin:0 0 8px!important;border:0!important;border-top:0!important;border-bottom:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;padding:6px 0 8px!important}
+#newsFeedView #postComposer::before,#newsFeedView #postComposer::after{border:0!important;box-shadow:none!important}
+#newsFeedView #feedStatus{order:2;margin:0 0 4px}
+#newsFeedView #feed{order:3}
+#newsFeedView #postComposer .composer-title{margin:0 0 5px!important;gap:8px}
+#newsFeedView #postComposer .composer-title .composer-avatar{display:none!important}
+@media(max-width:700px){#newsFeedView #storiesRail{gap:7px!important;padding-bottom:4px!important}#newsFeedView #postComposer{padding:3px 0 6px!important}}
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
 <link rel="stylesheet" href="assets/feed-enhancements.css?v=500">
@@ -455,6 +466,11 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
     </section>
 
     <div id="newsFeedView">
+    <section id="storiesRail" class="stories" aria-label="Dailies">
+      <button type="button" class="story story-create" aria-label="Add a photo or video to Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small>TAKE 0</small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><b aria-hidden="true">+</b><span class="story-create-label">Dailies</span></span></button>
+      <div id="storiesLoading" class="story"><span>Loading Dailies</span></div>
+    </section>
+
     <section class="panel post-composer" id="postComposer">
       <h3 class="composer-title"><span class="composer-avatar" aria-hidden="true">D</span><span>Add to Mix</span></h3>
 
@@ -484,10 +500,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
       </div>
     </section>
 
-    <section id="storiesRail" class="stories" aria-label="Dailies">
-      <button type="button" class="story story-create" aria-label="Add a photo or video to Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small>TAKE 0</small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><b aria-hidden="true">+</b><span class="story-create-label">Dailies</span></span></button>
-      <div id="storiesLoading" class="story"><span>Loading Dailies</span></div>
-    </section>
+
 
     <p id="feedStatus" class="muted" role="status">
       Loading saved posts...
