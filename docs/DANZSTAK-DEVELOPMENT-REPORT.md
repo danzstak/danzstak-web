@@ -2,7 +2,7 @@
 
 ## Issue #55 — compact Booking Agent workspace — 2026-11-06
 
-Status: **IMPLEMENTED AND VERIFIED IN DEVELOPMENT; STAGING AND OWNER REVIEW PENDING; NOT DEPLOYED**.
+Status: **IMPLEMENTED, VERIFIED AND OWNER-APPROVED FOR PRODUCTION; STAGING PASSED; PRODUCTION DEPLOYMENT IN PROGRESS**.
 
 - Replaced the separate hero, identity and conversational-request cards with one orange-accented planning workspace. The first screen now asks one plain-language question, keeps saved Act/Home details immediately editable, and places **Plan my run** and **Example** on the same row at every tested phone width.
 - Adopted the reviewed DanzStak music-tool header shared with Record Stores. Direct club search remains a separate compact choice; map/manual entry and detailed genre, crew, vehicle and budget controls remain available behind their existing disclosures. No discovery, saved-tour, map, Stripe, contact-unlock or Tour Manager behavior was removed.
@@ -10,7 +10,9 @@ Status: **IMPLEMENTED AND VERIFIED IN DEVELOPMENT; STAGING AND OWNER REVIEW PEND
 - Added the scoped `assets/booking-workspace.css`, the static design regression `test-booking-workspace-design.cjs`, and the real-browser matrix `browser-checks/booking-workspace-design.cjs`. The PWA advances to `danzstak-shell-v695`, caches the new stylesheet and loads `booking-conversation.js?v=477`.
 - Real-browser evidence passes at 320, 360, 390, 430, 768 and 1366px: no horizontal overflow, a ≤64px header, one shared planning card, 44px controls, same-row actions, closed optional tools and the Club Finder beginning within the first phone viewport. Current captures are in `docs/screenshots/issue-55-booking-workspace/`; baseline captures are in `docs/screenshots/issue-55-booking-baseline/`.
 - Functional/integration evidence: all focused Booking, identity, map, discovery, PWA and design checks pass. The complete `test-regressions.ps1` gate passes through every JavaScript regression, bounded live-release verification, the 11-page site smoke suite and the 140,566-byte infrastructure template validation. No product failure was waived.
-- Deployment boundary: no AWS backend, static production asset, service worker or live payment configuration changed. An isolated Amplify staging preview and owner review are required before any production merge/deployment.
+- Staging evidence: AWS Amplify app `d31oovi2mos5iz`, DEVELOPMENT branch `codex/issue-55-booking-workspace`, job `1` succeeded in `us-west-1` from 2026-11-06 17:03:44 to 17:04:33 Europe/Berlin. No-cache probes returned HTTP 200 for `booking.html`, `assets/booking-workspace.css?v=1`, `assets/booking-conversation.js?v=477` and `service-worker.js`; the hosted worker reports `danzstak-shell-v695`.
+- Hosted visual evidence: the same Booking workspace browser matrix passed directly against `https://codex-issue-55-booking-workspace.d31oovi2mos5iz.amplifyapp.com/` at 320, 360, 390, 430, 768 and 1366px. This verifies the hosted responsive layout and fixture-driven interactions; it does not replace physical installed-PWA acceptance.
+- Release boundary: the owner explicitly authorized deployment on 2026-11-06. PR `#82` is the review vehicle. No AWS backend or live payment configuration is changed by this frontend-only release; production merge, Amplify job details and post-deployment verification will be recorded below when complete.
 
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
