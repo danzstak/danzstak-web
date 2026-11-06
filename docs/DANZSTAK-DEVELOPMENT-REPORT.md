@@ -1,5 +1,18 @@
 # DANZSTAK development report
 
+## Issue #54 — compact Friends directory — 2026-11-06
+
+Status: **RECONCILED, TESTED AND READY FOR INDEPENDENT STAGING REVIEW; REAL TWO-ACCOUNT ACCEPTANCE AND PHYSICAL INSTALLED-PWA TESTING REMAIN UNVERIFIED; NOT APPROVED FOR PRODUCTION**.
+
+- Rebased the compact Friends directory onto current production baseline `8c2f8e8`, which includes the v12 design foundation, saved Booking identity, and the released SYNC screen/navigation work. The integration retains the compact Dailies composer, full-bleed media, Profile foundation, privacy/blocking behavior and Feed → SYNC route.
+- Friends provides four simultaneously visible 44px tabs: **All Friends**, **Online**, **Requests**, and **Find Friends**. The directory uses compact responsive rows with profile identity, truthful presence, **Message (SYNC)** and a confirmed **More** relationship flow. Lists page in bounded batches and member discovery remains available for offline, privacy-eligible accounts.
+- Background presence updates no longer rebuild Find Friends. Entered query, rendered results, selection and keyboard focus survive a real-shaped `danzstak-presence-update`; only matching presence rows and counts update.
+- Asset/cache release candidates are `feed-enhancements.css?v=500`, `feed-enhancements.js?v=531`, `i18n.js?v=395`, and `danzstak-shell-v687`. No offline drafts or member data are cleared.
+- Functional/integration evidence: the complete `test-regressions.ps1` gate passes with exit code 0 after reconciliation. Coverage includes authentication/account isolation, Friends discovery/presence/requests/paging, remove/block/privacy, SYNC handoff, Feed/Profile, notifications, Chat/calls, media/audio coordination, Booking, EPK, Tour Manager, Stripe/refunds, PWA refresh, all 11 site smoke pages and the 140,726-byte infrastructure template.
+- Responsive browser evidence: `browser-checks/friends-directory.cjs` passes at 320, 360, 390, 430, 768 and 1366px with 100-friend paging, 10 online members, requests, local search, member discovery, keyboard tabs, the More dialog, 44px hit geometry and zero overflow. Fixture captures are in `docs/screenshots/issue-54/`; they demonstrate rendering, not real member state.
+- Current integration commit is `548aa91` on `codex/issue-54-friends-integration`, prepared for PR branch `codex/issue-54-friends-redesign`. Exact protected-staging SHA, Amplify job and hosted browser result will be appended after deployment.
+- Acceptance boundary: the DEVELOPMENT frontend currently uses the production identity/API origin. It is not safe to mutate real member relationships merely to manufacture acceptance evidence. A real two-account add/accept/remove/block/SYNC test therefore requires either an isolated staging identity/API/data environment or an explicit owner-approved, narrowly scoped synthetic test-account protocol. Physical Android/iPhone installed-PWA behavior also remains unverified. No production deployment is authorized by this report.
+
 ## Issue #48 — SYNC mobile messaging and call-state rescue — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND REAL TWO-ACCOUNT/TWO-DEVICE CALL ACCEPTANCE REMAIN**.
