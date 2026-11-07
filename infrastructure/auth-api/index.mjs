@@ -58,6 +58,7 @@ const friendsTable = "DANZSTAK-Friends";
 const reactionsTable = "DANZSTAK-Reactions";
 const commentsTable = "DANZSTAK-Comments";
 const engagementNotificationsTable = "DANZSTAK-EngagementNotifications";
+const activityPushOutboxTable = process.env.ACTIVITY_PUSH_OUTBOX_TABLE || "";
 const reportsTable = "DANZSTAK-Reports";
 const presenceTable = "DANZSTAK-Presence";
 const storiesTable = "DANZSTAK-Stories";
@@ -1730,16 +1731,38 @@ async function notifyPostOwner(post, eventId, type, actorEmail, preview) {
     ProjectionExpression: "mutedPosts"
   }));
   if (settings.Item?.mutedPosts?.SS?.includes(post.postId.S)) return;
-  const createdAt = new Date().toISOString();
-  await db.send(new PutItemCommand({
-    TableName: engagementNotificationsTable,
-    Item: {
-      userEmail: { S: ownerEmail }, eventId: { S: eventId }, type: { S: type }, actorEmail: { S: actorEmail },
-      postId: { S: post.postId.S }, preview: { S: String(preview || "").slice(0, 160) }, createdAt: { S: createdAt },
-      read: { BOOL: false },
-      expiresAt: { N: String(now() + 2592000) }
+  const createdAt = new Date().toISOString(), expiresAt = String(now() + 2592000);
+  const notification = {
+    userEmail: { S: ownerEmail }, eventId: { S: eventId }, type: { S: type }, actorEmail: { S: actorEmail },
+    postId: { S: post.postId.S }, preview: { S: String(preview || "").slice(0, 160) }, createdAt: { S: createdAt },
+    read: { BOOL: false }, expiresAt: { N: expiresAt }
+  };
+  if (!activityPushOutboxTable) {
+    await db.send(new PutItemCommand({ TableName: engagementNotificationsTable, Item: notification }));
+    return;
+  }
+  const outbox = {
+    eventId: { S: eventId }, recipientEmail: { S: ownerEmail }, actorEmail: { S: actorEmail }, type: { S: type },
+    postId: { S: post.postId.S }, status: { S: "pending" }, createdAt: { S: createdAt }, expiresAt: { N: expiresAt }
+  };
+  try {
+    await db.send(new TransactWriteItemsCommand({ TransactItems: [
+      { Put: { TableName: engagementNotificationsTable, Item: notification, ConditionExpression: "attribute_not_exists(eventId)" } },
+      { Put: { TableName: activityPushOutboxTable, Item: outbox, ConditionExpression: "attribute_not_exists(eventId)" } }
+    ] }));
+  } catch (error) {
+    if (error.name !== "TransactionCanceledException") throw error;
+    const [savedNotification, savedOutbox] = await Promise.all([
+      db.send(new GetItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: { S: ownerEmail }, eventId: { S: eventId } }, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: activityPushOutboxTable, Key: { eventId: { S: eventId } }, ConsistentRead: true }))
+    ]);
+    if (!savedNotification.Item) throw error;
+    if (!savedOutbox.Item) {
+      await db.send(new PutItemCommand({ TableName: activityPushOutboxTable, Item: outbox, ConditionExpression: "attribute_not_exists(eventId)" })).catch(repairError => {
+        if (repairError.name !== "ConditionalCheckFailedException") throw repairError;
+      });
     }
-  }));
+  }
 }
 
 async function getEngagement(event) {

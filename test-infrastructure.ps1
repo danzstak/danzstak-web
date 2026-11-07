@@ -204,6 +204,45 @@ if ($storyDeletion.IndexOf('new DeleteObjectCommand({Bucket:process.env.MEDIA_BU
 foreach ($accountPreferenceControl in @('darkMode = :d', 'reduceMotion = :r', 'dataSaver = :s', '.includes(body.language)')) {
   if (-not $template.Contains($accountPreferenceControl)) { throw "Account settings persistence is missing: $accountPreferenceControl" }
 }
+foreach ($activityPushControl in @(
+  'DANZSTAK-ActivityPushOutbox',
+  'StreamViewType: NEW_AND_OLD_IMAGES',
+  'FunctionResponseTypes: [ReportBatchItemFailures]',
+  'item?.status?.S!==''pending''',
+  'userSettings.activityAlerts?.BOOL!==true',
+  'userSettings.mutedPosts?.SS?.includes(postId)',
+  'noticeMatches=notice?.postId?.S===postId&&notice?.actorEmail?.S===actorEmail',
+  'activityPostVisible(post.Item,recipientEmail)',
+  'groupExists(post.groupId.S)',
+  'blocked=relations.some(result=>blockedStatus(result.Item?.status?.S))',
+  'deliveredEndpointHashes',
+  'tag:`activity-${eventId}`',
+  'title:''New DanzStak activity''',
+  'body:''Open DanzStak to see activity on your post.''',
+  'if(Array.isArray(event.Records)&&event.Records.some(record=>record.eventSource===''aws:dynamodb''))return activityPushBatch(event)'
+)) {
+  if (-not $template.Contains($activityPushControl)) { throw "Durable privacy-safe activity push control is missing: $activityPushControl" }
+}
+if ($template.Contains("activityAlerts:item.activityAlerts?.BOOL!==false")) {
+  throw 'Activity phone alerts must remain off until a member explicitly opts in.'
+}
+foreach ($outboxWriteControl in @(
+  'const activityPushOutboxTable = process.env.ACTIVITY_PUSH_OUTBOX_TABLE || ""',
+  'new TransactWriteItemsCommand({ TransactItems:',
+  'TableName: activityPushOutboxTable',
+  'status: { S: "pending" }',
+  'if (!savedNotification.Item) throw error',
+  'if (!savedOutbox.Item)'
+)) {
+  if (-not $authApi.Contains($outboxWriteControl)) { throw "Activity notification and push outbox are not persisted atomically or repaired safely: $outboxWriteControl" }
+}
+foreach ($removedActivityControl in @('commentsById.get(comment.parentCommentId?.S)', 'rememberNotification(parentEmail, `reply#${commentId}`)', 'eventId: { S: notificationId }')) {
+  if (-not $authApi.Contains($removedActivityControl)) { throw "Removed activity can leave a stale notification eligible for push: $removedActivityControl" }
+}
+$feedEnhancements = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'assets\feed-enhancements.js') -Raw -Encoding utf8
+foreach ($activityPreferenceControl in @('activityAlertsCheckbox.checked = false', 'data.activityAlerts === true', 'activityAlerts: activityAlertsCheckbox.checked', 'Activity on my posts')) {
+  if (-not $feedEnhancements.Contains($activityPreferenceControl)) { throw "Activity phone-alert consent control is missing: $activityPreferenceControl" }
+}
 foreach ($copyrightControl in @('body.rightsCertified!==true', 'body.originalContentCertified!==true')) {
   if (-not $template.Contains($copyrightControl)) { throw "Story/Reel copyright attestation enforcement is missing: $copyrightControl" }
 }

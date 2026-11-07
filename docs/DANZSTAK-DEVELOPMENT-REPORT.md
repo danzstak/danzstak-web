@@ -15,6 +15,21 @@ Status: **DEPLOYED AND VERIFIED IN PRODUCTION.**
 
 Release-specific production evidence is recorded in [`docs/releases/2026-11-10-pwa-v790.md`](releases/2026-11-10-pwa-v790.md).
 
+## Durable activity phone alerts — 2026-11-10
+
+Status: **IMPLEMENTED AND VERIFIED ON CURRENT `main`; PRODUCTION DEPLOYMENT PENDING THE REVIEW GATE.**
+
+- Reactions, comments, replies and media tags prepare the existing in-app notification and a durable activity-push outbox record in one DynamoDB transaction. A duplicate transaction repairs a missing outbox record without creating a second notification.
+- The retained, encrypted outbox uses a DynamoDB stream and partial-batch retry. Delivery is explicitly **at least once**; an endpoint-hash ledger and stable push tag prevent ordinary retries from showing duplicate alerts. No exactly-once claim is made.
+- Activity phone alerts are **off by default**. A member must enable **Settings → Phone alerts → Activity on my posts**. Call and message preferences retain their previous behavior.
+- Delivery rechecks current consent, muted-post state, both sides of a block relationship, the source post and its current Public/Friends/Tribe visibility. Suppressed or deleted content does not produce a lock-screen alert.
+- Tribe delivery also requires the Tribe to remain active as well as the recipient to remain a member. A deleted Tribe cannot produce a phone alert from a leftover membership row.
+- Lock-screen copy is intentionally generic in all 15 supported account languages. It contains no actor name, post text, comment text, email address or other private content. The alert opens the authenticated Notifications screen.
+- Deployment wiring resolves the retained outbox table from the signaling stack, adds only the required DynamoDB permissions and passes the table name to the Auth API. No AWS resource or production setting has been changed during this rebase and review.
+- **TESTED:** the complete `test-regressions.ps1` gate passes, including all social, SYNC/call, EPK, Booking, Tour Manager, marketplace, ticketing, Stripe boundary, PWA, site and infrastructure checks. The activity-alert browser workflow passes at 320, 360, 390, 414, 430 and 1366px with explicit opt-in persistence, no page errors and no horizontal overflow. Builder-inspected captures are in [`docs/screenshots/activity-push-settings/`](screenshots/activity-push-settings/).
+- **INFRASTRUCTURE PRE-FLIGHT:** the 163,408-byte template and embedded Lambda compile locally. AWS accepted `validate-template`, and update change set `activity-push-preflight-20261110025819` reached `CREATE_COMPLETE` with no validation-error events and no planned replacement of the signaling Lambda or IAM role. The plan adds the retained outbox table and stream mapping and updates the existing functions in place. `cfn-lint` and `cfn-guard` are not installed in this environment, so those separate local layers are not claimed; the project infrastructure gate and CloudFormation service validation passed. No durable CloudTrail trail is configured in this account, so account-side pre-flight audit retention is limited to AWS event history.
+- **PWA DELIVERY:** the reviewed frontend advances to `assets/feed-enhancements.js?v=545` and installed shell `danzstak-shell-v791`, ensuring the new opt-in control is fetched instead of a cached `v790` script.
+
 ## Full-size round Dailies identity — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE SIGNED-IN REVIEW PWA; PRODUCTION UNCHANGED.**

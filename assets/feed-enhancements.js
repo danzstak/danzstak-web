@@ -2076,7 +2076,13 @@ function renderWorkspace(name) {
     messageAlertsCheckbox.setAttribute("aria-label", "Notify me about new messages");
     const messageAlertsLabel = document.createElement("label");
     messageAlertsLabel.append(messageAlertsCheckbox, document.createTextNode("New messages"));
-    alertSettings.append(callAlertsLabel, messageAlertsLabel);
+    const activityAlertsCheckbox = document.createElement("input");
+    activityAlertsCheckbox.type = "checkbox";
+    activityAlertsCheckbox.checked = false;
+    activityAlertsCheckbox.setAttribute("aria-label", "Notify me about activity on my posts");
+    const activityAlertsLabel = document.createElement("label");
+    activityAlertsLabel.append(activityAlertsCheckbox, document.createTextNode("Activity on my posts"));
+    alertSettings.append(callAlertsLabel, messageAlertsLabel, activityAlertsLabel);
     const legalLinks = document.createElement("span");
     legalLinks.className = "settings-links";
     const privacyLink = document.createElement("a"); privacyLink.href = "privacy.html"; privacyLink.textContent = "Privacy";
@@ -2218,7 +2224,7 @@ function renderWorkspace(name) {
     button.type = "button";
     button.disabled = true;
     button.textContent = "Loading Settings…";
-    const accountPreferenceControls = [presenceCheckbox, tagsCheckbox, callAlertsCheckbox, messageAlertsCheckbox];
+    const accountPreferenceControls = [presenceCheckbox, tagsCheckbox, callAlertsCheckbox, messageAlertsCheckbox, activityAlertsCheckbox];
     accountPreferenceControls.forEach(control => { control.disabled = true; });
     settingsFetch({ credentials: "include", cache: "no-store" }, true)
       .then(response => {
@@ -2232,6 +2238,7 @@ function renderWorkspace(name) {
         tagsCheckbox.checked = data.allowTags !== false;
         callAlertsCheckbox.checked = data.callAlerts !== false;
         messageAlertsCheckbox.checked = data.messageAlerts !== false;
+        activityAlertsCheckbox.checked = data.activityAlerts === true;
         if (typeof data.reduceMotion === "boolean") {
           motionCheckbox.checked = data.reduceMotion;
           document.documentElement.classList.toggle("reduce-motion", data.reduceMotion);
@@ -2263,7 +2270,7 @@ function renderWorkspace(name) {
       try {
         const response = await settingsFetch({
           method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-          body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, allowTags: tagsCheckbox.checked, callAlerts: callAlertsCheckbox.checked, messageAlerts: messageAlertsCheckbox.checked, darkMode: false, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
+          body: JSON.stringify({ onlineVisible: presenceCheckbox.checked, allowTags: tagsCheckbox.checked, callAlerts: callAlertsCheckbox.checked, messageAlerts: messageAlertsCheckbox.checked, activityAlerts: activityAlertsCheckbox.checked, darkMode: false, reduceMotion: motionCheckbox.checked, dataSaver: dataSaverCheckbox.checked, language: language.value })
         });
         if (!response.ok) throw new Error("Account settings could not be saved.");
         if (isCurrentWorkspace()) featureText.textContent = "Settings saved to your DanzStak account.";
@@ -2283,7 +2290,7 @@ function renderWorkspace(name) {
       settingRow("sparkles", "Reduce motion", motionCheckbox),
       settingRow("wifi", "Data saver", dataSaverCheckbox),
       settingRow("globe", "Language", language),
-      settingRow("bell", "Call and message alerts", alertSettings),
+      settingRow("bell", "Phone alerts", alertSettings),
       settingRow("lock", feedTranslate("Blocked members"), blockedMembers),
       settingRow("smartphone", "App and device settings", appSettings),
       settingRow("activity", "Your DanzStak activity", activityButton),
