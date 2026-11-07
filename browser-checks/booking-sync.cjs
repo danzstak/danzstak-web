@@ -12,12 +12,13 @@ fs.mkdirSync(output, { recursive: true });
   try {
     for (const width of [320, 360, 390, 414, 430, 1366]) {
       const context = await browser.newContext({ viewport: { width, height: 850 }, deviceScaleFactor: 1, serviceWorkers: "block" });
-      const page = await context.newPage(); let submitted, usedDates = [];
+      const page = await context.newPage(); let submitted, usedDates = [], usedStatuses = []; const appliedByReply = new Map();
       await page.route("https://api.danzstak.com/**", async route => {
         const pathname = new URL(route.request().url()).pathname;
-        if (pathname === "/tour-manager/outreach" && route.request().method() === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ messages: [{ id: "outreach_reply_test_123", venueName: "Test Venue", subject: "March 5 booking pitch", status: "replied", sentAt: "2026-11-07T10:00:00Z" }], replies: [{ id: "TOUR_MANAGER#BOOKING_REPLY#outreach_reply_test_123#client_reply_test_123", outreachId: "outreach_reply_test_123", direction: "inbound", action: "offer_date", content: "We can offer March 5. What is your guarantee?", proposedDate: "2027-03-05", createdAt: "2026-11-07T12:00:00Z" }, { id: "TOUR_MANAGER#BOOKING_REPLY#outreach_reply_test_123#client_confirm_test_123", outreachId: "outreach_reply_test_123", direction: "inbound", action: "confirm_date", content: "Confirmed for March 5. Load-in is 5 PM.", proposedDate: "2027-03-05", createdAt: "2026-11-07T12:05:00Z" }] }) });
+        if (pathname === "/tour-manager/outreach" && route.request().method() === "GET") { const replies = [{ id: "TOUR_MANAGER#BOOKING_REPLY#outreach_reply_test_123#client_interested_test_123", outreachId: "outreach_reply_test_123", direction: "inbound", action: "interested", content: "We are interested. Please send the full rider.", createdAt: "2026-11-07T11:55:00Z" }, { id: "TOUR_MANAGER#BOOKING_REPLY#outreach_reply_test_123#client_reply_test_123", outreachId: "outreach_reply_test_123", direction: "inbound", action: "offer_date", content: "We can offer March 5. What is your guarantee?", proposedDate: "2027-03-05", createdAt: "2026-11-07T12:00:00Z" }, { id: "TOUR_MANAGER#BOOKING_REPLY#outreach_reply_test_123#client_confirm_test_123", outreachId: "outreach_reply_test_123", direction: "inbound", action: "confirm_date", content: "Confirmed for March 5. Load-in is 5 PM.", proposedDate: "2027-03-05", createdAt: "2026-11-07T12:05:00Z" }, { id: "TOUR_MANAGER#BOOKING_REPLY#outreach_reply_test_123#client_pass_test_123", outreachId: "outreach_reply_test_123", direction: "inbound", action: "pass", content: "We cannot make this date work.", createdAt: "2026-11-07T12:10:00Z" }].map(reply => ({ ...reply, appliedStatus: appliedByReply.get(reply.id) || "" })); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ messages: [{ id: "outreach_reply_test_123", venueName: "Test Venue", subject: "March 5 booking pitch", status: "replied", sentAt: "2026-11-07T10:00:00Z" }], replies }) }); }
         if (pathname === "/tour-manager/outreach/reply") { submitted = JSON.parse(route.request().postData() || "{}"); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "sent" }) }); }
-        if (pathname === "/tour-manager/outreach/use-date") { const request = JSON.parse(route.request().postData() || "{}"); usedDates.push(request); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ saved: true, venueName: "Test Venue", proposedDate: "2027-03-05", status: request.confirm ? "Confirmed" : "Date proposed" }) }); }
+        if (pathname === "/tour-manager/outreach/use-date") { const request = JSON.parse(route.request().postData() || "{}"); usedDates.push(request); const status = request.confirm ? "Confirmed" : "Date proposed"; appliedByReply.set(request.replyId, status); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ saved: true, venueName: "Test Venue", proposedDate: "2027-03-05", status }) }); }
+        if (pathname === "/tour-manager/outreach/use-status") { const request = JSON.parse(route.request().postData() || "{}"); usedStatuses.push(request); const status = request.replyId.includes("interested") ? "Interested" : "Declined"; appliedByReply.set(request.replyId, status); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ saved: true, venueName: "Test Venue", status }) }); }
         return route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
       });
       await page.goto(`${origin}/messages.html`, { waitUntil: "domcontentloaded" });
@@ -33,6 +34,10 @@ fs.mkdirSync(output, { recursive: true });
       assert.equal(await page.locator("#messageForm").isHidden(), true, "The personal composer must not pretend to send an external email");
       assert.equal(await page.locator("#headerPhone").isHidden(), true, "An external venue email thread must not show a fake SYNC call control");
       assert.equal(await page.locator("#callStatus").isHidden(), true, "An external venue email thread must not claim a secure call is ready");
+      await page.getByRole("button", { name: "Review interest" }).click();
+      await page.getByRole("button", { name: "Mark Interested" }).click();
+      await page.getByText(/marked Interested/).waitFor();
+      assert.match(usedStatuses[0].replyId, /client_interested_test_123$/);
       await page.getByRole("button", { name: "Add proposed date to Tour" }).click();
       await page.getByText(/added as Date proposed/).waitFor();
       assert.equal(usedDates[0].outreachId, "outreach_reply_test_123"); assert.match(usedDates[0].replyId, /client_reply_test_123$/); assert.equal(usedDates[0].confirm, false);
@@ -40,6 +45,10 @@ fs.mkdirSync(output, { recursive: true });
       await page.getByRole("button", { name: "Add confirmed show" }).click();
       await page.getByText(/added as a confirmed show/).waitFor();
       assert.equal(usedDates[1].confirm, true); assert.match(usedDates[1].replyId, /client_confirm_test_123$/);
+      await page.getByRole("button", { name: "Review pass" }).click();
+      await page.getByRole("button", { name: "Mark Declined" }).click();
+      await page.getByText(/marked Declined/).waitFor();
+      assert.match(usedStatuses[1].replyId, /client_pass_test_123$/);
       const bookingComposer = page.getByLabel("Reply to this venue by email");
       await bookingComposer.fill("Thanks. March 5 works for us.");
       const sendReply = page.getByRole("button", { name: "Send booking reply by email" });
@@ -47,6 +56,11 @@ fs.mkdirSync(output, { recursive: true });
       await sendReply.evaluate(button => button.click());
       await page.getByText("Reply submitted to the venue by email. No booking credit was charged.").waitFor();
       assert.equal(submitted.outreachId, "outreach_reply_test_123"); assert.equal(submitted.content, "Thanks. March 5 works for us."); assert.match(submitted.clientMessageId, /^[a-zA-Z0-9_-]{16,100}$/);
+      await conversation.getByText("Tour Manager: Interested").waitFor();
+      await conversation.getByText("Tour Manager: Date proposed").waitFor();
+      await conversation.getByText("Tour Manager: Confirmed").waitFor();
+      await conversation.getByText("Tour Manager: Declined").waitFor();
+      assert.equal(await page.getByRole("button", { name: /Review (interest|confirmed date|pass)/ }).count(), 0, "Applied venue decisions must not reappear after refresh");
       await page.screenshot({ path: path.join(output, `booking-sync-${width}.png`), fullPage: false });
       await context.close();
     }

@@ -64,6 +64,26 @@
     }
   }
 
+  async function useReplyStatus(button, outreachId, reply) {
+    const interested = reply.action === "interested";
+    const nextStatus = interested ? "Interested" : "Declined";
+    const approved = await (window.danzstakConfirm?.(`Mark ${button.dataset.venueName || "this venue"} as ${nextStatus}? The venue's written reply will stay in this booking thread.`, { title: "Update booking status", confirmLabel: `Mark ${nextStatus}` }) ?? Promise.resolve(window.confirm(`Mark this venue as ${nextStatus}?`)));
+    if (!approved) return;
+    button.disabled = true;
+    bookingStatus.textContent = `Updating Tour Manager to ${nextStatus}…`;
+    try {
+      const response = await fetch(`${API}/tour-manager/outreach/use-status`, { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json" }, body: JSON.stringify({ outreachId, replyId: reply.id }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "The booking status could not be updated.");
+      button.textContent = `${data.status} saved`;
+      bookingStatus.replaceChildren(text(`${data.venueName || "Venue"} marked ${data.status}. `));
+      const link = document.createElement("a"); link.href = "booking-selections.html#tourManager"; link.textContent = "Open Tour Manager"; bookingStatus.append(link);
+    } catch (error) {
+      button.disabled = false;
+      bookingStatus.textContent = error.message || "The booking status could not be updated.";
+    }
+  }
+
   function showEmpty(message) {
     const note = document.createElement("p");
     note.className = "chat-note";
@@ -108,12 +128,25 @@
       const replyCopy = document.createElement("p");
       replyCopy.append(text(reply.content));
       bubble.append(replyHeading, replyCopy);
+      if (reply.appliedStatus) {
+        const applied = document.createElement("p");
+        applied.className = "booking-date-offer";
+        applied.append(text(`Tour Manager: ${reply.appliedStatus}`));
+        bubble.append(applied);
+      }
+      if (reply.direction !== "outbound" && !reply.appliedStatus && (reply.action === "interested" || reply.action === "pass")) {
+        const useStatus = document.createElement("button");
+        useStatus.type = "button"; useStatus.className = "booking-use-date"; useStatus.dataset.venueName = thread.message.venueName || "Venue";
+        useStatus.textContent = reply.action === "interested" ? "Review interest" : "Review pass";
+        useStatus.addEventListener("click", () => useReplyStatus(useStatus, thread.message.id, reply));
+        bubble.append(useStatus);
+      }
       if (reply.proposedDate) {
         const offered = document.createElement("p");
         offered.className = "booking-date-offer";
         offered.append(text(`${reply.action === "confirm_date" ? "Confirmed" : "Proposed"} date: ${reply.proposedDate}`));
         bubble.append(offered);
-        if (reply.direction !== "outbound") {
+        if (reply.direction !== "outbound" && !reply.appliedStatus) {
           const useDate = document.createElement("button");
           useDate.type = "button"; useDate.className = "booking-use-date"; useDate.textContent = reply.action === "confirm_date" ? "Review confirmed date" : "Add proposed date to Tour";
           useDate.addEventListener("click", () => useDateOffer(useDate, thread.message.id, reply));
