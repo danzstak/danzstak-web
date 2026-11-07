@@ -16,6 +16,8 @@ When two directives conflict, the newer dated one wins; if unclear, stop and ask
 - Never commit secrets, keys, passwords, account IDs or login notes. The repo is public.
 - DanzStak never hosts music. No audio-only uploads (MP3, WAV, FLAC, AIFF, AAC, OGG...), no audio storage, no first-party music streaming. Music is always a link or authorized embed (Bandcamp, SoundCloud, YouTube, etc.).
 - User video uploads are approved (phone video from shows, clubs, daily life), with rights affirmation, DMCA process and server-side checks that a file is real video, not disguised audio. Full rules: instructions/00e-no-music-hosting.md. No hosting goes live without owner approval of costs.
+- If DMCA problems grow, the owner may restrict video uploads; repeat infringers lose upload rights.
+- Creators own their content on DanzStak. DanzStak takes no ownership. Users only grant DanzStak the limited permission needed to show their content where they choose, and that ends when they delete it. Creators control who sees and shares it (Do Not Share, download limits), keep attribution on every share, and can export or delete it everywhere at any time. No selling, training AI on, or advertising with user content. Full rules: instructions/00d-user-content-ownership.md.
 - Tests stay green (test-regressions.ps1 and the review checks). Add tests for new behavior.
 - Never hard-code any artist's name, bio, releases or links into pages, CSS or templates. Example content is example only.
 
@@ -27,7 +29,15 @@ When two directives conflict, the newer dated one wins; if unclear, stop and ask
 2. Task 4, EPK -> send to clubs -> get booked. Top priority plan. This is why artists will join.
 3. Task 2, EPK part only: EPK builder for every artist, look picker, share links, stage plot / booth plot.
 4. Task 3, 80% familiar / 20% DanzStak look: navigation shell, HQ, EPK public page first.
-5. Growth basics (include in the Task 4 plan): sign-up to first EPK in under 5 minutes; Facebook import front and center ("Moving Day"); artists invite bandmates and fans by link; venues reply to pitches without an account; public EPK pages load fast and preview well when shared.
+5. Growth basics (include in the Task 4 plan): sign-up to first EPK in under 5 minutes; Facebook import front and center (Pivot); artists invite bandmates and fans by link; venues reply to pitches without an account; public EPK pages load fast and preview well when shared.
+5b. Pivot, right after the EPK work. One guided flow on top of the Facebook import already on main and instructions/pages/15-facebook-import:
+   - Start from a Pivot card on HQ (stays until done) and from the menu.
+   - Step 1, bring your data: Facebook export help, upload, preview, pick what to bring, privacy in batches.
+   - Step 2, bring your people: invite by link, native SMS or email share (no address-book upload).
+   - Step 3, tell your old followers: a shareable "I pivoted to DanzStak" card with the user's link (and EPK link for artists).
+   - Step 4, you're free: show export and delete-everywhere, so leaving DanzStak is just as easy.
+   - Progress shows on HQ; the user can skip or come back any time. No nagging, streaks or countdowns.
+   - Rename "Moving Day" to Pivot everywhere.
 6. Then the rest of instructions/ in its own execution order (video playback, feed, Dailies/The Roll, Facebook import, Events, content ownership, Privacy Shield...), one page per PR.
 
 Later phase (planned, build after there are users):

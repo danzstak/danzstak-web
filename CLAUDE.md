@@ -34,8 +34,13 @@ grow a real scene, or bring their people over from a billionaire platform?* If n
   (a gig poster, a record sleeve, a setlist, a tour laminate, a crate of records).
 - Navigation order puts music tools before Feed.
 - **DanzStak never hosts music.** No audio-only uploads, audio storage or first-party music streaming; music is always a link or authorized embed. User video uploads are approved with DMCA and rights rules (`instructions/00e-no-music-hosting.md`).
+- Creators own their content on DanzStak. DanzStak takes only the limited permission needed to show it, ending on delete. Creators control sharing, keep attribution, and can export or delete everywhere (`instructions/00d-user-content-ownership.md`).
 - Copy speaks like the scene, not like a corporation. Keep existing brand names
   (Digital Clubhouse, Your Mix, SYNC, Tribes, The Roll) and add more in that spirit.
+
+## Pivot (the owner's name for leaving billionaire platforms)
+
+Pivot is the whole move off Facebook and other billionaire-owned platforms onto DanzStak: import your Facebook data, pick what to bring, invite your people, post an "I pivoted to DanzStak" card on your old accounts, and export or delete everything any time. Use the name Pivot in the product and in code/docs (not "Moving Day").
 
 ## Priorities (in order)
 
@@ -86,7 +91,7 @@ A feature should hand off to the next one, not sit alone as a separate page.
 
 ### Migration and data ownership
 
-- A **Moving Day** card stays on HQ until the user has imported from Facebook and invited their people.
+- A **Pivot** card stays on HQ until the user has imported from Facebook and invited their people.
 - **Your data** (avatar menu): what DanzStak stores, export everything, delete everything — always two taps away.
 
 ### Layout rules
@@ -142,8 +147,8 @@ Do not write code until the plan is approved.
 ## Idea bank (for discussion, not yet approved)
 
 **Migration**
-- "Moving Day" flow: import from Facebook, preview, pick what to bring, invite your people, done.
-- Shareable "I moved to DanzStak" card artists post on their old accounts with their new link.
+- **Pivot flow:** import from Facebook, preview, pick what to bring, invite your people, done.
+- Shareable "I pivoted to DanzStak" card artists post on their old accounts with their new link.
 - A visible data dashboard: what DanzStak stores about you, export and delete in one click.
 
 **Artists**
