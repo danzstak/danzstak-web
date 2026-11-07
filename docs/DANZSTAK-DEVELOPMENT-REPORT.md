@@ -2,14 +2,18 @@
 
 ## Member show and release reviews — 2026-11-07
 
-Status: **IN PROGRESS — DOMAIN FOUNDATION IMPLEMENTED AND TESTED LOCALLY; NOT DEPLOYED**.
+Status: **IN PROGRESS — PUBLIC EPK REVIEW SLICE IMPLEMENTED AND TESTED LOCALLY; NOT DEPLOYED**.
 
-- The first implementation slice adds authenticated review targets derived only from an artist's published EPK shows and releases, plus create/list/edit/delete APIs. The browser cannot invent a target, an artist cannot review their own work, and blocked account pairs cannot create or read each other's review activity.
+- The first merged implementation slice added review targets derived only from an artist's published EPK shows and releases, plus create/list/edit/delete APIs. The browser cannot invent a target, an artist cannot review their own work, and blocked account pairs cannot create or read each other's review activity. It merged through PR `#131` as `6497ccdd23f24c66adcfde837646e5233b98b893` and remains intentionally undeployed while the usable public surface is reviewed.
 - One review per member per show or release is enforced by an atomic DynamoDB uniqueness record. The same transaction writes chronological global, target, artist and author indexes; author-only edits use a conditional write, and author-only deletion removes the review and every index record together.
-- Reviews are prose-only in this slice. Media requests fail closed until the planned server-side file signature, real video track, duration, count, rights and ownership validation exists. DanzStak still stores no music or audio files.
+- The current review slice adds a public **Member reviews** section to published EPKs. Visitors can read reviews without an account; eligible signed-in members can choose a canonical published show or release, write one review, edit it, remove it from the EPK placement or delete it everywhere. Artist content and review text render through DOM text nodes rather than HTML.
+- **Remove from EPK** hides that placement only. **Delete everywhere** removes the review and every index record, with the required warning that screenshots or copies already made outside DanzStak cannot be recalled. Hidden placements are enforced by the API, not only hidden in the browser.
+- Reviews are prose-only in this slice. Media requests fail closed until the planned server-side file signature, real video track, five-minute duration, count, rights and ownership validation exists. DanzStak still stores no music or audio files.
 - A dedicated pay-per-request `DANZSTAK-Reviews` table, point-in-time recovery, least-privilege IAM actions, API Gateway routes and the existing Auth API environment are declared in `aws-deploy-auth-api.ps1`. No AWS resource has been created or changed by this local work.
-- Focused evidence: `test-reviews-domain.cjs`, Auth API syntax, infrastructure validation and `git diff --check` pass. The complete `test-regressions.ps1` gate passes, including authentication, account isolation, Feed, Friends, SYNC, media/audio, Booking, EPK, Tour Manager, Stripe safety, PWA refresh, site smoke and infrastructure checks.
-- Honest boundary: NEWS/MIX cards, the review composer, show/release page placement, media, reports/replies, notifications and EPK quote permission remain future reviewed slices. This foundation is not presented as a finished Reviews product and has not been deployed.
+- Functional evidence: `test-reviews-domain.cjs`, `test-epk-reviews.cjs`, JavaScript syntax, `test-site.ps1`, `test-infrastructure.ps1`, `git diff --check` and the complete `test-regressions.ps1` gate pass. The full gate covers authentication, account isolation, Feed, Friends, SYNC, media/audio, Booking, EPK, Tour Manager, Stripe safety, PWA refresh, 13-page smoke coverage and infrastructure validation.
+- Visual evidence: `browser-checks/epk-reviews.cjs` passes at 320, 360, 390, 414, 430 and 1366px with no browser error, horizontal overflow, clipped card or sub-44px action. Captures in `docs/screenshots/epk-reviews/` were inspected before review; the 390px view shows the composer, canonical target selector, member credit, review copy and creator controls in the selected EPK look without changing the familiar DanzStak frame.
+- Prepared assets: EPK Reviews CSS/JS v1, EPK JS v18 and PWA cache `danzstak-shell-v712`.
+- Honest boundary: NEWS/MIX cards, dedicated show/release pages, media, reports/replies, notifications and artist-approved EPK quote selection remain future reviewed slices. This work is not presented as a finished Reviews product and has not been deployed.
 
 ## Artist-reviewed venue interest and pass decisions — 2026-11-07
 

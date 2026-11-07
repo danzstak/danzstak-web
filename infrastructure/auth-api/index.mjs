@@ -3894,13 +3894,14 @@ async function reviewableTargets(event) {
   const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
   if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
   const userId = await getAuthenticatedUser(event);
-  if (!userId) return reply(401, { error: "Authentication required." });
   const publicId = String(event.queryStringParameters?.artist || "").trim().toLowerCase();
   const targets = await publishedReviewTargets(publicId);
   if (!targets.length) return reply(404, { error: "This artist has no published shows or releases available for review." });
-  const viewerEmail = await accountForSub(userId), artistEmail = await accountForSub(targets[0].artistUserId);
-  if (!viewerEmail || !artistEmail || await isBlockedPair(viewerEmail, artistEmail)) return reply(404, { error: "Review targets are not available." });
-  return reply(200, { artistPublicId: publicId, artistName: targets[0].artistName, targets: targets.map(({ artistUserId: _artistUserId, ...target }) => target) });
+  if (userId) {
+    const viewerEmail = await accountForSub(userId), artistEmail = await accountForSub(targets[0].artistUserId);
+    if (!viewerEmail || !artistEmail || await isBlockedPair(viewerEmail, artistEmail)) return reply(404, { error: "Review targets are not available." });
+  }
+  return reply(200, { artistPublicId: publicId, artistName: targets[0].artistName, canReview: Boolean(userId && userId !== targets[0].artistUserId), targets: targets.map(({ artistUserId: _artistUserId, ...target }) => target) });
 }
 
 function reviewRecordKeys(review) {
@@ -3929,21 +3930,23 @@ async function reviewItemsByKeys(keys) {
   return ordered;
 }
 
-async function visibleReviewViews(items, viewerId) {
-  const viewerEmail = await accountForSub(viewerId);
-  if (!viewerEmail) return [];
-  const views = [], emailByUser = new Map([[viewerId, viewerEmail]]), targetsByArtist = new Map();
+async function visibleReviewViews(items, viewerId, surface = "") {
+  const viewerEmail = viewerId ? await accountForSub(viewerId) : "";
+  if (viewerId && !viewerEmail) return [];
+  const views = [], emailByUser = new Map(viewerId ? [[viewerId, viewerEmail]] : []), targetsByArtist = new Map();
   const emailFor = async userId => {
     if (!emailByUser.has(userId)) emailByUser.set(userId, await accountForSub(userId));
     return emailByUser.get(userId);
   };
   for (const item of items) {
+    if (surface && item.hiddenPlacements?.SS?.includes(surface)) continue;
     const view = reviewEntityToView(item);
     if (!view) continue;
     if (!targetsByArtist.has(view.artistPublicId)) targetsByArtist.set(view.artistPublicId, await publishedReviewTargets(view.artistPublicId));
     if (!targetsByArtist.get(view.artistPublicId).some(target => target.targetType === view.targetType && target.targetId === view.targetId)) continue;
     const authorEmail = await emailFor(view.authorUserId), artistEmail = await emailFor(view.artistUserId);
-    if (!authorEmail || !artistEmail || await isBlockedPair(viewerEmail, authorEmail) || await isBlockedPair(viewerEmail, artistEmail)) continue;
+    if (!authorEmail || !artistEmail) continue;
+    if (viewerEmail && (await isBlockedPair(viewerEmail, authorEmail) || await isBlockedPair(viewerEmail, artistEmail))) continue;
     const profile = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: authorEmail } }, ProjectionExpression: "profileName, profileAvatarKey", ConsistentRead: true }));
     views.push({ ...view, authorName: String(profile.Item?.profileName?.S || "DanzStak member").slice(0, 80), authorAvatar: profile.Item?.profileAvatarKey?.S ? signedMediaUrl(profile.Item.profileAvatarKey.S, 3600) : "", ownedByViewer: view.authorUserId === viewerId });
   }
@@ -3954,10 +3957,10 @@ async function listReviews(event) {
   const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
   if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
   const userId = await getAuthenticatedUser(event);
-  if (!userId) return reply(401, { error: "Authentication required." });
   const targetType = String(event.queryStringParameters?.targetType || "").trim().toLowerCase();
   const targetId = String(event.queryStringParameters?.targetId || "").trim().toLowerCase();
   const artistPublicId = String(event.queryStringParameters?.artist || "").trim().toLowerCase();
+  const surface = new Set(["epk", "news", "mix", "target"]).has(String(event.queryStringParameters?.surface || "").trim().toLowerCase()) ? String(event.queryStringParameters.surface).trim().toLowerCase() : "";
   let partition = "REVIEWS";
   if (targetType || targetId) {
     if (!reviewTargetTypes.has(targetType) || !reviewIdPattern.test(targetId)) return reply(400, { error: "Choose a valid show or release." });
@@ -3969,7 +3972,7 @@ async function listReviews(event) {
   }
   const result = await db.send(new QueryCommand({ TableName: reviewsTable, KeyConditionExpression: "pk = :pk", ExpressionAttributeValues: { ":pk": { S: partition } }, ProjectionExpression: "reviewId", ScanIndexForward: false, Limit: 50, ConsistentRead: true }));
   const reviewIds = (result.Items || []).map(item => item.reviewId?.S || "").filter(reviewId => reviewIdPattern.test(reviewId));
-  return reply(200, { reviews: await visibleReviewViews(await reviewItemsByKeys(reviewIds), userId) });
+  return reply(200, { reviews: await visibleReviewViews(await reviewItemsByKeys(reviewIds), userId, surface) });
 }
 
 async function createReview(event) {
@@ -4008,7 +4011,18 @@ async function updateReview(event, reviewId) {
   if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
   const userId = await getAuthenticatedUser(event);
   if (!userId) return reply(401, { error: "Authentication required." });
-  const body = parseJsonBody(event)?.body;
+  const data = parseJsonBody(event), body = data?.body;
+  if (data?.action === "remove_from_here") {
+    const surface = String(data.surface || "").trim().toLowerCase();
+    if (!new Set(["epk", "news", "mix", "target"]).has(surface)) return reply(400, { error: "Choose where to remove this review." });
+    try {
+      await db.send(new UpdateItemCommand({ TableName: reviewsTable, Key: { pk: { S: `REVIEW#${reviewId}` }, sk: { S: "META" } }, UpdateExpression: "SET updatedAt = :updated ADD hiddenPlacements :surface", ConditionExpression: "authorUserId = :author", ExpressionAttributeValues: { ":surface": { SS: [surface] }, ":updated": { S: new Date().toISOString() }, ":author": { S: userId } } }));
+      return reply(200, { removedFrom: surface, reviewId });
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") return reply(404, { error: "Review not found." });
+      throw error;
+    }
+  }
   if (typeof body !== "string" || body.trim().length < 10 || body.trim().length > 5000 || Buffer.byteLength(body.trim(), "utf8") > 12000) return reply(400, { error: "Write a review between 10 and 5,000 characters." });
   try {
     const result = await db.send(new UpdateItemCommand({ TableName: reviewsTable, Key: { pk: { S: `REVIEW#${reviewId}` }, sk: { S: "META" } }, UpdateExpression: "SET body = :body, updatedAt = :updated", ConditionExpression: "authorUserId = :author", ExpressionAttributeValues: { ":body": { S: body.trim() }, ":updated": { S: new Date().toISOString() }, ":author": { S: userId } }, ReturnValues: "ALL_NEW" }));
