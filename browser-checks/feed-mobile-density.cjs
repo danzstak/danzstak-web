@@ -56,20 +56,28 @@ function fixture(pathname) {
         return {
           documentWidth: document.documentElement.scrollWidth,
           stories: rect("#storiesRail"),
+          dailyCreate: rect(".story-create"),
           composer: rect("#postComposer"),
           error: rect("#feedStatus"),
           roll: rect(".reels-rail"),
           addTarget: rect(".roll-add-toggle"),
           closeHidden: document.querySelector(".roll-close").hidden,
           formHidden: document.querySelector(".reel-import-form").hidden,
-          rollOpenVisible: document.querySelector(".roll-open").getClientRects().length > 0
+          rollOpenVisible: document.querySelector(".roll-open").getClientRects().length > 0,
+          composerBorderTop: getComputedStyle(document.querySelector("#postComposer")).borderTop,
+          shellStyles: ["#postComposer", "#feedStatus", ".reels-rail", ".story-create"].map(selector => {
+            const style = getComputedStyle(document.querySelector(selector));
+            return { selector, background: style.backgroundColor, borderTop: style.borderTopWidth, shadow: style.boxShadow };
+          })
         };
       });
       assert.deepEqual(errors, [], `${width}px feed errors: ${errors.join(" | ")}`);
       assert.ok(geometry.documentWidth <= width, `${width}px feed overflows: ${JSON.stringify(geometry)}`);
       assert.ok(geometry.stories.top < geometry.composer.top && geometry.composer.bottom <= geometry.error.top + 1 && geometry.error.bottom <= geometry.roll.top + 1, `${width}px Mix order is wrong: ${JSON.stringify(geometry)}`);
       if (width < 700) {
-        assert.ok(geometry.stories.height <= 145, `${width}px Dailies row is too tall: ${geometry.stories.height}`);
+        assert.ok(geometry.stories.height <= 165, `${width}px Dailies row is too tall: ${geometry.stories.height}`);
+        assert.ok(geometry.dailyCreate.width >= geometry.stories.width - 8, `${width}px empty Dailies must fill its row: ${JSON.stringify(geometry)}`);
+        assert.ok(geometry.dailyCreate.height >= 148 && geometry.dailyCreate.height <= 156, `${width}px empty Dailies action must use the approved double-height spacing: ${geometry.dailyCreate.height}`);
         assert.ok(geometry.composer.height <= 120, `${width}px composer is too tall: ${geometry.composer.height}`);
         assert.ok(geometry.error.height <= 92, `${width}px recovery panel is too tall: ${geometry.error.height}`);
         assert.ok(geometry.roll.height <= 92, `${width}px empty Roll is too tall: ${geometry.roll.height}`);
@@ -78,6 +86,12 @@ function fixture(pathname) {
       assert.equal(geometry.closeHidden, true, `${width}px inline Roll must not show a close button`);
       assert.equal(geometry.formHidden, true, `${width}px Roll form must start collapsed`);
       assert.equal(geometry.rollOpenVisible, false, `${width}px empty Roll must not offer a blank fullscreen player`);
+      assert.ok(!geometry.composerBorderTop.includes("rgb(23, 105, 224)"), `${width}px composer still has the blue top rule: ${geometry.composerBorderTop}`);
+      for (const shell of geometry.shellStyles) {
+        assert.equal(shell.background, "rgba(0, 0, 0, 0)", `${width}px ${shell.selector} still has a container background`);
+        assert.equal(shell.borderTop, "0px", `${width}px ${shell.selector} still has a container border`);
+        assert.equal(shell.shadow, "none", `${width}px ${shell.selector} still has a container shadow`);
+      }
       await page.screenshot({ path: path.join(output, `feed-recovery-${width}.png`), fullPage: false });
 
       await page.getByRole("button", { name: "Add video" }).click();

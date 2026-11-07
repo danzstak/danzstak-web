@@ -751,6 +751,8 @@ function renderWorkspace(name) {
     featurePanel.appendChild(workspace);
   }
   workspace.replaceChildren();
+  featurePanel.classList.toggle("friends-feature-view", name === "Friends");
+  featurePanel.querySelector(".friends-heading-invite")?.remove();
   workspace.classList.remove("settings-workspace", "events-workspace", "groups-workspace", "artist-hq-workspace");
   const saved = readSections();
 
@@ -1562,12 +1564,15 @@ function renderWorkspace(name) {
     searchLabel.append(searchIcon, search);
     const invite = document.createElement("button");
     invite.type = "button";
-    invite.className = "invite-friend-button";
+    invite.className = "invite-friend-button friends-heading-invite";
     invite.dataset.inviteFriend = "";
     invite.textContent = feedTranslate("Invite a friend");
     invite.setAttribute("aria-label", feedTranslate("Invite a friend"));
-    toolbar.append(searchLabel, invite);
-    globalThis.danzstakInvite?.bind(toolbar);
+    toolbar.append(searchLabel);
+    const friendsHeading = document.getElementById?.("featureTitle");
+    if (friendsHeading) friendsHeading.insertAdjacentElement("afterend", invite);
+    else toolbar.append(invite);
+    globalThis.danzstakInvite?.bind(featurePanel);
     const tabs = document.createElement("div");
     tabs.className = "friends-directory-tabs";
     tabs.setAttribute("role", "tablist");

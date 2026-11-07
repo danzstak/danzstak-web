@@ -8,6 +8,7 @@ const { chromium } = require("playwright");
 const baseUrl = process.env.DANZSTAK_LOCAL_URL || "http://127.0.0.1:8021";
 const width = Number(process.env.DANZSTAK_VIEWPORT_WIDTH || 390);
 const screenshot = String(process.env.DANZSTAK_SCREENSHOT || "");
+const callsScreenshot = String(process.env.DANZSTAK_CALLS_SCREENSHOT || "");
 const uuid = index => `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
 const json = (route, body) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 
@@ -37,6 +38,12 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
 
   try {
     await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
+    const videoCall = page.getByRole("button", { name: "Start a video call" });
+    await videoCall.waitFor();
+    await videoCall.click();
+    assert.equal(await page.locator('[data-chat-filter="calls"]').getAttribute("aria-selected"), "true", "the visible video-call action must open the real Calls directory");
+    await page.locator('.conversation-row[data-sync-section="calls"] .conversation-call[data-call-kind="video"]').first().waitFor();
+    if (callsScreenshot) { fs.mkdirSync(path.dirname(callsScreenshot), { recursive: true }); await page.screenshot({ path: callsScreenshot, fullPage: true }); }
     await page.locator(".conversation-user").first().click();
     const messages = page.locator("#messageList .message");
     await messages.last().waitFor();

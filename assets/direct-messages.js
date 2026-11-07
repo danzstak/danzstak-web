@@ -1222,7 +1222,7 @@ async function loadConversations() {
       button.addEventListener("click", () => openConversationFromInbox(conversation));
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [kind, targetId] of [["phone", "startPhone"], ["video", "startVideo"]]) {
-        const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.appendChild(createCallActionIcon(kind)); call.title = `${messageTranslate(targetId === "startPhone" ? "Phone call" : "Video call")}: ${publicName}`; call.setAttribute("aria-label", call.title);
+        const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.dataset.callKind = kind; call.appendChild(createCallActionIcon(kind)); call.title = `${messageTranslate(targetId === "startPhone" ? "Phone call" : "Video call")}: ${publicName}`; call.setAttribute("aria-label", call.title);
         call.disabled = conversation.canContact === false;
         call.addEventListener("click", () => { openConversation(conversation); document.getElementById(targetId)?.click(); });
         calls.appendChild(call);
@@ -1260,6 +1260,7 @@ document.getElementById("newChat")?.addEventListener("click", () => {
 });
 const chatFilters = [...document.querySelectorAll("[data-chat-filter]")];
 const syncSectionNote = document.getElementById("syncSectionNote");
+const inviteFriendContacts = document.getElementById("inviteFriendContacts");
 const syncSectionCopy = {
   chats: "Your saved conversations.",
   bookings: "Replies from clubs and venues you contacted through Tour Manager.",
@@ -1267,14 +1268,21 @@ const syncSectionCopy = {
   contacts: "Friends and shared Tribe members you are permitted to contact."
 };
 document.body.dataset.syncScreen = activeFilter;
+const syncAuxiliaryActions = () => { if (inviteFriendContacts) inviteFriendContacts.hidden = activeFilter !== "contacts"; };
 chatFilters.forEach(button => button.addEventListener("click", () => {
   chatFilters.forEach(item => { const selected = item === button; item.classList.toggle("active", selected); item.setAttribute("aria-selected", String(selected)); item.tabIndex = selected ? 0 : -1; });
   activeFilter = button.dataset.chatFilter;
   document.body.dataset.syncScreen = activeFilter;
+  syncAuxiliaryActions();
   if (syncSectionNote) syncSectionNote.textContent = messageTranslate(syncSectionCopy[activeFilter] || syncSectionCopy.chats);
   if (activeFilter === "bookings") window.danzstakLoadBookingThreads?.();
   else { window.danzstakLeaveBookingThreads?.(); loadConversations(); }
 }));
+document.getElementById("newVideoCall")?.addEventListener("click", () => {
+  const calls = chatFilters.find(button => button.dataset.chatFilter === "calls");
+  calls?.click();
+  document.querySelector("#conversationUsers .conversation-user")?.focus();
+});
 document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
   if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
   const current = chatFilters.indexOf(document.activeElement);
