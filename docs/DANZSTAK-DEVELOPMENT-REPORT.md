@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## The Roll narrow-phone header — 2026-11-07
+
+Status: **IN REVIEW — TESTED LOCALLY, NOT MERGED OR DEPLOYED**.
+
+- A live-PWA visual audit found that The Roll's fullscreen-only close action appeared in the normal feed at 320px and wrapped beneath the heading. The shared icon upgrader added `display: inline-grid !important`, overriding the component's non-fullscreen `display: none` rule.
+- The component now keeps the enhanced close action hidden in the feed and restores it only after The Roll enters fullscreen. The expand action remains on the heading row with its 44px touch target; no functionality or video playback behavior changed.
+- `browser-checks/core-social-mobile.cjs` now emulates a touch device and verifies at 320, 360, 390, 414 and 430px that the close action is hidden, the expand action remains inside the heading and its touch target is at least 44px. `test-roll-modal-accessibility.cjs` protects both the feed-hidden and fullscreen-visible CSS states.
+- Functional evidence: the complete `test-regressions.ps1` gate passes, including the focused static Roll accessibility regression, 13-page smoke validation and infrastructure validation. Visual/browser evidence: `browser-checks/roll-header-mobile.cjs` passes at 320, 360, 390, 414 and 430px with touch emulation; it verifies the hidden close state, contained expand action, 44px target and page width. All five captures in `docs/screenshots/roll-header-mobile/` were inspected and show a single compact header row without the stray close action.
+- Prepared PWA asset: feed enhancements CSS v503. The service worker remains on cache `danzstak-shell-v714`; its code/style strategy is network-first, and the versioned stylesheet URL prevents reuse of the old response without forcing an unrelated shell-cache migration.
+- Deployment status: not deployed. Production remains on main commit `a175137cf6409465260ef4adc7e85e066cb08e82` and cache `danzstak-shell-v714`; the owner/release gate still applies.
+
 ## Invite a friend — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
