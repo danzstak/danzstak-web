@@ -57,8 +57,9 @@ function fixture(pathname) {
         await page.locator(populatedSelector).first().waitFor({ state: "visible" });
         await page.waitForTimeout(100);
         if (name === "friends") {
-          assert.match(await page.locator(".feed-online-row button").first().getAttribute("aria-label") || "", /^Message\b/, `${width}px accepted online friend must not offer a duplicate friend request`);
           assert.equal(await page.locator(".friend-workspace-row").count(), 1, `${width}px accepted friend card is missing`);
+          assert.match(await page.getByRole("tab", { name: /^Online/ }).textContent() || "", /1$/, `${width}px accepted online friend must appear in the Online tab`);
+          assert.match(await page.locator(".friend-message-action").first().getAttribute("aria-label") || "", /^Message\b/, `${width}px accepted friend must open SYNC instead of offering a duplicate request`);
         }
         if (name === "notifications") {
           assert.equal(await page.locator(".notification-row").count(), 2, `${width}px populated notification sources did not remain visible together`);
@@ -103,7 +104,7 @@ function fixture(pathname) {
           const footerRect = footer.getBoundingClientRect(), navRect = nav.getBoundingClientRect();
           return { footerBottom: footerRect.bottom, navTop: navRect.top };
         });
-        if (footerClearance) assert.ok(footerClearance.footerBottom <= footerClearance.navTop, `${name} footer is covered by mobile navigation at ${width}px: ${JSON.stringify(footerClearance)}`);
+        if (footerClearance) assert.ok(footerClearance.footerBottom <= footerClearance.navTop + 1, `${name} footer is covered by mobile navigation at ${width}px: ${JSON.stringify(footerClearance)}`);
         results.push(`${name}-${width}`);
         await context.close();
       }

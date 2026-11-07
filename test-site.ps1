@@ -371,10 +371,10 @@ foreach ($onlineContactNavigation in @('name.href = "profile.html?member=" + enc
 foreach ($messageDrawerFocusControl in @('let messageDrawerPreviousFocus = null', 'messageDrawerPreviousFocus = activeElement', '(messageDrawerPreviousFocus || launcher).focus()', 'messageDrawerPreviousFocus = null')) {
   if (-not $feed.Contains($messageDrawerFocusControl)) { Add-Failure "Messages: embedded drawer does not return focus to its opener: $messageDrawerFocusControl" }
 }
-if (-not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")')) {
+if (-not ($feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")') -or $feedEnhancements.Contains('presenceDot.setAttribute("aria-hidden", "true")'))) {
   Add-Failure 'Friends: decorative presence dot duplicates the visible online status for assistive technology'
 }
-foreach ($friendsWorkspaceControl in @('list.setAttribute("aria-label", feedTranslate("Friends"))', 'list.setAttribute("aria-busy", "true")', 'message.setAttribute("aria-label", `${feedTranslate("Message")}: ${displayName.textContent}`)', 'message.addEventListener("click", () => openMessageDrawer(person.email))')) {
+foreach ($friendsWorkspaceControl in @('list.setAttribute("aria-label", feedTranslate(tabDefinitions.find(([value]) => value === activeTab)?.[1] || "Friends"))', 'list.setAttribute("aria-busy", "true")', 'message.setAttribute("aria-label", `${feedTranslate("Message")}: ${displayName}`)', 'message.addEventListener("click", () => openMessageDrawer(person.email))')) {
   if (-not $feedEnhancements.Contains($friendsWorkspaceControl)) { Add-Failure "Friends: workspace loading or quick-message behavior is missing: $friendsWorkspaceControl" }
 }
 foreach ($friendsWorkspaceRecovery in @('const friendsController = new AbortController()', 'setTimeout(() => friendsController.abort(), 10000)', 'signal: friendsController.signal', 'Friends took too long to load.', 'retry.addEventListener("click", () => renderWorkspace("Friends"))', 'clearTimeout(friendsTimeout)')) {
@@ -394,7 +394,7 @@ if ($feed.Contains('state.setAttribute("aria-label", state.title)') -or -not $fe
 }
 $sessionActivityJs = Get-Content -LiteralPath (Join-Path $root 'assets\session-activity.js') -Raw -Encoding utf8
 $profileEditorJs = Get-Content -LiteralPath (Join-Path $root 'assets\profile-editor.js') -Raw -Encoding utf8
-if ($feedEnhancements.Contains('presence.setAttribute("aria-label", status.textContent)') -or -not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")')) {
+if ($feedEnhancements.Contains('presence.setAttribute("aria-label", status.textContent)') -or $feedEnhancements.Contains('presenceDot.setAttribute("aria-label", detail.textContent)') -or -not ($feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")') -or $feedEnhancements.Contains('presenceDot.setAttribute("aria-hidden", "true")'))) {
   Add-Failure 'Friends: workspace presence indicator duplicates the visible Online or Offline screen-reader announcement'
 }
 if ($profileEditorJs.Contains('status.setAttribute("aria-label", status.title)') -or -not $profileEditorJs.Contains('status.setAttribute("aria-hidden", "true")')) {

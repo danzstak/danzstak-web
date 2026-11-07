@@ -70,10 +70,11 @@ context.button = button;
   }
 
   assert.match(frontend, /className = "friend-workspace-actions"/);
-  assert.match(frontend, /remove\.dataset\.icon = "trash"/);
+  assert.match(frontend, /more\.className = "friend-more-menu"/);
+  assert.match(frontend, /more\.append\(summary, remove\)/, "friend removal must live behind the More menu");
   assert.match(styles, /\.friend-workspace-actions\{display:flex;align-items:center;gap:6px;flex-wrap:nowrap\}/);
-  assert.match(styles, /\.friend-remove-action\.ds-icon-button\{[^}]*min-height:44px/, "mobile remove control must retain a 44px touch target");
-  assert.match(feed, /feed-enhancements\.js\?v=531/);
-  assert.match(feed, /feed-enhancements\.css\?v=500/);
+  assert.match(styles, /\.friend-remove-action\{position:absolute;[^}]*min-height:44px/, "remove menu action must retain a 44px touch target");
+  assert.match(feed, /feed-enhancements\.js\?v=532/);
+  assert.match(feed, /feed-enhancements\.css\?v=501/);
   console.log("Friend-removal checks passed: opaque identity, atomic relationship cleanup, confirmation, recovery, localization, and mobile controls.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
