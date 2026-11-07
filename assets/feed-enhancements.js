@@ -3801,6 +3801,13 @@ rollClose.className = "roll-close";
 rollClose.dataset.icon = "close";
 rollClose.textContent = "Close";
 rollClose.setAttribute("aria-label", "Close The Roll fullscreen");
+rollClose.hidden = true;
+const reelAddToggle = document.createElement("button");
+reelAddToggle.type = "button";
+reelAddToggle.className = "roll-add-toggle";
+reelAddToggle.textContent = "+ Add video";
+reelAddToggle.setAttribute("aria-expanded", "false");
+reelAddToggle.setAttribute("aria-controls", "rollAddForm");
 const usesMobileRollHistory = () => matchMedia("(max-width: 700px)").matches;
 let rollPlaceholder = null;
 let rollBackgroundState = [];
@@ -3844,6 +3851,7 @@ function setRollFullscreen(open, { updateHistory = true, fromHistory = false, st
   }
   if (shouldOpen) isolateRollFullscreen();
   reelsRail.classList.toggle("roll-fullscreen", shouldOpen);
+  rollClose.hidden = !shouldOpen;
   document.body.classList.toggle("roll-view-open", shouldOpen);
   rollOpen.setAttribute("aria-expanded", String(shouldOpen));
   if (shouldOpen && updateHistory && usesMobileRollHistory() && history.state?.danzstakRollOpen !== true) {
@@ -3879,7 +3887,7 @@ reelsRail.addEventListener("keydown", event => {
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 });
-reelsHeading.append(reelsTitle, reelsSourceNote, rollSessionStatus, rollOpen, rollClose);
+reelsHeading.append(reelsTitle, reelsSourceNote, rollSessionStatus, reelAddToggle, rollOpen, rollClose);
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
 function restoreRollFullscreenFromHistory(event) {
@@ -3911,6 +3919,8 @@ addEventListener("danzstak:media-sound-blocked", event => {
 });
 const reelForm = document.createElement("div");
 reelForm.className = "reel-import-form";
+reelForm.id = "rollAddForm";
+reelForm.hidden = true;
 const reelUrl = document.createElement("input");
 reelUrl.type = "url";
   reelUrl.placeholder = "Paste a supported video link";
@@ -3927,6 +3937,15 @@ const reelStatus = document.createElement("p");
 reelStatus.className = "muted reel-status";
 reelForm.append(reelUrl, reelPermission, addReel, reelStatus);
 reelsRail.append(reelsHeading, reelsList, reelForm);
+function setReelFormOpen(open) {
+  const shouldOpen = Boolean(open);
+  reelForm.hidden = !shouldOpen;
+  reelsRail.classList.toggle("is-adding", shouldOpen);
+  reelAddToggle.setAttribute("aria-expanded", String(shouldOpen));
+  reelAddToggle.textContent = shouldOpen ? "Cancel" : "+ Add video";
+  if (shouldOpen) reelUrl.focus({ preventScroll: true });
+}
+reelAddToggle.addEventListener("click", () => setReelFormOpen(reelForm.hidden));
 
 function getLocalReels() {
   try { return JSON.parse(localStorage.getItem(reelsStorageKey) || "[]"); }
@@ -4043,6 +4062,9 @@ function renderPlayableReels() {
   window.danzstakMediaCoordinator?.endSession?.(reelsList);
   reelsList.replaceChildren();
   const reels = getReels();
+  reelsRail.classList.toggle("has-reels", reels.length > 0);
+  rollOpen.disabled = reels.length === 0;
+  rollOpen.hidden = reels.length === 0;
   if (!reels.length) {
     const empty = document.createElement("p");
     empty.className = "muted reels-empty";
@@ -4243,6 +4265,7 @@ addReel.addEventListener("click", async () => {
     reelPermissionCheck.checked = false;
     reelStatus.textContent = "Video saved to The Roll.";
     renderPlayableReels();
+    setReelFormOpen(false);
   } catch (error) {
     reelStatus.textContent = error.message || "Video could not be saved to The Roll.";
   } finally {

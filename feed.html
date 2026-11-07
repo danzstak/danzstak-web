@@ -257,16 +257,19 @@ textarea {
 #feedStatus.feed-load-error {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  flex-wrap: nowrap;
   gap: 10px;
-  padding: 12px 14px;
+  margin: 0 0 8px;
+  padding: 10px 12px;
   border: 1px solid #d7dee8;
   border-radius: 12px;
   background: #fff;
   color: #4b5563;
-  text-align: center;
+  text-align: left;
 }
+
+#feedStatus.feed-load-error > span { min-width: 0; line-height: 1.35; }
 
 #feedStatus.feed-load-error .secondary {
   min-height: 38px;
@@ -345,7 +348,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 }
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=501">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=502">
 <link rel="stylesheet" href="assets/invite-sharing.css?v=1">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
@@ -354,7 +357,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 <link rel="stylesheet" href="assets/incoming-calls.css?v=233">
 <link rel="stylesheet" href="assets/responsive-media.css?v=4">
 <link rel="stylesheet" href="assets/mobile-design-system.css?v=13">
-<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=7">
+<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=8">
 <link rel="stylesheet" href="assets/artist-hq.css?v=1">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=8" defer></script>
@@ -459,6 +462,11 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
     </section>
 
     <div id="newsFeedView">
+    <section id="storiesRail" class="stories" aria-label="Dailies">
+      <button type="button" class="story story-create" aria-label="Add a photo or video to Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small>TAKE 0</small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><b aria-hidden="true">+</b><span class="story-create-label">Dailies</span></span></button>
+      <div id="storiesLoading" class="story"><span>Loading Dailies</span></div>
+    </section>
+
     <section class="panel post-composer" id="postComposer">
       <h3 class="composer-title"><span class="composer-avatar" aria-hidden="true">D</span><span>Add to Mix</span></h3>
 
@@ -486,11 +494,6 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
           Post
         </button>
       </div>
-    </section>
-
-    <section id="storiesRail" class="stories" aria-label="Dailies">
-      <button type="button" class="story story-create" aria-label="Add a photo or video to Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small>TAKE 0</small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><b aria-hidden="true">+</b><span class="story-create-label">Dailies</span></span></button>
-      <div id="storiesLoading" class="story"><span>Loading Dailies</span></div>
     </section>
 
     <p id="feedStatus" class="muted" role="status">
@@ -1810,7 +1813,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/account-export.js?v=287" defer></script>
 <script src="assets/artist-hq.js?v=1" defer></script>
 <script src="assets/invite-sharing.js?v=1" defer></script>
-<script src="assets/feed-enhancements.js?v=533" defer></script>
+<script src="assets/feed-enhancements.js?v=534" defer></script>
 <script src="assets/profile-onboarding.js?v=8" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=298" defer></script>
