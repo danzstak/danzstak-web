@@ -78,6 +78,9 @@ const fs = require("node:fs");
   assert.match(backend, /await isBlockedPair\(authorEmail, artistEmail\)/, "review creation must enforce account blocks server-side");
   assert.match(backend, /ConditionExpression: "attribute_not_exists\(pk\)"/, "the one-review rule must be enforced atomically rather than only in the browser");
   assert.match(backend, /ConditionExpression: "authorUserId = :author"/, "only the original reviewer may edit a review");
+  assert.match(backend, /data\?\.action === "remove_from_here"/, "review authors must be able to remove one placement without deleting the original everywhere");
+  assert.match(backend, /hiddenPlacements/, "placement removal must be enforced by the review API, not only hidden in the browser");
+  assert.match(backend, /async function listReviews[\s\S]*?const userId = await getAuthenticatedUser\(event\);[\s\S]*?QueryCommand/, "published reviews should remain readable on public EPK pages while signed-in viewers retain block filtering");
 
   console.log("Reviews domain checks passed: canonical published targets, bounded prose, media fail-closed, atomic uniqueness, author ownership, block enforcement, and deployment wiring.");
 })().catch(error => {
