@@ -8,10 +8,10 @@
   <title>EPK Builder | DanzStak</title>
   <meta name="description" content="Build and publish a clear electronic press kit for venues, promoters, record stores, and press.">
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="assets/epk.css?v=6">
+  <link rel="stylesheet" href="assets/epk.css?v=7">
   <link rel="stylesheet" href="assets/epk-looks.css?v=1">
   <link rel="stylesheet" href="assets/epk-production.css?v=1">
-  <link rel="stylesheet" href="assets/epk-media.css?v=5">
+  <link rel="stylesheet" href="assets/epk-media.css?v=6">
   <link rel="stylesheet" href="assets/responsive-media.css?v=4">
   <link rel="stylesheet" href="assets/accessibility.css?v=364">
   <link rel="stylesheet" href="assets/app-feedback.css?v=2">
@@ -31,8 +31,15 @@
       </ol>
       <div class="epk-guide-actions"><button type="button" id="guideBack">Back</button><button type="button" id="guideNext" class="primary">Next</button><button type="button" id="showAllFields">Show all fields</button></div>
     </section>
-    <nav id="publicEpkActions" class="epk-public-actions" aria-label="EPK actions" hidden><button type="button" id="printEpkOnePage" class="epk-pdf-action">One-page press PDF</button><button type="button" id="printEpk" class="epk-pdf-action">Full press PDF</button><button type="button" id="copyEpkLink">Copy EPK link</button></nav>
+    <nav id="publicEpkActions" class="epk-public-actions" aria-label="EPK actions" hidden><button type="button" id="printEpkOnePage" class="epk-pdf-action">One-page press PDF</button><button type="button" id="printEpk" class="epk-pdf-action">Full press PDF</button><button type="button" id="copyEpkLink">Copy EPK link</button><button type="button" id="showEpkQr">QR code</button></nav>
     <p id="publicEpkNotice" class="epk-public-notice" role="status" hidden></p>
+    <dialog id="epkQrDialog" class="epk-qr-dialog" aria-labelledby="epkQrTitle">
+      <div class="epk-qr-dialog__head"><h2 id="epkQrTitle">Share this EPK</h2><button type="button" id="closeEpkQr" aria-label="Close QR code">Close</button></div>
+      <img id="epkQrImage" alt="QR code for this EPK link">
+      <p>Anyone who scans this code opens this exact EPK link. Keep a private-link QR code as private as the link itself.</p>
+      <p id="epkQrStatus" role="status"></p>
+      <a id="downloadEpkQr" class="epk-qr-download" download="danzstak-epk-qr.svg">Download QR code</a>
+    </dialog>
     <div class="epk-layout">
       <form id="epkForm" class="epk-form" autocomplete="off">
         <section data-epk-step="1"><h2>Start here</h2><div class="two"><label>Artist or act name<input id="artistName" maxlength="120" required></label><label>Home town<input id="hometown" maxlength="160"></label><label>Act type<select id="actType"><option value="band">Band</option><option value="dj">DJ</option><option value="electronic">Electronic live act</option><option value="solo">Solo artist or ensemble</option></select></label><label>Genres<input id="genres" maxlength="300" placeholder="DIY punk, hardcore, garage rock"></label></div><label>EPK look<select id="epkLook"><option value="techno">Techno — dark and direct</option><option value="punk">Punk — paper and ticket stubs</option><option value="metal">Metal — dark and symmetrical</option><option value="house">House / EDM — color and motion</option></select></label><p class="hint">Change the look any time. Your writing, links, photos and production details stay intact.</p><label>One-line pitch<textarea id="shortPitch" rows="2" maxlength="300" placeholder="What makes the live set worth booking?"></textarea></label></section>
@@ -59,7 +66,7 @@
   </nav>
   <script src="assets/icon-buttons.js?v=7" defer></script>
   <script src="assets/epk-production.js?v=1" defer></script>
-  <script src="assets/epk.js?v=16" defer></script>
+  <script src="assets/epk.js?v=17" defer></script>
   <script src="assets/responsive-media.js?v=2" defer></script>
 </body>
 </html>

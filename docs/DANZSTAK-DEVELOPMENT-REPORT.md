@@ -1318,3 +1318,15 @@ Status as of 2026-11-06: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 - Post-deployment production verification reran the full actual-browser suite successfully at 320, 360, 375, 390, 414, 430, 768, 1024, and 1366px. A fresh browser registered an activated controlling service worker and reported only `danzstak-shell-v692` in Cache Storage, so the previous installed-PWA shell was not retained.
 - Live captures: [compact menu at 320px](screenshots/issue-55-settings-live/menu-320.png), [Settings at 390px](screenshots/issue-55-settings-live/settings-390.png), [tablet Chat at 768px](screenshots/issue-55-settings-live/chat-desktop-768.png), and [desktop Feed at 1366px](screenshots/issue-55-settings-live/home-1366.png).
 - Physical Android Chrome/installed-PWA and iPhone Safari/installed-PWA remain **NOT TESTED** in this environment; this limitation is not represented as a pass.
+
+# EPK exact-link QR sharing
+
+Status as of 2026-11-07: **IMPLEMENTED AND LOCALLY VERIFIED; PRODUCTION DEPLOYMENT PENDING REVIEW**.
+
+- Public, private-review, and per-venue outreach EPK pages now offer a visible QR action. The downloadable SVG contains the exact canonical `https://danzstak.com/epk.html` link, including a private fragment token when present.
+- QR generation runs in the existing DanzStak Auth API using the pinned `qrcode` package. The server accepts only exact DanzStak EPK routes and rejects alternate hosts, HTTP, extra parameters, malformed identifiers, missing private tokens, and extra fragment data. No EPK link or creator content is sent to a third-party QR service.
+- The QR response is private and non-cacheable. The client bounds and validates the SVG response, renders it as an image, and supplies an artist-named SVG download without injecting returned markup into the page.
+- The public EPK action bar now uses a compact two-column phone layout so four actions remain legible instead of becoming tall narrow controls. The modal and download/close actions retain 44px minimum targets and do not overflow at 320, 360, 390, 414, 430, or 1366px.
+- Functional/integration evidence: the complete repository regression suite passed, including all EPK, Booking/Tour Manager, Stripe, social, SYNC, media/audio, PWA, site-smoke, and infrastructure checks. Focused API tests cover valid and rejected exact links, private-token preservation, origin enforcement, SVG generation, and no-store headers.
+- Actual-browser evidence: the QR interaction suite passed at all six widths with a real library-generated QR SVG, an exact private URL request, downloadable data, focusable dialog controls, clean close behavior, no JavaScript errors, and no horizontal overflow. Screenshots: [390px](screenshots/epk-qr/epk-qr-390.png) and [1366px](screenshots/epk-qr/epk-qr-1366.png).
+- Installed-PWA shell advances to `danzstak-shell-v707`. Physical Android/iPhone scanning and installed-device acceptance remain **NOT TESTED** in this environment and are not represented as passed.

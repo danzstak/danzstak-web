@@ -14,6 +14,18 @@
       throw new Error("DanzStak cannot connect right now. Check your connection and try again.");
     } finally { clearTimeout(timer); }
   }
+  function canonicalEpkUrl() {
+    const url = new URL("https://danzstak.com/epk.html");
+    url.search = location.search;
+    url.hash = location.hash;
+    return url.href;
+  }
+  const svgDataUrl = svg => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("The QR code could not be prepared."));
+    reader.readAsDataURL(new Blob([svg], { type:"image/svg+xml" }));
+  });
   const lines = value => String(value || "").split(/\r?\n/).map(item => item.trim()).filter(Boolean);
   const linkLines = value => lines(value).map(item => { const [label, ...rest] = item.split("|"); const url = rest.join("|").trim(); return { label: label.trim(), url }; }).filter(item => item.label && /^https:\/\//i.test(item.url));
   const quoteLines = value => lines(value).map(item => { const [quote, source, ...rest] = item.split("|"); return { quote: quote?.trim(), source: source?.trim(), url: rest.join("|").trim() }; }).filter(item => item.quote && item.source);
@@ -221,7 +233,25 @@
     window.addEventListener("afterprint", () => { delete document.body.dataset.epkPrint; });
     byId("printEpkOnePage").addEventListener("click", () => printEpk("one-page"));
     byId("printEpk").addEventListener("click", () => printEpk("full"));
-    byId("copyEpkLink").addEventListener("click", async () => { try { await navigator.clipboard.writeText(location.href); window.danzstakShowFeedback?.("EPK link copied."); } catch { window.danzstakShowFeedback?.("Copy was blocked. Select the address from your browser.", { urgent:true }); } }); return; }
+    byId("copyEpkLink").addEventListener("click", async () => { try { await navigator.clipboard.writeText(canonicalEpkUrl()); window.danzstakShowFeedback?.("EPK link copied."); } catch { window.danzstakShowFeedback?.("Copy was blocked. Select the address from your browser.", { urgent:true }); } });
+    byId("showEpkQr").addEventListener("click", async () => {
+      const dialog = byId("epkQrDialog"), qrStatus = byId("epkQrStatus"), button = byId("showEpkQr");
+      button.disabled = true; qrStatus.textContent = "Building QR code...";
+      try {
+        const response = await request(`${api}/epk/qr`, { method:"POST", credentials:"omit", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({url:canonicalEpkUrl()}) });
+        const svg = await response.text();
+        if (!response.ok || svg.length > 200000 || !/^<svg[\s>]/.test(svg)) throw new Error("The QR code could not be created.");
+        const dataUrl = await svgDataUrl(svg), artist = preview.querySelector(".epk-hero h1")?.textContent || "artist";
+        byId("epkQrImage").src = dataUrl; byId("downloadEpkQr").href = dataUrl;
+        byId("downloadEpkQr").download = `${artist.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"") || "danzstak-epk"}-qr.svg`;
+        qrStatus.textContent = "QR code ready.";
+        if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+        byId("closeEpkQr").focus();
+      } catch (error) { qrStatus.textContent = error.message; window.danzstakShowFeedback?.(error.message, { urgent:true }); }
+      finally { button.disabled = false; }
+    });
+    byId("closeEpkQr").addEventListener("click", () => { const dialog = byId("epkQrDialog"); if (typeof dialog.close === "function") dialog.close(); else dialog.removeAttribute("open"); });
+    return; }
   window.danzstakEpkProduction?.init?.();
   setGuidedMode(true);
   request(`${api}/epk`, { credentials:"include", cache:"no-store" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Could not load your EPK."); if (data.kit) { fill(data.kit); setGuidedMode(false); } else { render({}); setGuidedMode(true); } showLink(data.publicId, data.published); showPrivateShare(data.privateShared === true); byId("privateShareStatus").textContent = data.privateShared ? "A private review link is active. Replace it to get a new secret or revoke access." : "No private review link is active."; status.textContent = data.kit ? (data.published ? "Published EPK loaded." : "Private draft loaded.") : "Start with the act name. Your draft is private."; }).catch(error => { render({}); setGuidedMode(true); status.textContent = error.message; });
