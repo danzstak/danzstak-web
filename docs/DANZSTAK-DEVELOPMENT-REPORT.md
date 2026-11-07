@@ -2,13 +2,14 @@
 
 ## Moving Day from Edit Profile — 2026-11-07
 
-Status: **TESTED LOCALLY — READY FOR REVIEW; NOT YET DEPLOYED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
 
 - Edit Profile now includes a compact **Pivot — Moving Day** section using the same selective-import dialog and Facebook importer as Mix. It does not create a second importer or duplicate state.
 - The entry point states the product promise before opening: pivot away from billionaire platforms, preview the export, choose what to move and retain ownership of the imported data.
 - Functional evidence: `test-pivot.cjs` verifies both entry points, shared Pivot assets, owner language and PWA inclusion. `test-facebook-import.cjs` continues to verify explicit selection, privacy batches, missing-media decisions, duplicate protection and original dates.
 - Browser evidence: `browser-checks/pivot-profile.cjs` passes the real Edit Profile route and Moving Day dialog at 320, 360, 390, 414, 430 and 1366px with a 44px action, visible label, no overflow and no browser errors. Inspected captures are in `docs/screenshots/pivot-profile/`.
-- Prepared PWA assets: Profile editor CSS v395, JS v483 and cache `danzstak-shell-v729`. Deployment remains pending until review and complete regression gates pass.
+- Release evidence: Review checks passed for PR [#161](https://github.com/danzstak/danzstak-web/pull/161), merged as `3179c8b0dbff20a439732a50232ea3375453b69a`. AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `993` succeeded for that exact commit in `us-west-1` from 22:43:03 to 22:46:21 Europe/Berlin.
+- Post-deployment verification: no-cache production probes confirmed Profile editor CSS v395, JS v483, Pivot CSS/JS v1 and `danzstak-shell-v729`. `browser-checks/pivot-profile.cjs` passed directly against `https://danzstak.com` at 320, 360, 390, 414, 430 and 1366px. Live captures are in `docs/screenshots/pivot-profile-live/`.
 
 ## Pivot / Moving Day selective import — 2026-11-07
 
