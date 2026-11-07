@@ -14,6 +14,9 @@ assert.match(chat, /event\.signalType==="answer".*stopRingback\(\)/, "answering 
 assert.match(chat, /async function end\(notify=true\).*stopRingback\(\)/, "every call end path must stop ringback");
 assert.match(chat, /danzstakMediaCoordinator\?\.pauseAll\?\.\(\)/, "starting a call must silence feed media");
 assert.match(chat, /window\.addEventListener\("pagehide",teardownCall\).*window\.addEventListener\("beforeunload",teardownCall\)/, "navigation must stop call audio");
+assert.match(chat, /document\.addEventListener\("pointerdown",unlockCallAudio/, "ordinary interaction must unlock the foreground SYNC ringtone");
+assert.match(chat, /if\(pending&&!els\.incoming\.hidden&&!ringTimer\)startIncomingRingtone\(\)/, "unlocking audio while an incoming call is visible must start its ringtone");
+assert.match(chat, /document\.addEventListener\("visibilitychange",\(\)=>\{if\(document\.hidden\)stopIncomingRingtone\(\)/, "backgrounding SYNC must silence its foreground ringtone");
 
 const scheduled = new Map();
 let nextTimer = 1;
@@ -21,6 +24,8 @@ const state = vm.createContext({
   ringTimer: null,
   ringbackTimer: null,
   ringbackMuted: false,
+  pending: { callId: "incoming-call" },
+  document: { hidden: false, body: { dataset: {}, classList: { contains() { return false; } } } },
   audioContext: {
     state: "running", currentTime: 0, destination: {},
     createOscillator() { return { frequency: { value: 0 }, connect() { return this; }, start() {}, stop() {} }; },
@@ -35,7 +40,13 @@ const state = vm.createContext({
   clearInterval(id) { scheduled.delete(id); },
   setTimeout(callback) { callback(); return nextTimer++; }
 });
-vm.runInContext(["playTone", "updateRingbackControl", "stopRingback", "stopRing", "startRingback"].map(extract).join("\n"), state);
+vm.runInContext(["playTone", "startIncomingRingtone", "stopIncomingRingtone", "updateRingbackControl", "stopRingback", "stopRing", "startRingback"].map(extract).join("\n"), state);
+
+state.startIncomingRingtone();
+assert.ok(state.ringTimer, "an unlocked visible incoming call must have a ringtone cadence");
+assert.equal(scheduled.size, 1);
+state.stopIncomingRingtone();
+assert.equal(scheduled.size, 0, "stopping an incoming ringtone must clear its cadence");
 
 state.startRingback();
 assert.ok(state.ringbackTimer);
