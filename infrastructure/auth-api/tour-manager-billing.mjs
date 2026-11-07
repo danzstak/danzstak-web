@@ -1,4 +1,4 @@
-import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UXjMtFgtfNMBXOVCLeEk8vI";
 export const TOUR_MANAGER_PRODUCT_ID = "prod_VYr5JIwpaFSX7b";
@@ -35,6 +35,8 @@ const PHONE_ENTITLEMENT_KEY = "PHONE#ACTIVATION_ENTITLEMENT";
 const BOOKING_WORKSPACE_KEY = "booking-workspace-v1";
 const EVENT_OWNER = "STRIPE#TOUR_MANAGER_EVENTS";
 const MAX_CREDITS_PER_CHECKOUT = 500;
+export const MAX_NEW_PITCHES_PER_24_HOURS = 20;
+export const BOOKING_CONTACT_COOLDOWN_SECONDS = 30 * 24 * 60 * 60;
 const WEBHOOK_TYPES = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired", "charge.refunded"]);
 const securityHeaders = { "content-type": "application/json", "cache-control": "no-store", "strict-transport-security": "max-age=63072000; includeSubDomains; preload", "x-content-type-options": "nosniff", "x-frame-options": "DENY", "referrer-policy": "no-referrer" };
 
@@ -49,6 +51,9 @@ function phoneEntitlementKey(userId) { return { userId: { S: userId }, tourId: {
 function eventKey(eventId) { return { userId: { S: EVENT_OWNER }, tourId: { S: eventId } }; }
 function ledgerKey(userId, at, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#LEDGER#${at}#${id}` } }; }
 function sendKey(userId, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${id}` } }; }
+function outreachHourKey(userId, at) { const hour = Math.floor(at / 3600000); return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#OUTREACH_HOUR#${String(hour).padStart(12, "0")}` } }; }
+function normalizedRecipientHash(value) { return createHash("sha256").update(String(value || "").trim().toLowerCase()).digest("hex"); }
+function recipientCooldownKey(userId, recipient) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#RECIPIENT_COOLDOWN#${normalizedRecipientHash(recipient)}` } }; }
 function contactUnlockKey(userId, venueKey) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#CONTACT_UNLOCK#${venueKey}` } }; }
 function validVenueKey(value) { return typeof value === "string" && /^[a-f0-9]{20}$/.test(value); }
 
@@ -403,14 +408,44 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     } else if (!message.includes(epk)) return response(409, { error: "Publish and save the artist EPK, then include its exact public link in the reviewed email." }, headers);
     const key = sendKey(userId, id), existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
     if (existing.Item) return response(existing.Item.status?.S === "sent" ? 200 : 202, { status: existing.Item.status?.S || "pending", duplicate: true, messageId: existing.Item.providerMessageId?.S || "" }, headers);
-    const reservedAt = nowIso();
+    const reservationMs = clock(), reservationSeconds = Math.floor(reservationMs / 1000), reservedAt = new Date(reservationMs).toISOString(), hourKey = outreachHourKey(userId, reservationMs), cooldownKey = recipientCooldownKey(userId, to);
+    const [hourlyResult, cooldownResult] = await Promise.all([
+      db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#OUTREACH_HOUR#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 48 })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: cooldownKey, ConsistentRead: true }))
+    ]);
+    const currentHour = Math.floor(reservationMs / 3600000), oldestHour = currentHour - 23;
+    let previousHourCount = 0, currentHourCount = 0;
+    for (const item of hourlyResult.Items || []) {
+      const bucket = Number(String(item.tourId?.S || "").slice("TOUR_MANAGER#OUTREACH_HOUR#".length)), count = Number(item.sendCount?.N || 0);
+      if (!Number.isInteger(bucket) || bucket < oldestHour || bucket > currentHour || !Number.isFinite(count) || count < 0) continue;
+      if (bucket === currentHour) currentHourCount += count; else previousHourCount += count;
+    }
+    if (previousHourCount + currentHourCount >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
+    const cooldownUntil = Number(cooldownResult.Item?.nextAllowedAt?.N || 0);
+    if (cooldownUntil > reservationSeconds) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead.", availableAt: new Date(cooldownUntil * 1000).toISOString() }, headers);
+    const currentHourAllowance = MAX_NEW_PITCHES_PER_24_HOURS - previousHourCount, cooldownExpiresAt = reservationSeconds + BOOKING_CONTACT_COOLDOWN_SECONDS;
     try {
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
         { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :minusOne, reservedCredits :one SET updatedAt = :updatedAt", ConditionExpression: "credits >= :one", ExpressionAttributeValues: { ":minusOne": { N: "-1" }, ":one": { N: "1" }, ":updatedAt": { S: reservedAt } } } },
+        { Update: { TableName: tableName, Key: hourKey, UpdateExpression: "ADD sendCount :one SET updatedAt = :updatedAt, expiresAt = :expiresAt", ConditionExpression: "attribute_not_exists(sendCount) OR sendCount < :allowance", ExpressionAttributeValues: { ":one": { N: "1" }, ":allowance": { N: String(currentHourAllowance) }, ":updatedAt": { S: reservedAt }, ":expiresAt": { N: String(reservationSeconds + 31 * 86400) } } } },
+        { Put: { TableName: tableName, Item: { ...cooldownKey, recipientHash: { S: normalizedRecipientHash(to) }, venueKey: { S: venueKey }, sendId: { S: id }, createdAt: { S: reservedAt }, nextAllowedAt: { N: String(cooldownExpiresAt) }, expiresAt: { N: String(cooldownExpiresAt) } }, ConditionExpression: "attribute_not_exists(userId) OR nextAllowedAt <= :now", ExpressionAttributeValues: { ":now": { N: String(reservationSeconds) } } } },
         { Put: { TableName: tableName, Item: { ...key, status: { S: "reserved" }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, recipient: { S: to }, subject: { S: subject }, message: { S: message }, template: { S: template }, artistApprovedAt: { S: reservedAt }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(userId, reservedAt, id), entryType: { S: "email_reservation" }, delta: { N: "-1" }, status: { S: "reserved" }, description: { S: `Booking email reserved for ${String(venue.name || "venue").slice(0, 160)}` }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
       ] }));
-    } catch (error) { const raced = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true })); if (raced.Item) return response(202, { status: raced.Item.status?.S || "pending", duplicate: true }, headers); return response(402, { error: "Not enough booking-email credits." }, headers); }
+    } catch (error) {
+      const [raced, latestHour, latestCooldown, latestCredit] = await Promise.all([
+        db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true })),
+        db.send(new GetItemCommand({ TableName: tableName, Key: hourKey, ConsistentRead: true })),
+        db.send(new GetItemCommand({ TableName: tableName, Key: cooldownKey, ConsistentRead: true })),
+        db.send(new GetItemCommand({ TableName: tableName, Key: creditKey(userId), ConsistentRead: true }))
+      ]);
+      if (raced.Item) return response(202, { status: raced.Item.status?.S || "pending", duplicate: true }, headers);
+      if (previousHourCount + Number(latestHour.Item?.sendCount?.N || 0) >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
+      const nextAllowedAt = Number(latestCooldown.Item?.nextAllowedAt?.N || 0);
+      if (nextAllowedAt > reservationSeconds) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead.", availableAt: new Date(nextAllowedAt * 1000).toISOString() }, headers);
+      if (Number(latestCredit.Item?.credits?.N || 0) < 1) return response(402, { error: "Not enough booking-email credits." }, headers);
+      throw error;
+    }
     let providerAccepted = false;
     try {
       await db.send(new UpdateItemCommand({ TableName: tableName, Key: key, UpdateExpression: "SET #status = :sending, sendingAt = :at", ConditionExpression: "#status = :reserved", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sending": { S: "sending" }, ":reserved": { S: "reserved" }, ":at": { S: nowIso() } } }));
@@ -433,6 +468,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
         await db.send(new TransactWriteItemsCommand({ TransactItems: [
           { Update: { TableName: tableName, Key: key, UpdateExpression: "SET #status = :restored, failedAt = :at", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":restored": { S: "restored" }, ":sending": { S: "sending" }, ":at": { S: restoredAt } } } },
           { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :one, reservedCredits :minusOne SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":minusOne": { N: "-1" }, ":at": { S: restoredAt } } } },
+          { Update: { TableName: tableName, Key: hourKey, UpdateExpression: "ADD sendCount :minusOne SET updatedAt = :at", ConditionExpression: "sendCount >= :one", ExpressionAttributeValues: { ":minusOne": { N: "-1" }, ":one": { N: "1" }, ":at": { S: restoredAt } } } },
+          { Delete: { TableName: tableName, Key: cooldownKey, ConditionExpression: "sendId = :sendId", ExpressionAttributeValues: { ":sendId": { S: id } } } },
           { Put: { TableName: tableName, Item: { ...ledgerKey(userId, restoredAt, `${id}-restore`), entryType: { S: "email_restored" }, delta: { N: "1" }, status: { S: "restored" }, description: { S: `Credit restored after ${String(venue.name || "venue").slice(0, 160)} email failed` }, createdAt: { S: restoredAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
         ] }));
       }
@@ -454,3 +491,5 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return null;
   };
 }
+
+export { normalizedRecipientHash, outreachHourKey, recipientCooldownKey };
