@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Compact desktop composer media actions — 2026-11-07
+
+Status: **IN REVIEW — NOT MERGED OR DEPLOYED**.
+
+- The fresh `main` browser audit found that the collapsed post composer rendered its Photo and Video controls at `0 x 0` above 700px. They remained named in the accessibility tree but were physically unusable on tablet and desktop.
+- The collapsed composer now keeps both controls as 44px icon buttons on the same line as the prompt, without increasing the card height. Its text reserves room for the actions, the icons remain inside the composer, visible duplicate labels are suppressed while `aria-label` and title text remain, and hover/focus states use the shared DanzStak tokens.
+- Browser evidence: `browser-checks/dailies-feed-ux.cjs` passes at 320, 360, 390, 430 and 1024px. It now verifies both controls are usable, remain inside the composer and keep their visual text hidden. The inspected 1024px capture is `docs/screenshots/issue-49/feed-after-1024.png`.
+- Functional and integration evidence: the complete `test-regressions.ps1` gate passes after installing the repository's locked Auth API dependencies. Focused Dailies, Original Feed, post-composer, mobile-design, touch-target, PWA-refresh and static-link checks also pass.
+- Prepared PWA asset: Original Feed CSS v8. The service-worker version remains v714 because CSS requests are network-first and the versioned stylesheet URL is new; no production cache or deployment claim is made.
+- Honest boundary: this corrects the tablet/desktop collapsed composer only. Mobile behavior was preserved and verified. Owner review, merge, preview acceptance and production deployment have not occurred.
+
 ## Invite a friend — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.

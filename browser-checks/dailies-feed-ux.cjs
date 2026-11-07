@@ -47,6 +47,7 @@ function fixture(url) {
         const longName = document.querySelector('.story[data-story-id="daily-video-1"] .story-author-link');
         const nameMore = document.querySelector('.story[data-story-id="daily-video-1"] .story-name-more');
         const creatorRect = creator.getBoundingClientRect();
+        const composerRect = document.querySelector(".post-composer").getBoundingClientRect();
         const longNameRect = longName.getBoundingClientRect();
         return {
           documentWidth: document.documentElement.scrollWidth,
@@ -55,7 +56,18 @@ function fixture(url) {
           avatarBackground: getComputedStyle(avatar).backgroundImage,
           take: slate.querySelector("small").textContent,
           clock: slate.querySelector("time").textContent,
-          icons: icons.map(button => ({ label: button.getAttribute("aria-label"), svg: !!button.querySelector("svg"), width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height })),
+          icons: icons.map(button => {
+            const rect = button.getBoundingClientRect();
+            const labelRect = button.querySelector(".sr-only").getBoundingClientRect();
+            return {
+              label: button.getAttribute("aria-label"),
+              svg: !!button.querySelector("svg"),
+              width: rect.width,
+              height: rect.height,
+              insideComposer: rect.left >= composerRect.left && rect.right <= composerRect.right && rect.top >= composerRect.top && rect.bottom <= composerRect.bottom,
+              visualLabelHidden: labelRect.width <= 1 && labelRect.height <= 1
+            };
+          }),
           creatorWidth: creatorRect.width,
           longNameHeight: longNameRect.height,
           longNameInside: longNameRect.left >= creatorRect.left - 1 && longNameRect.right <= document.querySelector('.story[data-story-id="daily-video-1"]').getBoundingClientRect().right + 1,
@@ -71,6 +83,7 @@ function fixture(url) {
       assert.ok(result.clock.length > 0, `${width}px local slate time is missing`);
       assert.deepEqual(result.icons.map(icon => icon.label), ["Photo", "Video"]);
       assert.ok(result.icons.every(icon => icon.svg && icon.height >= 38), `${width}px media controls are not usable: ${JSON.stringify(result.icons)}`);
+      assert.ok(result.icons.every(icon => icon.insideComposer && icon.visualLabelHidden), `${width}px media controls escape or add duplicate visible labels: ${JSON.stringify(result.icons)}`);
       assert.ok(result.longNameHeight > 20 && result.longNameInside, `${width}px creator name is clipped or escapes its tile`);
       assert.match(result.fullNameLabel, /The Extraordinarily Long Touring Artist Name/, `${width}px long name has no expanded affordance`);
       const screenshot = path.join(output, `feed-after-${width}.png`);
