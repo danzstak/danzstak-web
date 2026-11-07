@@ -22,7 +22,7 @@ assert.match(client, /new Blob\(\[svg\], \{ type:"image\/svg\+xml" \}\)/);
 assert.doesNotMatch(client, /epkQr[^\n]*innerHTML/i);
 assert.match(css, /\.epk-qr-dialog button,.epk-qr-download\{min-height:44px/);
 assert.equal(packageJson.dependencies.qrcode, "1.5.4");
-assert.match(worker, /danzstak-shell-v710/);
+assert.match(worker, /danzstak-shell-v711/);
 assert.match(deploy, /POST \/epk\/qr/, "the guarded API deployment must expose the QR route");
 
 (async () => {

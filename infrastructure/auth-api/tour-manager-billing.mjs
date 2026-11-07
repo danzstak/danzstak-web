@@ -265,7 +265,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       followUpTo: item.followUpTo?.S || ""
     }));
     const replyResult = await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#BOOKING_REPLY#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 200 }));
-    const replies = (replyResult.Items || []).map(item => ({ id: item.tourId?.S || "", outreachId: item.outreachId?.S || "", venueKey: item.venueKey?.S || "", direction: item.direction?.S === "outbound" ? "outbound" : "inbound", action: item.action?.S || "reply", content: item.content?.S || "", proposedDate: item.proposedDate?.S || "", status: item.status?.S || "received", createdAt: item.createdAt?.S || "" }));
+    const replies = (replyResult.Items || []).map(item => ({ id: item.tourId?.S || "", outreachId: item.outreachId?.S || "", venueKey: item.venueKey?.S || "", direction: item.direction?.S === "outbound" ? "outbound" : "inbound", action: item.action?.S || "reply", content: item.content?.S || "", proposedDate: item.proposedDate?.S || "", status: item.status?.S || "received", appliedStatus: item.appliedStatus?.S || "", appliedAt: item.appliedAt?.S || "", createdAt: item.createdAt?.S || "" }));
     return response(200, { messages, replies }, headers);
   }
 
@@ -397,14 +397,61 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const venue = plan?.venues?.find(item => item?.venueKey === venueKey);
     if (!venue || !workspace?.revision?.S) return response(409, { error: "Save this venue in Tour Manager before adding its proposed date." }, headers);
     const replySummary = String(offer.content?.S || "").slice(0, 3000);
-    venue.booking = { ...(venue.booking || {}), status: confirmDate ? "Confirmed" : "Date proposed", showDate: proposedDate, replySummary, ...(confirmDate ? { confirmationEvidence: `Venue confirmed ${proposedDate}: ${replySummary}`.slice(0, 3000) } : {}) };
+    const status = confirmDate ? "Confirmed" : "Date proposed";
+    if (offer.appliedStatus?.S) {
+      if (offer.appliedStatus.S !== status) return response(409, { error: "This venue reply was already applied with a different booking status." }, headers);
+      return response(200, { saved: true, duplicate: true, proposedDate, venueName: String(venue.name || "Venue"), status, revision: workspace.revision.S }, headers);
+    }
+    venue.booking = { ...(venue.booking || {}), status, showDate: proposedDate, replySummary, ...(confirmDate ? { confirmationEvidence: `Venue confirmed ${proposedDate}: ${replySummary}`.slice(0, 3000) } : {}) };
     const revision = randomUUID(), at = nowIso();
     try {
-      await db.send(new PutItemCommand({ TableName: tableName, Item: { ...workspace, userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY }, plan: { S: JSON.stringify(plan) }, revision: { S: revision }, updatedAt: { S: at } }, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { S: workspace.revision.S } } }));
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...workspace, userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY }, plan: { S: JSON.stringify(plan) }, revision: { S: revision }, updatedAt: { S: at } }, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { S: workspace.revision.S } } } },
+        { Update: { TableName: tableName, Key: { userId: { S: userId }, tourId: { S: replyId } }, UpdateExpression: "SET appliedStatus = :status, appliedAt = :at", ConditionExpression: "attribute_exists(userId) AND attribute_not_exists(appliedStatus)", ExpressionAttributeValues: { ":status": { S: status }, ":at": { S: at } } } }
+      ] }));
     } catch (error) {
       return response(409, { error: "Your Tour Manager changed on another device. Reload it, then add this date again." }, headers);
     }
-    return response(200, { saved: true, proposedDate, venueName: String(venue.name || "Venue"), status: confirmDate ? "Confirmed" : "Date proposed", revision }, headers);
+    return response(200, { saved: true, proposedDate, venueName: String(venue.name || "Venue"), status, revision }, headers);
+  }
+
+  async function useVenueReplyStatus(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const body = parseBody(event), outreachId = String(body?.outreachId || "").trim(), replyId = String(body?.replyId || "").trim();
+    const prefix = `TOUR_MANAGER#BOOKING_REPLY#${outreachId}#`;
+    if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !replyId.startsWith(prefix) || replyId.length > 260 || replyId.includes("#artist#")) return response(400, { error: "Choose a valid venue reply." }, headers);
+    const [replyResult, workspaceResult] = await Promise.all([
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: replyId } }, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }))
+    ]);
+    const venueReply = replyResult.Item, workspace = workspaceResult.Item, venueKey = venueReply?.venueKey?.S || "";
+    const statusByAction = { interested: "Interested", pass: "Declined" }, status = statusByAction[venueReply?.action?.S || ""];
+    if (venueReply?.direction?.S !== "inbound" || !status || !venueKey) return response(409, { error: "This reply does not contain an interest or pass decision." }, headers);
+    let plan; try { plan = JSON.parse(workspace?.plan?.S || ""); } catch { plan = null; }
+    const venue = plan?.venues?.find(item => item?.venueKey === venueKey);
+    if (!venue || !workspace?.revision?.S) return response(409, { error: "Save this venue in Tour Manager before updating its booking status." }, headers);
+    if (venueReply.appliedStatus?.S) {
+      if (venueReply.appliedStatus.S !== status) return response(409, { error: "This venue reply was already applied with a different booking status." }, headers);
+      return response(200, { saved: true, duplicate: true, status, venueName: String(venue.name || "Venue"), revision: workspace.revision.S }, headers);
+    }
+    venue.booking = { ...(venue.booking || {}), status, replySummary: String(venueReply.content?.S || "").slice(0, 3000) };
+    if (status === "Declined") {
+      delete venue.booking.showDate;
+      delete venue.booking.confirmationEvidence;
+    }
+    const revision = randomUUID(), at = nowIso();
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...workspace, userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY }, plan: { S: JSON.stringify(plan) }, revision: { S: revision }, updatedAt: { S: at } }, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { S: workspace.revision.S } } } },
+        { Update: { TableName: tableName, Key: { userId: { S: userId }, tourId: { S: replyId } }, UpdateExpression: "SET appliedStatus = :status, appliedAt = :at", ConditionExpression: "attribute_exists(userId) AND attribute_not_exists(appliedStatus)", ExpressionAttributeValues: { ":status": { S: status }, ":at": { S: at } } } }
+      ] }));
+    } catch (error) {
+      return response(409, { error: "Your Tour Manager changed on another device. Reload it, then review this reply again." }, headers);
+    }
+    return response(200, { saved: true, status, venueName: String(venue.name || "Venue"), revision }, headers);
   }
 
   async function loadVerifiedSession(session, expectedLive) {
@@ -702,6 +749,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (method === "POST" && path === "/tour-manager/reply") return externalReply(event);
     if (method === "POST" && path === "/tour-manager/outreach/reply") return artistReply(event);
     if (method === "POST" && path === "/tour-manager/outreach/use-date") return useProposedDate(event);
+    if (method === "POST" && path === "/tour-manager/outreach/use-status") return useVenueReplyStatus(event);
     if (method === "POST" && path === "/tour-manager/emails/send") return sendEmail(event);
     return null;
   };
