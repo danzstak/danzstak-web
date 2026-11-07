@@ -15,6 +15,6 @@ assert.match(source, /window\.parent\.postMessage\(\{ type: "danzstak-chat-minim
 assert.match(source, /window\.addEventListener\("popstate"/, "browser Back and Forward must synchronize the conversation view");
 assert.match(source, /openConversation\(mobileHistoryConversation, \{ updateHistory: false \}\)/, "browser Forward must restore the conversation without creating a history loop");
 assert.doesNotMatch(source, /danzstakChatOpen:\s*(?:contact|email)/, "history state must not expose a contact email");
-assert.match(messages, /assets\/direct-messages\.js\?v=489/, "Messages must load the media-safe idempotent outbound-message build");
+assert.match(messages, /assets\/direct-messages\.js\?v=490/, "Messages must load the message-copy and media-safe idempotent outbound-message build");
 
 console.log("Mobile chat history checks passed: Back returns to the list, Forward restores the chat, embedded drawers remain isolated, and history state contains no contact email.");

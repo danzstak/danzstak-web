@@ -120,6 +120,24 @@
   id:["Panggilan masuk","Terima","Tolak","Jawab","Tutup telepon","Pilih obrolan","Panggilan suara","Panggilan video","Minimalkan obrolan","Opsi obrolan lainnya","Tutup obrolan","Hapus obrolan","Menunggu kontak","Anda","Bisukan","Aktifkan suara","Matikan kamera","Nyalakan kamera","Kontrol panggilan","Akhiri panggilan saat ini","Buka profil kontak"]
  };
  for(const [language,values] of Object.entries(chatControls))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(chatControlKeys.map((key,index)=>[key,values[index]])));
+ const messageCopyKeys=["Copy message","Copied.","Select the message text and copy it."];
+ const messageCopyActions={
+  es:["Copiar mensaje","Copiado.","Selecciona el texto del mensaje y cópialo."],
+  fr:["Copier le message","Copié.","Sélectionnez le texte du message et copiez-le."],
+  de:["Nachricht kopieren","Kopiert.","Wähle den Nachrichtentext aus und kopiere ihn."],
+  pt:["Copiar mensagem","Copiado.","Selecione o texto da mensagem e copie-o."],
+  it:["Copia messaggio","Copiato.","Seleziona il testo del messaggio e copialo."],
+  ko:["메시지 복사","복사됨.","메시지 텍스트를 선택하여 복사하세요."],
+  ja:["メッセージをコピー","コピーしました。","メッセージのテキストを選択してコピーしてください。"],
+  "zh-Hans":["复制消息","已复制。","选择消息文字并复制。"],
+  "zh-Hant":["複製訊息","已複製。","選取訊息文字並複製。"],
+  fil:["Kopyahin ang mensahe","Nakopya.","Piliin ang teksto ng mensahe at kopyahin ito."],
+  hi:["संदेश कॉपी करें","कॉपी किया गया।","संदेश का टेक्स्ट चुनें और उसे कॉपी करें।"],
+  vi:["Sao chép tin nhắn","Đã sao chép.","Chọn văn bản tin nhắn rồi sao chép."],
+  th:["คัดลอกข้อความ","คัดลอกแล้ว","เลือกข้อความในแชตแล้วคัดลอก"],
+  id:["Salin pesan","Disalin.","Pilih teks pesan lalu salin."]
+ };
+ for(const [language,values] of Object.entries(messageCopyActions))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(messageCopyKeys.map((key,index)=>[key,values[index]])));
  const callingDeviceKeys=["Phone and registered devices","My Android device","My Apple device","Last active","Last active unavailable","This device is registered for SYNC calls.","This device is not registered for calls.","This device","Revoked","Calls allowed","Incoming calls off","Rename","Turn calls off","Allow calls","Revoke","Give this device a name.","Registering this device…","Use a device name between 2 and 60 characters.","Device service is temporarily unavailable.","My device","It will stop receiving SYNC calls."];
  const callingDevices={
   es:["Teléfono y dispositivos registrados","Mi dispositivo Android","Mi dispositivo Apple","Última actividad","Última actividad no disponible","Este dispositivo está registrado para llamadas SYNC.","Este dispositivo no está registrado para llamadas.","Este dispositivo","Revocado","Llamadas permitidas","Llamadas entrantes desactivadas","Cambiar nombre","Desactivar llamadas","Permitir llamadas","Revocar","Ponle un nombre a este dispositivo.","Registrando este dispositivo…","Usa un nombre de dispositivo de entre 2 y 60 caracteres.","El servicio de dispositivos no está disponible temporalmente.","Mi dispositivo","Dejará de recibir llamadas SYNC."],
