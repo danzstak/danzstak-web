@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Five-minute EPK builder — 2026-11-07
+
+Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; PRODUCTION NOT DEPLOYED**.
+
+- New artists now enter a five-step, private-by-default **Build your EPK in 5 minutes** flow covering identity, story, external music/video links, press media, production details and booking contact. The progress checklist reflects actual saved fields rather than decorative completion. Existing EPKs continue to open the complete editor without hiding established content.
+- The phone experience shows one bounded step at a time and provides an intentional full-screen preview/edit handoff. Desktop retains the side-by-side editor and live preview. All guide controls retain 44px touch geometry, and no publish action occurs automatically.
+- Music and video remain provider-hosted links. The builder does not add audio upload, audio hosting or a stored-file music player. Existing private image/PDF media controls, explicit publishing, public/private sharing and permanent deletion safeguards remain in place.
+- PWA assets advance to `assets/epk.css?v=3`, `assets/epk.js?v=12` and `danzstak-shell-v695`. The update does not erase user drafts or offline data.
+- Functional/integration evidence: `test-epk-five-minute.cjs`, the established EPK builder/domain/network/PWA tests and the complete `test-regressions.ps1` gate pass. The full gate covers authentication, account isolation, Feed, Friends, Notifications, SYNC messages/calls, single-audible-video handling, Booking, Tour Manager, Stripe safeguards, all 11 smoke pages and infrastructure validation. No product failure was waived.
+- Responsive browser evidence: `browser-checks/epk-five-minute.cjs` passes at 320, 360, 390, 414, 430 and 1366px. It verifies zero horizontal overflow, one guided phone step, 44px controls, checklist progress, mutually exclusive preview/editor states and the saved-EPK full-editor regression. Captures are in `docs/screenshots/epk-five-minute/` and were inspected before review.
+- GitHub evidence: PR `#93` review jobs `release-evidence`, `responsive-accessibility-security` and `regression` all passed for exact implementation head `df4171bfd893b45a15922eec6ced0ee5a15e6cf5`.
+- Isolated staging evidence: Amplify DEVELOPMENT branch `codex/epk-five-minute`, job `1`, succeeded in `us-west-1` from 2026-11-07 04:15:54 to 04:16:41 Europe/Berlin. The preview is `https://codex-epk-five-minute.d31oovi2mos5iz.amplifyapp.com/epk.html`; no-cache probes confirmed HTTP 200, EPK CSS v3, EPK JS v12 and service-worker cache v695. The same six-width browser matrix passes against the hosted build.
+- Deployment boundary: production remains unchanged. Physical installed-PWA review on Android/iPhone remains an owner acceptance boundary and is not represented as complete.
+
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA AND PROVIDER-SPECIFIC DEVICE ACCEPTANCE REMAIN**.
