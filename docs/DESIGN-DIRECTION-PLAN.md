@@ -45,11 +45,34 @@ Eroticon is example fixture data only. Never hard-code its name, history, releas
 
 1. **Navigation shell** (3–4 days): restyle the existing familiar shell; do not move controls.
 2. **HQ home** (4–6 days): music tasks inside the familiar center-column layout.
-3. **Public EPK** (5–7 days): Techno laminate, Punk Xerox folder, Metal dossier, House/EDM arched page.
-4. **Gigs/Tour** (4–6 days): familiar list/route flow with mono rows, ticket stubs, bills, or date/BPM treatment inside artist content.
-5. **Mix** (4–6 days): retain familiar posts/actions in the single base platform frame.
+3. **Mix** (5–7 days): retain familiar posts/actions in the single base platform frame and implement the owner-approved finite content rhythm below.
+4. **Public EPK** (5–7 days): Techno laminate, Punk Xerox folder, Metal dossier, House/EDM arched page.
+5. **Gigs/Tour** (4–6 days): familiar list/route flow with mono rows, ticket stubs, bills, or date/BPM treatment inside artist content.
 
 Each PR removes superseded source rules rather than stacking overrides. Public artist-page PRs include all four looks; shell/HQ/Mix PRs show the one consistent platform frame.
+
+### Mix phone and center-column order
+
+Use one deterministic server-backed sequence. Phone and desktop center columns have the same content order:
+
+1. Compact header with search, notifications and SYNC.
+2. Horizontal Dailies row. Its pinned first tile uses the signed-in member's real photo plus today's local date and **SCENE 1 · TAKE N**. N is the server-authoritative lifetime count of distinct successfully uploaded DanzStak video assets; uploaded Dailies count once and expiry never decrements it.
+3. Four chronological Mix posts.
+4. A compact **The Roll** launcher row opening the existing fullscreen vertical swipe player. It is not another video feed or inline player.
+5. Three chronological posts, then the newest unseen show review from the member's people/scene.
+6. Three chronological posts, then the newest unseen album review from the member's people/scene.
+7. Three chronological posts, then the newest unseen event flyer from the member's people/scene.
+8. Repeat the three-post/show-review, three-post/album-review, three-post/event-flyer rhythm until **You're caught up**.
+
+Posts never move from chronological order. Supplemental slots are deterministic and user-scoped—not ranking or recommendations. If a slot has no eligible unseen item, omit it without a blank card and continue. Never substitute an ad, promotion, sponsored item or algorithm pick. Mark a supplemental item seen only after a server-authoritative visibility threshold, and use stable IDs/idempotent writes so refresh/back navigation does not reshuffle or skip content. Pagination must preserve the sequence across page boundaries and terminate; there is no infinite scroll.
+
+Desktop keeps **HQ, Tour, EPK, Scene, Mix** in the familiar left menu, the same center-column ordering, and **News (including Reviews)** plus **Shows near you** in the right column. The artist-selected genre look never changes this platform frame.
+
+**Future files:** feed query/sequence API, Dailies aggregate, `feed.html`, `assets/feed-enhancements.js`, shared Mix/Dailies/Roll styles, News/Reviews/event adapters, i18n, service-worker versions, unit/browser tests.
+
+**Risks:** lifetime upload-count drift, Daily expiry decrementing TAKE N, duplicated supplemental cards, chronological-post displacement, unstable pagination, false seen state, Roll/media audio overlap, stale PWA assets, and empty-slot whitespace.
+
+**Plan evidence:** [390px Mix order reference](screenshots/design-direction/mix-order-390.png). This is a planning mock, not implementation evidence.
 
 ## 6. Expandable component language
 
@@ -65,10 +88,10 @@ Later Hip hop, Indie, Country, Jazz, or other looks add a reviewed token set, fo
 
 ## 7. Visual regression and acceptance — 2–4 days foundation, then per PR
 
-Extend `browser-checks/` to render every artist look at 390px and 1366px and the stable platform frame at the same sizes. Use replaceable sparse and full-catalog fixtures. Assert local font origins, token scope, normal-text contrast ≥4.5:1, 44px targets, focus visibility, no overflow, stable media, hidden empty sections, and unchanged familiar control positions. Store screenshots by screen/look/viewport and run `test-regressions.ps1` plus GitHub review checks.
+Extend `browser-checks/` to render every artist look at 390px and 1366px and the stable platform frame at the same sizes. Use replaceable sparse and full-catalog fixtures. Assert local font origins, token scope, normal-text contrast ≥4.5:1, 44px targets, focus visibility, no overflow, stable media, hidden empty sections, and unchanged familiar control positions. Mix fixtures must prove the exact four-post/Roll/three-post supplemental rhythm, chronological post IDs across pagination, skipped empty slots, unseen selection, finite caught-up state, stable refresh, lifetime TAKE N after Daily expiry, and the desktop right column. Store screenshots by screen/look/viewport and run `test-regressions.ps1` plus GitHub review checks.
 
 ## 8. Documentation and rollout control
 
 `docs/DANZSTAK-DESIGN-SYSTEM.md` records the 80/20 target and retires stock-blue/phpFox styling without rejecting familiar social navigation. Every screen PR lists affected files, removed legacy rules, applicable-look screenshots, functional/visual/integration results, known limits, and rollback. No implementation begins until the owner approves this plan; no deployment occurs without separate approval.
 
-**Overall rough effort:** 29–44 engineer-days for tokens/fonts, familiar navigation integration, universal EPK/onboarding, five-screen rollout, and visual harness, excluding owner review, physical-device checks, and deployment.
+**Overall rough effort:** 31–47 engineer-days for tokens/fonts, familiar navigation integration, universal EPK/onboarding, the deterministic Mix sequence, five-screen rollout, and visual harness, excluding owner review, physical-device checks, and deployment.
