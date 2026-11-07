@@ -22,6 +22,8 @@ const scheduled = new Map();
 let nextTimer = 1;
 const state = vm.createContext({
   ringTimer: null,
+  incomingRingStopTimer: null,
+  incomingRingDeadline: Date.now() + 25000,
   ringbackTimer: null,
   ringbackMuted: false,
   pending: { callId: "incoming-call" },
@@ -38,7 +40,9 @@ const state = vm.createContext({
   navigator: { vibrate() {} }, t: value => value, rememberCallFocus() {},
   setInterval(callback) { const id = nextTimer++; scheduled.set(id, callback); return id; },
   clearInterval(id) { scheduled.delete(id); },
-  setTimeout(callback) { callback(); return nextTimer++; }
+  setTimeout() { return nextTimer++; },
+  clearTimeout() {},
+  Date
 });
 vm.runInContext(["playTone", "startIncomingRingtone", "stopIncomingRingtone", "updateRingbackControl", "stopRingback", "stopRing", "startRingback"].map(extract).join("\n"), state);
 
@@ -47,6 +51,8 @@ assert.ok(state.ringTimer, "an unlocked visible incoming call must have a ringto
 assert.equal(scheduled.size, 1);
 state.stopIncomingRingtone();
 assert.equal(scheduled.size, 0, "stopping an incoming ringtone must clear its cadence");
+assert.match(chat, /const INCOMING_RING_DURATION_MS=25000/, "incoming ringtone sound must be capped at 25 seconds");
+assert.match(chat, /incomingRingStopTimer=setTimeout\(stopIncomingRingtone,remaining\)/, "the ringtone must stop when its remaining sound window expires");
 
 state.startRingback();
 assert.ok(state.ringbackTimer);

@@ -7,6 +7,9 @@
   let previousFocus = null;
   let ringtoneContext = null;
   let ringtoneTimer = null;
+  let ringtoneStopTimer = null;
+  let ringtoneDeadline = 0;
+  const RINGTONE_DURATION_MS = 25000;
   const ringtonePulses = new Set();
   const handledCalls = new Map();
   const t = value => window.danzstakTranslate?.(value) || value;
@@ -53,19 +56,23 @@
   function stopRingtone() {
     if (ringtoneTimer) clearInterval(ringtoneTimer);
     ringtoneTimer = null;
+    if (ringtoneStopTimer) clearTimeout(ringtoneStopTimer);
+    ringtoneStopTimer = null;
     for (const timeout of ringtonePulses) clearTimeout(timeout);
     ringtonePulses.clear();
   }
 
   function startRingtone() {
     stopRingtone();
-    if (!current || document.hidden || ringtoneContext?.state !== "running") return;
+    const remaining = ringtoneDeadline - Date.now();
+    if (!current || document.hidden || ringtoneContext?.state !== "running" || remaining <= 0) return;
     const pulse = () => {
       playRingtonePulse(720);
       playRingtonePulse(880, 320);
     };
     pulse();
     ringtoneTimer = setInterval(pulse, 2400);
+    ringtoneStopTimer = setTimeout(stopRingtone, remaining);
   }
 
   function renderCurrentCall() {
@@ -99,6 +106,7 @@
   function showCall(event) {
     if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
     current = event;
+    ringtoneDeadline = Date.now() + RINGTONE_DURATION_MS;
     renderCurrentCall();
     popup.hidden = false;
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -114,6 +122,7 @@
     popup.hidden = true;
     current = null;
     stopRingtone();
+    ringtoneDeadline = 0;
     navigator.vibrate?.(0);
     previousFocus?.focus();
     previousFocus = null;
@@ -134,6 +143,7 @@
     handledCalls.set(event.callId, Date.now() + 120000);
     if (typeof window.openMessageDrawer === "function") {
       stopRingtone();
+      ringtoneDeadline = 0;
       navigator.vibrate?.(0);
       popup.hidden = true;
       current = null;
@@ -145,6 +155,7 @@
     destination.searchParams.set("answer", "1");
     destination.searchParams.set("callId", event.callId);
     stopRingtone();
+    ringtoneDeadline = 0;
     navigator.vibrate?.(0);
     location.assign(destination.href);
   });
@@ -160,6 +171,7 @@
       popup.hidden = true;
       current = null;
       stopRingtone();
+      ringtoneDeadline = 0;
       navigator.vibrate?.(0);
       previousFocus?.focus();
       previousFocus = null;
