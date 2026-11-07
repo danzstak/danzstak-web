@@ -2,7 +2,7 @@
 
 ## Friends directory redesign — 2026-11-07
 
-Status: **IN REVIEW — IMPLEMENTED AND FULLY TESTED LOCALLY; NOT DEPLOYED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
 
 - Friends is now one compact, Facebook-familiar directory rather than three disconnected blocks. A single search field and tabs expose **All friends**, **Online**, **Requests** and **Find friends** without requiring account-email knowledge.
 - Accepted friends retain profile links, truthful live presence and one-tap SYNC messaging. Incoming requests expose Accept/Decline, outgoing requests show Pending, and discovery searches eligible online or offline members through the existing privacy-aware People endpoint.
@@ -11,7 +11,10 @@ Status: **IN REVIEW — IMPLEMENTED AND FULLY TESTED LOCALLY; NOT DEPLOYED**.
 - Functional evidence: the complete `test-regressions.ps1` gate passes, including 13-page smoke and infrastructure validation. Friend loading, presence, localization, profile routes, removal, recovery and stale-response regression coverage was updated for the unified directory.
 - Visual evidence: `browser-checks/friends-directory.cjs` passes at 320, 360, 390, 430, 768 and 1366px, plus 1-, 10- and 100-friend states at 390px. It checks tabs, local filtering, remote discovery, request states, hidden destructive actions, 44px targets, browser errors and horizontal overflow. `browser-checks/core-social-mobile.cjs` also passes all 25 page/viewport combinations. Inspected captures are in `docs/screenshots/friends-directory/`.
 - Prepared PWA assets: feed enhancements CSS v501, JS v532, People search JS v423 and cache `danzstak-shell-v713`.
-- Honest boundary: this slice reuses the existing bounded Friends, People, presence and SYNC APIs. It does not add recommendations, contact-book uploads, ranking, pagination or a new relationship backend. It has not been deployed while review is pending.
+- Review evidence: all required GitHub checks passed for implementation commit `df74369e928926f20ec17decf90f318bc629c4b7` in PR `#134`; it merged as `ad243b3b1ae0ab344a752ba6c3f2417658fa53fc`.
+- Production release: AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `980` succeeded for that exact merge commit in `us-west-1` from 13:51:34 to 13:52:31 Europe/Berlin. Amplify Hosting owns CDN delivery; no customer-managed CloudFront invalidation is claimed.
+- Post-deployment evidence: the guarded publisher verified `danzstak-shell-v713` on `https://danzstak.com`. The complete Friends directory browser matrix passed directly against production at 320, 360, 390, 430, 768 and 1366px, and the broader core-social browser suite passed all 25 page/viewport combinations. The release introduced no backend, payment, email or customer-data migration.
+- Honest boundary: this slice reuses the existing bounded Friends, People, presence and SYNC APIs. It does not add recommendations, contact-book uploads, ranking, pagination or a new relationship backend. Browser-controlled fixtures exercised the live layout without modifying real member relationships; physical Android/iPhone owner acceptance remains separate from the verified browser matrix.
 
 ## Member show and release reviews — 2026-11-07
 
