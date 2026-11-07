@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Moving Day from Edit Profile — 2026-11-07
+
+Status: **TESTED LOCALLY — READY FOR REVIEW; NOT YET DEPLOYED**.
+
+- Edit Profile now includes a compact **Pivot — Moving Day** section using the same selective-import dialog and Facebook importer as Mix. It does not create a second importer or duplicate state.
+- The entry point states the product promise before opening: pivot away from billionaire platforms, preview the export, choose what to move and retain ownership of the imported data.
+- Functional evidence: `test-pivot.cjs` verifies both entry points, shared Pivot assets, owner language and PWA inclusion. `test-facebook-import.cjs` continues to verify explicit selection, privacy batches, missing-media decisions, duplicate protection and original dates.
+- Browser evidence: `browser-checks/pivot-profile.cjs` passes the real Edit Profile route and Moving Day dialog at 320, 360, 390, 414, 430 and 1366px with a 44px action, visible label, no overflow and no browser errors. Inspected captures are in `docs/screenshots/pivot-profile/`.
+- Prepared PWA assets: Profile editor CSS v395, JS v483 and cache `danzstak-shell-v729`. Deployment remains pending until review and complete regression gates pass.
+
 ## Pivot / Moving Day selective import — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
