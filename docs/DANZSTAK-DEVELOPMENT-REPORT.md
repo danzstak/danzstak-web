@@ -2,7 +2,7 @@
 
 ## Five-minute EPK builder — 2026-11-07
 
-Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; PRODUCTION NOT DEPLOYED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA ACCEPTANCE REMAINS**.
 
 - New artists now enter a five-step, private-by-default **Build your EPK in 5 minutes** flow covering identity, story, external music/video links, press media, production details and booking contact. The progress checklist reflects actual saved fields rather than decorative completion. Existing EPKs continue to open the complete editor without hiding established content.
 - The phone experience shows one bounded step at a time and provides an intentional full-screen preview/edit handoff. Desktop retains the side-by-side editor and live preview. All guide controls retain 44px touch geometry, and no publish action occurs automatically.
@@ -12,7 +12,9 @@ Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; PRODUCTION NOT DEPLOYED*
 - Responsive browser evidence: `browser-checks/epk-five-minute.cjs` passes at 320, 360, 390, 414, 430 and 1366px. It verifies zero horizontal overflow, one guided phone step, 44px controls, checklist progress, mutually exclusive preview/editor states and the saved-EPK full-editor regression. Captures are in `docs/screenshots/epk-five-minute/` and were inspected before review.
 - GitHub evidence: PR `#93` review jobs `release-evidence`, `responsive-accessibility-security` and `regression` all passed for exact implementation head `df4171bfd893b45a15922eec6ced0ee5a15e6cf5`.
 - Isolated staging evidence: Amplify DEVELOPMENT branch `codex/epk-five-minute`, job `1`, succeeded in `us-west-1` from 2026-11-07 04:15:54 to 04:16:41 Europe/Berlin. The preview is `https://codex-epk-five-minute.d31oovi2mos5iz.amplifyapp.com/epk.html`; no-cache probes confirmed HTTP 200, EPK CSS v3, EPK JS v12 and service-worker cache v695. The same six-width browser matrix passes against the hosted build.
-- Deployment boundary: production remains unchanged. Physical installed-PWA review on Android/iPhone remains an owner acceptance boundary and is not represented as complete.
+- Production release: after the owner's standing authorization to finish and deploy verified work, PR `#93` merged as production commit `4db01677b449431e0c6b6bb76e60c3a8610f1fca`. AWS Amplify app `d31oovi2mos5iz`, production branch `main`, job `939` succeeded in `us-west-1` at 2026-11-07 04:21:03 Europe/Berlin.
+- Post-deployment evidence: no-cache probes of `https://danzstak.com/epk.html` and the live worker confirm EPK CSS v3, EPK JS v12 and `danzstak-shell-v695`. The six-width EPK browser matrix and bounded live-release verifier both pass directly against production.
+- Verification boundary: physical installed-PWA review on Android/iPhone remains an owner acceptance boundary and is not represented as complete.
 
 ## Issue #8 — The Roll fullscreen playback session — 2026-11-06
 
