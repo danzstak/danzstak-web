@@ -303,7 +303,22 @@ body.danzstak-original .right :is(h3,h2) {
     flex-basis:92px;
     width:92px;
   }
-  body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .daily-clapper {display:none!important}
+  body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .daily-clapper {
+    display:grid!important;
+    position:absolute;
+    inset:8px;
+    align-content:center;
+    justify-items:center;
+    grid-template-columns:1fr!important;
+    gap:3px;
+    padding:8px 5px;
+    border:2px solid rgba(255,255,255,.92);
+    border-radius:7px;
+    background:rgba(7,20,43,.22);
+    z-index:5!important;
+    color:#fff;
+    text-align:center;
+  }
   body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-caption {padding:10px 12px}
   /* Consecutive posts share one continuous canvas. Eight pixels remain between
      the preceding action row and the next author, instead of an empty card band. */

@@ -1363,7 +1363,7 @@ Status as of 2026-11-05: **IMPLEMENTED, LOCALLY VERIFIED, AND AVAILABLE IN REVIE
 - Work is isolated on `codex/issue-49-mobile-feed`. Production remains unchanged in accordance with release-process blocker Issue #50.
 - The collapsed Add to Mix composer now uses less phone height, preserves 44px touch controls, and exposes accessible icon-only Photo and clapperboard Video actions rather than text-heavy buttons.
 - The public 24-hour product name is now **Dailies** in live Feed markup, accessibility labels, creator controls and localization aliases. Internal story API/storage names remain unchanged for compatibility.
-- The creator tile uses the signed-in member's existing profile image and fallback initial. Its clapper displays `SCENE 1`, a deterministic `TAKE N` derived from the member's active returned video-Daily records, and the member device's real local date/time. This is not represented as a lifetime cross-module upload count because the current API does not expose one.
+- The creator tile uses the signed-in member's existing profile image and fallback initial. Its clapper displays `SCENE 1`, a server-authoritative lifetime `TAKE N` for that member's successfully uploaded Dailies videos, and the member device's real local date. Photos do not increment the Take, and 24-hour Daily expiry does not decrement it.
 - Video Daily cards show deterministic scene order and use the browser's real `loadedmetadata` duration when media metadata becomes available. No duration or availability is invented.
 - Creator names may wrap across three lines; unusually long names also receive an accessible full-name affordance and profile link rather than colliding with the slate, play indicator or delete control.
 - Installed-PWA cache advances from `danzstak-shell-v680` to `v681`; Feed assets advance to CSS `v498`, JS `v527`, and brand aliases `v8`.
@@ -1451,3 +1451,17 @@ Status as of 2026-11-07: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 - The first live API probe returned 404 and correctly blocked the completion claim. Root cause was a missing `POST /epk/qr` entry in the guarded API Gateway deployment route list. Pull request [#121](https://github.com/danzstak/danzstak-web/pull/121) added the route and a regression assertion, passed all three checks, and merged as `20221e5d49ee841ea68d6f6fe04dfbb63208ae0e`. Amplify `main` job `967` succeeded from 10:32:39 to 10:33:35 Europe/Berlin, and the guarded Auth API redeployment completed successfully.
 - Post-deployment API checks returned HTTP 200, `image/svg+xml`, `no-store, private`, the exact production CORS origin, and a real SVG/path for a private EPK URL. An external URL was rejected with 400 and an external origin with 404. The live browser suite then passed again at 320, 360, 390, 414, 430, and 1366px against the real endpoint. Live screenshots: [390px](screenshots/epk-qr-live/epk-qr-390.png) and [1366px](screenshots/epk-qr-live/epk-qr-1366.png).
 - Installed-PWA shell is `danzstak-shell-v707`. Physical Android/iPhone scanning and installed-device acceptance remain **NOT TESTED** in this environment and are not represented as passed.
+
+# Dailies creator clapper and queued mobile-comment release
+
+Status as of 2026-11-07: **IN PROGRESS — TESTED LOCALLY, NOT YET DEPLOYED**.
+
+- The far-left Dailies creator tile now keeps its clapper visible over the member's real profile photo and shows today's local date, `SCENE 1`, and the server-authoritative `TAKE N`.
+- `TAKE N` is a durable lifetime count of that member's successfully published Dailies videos. The backend advances it atomically with the new Dailies record; photo Dailies do not increment it and 24-hour expiry does not reduce it.
+- The client no longer derives Take from currently visible/unexpired records, so the fifth successful Dailies video displays `TAKE 5` across devices.
+- The installed-PWA shell advances to `danzstak-shell-v724` and Feed art-direction CSS to `v11`.
+- Focused backend/unit checks passed for atomic video increment, photo exclusion, durable retrieval, expiry independence, current-date rendering, and strict Feed CSP.
+- Actual-browser Dailies checks passed at 320, 360, 390, 414, and 430px, plus the populated Dailies rail at 1024px. They verified the visible clapper, profile photo, date, `SCENE 1`, `TAKE 5`, no horizontal overflow, and usable creator geometry. Captures: [320px](screenshots/dailies-clapper/empty-dailies-320.png), [360px](screenshots/dailies-clapper/empty-dailies-360.png), [390px](screenshots/dailies-clapper/empty-dailies-390.png), [414px](screenshots/dailies-clapper/empty-dailies-414.png), and [430px](screenshots/dailies-clapper/empty-dailies-430.png).
+- The queued mobile-comment gate also passed at 320, 360, 390, 414, and 430px: Reply and trash remain vertically centered on one nonwrapping action row, with trash at the far right.
+- The complete repository regression suite passed, including all `test-*.cjs` checks, site smoke tests, embedded Lambda syntax/infrastructure validation, social persistence, SYNC/calls, video/audio isolation, Booking/EPK/Tour Manager, Stripe, PWA, accessibility, and security checks.
+- Production deployment, production commit, Amplify job, CloudFront propagation, live API verification, and installed-PWA verification remain **PENDING** until the reviewed commit is merged and deployed.

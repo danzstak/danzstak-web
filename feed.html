@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-9b2HWN6RgyA4s5+ehmFroP8ZgvNqr5iXHYxIFBSb9iw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-QOP0iR4PMEhxCBP9fRZVfpKjEO54ndjYr8LZO4mHVrc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -357,7 +357,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 <link rel="stylesheet" href="assets/incoming-calls.css?v=233">
 <link rel="stylesheet" href="assets/responsive-media.css?v=4">
 <link rel="stylesheet" href="assets/mobile-design-system.css?v=14">
-<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=10">
+<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=11">
 <link rel="stylesheet" href="assets/artist-hq.css?v=1">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=8" defer></script>
@@ -936,6 +936,10 @@ function formatDailyClock(date = new Date()) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
+function formatDailyDate(date = new Date()) {
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(date);
+}
+
 function updateDailyCreatorSlate(takeCount = 0) {
   if (typeof document === "undefined" || typeof document.querySelector !== "function") return;
   const slate = document.querySelector(".daily-clapper");
@@ -944,12 +948,15 @@ function updateDailyCreatorSlate(takeCount = 0) {
   const clock = slate.querySelector("time");
   const now = new Date();
   clock.dateTime = now.toISOString();
-  clock.textContent = formatDailyClock(now);
+  clock.textContent = formatDailyDate(now);
 }
 
 if (typeof document !== "undefined" && typeof document.querySelector === "function") {
   updateDailyCreatorSlate();
-  if (typeof setInterval === "function") setInterval(() => updateDailyCreatorSlate(document.querySelectorAll('.story[data-story-owner="true"][data-media-type="video"]').length), 30000);
+  if (typeof setInterval === "function") setInterval(() => {
+    const count = Number(document.querySelector(".daily-clapper")?.dataset.takeCount || 0);
+    updateDailyCreatorSlate(count);
+  }, 30000);
 }
 
 async function refreshStoryMedia(story) {
@@ -1037,7 +1044,10 @@ async function loadStories() {
     storiesRail.querySelector(".story-empty")?.remove();
     storiesRail.querySelectorAll(".story[data-story-id]").forEach(item => item.remove());
     const visibleStories = (data.stories || []).slice(0, 12);
-    updateDailyCreatorSlate((data.stories || []).filter(story => story.isOwner && story.mediaType === "video").length);
+    const dailyTakeCount = Math.max(0, Number(data.dailyTakeCount) || 0);
+    const creatorSlate = document.querySelector(".daily-clapper");
+    if (creatorSlate) creatorSlate.dataset.takeCount = String(dailyTakeCount);
+    updateDailyCreatorSlate(dailyTakeCount);
     for (const [storyIndex, story] of visibleStories.entries()) {
       const item = document.createElement("article");
       item.className = "story";
