@@ -31,6 +31,9 @@ body[data-sync-screen="contacts"] .conversation-call-actions{display:none}
 .conversation-user,.conversation-call{border-radius:10px!important}
 .booking-message strong{display:block;margin-bottom:4px}.booking-message p{margin:0 0 5px}.booking-message time{display:block;color:var(--sync-muted);font-size:.7rem}.booking-date-offer{font-weight:800}
 .message-form[hidden]{display:none!important}
+.booking-reply-composer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:9px 10px calc(9px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--sync-line);background:#fff}.booking-reply-composer[hidden]{display:none!important}.booking-reply-composer textarea{min-height:48px;max-height:132px;resize:vertical;border:1px solid #cbd3df;border-radius:18px;padding:11px 13px;font:inherit}.booking-reply-composer .message-send{align-self:start;min-width:64px;min-height:48px;border-radius:18px!important}.booking-reply-status{grid-column:1/-1;margin:0;color:var(--sync-muted);font-size:.74rem;line-height:1.35}
+body[data-sync-screen="bookings"] .conversation-status,body[data-sync-screen="bookings"] #makePlans,body[data-sync-screen="bookings"] #headerPhone,body[data-sync-screen="bookings"] #headerVideo,body[data-sync-screen="bookings"] #conversationMore{display:none!important}
+body.is-booking-thread #callStatus,body.is-booking-thread .conversation-status,body.is-booking-thread #makePlans,body.is-booking-thread #headerPhone,body.is-booking-thread #headerVideo,body.is-booking-thread #conversationMore{display:none!important}
 .conversation-header-actions #headerPhone,
 .conversation-header-actions #headerVideo{width:44px;min-width:44px;height:44px;min-height:44px}
 .conversation-user:focus-visible,.conversation-call:focus-visible,.chat-heading-button:focus-visible,.new-chat-button:focus-visible{outline:3px solid #f3a449!important;outline-offset:1px}

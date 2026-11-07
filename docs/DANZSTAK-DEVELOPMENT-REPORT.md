@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Artist-approved venue replies from SYNC — 2026-11-07
+
+Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION NOT YET CLAIMED**.
+
+- An artist can open a venue reply in SYNC **Bookings**, write a response, review it, and submit it to the external venue by email. The recipient is never accepted from the browser: the API resolves the original owner-scoped outreach record and sends only to its stored venue address.
+- Replies use the verified DanzStak sender and the artist's verified account address as Reply-To. Continuing an existing booking thread does not consume another booking-email credit. Suppressed, bounced, complained or opted-out recipients remain blocked.
+- Client message IDs plus conditional storage make retries idempotent. A successful provider submission becomes `sent`; an ambiguous provider result becomes `reconciliation_required` and is not blindly retried or mislabeled delivered.
+- External email threads no longer expose personal-chat calling, planning or message controls. They use a dedicated bounded composer, show outbound replies as **You**, and retain the original pitch and venue response in the same phone-first thread.
+- Functional/security evidence: the expanded `test-booking-replies.cjs` covers stored-recipient enforcement, owner isolation, suppression, bounded input, successful outbound submission, duplicate prevention, route deployment and shell assets. The complete `test-regressions.ps1` gate passes with exit code 0.
+- Visual evidence: `browser-checks/booking-sync.cjs` passes twice at 320, 360, 390, 414, 430 and 1366px with service workers isolated for deterministic source testing. Captures in `docs/screenshots/booking-sync/` were inspected; the thread and fixed composer do not overflow or overlap, and the external thread contains no false call state.
+- Prepared release assets: direct messages v487, booking SYNC v2, SYNC CSS v6 and PWA cache `danzstak-shell-v701`.
+- Review/staging evidence: all three required GitHub checks passed for implementation head `409b245949d8a12cab3a5a69a19022518d7e0c75`. AWS Amplify DEVELOPMENT branch `codex/booking-sync-outbound`, job `1`, succeeded in `us-west-1`. No-cache probes confirm direct messages v487, booking SYNC v2, SYNC CSS v6 and `danzstak-shell-v701` at `https://codex-booking-sync-outbound.d31oovi2mos5iz.amplifyapp.com`; the six-width SYNC booking matrix passes directly against that hosted build.
+- Honest boundary: secure accountless web replies and artist email responses now form a working two-way booking conversation. Arbitrary inbound email ingestion remains unimplemented; venues must use the secure reply page for their message to appear in SYNC. Provider acceptance is not described as inbox delivery.
+
 ## Secure venue replies in SYNC — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.

@@ -9,8 +9,32 @@
   const name = document.getElementById("conversationName");
   const avatar = document.getElementById("conversationAvatar");
   const presence = document.getElementById("conversationPresence");
+  const callStatus = document.getElementById("callStatus");
   const form = document.getElementById("messageForm");
+  const bookingForm = document.createElement("form");
+  const bookingInput = document.createElement("textarea");
+  const bookingStatus = document.createElement("p");
+  const bookingSend = document.createElement("button");
   let loading = false;
+
+  bookingForm.id = "bookingReplyForm";
+  bookingForm.className = "booking-reply-composer";
+  bookingForm.hidden = true;
+  bookingInput.id = "bookingReplyInput";
+  bookingInput.maxLength = 4000;
+  bookingInput.rows = 2;
+  bookingInput.required = true;
+  bookingInput.placeholder = "Reply to this venue by email";
+  bookingInput.setAttribute("aria-label", "Reply to this venue by email");
+  bookingStatus.className = "booking-reply-status";
+  bookingStatus.setAttribute("role", "status");
+  bookingStatus.setAttribute("aria-live", "polite");
+  bookingSend.type = "submit";
+  bookingSend.className = "message-send";
+  bookingSend.textContent = "Send";
+  bookingSend.setAttribute("aria-label", "Send booking reply by email");
+  bookingForm.append(bookingInput, bookingSend, bookingStatus);
+  form?.before(bookingForm);
 
   const text = value => document.createTextNode(String(value || ""));
   const formatDate = value => {
@@ -28,6 +52,7 @@
 
   function renderThread(thread) {
     document.body.classList.add("is-conversation-open");
+    document.body.classList.add("is-booking-thread");
     document.body.dataset.syncScreen = "bookings";
     header.hidden = false;
     name.removeAttribute("href");
@@ -35,7 +60,12 @@
     avatar.removeAttribute("href");
     avatar.textContent = (thread.message.venueName || "V").charAt(0).toUpperCase();
     if (presence) presence.hidden = true;
+    if (callStatus) callStatus.hidden = true;
     if (form) form.hidden = true;
+    bookingForm.hidden = false;
+    bookingForm.dataset.outreachId = thread.message.id;
+    bookingForm.dataset.venueName = thread.message.venueName || "Venue";
+    bookingStatus.textContent = "Artist-approved replies are emailed to the venue. No booking credit is charged.";
     messageList.replaceChildren();
 
     const sent = document.createElement("article");
@@ -51,9 +81,9 @@
 
     for (const reply of thread.replies) {
       const bubble = document.createElement("article");
-      bubble.className = "message booking-message";
+      bubble.className = `message booking-message${reply.direction === "outbound" ? " mine" : ""}`;
       const replyHeading = document.createElement("strong");
-      replyHeading.append(text(labelFor(reply.action)));
+      replyHeading.append(text(reply.direction === "outbound" ? "You" : labelFor(reply.action)));
       const replyCopy = document.createElement("p");
       replyCopy.append(text(reply.content));
       bubble.append(replyHeading, replyCopy);
@@ -69,10 +99,6 @@
       messageList.append(bubble);
     }
 
-    const boundary = document.createElement("p");
-    boundary.className = "system-message";
-    boundary.append(text("This venue replied through its secure DanzStak link. Reply by email for now; sending email from SYNC is not enabled yet."));
-    messageList.append(boundary);
     messageList.scrollTop = messageList.scrollHeight;
   }
 
@@ -141,8 +167,33 @@
 
   window.danzstakLoadBookingThreads = load;
   window.danzstakLeaveBookingThreads = () => {
+    document.body.classList.remove("is-booking-thread");
     if (form) form.hidden = false;
+    if (callStatus) callStatus.hidden = false;
+    bookingForm.hidden = true;
     name.setAttribute("href", "profile.html");
     avatar.setAttribute("href", "profile.html");
   };
+
+  bookingForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const outreachId = bookingForm.dataset.outreachId || "", content = bookingInput.value.trim();
+    if (!outreachId || !content) return;
+    bookingInput.disabled = true; bookingSend.disabled = true; bookingStatus.textContent = "Sending your approved reply…";
+    try {
+      const response = await fetch(`${API}/tour-manager/outreach/reply`, { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json" }, body: JSON.stringify({ outreachId, content, clientMessageId: crypto.randomUUID().replaceAll("-", "") }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Your booking reply could not be sent.");
+      bookingInput.value = "";
+      bookingStatus.textContent = "Reply submitted to the venue by email. No booking credit was charged.";
+      await load();
+      const row = [...list.querySelectorAll(".conversation-user")].find(button => button.textContent.includes(bookingForm.dataset.venueName));
+      row?.click();
+      bookingStatus.textContent = "Reply submitted to the venue by email. No booking credit was charged.";
+    } catch (error) {
+      bookingStatus.textContent = error.message || "Your booking reply could not be sent.";
+    } finally {
+      bookingInput.disabled = false; bookingSend.disabled = false; bookingInput.focus();
+    }
+  });
 })();

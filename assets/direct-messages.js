@@ -919,6 +919,7 @@ async function loadConversations() {
       });
     }
     cachedConversations = [...contacts.values()];
+    if (activeFilter === "bookings") return;
     const focusedControl = document.activeElement?.closest?.(".conversation-user,.chat-contact");
     const focusedContact = focusedControl?.dataset.contactEmail || "";
     const focusedSelector = focusedControl?.classList.contains("chat-contact") ? ".chat-contact" : ".conversation-user";

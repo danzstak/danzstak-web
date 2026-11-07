@@ -148,6 +148,21 @@ const tourManagerBilling = createTourManagerBilling({
       } }
     }));
     return { messageId: result.MessageId || "" };
+  },
+  sendBookingReply: async ({ userId, venueName, to, subject, message }) => {
+    const replyTo = await accountForSub(userId);
+    if (!replyTo) throw new Error("Account email could not be verified");
+    const result = await ses.send(new SendEmailCommand({
+      FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
+      ConfigurationSetName: "DanzStakTourManager",
+      Destination: { ToAddresses: [to] },
+      ReplyToAddresses: [replyTo],
+      Content: { Simple: {
+        Subject: { Data: `Re: ${String(subject || "Booking pitch").replace(/^Re:\s*/i, "")}`.slice(0, 200), Charset: "UTF-8" },
+        Body: { Text: { Data: `${message}\n\nReply from the artist through DanzStak Tour Manager.\nVenue: ${venueName}\nReplies go directly to the artist.`, Charset: "UTF-8" } }
+      } }
+    }));
+    return { messageId: result.MessageId || "" };
   }
 });
 

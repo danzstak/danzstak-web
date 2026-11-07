@@ -88,7 +88,7 @@ export function verifyStripeSignature(payload, header, secret, currentTime = Dat
   return signatures.some(signature => { if (!/^[a-f0-9]{64}$/i.test(signature)) return false; const candidate = Buffer.from(signature, "hex"); return candidate.length === expected.length && timingSafeEqual(candidate, expected); });
 }
 
-export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, validateOutreachEpkLink, env = process.env, fetcher = fetch, clock = Date.now }) {
+export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, env = process.env, fetcher = fetch, clock = Date.now }) {
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
   const testMode = () => env.STRIPE_SECRET_KEY?.startsWith("sk_test_");
   const paymentsAllowed = () => Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) && (testMode() || (env.TOUR_MANAGER_LIVE_PAYMENTS === "true" && env.STRIPE_SECRET_KEY.startsWith("sk_live_")));
@@ -263,7 +263,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       providerAcceptedAt: item.providerAcceptedAt?.S || ""
     }));
     const replyResult = await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#BOOKING_REPLY#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 200 }));
-    const replies = (replyResult.Items || []).map(item => ({ id: item.tourId?.S || "", outreachId: item.outreachId?.S || "", venueKey: item.venueKey?.S || "", direction: "inbound", action: item.action?.S || "reply", content: item.content?.S || "", proposedDate: item.proposedDate?.S || "", createdAt: item.createdAt?.S || "" }));
+    const replies = (replyResult.Items || []).map(item => ({ id: item.tourId?.S || "", outreachId: item.outreachId?.S || "", venueKey: item.venueKey?.S || "", direction: item.direction?.S === "outbound" ? "outbound" : "inbound", action: item.action?.S || "reply", content: item.content?.S || "", proposedDate: item.proposedDate?.S || "", status: item.status?.S || "received", createdAt: item.createdAt?.S || "" }));
     return response(200, { messages, replies }, headers);
   }
 
@@ -329,6 +329,39 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: replyKey, ConsistentRead: true }));
       if (duplicate.Item) return response(200, { received: true, duplicate: true }, headers);
       throw error;
+    }
+  }
+
+  async function artistReply(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    if (typeof sendBookingReply !== "function") return response(503, { error: "Booking reply delivery is not configured." }, headers);
+    const body = parseBody(event), outreachId = String(body?.outreachId || "").trim(), content = String(body?.content || "").trim(), clientMessageId = String(body?.clientMessageId || "").trim();
+    if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !/^[a-zA-Z0-9_-]{16,100}$/.test(clientMessageId) || content.length < 1 || content.length > 4000) return response(400, { error: "Write a reply of 1 to 4,000 characters for a valid booking thread." }, headers);
+    const source = await db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, outreachId), ConsistentRead: true })), message = source.Item, to = String(message?.recipient?.S || "").trim().toLowerCase();
+    if (!message || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return response(404, { error: "This booking thread is unavailable." }, headers);
+    if (["bounced", "complained", "opted_out"].includes(message.status?.S || "")) return response(409, { error: "This contact cannot receive another message." }, headers);
+    const suppressed = await db.send(new GetItemCommand({ TableName: tableName, Key: suppressionKey(to), ConsistentRead: true }));
+    if (suppressed.Item) return response(409, { error: "This contact opted out or cannot receive another message." }, headers);
+    const at = nowIso(), replyKey = { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#BOOKING_REPLY#${outreachId}#artist#${clientMessageId}` } }, item = { ...replyKey, outreachId: { S: outreachId }, venueKey: { S: message.venueKey?.S || "" }, direction: { S: "outbound" }, action: { S: "reply" }, content: { S: content }, status: { S: "sending" }, createdAt: { S: at } };
+    try {
+      await db.send(new PutItemCommand({ TableName: tableName, Item: item, ConditionExpression: "attribute_not_exists(userId)" }));
+    } catch (error) {
+      const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: replyKey, ConsistentRead: true }));
+      if (existing.Item) return response(existing.Item.status?.S === "sent" ? 200 : 202, { status: existing.Item.status?.S || "pending", duplicate: true }, headers);
+      throw error;
+    }
+    try {
+      const delivery = await sendBookingReply({ userId, outreachId, venueName: message.venueName?.S || "Venue", to, subject: message.subject?.S || "Booking pitch", message: content });
+      if (!delivery?.messageId) throw new Error("Email provider did not accept the reply");
+      const sentAt = nowIso();
+      await db.send(new UpdateItemCommand({ TableName: tableName, Key: replyKey, UpdateExpression: "SET #status = :sent, sentAt = :sentAt, providerMessageId = :messageId", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sent": { S: "sent" }, ":sending": { S: "sending" }, ":sentAt": { S: sentAt }, ":messageId": { S: delivery.messageId } } }));
+      return response(200, { status: "sent" }, headers);
+    } catch (error) {
+      await db.send(new UpdateItemCommand({ TableName: tableName, Key: replyKey, UpdateExpression: "SET #status = :review, failedAt = :at", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":review": { S: "reconciliation_required" }, ":sending": { S: "sending" }, ":at": { S: nowIso() } } })).catch(() => null);
+      return response(502, { error: "The email provider did not confirm this reply. It was not retried, preventing a duplicate. Check the thread before trying again." }, headers);
     }
   }
 
@@ -613,6 +646,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (method === "POST" && path === "/tour-manager/outreach/preflight") return outreachPreflight(event);
     if (method === "POST" && path === "/tour-manager/opt-out") return optOut(event);
     if (method === "POST" && path === "/tour-manager/reply") return externalReply(event);
+    if (method === "POST" && path === "/tour-manager/outreach/reply") return artistReply(event);
     if (method === "POST" && path === "/tour-manager/emails/send") return sendEmail(event);
     return null;
   };
