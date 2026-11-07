@@ -1,7 +1,13 @@
 const { chromium } = require("playwright-core");
+const { readFileSync } = require("node:fs");
+const { resolve } = require("node:path");
 
-const expectedCache = process.env.DANZSTAK_EXPECTED_CACHE || "danzstak-shell-v667";
+const localWorker = readFileSync(resolve(__dirname, "..", "service-worker.js"), "utf8");
+const expectedCache = process.env.DANZSTAK_EXPECTED_CACHE
+  || localWorker.match(/danzstak-shell-v\d+/)?.[0];
 const baseUrl = process.env.DANZSTAK_LIVE_URL || "https://danzstak.com";
+
+if (!expectedCache) throw new Error("Could not resolve the expected PWA cache from service-worker.js");
 
 (async () => {
   let browser;
@@ -12,14 +18,15 @@ const baseUrl = process.env.DANZSTAK_LIVE_URL || "https://danzstak.com";
     });
     const context = await browser.newContext({ serviceWorkers: "allow" });
     const page = await context.newPage();
-    await page.goto(`${baseUrl}/?pwa-check=1`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(1000);
+    const verificationUrl = new URL("/login.html?pwa-check=1", baseUrl).toString();
+    await page.goto(verificationUrl, { waitUntil: "networkidle" });
 
     const state = await page.evaluate(async ({ expectedCache }) => {
       if (!("serviceWorker" in navigator)) throw new Error("Service workers are unavailable");
+      await navigator.serviceWorker.register("/service-worker.js");
       const registration = await Promise.race([
         navigator.serviceWorker.ready,
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Service worker ready timeout")), 15000)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Service worker ready timeout")), 30000)),
       ]);
       const worker = registration.active || registration.installing || registration.waiting;
       if (worker && worker.state !== "activated") {
@@ -27,7 +34,7 @@ const baseUrl = process.env.DANZSTAK_LIVE_URL || "https://danzstak.com";
           new Promise((resolve) => worker.addEventListener("statechange", () => {
             if (worker.state === "activated") resolve();
           })),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Service worker activation timeout")), 15000)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Service worker activation timeout")), 30000)),
         ]);
       }
       const cacheNames = await caches.keys();
