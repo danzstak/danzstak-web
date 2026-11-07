@@ -71,6 +71,34 @@
     return anchor;
   };
 
+  const templateNames = { band: "Band tour pitch", dj: "DJ / electronic gig pitch", festival: "Festival pitch" };
+  function pitchCopy(venue, template) {
+    const a = artist(), booking = venue.booking || {}, start = booking.showDate || "[proposed date]", end = booking.dateEnd && booking.dateEnd !== start ? ` through ${booking.dateEnd}` : "";
+    const format = template === "dj" ? "DJ / electronic set" : template === "festival" ? "festival performance" : "live performance";
+    const details = [
+      booking.setDetails ? `Format: ${booking.setDetails}` : "",
+      Number(booking.expectedDraw) > 0 ? `Artist-entered expected draw: ${Number(booking.expectedDraw)} people` : "",
+      booking.deal ? `Requested terms: ${booking.deal}` : ""
+    ].filter(Boolean).join("\n");
+    return `Hello ${venue.name || "venue"} booking team,\n\nI'm reaching out about ${a.name || "[act name]"}${a.hometown ? ` from ${a.hometown}` : ""}${a.genre ? ` (${a.genre})` : ""}. We'd like to discuss a ${format} at ${venue.name || "your venue"} on ${start}${end}.\n\n${a.pitch || "[Add a short introduction and relevant live experience.]"}${details ? `\n\n${details}` : ""}\n\nEPK: ${a.epk || "[Add a published EPK link.]"}\n\nAre you accepting bookings for this date? Please share your availability, submission requirements, and deal terms.\n\nThank you,\n${a.name || "[your name]"}`;
+  }
+
+  function reviewSend({ venue, to, subject, message }) {
+    if (typeof HTMLDialogElement === "undefined") return window.danzstakConfirm(`Recipient: ${to}\nSubject: ${subject}\nCost: 1 booking-email credit\n\n${message}`, { title: `Review ${venue.name} email`, confirmLabel: "Approve and send" });
+    return new Promise(resolve => {
+      const opener = document.activeElement, dialog = document.createElement("dialog"), formNode = document.createElement("form"), title = document.createElement("h2"), meta = document.createElement("dl"), preview = document.createElement("pre"), approval = document.createElement("label"), check = document.createElement("input"), actions = document.createElement("div"), cancel = document.createElement("button"), confirm = document.createElement("button");
+      dialog.className = "booking-send-review"; dialog.setAttribute("aria-labelledby", "bookingSendReviewTitle"); formNode.method = "dialog";
+      title.id = "bookingSendReviewTitle"; title.textContent = `Review email to ${venue.name}`;
+      for (const [term, value] of [["Recipient", to], ["Subject", subject], ["Cost", "1 booking-email credit"]]) { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = term; dd.textContent = value; meta.append(dt, dd); }
+      preview.textContent = message; preview.tabIndex = 0; preview.setAttribute("aria-label", "Exact email message");
+      approval.className = "booking-send-approval"; check.type = "checkbox"; approval.append(check, document.createTextNode(" I reviewed this exact recipient and message and approve sending it."));
+      actions.className = "booking-send-actions"; cancel.type = "submit"; cancel.value = "cancel"; cancel.textContent = "Keep editing"; confirm.type = "submit"; confirm.value = "confirm"; confirm.textContent = "Approve and send · 1 credit"; confirm.className = "primary"; confirm.disabled = true; check.addEventListener("change", () => { confirm.disabled = !check.checked; });
+      actions.append(cancel, confirm); formNode.append(title, meta, preview, approval, actions); dialog.append(formNode); document.body.append(dialog);
+      let settled = false; const finish = approved => { if (settled) return; settled = true; dialog.remove(); if (opener instanceof HTMLElement && opener.isConnected) opener.focus(); resolve(approved); };
+      dialog.addEventListener("close", () => finish(dialog.returnValue === "confirm" && check.checked), { once:true }); dialog.addEventListener("cancel", event => { event.preventDefault(); dialog.close("cancel"); }); dialog.showModal(); cancel.focus();
+    });
+  }
+
   function localEstimate() {
     const values = tour(), depart = Date.parse(`${values.departOn || ""}T12:00:00Z`), back = Date.parse(`${values.returnBy || ""}T12:00:00Z`);
     const durationDays = Number.isFinite(depart) && Number.isFinite(back) && back >= depart ? Math.floor((back - depart) / 86400000) + 1 : 1;
@@ -285,6 +313,8 @@
   function outreach(venue) {
     const section = document.createElement("section");
     section.className = "outreach";
+    venue.booking ||= {};
+    const booking = venue.booking;
     const fit = document.createElement("p");
     const genres = artist().genre.toLowerCase().split(",").map(s => s.trim()).filter(Boolean);
     const categories = (venue.categories || []).map(s => String(s).toLowerCase());
@@ -296,39 +326,61 @@
       section.append(fit, closed);
       return section;
     }
+    const builder = document.createElement("fieldset"), legend = document.createElement("legend"), templateLabel = document.createElement("label"), template = document.createElement("select"), rangeLabel = document.createElement("label"), dateEnd = document.createElement("input"), drawLabel = document.createElement("label"), draw = document.createElement("input"), setLabel = document.createElement("label"), setDetails = document.createElement("input"), apply = document.createElement("button");
+    builder.className = "pitch-builder"; legend.textContent = "1. Choose the pitch facts"; builder.append(legend); templateLabel.append(document.createTextNode("Pitch type"));
+    for (const [value, name] of Object.entries(templateNames)) { const option = document.createElement("option"); option.value = value; option.textContent = name; template.append(option); }
+    template.value = ["band", "dj", "festival"].includes(booking.pitchTemplate) ? booking.pitchTemplate : "band"; templateLabel.append(template);
+    dateEnd.type = "date"; dateEnd.min = booking.showDate || ""; dateEnd.value = booking.dateEnd || ""; rangeLabel.append(document.createTextNode("End of date range (optional)"), dateEnd);
+    draw.type = "number"; draw.min = "0"; draw.max = "100000"; draw.step = "1"; draw.value = booking.expectedDraw || ""; draw.placeholder = "Only if you know it"; drawLabel.append(document.createTextNode("Expected crowd — artist supplied (optional)"), draw);
+    setDetails.maxLength = 300; setDetails.value = booking.setDetails || ""; setDetails.placeholder = "45-minute live set, 90-minute DJ set…"; setLabel.append(document.createTextNode("Set or performance details (optional)"), setDetails);
+    apply.type = "button"; apply.textContent = "Apply template to draft"; apply.className = "secondary";
+    const savePitchFacts = () => { booking.pitchTemplate = template.value; booking.dateEnd = dateEnd.value; booking.expectedDraw = Number(draw.value || 0); booking.setDetails = setDetails.value; persist(); };
+    for (const control of [template, dateEnd, draw, setDetails]) control.addEventListener("change", savePitchFacts);
+    builder.append(templateLabel, rangeLabel, drawLabel, setLabel, apply);
+    const subjectLabel = document.createElement("label"), subject = document.createElement("input");
+    subjectLabel.textContent = "2. Edit the subject"; subject.maxLength = 180; subject.value = booking.outreachSubject || `${artist().name || "Artist"} — booking enquiry${booking.showDate ? ` for ${booking.showDate}` : ""}`; subject.addEventListener("input", () => { booking.outreachSubject = subject.value; persist(); }); subjectLabel.append(subject);
     const label = document.createElement("label");
-    label.textContent = "Review your booking pitch";
+    label.textContent = "3. Edit the message";
     const draft = document.createElement("textarea");
     draft.rows = 9;
     draft.maxLength = 5000;
     draft.setAttribute("aria-label", `Booking pitch for ${venue.name}`);
     const a = artist();
-    const generatedDraft = `Hello ${venue.name} booking team,\n\nI'm reaching out about ${a.name || "[act name]"}${a.hometown ? ` from ${a.hometown}` : ""}${a.genre ? ` (${a.genre})` : ""}. We're interested in playing ${venue.name}${venue.booking?.showDate ? ` on ${venue.booking.showDate}` : " on [proposed date]"}.\n\n${a.pitch || "[Add a short introduction and relevant live experience.]"}\n${a.epk ? `\nEPK: ${a.epk}\n` : "\n[Add a public EPK or live performance link.]\n"}\nAre you accepting bookings for this date? Please share your submission requirements, available slots, and deal terms.\n\nThank you,\n${a.name || "[your name]"}`;
+    const generatedDraft = pitchCopy(venue, template.value);
     draft.value = typeof venue.booking?.outreachDraft === "string" ? venue.booking.outreachDraft : generatedDraft;
     draft.addEventListener("input", () => {
       venue.booking.outreachDraft = draft.value;
       persist();
     });
     label.append(draft);
+    apply.addEventListener("click", async () => {
+      const next = pitchCopy(venue, template.value);
+      if (draft.value.trim() && draft.value !== generatedDraft && draft.value !== next && !(await window.danzstakConfirm("Applying the template replaces the current draft. Your saved venue and booking notes stay unchanged.", { title:"Replace this pitch draft?", confirmLabel:"Apply template" }))) return;
+      savePitchFacts(); draft.value = next; booking.outreachDraft = next; subject.value = `${a.name || "Artist"} — ${template.value === "festival" ? "festival" : "booking"} enquiry${booking.showDate ? ` for ${booking.showDate}` : ""}`; booking.outreachSubject = subject.value; persist();
+    });
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = "Send reviewed email · 1 credit";
+    button.textContent = "Preview exact email";
     const contactUnlocked = window.danzstakBookingContactUnlocked?.(identity(venue)) === true;
     const email = contactUnlocked ? (venue.emails || []).find(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) : undefined;
     button.disabled = !email;
     button.addEventListener("click", async () => {
-      if (!a.name || !venue.booking?.showDate || /\[[^\]]+\]/.test(draft.value)) {
+      const currentArtist = artist(), currentSubject = subject.value.trim(), currentMessage = draft.value.trim();
+      if (booking.dateEnd && booking.showDate && booking.dateEnd < booking.showDate) { window.danzstakShowFeedback?.("The end of the date range cannot be before the proposed show date.", { urgent:true }); return; }
+      if (!currentArtist.name || !venue.booking?.showDate || /\[[^\]]+\]/.test(currentMessage)) {
         window.danzstakShowFeedback?.("Add your act name, proposed date, and replace draft placeholders before sending.", { urgent: true });
         return;
       }
+      if (!currentArtist.epk || !currentMessage.includes(currentArtist.epk) || currentSubject.length < 3) { window.danzstakShowFeedback?.("Use your published EPK link in the message and add a clear subject before review.", { urgent:true }); return; }
       if (dirty) {
         window.danzstakShowFeedback?.("Save your booking workspace before sending so DanzStak can verify the venue contact.", { urgent: true });
         return;
       }
+      if (!(await reviewSend({ venue, to:email, subject:currentSubject, message:currentMessage }))) return;
       button.disabled = true;
       button.textContent = "Sending…";
       try {
-        await window.danzstakSendBookingEmail({ venueKey: identity(venue), to: email, subject: `${a.name} — booking enquiry for ${venue.booking.showDate}`, message: draft.value });
+        await window.danzstakSendBookingEmail({ venueKey: identity(venue), to: email, subject: currentSubject, message: currentMessage, template:template.value, artistApproved:true });
         venue.booking.status = "Email sent";
         persist();
         render();
@@ -336,12 +388,12 @@
       } catch (error) {
         window.danzstakShowFeedback?.(error.message, { urgent: true });
         button.disabled = false;
-        button.textContent = "Send reviewed email · 1 credit";
+        button.textContent = "Preview exact email";
       }
     });
     const note = document.createElement("small");
-    note.textContent = email ? "DanzStak reserves one credit, submits the reviewed message, and restores the credit if the email provider rejects it. Replies go to your account email." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
-    section.append(fit, label, button, note);
+    note.textContent = email ? "Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Replies go to your account email." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
+    section.append(fit, builder, subjectLabel, label, button, note);
     return section;
   }
 

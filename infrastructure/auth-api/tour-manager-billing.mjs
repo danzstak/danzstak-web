@@ -386,7 +386,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const userId = await authenticate(event);
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
     if (typeof sendBookingEmail !== "function") return response(503, { error: "Booking email delivery is not configured." }, headers);
-    const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), subject = String(body?.subject || "").trim(), message = String(body?.message || "").trim(), id = String(body?.idempotencyKey || "").trim();
+    const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), subject = String(body?.subject || "").trim(), message = String(body?.message || "").trim(), id = String(body?.idempotencyKey || "").trim(), template = ["band", "dj", "festival"].includes(String(body?.template)) ? String(body.template) : "custom";
+    if (body?.artistApproved !== true) return response(400, { error: "Review the exact recipient and message, then approve this email before sending." }, headers);
     if (!venueKey || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || subject.length < 3 || subject.length > 180 || message.length < 20 || message.length > 5000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(id)) return response(400, { error: "Choose a saved venue, reviewed email, subject, message, and valid send identifier." }, headers);
     const workspace = await db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }));
     let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
@@ -402,7 +403,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     try {
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
         { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :minusOne, reservedCredits :one SET updatedAt = :updatedAt", ConditionExpression: "credits >= :one", ExpressionAttributeValues: { ":minusOne": { N: "-1" }, ":one": { N: "1" }, ":updatedAt": { S: reservedAt } } } },
-        { Put: { TableName: tableName, Item: { ...key, status: { S: "reserved" }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, recipient: { S: to }, subject: { S: subject }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Put: { TableName: tableName, Item: { ...key, status: { S: "reserved" }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, recipient: { S: to }, subject: { S: subject }, message: { S: message }, template: { S: template }, artistApprovedAt: { S: reservedAt }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(userId, reservedAt, id), entryType: { S: "email_reservation" }, delta: { N: "-1" }, status: { S: "reserved" }, description: { S: `Booking email reserved for ${String(venue.name || "venue").slice(0, 160)}` }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
       ] }));
     } catch (error) { const raced = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true })); if (raced.Item) return response(202, { status: raced.Item.status?.S || "pending", duplicate: true }, headers); return response(402, { error: "Not enough booking-email credits." }, headers); }
