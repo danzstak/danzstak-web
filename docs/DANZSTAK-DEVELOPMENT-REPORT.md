@@ -2,7 +2,7 @@
 
 ## Booking-email provider events and automatic suppression — 2026-11-07
 
-Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; AWS EVENT DESTINATION AND PRODUCTION NOT YET DEPLOYED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA, AUTH API AND CONTROLLED SES SIMULATOR**.
 
 - New Tour Manager sends use the dedicated `DanzStakTourManager` SES configuration set. The guarded deployer prepares an SNS event destination for delivery, bounce and complaint events and grants only that topic permission to invoke the existing Auth API Lambda.
 - Each provider message receives a hash-keyed private correlation record containing the owning artist, opaque send identifier and normalized recipient hash. No recipient address is copied into the global correlation or provider-event keys.
@@ -12,6 +12,9 @@ Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; AWS EVENT DESTINATION AN
 - Functional/security evidence: `test-booking-provider-events.cjs` covers delivery, retry deduplication, permanent versus transient bounce handling, complaint suppression, private keys and deploy configuration. Existing opt-out, send-credit, cap/cooldown and complete `test-regressions.ps1` coverage pass with exit code 0.
 - Release assets are prepared as booking JS v16 and PWA cache `danzstak-shell-v699`. No Stripe price, entitlement or payment configuration changed. No provider event is claimed operational until the exact branch is staged, the AWS event destination is inspected and a controlled SES event reaches the production state store.
 - Review/staging evidence: all three required checks passed for implementation head `2eb4d408a6a07e86ff8c7b3537139e63ac187c2d`. Amplify DEVELOPMENT branch `codex/booking-ses-events`, job `1`, succeeded in `us-west-1`; no-cache probes confirm booking JS v16 and `danzstak-shell-v699`. The six-width booking browser matrix passes against `https://codex-booking-ses-events.d31oovi2mos5iz.amplifyapp.com`.
+- Production release: PR `#103` merged as `f7e27eda1bd1f0211140cc3a723644e4bc62a4fc`; Amplify production job `949` succeeded. The guarded backend deploy created or verified one Lambda subscription to the Tour Manager SES event topic and an enabled `DanzStakTourManager` event destination for delivery, bounce and complaint. PR `#104` then closed the event-before-correlation-record race with opaque SES tags, passed the complete regression gate and merged as `8f5607ee07989c50e92248d6ff772c8f76c83f1e`; the guarded Auth API deployment succeeded again.
+- Controlled provider evidence: messages sent only to Amazon SES mailbox simulator addresses produced a real `delivered` state and a real permanent-bounce `bounced` state through the configured SES → SNS → Lambda path. The bounce created `permanent_bounce` suppression. All synthetic send, event and suppression records were removed after verification; no customer or venue was contacted.
+- Post-deployment UI evidence: no-cache probes confirm booking JS v16 and `danzstak-shell-v699` on `https://danzstak.com`, and the six-width booking browser matrix passes directly against production. Complaint handling is covered by the signed internal event regression but was not generated against a real external recipient.
 
 ## Venue-controlled booking opt-out and global suppression — 2026-11-07
 
