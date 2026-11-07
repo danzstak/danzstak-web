@@ -46,6 +46,44 @@ jobs:
           node .\test-feed-csp.cjs
           node .\test-external-link-privacy.cjs
 
+  browser-call-media:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install browser test dependency
+        shell: pwsh
+        run: npm install --no-save --ignore-scripts playwright@1.55.0
+      - name: Start local review server
+        shell: pwsh
+        run: |
+          $process = Start-Process python -ArgumentList '-m','http.server','8017','--bind','127.0.0.1' -WorkingDirectory $PWD -PassThru -WindowStyle Hidden
+          "DANZSTAK_SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          for ($attempt = 0; $attempt -lt 20; $attempt++) {
+            try {
+              Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8017/messages.html' | Out-Null
+              exit 0
+            } catch {
+              Start-Sleep -Milliseconds 250
+            }
+          }
+          throw 'Local review server did not become ready.'
+      - name: Verify bidirectional call media in a real browser
+        shell: pwsh
+        env:
+          DANZSTAK_LOCAL_URL: http://127.0.0.1:8017
+        run: node .\browser-checks\call-video-two-party.cjs
+      - name: Stop local review server
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:DANZSTAK_SERVER_PID) {
+            Stop-Process -Id ([int]$env:DANZSTAK_SERVER_PID) -Force -ErrorAction SilentlyContinue
+          }
+
   release-evidence:
     runs-on: windows-latest
     timeout-minutes: 10
