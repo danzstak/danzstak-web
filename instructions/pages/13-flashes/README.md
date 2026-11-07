@@ -4,7 +4,7 @@
 Add a horizontal **Dailies** strip at the top of the mobile-first Home Feed, above the regular post composer and feed. These are ephemeral story-style posts that disappear from public viewing exactly 24 hours after creation.
 
 ## UX
-- First tile: **Take 1**; subsequent tiles: friends' available Dailies with avatars/previews and unseen indicators.
+- First tile: the signed-in member's real photo with a dated clapperboard showing **SCENE 1 · TAKE N**, where N is the lifetime count of distinct successfully uploaded DanzStak videos (including Dailies, each asset counted once). Daily expiry never lowers N. Subsequent tiles are friends' available Dailies with avatars/previews and unseen indicators.
 - Horizontal scroll on mobile; tap opens immersive vertical story viewer with progress bars, close button, tap-to-next/back and pause/resume.
 - Support text, photos, and short externally hosted videos (no new video hosting infrastructure).
 - Mute video by default; only the currently viewed Daily may play; prevent all overlapping audio with the feed and other Dailies.
@@ -29,7 +29,7 @@ Add a horizontal **Dailies** strip at the top of the mobile-first Home Feed, abo
 - Implement in separate PR and require owner review before production deployment.
 
 ## Terminology update
-The public UI name is **Dailies**, never Flashes. Existing internal identifiers may be migrated safely; do not break existing data. The separate **Rough Cut** video rail appears after four regular feed posts.
+The public UI name is **Dailies**, never Flashes. Existing internal identifiers may be migrated safely; do not break existing data. **The Roll** launcher row appears after four regular Mix posts and opens the existing fullscreen swipe video player; it is not a separate player or product.
 
 ## Take 1 tile — owner-approved visual requirement
 - First tile in the Dailies strip must show the **signed-in user's actual profile picture** prominently, not a generic placeholder when an avatar exists.
@@ -52,40 +52,21 @@ The **dated clapperboard sits above the user's profile picture** within the Take
 ## Final UI copy
 The action tile must be labeled **Take 1**, never **Create**. Keep the dated clapperboard above the signed-in user's profile picture. The accessible label should explain: 'Take 1 — add a Daily that disappears after 24 hours.' This is only a label change; the user still reviews content before publishing.
 
-## Latest owner decision — dynamic active Dailies count (supersedes Take 1 label)
-- The label beneath the signed-in user's dated clapperboard/profile-photo tile must display the **current number of that user's active, unexpired Dailies**, not static “Create” or “Take 1” text.
-- Examples: **0 Dailies**, **1 Daily**, **3 Dailies** (correct singular/plural).
-- Count only the signed-in user's own Dailies with server-authoritative expiry in the future, excluding deleted/expired items. Update after publishing, deleting, expiry and feed refresh; do not count all-time posts.
-- Keep the current local date on the clapperboard, the real user profile picture visible below it, and a plus control to add a Daily. The tile must remain tappable and accessible with a clear “Add Daily” action even when the label is a number.
-- This supersedes earlier UI copy requirements specifying **Take 1** as the tile label; no other Dailies terminology changes.
-- Test zero, one, multiple, deletion and 24-hour expiration transitions, including correct count after app reload.
-
-## Latest owner-approved label format — overrides previous count-only label
-Display **Take** immediately before the active Daily count under the creator tile. Examples: **Take 0**, **Take 1**, **Take 3**. The number is the signed-in user's current active/unexpired Daily count, not a lifetime total. Keep the dated clapperboard above the real profile picture and the plus affordance. Do not display “0 Dailies”, “1 Daily”, or “3 Dailies” as the tile's primary label. Accessible label must clarify the count and the add action, e.g. “Take 3 — 3 active Dailies; add a Daily.” Update after creation, deletion and expiry.
-
-## Latest visual naming — cinematic slate (supersedes Take-only display)
-- The creator tile's clapperboard displays **SCENE 1 · TAKE N**, with **N** equal to the signed-in user's current active, unexpired Daily count (e.g. SCENE 1 · TAKE 3). **SCENE 1** is fixed visual movie-set terminology, not a claim about the number of scenes.
-- Display the real current local date compactly on the slate; the user's real profile photo must remain clearly visible beneath the slate. Keep a plus affordance to add a Daily.
-- The viewer-facing section heading remains **Dailies**; expiry remains 24 hours server-side.
-- Make the slate legible on 360px mobile and verify zero, one and multiple active Dailies and midnight rollover.
-- This is the current owner design direction and overrides earlier Take-only primary labels.
-
-
 ## Final owner naming and movie-slate requirement (2026-11-04)
 
 **Owner's exact naming decision:**
 - **Dailies** is the 24-hour story-strip public product name. **Flashes** is retired as display text. Existing old internal IDs can be maintained as migration aliases so stored stories and user state are not lost.
-- **The Roll** remains the single swipeable, fullscreen video destination. **Rough Cut / Rough Cuts is retired**, not a second video feed, rail, or label. The earlier "Rough Cut after four feed posts" requirement is **withdrawn**. If a video teaser or entry is later wanted in The Mix, it must link to the existing Roll, not create another player or feature.
+- **The Roll** remains the single swipeable, fullscreen video destination. **Rough Cut / Rough Cuts is retired**, not a second video feed, rail, or label. After four regular Mix posts, show a compact The Roll launcher row that opens this existing player; do not create another player or feature.
 - **The Mix** remains the central social feed.
 
 **Far-left Dailies creator tile — a nod to film crews:**
 - **Pin the signed-in member's own creator tile at the far left** of the horizontal Dailies row, ahead of friends' Dailies. It is always visible with the member's **actual, account-authorized profile photo** (initials fallback only when absent). Never substitute a fake profile photo.
-- Layer a **compact black-and-white film clapperboard / slate over the top of their photo**, leaving their face/profile image visibly recognizable underneath. Overlay the real **local date and time** (a small readable timestamp, using member's locale/timezone; e.g. "04 NOV · 18:45") and **SCENE 1 · TAKE N**, where N is the current server-authoritative count of active, unexpired Dailies as specified above. Include a small plus affordance. Movie terminology is a visual wink, not a complex production workflow.
+- Layer a **compact black-and-white film clapperboard / slate over the top of their photo**, leaving their face/profile image visibly recognizable underneath. Overlay today's real **local date** and **SCENE 1 · TAKE N**, where N is the server-authoritative lifetime count of distinct successfully uploaded DanzStak video assets, including uploaded Daily videos once each. Expiry does not lower the count. Include a small plus affordance. Movie terminology is a visual wink, not a complex production workflow.
 - Update the displayed **local clock/time** during an open PWA as minutes and day boundaries change; respond to locale/timezone changes. Never hard-code date/time or depend on a static screenshot. The label must not imply a Daily was *published* at the current time: this is the **slate's current local timestamp**, distinct from the actual server-recorded createdAt/expiresAt of each Daily. Real Daily metadata, if shown, uses its actual creation time.
-- Tapping the entire own-photo/slate tile opens the authenticated **Add Daily** composer, without publishing automatically. Provide labeled 44px+ touch target and a meaningful accessible name with member's name, active count, "Add Daily" and timestamp where relevant; don't make the slate/text tiny or visually overpower the photo.
+- Tapping the entire own-photo/slate tile opens the authenticated **Add Daily** composer, without publishing automatically. Provide a labeled 44px+ touch target and a meaningful accessible name with member name, uploaded-video count, "Add Daily" and date; don't make the slate/text tiny or visually overpower the photo.
 - Friends' tiles follow horizontally as real authorized avatar/story previews with unseen markers; preserve tap/pause/expiry/privacy, no forced auto-sound, no duplicate horizontal rows or excessive wasted vertical space.
 
-**Codex tests:** at 320, 360, 390, 414, 430px and desktop prove leftmost identity, authentic avatar vs fallback, slate layered over photo, accurate live local date+time and update at minute/midnight/timezone changes, correct server-derived TAKE N (0/1/multiple, deletion/expiry), real 24h expiration, composer open but no accidental publish, original feed/nav intact, one active audio owner. Real phone-accessible staging PWA and before/after snapshots; owner approval before merge/deployment.
+**Codex tests:** at 320, 360, 390, 414, 430px and desktop prove leftmost identity, authentic avatar vs fallback, slate layered over photo, accurate local date and midnight/timezone changes, correct server-derived TAKE N (0/1/multiple, duplicate publications counted once, Daily expiry does not decrement), real 24h expiration, composer open but no accidental publish, original feed/nav intact, one active audio owner. Real phone-accessible staging PWA and before/after snapshots; owner approval before merge/deployment.
 
 **This section overrides all conflicting earlier mentions of the Rough Cut rail and any Flashes public label.** Specification only, not proof the live interface changed.
 
@@ -95,10 +76,10 @@ Display **Take** immediately before the active Daily count under the creator til
 **Final and authoritative:** In the far-left Dailies creator tile, display **SCENE 1 · TAKE N**, where **N is the number of actual videos the signed-in user has uploaded to DANZSTAK**. This **replaces the previous interpretation based on active/unexpired Dailies**. Examples: 0 uploaded videos → SCENE 1 · TAKE 0; 12 uploaded videos → SCENE 1 · TAKE 12. Keep the user's real profile picture under the clapperboard, plus affordance and live local date/time.
 
 - Derive the count from authoritative server-side user-owned video-upload records **across DANZSTAK** (The Roll, video posts in The Mix and video Dailies when actually uploaded), **not** text posts, photos, imported external YouTube/Instagram links, uncompleted uploads, or all-time Daily post count.
-- Each distinct successfully uploaded video asset should contribute once even if the user shares the same video in The Mix and The Roll. Agree and document how deletes and 24-hour Daily expirations affect the count, using reliable aggregate metadata rather than resurrecting or exposing deleted media.
-- Update the label after confirmed uploads/deletions and refresh. Never fabricate a number or pull it from the number of visible Dailies. If backend counting is not yet supported, implement/test the authoritative count first or show a clearly honest pending state.
+- Each distinct successfully uploaded video asset contributes once even if the user publishes it in Dailies, The Mix and The Roll. A Daily's 24-hour expiry does not lower the count. Use reliable aggregate metadata rather than resurrecting or exposing expired media.
+- Update the label after confirmed uploads and refresh. Never fabricate a number or pull it from the number of visible Dailies. If backend counting is not yet supported, implement/test the authoritative count first or show a clearly honest pending state.
 - Preserve server-enforced **24-hour Dailies expiry** independently; the slate's TAKE number does not control expiry or signify Daily post count.
-- Test 0, 1, 12 uploaded videos, repeated shares, pasted external links, deleted videos, expired Dailies, failed uploads and cross-device updates. Mobile PWA screenshots and owner-approved deployment required.
+- Test 0, 1, 12 uploaded videos, repeated publications, pasted external links, expired Dailies, failed uploads and cross-device updates. Expiry must not decrement TAKE N. Mobile PWA screenshots and owner-approved deployment required.
 
 **Overrides all earlier statements in this file that define TAKE N as the number of currently active Dailies, including the previous "Latest visual naming" section.**
 
