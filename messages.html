@@ -10,22 +10,22 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=3">
-<script src="assets/offline.js?v=2"></script>
+<script src="assets/offline.js?v=3"></script>
 <script src="assets/display-preferences.js?v=410"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
-<link rel="stylesheet" href="assets/chat.css?v=451">
+<link rel="stylesheet" href="assets/chat.css?v=457">
 <link rel="stylesheet" href="assets/sync.css?v=7">
 <link rel="stylesheet" href="assets/invite-sharing.css?v=1">
 <link rel="stylesheet" href="assets/make-plans.css?v=2">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
-<link rel="stylesheet" href="assets/mobile-design-system.css?v=13">
+<link rel="stylesheet" href="assets/mobile-design-system.css?v=14">
 <link rel="stylesheet" href="assets/responsive-media.css?v=4">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=233">
 <title>SYNC | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
-<script src="assets/i18n.js?v=395" defer></script>
+<script src="assets/i18n.js?v=397" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
 </head>
@@ -34,11 +34,12 @@
 <header class="chat-header"><a href="feed.html" class="chat-brand" aria-label="DanzStak home"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a><strong class="sync-wordmark" aria-label="SYNC messaging">SYNC</strong><div><a class="button" href="feed.html?view=feed" data-chat-return data-icon="back" aria-label="Back to previous DanzStak screen" title="Back">Back</a> <button class="button" type="button" data-logout>Logout</button></div></header>
 <main id="messagesMain" class="chat-shell" tabindex="-1">
   <section class="chat-sidebar" aria-labelledby="messagesTitle">
-    <div class="chats-heading"><div><span class="sync-kicker">DanzStak</span><h1 id="messagesTitle">SYNC</h1></div><div class="chat-heading-actions"><button id="inviteFriend" type="button" class="invite-friend-button" data-invite-friend data-icon="share" aria-label="Invite a friend" title="Invite a friend">Invite a friend</button><button id="callingDevices" type="button" class="chat-heading-button" data-icon="phone" aria-label="Phone and registered devices" title="Phone and registered devices">☎</button><button id="enableRinging" type="button" class="chat-heading-button" data-icon="bell" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" data-icon="edit" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
+    <div class="chats-heading"><div><span class="sync-kicker">DanzStak</span><h1 id="messagesTitle">SYNC</h1></div><div class="chat-heading-actions"><button id="inviteFriend" type="button" class="invite-friend-button" data-invite-friend data-icon="share" aria-label="Invite a friend" title="Invite a friend">Invite a friend</button><button id="newVideoCall" type="button" class="chat-heading-button" data-icon="video" aria-label="Start a video call" title="Start a video call">Video call</button><button id="callingDevices" type="button" class="chat-heading-button" data-icon="phone" aria-label="Phone and registered devices" title="Phone and registered devices">☎</button><button id="enableRinging" type="button" class="chat-heading-button" data-icon="bell" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" data-icon="edit" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
     <label class="chat-search"><span class="chat-search-icon" data-menu-icon="search" aria-hidden="true"></span><input id="chatSearch" type="search" inputmode="search" enterkeyhint="search" placeholder="Search chats" aria-label="Search messages"></label>
     <section id="chatContacts" class="chat-contact-strip" aria-label="Chats" hidden></section>
     <nav class="chat-filters sync-sections" aria-label="SYNC sections" role="tablist"><button type="button" class="active" data-chat-filter="chats" role="tab" aria-selected="true">Chats</button><button type="button" data-chat-filter="bookings" role="tab" aria-selected="false" tabindex="-1">Bookings</button><button type="button" data-chat-filter="calls" role="tab" aria-selected="false" tabindex="-1">Calls</button><button type="button" data-chat-filter="contacts" role="tab" aria-selected="false" tabindex="-1">Contacts</button></nav>
     <p id="syncSectionNote" class="sync-section-note">Your saved conversations.</p>
+    <button id="inviteFriendContacts" type="button" class="secondary invite-friend-contacts" data-invite-friend hidden>Invite a friend to SYNC</button>
     <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers" aria-busy="true"><p class="chat-note">Loading saved chats…</p></div></section>
     <input id="contactEmail" type="hidden">
     <div class="chat-compat-controls" hidden aria-hidden="true">
@@ -68,6 +69,14 @@
       <button id="toggleCamera" type="button">Camera off</button>
       <button id="hangUp" type="button" class="danger hangup-button" aria-label="Hang up the current call">📞 Hang Up</button>
     </div>
+    <section id="messageSelectionToolbar" class="message-selection-toolbar" aria-label="Selected messages" hidden>
+      <strong id="messageSelectionCount" role="status" aria-live="polite">0 selected</strong>
+      <div class="message-selection-actions">
+        <button id="copySelectedMessages" type="button" data-icon="copy" aria-label="Copy selected" title="Copy selected">Copy selected</button>
+        <button id="cancelMessageSelection" type="button" data-icon="close" aria-label="Cancel selection" title="Cancel selection">Cancel selection</button>
+      </div>
+      <label id="messageCopyFallbackLabel" class="message-copy-fallback" hidden>Selected messages ready to copy<textarea id="messageCopyFallback" readonly></textarea></label>
+    </section>
     <div id="messageList" class="message-list" aria-live="polite"><p class="system-message">Select a saved chat or an available friend to begin messaging.</p></div>
     <form id="messageForm" class="message-form">
       <div id="messageMediaPreview" class="message-media-preview" hidden></div>
@@ -81,6 +90,28 @@
     </form>
   </section>
 </main>
+<dialog id="contactDetailsDialog" class="contact-details-dialog" aria-labelledby="contactDetailsName">
+  <header>
+    <button id="closeContactDetails" type="button" data-icon="back" aria-label="Back to conversation" title="Back to conversation">←</button>
+    <strong>Contact details</strong>
+  </header>
+  <section class="contact-details-identity">
+    <span id="contactDetailsAvatar" class="contact-details-avatar" aria-hidden="true">D</span>
+    <h2 id="contactDetailsName">DanzStak member</h2>
+    <p id="contactDetailsPresence">Offline</p>
+  </section>
+  <nav class="contact-details-actions" aria-label="Contact actions">
+    <a id="contactDetailsProfile" href="profile.html"><span data-menu-icon="user" aria-hidden="true"></span><span>View profile</span></a>
+    <button id="contactDetailsPhone" type="button" data-icon-layout="label"><span data-menu-icon="phone" aria-hidden="true"></span><span>Voice call</span></button>
+    <button id="contactDetailsVideo" type="button" data-icon-layout="label"><span data-menu-icon="video" aria-hidden="true"></span><span>Video call</span></button>
+  </nav>
+  <section class="contact-details-privacy" aria-labelledby="contactDetailsPrivacyTitle">
+    <h3 id="contactDetailsPrivacyTitle">Privacy and safety</h3>
+    <p>Blocking stops this member from finding, messaging, or calling you. They are not notified.</p>
+    <button id="contactDetailsBlock" type="button" class="contact-details-block">Block member</button>
+    <p id="contactDetailsStatus" role="status" aria-live="polite"></p>
+  </section>
+</dialog>
 <dialog id="plansDialog" class="plans-dialog" aria-labelledby="plansTitle">
   <form id="plansForm" class="plans-form">
     <header><div><span class="plans-kicker">Private invitation</span><h2 id="plansTitle">Make plans</h2></div><button type="button" class="plans-close" data-icon="close" aria-label="Close">×</button></header>
@@ -113,11 +144,11 @@
   <a role="button" data-icon="bell" aria-label="Buzz" title="Buzz" href="feed.html?view=notifications"></a>
   <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1"></a>
 </nav>
-<script src="assets/icon-buttons.js?v=7" defer></script>
+<script src="assets/icon-buttons.js?v=9" defer></script>
 <script src="assets/invite-sharing.js?v=1" defer></script>
 <script src="assets/identity-media.js?v=1" defer></script>
 <script src="assets/chat.js?v=450" defer></script>
-<script src="assets/direct-messages.js?v=487" defer></script>
+<script src="assets/direct-messages.js?v=493" defer></script>
 <script src="assets/booking-sync.js?v=5" defer></script>
 <script src="assets/make-plans.js?v=3" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
