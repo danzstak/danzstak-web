@@ -1,9 +1,16 @@
 (() => {
-  const params = new URLSearchParams(location.hash.slice(1)), token = params.get("token") || "", form = document.getElementById("replyForm"), action = document.getElementById("replyAction"), dateLabel = document.getElementById("dateLabel"), date = document.getElementById("proposedDate"), content = document.getElementById("replyContent"), status = document.getElementById("replyStatus"), button = form.querySelector("button");
+  const params = new URLSearchParams(location.hash.slice(1)), token = params.get("token") || "", form = document.getElementById("replyForm"), action = document.getElementById("replyAction"), dateLabel = document.getElementById("dateLabel"), dateLabelText = document.getElementById("dateLabelText"), date = document.getElementById("proposedDate"), content = document.getElementById("replyContent"), status = document.getElementById("replyStatus"), button = form.querySelector("button");
   history.replaceState(null, "", `${location.pathname}${location.search}`);
   const valid = /^[a-f0-9]{64}$/.test(token);
   if (!valid) { form.hidden = true; status.textContent = "This secure reply link is invalid or expired."; }
-  action.addEventListener("change", () => { dateLabel.hidden = action.value !== "offer_date"; date.required = action.value === "offer_date"; });
+  const syncDateField = () => {
+    const needsDate = action.value === "offer_date" || action.value === "confirm_date";
+    dateLabel.hidden = !needsDate;
+    date.required = needsDate;
+    dateLabelText.textContent = action.value === "confirm_date" ? "Confirmed date" : "Proposed date";
+  };
+  action.addEventListener("change", syncDateField);
+  syncDateField();
   form.addEventListener("submit", async event => {
     event.preventDefault(); if (!valid || !content.value.trim()) return;
     button.disabled = true; status.textContent = "Sending your reply…";

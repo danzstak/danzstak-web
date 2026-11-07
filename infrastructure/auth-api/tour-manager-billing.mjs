@@ -326,8 +326,9 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
   async function externalReply(event) {
     const headers = browserHeaders(event);
     if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
-    const body = parseBody(event), token = String(body?.token || "").trim(), content = String(body?.content || "").trim(), proposedDate = String(body?.proposedDate || "").trim(), action = ["reply", "interested", "offer_date", "pass"].includes(String(body?.action)) ? String(body.action) : "reply", clientMessageId = String(body?.clientMessageId || "").trim();
-    if (!/^[a-f0-9]{64}$/.test(token) || content.length < 1 || content.length > 4000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(clientMessageId) || proposedDate && !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate)) return response(400, { error: "Write a reply of 1 to 4,000 characters and use a valid date." }, headers);
+    const body = parseBody(event), token = String(body?.token || "").trim(), content = String(body?.content || "").trim(), proposedDate = String(body?.proposedDate || "").trim(), action = ["reply", "interested", "offer_date", "confirm_date", "pass"].includes(String(body?.action)) ? String(body.action) : "reply", clientMessageId = String(body?.clientMessageId || "").trim();
+    const dateAction = action === "offer_date" || action === "confirm_date";
+    if (!/^[a-f0-9]{64}$/.test(token) || content.length < 1 || content.length > 4000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(clientMessageId) || (proposedDate && !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate)) || (dateAction && !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate))) return response(400, { error: "Write a reply of 1 to 4,000 characters and include a valid date when offering or confirming one." }, headers);
     const tokenResult = await db.send(new GetItemCommand({ TableName: tableName, Key: optOutTokenKey(token), ConsistentRead: true })), item = tokenResult.Item, nowSeconds = Math.floor(clock() / 1000);
     if (!item || !validUserId(item.artistId?.S) || !/^[a-zA-Z0-9_-]{16,100}$/.test(item.outreachId?.S || "") || Number(item.expiresAt?.N || 0) <= nowSeconds) return response(400, { error: "This secure reply link is invalid or expired." }, headers);
     const at = nowIso(), replyKey = { userId: { S: item.artistId.S }, tourId: { S: `TOUR_MANAGER#BOOKING_REPLY#${item.outreachId.S}#${clientMessageId}` } };
@@ -382,7 +383,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
     const userId = await authenticate(event);
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
-    const body = parseBody(event), outreachId = String(body?.outreachId || "").trim(), replyId = String(body?.replyId || "").trim();
+    const body = parseBody(event), outreachId = String(body?.outreachId || "").trim(), replyId = String(body?.replyId || "").trim(), confirmDate = body?.confirm === true;
     const prefix = `TOUR_MANAGER#BOOKING_REPLY#${outreachId}#`;
     if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !replyId.startsWith(prefix) || replyId.length > 260 || replyId.includes("#artist#")) return response(400, { error: "Choose a valid venue date offer." }, headers);
     const [replyResult, workspaceResult] = await Promise.all([
@@ -390,18 +391,20 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }))
     ]);
     const offer = replyResult.Item, workspace = workspaceResult.Item, proposedDate = offer?.proposedDate?.S || "", venueKey = offer?.venueKey?.S || "";
-    if (offer?.direction?.S !== "inbound" || offer?.action?.S !== "offer_date" || !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate) || !venueKey) return response(409, { error: "This reply does not contain a usable venue date offer." }, headers);
+    const expectedAction = confirmDate ? "confirm_date" : "offer_date";
+    if (offer?.direction?.S !== "inbound" || offer?.action?.S !== expectedAction || !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate) || !venueKey) return response(409, { error: confirmDate ? "This reply does not contain a written venue date confirmation." : "This reply does not contain a usable venue date offer." }, headers);
     let plan; try { plan = JSON.parse(workspace?.plan?.S || ""); } catch { plan = null; }
     const venue = plan?.venues?.find(item => item?.venueKey === venueKey);
     if (!venue || !workspace?.revision?.S) return response(409, { error: "Save this venue in Tour Manager before adding its proposed date." }, headers);
-    venue.booking = { ...(venue.booking || {}), status: "Date proposed", showDate: proposedDate, replySummary: String(offer.content?.S || "").slice(0, 3000) };
+    const replySummary = String(offer.content?.S || "").slice(0, 3000);
+    venue.booking = { ...(venue.booking || {}), status: confirmDate ? "Confirmed" : "Date proposed", showDate: proposedDate, replySummary, ...(confirmDate ? { confirmationEvidence: `Venue confirmed ${proposedDate}: ${replySummary}`.slice(0, 3000) } : {}) };
     const revision = randomUUID(), at = nowIso();
     try {
       await db.send(new PutItemCommand({ TableName: tableName, Item: { ...workspace, userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY }, plan: { S: JSON.stringify(plan) }, revision: { S: revision }, updatedAt: { S: at } }, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { S: workspace.revision.S } } }));
     } catch (error) {
       return response(409, { error: "Your Tour Manager changed on another device. Reload it, then add this date again." }, headers);
     }
-    return response(200, { saved: true, proposedDate, venueName: String(venue.name || "Venue"), revision }, headers);
+    return response(200, { saved: true, proposedDate, venueName: String(venue.name || "Venue"), status: confirmDate ? "Confirmed" : "Date proposed", revision }, headers);
   }
 
   async function loadVerifiedSession(session, expectedLive) {

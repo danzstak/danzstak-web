@@ -41,17 +41,22 @@
     const date = new Date(value || 0);
     return Number.isNaN(date.getTime()) ? "" : date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
   };
-  const labelFor = action => ({ interested: "Interested", offer_date: "Offered a date", pass: "Passed", reply: "Reply" }[action] || "Reply");
+  const labelFor = action => ({ interested: "Interested", offer_date: "Offered a date", confirm_date: "Confirmed a date", pass: "Passed", reply: "Reply" }[action] || "Reply");
 
   async function useDateOffer(button, outreachId, reply) {
+    const confirmed = reply.action === "confirm_date";
+    if (confirmed) {
+      const approved = await (window.danzstakConfirm?.(`Record ${reply.proposedDate} as a confirmed show? The venue's written reply will be saved as confirmation evidence.`, { title: "Confirm this show", confirmLabel: "Add confirmed show" }) ?? Promise.resolve(window.confirm(`Record ${reply.proposedDate} as a confirmed show?`)));
+      if (!approved) return;
+    }
     button.disabled = true;
-    bookingStatus.textContent = "Adding the proposed date to Tour Manager…";
+    bookingStatus.textContent = confirmed ? "Adding the confirmed show to Tour Manager…" : "Adding the proposed date to Tour Manager…";
     try {
-      const response = await fetch(`${API}/tour-manager/outreach/use-date`, { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json" }, body: JSON.stringify({ outreachId, replyId: reply.id }) });
+      const response = await fetch(`${API}/tour-manager/outreach/use-date`, { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json" }, body: JSON.stringify({ outreachId, replyId: reply.id, confirm: confirmed }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "The proposed date could not be added to Tour Manager.");
-      button.textContent = "Added to Tour";
-      bookingStatus.replaceChildren(text(`${data.venueName || "Venue"} · ${data.proposedDate} added as Date proposed. Confirm it only after you have written agreement. `));
+      button.textContent = confirmed ? "Confirmed show added" : "Added to Tour";
+      bookingStatus.replaceChildren(text(confirmed ? `${data.venueName || "Venue"} · ${data.proposedDate} added as a confirmed show with the venue's written reply saved as evidence. ` : `${data.venueName || "Venue"} · ${data.proposedDate} added as Date proposed. Confirm it only after you have written agreement. `));
       const link = document.createElement("a"); link.href = "booking-selections.html#tourManager"; link.textContent = "Open Tour Manager"; bookingStatus.append(link);
     } catch (error) {
       button.disabled = false;
@@ -106,11 +111,11 @@
       if (reply.proposedDate) {
         const offered = document.createElement("p");
         offered.className = "booking-date-offer";
-        offered.append(text(`Proposed date: ${reply.proposedDate}`));
+        offered.append(text(`${reply.action === "confirm_date" ? "Confirmed" : "Proposed"} date: ${reply.proposedDate}`));
         bubble.append(offered);
         if (reply.direction !== "outbound") {
           const useDate = document.createElement("button");
-          useDate.type = "button"; useDate.className = "booking-use-date"; useDate.textContent = "Add proposed date to Tour";
+          useDate.type = "button"; useDate.className = "booking-use-date"; useDate.textContent = reply.action === "confirm_date" ? "Review confirmed date" : "Add proposed date to Tour";
           useDate.addEventListener("click", () => useDateOffer(useDate, thread.message.id, reply));
           bubble.append(useDate);
         }
