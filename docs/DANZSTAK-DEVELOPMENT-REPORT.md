@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Creator remove-here / delete-everywhere — 2026-11-07
+
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
+
+- Every creator-owned post now presents two explicit actions. **Remove from here** hides only the original placement while preserving existing DanzStak shares. **Delete everywhere** removes the original, every DanzStak share, related reactions/comments/notifications, linked Dailies and the source media. The warning states plainly that screenshots or downloads already made outside DanzStak cannot be recalled.
+- A member who reshared a post can remove only that share. The API derives authorship from the authenticated account and never accepts a browser claim of creator ownership.
+- Valid shares continue resolving from a source whose original placement was removed. A source that is deleted, private or otherwise unavailable causes its share record to be omitted entirely; the old “original post is no longer available” placeholder path is retired.
+- Deletion is ordered for recovery: dependent shares and engagement receive bounded retries before the canonical source record is deleted. If cleanup still fails, the API returns a retryable 503 while retaining the source instead of reporting a false success or stranding an unavailable-share placeholder.
+- Functional/security evidence: `test-post-deletion.cjs`, `test-internal-sharing.cjs`, infrastructure validation, CSP validation, PWA refresh and the complete `test-regressions.ps1` gate pass. Coverage includes non-owner denial, profile-only removal, resharer isolation, preserved shares, cascade deletion, media cleanup/retry, privacy changes and missing-source filtering.
+- Visual evidence: `browser-checks/post-deletion-choice.cjs` passes at 320, 360, 390, 414, 430 and 1366px. The captures in `docs/screenshots/post-deletion-choice/` were visually inspected for wording, overflow, touch controls and alignment.
+- Review evidence: all required GitHub checks passed for implementation commit `e016a5a03aac8064028fd880bb7390199e35160a` in PR `#125`; it merged as `68211c0741502a9b980b23700369489aec928bf8`.
+- Production release: AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `971` succeeded in `us-west-1` for the exact merge commit from 2026-11-07 11:36:45 to 11:37:39 Europe/Berlin. The guarded `DANZSTAK-Auth-API` deployment completed successfully at 2026-11-07T10:42:00Z.
+- Post-deployment evidence: no-cache probes confirm feed enhancements v531, internal sharing v421, shared feedback v4 and `danzstak-shell-v709` on `https://danzstak.com`. The six-width deletion-choice matrix passes directly against production, and an unauthenticated live delete request returns HTTP 401. Browser-controlled fixtures tested the destructive flow without deleting real member content.
+
 ## Artist-approved booking follow-up — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
