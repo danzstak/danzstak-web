@@ -1,4 +1,6 @@
-# DANZSTAK Data Watch — data removal and ongoing monitoring
+# DANZSTAK StakGuard — data removal and ongoing monitoring
+
+**Product boundary:** StakGuard protects members from supported external data brokers and people-search sites. It is separate from DanzStak creator-content provenance, attribution and tracked share links.
 
 **Owner proposal: 2026-11-04. Status: research and product specification ONLY — not implemented, tested, launched, or a paid service.**
 
@@ -6,7 +8,7 @@
 
 DANZSTAK is **not a data brokerage**. Members should have control over their digital identity. Offer optional help to find exposures of their own information on publicly available people-search/data-broker sites, request removals where legally and technically possible, and **watch their exposure change over time**. Include carefully bounded monitoring of dark-web / Tor onion-source exposure where a lawful, licensed source provides coverage. Do **not** claim to scan every onion site, erase the internet, or guarantee deletion.
 
-Normal account privacy controls and access to free government rights/removal mechanisms remain FREE, whether or not someone purchases Data Watch monitoring time. Don't mix this with the optional DANZSTAK Phone $3 internal number or allow advertiser access to member data.
+Normal account privacy controls and access to free government rights/removal mechanisms remain FREE, whether or not someone purchases StakGuard monitoring time. Don't mix this with the optional DANZSTAK Phone $3 internal number or allow advertiser access to member data.
 
 ## Owner prioritization — broker removals FIRST (2026-11-04)
 
@@ -29,15 +31,15 @@ Normal account privacy controls and access to free government rights/removal mec
 - **Milestone 2 (separately approved):** With consent, test one legitimate self-service opt-out end to end (including authenticated receipt/status where available) and provide real recheck evidence using the consenting account; prove account isolation, audit trail, revocation and deletion before expanding. Pilot 5–10 brokers progressively; do not promise full automation or guaranteed removal.
 - **Milestone 3 (separately approved):** Scale authorized source coverage, recheck scheduling and member-facing progress; price paid *convenience/monitoring* only after support cost and provider terms are verified. Tor comes after a credible broker MVP.
 
-**Acceptance criterion:** A member should be able to open Data Watch, see a legitimately discovered broker listing, **review a correctly addressed removal request**, send it using the official authorized channel, and later see an accurate state change backed by a source response/recheck. Not merely receive a generic letter generator. Test 320–430px installed-PWA layout, 15 supported languages (or verified current list), secure per-account boundaries, source failures and retention. All phases require a PR, evidence, staging preview and explicit owner approval before production.
+**Acceptance criterion:** A member should be able to open StakGuard, see a legitimately discovered broker listing, **review a correctly addressed removal request**, send it using the official authorized channel, and later see an accurate state change backed by a source response/recheck. Not merely receive a generic letter generator. Test 320–430px installed-PWA layout, 15 supported languages (or verified current list), secure per-account boundaries, source failures and retention. All phases require a PR, evidence, staging preview and explicit owner approval before production.
 
 
 ## Audience — everyday members, not only musicians
 
-**Owner clarification (2026-11-04):** DANZSTAK serves ordinary people worldwide as well as musicians. Data Watch is a **general consumer privacy service**: a parent, teacher, retired person, student, shop worker or musician should be able to understand and use it. No artist profile, EPK, booking account, music subscription, DANZSTAK internal number, real personal telephone number, or paid social account tier is a prerequisite.
+**Owner clarification (2026-11-04):** DANZSTAK serves ordinary people worldwide as well as musicians. StakGuard is a **general consumer privacy service**: a parent, teacher, retired person, student, shop worker or musician should be able to understand and use it. No artist profile, EPK, booking account, music subscription, DANZSTAK internal number, real personal telephone number, or paid social account tier is a prerequisite.
 
 - Make `Privacy & Data` accessible from the main account Settings for all members. Everyday free functions: understand what DANZSTAK holds, privacy settings, export and request deletion of owned DANZSTAK account data. This is distinct from optional external data-broker removals.
-- For Data Watch, use simple language: **Where was my information found? Can I ask for removal? Did they confirm? Has it returned?** Avoid technical jargon, scare tactics or fabricated privacy scores.
+- For StakGuard, use simple language: **Where was my information found? Can I ask for removal? Did they confirm? Has it returned?** Avoid technical jargon, scare tactics or fabricated privacy scores.
 - Support typical personal information concerns across demographics: names, email, telephone numbers and addresses voluntarily supplied by the verified user. No unnecessary government ID collection; do not automatically import or expose social contacts.
 - Translate workflows into all actually supported DANZSTAK languages; design for accessible phone PWA, screen readers and people with no technical expertise. Price and scope must be clearly understandable.
 - Keep all normal DANZSTAK social participation, account deletion/export, and links to free public opt-out rights **free**. Optional subscription value is verified outside-broker monitoring/removal *assistance*, not a requirement to protect one's DANZSTAK account.
@@ -78,8 +80,8 @@ These are example states, **not real user exposures**.
 
 ## Research before building or charging
 
-1. Audit existing DANZSTAK `privacy.html`, authorization, data export/deletion, architecture, third-party access and procurement; propose a separate isolated data model with encryption, per-account access checks, purpose limitation, minimal retention, deletion/export and audit trail. Data used by Data Watch MUST NOT be used for ads, caller targeting or to build a broker database. Complete privacy impact and security assessment, processor contracts and jurisdiction review before gathering any real-member PII.
-2. Members must specifically opt in, review exact personal identifiers to be scanned, authorize each type of action and be able to stop monitoring, revoke authority and erase their Data Watch search profiles. The service must not seek SSNs/government IDs, passwords or identity documents unless a legally justified provider action absolutely requires it, with separate explicit approval and secure procedure. The lowest viable data collection is best.
+1. Audit existing DANZSTAK `privacy.html`, authorization, data export/deletion, architecture, third-party access and procurement; propose a separate isolated data model with encryption, per-account access checks, purpose limitation, minimal retention, deletion/export and audit trail. Data used by StakGuard MUST NOT be used for ads, caller targeting or to build a broker database. Complete privacy impact and security assessment, processor contracts and jurisdiction review before gathering any real-member PII.
+2. Members must specifically opt in, review exact personal identifiers to be scanned, authorize each type of action and be able to stop monitoring, revoke authority and erase their StakGuard search profiles. The service must not seek SSNs/government IDs, passwords or identity documents unless a legally justified provider action absolutely requires it, with separate explicit approval and secure procedure. The lowest viable data collection is best.
 3. Free legal/official pathways must stay clearly free and directly accessible:
    - California **DROP**: https://privacy.ca.gov/drop/ — free for eligible Californians; users should use it directly. Do not collect their confidential DROP IDs, impersonate government systems, or paywall the link.
    - Google **Results about you**: https://myactivity.google.com/results-about-you — remove/delist qualifying Google Search results only, **not source websites**.
@@ -107,14 +109,14 @@ For each phase: separate PR, exact automated and real-source tests with consent 
 
 | Choice | Member charge | Actual product |
 | --- | --- | --- |
-| **Free: Find my data and request removal** | **$0** | Member can see supported data-broker/people-search matches with verified source and dates, review prepared source-specific deletion/opt-out requests, and authorize submission via legitimate approved means. Official government/self-service options stay free. No Data Watch monitoring purchase needed. |
-| **Data Watch Monitoring** | **$4 USD per month** | Recheck only genuinely supported sources on a disclosed schedule; show whether requests were submitted, confirmed removed, only delisted, no longer found, still visible, unverified, or reappeared; send appropriate opt-in monitoring alerts. Monitoring coverage, checks per month and limitations must be disclosed accurately. |
+| **Free: Find my data and request removal** | **$0** | Member can see supported data-broker/people-search matches with verified source and dates, review prepared source-specific deletion/opt-out requests, and authorize submission via legitimate approved means. Official government/self-service options stay free. No StakGuard monitoring purchase needed. |
+| **StakGuard Monitoring** | **$4 USD per month** | Recheck only genuinely supported sources on a disclosed schedule; show whether requests were submitted, confirmed removed, only delisted, no longer found, still visible, unverified, or reappeared; send appropriate opt-in monitoring alerts. Monitoring coverage, checks per month and limitations must be disclosed accurately. |
 
 The member does **not** pay to see who may have their data or to issue the **initial eligible opt-out/removal requests**. “Blast the first ones off brokerages” means batch PREPARE and member-APPROVE genuinely authorized, source-specific requests, never unsolicited bulk spam, speculative legal demands, bypassing CAPTCHA/terms or pretending a form was submitted. Individual free public-rights tools must remain accessible even if this commercial product is not launched.
 
 ### Simple prepaid monthly access — owner clarification
 
-- Data Watch monitoring is **always $4 per month**, however the member pays. Optional advance payment is available for any whole number of months at $4 each, up to **12 months/$48** under the under-$50 individual payment policy. Example: **$20 pays for five months**. No discounts, different subscription tiers or annual plans.
+- StakGuard monitoring is **always $4 per month**, however the member pays. Optional advance payment is available for any whole number of months at $4 each, up to **12 months/$48** under the under-$50 individual payment policy. Example: **$20 pays for five months**. No discounts, different subscription tiers or annual plans.
 - Member chooses the number of months, pays once, and sees the exact **paid-through date**. No annual plan, contract or automatic renewal.
 - Additional prepaid months extend the existing paid-through date; **never discard unused paid time**. Use verified server-side Stripe payments and idempotent entitlement updates.
 - Send one gentle reminder **3–4 days before the entire prepaid period expires**, not every month. New payment only if the member chooses it. Without payment, monitoring ends at expiry and no money is collected.

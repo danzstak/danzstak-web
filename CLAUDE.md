@@ -44,7 +44,7 @@ grow a real scene, or bring their people over from a billionaire platform?* If n
 
 Tagline: **“Pivot off those platforms.”**
 
-Pivot is the move off Facebook and every other billionaire-owned platform (Instagram, X, TikTok and the rest) onto DanzStak: import your data, pick what to bring, invite your people, post an "I pivoted to DanzStak" card on your old accounts, and export or delete everything any time. Facebook import exists today; other platforms are added as Pivot steps using each platform's own data export, with no platform APIs. Use the name Pivot in the product and in code/docs (not "Moving Day").
+Pivot is the overall move off Facebook and every other billionaire-owned platform (Instagram, X, TikTok and the rest) onto DanzStak: import your data, pick what to bring, invite your people, post an "I pivoted to DanzStak" card on your old accounts, and export or delete everything any time. **Moving Day** is the cleanup-and-selection step inside Pivot where a member previews an export and chooses exactly what to move. Facebook import exists today; other platforms are added as Pivot steps using each platform's own data export, with no platform APIs.
 
 ## Priorities (in order)
 
@@ -189,7 +189,7 @@ Do not write code until the plan is approved.
 
 SYNC becomes its own standalone chat, voice and video product with SYNC Network numbers users can get so they never share their personal number. It requires a carrier/provider, pricing, E911, A2P 10DLC, identity checks and anti-spam before launch. Until then, fix SYNC for current users and do not sell phone numbers. Full spec: `instructions/pages/04-chat` and `instructions/pages/12-phone-service`.
 
-## Data Watch (planned)
+## StakGuard (planned)
 
-Data Watch belongs to every member under Settings -> Your data. Finding supported data-broker and people-search exposure, showing its source/date, preparing member-approved opt-outs and linking free official tools are free. Monitoring is $4 per month with no auto-renewal ever; members may prepay whole months at $4 each, up to 12 months/$48, and receive one reminder before paid time expires. Broker removal comes first; dark-web checks are later and never claim "all of the dark web." Phase A is research with synthetic data only—no vendors, Stripe products or charging without owner approval. Full spec: `instructions/pages/17-privacy-shield`.
+StakGuard is DanzStak's data-broker protection product for every member under Settings -> Your data. It is separate from creator-content provenance and share-link tracking. Finding supported data-broker and people-search exposure, showing its source/date, preparing member-approved opt-outs and linking free official tools are free. Monitoring is $4 per month with no auto-renewal ever; members may prepay whole months at $4 each, up to 12 months/$48, and receive one reminder before paid time expires. Broker removal comes first; dark-web checks are later and never claim "all of the dark web." Phase A is research with synthetic data only—no vendors, Stripe products or charging without owner approval. Full spec: `instructions/pages/17-privacy-shield`.
 
