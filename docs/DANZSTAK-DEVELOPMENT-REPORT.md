@@ -2,7 +2,7 @@
 
 ## Booking outreach anti-abuse guardrails — 2026-11-07
 
-Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION NOT YET DEPLOYED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE AUTH API; CONTROLLED SIGNED-IN SEND ACCEPTANCE REMAINS**.
 
 - The authenticated Tour Manager send route now enforces a server-side rolling limit of 20 new booking pitches per account across the latest 24 hourly buckets. The current-hour update is conditional, so concurrent requests cannot race past the remaining allowance.
 - A normalized venue-contact address receives a 30-day initial-pitch cooldown per artist account. Artists are directed to continue the existing thread instead of starting another initial pitch. The guard key contains a SHA-256 address hash rather than the contact address.
@@ -10,7 +10,8 @@ Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION NOT YET DEPLO
 - When SES rejects submission, one transaction restores the credit, releases the hourly quota, removes the contact cooldown and records the restoration. A provider-accepted message keeps its quota/cooldown and remains protected from blind resend by the established idempotency state.
 - Focused evidence: `test-tour-manager-email-credits.cjs` verifies case-insensitive contact hashing, no address in cooldown keys, a successful send, same-id idempotency, 30-day duplicate blocking, a rolling 24-hour cap split across hourly buckets, provider-failure restoration and locked-contact rejection. Tour Manager dashboard and Stripe tests also pass.
 - Integration evidence: the complete `test-regressions.ps1` gate passes with exit code 0, including authentication, account isolation, Feed, Friends, Notifications, SYNC, media/audio, worldwide discovery, EPK, Tour Manager, Stripe safeguards, 11-page smoke coverage and infrastructure validation. This backend-only slice changes no product screen, CSS or payment configuration.
-- Remaining gates: GitHub review checks, isolated backend-compatible staging/review, exact-head merge, guarded Auth API deployment and live unauthenticated/security verification. Platform-wide venue opt-outs plus SES bounce/complaint suppression remain a later guardrail slice and are not claimed here.
+- Release evidence: PR `#99` required checks passed for exact head `29dc944dab2459b056561816735b063d4b39bd8c` and merged as `c5541de6c454ffb9ffea5a328d1324925f552e93`. Amplify production job `945` succeeded in `us-west-1`; the matching `DANZSTAK-Auth-API` package deployed successfully through the guarded script with Lambda reporting a successful update.
+- Post-deployment evidence: the bounded live-release verifier passes, the focused guardrail test passes against the exact merged source, and the production send endpoint rejects an unauthenticated request with HTTP 401. A controlled signed-in SES-mailbox test of the new cap/cooldown remains acceptance evidence; no real venue was contacted during testing. Platform-wide venue opt-outs plus SES bounce/complaint suppression remain a later guardrail slice and are not claimed here.
 
 ## Per-venue private EPK outreach links — 2026-11-07
 
