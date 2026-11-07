@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Artist-reviewed venue interest and pass decisions — 2026-11-07
+
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
+
+- Venue **Interested** and **Pass** replies now expose explicit review actions inside the artist's private SYNC booking thread. Nothing changes the tour from an incoming message alone; the artist confirms the update first.
+- An approved interest reply sets the saved venue to **Interested**. An approved pass sets it to **Declined**, retains the venue's written explanation and removes a stale proposed/confirmed date and confirmation evidence so the calendar does not continue showing a closed lead.
+- The Tour Manager workspace update and the reply's applied marker are one DynamoDB transaction. Polling, refreshes and other devices therefore show `Tour Manager: Interested` or `Tour Manager: Declined` instead of recreating action buttons. Replayed requests return the already-applied result without another workspace write.
+- Security and reliability evidence: the API derives the artist from the authenticated session, loads the inbound reply from that artist's partition, accepts only the matching `interested` or `pass` action and uses optimistic workspace revisions. Tampered date/reply actions, outbound artist messages and other-account keys cannot set these states.
+- Functional/integration evidence: the complete `test-regressions.ps1` gate passes. Focused coverage verifies interest/pass mapping, forged-action rejection, duplicate application, date/evidence cleanup, account isolation, route provisioning and durable applied state.
+- Visual evidence: `browser-checks/booking-sync.cjs` passes at 320, 360, 390, 414, 430 and 1366px. Captures in `docs/screenshots/booking-sync/` were inspected before review; that inspection caught and drove the persisted-state correction rather than accepting buttons that reappeared after polling.
+- Review evidence: all required GitHub checks passed for implementation commit `169865beede5cf3116c3f67f4c8767e1010263cb` in PR `#129`; it merged as `bb7a8cdca31b6b49dbc99830250f5f12030fe942`.
+- Production release: AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `975` succeeded for the exact merge commit. The guarded `DANZSTAK-Auth-API` deployment completed successfully; Lambda reports `Successful` / `Active` with last modification `2026-11-07T11:22:19Z`.
+- Post-deployment evidence: no-cache probes confirm booking SYNC v5 and `danzstak-shell-v711` on `https://danzstak.com`; the protected route is present and rejects a request without an approved browser origin. The complete six-width booking SYNC matrix passes directly against production.
+
 ## Evidence-backed confirmed booking dates — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
