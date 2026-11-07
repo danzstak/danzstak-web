@@ -128,6 +128,7 @@ const tourManagerBilling = createTourManagerBilling({
   corsHeaders,
   tableName: toursTable,
   env: stripeEnvironment,
+  validateOutreachEpkLink: validateBookingOutreachEpkLink,
   sendBookingEmail: async ({ userId, artistName, venueName, to, subject, message }) => {
     const replyTo = await accountForSub(userId);
     if (!replyTo) throw new Error("Account email could not be verified");
@@ -3397,6 +3398,8 @@ const bookingWorkspaceId = "booking-workspace-v1";
 const epkWorkspaceId = "epk-workspace-v1";
 const epkPublicPartition = "epk-public";
 const epkSharePartition = "epk-private-share";
+const epkOutreachPartition = "epk-outreach-share";
+const epkOutreachPrefix = "EPK#OUTREACH#";
 
 const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
 const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
@@ -3463,15 +3466,16 @@ async function validatedEpkMedia(media) {
   return media;
 }
 
-function epkForViewer(kit, publicView = false, ownerView = true) {
+function epkForViewer(kit, publicView = false, ownerView = true, allowDownloads = true) {
   const copy = structuredClone(kit || {});
   copy.media = (copy.media || []).filter(item => !publicView || item.public).map(item => {
     const expires = publicView ? 3600 : 900, downloadName = epkDownloadName(item.name, item.key);
-    return {
+    const view = {
       ...item,
-      url: signedMediaUrl(item.key, expires),
-      downloadUrl: signedMediaUrl(item.key, expires, { "response-content-disposition": `attachment; filename="${downloadName}"` })
+      url: signedMediaUrl(item.key, expires)
     };
+    if (allowDownloads) view.downloadUrl = signedMediaUrl(item.key, expires, { "response-content-disposition": `attachment; filename="${downloadName}"` });
+    return view;
   });
   if (publicView && copy.publicDetails && typeof copy.publicDetails === "object") {
     if (copy.publicDetails.bookingEmail !== true) copy.bookingEmail = "";
@@ -3484,6 +3488,34 @@ function epkForViewer(kit, publicView = false, ownerView = true) {
   return copy;
 }
 
+function epkOutreachTokenMatches(token, storedHash) {
+  return /^[a-f0-9]{64}$/.test(token || "")
+    && /^[a-f0-9]{64}$/.test(storedHash || "")
+    && safeEqual(sha256(`epk-outreach:${token}`), storedHash);
+}
+
+function epkOutreachLinkParts(value) {
+  try {
+    const url = new URL(String(value || ""));
+    const shareId = url.searchParams.get("outreach") || "", token = new URLSearchParams(url.hash.slice(1)).get("token") || "";
+    if (url.origin !== "https://danzstak.com" || url.pathname !== "/epk.html" || !/^[a-f0-9]{32}$/.test(shareId) || !/^[a-f0-9]{64}$/.test(token)) return null;
+    return { shareId, token, href: url.href };
+  } catch { return null; }
+}
+
+async function validateBookingOutreachEpkLink({ userId, venueKey, outreachId, message }) {
+  const match = String(message || "").match(/https:\/\/danzstak\.com\/epk\.html\?outreach=[a-f0-9]{32}#token=[a-f0-9]{64}/i);
+  const parts = epkOutreachLinkParts(match?.[0] || "");
+  if (!parts) return false;
+  const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: parts.shareId } }, ConsistentRead: true }));
+  const item = result.Item;
+  return item?.ownerId?.S === userId
+    && item?.venueKey?.S === venueKey
+    && item?.outreachId?.S === outreachId
+    && Number(item?.expiresAt?.N || 0) > now()
+    && epkOutreachTokenMatches(parts.token, item?.shareHash?.S || "");
+}
+
 function epkDeletionPlan(existingItem, ownerPrefix, ownerKey) {
   const publicId = /^[a-z0-9-]{3,64}$/.test(existingItem?.publicId?.S || "") ? existingItem.publicId.S : "";
   const transaction = [{ Delete: { TableName: toursTable, Key: ownerKey } }];
@@ -3493,6 +3525,19 @@ function epkDeletionPlan(existingItem, ownerPrefix, ownerKey) {
   try { previousKit = JSON.parse(existingItem?.plan?.S || "{}"); } catch { previousKit = {}; }
   const mediaKeys = (previousKit.media || []).map(item => item?.key || "").filter(key => epkMediaPattern(ownerPrefix).test(key));
   return { transaction, mediaKeys };
+}
+
+async function deleteEpkOutreachShares(userId) {
+  const mappings = await queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: userId }, ":prefix": { S: epkOutreachPrefix } }, ConsistentRead: true }, 500);
+  for (let offset = 0; offset < mappings.length; offset += 50) {
+    const batch = mappings.slice(offset, offset + 50), transaction = [];
+    for (const item of batch) {
+      transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: item.tourId.S } } } });
+      if (/^[a-f0-9]{32}$/.test(item.shareId?.S || "")) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: item.shareId.S } } } });
+    }
+    if (transaction.length) await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
+  }
+  return mappings.length;
 }
 
 function epkShareTokenMatches(token, storedHash) {
@@ -3521,6 +3566,7 @@ async function epkWorkspace(event, method) {
       console.error("EPK media deletion remains pending", { userId, cleanupPending });
       return reply(503, { error: "EPK files could not be removed yet. Try again.", deleted: false });
     }
+    await deleteEpkOutreachShares(userId);
     await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
     return reply(200, { deleted: true, cleanupPending: false });
   }
@@ -3603,6 +3649,81 @@ async function privateEpkShare(event, method, publicId = "") {
   ] }));
   return reply(200, { privateShared: true, publicId: id, token });
 }
+
+async function outreachEpkShare(event, method, shareId = "") {
+  const headers = { ...corsHeaders(event.headers?.origin), "cache-control": "no-store, private", pragma: "no-cache" };
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(404, { error: "EPK not found." });
+  if (shareId) {
+    const data = parseJsonBody(event), token = String(data?.token || ""), openId = String(data?.openId || "");
+    if (!/^[a-f0-9]{32}$/.test(shareId) || !/^[a-f0-9]{64}$/.test(token) || !/^[a-f0-9-]{16,100}$/i.test(openId)) return reply(404, { error: "This booking EPK link is invalid or has expired." });
+    let result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: shareId } }, ConsistentRead: true }));
+    let item = result.Item;
+    if (!item || Number(item.expiresAt?.N || 0) <= now() || !epkOutreachTokenMatches(token, item.shareHash?.S || "")) return reply(404, { error: "This booking EPK link is invalid or has expired." });
+    const openedAt = new Date().toISOString(), openHash = sha256(`epk-open:${shareId}:${openId}`), ownerId = item.ownerId?.S || "", outreachId = item.outreachId?.S || "";
+    if (!ownerId || !/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId)) return reply(404, { error: "This booking EPK link is invalid or has expired." });
+    const values = { ":zero": { N: "0" }, ":one": { N: "1" }, ":opened": { S: openedAt }, ":hash": { S: openHash } };
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Update: { TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: shareId } }, UpdateExpression: "SET openCount = if_not_exists(openCount, :zero) + :one, firstOpenedAt = if_not_exists(firstOpenedAt, :opened), lastOpenedAt = :opened, lastOpenHash = :hash", ConditionExpression: "attribute_not_exists(lastOpenHash) OR lastOpenHash <> :hash", ExpressionAttributeValues: values } },
+        { Update: { TableName: toursTable, Key: { userId: { S: ownerId }, tourId: { S: `${epkOutreachPrefix}${outreachId}` } }, UpdateExpression: "SET openCount = if_not_exists(openCount, :zero) + :one, firstOpenedAt = if_not_exists(firstOpenedAt, :opened), lastOpenedAt = :opened", ConditionExpression: "shareId = :shareId", ExpressionAttributeValues: { ":zero": values[":zero"], ":one": values[":one"], ":opened": values[":opened"], ":shareId": { S: shareId } } } }
+      ] }));
+    } catch (error) {
+      if (error.name !== "TransactionCanceledException" && error.name !== "ConditionalCheckFailedException") throw error;
+    }
+    result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: shareId } }, ConsistentRead: true }));
+    item = result.Item;
+    if (!item || Number(item.expiresAt?.N || 0) <= now() || !epkOutreachTokenMatches(token, item.shareHash?.S || "")) return reply(404, { error: "This booking EPK link is invalid or has expired." });
+    return reply(200, {
+      kit: epkForViewer(JSON.parse(item.plan?.S || "{}"), true, false, item.allowPdf?.BOOL === true),
+      private: true,
+      bookingShare: true,
+      permissions: { allowPdf: item.allowPdf?.BOOL === true },
+      disclosure: "The artist can see that this venue link was opened and when. DanzStak does not store who viewed it.",
+      expiresAt: new Date(Number(item.expiresAt.N) * 1000).toISOString(),
+      updatedAt: item.epkUpdatedAt?.S || ""
+    });
+  }
+
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  if (method === "GET") {
+    const items = await queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: userId }, ":prefix": { S: epkOutreachPrefix } }, ConsistentRead: true }, 500);
+    return reply(200, { shares: items.map(item => ({ outreachId: String(item.outreachId?.S || item.tourId?.S?.slice(epkOutreachPrefix.length) || ""), venueKey: item.venueKey?.S || "", venueName: item.venueName?.S || "Venue", shareId: item.shareId?.S || "", openCount: Number(item.openCount?.N || 0), firstOpenedAt: item.firstOpenedAt?.S || "", lastOpenedAt: item.lastOpenedAt?.S || "", expiresAt: item.expiresAt?.N ? new Date(Number(item.expiresAt.N) * 1000).toISOString() : "", revoked: item.revoked?.BOOL === true })) });
+  }
+  const data = parseJsonBody(event), action = String(data?.action || "create"), venueKey = String(data?.venueKey || "").trim(), outreachId = String(data?.outreachId || "").trim();
+  if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !venueKey || venueKey.length > 240) return reply(400, { error: "Choose a saved venue and a valid outreach draft." });
+  const ownerKey = { userId: { S: userId }, tourId: { S: epkWorkspaceId } }, mapKey = { userId: { S: userId }, tourId: { S: `${epkOutreachPrefix}${outreachId}` } };
+  const [epkResult, workspaceResult, priorResult] = await Promise.all([
+    db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true })),
+    db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: bookingWorkspaceId } }, ConsistentRead: true })),
+    db.send(new GetItemCommand({ TableName: toursTable, Key: mapKey, ConsistentRead: true }))
+  ]);
+  if (!epkResult.Item || epkResult.Item.published?.BOOL !== true) return reply(409, { error: "Publish the EPK before creating a venue link." });
+  let workspace = {}; try { workspace = JSON.parse(workspaceResult.Item?.plan?.S || "{}"); } catch { workspace = {}; }
+  const venue = (workspace.venues || []).find(item => item?.venueKey === venueKey);
+  if (!venue) return reply(404, { error: "Save this venue in the booking workspace first." });
+  const oldShareId = priorResult.Item?.shareId?.S || "";
+  if (action === "revoke") {
+    if (!/^[a-f0-9]{32}$/.test(oldShareId)) return reply(200, { revoked: false });
+    await db.send(new TransactWriteItemsCommand({ TransactItems: [
+      { Delete: { TableName: toursTable, Key: mapKey } },
+      { Delete: { TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: oldShareId } } } }
+    ] }));
+    return reply(200, { revoked: true });
+  }
+  if (action !== "create") return reply(400, { error: "Choose create or revoke." });
+  const token = randomValue(), newShareId = randomBytes(16).toString("hex"), shareHash = sha256(`epk-outreach:${token}`), createdAt = new Date().toISOString(), expiresAt = now() + 45 * 86400, allowPdf = data?.allowPdf === true;
+  const publicItem = { userId: { S: epkOutreachPartition }, tourId: { S: newShareId }, ownerId: { S: userId }, outreachId: { S: outreachId }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, plan: { S: epkResult.Item.plan?.S || "{}" }, shareHash: { S: shareHash }, epkUpdatedAt: { S: epkResult.Item.updatedAt?.S || createdAt }, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } };
+  const ownerItem = { ...mapKey, outreachId: { S: outreachId }, shareId: { S: newShareId }, venueKey: { S: venueKey }, venueName: publicItem.venueName, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } };
+  const transaction = [
+    { Put: { TableName: toursTable, Item: publicItem } },
+    { Put: { TableName: toursTable, Item: ownerItem } }
+  ];
+  if (/^[a-f0-9]{32}$/.test(oldShareId) && oldShareId !== newShareId) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: oldShareId } } } });
+  await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
+  return reply(200, { outreachId, venueKey, shareId: newShareId, shareUrl: `https://danzstak.com/epk.html?outreach=${newShareId}#token=${token}`, expiresAt: new Date(expiresAt * 1000).toISOString(), permissions: { allowPdf } });
+}
 const bookingPipelineStatuses = new Set(["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined", "No response"]);
 const legacyBookingStatuses = new Map([["Research", "Not contacted"], ["Ready to pitch", "Email prepared"], ["Contacted", "Email sent"], ["In conversation", "Reply received"], ["Hold", "Interested"]]);
 
@@ -3679,7 +3800,7 @@ async function bookingWorkspace(event, method) {
     const status = bookingPipelineStatuses.has(requestedStatus) ? requestedStatus : "Not contacted";
     const showDate = date(b.showDate), confirmationEvidence = text(b.confirmationEvidence, 3000);
     if (status === "Confirmed" && (!showDate || !confirmationEvidence)) invalidConfirmation = true;
-    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000) } };
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000) } };
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
   if (invalidConfirmation) return reply(400, { error: "A confirmed performance requires a show date and written confirmation evidence." });
@@ -3998,6 +4119,9 @@ export const handler = async event => {
     if (method === "PATCH" && path === "/booking-pipeline/identity") return await bookingIdentity(event);
     if ((method === "GET" || method === "POST" || method === "DELETE") && path === "/epk") return await epkWorkspace(event, method);
     if (method === "POST" && path === "/epk/share") return await privateEpkShare(event, method);
+    if ((method === "GET" || method === "POST") && path === "/epk/outreach-share") return await outreachEpkShare(event, method);
+    const epkOutreachMatch = path.match(/^\/epk\/outreach\/([a-f0-9]{32})$/i);
+    if (method === "POST" && epkOutreachMatch) return await outreachEpkShare(event, method, epkOutreachMatch[1].toLowerCase());
     const epkPublicMatch = path.match(/^\/epk\/public\/([a-z0-9-]{3,64})$/i);
     if (method === "GET" && epkPublicMatch) return await publicEpk(event, epkPublicMatch[1]);
     const epkPrivateMatch = path.match(/^\/epk\/shared\/([a-z0-9-]{3,64})$/i);
@@ -4029,4 +4153,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkDownloadName };
+export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName };

@@ -1,5 +1,20 @@
 # DANZSTAK development report
 
+## Per-venue private EPK outreach links — 2026-11-07
+
+Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; PRODUCTION NOT YET DEPLOYED**.
+
+- A reviewed booking email now receives a private, venue-bound EPK link instead of reusing the artist's public EPK URL. The link is bound to the signed-in artist, saved venue, outreach identifier and current EPK version, expires after 45 days, and can be revoked by the artist.
+- The secret token is stored only as a hash and is placed in the URL fragment so it is not sent in ordinary HTTP request targets or referrer headers. Tour Manager independently rejects a missing, expired, revoked, cross-account or wrong-venue EPK link before reserving an email credit.
+- Artists choose per venue whether the recipient may print/save the EPK as PDF. The public view hides that action when disabled and shows a plain privacy disclosure. Music and video remain external links; DanzStak does not add audio uploads or host music.
+- Opening evidence is privacy preserving: the artist sees aggregate open count plus first/last-open times, not a recipient identity, IP address, user agent or device fingerprint. A stable browser-session identifier prevents ordinary reloads from inflating the count. EPK deletion also removes the owner's outreach-share records.
+- The booking review still requires per-recipient artist approval, exact subject/message preview and one-credit confirmation. Cancelling the review revokes the unused private link; accepted sends retain the same outreach identifier for duplicate prevention.
+- Functional and integration evidence: `test-epk-outreach-shares.cjs`, `test-tour-manager-email-credits.cjs`, `test-booking-pitch-review.cjs`, established EPK domain/builder/network tests and the complete `test-regressions.ps1` gate pass with exit code 0. The full gate covers authentication, account isolation, Feed, Friends, Notifications, SYNC, media/audio, worldwide Booking discovery, EPK, Tour Manager, Stripe safeguards, 11-page smoke coverage and infrastructure validation.
+- Responsive evidence: `browser-checks/booking-pitch-review.cjs` and `browser-checks/epk-outreach-share.cjs` pass at 320, 360, 390, 414, 430 and 1366px with zero overflow, 44px phone controls, exact reviewed-email content and stable open-count behavior. Captures in `docs/screenshots/booking-pitch-review/` and `docs/screenshots/epk-outreach-share/` were inspected. That inspection found and corrected a real defect where builder-only phone CSS hid the public EPK preview; public outreach pages now render the EPK and omit the unrelated app bottom navigation.
+- Release assets are prepared as booking CSS v7, booking billing JS v4, booking selections JS v14, EPK CSS v4, EPK JS v13 and PWA cache `danzstak-shell-v697`. No payment price, Stripe secret, SES setting or unrelated AWS resource changed.
+- Review/staging evidence: PR `#97` required checks passed for implementation head `a976bdf75e49027fb57021202f425594f1c4bf14`. Amplify DEVELOPMENT branch `codex/per-venue-epk-shares`, job `1`, succeeded in `us-west-1`. No-cache probes of `https://codex-per-venue-epk-shares.d31oovi2mos5iz.amplifyapp.com` confirm booking JS v14/CSS v7, EPK JS v13/CSS v4 and `danzstak-shell-v697`; both six-width browser matrices pass against that hosted build.
+- Remaining gates: pass review checks for this evidence-only report update, merge the exact reviewed head, deploy the guarded Auth API, then repeat the six-width browser and bounded live-release checks against production. Physical installed-PWA review remains an owner acceptance boundary.
+
 ## Reviewed booking pitch workflow — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API; PHYSICAL INSTALLED-PWA ACCEPTANCE REMAINS**.
