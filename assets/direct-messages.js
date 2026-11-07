@@ -82,6 +82,7 @@ let currentEmail = "";
 let loadingMessages = false;
 let conversationVersion = 0;
 const pendingMessageSends = new Set();
+let retryMessageSend = null;
 let nextMessageCursor = "";
 const shownMessages = new Set();
 let cachedConversations = [];
@@ -1119,10 +1120,22 @@ messageForm?.addEventListener("submit", async event => {
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
+  const mediaFile = selectedMessageMedia;
+  const retry = retryMessageSend
+    && retryMessageSend.recipientEmail === recipientEmail
+    && retryMessageSend.content === content
+    && retryMessageSend.mediaFile === mediaFile
+    ? retryMessageSend
+    : null;
+  if (retryMessageSend && !retry) {
+    retryMessageSend = null;
+  }
+  const clientMessageId = retry?.clientMessageId || `${String(Date.now()).padStart(13, "0")}#${crypto.randomUUID()}`;
   if (window.navigator?.onLine === false && window.danzstakQueueOffline) {
     try {
       if (selectedMessageMedia) throw new Error(messageTranslate("Attachments need a connection. Your draft is still here."));
-      window.danzstakQueueOffline("/messages", { recipientEmail, content });
+      window.danzstakQueueOffline("/messages", { recipientEmail, content, clientMessageId });
+      retryMessageSend = null;
       messageInput.value = "";
       saveChatDraft(recipientEmail, "");
       callStatus.textContent = messageTranslate("Saved offline — waiting to send when you reconnect.");
@@ -1130,22 +1143,22 @@ messageForm?.addEventListener("submit", async event => {
     return;
   }
   const version = conversationVersion;
-  const mediaFile = selectedMessageMedia;
   const pendingItem = pendingMessageItem(content, mediaFile);
+  let attachment = retry?.attachment || {};
   pendingMessageSends.add(version);
   sendButton.disabled = true;
   messageList.appendChild(pendingItem);
   messageList.scrollTop = messageList.scrollHeight;
   if (content && messageInput.value.trim() === content) messageInput.value = "";
   try {
-    if (mediaFile) callStatus.textContent = messageTranslate("Uploading attachment…");
-    const attachment = mediaFile ? await uploadSelectedMessageMedia(mediaFile) : {};
-    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, ...attachment }) });
+    if (mediaFile && !attachment.mediaKey) callStatus.textContent = messageTranslate("Uploading attachment…");
+    if (mediaFile && !attachment.mediaKey) attachment = await uploadSelectedMessageMedia(mediaFile);
+    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, clientMessageId, ...attachment }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      await discardMessageMedia(attachment.mediaKey);
       throw new Error(data.error || messageTranslate("Message could not be sent"));
     }
+    retryMessageSend = null;
     if (version !== conversationVersion) { await loadConversations(); return; }
     if (data.message?.messageId) {
       shownMessages.add(data.message.messageId);
@@ -1155,10 +1168,12 @@ messageForm?.addEventListener("submit", async event => {
     }
     saveChatDraft(recipientEmail, "");
     if (selectedMessageMedia === mediaFile) clearSelectedMessageMedia();
+    callStatus.textContent = messageTranslate("Delivered");
     await loadConversations();
   } catch (error) {
     pendingItem.remove();
     if (version === conversationVersion) {
+      retryMessageSend = { recipientEmail, content, mediaFile, clientMessageId, attachment };
       if (content && !messageInput.value.trim()) messageInput.value = content;
       callStatus.textContent = messageFormat("{error}. Your message is still in the composer.", { error: error.message });
       messageInput.focus();
