@@ -1,16 +1,27 @@
 # DANZSTAK development report
 
-## Compact Dailies clapper — 2026-11-07
+## Single-header mobile SYNC — 2026-11-07
 
 Status: **TESTED LOCALLY — READY FOR REVIEW; NOT YET DEPLOYED**.
+
+- The phone conversation list now uses its existing **DanzStak / SYNC** heading as the only app bar. The redundant desktop brand/back row no longer consumes a second 56px line above the actual product controls.
+- Invite, video call, registered-device calling, alerts and new-chat actions remain visible where space permits. At 320px the secondary invite action yields space, while the video-call entry point remains a visible 44px control and invitation remains available from Contacts.
+- Recent permitted contacts now receive a 72px name lane, so a normal name such as **Tour Friend** is readable instead of ending in an ellipsis.
+- Actual-browser evidence: `browser-checks/core-social-mobile.cjs` passes Home, Friends, Notifications, SYNC and Profile at 320, 360, 390, 414 and 430px. Its SYNC assertions verify one header, an unclipped recent-contact name, a fully visible 44px video-call action, no horizontal overflow, no unsolicited dialog and one mobile navigation bar. Inspected captures are in `docs/screenshots/sync-single-header/`.
+- Integration evidence: `browser-checks/sync-four-states.cjs` passes Chats, Bookings, Calls and Contacts at 320, 360, 390, 414, 430, 768 and 1024px; every permitted call contact retains separate voice and video actions. Focused contact-detail and thread-style regressions pass.
+- Prepared PWA assets: SYNC CSS v8 and cache `danzstak-shell-v727`. Deployment remains pending until the complete regression and review gates pass.
+
+## Compact Dailies clapper — 2026-11-07
+
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
 
 - The Dailies creator tile gives the member or placeholder image its own unobstructed area and places a compact date / `SCENE 1` / durable `TAKE N` clapper in a reserved lower-left strip below it. The clapper never overlays the photo.
 - The separate plus-sign badge has been removed. The complete tile remains the familiar accessible action for adding today's photo or video.
 - The clapper is capped at 74px wide, uses a restrained dark translucent slate, and leaves a measured gap between the photo and slate in the empty-Dailies phone layout.
 - Browser evidence: `browser-checks/dailies-empty-clapper.cjs` passes at 320, 360, 390, 414 and 430px, including zero image/slate overlap, lower-left placement, no plus sign, no clipping and no horizontal overflow. Updated inspected captures are in `docs/screenshots/dailies-clapper/`.
 - Integration evidence: `browser-checks/dailies-feed-ux.cjs` passes at 320, 360, 390, 430 and 1024px. The complete `test-regressions.ps1` gate passes, including 13-page smoke and infrastructure checks.
-- Prepared PWA assets: Feed art-direction CSS v13 and cache `danzstak-shell-v726`.
-- Deployment remains pending until the review checks pass and the change is merged.
+- Production release: PR [#157](https://github.com/danzstak/danzstak-web/pull/157) passed Review checks and merged as `36985582df8aa8925f9cc61de8d96fd8de852df1`. AWS Amplify `main` job `989` succeeded for that exact commit from 21:39:40 to 21:40:36 Europe/Berlin.
+- Post-deployment verification confirmed Feed art-direction CSS v13, the separate image/slate geometry rules, and an activated controlling service worker whose only DanzStak shell cache is `danzstak-shell-v726`.
 
 ## Idempotent SYNC message delivery — 2026-11-07
 
