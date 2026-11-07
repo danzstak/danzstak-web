@@ -14,7 +14,7 @@
 <script src="assets/display-preferences.js?v=410"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
 <link rel="stylesheet" href="assets/chat.css?v=451">
-<link rel="stylesheet" href="assets/sync.css?v=4">
+<link rel="stylesheet" href="assets/sync.css?v=5">
 <link rel="stylesheet" href="assets/make-plans.css?v=2">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
@@ -36,7 +36,7 @@
     <div class="chats-heading"><div><span class="sync-kicker">DanzStak</span><h1 id="messagesTitle">SYNC</h1></div><div class="chat-heading-actions"><button id="callingDevices" type="button" class="chat-heading-button" data-icon="phone" aria-label="Phone and registered devices" title="Phone and registered devices">☎</button><button id="enableRinging" type="button" class="chat-heading-button" data-icon="bell" aria-label="Enable call alerts" title="Enable call alerts">🔔</button><button id="newChat" type="button" class="new-chat-button" data-icon="edit" aria-label="Start a new chat" title="Start a new chat">✎</button></div></div>
     <label class="chat-search"><span class="chat-search-icon" data-menu-icon="search" aria-hidden="true"></span><input id="chatSearch" type="search" inputmode="search" enterkeyhint="search" placeholder="Search chats" aria-label="Search messages"></label>
     <section id="chatContacts" class="chat-contact-strip" aria-label="Chats" hidden></section>
-    <nav class="chat-filters sync-sections" aria-label="SYNC sections" role="tablist"><button type="button" class="active" data-chat-filter="chats" role="tab" aria-selected="true">Chats</button><button type="button" data-chat-filter="calls" role="tab" aria-selected="false" tabindex="-1">Calls</button><button type="button" data-chat-filter="contacts" role="tab" aria-selected="false" tabindex="-1">Contacts</button></nav>
+    <nav class="chat-filters sync-sections" aria-label="SYNC sections" role="tablist"><button type="button" class="active" data-chat-filter="chats" role="tab" aria-selected="true">Chats</button><button type="button" data-chat-filter="bookings" role="tab" aria-selected="false" tabindex="-1">Bookings</button><button type="button" data-chat-filter="calls" role="tab" aria-selected="false" tabindex="-1">Calls</button><button type="button" data-chat-filter="contacts" role="tab" aria-selected="false" tabindex="-1">Contacts</button></nav>
     <p id="syncSectionNote" class="sync-section-note">Your saved conversations.</p>
     <section class="chat-list-panel" aria-labelledby="chatsTitle"><h2 id="chatsTitle" class="sr-only">Saved chats</h2><div id="conversationUsers" aria-busy="true"><p class="chat-note">Loading saved chats…</p></div></section>
     <input id="contactEmail" type="hidden">
@@ -115,7 +115,8 @@
 <script src="assets/icon-buttons.js?v=7" defer></script>
 <script src="assets/identity-media.js?v=1" defer></script>
 <script src="assets/chat.js?v=450" defer></script>
-<script src="assets/direct-messages.js?v=485" defer></script>
+<script src="assets/direct-messages.js?v=486" defer></script>
+<script src="assets/booking-sync.js?v=1" defer></script>
 <script src="assets/make-plans.js?v=3" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>

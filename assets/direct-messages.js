@@ -1011,7 +1011,7 @@ async function loadConversations() {
   }
 }
 
-chatSearch?.addEventListener("input", loadConversations);
+chatSearch?.addEventListener("input", () => activeFilter === "bookings" ? window.danzstakLoadBookingThreads?.() : loadConversations());
 document.getElementById("newChat")?.addEventListener("click", () => {
   activeFilter = "contacts";
   chatFilters.forEach(item => {
@@ -1029,6 +1029,7 @@ const chatFilters = [...document.querySelectorAll("[data-chat-filter]")];
 const syncSectionNote = document.getElementById("syncSectionNote");
 const syncSectionCopy = {
   chats: "Your saved conversations.",
+  bookings: "Replies from clubs and venues you contacted through Tour Manager.",
   calls: "Start a secure voice or video call with an available contact.",
   contacts: "Friends and shared Tribe members you are permitted to contact."
 };
@@ -1038,7 +1039,8 @@ chatFilters.forEach(button => button.addEventListener("click", () => {
   activeFilter = button.dataset.chatFilter;
   document.body.dataset.syncScreen = activeFilter;
   if (syncSectionNote) syncSectionNote.textContent = messageTranslate(syncSectionCopy[activeFilter] || syncSectionCopy.chats);
-  loadConversations();
+  if (activeFilter === "bookings") window.danzstakLoadBookingThreads?.();
+  else { window.danzstakLeaveBookingThreads?.(); loadConversations(); }
 }));
 document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
   if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;

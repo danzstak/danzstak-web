@@ -21,7 +21,7 @@ const fs = require("node:fs");
   assert.match(server, /POST" && path === "\/tour-manager\/opt-out/);
   assert.match(deploy, /POST \/tour-manager\/outreach\/preflight/);
   assert.match(deploy, /POST \/tour-manager\/opt-out/);
-  assert.match(worker, /danzstak-shell-v699/);
+  assert.match(worker, /danzstak-shell-v700/);
   assert.match(worker, /booking-opt-out\.html/);
   assert.equal(normalizedRecipientHash(" Venue@Example.com "), normalizedRecipientHash("venue@example.com"));
   assert.doesNotMatch(suppressionKey("venue@example.com").tourId.S, /venue|example/i);

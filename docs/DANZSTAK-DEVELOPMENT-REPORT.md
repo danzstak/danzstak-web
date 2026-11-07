@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Secure venue replies in SYNC — 2026-11-07
+
+Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION NOT YET VERIFIED**.
+
+- Each artist-approved booking email now includes a private fragment-only link where the venue can reply, mark interest, pass, or offer a date without creating a DanzStak account. The browser removes the secret from visible history before submission and sends it only in an accountless POST body.
+- The API resolves the hash-stored preflight token to the exact artist, outreach and venue, rejects expired or malformed links and bounded-input violations, conditionally stores the reply under the artist's DynamoDB partition, and updates the original outreach to `replied` in the same transaction. A venue-supplied client message ID makes retries idempotent.
+- Authenticated artists receive only their own replies from `GET /tour-manager/outreach`. SYNC has a dedicated **Bookings** section that groups the replies with the original venue pitch and shows date offers. The normal personal-message composer is deliberately hidden in a booking thread because outbound SYNC-to-email delivery is not implemented yet; the interface says to reply by email instead of pretending a send works.
+- New guarded route: `POST /tour-manager/reply`. New shell page/assets: `booking-reply.html`, `assets/booking-reply.css`, `assets/booking-reply.js`, and `assets/booking-sync.js`. Prepared PWA cache: `danzstak-shell-v700`.
+- Functional/security evidence: `test-booking-replies.cjs` covers valid acceptance, duplicate retry, forged token, input bounds, owner isolation, accountless requests, route deployment and PWA inclusion. The complete `test-regressions.ps1` suite passes with exit code 0, including infrastructure, static links and site smoke tests.
+- Visual evidence: `browser-checks/booking-reply.cjs` and `browser-checks/booking-sync.cjs` pass at 320, 360, 390, 414, 430 and 1366px. The captures in `docs/screenshots/booking-reply/` and `docs/screenshots/booking-sync/` were inspected: no overflow or clipping, primary controls are at least 44px, and booking messages remain readable on phone and desktop.
+- Honest boundary: this slice provides secure accountless web replies and private SYNC display. It does **not** provide inbound email ingestion, automatic date confirmation, or sending an email back to a venue from SYNC. Those remain separate work requiring a verified inbound-email transport and additional artist-review controls.
+
 ## Booking-email provider events and automatic suppression — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA, AUTH API AND CONTROLLED SES SIMULATOR**.

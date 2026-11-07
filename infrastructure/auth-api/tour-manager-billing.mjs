@@ -64,7 +64,7 @@ function providerMessageKey(messageId) { return { userId: { S: PROVIDER_MESSAGE_
 function providerEventKey(eventId) { return { userId: { S: PROVIDER_EVENT_OWNER }, tourId: { S: createHash("sha256").update(String(eventId || "")).digest("hex") } }; }
 function optOutTokenHash(token) { return createHash("sha256").update(`tour-manager-opt-out:${String(token || "")}`).digest("hex"); }
 function optOutTokenKey(token) { return { userId: { S: OPT_OUT_TOKEN_OWNER }, tourId: { S: optOutTokenHash(token) } }; }
-function optOutFooter(token) { return `${DANZSTAK_POSTAL_ADDRESS}\nDon't want booking pitches through DanzStak? Opt out: https://danzstak.com/booking-opt-out.html#token=${token}`; }
+function optOutFooter(token) { return `${DANZSTAK_POSTAL_ADDRESS}\nReply or offer dates securely: https://danzstak.com/booking-reply.html#token=${token}\nDon't want booking pitches through DanzStak? Opt out: https://danzstak.com/booking-opt-out.html#token=${token}`; }
 function outreachWindow(items, at) {
   const currentHour = Math.floor(at / 3600000), oldestHour = currentHour - 23;
   let previousHourCount = 0, currentHourCount = 0;
@@ -262,7 +262,9 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       sentAt: item.sentAt?.S || "",
       providerAcceptedAt: item.providerAcceptedAt?.S || ""
     }));
-    return response(200, { messages }, headers);
+    const replyResult = await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#BOOKING_REPLY#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 200 }));
+    const replies = (replyResult.Items || []).map(item => ({ id: item.tourId?.S || "", outreachId: item.outreachId?.S || "", venueKey: item.venueKey?.S || "", direction: "inbound", action: item.action?.S || "reply", content: item.content?.S || "", proposedDate: item.proposedDate?.S || "", createdAt: item.createdAt?.S || "" }));
+    return response(200, { messages, replies }, headers);
   }
 
   async function outreachPreflight(event) {
@@ -305,6 +307,27 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     } catch (error) {
       const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
       if (existing.Item) return response(200, { optedOut: true, alreadyOptedOut: true }, headers);
+      throw error;
+    }
+  }
+
+  async function externalReply(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const body = parseBody(event), token = String(body?.token || "").trim(), content = String(body?.content || "").trim(), proposedDate = String(body?.proposedDate || "").trim(), action = ["reply", "interested", "offer_date", "pass"].includes(String(body?.action)) ? String(body.action) : "reply", clientMessageId = String(body?.clientMessageId || "").trim();
+    if (!/^[a-f0-9]{64}$/.test(token) || content.length < 1 || content.length > 4000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(clientMessageId) || proposedDate && !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate)) return response(400, { error: "Write a reply of 1 to 4,000 characters and use a valid date." }, headers);
+    const tokenResult = await db.send(new GetItemCommand({ TableName: tableName, Key: optOutTokenKey(token), ConsistentRead: true })), item = tokenResult.Item, nowSeconds = Math.floor(clock() / 1000);
+    if (!item || !validUserId(item.artistId?.S) || !/^[a-zA-Z0-9_-]{16,100}$/.test(item.outreachId?.S || "") || Number(item.expiresAt?.N || 0) <= nowSeconds) return response(400, { error: "This secure reply link is invalid or expired." }, headers);
+    const at = nowIso(), replyKey = { userId: { S: item.artistId.S }, tourId: { S: `TOUR_MANAGER#BOOKING_REPLY#${item.outreachId.S}#${clientMessageId}` } };
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...replyKey, outreachId: { S: item.outreachId.S }, venueKey: { S: item.venueKey?.S || "" }, direction: { S: "inbound" }, action: { S: action }, content: { S: content }, ...(proposedDate ? { proposedDate: { S: proposedDate } } : {}), createdAt: { S: at } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Update: { TableName: tableName, Key: sendKey(item.artistId.S, item.outreachId.S), UpdateExpression: "SET #status = :replied, repliedAt = :at", ConditionExpression: "attribute_exists(userId)", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":replied": { S: "replied" }, ":at": { S: at } } } }
+      ] }));
+      return response(201, { received: true }, headers);
+    } catch (error) {
+      const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: replyKey, ConsistentRead: true }));
+      if (duplicate.Item) return response(200, { received: true, duplicate: true }, headers);
       throw error;
     }
   }
@@ -589,6 +612,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (method === "GET" && path === "/tour-manager/outreach") return outreach(event);
     if (method === "POST" && path === "/tour-manager/outreach/preflight") return outreachPreflight(event);
     if (method === "POST" && path === "/tour-manager/opt-out") return optOut(event);
+    if (method === "POST" && path === "/tour-manager/reply") return externalReply(event);
     if (method === "POST" && path === "/tour-manager/emails/send") return sendEmail(event);
     return null;
   };
