@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Narrow-phone Friends navigation — 2026-11-07
+
+Status: **IN REVIEW — IMPLEMENTED AND TESTED LOCALLY; NOT DEPLOYED**.
+
+- A fresh visual audit found that the **Find friends** tab was visibly clipped at 320px and 360px even though the page itself did not report horizontal overflow. The earlier geometry check measured only the document, so it missed overflow inside the tab strip.
+- At widths up to 375px, the four Friends filters now use a clear two-by-two grid. At 390px and wider they retain the compact familiar single row. Every filter remains at least 44px tall.
+- `browser-checks/friends-directory.cjs` now fails if the tab list itself scrolls horizontally or if any tab falls outside its visible bounds. It passes at 320, 360, 375, 390, 414, 430, 768 and 1366px with 10 friends, including filter, request, search and discovery interactions.
+- `test-friends-tabs-layout.cjs` protects the narrow layout, stylesheet version and installed-PWA cache refresh. Prepared assets are feed enhancements CSS v502 and `danzstak-shell-v715`.
+- Inspected phone and desktop captures are in `docs/screenshots/friends-tabs-mobile/`. No backend, relationship, presence, SYNC, payment or customer-data behavior changes.
+
 ## Invite a friend — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
