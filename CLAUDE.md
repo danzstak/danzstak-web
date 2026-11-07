@@ -4,6 +4,8 @@ Read this first, every session. Then read `docs/OWNER-DIRECTIVES.md` (priorities
 
 ## What DanzStak is
 
+**Above all, DanzStak is an EPK and booking agent. An artist builds an EPK, sends it to clubs and venues, and gets booked. Everything else (Pivot, Mix, SYNC, Tribes, Record Stores) supports that or brings people to it. When priorities conflict, EPK and booking win.**
+
 DanzStak helps people leave billionaire-owned social platforms and take control of their data —
 **through music**. It is the Digital Clubhouse for artists, fans, venues and record stores.
 

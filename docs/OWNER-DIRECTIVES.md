@@ -24,13 +24,14 @@ When two directives conflict, the newer dated one wins; if unclear, stop and ask
 ## Priority order (2026-11-07): get users first
 
 0. Merge instructions/, this file and the CLAUDE.md updates into main.
-1. Task 1, repo cleanup. Done (merged as b5b5213).
-1b. SYNC P0 fixes for current users (from instructions/pages/04-chat): reliable messages (#39), real two-way call audio and incoming ring (#27), optional private phone SMS verification (#21). Fix what's broken; no big rebuild yet.
-2. Task 4, EPK -> send to clubs -> get booked. Top priority plan. This is why artists will join.
-3. Task 2, EPK part only: EPK builder for every artist, look picker, share links, stage plot / booth plot.
-4. Task 3, 80% familiar / 20% DanzStak look: navigation shell, HQ, EPK public page first.
-5. Growth basics (include in the Task 4 plan): sign-up to first EPK in under 5 minutes; Facebook import front and center (Pivot); artists invite bandmates and fans by link; venues reply to pitches without an account; public EPK pages load fast and preview well when shared.
-5b. Pivot, right after the EPK work. One guided flow on top of the Facebook import already on main and instructions/pages/15-facebook-import:
+1. Task 1, repo cleanup. Done (b5b5213).
+2. Task 4, EPK -> send to clubs -> get booked. #1 priority.
+3. Task 2 EPK part: EPK builder for every artist, look picker, share links, stage plot / booth plot, press PDF.
+4. SYNC P0 fixes for current users only: reliable messages (#39), two-way call audio and incoming ring (#27), optional private phone SMS verification (#21). Fix what's broken; no rebuild. Booking replies routed into SYNC depend on this.
+5. Task 3, 80/20 look: navigation shell, HQ (artist HQ led by bookings and EPK opens), EPK public page first.
+6. Growth basics: sign-up to first EPK in under 5 minutes; invite bandmates and fans by link; venues reply without an account; public EPK pages load fast and preview well.
+7. Pivot (with the guides and timeline imports from the Pivot addendum), after the EPK and booking work. For artists, Pivot ends with a published EPK.
+   One guided flow on top of the Facebook import already on main and instructions/pages/15-facebook-import:
    - Start from a Pivot card on HQ (stays until done) and from the menu.
    - Step 1, bring your data: Facebook export help, upload, preview, pick what to bring, privacy in batches.
    - Step 2, bring your people: invite by link, native SMS or email share (no address-book upload).
@@ -40,12 +41,29 @@ When two directives conflict, the newer dated one wins; if unclear, stop and ask
    - Rename "Moving Day" to Pivot everywhere.
    - Pivot guides: show users how to get off each platform. One plain, phone-first guide per platform: how to request and download your data, which format to pick (JSON, all time, high media quality), how long it takes, then "upload it here". Order: Facebook, Instagram, X, TikTok, YouTube (Google Takeout). Guides live in one data file, show a "last checked" date, and are re-checked against the real platform before each release, because menus change. No platform APIs, no logins to their sites: the user downloads their own file.
    - Bring your timeline: import the user's own posts, photos and videos into their DanzStak timeline with original dates, private by default, in date order. Reuse the Facebook importer pattern (preview, pick, batch privacy, missing-media decisions). Add importers one platform at a time, Instagram first, then X. Each importer is built and tested against a real export file from that platform. Music audio files in an export are never imported (no audio hosting); videos are fine under the video rules.
-6. Then the rest of instructions/ in its own execution order (video playback, feed, Dailies/The Roll, Facebook import, Events, content ownership, Privacy Shield...), one page per PR.
+8. Then the rest of instructions/ in its own order, one page per PR.
 
-Later phase (planned, build after there are users):
-- SYNC as a standalone-grade app on the same backend, device registration, SYNC/DS in-network numbers, and the carrier-free / BYO-VPS federated SYNC network (instructions/pages/04-chat, 12-phone-service, Task 5 below).
-- Do not take money for phone numbers yet: hide or disable the $3 number checkout until the owner approves.
-- Big SYNC transport rebuild (WebSocket push, own TURN relay) from Task 2 Part A.
+Later phase (after users): SYNC standalone, device registration, SYNC Network numbers, federated network, SYNC transport rebuild.
+
+## Prices (owner-set, 2026-11-07)
+
+| Product | Price | Status |
+| --- | --- | --- |
+| EPK builder (build, publish, share, send) | Free | Every artist, always |
+| AI-assisted EPK | $5 per EPK; an AI redesign of an existing EPK is another $5 (or build and edit your own for free) | New. Plan only |
+| Booking email credit | $1.50 each | Stripe test mode |
+| Venue contact unlock | $0.75 | Stripe test mode |
+| DanzStak number activation | $3 one-time | Checkout hidden until the owner approves |
+| SYNC calling Plus / Pro | $3 / $5 a month (proposed) | Later phase |
+| Privacy Shield monitoring | $4 for one month | Spec only |
+
+AI-assisted EPK rules:
+
+- Helps the artist write: bio, one-line pitch, booking pitch emails, press-kit checklist ("missing: live photos, tech rider"), and a stage plot / input list draft from what they type. The artist reviews and edits everything; nothing AI-written is published or sent unseen.
+- Each EPK the artist has AI build costs $5 (for example: a band EPK and a separate DJ/side-project EPK = $10). An AI redesign of an existing EPK is another $5 each time. After paying for an EPK or redesign, the artist owns it and edits it free forever. Building and editing by hand, including manually switching looks (Techno, Punk, Metal, House/EDM), stays free always. The plan must define included AI rewrites per paid EPK, define AI redesign versus free manual edits, show the price before confirmation, and show AI usage plus Stripe fees so $5 covers the cost. Small fixes the artist makes by hand are never charged.
+- The free EPK builder must work fully without AI. AI is an optional add-on (README independence rule: no core feature may depend on a Big Tech API). Keep the AI provider behind one swappable interface.
+- Only send the artist's own EPK text to the AI provider, with a clear notice. Never use creator content to train AI.
+- No Stripe changes: propose the new $5 product in the plan; the owner creates it. Live payments only after owner approval.
 
 ## SYNC phone verification (2026-11-07)
 
