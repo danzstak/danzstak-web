@@ -1,7 +1,6 @@
 # CLAUDE.md — DanzStak brief
 
-Read this first, every session. Then read `README.md` (mission, independence rules, product boundary),
-`docs/DANZSTAK-DESIGN-SYSTEM.md`, and `docs/QUALITY-ASSURANCE-POLICY.md`. Those rules still apply.
+Read this first, every session. Then read `docs/OWNER-DIRECTIVES.md` (priorities and task specs) and `instructions/` (the full product spec the owner wants built). Then read `README.md` (mission, independence rules, product boundary), `docs/DANZSTAK-DESIGN-SYSTEM.md`, and `docs/QUALITY-ASSURANCE-POLICY.md`. Those rules still apply.
 
 ## What DanzStak is
 
@@ -34,6 +33,7 @@ grow a real scene, or bring their people over from a billionaire platform?* If n
 - Avoid generic social UI conventions when a music-native one fits better
   (a gig poster, a record sleeve, a setlist, a tour laminate, a crate of records).
 - Navigation order puts music tools before Feed.
+- **DanzStak never hosts music.** No audio-only uploads, audio storage or first-party music streaming; music is always a link or authorized embed. User video uploads are approved with DMCA and rights rules (`instructions/00e-no-music-hosting.md`).
 - Copy speaks like the scene, not like a corporation. Keep existing brand names
   (Digital Clubhouse, Your Mix, SYNC, Tribes, The Roll) and add more in that spirit.
 
@@ -96,6 +96,28 @@ A feature should hand off to the next one, not sit alone as a separate page.
 - Phone first — bands use it from the van.
 - Build this layout in steps; do not rewrite every page at once. Start with navigation + HQ, then Tour, then EPK.
 
+## Visual direction: 80% familiar, 20% DanzStak
+
+Familiar (about 80%). People coming from Facebook must know how to get around on day one. Keep the patterns they already know: top bar with search, notifications and messages (SYNC); left menu on desktop, bottom tabs on phones; center column for the main content; profile with cover, avatar and tabs; posts with like, comment and share; standard icons in standard places. Do not invent new navigation patterns.
+
+DanzStak (about 20%). What makes it ours, without changing where things are:
+
+- DanzStak colors, fonts and logo instead of stock social-network blue (it must not look like a phpFox template).
+- Music tools are visible in the main menu (HQ, Tour/Gigs, EPK, Scene) next to the familiar Feed (Mix).
+- Music-specific cards inside the familiar layout: shows as ticket stubs, releases as record sleeves, the EPK as a backstage laminate, tour dates as a poster list.
+- Genre looks on artist-owned public pages only (EPK, artist profile, gig pages).
+
+Genre looks. The platform frame (navigation, SYNC, settings, feed) stays one consistent DanzStak look so navigation never changes. Each artist's public EPK, profile and gig pages can wear a genre look the artist picks.
+
+| Look | Ground / ink | Accent | Display | Detail | Body | Feel |
+|---|---|---|---|---|---|---|
+| Techno (default) | #0B0B0C / #EDEDEA | #FF5A1F hazard orange | Archivo 900, width 125% | JetBrains Mono | Archivo | Square edges, 1px rules, mono labels |
+| Punk | #EFE8DA paper / #121110 | #E5452E screen-print red | Anton | Special Elite | Work Sans | Xerox photo frame, dashed perforations, ticket stubs |
+| Metal | #0E0D0D / #E6DECB bone | #9E1B1B blood red | Pirata One (name only) | Oswald, wide tracking | Source Serif 4 | Centered, symmetrical, heavy photo |
+| House / EDM | #0F2E26 deep green / #FFF4E0 | #FFC93C sun + #FF6FA8 pop | Syne 800 | DM Sans 700 | DM Sans | Rounded pills, arched photo, BPM badge |
+
+Rules: each look is a token set, not a separate codebase. One accent per look. Contrast at least 4.5:1. Touch targets 44px. Phone first.
+
 ## How to work
 
 - **Plan before code.** For any change bigger than one file, propose a short plan and wait for approval.
@@ -152,4 +174,8 @@ Do not write code until the plan is approved.
 **Revenue (already allowed by README)**
 - Pro EPK features, tour-management tools, verified venue/store tools, supporter memberships,
   clearly disclosed fees on bookings or sales DanzStak actually facilitates.
+
+## Later phase: SYNC Network (planned, paused until DanzStak has users)
+
+SYNC becomes its own standalone chat, voice and video product with SYNC Network numbers users can get so they never share their personal number. It requires a carrier/provider, pricing, E911, A2P 10DLC, identity checks and anti-spam before launch. Until then, fix SYNC for current users and do not sell phone numbers. Full spec: `instructions/pages/04-chat` and `instructions/pages/12-phone-service`.
 
