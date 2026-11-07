@@ -1,5 +1,18 @@
 # DANZSTAK development report
 
+## Invite a friend — 2026-11-07
+
+Status: **IN REVIEW — IMPLEMENTED AND FULLY TESTED LOCALLY; NOT DEPLOYED**.
+
+- Friends and SYNC now share one privacy-first invitation dialog. A member can edit the invitation, open the phone's own SMS composer, use the operating-system share sheet or copy the public DanzStak link. DanzStak never receives a recipient phone number and does not upload an address book.
+- The SMS handoff uses the platform-specific URI form (`sms:?body=` on Android-style clients and `sms:&body=` on iPhone). The member still chooses the recipient and presses Send in their own app; DanzStak does not send or pay for the text.
+- Friends exposes a clear **Invite a friend** action beside Search. SYNC exposes the same action as a compact, accessible share icon in its conversation-list heading. Both use the same implementation rather than separate invitation behaviors.
+- Invitation guidance and feedback cover all 15 supported languages. The editable message, canonical `https://danzstak.com/` link, native-share cancellation/fallback, clipboard recovery, opener-focus restoration and 44px phone targets are covered by `test-invite-sharing.cjs`.
+- Functional and integration evidence: the complete `test-regressions.ps1` gate passes, including the new invite regression, 13-page smoke validation and infrastructure validation. No backend, Stripe, AWS, contact-book or customer-data change is included.
+- Visual/browser evidence: `browser-checks/invite-friends.cjs` passes Friends and SYNC at 320, 360, 390, 430, 768 and 1366px with no horizontal overflow or browser error. It verifies editable copy, native share, clipboard fallback, Android SMS handoff, focus return and touch geometry. A separate 390px iPhone user-agent check verifies the iOS SMS URI. Representative inspected captures are in `docs/screenshots/invite-friends/`.
+- Prepared PWA assets: invite sharing CSS/JS v1, feed enhancements JS v533, i18n v395 and cache `danzstak-shell-v714`.
+- Honest boundary: browser automation verifies the exact OS handoff URLs and share payloads, but cannot claim a physical carrier text was sent. Sending remains an explicit action in the member's SMS app, as designed.
+
 ## Friends directory redesign — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
