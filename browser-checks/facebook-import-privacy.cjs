@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 
 const origin = String(process.env.DANZSTAK_IMPORT_ORIGIN || "http://127.0.0.1:8023").replace(/\/$/, "");
 const output = path.resolve("docs/screenshots/issue-13-import-privacy");
-const widths = [320, 390, 430, 1366];
+const widths = [320, 360, 390, 414, 430, 1366];
 fs.mkdirSync(output, { recursive: true });
 
 const importedItems = [
@@ -57,7 +57,7 @@ function apiPayload(url) {
         const dialog = document.querySelector(".facebook-import-dialog"), right = dialog.getBoundingClientRect().right;
         return {
           audience: document.querySelector("[data-audience]").value,
-          selected: document.querySelectorAll(".facebook-import-item>input:checked").length,
+          selected: document.querySelectorAll(".facebook-import-choice input:checked").length,
           overflow: dialog.scrollWidth > dialog.clientWidth,
           clientWidth: dialog.clientWidth,
           scrollWidth: dialog.scrollWidth,
@@ -72,7 +72,8 @@ function apiPayload(url) {
       await page.locator("[data-date-from]").fill("2021-01-01");
       await page.locator("[data-date-to]").fill("2021-12-31");
       await page.locator("[data-select-range]").click();
-      assert.equal(await page.locator(".facebook-import-item>input:checked").count(), 2, `${width}px inclusive date selection is incorrect`);
+      const selectedAfterRange = await page.evaluate(() => [...document.querySelectorAll(".facebook-import-item input[type=checkbox]")].map(input => ({ checked: input.checked, parent: input.parentElement?.className || "" })));
+      assert.equal(selectedAfterRange.filter(input => input.checked && input.parent.includes("facebook-import-choice")).length, 2, `${width}px inclusive date selection is incorrect: ${JSON.stringify(selectedAfterRange)}`);
       await page.locator("[data-audience]").selectOption("friends");
       assert.equal(await page.locator("[data-audience]").inputValue(), "friends", `${width}px explicit wider audience choice did not persist`);
       const targets = await page.locator(".facebook-import-date-range input,.facebook-import-date-range button").evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().height));
@@ -80,11 +81,18 @@ function apiPayload(url) {
       const header = await page.locator(".facebook-import-dialog>header").evaluate(node => ({ position: getComputedStyle(node).position, background: getComputedStyle(node).backgroundColor }));
       assert.equal(header.position, "sticky", `${width}px import close control must remain reachable while reviewing a long export`);
       assert.notEqual(header.background, "rgba(0, 0, 0, 0)", `${width}px sticky import header must not let scrolled controls show through`);
+      assert.equal(await page.locator("[data-next]").isHidden(), true, `${width}px next actions must wait until Moving Day succeeds`);
+      await page.locator("[data-cert]").check();
+      await page.locator("[data-import]").click();
+      await page.locator("[data-next]").waitFor({ state: "visible" });
+      assert.match(await page.locator("[data-next]").textContent(), /finish your profile, build an EPK, invite your people, or join the conversation in Mix/i);
+      const nextTargets = await page.locator("[data-next] a").evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().height));
+      assert.ok(nextTargets.length === 4 && nextTargets.every(height => height >= 44), `${width}px Moving Day next actions must be touch sized: ${nextTargets.join(",")}`);
       assert.equal(errors.length, 0, `${width}px import browser errors: ${errors.join(" | ")}`);
-      await page.screenshot({ path: path.join(output, `facebook-import-${width}.png`) });
+      await page.screenshot({ path: path.join(output, `facebook-import-${width}.png`), fullPage: false });
       await context.close();
     }
-    console.log("Facebook import privacy browser checks passed at 320, 390, 430 and 1366px: private default, no preselection, inclusive date range, explicit audience choice, touch targets and zero overflow.");
+    console.log("Moving Day browser checks passed at 320, 360, 390, 414, 430 and 1366px: private default, no preselection, inclusive date range, explicit audience choice, touch targets, participation handoff and zero overflow.");
   } finally {
     await browser.close();
   }

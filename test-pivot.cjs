@@ -11,7 +11,7 @@ const profileEditor = fs.readFileSync("assets/profile-editor.js", "utf8");
 const profileCss = fs.readFileSync("assets/profile-editor.css", "utf8");
 
 assert.match(html, /id="pivotButton"[^>]*aria-label="Pivot your data to DanzStak"[^>]*>[\s\S]*?data-menu-icon="refresh"[\s\S]*?<span>Pivot<\/span>/, "Mix header must expose a labeled Pivot action");
-assert.match(html, /assets\/facebook-import\.js\?v=343/);
+assert.match(html, /assets\/facebook-import\.js\?v=344/);
 assert.match(html, /assets\/pivot\.js\?v=1/);
 assert.match(html, /assets\/pivot\.css\?v=1/);
 assert.match(html, /assets\/danzstak-original-feed\.css\?v=14/);
@@ -32,7 +32,7 @@ assert.match(source, /Your imported content is trackable inside DanzStak/);
 assert.match(source, /DanzStak tracks content, not people/);
 assert.match(source, /Independent screenshots or copies uploaded to another platform may not be traceable or removable/);
 assert.match(source, /Nothing imports automatically/);
-assert.match(worker, /danzstak-shell-v729/);
+assert.match(worker, /danzstak-shell-v730/);
 assert.match(worker, /\/assets\/pivot\.js/);
 assert.match(worker, /\/assets\/pivot\.css/);
 assert.match(profile, /assets\/pivot\.css\?v=1/);
