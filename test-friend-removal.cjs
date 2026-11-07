@@ -75,6 +75,6 @@ context.button = button;
   assert.match(styles, /\.friend-workspace-actions\{display:flex;align-items:center;gap:6px;flex-wrap:nowrap\}/);
   assert.match(styles, /\.friend-remove-action\{position:absolute;[^}]*min-height:44px/, "remove menu action must retain a 44px touch target");
   assert.match(feed, /feed-enhancements\.js\?v=533/);
-  assert.match(feed, /feed-enhancements\.css\?v=501/);
+  assert.match(feed, /feed-enhancements\.css\?v=502/);
   console.log("Friend-removal checks passed: opaque identity, atomic relationship cleanup, confirmation, recovery, localization, and mobile controls.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

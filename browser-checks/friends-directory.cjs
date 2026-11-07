@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8016").replace(/\/$/, "");
 const captureDir = path.resolve(process.env.DANZSTAK_CAPTURE_DIR || "docs/screenshots/friends-directory");
-const widths = process.env.DANZSTAK_TEST_WIDTHS ? process.env.DANZSTAK_TEST_WIDTHS.split(",").map(Number) : [320, 360, 390, 430, 768, 1366];
+const widths = process.env.DANZSTAK_TEST_WIDTHS ? process.env.DANZSTAK_TEST_WIDTHS.split(",").map(Number) : [320, 360, 375, 390, 414, 430, 768, 1366];
 const friendCount = Math.max(1, Number(process.env.DANZSTAK_FRIEND_COUNT) || 10);
 const uuid = number => `${String(number).padStart(8, "0")}-1111-4111-8111-${String(number).padStart(12, "0")}`;
 const friends = Array.from({ length: friendCount }, (_, index) => ({
@@ -76,9 +76,14 @@ function payload(url) {
       console.log("  discovery search");
       await page.getByText("Sigmund", { exact: true }).waitFor({ timeout: 5000 });
       assert.equal(await page.getByRole("button", { name: /Send friend request to Sigmund/ }).count(), 1, `${width}px member discovery`);
-      const geometry = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth, tabs: [...document.querySelectorAll(".friends-directory-tab")].map(element => ({ text: element.textContent, height: element.getBoundingClientRect().height })) }));
+      const geometry = await page.evaluate(() => {
+        const tabList = document.querySelector(".friends-directory-tabs");
+        const listRect = tabList.getBoundingClientRect();
+        return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth, tabList: { clientWidth: tabList.clientWidth, scrollWidth: tabList.scrollWidth }, tabs: [...tabList.querySelectorAll(".friends-directory-tab")].map(element => { const rect = element.getBoundingClientRect(); return { text: element.textContent, height: rect.height, fullyVisible: rect.left >= listRect.left - 1 && rect.right <= listRect.right + 1 }; }) };
+      });
       assert.ok(geometry.scrollWidth <= width && geometry.bodyWidth <= width, `${width}px overflow: ${JSON.stringify(geometry)}`);
       assert.ok(geometry.tabs.every(tab => tab.height >= 44), `${width}px tab touch target: ${JSON.stringify(geometry.tabs)}`);
+      assert.ok(geometry.tabList.scrollWidth <= geometry.tabList.clientWidth && geometry.tabs.every(tab => tab.fullyVisible), `${width}px every Friends tab must be visible without horizontal scrolling: ${JSON.stringify(geometry)}`);
       await page.screenshot({ path: path.join(captureDir, `friends-${width}-${friendCount}.png`), fullPage: true });
       await context.close();
     }
