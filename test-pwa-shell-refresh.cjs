@@ -18,6 +18,9 @@ assert.match(serviceWorker, /"\/assets\/brand-language-aliases\.js"/, "the offli
 assert.match(serviceWorker, /"\/assets\/booking-map\.js"/, "the installable shell must keep the Booking Agent map controls available");
 assert.match(serviceWorker, /"\/assets\/booking-discovery\.js"/, "the installable shell must keep natural-language venue discovery available");
 assert.match(serviceWorker, /"\/assets\/booking-discovery\.css"/, "the installable shell must keep venue discovery readable offline");
+assert.match(serviceWorker, /"\/booking-selections\.html"/, "the installable shell must keep the reviewed booking workspace available");
+assert.match(serviceWorker, /"\/assets\/booking-selections\.js"/, "the installable shell must keep pitch review behavior available");
+assert.match(serviceWorker, /"\/assets\/booking-selections\.css"/, "the installable shell must keep pitch review readable offline");
 assert.match(serviceWorker, /"\/assets\/record-stores-pagination\.css"/, "the installable shell must keep record-store pagination readable offline");
 assert.match(serviceWorker, /"\/assets\/epk-media\.css"/, "the installable shell must keep EPK media management styled offline");
 assert.match(serviceWorker, /"\/assets\/user-content-links\.js"/, "the offline shell must keep user links clickable");

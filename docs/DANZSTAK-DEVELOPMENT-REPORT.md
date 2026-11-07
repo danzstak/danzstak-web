@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Reviewed booking pitch workflow — 2026-11-07
+
+Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; PRODUCTION NOT DEPLOYED**.
+
+- Each saved venue now has an intentional **Choose facts → Edit subject → Edit message → Preview exact email → Approve and send** path. Artists can start from band-tour, DJ/electronic-gig or festival copy, then edit every character before anything is sent.
+- Optional date-range, artist-entered expected-crowd and set/performance fields persist in the private booking workspace. The UI labels crowd claims as artist supplied and never invents audience demand, availability or terms. Reapplying a template asks before replacing an edited draft.
+- The final review dialog displays the exact recipient, subject, message and one-credit cost. Its send action remains disabled until the artist checks per-recipient approval. The server independently requires `artistApproved: true` before reserving a credit and stores the approved subject/message/template snapshot with its approval time.
+- Existing entitlement, saved-contact, EPK-link, idempotency and atomic reserve/settle/restore controls remain in force. A rejected provider submission still restores the credit; an unapproved draft never reaches the provider or changes the balance.
+- Mobile actions now meet 44px touch geometry. A single selected venue expands to the useful desktop width instead of occupying one narrow third of the workspace. The PWA shell advances to `danzstak-shell-v696` and now includes the booking workspace and its reviewed-pitch assets.
+- Functional/integration evidence: `test-booking-pitch-review.cjs`, Tour Manager dashboard/email-credit tests, PWA/static-link tests and the complete `test-regressions.ps1` gate pass. The full gate includes authentication, account isolation, Feed, Friends, Notifications, SYNC, media/audio, Booking discovery, EPK, Stripe safeguards, 11-page smoke coverage and infrastructure validation. No product failure was waived.
+- Responsive evidence: `browser-checks/booking-pitch-review.cjs` passes locally and against the isolated Amplify preview at 320, 360, 390, 414, 430 and 1366px, including exact preview content, approval gating, request payload, touch geometry and zero overflow. Captures in `docs/screenshots/booking-pitch-review/` were inspected before review.
+- Review/staging evidence: PR `#95` required checks passed for implementation head `6b7d5751ee349f80067e484207661251996df973`. Amplify DEVELOPMENT branch `codex/booking-pitch-review`, job `1`, succeeded in `us-west-1` at 2026-11-07 04:37:04 Europe/Berlin. No-cache probes of `https://codex-booking-pitch-review.d31oovi2mos5iz.amplifyapp.com/booking-selections.html` confirm booking JS v13, CSS v6 and `danzstak-shell-v696`.
+- Deployment boundary: production frontend and Auth API remain unchanged. Merge, production Amplify delivery, guarded Auth API deployment and live browser/API verification are still required before this slice is marked complete.
+
 ## Five-minute EPK builder — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA; PHYSICAL INSTALLED-PWA ACCEPTANCE REMAINS**.
