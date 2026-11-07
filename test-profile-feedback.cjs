@@ -14,7 +14,7 @@ assert.doesNotMatch(editor, /alert\(/, "profile editing should not use blocking 
 assert.match(editor, /Profile video saved[\s\S]{0,90}showProfileFeedback/, "successful video changes should use branded feedback");
 assert.match(styles, /\.profile-toast\{[^}]*safe-area-inset-bottom/, "profile feedback should clear mobile safe areas");
 assert.match(styles, /@media\(prefers-reduced-motion:reduce\)\{\.profile-toast\{transition:none\}\}/, "profile feedback should respect reduced motion");
-assert.match(profile, /profile-editor\.css\?v=394/);
-assert.match(profile, /profile-editor\.js\?v=482/);
+assert.match(profile, /profile-editor\.css\?v=395/);
+assert.match(profile, /profile-editor\.js\?v=483/);
 
 console.log("Profile feedback checks passed: edit-profile actions use compact, accessible, nonblocking messages.");

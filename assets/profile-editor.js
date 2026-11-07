@@ -785,7 +785,7 @@ panel.innerHTML = '<h2>' + profileEditorWords.heading + '</h2>' +
   '<label class="profile-tag-setting"><input name="allowTags" type="checkbox">Allow accepted friends to tag me in photos and videos</label></div></details>' +
   '<p class="edit-note">' + profileEditorWords.note + '</p>' +
   '<div class="edit-actions"><button class="secondary" type="button" data-cancel>' + profileEditorWords.cancel + '</button><button class="button" type="submit">' + profileEditorWords.save + '</button></div>' +
-  '<details class="profile-edit-section profile-import"><summary>Import from Facebook</summary><div class="profile-edit-section-body"><button type="button" data-facebook-import>Choose Facebook export</button><p>Preview your export, set Public, Friends, or Just me in batches, and review shared-source posts before copying them.</p></div></details>';
+  '<details class="profile-edit-section profile-import"><summary>Pivot — Moving Day</summary><div class="profile-edit-section-body"><button id="pivotButton" class="profile-pivot-button" type="button" aria-label="Open Moving Day to choose what to move"><span data-menu-icon="refresh" aria-hidden="true"></span><span>Open Moving Day</span></button><p>Pivot away from billionaire platforms. Preview your export and choose what to move to DanzStak, where you own your data.</p></div></details>';
 // Keep profile controls beside the profile actions instead of after the entire
 // post history.  Appending the form to the card made a deep profile timeline
 // push the editor off-screen while the edit route was trying to focus it.
@@ -813,7 +813,6 @@ mediaBody.className = "profile-edit-section-body";
 mediaBody.appendChild(mediaTools);
 mediaSection.append(mediaSummary, mediaBody);
 panel.querySelector(".profile-identity-fields").insertAdjacentElement("afterend", mediaSection);
-panel.querySelector("[data-facebook-import]").addEventListener("click", event => window.openDanzStakFacebookImport?.(event.currentTarget));
 
 function savedProfile() {
   try { return JSON.parse(localStorage.getItem(profileKey) || "{}"); }
