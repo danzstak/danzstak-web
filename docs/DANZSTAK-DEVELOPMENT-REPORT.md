@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## StakGuard provider foundation — 2026-11-08
+
+Status: **TESTED LOCALLY — DRAFT REVIEW; NO LIVE SCANNING, PAYMENT OR DEPLOYMENT**.
+
+- Added a phone-first **Settings → Your data → StakGuard** dashboard. It contains no example member findings: before a permitted provider runs, it states **No scan provider connected**, reports zero sources checked and never labels the member exposed, clean or removed.
+- The free surface links to California DROP, FTC people-search guidance and Google Results About You, and lists five candidate processes as **under verification** rather than claiming they were scanned or supported.
+- The monitoring estimator implements the owner-set `$4 × whole months` math for 1–12 prepaid months, states no subscription or automatic renewal and keeps purchase disabled. No Stripe product, checkout, entitlement or charge was added.
+- Added a server-side provider coordinator boundary for independently approved licensed APIs or permitted official lookups. Disabled and member-handoff adapters never scan; timeout, cancellation and provider failures return `unknown`; unsupported raw data categories and unsafe evidence URLs are removed; logs and results do not expose raw provider errors.
+- Functional evidence: the complete `test-regressions.ps1` gate passes, including new StakGuard dashboard/provider tests, 14-page smoke checks and infrastructure validation. Existing PWA cache assertions now verify `danzstak-shell-v730`, which includes the new offline page and assets.
+- Browser evidence: `browser-checks/stakguard-phase-a.cjs` passes at 320, 360, 390, 414, 430 and 1366px with no horizontal overflow, browser errors, sample findings, enabled payment or sub-44px tested action. Inspected captures are in `docs/screenshots/stakguard-phase-a/`.
+- Honest boundary: no source adapter has been approved or connected, no real identifier has left DanzStak and no removal request is submitted. A live scan requires one source-specific terms/privacy review, a lawful API or permitted official lookup, credentials held outside Git and a consenting controlled test account. Stealth browsing, CAPTCHA bypass, login scraping and rate-limit evasion are prohibited.
+
 ## Moving Day from Edit Profile — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.

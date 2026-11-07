@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>StakGuard | DanzStak</title>
+  <meta name="description" content="Review supported data-broker findings, prepare removal requests, and understand optional StakGuard monitoring.">
+  <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
+  <link rel="stylesheet" href="assets/stakguard.css?v=1">
+  <link rel="stylesheet" href="assets/accessibility.css?v=364">
+  <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
+</head>
+<body>
+  <a class="skip-link" href="#stakguardMain">Skip to StakGuard</a>
+  <header class="stakguard-header">
+    <a class="stakguard-brand" href="feed.html?view=feed" aria-label="Back to DanzStak"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a>
+    <a class="header-back" href="feed.html?view=feed&amp;menu=1">Back to menu</a>
+  </header>
+
+  <main id="stakguardMain" tabindex="-1">
+    <section class="stakguard-hero" aria-labelledby="stakguardTitle">
+      <p class="eyebrow">Settings · Your data</p>
+      <h1 id="stakguardTitle">StakGuard</h1>
+      <p>See where supported data brokers may expose your information, prepare removal requests, and keep watch month to month.</p>
+    </section>
+
+    <aside class="prototype-notice" aria-label="Scan provider status">
+      <strong>No scan provider connected</strong>
+      <p>No scan has run and DanzStak has no broker findings for you. Findings will appear only after a lawful provider returns source evidence.</p>
+    </aside>
+
+    <nav class="section-jump" aria-label="StakGuard sections">
+      <a href="#overview">Overview</a>
+      <a href="#findings">Findings</a>
+      <a href="#removalTools">Remove</a>
+      <a href="#monitoring">Monitor</a>
+    </nav>
+
+    <section id="overview" class="dashboard-section" aria-labelledby="overviewTitle">
+      <div class="section-heading"><div><p class="eyebrow">At a glance</p><h2 id="overviewTitle">Your privacy dashboard</h2></div><span class="example-chip">Not scanned</span></div>
+      <div class="summary-grid">
+        <div><strong>0</strong><span>verified findings</span></div>
+        <div><strong>0</strong><span>removal actions ready</span></div>
+        <div><strong>0</strong><span>confirmed removed</span></div>
+        <div><strong>Off</strong><span>monthly monitoring</span></div>
+      </div>
+      <div class="coverage-row"><div><strong>Current coverage</strong><span>0 active sources checked</span></div><progress value="0" max="1">0 active sources</progress><small>Last successful scan: never · Provider connection required</small></div>
+    </section>
+
+    <section id="findings" class="dashboard-section" aria-labelledby="findingsTitle">
+      <div class="section-heading"><div><p class="eyebrow">Broker by broker</p><h2 id="findingsTitle">Where information was found</h2></div></div>
+      <p class="section-intro">Each finding will show its source, what matched, confidence, check date, and evidence before you decide what to do.</p>
+      <div id="stakguardFindings" class="findings-list"><div class="findings-empty"><strong>No broker findings yet</strong><p>DanzStak will not label you exposed or clean until a permitted provider has checked a disclosed source.</p></div></div>
+    </section>
+
+    <section id="removalTools" class="dashboard-section" aria-labelledby="removeTitle">
+      <div class="section-heading"><div><p class="eyebrow">Free removal help</p><h2 id="removeTitle">Remove what you can</h2></div><span class="free-chip">Free</span></div>
+      <p class="section-intro">StakGuard will prepare source-specific requests for you to review. Opening a form is not the same as submitting it, and a submitted request is not proof of removal.</p>
+      <div class="official-tools">
+        <a href="https://privacy.ca.gov/drop/" target="_blank" rel="noopener noreferrer"><strong>California DROP</strong><span>Official free deletion request for eligible California residents</span><small>Opens privacy.ca.gov</small></a>
+        <a href="https://consumer.ftc.gov/articles/what-know-about-people-search-sites-sell-your-information" target="_blank" rel="noopener noreferrer"><strong>FTC opt-out guidance</strong><span>What people-search removals can and cannot do</span><small>Opens consumer.ftc.gov</small></a>
+        <a href="https://myactivity.google.com/results-about-you" target="_blank" rel="noopener noreferrer"><strong>Google Results about you</strong><span>Request eligible search-result removal; the source page may remain</span><small>Opens myactivity.google.com</small></a>
+      </div>
+    </section>
+
+    <section id="monitoring" class="dashboard-section monitoring-section" aria-labelledby="monitoringTitle">
+      <div class="section-heading"><div><p class="eyebrow">Optional monitoring</p><h2 id="monitoringTitle">Keep watch for $4 a month</h2></div><span class="monitor-chip">No subscription</span></div>
+      <p class="section-intro">Choose and prepay only the months you want. There is no automatic renewal, annual plan, discount, or cancellation trap.</p>
+      <label for="monitorMonths">Months to monitor</label>
+      <select id="monitorMonths">
+        <option value="1">1 month</option><option value="2">2 months</option><option value="3">3 months</option><option value="4">4 months</option><option value="5">5 months</option><option value="6">6 months</option><option value="7">7 months</option><option value="8">8 months</option><option value="9">9 months</option><option value="10">10 months</option><option value="11">11 months</option><option value="12">12 months</option>
+      </select>
+      <div class="price-line"><span>$4 × <b id="monitorMonthCount">1 month</b></span><strong id="monitorTotal">$4</strong></div>
+      <ul class="monitor-points"><li>Rechecks only disclosed supported sources.</li><li>Shows what disappeared, returned, failed, or could not be checked.</li><li>One reminder 3–4 days before paid time ends.</li><li>Monitoring stops unless you choose to buy more time.</li></ul>
+      <button type="button" id="monitorUnavailable" disabled>Monitoring is not available yet</button>
+      <p class="availability-note">DanzStak will not take payment until lawful source access, privacy review, and sustainable monitoring costs are verified.</p>
+    </section>
+
+    <section class="dashboard-section source-registry" aria-labelledby="registryTitle">
+      <div class="section-heading"><div><p class="eyebrow">Source readiness</p><h2 id="registryTitle">Processes under verification</h2></div></div>
+      <p class="section-intro">These links are being checked for a future supported registry. Listing them does not mean DanzStak scanned them or found your information.</p>
+      <ul id="sourceRegistry"></ul>
+    </section>
+  </main>
+
+  <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
+    <a href="feed.html?view=feed" aria-label="Home">Home</a><a href="feed.html?view=friends" aria-label="Friends">Friends</a><a href="messages.html" aria-label="SYNC">SYNC</a><a href="feed.html?view=notifications" aria-label="Buzz">Buzz</a><a href="feed.html?view=feed&amp;menu=1" aria-label="Menu">Menu</a>
+  </nav>
+  <script src="assets/stakguard-brokers.js?v=1" defer></script>
+  <script src="assets/stakguard.js?v=1" defer></script>
+</body>
+</html>
