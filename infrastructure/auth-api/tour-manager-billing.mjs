@@ -260,7 +260,9 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       status: item.status?.S || "unknown",
       createdAt: item.createdAt?.S || "",
       sentAt: item.sentAt?.S || "",
-      providerAcceptedAt: item.providerAcceptedAt?.S || ""
+      providerAcceptedAt: item.providerAcceptedAt?.S || "",
+      repliedAt: item.repliedAt?.S || "",
+      followUpTo: item.followUpTo?.S || ""
     }));
     const replyResult = await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#BOOKING_REPLY#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 200 }));
     const replies = (replyResult.Items || []).map(item => ({ id: item.tourId?.S || "", outreachId: item.outreachId?.S || "", venueKey: item.venueKey?.S || "", direction: item.direction?.S === "outbound" ? "outbound" : "inbound", action: item.action?.S || "reply", content: item.content?.S || "", proposedDate: item.proposedDate?.S || "", status: item.status?.S || "received", createdAt: item.createdAt?.S || "" }));
@@ -272,7 +274,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
     const userId = await authenticate(event);
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
-    const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), outreachId = String(body?.outreachId || "").trim();
+    const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), outreachId = String(body?.outreachId || "").trim(), followUpTo = String(body?.followUpTo || "").trim();
     if (!venueKey || venueKey.length > 240 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || !/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId)) return response(400, { error: "Choose a saved venue, public booking email, and valid outreach draft." }, headers);
     const preflightMs = clock(), [workspace, contactAccess, suppressed, cooldown, hourly] = await Promise.all([
       db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true })),
@@ -286,10 +288,20 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!venue) return response(409, { error: "Save this venue and its public booking email before review." }, headers);
     if (contactAccess.Item?.status?.S !== "active") return response(402, { error: "Unlock this venue's booking contact before review." }, headers);
     if (suppressed.Item) return response(409, { error: "This contact opted out of DanzStak booking pitches and cannot be emailed." }, headers);
-    if (Number(cooldown.Item?.nextAllowedAt?.N || 0) > Math.floor(preflightMs / 1000)) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead." }, headers);
+    let followUpSource;
+    if (followUpTo) {
+      if (!/^[a-zA-Z0-9_-]{16,100}$/.test(followUpTo)) return response(400, { error: "Choose a valid booking thread to follow up." }, headers);
+      followUpSource = (await db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, followUpTo), ConsistentRead: true }))).Item;
+      const due = String(venue.booking?.followUp || ""), today = new Date(preflightMs).toISOString().slice(0, 10);
+      if (!followUpSource || followUpSource.venueKey?.S !== venueKey || followUpSource.recipient?.S !== to) return response(409, { error: "This follow-up does not match the saved venue thread." }, headers);
+      if (!due || due > today) return response(409, { error: "This follow-up is not due yet." }, headers);
+      if (followUpSource.repliedAt?.S) return response(409, { error: "This venue already replied. Continue the existing thread instead of sending a follow-up." }, headers);
+      if (followUpSource.followUpSendId?.S) return response(409, { error: "The one allowed follow-up has already been prepared or sent." }, headers);
+      if (!["sent", "delivered"].includes(followUpSource.status?.S || "")) return response(409, { error: "Only a successfully submitted booking pitch can be followed up." }, headers);
+    } else if (Number(cooldown.Item?.nextAllowedAt?.N || 0) > Math.floor(preflightMs / 1000)) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead." }, headers);
     if (outreachWindow(hourly.Items, preflightMs).total >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
     const token = randomBytes(32).toString("hex"), createdAt = new Date(preflightMs).toISOString(), expiresAt = Math.floor(preflightMs / 1000) + 400 * 86400;
-    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...optOutTokenKey(token), artistId: { S: userId }, outreachId: { S: outreachId }, venueKey: { S: venueKey }, recipientHash: { S: normalizedRecipientHash(to) }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } }, ConditionExpression: "attribute_not_exists(userId)" }));
+    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...optOutTokenKey(token), artistId: { S: userId }, outreachId: { S: outreachId }, venueKey: { S: venueKey }, recipientHash: { S: normalizedRecipientHash(to) }, ...(followUpTo ? { followUpTo: { S: followUpTo } } : {}), createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } }, ConditionExpression: "attribute_not_exists(userId)" }));
     return response(200, { footer: optOutFooter(token), suppressionChecked: true }, headers);
   }
 
@@ -568,9 +580,9 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const userId = await authenticate(event);
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
     if (typeof sendBookingEmail !== "function") return response(503, { error: "Booking email delivery is not configured." }, headers);
-    const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), subject = String(body?.subject || "").trim(), message = String(body?.message || "").trim(), id = String(body?.idempotencyKey || "").trim(), template = ["band", "dj", "festival"].includes(String(body?.template)) ? String(body.template) : "custom";
+    const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), subject = String(body?.subject || "").trim(), message = String(body?.message || "").trim(), id = String(body?.idempotencyKey || "").trim(), followUpTo = String(body?.followUpTo || "").trim(), template = ["band", "dj", "festival"].includes(String(body?.template)) ? String(body.template) : "custom";
     if (body?.artistApproved !== true) return response(400, { error: "Review the exact recipient and message, then approve this email before sending." }, headers);
-    if (!venueKey || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || subject.length < 3 || subject.length > 180 || message.length < 20 || message.length > 5000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(id)) return response(400, { error: "Choose a saved venue, reviewed email, subject, message, and valid send identifier." }, headers);
+    if (!venueKey || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || subject.length < 3 || subject.length > 180 || message.length < 20 || message.length > 5000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(id) || followUpTo && !/^[a-zA-Z0-9_-]{16,100}$/.test(followUpTo)) return response(400, { error: "Choose a saved venue, reviewed email, subject, message, and valid send identifier." }, headers);
     const workspace = await db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }));
     let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
     const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to)), artistName = String(plan.artist?.name || "").trim(), epk = String(plan.artist?.epk || "").trim();
@@ -596,33 +608,43 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     ]);
     if (suppressedResult.Item) return response(409, { error: "This contact opted out of DanzStak booking pitches and cannot be emailed." }, headers);
     const footerItem = footerResult.Item;
-    if (!footerItem || footerItem.artistId?.S !== userId || footerItem.outreachId?.S !== id || footerItem.venueKey?.S !== venueKey || footerItem.recipientHash?.S !== normalizedRecipientHash(to) || Number(footerItem.expiresAt?.N || 0) <= reservationSeconds) return response(409, { error: "Preview a current opt-out footer for this exact venue and recipient before sending." }, headers);
+    if (!footerItem || footerItem.artistId?.S !== userId || footerItem.outreachId?.S !== id || footerItem.venueKey?.S !== venueKey || footerItem.recipientHash?.S !== normalizedRecipientHash(to) || Number(footerItem.expiresAt?.N || 0) <= reservationSeconds || (footerItem.followUpTo?.S || "") !== followUpTo) return response(409, { error: "Preview a current opt-out footer for this exact venue and recipient before sending." }, headers);
+    let followUpSource;
+    if (followUpTo) {
+      followUpSource = (await db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, followUpTo), ConsistentRead: true }))).Item;
+      const due = String(venue.booking?.followUp || ""), today = new Date(reservationMs).toISOString().slice(0, 10);
+      if (!followUpSource || followUpSource.venueKey?.S !== venueKey || followUpSource.recipient?.S !== to || !due || due > today || followUpSource.repliedAt?.S || followUpSource.followUpSendId?.S || !["sent", "delivered"].includes(followUpSource.status?.S || "")) return response(409, { error: "This follow-up is no longer eligible. Reload the booking thread before sending." }, headers);
+    }
     const { previousHourCount, currentHourCount, total: recentOutreachCount } = outreachWindow(hourlyResult.Items, reservationMs);
     if (recentOutreachCount >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
     const cooldownUntil = Number(cooldownResult.Item?.nextAllowedAt?.N || 0);
-    if (cooldownUntil > reservationSeconds) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead.", availableAt: new Date(cooldownUntil * 1000).toISOString() }, headers);
+    if (!followUpTo && cooldownUntil > reservationSeconds) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead.", availableAt: new Date(cooldownUntil * 1000).toISOString() }, headers);
     const currentHourAllowance = MAX_NEW_PITCHES_PER_24_HOURS - previousHourCount, cooldownExpiresAt = reservationSeconds + BOOKING_CONTACT_COOLDOWN_SECONDS;
     try {
-      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+      const reservationItems = [
         { ConditionCheck: { TableName: tableName, Key: suppressionKey(to), ConditionExpression: "attribute_not_exists(userId)" } },
         { ConditionCheck: { TableName: tableName, Key: optOutTokenKey(footerToken), ConditionExpression: "artistId = :artistId AND outreachId = :outreachId AND venueKey = :venueKey AND recipientHash = :recipientHash AND expiresAt > :now", ExpressionAttributeValues: { ":artistId": { S: userId }, ":outreachId": { S: id }, ":venueKey": { S: venueKey }, ":recipientHash": { S: normalizedRecipientHash(to) }, ":now": { N: String(reservationSeconds) } } } },
         { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :minusOne, reservedCredits :one SET updatedAt = :updatedAt", ConditionExpression: "credits >= :one", ExpressionAttributeValues: { ":minusOne": { N: "-1" }, ":one": { N: "1" }, ":updatedAt": { S: reservedAt } } } },
         { Update: { TableName: tableName, Key: hourKey, UpdateExpression: "ADD sendCount :one SET updatedAt = :updatedAt, expiresAt = :expiresAt", ConditionExpression: "attribute_not_exists(sendCount) OR sendCount < :allowance", ExpressionAttributeValues: { ":one": { N: "1" }, ":allowance": { N: String(currentHourAllowance) }, ":updatedAt": { S: reservedAt }, ":expiresAt": { N: String(reservationSeconds + 31 * 86400) } } } },
-        { Put: { TableName: tableName, Item: { ...cooldownKey, recipientHash: { S: normalizedRecipientHash(to) }, venueKey: { S: venueKey }, sendId: { S: id }, createdAt: { S: reservedAt }, nextAllowedAt: { N: String(cooldownExpiresAt) }, expiresAt: { N: String(cooldownExpiresAt) } }, ConditionExpression: "attribute_not_exists(userId) OR nextAllowedAt <= :now", ExpressionAttributeValues: { ":now": { N: String(reservationSeconds) } } } },
-        { Put: { TableName: tableName, Item: { ...key, status: { S: "reserved" }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, recipient: { S: to }, subject: { S: subject }, message: { S: message }, template: { S: template }, artistApprovedAt: { S: reservedAt }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Put: { TableName: tableName, Item: { ...key, status: { S: "reserved" }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, recipient: { S: to }, subject: { S: subject }, message: { S: message }, template: { S: template }, ...(followUpTo ? { followUpTo: { S: followUpTo } } : {}), artistApprovedAt: { S: reservedAt }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(userId, reservedAt, id), entryType: { S: "email_reservation" }, delta: { N: "-1" }, status: { S: "reserved" }, description: { S: `Booking email reserved for ${String(venue.name || "venue").slice(0, 160)}` }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
-      ] }));
+      ];
+      if (followUpTo) reservationItems.splice(4, 0, { Update: { TableName: tableName, Key: sendKey(userId, followUpTo), UpdateExpression: "SET followUpSendId = :sendId, followUpReservedAt = :at", ConditionExpression: "attribute_exists(userId) AND attribute_not_exists(followUpSendId) AND attribute_not_exists(repliedAt) AND (#status = :sent OR #status = :delivered)", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sendId": { S: id }, ":at": { S: reservedAt }, ":sent": { S: "sent" }, ":delivered": { S: "delivered" } } } });
+      else reservationItems.splice(4, 0, { Put: { TableName: tableName, Item: { ...cooldownKey, recipientHash: { S: normalizedRecipientHash(to) }, venueKey: { S: venueKey }, sendId: { S: id }, createdAt: { S: reservedAt }, nextAllowedAt: { N: String(cooldownExpiresAt) }, expiresAt: { N: String(cooldownExpiresAt) } }, ConditionExpression: "attribute_not_exists(userId) OR nextAllowedAt <= :now", ExpressionAttributeValues: { ":now": { N: String(reservationSeconds) } } } });
+      await db.send(new TransactWriteItemsCommand({ TransactItems: reservationItems }));
     } catch (error) {
-      const [raced, latestHour, latestCooldown, latestCredit] = await Promise.all([
+      const [raced, latestHour, latestCooldown, latestCredit, latestFollowUpSource] = await Promise.all([
         db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true })),
         db.send(new GetItemCommand({ TableName: tableName, Key: hourKey, ConsistentRead: true })),
         db.send(new GetItemCommand({ TableName: tableName, Key: cooldownKey, ConsistentRead: true })),
-        db.send(new GetItemCommand({ TableName: tableName, Key: creditKey(userId), ConsistentRead: true }))
+        db.send(new GetItemCommand({ TableName: tableName, Key: creditKey(userId), ConsistentRead: true })),
+        followUpTo ? db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, followUpTo), ConsistentRead: true })) : Promise.resolve({})
       ]);
       if (raced.Item) return response(202, { status: raced.Item.status?.S || "pending", duplicate: true }, headers);
       if (previousHourCount + Number(latestHour.Item?.sendCount?.N || 0) >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
       const nextAllowedAt = Number(latestCooldown.Item?.nextAllowedAt?.N || 0);
-      if (nextAllowedAt > reservationSeconds) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead.", availableAt: new Date(nextAllowedAt * 1000).toISOString() }, headers);
+      if (!followUpTo && nextAllowedAt > reservationSeconds) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead.", availableAt: new Date(nextAllowedAt * 1000).toISOString() }, headers);
+      if (followUpTo && (latestFollowUpSource.Item?.followUpSendId?.S || latestFollowUpSource.Item?.repliedAt?.S)) return response(409, { error: latestFollowUpSource.Item.repliedAt?.S ? "This venue replied before the follow-up was sent. Continue the booking thread instead." : "The one allowed follow-up has already been prepared or sent." }, headers);
       if (Number(latestCredit.Item?.credits?.N || 0) < 1) return response(402, { error: "Not enough booking-email credits." }, headers);
       throw error;
     }
@@ -646,13 +668,15 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       const state = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
       if (state.Item?.status?.S === "sending" && !state.Item?.providerMessageId?.S) {
         const restoredAt = nowIso();
-        await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        const restoreItems = [
           { Update: { TableName: tableName, Key: key, UpdateExpression: "SET #status = :restored, failedAt = :at", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":restored": { S: "restored" }, ":sending": { S: "sending" }, ":at": { S: restoredAt } } } },
           { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :one, reservedCredits :minusOne SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":minusOne": { N: "-1" }, ":at": { S: restoredAt } } } },
           { Update: { TableName: tableName, Key: hourKey, UpdateExpression: "ADD sendCount :minusOne SET updatedAt = :at", ConditionExpression: "sendCount >= :one", ExpressionAttributeValues: { ":minusOne": { N: "-1" }, ":one": { N: "1" }, ":at": { S: restoredAt } } } },
-          { Delete: { TableName: tableName, Key: cooldownKey, ConditionExpression: "sendId = :sendId", ExpressionAttributeValues: { ":sendId": { S: id } } } },
           { Put: { TableName: tableName, Item: { ...ledgerKey(userId, restoredAt, `${id}-restore`), entryType: { S: "email_restored" }, delta: { N: "1" }, status: { S: "restored" }, description: { S: `Credit restored after ${String(venue.name || "venue").slice(0, 160)} email failed` }, createdAt: { S: restoredAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
-        ] }));
+        ];
+        if (followUpTo) restoreItems.splice(3, 0, { Update: { TableName: tableName, Key: sendKey(userId, followUpTo), UpdateExpression: "REMOVE followUpSendId, followUpReservedAt", ConditionExpression: "followUpSendId = :sendId", ExpressionAttributeValues: { ":sendId": { S: id } } } });
+        else restoreItems.splice(3, 0, { Delete: { TableName: tableName, Key: cooldownKey, ConditionExpression: "sendId = :sendId", ExpressionAttributeValues: { ":sendId": { S: id } } } });
+        await db.send(new TransactWriteItemsCommand({ TransactItems: restoreItems }));
       }
       return response(502, { error: "The email provider did not accept the booking email. Your credit was restored." }, headers);
     }

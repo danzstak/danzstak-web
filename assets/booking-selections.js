@@ -111,8 +111,8 @@
     await fetchWithTimeout("https://api.danzstak.com/epk/outreach-share", { method:"POST", credentials:"include", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({ action:"revoke", venueKey:identity(venue), outreachId }) }).catch(() => null);
   }
 
-  async function createOutreachPreflight(venue, email, outreachId) {
-    const response = await fetchWithTimeout("https://api.danzstak.com/tour-manager/outreach/preflight", { method:"POST", credentials:"include", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({ venueKey:identity(venue), to:email, outreachId }) });
+  async function createOutreachPreflight(venue, email, outreachId, followUpTo = "") {
+    const response = await fetchWithTimeout("https://api.danzstak.com/tour-manager/outreach/preflight", { method:"POST", credentials:"include", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({ venueKey:identity(venue), to:email, outreachId, ...(followUpTo ? { followUpTo } : {}) }) });
     const data = await response.json().catch(() => ({})), footer = String(data.footer || "");
     if (!response.ok || !footer.includes("DanzStak LLC, 2063 Main St. #237, Oakley, CA 94561, USA") || !/https:\/\/danzstak\.com\/booking-opt-out\.html#token=[a-f0-9]{64}/.test(footer)) throw new Error(data.error || "DanzStak could not verify this contact for review.");
     return data;
@@ -338,7 +338,7 @@
     const shareEvidence = document.createElement("p"), venueShares = outreachShares.filter(item => item.venueKey === identity(venue) && item.revoked !== true), openCount = venueShares.reduce((sum, item) => sum + Number(item.openCount || 0), 0), lastOpenedAt = venueShares.map(item => item.lastOpenedAt).filter(Boolean).sort().at(-1);
     shareEvidence.className = "epk-open-evidence";
     shareEvidence.textContent = openCount ? `Private EPK opened ${openCount} time${openCount === 1 ? "" : "s"}${lastOpenedAt ? ` · last opened ${new Intl.DateTimeFormat(undefined, { dateStyle:"medium", timeStyle:"short" }).format(new Date(lastOpenedAt))}` : ""}. Counts only; DanzStak does not identify the viewer.` : "Private venue EPK not opened yet.";
-    const latestDelivery = (window.danzstakTourManagerBilling?.outreach || []).filter(item => item.venueKey === identity(venue)).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))[0];
+    const venueOutreach = (window.danzstakTourManagerBilling?.outreach || []).filter(item => item.venueKey === identity(venue)).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))), latestDelivery = venueOutreach[0];
     const deliveryEvidence = document.createElement("p");
     deliveryEvidence.className = "booking-delivery-evidence";
     deliveryEvidence.textContent = latestDelivery ? ({ delivered:"Email delivered by the provider.", bounced:"Email permanently bounced; this contact is now suppressed.", complained:"The recipient reported this email; this contact is now suppressed.", sent:"Email accepted by the provider; delivery is not confirmed yet.", provider_accepted:"Email accepted by the provider; final ledger settlement is pending." }[latestDelivery.status] || `Email status: ${String(latestDelivery.status || "unknown").replaceAll("_", " ")}.`) : "No booking email sent yet.";
@@ -428,6 +428,32 @@
     const note = document.createElement("small");
     note.textContent = email ? "Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Replies go to your account email." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
     section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, note);
+    const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
+    if (initialPitch && (followUpDue || existingFollowUp || hasReply)) {
+      const followUp = document.createElement("section"), heading = document.createElement("h3"), state = document.createElement("p");
+      followUp.className = "booking-follow-up"; heading.textContent = "Follow-up";
+      if (existingFollowUp) state.textContent = existingFollowUp.status === "delivered" ? "Your one follow-up was delivered." : "Your one follow-up was submitted. No additional reminder will be sent.";
+      else if (hasReply) state.textContent = "This venue replied. Continue in the SYNC booking thread instead of sending a reminder.";
+      else {
+        state.textContent = `Due ${booking.followUp}. DanzStak allows one artist-approved reminder for this pitch.`;
+        const followButton = document.createElement("button");
+        followButton.type = "button"; followButton.className = "secondary"; followButton.textContent = "Review one follow-up · 1 credit";
+        followButton.addEventListener("click", async () => {
+          const currentArtist = artist(), email = initialPitch.recipient, outreachId = crypto.randomUUID().replaceAll("-", ""), publicEpk = currentArtist.epk, subjectText = `Following up: ${initialPitch.subject || `${currentArtist.name || "Artist"} booking enquiry`}`.slice(0, 180), baseMessage = `Hello ${venue.name || "venue"} booking team,\n\nI'm following up on the booking pitch for ${currentArtist.name || "our act"}${booking.showDate ? ` on ${booking.showDate}` : ""}. If the date or act is not a fit, a quick pass is completely fine.\n\nEPK: ${publicEpk}\n\nThank you,\n${currentArtist.name || "Artist"}`;
+          followButton.disabled = true; followButton.textContent = "Preparing private EPK link…";
+          try {
+            const share = await createVenueEpkShare(venue, outreachId, booking.allowEpkPdfDownload === true), preflight = await createOutreachPreflight(venue, email, outreachId, initialPitch.id), reviewedMessage = `${baseMessage.replaceAll(publicEpk, share.shareUrl)}\n\n---\n${preflight.footer}`;
+            if (!(await reviewSend({ venue, to:email, subject:subjectText, message:reviewedMessage }))) { await revokeVenueEpkShare(venue, outreachId); followButton.disabled = false; followButton.textContent = "Review one follow-up · 1 credit"; return; }
+            followButton.textContent = "Sending follow-up…";
+            await window.danzstakSendBookingEmail({ venueKey:identity(venue), to:email, subject:subjectText, message:reviewedMessage, template:booking.pitchTemplate || "band", artistApproved:true, idempotencyKey:outreachId, followUpTo:initialPitch.id });
+            await window.danzstakTourManagerBilling?.refreshOutreach?.();
+            render();
+          } catch (error) { window.danzstakShowFeedback?.(error.message, { urgent:true }); followButton.disabled = false; followButton.textContent = "Review one follow-up · 1 credit"; }
+        });
+        followUp.append(followButton);
+      }
+      followUp.prepend(heading, state); section.append(followUp);
+    }
     return section;
   }
 
