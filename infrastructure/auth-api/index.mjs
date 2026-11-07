@@ -134,6 +134,7 @@ const tourManagerBilling = createTourManagerBilling({
     if (!replyTo) throw new Error("Account email could not be verified");
     const result = await ses.send(new SendEmailCommand({
       FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
+      ConfigurationSetName: "DanzStakTourManager",
       Destination: { ToAddresses: [to] },
       ReplyToAddresses: [replyTo],
       Content: { Simple: {
@@ -3984,6 +3985,9 @@ export const handler = async event => {
   const path = event?.rawPath;
 
   try {
+    if (Array.isArray(event?.Records) && event.Records.some(record => record?.EventSource === "aws:sns")) {
+      return await tourManagerBilling(event);
+    }
     if (path?.startsWith("/tour-manager/") || path?.startsWith("/phone-number/")) {
       if (method === "POST" && ["/tour-manager/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);

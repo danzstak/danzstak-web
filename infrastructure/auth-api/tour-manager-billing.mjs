@@ -36,6 +36,8 @@ const BOOKING_WORKSPACE_KEY = "booking-workspace-v1";
 const EVENT_OWNER = "STRIPE#TOUR_MANAGER_EVENTS";
 const SUPPRESSION_OWNER = "TOUR_MANAGER#GLOBAL_SUPPRESSION";
 const OPT_OUT_TOKEN_OWNER = "TOUR_MANAGER#OPT_OUT_TOKEN";
+const PROVIDER_MESSAGE_OWNER = "TOUR_MANAGER#PROVIDER_MESSAGE";
+const PROVIDER_EVENT_OWNER = "TOUR_MANAGER#PROVIDER_EVENT";
 const DANZSTAK_POSTAL_ADDRESS = "DanzStak LLC, 2063 Main St. #237, Oakley, CA 94561, USA";
 const MAX_CREDITS_PER_CHECKOUT = 500;
 export const MAX_NEW_PITCHES_PER_24_HOURS = 20;
@@ -58,6 +60,8 @@ function outreachHourKey(userId, at) { const hour = Math.floor(at / 3600000); re
 function normalizedRecipientHash(value) { return createHash("sha256").update(String(value || "").trim().toLowerCase()).digest("hex"); }
 function recipientCooldownKey(userId, recipient) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#RECIPIENT_COOLDOWN#${normalizedRecipientHash(recipient)}` } }; }
 function suppressionKey(recipient) { return { userId: { S: SUPPRESSION_OWNER }, tourId: { S: normalizedRecipientHash(recipient) } }; }
+function providerMessageKey(messageId) { return { userId: { S: PROVIDER_MESSAGE_OWNER }, tourId: { S: createHash("sha256").update(String(messageId || "")).digest("hex") } }; }
+function providerEventKey(eventId) { return { userId: { S: PROVIDER_EVENT_OWNER }, tourId: { S: createHash("sha256").update(String(eventId || "")).digest("hex") } }; }
 function optOutTokenHash(token) { return createHash("sha256").update(`tour-manager-opt-out:${String(token || "")}`).digest("hex"); }
 function optOutTokenKey(token) { return { userId: { S: OPT_OUT_TOKEN_OWNER }, tourId: { S: optOutTokenHash(token) } }; }
 function optOutFooter(token) { return `${DANZSTAK_POSTAL_ADDRESS}\nDon't want booking pitches through DanzStak? Opt out: https://danzstak.com/booking-opt-out.html#token=${token}`; }
@@ -90,6 +94,35 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
   const paymentsAllowed = () => Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) && (testMode() || (env.TOUR_MANAGER_LIVE_PAYMENTS === "true" && env.STRIPE_SECRET_KEY.startsWith("sk_live_")));
   const nowIso = () => new Date(clock()).toISOString();
   const browserHeaders = event => corsHeaders(event.headers?.origin || event.headers?.Origin);
+
+  async function providerEvents(event) {
+    const records = Array.isArray(event?.Records) ? event.Records : [];
+    if (!records.length || records.some(record => record?.EventSource !== "aws:sns" || typeof record?.Sns?.Message !== "string")) return null;
+    let processed = 0, ignored = 0, duplicates = 0;
+    for (const record of records) {
+      let notification;
+      try { notification = JSON.parse(record.Sns.Message); } catch { ignored += 1; continue; }
+      const type = String(notification?.eventType || notification?.notificationType || "").toLowerCase();
+      const messageId = String(notification?.mail?.messageId || "").trim();
+      if (!/^[a-zA-Z0-9._-]{8,200}$/.test(messageId) || !["delivery", "bounce", "complaint"].includes(type)) { ignored += 1; continue; }
+      const mapping = await db.send(new GetItemCommand({ TableName: tableName, Key: providerMessageKey(messageId), ConsistentRead: true })), item = mapping.Item;
+      if (!validUserId(item?.artistId?.S) || !/^[a-zA-Z0-9_-]{16,100}$/.test(item?.sendId?.S || "") || !/^[a-f0-9]{64}$/.test(item?.recipientHash?.S || "")) { ignored += 1; continue; }
+      if (type === "bounce" && String(notification?.bounce?.bounceType || "").toLowerCase() !== "permanent") { ignored += 1; continue; }
+      const eventId = String(record.Sns.MessageId || `${type}:${messageId}:${notification?.mail?.timestamp || ""}`), at = nowIso(), status = type === "delivery" ? "delivered" : type === "bounce" ? "bounced" : "complained";
+      const transaction = [
+        { Put: { TableName: tableName, Item: { ...providerEventKey(eventId), eventType: { S: type }, providerMessageHash: { S: providerMessageKey(messageId).tourId.S }, processedAt: { S: at } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Update: { TableName: tableName, Key: sendKey(item.artistId.S, item.sendId.S), UpdateExpression: "SET #status = :status, providerEventAt = :at", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":status": { S: status }, ":at": { S: at } } } }
+      ];
+      if (type !== "delivery") transaction.push({ Put: { TableName: tableName, Item: { userId: { S: SUPPRESSION_OWNER }, tourId: { S: item.recipientHash.S }, reason: { S: type === "bounce" ? "permanent_bounce" : "provider_complaint" }, source: { S: "ses_event" }, optedOutAt: { S: at } } } });
+      try { await db.send(new TransactWriteItemsCommand({ TransactItems: transaction })); processed += 1; }
+      catch (error) {
+        const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: providerEventKey(eventId), ConsistentRead: true }));
+        if (duplicate.Item) { duplicates += 1; continue; }
+        throw error;
+      }
+    }
+    return { processed, ignored, duplicates };
+  }
 
   async function stripe(path, options = {}) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
@@ -520,6 +553,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       const sentAt = nowIso();
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
         { Update: { TableName: tableName, Key: key, UpdateExpression: "SET #status = :sent, sentAt = :at", ConditionExpression: "#status = :accepted", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sent": { S: "sent" }, ":accepted": { S: "provider_accepted" }, ":at": { S: sentAt } } } },
+        { Put: { TableName: tableName, Item: { ...providerMessageKey(delivery.messageId), artistId: { S: userId }, sendId: { S: id }, recipientHash: { S: normalizedRecipientHash(to) }, createdAt: { S: sentAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
         { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD sentEmails :one, reservedCredits :minusOne SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":minusOne": { N: "-1" }, ":at": { S: sentAt } } } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(userId, sentAt, `${id}-sent`), entryType: { S: "email_sent" }, delta: { N: "0" }, status: { S: "settled" }, description: { S: `Booking email sent to ${String(venue.name || "venue").slice(0, 160)}` }, createdAt: { S: sentAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
       ] }));
@@ -542,6 +576,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
   }
 
   return async function handle(event) {
+    const providerResponse = await providerEvents(event);
+    if (providerResponse) return providerResponse;
     const method = event?.requestContext?.http?.method, path = event?.rawPath;
     if (method === "POST" && path === "/tour-manager/stripe/webhook") return webhook(event);
     if (method === "POST" && path === "/tour-manager/checkout") return checkout(event);
@@ -558,4 +594,4 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
   };
 }
 
-export { normalizedRecipientHash, outreachHourKey, outreachWindow, recipientCooldownKey, suppressionKey, optOutTokenHash, optOutFooter };
+export { normalizedRecipientHash, outreachHourKey, outreachWindow, recipientCooldownKey, suppressionKey, providerMessageKey, providerEventKey, optOutTokenHash, optOutFooter };

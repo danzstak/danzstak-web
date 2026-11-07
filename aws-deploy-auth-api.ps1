@@ -11,6 +11,7 @@ $Bundle = Join-Path $env:TEMP "danzstak-auth-api.zip"
 $Stage = Join-Path $env:TEMP ("danzstak-auth-api-" + [guid]::NewGuid().ToString("N"))
 $Policy = Join-Path $env:TEMP "danzstak-auth-api-policy.json"
 $Environment = Join-Path $env:TEMP "danzstak-auth-api-environment.json"
+$SesEventDestination = Join-Path $env:TEMP "danzstak-tour-manager-ses-events.json"
 $ApiId = "0872gqal4m"
 $AuthIntegrationId = "5pipi5a"
 $ToursTable = "DANZSTAK-Tours"
@@ -117,7 +118,10 @@ try {
         Sid = "SupportMailNotification"
         Effect = "Allow"
         Action = @("ses:SendEmail")
-        Resource = "arn:aws:ses:us-west-1:635288116224:identity/danzstak.com"
+        Resource = @(
+          "arn:aws:ses:us-west-1:635288116224:identity/danzstak.com",
+          "arn:aws:ses:us-west-1:635288116224:configuration-set/DanzStakTourManager"
+        )
       },
       @{
         Sid = "TourRoutePlanning"
@@ -195,6 +199,50 @@ try {
     throw "Auth API deployment status is $($configuration.LastUpdateStatus)."
   }
 
+  $sesTopicArn = aws sns create-topic --region $Region --name DANZSTAK-TourManager-SES-Events --query TopicArn --output text
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$sesTopicArn)) { throw "Tour Manager SES event topic could not be created or resolved." }
+  $lambdaArn = [string]$configuration.FunctionArn
+  $subscriptionArn = aws sns list-subscriptions-by-topic --region $Region --topic-arn $sesTopicArn --query "Subscriptions[?Protocol=='lambda' && Endpoint=='$lambdaArn'].SubscriptionArn | [0]" --output text
+  if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event subscription could not be inspected." }
+  if (-not $subscriptionArn -or $subscriptionArn -eq 'None') {
+    $previousErrorPreference = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourManagerSesEvents --action lambda:InvokeFunction --principal sns.amazonaws.com --source-arn $sesTopicArn --output json 2>$null | Out-Null
+    $permissionExit = $LASTEXITCODE
+    $ErrorActionPreference = $previousErrorPreference
+    if ($permissionExit -ne 0) {
+      $policyText = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
+      if ($LASTEXITCODE -ne 0 -or $policyText -notmatch 'AllowTourManagerSesEvents') { throw "Tour Manager SES event invoke permission failed." }
+    }
+    aws sns subscribe --region $Region --topic-arn $sesTopicArn --protocol lambda --notification-endpoint $lambdaArn --return-subscription-arn --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event Lambda subscription failed." }
+  }
+  $previousErrorPreference = $ErrorActionPreference
+  $ErrorActionPreference = "SilentlyContinue"
+  aws sesv2 get-configuration-set --region $Region --configuration-set-name DanzStakTourManager --output json 2>$null | Out-Null
+  $configurationSetExit = $LASTEXITCODE
+  $ErrorActionPreference = $previousErrorPreference
+  if ($configurationSetExit -ne 0) {
+    aws sesv2 create-configuration-set --region $Region --configuration-set-name DanzStakTourManager --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES configuration set creation failed." }
+  }
+  @{
+    Enabled = $true
+    MatchingEventTypes = @("DELIVERY", "BOUNCE", "COMPLAINT")
+    SnsDestination = @{ TopicArn = [string]$sesTopicArn }
+  } | ConvertTo-Json -Depth 5 -Compress | Set-Content -LiteralPath $SesEventDestination -Encoding ascii
+  $previousErrorPreference = $ErrorActionPreference
+  $ErrorActionPreference = "SilentlyContinue"
+  aws sesv2 get-configuration-set-event-destinations --region $Region --configuration-set-name DanzStakTourManager --query "EventDestinations[?Name=='BookingDeliveryEvents'] | [0]" --output json 2>$null | Out-Null
+  $eventDestinationExit = $LASTEXITCODE
+  $ErrorActionPreference = $previousErrorPreference
+  if ($eventDestinationExit -ne 0) { throw "Tour Manager SES event destination could not be inspected." }
+  aws sesv2 update-configuration-set-event-destination --region $Region --configuration-set-name DanzStakTourManager --event-destination-name BookingDeliveryEvents --event-destination "file://$SesEventDestination" --output json 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    aws sesv2 create-configuration-set-event-destination --region $Region --configuration-set-name DanzStakTourManager --event-destination-name BookingDeliveryEvents --event-destination "file://$SesEventDestination" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event destination configuration failed." }
+  }
+
   $routes = aws apigatewayv2 get-routes --region $Region --api-id $ApiId --output json | ConvertFrom-Json
   if ($LASTEXITCODE -ne 0) { throw "Tour route API could not be inspected." }
   $routeId = ($routes.Items | Where-Object { $_.RouteKey -eq "POST /tour/route" } | Select-Object -First 1).RouteId
@@ -256,6 +304,7 @@ try {
   Remove-Item -LiteralPath $Bundle -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $Policy -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $Environment -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $SesEventDestination -Force -ErrorAction SilentlyContinue
   $resolvedStage = [IO.Path]::GetFullPath($Stage)
   $resolvedTemp = [IO.Path]::GetFullPath($env:TEMP).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
   if ($resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) {
