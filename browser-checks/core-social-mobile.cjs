@@ -69,7 +69,15 @@ function fixture(pathname) {
           }));
           assert.ok(notificationTargets.every(target => target.width >= 44 && target.height >= 44), `${width}px notification actions must retain 44px touch targets: ${JSON.stringify(notificationTargets)}`);
         }
-        if (name === "chat") assert.equal((await page.locator(".conversation-unread").textContent())?.trim(), "2", `${width}px unread chat badge is missing`);
+        if (name === "chat") {
+          assert.equal((await page.locator(".conversation-unread").textContent())?.trim(), "2", `${width}px unread chat badge is missing`);
+          assert.equal(await page.locator("body > .chat-header").evaluate(element => getComputedStyle(element).display), "none", `${width}px SYNC must use one phone header, not the desktop header plus the list header`);
+          const contactName = await page.locator(".chat-contact-name").first().evaluate(element => ({ text: element.textContent?.trim(), clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
+          assert.equal(contactName.text, "Tour Friend", `${width}px recent contact name changed unexpectedly`);
+          assert.ok(contactName.scrollWidth <= contactName.clientWidth + 1, `${width}px recent contact name is visibly clipped: ${JSON.stringify(contactName)}`);
+          const videoCall = await page.locator("#newVideoCall").boundingBox();
+          assert.ok(videoCall && videoCall.width >= 44 && videoCall.height >= 44 && videoCall.x >= 0 && videoCall.x + videoCall.width <= width, `${width}px video-call action must remain visible and touchable`);
+        }
         const geometry = await page.evaluate(() => ({
           width: innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
