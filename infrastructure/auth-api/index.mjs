@@ -129,12 +129,17 @@ const tourManagerBilling = createTourManagerBilling({
   tableName: toursTable,
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
-  sendBookingEmail: async ({ userId, artistName, venueName, to, subject, message }) => {
+  sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message }) => {
     const replyTo = await accountForSub(userId);
     if (!replyTo) throw new Error("Account email could not be verified");
     const result = await ses.send(new SendEmailCommand({
       FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
       ConfigurationSetName: "DanzStakTourManager",
+      EmailTags: [
+        { Name: "DanzStakArtistId", Value: userId },
+        { Name: "DanzStakSendId", Value: sendId },
+        { Name: "DanzStakRecipientHash", Value: createHash("sha256").update(String(to).trim().toLowerCase()).digest("hex") }
+      ],
       Destination: { ToAddresses: [to] },
       ReplyToAddresses: [replyTo],
       Content: { Simple: {

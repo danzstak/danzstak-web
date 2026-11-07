@@ -105,7 +105,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       const type = String(notification?.eventType || notification?.notificationType || "").toLowerCase();
       const messageId = String(notification?.mail?.messageId || "").trim();
       if (!/^[a-zA-Z0-9._-]{8,200}$/.test(messageId) || !["delivery", "bounce", "complaint"].includes(type)) { ignored += 1; continue; }
-      const mapping = await db.send(new GetItemCommand({ TableName: tableName, Key: providerMessageKey(messageId), ConsistentRead: true })), item = mapping.Item;
+      const mapping = await db.send(new GetItemCommand({ TableName: tableName, Key: providerMessageKey(messageId), ConsistentRead: true })), tags = notification?.mail?.tags || {}, item = mapping.Item || { artistId: { S: String(tags.DanzStakArtistId?.[0] || "") }, sendId: { S: String(tags.DanzStakSendId?.[0] || "") }, recipientHash: { S: String(tags.DanzStakRecipientHash?.[0] || "") } };
       if (!validUserId(item?.artistId?.S) || !/^[a-zA-Z0-9_-]{16,100}$/.test(item?.sendId?.S || "") || !/^[a-f0-9]{64}$/.test(item?.recipientHash?.S || "")) { ignored += 1; continue; }
       if (type === "bounce" && String(notification?.bounce?.bounceType || "").toLowerCase() !== "permanent") { ignored += 1; continue; }
       const eventId = String(record.Sns.MessageId || `${type}:${messageId}:${notification?.mail?.timestamp || ""}`), at = nowIso(), status = type === "delivery" ? "delivered" : type === "bounce" ? "bounced" : "complained";
@@ -546,7 +546,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     let providerAccepted = false;
     try {
       await db.send(new UpdateItemCommand({ TableName: tableName, Key: key, UpdateExpression: "SET #status = :sending, sendingAt = :at", ConditionExpression: "#status = :reserved", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sending": { S: "sending" }, ":reserved": { S: "reserved" }, ":at": { S: nowIso() } } }));
-      const delivery = await sendBookingEmail({ userId, artistName, venueName: venue.name, to, subject, message });
+      const delivery = await sendBookingEmail({ userId, sendId: id, artistName, venueName: venue.name, to, subject, message });
       if (!delivery?.messageId) throw new Error("Email provider did not accept the message");
       await db.send(new UpdateItemCommand({ TableName: tableName, Key: key, UpdateExpression: "SET #status = :accepted, providerAcceptedAt = :at, providerMessageId = :messageId", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":accepted": { S: "provider_accepted" }, ":sending": { S: "sending" }, ":at": { S: nowIso() }, ":messageId": { S: delivery.messageId } } }));
       providerAccepted = true;

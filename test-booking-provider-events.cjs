@@ -57,11 +57,17 @@ const fs = require("node:fs");
   assert.deepEqual(complained, { processed: 1, ignored: 0, duplicates: 0 });
   assert.equal(records.get(sendKey).status.S, "complained");
   assert.equal(records.get(`TOUR_MANAGER#GLOBAL_SUPPRESSION|${recipientHash}`).reason.S, "provider_complaint");
+  const taggedProviderId = "010201-tagged-provider-message", taggedSendId = "provider-tagged-send-2", taggedSendKey = `${artistId}|TOUR_MANAGER#EMAIL_SEND#${taggedSendId}`;
+  records.set(taggedSendKey, { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${taggedSendId}` }, status: { S: "sent" } });
+  const tagged = await service(sns("sns-tagged-delivery", { eventType: "Delivery", mail: { messageId: taggedProviderId, timestamp: mail.timestamp, tags: { DanzStakArtistId: [artistId], DanzStakSendId: [taggedSendId], DanzStakRecipientHash: [recipientHash] } }, delivery: {} }));
+  assert.deepEqual(tagged, { processed: 1, ignored: 0, duplicates: 0 }, "SES tags must close the event-before-correlation-record race");
+  assert.equal(records.get(taggedSendKey).status.S, "delivered");
   assert.doesNotMatch(providerMessageKey(providerId).tourId.S, /provider-message/);
   assert.equal(providerEventKey("sns-event").tourId.S.length, 64);
 
   const index = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8"), deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8"), client = fs.readFileSync("assets/booking-selections.js", "utf8"), page = fs.readFileSync("booking-selections.html", "utf8"), worker = fs.readFileSync("service-worker.js", "utf8");
   assert.match(index, /ConfigurationSetName: "DanzStakTourManager"/);
+  assert.match(index, /Name: "DanzStakRecipientHash"/);
   assert.match(index, /EventSource === "aws:sns"/);
   assert.match(deploy, /DANZSTAK-TourManager-SES-Events/);
   assert.match(deploy, /MatchingEventTypes = @\("DELIVERY", "BOUNCE", "COMPLAINT"\)/);
