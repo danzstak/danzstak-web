@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Evidence-backed confirmed booking dates — 2026-11-07
+
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
+
+- A venue can now use its secure, accountless reply page to distinguish **Offer a date** from **Confirm a date**. Both require a real date and a written message; a general reply, expression of interest or pass cannot create a calendar commitment.
+- An offered date remains **Date proposed**. A venue-confirmed date presents **Review confirmed date** in the artist's private SYNC booking thread. The artist must explicitly approve recording it before Tour Manager saves it as **Confirmed**.
+- The venue's written reply and date are stored as confirmation evidence. Request-body tampering cannot upgrade an offer to a confirmation, another artist cannot access the reply, and the existing optimistic workspace revision prevents a stale device from overwriting newer Tour Manager work.
+- Confirmed dates flow through the existing Tour Manager calendar while proposed dates remain visibly unconfirmed. No email was auto-sent, no booking was inferred from mere interest and no real venue or artist record was changed during automated verification.
+- Functional/security evidence: the complete `test-regressions.ps1` gate passes. Expanded booking-reply coverage verifies missing-date rejection, structured confirmation, evidence persistence, forged-upgrade rejection, proposal preservation, duplicate prevention and account isolation.
+- Visual evidence: `browser-checks/booking-reply.cjs` and `browser-checks/booking-sync.cjs` pass at 320, 360, 390, 414, 430 and 1366px. Captures in `docs/screenshots/booking-reply/` and `docs/screenshots/booking-sync/` were inspected for wording, overflow, spacing and touch controls.
+- Review evidence: all required GitHub checks passed for implementation commit `14b6725dd9ecb981f4ae44813bebbe733773535a` in PR `#127`; it merged as `d67b3275057cef226f3f40d6ced229ea00a22655`.
+- Production release: AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `973` succeeded for the exact merge commit. The guarded `DANZSTAK-Auth-API` deployment completed successfully and Lambda reports `Successful` / `Active` with last modification `2026-11-07T11:02:25Z`.
+- Post-deployment evidence: no-cache probes confirm booking reply v2, booking SYNC v4 and `danzstak-shell-v710` on `https://danzstak.com`. Both six-width browser matrices pass directly against production; one initial live navigation timeout was repeated successfully and is not hidden from this report.
+
 ## Creator remove-here / delete-everywhere — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
