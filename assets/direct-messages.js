@@ -22,6 +22,12 @@ const messageMedia = document.getElementById("messageMedia");
 const messageCamera = document.getElementById("messageCamera");
 const messageMediaPreview = document.getElementById("messageMediaPreview");
 const messageList = document.getElementById("messageList");
+const messageSelectionToolbar = document.getElementById("messageSelectionToolbar");
+const messageSelectionCount = document.getElementById("messageSelectionCount");
+const copySelectedMessagesButton = document.getElementById("copySelectedMessages");
+const cancelMessageSelectionButton = document.getElementById("cancelMessageSelection");
+const messageCopyFallbackLabel = document.getElementById("messageCopyFallbackLabel");
+const messageCopyFallback = document.getElementById("messageCopyFallback");
 const sendButton = messageForm?.querySelector('button[type="submit"]');
 const textButton = document.getElementById("startText");
 const conversationActions = [textButton, document.getElementById("startPhone"), document.getElementById("startVideo")].filter(Boolean);
@@ -85,6 +91,7 @@ const pendingMessageSends = new Set();
 let retryMessageSend = null;
 let nextMessageCursor = "";
 const shownMessages = new Set();
+const selectedMessages = new Map();
 let cachedConversations = [];
 let activeCanContact = false;
 let reactionTimer = null;
@@ -388,6 +395,72 @@ async function copyDirectMessage(item, message) {
   } finally { clearTimeout(timeout); }
 }
 
+function updateMessageSelection() {
+  const count = selectedMessages.size;
+  if (messageSelectionToolbar) messageSelectionToolbar.hidden = count === 0;
+  if (messageSelectionCount) messageSelectionCount.textContent = messageFormat("{count} selected", { count });
+  if (messageCopyFallbackLabel) messageCopyFallbackLabel.hidden = true;
+  if (messageCopyFallback) messageCopyFallback.value = "";
+  for (const item of messageList?.querySelectorAll(".message[data-message-id]") || []) {
+    const selected = selectedMessages.has(item.dataset.messageId);
+    item.classList.toggle("is-selected", selected);
+    const baseLabel = item.dataset.baseAriaLabel || item.getAttribute("aria-label") || "";
+    item.dataset.baseAriaLabel = baseLabel;
+    item.setAttribute("aria-label", selected ? `${messageTranslate("Selected")}. ${baseLabel}` : baseLabel);
+  }
+}
+
+function clearMessageSelection({ focusMessage = false } = {}) {
+  const firstId = selectedMessages.keys().next().value;
+  selectedMessages.clear();
+  updateMessageSelection();
+  if (focusMessage && firstId) messageList?.querySelector(`[data-message-id="${CSS.escape(firstId)}"]`)?.focus();
+}
+
+function toggleMessageSelection(item, message) {
+  if (!message.content) return;
+  if (selectedMessages.has(message.messageId)) selectedMessages.delete(message.messageId);
+  else selectedMessages.set(message.messageId, message);
+  document.querySelector(".message-reaction-palette")?.remove();
+  updateMessageSelection();
+  if (selectedMessages.size) item.focus();
+}
+
+function selectedMessageCopyText() {
+  return [...selectedMessages.values()]
+    .sort((left, right) => String(left.createdAt || "").localeCompare(String(right.createdAt || "")) || String(left.messageId).localeCompare(String(right.messageId)))
+    .map(message => {
+      const speaker = message.senderEmail === currentEmail ? messageTranslate("You") : activeContactName;
+      const time = new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return `${speaker} · ${time}\n${String(message.content || "")}`;
+    })
+    .join("\n\n");
+}
+
+async function copySelectedDirectMessages() {
+  const count = selectedMessages.size;
+  const content = selectedMessageCopyText();
+  if (!count || !content) return;
+  let timeout;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await Promise.race([
+      navigator.clipboard.writeText(content),
+      new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error("Clipboard unavailable")), 3000); })
+    ]);
+    clearMessageSelection();
+    callStatus.textContent = messageFormat("Copied {count} messages.", { count });
+  } catch {
+    if (messageCopyFallback && messageCopyFallbackLabel) {
+      messageCopyFallback.value = content;
+      messageCopyFallbackLabel.hidden = false;
+      messageCopyFallback.focus();
+      messageCopyFallback.select();
+    }
+    callStatus.textContent = messageTranslate("Copy is unavailable. The selected messages are ready for manual copying.");
+  } finally { clearTimeout(timeout); }
+}
+
 function openMessageReactions(item, message, x, y, focusFirst = false) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
@@ -402,6 +475,14 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
     copy.setAttribute("aria-label", messageTranslate("Copy message"));
     copy.addEventListener("click", async () => { await copyDirectMessage(item, message); palette.remove(); item.focus(); });
     palette.appendChild(copy);
+    const select = document.createElement("button");
+    select.type = "button";
+    select.className = "message-select-choice";
+    select.textContent = messageTranslate("Select message");
+    select.title = messageTranslate("Select message");
+    select.setAttribute("aria-label", messageTranslate("Select message"));
+    select.addEventListener("click", () => toggleMessageSelection(item, message));
+    palette.appendChild(select);
   }
   if (message.senderEmail === currentEmail && message.content) {
     const edit = document.createElement("button");
@@ -483,6 +564,7 @@ function openConversation(conversation, { updateHistory = true } = {}) {
 }
 
 function closeConversation({ focusList = false, preserveDraft = true } = {}) {
+  clearMessageSelection();
   const closingContact = contactInput.value.trim().toLowerCase();
   if (closingContact && preserveDraft) saveChatDraft(closingContact, messageInput.value);
   conversationVersion += 1;
@@ -614,6 +696,7 @@ function directMessageItem(message) {
   const sharedUrl = firstSafeMessageUrl(message.content);
   if (sharedUrl) item.appendChild(messageLinkPreview(sharedUrl));
   item.setAttribute("aria-label", messageAccessibleSummary(message, mine));
+  item.dataset.baseAriaLabel = item.getAttribute("aria-label");
   const meta = document.createElement("span");
   meta.className = "message-meta";
   meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · " + messageTranslate("edited") : "");
@@ -629,11 +712,21 @@ function directMessageItem(message) {
   item.addEventListener("pointerdown", event => { if (event.target.closest?.(".message-text")) return; reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
   item.addEventListener("contextmenu", event => { if (event.target.closest?.(".message-text")) return; event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
+  item.addEventListener("click", event => {
+    if (!selectedMessages.size || event.target.closest?.("a,button,input,textarea,video")) return;
+    event.preventDefault();
+    toggleMessageSelection(item, message);
+  });
   item.addEventListener("keydown", event => {
+    if (selectedMessages.size && (event.key === " " || event.key === "Enter")) { event.preventDefault(); toggleMessageSelection(item, message); return; }
     if (mine && message.content && event.key.toLowerCase() === "e" && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); openMessageEditor(item, message); return; }
     if (!isReactionKeyboardShortcut(event)) return;
     event.preventDefault(); const rect = item.getBoundingClientRect(); openMessageReactions(item, message, rect.left + rect.width / 2, rect.top, true);
   });
+  if (selectedMessages.has(message.messageId)) {
+    item.classList.add("is-selected");
+    item.setAttribute("aria-label", `${messageTranslate("Selected")}. ${item.dataset.baseAriaLabel}`);
+  }
   return item;
 }
 
@@ -681,6 +774,14 @@ function pendingMessageItem(content, mediaFile) {
   item.appendChild(meta);
   return item;
 }
+
+copySelectedMessagesButton?.addEventListener("click", copySelectedDirectMessages);
+cancelMessageSelectionButton?.addEventListener("click", () => clearMessageSelection({ focusMessage: true }));
+document.addEventListener?.("keydown", event => {
+  if (event.key !== "Escape" || !selectedMessages.size || document.querySelector(".message-reaction-palette")) return;
+  event.preventDefault();
+  clearMessageSelection({ focusMessage: true });
+});
 
 function renderEarlierMessagesButton() {
   messageList.querySelector(".load-earlier-messages")?.remove();
