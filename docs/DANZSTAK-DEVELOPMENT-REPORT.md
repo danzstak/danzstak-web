@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## SYNC conversation-row alignment — 2026-11-07
+
+Status: **IN REVIEW — TESTED LOCALLY, NOT MERGED OR DEPLOYED**.
+
+- The mobile social audit found that SYNC rendered a 46px contact avatar inside a 42px grid track. At phone widths the avatar spilled into the name column, so the contact name and profile image visibly overlapped.
+- SYNC now reserves a matching 46px phone avatar track with a 10px text gap. Desktop keeps its compact 42px avatar while gaining an 8px text gap. Long names and message previews still truncate with an ellipsis, and timestamp/unread state remains in its own column. Voice/video controls no longer leak into the Chats list on wider screens; they remain available as full touch targets in the dedicated Calls section and active conversation header.
+- `test-sync-conversation-row.cjs` protects the matching track, gaps, Calls-only action state and versioned stylesheet. `browser-checks/sync-conversation-row.cjs` exercises a deliberately long contact name, long preview and 99 unread messages at 320, 360, 390, 414, 430, 768 and 1366px; it verifies non-overlap, containment, ellipsis, Chats/Calls control state, touch targets and page width.
+- Functional and integration evidence: the complete `test-regressions.ps1` gate passes after the correction, including messaging persistence/race/read-state coverage, 13-page smoke validation and infrastructure validation.
+- Visual evidence: all seven captures in `docs/screenshots/sync-conversation-row/` were inspected. The contact avatar, copy, timestamp and unread count remain separate at every tested width without reducing the familiar SYNC information density.
+- Prepared PWA asset: SYNC CSS v8. The service worker remains on `danzstak-shell-v714` and uses network-first delivery for styles.
+- Deployment status: not deployed. Production remains on main commit `a175137cf6409465260ef4adc7e85e066cb08e82`; Issue #50's release gate remains in force.
+
 ## Invite a friend — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.

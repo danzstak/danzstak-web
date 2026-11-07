@@ -19,7 +19,7 @@
 .sync-sections button.active{background:var(--sync-surface)!important;color:var(--sync-blue)!important;box-shadow:0 1px 3px #10182818!important}
 .sync-section-note{min-height:18px;margin:8px 2px;color:var(--sync-muted);font-size:.76rem;line-height:1.35}
 .chat-sidebar{background:var(--sync-surface)}
-.conversation-row{border-bottom:1px solid #eef1f5}
+.conversation-row{border-bottom:1px solid #eef1f5}.conversation-user{gap:2px 8px!important}.conversation-call-actions{display:none}
 .conversation-row[data-sync-section="calls"] .conversation-user small{font-size:0}
 .conversation-row[data-sync-section="calls"] .conversation-user small::after{content:"Available for a secure SYNC call";font-size:.76rem}
 .conversation-row[data-sync-section="contacts"] .conversation-user small{font-size:0}
@@ -108,7 +108,7 @@ body[data-call-mode] .media-controls .hangup-button{background:#df3347!important
   .chat-search{min-height:42px!important}
   .sync-section-note{margin-bottom:5px}
   .conversation-row{min-height:66px}
-  .conversation-user{min-height:64px!important;padding:7px 4px!important}
+  .conversation-user{grid-template-columns:46px minmax(0,1fr) auto!important;gap:2px 10px!important;min-height:64px!important;padding:7px 4px!important}
   .conversation-list-avatar,.conversation-avatar-wrap{width:46px!important;height:46px!important}
   .conversation-call-actions{gap:1px!important}
   .conversation-call{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important}
