@@ -2,7 +2,7 @@
 
 ## Professional stage / booth plot and input list — 2026-11-07
 
-Status: **IMPLEMENTED AND VERIFIED ON HOSTED DEVELOPMENT STAGING; PRODUCTION NOT YET VERIFIED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
 
 - The free EPK builder now supports Band, DJ, Electronic live act and Solo act types. Bands and solo artists receive a structured **Stage plot**; DJs and electronic acts receive a structured **Booth plot**. Artists place up to 24 labeled microphones, instruments, backline, monitors, playback, power and DJ equipment using professional upstage/downstage orientation.
 - Artists can add up to 48 ordered input channels with source, microphone/DI/line/power connection, stand type, 48V requirement and bounded production notes. The public EPK renders a compact plot and input list only when the artist explicitly enables the existing public-technical choice.
@@ -11,7 +11,9 @@ Status: **IMPLEMENTED AND VERIFIED ON HOSTED DEVELOPMENT STAGING; PRODUCTION NOT
 - Functional/security evidence: `test-epk-production.cjs`, existing EPK domain/builder/look tests, JavaScript syntax checks and the complete `test-regressions.ps1` gate pass. Coverage includes act-specific labels, bounded records, invalid enum filtering, privacy, safe rendering, 44px controls and PWA cache `danzstak-shell-v705`.
 - Visual evidence: `browser-checks/epk-production.cjs` passes public Band and DJ plots at 390px and 1366px plus authenticated builder interaction at 320, 360, 390, 414, 430 and 1366px. Captures in `docs/screenshots/epk-production/` were inspected for overflow, grid orientation, list readability, touch targets and print-preview composition.
 - Review/staging evidence: all three GitHub checks passed for implementation commit `eea404b660ef0ea8c6f2b36c9bfd9f608329620d` in PR `#116`. AWS Amplify DEVELOPMENT branch `codex/epk-booking-attach`, job `1`, succeeded in `us-west-1`. No-cache probes confirm EPK production CSS/JS v1, EPK JS v15 and `danzstak-shell-v705` at `https://codex-epk-booking-attach.d31oovi2mos5iz.amplifyapp.com`; the complete hosted browser matrix passes against that build.
-- Honest boundary: local and hosted development evidence are complete for this slice. It is not marked deployed until the reviewed commit merges, the matching API package deploys through the guarded workflow, Amplify production succeeds and live PWA/API verification passes.
+- Production release: PR `#116` merged as `62f94cb7d785d8d71195ac1f995684ed44c40363`. AWS Amplify main job `962` succeeded in `us-west-1`, and the matching `DANZSTAK-Auth-API` package deployed successfully through the guarded repository script.
+- Post-deployment evidence: no-cache probes confirm EPK production CSS/JS v1, EPK JS v15 and `danzstak-shell-v705` on `https://danzstak.com`. The complete Band/DJ public and six-width authenticated-builder browser matrix passes directly against production, and the protected EPK API rejects unauthenticated requests with HTTP 401. Browser-controlled fixtures verified layout without changing a real artist's EPK.
+- Honest boundary: this slice delivers the structured production plot and input list inside the EPK builder and public/print output. It does not yet add a freeform drag canvas, per-item stage dimensions, patch-sheet export separate from the EPK, or the planned dedicated one-page/full press PDF generator.
 
 ## Artist-selectable public EPK looks — 2026-11-07
 
