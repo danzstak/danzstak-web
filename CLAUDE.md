@@ -40,7 +40,9 @@ grow a real scene, or bring their people over from a billionaire platform?* If n
 
 ## Pivot (the owner's name for leaving billionaire platforms)
 
-Pivot is the whole move off Facebook and other billionaire-owned platforms onto DanzStak: import your Facebook data, pick what to bring, invite your people, post an "I pivoted to DanzStak" card on your old accounts, and export or delete everything any time. Use the name Pivot in the product and in code/docs (not "Moving Day").
+Tagline: **“Pivot off those platforms.”**
+
+Pivot is the move off Facebook and every other billionaire-owned platform (Instagram, X, TikTok and the rest) onto DanzStak: import your data, pick what to bring, invite your people, post an "I pivoted to DanzStak" card on your old accounts, and export or delete everything any time. Facebook import exists today; other platforms are added as Pivot steps using each platform's own data export, with no platform APIs. Use the name Pivot in the product and in code/docs (not "Moving Day").
 
 ## Priorities (in order)
 

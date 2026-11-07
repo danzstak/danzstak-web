@@ -38,6 +38,8 @@ When two directives conflict, the newer dated one wins; if unclear, stop and ask
    - Step 4, you're free: show export and delete-everywhere, so leaving DanzStak is just as easy.
    - Progress shows on HQ; the user can skip or come back any time. No nagging, streaks or countdowns.
    - Rename "Moving Day" to Pivot everywhere.
+   - Pivot guides: show users how to get off each platform. One plain, phone-first guide per platform: how to request and download your data, which format to pick (JSON, all time, high media quality), how long it takes, then "upload it here". Order: Facebook, Instagram, X, TikTok, YouTube (Google Takeout). Guides live in one data file, show a "last checked" date, and are re-checked against the real platform before each release, because menus change. No platform APIs, no logins to their sites: the user downloads their own file.
+   - Bring your timeline: import the user's own posts, photos and videos into their DanzStak timeline with original dates, private by default, in date order. Reuse the Facebook importer pattern (preview, pick, batch privacy, missing-media decisions). Add importers one platform at a time, Instagram first, then X. Each importer is built and tested against a real export file from that platform. Music audio files in an export are never imported (no audio hosting); videos are fine under the video rules.
 6. Then the rest of instructions/ in its own execution order (video playback, feed, Dailies/The Roll, Facebook import, Events, content ownership, Privacy Shield...), one page per PR.
 
 Later phase (planned, build after there are users):
