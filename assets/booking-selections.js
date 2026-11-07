@@ -137,7 +137,7 @@
   function renderDashboard() {
     const statuses = venues.map(bookingStatus), outreach = window.danzstakTourManagerBilling?.outreach || [];
     document.getElementById("tmSelected").textContent = String(venues.length);
-    document.getElementById("tmSent").textContent = String(outreach.filter(item => item.status === "sent").length);
+    document.getElementById("tmSent").textContent = String(outreach.filter(item => ["provider_accepted", "sent", "delivered", "bounced", "complained"].includes(item.status)).length);
     document.getElementById("tmReplies").textContent = String(statuses.filter(value => ["Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined"].includes(value)).length);
     document.getElementById("tmConfirmed").textContent = String(statuses.filter(value => value === "Confirmed").length);
     document.getElementById("tmDeclined").textContent = String(statuses.filter(value => value === "Declined").length);
@@ -338,6 +338,10 @@
     const shareEvidence = document.createElement("p"), venueShares = outreachShares.filter(item => item.venueKey === identity(venue) && item.revoked !== true), openCount = venueShares.reduce((sum, item) => sum + Number(item.openCount || 0), 0), lastOpenedAt = venueShares.map(item => item.lastOpenedAt).filter(Boolean).sort().at(-1);
     shareEvidence.className = "epk-open-evidence";
     shareEvidence.textContent = openCount ? `Private EPK opened ${openCount} time${openCount === 1 ? "" : "s"}${lastOpenedAt ? ` · last opened ${new Intl.DateTimeFormat(undefined, { dateStyle:"medium", timeStyle:"short" }).format(new Date(lastOpenedAt))}` : ""}. Counts only; DanzStak does not identify the viewer.` : "Private venue EPK not opened yet.";
+    const latestDelivery = (window.danzstakTourManagerBilling?.outreach || []).filter(item => item.venueKey === identity(venue)).sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))[0];
+    const deliveryEvidence = document.createElement("p");
+    deliveryEvidence.className = "booking-delivery-evidence";
+    deliveryEvidence.textContent = latestDelivery ? ({ delivered:"Email delivered by the provider.", bounced:"Email permanently bounced; this contact is now suppressed.", complained:"The recipient reported this email; this contact is now suppressed.", sent:"Email accepted by the provider; delivery is not confirmed yet.", provider_accepted:"Email accepted by the provider; final ledger settlement is pending." }[latestDelivery.status] || `Email status: ${String(latestDelivery.status || "unknown").replaceAll("_", " ")}.`) : "No booking email sent yet.";
     const genres = artist().genre.toLowerCase().split(",").map(s => s.trim()).filter(Boolean);
     const categories = (venue.categories || []).map(s => String(s).toLowerCase());
     const matches = genres.filter(g => categories.some(c => c === g || c.split(/[^a-z0-9-]+/).includes(g)));
@@ -345,7 +349,7 @@
     if (["Confirmed", "Declined"].includes(bookingStatus(venue))) {
       const closed = document.createElement("p");
       closed.textContent = bookingStatus(venue) === "Confirmed" ? "Confirmed with evidence. Keep the agreed fee, production terms, and promoter confirmation attached to this record." : "Lead closed. Change its status if you want to reopen outreach.";
-      section.append(fit, shareEvidence, closed);
+      section.append(fit, shareEvidence, deliveryEvidence, closed);
       return section;
     }
     const builder = document.createElement("fieldset"), legend = document.createElement("legend"), templateLabel = document.createElement("label"), template = document.createElement("select"), rangeLabel = document.createElement("label"), dateEnd = document.createElement("input"), drawLabel = document.createElement("label"), draw = document.createElement("input"), setLabel = document.createElement("label"), setDetails = document.createElement("input"), downloadLabel = document.createElement("label"), allowPdf = document.createElement("input"), apply = document.createElement("button");
@@ -423,7 +427,7 @@
     });
     const note = document.createElement("small");
     note.textContent = email ? "Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Replies go to your account email." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
-    section.append(fit, shareEvidence, builder, subjectLabel, label, button, note);
+    section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, note);
     return section;
   }
 
