@@ -6,7 +6,7 @@ const path = require("node:path");
 const { chromium } = require("playwright");
 
 const baseUrl = process.env.DANZSTAK_LOCAL_URL || "http://127.0.0.1:8017";
-const widths = [320, 360, 375, 390, 414, 430, 768, 1024];
+const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
 const memberId = "00000000-0000-4000-8000-000000000001";
 const output = path.resolve(__dirname, "..", "docs", "screenshots", "foreground-call-ringtone");
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
