@@ -1560,7 +1560,14 @@ function renderWorkspace(name) {
     search.placeholder = feedTranslate("Search people");
     search.setAttribute("aria-label", feedTranslate("Search people"));
     searchLabel.append(searchIcon, search);
-    toolbar.appendChild(searchLabel);
+    const invite = document.createElement("button");
+    invite.type = "button";
+    invite.className = "invite-friend-button";
+    invite.dataset.inviteFriend = "";
+    invite.textContent = feedTranslate("Invite a friend");
+    invite.setAttribute("aria-label", feedTranslate("Invite a friend"));
+    toolbar.append(searchLabel, invite);
+    globalThis.danzstakInvite?.bind(toolbar);
     const tabs = document.createElement("div");
     tabs.className = "friends-directory-tabs";
     tabs.setAttribute("role", "tablist");
