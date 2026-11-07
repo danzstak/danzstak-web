@@ -136,25 +136,21 @@
     return row;
   }
 
-  window.danzstakMountPeopleFinder = function mountPeopleFinder(container) {
+  window.danzstakMountPeopleFinder = function mountPeopleFinder(container, options = {}) {
     if (!container || container.querySelector(".friend-name-finder")) return;
     const finder = document.createElement("section");
     finder.className = "friend-name-finder";
-    finder.setAttribute("aria-labelledby", "friendNameFinderTitle");
-    const title = document.createElement("h3");
-    title.id = "friendNameFinderTitle";
-    title.textContent = "Find people";
-    const instructions = document.createElement("p");
-    instructions.className = "muted";
-    instructions.textContent = "Type their name. They do not need to be online.";
+    finder.setAttribute("aria-label", "Find friends");
     const label = document.createElement("label");
     label.className = "friend-name-search";
     const labelText = document.createElement("span");
-    labelText.textContent = "Name";
+    labelText.className = "visually-hidden";
+    labelText.textContent = "Search people";
     const search = document.createElement("input");
     search.type = "search";
     search.autocomplete = "off";
-    search.placeholder = "Example: Sigmund";
+    search.placeholder = options.placeholder || "Example: Sigmund";
+    search.setAttribute("aria-label", "Search people by name");
     search.setAttribute("aria-describedby", "friendNameFinderStatus");
     const finderStatus = document.createElement("p");
     finderStatus.id = "friendNameFinderStatus";
@@ -163,7 +159,7 @@
     const results = document.createElement("div");
     results.className = "user-search-list friend-name-results";
     label.append(labelText, search);
-    finder.append(title, instructions, label, finderStatus, results);
+    finder.append(label, finderStatus, results);
     container.appendChild(finder);
 
     let finderGeneration = 0;

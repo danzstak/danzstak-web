@@ -11,6 +11,6 @@ assert.match(source, /name\.href = "profile\.html\?member=" \+ encodeURIComponen
 assert.match(source, /name\.setAttribute\("aria-label", "Open " \+ \(person\.name \|\| "DanzStak member"\) \+ " profile"\)/, "profile links announce their purpose without exposing account identifiers");
 assert.match(source, /body: JSON\.stringify\(\{ memberId: id \}\)/, "friend requests from search use opaque member IDs rather than email");
 assert.doesNotMatch(source, /body: JSON\.stringify\(\{ email:/, "member search never sends or requires an email address");
-assert.match(feed, /assets\/people-search\.js\?v=422/, "the live feed loads the current profile-link discovery behavior");
+assert.match(feed, /assets\/people-search\.js\?v=424/, "the live feed loads the current profile-link discovery behavior");
 
 console.log("People profile-link checks passed: every discoverable member can be opened and added through an opaque member ID.");

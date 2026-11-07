@@ -751,7 +751,8 @@ function renderWorkspace(name) {
     featurePanel.appendChild(workspace);
   }
   workspace.replaceChildren();
-  workspace.classList.remove("settings-workspace", "events-workspace", "groups-workspace");
+  workspace.classList.remove("settings-workspace", "events-workspace", "groups-workspace", "friends-workspace");
+  featureText.hidden = false;
   const saved = readSections();
 
   if (name === "Saved") {
@@ -1523,157 +1524,335 @@ function renderWorkspace(name) {
   }
 
   if (name === "Friends") {
-    featureText.textContent = feedTranslate("Search by name or tap Add Friend beside someone online. Your friends stay listed when they are offline.");
-    const finderHost = document.createElement("div");
-    finderHost.className = "friend-finder-host";
-    workspace.appendChild(finderHost);
-    window.danzstakMountPeopleFinder?.(finderHost);
-    const onlineHeading = document.createElement("h3");
-    onlineHeading.className = "friends-section-heading";
-    onlineHeading.textContent = feedTranslate("Users online");
-    const onlineList = document.createElement("div");
-    onlineList.className = "friend-discovery-list";
-    onlineList.setAttribute("aria-live", "polite");
-    const onlineLoading = document.createElement("p");
-    onlineLoading.className = "muted";
-    onlineLoading.textContent = feedTranslate("Finding users online…");
-    onlineList.appendChild(onlineLoading);
-    const friendsHeading = document.createElement("h3");
-    friendsHeading.className = "friends-section-heading";
-    friendsHeading.textContent = feedTranslate("Your friends");
-    workspace.append(onlineHeading, onlineList, friendsHeading);
-    const list = document.createElement("div");
-    list.className = "friends-workspace-list";
-    list.setAttribute("role", "region");
-    list.setAttribute("aria-label", feedTranslate("Friends"));
-    list.setAttribute("aria-live", "polite");
-    list.setAttribute("aria-busy", "true");
+    workspace.classList.add("friends-workspace");
+    featureText.hidden = true;
+    featureText.textContent = "";
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "friends-toolbar";
+    const searchLabel = document.createElement("label");
+    searchLabel.className = "friends-filter";
+    const searchText = document.createElement("span");
+    searchText.className = "visually-hidden";
+    searchText.textContent = feedTranslate("Search friends");
+    const search = document.createElement("input");
+    search.type = "search";
+    search.autocomplete = "off";
+    search.placeholder = feedTranslate("Search friends");
+    search.setAttribute("aria-label", feedTranslate("Search friends"));
+    searchLabel.append(searchText, search);
+    toolbar.appendChild(searchLabel);
+
+    const tabs = document.createElement("div");
+    tabs.className = "friends-tabs";
+    tabs.setAttribute("role", "tablist");
+    tabs.setAttribute("aria-label", feedTranslate("Friend views"));
+    const content = document.createElement("div");
+    content.className = "friends-content";
+    const state = { view: "all", friends: [], incoming: [], directory: [], presenceAvailable: false, shown: 24 };
+    const views = [
+      ["all", "All Friends"],
+      ["online", "Online"],
+      ["requests", "Requests"],
+      ["find", "Find Friends"]
+    ];
+    const tabButtons = new Map();
+
+    function tabLabel(value, label) {
+      const count = value === "all" ? state.friends.length : value === "online" ? state.friends.filter(person => person.online === true).length : value === "requests" ? state.incoming.length : 0;
+      return count && value !== "find" ? `${feedTranslate(label)} (${count})` : feedTranslate(label);
+    }
+
+    function profileHref(person) {
+      const memberId = String(person.memberId || "");
+      return /^[a-f0-9-]{36}$/.test(memberId) ? "profile.html?member=" + encodeURIComponent(memberId) : "";
+    }
+
+    function friendAvatar(person, className = "friend-avatar") {
+      const displayName = person.name || feedTranslate("DanzStak member");
+      const avatar = person.picture ? document.createElement("img") : document.createElement("span");
+      avatar.className = className;
+      if (person.picture) {
+        avatar.src = person.picture;
+        avatar.alt = "";
+        avatar.loading = "lazy";
+        avatar.referrerPolicy = "no-referrer";
+        window.danzstakIdentityMedia?.install(avatar, person);
+      } else {
+        avatar.textContent = displayName.charAt(0).toUpperCase();
+        avatar.setAttribute("aria-hidden", "true");
+      }
+      return avatar;
+    }
+
+    function friendIdentity(person, statusText) {
+      const href = profileHref(person);
+      const identity = document.createElement(href ? "a" : "div");
+      identity.className = "friend-directory-identity";
+      if (href) identity.href = href;
+      const avatarWrap = document.createElement("span");
+      avatarWrap.className = "friend-directory-avatar";
+      avatarWrap.appendChild(friendAvatar(person));
+      const presence = document.createElement("span");
+      presence.className = person.online === true ? "friend-presence online" : "friend-presence";
+      presence.setAttribute("aria-hidden", "true");
+      avatarWrap.appendChild(presence);
+      const details = document.createElement("span");
+      details.className = "friend-details";
+      const displayName = document.createElement("strong");
+      displayName.textContent = person.name || feedTranslate("DanzStak member");
+      displayName.setAttribute("data-no-translate", "");
+      const status = document.createElement("small");
+      status.textContent = statusText;
+      details.append(displayName, status);
+      identity.append(avatarWrap, details);
+      if (href) identity.setAttribute("aria-label", `${displayName.textContent}, ${statusText}. ${feedTranslate("Open profile")}`);
+      return identity;
+    }
+
+    function friendRow(person) {
+      const row = document.createElement("article");
+      row.className = "friend-directory-row";
+      row.dataset.friendName = String(person.name || "").toLocaleLowerCase();
+      const status = person.online === true ? feedTranslate("Online") : state.presenceAvailable ? feedTranslate("Offline") : feedTranslate("Status unavailable");
+      const memberId = String(person.memberId || "");
+      if (/^[a-f0-9-]{36}$/.test(memberId)) row.dataset.memberId = memberId;
+      const actions = document.createElement("div");
+      actions.className = "friend-directory-actions";
+      const message = document.createElement("button");
+      message.type = "button";
+      message.className = "friend-sync-action";
+      message.textContent = feedTranslate("Message (SYNC)");
+      message.setAttribute("aria-label", `${feedTranslate("Message (SYNC)")}: ${person.name || feedTranslate("DanzStak member")}`);
+      message.addEventListener("click", () => openMessageDrawer(person.email));
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "friend-more-action";
+      more.textContent = feedTranslate("More");
+      more.setAttribute("aria-label", feedFormat("More options for {name}", { name: person.name || feedTranslate("DanzStak member") }));
+      more.addEventListener("click", () => removeAcceptedFriend(memberId, more));
+      more.disabled = !/^[a-f0-9-]{36}$/.test(memberId);
+      actions.append(message, more);
+      row.append(friendIdentity(person, status), actions);
+      return row;
+    }
+
+    function requestRow(person) {
+      const row = document.createElement("article");
+      row.className = "friend-directory-row friend-request-row";
+      row.dataset.friendName = String(person.name || "").toLocaleLowerCase();
+      const actions = document.createElement("div");
+      actions.className = "friend-request-actions";
+      for (const [accept, label, className] of [[true, "Confirm", "primary"], [false, "Delete", "secondary"]]) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = className;
+        button.textContent = feedTranslate(label);
+        button.addEventListener("click", async () => {
+          for (const action of actions.querySelectorAll("button")) action.disabled = true;
+          try {
+            const response = await friendActionFetch("/friends/respond", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: person.email, accept }) });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || feedTranslate("Friend request could not be updated."));
+            globalThis.danzstakShowFeedback?.(feedTranslate(accept ? "You are now friends." : "Friend request declined."));
+            renderWorkspace("Friends");
+          } catch (error) {
+            for (const action of actions.querySelectorAll("button")) action.disabled = false;
+            globalThis.danzstakShowFeedback?.(error.message, { urgent: true });
+          }
+        });
+        actions.appendChild(button);
+      }
+      row.append(friendIdentity(person, feedTranslate("Sent you a friend request")), actions);
+      return row;
+    }
+
+    function updateTabStates() {
+      for (const [value, label] of views) {
+        const button = tabButtons.get(value);
+        if (!button) continue;
+        button.textContent = tabLabel(value, label);
+        button.setAttribute("aria-selected", String(value === state.view));
+        button.tabIndex = value === state.view ? 0 : -1;
+      }
+    }
+
+    function renderCurrentView() {
+      if (!isCurrentWorkspace()) return;
+      content.replaceChildren();
+      updateTabStates();
+      searchLabel.hidden = state.view === "find" || state.view === "requests";
+      if (state.view === "find") {
+        const finderHost = document.createElement("div");
+        finderHost.className = "friend-finder-host";
+        content.appendChild(finderHost);
+        window.danzstakMountPeopleFinder?.(finderHost, { placeholder: feedTranslate("Example: Sigmund") });
+        finderHost.querySelector("input")?.focus({ preventScroll: true });
+        return;
+      }
+      const query = search.value.trim().toLocaleLowerCase();
+      let people = state.view === "requests" ? state.incoming : state.view === "online" ? state.friends.filter(person => person.online === true) : state.friends;
+      if (query) people = people.filter(person => String(person.name || "").toLocaleLowerCase().includes(query) || String(person.handle || "").toLocaleLowerCase().includes(query));
+      const list = document.createElement("div");
+      list.className = "friends-directory-list";
+      list.setAttribute("role", "list");
+      list.setAttribute("aria-live", "polite");
+      const visible = state.view === "all" ? people.slice(0, state.shown) : people;
+      for (const person of visible) {
+        const row = state.view === "requests" ? requestRow(person) : friendRow(person);
+        row.setAttribute("role", "listitem");
+        list.appendChild(row);
+      }
+      if (!visible.length) {
+        const empty = document.createElement("div");
+        empty.className = "friends-empty-state";
+        const title = document.createElement("strong");
+        title.textContent = query ? feedTranslate("No matching friends") : state.view === "online" ? feedTranslate("No friends are online right now") : state.view === "requests" ? feedTranslate("No friend requests") : feedTranslate("No friends yet");
+        const detail = document.createElement("span");
+        detail.textContent = query ? feedTranslate("Try another name.") : state.view === "requests" ? feedTranslate("New requests will appear here.") : feedTranslate("Use Find Friends to connect with people on DanzStak.");
+        empty.append(title, detail);
+        list.appendChild(empty);
+      }
+      content.appendChild(list);
+      if (state.view === "all" && people.length > state.shown) {
+        const loadMore = document.createElement("button");
+        loadMore.type = "button";
+        loadMore.className = "secondary friends-load-more";
+        loadMore.textContent = feedFormat("Show more friends ({count} remaining)", { count: people.length - state.shown });
+        loadMore.addEventListener("click", () => { state.shown += 24; renderCurrentView(); });
+        content.appendChild(loadMore);
+      }
+    }
+
+    window.danzstakApplyFriendsDirectoryPresence = users => {
+      if (!isCurrentWorkspace() || !Array.isArray(users)) return;
+      const presenceById = new Map(users
+        .filter(person => /^[a-f0-9-]{36}$/.test(String(person?.memberId || "")))
+        .map(person => [String(person.memberId), person.online === true]));
+      if (!presenceById.size) return;
+      state.presenceAvailable = true;
+      state.friends = state.friends.map(person => presenceById.has(String(person.memberId || ""))
+        ? { ...person, online: presenceById.get(String(person.memberId)) }
+        : person);
+      if (state.view === "find") {
+        updateTabStates();
+        return;
+      }
+      renderCurrentView();
+    };
+
+    for (const [value, label] of views) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "friends-tab";
+      button.textContent = feedTranslate(label);
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-selected", String(value === state.view));
+      button.tabIndex = value === state.view ? 0 : -1;
+      button.setAttribute("aria-controls", "friendsDirectoryContent");
+      button.addEventListener("click", () => { state.view = value; state.shown = 24; renderCurrentView(); });
+      tabButtons.set(value, button);
+      tabs.appendChild(button);
+    }
+    tabs.addEventListener("keydown", event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const current = views.findIndex(([value]) => value === state.view);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? views.length - 1 : (current + (event.key === 'ArrowRight' ? 1 : -1) + views.length) % views.length;
+      state.view = views[next][0];
+      renderCurrentView();
+      tabButtons.get(state.view).focus();
+    });
+    search.addEventListener("input", renderCurrentView);
+    content.id = "friendsDirectoryContent";
+    content.setAttribute("role", "tabpanel");
+    toolbar.appendChild(tabs);
+    workspace.append(toolbar, content);
+
     const loading = document.createElement("p");
-    loading.className = "muted";
+    loading.className = "muted friends-loading";
     loading.setAttribute("role", "status");
     loading.textContent = feedTranslate("Loading friends…");
-    list.appendChild(loading);
-    workspace.appendChild(list);
+    content.appendChild(loading);
     const friendsController = new AbortController();
     const friendsTimeout = setTimeout(() => friendsController.abort(), 10000);
     Promise.resolve(typeof refreshPresenceHeartbeat === "function" ? refreshPresenceHeartbeat() : null)
       .then(() => Promise.allSettled([
         fetch("https://api.danzstak.com/friends", { credentials: "include", cache: "no-store", signal: friendsController.signal }),
-        fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: friendsController.signal })
-      ])).then(async ([friendsResult, directoryResult]) => {
+        fetch("https://api.danzstak.com/calls/directory", { credentials: "include", cache: "no-store", signal: friendsController.signal }),
+        fetch("https://api.danzstak.com/notifications", { credentials: "include", cache: "no-store", signal: friendsController.signal })
+      ])).then(async ([friendsResult, directoryResult, notificationsResult]) => {
       const friendsResponse = friendsResult.status === "fulfilled" ? friendsResult.value : null;
       const directoryResponse = directoryResult.status === "fulfilled" ? directoryResult.value : null;
-      let presenceAvailable = directoryResponse?.ok === true;
       let directoryUsers = [];
-      if (presenceAvailable) {
+      state.presenceAvailable = directoryResponse?.ok === true;
+      if (state.presenceAvailable) {
         try { directoryUsers = (await directoryResponse.json()).users || []; }
-        catch { presenceAvailable = false; }
+        catch { state.presenceAvailable = false; }
       }
       const directoryPeople = new Map(directoryUsers
         .filter(user => user.email)
         .map(user => [String(user.email).toLowerCase(), user]));
       if (!isCurrentWorkspace()) return;
-      renderOnlineFriendList(onlineList, [...directoryPeople.values()], presenceAvailable);
-      list.replaceChildren();
-      list.setAttribute("aria-busy", "false");
       if (!friendsResponse?.ok) {
-        const failure = document.createElement("p");
-        failure.className = "muted";
+        content.replaceChildren();
+        const failure = document.createElement("div");
+        failure.className = "friends-empty-state";
         failure.setAttribute("role", "alert");
-        failure.textContent = friendsResult.status === "rejected" && friendsResult.reason?.name === "AbortError"
-          ? feedTranslate("Friends took too long to load.")
-          : feedTranslate("Friends could not be loaded.");
+        const failureText = document.createElement("strong");
+        failureText.textContent = friendsResult.status === "rejected" && friendsResult.reason?.name === "AbortError" ? feedTranslate("Friends took too long to load.") : feedTranslate("Friends could not be loaded.");
         const retry = document.createElement("button");
         retry.type = "button";
         retry.className = "secondary";
         retry.textContent = feedTranslate("Retry friends");
         retry.addEventListener("click", () => renderWorkspace("Friends"));
-        list.append(failure, retry);
+        failure.append(failureText, retry);
+        content.appendChild(failure);
         return;
       }
-      const friends = (await friendsResponse.json()).friends || [];
+      const friendsData = await friendsResponse.json();
+      const friends = friendsData.friends || [];
       if (!isCurrentWorkspace()) return;
-      if (!friends.length) {
-        const empty = document.createElement("p");
-        empty.className = "muted";
-        empty.textContent = feedTranslate("No accepted friends yet.");
-        list.appendChild(empty);
-      }
-      for (const friend of friends) {
+      state.friends = friends.map(friend => {
         const directoryFriend = directoryPeople.get(String(friend.email || "").toLowerCase()) || {};
-        const person = {
+        return {
           ...directoryFriend,
           ...friend,
           name: friend.name || directoryFriend.name,
-          picture: friend.picture || directoryFriend.picture
+          picture: friend.picture || directoryFriend.picture,
+          online: directoryFriend.online === true
         };
-        const row = document.createElement("div");
-        row.className = "friend-workspace-row";
-        const friendMemberId = String(person.memberId || "");
-        const hasProfileRoute = /^[a-f0-9-]{36}$/.test(friendMemberId);
-        if (hasProfileRoute) row.setAttribute("data-member-id", friendMemberId);
-        const link = document.createElement(hasProfileRoute ? "a" : "div");
-        link.className = "friend-card friend-card-large";
-        if (hasProfileRoute) {
-          link.href = "profile.html?member=" + encodeURIComponent(friendMemberId);
-        }
-        const avatar = person.picture ? document.createElement("img") : document.createElement("span");
-        avatar.className = "friend-avatar";
-        if (person.picture) { avatar.src = person.picture; avatar.alt = ""; avatar.referrerPolicy = "no-referrer"; window.danzstakIdentityMedia?.install(avatar, person); }
-        else { avatar.textContent = (person.name || feedTranslate("DanzStak member")).charAt(0).toUpperCase(); avatar.setAttribute("aria-hidden", "true"); }
-        const details = document.createElement("span");
-        details.className = "friend-details";
-        const displayName = document.createElement("strong");
-        displayName.textContent = person.name || feedTranslate("DanzStak member");
-        const status = document.createElement("small");
-        const friendIsOnline = directoryFriend.online === true;
-        status.textContent = feedTranslate(friendIsOnline ? "Online" : presenceAvailable ? "Offline" : "Status unavailable");
-        if (hasProfileRoute) {
-          link.dataset.friendName = displayName.textContent;
-          link.setAttribute("aria-label", `${displayName.textContent}, ${status.textContent}. ${feedTranslate("Open profile")}`);
-        }
-        details.append(displayName, status);
-        const presence = document.createElement("span");
-        presence.className = friendIsOnline ? "friend-presence online" : "friend-presence";
-        presence.setAttribute("aria-hidden", "true");
-        presence.title = status.textContent;
-        link.append(avatar, details, presence);
-        const message = document.createElement("button");
-        message.type = "button";
-        message.className = "friend-message-action";
-        message.textContent = feedTranslate("Message");
-        message.dataset.icon = "chat";
-        message.setAttribute("aria-label", `${feedTranslate("Message")}: ${displayName.textContent}`);
-        message.title = `${feedTranslate("Message")}: ${displayName.textContent}`;
-        message.addEventListener("click", () => openMessageDrawer(person.email));
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.className = "friend-remove-action";
-        remove.textContent = feedTranslate("Remove friend");
-        remove.dataset.icon = "trash";
-        remove.setAttribute("aria-label", feedFormat("Remove {name} from your friends", { name: displayName.textContent }));
-        remove.title = remove.getAttribute("aria-label");
-        remove.addEventListener("click", () => removeAcceptedFriend(friendMemberId, remove));
-        const actions = document.createElement("div");
-        actions.className = "friend-workspace-actions";
-        actions.append(message, remove);
-        row.append(link, actions);
-        list.appendChild(row);
+      });
+      state.directory = directoryUsers;
+      const suppliedIncoming = Array.isArray(friendsData.incoming) ? friendsData.incoming : [];
+      const notificationResponse = notificationsResult.status === "fulfilled" ? notificationsResult.value : null;
+      let notificationRequests = [];
+      if (!suppliedIncoming.length && notificationResponse?.ok) {
+        try { notificationRequests = ((await notificationResponse.json()).notifications || []).filter(item => item.type === "friend_request"); } catch { /* Requests remain available through online directory state. */ }
       }
+      const incomingByEmail = new Map();
+      for (const person of [...suppliedIncoming, ...directoryUsers.filter(person => person.friendStatus === "incoming")]) if (person.email) incomingByEmail.set(String(person.email).toLowerCase(), { ...(incomingByEmail.get(String(person.email).toLowerCase()) || {}), ...person });
+      for (const request of notificationRequests) {
+        const email = String(request.email || "").toLowerCase();
+        if (email) incomingByEmail.set(email, { email, name: feedTranslate("DanzStak member"), ...(directoryPeople.get(email) || {}), ...(incomingByEmail.get(email) || {}) });
+      }
+      state.incoming = [...incomingByEmail.values()];
+      renderCurrentView();
     }).catch(error => {
       if (!isCurrentWorkspace()) return;
-      list.setAttribute("aria-busy", "false");
-      list.replaceChildren();
-      const failure = document.createElement("p");
-      failure.className = "muted";
+      content.replaceChildren();
+      const failure = document.createElement("div");
+      failure.className = "friends-empty-state";
       failure.setAttribute("role", "alert");
-      failure.textContent = error.name === "AbortError" ? feedTranslate("Friends took too long to load.") : error.message;
+      const message = document.createElement("strong");
+      message.textContent = error.name === "AbortError" ? feedTranslate("Friends took too long to load.") : error.message;
       const retry = document.createElement("button");
       retry.type = "button";
       retry.className = "secondary";
       retry.textContent = feedTranslate("Retry");
       retry.addEventListener("click", () => renderWorkspace("Friends"));
-      list.append(failure, retry);
+      failure.append(message, retry);
+      content.appendChild(failure);
     }).finally(() => clearTimeout(friendsTimeout));
     return;
   }
@@ -4168,21 +4347,25 @@ document.querySelectorAll("#feed .post").forEach(post => { if (post !== reelsRai
 
 function applyFriendWorkspacePresence(users) {
   if (!Array.isArray(users)) return;
+  if (typeof window.danzstakApplyFriendsDirectoryPresence === "function") {
+    window.danzstakApplyFriendsDirectoryPresence(users);
+    return;
+  }
   const states = new Map(users
     .filter(member => /^[a-f0-9-]{36}$/.test(String(member?.memberId || "")))
     .map(member => [String(member.memberId), member.online === true]));
-  document.querySelectorAll(".friend-workspace-row[data-member-id]").forEach(row => {
+  document.querySelectorAll(".friend-directory-row[data-member-id]").forEach(row => {
     if (!states.has(row.dataset.memberId)) return;
     const online = states.get(row.dataset.memberId);
     const status = row.querySelector(".friend-details small");
     const dot = row.querySelector(".friend-presence");
     const presenceLabel = feedTranslate(online ? "Online" : "Offline");
     if (status) status.textContent = presenceLabel;
-    const profileLink = row.querySelector("a.friend-card-large");
-    if (profileLink) profileLink.setAttribute("aria-label", `${profileLink.dataset.friendName || feedTranslate("DanzStak member")}, ${presenceLabel}. ${feedTranslate("Open profile")}`);
+    const profileLink = row.querySelector("a.friend-directory-identity");
+    if (profileLink) profileLink.setAttribute("aria-label", `${profileLink.querySelector("strong")?.textContent || feedTranslate("DanzStak member")}, ${presenceLabel}. ${feedTranslate("Open profile")}`);
     if (dot) {
       dot.classList.toggle("online", online);
-      dot.title = presenceLabel;
+      dot.setAttribute("aria-label", presenceLabel);
     }
   });
 }
@@ -4192,7 +4375,7 @@ window.addEventListener("message", event => {
 });
 let friendPresenceRefresh = null;
 window.addEventListener("danzstak-presence-updated", () => {
-  if (!document.querySelector(".friend-workspace-row[data-member-id]") || friendPresenceRefresh) return;
+  if (!document.querySelector(".friend-directory-row[data-member-id]") || friendPresenceRefresh) return;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   friendPresenceRefresh = fetch("https://api.danzstak.com/calls/directory", {

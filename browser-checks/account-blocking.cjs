@@ -43,8 +43,8 @@ function commonFixture(pathname) {
         return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(commonFixture(url.pathname)) });
       });
       await friendPage.goto(`${baseUrl}/feed.html?view=friends`, { waitUntil: "domcontentloaded" });
-      await friendPage.locator(".friend-remove-action").waitFor({ state: "visible" });
-      await friendPage.locator(".friend-remove-action").click();
+      await friendPage.locator(".friend-more-action").waitFor({ state: "visible" });
+      await friendPage.locator(".friend-more-action").click();
       const choices = friendPage.locator(".choice-action-dialog .choice-action-button");
       assert.equal(await choices.count(), 2, `${width}px friend privacy dialog must offer remove and block`);
       await friendPage.getByRole("button", { name: "Block member", exact: true }).click();

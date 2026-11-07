@@ -374,7 +374,7 @@ foreach ($messageDrawerFocusControl in @('let messageDrawerPreviousFocus = null'
 if (-not $feedEnhancements.Contains('presence.setAttribute("aria-hidden", "true")')) {
   Add-Failure 'Friends: decorative presence dot duplicates the visible online status for assistive technology'
 }
-foreach ($friendsWorkspaceControl in @('list.setAttribute("aria-label", feedTranslate("Friends"))', 'list.setAttribute("aria-busy", "true")', 'message.setAttribute("aria-label", `${feedTranslate("Message")}: ${displayName.textContent}`)', 'message.addEventListener("click", () => openMessageDrawer(person.email))')) {
+foreach ($friendsWorkspaceControl in @('list.setAttribute("role", "list")', 'loading.setAttribute("role", "status")', 'message.setAttribute("aria-label", `${feedTranslate("Message (SYNC)")}: ${person.name || feedTranslate("DanzStak member")}`)', 'message.addEventListener("click", () => openMessageDrawer(person.email))')) {
   if (-not $feedEnhancements.Contains($friendsWorkspaceControl)) { Add-Failure "Friends: workspace loading or quick-message behavior is missing: $friendsWorkspaceControl" }
 }
 foreach ($friendsWorkspaceRecovery in @('const friendsController = new AbortController()', 'setTimeout(() => friendsController.abort(), 10000)', 'signal: friendsController.signal', 'Friends took too long to load.', 'retry.addEventListener("click", () => renderWorkspace("Friends"))', 'clearTimeout(friendsTimeout)')) {

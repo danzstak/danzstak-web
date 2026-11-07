@@ -1,63 +1,15 @@
-"use strict";
-
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const vm = require("node:vm");
+const { readFileSync } = require("node:fs");
 
-const source = fs.readFileSync("assets/feed-enhancements.js", "utf8");
-const start = source.indexOf("function renderOnlineFriendList(");
-const end = source.indexOf("\nasync function groupFetch", start);
-assert.ok(start >= 0 && end > start, "the online-friend renderer must remain independently testable");
+const source = readFileSync("assets/feed-enhancements.js", "utf8");
+const start = source.indexOf('if (name === "Friends")');
+const end = source.indexOf('if (["Photos", "Videos"].includes(name))', start);
+const workspace = source.slice(start, end);
 
-function element(tagName) {
-  return {
-    tagName: String(tagName).toUpperCase(),
-    children: [],
-    className: "",
-    textContent: "",
-    attributes: {},
-    append(...children) { this.children.push(...children); },
-    appendChild(child) { this.children.push(child); return child; },
-    replaceChildren(...children) { this.children = children; },
-    setAttribute(name, value) { this.attributes[name] = value; }
-  };
-}
+assert.match(workspace, /state\.presenceAvailable = directoryResponse\?\.ok === true/, "presence failure is represented independently");
+assert.match(workspace, /person\.online === true \? feedTranslate\("Online"\) : state\.presenceAvailable \? feedTranslate\("Offline"\) : feedTranslate\("Status unavailable"\)/, "a failed presence provider never falsely labels friends offline");
+assert.match(workspace, /if \(!friendsResponse\?\.ok\)[\s\S]*Friends could not be loaded\.[\s\S]*Retry friends/, "friend-list failures have a clear retry state");
+assert.match(workspace, /notificationResponse\?\.ok[\s\S]*friend_request/, "incoming request recovery uses the existing notification source when the expanded response is unavailable");
+assert.match(workspace, /suppliedIncoming[\s\S]*directoryUsers\.filter\(person => person\.friendStatus === "incoming"\)/, "incoming requests merge API and live-directory states without duplicates");
 
-const context = vm.createContext({
-  document: { createElement: element },
-  feedTranslate: value => value,
-  feedFormat: (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), key),
-  encodeURIComponent
-});
-vm.runInContext(source.slice(start, end), context);
-
-const unavailable = element("div");
-context.renderOnlineFriendList(unavailable, [], false);
-assert.equal(unavailable.children[0].attributes.role, "status");
-assert.match(unavailable.children[0].textContent, /unavailable/i,
-  "a failed presence request must not claim that nobody is online");
-
-const empty = element("div");
-context.renderOnlineFriendList(empty, [], true);
-assert.match(empty.children[0].textContent, /No other users are online/i,
-  "a successful empty presence response should retain the honest empty state");
-
-const online = element("div");
-context.renderOnlineFriendList(online, [{
-  memberId: "11111111-1111-4111-a111-111111111111",
-  name: "Liana",
-  online: true,
-  friendStatus: "outgoing"
-}], true);
-assert.equal(online.children.length, 1);
-assert.equal(online.children[0].children[1].textContent, "Liana");
-assert.equal(online.children[0].children[2].textContent, "Requested");
-
-const workspace = source.slice(source.indexOf('if (name === "Friends")'), source.indexOf('if (["Photos", "Videos"]'));
-assert.match(workspace,
-  /renderOnlineFriendList\(onlineList, \[\.\.\.directoryPeople\.values\(\)\], presenceAvailable\);[\s\S]*if \(!friendsResponse\?\.ok\)/,
-  "online discovery must render before an independent friends-list failure is handled");
-assert.match(workspace, /Friends could not be loaded\.[\s\S]*Retry friends/,
-  "the accepted-friends failure needs its own clear retry action");
-
-console.log("Friends workspace resilience checks passed: online discovery and accepted friends fail independently with truthful status.");
+console.log("Friends workspace resilience checks passed: presence, friends, and requests degrade independently with truthful states.");
