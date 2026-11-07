@@ -96,6 +96,18 @@ A feature should hand off to the next one, not sit alone as a separate page.
 - Phone first — bands use it from the van.
 - Build this layout in steps; do not rewrite every page at once. Start with navigation + HQ, then Tour, then EPK.
 
+## Visual direction: 80% familiar, 20% DanzStak
+
+Familiar (about 80%). People coming from Facebook must know how to get around on day one. Keep the patterns they already know: top bar with search, notifications and messages (SYNC); left menu on desktop, bottom tabs on phones; center column for the main content; profile with cover, avatar and tabs; posts with like, comment and share; standard icons in standard places. Do not invent new navigation patterns.
+
+DanzStak (about 20%). What makes it ours, without changing where things are:
+- DanzStak colors, fonts and logo instead of stock social-network blue (it must not look like a phpFox template).
+- Music tools are visible in the main menu (HQ, Tour/Gigs, EPK, Scene) next to the familiar Feed (Mix).
+- Music-specific cards inside the familiar layout: shows as ticket stubs, releases as record sleeves, the EPK as a backstage laminate, tour dates as a poster list.
+- Genre looks on artist-owned public pages only (EPK, artist profile, gig pages).
+
+Genre looks. The platform frame (navigation, SYNC, settings, feed) stays one consistent DanzStak look so navigation never changes. Each artist's public EPK, profile and gig pages can wear a genre look the artist picks (Techno, Punk, Metal, House/EDM), using the colors and fonts from the earlier Task 3 email.
+
 ## How to work
 
 - **Plan before code.** For any change bigger than one file, propose a short plan and wait for approval.
