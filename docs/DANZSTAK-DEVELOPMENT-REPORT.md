@@ -2,7 +2,7 @@
 
 ## Venue date offers into Tour Manager — 2026-11-07
 
-Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION NOT YET CLAIMED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
 
 - A venue's secure `offer_date` reply now has an **Add proposed date to Tour** action in its SYNC booking thread. The server resolves the owner-scoped reply and saved venue, then copies the real offered date and reply text into that venue's Tour Manager record.
 - The saved state is deliberately **Date proposed**, never Confirmed. The interface says confirmation still requires written agreement, preserving the existing rule that an email or date offer alone is not a booking confirmation.
@@ -11,6 +11,8 @@ Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION NOT YET CLAIM
 - Visual evidence: `browser-checks/booking-sync.cjs` passes at 320, 360, 390, 414, 430 and 1366px. The captures in `docs/screenshots/booking-sync/` were inspected; the new 44px action fits inside the offer bubble without overlap or horizontal overflow.
 - Prepared release assets: booking SYNC v3, SYNC CSS v7 and PWA cache `danzstak-shell-v702`.
 - Review/staging evidence: all three required GitHub checks passed for implementation head `955d8d3ef7135858d03e46d4ae6709066b6ca52f`. AWS Amplify DEVELOPMENT branch `codex/booking-reply-to-tour`, job `1`, succeeded in `us-west-1`; the six-width SYNC booking matrix passes directly against the hosted build.
+- Production release: PR `#110` merged as `154c9729710af5b91b6ff4fa1042c0af2e23f775`. AWS Amplify main job `956` succeeded in `us-west-1`, and the matching `DANZSTAK-Auth-API` package deployed successfully through the guarded repository script.
+- Post-deployment evidence: no-cache probes confirm booking SYNC v3, SYNC CSS v7 and `danzstak-shell-v702` on `https://danzstak.com`; the six-width SYNC booking matrix passes directly against production. The new route rejects an unauthenticated same-origin request with HTTP 401. A signed-in physical date-save remains owner acceptance evidence; no customer or venue record was changed during verification.
 
 ## Artist-approved venue replies from SYNC — 2026-11-07
 
