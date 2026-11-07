@@ -5,7 +5,7 @@ Produce the first phone-accessible DANZSTAK PWA preview implementing the approve
 
 ## Design order (mobile first)
 1. Light-mode DANZSTAK header, familiar Facebook-like navigation, one-column feed and usable composer.
-2. **Dailies** horizontal strip above composer. Creator tile: dated film clapperboard at top, real signed-in user's profile photo visibly beneath, plus affordance, **SCENE 1 · TAKE N** with N = active unexpired Dailies. Dailies expire server-side 24h after creation.
+2. **Dailies** horizontal strip above composer. Creator tile: dated film clapperboard at top, real signed-in user's profile photo visibly beneath, plus affordance, **SCENE 1 · TAKE N** with N = the lifetime count of successfully uploaded Dailies videos. Photos do not increment it, and expiry does not decrement it. Dailies expire server-side 24h after creation.
 3. Four ordinary feed posts, then **Rough Cuts** horizontally swipeable video carousel, then resume normal vertical feed. Stable on pagination.
 4. Feed videos autoplay **muted** when eligible and visible, with a clear mute button. Exactly one player active; no overlapping audio across feed, Dailies and Rough Cuts. Respect browser/provider autoplay limitations.
 5. Permitted shares show small clickable **Shared from [Original Creator]** tag, like a friend/location tag, not a watermark. Respect Do Not Share/Protected Content.

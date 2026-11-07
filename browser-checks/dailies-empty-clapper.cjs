@@ -1,0 +1,75 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const { chromium } = require("playwright");
+
+const widths = [320, 360, 390, 414, 430];
+const output = path.resolve("docs/screenshots/dailies-clapper");
+fs.mkdirSync(output, { recursive: true });
+
+function fixture(url) {
+  const route = url.pathname;
+  if (route === "/auth/session") return { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111", email: "daily@danzstak.invalid" } };
+  if (route === "/profiles") return { profile: { memberId: "11111111-1111-4111-8111-111111111111", name: "Daily Creator", username: "dailycreator", picture: "http://127.0.0.1:8017/assets/danzstak-share-fb-v2.jpg" } };
+  if (route === "/stories") return { dailyTakeCount: 5, stories: [], reels: [] };
+  if (route === "/secure-posts") return { posts: [] };
+  if (route === "/friends") return { friends: [] };
+  if (["/calls/directory", "/people"].includes(route)) return { users: [] };
+  if (["/notifications", "/engagement-notifications"].includes(route)) return { notifications: [] };
+  if (route === "/news") return { articles: [] };
+  return {};
+}
+
+(async () => {
+  const browser = await chromium.launch({ channel: "msedge", headless: true });
+  try {
+    for (const width of widths) {
+      const context = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: "block" });
+      const page = await context.newPage();
+      const errors = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.route("https://api.danzstak.com/**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(new URL(route.request().url()))) }));
+      await page.goto("http://127.0.0.1:8017/feed.html?view=feed", { waitUntil: "domcontentloaded" });
+      await page.locator("#storiesLoading").waitFor({ state: "detached" });
+      await page.waitForTimeout(100);
+      const result = await page.evaluate(() => {
+        const tile = document.querySelector(".story-create");
+        const slate = document.querySelector(".daily-clapper");
+        const photo = document.querySelector(".story-create-avatar");
+        const tileRect = tile.getBoundingClientRect();
+        const slateRect = slate.getBoundingClientRect();
+        return {
+          overflow: document.documentElement.scrollWidth > innerWidth,
+          take: slate.querySelector("small").textContent,
+          scene: slate.querySelector("strong").textContent,
+          date: slate.querySelector("time").textContent,
+          slateVisible: slateRect.width > 0 && slateRect.height > 0 && slateRect.left >= tileRect.left && slateRect.right <= tileRect.right,
+          photoVisible: getComputedStyle(photo).backgroundImage !== "none",
+          tileHeight: tileRect.height,
+          tileTop: tileRect.top,
+          slateTop: slateRect.top,
+          slateHeight: slateRect.height,
+          slateZ: getComputedStyle(slate).zIndex,
+          slateOpacity: getComputedStyle(slate).opacity,
+          slateColor: getComputedStyle(slate).color,
+          slateBackground: getComputedStyle(slate).backgroundColor
+        };
+      });
+      assert.equal(errors.length, 0, `${width}px page errors: ${errors.join(" | ")}`);
+      assert.equal(result.overflow, false, `${width}px Dailies tile causes horizontal overflow`);
+      assert.equal(result.scene, "SCENE 1");
+      assert.equal(result.take, "TAKE 5");
+      assert.match(result.date, /2026/, `${width}px current date is not visible: ${result.date}`);
+      assert.equal(result.slateVisible, true, `${width}px clapper is clipped or hidden`);
+      assert.equal(result.photoVisible, true, `${width}px creator photo is missing below the clapper`);
+      assert.ok(result.tileHeight >= 140, `${width}px Dailies creator tile is too short`);
+      await page.screenshot({ path: path.join(output, `empty-dailies-${width}.png`) });
+      await context.close();
+    }
+    console.log(`Empty Dailies clapper checks passed at ${widths.join(", ")}px.`);
+  } finally {
+    await browser.close();
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });

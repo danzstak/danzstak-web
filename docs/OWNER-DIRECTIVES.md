@@ -42,7 +42,7 @@ The owner then performs the walkthrough and decides go or no-go. No go, no show.
 Phone and the desktop center column use this exact finite order:
 
 1. Header with search, notifications and SYNC.
-2. Dailies row. The first tile is the signed-in member's own photo with today's date and **SCENE 1 · TAKE N**; N is the server-authoritative lifetime count of distinct successfully uploaded DanzStak video assets. Uploaded Dailies count once, and expiry never lowers N.
+2. Dailies row. The first tile is the signed-in member's own photo with today's date and **SCENE 1 · TAKE N**; N is the server-authoritative lifetime count of that member's successfully uploaded Dailies videos. Each successful Dailies video counts once, photos do not increase the Take, and expiry never lowers N.
 3. Four chronological Mix posts.
 4. **The Roll** launcher row, opening the existing fullscreen swipe video player.
 5. Three chronological posts, then the newest unseen show review from the member's people and scene.
