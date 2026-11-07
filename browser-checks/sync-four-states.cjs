@@ -75,13 +75,17 @@ async function assertViewport(page, width, state) {
         ], canContact: true });
         if (endpoint === "/calls/devices") return json(route, { devices: [] });
         if (endpoint === "/calls/inbox") return json(route, { events: [] });
+        if (endpoint === "/tour-manager/outreach") return json(route, {
+          messages: [{ id: uuid(60), venueName: "The Signal Room", subject: "Booking request", status: "sent", sentAt: "2026-11-04T16:00:00.000Z" }],
+          replies: [{ id: uuid(61), outreachId: uuid(60), direction: "inbound", action: "interested", content: "We are interested. Which date works best?", createdAt: "2026-11-04T18:15:00.000Z" }]
+        });
         return json(route, {});
       });
       await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
       await page.locator(".conversation-user").first().waitFor({ state: "visible" });
       assert.equal(errors.length, 0, `${width}px browser errors: ${errors.join(" | ")}`);
       assert.equal((await page.locator("#messagesTitle").textContent()).trim(), "SYNC");
-      assert.deepEqual(await page.locator("[data-chat-filter]").allTextContents(), ["Chats", "Calls", "Contacts"]);
+      assert.deepEqual(await page.locator("[data-chat-filter]").allTextContents(), ["Chats", "Bookings", "Calls", "Contacts"]);
       for (const tab of await page.locator("[data-chat-filter]").all()) {
         const box = await tab.boundingBox();
         assert.ok(box && box.height >= 44, `${width}px SYNC section tabs must preserve a 44px touch target`);
@@ -89,6 +93,17 @@ async function assertViewport(page, width, state) {
         assert.equal(hit, true, `${width}px SYNC section tab must be hit-testable at its center`);
       }
       assert.equal(await page.locator(".conversation-row").count(), 1, "Chats must contain saved conversations, not every directory contact");
+      await page.getByRole("tab", { name: "Bookings" }).click();
+      await page.locator('.conversation-row[data-sync-section="bookings"]').first().waitFor();
+      assert.equal(await page.locator('.conversation-row[data-sync-section="bookings"]').count(), 1, "Bookings must expose venue replies as a dedicated SYNC thread");
+      await page.locator('.conversation-row[data-sync-section="bookings"] .conversation-user').click();
+      await page.locator("body.is-booking-thread").waitFor();
+      assert.equal((await page.locator("#conversationName").textContent()).trim(), "The Signal Room");
+      assert.equal(await page.locator("#bookingReplyForm").isVisible(), true, "booking threads must expose the artist-approved email reply composer");
+      assert.equal(await page.locator("#headerPhone").isVisible(), false, "external venue email threads must not expose a nonfunctional phone action");
+      assert.equal(await page.locator("#headerVideo").isVisible(), false, "external venue email threads must not expose a nonfunctional video action");
+      await page.locator("#closeConversation").click();
+      await page.locator('body[data-sync-screen="bookings"]:not(.is-conversation-open)').waitFor();
       await page.getByRole("tab", { name: "Calls" }).click();
       await page.locator('.conversation-row[data-sync-section="calls"]').first().waitFor();
       assert.equal(await page.locator('.conversation-row[data-sync-section="calls"]').count(), 2, "Calls must use real permitted contacts");
