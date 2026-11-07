@@ -78,7 +78,7 @@ const fs = require("node:fs");
   assert.match(html, /You do not need a DanzStak account/); assert.match(html, /noindex,nofollow,noarchive/);
   assert.match(client, /new URLSearchParams\(location\.hash\.slice\(1\)\)/); assert.match(client, /credentials:"omit"/); assert.match(client, /history\.replaceState/);
   assert.match(sync, /tour-manager\/outreach\/reply/); assert.match(sync, /tour-manager\/outreach\/use-date/); assert.match(sync, /Add proposed date to Tour/); assert.match(sync, /Confirm it only after you have written agreement/); assert.match(messages, /data-chat-filter="bookings"/);
-  assert.match(deploy, /POST \/tour-manager\/reply/); assert.match(deploy, /POST \/tour-manager\/outreach\/reply/); assert.match(deploy, /POST \/tour-manager\/outreach\/use-date/); assert.match(worker, /danzstak-shell-v703/); assert.match(worker, /booking-reply\.html/);
+  assert.match(deploy, /POST \/tour-manager\/reply/); assert.match(deploy, /POST \/tour-manager\/outreach\/reply/); assert.match(deploy, /POST \/tour-manager\/outreach\/use-date/); assert.match(worker, /danzstak-shell-v704/); assert.match(worker, /booking-reply\.html/);
   assert.match(optOutFooter(token), /booking-reply\.html#token=a{64}/);
   console.log("Booking reply checks passed: secure inbound actions, artist-reviewed outbound email, no duplicate sends, limits, isolation, routes, and PWA assets.");
 })().catch(error => { console.error(error); process.exit(1); });
