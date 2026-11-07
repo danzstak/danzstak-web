@@ -34,7 +34,7 @@ assert.match(css, /body\{padding-bottom:calc\(50px \+ env\(safe-area-inset-botto
 assert.match(css, /body\.profile-page\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "Profile must clear its fixed mobile navigation");
 assert.match(css, /\.messages-page:not\(\.is-conversation-open\)\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "the SYNC inbox must clear its fixed mobile navigation");
 assert.match(feedCss, /\.notification-actions :is\(button,a\)\{[^}]*min-width:44px;min-height:44px/, "notification actions must retain 44px phone targets");
-assert.match(worker, /danzstak-shell-v701/);
+assert.match(worker, /danzstak-shell-v702/);
 assert.match(worker, /\/assets\/mobile-design-system\.css/, "the installed PWA must cache the shared mobile system");
 
 for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=13/, `${file} must load the same mobile design system`);
@@ -48,7 +48,7 @@ for (const file of ["booking.html", "record-stores.html", "epk.html", "profile.h
   assert.match(html, /data-icon="menu"[^>]*aria-current="page"/, `${file} must identify its secondary Menu destination`);
 }
 assert.match(pages.find(([name]) => name === "messages.html")[1], /data-icon="chat"[^>]*aria-current="page"/, "Chat must identify its direct mobile destination");
-assert.match(pages.find(([name]) => name === "messages.html")[1], /assets\/sync\.css\?v=6/, "Chat must request the outbound booking-reply layout instead of a cached stylesheet");
+assert.match(pages.find(([name]) => name === "messages.html")[1], /assets\/sync\.css\?v=7/, "Chat must request the proposed-date booking layout instead of a cached stylesheet");
 assert.match(fs.readFileSync("assets/feed-enhancements.js", "utf8"), /function syncMobileMenuCurrent[\s\S]*directMobileDestinations\.has\(workspaceName\)/, "Feed workspaces must synchronize the shared Menu current state");
 
 console.log("Shared mobile design-system checks passed: consistent tokens, edge media, action geometry, tool navigation, and PWA caching.");

@@ -43,6 +43,22 @@
   };
   const labelFor = action => ({ interested: "Interested", offer_date: "Offered a date", pass: "Passed", reply: "Reply" }[action] || "Reply");
 
+  async function useDateOffer(button, outreachId, reply) {
+    button.disabled = true;
+    bookingStatus.textContent = "Adding the proposed date to Tour Manager…";
+    try {
+      const response = await fetch(`${API}/tour-manager/outreach/use-date`, { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json" }, body: JSON.stringify({ outreachId, replyId: reply.id }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "The proposed date could not be added to Tour Manager.");
+      button.textContent = "Added to Tour";
+      bookingStatus.replaceChildren(text(`${data.venueName || "Venue"} · ${data.proposedDate} added as Date proposed. Confirm it only after you have written agreement. `));
+      const link = document.createElement("a"); link.href = "booking-selections.html#tourManager"; link.textContent = "Open Tour Manager"; bookingStatus.append(link);
+    } catch (error) {
+      button.disabled = false;
+      bookingStatus.textContent = error.message || "The proposed date could not be added to Tour Manager.";
+    }
+  }
+
   function showEmpty(message) {
     const note = document.createElement("p");
     note.className = "chat-note";
@@ -92,6 +108,12 @@
         offered.className = "booking-date-offer";
         offered.append(text(`Proposed date: ${reply.proposedDate}`));
         bubble.append(offered);
+        if (reply.direction !== "outbound") {
+          const useDate = document.createElement("button");
+          useDate.type = "button"; useDate.className = "booking-use-date"; useDate.textContent = "Add proposed date to Tour";
+          useDate.addEventListener("click", () => useDateOffer(useDate, thread.message.id, reply));
+          bubble.append(useDate);
+        }
       }
       const replyTime = document.createElement("time");
       replyTime.append(text(formatDate(reply.createdAt)));
