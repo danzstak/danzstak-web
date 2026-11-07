@@ -4,7 +4,7 @@ Every standing instruction from the owner (Shawn), in one place. This file is th
 
 1. CLAUDE.md: the short brief.
 2. This file: priorities, rules and task specs from 2026-11-07.
-3. instructions/: the full product spec the owner wrote with ChatGPT on 2026-11-04 (page-by-page contracts for Home/Mix, Dailies, The Roll, SYNC, Facebook import, Events, Privacy Shield, phone service and more). This is what the owner wants to build. Nothing in it is cancelled; this file only sets the order.
+3. instructions/: the full product spec the owner wrote with ChatGPT on 2026-11-04 (page-by-page contracts for Home/Mix, Dailies, The Roll, SYNC, Facebook import, Events, Data Watch, phone service and more). This is what the owner wants to build. Nothing in it is cancelled; this file only sets the order.
 
 When two directives conflict, the newer dated one wins; if unclear, stop and ask the owner. Last updated: 2026-11-07.
 
@@ -41,6 +41,11 @@ When two directives conflict, the newer dated one wins; if unclear, stop and ask
    - Rename "Moving Day" to Pivot everywhere.
    - Pivot guides: show users how to get off each platform. One plain, phone-first guide per platform: how to request and download your data, which format to pick (JSON, all time, high media quality), how long it takes, then "upload it here". Order: Facebook, Instagram, X, TikTok, YouTube (Google Takeout). Guides live in one data file, show a "last checked" date, and are re-checked against the real platform before each release, because menus change. No platform APIs, no logins to their sites: the user downloads their own file.
    - Bring your timeline: import the user's own posts, photos and videos into their DanzStak timeline with original dates, private by default, in date order. Reuse the Facebook importer pattern (preview, pick, batch privacy, missing-media decisions). Add importers one platform at a time, Instagram first, then X. Each importer is built and tested against a real export file from that platform. Music audio files in an export are never imported (no audio hosting); videos are fine under the video rules.
+7b. Data Watch, for every member in Settings -> Your data:
+   - Free: show which supported data brokers and people-search sites have the member's data, with source and date; prepare opt-out requests for the member to review and approve; link free official tools such as California DROP.
+   - Paid monitoring: always $4 per month, with no automatic renewal ever. A member may prepay whole months at $4 each, with no discount or annual plan, up to 12 months ($48) under the no-single-charge-of-$50-or-more rule. Send one reminder before paid time expires; renewal happens only when the member chooses.
+   - Broker removal comes first. Dark-web checks are a later phase and must never claim coverage of "all of the dark web."
+   - Plan later, not now: Phase A is a legal, vendor, cost and feasibility report with synthetic example data only. No vendor sign-ups, Stripe products or charging until the owner approves.
 8. Then the rest of instructions/ in its own order, one page per PR.
 
 Later phase (after users): SYNC standalone, device registration, SYNC Network numbers, federated network, SYNC transport rebuild.
@@ -55,7 +60,8 @@ Later phase (after users): SYNC standalone, device registration, SYNC Network nu
 | Venue contact unlock | $0.75 | Stripe test mode |
 | DanzStak number activation | $3 one-time | Checkout hidden until the owner approves |
 | SYNC calling Plus / Pro | $3 / $5 a month (proposed) | Later phase |
-| Privacy Shield monitoring | $4 for one month | Spec only |
+| Data Watch: see which brokers have your data + remove it | Free | Spec only |
+| Data Watch monitoring | $4 a month, no auto-renewal; prepay any months at $4 each (e.g. $20 = 5 months) | Spec only |
 
 AI-assisted EPK rules:
 
