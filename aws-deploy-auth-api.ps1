@@ -169,6 +169,15 @@ try {
         Effect = "Allow"
         Action = @("dynamodb:BatchGetItem", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:TransactWriteItems")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Reviews"
+      },
+      @{
+        Sid = "DurableActivityPushOutbox"
+        Effect = "Allow"
+        Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:TransactWriteItems")
+        Resource = @(
+          "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-EngagementNotifications",
+          "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-ActivityPushOutbox"
+        )
       }
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Policy -Encoding ascii
@@ -182,11 +191,14 @@ try {
 
   $mediaBucket = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id MediaBucket --query 'StackResourceDetail.PhysicalResourceId' --output text
   if ($LASTEXITCODE -ne 0 -or -not $mediaBucket) { throw "DanzStak media bucket could not be resolved." }
+  $activityPushOutboxTable = aws cloudformation describe-stack-resource --region $Region --stack-name DANZSTAK-Call-Signaling --logical-resource-id ActivityPushOutboxTable --query 'StackResourceDetail.PhysicalResourceId' --output text
+  if ($LASTEXITCODE -ne 0 -or -not $activityPushOutboxTable) { throw "Activity push outbox could not be resolved. Deploy the reviewed signaling stack first." }
   $current = aws lambda get-function-configuration --region $Region --function-name $FunctionName --output json | ConvertFrom-Json
   if ($LASTEXITCODE -ne 0) { throw "Auth API configuration could not be read." }
   $variables = @{}
   foreach ($property in $current.Environment.Variables.PSObject.Properties) { $variables[$property.Name] = [string]$property.Value }
   $variables.MEDIA_BUCKET = [string]$mediaBucket
+  $variables.ACTIVITY_PUSH_OUTBOX_TABLE = [string]$activityPushOutboxTable
   $postViewsTable = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Engagement --query "Stacks[0].Outputs[?OutputKey=='PostViewsTableName'].OutputValue | [0]" --output text
   if ($LASTEXITCODE -ne 0) { throw "Post view configuration could not be resolved." }
   if ($postViewsTable -and $postViewsTable -ne 'None') { $variables.POST_VIEWS_TABLE = [string]$postViewsTable }

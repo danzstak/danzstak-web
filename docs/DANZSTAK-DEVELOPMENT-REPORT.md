@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Durable activity phone alerts — 2026-11-08
+
+Status: **TESTED LOCALLY — READY FOR REVIEW; NOT DEPLOYED**.
+
+- Reactions, comments, replies and media tags now prepare the existing in-app notification and a durable activity-push outbox record in one DynamoDB transaction. A duplicate transaction repairs a missing outbox record without creating a second notification.
+- The retained, encrypted outbox uses a DynamoDB stream and partial-batch retry. Delivery is explicitly **at least once**; an endpoint-hash ledger and stable push tag prevent ordinary retries from showing duplicate alerts. No exactly-once claim is made.
+- Activity phone alerts are **off by default**. A member must enable **Settings → Phone alerts → Activity on my posts**. Call and message preferences retain their previous behavior.
+- Delivery rechecks current consent, muted-post state, both sides of a block relationship, the source post, and its current Public/Friends/Tribe visibility. Suppressed or deleted content does not produce a lock-screen alert.
+- Lock-screen copy is intentionally generic in all 15 supported account languages. It contains no actor name, post text, comment text, email address or other private content. The alert opens the authenticated Notifications screen.
+- Deployment wiring resolves the retained outbox table from the signaling stack, adds only the required DynamoDB permissions and passes the table name to the Auth API. No AWS resource or production setting was changed during this review work.
+- Functional and integration evidence: the complete `test-regressions.ps1` gate passes after installing the committed Auth API lockfile dependencies, including all social, SYNC, calls, Booking, EPK, Stripe, video, PWA, 13-page smoke and infrastructure checks. The embedded Lambda source passes Node syntax validation.
+- Browser evidence: `browser-checks/activity-push-settings.cjs` passes at 320, 360, 390, 414, 430 and 1366px. It proves explicit default-off consent, a persisted opt-in request, no browser errors and no horizontal overflow. Captures in `docs/screenshots/activity-push-settings/` were inspected before review.
+- Deployment status: **not deployed**. Production phone delivery still requires owner approval after review and a controlled push-subscription test on a real device.
+
 ## Moving Day from Edit Profile — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
