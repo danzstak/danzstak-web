@@ -364,10 +364,45 @@ function openMessageDeleteChoices(item, message, palette) {
   palette.querySelector("button")?.focus();
 }
 
+async function copyDirectMessage(item, message) {
+  const content = String(message.content || "");
+  if (!content) return;
+  let timeout;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await Promise.race([
+      navigator.clipboard.writeText(content),
+      new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error("Clipboard unavailable")), 3000); })
+    ]);
+    callStatus.textContent = messageTranslate("Copied.");
+  } catch {
+    const text = item.querySelector(".message-text");
+    const selection = window.getSelection?.();
+    if (text && selection && typeof document.createRange === "function") {
+      const range = document.createRange();
+      range.selectNodeContents(text);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    callStatus.textContent = messageTranslate("Select the message text and copy it.");
+  } finally { clearTimeout(timeout); }
+}
+
 function openMessageReactions(item, message, x, y, focusFirst = false) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
   for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
+  if (message.content) {
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.className = "message-copy-choice";
+    copy.dataset.icon = "copy";
+    copy.textContent = messageTranslate("Copy message");
+    copy.title = messageTranslate("Copy message");
+    copy.setAttribute("aria-label", messageTranslate("Copy message"));
+    copy.addEventListener("click", async () => { await copyDirectMessage(item, message); palette.remove(); item.focus(); });
+    palette.appendChild(copy);
+  }
   if (message.senderEmail === currentEmail && message.content) {
     const edit = document.createElement("button");
     edit.type = "button";
@@ -390,6 +425,8 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
   palette.appendChild(remove);
   palette.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); palette.remove(); item.focus(); } });
   document.body.appendChild(palette);
+  const paletteBox = palette.getBoundingClientRect();
+  if (paletteBox.right > innerWidth - 8) palette.style.left = Math.max(8, innerWidth - paletteBox.width - 8) + "px";
   if (focusFirst) palette.querySelector("button")?.focus();
 }
 
@@ -589,9 +626,9 @@ function directMessageItem(message) {
   }
   item.appendChild(meta);
   updateMessageReactionBadge(item, message);
-  item.addEventListener("pointerdown", event => { reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
+  item.addEventListener("pointerdown", event => { if (event.target.closest?.(".message-text")) return; reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
-  item.addEventListener("contextmenu", event => { event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
+  item.addEventListener("contextmenu", event => { if (event.target.closest?.(".message-text")) return; event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
   item.addEventListener("keydown", event => {
     if (mine && message.content && event.key.toLowerCase() === "e" && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); openMessageEditor(item, message); return; }
     if (!isReactionKeyboardShortcut(event)) return;
