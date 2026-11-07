@@ -47,7 +47,7 @@ This is a specification, not implemented or verified functionality.
 
 **Keep one actual backend, one account and one source of truth.** Continue to use DANZSTAK Cognito/member identities, existing secure messaging/history, privacy/block rules, contacts, call signaling, notifications, attachments, verified phone state and DS in-network alias. A future SYNC standalone client should use the same authorized services and data, not duplicate user profiles, conversations, push identities or charge members for normal messaging. SYNC remains the DJ-console-inspired **button** that opens existing communications inside DANZSTAK.
 
-**Engineering direction:** 
+**Engineering direction:**
 - Audit `messages.html`, `assets/direct-messages.js`, `assets/chat.js`, `assets/chat.css`, `feed.html` `#messagesNav`, Cognito/session routing, API/push/service worker and phone registration. Map hidden dependencies on feed globals/DOM and refactor only as needed using small PRs.
 - Make opening `messages.html` directly work as a complete mobile-first SYNC screen on a newly launched PWA, including authenticated deep-link return, chats, history, search, avatars, contact details, notification state, drafts, media, Voice/Video actions and privacy. Existing feed SYNC button opens that same experience. Preserve navigation/back and shared unread state.
 - Build stable client/service interfaces and test with **two app entry points using one backend** on real phones, avoiding divergent messages, duplicate alerts, separate sign-ups, conflicting registration or broken payments. Modular architecture and standalone quality matter more than launching another shell immediately.
