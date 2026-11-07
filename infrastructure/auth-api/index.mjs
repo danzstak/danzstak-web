@@ -3449,8 +3449,9 @@ function cleanEpk(data, ownerPrefix = "") {
     return { id: text(item.id, 36) || key.split("/").at(-1).split(".")[0], key, role, name, public: item.public === true, featured: item.featured === true };
   });
   if (media.length !== rawMedia.length) return null;
+  const look = new Set(["techno", "punk", "metal", "house"]).has(data.look) ? data.look : "techno";
   const kit = {
-    artistName: text(data.artistName, 120), hometown: text(data.hometown, 160),
+    artistName: text(data.artistName, 120), hometown: text(data.hometown, 160), look,
     genres: list(data.genres, 8, item => text(item, 60)), shortPitch: text(data.shortPitch, 300),
     shortBio: text(data.shortBio, 1000), bio: text(data.bio, 5000), lineup: list(data.lineup, 16, item => text(item, 160)),
     releases: list(data.releases, 20, item => text(item, 300)), achievements: list(data.achievements, 20, item => text(item, 300)),

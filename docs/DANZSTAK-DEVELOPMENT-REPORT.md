@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Artist-selectable public EPK looks — 2026-11-07
+
+Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION VERIFICATION PENDING**.
+
+- Every artist can select Techno, Punk, Metal or House / EDM independently of their EPK content. Changing the look preserves writing, links, photos and production details; the API bounds the saved value and defaults safely to Techno.
+- The looks are scoped to the artist-owned EPK rather than the familiar DanzStak application frame. Sparse kits hide empty sections cleanly; a new act with only a pitch and contact does not receive fake releases, shows or placeholder copy.
+- The ten typefaces used by the approved looks are self-hosted WOFF2 assets. Public EPKs make no third-party font request, and the PWA shell caches the stylesheet and fonts in prepared cache `danzstak-shell-v704`.
+- Accessibility: all body text pairs meet WCAG AA 4.5:1 contrast. Punk and Metal use their exact low-contrast accent colors for borders and decoration while small section labels use readable ink. The look control retains a 44px mobile target.
+- Functional/security evidence: `test-epk-looks.cjs`, `test-epk-domain.cjs`, `test-epk-builder.cjs`, syntax checks and the complete `test-regressions.ps1` gate pass. The tests cover bounded persistence, unsafe look fallback, self-hosted assets, contrast, PWA caching and preservation of existing EPK protections.
+- Visual evidence: `browser-checks/epk-looks.cjs` passes four public looks at 390px and 1366px plus the authenticated builder at both widths. Captures in `docs/screenshots/epk-looks/` were inspected for overflow, empty-section handling, content preservation and distinct art direction.
+- Honest boundary: this slice provides the four looks on public EPKs and live builder preview. It does not yet add the same looks to artist profiles or gig pages, nor does it claim the planned stage/booth plot builder, QR export, view statistics or dedicated one-page/full PDF generator are complete.
+
 ## Artist HQ booking workspace — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.

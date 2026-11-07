@@ -9,6 +9,7 @@
   <meta name="description" content="Build and publish a clear electronic press kit for venues, promoters, record stores, and press.">
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
   <link rel="stylesheet" href="assets/epk.css?v=4">
+  <link rel="stylesheet" href="assets/epk-looks.css?v=1">
   <link rel="stylesheet" href="assets/epk-media.css?v=5">
   <link rel="stylesheet" href="assets/responsive-media.css?v=4">
   <link rel="stylesheet" href="assets/accessibility.css?v=364">
@@ -33,7 +34,7 @@
     <p id="publicEpkNotice" class="epk-public-notice" role="status" hidden></p>
     <div class="epk-layout">
       <form id="epkForm" class="epk-form" autocomplete="off">
-        <section data-epk-step="1"><h2>Start here</h2><div class="two"><label>Artist or act name<input id="artistName" maxlength="120" required></label><label>Home town<input id="hometown" maxlength="160"></label></div><label>Genres<input id="genres" maxlength="300" placeholder="DIY punk, hardcore, garage rock"></label><label>One-line pitch<textarea id="shortPitch" rows="2" maxlength="300" placeholder="What makes the live set worth booking?"></textarea></label></section>
+        <section data-epk-step="1"><h2>Start here</h2><div class="two"><label>Artist or act name<input id="artistName" maxlength="120" required></label><label>Home town<input id="hometown" maxlength="160"></label></div><label>Genres<input id="genres" maxlength="300" placeholder="DIY punk, hardcore, garage rock"></label><label>EPK look<select id="epkLook"><option value="techno">Techno — dark and direct</option><option value="punk">Punk — paper and ticket stubs</option><option value="metal">Metal — dark and symmetrical</option><option value="house">House / EDM — color and motion</option></select></label><p class="hint">Change the look any time. Your writing, links, photos and production details stay intact.</p><label>One-line pitch<textarea id="shortPitch" rows="2" maxlength="300" placeholder="What makes the live set worth booking?"></textarea></label></section>
         <section data-epk-step="2"><h2>Tell the story</h2><label>Short biography<textarea id="shortBio" rows="3" maxlength="1000" placeholder="The quick version a talent buyer can scan"></textarea></label><label>Full biography<textarea id="bio" rows="7" maxlength="5000"></textarea></label><label>Lineup, one member and role per line<textarea id="lineup" rows="4" placeholder="Name - vocals"></textarea></label><label>Releases, one per line<textarea id="releases" rows="4" placeholder="Release title — format — year"></textarea></label><label>Notable shows, one per line<textarea id="notableShows" rows="4" placeholder="Venue, city - date or year"></textarea></label><label>Achievements, one per line<textarea id="achievements" rows="4" placeholder="Airplay, awards, press, support slots"></textarea></label></section>
         <section data-epk-step="3"><h2>Let them hear and see you</h2><p class="hint">Link to music and video hosted by its provider. DanzStak does not copy or host it. One per line: label | URL</p><label>Music links<textarea id="musicLinks" rows="4" placeholder="Latest single | https://..."></textarea></label><label>Live video links<textarea id="videoLinks" rows="4" placeholder="Live at Venue | https://..."></textarea></label><label>Social links<textarea id="socialLinks" rows="4" placeholder="Instagram | https://...&#10;TikTok | https://..."></textarea></label><div class="two"><label>External press photo URL<input id="heroImage" type="url" placeholder="https://"></label><label>External logo URL<input id="logoImage" type="url" placeholder="https://"></label></div></section>
         <section data-epk-step="4" aria-labelledby="epkMediaTitle"><h2 id="epkMediaTitle">Press photos and documents</h2><p class="hint">Private S3 storage. Images: JPG, PNG, WebP up to 12 MB. Documents: PDF up to 20 MB. Choose which files a public EPK may download.</p><label id="epkDropZone" class="epk-drop-zone">Drop files here or choose files<input id="epkMediaInput" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf"></label><progress id="epkUploadProgress" max="100" value="0" hidden></progress><p id="epkUploadStatus" role="status" aria-live="polite"></p><div id="epkMediaList" class="epk-media-list"></div></section>
@@ -56,7 +57,7 @@
     <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1" aria-current="page"></a>
   </nav>
   <script src="assets/icon-buttons.js?v=7" defer></script>
-  <script src="assets/epk.js?v=13" defer></script>
+  <script src="assets/epk.js?v=14" defer></script>
   <script src="assets/responsive-media.js?v=2" defer></script>
 </body>
 </html>

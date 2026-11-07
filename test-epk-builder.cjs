@@ -5,6 +5,7 @@ assert.match(feed, /epk\.html[\s\S]*EPK Builder/, "the artist menu should expose
 assert.doesNotMatch(feed, /menu-icon[^>]*>EPK</, "the EPK menu icon must not repeat the EPK label visually");
 for (const field of ["artistName","shortPitch","bio","lineup","notableShows","musicLinks","videoLinks","socialLinks","pressQuotes","stageRequirements","techRequirements","bookingEmail"]) assert.match(html, new RegExp(`id="${field}"`), `EPK field ${field} is missing`);
 for (const field of ["shortBio","releases","achievements","hospitalityRequirements","epkMediaInput","epkMediaList"]) assert.match(html, new RegExp(`id="${field}"`), `complete EPK field ${field} is missing`);
+assert.match(html, /id="epkLook"/, "artists need a content-independent EPK look picker");
 for (const field of ["publicBookingEmail","publicBookingPhone","publicTechnical","publicHospitality"]) assert.match(html, new RegExp(`id="${field}"[^>]*type="checkbox"|type="checkbox"[^>]*id="${field}"`), `public EPK choice ${field} is missing`);
 assert.match(html, /Save private draft/, "EPKs must be private by default");
 assert.match(html, /Publish EPK/, "publishing must be explicit");
