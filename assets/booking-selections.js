@@ -10,6 +10,7 @@
   const stages = ["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined", "No response"];
   const legacyStages = { Research: "Not contacted", "Ready to pitch": "Email prepared", Contacted: "Email sent", "In conversation": "Reply received", Hold: "Interested" };
   let venues = [];
+  let outreachShares = [];
   let revision = "";
   let accountLoaded = false;
   let dirty = false;
@@ -97,6 +98,17 @@
       let settled = false; const finish = approved => { if (settled) return; settled = true; dialog.remove(); if (opener instanceof HTMLElement && opener.isConnected) opener.focus(); resolve(approved); };
       dialog.addEventListener("close", () => finish(dialog.returnValue === "confirm" && check.checked), { once:true }); dialog.addEventListener("cancel", event => { event.preventDefault(); dialog.close("cancel"); }); dialog.showModal(); cancel.focus();
     });
+  }
+
+  async function createVenueEpkShare(venue, outreachId, allowPdf) {
+    const response = await fetchWithTimeout("https://api.danzstak.com/epk/outreach-share", { method:"POST", credentials:"include", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({ action:"create", venueKey:identity(venue), outreachId, allowPdf }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !/^https:\/\/danzstak\.com\/epk\.html\?outreach=[a-f0-9]{32}#token=[a-f0-9]{64}$/.test(String(data.shareUrl || ""))) throw new Error(data.error || "A private venue EPK link could not be created.");
+    return data;
+  }
+
+  async function revokeVenueEpkShare(venue, outreachId) {
+    await fetchWithTimeout("https://api.danzstak.com/epk/outreach-share", { method:"POST", credentials:"include", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({ action:"revoke", venueKey:identity(venue), outreachId }) }).catch(() => null);
   }
 
   function localEstimate() {
@@ -316,6 +328,9 @@
     venue.booking ||= {};
     const booking = venue.booking;
     const fit = document.createElement("p");
+    const shareEvidence = document.createElement("p"), venueShares = outreachShares.filter(item => item.venueKey === identity(venue) && item.revoked !== true), openCount = venueShares.reduce((sum, item) => sum + Number(item.openCount || 0), 0), lastOpenedAt = venueShares.map(item => item.lastOpenedAt).filter(Boolean).sort().at(-1);
+    shareEvidence.className = "epk-open-evidence";
+    shareEvidence.textContent = openCount ? `Private EPK opened ${openCount} time${openCount === 1 ? "" : "s"}${lastOpenedAt ? ` · last opened ${new Intl.DateTimeFormat(undefined, { dateStyle:"medium", timeStyle:"short" }).format(new Date(lastOpenedAt))}` : ""}. Counts only; DanzStak does not identify the viewer.` : "Private venue EPK not opened yet.";
     const genres = artist().genre.toLowerCase().split(",").map(s => s.trim()).filter(Boolean);
     const categories = (venue.categories || []).map(s => String(s).toLowerCase());
     const matches = genres.filter(g => categories.some(c => c === g || c.split(/[^a-z0-9-]+/).includes(g)));
@@ -323,20 +338,21 @@
     if (["Confirmed", "Declined"].includes(bookingStatus(venue))) {
       const closed = document.createElement("p");
       closed.textContent = bookingStatus(venue) === "Confirmed" ? "Confirmed with evidence. Keep the agreed fee, production terms, and promoter confirmation attached to this record." : "Lead closed. Change its status if you want to reopen outreach.";
-      section.append(fit, closed);
+      section.append(fit, shareEvidence, closed);
       return section;
     }
-    const builder = document.createElement("fieldset"), legend = document.createElement("legend"), templateLabel = document.createElement("label"), template = document.createElement("select"), rangeLabel = document.createElement("label"), dateEnd = document.createElement("input"), drawLabel = document.createElement("label"), draw = document.createElement("input"), setLabel = document.createElement("label"), setDetails = document.createElement("input"), apply = document.createElement("button");
+    const builder = document.createElement("fieldset"), legend = document.createElement("legend"), templateLabel = document.createElement("label"), template = document.createElement("select"), rangeLabel = document.createElement("label"), dateEnd = document.createElement("input"), drawLabel = document.createElement("label"), draw = document.createElement("input"), setLabel = document.createElement("label"), setDetails = document.createElement("input"), downloadLabel = document.createElement("label"), allowPdf = document.createElement("input"), apply = document.createElement("button");
     builder.className = "pitch-builder"; legend.textContent = "1. Choose the pitch facts"; builder.append(legend); templateLabel.append(document.createTextNode("Pitch type"));
     for (const [value, name] of Object.entries(templateNames)) { const option = document.createElement("option"); option.value = value; option.textContent = name; template.append(option); }
     template.value = ["band", "dj", "festival"].includes(booking.pitchTemplate) ? booking.pitchTemplate : "band"; templateLabel.append(template);
     dateEnd.type = "date"; dateEnd.min = booking.showDate || ""; dateEnd.value = booking.dateEnd || ""; rangeLabel.append(document.createTextNode("End of date range (optional)"), dateEnd);
     draw.type = "number"; draw.min = "0"; draw.max = "100000"; draw.step = "1"; draw.value = booking.expectedDraw || ""; draw.placeholder = "Only if you know it"; drawLabel.append(document.createTextNode("Expected crowd — artist supplied (optional)"), draw);
     setDetails.maxLength = 300; setDetails.value = booking.setDetails || ""; setDetails.placeholder = "45-minute live set, 90-minute DJ set…"; setLabel.append(document.createTextNode("Set or performance details (optional)"), setDetails);
+    allowPdf.type = "checkbox"; allowPdf.checked = booking.allowEpkPdfDownload === true; downloadLabel.className = "pitch-permission"; downloadLabel.append(allowPdf, document.createTextNode(" Allow this venue to print or save the EPK as PDF"));
     apply.type = "button"; apply.textContent = "Apply template to draft"; apply.className = "secondary";
-    const savePitchFacts = () => { booking.pitchTemplate = template.value; booking.dateEnd = dateEnd.value; booking.expectedDraw = Number(draw.value || 0); booking.setDetails = setDetails.value; persist(); };
-    for (const control of [template, dateEnd, draw, setDetails]) control.addEventListener("change", savePitchFacts);
-    builder.append(templateLabel, rangeLabel, drawLabel, setLabel, apply);
+    const savePitchFacts = () => { booking.pitchTemplate = template.value; booking.dateEnd = dateEnd.value; booking.expectedDraw = Number(draw.value || 0); booking.setDetails = setDetails.value; booking.allowEpkPdfDownload = allowPdf.checked; persist(); };
+    for (const control of [template, dateEnd, draw, setDetails, allowPdf]) control.addEventListener("change", savePitchFacts);
+    builder.append(templateLabel, rangeLabel, drawLabel, setLabel, downloadLabel, apply);
     const subjectLabel = document.createElement("label"), subject = document.createElement("input");
     subjectLabel.textContent = "2. Edit the subject"; subject.maxLength = 180; subject.value = booking.outreachSubject || `${artist().name || "Artist"} — booking enquiry${booking.showDate ? ` for ${booking.showDate}` : ""}`; subject.addEventListener("input", () => { booking.outreachSubject = subject.value; persist(); }); subjectLabel.append(subject);
     const label = document.createElement("label");
@@ -376,11 +392,14 @@
         window.danzstakShowFeedback?.("Save your booking workspace before sending so DanzStak can verify the venue contact.", { urgent: true });
         return;
       }
-      if (!(await reviewSend({ venue, to:email, subject:currentSubject, message:currentMessage }))) return;
       button.disabled = true;
-      button.textContent = "Sending…";
+      button.textContent = "Creating private EPK link…";
       try {
-        await window.danzstakSendBookingEmail({ venueKey: identity(venue), to: email, subject: currentSubject, message: currentMessage, template:template.value, artistApproved:true });
+        const outreachId = crypto.randomUUID().replaceAll("-", ""), share = await createVenueEpkShare(venue, outreachId, allowPdf.checked);
+        const reviewedMessage = currentMessage.replaceAll(currentArtist.epk, share.shareUrl);
+        if (!(await reviewSend({ venue, to:email, subject:currentSubject, message:reviewedMessage }))) { await revokeVenueEpkShare(venue, outreachId); button.disabled = false; button.textContent = "Preview exact email"; return; }
+        button.textContent = "Sending…";
+        await window.danzstakSendBookingEmail({ venueKey: identity(venue), to: email, subject: currentSubject, message: reviewedMessage, template:template.value, artistApproved:true, idempotencyKey:outreachId });
         venue.booking.status = "Email sent";
         persist();
         render();
@@ -393,7 +412,7 @@
     });
     const note = document.createElement("small");
     note.textContent = email ? "Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Replies go to your account email." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
-    section.append(fit, builder, subjectLabel, label, button, note);
+    section.append(fit, shareEvidence, builder, subjectLabel, label, button, note);
     return section;
   }
 
@@ -422,6 +441,8 @@
     enabled.forEach(c => { c.disabled = true; });
     try {
       const data = await accountRequest("GET");
+      const shareResponse = await fetchWithTimeout("https://api.danzstak.com/epk/outreach-share", { credentials:"include", cache:"no-store" }).catch(() => null);
+      if (shareResponse?.ok) outreachShares = (await shareResponse.json().catch(() => ({}))).shares || [];
       const saved = Array.isArray(data.venues) ? data.venues : [];
       const savedKeys = new Set(saved.map(identity));
       // A stale tab copy must not resurrect records deleted on another device.

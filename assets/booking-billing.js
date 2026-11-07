@@ -29,7 +29,7 @@
     const button = form.querySelector("button"); button.disabled = true; status.textContent = "Opening secure Stripe Checkout…";
     try { const data = await request("/tour-manager/checkout", { method: "POST", body: JSON.stringify({ quantity: count }) }); location.assign(data.checkoutUrl); } catch (error) { status.textContent = error.message; button.disabled = false; }
   });
-  window.danzstakSendBookingEmail = async payload => { const id = crypto.randomUUID().replaceAll("-", ""); const data = await request("/tour-manager/emails/send", { method: "POST", body: JSON.stringify({ ...payload, idempotencyKey: id }) }); await Promise.all([refresh(), refreshOutreach()]); return data; };
+  window.danzstakSendBookingEmail = async payload => { const id = payload.idempotencyKey || crypto.randomUUID().replaceAll("-", ""); const data = await request("/tour-manager/emails/send", { method: "POST", body: JSON.stringify({ ...payload, idempotencyKey: id }) }); await Promise.all([refresh(), refreshOutreach()]); return data; };
   window.danzstakBookingContactUnlocked = venueKey => unlockedContacts.has(String(venueKey || ""));
   window.danzstakUnlockBookingContact = async venueKey => {
     const data = await request("/tour-manager/contact-unlock/checkout", { method: "POST", body: JSON.stringify({ venueKey }) });

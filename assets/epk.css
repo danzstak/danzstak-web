@@ -19,6 +19,8 @@
 .epk-guided .epk-form [data-epk-step].is-current-step{display:block}
 .epk-form [data-epk-step]:focus{outline:3px solid #ef6c20;outline-offset:4px}
 .public-mode .epk-guide{display:none}
+.public-mode .ds-mobile-nav{display:none}.public-mode main{padding-bottom:28px}
+.epk-public-notice{margin:0 0 14px;padding:10px 12px;border-left:3px solid #ff7a1a;background:#fff7ed;color:#7c2d12;font-size:.9rem;line-height:1.45}
 
 @media(max-width:700px){
   .epk-guide{padding:14px;margin-bottom:12px}
@@ -29,6 +31,7 @@
   .epk-layout{display:flex;flex-direction:column}
   .epk-form{order:1;width:100%;padding:16px}
   .epk-preview{display:none;order:0;width:100%;position:static}
+  .public-mode .epk-preview{display:block}
   .epk-preview-open .epk-preview{display:block}
   .epk-preview-open .epk-form{display:none}
   .epk-preview-open .epk-guide-checklist,.epk-preview-open .epk-guide-progress-text,.epk-preview-open .epk-guide progress,.epk-preview-open .epk-guide-actions{display:none}

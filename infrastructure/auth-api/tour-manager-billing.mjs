@@ -62,7 +62,7 @@ export function verifyStripeSignature(payload, header, secret, currentTime = Dat
   return signatures.some(signature => { if (!/^[a-f0-9]{64}$/i.test(signature)) return false; const candidate = Buffer.from(signature, "hex"); return candidate.length === expected.length && timingSafeEqual(candidate, expected); });
 }
 
-export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, env = process.env, fetcher = fetch, clock = Date.now }) {
+export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, validateOutreachEpkLink, env = process.env, fetcher = fetch, clock = Date.now }) {
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
   const testMode = () => env.STRIPE_SECRET_KEY?.startsWith("sk_test_");
   const paymentsAllowed = () => Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) && (testMode() || (env.TOUR_MANAGER_LIVE_PAYMENTS === "true" && env.STRIPE_SECRET_KEY.startsWith("sk_live_")));
@@ -396,7 +396,11 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const contactAccess = await db.send(new GetItemCommand({ TableName: tableName, Key: contactUnlockKey(userId, venueKey), ConsistentRead: true }));
     if (contactAccess.Item?.status?.S !== "active") return response(402, { error: "Unlock this venue's booking contact before sending." }, headers);
     if (!artistName) return response(409, { error: "Add your act name and save the booking workspace before sending." }, headers);
-    if (!/^https:\/\//i.test(epk) || !message.includes(epk)) return response(409, { error: "Publish and save the artist EPK, then include its exact public link in the reviewed email." }, headers);
+    if (!/^https:\/\//i.test(epk)) return response(409, { error: "Publish and save the artist EPK before sending." }, headers);
+    if (typeof validateOutreachEpkLink === "function") {
+      const validShare = await validateOutreachEpkLink({ userId, venueKey, outreachId: id, message });
+      if (!validShare) return response(409, { error: "Preview a current private EPK link for this venue before sending." }, headers);
+    } else if (!message.includes(epk)) return response(409, { error: "Publish and save the artist EPK, then include its exact public link in the reviewed email." }, headers);
     const key = sendKey(userId, id), existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
     if (existing.Item) return response(existing.Item.status?.S === "sent" ? 200 : 202, { status: existing.Item.status?.S || "pending", duplicate: true, messageId: existing.Item.providerMessageId?.S || "" }, headers);
     const reservedAt = nowIso();

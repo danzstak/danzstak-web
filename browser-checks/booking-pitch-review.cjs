@@ -24,6 +24,8 @@ const artist = { name:"Road Test", genre:"Punk", hometown:"Seattle", epk:"https:
         else if (pathname === "/booking-pipeline" && request.method() === "POST") { revision = "revision-2"; body = { revision, estimate:{} }; }
         else if (pathname === "/tour-manager/credits") body = { bookingEmailCredits:2, purchasedCredits:2, sentEmails:0, reservedCredits:0, activity:[] };
         else if (pathname === "/tour-manager/outreach") body = { messages:[] };
+        else if (pathname === "/epk/outreach-share" && request.method() === "GET") body = { shares:[] };
+        else if (pathname === "/epk/outreach-share" && request.method() === "POST") { const draft = JSON.parse(request.postData() || "{}"); body = draft.action === "revoke" ? { revoked:true } : { outreachId:draft.outreachId, venueKey:draft.venueKey, shareId:"1234567890abcdef1234567890abcdef", shareUrl:`https://danzstak.com/epk.html?outreach=1234567890abcdef1234567890abcdef#token=${"a".repeat(64)}`, permissions:{allowPdf:draft.allowPdf === true} }; }
         else if (pathname === "/tour-manager/contact-unlocks") body = { venueKeys:[venue.venueKey] };
         else if (pathname === "/tour-manager/emails/send") { sendPayload = JSON.parse(request.postData() || "{}"); body = { status:"sent", messageId:"browser-test-message" }; }
         else body = {};
@@ -31,7 +33,7 @@ const artist = { name:"Road Test", genre:"Punk", hometown:"Seattle", epk:"https:
       });
       await page.goto(`${origin}/booking-selections.html`, { waitUntil:"domcontentloaded" });
       await page.locator("#bookingAccountStatus").filter({ hasText:"loaded" }).waitFor();
-      const dimensions = await page.evaluate(() => ({ scrollWidth:document.documentElement.scrollWidth, clientWidth:document.documentElement.clientWidth, minTarget:Math.min(...[...document.querySelectorAll(".outreach button,.outreach input,.outreach select")].filter(node => getComputedStyle(node).display !== "none").map(node => node.getBoundingClientRect().height)) }));
+      const dimensions = await page.evaluate(() => ({ scrollWidth:document.documentElement.scrollWidth, clientWidth:document.documentElement.clientWidth, minTarget:Math.min(...[...document.querySelectorAll(".outreach button,.outreach input:not([type=checkbox]),.outreach select,.pitch-permission")].filter(node => getComputedStyle(node).display !== "none").map(node => node.getBoundingClientRect().height)) }));
       assert.ok(dimensions.scrollWidth <= dimensions.clientWidth + 1, `${width}px booking workspace overflows`);
       if (width <= 430) assert.ok(dimensions.minTarget >= 43.5, `${width}px outreach target is ${dimensions.minTarget}px`);
       await page.getByLabel("Pitch type").selectOption("dj");
@@ -52,7 +54,7 @@ const artist = { name:"Road Test", genre:"Punk", hometown:"Seattle", epk:"https:
       const sentResponse = page.waitForResponse(response => new URL(response.url()).pathname === "/tour-manager/emails/send");
       await confirm.click();
       await sentResponse;
-      assert.equal(sendPayload?.artistApproved, true); assert.equal(sendPayload?.template, "dj"); assert.equal(sendPayload?.to, "booking@example.com"); assert.match(sendPayload?.message || "", /EPK: https:\/\/danzstak\.com\/epk\.html\?id=road-test/);
+      assert.equal(sendPayload?.artistApproved, true); assert.equal(sendPayload?.template, "dj"); assert.equal(sendPayload?.to, "booking@example.com"); assert.match(sendPayload?.message || "", /EPK: https:\/\/danzstak\.com\/epk\.html\?outreach=1234567890abcdef1234567890abcdef#token=/); assert.ok(/^[a-f0-9]{32}$/.test(sendPayload?.idempotencyKey || ""));
       await page.evaluate(() => window.scrollTo(0, document.querySelector(".outreach").getBoundingClientRect().top + window.scrollY - 10));
       await page.screenshot({ path:path.join(output, `booking-pitch-${width}.png`), fullPage:false });
       await context.close();
