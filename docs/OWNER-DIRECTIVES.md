@@ -17,9 +17,40 @@ When two directives conflict, the newer dated one wins; if unclear, stop and ask
 - DanzStak never hosts music. No audio-only uploads (MP3, WAV, FLAC, AIFF, AAC, OGG...), no audio storage, no first-party music streaming. Music is always a link or authorized embed (Bandcamp, SoundCloud, YouTube, etc.).
 - User video uploads are approved (phone video from shows, clubs, daily life), with rights affirmation, DMCA process and server-side checks that a file is real video, not disguised audio. Full rules: instructions/00e-no-music-hosting.md. No hosting goes live without owner approval of costs.
 - If DMCA problems grow, the owner may restrict video uploads; repeat infringers lose upload rights.
+- Downloading from DanzStak is very hard by default. Do not show download controls or grant reusable public media URLs unless the creator explicitly allows downloads. Where DanzStak controls media, use access-checked short-lived delivery, restrictive response headers and cache rules, and revoke access on privacy/deletion changes. Be honest that browser playback cannot prevent screenshots, screen recording or determined capture; this is strong deterrence and creator control, not an impossible guarantee.
 - Creators own their content on DanzStak. DanzStak takes no ownership. Users only grant DanzStak the limited permission needed to show their content where they choose, and that ends when they delete it. Creators control who sees and shares it (Do Not Share, download limits), keep attribution on every share, and can export or delete it everywhere at any time. Every deletion offers **Remove from here**, which removes only that placement, and—only to the original creator—**Delete everywhere**. Delete everywhere removes the original and every share from every DanzStak feed, profile, Tribe, chat, search and notification; no placeholder remains. Shared DanzStak links and embeds stop working, and media is removed from active storage and caches under the account-erasure backup rules. A resharer can remove only their own reshare. The confirmation must say plainly that screenshots, downloads and copies outside DanzStak cannot be recalled. No selling, training AI on, or advertising with user content. Full rules: instructions/00d-user-content-ownership.md.
 - Tests stay green (test-regressions.ps1 and the review checks). Add tests for new behavior.
 - Never hard-code any artist's name, bio, releases or links into pages, CSS or templates. Example content is example only.
+
+## Faxing the room — owner's quality gate for every PR
+
+Nothing reaches the owner until the room has been faxed: the builder walks every screen they touched like a technical director walks the room before doors.
+
+- **Text:** spelling, names and labels match the specification, including Take, Pivot, Mix, SYNC and Data Watch.
+- **Layout:** nothing is cut off, overlapping, misaligned or badly spaced at 320, 360, 390, 414 and 430px or on desktop.
+- **Proof:** the PR contains screenshots of every changed screen, and the builder has personally inspected them before requesting review.
+- **No leftovers:** no placeholders, retired names, TODOs or fake "done" claims remain.
+- **Tests:** existing tests and new tests for changed behavior are green.
+- **PR description:** every PR description ends with a **Room faxed** checklist recording each item above. For a documentation-only PR, state honestly that no product screen changed; do not invent screenshot evidence.
+
+The owner then performs the walkthrough and decides go or no-go. No go, no show.
+
+**Test, test, test, deploy.** (1) Automated tests green. (2) The builder faxes the room. (3) The owner tests the preview on their phone. Only then deploy, and only with the owner's go. The owner should never be the one who finds a mistake: if the owner finds one, the builder missed it, so add a check or test that would have caught it.
+
+## Mix layout and placements (owner, 2026-11-07)
+
+Phone and the desktop center column use this exact finite order:
+
+1. Header with search, notifications and SYNC.
+2. Dailies row. The first tile is the signed-in member's own photo with today's date and **SCENE 1 · TAKE N**; N is the server-authoritative lifetime count of distinct successfully uploaded DanzStak video assets. Uploaded Dailies count once, and expiry never lowers N.
+3. Four chronological Mix posts.
+4. **The Roll** launcher row, opening the existing fullscreen swipe video player.
+5. Three chronological posts, then the newest unseen show review from the member's people and scene.
+6. Three chronological posts, then the newest unseen album review from the member's people and scene.
+7. Three chronological posts, then the newest unseen event flyer from the member's people and scene.
+8. Repeat the three-post/show-review, three-post/album-review, three-post/event-flyer pattern until **You're caught up**. No infinite scroll.
+
+Posts remain chronological. If an eligible unseen supplemental item does not exist, skip that slot without leaving a gap. Never substitute an advertisement, promotion or algorithm-selected item. Desktop keeps **HQ, Tour, EPK, Scene, Mix** in the left menu and **News (with Reviews)** plus **Shows near you** in the right column. Implementation plan and 390px reference: `docs/DESIGN-DIRECTION-PLAN.md` on `codex/design-direction-plan`.
 
 ## Priority order (2026-11-07): get users first
 

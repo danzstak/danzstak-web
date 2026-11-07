@@ -132,10 +132,11 @@ Rules: each look is a token set, not a separate codebase. One accent per look. C
 - **Plan before code.** For any change bigger than one file, propose a short plan and wait for approval.
 - **One feature at a time.** Small, reviewable pull requests.
 - **Keep the tests green.** Run the existing regression suite; add tests for new behavior.
+- **Fax the room before every PR** (`docs/OWNER-DIRECTIVES.md`). No go, no show.
 - **Never** commit secrets, keys, passwords or AWS credentials. The repo is public.
 - Respect the product boundary in `README.md` (no crypto/Web3 in DanzStak) and the independence rules
   (no core dependency on Big Tech APIs).
-- Be candid about what is verified versus unverified, as `RESTART-CHECKPOINT.md` already asks.
+- Be candid about what is verified versus unverified, as `docs/OWNER-DIRECTIVES.md` requires.
 
 ## First task for a new session
 
