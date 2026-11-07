@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Member show and release reviews — 2026-11-07
+
+Status: **IN PROGRESS — DOMAIN FOUNDATION IMPLEMENTED AND TESTED LOCALLY; NOT DEPLOYED**.
+
+- The first implementation slice adds authenticated review targets derived only from an artist's published EPK shows and releases, plus create/list/edit/delete APIs. The browser cannot invent a target, an artist cannot review their own work, and blocked account pairs cannot create or read each other's review activity.
+- One review per member per show or release is enforced by an atomic DynamoDB uniqueness record. The same transaction writes chronological global, target, artist and author indexes; author-only edits use a conditional write, and author-only deletion removes the review and every index record together.
+- Reviews are prose-only in this slice. Media requests fail closed until the planned server-side file signature, real video track, duration, count, rights and ownership validation exists. DanzStak still stores no music or audio files.
+- A dedicated pay-per-request `DANZSTAK-Reviews` table, point-in-time recovery, least-privilege IAM actions, API Gateway routes and the existing Auth API environment are declared in `aws-deploy-auth-api.ps1`. No AWS resource has been created or changed by this local work.
+- Focused evidence: `test-reviews-domain.cjs`, Auth API syntax, infrastructure validation and `git diff --check` pass. The complete `test-regressions.ps1` gate passes, including authentication, account isolation, Feed, Friends, SYNC, media/audio, Booking, EPK, Tour Manager, Stripe safety, PWA refresh, site smoke and infrastructure checks.
+- Honest boundary: NEWS/MIX cards, the review composer, show/release page placement, media, reports/replies, notifications and EPK quote permission remain future reviewed slices. This foundation is not presented as a finished Reviews product and has not been deployed.
+
 ## Artist-reviewed venue interest and pass decisions — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.

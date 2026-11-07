@@ -63,6 +63,7 @@ const settingsTable = "DanzStak-UserSettings";
 const supportTicketsTable = process.env.SUPPORT_TICKETS_TABLE || "DANZSTAK-SupportTickets";
 const toursTable = process.env.TOURS_TABLE || "DANZSTAK-Tours";
 const venueDirectoryTable = process.env.VENUE_DIRECTORY_TABLE || "DANZSTAK-VenueDirectory";
+const reviewsTable = process.env.REVIEWS_TABLE || "DANZSTAK-Reviews";
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -3486,6 +3487,43 @@ const epkOutreachPrefix = "EPK#OUTREACH#";
 const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
 const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
 
+const reviewTargetTypes = new Set(["show", "release"]);
+const reviewIdPattern = /^[a-f0-9]{32}$/;
+
+function reviewTargetId(targetType, artistUserId, naturalKey) {
+  if (!reviewTargetTypes.has(targetType) || !artistUserId || !naturalKey) return "";
+  return sha256(`review-target:${targetType}:${artistUserId}:${String(naturalKey).trim().toLowerCase()}`).slice(0, 32);
+}
+
+function cleanReviewDraft(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  if ((Array.isArray(data.media) && data.media.length) || data.video || data.images) return null;
+  const targetType = String(data.targetType || "").trim().toLowerCase();
+  const targetId = String(data.targetId || "").trim().toLowerCase();
+  const artistPublicId = String(data.artistPublicId || "").trim().toLowerCase();
+  const body = typeof data.body === "string" ? data.body.trim() : "";
+  if (!reviewTargetTypes.has(targetType) || !reviewIdPattern.test(targetId) || !/^[a-z0-9-]{3,64}$/.test(artistPublicId)) return null;
+  if (body.length < 10 || body.length > 5000 || Buffer.byteLength(body, "utf8") > 12000) return null;
+  return { targetType, targetId, artistPublicId, body };
+}
+
+function reviewEntityToView(item) {
+  if (!item?.reviewId?.S || !item?.authorUserId?.S || !item?.targetId?.S) return null;
+  return {
+    reviewId: item.reviewId.S,
+    authorUserId: item.authorUserId.S,
+    artistUserId: item.artistUserId?.S || "",
+    artistPublicId: item.artistPublicId?.S || "",
+    targetType: item.targetType?.S || "",
+    targetId: item.targetId.S,
+    targetTitle: item.targetTitle?.S || "",
+    targetDetail: item.targetDetail?.S || "",
+    body: item.body?.S || "",
+    createdAt: item.createdAt?.S || "",
+    updatedAt: item.updatedAt?.S || ""
+  };
+}
+
 function cleanEpk(data, ownerPrefix = "") {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
   const text = (value, max = 1000) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -3819,6 +3857,181 @@ async function outreachEpkShare(event, method, shareId = "") {
   await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
   return reply(200, { outreachId, venueKey, shareId: newShareId, shareUrl: `https://danzstak.com/epk.html?outreach=${newShareId}#token=${token}`, expiresAt: new Date(expiresAt * 1000).toISOString(), permissions: { allowPdf } });
 }
+
+function reviewTargetsFromPublishedEpk(item) {
+  if (!item?.ownerId?.S || !item?.plan?.S) return [];
+  let kit;
+  try { kit = JSON.parse(item.plan.S); } catch { return []; }
+  const artistUserId = item.ownerId.S, artistName = String(kit.artistName || "Artist").trim().slice(0, 120);
+  const makeTargets = (targetType, values) => {
+    const seen = new Set();
+    return (Array.isArray(values) ? values : []).slice(0, 20).map(value => {
+      const label = typeof value === "string" ? value.trim().slice(0, 300) : "";
+      const normalized = label.toLowerCase();
+      if (!label || seen.has(normalized)) return null;
+      seen.add(normalized);
+      const targetId = reviewTargetId(targetType, artistUserId, label);
+      return targetId ? { targetType, targetId, artistUserId, artistName, title: label, detail: targetType === "show" ? "Show" : "Release" } : null;
+    }).filter(Boolean);
+  };
+  return [
+    ...makeTargets("show", kit.notableShows),
+    ...makeTargets("release", kit.releases)
+  ];
+}
+
+async function publishedReviewTargets(publicId) {
+  if (!/^[a-z0-9-]{3,64}$/.test(publicId)) return [];
+  const result = await db.send(new GetItemCommand({
+    TableName: toursTable,
+    Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } },
+    ConsistentRead: true
+  }));
+  return reviewTargetsFromPublishedEpk(result.Item);
+}
+
+async function reviewableTargets(event) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const publicId = String(event.queryStringParameters?.artist || "").trim().toLowerCase();
+  const targets = await publishedReviewTargets(publicId);
+  if (!targets.length) return reply(404, { error: "This artist has no published shows or releases available for review." });
+  const viewerEmail = await accountForSub(userId), artistEmail = await accountForSub(targets[0].artistUserId);
+  if (!viewerEmail || !artistEmail || await isBlockedPair(viewerEmail, artistEmail)) return reply(404, { error: "Review targets are not available." });
+  return reply(200, { artistPublicId: publicId, artistName: targets[0].artistName, targets: targets.map(({ artistUserId: _artistUserId, ...target }) => target) });
+}
+
+function reviewRecordKeys(review) {
+  const suffix = `${review.createdAt}#${review.reviewId}`;
+  return [
+    { pk: { S: `REVIEW#${review.reviewId}` }, sk: { S: "META" } },
+    { pk: { S: `UNIQUE#${review.authorUserId}#${review.targetType}#${review.targetId}` }, sk: { S: "LOCK" } },
+    { pk: { S: "REVIEWS" }, sk: { S: suffix } },
+    { pk: { S: `TARGET#${review.targetType}#${review.targetId}` }, sk: { S: suffix } },
+    { pk: { S: `ARTIST#${review.artistUserId}` }, sk: { S: suffix } },
+    { pk: { S: `AUTHOR#${review.authorUserId}` }, sk: { S: suffix } }
+  ];
+}
+
+async function reviewItemsByKeys(keys) {
+  const ordered = [], lookup = new Map();
+  for (let offset = 0; offset < keys.length; offset += 100) {
+    let pending = keys.slice(offset, offset + 100).map(reviewId => ({ pk: { S: `REVIEW#${reviewId}` }, sk: { S: "META" } }));
+    for (let attempt = 0; pending.length && attempt < 4; attempt += 1) {
+      const result = await db.send(new BatchGetItemCommand({ RequestItems: { [reviewsTable]: { Keys: pending, ConsistentRead: true } } }));
+      for (const item of result.Responses?.[reviewsTable] || []) lookup.set(item.reviewId?.S || "", item);
+      pending = result.UnprocessedKeys?.[reviewsTable]?.Keys || [];
+    }
+  }
+  for (const id of keys) if (lookup.has(id)) ordered.push(lookup.get(id));
+  return ordered;
+}
+
+async function visibleReviewViews(items, viewerId) {
+  const viewerEmail = await accountForSub(viewerId);
+  if (!viewerEmail) return [];
+  const views = [], emailByUser = new Map([[viewerId, viewerEmail]]), targetsByArtist = new Map();
+  const emailFor = async userId => {
+    if (!emailByUser.has(userId)) emailByUser.set(userId, await accountForSub(userId));
+    return emailByUser.get(userId);
+  };
+  for (const item of items) {
+    const view = reviewEntityToView(item);
+    if (!view) continue;
+    if (!targetsByArtist.has(view.artistPublicId)) targetsByArtist.set(view.artistPublicId, await publishedReviewTargets(view.artistPublicId));
+    if (!targetsByArtist.get(view.artistPublicId).some(target => target.targetType === view.targetType && target.targetId === view.targetId)) continue;
+    const authorEmail = await emailFor(view.authorUserId), artistEmail = await emailFor(view.artistUserId);
+    if (!authorEmail || !artistEmail || await isBlockedPair(viewerEmail, authorEmail) || await isBlockedPair(viewerEmail, artistEmail)) continue;
+    const profile = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: authorEmail } }, ProjectionExpression: "profileName, profileAvatarKey", ConsistentRead: true }));
+    views.push({ ...view, authorName: String(profile.Item?.profileName?.S || "DanzStak member").slice(0, 80), authorAvatar: profile.Item?.profileAvatarKey?.S ? signedMediaUrl(profile.Item.profileAvatarKey.S, 3600) : "", ownedByViewer: view.authorUserId === viewerId });
+  }
+  return views;
+}
+
+async function listReviews(event) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const targetType = String(event.queryStringParameters?.targetType || "").trim().toLowerCase();
+  const targetId = String(event.queryStringParameters?.targetId || "").trim().toLowerCase();
+  const artistPublicId = String(event.queryStringParameters?.artist || "").trim().toLowerCase();
+  let partition = "REVIEWS";
+  if (targetType || targetId) {
+    if (!reviewTargetTypes.has(targetType) || !reviewIdPattern.test(targetId)) return reply(400, { error: "Choose a valid show or release." });
+    partition = `TARGET#${targetType}#${targetId}`;
+  } else if (artistPublicId) {
+    const targets = await publishedReviewTargets(artistPublicId);
+    if (!targets.length) return reply(404, { error: "Artist not found." });
+    partition = `ARTIST#${targets[0].artistUserId}`;
+  }
+  const result = await db.send(new QueryCommand({ TableName: reviewsTable, KeyConditionExpression: "pk = :pk", ExpressionAttributeValues: { ":pk": { S: partition } }, ProjectionExpression: "reviewId", ScanIndexForward: false, Limit: 50, ConsistentRead: true }));
+  const reviewIds = (result.Items || []).map(item => item.reviewId?.S || "").filter(reviewId => reviewIdPattern.test(reviewId));
+  return reply(200, { reviews: await visibleReviewViews(await reviewItemsByKeys(reviewIds), userId) });
+}
+
+async function createReview(event) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const authorUserId = await getAuthenticatedUser(event);
+  if (!authorUserId) return reply(401, { error: "Authentication required." });
+  const draft = cleanReviewDraft(parseJsonBody(event));
+  if (!draft) return reply(400, { error: "Choose a published show or release and write a review between 10 and 5,000 characters. Review media is not available yet." });
+  const targets = await publishedReviewTargets(draft.artistPublicId), target = targets.find(item => item.targetType === draft.targetType && item.targetId === draft.targetId);
+  if (!target) return reply(404, { error: "That show or release is no longer available for review." });
+  if (target.artistUserId === authorUserId) return reply(403, { error: "Artists cannot review their own show or release." });
+  const [authorEmail, artistEmail] = await Promise.all([accountForSub(authorUserId), accountForSub(target.artistUserId)]);
+  if (!authorEmail || !artistEmail) return reply(409, { error: "The member accounts could not be verified." });
+  if (await isBlockedPair(authorEmail, artistEmail)) return reply(403, { error: "You cannot review this artist." });
+  const reviewId = sha256(`review:${authorUserId}:${target.targetType}:${target.targetId}`).slice(0, 32), createdAt = new Date().toISOString();
+  const review = { reviewId, authorUserId, artistUserId: target.artistUserId, artistPublicId: draft.artistPublicId, targetType: target.targetType, targetId: target.targetId, targetTitle: target.title, targetDetail: target.detail, body: draft.body, createdAt, updatedAt: createdAt };
+  const [entityKey, uniqueKey, ...indexKeys] = reviewRecordKeys(review);
+  const entity = { ...entityKey, entityType: { S: "review" }, reviewId: { S: reviewId }, authorUserId: { S: authorUserId }, artistUserId: { S: target.artistUserId }, artistPublicId: { S: draft.artistPublicId }, targetType: { S: target.targetType }, targetId: { S: target.targetId }, targetTitle: { S: target.title }, targetDetail: { S: target.detail }, body: { S: draft.body }, createdAt: { S: createdAt }, updatedAt: { S: createdAt } };
+  const indexItem = key => ({ ...key, entityType: { S: "review-index" }, reviewId: { S: reviewId }, createdAt: { S: createdAt } });
+  try {
+    await db.send(new TransactWriteItemsCommand({ TransactItems: [
+      { Put: { TableName: reviewsTable, Item: entity, ConditionExpression: "attribute_not_exists(pk)" } },
+      { Put: { TableName: reviewsTable, Item: { ...uniqueKey, entityType: { S: "review-unique" }, reviewId: { S: reviewId } }, ConditionExpression: "attribute_not_exists(pk)" } },
+      ...indexKeys.map(key => ({ Put: { TableName: reviewsTable, Item: indexItem(key), ConditionExpression: "attribute_not_exists(pk)" } }))
+    ] }));
+  } catch (error) {
+    if (error.name === "TransactionCanceledException" || error.name === "ConditionalCheckFailedException") return reply(409, { error: "You already reviewed this show or release. Edit your existing review instead." });
+    throw error;
+  }
+  return reply(201, { review: { ...review, authorName: "You", authorAvatar: "", ownedByViewer: true } });
+}
+
+async function updateReview(event, reviewId) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const body = parseJsonBody(event)?.body;
+  if (typeof body !== "string" || body.trim().length < 10 || body.trim().length > 5000 || Buffer.byteLength(body.trim(), "utf8") > 12000) return reply(400, { error: "Write a review between 10 and 5,000 characters." });
+  try {
+    const result = await db.send(new UpdateItemCommand({ TableName: reviewsTable, Key: { pk: { S: `REVIEW#${reviewId}` }, sk: { S: "META" } }, UpdateExpression: "SET body = :body, updatedAt = :updated", ConditionExpression: "authorUserId = :author", ExpressionAttributeValues: { ":body": { S: body.trim() }, ":updated": { S: new Date().toISOString() }, ":author": { S: userId } }, ReturnValues: "ALL_NEW" }));
+    return reply(200, { review: { ...reviewEntityToView(result.Attributes), ownedByViewer: true } });
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return reply(404, { error: "Review not found." });
+    throw error;
+  }
+}
+
+async function deleteReview(event, reviewId) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const result = await db.send(new GetItemCommand({ TableName: reviewsTable, Key: { pk: { S: `REVIEW#${reviewId}` }, sk: { S: "META" } }, ConsistentRead: true }));
+  const review = reviewEntityToView(result.Item);
+  if (!review || review.authorUserId !== userId) return reply(404, { error: "Review not found." });
+  const keys = reviewRecordKeys(review);
+  await db.send(new TransactWriteItemsCommand({ TransactItems: keys.map(key => ({ Delete: { TableName: reviewsTable, Key: key } })) }));
+  return reply(200, { deleted: true, reviewId });
+}
+
 const bookingPipelineStatuses = new Set(["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined", "No response"]);
 const legacyBookingStatuses = new Map([["Research", "Not contacted"], ["Ready to pitch", "Email prepared"], ["Contacted", "Email sent"], ["In conversation", "Reply received"], ["Hold", "Interested"]]);
 
@@ -4225,6 +4438,12 @@ export const handler = async event => {
     if (method === "GET" && epkPublicMatch) return await publicEpk(event, epkPublicMatch[1]);
     const epkPrivateMatch = path.match(/^\/epk\/shared\/([a-z0-9-]{3,64})$/i);
     if (method === "POST" && epkPrivateMatch) return await privateEpkShare(event, method, epkPrivateMatch[1]);
+    if (method === "GET" && path === "/review-targets") return await reviewableTargets(event);
+    if (method === "GET" && path === "/reviews") return await listReviews(event);
+    if (method === "POST" && path === "/reviews") return await createReview(event);
+    const reviewMatch = path.match(/^\/reviews\/([a-f0-9]{32})$/i);
+    if (method === "PATCH" && reviewMatch) return await updateReview(event, reviewMatch[1].toLowerCase());
+    if (method === "DELETE" && reviewMatch) return await deleteReview(event, reviewMatch[1].toLowerCase());
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
     if (method === "POST" && path === "/tours") return await saveTourPlan(event);
     if (method === "DELETE" && path.startsWith("/tours/")) return await deleteTourPlan(event, decodeURIComponent(path.slice(7)));
@@ -4252,4 +4471,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl };
+export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };
