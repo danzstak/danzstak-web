@@ -2,14 +2,16 @@
 
 ## Artist-approved booking follow-up — 2026-11-07
 
-Status: **IN DEVELOPMENT; NOT DEPLOYED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
 
 - The booking pipeline now prepares one intentional reminder only after the artist's saved follow-up date is due. The artist sees the exact recipient, subject, private EPK link, postal/opt-out footer and one-credit cost, then must check approval before sending.
 - The server binds the reminder to the original successful pitch, requires the same saved venue/contact, and atomically rejects a second reminder or a reminder after the venue has replied. The original 30-day guard still blocks duplicate initial pitches; only the validated follow-up may continue the existing thread.
 - Follow-ups use the existing suppression list, 20-email rolling cap, private per-venue EPK links, idempotent send record and reserve/settle/restore credit ledger. A successfully submitted reminder consumes one $1.50 booking-email credit. If SES rejects it before accepting the message, the credit is restored and the follow-up slot is released safely.
 - Functional/integration evidence: focused email-credit, booking-review, reply, contact-unlock, provider-event and Tour Manager tests pass. The complete `test-regressions.ps1` gate passes with exit code 0 across authentication, account isolation, Feed, Friends, SYNC, media/audio, worldwide Booking discovery, EPK, Tour Manager, Stripe safeguards, PWA refresh, 13-page smoke coverage and infrastructure validation. The credit test covers successful initial pitch, cooldown rejection, one successful follow-up, second-follow-up rejection, idempotency, daily cap and provider-failure restoration.
 - Responsive evidence so far: `browser-checks/booking-pitch-review.cjs` passes at 320, 360, 390, 414, 430 and 1366px. The 390px follow-up capture in `docs/screenshots/booking-pitch-review/booking-follow-up-390.png` was inspected for readable copy, zero overlap and touch-sized controls.
-- Release status: the complete regression gate, review PR, isolated staging and production verification have not yet run. No live artist, venue, payment, SES, Stripe or AWS record has been changed by this development work.
+- Review/staging evidence: all required GitHub checks passed for implementation head `21e4b220187484354468aa8bbfc6ea731afa5b36` in PR `#123`. AWS Amplify DEVELOPMENT branch `codex/booking-approved-followup`, job `1`, succeeded in `us-west-1`; no-cache probes confirmed booking billing v5, booking selections JS v17/CSS v8 and `danzstak-shell-v708`. The six-width booking browser matrix passed directly against that hosted build.
+- Production release: PR `#123` merged as `f9e635fb74860f7aef73711b79c46e903f8d7e8b`. AWS Amplify main job `969` succeeded in `us-west-1` from 2026-11-07 11:03:11 to 11:04:04 Europe/Berlin, and the matching `DANZSTAK-Auth-API` package deployed successfully through the repository's guarded script.
+- Post-deployment evidence: no-cache production probes confirm booking billing v5, booking selections JS v17/CSS v8 and `danzstak-shell-v708` on `https://danzstak.com`. The six-width booking browser matrix passes directly against production, and both changed API paths reject unauthenticated requests with HTTP 401. No real artist, venue, payment, email or customer record was changed during verification; a signed-in send to a controlled inbox remains owner acceptance evidence.
 
 ## One-page and full press PDF exports — 2026-11-07
 
