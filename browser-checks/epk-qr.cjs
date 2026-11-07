@@ -7,6 +7,7 @@ const QRCode = require("../infrastructure/auth-api/node_modules/qrcode");
 
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.2:8023").replace(/\/$/, "");
 const captureDir = path.resolve(process.env.DANZSTAK_CAPTURE_DIR || "docs/screenshots/epk-qr");
+const liveQr = process.env.DANZSTAK_LIVE_QR === "1";
 const widths = [320, 360, 390, 414, 430, 1366];
 const token = "a".repeat(64);
 const kit = { artistName:"Night Circuit", hometown:"Berlin, Germany", actType:"electronic", look:"techno", genres:["Techno"], shortPitch:"A hardware live set ready for independent rooms.", publicDetails:{}, media:[] };
@@ -21,11 +22,9 @@ const kit = { artistName:"Night Circuit", hometown:"Berlin, Germany", actType:"e
       const context = await browser.newContext({ viewport:{ width, height:900 }, serviceWorkers:"block" });
       const page = await context.newPage(), errors = [], requests = [];
       page.on("pageerror", error => errors.push(error.message));
+      page.on("request", request => { if (request.url() === "https://api.danzstak.com/epk/qr" && request.method() === "POST") requests.push(JSON.parse(request.postData() || "{}")); });
       await page.route("https://api.danzstak.com/epk/shared/**", route => route.fulfill({ status:200, contentType:"application/json", body:JSON.stringify({ kit, private:true }) }));
-      await page.route("https://api.danzstak.com/epk/qr", async route => {
-        requests.push(JSON.parse(route.request().postData() || "{}"));
-        await route.fulfill({ status:200, contentType:"image/svg+xml", body:qrSvg });
-      });
+      if (!liveQr) await page.route("https://api.danzstak.com/epk/qr", route => route.fulfill({ status:200, contentType:"image/svg+xml", body:qrSvg }));
       await page.goto(`${baseUrl}/epk.html?share=night-circuit#token=${token}`, { waitUntil:"networkidle" });
       await page.getByRole("button", { name:"QR code" }).click();
       await page.getByRole("heading", { name:"Share this EPK" }).waitFor();
