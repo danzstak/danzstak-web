@@ -21,14 +21,14 @@ fs.mkdirSync(output, { recursive: true });
       });
       await page.goto(`${origin}/booking-reply.html#token=${token}`, { waitUntil: "domcontentloaded" });
       assert.equal(await page.evaluate(() => location.hash), "", "The fragment must be removed after it is read");
-      await page.getByLabel("Response").selectOption("offer_date");
-      await page.getByLabel("Proposed date").fill("2027-03-05");
-      await page.getByLabel("Message").fill("We can offer March 5. What is your guarantee?");
+      await page.getByLabel("Response").selectOption("confirm_date");
+      await page.getByLabel("Confirmed date").fill("2027-03-05");
+      await page.getByLabel("Message").fill("Confirmed for March 5. Load-in is 5 PM.");
       const geometry = await page.evaluate(() => { const button = document.querySelector("button[type=submit]").getBoundingClientRect(); return { scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth, height: button.height, right: button.right }; });
       assert.ok(geometry.scrollWidth <= geometry.clientWidth + 1, `${width}px page overflows`); assert.ok(geometry.height >= 44, `${width}px submit target is too small`); assert.ok(geometry.right <= width + 1, `${width}px submit is clipped`);
       await page.getByRole("button", { name: "Send reply to artist" }).click();
       await page.getByText("Reply sent to the artist. You may close this page.").waitFor();
-      assert.equal(submitted.token, token); assert.equal(submitted.action, "offer_date"); assert.equal(submitted.proposedDate, "2027-03-05"); assert.match(submitted.clientMessageId, /^[a-zA-Z0-9_-]{16,100}$/);
+      assert.equal(submitted.token, token); assert.equal(submitted.action, "confirm_date"); assert.equal(submitted.proposedDate, "2027-03-05"); assert.match(submitted.clientMessageId, /^[a-zA-Z0-9_-]{16,100}$/);
       await page.screenshot({ path: path.join(output, `booking-reply-${width}.png`), fullPage: false });
       await context.close();
     }
