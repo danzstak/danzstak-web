@@ -34,6 +34,7 @@ grow a real scene, or bring their people over from a billionaire platform?* If n
 - Avoid generic social UI conventions when a music-native one fits better
   (a gig poster, a record sleeve, a setlist, a tour laminate, a crate of records).
 - Navigation order puts music tools before Feed.
+- **Users cannot upload music to DanzStak.** Music and video are always links to where the artist already hosts them (Bandcamp, SoundCloud, YouTube, etc.), never files stored on DanzStak. Do not add audio upload, audio hosting or a built-in music player that streams stored files.
 - Copy speaks like the scene, not like a corporation. Keep existing brand names
   (Digital Clubhouse, Your Mix, SYNC, Tribes, The Roll) and add more in that spirit.
 
