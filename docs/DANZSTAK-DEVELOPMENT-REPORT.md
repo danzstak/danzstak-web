@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Complete SYNC browser gate — 2026-11-07
+
+Status: **IN REVIEW — NOT MERGED OR DEPLOYED**.
+
+- The maintained SYNC browser walkthrough now follows the current four-section product: **Chats, Bookings, Calls and Contacts**. The previous three-section expectation failed before reaching any call coverage after Bookings was introduced.
+- The walkthrough verifies that venue email replies open as booking threads with the artist-approved reply composer and without misleading phone or video actions. It then returns through the real mobile back control before testing calls and contacts.
+- Voice and video coverage verifies permitted contacts expose both call actions, the controls remain enabled, visible, hit-testable and at least 44px, and a video call requests both microphone and camera access before occupying the full mobile viewport. The incoming-call screen is also checked as a full-height modal at every width.
+- Real-browser evidence: `browser-checks/sync-four-states.cjs` passes at 320, 360, 390, 414, 430, 768 and 1024px. The separate two-party WebRTC browser test remains in PR `#143`; physical Android/iPhone carrier-network acceptance remains required before that call slice can merge or deploy.
+- Functional/integration evidence: all call-specific tests pass, including remote audio, video routing, media permissions, one-answer behavior, ringback, focus, notifications, connection loss and cleanup. Booking-reply/provider/conversation checks, mobile Chat history and viewport checks pass. The complete `test-regressions.ps1` gate, 13-page smoke test and infrastructure validation pass.
+- Scope: this is a test-gate repair only. It changes no production UI, backend, AWS, Stripe, credentials or customer data and is not deployed.
+
 ## Invite a friend — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
