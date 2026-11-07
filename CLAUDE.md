@@ -1,9 +1,10 @@
 # CLAUDE.md — DanzStak brief
 
-Read this first, every session. Then read `README.md` (mission, independence rules, product boundary),
-`docs/DANZSTAK-DESIGN-SYSTEM.md`, and `docs/QUALITY-ASSURANCE-POLICY.md`. Those rules still apply.
+Read this first, every session. Then read `docs/OWNER-DIRECTIVES.md` (priorities and task specs) and `instructions/` (the full product spec the owner wants built). Then read `README.md` (mission, independence rules, product boundary), `docs/DANZSTAK-DESIGN-SYSTEM.md`, and `docs/QUALITY-ASSURANCE-POLICY.md`. Those rules still apply.
 
 ## What DanzStak is
+
+**Above all, DanzStak is an EPK and booking agent. An artist builds an EPK, sends it to clubs and venues, and gets booked. Everything else (Pivot, Mix, SYNC, Tribes, Record Stores) supports that or brings people to it. When priorities conflict, EPK and booking win.**
 
 DanzStak helps people leave billionaire-owned social platforms and take control of their data —
 **through music**. It is the Digital Clubhouse for artists, fans, venues and record stores.
@@ -34,8 +35,16 @@ grow a real scene, or bring their people over from a billionaire platform?* If n
 - Avoid generic social UI conventions when a music-native one fits better
   (a gig poster, a record sleeve, a setlist, a tour laminate, a crate of records).
 - Navigation order puts music tools before Feed.
+- **DanzStak never hosts music.** No audio-only uploads, audio storage or first-party music streaming; music is always a link or authorized embed. User video uploads are approved with DMCA and rights rules (`instructions/00e-no-music-hosting.md`).
+- Creators own their content on DanzStak. DanzStak takes only the limited permission needed to show it, ending on delete. Creators control sharing, keep attribution, and can export or delete everywhere (`instructions/00d-user-content-ownership.md`). Every deletion offers **Remove from here** (only this placement) and, for the original creator, **Delete everywhere** (the original and every in-service share disappear from feeds, profiles, Tribes, chat, search and notifications; DanzStak links/embeds stop working; media is purged from active storage and caches, with backups governed by account-erasure rules). No placeholder remains. A resharer can remove only their own share. Confirm plainly that screenshots, downloads and copies outside DanzStak cannot be recalled.
 - Copy speaks like the scene, not like a corporation. Keep existing brand names
   (Digital Clubhouse, Your Mix, SYNC, Tribes, The Roll) and add more in that spirit.
+
+## Pivot (the owner's name for leaving billionaire platforms)
+
+Tagline: **“Pivot off those platforms.”**
+
+Pivot is the move off Facebook and every other billionaire-owned platform (Instagram, X, TikTok and the rest) onto DanzStak: import your data, pick what to bring, invite your people, post an "I pivoted to DanzStak" card on your old accounts, and export or delete everything any time. Facebook import exists today; other platforms are added as Pivot steps using each platform's own data export, with no platform APIs. Use the name Pivot in the product and in code/docs (not "Moving Day").
 
 ## Priorities (in order)
 
@@ -86,7 +95,7 @@ A feature should hand off to the next one, not sit alone as a separate page.
 
 ### Migration and data ownership
 
-- A **Moving Day** card stays on HQ until the user has imported from Facebook and invited their people.
+- A **Pivot** card stays on HQ until the user has imported from Facebook and invited their people.
 - **Your data** (avatar menu): what DanzStak stores, export everything, delete everything — always two taps away.
 
 ### Layout rules
@@ -96,15 +105,38 @@ A feature should hand off to the next one, not sit alone as a separate page.
 - Phone first — bands use it from the van.
 - Build this layout in steps; do not rewrite every page at once. Start with navigation + HQ, then Tour, then EPK.
 
+## Visual direction: 80% familiar, 20% DanzStak
+
+Familiar (about 80%). People coming from Facebook must know how to get around on day one. Keep the patterns they already know: top bar with search, notifications and messages (SYNC); left menu on desktop, bottom tabs on phones; center column for the main content; profile with cover, avatar and tabs; posts with like, comment and share; standard icons in standard places. Do not invent new navigation patterns.
+
+DanzStak (about 20%). What makes it ours, without changing where things are:
+
+- DanzStak colors, fonts and logo instead of stock social-network blue (it must not look like a phpFox template).
+- Music tools are visible in the main menu (HQ, Tour/Gigs, EPK, Scene) next to the familiar Feed (Mix).
+- Music-specific cards inside the familiar layout: shows as ticket stubs, releases as record sleeves, the EPK as a backstage laminate, tour dates as a poster list.
+- Genre looks on artist-owned public pages only (EPK, artist profile, gig pages).
+
+Genre looks. The platform frame (navigation, SYNC, settings, feed) stays one consistent DanzStak look so navigation never changes. Each artist's public EPK, profile and gig pages can wear a genre look the artist picks.
+
+| Look | Ground / ink | Accent | Display | Detail | Body | Feel |
+|---|---|---|---|---|---|---|
+| Techno (default) | #0B0B0C / #EDEDEA | #FF5A1F hazard orange | Archivo 900, width 125% | JetBrains Mono | Archivo | Square edges, 1px rules, mono labels |
+| Punk | #EFE8DA paper / #121110 | #E5452E screen-print red | Anton | Special Elite | Work Sans | Xerox photo frame, dashed perforations, ticket stubs |
+| Metal | #0E0D0D / #E6DECB bone | #9E1B1B blood red | Pirata One (name only) | Oswald, wide tracking | Source Serif 4 | Centered, symmetrical, heavy photo |
+| House / EDM | #0F2E26 deep green / #FFF4E0 | #FFC93C sun + #FF6FA8 pop | Syne 800 | DM Sans 700 | DM Sans | Rounded pills, arched photo, BPM badge |
+
+Rules: each look is a token set, not a separate codebase. One accent per look. Contrast at least 4.5:1. Touch targets 44px. Phone first.
+
 ## How to work
 
 - **Plan before code.** For any change bigger than one file, propose a short plan and wait for approval.
 - **One feature at a time.** Small, reviewable pull requests.
 - **Keep the tests green.** Run the existing regression suite; add tests for new behavior.
+- **Fax the room before every PR** (`docs/OWNER-DIRECTIVES.md`). No go, no show.
 - **Never** commit secrets, keys, passwords or AWS credentials. The repo is public.
 - Respect the product boundary in `README.md` (no crypto/Web3 in DanzStak) and the independence rules
   (no core dependency on Big Tech APIs).
-- Be candid about what is verified versus unverified, as `RESTART-CHECKPOINT.md` already asks.
+- Be candid about what is verified versus unverified, as `docs/OWNER-DIRECTIVES.md` requires.
 
 ## First task for a new session
 
@@ -120,8 +152,8 @@ Do not write code until the plan is approved.
 ## Idea bank (for discussion, not yet approved)
 
 **Migration**
-- "Moving Day" flow: import from Facebook, preview, pick what to bring, invite your people, done.
-- Shareable "I moved to DanzStak" card artists post on their old accounts with their new link.
+- **Pivot flow:** import from Facebook, preview, pick what to bring, invite your people, done.
+- Shareable "I pivoted to DanzStak" card artists post on their old accounts with their new link.
 - A visible data dashboard: what DanzStak stores about you, export and delete in one click.
 
 **Artists**
@@ -152,4 +184,12 @@ Do not write code until the plan is approved.
 **Revenue (already allowed by README)**
 - Pro EPK features, tour-management tools, verified venue/store tools, supporter memberships,
   clearly disclosed fees on bookings or sales DanzStak actually facilitates.
+
+## Later phase: SYNC Network (planned, paused until DanzStak has users)
+
+SYNC becomes its own standalone chat, voice and video product with SYNC Network numbers users can get so they never share their personal number. It requires a carrier/provider, pricing, E911, A2P 10DLC, identity checks and anti-spam before launch. Until then, fix SYNC for current users and do not sell phone numbers. Full spec: `instructions/pages/04-chat` and `instructions/pages/12-phone-service`.
+
+## Data Watch (planned)
+
+Data Watch belongs to every member under Settings -> Your data. Finding supported data-broker and people-search exposure, showing its source/date, preparing member-approved opt-outs and linking free official tools are free. Monitoring is $4 per month with no auto-renewal ever; members may prepay whole months at $4 each, up to 12 months/$48, and receive one reminder before paid time expires. Broker removal comes first; dark-web checks are later and never claim "all of the dark web." Phase A is research with synthetic data only—no vendors, Stripe products or charging without owner approval. Full spec: `instructions/pages/17-privacy-shield`.
 
