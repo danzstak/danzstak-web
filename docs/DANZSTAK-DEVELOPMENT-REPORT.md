@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## One-page and full press PDF exports — 2026-11-07
+
+Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION NOT YET VERIFIED**.
+
+- Public and permitted private EPKs now offer two explicit exports: **One-page press PDF** and **Full press PDF**. Both use the artist's selected EPK look and the browser's native print/save-PDF path, so no artist content is uploaded to a third-party PDF service.
+- The one-page version is a bounded booker summary: artist identity, one-line pitch, short biography, up to two music links, two video links, three notable shows, two sourced press quotes and booking contact. Embedded players are replaced by their secure provider links in print, keeping the document readable and reliably one page even for a veteran artist with extensive content.
+- The full version preserves the complete approved public EPK, including extended biography, lineup, releases, media links, shows, achievements, press, public production plot/input list, technical/hospitality details and booking contact. Print pagination allows long sections to flow across pages while keeping headings, individual quotes, links, production plots and input rows together.
+- Private per-venue EPK permissions govern both export buttons. When the artist has not allowed PDF access, neither export is displayed.
+- Functional evidence: `test-epk-press-pdf.cjs`, the expanded EPK builder checks, existing EPK look/production/share tests, JavaScript syntax checks and PWA cache `danzstak-shell-v706` pass locally.
+- Real PDF evidence: `browser-checks/epk-press-pdf.cjs` creates Letter-size PDFs from a veteran-level fixture. Poppler verifies the summary is exactly one page and the full kit spans five pages. Every rendered page was visually inspected for clipping, overlap, hierarchy, page transitions and legibility; captures are in `docs/screenshots/epk-pdf/`.
+- Honest boundary: this slice provides press-ready browser PDF output, not a server-stored PDF file or QR code. It is not marked deployed until GitHub review, hosted staging, production release and live PWA verification pass.
+
 ## Professional stage / booth plot and input list — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
