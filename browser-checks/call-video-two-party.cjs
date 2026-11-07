@@ -47,8 +47,13 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
       const finishIce = connection => connection.iceGatheringState === "complete"
         ? Promise.resolve()
         : new Promise(resolve => {
+          const timeout = setTimeout(() => {
+            connection.removeEventListener("icegatheringstatechange", onStateChange);
+            resolve();
+          }, 5000);
           const onStateChange = () => {
             if (connection.iceGatheringState !== "complete") return;
+            clearTimeout(timeout);
             connection.removeEventListener("icegatheringstatechange", onStateChange);
             resolve();
           };
