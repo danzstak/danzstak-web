@@ -2,7 +2,7 @@
 
 ## Reviewed booking pitch workflow — 2026-11-07
 
-Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; PRODUCTION NOT DEPLOYED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API; PHYSICAL INSTALLED-PWA ACCEPTANCE REMAINS**.
 
 - Each saved venue now has an intentional **Choose facts → Edit subject → Edit message → Preview exact email → Approve and send** path. Artists can start from band-tour, DJ/electronic-gig or festival copy, then edit every character before anything is sent.
 - Optional date-range, artist-entered expected-crowd and set/performance fields persist in the private booking workspace. The UI labels crowd claims as artist supplied and never invents audience demand, availability or terms. Reapplying a template asks before replacing an edited draft.
@@ -12,7 +12,8 @@ Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; PRODUCTION NOT DEPLOYED*
 - Functional/integration evidence: `test-booking-pitch-review.cjs`, Tour Manager dashboard/email-credit tests, PWA/static-link tests and the complete `test-regressions.ps1` gate pass. The full gate includes authentication, account isolation, Feed, Friends, Notifications, SYNC, media/audio, Booking discovery, EPK, Stripe safeguards, 11-page smoke coverage and infrastructure validation. No product failure was waived.
 - Responsive evidence: `browser-checks/booking-pitch-review.cjs` passes locally and against the isolated Amplify preview at 320, 360, 390, 414, 430 and 1366px, including exact preview content, approval gating, request payload, touch geometry and zero overflow. Captures in `docs/screenshots/booking-pitch-review/` were inspected before review.
 - Review/staging evidence: PR `#95` required checks passed for implementation head `6b7d5751ee349f80067e484207661251996df973`. Amplify DEVELOPMENT branch `codex/booking-pitch-review`, job `1`, succeeded in `us-west-1` at 2026-11-07 04:37:04 Europe/Berlin. No-cache probes of `https://codex-booking-pitch-review.d31oovi2mos5iz.amplifyapp.com/booking-selections.html` confirm booking JS v13, CSS v6 and `danzstak-shell-v696`.
-- Deployment boundary: production frontend and Auth API remain unchanged. Merge, production Amplify delivery, guarded Auth API deployment and live browser/API verification are still required before this slice is marked complete.
+- Production release: PR `#95` merged as `78e25fbd94a156536df88769de4d02136c1f2717`. AWS Amplify app `d31oovi2mos5iz`, production branch `main`, job `941` succeeded in `us-west-1` from 2026-11-07 04:41:42 to 04:42:36 Europe/Berlin. The matching `DANZSTAK-Auth-API` package was deployed successfully through the repository's guarded deployment script; Lambda reported a successful update at 04:45:51 Europe/Berlin.
+- Post-deployment evidence: no-cache production probes confirm booking JS v13, CSS v6 and `danzstak-shell-v696`. The six-width booking-pitch browser matrix passes directly against `https://danzstak.com`, the bounded live-release verifier passes, and an unauthenticated send request is rejected with HTTP 403. No payment configuration, secret or unrelated AWS resource changed. A signed-in physical installed-PWA send remains owner acceptance evidence; automated approval, entitlement, idempotency and credit restoration coverage passes.
 
 ## Five-minute EPK builder — 2026-11-07
 
