@@ -51,16 +51,21 @@ function fixture(url) {
         const nameMore = document.querySelector('.story[data-story-id="daily-video-1"] .story-name-more');
         const creatorRect = creator.getBoundingClientRect();
         const longNameRect = longName.getBoundingClientRect();
+        const storyRect = document.querySelector('.story[data-story-id="daily-video-1"]').getBoundingClientRect();
         return {
           documentWidth: document.documentElement.scrollWidth,
           railLabel: document.querySelector("#storiesRail").getAttribute("aria-label"),
           creatorLabel: creator.getAttribute("aria-label"),
           avatarBackground: getComputedStyle(avatar).backgroundImage,
+          avatarRadius: getComputedStyle(avatar).borderRadius,
           take: slate.querySelector("small").textContent,
           clock: slate.querySelector("time").textContent,
           slateVisible: slateRect.width > 0 && slateRect.height > 0 && getComputedStyle(slate).display !== "none",
           icons: icons.map(button => ({ label: button.getAttribute("aria-label"), svg: !!button.querySelector("svg"), width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height })),
           creatorWidth: creatorRect.width,
+          creatorHeight: creatorRect.height,
+          storyWidth: storyRect.width,
+          storyHeight: storyRect.height,
           longNameHeight: longNameRect.height,
           longNameInside: longNameRect.left >= creatorRect.left - 1 && longNameRect.right <= document.querySelector('.story[data-story-id="daily-video-1"]').getBoundingClientRect().right + 1,
           fullNameLabel: nameMore?.getAttribute("aria-label") || ""
@@ -71,15 +76,20 @@ function fixture(url) {
       assert.equal(result.railLabel, "Dailies");
       assert.match(result.creatorLabel, /Dailies/);
       assert.notEqual(result.avatarBackground, "none", `${width}px genuine profile picture was not installed`);
+      if (width < 700) assert.equal(result.avatarRadius, "50%", `${width}px Dailies profile image is not round`);
       assert.equal(result.take, "TAKE 5", `${width}px durable Dailies take count is wrong`);
       assert.ok(result.clock.length > 0, `${width}px local slate time is missing`);
       assert.equal(result.slateVisible, true, `${width}px creator clapper is hidden`);
       assert.deepEqual(result.icons.map(icon => icon.label), ["Photo", "Video"]);
-      if (width < 700) assert.ok(result.icons.every(icon => icon.svg && icon.height >= 38), `${width}px media controls are not usable: ${JSON.stringify(result.icons)}`);
+      if (width < 700) {
+        assert.ok(result.icons.every(icon => icon.svg && icon.height >= 38), `${width}px media controls are not usable: ${JSON.stringify(result.icons)}`);
+        assert.ok(Math.abs(result.creatorWidth - result.creatorHeight) <= 1, `${width}px Dailies creator card is not square`);
+        assert.ok(Math.abs(result.storyWidth - result.storyHeight) <= 1, `${width}px Dailies media card is not square`);
+      }
       assert.ok(result.longNameHeight > 20 && result.longNameInside, `${width}px creator name is clipped or escapes its tile`);
       assert.match(result.fullNameLabel, /The Extraordinarily Long Touring Artist Name/, `${width}px long name has no expanded affordance`);
       const screenshot = path.join(output, `feed-after-${width}.png`);
-      if (!fs.existsSync(screenshot)) await page.screenshot({ path: screenshot });
+      await page.screenshot({ path: screenshot });
       await context.close();
     }
     console.log(`Dailies feed browser checks passed at ${widths.join(", ")}px.`);

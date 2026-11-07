@@ -14,7 +14,7 @@ assert.match(html, /id="pivotButton"[^>]*aria-label="Pivot your data to DanzStak
 assert.match(html, /assets\/facebook-import\.js\?v=343/);
 assert.match(html, /assets\/pivot\.js\?v=1/);
 assert.match(html, /assets\/pivot\.css\?v=1/);
-assert.match(html, /assets\/danzstak-original-feed\.css\?v=14/);
+assert.match(html, /assets\/danzstak-original-feed\.css\?v=15/);
 assert.match(feedCss, /grid-template-columns:38px minmax\(0,3fr\) minmax\(68px,1fr\)/, "phone search and Pivot must use a three-quarter/one-quarter content split");
 assert.match(source, /facebook:[\s\S]*ready: true/);
 assert.match(source, /window\.openDanzStakFacebookImport\?\.\(trigger\)/, "Facebook Pivot must open the real selective importer");
