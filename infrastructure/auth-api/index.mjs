@@ -3450,15 +3450,27 @@ function cleanEpk(data, ownerPrefix = "") {
   });
   if (media.length !== rawMedia.length) return null;
   const look = new Set(["techno", "punk", "metal", "house"]).has(data.look) ? data.look : "techno";
+  const actType = new Set(["band", "dj", "electronic", "solo"]).has(data.actType) ? data.actType : "band";
+  const plotKinds = new Set(["vocal-mic", "instrument-mic", "di", "monitor", "amplifier", "drum-kit", "keyboard", "dj-mixer", "playback", "power", "other"]), plotPositions = new Set(["rear-left", "rear-center", "rear-right", "front-left", "front-center", "front-right"]), inputConnections = new Set(["mic", "di", "stereo-di", "line", "power"]), inputStands = new Set(["none", "straight", "boom", "short"]);
+  const plotItems = list(data.production?.plotItems, 24, item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const label = text(item.label, 100), kind = plotKinds.has(item.kind) ? item.kind : "", position = plotPositions.has(item.position) ? item.position : "";
+    return label && kind && position ? { id:text(item.id,64), kind, label, position } : null;
+  });
+  const inputs = list(data.production?.inputs, 48, item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const source = text(item.source, 100), connection = inputConnections.has(item.connection) ? item.connection : "", stand = inputStands.has(item.stand) ? item.stand : "";
+    return source && connection && stand ? { id:text(item.id,64), source, connection, stand, phantom:item.phantom === true, notes:text(item.notes,240) } : null;
+  });
   const kit = {
-    artistName: text(data.artistName, 120), hometown: text(data.hometown, 160), look,
+    artistName: text(data.artistName, 120), hometown: text(data.hometown, 160), actType, look,
     genres: list(data.genres, 8, item => text(item, 60)), shortPitch: text(data.shortPitch, 300),
     shortBio: text(data.shortBio, 1000), bio: text(data.bio, 5000), lineup: list(data.lineup, 16, item => text(item, 160)),
     releases: list(data.releases, 20, item => text(item, 300)), achievements: list(data.achievements, 20, item => text(item, 300)),
     notableShows: list(data.notableShows, 20, item => text(item, 240)), pressQuotes: quotes,
     musicLinks: links(data.musicLinks), videoLinks: links(data.videoLinks), socialLinks: links(data.socialLinks),
     heroImage: https(data.heroImage), logoImage: https(data.logoImage), media,
-    stageRequirements: text(data.stageRequirements, 3000), techRequirements: text(data.techRequirements, 5000), hospitalityRequirements: text(data.hospitalityRequirements, 3000),
+    stageRequirements: text(data.stageRequirements, 3000), production: { plotItems, inputs }, techRequirements: text(data.techRequirements, 5000), hospitalityRequirements: text(data.hospitalityRequirements, 3000),
     bookingName: text(data.bookingName, 120), bookingEmail: email(data.bookingEmail),
     bookingPhone: text(data.bookingPhone, 40), website: https(data.website),
     publicDetails: {
@@ -3502,7 +3514,7 @@ function epkForViewer(kit, publicView = false, ownerView = true, allowDownloads 
   if (publicView && copy.publicDetails && typeof copy.publicDetails === "object") {
     if (copy.publicDetails.bookingEmail !== true) copy.bookingEmail = "";
     if (copy.publicDetails.bookingPhone !== true) copy.bookingPhone = "";
-    if (copy.publicDetails.technical !== true) copy.techRequirements = "";
+    if (copy.publicDetails.technical !== true) { copy.techRequirements = ""; copy.production = { plotItems:[], inputs:[] }; }
     if (copy.publicDetails.hospitality !== true) copy.hospitalityRequirements = "";
     delete copy.publicDetails;
   }
