@@ -5,6 +5,8 @@ assert.match(source,/document\.addEventListener\("pointerdown", unlockRingtone/,
 assert.match(source,/showCall\(event\)[\s\S]*startRingtone\(\)/,'showing a foreground incoming call must start its ringtone when audio is available');
 assert.match(source,/function resolveCall\(callId\)[\s\S]*stopRingtone\(\)/,'resolved calls must stop the foreground ringtone');
 assert.match(source,/if \(document\.hidden\) stopRingtone\(\)/,'backgrounding a page must stop its foreground ringtone');
+assert.match(source,/const RINGTONE_DURATION_MS = 25000/,'foreground call sound must be capped at 25 seconds');
+assert.match(source,/ringtoneStopTimer = setTimeout\(stopRingtone, remaining\)/,'foreground ringing must stop when the remaining sound window expires');
 assert(!/messages\.html\?contact=/.test(template),'Push notification URLs must not expose account email addresses');
 assert.match(template,/messages\.html\?member=\$\{encodeURIComponent\(senderMemberId\)\}/,'Push alerts should open a chat with an opaque member ID');
 assert.match(template,/notifyCall\(recipientEmail,user\.email,user\.userId,mode,callId\)/,'Call alerts must pass the opaque sender ID');
