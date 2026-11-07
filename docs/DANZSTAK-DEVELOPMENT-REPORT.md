@@ -1,5 +1,18 @@
 # DANZSTAK development report
 
+## Friends directory redesign — 2026-11-07
+
+Status: **IN REVIEW — IMPLEMENTED AND FULLY TESTED LOCALLY; NOT DEPLOYED**.
+
+- Friends is now one compact, Facebook-familiar directory rather than three disconnected blocks. A single search field and tabs expose **All friends**, **Online**, **Requests** and **Find friends** without requiring account-email knowledge.
+- Accepted friends retain profile links, truthful live presence and one-tap SYNC messaging. Incoming requests expose Accept/Decline, outgoing requests show Pending, and discovery searches eligible online or offline members through the existing privacy-aware People endpoint.
+- The destructive Remove friend / Block member choice is no longer a permanent trash control beside every person. It lives behind a per-friend **More** menu and keeps the existing explicit confirmation dialog and opaque member-ID backend request.
+- State updates do not reload the browser. Accept/decline/removal refresh the active workspace, live presence updates existing rows, keyboard arrow keys move between tabs, and all primary controls retain at least 44px phone touch targets.
+- Functional evidence: the complete `test-regressions.ps1` gate passes, including 13-page smoke and infrastructure validation. Friend loading, presence, localization, profile routes, removal, recovery and stale-response regression coverage was updated for the unified directory.
+- Visual evidence: `browser-checks/friends-directory.cjs` passes at 320, 360, 390, 430, 768 and 1366px, plus 1-, 10- and 100-friend states at 390px. It checks tabs, local filtering, remote discovery, request states, hidden destructive actions, 44px targets, browser errors and horizontal overflow. `browser-checks/core-social-mobile.cjs` also passes all 25 page/viewport combinations. Inspected captures are in `docs/screenshots/friends-directory/`.
+- Prepared PWA assets: feed enhancements CSS v501, JS v532, People search JS v423 and cache `danzstak-shell-v713`.
+- Honest boundary: this slice reuses the existing bounded Friends, People, presence and SYNC APIs. It does not add recommendations, contact-book uploads, ranking, pagination or a new relationship backend. It has not been deployed while review is pending.
+
 ## Member show and release reviews — 2026-11-07
 
 Status: **IN PROGRESS — PUBLIC EPK REVIEW SLICE DEPLOYED AND VERIFIED; COMPLETE REVIEWS PRODUCT REMAINS INCOMPLETE**.

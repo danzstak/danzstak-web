@@ -16,9 +16,9 @@ assert.match(feed, /if \(!document\.querySelector\("\.friend-workspace-row\[data
 assert.match(feed, /applyFriendWorkspacePresence\(data\.users \|\| \[\]\)/, "heartbeat snapshots update the same friend cards as chat snapshots");
 assert.match(feed, /const presenceLabel = feedTranslate\(online \? "Online" : "Offline"\)/, "friend status text updates through the active language");
 assert.match(feed, /dot\.classList\.toggle\("online", online\)/, "friend presence dots update from the fresh snapshot");
-assert.match(feed, /onlineHeading\.textContent = feedTranslate\("Users online"\)/, "the Friends button opens a localized plain-language online-user list");
+assert.match(feed, /\["all", "All friends"\], \["online", "Online"\], \["requests", "Requests"\], \["find", "Find friends"\]/, "the Friends button opens one localized directory with an Online filter");
 assert.match(feed, /action\.textContent = feedTranslate\("Add Friend"\)/, "online users can be added with one localized clear action");
-assert.match(feed, /friendsHeading\.textContent = feedTranslate\("Your friends"\)/, "accepted friends remain in a separate localized persistent list");
+assert.match(feed, /friends = Array\.isArray\(friendData\.friends\) \? friendData\.friends : \[\]/, "accepted friends remain in the persistent All friends tab");
 assert.doesNotMatch(feed, /Add a friend by email/, "the primary Friends flow does not require users to know an email address");
 
 const refreshStart = feed.indexOf("function applyFriendWorkspacePresence(users)");

@@ -55,8 +55,8 @@ assert.equal(online.children[0].children[2].textContent, "Requested");
 
 const workspace = source.slice(source.indexOf('if (name === "Friends")'), source.indexOf('if (["Photos", "Videos"]'));
 assert.match(workspace,
-  /renderOnlineFriendList\(onlineList, \[\.\.\.directoryPeople\.values\(\)\], presenceAvailable\);[\s\S]*if \(!friendsResponse\?\.ok\)/,
-  "online discovery must render before an independent friends-list failure is handled");
+  /presenceAvailable = directoryResponse\?\.ok === true;[\s\S]*directoryUsers = \(await directoryResponse\.json\(\)\)\.users \|\| \[\];[\s\S]*if \(!friendsResponse\?\.ok\)/,
+  "the unified directory must preserve a truthful presence result before handling a friends-list failure");
 assert.match(workspace, /Friends could not be loaded\.[\s\S]*Retry friends/,
   "the accepted-friends failure needs its own clear retry action");
 
