@@ -1,9 +1,12 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { chromium } = require("playwright");
 
 const widths = [320, 360, 390, 414, 430];
+const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const friendId = "22222222-2222-4222-8222-222222222222";
 const postId = "33333333-3333-4333-8333-333333333333";
@@ -61,7 +64,7 @@ function fixture(url) {
   const browser = await chromium.launch({ channel: "msedge", headless: true });
   try {
     for (const width of widths) {
-      const context = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: "block" });
+      const context = await browser.newContext({ viewport: { width, height: 844 }, hasTouch: true, serviceWorkers: "block" });
       const page = await context.newPage();
       const errors = [];
       page.on("pageerror", error => errors.push(error.message));
@@ -82,6 +85,7 @@ function fixture(url) {
         const comment = post.querySelector(`.comment[data-comment-id="${commentId}"]`);
         const reply = comment.querySelector(".comment-reply-button");
         const remove = comment.querySelector(".deleteCommentBtn");
+        const commentReactions = [...comment.querySelectorAll(".comment-reactions > button")];
         const postRect = post.getBoundingClientRect();
         const mediaRect = media.getBoundingClientRect();
         const actionRects = actions.map(button => button.getBoundingClientRect());
@@ -100,6 +104,11 @@ function fixture(url) {
           actionCount: actions.length,
           actionTops: actionRects.map(rect => Math.round(rect.top)),
           countOrder,
+          commentCountOrder: commentReactions.map(button => {
+            const icon = button.querySelector(".reaction-icon")?.getBoundingClientRect();
+            const count = button.querySelector(".reaction-count")?.getBoundingClientRect();
+            return !icon || !count || (count.left >= icon.right - 0.5 && Math.abs((count.top + count.bottom) - (icon.top + icon.bottom)) <= 2);
+          }),
           replyTop: Math.round(replyRect.top),
           removeTop: Math.round(removeRect.top),
           replyCenter: Math.round((replyRect.top + replyRect.bottom) * 2) / 4,
@@ -117,9 +126,14 @@ function fixture(url) {
       assert.equal(geometry.actionCount, 5, `${width}px must show five post actions on one row`);
       assert.equal(new Set(geometry.actionTops).size, 1, `${width}px post actions wrapped: ${JSON.stringify(geometry.actionTops)}`);
       assert.ok(geometry.countOrder.every(Boolean), `${width}px reaction counts are not immediately right of their icons`);
+      assert.ok(geometry.commentCountOrder.every(Boolean), `${width}px comment reaction counts are not aligned to the right of their icons`);
       assert.ok(Math.abs(geometry.replyCenter - geometry.removeCenter) <= 1, `${width}px Reply and Delete are not vertically centered on the same row: ${JSON.stringify(geometry)}`);
       assert.ok(geometry.removeRight <= geometry.commentRight + 1, `${width}px Delete escapes its comment`);
       assert.ok(geometry.removeRight - geometry.replyLeft > 100, `${width}px comment actions are not distributed across the row`);
+      if (captureDir) {
+        fs.mkdirSync(captureDir, { recursive: true });
+        await page.locator(`.post[data-post-id="${postId}"]`).screenshot({ path: path.join(captureDir, `populated-post-${width}.png`) });
+      }
       await context.close();
     }
     console.log(`Populated feed mobile browser checks passed: ${widths.length} viewport widths.`);

@@ -51,6 +51,7 @@ for (const required of [
 for (const required of [
   ".comment-action-row{grid-column:2;display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap",
   ".deleteCommentBtn{position:static;flex:0 0 auto",
+  ".comment-reactions>button{display:inline-flex!important;align-items:center;justify-content:center;gap:4px",
   "white-space:nowrap"
 ]) assert.ok(css.includes(required), `Reply/delete single-row layout is missing: ${required}`);
 
