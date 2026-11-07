@@ -186,13 +186,9 @@ body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-crea
   flex:1;
   flex-direction:row;
   justify-content:flex-start;
-  gap:10px;
+  gap:0;
   padding:12px 16px;
   text-align:left;
-}
-body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-caption b {
-  flex:0 0 34px;
-  margin:0;
 }
 body.danzstak-original .story-create-detail {
   display:block;
@@ -306,18 +302,29 @@ body.danzstak-original .right :is(h3,h2) {
   body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .daily-clapper {
     display:grid!important;
     position:absolute;
-    inset:8px;
-    align-content:center;
-    justify-items:center;
+    inset:auto auto 7px 7px;
+    width:min(74px,calc(100% - 14px));
+    box-sizing:border-box;
+    align-content:start;
+    justify-items:start;
     grid-template-columns:1fr!important;
-    gap:3px;
-    padding:8px 5px;
-    border:2px solid rgba(255,255,255,.92);
-    border-radius:7px;
-    background:rgba(7,20,43,.22);
+    gap:1px;
+    padding:5px 6px 4px;
+    border:1px solid rgba(255,255,255,.82);
+    border-radius:5px;
+    background:rgba(7,20,43,.82);
     z-index:5!important;
     color:#fff;
-    text-align:center;
+    text-align:left;
+    transform:none;
+  }
+  body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .daily-clapper :is(strong,small) {
+    font-size:8px;
+    line-height:1.05;
+  }
+  body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .daily-clapper time {
+    font-size:7px;
+    line-height:1.1;
   }
   body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-caption {padding:10px 12px}
   /* Consecutive posts share one continuous canvas. Eight pixels remain between

@@ -38,8 +38,10 @@ function fixture(url) {
         const tile = document.querySelector(".story-create");
         const slate = document.querySelector(".daily-clapper");
         const photo = document.querySelector(".story-create-avatar");
+        const art = document.querySelector(".story-create-art");
         const tileRect = tile.getBoundingClientRect();
         const slateRect = slate.getBoundingClientRect();
+        const artRect = art.getBoundingClientRect();
         return {
           overflow: document.documentElement.scrollWidth > innerWidth,
           take: slate.querySelector("small").textContent,
@@ -47,6 +49,7 @@ function fixture(url) {
           date: slate.querySelector("time").textContent,
           slateVisible: slateRect.width > 0 && slateRect.height > 0 && slateRect.left >= tileRect.left && slateRect.right <= tileRect.right,
           photoVisible: getComputedStyle(photo).backgroundImage !== "none",
+          plusPresent: Boolean(document.querySelector(".story-create-caption b")),
           tileHeight: tileRect.height,
           tileTop: tileRect.top,
           slateTop: slateRect.top,
@@ -54,7 +57,12 @@ function fixture(url) {
           slateZ: getComputedStyle(slate).zIndex,
           slateOpacity: getComputedStyle(slate).opacity,
           slateColor: getComputedStyle(slate).color,
-          slateBackground: getComputedStyle(slate).backgroundColor
+          slateBackground: getComputedStyle(slate).backgroundColor,
+          slateWidth: slateRect.width,
+          artWidth: artRect.width,
+          artHeight: artRect.height,
+          clearPhotoHeight: slateRect.top - artRect.top,
+          bottomInset: artRect.bottom - slateRect.bottom
         };
       });
       assert.equal(errors.length, 0, `${width}px page errors: ${errors.join(" | ")}`);
@@ -64,6 +72,10 @@ function fixture(url) {
       assert.match(result.date, /2026/, `${width}px current date is not visible: ${result.date}`);
       assert.equal(result.slateVisible, true, `${width}px clapper is clipped or hidden`);
       assert.equal(result.photoVisible, true, `${width}px creator photo is missing below the clapper`);
+      assert.equal(result.plusPresent, false, `${width}px Dailies creator still shows a separate plus sign`);
+      assert.ok(result.slateWidth <= 76, `${width}px clapper is too wide: ${result.slateWidth}px`);
+      assert.ok(result.clearPhotoHeight >= 70, `${width}px clapper covers too much of the placeholder image: ${result.clearPhotoHeight}px clear`);
+      assert.ok(result.bottomInset >= 5 && result.bottomInset <= 10, `${width}px clapper is not anchored at the lower-left: ${result.bottomInset}px bottom inset`);
       assert.ok(result.tileHeight >= 140, `${width}px Dailies creator tile is too short`);
       await page.screenshot({ path: path.join(output, `empty-dailies-${width}.png`) });
       await context.close();
