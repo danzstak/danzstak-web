@@ -1,76 +1,72 @@
 # DANZSTAK Design System
 
-Status: **FOUNDATION IN PROGRESS**  
-Scope: GitHub Issue #55, stacked on the compact Feed/Dailies work from Issue #49  
+Status: **80/20 DIRECTION APPROVED FOR PLANNING; IMPLEMENTATION NOT STARTED**
 Production: **UNCHANGED**
 
 ## Product direction
 
-DANZSTAK uses familiar social-network interaction patterns while maintaining its own music-focused identity. Regular screens are light mode. Dark presentation is reserved for active calling/media contexts where it improves focus. The system must remain compact, readable, responsive, and truthful: controls only appear when they work, user content remains primary, and no mock data is shipped.
+DanzStak uses an **80% familiar, 20% DanzStak** visual model. A person arriving from Facebook should understand the interface on day one: search/messages/notifications in the top bar, a desktop left menu, phone bottom tabs, one center content column, familiar profiles, standard icons, and recognizable post actions. DanzStak must not invent unfamiliar navigation merely to look different.
 
-## Current architecture inventory
+The distinctive 20% comes from DanzStak's logo, type, palette, language, and music-specific content: ticket-stub shows, record-sleeve releases, backstage-laminate EPKs, poster-list tour dates, and professional stage/booth plots. Stock social-network blue and generic phpFox-template styling are retired. Layout familiarity is preserved; visual identity and music workflow replace generic decoration.
 
-The frontend is serverless HTML, CSS, and browser JavaScript; it is not React. Shared behavior is delivered by versioned assets and cached by `service-worker.js`.
+## Stable platform frame
 
-| Area | Primary sources | Current shared dependencies | Migration status |
-|---|---|---|---|
-| Feed / Dailies / Buzz / Friends / Menu | `feed.html`, `assets/feed-enhancements.css`, `assets/feed-enhancements.js` | `soft-ui.css`, `mobile-design-system.css`, `icon-buttons.css`, `responsive-media.css` | Feed foundation adopted; Friends remains in Issue #54 |
-| Profile | `profile.html`, `profile-editor.css`, `profile-editor.js`, `profile-collections.js` | Shared mobile, icon, media, and soft UI assets | Foundation adopted |
-| SYNC | `messages.html`, `chat.css`, `chat.js`, `direct-messages.js` | Shared mobile, icon, and media assets | Dedicated Issue #48 review |
-| Booking Agent | `booking.html`, `booking-agent*.css/js`, `booking-discovery.*`, `booking-map.js` | Shared mobile and icon assets | Page redesign intentionally deferred to Issue #52 |
-| Record Stores | `record-stores.html`, `record-stores*.css/js`, `record-placement.css` | Shared mobile and icon assets | Inventory complete; visual migration pending |
-| EPK | `epk.html`, `epk*.css/js` | Shared mobile, icon, and media assets | Inventory complete; visual migration pending |
-| Tour Manager | Booking workspace components and authenticated API routes | Booking and shared tool styles | Inventory complete; visual migration pending |
+Navigation, SYNC, settings, safety, and Mix use one consistent DanzStak frame. Genre looks never recolor or rearrange this frame.
 
-## Root causes found
+- Desktop: top bar, left navigation, center content; secondary content only when it earns the space.
+- Phone: compact top bar and familiar bottom tabs; one primary screen at a time.
+- Profiles retain cover, avatar, tabs, and familiar actions.
+- Posts retain like, comment, and share with standard icons in standard places.
+- Main destinations are HQ, Tour/Gigs, EPK, Scene, and Mix. SYNC and notifications stay in the top bar.
+- For DJ/electronic artist contexts, the same Tour destination is labeled Gigs and includes set times.
 
-1. Two competing token sets (`--ui-*` and `--ds-*`) allowed the same component to receive different colors and density depending on stylesheet order.
-2. Feed and Profile still embedded hard-coded Facebook-like palettes even when they loaded the shared mobile stylesheet.
-3. Shared element rules and page rules were layered with `!important`, making geometry dependent on cascade order rather than component ownership.
-4. Direct desktop Feed images were designed to span the post card but were silently clamped by the global `max-width:100%` rule, leaving a visible right inset.
-5. Profile biography/actions remained centered by the older editor stylesheet while the new profile hierarchy was left aligned, producing a visibly broken identity column.
-6. Page-specific PWA asset versions can retain prior geometry unless every consumer advances with the shared cache version.
+## Shared tokens
 
-## Semantic foundation
+`assets/mobile-design-system.css` remains the future token source. Implementation replaces stock blue/white target values with semantic DanzStak roles—ground, surface, ink, muted ink, rule, accent, focus, danger, typography, radii, and borders—without rebuilding page structure. Components consume semantic tokens rather than hard-coded page colors.
 
-`assets/mobile-design-system.css` is the current source of truth. Legacy `--ui-*` variables resolve through these semantic tokens while modules are migrated.
+Artist-owned public EPK, profile, and gig content may select `[data-look="techno|punk|metal|house"]`. The attribute belongs on the artist content root, never the application shell. Looks are token sets, not separate DOM trees, routes, or codebases. Content, permissions, and look remain independent.
 
-- Brand: `--ds-brand`, `--ds-brand-strong`, `--ds-brand-soft`
-- Accent: `--ds-accent`, `--ds-accent-soft`
-- Text: `--ds-ink`, `--ds-ink-soft`, `--ds-muted`
-- Surfaces: `--ds-canvas`, `--ds-surface`, `--ds-surface-subtle`
-- Structure: `--ds-border`, `--ds-border-strong`, radius and shadow scales
-- Type: shared font stack, sizes, and leading
-- Density: 4px spacing scale with 44px minimum touch targets
-- Layout: shared content and shell widths
+## Genre looks for artist-owned public pages
 
-The canvas uses restrained blue/orange light-mode accents. User media and content remain on high-contrast white surfaces. Active navigation uses blue plus an orange identity rail rather than generic blue-only highlighting.
+| Look | Ground / ink / accent | Typography | Expression |
+| --- | --- | --- | --- |
+| Techno | `#0B0B0C` / `#EDEDEA` / `#FF5A1F` | Archivo 900 expanded display, JetBrains Mono detail, Archivo body | Square edges, 1px rules, mono labels |
+| Punk | `#EFE8DA` / `#121110` / `#E5452E` | Anton display, Special Elite detail, Work Sans body | Xerox frame, perforated rules, ticket-stub shows |
+| Metal | `#0E0D0D` / `#E6DECB` / `#9E1B1B` | Pirata One for artist name only, tracked Oswald labels, Source Serif 4 body | Centered symmetry, heavy hero, restrained red |
+| House / EDM | `#0F2E26` / `#FFF4E0` / `#FFC93C` primary; `#FF6FA8` controlled alternate | Syne 800 display, DM Sans body | Rounded pills, arched photo, BPM/genre badge |
 
-## Implemented foundation slice
+Only one interactive accent is active within a component. House/EDM uses sun for actions and pop as a controlled decorative/status alternate. Normal text contrast is at least 4.5:1, focus is not color-only, and targets are at least 44px.
 
-- Feed and Profile now consume the shared semantic palette, typography, borders, radii, and shadows.
-- The Feed header and Profile header use the same branded blue gradient and orange keyline.
-- Profile uses actual cover/avatar data in a single cohesive hero; missing covers receive a restrained original DANZSTAK treatment.
-- Profile identity, biography, controls, tabs, and details follow one left-aligned hierarchy on desktop and mobile.
-- Direct Feed media now reaches both post edges at desktop and mobile widths without distortion.
-- Shared asset version is `mobile-design-system.css?v=12`; review PWA cache is `danzstak-shell-v682`.
+## Universal EPK content
 
-## Evidence and gates
+The EPK Builder is for every DanzStak artist. It is not tied to a demo artist or genre. Artists can start with name, genre, home town, pitch, bio, releases, external music/video links, photos, press, shows, production details, and contact. Bands receive stage plot and input list fields; DJs/electronic live acts receive booth plot and tech-rider fields.
 
-`browser-checks/design-system-profile-feed.cjs` renders authenticated, populated Feed and Profile pages at 320, 390, 430, and 1366px. It verifies:
+Look and content are separate. An artist can switch looks without altering or losing content. Public renderers support sparse new-artist EPKs and long veteran catalogs; empty sections disappear cleanly and no placeholder copy appears publicly. New looks later require a token set and visual fixtures, not new page logic.
 
-- no horizontal overflow;
-- one shared brand/accent/surface token set;
-- readable shared typography;
-- visible orange header keyline;
-- white content surfaces and consistent card radii;
-- edge-aligned real post media at mobile and desktop widths;
-- 44px mobile navigation targets;
-- actual profile cover/avatar integration;
-- coherent Profile identity alignment and shared detail surfaces.
+Music and video remain external links to artist-controlled providers. DanzStak does not upload, copy, proxy, or host them and does not stream stored music files.
 
-Review captures are stored in `docs/screenshots/issue-55-foundation/`.
+## Typography and independence
 
-## Deliberately incomplete
+Approved fonts are self-hosted under `assets/fonts/` as licensed, subset WOFF2 files. No Google Fonts or other third-party font request is permitted. Load only used weights and required language subsets, keep fallback metrics stable, record licenses/source versions, and budget the total payload before implementation.
 
-This foundation is not the platform-wide redesign. SYNC, Friends, Record Stores, Booking Agent, EPK, Tour Manager, News, loading/error states, and remaining modal/form styles still require scoped implementation and evidence. Physical installed-PWA review remains an owner/device gate. No production deployment is authorized by this document.
+## Component expression
+
+| Component | Techno | Punk | Metal | House / EDM |
+| --- | --- | --- | --- | --- |
+| Show/gig | Mono line item and set time | Perforated ticket | Symmetrical bill | Date pill and BPM/set badge |
+| Public EPK | Backstage laminate | Xerox press folder | Centered dossier | Arched press page |
+| Release | Indexed sleeve | Pasted sleeve | Framed sleeve | Rounded catalog sleeve |
+| Tour dates | Routing rows | Poster stack | Centered itinerary | Club-night schedule |
+| Production | Technical stage/booth grid | Drawn paper plot | High-contrast plot | Clean rounded plot |
+
+The platform frame around these components remains unchanged. Decorative treatment never changes reading order, controls, permissions, information density, or navigation.
+
+## Rollout and quality gate
+
+Restyle in this order: navigation shell, HQ, public EPK, Gigs/Tour, then Mix. Preserve familiar layout and control positions; add music tools to the existing menu rather than removing Feed or moving familiar actions. One screen ships per PR.
+
+Public artist-screen PRs include all four looks at 390px and 1366px. Platform-frame screens include the single base look at those sizes. Automated checks cover local-only fonts, token scope, 4.5:1 contrast, 44px targets, focus, overflow, sparse/full content, hidden empty sections, and stable navigation.
+
+Eroticon may appear only as clearly labeled example fixture content. No artist name, biography, release, credit, or link may be hard-coded into production pages, CSS, components, or templates. Tests must never download or host its music/video.
+
+See `docs/DESIGN-DIRECTION-PLAN.md`. No production deployment is authorized by this document.
