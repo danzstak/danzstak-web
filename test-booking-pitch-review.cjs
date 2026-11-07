@@ -23,6 +23,6 @@ for (const field of ["pitchTemplate", "expectedDraw", "setDetails", "outreachSub
 assert.match(styles, /\.booking-send-review[\s\S]*max-height:[^;]+vh/, "the review dialog must be bounded on phones");
 assert.match(styles, /\.booking-send-actions button\{min-height:44px\}/, "review actions must remain touch sized");
 assert.match(markup, /booking-selections\.css\?v=7/);
-assert.match(markup, /booking-selections\.js\?v=14/);
+assert.match(markup, /booking-selections\.js\?v=15/);
 
 console.log("Booking pitch review checks passed: templates, artist-entered facts, overwrite protection, exact preview, explicit approval, server enforcement, persistence, and mobile geometry.");

@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## Venue-controlled booking opt-out and global suppression — 2026-11-07
+
+Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION NOT YET DEPLOYED**.
+
+- Before the artist sees the final review, an authenticated preflight verifies the saved/unlocked venue contact, rolling account cap, 30-day contact cooldown and global suppression state. It returns the verified DanzStak LLC mailing address plus a private opt-out link, and the exact footer appears inside the artist-approved email preview.
+- Opt-out tokens are 256-bit random values stored only as hashes. They stay in a URL fragment, are removed from browser history immediately, and are submitted in an accountless POST body without DanzStak session credentials. Static pages, request URLs and suppression keys do not reveal the recipient address.
+- The recipient must explicitly choose **Stop future booking pitches** on a noindex phone-first page. Confirmation creates one global hashed-contact suppression record, so the choice applies across every DanzStak artist rather than only the original sender.
+- The send transaction atomically rechecks that no suppression exists and that the footer token is bound to the exact artist, outreach, venue and recipient. Opting out between preview and send therefore prevents the credit reservation and provider call.
+- No bounce, complaint or delivery state is inferred. SES event ingestion remains a separate unfinished slice; provider acceptance is still not described as recipient delivery.
+- Functional/security evidence: `test-booking-opt-out.cjs` and the expanded `test-tour-manager-email-credits.cjs` verify fragment-token privacy, hashed keys, exact footer review, accountless confirmation, global suppression, atomic race protection, cap/cooldown preflight and credit restoration. The complete `test-regressions.ps1` gate passes with exit code 0; static/smoke coverage now includes 12 pages and 320 internal links/assets.
+- Responsive evidence: `browser-checks/booking-opt-out.cjs`, `browser-checks/booking-pitch-review.cjs` and `browser-checks/epk-outreach-share.cjs` pass at 320, 360, 390, 414, 430 and 1366px. The opt-out capture set in `docs/screenshots/booking-opt-out/` and the reviewed-email capture were inspected. The opt-out page has no horizontal overflow, clipped action or sub-44px primary control.
+- Release assets are prepared as booking selections JS v15 and PWA cache `danzstak-shell-v698`. New guarded routes are `POST /tour-manager/outreach/preflight` and `POST /tour-manager/opt-out`. No Stripe price, payment entitlement, SES sender or unrelated AWS configuration changed.
+- Remaining gates: exact-head GitHub checks, isolated Amplify preview, merge, guarded Auth API deployment and live verification. SES bounce/complaint auto-suppression and delivery telemetry remain incomplete and are not claimed here.
+
 ## Booking outreach anti-abuse guardrails — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE AUTH API; CONTROLLED SIGNED-IN SEND ACCEPTANCE REMAINS**.

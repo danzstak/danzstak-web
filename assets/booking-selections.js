@@ -111,6 +111,13 @@
     await fetchWithTimeout("https://api.danzstak.com/epk/outreach-share", { method:"POST", credentials:"include", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({ action:"revoke", venueKey:identity(venue), outreachId }) }).catch(() => null);
   }
 
+  async function createOutreachPreflight(venue, email, outreachId) {
+    const response = await fetchWithTimeout("https://api.danzstak.com/tour-manager/outreach/preflight", { method:"POST", credentials:"include", cache:"no-store", headers:{"content-type":"application/json"}, body:JSON.stringify({ venueKey:identity(venue), to:email, outreachId }) });
+    const data = await response.json().catch(() => ({})), footer = String(data.footer || "");
+    if (!response.ok || !footer.includes("DanzStak LLC, 2063 Main St. #237, Oakley, CA 94561, USA") || !/https:\/\/danzstak\.com\/booking-opt-out\.html#token=[a-f0-9]{64}/.test(footer)) throw new Error(data.error || "DanzStak could not verify this contact for review.");
+    return data;
+  }
+
   function localEstimate() {
     const values = tour(), depart = Date.parse(`${values.departOn || ""}T12:00:00Z`), back = Date.parse(`${values.returnBy || ""}T12:00:00Z`);
     const durationDays = Number.isFinite(depart) && Number.isFinite(back) && back >= depart ? Math.floor((back - depart) / 86400000) + 1 : 1;
@@ -396,7 +403,11 @@
       button.textContent = "Creating private EPK link…";
       try {
         const outreachId = crypto.randomUUID().replaceAll("-", ""), share = await createVenueEpkShare(venue, outreachId, allowPdf.checked);
-        const reviewedMessage = currentMessage.replaceAll(currentArtist.epk, share.shareUrl);
+        let preflight;
+        try { preflight = await createOutreachPreflight(venue, email, outreachId); }
+        catch (error) { await revokeVenueEpkShare(venue, outreachId); throw error; }
+        const reviewedMessage = `${currentMessage.replaceAll(currentArtist.epk, share.shareUrl)}\n\n---\n${preflight.footer}`;
+        if (reviewedMessage.length > 5000) { await revokeVenueEpkShare(venue, outreachId); throw new Error("Shorten the pitch so the required postal and opt-out footer fits in the email."); }
         if (!(await reviewSend({ venue, to:email, subject:currentSubject, message:reviewedMessage }))) { await revokeVenueEpkShare(venue, outreachId); button.disabled = false; button.textContent = "Preview exact email"; return; }
         button.textContent = "Sending…";
         await window.danzstakSendBookingEmail({ venueKey: identity(venue), to: email, subject: currentSubject, message: reviewedMessage, template:template.value, artistApproved:true, idempotencyKey:outreachId });
