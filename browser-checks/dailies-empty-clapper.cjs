@@ -42,6 +42,7 @@ function fixture(url) {
         const tileRect = tile.getBoundingClientRect();
         const slateRect = slate.getBoundingClientRect();
         const artRect = art.getBoundingClientRect();
+        const photoRect = photo.getBoundingClientRect();
         return {
           overflow: document.documentElement.scrollWidth > innerWidth,
           take: slate.querySelector("small").textContent,
@@ -62,7 +63,10 @@ function fixture(url) {
           artWidth: artRect.width,
           artHeight: artRect.height,
           clearPhotoHeight: slateRect.top - artRect.top,
-          bottomInset: artRect.bottom - slateRect.bottom
+          bottomInset: artRect.bottom - slateRect.bottom,
+          photoBottom: photoRect.bottom,
+          slateTopEdge: slateRect.top,
+          imageSlateGap: slateRect.top - photoRect.bottom
         };
       });
       assert.equal(errors.length, 0, `${width}px page errors: ${errors.join(" | ")}`);
@@ -74,7 +78,8 @@ function fixture(url) {
       assert.equal(result.photoVisible, true, `${width}px creator photo is missing below the clapper`);
       assert.equal(result.plusPresent, false, `${width}px Dailies creator still shows a separate plus sign`);
       assert.ok(result.slateWidth <= 76, `${width}px clapper is too wide: ${result.slateWidth}px`);
-      assert.ok(result.clearPhotoHeight >= 70, `${width}px clapper covers too much of the placeholder image: ${result.clearPhotoHeight}px clear`);
+      assert.ok(result.clearPhotoHeight >= 70, `${width}px placeholder image area is too short: ${result.clearPhotoHeight}px`);
+      assert.ok(result.imageSlateGap >= 2, `${width}px clapper overlaps the placeholder image by ${Math.abs(result.imageSlateGap)}px`);
       assert.ok(result.bottomInset >= 5 && result.bottomInset <= 10, `${width}px clapper is not anchored at the lower-left: ${result.bottomInset}px bottom inset`);
       assert.ok(result.tileHeight >= 140, `${width}px Dailies creator tile is too short`);
       await page.screenshot({ path: path.join(output, `empty-dailies-${width}.png`) });

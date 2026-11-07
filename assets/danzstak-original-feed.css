@@ -299,10 +299,16 @@ body.danzstak-original .right :is(h3,h2) {
     flex-basis:92px;
     width:92px;
   }
+  body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-identity {
+    position:absolute;
+    inset:0 0 47px;
+    width:auto;
+    height:auto;
+  }
   body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .daily-clapper {
     display:grid!important;
     position:absolute;
-    inset:auto auto 7px 7px;
+    inset:auto auto 6px 7px;
     width:min(74px,calc(100% - 14px));
     box-sizing:border-box;
     align-content:start;
