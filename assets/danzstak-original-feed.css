@@ -305,6 +305,10 @@ body.danzstak-original .right :is(h3,h2) {
   }
   body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .daily-clapper {display:none!important}
   body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-caption {padding:10px 12px}
+  /* Consecutive posts share one continuous canvas. Eight pixels remain between
+     the preceding action row and the next author, instead of an empty card band. */
+  body.danzstak-original #feed {gap:0}
+  body.danzstak-original #feed > .post {padding-block:4px!important}
 }
 @media(prefers-reduced-motion:reduce){
   body.danzstak-original *,

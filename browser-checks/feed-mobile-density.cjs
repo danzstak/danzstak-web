@@ -100,6 +100,20 @@ function fixture(pathname) {
       if (width === 390) await page.screenshot({ path: path.join(output, "feed-roll-add-390.png"), fullPage: false });
       await page.getByRole("button", { name: "Cancel" }).click();
       await page.locator(".reel-import-form").waitFor({ state: "hidden" });
+      if (width < 700) {
+        const postGap = await page.evaluate(() => {
+          const feed = document.getElementById("feed");
+          const first = createPostElement("First continuous post", "First artist", new Date().toISOString(), "public");
+          const second = createPostElement("Second continuous post", "Second artist", new Date().toISOString(), "public");
+          feed.replaceChildren(first, second);
+          const firstActions = first.querySelector(".post-actions").getBoundingClientRect();
+          const secondHeader = second.querySelector(".post-header").getBoundingClientRect();
+          return { gap: secondHeader.top - firstActions.bottom, feedGap: getComputedStyle(feed).gap };
+        });
+        assert.equal(postGap.feedGap, "0px", `${width}px feed still inserts a grid gap between posts`);
+        assert.ok(postGap.gap >= 6 && postGap.gap <= 10, `${width}px consecutive post rhythm must be one continuous 8px space: ${JSON.stringify(postGap)}`);
+        if (width === 390) await page.screenshot({ path: path.join(output, "feed-continuous-posts-390.png"), fullPage: false });
+      }
       await context.close();
     }
     console.log(`Feed mobile-density browser checks passed at ${widths.join(", ")}px.`);
