@@ -7,6 +7,7 @@ const html = fs.readFileSync("epk.html", "utf8");
 const client = fs.readFileSync("assets/epk.js", "utf8");
 const css = fs.readFileSync("assets/epk.css", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
+const deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8");
 const packageJson = JSON.parse(fs.readFileSync("infrastructure/auth-api/package.json", "utf8"));
 
 assert.match(html, /id="showEpkQr"[^>]*>QR code</);
@@ -22,6 +23,7 @@ assert.doesNotMatch(client, /epkQr[^\n]*innerHTML/i);
 assert.match(css, /\.epk-qr-dialog button,.epk-qr-download\{min-height:44px/);
 assert.equal(packageJson.dependencies.qrcode, "1.5.4");
 assert.match(worker, /danzstak-shell-v707/);
+assert.match(deploy, /POST \/epk\/qr/, "the guarded API deployment must expose the QR route");
 
 (async () => {
   const api = await import(pathToFileURL(`${process.cwd()}/infrastructure/auth-api/index.mjs`).href);
