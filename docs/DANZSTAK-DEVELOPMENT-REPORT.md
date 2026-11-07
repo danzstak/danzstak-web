@@ -2,7 +2,7 @@
 
 ## Artist HQ booking workspace — 2026-11-07
 
-Status: **IMPLEMENTED AND VERIFIED LOCALLY; STAGING AND PRODUCTION NOT YET DEPLOYED**.
+Status: **IMPLEMENTED AND VERIFIED LOCALLY AND ON HOSTED STAGING; PRODUCTION NOT YET DEPLOYED**.
 
 - The familiar DanzStak menu now puts **Artist HQ** and **Tour Manager** at the front of Music & Entertainment without removing Mix or the established social navigation.
 - Artist HQ gives the signed-in artist one compact, factual view of EPK publication state, booking conversations whose latest message needs an answer, venue date-offer count, and remaining booking-email credits. It links directly to the existing EPK, SYNC booking thread and Tour Manager workflows.
@@ -11,7 +11,8 @@ Status: **IMPLEMENTED AND VERIFIED LOCALLY; STAGING AND PRODUCTION NOT YET DEPLO
 - Functional/integration evidence: `test-artist-hq.cjs`, JavaScript syntax checks, static-link integrity, PWA shell refresh and the complete `test-regressions.ps1` gate pass. Existing authentication, SYNC, booking, EPK, Stripe entitlement and social tests remain green.
 - Visual evidence: `browser-checks/artist-hq.cjs` passes twice at 320, 360, 390, 414, 430 and 1366px. The 390px and 1366px captures were inspected: no horizontal overflow, duplicate mobile navigation, clipped card or sub-44px action target.
 - Prepared release assets: Artist HQ JS/CSS v1, feed enhancements v530 and PWA cache `danzstak-shell-v703`.
-- Remaining release gate: review checks, a hosted Amplify development preview, owner go, main deployment, CloudFront/PWA propagation and the same six-width test against the live URL. No backend or payment deployment is required for this frontend-only slice.
+- Review/staging evidence: all three required GitHub checks passed for implementation head `841962af68b63f0f7794edeee4bbeb00322f931a`. AWS Amplify DEVELOPMENT branch `codex/artist-hq`, job `1`, succeeded in `us-west-1`; no-cache probes confirm Artist HQ JS/CSS v1, feed enhancements v530 and `danzstak-shell-v703` at `https://codex-artist-hq.d31oovi2mos5iz.amplifyapp.com`. The six-width Artist HQ matrix passes directly against that hosted build.
+- Remaining release gate: merge, main deployment, CloudFront/PWA propagation and the same six-width test against the live URL. No backend or payment deployment is required for this frontend-only slice.
 
 ## Venue date offers into Tour Manager — 2026-11-07
 
