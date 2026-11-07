@@ -2,7 +2,7 @@
 
 ## One-page and full press PDF exports — 2026-11-07
 
-Status: **IMPLEMENTED AND VERIFIED ON HOSTED DEVELOPMENT STAGING; PRODUCTION NOT YET VERIFIED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
 
 - Public and permitted private EPKs now offer two explicit exports: **One-page press PDF** and **Full press PDF**. Both use the artist's selected EPK look and the browser's native print/save-PDF path, so no artist content is uploaded to a third-party PDF service.
 - The one-page version is a bounded booker summary: artist identity, one-line pitch, short biography, up to two music links, two video links, three notable shows, two sourced press quotes and booking contact. Embedded players are replaced by their secure provider links in print, keeping the document readable and reliably one page even for a veteran artist with extensive content.
@@ -11,7 +11,9 @@ Status: **IMPLEMENTED AND VERIFIED ON HOSTED DEVELOPMENT STAGING; PRODUCTION NOT
 - Functional evidence: `test-epk-press-pdf.cjs`, the expanded EPK builder checks, existing EPK look/production/share tests, JavaScript syntax checks and PWA cache `danzstak-shell-v706` pass locally.
 - Real PDF evidence: `browser-checks/epk-press-pdf.cjs` creates Letter-size PDFs from a veteran-level fixture. Poppler verifies the summary is exactly one page and the full kit spans five pages. Every rendered page was visually inspected for clipping, overlap, hierarchy, page transitions and legibility; captures are in `docs/screenshots/epk-pdf/`.
 - Review/staging evidence: all three GitHub checks passed for implementation commit `f791072387ed0bdc725dd1af09bffd50213fc832` in PR `#118`. AWS Amplify DEVELOPMENT branch `codex/epk-press-pdf`, job `1`, succeeded in `us-west-1`. No-cache probes confirm EPK CSS v6, EPK JS v16 and `danzstak-shell-v706` at `https://codex-epk-press-pdf.d31oovi2mos5iz.amplifyapp.com`; the hosted browser generated and verified both PDF modes and private permission behavior.
-- Honest boundary: this slice provides press-ready browser PDF output, not a server-stored PDF file or QR code. It is not marked deployed until the reviewed commit merges, Amplify production succeeds and live PWA verification passes.
+- Production release: PR `#118` merged as `09add1a9c8e4d8ae0f902c129251b96cb92ee4a5`. AWS Amplify main job `964` succeeded in `us-west-1`. This frontend-only release did not change the Auth API, Stripe, SES or stored artist data.
+- Post-deployment evidence: no-cache probes confirm EPK CSS v6, EPK JS v16 and `danzstak-shell-v706` on `https://danzstak.com`. The live browser generated and verified both PDF modes and confirmed that private venue links without PDF permission expose neither export.
+- Honest boundary: this slice provides press-ready browser PDF output, not a server-stored PDF file or QR code.
 
 ## Professional stage / booth plot and input list — 2026-11-07
 
