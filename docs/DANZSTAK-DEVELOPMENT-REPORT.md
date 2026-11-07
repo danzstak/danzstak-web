@@ -4,12 +4,12 @@
 
 Status: **TESTED LOCALLY — READY FOR REVIEW; NOT YET DEPLOYED**.
 
-- The Dailies creator tile keeps the member or placeholder image visible and places a compact date / `SCENE 1` / durable `TAKE N` clapper in the lower-left corner of that image.
+- The Dailies creator tile gives the member or placeholder image its own unobstructed area and places a compact date / `SCENE 1` / durable `TAKE N` clapper in a reserved lower-left strip below it. The clapper never overlays the photo.
 - The separate plus-sign badge has been removed. The complete tile remains the familiar accessible action for adding today's photo or video.
-- The clapper is capped at 74px wide, uses a restrained dark translucent slate, and leaves at least 70px of unobstructed image height in the empty-Dailies phone layout.
-- Browser evidence: `browser-checks/dailies-empty-clapper.cjs` passes at 320, 360, 390, 414 and 430px, including lower-left placement, image clearance, no plus sign, no clipping and no horizontal overflow. Updated inspected captures are in `docs/screenshots/dailies-clapper/`.
+- The clapper is capped at 74px wide, uses a restrained dark translucent slate, and leaves a measured gap between the photo and slate in the empty-Dailies phone layout.
+- Browser evidence: `browser-checks/dailies-empty-clapper.cjs` passes at 320, 360, 390, 414 and 430px, including zero image/slate overlap, lower-left placement, no plus sign, no clipping and no horizontal overflow. Updated inspected captures are in `docs/screenshots/dailies-clapper/`.
 - Integration evidence: `browser-checks/dailies-feed-ux.cjs` passes at 320, 360, 390, 430 and 1024px. The complete `test-regressions.ps1` gate passes, including 13-page smoke and infrastructure checks.
-- Prepared PWA assets: Feed art-direction CSS v12 and cache `danzstak-shell-v725`.
+- Prepared PWA assets: Feed art-direction CSS v13 and cache `danzstak-shell-v726`.
 - Deployment remains pending until the review checks pass and the change is merged.
 
 ## Idempotent SYNC message delivery — 2026-11-07
