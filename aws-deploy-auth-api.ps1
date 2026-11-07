@@ -16,6 +16,7 @@ $ApiId = "0872gqal4m"
 $AuthIntegrationId = "5pipi5a"
 $ToursTable = "DANZSTAK-Tours"
 $VenueDirectoryTable = "DANZSTAK-VenueDirectory"
+$ReviewsTable = "DANZSTAK-Reviews"
 
 $previousErrorPreference = $ErrorActionPreference
 $ErrorActionPreference = "SilentlyContinue"
@@ -54,6 +55,19 @@ try {
     aws dynamodb update-continuous-backups --region $Region --table-name $VenueDirectoryTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Venue directory recovery protection failed." }
   }
+  $previousErrorPreference = $ErrorActionPreference
+  $ErrorActionPreference = "SilentlyContinue"
+  aws dynamodb describe-table --region $Region --table-name $ReviewsTable --output json 2>$null | Out-Null
+  $reviewsDescribeExit = $LASTEXITCODE
+  $ErrorActionPreference = $previousErrorPreference
+  if ($reviewsDescribeExit -ne 0) {
+    aws dynamodb create-table --region $Region --table-name $ReviewsTable --billing-mode PAY_PER_REQUEST --attribute-definitions AttributeName=pk,AttributeType=S AttributeName=sk,AttributeType=S --key-schema AttributeName=pk,KeyType=HASH AttributeName=sk,KeyType=RANGE --tags Key=Application,Value=DanzStak Key=Purpose,Value=MemberReviews --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Reviews table creation failed." }
+    aws dynamodb wait table-exists --region $Region --table-name $ReviewsTable
+    if ($LASTEXITCODE -ne 0) { throw "Reviews table did not become ready." }
+  }
+  aws dynamodb update-continuous-backups --region $Region --table-name $ReviewsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection failed." }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
   Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$Package,$PackageLock -Destination $Stage
   Push-Location $Stage
@@ -149,6 +163,12 @@ try {
         Effect = "Allow"
         Action = @("dynamodb:Scan", "dynamodb:GetItem")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-VenueDirectory"
+      },
+      @{
+        Sid = "MemberReviews"
+        Effect = "Allow"
+        Action = @("dynamodb:BatchGetItem", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:TransactWriteItems")
+        Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Reviews"
       }
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Policy -Encoding ascii
@@ -170,6 +190,7 @@ try {
   $postViewsTable = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Engagement --query "Stacks[0].Outputs[?OutputKey=='PostViewsTableName'].OutputValue | [0]" --output text
   if ($LASTEXITCODE -ne 0) { throw "Post view configuration could not be resolved." }
   if ($postViewsTable -and $postViewsTable -ne 'None') { $variables.POST_VIEWS_TABLE = [string]$postViewsTable }
+  $variables.REVIEWS_TABLE = [string]$ReviewsTable
   @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
   aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }
@@ -250,7 +271,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
@@ -290,6 +311,10 @@ try {
   if ($permission -notmatch "AllowBookingPipelineFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowBookingPipelineFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/booking-pipeline" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Booking pipeline API invoke permission failed." }
+  }
+  if ($permission -notmatch "AllowReviewsFromApiGateway") {
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowReviewsFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/review*" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Reviews API invoke permission failed." }
   }
   if ($permission -notmatch "AllowTourManagerBillingFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourManagerBillingFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/tour-manager/*" --output json | Out-Null
