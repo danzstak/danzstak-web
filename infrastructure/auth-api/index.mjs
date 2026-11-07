@@ -1305,13 +1305,14 @@ async function getSecurePosts(event) {
     }
   }
 
-  const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || (!blockedEmails.has(item.userEmail?.S) && (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S)))));
+  const canView = item => item.userId?.S === userId || (!blockedEmails.has(item.userEmail?.S) && (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S))));
+  const accessibleSources = new Map(rawPosts.filter(canView).map(item => [item.postId.S, item]));
+  const visiblePosts = rawPosts.filter(item => item.placementRemoved?.BOOL !== true && canView(item) && (!item.sharedPostId?.S || accessibleSources.has(item.sharedPostId.S)));
   const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));
   const authorProfiles = typeof loadFeedAuthorProfiles === "function" ? await loadFeedAuthorProfiles([...visiblePosts,...tagNames]) : new Map();
   const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
   const authorName = email => authorNames.get(String(email || "").trim().toLowerCase()) || "DanzStak member";
   const authorPicture = email => authorProfiles.get(String(email || "").trim().toLowerCase())?.picture || "";
-  const visibleSources = new Map(visiblePosts.map(item => [item.postId.S,item]));
   const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
@@ -1328,7 +1329,7 @@ async function getSecurePosts(event) {
       viewCount: Math.max(0,Number(item.viewCount?.N || 0)),
       taggedUsers:(item.taggedUsers?.L || []).map(tag => ({memberId:tag.M?.memberId?.S || "",name:authorNames.get(tag.M?.userEmail?.S) || tag.M?.name?.S || "DanzStak member",isMe:tag.M?.memberId?.S === userId})),
       sharedPostId:item.sharedPostId?.S || "",
-      sharedPost:sharedPreview(visibleSources.get(item.sharedPostId?.S)),
+      sharedPost:sharedPreview(accessibleSources.get(item.sharedPostId?.S)),
       audience: item.audience?.S ?? "public",
       groupId: item.groupId?.S || "",
       groupName: item.groupId?.S ? groupNames.get(item.groupId.S) || "Tribe" : "",
@@ -1351,6 +1352,7 @@ async function postForEngagement(postId, userId) {
   const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
   const post = found.Item;
   if (!post) return { error: "Post not found.", statusCode: 404 };
+  if (post.placementRemoved?.BOOL === true) return { error: "Post is not available.", statusCode: 404 };
   if (post.userId?.S === userId) return { post };
   const viewerEmail = await accountForSub(userId);
   if (!viewerEmail) return { error: "Account email could not be verified.", statusCode: 409 };
@@ -1880,6 +1882,25 @@ async function deleteSecurePost(event) {
     }));
     return { statusCode: 200, headers, body: JSON.stringify({ deleted: false, removedFromProfile: true }) };
   }
+  const request = parseJsonBody(event) || {};
+  const mode = request.mode === "remove_here" ? "remove_here" : "delete_everywhere";
+  const isShare = Boolean(found.Item.sharedPostId?.S);
+  const shares = isShare ? [] : await scanAll({
+    TableName: postsTable,
+    FilterExpression: "sharedPostId = :source",
+    ExpressionAttributeValues: { ":source": { S: postId } }
+  });
+  if (mode === "remove_here" && !isShare && shares.length) {
+    await db.send(new UpdateItemCommand({
+      TableName: postsTable,
+      Key: { postId: { S: postId } },
+      UpdateExpression: "SET placementRemoved = :yes, placementRemovedAt = :at",
+      ConditionExpression: "userId = :owner",
+      ExpressionAttributeValues: { ":yes": { BOOL: true }, ":at": { S: new Date().toISOString() }, ":owner": { S: userId } }
+    }));
+    return { statusCode: 200, headers, body: JSON.stringify({ deleted: false, removedFromHere: true, sharesPreserved: shares.length }) };
+  }
+  const deletionRecords = mode === "delete_everywhere" && !isShare ? [...shares, found.Item] : [found.Item];
   let linkedStories = [];
   let mediaKey = "";
   if (found.Item.mediaKey?.S) {
@@ -1893,11 +1914,6 @@ async function deleteSecurePost(event) {
       ProjectionExpression: "storyId"
     });
   }
-  const [reactions, comments, notices] = await Promise.all([
-    queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, userId", ConsistentRead: true }),
-    queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true }),
-    found.Item.userEmail?.S ? queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: found.Item.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true }) : Promise.resolve([])
-  ]);
   if (mediaKey) {
     const mediaCleanupPending = await runCleanup([
       () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey }))
@@ -1907,16 +1923,36 @@ async function deleteSecurePost(event) {
       return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
     }
   }
-  await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
-  const cleanupTasks = [
-    ...reactions.map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
-    ...comments.map(item => () => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
-    ...notices.filter(item => item.postId?.S === postId).map(item => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } }))),
-    ...linkedStories.map(item => () => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } })))
-  ];
+  const cleanupTasks = [];
+  let sourceDeleteTask = null;
+  for (const record of deletionRecords) {
+    const recordId = record.postId.S;
+    const [reactions, comments, notices] = await Promise.all([
+      queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, userId", ConsistentRead: true }),
+      queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true }),
+      record.userEmail?.S ? queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: record.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true }) : Promise.resolve([])
+    ]);
+    const deleteRecord = () => db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: recordId } } }));
+    cleanupTasks.push(
+      ...reactions.map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
+      ...comments.map(item => () => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
+      ...notices.filter(item => item.postId?.S === recordId).map(item => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } })))
+    );
+    if (!isShare && recordId === postId) sourceDeleteTask = deleteRecord;
+    else cleanupTasks.push(deleteRecord);
+  }
+  cleanupTasks.push(...linkedStories.map(item => () => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } }))));
   const cleanupPending = await runCleanup(cleanupTasks);
-  if (cleanupPending) console.error("Post deletion cleanup remains pending", { postId, cleanupPending });
-  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true, cleanupPending }) };
+  if (cleanupPending) {
+    console.error("Post deletion cleanup remains pending", { postId, cleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The post is still being removed. Try again.", deleted: false, cleanupPending }) };
+  }
+  const sourceCleanupPending = sourceDeleteTask ? await runCleanup([sourceDeleteTask]) : 0;
+  if (sourceCleanupPending) {
+    console.error("Post source deletion remains pending", { postId, sourceCleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The post is still being removed. Try again.", deleted: false, cleanupPending: sourceCleanupPending }) };
+  }
+  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true, deletedEverywhere: mode === "delete_everywhere" && !isShare, removedShares: mode === "delete_everywhere" && !isShare ? shares.length : 0, cleanupPending: 0 }) };
 }
 
 async function resolveMediaTags(ids, ownerId, previous, declined) {

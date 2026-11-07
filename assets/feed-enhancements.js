@@ -3108,10 +3108,22 @@ function addPostDeleteButton(post) {
       showAppFeedback("This post is missing its server ID. Refresh the page and try again.", { urgent: true });
       return;
     }
-    if (post.dataset.isOwner === "true" && !(await window.danzstakConfirm("The post and its uploaded media will be permanently deleted.", { title: "Delete this post?", confirmLabel: "Delete post", danger: true }))) return;
+    let deletionMode = "remove_here";
+    if (post.dataset.sharedPostId) {
+      if (!(await window.danzstakConfirm("This removes only your share. The creator's original stays on DanzStak.", { title: "Remove this share?", confirmLabel: "Remove from here", danger: true }))) return;
+    } else {
+      deletionMode = await window.danzstakChoose("Remove from here hides this original placement but keeps existing DanzStak shares. Delete everywhere removes the original, every DanzStak share, its media, links, and embeds. Screenshots or downloads made outside DanzStak cannot be recalled.", {
+        title: "What should DanzStak remove?",
+        choices: [
+          { value: "remove_here", label: "Remove from here" },
+          { value: "delete_everywhere", label: "Delete everywhere", danger: true }
+        ]
+      });
+      if (!deletionMode) return;
+    }
     if (postId && !location.hostname.match(/^(127\.0\.0\.1|localhost)$/)) {
       try {
-        const response = await postActionFetch("/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include" });
+        const response = await postActionFetch("/secure-posts/" + encodeURIComponent(postId), { method: "DELETE", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: deletionMode }) });
         if (response.status === 403) {
           post.dataset.isOwner = "false";
           if (await window.danzstakConfirm("You did not create this post. It will only be removed from Your Mix.", { title: "Remove this post from Your Mix?", confirmLabel: "Remove from My Mix", danger: true })) await removePostFromThisFeed();
@@ -3123,7 +3135,8 @@ function addPostDeleteButton(post) {
     }
     post.remove();
     if (postId && Array.isArray(window.danzstakLoadedPosts)) {
-      window.danzstakLoadedPosts = window.danzstakLoadedPosts.filter(item => String(item.postId) !== String(postId));
+      window.danzstakLoadedPosts = window.danzstakLoadedPosts.filter(item => String(item.postId) !== String(postId) && !(deletionMode === "delete_everywhere" && String(item.sharedPostId) === String(postId)));
+      if (deletionMode === "delete_everywhere") document.querySelectorAll(`.post[data-shared-post-id="${CSS.escape(String(postId))}"]`).forEach(item => item.remove());
       window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: window.danzstakLoadedPosts } }));
     }
   });
