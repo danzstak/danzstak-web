@@ -45,7 +45,7 @@ function fixture(pathname) {
   try {
     for (const width of widths) {
       for (const [name, target, populatedSelector] of pages) {
-        const context = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: "block" });
+        const context = await browser.newContext({ viewport: { width, height: 844 }, hasTouch: true, serviceWorkers: "block" });
         const page = await context.newPage();
         const errors = [];
         page.on("pageerror", error => errors.push(error.message));
@@ -70,6 +70,25 @@ function fixture(pathname) {
           assert.ok(notificationTargets.every(target => target.width >= 44 && target.height >= 44), `${width}px notification actions must retain 44px touch targets: ${JSON.stringify(notificationTargets)}`);
         }
         if (name === "chat") assert.equal((await page.locator(".conversation-unread").textContent())?.trim(), "2", `${width}px unread chat badge is missing`);
+        if (name === "home") {
+          const rollHeader = await page.locator(".reels-heading").evaluate(element => {
+            const heading = element.getBoundingClientRect();
+            const title = element.querySelector("h3")?.getBoundingClientRect();
+            const open = element.querySelector(".roll-open")?.getBoundingClientRect();
+            const close = element.querySelector(".roll-close");
+            return {
+              heading: { left: heading.left, right: heading.right, top: heading.top, bottom: heading.bottom },
+              title: title ? { top: title.top, bottom: title.bottom } : null,
+              open: open ? { left: open.left, right: open.right, top: open.top, bottom: open.bottom, width: open.width, height: open.height } : null,
+              closeDisplay: close ? getComputedStyle(close).display : "missing",
+            };
+          });
+          assert.equal(rollHeader.closeDisplay, "none", `${width}px fullscreen-only Roll close control must stay hidden in the feed`);
+          assert.ok(rollHeader.open && rollHeader.title, `${width}px Roll header controls are incomplete: ${JSON.stringify(rollHeader)}`);
+          assert.ok(rollHeader.open.left >= rollHeader.heading.left && rollHeader.open.right <= rollHeader.heading.right, `${width}px Roll expand control escapes its header: ${JSON.stringify(rollHeader)}`);
+          assert.ok(rollHeader.open.top >= rollHeader.heading.top && rollHeader.open.bottom <= rollHeader.heading.bottom, `${width}px Roll expand control wraps outside its header: ${JSON.stringify(rollHeader)}`);
+          assert.ok(rollHeader.open.width >= 44 && rollHeader.open.height >= 44, `${width}px Roll expand control must retain a 44px touch target: ${JSON.stringify(rollHeader)}`);
+        }
         const geometry = await page.evaluate(() => ({
           width: innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
