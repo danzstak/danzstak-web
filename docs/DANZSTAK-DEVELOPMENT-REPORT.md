@@ -2,7 +2,7 @@
 
 ## Per-venue private EPK outreach links — 2026-11-07
 
-Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; PRODUCTION NOT YET DEPLOYED**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API; PHYSICAL INSTALLED-PWA ACCEPTANCE REMAINS**.
 
 - A reviewed booking email now receives a private, venue-bound EPK link instead of reusing the artist's public EPK URL. The link is bound to the signed-in artist, saved venue, outreach identifier and current EPK version, expires after 45 days, and can be revoked by the artist.
 - The secret token is stored only as a hash and is placed in the URL fragment so it is not sent in ordinary HTTP request targets or referrer headers. Tour Manager independently rejects a missing, expired, revoked, cross-account or wrong-venue EPK link before reserving an email credit.
@@ -13,7 +13,8 @@ Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; PRODUCTION NOT YET DEPLO
 - Responsive evidence: `browser-checks/booking-pitch-review.cjs` and `browser-checks/epk-outreach-share.cjs` pass at 320, 360, 390, 414, 430 and 1366px with zero overflow, 44px phone controls, exact reviewed-email content and stable open-count behavior. Captures in `docs/screenshots/booking-pitch-review/` and `docs/screenshots/epk-outreach-share/` were inspected. That inspection found and corrected a real defect where builder-only phone CSS hid the public EPK preview; public outreach pages now render the EPK and omit the unrelated app bottom navigation.
 - Release assets are prepared as booking CSS v7, booking billing JS v4, booking selections JS v14, EPK CSS v4, EPK JS v13 and PWA cache `danzstak-shell-v697`. No payment price, Stripe secret, SES setting or unrelated AWS resource changed.
 - Review/staging evidence: PR `#97` required checks passed for implementation head `a976bdf75e49027fb57021202f425594f1c4bf14`. Amplify DEVELOPMENT branch `codex/per-venue-epk-shares`, job `1`, succeeded in `us-west-1`. No-cache probes of `https://codex-per-venue-epk-shares.d31oovi2mos5iz.amplifyapp.com` confirm booking JS v14/CSS v7, EPK JS v13/CSS v4 and `danzstak-shell-v697`; both six-width browser matrices pass against that hosted build.
-- Remaining gates: pass review checks for this evidence-only report update, merge the exact reviewed head, deploy the guarded Auth API, then repeat the six-width browser and bounded live-release checks against production. Physical installed-PWA review remains an owner acceptance boundary.
+- Production release: PR `#97` merged as `09c2293c1589757bd3b6ce742b0db3f65cff182e`. AWS Amplify app `d31oovi2mos5iz`, production branch `main`, job `943` succeeded in `us-west-1`. The matching `DANZSTAK-Auth-API` package deployed successfully through the repository's guarded script; no Stripe, SES or unrelated AWS configuration changed.
+- Post-deployment evidence: no-cache probes confirm booking JS v14/CSS v7, EPK JS v13/CSS v4 and `danzstak-shell-v697`. Both six-width browser matrices pass directly against `https://danzstak.com`; the bounded live-release verifier passes; unauthenticated private-link create/read requests are rejected with HTTP 401. A signed-in physical installed-PWA send/open/revoke walkthrough remains owner acceptance evidence and is not represented as complete.
 
 ## Reviewed booking pitch workflow — 2026-11-07
 
