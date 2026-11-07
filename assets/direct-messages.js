@@ -1128,7 +1128,6 @@ messageForm?.addEventListener("submit", async event => {
     ? retryMessageSend
     : null;
   if (retryMessageSend && !retry) {
-    await discardMessageMedia(retryMessageSend.attachment?.mediaKey);
     retryMessageSend = null;
   }
   const clientMessageId = retry?.clientMessageId || `${String(Date.now()).padStart(13, "0")}#${crypto.randomUUID()}`;
@@ -1157,8 +1156,6 @@ messageForm?.addEventListener("submit", async event => {
     const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, clientMessageId, ...attachment }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      await discardMessageMedia(attachment.mediaKey);
-      attachment = {};
       throw new Error(data.error || messageTranslate("Message could not be sent"));
     }
     retryMessageSend = null;
@@ -1171,6 +1168,7 @@ messageForm?.addEventListener("submit", async event => {
     }
     saveChatDraft(recipientEmail, "");
     if (selectedMessageMedia === mediaFile) clearSelectedMessageMedia();
+    callStatus.textContent = messageTranslate("Delivered");
     await loadConversations();
   } catch (error) {
     pendingItem.remove();
