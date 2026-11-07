@@ -21,7 +21,7 @@ const ownerEmail = 'owner@example.com';
 const ownerPrefix = createHash('sha256').update(ownerEmail).digest('hex').slice(0, 24);
 const mediaKey = `users/${ownerPrefix}/22222222-2222-4222-a222-222222222222.jpg`;
 
-function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOwner = "", failMediaAttempts = 0 } = {}) {
+function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOwner = "", failMediaAttempts = 0, shares = [], sharedPostId = "" } = {}) {
   const deletes = [];
   const updates = [];
   const mediaDeletes = [];
@@ -30,12 +30,13 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
     corsHeaders: () => ({}),
     allowedOrigins: new Set(['https://danzstak.com']),
     getAuthenticatedUser: async () => authenticatedUser,
+    parseJsonBody: event => event.body ? JSON.parse(event.body) : null,
     postsTable: 'posts', storiesTable: 'stories', reactionsTable: 'reactions', commentsTable: 'comments', engagementNotificationsTable: 'notices',
     sha256: value => createHash('sha256').update(value).digest('hex'),
     process: { env: { MEDIA_BUCKET: 'media' } },
     GetItemCommand, DeleteItemCommand, DeleteObjectCommand, UpdateItemCommand,
     db: { send: async command => {
-      if (command instanceof GetItemCommand) return { Item: { postId: { S: postId }, userId: { S: storedOwner }, userEmail: { S: ownerEmail }, mediaKey: { S: mediaKey }, ...(profileOwner ? { profileOwnerId: { S: profileOwner } } : {}) } };
+      if (command instanceof GetItemCommand) return { Item: { postId: { S: postId }, userId: { S: storedOwner }, userEmail: { S: ownerEmail }, ...(!sharedPostId ? { mediaKey: { S: mediaKey } } : {}), ...(profileOwner ? { profileOwnerId: { S: profileOwner } } : {}), ...(sharedPostId ? { sharedPostId: { S: sharedPostId } } : {}) } };
       if (command instanceof UpdateItemCommand) { updates.push(command.input); return {}; }
       if (command instanceof DeleteItemCommand) { deletes.push(command.input); return {}; }
       throw Error('Unexpected database command');
@@ -45,7 +46,7 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
       if (mediaAttempts <= failMediaAttempts) throw Error('temporary storage failure');
       mediaDeletes.push(command.input); return {};
     } },
-    scanAll: async () => [{ storyId: { S: '33333333-3333-4333-a333-333333333333' } }],
+    scanAll: async request => request.TableName === 'posts' ? shares : [{ storyId: { S: '33333333-3333-4333-a333-333333333333' } }],
     queryAll: async request => request.TableName === 'reactions'
       ? [{ postId: { S: postId }, userId: { S: 'reactor' } }]
       : request.TableName === 'comments'
@@ -81,7 +82,7 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
   const owner = harness({ failMediaAttempts: 2 });
   const response = await owner.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId } });
   assert.equal(response.statusCode, 200);
-  assert.deepEqual(JSON.parse(response.body), { deleted: true, cleanupPending: 0 });
+  assert.deepEqual(JSON.parse(response.body), { deleted: true, deletedEverywhere: true, removedShares: 0, cleanupPending: 0 });
   assert.equal(owner.mediaAttempts(), 3, 'temporary media deletion failures must be retried');
   assert.equal(owner.mediaDeletes.length, 1);
   assert.equal(owner.mediaDeletes[0].Bucket, 'media');
@@ -92,6 +93,23 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
   assert.ok(owner.deletes.some(item => item.TableName === 'notices' && item.Key.eventId.S === 'notice'), 'post notifications must be deleted');
   assert.ok(owner.deletes.some(item => item.TableName === 'stories'), 'linked Story records must be deleted');
   assert.ok(!owner.deletes.some(item => item.TableName === 'notices' && item.Key.eventId.S === 'other'), 'unrelated notifications must remain');
+
+  const shareId = '44444444-4444-4444-a444-444444444444';
+  const share = { postId: { S: shareId }, userId: { S: 'sharer' }, userEmail: { S: 'sharer@example.com' }, sharedPostId: { S: postId }, content: { S: 'Shared a post.' } };
+  const removeHere = harness({ shares: [share] });
+  const removeResponse = await removeHere.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId }, body: JSON.stringify({ mode: 'remove_here' }) });
+  assert.deepEqual(JSON.parse(removeResponse.body), { deleted: false, removedFromHere: true, sharesPreserved: 1 });
+  assert.equal(removeHere.updates[0].UpdateExpression, 'SET placementRemoved = :yes, placementRemovedAt = :at');
+  assert.equal(removeHere.deletes.length, 0, 'remove from here must preserve the source and its shares');
+
+  const cascade = harness({ shares: [share] });
+  const cascadeResponse = await cascade.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId }, body: JSON.stringify({ mode: 'delete_everywhere' }) });
+  assert.equal(JSON.parse(cascadeResponse.body).removedShares, 1);
+  assert.ok(cascade.deletes.some(item => item.TableName === 'posts' && item.Key.postId.S === shareId), 'delete everywhere must remove every share placement');
+
+  const ownShare = harness({ sharedPostId: '55555555-5555-4555-a555-555555555555' });
+  const ownShareResponse = await ownShare.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId }, body: JSON.stringify({ mode: 'remove_here' }) });
+  assert.equal(JSON.parse(ownShareResponse.body).deletedEverywhere, false, 'a sharer cannot delete the creator original');
 
   const storageUnavailable = harness({ failMediaAttempts: 3 });
   const unavailableResponse = await storageUnavailable.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId } });
