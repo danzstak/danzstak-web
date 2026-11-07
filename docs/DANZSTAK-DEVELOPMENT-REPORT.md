@@ -2,7 +2,7 @@
 
 ## Artist-selectable public EPK looks — 2026-11-07
 
-Status: **IMPLEMENTED AND VERIFIED ON AWS STAGING; PRODUCTION VERIFICATION PENDING**.
+Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.
 
 - Every artist can select Techno, Punk, Metal or House / EDM independently of their EPK content. Changing the look preserves writing, links, photos and production details; the API bounds the saved value and defaults safely to Techno.
 - The looks are scoped to the artist-owned EPK rather than the familiar DanzStak application frame. Sparse kits hide empty sections cleanly; a new act with only a pitch and contact does not receive fake releases, shows or placeholder copy.
@@ -11,6 +11,8 @@ Status: **IMPLEMENTED AND VERIFIED ON AWS STAGING; PRODUCTION VERIFICATION PENDI
 - Functional/security evidence: `test-epk-looks.cjs`, `test-epk-domain.cjs`, `test-epk-builder.cjs`, syntax checks and the complete `test-regressions.ps1` gate pass. The tests cover bounded persistence, unsafe look fallback, self-hosted assets, contrast, PWA caching and preservation of existing EPK protections.
 - Visual evidence: `browser-checks/epk-looks.cjs` passes four public looks at 390px and 1366px plus the authenticated builder at both widths. Captures in `docs/screenshots/epk-looks/` were inspected for overflow, empty-section handling, content preservation and distinct art direction.
 - Review/staging evidence: implementation commit `e0a92b34a5a00fea83671273fa987fbad3d42fcd` is in PR `#114`. AWS Amplify DEVELOPMENT branch `codex/epk-looks`, job `1`, succeeded in `us-west-1`; no-cache probes confirm EPK looks CSS v1, EPK JS v14 and `danzstak-shell-v704` at `https://codex-epk-looks.d31oovi2mos5iz.amplifyapp.com`. The full ten-view EPK matrix passes directly against that hosted build, and the staging phone captures were inspected.
+- Production release: PR `#114` merged as `e3726c7eab182fbe031d2bb19e0bf94857005195`. AWS Amplify main job `960` succeeded in `us-west-1`, and the matching `DANZSTAK-Auth-API` package deployed successfully through the guarded repository script.
+- Post-deployment evidence: no-cache probes confirm EPK looks CSS v1, EPK JS v14 and `danzstak-shell-v704` on `https://danzstak.com`. The full ten-view EPK matrix passes directly against production, and the protected EPK API rejects unauthenticated requests with HTTP 401. Browser-controlled fixtures verified layout without modifying a real artist's EPK.
 - Honest boundary: this slice provides the four looks on public EPKs and live builder preview. It does not yet add the same looks to artist profiles or gig pages, nor does it claim the planned stage/booth plot builder, QR export, view statistics or dedicated one-page/full PDF generator are complete.
 
 ## Artist HQ booking workspace — 2026-11-07
