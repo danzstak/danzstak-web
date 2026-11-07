@@ -24,7 +24,7 @@ assert.match(css, /\.contact-details-actions\{display:grid;grid-template-columns
 assert.match(html, /id="contactDetailsVideo"[^>]*data-icon-layout="label"/, "video must retain its familiar visible label");
 assert.match(icons, /control\.dataset\.iconLayout === "label"/, "shared icons must support compact icon-and-label actions without erasing text");
 assert.match(css, /@media\(max-width:560px\)[\s\S]*?\.contact-details-dialog\{width:100%;max-width:none;height:100dvh/, "phone contact details must be a dedicated full-screen view");
-assert.match(html, /assets\/chat\.css\?v=455/);
+assert.match(html, /assets\/chat\.css\?v=456/);
 assert.match(html, /assets\/direct-messages\.js\?v=492/);
 
 const keysMatch = i18n.match(/const contactDetailKeys=(\[[^;]+\]);/);
