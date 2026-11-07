@@ -144,8 +144,49 @@ body.danzstak-original #newsFeedView .post-composer :is(button,.primary) {
     cursor:text;
     resize:none;
   }
-  body.danzstak-original #newsFeedView .post-composer:not(.is-expanded) :is(.post-location-picker,.composer-media-tools,.composer-media-preview,.original-content-certification,.certification-error,.composer-actions) {
+  body.danzstak-original #newsFeedView .post-composer:not(.is-expanded) :is(.post-location-picker,.composer-media-preview,.original-content-certification,.certification-error,.composer-actions) {
     display:none!important;
+  }
+  body.danzstak-original #newsFeedView .post-composer:not(.is-expanded) #postText {
+    padding-right:112px;
+  }
+  body.danzstak-original #newsFeedView .post-composer:not(.is-expanded) .composer-media-tools {
+    position:absolute;
+    z-index:2;
+    top:11px;
+    right:14px;
+    display:flex!important;
+    gap:4px!important;
+    margin:0!important;
+  }
+  body.danzstak-original #newsFeedView .post-composer:not(.is-expanded) .composer-media-button {
+    display:grid!important;
+    grid-template-columns:1fr;
+    width:44px;
+    min-width:44px;
+    min-height:44px;
+    padding:0;
+    border:0;
+    border-radius:10px;
+    background:transparent;
+    box-shadow:none;
+    color:var(--ds-muted);
+  }
+  body.danzstak-original #newsFeedView .post-composer:not(.is-expanded) .composer-media-button:hover,
+  body.danzstak-original #newsFeedView .post-composer:not(.is-expanded) .composer-media-button:focus-visible {
+    background:var(--ds-brand-soft);
+    color:var(--ds-brand);
+  }
+  body.danzstak-original #newsFeedView .post-composer:not(.is-expanded) .composer-media-button .sr-only {
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
   }
 }
 body.danzstak-original #storiesRail {
