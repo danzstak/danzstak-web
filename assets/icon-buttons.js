@@ -102,6 +102,7 @@
 
   function upgrade(control) {
     if (!(control instanceof HTMLElement) || !control.matches("button, a.button, a[role='button'], label[data-icon]")) return;
+    if (control.dataset.iconLayout === "label") return;
     const visible = control.textContent.replace(/\s+/g, " ").trim();
     const requested = control.dataset.icon || labels.get(visible.toLocaleLowerCase("en-US")) || iconFromAccessibleName(control, visible);
     if (!requested || !paths[requested]) return;

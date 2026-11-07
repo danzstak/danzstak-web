@@ -28,6 +28,13 @@ const copySelectedMessagesButton = document.getElementById("copySelectedMessages
 const cancelMessageSelectionButton = document.getElementById("cancelMessageSelection");
 const messageCopyFallbackLabel = document.getElementById("messageCopyFallbackLabel");
 const messageCopyFallback = document.getElementById("messageCopyFallback");
+const contactDetailsDialog = document.getElementById("contactDetailsDialog");
+const contactDetailsName = document.getElementById("contactDetailsName");
+const contactDetailsAvatar = document.getElementById("contactDetailsAvatar");
+const contactDetailsPresence = document.getElementById("contactDetailsPresence");
+const contactDetailsProfile = document.getElementById("contactDetailsProfile");
+const contactDetailsBlock = document.getElementById("contactDetailsBlock");
+const contactDetailsStatus = document.getElementById("contactDetailsStatus");
 const sendButton = messageForm?.querySelector('button[type="submit"]');
 const textButton = document.getElementById("startText");
 const conversationActions = [textButton, document.getElementById("startPhone"), document.getElementById("startVideo")].filter(Boolean);
@@ -98,6 +105,7 @@ let reactionTimer = null;
 let selectedMessageMedia = null;
 let selectedMessageMediaUrl = "";
 let mobileHistoryConversation = null;
+let activeConversation = null;
 
 function usesMobileConversationHistory() {
   return window.parent === window && window.matchMedia?.("(max-width: 760px)").matches === true;
@@ -117,6 +125,88 @@ function closeConversationFromControl() {
     return;
   }
   closeConversation({ focusList: true });
+}
+
+function populateContactDetails() {
+  if (!activeConversation || !contactDetailsDialog) return;
+  const name = activeConversation.name || messageTranslate("DanzStak member");
+  const profileHref = activeConversation.memberId ? "profile.html?member=" + encodeURIComponent(activeConversation.memberId) : "profile.html";
+  contactDetailsName.textContent = name;
+  contactDetailsPresence.textContent = messageTranslate(activeConversation.online === true ? "Online" : "Offline");
+  contactDetailsProfile.href = profileHref;
+  contactDetailsProfile.setAttribute("aria-label", `${messageTranslate("View profile")}: ${name}`);
+  contactDetailsAvatar.textContent = name.charAt(0).toUpperCase();
+  contactDetailsAvatar.style.backgroundImage = activeConversation.picture ? `url("${activeConversation.picture}")` : "";
+  contactDetailsAvatar.classList.toggle("has-photo", Boolean(activeConversation.picture));
+  contactDetailsBlock.disabled = !activeConversation.memberId;
+  for (const id of ["contactDetailsPhone", "contactDetailsVideo"]) {
+    const button = document.getElementById(id);
+    if (button) button.disabled = !activeCanContact;
+  }
+  contactDetailsStatus.textContent = activeConversation.memberId ? "" : messageTranslate("This contact cannot be blocked from this saved chat.");
+}
+
+function openContactDetails({ updateHistory = true } = {}) {
+  if (!activeConversation || !contactDetailsDialog) return;
+  populateContactDetails();
+  if (!contactDetailsDialog.open) contactDetailsDialog.showModal();
+  if (document.body?.dataset) document.body.dataset.syncScreen = "contact-details";
+  if (updateHistory && usesMobileConversationHistory() && history.state?.danzstakContactDetails !== true) {
+    const currentState = history.state && typeof history.state === "object" ? history.state : {};
+    history.pushState({ ...currentState, danzstakContactDetails: true }, "");
+  }
+  document.getElementById("closeContactDetails")?.focus();
+}
+
+function closeContactDetails({ fromHistory = false, restoreFocus = true } = {}) {
+  if (!contactDetailsDialog?.open) return;
+  if (!fromHistory && usesMobileConversationHistory() && history.state?.danzstakContactDetails === true) {
+    history.back();
+    return;
+  }
+  contactDetailsDialog.close();
+  if (document.body?.dataset) document.body.dataset.syncScreen = "conversation";
+  if (restoreFocus) conversationName?.focus();
+}
+
+function startCallFromContactDetails(controlId) {
+  const startCall = () => document.getElementById(controlId)?.click();
+  if (usesMobileConversationHistory() && history.state?.danzstakContactDetails === true) {
+    window.addEventListener("popstate", startCall, { once: true });
+    closeContactDetails();
+    return;
+  }
+  closeContactDetails({ fromHistory: true });
+  startCall();
+}
+
+async function blockActiveContact() {
+  if (!activeConversation?.memberId || contactDetailsBlock.disabled) return;
+  const name = activeConversation.name || messageTranslate("DanzStak member");
+  const confirmed = await window.danzstakConfirm(messageTranslate("Blocking stops this member from finding and contacting you. They will not be notified."), {
+    title: messageFormat("Block {name}?", { name }),
+    confirmLabel: messageTranslate("Block member"),
+    danger: true
+  });
+  if (!confirmed) return;
+  contactDetailsBlock.disabled = true;
+  contactDetailsStatus.textContent = messageTranslate("Blocking…");
+  try {
+    const response = await directFetch("/friends/block", {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId: activeConversation.memberId })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || messageTranslate("Member could not be blocked."));
+    contactDetailsStatus.textContent = messageTranslate("Member blocked.");
+    closeContactDetails({ fromHistory: true, restoreFocus: false });
+    closeConversation({ focusList: true });
+    if (usesMobileConversationHistory() && history.state?.danzstakContactDetails === true) history.go(-2);
+    loadConversations();
+  } catch (error) {
+    contactDetailsStatus.textContent = error.message;
+    contactDetailsBlock.disabled = false;
+  }
 }
 function setConversationActionsEnabled(enabled) {
   for (const button of conversationActions) button.disabled = !enabled;
@@ -524,6 +614,7 @@ function updateConversationPresence(conversation) {
 
 function openConversation(conversation, { updateHistory = true } = {}) {
   closeConversation();
+  activeConversation = { ...conversation };
   document.body.classList.add("is-conversation-open");
   if (document.body?.dataset) {
     const callMode = document.body.dataset.callMode;
@@ -564,6 +655,7 @@ function openConversation(conversation, { updateHistory = true } = {}) {
 }
 
 function closeConversation({ focusList = false, preserveDraft = true } = {}) {
+  closeContactDetails({ fromHistory: true, restoreFocus: false });
   clearMessageSelection();
   const closingContact = contactInput.value.trim().toLowerCase();
   if (closingContact && preserveDraft) saveChatDraft(closingContact, messageInput.value);
@@ -583,6 +675,7 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   directContact = "";
   activeContactName = messageTranslate("Contact");
   activeCanContact = false;
+  activeConversation = null;
   setConversationActionsEnabled(false);
   nextMessageCursor = "";
   shownMessages.clear();
@@ -1192,6 +1285,12 @@ document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
 });
 document.getElementById("headerPhone")?.addEventListener("click", () => document.getElementById("startPhone")?.click());
 document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
+for (const trigger of [conversationAvatar, conversationName]) trigger?.addEventListener("click", event => { event.preventDefault(); openContactDetails(); });
+document.getElementById("closeContactDetails")?.addEventListener("click", () => closeContactDetails());
+document.getElementById("contactDetailsPhone")?.addEventListener("click", () => startCallFromContactDetails("headerPhone"));
+document.getElementById("contactDetailsVideo")?.addEventListener("click", () => startCallFromContactDetails("headerVideo"));
+contactDetailsBlock?.addEventListener("click", blockActiveContact);
+contactDetailsDialog?.addEventListener("cancel", event => { event.preventDefault(); closeContactDetails(); });
 document.getElementById("minimizeConversation")?.addEventListener("click", () => {
   if (window.parent === window) {
     closeConversationFromControl();
@@ -1215,6 +1314,14 @@ document.getElementById("closeConversation")?.addEventListener("click", closeCon
 
 window.addEventListener("popstate", event => {
   if (!usesMobileConversationHistory()) return;
+  if (event.state?.danzstakContactDetails === true && activeConversation) {
+    openContactDetails({ updateHistory: false });
+    return;
+  }
+  if (contactDetailsDialog?.open) {
+    closeContactDetails({ fromHistory: true });
+    return;
+  }
   if (event.state?.danzstakChatOpen === true && mobileHistoryConversation) {
     openConversation(mobileHistoryConversation, { updateHistory: false });
     return;

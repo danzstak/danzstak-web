@@ -13,7 +13,7 @@
 <script src="assets/offline.js?v=3"></script>
 <script src="assets/display-preferences.js?v=410"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
-<link rel="stylesheet" href="assets/chat.css?v=454">
+<link rel="stylesheet" href="assets/chat.css?v=455">
 <link rel="stylesheet" href="assets/sync.css?v=7">
 <link rel="stylesheet" href="assets/invite-sharing.css?v=1">
 <link rel="stylesheet" href="assets/make-plans.css?v=2">
@@ -25,7 +25,7 @@
 <title>SYNC | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
-<script src="assets/i18n.js?v=396" defer></script>
+<script src="assets/i18n.js?v=397" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
 </head>
@@ -89,6 +89,28 @@
     </form>
   </section>
 </main>
+<dialog id="contactDetailsDialog" class="contact-details-dialog" aria-labelledby="contactDetailsName">
+  <header>
+    <button id="closeContactDetails" type="button" data-icon="back" aria-label="Back to conversation" title="Back to conversation">←</button>
+    <strong>Contact details</strong>
+  </header>
+  <section class="contact-details-identity">
+    <span id="contactDetailsAvatar" class="contact-details-avatar" aria-hidden="true">D</span>
+    <h2 id="contactDetailsName">DanzStak member</h2>
+    <p id="contactDetailsPresence">Offline</p>
+  </section>
+  <nav class="contact-details-actions" aria-label="Contact actions">
+    <a id="contactDetailsProfile" href="profile.html"><span data-menu-icon="user" aria-hidden="true"></span><span>View profile</span></a>
+    <button id="contactDetailsPhone" type="button" data-icon-layout="label"><span data-menu-icon="phone" aria-hidden="true"></span><span>Voice call</span></button>
+    <button id="contactDetailsVideo" type="button" data-icon-layout="label"><span data-menu-icon="video" aria-hidden="true"></span><span>Video call</span></button>
+  </nav>
+  <section class="contact-details-privacy" aria-labelledby="contactDetailsPrivacyTitle">
+    <h3 id="contactDetailsPrivacyTitle">Privacy and safety</h3>
+    <p>Blocking stops this member from finding, messaging, or calling you. They are not notified.</p>
+    <button id="contactDetailsBlock" type="button" class="contact-details-block">Block member</button>
+    <p id="contactDetailsStatus" role="status" aria-live="polite"></p>
+  </section>
+</dialog>
 <dialog id="plansDialog" class="plans-dialog" aria-labelledby="plansTitle">
   <form id="plansForm" class="plans-form">
     <header><div><span class="plans-kicker">Private invitation</span><h2 id="plansTitle">Make plans</h2></div><button type="button" class="plans-close" data-icon="close" aria-label="Close">×</button></header>
@@ -121,11 +143,11 @@
   <a role="button" data-icon="bell" aria-label="Buzz" title="Buzz" href="feed.html?view=notifications"></a>
   <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1"></a>
 </nav>
-<script src="assets/icon-buttons.js?v=8" defer></script>
+<script src="assets/icon-buttons.js?v=9" defer></script>
 <script src="assets/invite-sharing.js?v=1" defer></script>
 <script src="assets/identity-media.js?v=1" defer></script>
 <script src="assets/chat.js?v=450" defer></script>
-<script src="assets/direct-messages.js?v=491" defer></script>
+<script src="assets/direct-messages.js?v=492" defer></script>
 <script src="assets/booking-sync.js?v=5" defer></script>
 <script src="assets/make-plans.js?v=3" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
