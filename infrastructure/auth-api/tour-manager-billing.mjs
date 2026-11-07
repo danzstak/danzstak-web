@@ -365,6 +365,33 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     }
   }
 
+  async function useProposedDate(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const body = parseBody(event), outreachId = String(body?.outreachId || "").trim(), replyId = String(body?.replyId || "").trim();
+    const prefix = `TOUR_MANAGER#BOOKING_REPLY#${outreachId}#`;
+    if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !replyId.startsWith(prefix) || replyId.length > 260 || replyId.includes("#artist#")) return response(400, { error: "Choose a valid venue date offer." }, headers);
+    const [replyResult, workspaceResult] = await Promise.all([
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: replyId } }, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }))
+    ]);
+    const offer = replyResult.Item, workspace = workspaceResult.Item, proposedDate = offer?.proposedDate?.S || "", venueKey = offer?.venueKey?.S || "";
+    if (offer?.direction?.S !== "inbound" || offer?.action?.S !== "offer_date" || !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate) || !venueKey) return response(409, { error: "This reply does not contain a usable venue date offer." }, headers);
+    let plan; try { plan = JSON.parse(workspace?.plan?.S || ""); } catch { plan = null; }
+    const venue = plan?.venues?.find(item => item?.venueKey === venueKey);
+    if (!venue || !workspace?.revision?.S) return response(409, { error: "Save this venue in Tour Manager before adding its proposed date." }, headers);
+    venue.booking = { ...(venue.booking || {}), status: "Date proposed", showDate: proposedDate, replySummary: String(offer.content?.S || "").slice(0, 3000) };
+    const revision = randomUUID(), at = nowIso();
+    try {
+      await db.send(new PutItemCommand({ TableName: tableName, Item: { ...workspace, userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY }, plan: { S: JSON.stringify(plan) }, revision: { S: revision }, updatedAt: { S: at } }, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { S: workspace.revision.S } } }));
+    } catch (error) {
+      return response(409, { error: "Your Tour Manager changed on another device. Reload it, then add this date again." }, headers);
+    }
+    return response(200, { saved: true, proposedDate, venueName: String(venue.name || "Venue"), revision }, headers);
+  }
+
   async function loadVerifiedSession(session, expectedLive) {
     const catalog = stripeCatalog(expectedLive), userId = session.client_reference_id, lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null, quantity = Number(line?.quantity), metadata = session.metadata || {};
     const valid = session.mode === "payment" && session.livemode === expectedLive && validUserId(userId) && metadata.product === PRODUCT && metadata.userId === userId && metadata.priceId === catalog.tour.priceId && Number(metadata.quantity) === quantity && line?.price?.id === catalog.tour.priceId && line?.price?.product === catalog.tour.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === TOUR_MANAGER_EMAIL_UNIT_CENTS && Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_CREDITS_PER_CHECKOUT && session.currency === "usd" && Number(session.amount_total) === quantity * TOUR_MANAGER_EMAIL_UNIT_CENTS;
@@ -647,6 +674,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (method === "POST" && path === "/tour-manager/opt-out") return optOut(event);
     if (method === "POST" && path === "/tour-manager/reply") return externalReply(event);
     if (method === "POST" && path === "/tour-manager/outreach/reply") return artistReply(event);
+    if (method === "POST" && path === "/tour-manager/outreach/use-date") return useProposedDate(event);
     if (method === "POST" && path === "/tour-manager/emails/send") return sendEmail(event);
     return null;
   };

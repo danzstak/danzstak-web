@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Venue date offers into Tour Manager — 2026-11-07
+
+Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION NOT YET CLAIMED**.
+
+- A venue's secure `offer_date` reply now has an **Add proposed date to Tour** action in its SYNC booking thread. The server resolves the owner-scoped reply and saved venue, then copies the real offered date and reply text into that venue's Tour Manager record.
+- The saved state is deliberately **Date proposed**, never Confirmed. The interface says confirmation still requires written agreement, preserving the existing rule that an email or date offer alone is not a booking confirmation.
+- The update uses the current private workspace revision and returns a conflict instead of overwriting another device's changes. Cross-account replies, outbound artist replies, malformed dates, unsaved venues and stale workspaces cannot alter the tour.
+- Functional/security evidence: `test-booking-replies.cjs` verifies the exact reply-to-venue binding, proposed status/date/evidence, new revision, route deployment and PWA assets. The complete `test-regressions.ps1` gate passes with exit code 0.
+- Visual evidence: `browser-checks/booking-sync.cjs` passes at 320, 360, 390, 414, 430 and 1366px. The captures in `docs/screenshots/booking-sync/` were inspected; the new 44px action fits inside the offer bubble without overlap or horizontal overflow.
+- Prepared release assets: booking SYNC v3, SYNC CSS v7 and PWA cache `danzstak-shell-v702`.
+- Review/staging evidence: all three required GitHub checks passed for implementation head `955d8d3ef7135858d03e46d4ae6709066b6ca52f`. AWS Amplify DEVELOPMENT branch `codex/booking-reply-to-tour`, job `1`, succeeded in `us-west-1`; the six-width SYNC booking matrix passes directly against the hosted build.
+
 ## Artist-approved venue replies from SYNC — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA AND AUTH API**.

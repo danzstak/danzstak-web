@@ -12,11 +12,12 @@ fs.mkdirSync(output, { recursive: true });
   try {
     for (const width of [320, 360, 390, 414, 430, 1366]) {
       const context = await browser.newContext({ viewport: { width, height: 850 }, deviceScaleFactor: 1, serviceWorkers: "block" });
-      const page = await context.newPage(); let submitted;
+      const page = await context.newPage(); let submitted, usedDate;
       await page.route("https://api.danzstak.com/**", async route => {
         const pathname = new URL(route.request().url()).pathname;
-        if (pathname === "/tour-manager/outreach" && route.request().method() === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ messages: [{ id: "outreach_reply_test_123", venueName: "Test Venue", subject: "March 5 booking pitch", status: "replied", sentAt: "2026-11-07T10:00:00Z" }], replies: [{ outreachId: "outreach_reply_test_123", direction: "inbound", action: "offer_date", content: "We can offer March 5. What is your guarantee?", proposedDate: "2027-03-05", createdAt: "2026-11-07T12:00:00Z" }] }) });
+        if (pathname === "/tour-manager/outreach" && route.request().method() === "GET") return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ messages: [{ id: "outreach_reply_test_123", venueName: "Test Venue", subject: "March 5 booking pitch", status: "replied", sentAt: "2026-11-07T10:00:00Z" }], replies: [{ id: "TOUR_MANAGER#BOOKING_REPLY#outreach_reply_test_123#client_reply_test_123", outreachId: "outreach_reply_test_123", direction: "inbound", action: "offer_date", content: "We can offer March 5. What is your guarantee?", proposedDate: "2027-03-05", createdAt: "2026-11-07T12:00:00Z" }] }) });
         if (pathname === "/tour-manager/outreach/reply") { submitted = JSON.parse(route.request().postData() || "{}"); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "sent" }) }); }
+        if (pathname === "/tour-manager/outreach/use-date") { usedDate = JSON.parse(route.request().postData() || "{}"); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ saved: true, venueName: "Test Venue", proposedDate: "2027-03-05" }) }); }
         return route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
       });
       await page.goto(`${origin}/messages.html`, { waitUntil: "domcontentloaded" });
@@ -32,6 +33,9 @@ fs.mkdirSync(output, { recursive: true });
       assert.equal(await page.locator("#messageForm").isHidden(), true, "The personal composer must not pretend to send an external email");
       assert.equal(await page.locator("#headerPhone").isHidden(), true, "An external venue email thread must not show a fake SYNC call control");
       assert.equal(await page.locator("#callStatus").isHidden(), true, "An external venue email thread must not claim a secure call is ready");
+      await page.getByRole("button", { name: "Add proposed date to Tour" }).click();
+      await page.getByText(/added as Date proposed/).waitFor();
+      assert.equal(usedDate.outreachId, "outreach_reply_test_123"); assert.match(usedDate.replyId, /client_reply_test_123$/);
       const bookingComposer = page.getByLabel("Reply to this venue by email");
       await bookingComposer.fill("Thanks. March 5 works for us.");
       const sendReply = page.getByRole("button", { name: "Send booking reply by email" });
