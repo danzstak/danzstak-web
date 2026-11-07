@@ -9,7 +9,8 @@ assert.match(html, /id="epkLook"/, "artists need a content-independent EPK look 
 for (const field of ["publicBookingEmail","publicBookingPhone","publicTechnical","publicHospitality"]) assert.match(html, new RegExp(`id="${field}"[^>]*type="checkbox"|type="checkbox"[^>]*id="${field}"`), `public EPK choice ${field} is missing`);
 assert.match(html, /Save private draft/, "EPKs must be private by default");
 assert.match(html, /Publish EPK/, "publishing must be explicit");
-assert.match(html, /id="printEpk"[\s\S]*Print or save PDF/, "public EPK visitors need an explicit print or PDF action");
+assert.match(html, /id="printEpkOnePage"[\s\S]*One-page press PDF/, "public EPK visitors need a one-page press PDF action");
+assert.match(html, /id="printEpk"[\s\S]*Full press PDF/, "public EPK visitors need a full press PDF action");
 assert.match(html, /id="copyEpkLink"/, "public EPK visitors need an explicit link-copy action");
 assert.match(html, /id="createPrivateLink"[\s\S]*id="revokePrivateLink"/, "artists need revocable private review links for bookers and managers");
 assert.match(html, /id="deleteEpk"/, "artists must be able to permanently delete an EPK");
@@ -19,7 +20,7 @@ assert.match(client, /\/epk\/shared\//, "private review links should load from a
 assert.match(client, /DanzStak does not show this secret again/, "private review secrets must only be disclosed when created");
 assert.match(client, /link\.href = item\.downloadUrl \|\| item\.url/, "EPK press materials should use attachment URLs while retaining inline previews");
 assert.match(api, /response-content-disposition[\s\S]*attachment; filename=/, "EPK downloads should be signed as attachments with safe filenames");
-assert.match(client, /printEpk[\s\S]*window\.print\(\)/, "the public EPK should invoke the browser's accessible print and PDF flow");
+assert.match(client, /printEpkOnePage[\s\S]*printEpk\("one-page"\)[\s\S]*printEpk[\s\S]*printEpk\("full"\)/, "both press PDF actions should invoke an explicit print mode");
 assert.match(client, /copyEpkLink[\s\S]*navigator\.clipboard\.writeText\(location\.href\)/, "the public EPK should copy its canonical current link");
 assert.match(client, /credentials:"include"/, "private EPK operations should use opaque sessions");
 assert.doesNotMatch(client, /innerHTML/, "EPK content must not be injected as HTML");
