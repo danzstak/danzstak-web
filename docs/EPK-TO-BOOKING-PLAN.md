@@ -1,7 +1,9 @@
 # EPK to Booking plan
 
-Status: **PLAN ONLY — owner approval required before implementation**  
-Priority: **DanzStak's #1 product path**—an artist builds an EPK, sends it to clubs and venues, and gets booked  
+Status: **PLAN ONLY — owner approval required before implementation**
+
+Priority: **DanzStak's #1 product path**—an artist builds an EPK, sends it to clubs and venues, and gets booked
+
 Boundary: no deployment, AWS/Stripe changes, unsolicited email, music upload, or automatic sending is authorized by this plan.
 
 ## Outcome and success measure
@@ -216,4 +218,3 @@ Ship each release as a separate reviewed PR. Estimates exclude owner/legal revie
 5. Obtain legal review of outreach, opt-out, retention, and international requirements before production sending.
 6. Approve the proposed per-paid-EPK allowance (initial package, 12 rewrites, 5 pitch drafts, 90-day AI window) and the definition of a separately charged AI redesign.
 7. Approve a provider only after quality, no-training/data-retention terms, region, measured token use and actual cost pass review; then create the $5 Stripe product/Price separately.
-
