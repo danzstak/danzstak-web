@@ -13,9 +13,14 @@ assert.throws(()=>api.readArchive(bytes({posts:[]}).buffer,'export.html'),/ZIP e
 const invalid=api.normalize([{name:'posts.json',bytes:bytes([{...post,timestamp:0/0},{timestamp:1609459200,data:[{post:'x'.repeat(5001)}]}])}]);assert.equal(invalid.items.length,0);assert.equal(invalid.warnings.invalidDate,1);assert.equal(invalid.warnings.tooLong,1);
 const source=fs.readFileSync('infrastructure/auth-api/index.mjs','utf8'),start=source.indexOf('async function createSecurePost('),end=source.indexOf('async function deleteSecurePost(',start);let owner='owner-a';const items=new Map();
 const importUi=fs.readFileSync('assets/facebook-import.js','utf8');assert.match(importUi,/function allowFileRetry\(\).*input\.value=''/s,'failed exports must be reselectable');assert.match(importUi,/allowFileRetry\(\);status\('Reading took too long\./,'timed-out reads must reset the chooser');assert.match(importUi,/if\(!event\.data\.ok\)\{allowFileRetry\(\)/,'invalid exports must reset the chooser');assert.match(importUi,/missingMediaApprovals/,'missing attachments require per-post approval');assert.match(importUi,/Attachment missing from the Facebook export/,'missing attachments must be clear during review');assert.match(importUi,/Import this post as text only/,'review must explain the exact result before importing');
-const profileHtml=fs.readFileSync('profile.html','utf8');assert.match(profileHtml,/assets\/facebook-import\.css\?v=341/);assert.match(profileHtml,/assets\/facebook-import\.js\?v=343/);
+const profileHtml=fs.readFileSync('profile.html','utf8');assert.match(profileHtml,/assets\/facebook-import\.css\?v=344/);assert.match(profileHtml,/assets\/facebook-import\.js\?v=344/);
+assert.match(importUi,/Pivot · Moving Day/,'selective import must be presented as the Moving Day step inside Pivot');
+assert.match(importUi,/Pick exactly what moves/,'Moving Day must explain individual selection before upload');
+assert.match(importUi,/No posts or profile details are selected for you/,'Moving Day must never imply automatic selection');
+assert.match(importUi,/Make DanzStak yours/,'a completed move must hand the member into participation');
+for(const destination of ['profile.html?edit=1','epk.html','feed.html?view=friends','feed.html?view=feed'])assert.ok(importUi.includes(destination),`Moving Day must offer ${destination}`);
 assert.match(importUi,/<option value="private" selected>Just me<\/option><option value="friends">Friends<\/option><option value="public">Public<\/option>/,'Facebook imports must start private until the member explicitly chooses a wider audience');
-assert.match(importUi,/Imported posts start as <strong>Just me<\/strong>/,'the privacy-safe default must be explained before import');
+assert.match(importUi,/Everything starts as <strong>Just me<\/strong>/,'the privacy-safe default must be explained before import');
 assert.match(importUi,/function selectDateRange\(\)[\s\S]*selected\.clear\(\)[\s\S]*day>=from[\s\S]*day<=to/,'members must be able to select an inclusive date range without uploading first');
 assert.match(importUi,/data-date-from[\s\S]*data-date-to[\s\S]*data-select-range/,'the review surface must expose date-range controls');
 class GetItemCommand{constructor(input){this.input=input;}}class PutItemCommand{constructor(input){this.input=input;}}

@@ -62,7 +62,8 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
       await dialog.getByRole("tab", { name: "Facebook" }).click();
       await dialog.getByRole("button", { name: "Choose Facebook export" }).click();
       const importer = page.locator(".facebook-import-dialog"); await importer.waitFor({ state: "visible" });
-      assert.match(await importer.textContent(), /Review before importing/);
+      assert.match(await importer.textContent(), /Pick exactly what moves/);
+      assert.match(await importer.textContent(), /Nothing comes to DanzStak until you choose it/);
       assert.equal(errors.length, 0, `${width}px Pivot browser errors: ${errors.join(" | ")}`);
       assert.ok((await page.evaluate(() => document.documentElement.scrollWidth)) <= width, `${width}px Pivot dialog overflows`);
       if (captureDir) await page.screenshot({ path: path.join(captureDir, `pivot-facebook-${width}.png`), fullPage: false });
