@@ -1,5 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('assets/incoming-calls.js','utf8');
+const styles=fs.readFileSync('assets/incoming-calls.css','utf8');
 const template=fs.readFileSync('infrastructure/call-signaling/template.yaml','utf8');
 assert.match(source,/document\.addEventListener\("pointerdown", unlockRingtone/,'foreground ringtone audio must be unlocked by a real page gesture');
 assert.match(source,/showCall\(event\)[\s\S]*startRingtone\(\)/,'showing a foreground incoming call must start its ringtone when audio is available');
@@ -7,6 +8,7 @@ assert.match(source,/function resolveCall\(callId\)[\s\S]*stopRingtone\(\)/,'res
 assert.match(source,/if \(document\.hidden\) stopRingtone\(\)/,'backgrounding a page must stop its foreground ringtone');
 assert.match(source,/const RINGTONE_DURATION_MS = 25000/,'foreground call sound must be capped at 25 seconds');
 assert.match(source,/ringtoneStopTimer = setTimeout\(stopRingtone, remaining\)/,'foreground ringing must stop when the remaining sound window expires');
+assert.match(styles,/\.global-incoming-call\{[^}]*z-index:61000/,'incoming calls must remain above nonblocking install and feedback banners');
 assert(!/messages\.html\?contact=/.test(template),'Push notification URLs must not expose account email addresses');
 assert.match(template,/messages\.html\?member=\$\{encodeURIComponent\(senderMemberId\)\}/,'Push alerts should open a chat with an opaque member ID');
 assert.match(template,/notifyCall\(recipientEmail,user\.email,user\.userId,mode,callId\)/,'Call alerts must pass the opaque sender ID');

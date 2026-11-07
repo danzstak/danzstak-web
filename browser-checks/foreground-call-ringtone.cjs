@@ -6,15 +6,19 @@ const path = require("node:path");
 const { chromium } = require("playwright");
 
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8016").replace(/\/$/, "");
-const widths = [320, 360, 390, 414, 430];
-const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
+const widths = [320, 360, 390, 414, 430, 1366];
+const captureDir = process.env.DANZSTAK_CAPTURE_DIR
+  ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR)
+  : path.resolve(__dirname, "..", "docs", "screenshots", "foreground-call-ringtone");
+const ownerId = "11111111-1111-4111-8111-111111111111";
+const postId = "33333333-3333-4333-8333-333333333333";
 
 (async () => {
   const browser = await chromium.launch({ channel: "msedge", headless: true });
   try {
     for (const width of widths) {
       let offerActive = false;
-      const context = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: "block", hasTouch: true });
+      const context = await browser.newContext({ viewport: { width, height: width < 700 ? 844 : 900 }, serviceWorkers: "block", hasTouch: width < 700 });
       await context.addInitScript(() => {
         window.__toneStarts = 0;
         class TestAudioContext {
@@ -32,12 +36,13 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
         const request = route.request();
         const url = new URL(request.url());
         let body = {};
-        if (url.pathname === "/auth/session") body = { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111", email: "callee@danzstak.invalid" } };
-        else if (url.pathname === "/profiles") body = { profile: { memberId: "11111111-1111-4111-8111-111111111111", name: "Callee Artist", username: "callee" } };
+        if (url.pathname === "/auth/session") body = { authenticated: true, user: { sub: ownerId, email: "callee@danzstak.invalid" } };
+        else if (url.pathname === "/profiles") body = { profile: { memberId: ownerId, name: "Callee Artist", handle: "callee", username: "callee", bio: "Independent artist testing a populated DanzStak feed.", picture: `${baseUrl}/assets/danzstak-d-icon.png` } };
         else if (url.pathname === "/calls/inbox") body = { events: offerActive ? [{ eventId: "offer-event", callId: "22222222-2222-4222-8222-222222222222", signalType: "offer", senderEmail: "caller@danzstak.invalid", senderName: "Tour Friend", mode: "phone" }] : [] };
-        else if (url.pathname === "/secure-posts") body = { posts: [] };
-        else if (url.pathname === "/friends") body = { friends: [], incoming: [], outgoing: [] };
-        else if (url.pathname === "/calls/directory" || url.pathname === "/people") body = { users: [] };
+        else if (url.pathname === "/secure-posts") body = { posts: [{ postId, userId: ownerId, authorName: "Callee Artist", content: "West Coast dates are coming together. Rehearsal tonight, then the van heads north.", createdAt: "2026-11-07T18:30:00.000Z", audience: "public", isOwner: true, mediaType: "image", mediaUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`, viewCount: 42, commentPolicy: "everyone" }] };
+        else if (url.pathname === "/engagement") body = { myReaction: "", reactionCounts: { Like: 8, Love: 4 }, comments: [] };
+        else if (url.pathname === "/friends") body = { friends: [{ memberId: "22222222-2222-4222-8222-222222222222", email: "caller@danzstak.invalid", name: "Tour Friend", online: true }], incoming: [], outgoing: [] };
+        else if (url.pathname === "/calls/directory" || url.pathname === "/people") body = { users: [{ memberId: "22222222-2222-4222-8222-222222222222", email: "caller@danzstak.invalid", name: "Tour Friend", online: true, friendStatus: "friends" }] };
         else if (url.pathname === "/notifications" || url.pathname === "/engagement-notifications") body = { notifications: [] };
         else if (url.pathname === "/stories") body = { stories: [], reels: [] };
         else if (url.pathname === "/groups") body = { groups: [] };
@@ -47,6 +52,7 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       });
 
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
+      await page.locator(`.post[data-post-id="${postId}"]`).waitFor({ state: "visible" });
       await page.mouse.click(width - 24, 24);
       offerActive = true;
       const popup = page.locator(".global-incoming-call");
@@ -70,10 +76,8 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       assert.match(await popup.textContent(), /Tour Friend/, `${width}px incoming call must identify the caller by display name`);
       assert.doesNotMatch(await popup.textContent(), /@/, `${width}px incoming call must not expose account email`);
 
-      if (captureDir) {
-        fs.mkdirSync(captureDir, { recursive: true });
-        await page.screenshot({ path: path.join(captureDir, `foreground-call-${width}.png`) });
-      }
+      fs.mkdirSync(captureDir, { recursive: true });
+      await page.screenshot({ path: path.join(captureDir, `foreground-call-${width}.png`), fullPage: true });
 
       offerActive = false;
       await popup.locator("[data-decline]").click();
