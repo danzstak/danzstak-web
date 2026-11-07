@@ -15,5 +15,5 @@ for (const section of ["about","listen","watch","notable-shows","press","booking
 assert.match(css,/@page\{size:letter;margin:\.4in\}/);
 assert.match(css,/data-epk-print="one-page"[\s\S]*\.epk-embeds iframe\{display:none!important\}/);
 assert.match(css,/nth-child\(n\+3\)/,"one-page press output must bound rich media and press quotes");
-assert.match(worker,/danzstak-shell-v714/);
+assert.match(worker,/danzstak-shell-v718/);
 console.log("EPK press PDF checks passed: explicit one-page/full modes, bounded summary content, permission parity, print cleanup, and PWA refresh.");

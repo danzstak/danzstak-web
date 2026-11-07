@@ -20,7 +20,7 @@ assert.doesNotMatch(art, /#feed \.post :is\(img,video\)\s*\{[^}]*max-width:100%/
 assert.match(art, /\.menu :is\(a,\.menu-action\)[\s\S]*min-height:max\(44px,var\(--ds-touch\)\)/, "menu rows must preserve the shared 44px target");
 assert.match(art, /\.menu-section-heading\s*\{[\s\S]*?margin:8px 8px 4px;/, "Feed art direction must not stretch mobile menu section spacing");
 assert.match(art, /@media\(min-width:701px\)[\s\S]*post-composer:not\(\.is-expanded\)[\s\S]*height:46px!important/, "the initial desktop composer must be a compact prompt");
-assert.match(worker, /danzstak-shell-v714/);
+assert.match(worker, /danzstak-shell-v718/);
 assert.match(worker, /\/assets\/danzstak-original-feed\.css/, "the installed PWA must cache the art-direction layer");
 
 console.log("Original Feed art-direction checks passed: shared tokens, edge media, touch targets, and PWA caching.");
