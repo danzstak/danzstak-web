@@ -5,6 +5,9 @@
   let current = null;
   let polling = false;
   let previousFocus = null;
+  let ringtoneContext = null;
+  let ringtoneTimer = null;
+  const ringtonePulses = new Set();
   const handledCalls = new Map();
   const t = value => window.danzstakTranslate?.(value) || value;
   const tf = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), t(key));
@@ -21,6 +24,49 @@
   const label = popup.querySelector("#globalIncomingLabel");
   const answer = popup.querySelector("[data-answer]");
   const decline = popup.querySelector("[data-decline]");
+
+  async function unlockRingtone() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    try {
+      if (!ringtoneContext || ringtoneContext.state === "closed") ringtoneContext = new AudioContextClass();
+      if (ringtoneContext.state === "suspended") await ringtoneContext.resume();
+      if (current && !document.hidden && !ringtoneTimer) startRingtone();
+    } catch { /* The visible incoming-call screen remains the fallback. */ }
+  }
+
+  function playRingtonePulse(frequency, delay = 0) {
+    const timeout = setTimeout(() => {
+      ringtonePulses.delete(timeout);
+      if (!current || document.hidden || ringtoneContext?.state !== "running") return;
+      const oscillator = ringtoneContext.createOscillator();
+      const gain = ringtoneContext.createGain();
+      oscillator.frequency.value = frequency;
+      gain.gain.value = 0.055;
+      oscillator.connect(gain).connect(ringtoneContext.destination);
+      oscillator.start();
+      oscillator.stop(ringtoneContext.currentTime + 0.24);
+    }, delay);
+    ringtonePulses.add(timeout);
+  }
+
+  function stopRingtone() {
+    if (ringtoneTimer) clearInterval(ringtoneTimer);
+    ringtoneTimer = null;
+    for (const timeout of ringtonePulses) clearTimeout(timeout);
+    ringtonePulses.clear();
+  }
+
+  function startRingtone() {
+    stopRingtone();
+    if (!current || document.hidden || ringtoneContext?.state !== "running") return;
+    const pulse = () => {
+      playRingtonePulse(720);
+      playRingtonePulse(880, 320);
+    };
+    pulse();
+    ringtoneTimer = setInterval(pulse, 2400);
+  }
 
   function renderCurrentCall() {
     if (!current) return;
@@ -58,6 +104,7 @@
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     answer.focus();
     navigator.vibrate?.([400, 180, 400, 180, 400]);
+    startRingtone();
     // The service worker owns background notifications; polling only updates this page.
   }
 
@@ -66,6 +113,7 @@
     handledCalls.set(current.callId, Date.now() + 120000);
     popup.hidden = true;
     current = null;
+    stopRingtone();
     navigator.vibrate?.(0);
     previousFocus?.focus();
     previousFocus = null;
@@ -85,6 +133,7 @@
     const event = current;
     handledCalls.set(event.callId, Date.now() + 120000);
     if (typeof window.openMessageDrawer === "function") {
+      stopRingtone();
       navigator.vibrate?.(0);
       popup.hidden = true;
       current = null;
@@ -95,6 +144,7 @@
     destination.searchParams.set("contact", event.senderEmail);
     destination.searchParams.set("answer", "1");
     destination.searchParams.set("callId", event.callId);
+    stopRingtone();
     navigator.vibrate?.(0);
     location.assign(destination.href);
   });
@@ -109,6 +159,7 @@
       handledCalls.set(event.callId, Date.now() + 120000);
       popup.hidden = true;
       current = null;
+      stopRingtone();
       navigator.vibrate?.(0);
       previousFocus?.focus();
       previousFocus = null;
@@ -149,8 +200,14 @@
     finally { polling = false; }
   }
 
+  document.addEventListener("pointerdown", unlockRingtone, { capture: true, passive: true });
+  document.addEventListener("keydown", unlockRingtone, { capture: true });
   poll();
   setInterval(poll, 2000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopRingtone();
+    else { if (current) startRingtone(); poll(); }
+  });
+  window.addEventListener?.("pagehide", stopRingtone);
   if (typeof MutationObserver === "function") new MutationObserver(renderCurrentCall).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
 })();

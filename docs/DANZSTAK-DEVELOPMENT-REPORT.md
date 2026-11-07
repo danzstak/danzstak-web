@@ -1,5 +1,18 @@
 # DANZSTAK development report
 
+## Foreground incoming-call ringtone — 2026-11-07
+
+Status: **IN PROGRESS — CODE AND BROWSER TESTS READY FOR REVIEW; REAL-PHONE ACCEPTANCE AND PRODUCTION DEPLOYMENT NOT COMPLETE**.
+
+- Root cause: the shared incoming-call surface on Feed and Profile displayed the call and requested vibration, but it did not provide an audible foreground ringtone. The dedicated SYNC screen could ring only after the member found and used its separate call-alert action; ordinary prior interaction did not unlock the tone. The call screen already had separate remote-audio and ringback elements; this slice does not replace that call transport.
+- After a member interacts with the page, both incoming-call owners now unlock a modest Web Audio ringtone. They ring only for a current incoming call while the document is visible, stop on Answer, Decline, call resolution, page hide and page exit, and do not restart audio merely because the member returns to the page. SYNC call-alert setup remains available for opted-in background push.
+- The implementation deliberately does not claim locked-screen or background ringing. Browsers restrict starting sound without a user gesture, and a reliable background alert still requires the existing push-notification path and real-device acceptance.
+- The first browser pass found two additional phone defects: the Answer and Decline controls were 42px tall, and the incoming-call card could sit behind the fixed bottom navigation. The final layout gives both actions a 44px minimum target and keeps the card visibly above the app navigation and safe area.
+- Focused functional evidence: `test-call-notifications.cjs`, `test-call-ringback.cjs`, `test-call-cleanup.cjs`, `test-global-call-localization.cjs` and `test-pwa-shell-refresh.cjs` pass. The regressions drive fake Web Audio contexts and verify gesture-gated start, visibility stop/resume, decline cleanup and continued inbox polling.
+- Visual/browser evidence: `browser-checks/foreground-call-ringtone.cjs` passes at 320, 360, 390, 414 and 430px, while `browser-checks/call-audio-output.cjs` passes the dedicated SYNC screen at 320, 360, 375, 390, 414, 430, 768 and 1024px. They verify that an actual oscillator starts after trusted interaction, the caller name is shown without an email address, actions remain at least 44px, the surfaces fit their viewports, and Decline closes them. Inspected captures are in `docs/screenshots/foreground-call-ringtone/`.
+- Integration evidence: the complete `test-regressions.ps1` gate passes, including 13-page smoke validation and infrastructure validation. Prepared PWA assets use incoming-call JS v299, CSS v234, SYNC call JS v451 and cache `danzstak-shell-v716`.
+- Honest boundary: this is a foreground-ringtone correction, not closure of Issue #27. Two-way audio, strict-network/TURN behavior, background or locked-screen alerts, and a real two-phone Android/iPhone matrix remain unverified. No AWS, Stripe, backend, production or customer-data change is included, and nothing from this branch has been deployed.
+
 ## Invite a friend — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
