@@ -39,6 +39,7 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
+import QRCode from "qrcode";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
@@ -279,6 +280,30 @@ function epkDownloadName(value, key) {
   const extension = String(key || "").match(/\.(jpg|png|webp|pdf)$/i)?.[0]?.toLowerCase() || "";
   const base = String(value || "press-material").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._ -]+/g, "-").replace(/[\r\n"\\/]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 120) || "press-material";
   return base.toLowerCase().endsWith(extension) ? base : `${base}${extension}`;
+}
+
+function validEpkQrUrl(value) {
+  let url;
+  try { url = new URL(String(value || "")); } catch { return false; }
+  if (url.origin !== allowedOrigin || url.pathname !== "/epk.html") return false;
+  const parameters = [...url.searchParams.entries()];
+  if (parameters.length !== 1) return false;
+  const [kind, identifier] = parameters[0];
+  const fragment = new URLSearchParams(url.hash.slice(1));
+  if (kind === "id") return /^[a-z0-9-]{3,64}$/.test(identifier) && !url.hash;
+  if (!/^(share|outreach)$/.test(kind) || fragment.size !== 1 || !fragment.has("token")) return false;
+  if (!/^[a-f0-9]{64}$/.test(fragment.get("token") || "")) return false;
+  return kind === "share" ? /^[a-z0-9-]{3,64}$/.test(identifier) : /^[a-f0-9]{32}$/.test(identifier);
+}
+
+async function epkQr(event) {
+  const origin = event.headers?.origin;
+  const headers = { ...corsHeaders(origin), "content-type": "image/svg+xml; charset=utf-8", "cache-control": "no-store, private" };
+  if (!allowedOrigins.has(origin)) return { statusCode: 404, headers, body: "EPK link not found." };
+  const url = String(parseJsonBody(event)?.url || "");
+  if (!validEpkQrUrl(url)) return { statusCode: 400, headers, body: "The EPK link is not valid." };
+  const body = await QRCode.toString(url, { type: "svg", errorCorrectionLevel: "M", margin: 2, width: 512 });
+  return { statusCode: 200, headers, body };
 }
 
 function corsHeaders(origin) {
@@ -4155,6 +4180,7 @@ export const handler = async event => {
     if ((method === "GET" || method === "POST") && path === "/booking-pipeline") return await bookingWorkspace(event, method);
     if (method === "PATCH" && path === "/booking-pipeline/identity") return await bookingIdentity(event);
     if ((method === "GET" || method === "POST" || method === "DELETE") && path === "/epk") return await epkWorkspace(event, method);
+    if (method === "POST" && path === "/epk/qr") return await epkQr(event);
     if (method === "POST" && path === "/epk/share") return await privateEpkShare(event, method);
     if ((method === "GET" || method === "POST") && path === "/epk/outreach-share") return await outreachEpkShare(event, method);
     const epkOutreachMatch = path.match(/^\/epk\/outreach\/([a-f0-9]{32})$/i);
@@ -4190,4 +4216,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName };
+export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl };

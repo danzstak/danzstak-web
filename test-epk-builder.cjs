@@ -21,7 +21,7 @@ assert.match(client, /DanzStak does not show this secret again/, "private review
 assert.match(client, /link\.href = item\.downloadUrl \|\| item\.url/, "EPK press materials should use attachment URLs while retaining inline previews");
 assert.match(api, /response-content-disposition[\s\S]*attachment; filename=/, "EPK downloads should be signed as attachments with safe filenames");
 assert.match(client, /printEpkOnePage[\s\S]*printEpk\("one-page"\)[\s\S]*printEpk[\s\S]*printEpk\("full"\)/, "both press PDF actions should invoke an explicit print mode");
-assert.match(client, /copyEpkLink[\s\S]*navigator\.clipboard\.writeText\(location\.href\)/, "the public EPK should copy its canonical current link");
+assert.match(client, /copyEpkLink[\s\S]*navigator\.clipboard\.writeText\(canonicalEpkUrl\(\)\)/, "the public EPK should copy its canonical production link");
 assert.match(client, /credentials:"include"/, "private EPK operations should use opaque sessions");
 assert.doesNotMatch(client, /innerHTML/, "EPK content must not be injected as HTML");
 assert.match(api, /function cleanEpk\(/, "the API should validate EPK content");

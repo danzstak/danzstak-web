@@ -14,7 +14,7 @@ function contrast(first, second) {
 assert.match(html, /id="epkLook"[\s\S]*value="techno"[\s\S]*value="punk"[\s\S]*value="metal"[\s\S]*value="house"/);
 assert.match(html, /Change the look any time[\s\S]*stay intact/);
 assert.match(html, /assets\/epk-looks\.css\?v=1/);
-assert.match(html, /assets\/epk\.js\?v=16/);
+assert.match(html, /assets\/epk\.js\?v=17/);
 assert.match(client, /look: epkLooks\.has\(byId\("epkLook"\)\.value\)/);
 assert.match(client, /preview\.dataset\.look = look/);
 assert.match(client, /byId\("epkLook"\)\.value = epkLooks\.has\(kit\.look\)/);
@@ -27,7 +27,7 @@ for (const [look, ink, ground] of [["techno", "EDEDEA", "0B0B0C"], ["punk", "121
 }
 assert.match(css, /data-look="punk"\] \.epk-body h2\{color:var\(--epk-ink\)\}/, "Punk small labels must use accessible ink instead of the low-contrast accent");
 assert.match(css, /data-look="metal"\] \.epk-body h2\{color:var\(--epk-ink\)/, "Metal small labels must use accessible ink instead of the low-contrast accent");
-assert.match(worker, /danzstak-shell-v706/);
+assert.match(worker, /danzstak-shell-v707/);
 assert.match(worker, /\/assets\/epk-looks\.css/);
 for (const file of ["archivo","jetbrains-mono","anton","special-elite","work-sans","pirata-one","oswald","source-serif-4","syne","dm-sans"]) {
   assert.ok(fs.statSync(`assets/fonts/${file}.woff2`).size > 1000, `${file} font file is missing or empty`);
