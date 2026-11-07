@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Pivot / Moving Day selective import — 2026-11-07
+
+Status: **TESTED LOCALLY — READY FOR REVIEW; NOT YET DEPLOYED**.
+
+- The phone Mix header now gives Search approximately three quarters of the available action row and places a compact, visibly labeled **Pivot** action beside it.
+- Pivot opens **Moving Day**: the owner-named cleanup step where a member chooses a source, previews the export and chooses what to move. The screen states that nothing imports automatically, the member owns the data they choose to move and imported Facebook posts start as **Just me**.
+- Facebook uses the existing functional ZIP/JSON importer. It previews before writing, supports individual and date-range selection, optional profile details, per-item/default audience choices, missing-media decisions and an explicit **Import selected** action. Choosing an archive alone copies nothing.
+- Instagram and Reddit provide current export-request guides but are marked honestly as not ready for selective import. Their archives cannot be uploaded yet. DanzStak never requests another platform password or logs into another platform.
+- Imported items already receive a DanzStak post identity plus immutable Facebook import origin/key metadata; DanzStak reshares preserve original post/creator provenance. Moving Day explains that DanzStak tracks content, not people, and that independent screenshots or copies uploaded to another platform may not be traceable or remotely removable.
+- Functional evidence: `test-facebook-import.cjs`, `test-pivot.cjs` and the complete `test-regressions.ps1` gate pass, including 13-page smoke and infrastructure checks. Browser evidence: `browser-checks/pivot.cjs` passes at 320, 360, 390, 414, 430 and 1366px, including the three-quarter header split, visible Pivot label, Moving Day ownership/privacy copy, honest unsupported-source states, the handoff to the real Facebook importer, no overflow and no browser errors. Inspected captures are in `docs/screenshots/pivot-header/`.
+- Prepared PWA assets: Feed art-direction CSS v14, Pivot CSS/JS v1 and cache `danzstak-shell-v728`. No AWS, Stripe, backend or production change is included in this review slice.
+
 ## Single-header mobile SYNC — 2026-11-07
 
 Status: **TESTED LOCALLY — READY FOR REVIEW; NOT YET DEPLOYED**.
