@@ -10,6 +10,7 @@ Status: **IMPLEMENTED AND LOCALLY VERIFIED; STAGING AND PRODUCTION NOT YET CLAIM
 - Functional/security evidence: `test-booking-replies.cjs` verifies the exact reply-to-venue binding, proposed status/date/evidence, new revision, route deployment and PWA assets. The complete `test-regressions.ps1` gate passes with exit code 0.
 - Visual evidence: `browser-checks/booking-sync.cjs` passes at 320, 360, 390, 414, 430 and 1366px. The captures in `docs/screenshots/booking-sync/` were inspected; the new 44px action fits inside the offer bubble without overlap or horizontal overflow.
 - Prepared release assets: booking SYNC v3, SYNC CSS v7 and PWA cache `danzstak-shell-v702`.
+- Review/staging evidence: all three required GitHub checks passed for implementation head `955d8d3ef7135858d03e46d4ae6709066b6ca52f`. AWS Amplify DEVELOPMENT branch `codex/booking-reply-to-tour`, job `1`, succeeded in `us-west-1`; the six-width SYNC booking matrix passes directly against the hosted build.
 
 ## Artist-approved venue replies from SYNC — 2026-11-07
 
