@@ -2,7 +2,7 @@
 
 ## Booking-email provider events and automatic suppression — 2026-11-07
 
-Status: **IMPLEMENTED AND LOCALLY VERIFIED; AWS EVENT DESTINATION, STAGING AND PRODUCTION NOT YET DEPLOYED**.
+Status: **IMPLEMENTED AND VERIFIED ON ISOLATED STAGING; AWS EVENT DESTINATION AND PRODUCTION NOT YET DEPLOYED**.
 
 - New Tour Manager sends use the dedicated `DanzStakTourManager` SES configuration set. The guarded deployer prepares an SNS event destination for delivery, bounce and complaint events and grants only that topic permission to invoke the existing Auth API Lambda.
 - Each provider message receives a hash-keyed private correlation record containing the owning artist, opaque send identifier and normalized recipient hash. No recipient address is copied into the global correlation or provider-event keys.
@@ -11,6 +11,7 @@ Status: **IMPLEMENTED AND LOCALLY VERIFIED; AWS EVENT DESTINATION, STAGING AND P
 - The booking workspace now counts every provider-submitted message in **Emails sent** and shows plain per-venue evidence for accepted, delivered, bounced and complained states. It never labels SES acceptance as delivery.
 - Functional/security evidence: `test-booking-provider-events.cjs` covers delivery, retry deduplication, permanent versus transient bounce handling, complaint suppression, private keys and deploy configuration. Existing opt-out, send-credit, cap/cooldown and complete `test-regressions.ps1` coverage pass with exit code 0.
 - Release assets are prepared as booking JS v16 and PWA cache `danzstak-shell-v699`. No Stripe price, entitlement or payment configuration changed. No provider event is claimed operational until the exact branch is staged, the AWS event destination is inspected and a controlled SES event reaches the production state store.
+- Review/staging evidence: all three required checks passed for implementation head `2eb4d408a6a07e86ff8c7b3537139e63ac187c2d`. Amplify DEVELOPMENT branch `codex/booking-ses-events`, job `1`, succeeded in `us-west-1`; no-cache probes confirm booking JS v16 and `danzstak-shell-v699`. The six-width booking browser matrix passes against `https://codex-booking-ses-events.d31oovi2mos5iz.amplifyapp.com`.
 
 ## Venue-controlled booking opt-out and global suppression — 2026-11-07
 
