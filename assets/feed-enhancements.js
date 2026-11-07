@@ -751,7 +751,7 @@ function renderWorkspace(name) {
     featurePanel.appendChild(workspace);
   }
   workspace.replaceChildren();
-  workspace.classList.remove("settings-workspace", "events-workspace", "groups-workspace");
+  workspace.classList.remove("settings-workspace", "events-workspace", "groups-workspace", "artist-hq-workspace");
   const saved = readSections();
 
   if (name === "Saved") {
@@ -759,6 +759,28 @@ function renderWorkspace(name) {
     const list = document.createElement("div"); list.className = "published-events saved-posts";
     workspace.appendChild(list);
     renderSavedPosts(list);
+    return;
+  }
+
+  if (name === "HQ") {
+    const renderer = window.danzstakArtistHq?.render;
+    if (typeof renderer !== "function") {
+      featureText.textContent = "Artist HQ could not load. Your saved work was not changed.";
+      const link = document.createElement("a");
+      link.href = "epk.html";
+      link.textContent = "Open EPK Builder";
+      workspace.appendChild(link);
+      return;
+    }
+    renderer(workspace, featureText, isCurrentWorkspace).catch(() => {
+      if (!isCurrentWorkspace()) return;
+      featureText.textContent = "Artist HQ could not load. Your saved work was not changed.";
+      workspace.replaceChildren();
+      const link = document.createElement("a");
+      link.href = "epk.html";
+      link.textContent = "Open EPK Builder";
+      workspace.appendChild(link);
+    });
     return;
   }
 
@@ -2001,7 +2023,7 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
   friendsLink.insertAdjacentElement("afterend", groupsLink);
 }
 
-const workspaceRoutes = new Map(["Friends", "Groups", "Photos", "Videos", "Events", "Saved", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
+const workspaceRoutes = new Map(["HQ", "Friends", "Groups", "Photos", "Videos", "Events", "Saved", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
 const mobileMenuControl = document.querySelector(".mobile-menu-control");
 const mobileNavMenu = document.getElementById("mobileNavMenu");
 const directMobileDestinations = new Set(["Friends", "Notifications"]);
