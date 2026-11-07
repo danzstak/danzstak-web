@@ -9,6 +9,11 @@ assert.match(client, /messageList\.appendChild\(pendingItem\)/, "the sending bub
 assert.match(client, /meta\.textContent = messageTranslate\("Sending…"\)/, "pending delivery state must be visible in the selected language");
 assert.match(client, /pendingItem\.replaceWith\(directMessageItem\(data\.message\)\)/, "the server-confirmed message must replace the pending bubble");
 assert.match(client, /shownMessages\.add\(data\.message\.messageId\)/, "background polling must not duplicate a confirmed optimistic message");
+assert.match(client, /clientMessageId = retry\?\.clientMessageId \|\| `\$\{String\(Date\.now\(\)\)\.padStart\(13, "0"\)\}#\$\{crypto\.randomUUID\(\)\}`/, "one user action must keep one stable client message ID across retries");
+assert.match(client, /JSON\.stringify\(\{ recipientEmail, content, clientMessageId, \.\.\.attachment \}\)/, "online sends must carry the stable client message ID");
+assert.match(client, /danzstakQueueOffline\("\/messages", \{ recipientEmail, content, clientMessageId \}\)/, "offline sends must preserve the same client message ID");
+assert.match(client, /retryMessageSend = \{ recipientEmail, content, mediaFile, clientMessageId, attachment \}/, "ambiguous failures must retain the ID and any completed media upload");
+assert.match(client, /if \(retryMessageSend && !retry\) \{\s*await discardMessageMedia\(retryMessageSend\.attachment\?\.mediaKey\)/, "changing an uncertain media send must clean up the abandoned upload before starting a new action");
 assert.match(client, /if \(content && !messageInput\.value\.trim\(\)\) messageInput\.value = content/, "failed text must return to the composer");
 assert.match(client, /Your message is still in the composer/, "failed delivery must explain that the draft was preserved");
 assert.match(styles, /\.message-pending\{opacity:/, "pending messages need a distinct visual state");

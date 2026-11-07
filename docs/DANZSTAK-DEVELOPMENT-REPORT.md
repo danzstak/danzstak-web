@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Idempotent SYNC message delivery — 2026-11-07
+
+Status: **IN PROGRESS — CODE AND BROWSER TESTS READY FOR REVIEW; BACKEND NOT DEPLOYED**.
+
+- Root cause: a send retry received a new server-generated message ID. If the durable message write succeeded but the response or conversation-projection update failed, a user retry could create a second message and a second push alert. An interrupted offline sync could also leave an uncertain send permanently marked as `sending`.
+- Each new client send now receives one stable client message ID. Manual retries and offline-queue replays preserve it. The backend uses a conditional durable write, treats an identical replay as success, rejects reuse with changed content, repairs failed conversation projections, and sends the recipient push only for the first durable write.
+- Cached older PWA clients remain compatible during rollout: a request without a client ID receives a server-generated ID, while updated clients receive retry safety. Older messages cannot replace a newer conversation preview.
+- Functional evidence: `test-message-idempotency.cjs`, `test-message-optimistic-send.cjs` and `test-offline.cjs` pass, including duplicate submission, payload collision, legacy-client compatibility, projection repair and uncertain offline replay.
+- Browser evidence: `browser-checks/message-idempotent-retry.cjs` passes at 320, 360, 390, 414, 430 and 1366px. It forces a lost first response, confirms that the draft is restored, verifies the explicit retry reuses the exact ID, renders one confirmed bubble with no pending duplicate, checks horizontal containment and a 44px send target, and records inspected captures in `docs/screenshots/message-idempotent-retry/`.
+- Prepared PWA assets: offline queue JS v3, chat CSS v452, direct messages JS v488 and cache `danzstak-shell-v715`.
+- Honest boundary: no AWS backend or PWA deployment is included. Two-account live delivery, provider push reception and installed-phone behavior remain unverified until this review slice is approved and separately released. This improves Issue #39 but does not claim the complete SYNC reliability issue is finished.
+
 ## Invite a friend — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.

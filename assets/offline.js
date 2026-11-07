@@ -73,7 +73,11 @@
     if (!state.owner) throw new Error("Load your profile online once before saving offline changes.");
     if (!["/secure-posts", "/messages"].includes(path) || body.mediaKey) throw new Error("This action needs a connection.");
     if (state.queue.length >= 50) throw new Error("Reconnect to send your saved items before adding more.");
-    const item = { id: crypto.randomUUID(), path, body, status: "waiting" };
+    const queuedBody = { ...body };
+    if (path === "/messages" && !/^\d{13}#[a-f0-9-]{36}$/.test(String(queuedBody.clientMessageId || ""))) {
+      queuedBody.clientMessageId = `${String(Date.now()).padStart(13, "0")}#${crypto.randomUUID()}`;
+    }
+    const item = { id: crypto.randomUUID(), path, body: queuedBody, status: "waiting" };
     state.queue.push(item);
     try { save(); } catch (error) { state.queue.pop(); throw new Error("Device storage is full. Your text has not been queued."); }
     render("Saved on this device — will send when you reconnect.");
@@ -85,6 +89,10 @@
       const previousOwner = state.owner;
       await identity();
       if (previousOwner && previousOwner !== state.owner) return;
+      for (const item of state.queue) {
+        if (item.status === "sending" && item.path === "/messages" && /^\d{13}#[a-f0-9-]{36}$/.test(String(item.body?.clientMessageId || ""))) item.status = "waiting";
+      }
+      save();
       for (const item of state.queue) {
         if (item.status !== "waiting") continue;
         item.status = "sending";
