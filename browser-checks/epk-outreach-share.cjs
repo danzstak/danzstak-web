@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
 
-const origin = process.env.DANZSTAK_EPK_ORIGIN || "http://127.0.0.1:8037";
+const origin = process.argv[2] || process.env.DANZSTAK_EPK_ORIGIN || "http://127.0.0.1:8037";
 const output = path.resolve("docs/screenshots/epk-outreach-share");
 fs.mkdirSync(output, { recursive:true });
 const shareId = "1234567890abcdef1234567890abcdef", token = "a".repeat(64);

@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UXjMtFgtfNMBXOVCLeEk8vI";
 export const TOUR_MANAGER_PRODUCT_ID = "prod_VYr5JIwpaFSX7b";
@@ -34,6 +34,9 @@ const PROFESSIONAL_KEY = "TOUR_MANAGER#PROFESSIONAL_ENTITLEMENT";
 const PHONE_ENTITLEMENT_KEY = "PHONE#ACTIVATION_ENTITLEMENT";
 const BOOKING_WORKSPACE_KEY = "booking-workspace-v1";
 const EVENT_OWNER = "STRIPE#TOUR_MANAGER_EVENTS";
+const SUPPRESSION_OWNER = "TOUR_MANAGER#GLOBAL_SUPPRESSION";
+const OPT_OUT_TOKEN_OWNER = "TOUR_MANAGER#OPT_OUT_TOKEN";
+const DANZSTAK_POSTAL_ADDRESS = "DanzStak LLC, 2063 Main St. #237, Oakley, CA 94561, USA";
 const MAX_CREDITS_PER_CHECKOUT = 500;
 export const MAX_NEW_PITCHES_PER_24_HOURS = 20;
 export const BOOKING_CONTACT_COOLDOWN_SECONDS = 30 * 24 * 60 * 60;
@@ -54,6 +57,20 @@ function sendKey(userId, id) { return { userId: { S: userId }, tourId: { S: `TOU
 function outreachHourKey(userId, at) { const hour = Math.floor(at / 3600000); return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#OUTREACH_HOUR#${String(hour).padStart(12, "0")}` } }; }
 function normalizedRecipientHash(value) { return createHash("sha256").update(String(value || "").trim().toLowerCase()).digest("hex"); }
 function recipientCooldownKey(userId, recipient) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#RECIPIENT_COOLDOWN#${normalizedRecipientHash(recipient)}` } }; }
+function suppressionKey(recipient) { return { userId: { S: SUPPRESSION_OWNER }, tourId: { S: normalizedRecipientHash(recipient) } }; }
+function optOutTokenHash(token) { return createHash("sha256").update(`tour-manager-opt-out:${String(token || "")}`).digest("hex"); }
+function optOutTokenKey(token) { return { userId: { S: OPT_OUT_TOKEN_OWNER }, tourId: { S: optOutTokenHash(token) } }; }
+function optOutFooter(token) { return `${DANZSTAK_POSTAL_ADDRESS}\nDon't want booking pitches through DanzStak? Opt out: https://danzstak.com/booking-opt-out.html#token=${token}`; }
+function outreachWindow(items, at) {
+  const currentHour = Math.floor(at / 3600000), oldestHour = currentHour - 23;
+  let previousHourCount = 0, currentHourCount = 0;
+  for (const item of items || []) {
+    const bucket = Number(String(item.tourId?.S || "").slice("TOUR_MANAGER#OUTREACH_HOUR#".length)), count = Number(item.sendCount?.N || 0);
+    if (!Number.isInteger(bucket) || bucket < oldestHour || bucket > currentHour || !Number.isFinite(count) || count < 0) continue;
+    if (bucket === currentHour) currentHourCount += count; else previousHourCount += count;
+  }
+  return { previousHourCount, currentHourCount, total: previousHourCount + currentHourCount };
+}
 function contactUnlockKey(userId, venueKey) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#CONTACT_UNLOCK#${venueKey}` } }; }
 function validVenueKey(value) { return typeof value === "string" && /^[a-f0-9]{20}$/.test(value); }
 
@@ -213,6 +230,50 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       providerAcceptedAt: item.providerAcceptedAt?.S || ""
     }));
     return response(200, { messages }, headers);
+  }
+
+  async function outreachPreflight(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), outreachId = String(body?.outreachId || "").trim();
+    if (!venueKey || venueKey.length > 240 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || !/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId)) return response(400, { error: "Choose a saved venue, public booking email, and valid outreach draft." }, headers);
+    const preflightMs = clock(), [workspace, contactAccess, suppressed, cooldown, hourly] = await Promise.all([
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: contactUnlockKey(userId, venueKey), ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: suppressionKey(to), ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: recipientCooldownKey(userId, to), ConsistentRead: true })),
+      db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#OUTREACH_HOUR#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 48 }))
+    ]);
+    let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
+    const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to));
+    if (!venue) return response(409, { error: "Save this venue and its public booking email before review." }, headers);
+    if (contactAccess.Item?.status?.S !== "active") return response(402, { error: "Unlock this venue's booking contact before review." }, headers);
+    if (suppressed.Item) return response(409, { error: "This contact opted out of DanzStak booking pitches and cannot be emailed." }, headers);
+    if (Number(cooldown.Item?.nextAllowedAt?.N || 0) > Math.floor(preflightMs / 1000)) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead." }, headers);
+    if (outreachWindow(hourly.Items, preflightMs).total >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
+    const token = randomBytes(32).toString("hex"), createdAt = new Date(preflightMs).toISOString(), expiresAt = Math.floor(preflightMs / 1000) + 400 * 86400;
+    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...optOutTokenKey(token), artistId: { S: userId }, outreachId: { S: outreachId }, venueKey: { S: venueKey }, recipientHash: { S: normalizedRecipientHash(to) }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } }, ConditionExpression: "attribute_not_exists(userId)" }));
+    return response(200, { footer: optOutFooter(token), suppressionChecked: true }, headers);
+  }
+
+  async function optOut(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const token = String(parseBody(event)?.token || "").trim();
+    if (!/^[a-f0-9]{64}$/.test(token)) return response(400, { error: "This opt-out link is invalid or expired." }, headers);
+    const tokenResult = await db.send(new GetItemCommand({ TableName: tableName, Key: optOutTokenKey(token), ConsistentRead: true })), item = tokenResult.Item, currentSeconds = Math.floor(clock() / 1000);
+    if (!item || Number(item.expiresAt?.N || 0) <= currentSeconds || !/^[a-f0-9]{64}$/.test(item.recipientHash?.S || "")) return response(400, { error: "This opt-out link is invalid or expired." }, headers);
+    const key = { userId: { S: SUPPRESSION_OWNER }, tourId: { S: item.recipientHash.S } }, optedOutAt = nowIso();
+    try {
+      await db.send(new PutItemCommand({ TableName: tableName, Item: { ...key, reason: { S: "recipient_opt_out" }, source: { S: "booking_email_footer" }, optedOutAt: { S: optedOutAt } }, ConditionExpression: "attribute_not_exists(userId)" }));
+      return response(200, { optedOut: true, alreadyOptedOut: false }, headers);
+    } catch (error) {
+      const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
+      if (existing.Item) return response(200, { optedOut: true, alreadyOptedOut: true }, headers);
+      throw error;
+    }
   }
 
   async function loadVerifiedSession(session, expectedLive) {
@@ -409,23 +470,26 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const key = sendKey(userId, id), existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
     if (existing.Item) return response(existing.Item.status?.S === "sent" ? 200 : 202, { status: existing.Item.status?.S || "pending", duplicate: true, messageId: existing.Item.providerMessageId?.S || "" }, headers);
     const reservationMs = clock(), reservationSeconds = Math.floor(reservationMs / 1000), reservedAt = new Date(reservationMs).toISOString(), hourKey = outreachHourKey(userId, reservationMs), cooldownKey = recipientCooldownKey(userId, to);
-    const [hourlyResult, cooldownResult] = await Promise.all([
+    const footerToken = message.match(/https:\/\/danzstak\.com\/booking-opt-out\.html#token=([a-f0-9]{64})/)?.[1] || "";
+    if (!footerToken || !message.includes(DANZSTAK_POSTAL_ADDRESS)) return response(409, { error: "Preview the required DanzStak postal and opt-out footer before sending." }, headers);
+    const [hourlyResult, cooldownResult, suppressedResult, footerResult] = await Promise.all([
       db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#OUTREACH_HOUR#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 48 })),
-      db.send(new GetItemCommand({ TableName: tableName, Key: cooldownKey, ConsistentRead: true }))
+      db.send(new GetItemCommand({ TableName: tableName, Key: cooldownKey, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: suppressionKey(to), ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: optOutTokenKey(footerToken), ConsistentRead: true }))
     ]);
-    const currentHour = Math.floor(reservationMs / 3600000), oldestHour = currentHour - 23;
-    let previousHourCount = 0, currentHourCount = 0;
-    for (const item of hourlyResult.Items || []) {
-      const bucket = Number(String(item.tourId?.S || "").slice("TOUR_MANAGER#OUTREACH_HOUR#".length)), count = Number(item.sendCount?.N || 0);
-      if (!Number.isInteger(bucket) || bucket < oldestHour || bucket > currentHour || !Number.isFinite(count) || count < 0) continue;
-      if (bucket === currentHour) currentHourCount += count; else previousHourCount += count;
-    }
-    if (previousHourCount + currentHourCount >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
+    if (suppressedResult.Item) return response(409, { error: "This contact opted out of DanzStak booking pitches and cannot be emailed." }, headers);
+    const footerItem = footerResult.Item;
+    if (!footerItem || footerItem.artistId?.S !== userId || footerItem.outreachId?.S !== id || footerItem.venueKey?.S !== venueKey || footerItem.recipientHash?.S !== normalizedRecipientHash(to) || Number(footerItem.expiresAt?.N || 0) <= reservationSeconds) return response(409, { error: "Preview a current opt-out footer for this exact venue and recipient before sending." }, headers);
+    const { previousHourCount, currentHourCount, total: recentOutreachCount } = outreachWindow(hourlyResult.Items, reservationMs);
+    if (recentOutreachCount >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
     const cooldownUntil = Number(cooldownResult.Item?.nextAllowedAt?.N || 0);
     if (cooldownUntil > reservationSeconds) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead.", availableAt: new Date(cooldownUntil * 1000).toISOString() }, headers);
     const currentHourAllowance = MAX_NEW_PITCHES_PER_24_HOURS - previousHourCount, cooldownExpiresAt = reservationSeconds + BOOKING_CONTACT_COOLDOWN_SECONDS;
     try {
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { ConditionCheck: { TableName: tableName, Key: suppressionKey(to), ConditionExpression: "attribute_not_exists(userId)" } },
+        { ConditionCheck: { TableName: tableName, Key: optOutTokenKey(footerToken), ConditionExpression: "artistId = :artistId AND outreachId = :outreachId AND venueKey = :venueKey AND recipientHash = :recipientHash AND expiresAt > :now", ExpressionAttributeValues: { ":artistId": { S: userId }, ":outreachId": { S: id }, ":venueKey": { S: venueKey }, ":recipientHash": { S: normalizedRecipientHash(to) }, ":now": { N: String(reservationSeconds) } } } },
         { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :minusOne, reservedCredits :one SET updatedAt = :updatedAt", ConditionExpression: "credits >= :one", ExpressionAttributeValues: { ":minusOne": { N: "-1" }, ":one": { N: "1" }, ":updatedAt": { S: reservedAt } } } },
         { Update: { TableName: tableName, Key: hourKey, UpdateExpression: "ADD sendCount :one SET updatedAt = :updatedAt, expiresAt = :expiresAt", ConditionExpression: "attribute_not_exists(sendCount) OR sendCount < :allowance", ExpressionAttributeValues: { ":one": { N: "1" }, ":allowance": { N: String(currentHourAllowance) }, ":updatedAt": { S: reservedAt }, ":expiresAt": { N: String(reservationSeconds + 31 * 86400) } } } },
         { Put: { TableName: tableName, Item: { ...cooldownKey, recipientHash: { S: normalizedRecipientHash(to) }, venueKey: { S: venueKey }, sendId: { S: id }, createdAt: { S: reservedAt }, nextAllowedAt: { N: String(cooldownExpiresAt) }, expiresAt: { N: String(cooldownExpiresAt) } }, ConditionExpression: "attribute_not_exists(userId) OR nextAllowedAt <= :now", ExpressionAttributeValues: { ":now": { N: String(reservationSeconds) } } } },
@@ -487,9 +551,11 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (method === "GET" && path === "/phone-number/entitlement") return phoneEntitlement(event);
     if (method === "GET" && path === "/tour-manager/credits") return credits(event);
     if (method === "GET" && path === "/tour-manager/outreach") return outreach(event);
+    if (method === "POST" && path === "/tour-manager/outreach/preflight") return outreachPreflight(event);
+    if (method === "POST" && path === "/tour-manager/opt-out") return optOut(event);
     if (method === "POST" && path === "/tour-manager/emails/send") return sendEmail(event);
     return null;
   };
 }
 
-export { normalizedRecipientHash, outreachHourKey, recipientCooldownKey };
+export { normalizedRecipientHash, outreachHourKey, outreachWindow, recipientCooldownKey, suppressionKey, optOutTokenHash, optOutFooter };
