@@ -104,6 +104,9 @@ function fixture(pathname) {
           assert.equal(await page.locator(".friend-workspace-row").count(), 1, `${width}px accepted friend card is missing`);
           assert.match(await page.getByRole("tab", { name: /^Online/ }).textContent() || "", /1$/, `${width}px accepted online friend must appear in the Online tab`);
           assert.match(await page.locator(".friend-message-action").first().getAttribute("aria-label") || "", /^Message\b/, `${width}px accepted friend must open SYNC instead of offering a duplicate request`);
+          const friendTabs = await page.locator(".friends-directory-tab").evaluateAll(elements => elements.filter(element => !element.hidden && getComputedStyle(element).display !== "none").map(element => { const box = element.getBoundingClientRect(); return { label: element.textContent.trim(), left: box.left, right: box.right, width: box.width, height: box.height }; }));
+          assert.equal(friendTabs.length, 4, `${width}px Friends must expose all four list tabs: ${JSON.stringify(friendTabs)}`);
+          assert.ok(friendTabs.every(tab => tab.left >= 0 && tab.right <= width && tab.height >= 44), `${width}px Friends tabs must remain fully visible and touchable: ${JSON.stringify(friendTabs)}`);
         }
         if (name === "notifications") {
           assert.equal(await page.locator(".notification-row").count(), 2, `${width}px populated notification sources did not remain visible together`);
