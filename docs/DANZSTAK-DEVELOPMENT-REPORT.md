@@ -1718,10 +1718,12 @@ Status as of 2026-11-08: **REVIEW PWA DEPLOYED AND BROWSER-VERIFIED; PRODUCTION 
 
 # Public EPK reviews — optional-service failure isolation
 
-Status as of 2026-11-08: **IMPLEMENTED AND LOCALLY VERIFIED; REVIEW DEPLOYMENT PENDING; PRODUCTION UNCHANGED**.
+Status as of 2026-11-08: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION UNCHANGED**.
 
 - The public EPK previously loaded published reviews, author-only review targets, and the signed-in session in one `Promise.all`. A timeout or failure in either optional authenticated request therefore hid otherwise available public reviews from bookers.
 - Public reviews now load and render independently. Review targets and session state use fail-closed `Promise.allSettled` handling: an optional failure hides the review composer without removing verified public reviews or exposing author controls.
 - Actual-browser regression coverage runs at 320, 360, 390, 414, 430, and 1366px. At 390 and 1366px it separately verifies session failure, target timeout, public-review failure, and the all-success case. Available reviews remain visible during optional-service failures; the composer appears only after both authenticated prerequisites succeed.
 - Focused checks passed for JavaScript syntax, review-domain enforcement, EPK review behavior, PWA shell refresh, static links, and the full browser matrix. The complete repository regression suite then passed, including authentication, social persistence, SYNC/calls, media/audio coordination, Booking/EPK/Tour Manager, Stripe entitlements/refunds, support-email SES-only behavior, worldwide venue discovery, PWA behavior, site smoke tests, and infrastructure validation.
 - The installed-PWA shell advances to `danzstak-shell-v755` and the EPK review script to `v3`, preventing the review PWA from retaining the coupled loader.
+- Exact implementation commit `1518c9951da3b0858fe86a82daf3c2580961cb00` passed GitHub Review run `42496775169`. AWS Amplify review job `48` deployed that exact commit successfully to the release-candidate PWA.
+- The EPK review browser suite then passed against the hosted PWA at 320, 360, 390, 414, 430, and 1366px with no horizontal overflow and touch-sized controls, including the optional session failure, optional target timeout, public-review failure, and all-success scenarios. Review URL: `https://codex-release-candidate-2026-11-08.d31oovi2mos5iz.amplifyapp.com/epk.html`.
