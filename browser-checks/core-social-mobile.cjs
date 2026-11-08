@@ -143,6 +143,7 @@ function fixture(pathname) {
           assert.ok(profileControls.tabs.every(tab => tab.height >= 44), `${width}px profile tabs must retain touch targets: ${JSON.stringify(profileControls.tabs)}`);
         }
         if (name === "menu") {
+          await page.waitForFunction(() => document.querySelector("#mobileNavMenu")?.getBoundingClientRect().left >= -0.5, null, { timeout: 1000 });
           const menuGeometry = await page.evaluate(() => {
             const drawer = document.querySelector("#mobileNavMenu");
             const menu = drawer.querySelector(".menu");
