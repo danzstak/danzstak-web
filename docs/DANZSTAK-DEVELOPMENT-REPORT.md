@@ -18,6 +18,12 @@ Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PAS
 - GitHub Review run `42504525256` passed implementation commit `67f316c02fbe62850ea323ebbdf8e27b1b87b579`. Amplify DEVELOPMENT job `58` staged that exact commit successfully in `us-west-1`. No-cache probes confirm Feed CSS `v27`, Feed JavaScript `v539`, the current CSP hash and shell cache `danzstak-shell-v759`; the hosted service worker is activated, controls the page and exposes only cache `danzstak-shell-v759`.
 - The portrait used by automated screenshots is a synthetic test fixture only. On a signed-in phone, the tile uses that member's actual saved DanzStak profile picture. Owner physical-phone acceptance remains pending before any production deployment.
 
+### Venue-specific EPK link privacy
+
+- **COMPLETE ON HOSTED REVIEW; PRODUCTION UNCHANGED:** A private or per-venue EPK now suppresses **Copy EPK link** and **QR code**. This prevents a recipient from being invited to redistribute the tracked secret, preserves per-venue open attribution and removes the empty action row when the artist also disallows PDF download. Published EPKs keep their normal Copy and QR actions.
+- **TESTED:** private venue EPK and published-EPK QR browser gates pass at 320, 360, 390, 414, 430 and 1366px. The complete `test-regressions.ps1` gate passes, including hashed fragment-only secrets, 45-day expiry, artist-controlled PDF permission, session-deduplicated opens, exact published QR links and accessible QR controls.
+- GitHub Review run `42505892912` passed implementation commit `dd5224ed0ed9d82d2008e0c043d63f4504a22385`. Amplify DEVELOPMENT job `60` staged that exact commit successfully in `us-west-1`. No-cache probes confirm EPK JavaScript `v21` and shell `danzstak-shell-v760`; the hosted worker is activated, controls the review page and exposes only cache `danzstak-shell-v760`.
+
 ### EPK booking email identity and SYNC reply bridge
 
 - **IN PROGRESS — NOT DEPLOYED:** Tour Manager now prepares booking mail as `Artist Name via DanzStak <booking@danzstak.com>` and uses an opaque, per-outreach `@reply.danzstak.com` Reply-To address. The artist's personal account email is no longer exposed to the venue.
