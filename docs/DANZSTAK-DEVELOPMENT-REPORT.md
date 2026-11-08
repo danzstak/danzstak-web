@@ -4,6 +4,12 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Failure-safe comment deletion
+
+- **FIXED AND TESTED IN PR #173; BACKEND NOT DEPLOYED:** Deleting a comment now removes that comment's reaction rows and all notifications whose meaning depends on the removed comment before deleting the comment record. This includes the post owner's comment alert, a parent comment owner's reply alert, and reply alerts delivered to the deleted parent-comment owner. Independently authored replies remain visible and keep their own post-owner alerts.
+- Authorization is checked with direct consistent reads before the route enumerates post engagement. The final destructive write repeats the stored owner condition. Dependency and final-record deletion both use the shared bounded retry path; a persistent failure returns a retryable 503 while retaining the comment record needed for recovery instead of reporting false success or leaving unrecoverable cleanup work.
+- **TESTED:** the executable regression covers comment-owner deletion, post-owner moderation, intruder denial before cleanup, reaction isolation, stale-notification removal, independent reply preservation, dependency-first ordering, two transient failures followed by recovery, and persistent dependency/final-delete failures. Adjacent comment reply/reaction, post deletion, engagement privacy and infrastructure checks pass. The complete `test-regressions.ps1` gate passes. GitHub Review run [42531069216](https://github.com/danzstak/danzstak-web/actions/runs/42531069216) passed all five jobs for exact implementation commit `98987bbfb1cb1d3f0c763126182787bcd826b875`, including the previously failing Windows `browser-account-security` job. Production and the hosted review backend are unchanged.
+
 ### Visible-name onboarding gate
 
 - **FIXED AND TESTED IN PR #173; PRODUCTION UNCHANGED:** First-time naming now depends only on the public display name. An account still shown as **DanzStak member** receives the simple, dismissible naming prompt even if it already owns a generated or custom username; an account with an established visible name enters Mix without interruption even when its internal handle is generic.
