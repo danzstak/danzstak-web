@@ -114,25 +114,34 @@
     currentPublicId = String(publicId || "").trim().toLowerCase();
     if (!/^[a-z0-9-]{3,64}$/.test(currentPublicId)) return;
     const section = byId("epkReviews"), form = byId("epkReviewForm"), list = byId("epkReviewList");
-    section.hidden = true; form.hidden = true; list.replaceChildren(); setStatus("Loading reviews…");
+    section.hidden = true; section.dataset.reviewsReady = "false"; form.hidden = true; list.replaceChildren(); setStatus("Loading reviews…");
     try {
-      const [targetsResponse, reviewsResponse, sessionResponse] = await Promise.all([
-        request(`/review-targets?artist=${encodeURIComponent(currentPublicId)}`),
-        request(`/reviews?artist=${encodeURIComponent(currentPublicId)}&surface=epk`),
-        request("/auth/session")
-      ]);
-      const [targetData, reviewData] = await Promise.all([targetsResponse.json().catch(() => ({})), reviewsResponse.json().catch(() => ({}))]);
+      const reviewsResponse = await request(`/reviews?artist=${encodeURIComponent(currentPublicId)}&surface=epk`);
+      const reviewData = await reviewsResponse.json().catch(() => ({}));
       if (!reviewsResponse.ok) throw new Error(reviewData.error || "Reviews could not be loaded.");
       const reviews = Array.isArray(reviewData.reviews) ? reviewData.reviews : [];
       renderReviews(reviews);
-      if (targetsResponse.ok) configureForm(targetData, sessionResponse.ok);
-      else {
+      section.hidden = !reviews.length;
+      setStatus("");
+
+      const [targetsResult, sessionResult] = await Promise.allSettled([
+        request(`/review-targets?artist=${encodeURIComponent(currentPublicId)}`),
+        request("/auth/session")
+      ]);
+      const targetsResponse = targetsResult.status === "fulfilled" ? targetsResult.value : null;
+      const sessionResponse = sessionResult.status === "fulfilled" ? sessionResult.value : null;
+      if (targetsResponse?.ok && sessionResponse) {
+        const targetData = await targetsResponse.json().catch(() => ({}));
+        configureForm(targetData, sessionResponse.ok);
+        setStatus(!sessionResponse.ok ? "Sign in to write a review. Published reviews remain readable without an account." : targetData.canReview === false ? "This is your EPK. Other members can review its published shows and releases." : "");
+      } else {
         form.hidden = true;
       }
       section.hidden = !reviews.length && form.hidden;
-      setStatus(!sessionResponse.ok ? "Sign in to write a review. Published reviews remain readable without an account." : targetData.canReview === false ? "This is your EPK. Other members can review its published shows and releases." : "");
+      section.dataset.reviewsReady = "true";
     } catch (error) {
       form.hidden = true; list.replaceChildren(); byId("epkReviewsCount").textContent = ""; setStatus(""); section.hidden = true;
+      section.dataset.reviewsReady = "true";
       console.warn("Optional EPK reviews were not loaded.", error.message);
     }
   }

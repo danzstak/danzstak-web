@@ -1715,3 +1715,13 @@ Status as of 2026-11-08: **REVIEW PWA DEPLOYED AND BROWSER-VERIFIED; PRODUCTION 
 - No-cache hosted probes confirm `assets/pwa.js?v=425`, worker registration `/service-worker.js?pwa=425`, and installed shell `danzstak-shell-v749`. The complete local regression suite passed again. The hosted core-social browser gate passed all 37 page/viewport combinations at 320, 360, 390, 414, 430, and 1366px; inspected captures are in `docs/screenshots/release-candidate/pwa-refresh-hosted/`.
 - Dedicated Dailies browser gates also passed with a real image fixture at 320, 360, 390, 414, 430, 1024, and 1366px. They measure the portrait and card rectangles, require the portrait to fill every tile edge with `cover`, prohibit the retired inset-circle layout, and require the clapper to remain contained over the lower-left of the image.
 - Review PWA: `https://codex-release-candidate-2026-11-08.d31oovi2mos5iz.amplifyapp.com/feed.html`. Production remains unchanged pending the owner's physical-device go/no-go.
+
+# Public EPK reviews — optional-service failure isolation
+
+Status as of 2026-11-08: **IMPLEMENTED AND LOCALLY VERIFIED; REVIEW DEPLOYMENT PENDING; PRODUCTION UNCHANGED**.
+
+- The public EPK previously loaded published reviews, author-only review targets, and the signed-in session in one `Promise.all`. A timeout or failure in either optional authenticated request therefore hid otherwise available public reviews from bookers.
+- Public reviews now load and render independently. Review targets and session state use fail-closed `Promise.allSettled` handling: an optional failure hides the review composer without removing verified public reviews or exposing author controls.
+- Actual-browser regression coverage runs at 320, 360, 390, 414, 430, and 1366px. At 390 and 1366px it separately verifies session failure, target timeout, public-review failure, and the all-success case. Available reviews remain visible during optional-service failures; the composer appears only after both authenticated prerequisites succeed.
+- Focused checks passed for JavaScript syntax, review-domain enforcement, EPK review behavior, PWA shell refresh, static links, and the full browser matrix. The complete repository regression suite then passed, including authentication, social persistence, SYNC/calls, media/audio coordination, Booking/EPK/Tour Manager, Stripe entitlements/refunds, support-email SES-only behavior, worldwide venue discovery, PWA behavior, site smoke tests, and infrastructure validation.
+- The installed-PWA shell advances to `danzstak-shell-v755` and the EPK review script to `v3`, preventing the review PWA from retaining the coupled loader.

@@ -15,11 +15,12 @@ assert.match(html, /One review per show or release/);
 assert.match(html, /No paid or fake reviews/);
 assert.match(html, /do not upload audio/, "review copy must preserve the no-music-hosting boundary");
 assert.match(html, /assets\/epk-reviews\.css\?v=1/);
-assert.match(html, /assets\/epk-reviews\.js\?v=2/);
+assert.match(html, /assets\/epk-reviews\.js\?v=3/);
 assert.match(epkClient, /danzstakEpkReviews\?\.load\?\.\(publicId, data\.kit\)/, "only a published EPK should start the review surface");
 
 assert.match(client, /\/review-targets\?artist=/, "the composer must use canonical server-provided targets");
 assert.match(client, /\/reviews\?artist=/, "the EPK must read the artist's canonical reviews");
+assert.match(client, /Promise\.allSettled/, "optional sign-in and composer requests must not hide published reviews");
 assert.match(client, /artistPublicId:currentPublicId,targetType:target\.targetType,targetId:target\.targetId/, "review creation must submit the selected canonical target");
 assert.match(client, /action:"remove_from_here",surface:"epk"/, "authors need placement-only removal");
 assert.match(client, /method:"DELETE"/, "authors need an explicit delete-everywhere path");
@@ -39,7 +40,7 @@ assert.match(backend, /publishedReviewTargets\(view\.artistPublicId\)/, "unpubli
 assert.match(css, /min-height:44px/, "review actions must remain touch-sized");
 assert.match(css, /@media\(max-width:700px\)/, "the review surface needs a phone layout");
 assert.match(css, /overflow-wrap:anywhere/, "long review text must not overflow narrow screens");
-assert.match(worker, /danzstak-shell-v754/);
+assert.match(worker, /danzstak-shell-v755/);
 assert.match(worker, /\/assets\/epk-reviews\.css/);
 assert.match(worker, /\/assets\/epk-reviews\.js/);
 
