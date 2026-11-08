@@ -15,10 +15,6 @@
     return data;
   }
 
-  function formatDate(seconds) {
-    return seconds ? new Intl.DateTimeFormat(document.documentElement.lang || "en", { dateStyle: "long", timeStyle: "short" }).format(new Date(seconds * 1000)) : "";
-  }
-
   function createDialog(opener) {
     const dialog = document.createElement("dialog");
     dialog.className = "account-deletion-dialog";
@@ -56,15 +52,14 @@
       }
       if (["request_received", "in_progress", "failed"].includes(deletion?.status)) {
         ui.status.textContent = deletion.status === "request_received"
-          ? `Your request is scheduled. You can cancel it until ${formatDate(deletion.graceEndsAt)}.`
+          ? "Permanent deletion is queued. It cannot be cancelled or restored."
           : deletion.status === "failed"
             ? "DanzStak could not finish one deletion step. The secure worker will retry it; your request remains recorded."
-            : "Account deletion is being processed. It can no longer be cancelled.";
-        if (deletion.canCancel) ui.actions.prepend(actionButton("Cancel deletion request", "secondary", async () => { render(await request({ method: "DELETE" })); }, error => { ui.status.textContent = error.message; }));
+            : "Permanent account deletion is being processed. It cannot be cancelled or restored.";
         return;
       }
       const verified = new URLSearchParams(location.search).get("deletion") === "verified";
-      ui.status.textContent = "Download anything you want to keep first. After you confirm, there is a seven-day cancellation period. Some limited records may remain where required for payments, safety, legal obligations, delivered messages, backups, or caches.";
+      ui.status.textContent = "Download anything you want to keep first. After you confirm, permanent deletion starts immediately and cannot be undone. Your originals and their DanzStak shares will be removed. Screenshots, downloads, independent reuploads, and copies outside DanzStak cannot be recalled. Limited records may remain only where required for payments, safety, legal obligations, backups, or cache expiry.";
       if (!verified) {
         const verify = document.createElement("a"); verify.className = "primary"; verify.href = api + "/auth/account-deletion/reauth"; verify.textContent = "Verify identity to continue";
         ui.actions.prepend(verify); return;
@@ -72,7 +67,7 @@
       const label = document.createElement("label"); label.textContent = `Type ${phrase} to confirm`;
       const input = document.createElement("input"); input.autocomplete = "off"; input.spellcheck = false; input.setAttribute("aria-label", `Type ${phrase} to confirm account deletion`);
       label.append(input); ui.content?.append?.(label);
-      const confirm = actionButton("Request account deletion", "danger", async () => {
+      const confirm = actionButton("Delete permanently now", "danger", async () => {
         if (input.value !== phrase) { ui.status.textContent = `Type the exact phrase: ${phrase}`; input.focus(); return; }
         const result = await request({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmation: input.value }) });
         label.remove(); history.replaceState(history.state, "", location.pathname + "?view=settings"); render(result);

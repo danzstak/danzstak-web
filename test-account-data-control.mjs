@@ -24,8 +24,9 @@ const request = createDeletionRequest({
 assert.equal(request.accountEmail, "owner@example.com");
 assert.equal(request.status, "request_received");
 assert.equal(publicDeletionStatus(request, requestedAt).label, "Request received");
-assert.equal(publicDeletionStatus(request, requestedAt).canCancel, true);
-assert.equal(beginDeletionPhase(request, requestedAt).phase, null, "grace period must block processing");
+assert.equal(request.graceEndsAt, requestedAt, "permanent deletion must not impose a grace period");
+assert.equal(publicDeletionStatus(request, requestedAt).canCancel, false);
+assert.equal(beginDeletionPhase(request, requestedAt).phase, DELETION_PHASES[0], "permanent deletion must be eligible immediately");
 assert.match(deletionRequestKey("cognito-user-1"), /^account-deletion:[a-f0-9]{64}$/);
 assert.ok(RETENTION_EXCEPTIONS.some(item => item.category.includes("Messages")));
 
@@ -44,9 +45,7 @@ assert.throws(() => createDeletionRequest({
   now: requestedAt
 }), /phrase does not match/);
 
-const cancelled = cancelDeletionRequest(request, requestedAt + 60);
-assert.equal(cancelled.status, "cancelled");
-assert.throws(() => cancelDeletionRequest(request, request.graceEndsAt), /can no longer/);
+assert.throws(() => cancelDeletionRequest(request, requestedAt), /cannot be cancelled/);
 
 let active = request;
 for (const expectedPhase of DELETION_PHASES) {
@@ -59,4 +58,4 @@ assert.ok(active.completedAt);
 assert.equal(publicDeletionStatus(active, active.completedAt).label, "Completed — limited retention");
 assert.throws(() => completeDeletionPhase(request, "media", requestedAt), /stale or out of order/);
 
-console.log("Account data-control checks passed: reauth, confirmation, grace, cancellation, ordered resumable phases, completion, and retention disclosure.");
+console.log("Account data-control checks passed: reauth, confirmation, immediate irreversible processing, ordered resumable phases, completion, and retention disclosure.");

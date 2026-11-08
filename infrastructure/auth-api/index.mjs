@@ -31,8 +31,7 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
-  DeleteObjectsCommand,
-  CopyObjectCommand
+  DeleteObjectsCommand
 } from "@aws-sdk/client-s3";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
@@ -108,7 +107,6 @@ const accountErasureAdapters = tableName ? createDynamoAccountErasureAdapters({
     UpdateItemCommand,
     ListObjectsV2Command,
     DeleteObjectsCommand,
-    CopyObjectCommand,
     AdminDeleteUserCommand,
     ListUsersCommand
   }
@@ -884,6 +882,10 @@ async function completeLogin(event) {
     );
   }
 
+  if (await activeAccountDeletion(user.sub)) {
+    return redirect(siteUrl + "/?account=deletion-in-progress", [expiredBrowserCookie, clearCookie(sessionCookieName)]);
+  }
+
   let acceptedLegal = null;
   if (pending.legalAcceptanceId?.S) {
     const legalKey = { sessionId: { S: pending.legalAcceptanceId.S } };
@@ -1034,6 +1036,15 @@ async function exchangeMobileSession(event) {
   if (item?.type?.S !== "mobile_exchange" || item.platform?.S !== platform || Number(item.expiresAt?.N || 0) <= now() || !safeEqual(item.challenge?.S, sha256(verifier)) || !/^[a-f0-9]{64}$/.test(item.sessionToken?.S || "")) {
     return errorResponse(401, "Native login expired or was already used");
   }
+  const sessionResult = await db.send(new GetItemCommand({
+    TableName: tableName,
+    Key: { sessionId: { S: sha256(item.sessionToken.S) } },
+    ConsistentRead: true
+  }));
+  const sessionUserId = sessionResult.Item?.type?.S === "user_session" ? sessionResult.Item.userId?.S : "";
+  if (!sessionUserId || await activeAccountDeletion(sessionUserId)) {
+    return errorResponse(401, "This DanzStak account is being permanently deleted");
+  }
   try {
     await db.send(new DeleteItemCommand({
       TableName: tableName,
@@ -1082,6 +1093,8 @@ async function getAuthenticatedSession(event, { touch = true } = {}) {
   ) {
     return null;
   }
+
+  if (await activeAccountDeletion(session.userId.S)) return null;
 
   let deviceId = session.deviceId?.S || "";
   let deviceLabel = session.deviceLabel?.S || sessionDeviceLabel(event);
@@ -1153,6 +1166,66 @@ async function getAuthenticatedSession(event, { touch = true } = {}) {
 
 async function getAuthenticatedUser(event) {
   return (await getAuthenticatedSession(event))?.userId || null;
+}
+
+async function activeAccountDeletion(userId) {
+  if (!userId) return null;
+  const result = await db.send(new GetItemCommand({
+    TableName: tableName,
+    Key: { sessionId: { S: deletionRequestKey(userId) } },
+    ConsistentRead: true
+  }));
+  const item = result.Item;
+  if (item?.type?.S !== "account_deletion_request" || item.status?.S === "cancelled") return null;
+  return item;
+}
+
+async function revokeAllSessionsForUser(userId) {
+  let ExclusiveStartKey;
+  do {
+    const page = await db.send(new ScanCommand({
+      TableName: tableName,
+      ConsistentRead: true,
+      FilterExpression: "#type = :sessionType AND userId = :userId",
+      ExpressionAttributeNames: { "#type": "type" },
+      ExpressionAttributeValues: { ":sessionType": { S: "user_session" }, ":userId": { S: userId } },
+      ProjectionExpression: "sessionId",
+      ExclusiveStartKey
+    }));
+    for (const item of page.Items || []) {
+      if (!item.sessionId?.S) continue;
+      await db.send(new DeleteItemCommand({
+        TableName: tableName,
+        Key: { sessionId: item.sessionId },
+        ConditionExpression: "#type = :sessionType AND userId = :userId",
+        ExpressionAttributeNames: { "#type": "type" },
+        ExpressionAttributeValues: { ":sessionType": { S: "user_session" }, ":userId": { S: userId } }
+      })).catch(error => {
+        if (error?.name !== "ConditionalCheckFailedException") throw error;
+      });
+    }
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+
+  ExclusiveStartKey = undefined;
+  do {
+    const page = await db.send(new QueryCommand({
+      TableName: sessionDevicesTable,
+      KeyConditionExpression: "userId = :userId",
+      ExpressionAttributeValues: { ":userId": { S: userId } },
+      ProjectionExpression: "userId, deviceId",
+      ConsistentRead: true,
+      ExclusiveStartKey
+    }));
+    for (const item of page.Items || []) {
+      if (!item.deviceId?.S) continue;
+      await db.send(new DeleteItemCommand({
+        TableName: sessionDevicesTable,
+        Key: { userId: { S: userId }, deviceId: item.deviceId }
+      }));
+    }
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
 }
 
 async function startAccountDeletionReauth(event) {
@@ -1259,7 +1332,13 @@ async function requestAccountDeletion(event) {
     }
     throw error;
   }
-  return { statusCode: 202, headers, cookies: [clearCookie(deletionProofCookieName)], body: JSON.stringify(publicDeletionStatus(request, now())) };
+  await revokeAllSessionsForUser(userId);
+  return {
+    statusCode: 202,
+    headers,
+    cookies: [clearCookie(deletionProofCookieName), clearCookie(sessionCookieName), clearCookie(oauthCookieName), clearCookie(legalCookieName)],
+    body: JSON.stringify(publicDeletionStatus(request, now()))
+  };
 }
 
 async function cancelAccountDeletion(event) {
@@ -1350,7 +1429,7 @@ async function sendAccountDeletionReceipt(request) {
       Destination: { ToAddresses: [request.accountEmail] },
       Content: { Simple: {
         Subject: { Data: "Your DanzStak account deletion is complete", Charset: "UTF-8" },
-        Body: { Text: { Data: `Your active DanzStak account data has been removed. Receipt: ${request.requestId}\n\nLimited records may remain only for payment, safety, legal, delivered-message, backup, or cache obligations described in the DanzStak Privacy Policy. This receipt does not contain your deleted content.`, Charset: "UTF-8" } }
+        Body: { Text: { Data: `Your active DanzStak account data has been removed. Receipt: ${request.requestId}\n\nLimited records may remain only for payment, safety, legal, backup, or cache obligations described in the DanzStak Privacy Policy. Messages authored by another member remain that member's content; messages and media you authored were removed. This receipt does not contain your deleted content.`, Charset: "UTF-8" } }
       } }
     }));
     return true;
@@ -1395,7 +1474,7 @@ async function processAccountDeletionQueue(limit = 5) {
       };
       let updateExpression = "SET phaseIndex = :phaseIndex, #status = :status, updatedAt = :updated, lastPhaseSummary = :summary REMOVE lockToken, lockUntil, failure";
       if (completed.completedAt) {
-        updateExpression = "SET phaseIndex = :phaseIndex, #status = :status, updatedAt = :updated, completedAt = :completed, expiresAt = :expires, lastPhaseSummary = :summary REMOVE lockToken, lockUntil, failure";
+        updateExpression = "SET phaseIndex = :phaseIndex, #status = :status, updatedAt = :updated, completedAt = :completed, expiresAt = :expires, lastPhaseSummary = :summary REMOVE lockToken, lockUntil, failure, accountEmail, userId";
         expressionValues[":completed"] = { N: String(completed.completedAt) };
         expressionValues[":expires"] = { N: String(completed.completedAt + 35 * 86400) };
       }

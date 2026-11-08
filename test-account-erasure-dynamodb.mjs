@@ -19,7 +19,8 @@ const oldConversation = conversationId(owner, friend), tombstone = deletedMember
 const messageMedia = `${accountMediaPrefixes(owner)[2]}photo.jpg`;
 const tables = new Map(Object.entries({
   [ACCOUNT_TABLES.posts]: [
-    { postId: { S: "post-owned" }, userId: { S: userId }, userEmail: { S: owner }, content: { S: "mine" } },
+    { postId: { S: "post-owned" }, userId: { S: userId }, userEmail: { S: owner }, content: { S: "mine" }, mediaKey: { S: `${accountMediaPrefixes(owner)[0]}post.jpg` } },
+    { postId: { S: "post-share" }, sharedPostId: { S: "post-owned" }, userId: { S: friendId }, userEmail: { S: friend }, content: { S: "friend share caption" } },
     { postId: { S: "post-friend" }, userId: { S: friendId }, userEmail: { S: friend }, content: { S: "friend" } }
   ],
   [ACCOUNT_TABLES.comments]: [
@@ -33,6 +34,19 @@ const tables = new Map(Object.entries({
   [ACCOUNT_TABLES.postViews]: [
     { postId: { S: "post-owned" }, viewerKey: { S: `2026-11-04#${createHash("sha256").update(friendId).digest("hex")}` } },
     { postId: { S: "post-friend" }, viewerKey: { S: `2026-11-04#${createHash("sha256").update(userId).digest("hex")}` } }
+  ],
+  [ACCOUNT_TABLES.stories]: [
+    { storyId: { S: "story-owned-media" }, userEmail: { S: owner }, mediaKey: { S: `${accountMediaPrefixes(owner)[0]}post.jpg` } },
+    { storyId: { S: "story-friend" }, userEmail: { S: friend }, mediaKey: { S: "users/friend/photo.jpg" } }
+  ],
+  [ACCOUNT_TABLES.notifications]: [
+    { userEmail: { S: friend }, eventId: { S: "share#post-share" }, postId: { S: "post-share" } },
+    { userEmail: { S: friend }, eventId: { S: "unrelated" }, postId: { S: "post-friend" } }
+  ],
+  [ACCOUNT_TABLES.reviews]: [
+    { pk: { S: "REVIEW#review-owned" }, sk: { S: "META" }, reviewId: { S: "review-owned" }, authorUserId: { S: userId }, authorEmail: { S: owner } },
+    { pk: { S: "SHOW#show-1" }, sk: { S: "REVIEW#review-owned" }, reviewId: { S: "review-owned" }, entityType: { S: "review-index" } },
+    { pk: { S: "REVIEW#review-friend" }, sk: { S: "META" }, reviewId: { S: "review-friend" }, authorUserId: { S: friendId }, authorEmail: { S: friend } }
   ],
   [ACCOUNT_TABLES.friends]: [
     { userEmail: { S: owner }, friendEmail: { S: friend }, status: { S: "friends" } },
@@ -53,10 +67,12 @@ const tables = new Map(Object.entries({
     { userEmail: { S: friend }, contactEmail: { S: owner }, preview: { S: "hello" } }
   ],
   [ACCOUNT_TABLES.messages]: [
-    { conversationId: { S: oldConversation }, messageId: { S: "1700000000000#message-1" }, senderEmail: { S: owner }, recipientEmail: { S: friend }, content: { S: "hello" }, mediaKey: { S: messageMedia } }
+    { conversationId: { S: oldConversation }, messageId: { S: "1700000000000#message-owner" }, senderEmail: { S: owner }, recipientEmail: { S: friend }, content: { S: "owner content must disappear" }, mediaKey: { S: messageMedia } },
+    { conversationId: { S: oldConversation }, messageId: { S: "1700000000001#message-friend" }, senderEmail: { S: friend }, recipientEmail: { S: owner }, content: { S: "friend-owned message" } }
   ],
   [ACCOUNT_TABLES.messageReactions]: [
-    { conversationId: { S: oldConversation }, reactionId: { S: "reaction-1" }, messageId: { S: "1700000000000#message-1" }, userEmail: { S: owner }, reaction: { S: "👍" } }
+    { conversationId: { S: oldConversation }, reactionId: { S: "reaction-owner" }, messageId: { S: "1700000001#message-friend" }, userEmail: { S: owner }, reaction: { S: "👍" } },
+    { conversationId: { S: oldConversation }, reactionId: { S: "reaction-friend" }, messageId: { S: "1700000000001#message-friend" }, userEmail: { S: friend }, reaction: { S: "❤️" } }
   ],
   Sessions: [
     { sessionId: { S: "session-a" }, type: { S: "user_session" }, userId: { S: userId } },
@@ -105,7 +121,8 @@ const fakeS3 = { async send(command) {
 } };
 const deletedIdentities = [];
 const fakeCognito = { async send(command) {
-  if (command instanceof ListUsersCommand) return { Users: [{ Attributes: [{ Name: "sub", Value: friendId }] }] };
+  if (command instanceof ListUsersCommand && command.input.Filter.startsWith("sub =")) return { Users: [{ Username: "owner-cognito-username", Attributes: [{ Name: "sub", Value: userId }] }] };
+  if (command instanceof ListUsersCommand) return { Users: [{ Username: "friend-cognito-username", Attributes: [{ Name: "sub", Value: friendId }] }] };
   if (command instanceof AdminDeleteUserCommand) { deletedIdentities.push(command.input.Username); return {}; }
   throw new Error(`Unexpected Cognito command ${command.constructor.name}`);
 } };
@@ -118,22 +135,30 @@ const adapters = createDynamoAccountErasureAdapters({
 const social = await adapters.deleteOwnedSocialContent({ userId, accountEmail: owner });
 assert.ok(social.deleted >= 4);
 assert.deepEqual(tables.get(ACCOUNT_TABLES.posts).map(item => scalar(item.postId)), ["post-friend"]);
+assert.equal(tables.get(ACCOUNT_TABLES.posts).some(item => scalar(item.postId) === "post-share"), false, "every in-service share of an owned original must disappear");
 assert.equal(tables.get(ACCOUNT_TABLES.comments).some(item => scalar(item.postId) === "post-owned"), false, "other members' engagement on a deleted post must be removed with the post");
 assert.equal(tables.get(ACCOUNT_TABLES.postViews).length, 0, "owned-post views and the deleting member's daily view keys must be erased");
+assert.deepEqual(tables.get(ACCOUNT_TABLES.stories).map(item => scalar(item.storyId)), ["story-friend"], "linked owner story placements must disappear with their media");
+assert.deepEqual(tables.get(ACCOUNT_TABLES.notifications).map(item => scalar(item.eventId)), ["unrelated"], "share/post notifications must not leak deleted content");
 await adapters.deleteWhere(ACCOUNT_TABLES.comments, { userId, accountEmail: owner });
 await adapters.deleteWhere(ACCOUNT_TABLES.reactions, { userId, accountEmail: owner, actorUserId: userId });
 assert.equal(tables.get(ACCOUNT_TABLES.comments).length, 0);
 assert.equal(tables.get(ACCOUNT_TABLES.reactions).length, 0);
+const reviews = await adapters.deleteAuthoredReviews({ userId, accountEmail: owner });
+assert.equal(reviews.deleted, 2, "authored review metadata and every index placement must be deleted");
+assert.deepEqual(tables.get(ACCOUNT_TABLES.reviews).map(item => scalar(item.reviewId)), ["review-friend"]);
 
 const migrated = await adapters.migrateSharedConversations({ userId, accountEmail: owner, tombstoneEmail: tombstone });
 assert.equal(migrated.retained, 3);
 assert.equal(tables.get(ACCOUNT_TABLES.messages).length, 1);
 assert.equal(scalar(tables.get(ACCOUNT_TABLES.messages)[0].conversationId), newConversation);
-assert.equal(scalar(tables.get(ACCOUNT_TABLES.messages)[0].senderEmail), tombstone);
-assert.ok(scalar(tables.get(ACCOUNT_TABLES.messages)[0].mediaKey).startsWith(`shared-messages/${newConversation}/`));
+assert.equal(scalar(tables.get(ACCOUNT_TABLES.messages)[0].senderEmail), friend);
+assert.equal(scalar(tables.get(ACCOUNT_TABLES.messages)[0].recipientEmail), tombstone);
+assert.equal(scalar(tables.get(ACCOUNT_TABLES.messages)[0].content), "friend-owned message");
+assert.equal(tables.get(ACCOUNT_TABLES.messages).some(item => scalar(item.content) === "owner content must disappear"), false, "the deleting member's sent content must not be retained in another thread");
 assert.equal(tables.get(ACCOUNT_TABLES.conversations).length, 1, "deleted member's private conversation row must be removed");
 assert.equal(scalar(tables.get(ACCOUNT_TABLES.conversations)[0].contactEmail), tombstone);
-assert.equal(copied.length, 1, "delivered media must move before owner-prefix deletion");
+assert.equal(copied.length, 0, "the deleting member's message media must not be copied into retained storage");
 
 const relationships = await adapters.deleteWhere(ACCOUNT_TABLES.friends, { userEmail: owner, friendEmail: owner });
 assert.equal(relationships.deleted, 2, "both directions of a friendship must be removed");
@@ -153,6 +178,6 @@ assert.equal([...objects].some(key => key.startsWith(accountMediaPrefixes(owner)
 await adapters.deleteSessions({ userId });
 assert.deepEqual(tables.get("Sessions").map(item => scalar(item.userId)), [friendId]);
 await adapters.deleteIdentity({ userId });
-assert.deepEqual(deletedIdentities, [userId]);
+assert.deepEqual(deletedIdentities, ["owner-cognito-username"], "Cognito deletion must use the provider Username resolved from the immutable sub");
 
-console.log("DynamoDB erasure adapter checks passed: pagination shape, bidirectional deletion, Tribe transfer, payment minimization, message/media migration, session revocation, and identity deletion.");
+console.log("DynamoDB erasure adapter checks passed: global share deletion, review/index deletion, bidirectional relationships, Tribe transfer, payment minimization, owner-message purge, session revocation, and provider-username identity deletion.");

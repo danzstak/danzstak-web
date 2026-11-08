@@ -347,10 +347,10 @@ Resources:
     Type: AWS::IAM::Policy
     Metadata:
       com.aws.cloudformation.Context:
-        why: The disabled-by-default account-erasure worker needs explicit access to remove one verified member across DanzStak-owned stores after the grace period.
+        why: The disabled-by-default account-erasure worker needs explicit access to remove one verified member across DanzStak-owned stores after permanent deletion is confirmed.
         must:
           - Keep the worker disabled until isolated synthetic-account testing passes.
-          - Preserve minimized payment records and another participant's delivered-message copy.
+          - Preserve minimized payment records and another participant's independently authored messages while deleting the departing member's sent content.
           - Never grant table creation, deletion, backup deletion, or wildcard Cognito administration.
     Properties:
       PolicyName: DanzStakAccountErasure
@@ -367,6 +367,7 @@ Resources:
               - !GetAtt PostViewsTable.Arn
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Comments'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Reactions'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Reviews'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-EngagementNotifications'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Friends'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Stories'
@@ -376,7 +377,10 @@ Resources:
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-ProfileNames'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-Presence'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-PushSubscriptions'
+              - !GetAtt SessionDevicesTable.Arn
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-CallingDevices'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DANZSTAK-CallSignals'
+              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-Plans'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-Conversations'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-Messages'
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/DanzStak-MessageReactions'
@@ -387,15 +391,14 @@ Resources:
             Condition:
               StringLike:
                 s3:prefix: [users/*, stories/*, messages/*, epk/*]
-          - Sid: MoveDeliveredAndEraseOwnedMedia
+          - Sid: EraseOwnedMediaObjects
             Effect: Allow
-            Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+            Action: [s3:DeleteObject]
             Resource:
               - !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}/users/*'
               - !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}/stories/*'
               - !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}/messages/*'
               - !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}/epk/*'
-              - !Sub 'arn:${AWS::Partition}:s3:::${MediaBucketName}/shared-messages/*'
           - Sid: DeleteVerifiedCognitoIdentity
             Effect: Allow
             Action: [cognito-idp:AdminDeleteUser, cognito-idp:ListUsers]
@@ -403,8 +406,8 @@ Resources:
   AccountDeletionSchedule:
     Type: AWS::Events::Rule
     Properties:
-      Description: Process verified account deletion requests after their grace period; disabled until isolated staging tests pass.
-      ScheduleExpression: rate(5 minutes)
+      Description: Process verified permanent account deletion requests; disabled until isolated staging tests pass.
+      ScheduleExpression: rate(1 minute)
       State: !Ref AccountDeletionWorkerState
       Targets:
         - Id: DanzStakAccountDeletionWorker

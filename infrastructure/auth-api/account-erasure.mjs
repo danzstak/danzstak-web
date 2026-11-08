@@ -6,6 +6,7 @@ export const ACCOUNT_TABLES = Object.freeze({
   postViews: "DANZSTAK-Engagement-PostViews",
   comments: "DANZSTAK-Comments",
   reactions: "DANZSTAK-Reactions",
+  reviews: "DANZSTAK-Reviews",
   notifications: "DANZSTAK-EngagementNotifications",
   friends: "DANZSTAK-Friends",
   stories: "DANZSTAK-Stories",
@@ -15,7 +16,10 @@ export const ACCOUNT_TABLES = Object.freeze({
   profileNames: "DanzStak-ProfileNames",
   presence: "DANZSTAK-Presence",
   pushSubscriptions: "DANZSTAK-PushSubscriptions",
+  sessionDevices: "DANZSTAK-SessionDevices",
+  callingDevices: "DANZSTAK-CallingDevices",
   calls: "DANZSTAK-CallSignals",
+  plans: "DanzStak-Plans",
   conversations: "DanzStak-Conversations",
   messages: "DanzStak-Messages",
   messageReactions: "DanzStak-MessageReactions"
@@ -58,6 +62,7 @@ export async function runAccountErasurePhase(phase, context, adapters) {
     collect(await requireAdapter(adapters, "deleteOwnedSocialContent")({ userId, accountEmail }));
     collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.comments, { userId, accountEmail }));
     collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.reactions, { userId, accountEmail, actorUserId: userId }));
+    collect(await requireAdapter(adapters, "deleteAuthoredReviews")({ userId, accountEmail }));
     collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.notifications, { userEmail: accountEmail, actorEmail: accountEmail }));
     collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.stories, { userEmail: accountEmail }));
   } else if (phase === "connections_and_groups") {
@@ -71,6 +76,9 @@ export async function runAccountErasurePhase(phase, context, adapters) {
     collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.profileNames, { userEmail: accountEmail }));
     collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.presence, { email: accountEmail }));
     collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.pushSubscriptions, { userEmail: accountEmail }));
+    collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.sessionDevices, { userId }));
+    collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.callingDevices, { userEmail: accountEmail }));
+    collect(await requireAdapter(adapters, "deleteWhere")(ACCOUNT_TABLES.plans, { participantEmail: accountEmail, inviterEmail: accountEmail, recipientEmail: accountEmail }));
   } else if (phase === "shared_conversations") {
     collect(await requireAdapter(adapters, "migrateSharedConversations")({
       userId,
@@ -80,6 +88,11 @@ export async function runAccountErasurePhase(phase, context, adapters) {
     }));
   } else if (phase === "media") {
     for (const prefix of accountMediaPrefixes(accountEmail)) collect(await requireAdapter(adapters, "deleteMediaPrefix")(prefix));
+  } else if (phase === "final_sweep") {
+    const finalSweepIndex = DELETION_PHASES.indexOf("final_sweep");
+    for (const repeatedPhase of DELETION_PHASES.slice(0, finalSweepIndex)) {
+      collect(await runAccountErasurePhase(repeatedPhase, { userId, accountEmail }, adapters));
+    }
   } else if (phase === "sessions_and_identity") {
     collect(await requireAdapter(adapters, "deleteSessions")({ userId }));
     collect(await requireAdapter(adapters, "deleteIdentity")({ userId }));

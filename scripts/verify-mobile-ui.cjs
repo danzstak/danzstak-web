@@ -76,8 +76,7 @@ async function installApiFixtures(page) {
       { deviceId: "22222222-2222-4222-8222-222222222222", label: "Safari on iPhone or iPad", current: false, lastUsedAt: 1793883600, expiresAt: 1796475600 }
     ] });
     if (pathname === "/account-deletion") {
-      if (route.request().method() === "POST") return json(route, { requestId: "deletion-test-request", status: "request_received", graceEndsAt: 1794355200, canCancel: true });
-      if (route.request().method() === "DELETE") return json(route, { requestId: "deletion-test-request", status: "cancelled", canCancel: false });
+      if (route.request().method() === "POST") return json(route, { requestId: "deletion-test-request", status: "request_received", canCancel: false });
       return json(route, { status: "not_requested", canCancel: false });
     }
     if (pathname === "/profile" || pathname === "/profiles") return json(route, { profile: { name: "DanzStak Test Artist", username: "testartist", memberId: "11111111-1111-4111-8111-111111111111", isOwner: true, location: "Berlin, Germany", bio: "Independent artist testing DanzStak on mobile." } });
@@ -526,13 +525,12 @@ async function captureViewport(page, fileName) {
         await page.getByRole("button", { name: "Review permanent account deletion" }).click();
         const confirmation = page.getByRole("textbox", { name: "Type DELETE MY DANZSTAK ACCOUNT to confirm account deletion" });
         await confirmation.fill("DELETE");
-        await page.getByRole("button", { name: "Request account deletion" }).click();
+        await page.getByRole("button", { name: "Delete permanently now" }).click();
         await page.getByText("Type the exact phrase: DELETE MY DANZSTAK ACCOUNT").waitFor();
         await confirmation.fill("DELETE MY DANZSTAK ACCOUNT");
-        await page.getByRole("button", { name: "Request account deletion" }).click();
-        await page.getByRole("button", { name: "Cancel deletion request" }).waitFor();
-        await page.getByRole("button", { name: "Cancel deletion request" }).click();
-        await page.getByRole("link", { name: "Verify identity to continue" }).waitFor();
+        await page.getByRole("button", { name: "Delete permanently now" }).click();
+        await page.getByText("Permanent deletion is queued. It cannot be cancelled or restored.").waitFor();
+        assert.equal(await page.getByRole("button", { name: "Cancel deletion request" }).count(), 0, "permanent deletion must not offer cancellation");
         await page.getByRole("button", { name: "Close" }).click();
       }
 

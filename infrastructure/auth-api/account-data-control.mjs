@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
 export const DELETION_CONFIRMATION = "DELETE MY DANZSTAK ACCOUNT";
-export const DELETION_GRACE_SECONDS = 7 * 24 * 60 * 60;
+export const DELETION_GRACE_SECONDS = 0;
 
 export const DELETION_PHASES = Object.freeze([
   "social_content",
@@ -10,6 +10,7 @@ export const DELETION_PHASES = Object.freeze([
   "private_account_data",
   "shared_conversations",
   "media",
+  "final_sweep",
   "sessions_and_identity"
 ]);
 
@@ -25,8 +26,8 @@ export const RETENTION_EXCEPTIONS = Object.freeze([
     maximum: "Case-specific; reviewed when the purpose ends"
   },
   {
-    category: "Messages delivered to another member",
-    treatment: "The other member's copy is retained with the deleted account identity replaced by a non-identifying tombstone.",
+    category: "Messages authored by another member",
+    treatment: "The other member's independently authored messages remain their content, with the deleted recipient identity replaced by a non-identifying tombstone. Messages and media authored by the deleting member are removed.",
     maximum: "Until the remaining participant deletes their copy"
   },
   {
@@ -60,7 +61,7 @@ export function createDeletionRequest({ userId, accountEmail, confirmation, proo
     status: "request_received",
     phaseIndex: 0,
     requestedAt,
-    graceEndsAt: requestedAt + Math.max(3600, epoch(graceSeconds)),
+    graceEndsAt: requestedAt + epoch(graceSeconds),
     updatedAt: requestedAt,
     completedAt: null,
     failure: null
@@ -92,17 +93,15 @@ export function publicDeletionStatus(request, now) {
     graceEndsAt: request.graceEndsAt,
     completedAt: request.completedAt || null,
     currentPhase: DELETION_PHASES[request.phaseIndex] || null,
-    canCancel: status === "request_received" && currentTime < request.graceEndsAt,
+    canCancel: false,
     retentionExceptions: RETENTION_EXCEPTIONS
   };
 }
 
 export function cancelDeletionRequest(request, now) {
-  const currentTime = epoch(now);
-  if (!request || request.status !== "request_received" || currentTime >= request.graceEndsAt) {
-    throw new Error("This deletion request can no longer be cancelled");
-  }
-  return { ...request, status: "cancelled", updatedAt: currentTime };
+  epoch(now);
+  if (!request) throw new Error("Deletion request not found");
+  throw new Error("Permanent account deletion cannot be cancelled");
 }
 
 export function beginDeletionPhase(request, now) {

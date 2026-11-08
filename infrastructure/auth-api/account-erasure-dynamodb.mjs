@@ -6,6 +6,7 @@ const KEY_FIELDS = Object.freeze({
   [ACCOUNT_TABLES.postViews]: ["postId", "viewerKey"],
   [ACCOUNT_TABLES.comments]: ["postId", "commentId"],
   [ACCOUNT_TABLES.reactions]: ["postId", "userId"],
+  [ACCOUNT_TABLES.reviews]: ["pk", "sk"],
   [ACCOUNT_TABLES.notifications]: ["userEmail", "eventId"],
   [ACCOUNT_TABLES.friends]: ["userEmail", "friendEmail"],
   [ACCOUNT_TABLES.stories]: ["storyId"],
@@ -15,7 +16,10 @@ const KEY_FIELDS = Object.freeze({
   [ACCOUNT_TABLES.profileNames]: ["claim"],
   [ACCOUNT_TABLES.presence]: ["email"],
   [ACCOUNT_TABLES.pushSubscriptions]: ["userEmail", "endpointHash"],
+  [ACCOUNT_TABLES.sessionDevices]: ["userId", "deviceId"],
+  [ACCOUNT_TABLES.callingDevices]: ["userEmail", "deviceId"],
   [ACCOUNT_TABLES.calls]: ["recipientEmail", "eventId"],
+  [ACCOUNT_TABLES.plans]: ["planId", "participantEmail"],
   [ACCOUNT_TABLES.conversations]: ["userEmail", "contactEmail"],
   [ACCOUNT_TABLES.messages]: ["conversationId", "messageId"],
   [ACCOUNT_TABLES.messageReactions]: ["conversationId", "reactionId"]
@@ -50,7 +54,7 @@ function sanitizedPaymentItem(item, retainedUserId) {
 export function createDynamoAccountErasureAdapters({ db, s3, cognito, commands, tables = ACCOUNT_TABLES, sessionsTable, mediaBucket, userPoolId }) {
   const {
     ScanCommand, QueryCommand, DeleteItemCommand, PutItemCommand, UpdateItemCommand,
-    ListObjectsV2Command, DeleteObjectsCommand, CopyObjectCommand, AdminDeleteUserCommand, ListUsersCommand
+    ListObjectsV2Command, DeleteObjectsCommand, AdminDeleteUserCommand, ListUsersCommand
   } = commands || {};
   for (const [name, Command] of Object.entries({ ScanCommand, QueryCommand, DeleteItemCommand, PutItemCommand, UpdateItemCommand })) {
     if (typeof Command !== "function") throw new TypeError(`${name} is required for account erasure`);
@@ -103,23 +107,62 @@ export function createDynamoAccountErasureAdapters({ db, s3, cognito, commands, 
 
   async function deleteOwnedSocialContent({ userId, accountEmail }) {
     const ownedPosts = (await scanAll(tables.posts)).filter(item => string(item.userId) === userId || string(item.userEmail) === accountEmail);
-    let deleted = 0;
+    const allPosts = await scanAll(tables.posts);
+    const deletionRecords = new Map();
     for (const post of ownedPosts) {
       const postId = string(post.postId);
-      const [comments, reactions] = await Promise.all([
+      deletionRecords.set(postId, post);
+      if (!string(post.sharedPostId)) {
+        for (const share of allPosts) if (string(share.sharedPostId) === postId) deletionRecords.set(string(share.postId), share);
+      }
+    }
+    let deleted = 0;
+    const ids = new Set(deletionRecords.keys());
+    for (const [postId] of deletionRecords) {
+      const [comments, reactions, views] = await Promise.all([
         queryAll(tables.comments, "postId", postId),
-        queryAll(tables.reactions, "postId", postId)
+        queryAll(tables.reactions, "postId", postId),
+        tables.postViews ? queryAll(tables.postViews, "postId", postId) : Promise.resolve([])
       ]);
       deleted += await deleteItems(tables.comments, comments);
       deleted += await deleteItems(tables.reactions, reactions);
-      deleted += await deleteItems(tables.posts, [post]);
+      if (tables.postViews) deleted += await deleteItems(tables.postViews, views);
     }
     if (tables.postViews) {
-      const ownedIds = new Set(ownedPosts.map(post => string(post.postId)));
       const viewerHash = createHash("sha256").update(userId).digest("hex");
-      const views = (await scanAll(tables.postViews)).filter(item => ownedIds.has(string(item.postId)) || string(item.viewerKey).endsWith(`#${viewerHash}`));
+      const views = (await scanAll(tables.postViews)).filter(item => string(item.viewerKey).endsWith(`#${viewerHash}`));
       deleted += await deleteItems(tables.postViews, views);
     }
+    const linkedMedia = new Set(ownedPosts.map(post => string(post.mediaKey)).filter(Boolean));
+    if (linkedMedia.size) {
+      const linkedStories = (await scanAll(tables.stories)).filter(item => string(item.userEmail) === accountEmail && linkedMedia.has(string(item.mediaKey)));
+      deleted += await deleteItems(tables.stories, linkedStories);
+    }
+    const notifications = (await scanAll(tables.notifications)).filter(item => {
+      if (ids.has(string(item.postId)) || ids.has(string(item.sharedPostId)) || ids.has(string(item.sourcePostId))) return true;
+      const eventId = string(item.eventId);
+      for (const id of ids) if (eventId.includes(id)) return true;
+      return false;
+    });
+    deleted += await deleteItems(tables.notifications, notifications);
+    const shares = [...deletionRecords.values()].filter(item => string(item.sharedPostId));
+    const originals = [...deletionRecords.values()].filter(item => !string(item.sharedPostId));
+    deleted += await deleteItems(tables.posts, shares);
+    deleted += await deleteItems(tables.posts, originals);
+    return { deleted };
+  }
+
+  async function deleteAuthoredReviews({ userId, accountEmail }) {
+    const rows = await scanAll(tables.reviews);
+    const authored = rows.filter(item => string(item.authorUserId) === userId || string(item.authorEmail) === accountEmail);
+    const reviewIds = new Set(authored.map(item => string(item.reviewId) || string(item.pk).replace(/^REVIEW#/, "")).filter(Boolean));
+    const authoredKeys = new Set(authored.map(item => `${string(item.pk)}\u0000${string(item.sk)}`));
+    const indexes = rows.filter(item => {
+      if (authoredKeys.has(`${string(item.pk)}\u0000${string(item.sk)}`)) return false;
+      return reviewIds.has(string(item.reviewId)) || reviewIds.has(string(item.pk).replace(/^REVIEW#/, ""));
+    });
+    let deleted = await deleteItems(tables.reviews, indexes);
+    deleted += await deleteItems(tables.reviews, authored);
     return { deleted };
   }
 
@@ -183,14 +226,6 @@ export function createDynamoAccountErasureAdapters({ db, s3, cognito, commands, 
     return { deleted, anonymized, retained };
   }
 
-  async function copySharedMedia(mediaKey, newConversationId, messageId) {
-    if (!mediaKey || typeof CopyObjectCommand !== "function" || !s3 || !mediaBucket) return mediaKey;
-    const extension = mediaKey.includes(".") ? mediaKey.slice(mediaKey.lastIndexOf(".")) : "";
-    const destination = `shared-messages/${newConversationId}/${messageId.replace(/[^a-zA-Z0-9#-]/g, "")}${extension}`;
-    await s3.send(new CopyObjectCommand({ Bucket: mediaBucket, CopySource: `${mediaBucket}/${encodeURIComponent(mediaKey).replace(/%2F/g, "/")}`, Key: destination }));
-    return destination;
-  }
-
   async function migrateSharedConversations({ userId, accountEmail, tombstoneEmail }) {
     const rows = (await scanAll(tables.conversations)).filter(item => string(item.userEmail) === accountEmail || string(item.contactEmail) === accountEmail);
     const others = [...new Set(rows.map(item => string(item.userEmail) === accountEmail ? string(item.contactEmail) : string(item.userEmail)).filter(Boolean))];
@@ -201,19 +236,20 @@ export function createDynamoAccountErasureAdapters({ db, s3, cognito, commands, 
         queryAll(tables.messages, "conversationId", oldId),
         queryAll(tables.messageReactions, "conversationId", oldId)
       ]);
+      const retainedMessageIds = new Set();
       for (const message of messages) {
+        if (string(message.senderEmail) === accountEmail) continue;
         const moved = structuredClone(message);
         moved.conversationId = { S: newId };
-        if (string(moved.senderEmail) === accountEmail) moved.senderEmail = { S: tombstoneEmail };
         if (string(moved.recipientEmail) === accountEmail) moved.recipientEmail = { S: tombstoneEmail };
-        if (string(moved.mediaKey).startsWith(accountMediaPrefixes(accountEmail)[2])) moved.mediaKey = { S: await copySharedMedia(string(moved.mediaKey), newId, string(moved.messageId)) };
         await db.send(new PutItemCommand({ TableName: tables.messages, Item: moved }));
+        retainedMessageIds.add(string(moved.messageId));
         anonymized += 1; retained += 1;
       }
       for (const reaction of reactions) {
+        if (string(reaction.userEmail) === accountEmail || !retainedMessageIds.has(string(reaction.messageId))) continue;
         const moved = structuredClone(reaction);
         moved.conversationId = { S: newId };
-        if (string(moved.userEmail) === accountEmail) moved.userEmail = { S: tombstoneEmail };
         await db.send(new PutItemCommand({ TableName: tables.messageReactions, Item: moved }));
         anonymized += 1; retained += 1;
       }
@@ -252,9 +288,19 @@ export function createDynamoAccountErasureAdapters({ db, s3, cognito, commands, 
 
   async function deleteIdentity({ userId }) {
     if (!cognito || !userPoolId || typeof AdminDeleteUserCommand !== "function") throw new Error("Cognito account erasure is not configured");
-    await cognito.send(new AdminDeleteUserCommand({ UserPoolId: userPoolId, Username: userId }));
+    if (typeof ListUsersCommand !== "function") throw new Error("Cognito identity lookup is not configured");
+    const safeSub = userId.replace(/["\\]/g, "");
+    const result = await cognito.send(new ListUsersCommand({ UserPoolId: userPoolId, Filter: `sub = "${safeSub}"`, Limit: 1 }));
+    const username = result.Users?.[0]?.Username;
+    if (!username) return { deleted: 0 };
+    try {
+      await cognito.send(new AdminDeleteUserCommand({ UserPoolId: userPoolId, Username: username }));
+    } catch (error) {
+      if (error?.name === "UserNotFoundException") return { deleted: 0 };
+      throw error;
+    }
     return { deleted: 1 };
   }
 
-  return { deleteWhere, deleteOwnedSocialContent, removeGroupMemberships, deleteProfessionalData, migrateSharedConversations, deleteMediaPrefix, deleteSessions, deleteIdentity };
+  return { deleteWhere, deleteOwnedSocialContent, deleteAuthoredReviews, removeGroupMemberships, deleteProfessionalData, migrateSharedConversations, deleteMediaPrefix, deleteSessions, deleteIdentity };
 }

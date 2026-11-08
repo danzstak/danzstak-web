@@ -11,7 +11,7 @@ import { DELETION_PHASES } from "./infrastructure/auth-api/account-data-control.
 const context = { userId: "member-123", accountEmail: "Owner@Example.com" };
 const calls = [];
 const adapters = Object.fromEntries([
-  "deleteOwnedSocialContent", "deleteWhere", "removeGroupMemberships", "deleteProfessionalData",
+  "deleteOwnedSocialContent", "deleteAuthoredReviews", "deleteWhere", "removeGroupMemberships", "deleteProfessionalData",
   "migrateSharedConversations", "deleteMediaPrefix", "deleteSessions", "deleteIdentity"
 ].map(name => [name, async (...args) => { calls.push([name, ...args]); return name === "migrateSharedConversations" ? { anonymized: 3, retained: 3 } : { deleted: 1 }; }]));
 
@@ -19,8 +19,12 @@ for (const phase of DELETION_PHASES) await runAccountErasurePhase(phase, context
 
 assert.ok(calls.some(([name, table, match]) => name === "deleteWhere" && table === ACCOUNT_TABLES.friends && match.friendEmail === "owner@example.com"));
 assert.ok(calls.some(([name, table, match]) => name === "deleteWhere" && table === ACCOUNT_TABLES.calls && match.senderEmail === "owner@example.com"));
+assert.ok(calls.some(([name]) => name === "deleteAuthoredReviews"), "authored review rows and indexes must be removed");
+assert.ok(calls.some(([name, table, match]) => name === "deleteWhere" && table === ACCOUNT_TABLES.sessionDevices && match.userId === "member-123"));
+assert.ok(calls.some(([name, table, match]) => name === "deleteWhere" && table === ACCOUNT_TABLES.callingDevices && match.userEmail === "owner@example.com"));
+assert.ok(calls.some(([name, table, match]) => name === "deleteWhere" && table === ACCOUNT_TABLES.plans && match.participantEmail === "owner@example.com"));
 assert.ok(calls.some(([name]) => name === "migrateSharedConversations"), "shared messages must be migrated, not bulk deleted");
-assert.equal(calls.filter(([name]) => name === "deleteMediaPrefix").length, 4);
+assert.equal(calls.filter(([name]) => name === "deleteMediaPrefix").length, 8, "the final consistency sweep must recheck every owned-media prefix");
 assert.ok(calls.some(([name]) => name === "deleteIdentity"), "identity is deleted only in the final phase");
 
 const tombstone = deletedMemberAddress("member-123");
