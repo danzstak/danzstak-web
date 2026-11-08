@@ -18,6 +18,6 @@ assert.match(client, /epk\/shared[\s\S]*credentials:"omit"[\s\S]*cache:"no-store
   "private review reads must use their secret without sending the visitor's account session or stale data");
 assert.match(client, /upload\.timeout = Math\.max\(60000[\s\S]*upload\.ontimeout/,
   "large media uploads need an adaptive timeout and explicit recovery message");
-assert.match(markup, /assets\/epk\.js\?v=20/, "the EPK page must load the guided, bounded-request release");
+assert.match(markup, /assets\/epk\.js\?v=21/, "the EPK page must load the guided, bounded-request release");
 
 console.log("EPK network checks passed: loads, saves, publishing, deletion, tickets, and media uploads recover from stalls without exposing sessions on public kits.");
