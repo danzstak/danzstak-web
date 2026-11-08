@@ -128,7 +128,11 @@ async function createPortraitVideo(browser) {
       await page.goto(`${origin}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.locator(`.post[data-post-id="${videoPostId}"]`).waitFor();
       await page.locator(".composer-media-tools").waitFor({ state: "attached" });
-      await page.waitForTimeout(150);
+      await page.waitForFunction(postId => {
+        const video = document.querySelector(`.post[data-post-id="${postId}"] video`);
+        return video?.videoWidth > 0 && video?.videoHeight > 0;
+      }, videoPostId, { timeout: 10000 });
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
       await page.locator("body").evaluate(body => body.classList.remove("danzstak-original"));
       await page.screenshot({ path: path.join(output, `before-feed-${width}.png`), fullPage: width >= 700 });
