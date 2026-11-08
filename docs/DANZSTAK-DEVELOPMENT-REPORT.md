@@ -1730,7 +1730,7 @@ Status as of 2026-11-08: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION 
 
 # Public EPK — complete booking-facing media proof
 
-Status as of 2026-11-08: **IMPLEMENTED AND LOCALLY VERIFIED; REVIEW DEPLOYMENT PENDING; PRODUCTION UNCHANGED**.
+Status as of 2026-11-08: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION UNCHANGED**.
 
 - The public EPK acceptance fixture previously contained no press image, biography, releases, music, video, shows, press quote, or booking contact. It could prove the stage/booth plot, but it could not prove the complete page a talent buyer receives.
 - The actual public-page gate now renders a deterministic full artist kit for both band and DJ/electronic act paths: authorized press artwork, short and full biographies, lineup, releases, externally hosted music links, an externally hosted live-video link, social link, shows, achievement, sourced press quote, stage requirements, production details, and artist-approved booking contact.
@@ -1738,3 +1738,5 @@ Status as of 2026-11-08: **IMPLEMENTED AND LOCALLY VERIFIED; REVIEW DEPLOYMENT P
 - Activating a supported player now places the iframe in the full-width media-card content area instead of injecting it between action controls. The browser gate measures the frame against its parent card and rejects overflow or a narrow action-row player.
 - Actual-browser checks passed for complete band and DJ public EPKs at 390 and 1366px and for the builder at 320, 360, 390, 414, 430, and 1366px. All four artist looks passed at phone and desktop widths, and the Reviews matrix passed at all six widths after one transient screenshot-protocol retry.
 - The complete repository regression suite passed, including social persistence, media/audio coordination, SYNC/calls, Booking/EPK/Tour Manager, Stripe entitlements/refunds, support-email SES-only behavior, worldwide discovery, accessibility, PWA, site smoke, and infrastructure validation. The installed-PWA shell advances to `danzstak-shell-v756`, EPK JavaScript to `v20`, and EPK media CSS to `v8`.
+- Exact implementation commit `6a7feafa8212522049e6f8501c246cd98d1199ee` passed GitHub Review run `42498001203`. AWS Amplify review job `50` deployed that exact commit successfully.
+- The complete band/DJ public-EPK and builder browser gate then passed against hosted staging at all specified phone and desktop widths, including the full-width explicit-player measurement. Review URL: `https://codex-release-candidate-2026-11-08.d31oovi2mos5iz.amplifyapp.com/epk.html`.
