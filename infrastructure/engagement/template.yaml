@@ -17,6 +17,41 @@ Parameters:
     Type: String
     Default: DANZSTAK-Auth-API-role-zjknf4ur
 Resources:
+  SessionDevicesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Signed-in device records let members review and revoke account sessions without exposing opaque session tokens.
+        must: [Keep point-in-time recovery and encryption enabled, Store only coarse device labels and never IP addresses or raw user agents, Keep session records account-scoped.]
+    Properties:
+      TableName: DANZSTAK-SessionDevices
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      AttributeDefinitions:
+        - {AttributeName: userId, AttributeType: S}
+        - {AttributeName: deviceId, AttributeType: S}
+      KeySchema:
+        - {AttributeName: userId, KeyType: HASH}
+        - {AttributeName: deviceId, KeyType: RANGE}
+      TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}
+      SSESpecification: {SSEEnabled: true}
+  SessionDevicesPolicy:
+    Type: AWS::IAM::Policy
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: The Auth API must list and revoke only the signed-in member's server-side device sessions.
+        must: [Keep access scoped to the dedicated session-device table, Do not grant browser clients direct DynamoDB access.]
+    Properties:
+      PolicyName: DanzStakSessionDevices
+      Roles: [!Ref AuthRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:UpdateItem, dynamodb:Query]
+            Resource: !GetAtt SessionDevicesTable.Arn
   PostViewsTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -240,6 +275,18 @@ Resources:
   LegalAcceptanceRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /auth/legal-acceptance', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ListAccountSessionsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /auth/sessions', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  RevokeAccountSessionRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /auth/sessions/{deviceId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  RevokeOtherAccountSessionsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /auth/sessions/revoke-others', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ReauthenticateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /auth/reauth', Target: !Sub 'integrations/${AuthIntegrationId}'}
   EngagementInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -296,7 +343,15 @@ Resources:
       FunctionName: !Ref AuthFunctionName
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/POST/auth/legal-acceptance'
+  AccountSecurityInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/auth/*'
 Outputs:
+  SessionDevicesTableName: {Value: !Ref SessionDevicesTable}
   PostViewsTableName: {Value: !Ref PostViewsTable}
   ReactionsTableName: {Value: !Ref ReactionsTable}
   CommentsTableName: {Value: !Ref CommentsTable}

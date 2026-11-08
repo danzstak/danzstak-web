@@ -50,6 +50,7 @@ const geoRoutes = new GeoRoutesClient({ region: "us-west-2", maxAttempts: 3 });
 const secretsManager = new SecretsManagerClient({ region: "us-west-1", maxAttempts: 3 });
 
 const tableName = process.env.SESSIONS_TABLE;
+const sessionDevicesTable = process.env.SESSION_DEVICES_TABLE || "DANZSTAK-SessionDevices";
 const postsTable = "DANZSTAK-Posts";
 const friendsTable = "DANZSTAK-Friends";
 const reactionsTable = "DANZSTAK-Reactions";
@@ -88,6 +89,9 @@ const sessionCookieName = "__Host-danzstak_session";
 const oauthCookieName = "__Host-danzstak_oauth";
 const legalCookieName = "__Host-danzstak_legal";
 const legalVersion = "2026-10-26";
+const sessionLifetimeSeconds = 30 * 24 * 60 * 60;
+const recentAuthenticationSeconds = 10 * 60;
+const sessionTouchIntervalSeconds = 15 * 60;
 const stripeEnvironment = { ...process.env };
 const stripeSecretName = process.env.STRIPE_SECRET_NAME || "danzstak/stripe/secret-key";
 const stripeWebhookSecretName = process.env.STRIPE_WEBHOOK_SECRET_NAME || "danzstak/stripe/webhook-secret";
@@ -376,6 +380,15 @@ function getSessionId(event) {
     : null;
 }
 
+function sessionDeviceLabel(event, pending = null) {
+  if (pending?.mobilePlatform?.S === "android") return "DanzStak Android app";
+  if (pending?.mobilePlatform?.S === "ios") return "DanzStak iPhone or iPad app";
+  const value = String(event?.headers?.["user-agent"] || event?.headers?.["User-Agent"] || "");
+  const browser = /Edg\//.test(value) ? "Edge" : /Firefox\//.test(value) ? "Firefox" : /CriOS\//.test(value) ? "Chrome" : /Chrome\//.test(value) ? "Chrome" : /Safari\//.test(value) ? "Safari" : "Browser";
+  const device = /Android/i.test(value) ? "Android" : /iPhone|iPad|iPod/i.test(value) ? "iPhone or iPad" : /Windows/i.test(value) ? "Windows" : /Macintosh|Mac OS X/i.test(value) ? "Mac" : /Linux/i.test(value) ? "Linux" : "device";
+  return `${browser} on ${device}`.slice(0, 80);
+}
+
 function secureCookie(name, value, maxAge) {
   return (
     name + "=" + value +
@@ -530,6 +543,7 @@ async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null)
       expiresAt: { N: String(now() + 300) }
   };
   if (legalAcceptanceId) pendingItem.legalAcceptanceId = { S: legalAcceptanceId };
+  if (mode === "reauth") pendingItem.reauthentication = { BOOL: true };
   if (mobile) {
     pendingItem.mobilePlatform = { S: mobile.platform };
     pendingItem.mobileChallenge = { S: mobile.challenge };
@@ -558,6 +572,7 @@ async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null)
   url.searchParams.set("nonce", nonce);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
+  if (mode === "reauth") url.searchParams.set("prompt", "login");
 
   const browserCookie = secureCookie(
     oauthCookieName,
@@ -808,7 +823,24 @@ async function completeLogin(event) {
   }
 
   const sessionId = randomValue();
-  const expiresAt = now() + 31536000;
+  const issuedAt = now();
+  const expiresAt = issuedAt + sessionLifetimeSeconds;
+  const deviceId = randomUUID();
+  const deviceLabel = sessionDeviceLabel(event, pending);
+
+  let hasExistingDevice = false;
+  try {
+    const existing = await db.send(new QueryCommand({
+      TableName: sessionDevicesTable,
+      KeyConditionExpression: "userId = :userId",
+      ExpressionAttributeValues: { ":userId": { S: user.sub } },
+      ProjectionExpression: "deviceId",
+      Limit: 1
+    }));
+    hasExistingDevice = Boolean(existing.Items?.length);
+  } catch (error) {
+    console.error("Session device history could not be checked", { errorName: error?.name || "Error" });
+  }
 
   await db.send(new PutItemCommand({
     TableName: tableName,
@@ -816,15 +848,57 @@ async function completeLogin(event) {
       sessionId: { S: sha256(sessionId) },
       type: { S: "user_session" },
       userId: { S: user.sub },
+      deviceId: { S: deviceId },
+      deviceLabel: { S: deviceLabel },
+      createdAt: { N: String(issuedAt) },
+      authenticatedAt: { N: String(issuedAt) },
+      lastUsedAt: { N: String(issuedAt) },
       expiresAt: { N: String(expiresAt) }
     },
     ConditionExpression: "attribute_not_exists(sessionId)"
   }));
 
+  try {
+    await db.send(new PutItemCommand({
+      TableName: sessionDevicesTable,
+      Item: {
+        userId: { S: user.sub },
+        deviceId: { S: deviceId },
+        sessionHash: { S: sha256(sessionId) },
+        deviceLabel: { S: deviceLabel },
+        createdAt: { N: String(issuedAt) },
+        authenticatedAt: { N: String(issuedAt) },
+        lastUsedAt: { N: String(issuedAt) },
+        expiresAt: { N: String(expiresAt) }
+      },
+      ConditionExpression: "attribute_not_exists(userId) AND attribute_not_exists(deviceId)"
+    }));
+  } catch (error) {
+    try { await db.send(new DeleteItemCommand({ TableName: tableName, Key: { sessionId: { S: sha256(sessionId) } } })); }
+    catch (cleanupError) { console.error("Incomplete session cleanup", { errorName: cleanupError?.name || "Error" }); }
+    throw error;
+  }
+
+  if (hasExistingDevice) {
+    try {
+      const accountEmail = await accountForSub(user.sub);
+      if (accountEmail) await ses.send(new SendEmailCommand({
+        FromEmailAddress: "DanzStak Support <support@danzstak.com>",
+        Destination: { ToAddresses: [accountEmail] },
+        Content: { Simple: {
+          Subject: { Data: "New DanzStak sign-in", Charset: "UTF-8" },
+          Body: { Text: { Data: `A new sign-in to your DanzStak account was completed using ${deviceLabel}.\n\nReview signed-in devices in DanzStak Settings. If this was not you, sign out that device and change your password.\n\nDanzStak never asks for your password or verification code by email.`, Charset: "UTF-8" } }
+        } }
+      }));
+    } catch (error) {
+      console.error("New sign-in alert could not be sent", { errorName: error?.name || "Error" });
+    }
+  }
+
   const sessionCookie = secureCookie(
     sessionCookieName,
     sessionId,
-    31536000
+    sessionLifetimeSeconds
   );
 
   const responseCookies = [sessionCookie, expiredBrowserCookie];
@@ -860,7 +934,7 @@ async function completeLogin(event) {
     return redirect(`danzstak://${pending.mobilePlatform.S}/auth?code=${exchangeCode}`, [expiredBrowserCookie]);
   }
 
-  return redirect(siteUrl + "/", responseCookies);
+  return redirect(pending.reauthentication?.BOOL ? siteUrl + "/feed.html?view=settings&security=1" : siteUrl + "/", responseCookies);
 }
 
 async function startMobileLogin(event) {
@@ -903,22 +977,23 @@ async function exchangeMobileSession(event) {
   return {
     statusCode: 200,
     headers: { ...securityHeaders, "content-type": "application/json", "cache-control": "no-store" },
-    body: JSON.stringify({ sessionToken: item.sessionToken.S, expiresIn: 31536000 })
+    body: JSON.stringify({ sessionToken: item.sessionToken.S, expiresIn: sessionLifetimeSeconds })
   };
 }
 
 // VALIDATE SERVER-SIDE SESSION
-async function getAuthenticatedUser(event) {
+async function getAuthenticatedSession(event, { touch = true } = {}) {
   const sessionId = getSessionId(event);
 
   if (!sessionId) {
     return null;
   }
 
+  const sessionHash = sha256(sessionId);
   const result = await db.send(new GetItemCommand({
     TableName: tableName,
     Key: {
-      sessionId: { S: sha256(sessionId) }
+      sessionId: { S: sessionHash }
     },
     ConsistentRead: true
   }));
@@ -936,7 +1011,76 @@ async function getAuthenticatedUser(event) {
     return null;
   }
 
-  return session.userId.S;
+  let deviceId = session.deviceId?.S || "";
+  let deviceLabel = session.deviceLabel?.S || sessionDeviceLabel(event);
+  if (!deviceId && typeof sessionDevicesTable === "string" && sessionDevicesTable) {
+    try {
+      const proposedDeviceId = randomUUID();
+      const updated = await db.send(new UpdateItemCommand({
+        TableName: tableName,
+        Key: { sessionId: { S: sessionHash } },
+        UpdateExpression: "SET deviceId = if_not_exists(deviceId, :deviceId), deviceLabel = if_not_exists(deviceLabel, :deviceLabel), createdAt = if_not_exists(createdAt, :createdAt), authenticatedAt = if_not_exists(authenticatedAt, :authenticatedAt), lastUsedAt = if_not_exists(lastUsedAt, :lastUsedAt)",
+        ConditionExpression: "#type = :sessionType AND userId = :userId AND expiresAt > :now",
+        ExpressionAttributeNames: { "#type": "type" },
+        ExpressionAttributeValues: {
+          ":deviceId": { S: proposedDeviceId }, ":deviceLabel": { S: deviceLabel },
+          ":createdAt": { N: String(now()) }, ":authenticatedAt": { N: String(now()) }, ":lastUsedAt": { N: String(now()) },
+          ":sessionType": { S: "user_session" }, ":userId": { S: session.userId.S }, ":now": { N: String(now()) }
+        },
+        ReturnValues: "ALL_NEW"
+      }));
+      deviceId = updated.Attributes?.deviceId?.S || proposedDeviceId;
+      deviceLabel = updated.Attributes?.deviceLabel?.S || deviceLabel;
+      await db.send(new PutItemCommand({
+        TableName: sessionDevicesTable,
+        Item: {
+          userId: { S: session.userId.S }, deviceId: { S: deviceId }, sessionHash: { S: sessionHash }, deviceLabel: { S: deviceLabel },
+          createdAt: updated.Attributes?.createdAt || { N: String(now()) },
+          authenticatedAt: updated.Attributes?.authenticatedAt || { N: String(now()) },
+          lastUsedAt: updated.Attributes?.lastUsedAt || { N: String(now()) }, expiresAt: { N: String(expiresAt) }
+        }
+      }));
+    } catch (error) {
+      console.error("Legacy session device registration failed", { errorName: error?.name || "Error" });
+    }
+  }
+
+  const lastUsedAt = Number(session.lastUsedAt?.N || 0);
+  if (touch && deviceId && lastUsedAt <= now() - sessionTouchIntervalSeconds) {
+    const touchedAt = now();
+    try {
+      await Promise.all([
+        db.send(new UpdateItemCommand({
+          TableName: tableName, Key: { sessionId: { S: sessionHash } },
+          UpdateExpression: "SET lastUsedAt = :lastUsedAt", ConditionExpression: "#type = :sessionType AND userId = :userId AND expiresAt > :now",
+          ExpressionAttributeNames: { "#type": "type" },
+          ExpressionAttributeValues: { ":lastUsedAt": { N: String(touchedAt) }, ":sessionType": { S: "user_session" }, ":userId": { S: session.userId.S }, ":now": { N: String(touchedAt) } }
+        })),
+        db.send(new UpdateItemCommand({
+          TableName: sessionDevicesTable, Key: { userId: { S: session.userId.S }, deviceId: { S: deviceId } },
+          UpdateExpression: "SET lastUsedAt = :lastUsedAt, expiresAt = :expiresAt",
+          ExpressionAttributeValues: { ":lastUsedAt": { N: String(touchedAt) }, ":expiresAt": { N: String(expiresAt) } }
+        }))
+      ]);
+    } catch (error) {
+      console.error("Session activity update failed", { errorName: error?.name || "Error" });
+    }
+  }
+
+  return {
+    userId: session.userId.S,
+    sessionHash,
+    deviceId,
+    deviceLabel,
+    createdAt: Number(session.createdAt?.N || 0),
+    authenticatedAt: Number(session.authenticatedAt?.N || session.createdAt?.N || 0),
+    lastUsedAt: Math.max(lastUsedAt, touch ? now() : 0),
+    expiresAt
+  };
+}
+
+async function getAuthenticatedUser(event) {
+  return (await getAuthenticatedSession(event))?.userId || null;
 }
 
 const groupCategories = new Set(["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"]);
@@ -4222,6 +4366,139 @@ async function deleteTourPlan(event, tourId) {
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
+function accountSecurityOriginAllowed(event) {
+  const origin = event.headers?.origin || event.headers?.Origin || "";
+  const authorization = event.headers?.authorization || event.headers?.Authorization || "";
+  return allowedOrigins.has(origin) || /^Bearer\s+[a-f0-9]{64}$/i.test(authorization);
+}
+
+function publicSessionDevice(item, currentDeviceId) {
+  const deviceId = item?.deviceId?.S || "";
+  return {
+    deviceId,
+    label: String(item?.deviceLabel?.S || "DanzStak session").slice(0, 80),
+    current: Boolean(deviceId && deviceId === currentDeviceId),
+    createdAt: Number(item?.createdAt?.N || 0),
+    lastUsedAt: Number(item?.lastUsedAt?.N || 0),
+    expiresAt: Number(item?.expiresAt?.N || 0)
+  };
+}
+
+async function listAccountSessions(event) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const headers = corsHeaders(origin);
+  if (!accountSecurityOriginAllowed(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const authenticated = await getAuthenticatedSession(event, { touch: false });
+  if (!authenticated) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const result = await db.send(new QueryCommand({
+    TableName: sessionDevicesTable,
+    KeyConditionExpression: "userId = :userId",
+    ExpressionAttributeValues: { ":userId": { S: authenticated.userId } },
+    Limit: 50,
+    ConsistentRead: true
+  }));
+  const devices = (result.Items || [])
+    .filter(item => Number(item.expiresAt?.N || 0) > now())
+    .map(item => publicSessionDevice(item, authenticated.deviceId));
+  if (authenticated.deviceId && !devices.some(device => device.current)) {
+    devices.push({
+      deviceId: authenticated.deviceId, label: authenticated.deviceLabel || "This device", current: true,
+      createdAt: authenticated.createdAt, lastUsedAt: authenticated.lastUsedAt, expiresAt: authenticated.expiresAt
+    });
+  }
+  devices.sort((first, second) => Number(second.current) - Number(first.current) || second.lastUsedAt - first.lastUsedAt);
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({ devices, sessionLifetimeSeconds, recentAuthenticationSeconds })
+  };
+}
+
+function recentAuthenticationRequired(authenticated, headers) {
+  if (authenticated.authenticatedAt > now() - recentAuthenticationSeconds) return null;
+  return {
+    statusCode: 403,
+    headers,
+    body: JSON.stringify({
+      error: "Sign in again before signing out another device.",
+      reauthenticationRequired: true,
+      reauthenticationUrl: "https://api.danzstak.com/auth/reauth"
+    })
+  };
+}
+
+async function revokeAccountSession(event, deviceId) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const headers = corsHeaders(origin);
+  if (!accountSecurityOriginAllowed(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  if (!/^[0-9a-f-]{36}$/i.test(deviceId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid device identifier." }) };
+  const authenticated = await getAuthenticatedSession(event, { touch: false });
+  if (!authenticated) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  if (deviceId === authenticated.deviceId) return { statusCode: 400, headers, body: JSON.stringify({ error: "Use Logout to sign out this device." }) };
+  const reauthentication = recentAuthenticationRequired(authenticated, headers);
+  if (reauthentication) return reauthentication;
+  const key = { userId: { S: authenticated.userId }, deviceId: { S: deviceId } };
+  const found = await db.send(new GetItemCommand({ TableName: sessionDevicesTable, Key: key, ConsistentRead: true }));
+  const sessionHash = found.Item?.sessionHash?.S || "";
+  if (!/^[a-f0-9]{64}$/.test(sessionHash)) {
+    await db.send(new DeleteItemCommand({ TableName: sessionDevicesTable, Key: key }));
+    return { statusCode: 200, headers, body: JSON.stringify({ revoked: true, alreadyInactive: true }) };
+  }
+  try {
+    await db.send(new DeleteItemCommand({
+      TableName: tableName,
+      Key: { sessionId: { S: sessionHash } },
+      ConditionExpression: "#type = :sessionType AND userId = :userId",
+      ExpressionAttributeNames: { "#type": "type" },
+      ExpressionAttributeValues: { ":sessionType": { S: "user_session" }, ":userId": { S: authenticated.userId } }
+    }));
+  } catch (error) {
+    if (error?.name !== "ConditionalCheckFailedException") throw error;
+  }
+  await db.send(new DeleteItemCommand({ TableName: sessionDevicesTable, Key: key }));
+  return { statusCode: 200, headers, body: JSON.stringify({ revoked: true }) };
+}
+
+async function revokeOtherAccountSessions(event) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const headers = corsHeaders(origin);
+  if (!accountSecurityOriginAllowed(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const contentType = event.headers?.["content-type"] || event.headers?.["Content-Type"] || "";
+  if (!/^application\/json(?:\s*;|$)/i.test(contentType)) return { statusCode: 415, headers, body: JSON.stringify({ error: "JSON content type required" }) };
+  const authenticated = await getAuthenticatedSession(event, { touch: false });
+  if (!authenticated) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const reauthentication = recentAuthenticationRequired(authenticated, headers);
+  if (reauthentication) return reauthentication;
+  const result = await db.send(new QueryCommand({
+    TableName: sessionDevicesTable,
+    KeyConditionExpression: "userId = :userId",
+    ExpressionAttributeValues: { ":userId": { S: authenticated.userId } },
+    Limit: 50,
+    ConsistentRead: true
+  }));
+  let revoked = 0;
+  for (const item of result.Items || []) {
+    const deviceId = item.deviceId?.S || "";
+    if (!deviceId || deviceId === authenticated.deviceId) continue;
+    const sessionHash = item.sessionHash?.S || "";
+    if (/^[a-f0-9]{64}$/.test(sessionHash)) {
+      try {
+        await db.send(new DeleteItemCommand({
+          TableName: tableName, Key: { sessionId: { S: sessionHash } },
+          ConditionExpression: "#type = :sessionType AND userId = :userId",
+          ExpressionAttributeNames: { "#type": "type" },
+          ExpressionAttributeValues: { ":sessionType": { S: "user_session" }, ":userId": { S: authenticated.userId } }
+        }));
+      } catch (error) {
+        if (error?.name !== "ConditionalCheckFailedException") throw error;
+      }
+    }
+    await db.send(new DeleteItemCommand({ TableName: sessionDevicesTable, Key: { userId: { S: authenticated.userId }, deviceId: { S: deviceId } } }));
+    revoked += 1;
+  }
+  return { statusCode: 200, headers, body: JSON.stringify({ revoked }) };
+}
+
 // LOG OUT
 async function logout(event) {
   const origin = event.headers?.origin;
@@ -4252,7 +4529,8 @@ async function logout(event) {
   }
 
   const sessionId = getSessionId(event);
-  const userId = await getAuthenticatedUser(event);
+  const authenticated = await getAuthenticatedSession(event, { touch: false });
+  const userId = authenticated?.userId || null;
   const userEmail = userId ? await accountForSub(userId) : "";
 
   if (sessionId) {
@@ -4276,6 +4554,17 @@ async function logout(event) {
       ) {
         throw error;
       }
+    }
+  }
+
+  if (authenticated?.deviceId) {
+    try {
+      await db.send(new DeleteItemCommand({
+        TableName: sessionDevicesTable,
+        Key: { userId: { S: authenticated.userId }, deviceId: { S: authenticated.deviceId } }
+      }));
+    } catch (error) {
+      console.error("Session device cleanup failed during logout", { errorName: error?.name || "Error" });
     }
   }
 
@@ -4341,6 +4630,25 @@ export const handler = async event => {
 
     if (method === "GET" && path === "/auth/session") {
       return await checkSession(event);
+    }
+
+    if (method === "GET" && path === "/auth/reauth") {
+      const authenticated = await getAuthenticatedSession(event, { touch: false });
+      if (!authenticated) return redirect(siteUrl + "/?signin=required");
+      return await startLogin("reauth");
+    }
+
+    if (method === "GET" && path === "/auth/sessions") {
+      return await listAccountSessions(event);
+    }
+
+    const accountSessionMatch = path?.match(/^\/auth\/sessions\/([0-9a-f-]{36})$/i);
+    if (method === "DELETE" && accountSessionMatch) {
+      return await revokeAccountSession(event, accountSessionMatch[1]);
+    }
+
+    if (method === "POST" && path === "/auth/sessions/revoke-others") {
+      return await revokeOtherAccountSessions(event);
     }
 
     if (method === "GET" && path === "/secure-posts") {

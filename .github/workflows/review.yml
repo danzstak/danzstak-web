@@ -45,6 +45,11 @@ jobs:
           node .\test-touch-targets.cjs
           node .\test-feed-csp.cjs
           node .\test-external-link-privacy.cjs
+          node .\test-responsive-media.cjs
+          node .\test-skip-navigation.cjs
+          node .\test-static-link-integrity.cjs
+          node .\test-social-origins.cjs
+          node .\test-authentication.cjs
 
   browser-call-media:
     runs-on: windows-latest
@@ -89,10 +94,16 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
       - name: Verify release safeguards and required project guidance
         shell: pwsh
         run: |
+          node .\test-pwa-shell-refresh.cjs
           .\test-release-verification.ps1
+          .\test-site.ps1
+          .\test-infrastructure.ps1
           if (-not (Test-Path -LiteralPath .\docs\QUALITY-ASSURANCE-POLICY.md)) {
             throw 'Missing quality assurance policy.'
           }
@@ -101,4 +112,40 @@ jobs:
           }
           if (-not (Test-Path -LiteralPath .\CLAUDE.md)) {
             throw 'Missing root development brief.'
+          }
+
+  browser-account-security:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install browser-check dependency
+        shell: pwsh
+        run: npm install --no-save --ignore-scripts playwright@1.56.1
+      - name: Start static review server
+        shell: pwsh
+        run: |
+          $process = Start-Process python -ArgumentList '-m','http.server','8132','--bind','127.0.0.1' -WindowStyle Hidden -PassThru
+          "DANZSTAK_SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          for ($attempt = 0; $attempt -lt 20; $attempt++) {
+            try {
+              Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8132/feed.html | Out-Null
+              exit 0
+            } catch {
+              Start-Sleep -Milliseconds 250
+            }
+          }
+          throw 'Static review server did not start.'
+      - name: Verify signed-in device management in real browsers
+        shell: pwsh
+        run: node .\browser-checks\account-security.cjs
+      - name: Stop static review server
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:DANZSTAK_SERVER_PID) {
+            Stop-Process -Id $env:DANZSTAK_SERVER_PID -Force -ErrorAction SilentlyContinue
           }

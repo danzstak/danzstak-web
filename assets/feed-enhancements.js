@@ -2038,7 +2038,133 @@ function renderWorkspace(name) {
     legalLinks.append(privacyLink, termsLink);
     const sessionInfo = document.createElement("span");
     sessionInfo.className = "settings-detail";
-    sessionInfo.textContent = "Stay signed in until you sign out";
+    sessionInfo.textContent = feedTranslate("Sessions expire 30 days after sign-in");
+    const securityButton = document.createElement("button");
+    securityButton.type = "button";
+    securityButton.className = "secondary";
+    securityButton.textContent = feedTranslate("Review");
+    securityButton.setAttribute("aria-expanded", "false");
+    securityButton.setAttribute("aria-controls", "accountSecurityPanel");
+    securityButton.setAttribute("aria-label", feedTranslate("Review signed-in devices"));
+    const securityPanel = document.createElement("section");
+    securityPanel.id = "accountSecurityPanel";
+    securityPanel.className = "account-security-panel";
+    securityPanel.hidden = true;
+    securityPanel.setAttribute("aria-labelledby", "accountSecurityHeading");
+    const securityHeading = document.createElement("h4");
+    securityHeading.id = "accountSecurityHeading";
+    securityHeading.textContent = feedTranslate("Signed-in devices");
+    const securityStatus = document.createElement("p");
+    securityStatus.className = "account-security-status";
+    securityStatus.setAttribute("role", "status");
+    securityStatus.setAttribute("aria-live", "polite");
+    const securityDevices = document.createElement("div");
+    securityDevices.className = "account-security-devices";
+    const signOutOthers = document.createElement("button");
+    signOutOthers.type = "button";
+    signOutOthers.className = "secondary account-security-signout-all";
+    signOutOthers.textContent = feedTranslate("Sign out other devices");
+    signOutOthers.hidden = true;
+    securityPanel.append(securityHeading, securityStatus, securityDevices, signOutOthers);
+
+    async function accountSecurityFetch(path, options = {}) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      try {
+        const response = await fetch(`https://api.danzstak.com${path}`, { credentials: "include", cache: "no-store", ...options, signal: controller.signal });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const error = new Error(data.error || feedTranslate("Account security could not be updated."));
+          error.reauthenticationRequired = data.reauthenticationRequired === true;
+          error.reauthenticationUrl = data.reauthenticationUrl || "";
+          throw error;
+        }
+        return data;
+      } catch (error) {
+        if (error.name === "AbortError") throw new Error(feedTranslate("Account security took too long to respond."));
+        throw error;
+      } finally { clearTimeout(timeout); }
+    }
+
+    function showSecurityError(error) {
+      securityStatus.replaceChildren(document.createTextNode(error.message));
+      if (error.reauthenticationRequired && /^https:\/\/api\.danzstak\.com\/auth\/reauth$/.test(error.reauthenticationUrl)) {
+        const reauthenticate = document.createElement("a");
+        reauthenticate.className = "secondary";
+        reauthenticate.href = error.reauthenticationUrl;
+        reauthenticate.textContent = feedTranslate("Sign in again");
+        securityStatus.append(document.createTextNode(" "), reauthenticate);
+      }
+    }
+
+    async function loadAccountSessions() {
+      securityStatus.textContent = feedTranslate("Loading signed-in devices…");
+      securityDevices.replaceChildren();
+      signOutOthers.hidden = true;
+      try {
+        const data = await accountSecurityFetch("/auth/sessions");
+        const devices = Array.isArray(data.devices) ? data.devices : [];
+        securityStatus.textContent = devices.length
+          ? feedFormat(devices.length === 1 ? "{count} signed-in device." : "{count} signed-in devices.", { count: devices.length })
+          : feedTranslate("No active devices were returned.");
+        for (const device of devices) {
+          const row = document.createElement("div");
+          row.className = "account-security-device";
+          const copy = document.createElement("span");
+          copy.className = "account-security-device-copy";
+          const name = document.createElement("strong");
+          name.textContent = device.label || feedTranslate("DanzStak session");
+          const detail = document.createElement("small");
+          const locale = document.documentElement.lang || undefined;
+          const lastUsed = Number(device.lastUsedAt) > 0 ? new Date(Number(device.lastUsedAt) * 1000).toLocaleString(locale) : feedTranslate("Unknown");
+          const expires = Number(device.expiresAt) > 0 ? new Date(Number(device.expiresAt) * 1000).toLocaleDateString(locale) : feedTranslate("Unknown");
+          detail.textContent = feedFormat(device.current ? "This device · Last active {lastUsed} · Expires {expires}" : "Last active {lastUsed} · Expires {expires}", { lastUsed, expires });
+          copy.append(name, detail);
+          row.append(copy);
+          if (!device.current && /^[0-9a-f-]{36}$/i.test(device.deviceId || "")) {
+            const revoke = document.createElement("button");
+            revoke.type = "button";
+            revoke.className = "secondary";
+            revoke.textContent = feedTranslate("Sign out");
+            revoke.setAttribute("aria-label", feedFormat("Sign out {device}", { device: device.label || feedTranslate("this device") }));
+            revoke.addEventListener("click", async () => {
+              if (!(await window.danzstakConfirm(feedFormat("This ends the DanzStak session on {device}.", { device: device.label || feedTranslate("this device") }), {
+                title: feedTranslate("Sign out this device?"),
+                confirmLabel: feedTranslate("Sign out device"),
+                danger: true
+              }))) return;
+              revoke.disabled = true;
+              try {
+                await accountSecurityFetch(`/auth/sessions/${encodeURIComponent(device.deviceId)}`, { method: "DELETE" });
+                await loadAccountSessions();
+              } catch (error) { showSecurityError(error); revoke.disabled = false; }
+            });
+            row.append(revoke);
+          }
+          securityDevices.append(row);
+        }
+        signOutOthers.hidden = devices.filter(device => !device.current).length === 0;
+      } catch (error) { showSecurityError(error); }
+    }
+
+    securityButton.addEventListener("click", () => {
+      securityPanel.hidden = !securityPanel.hidden;
+      securityButton.setAttribute("aria-expanded", String(!securityPanel.hidden));
+      if (!securityPanel.hidden) loadAccountSessions();
+    });
+    signOutOthers.addEventListener("click", async () => {
+      if (!(await window.danzstakConfirm(feedTranslate("This ends every other active DanzStak session. Your current session stays signed in."), {
+        title: feedTranslate("Sign out every other device?"),
+        confirmLabel: feedTranslate("Sign out other devices"),
+        danger: true
+      }))) return;
+      signOutOthers.disabled = true;
+      try {
+        await accountSecurityFetch("/auth/sessions/revoke-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        await loadAccountSessions();
+      } catch (error) { showSecurityError(error); }
+      finally { signOutOthers.disabled = false; }
+    });
     const logout = document.createElement("button");
     logout.type = "button"; logout.className = "secondary"; logout.dataset.logout = ""; logout.textContent = "Logout"; logout.setAttribute("aria-label", "Log out of DanzStak");
     const button = document.createElement("button");
@@ -2100,6 +2226,7 @@ function renderWorkspace(name) {
       } catch (error) { if (isCurrentWorkspace()) featureText.textContent = error.message; }
       finally { button.disabled = false; }
     });
+    const accountSecurityRow = settingRow("shield", "Account security", securityButton);
     workspace.append(
       heading,
       settingRow("user", "Edit Profile", editProfile),
@@ -2115,12 +2242,15 @@ function renderWorkspace(name) {
       settingRow("smartphone", "App and device settings", appSettings),
       settingRow("activity", "Your DanzStak activity", activityButton),
       settingRow("download", "Download my data", exportButton),
+      accountSecurityRow,
+      securityPanel,
       settingRow("clock", "Session", sessionInfo),
       settingRow("file", "Legal and privacy", legalLinks),
       settingRow("logout", "Account", logout),
       button
     );
     renderBlockedMembers(blockedMembers);
+    if (new URLSearchParams(location.search).get("security") === "1") queueMicrotask(() => securityButton.click());
   }
 }
 
