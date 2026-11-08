@@ -20,9 +20,9 @@ assert.equal(target.children[0].rel, "noopener noreferrer nofollow ugc");
 assert.equal(target.children[0].referrerPolicy, "no-referrer");
 assert.match(target.children[0]["aria-label"], /new tab/);
 
-context.renderProfileWebsite("sfscoop.com");
+context.renderProfileWebsite("danzstak.com");
 assert.equal(target.children.length, 1);
-assert.equal(target.children[0].href, "https://sfscoop.com/", "bare profile domains should become HTTPS links");
+assert.equal(target.children[0].href, "https://danzstak.com/", "bare profile domains should become HTTPS links");
 
 context.renderProfileWebsite("javascript:alert(1)");
 assert.equal(target.children.length, 0, "unsafe website schemes must not become links");

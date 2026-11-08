@@ -32,7 +32,7 @@ Planned, partially tested, blocked, and development-only work must be labeled ho
 - Render every affected page in a real browser; source inspection is not visual verification.
 - Test at 320, 360, 375, 390, 414, 430, 768, and 1024 CSS pixels, plus a representative desktop width.
 - Inspect alignment, typography, touch targets, overflow, safe areas, loading states, media aspect ratios, focus visibility, keyboard behavior, and screen-reader labels.
-- Capture evidence for material UI changes and compare the mobile result with the SFScoop PWA quality benchmark.
+- Capture evidence for material UI changes and compare the mobile result with the approved professional PWA quality benchmark.
 - Mobile must show one primary screen at a time. Chat, Friends, Notifications, Menu, and professional tools must not overlap.
 - Media must align with the feed grid, reactions must keep counts beside their icons, and navigation must remain compact.
 

@@ -4,9 +4,13 @@ Official DanzStak social networking and music platform website.
 ## Product boundary
 
 DanzStak is an installable, responsive Progressive Web App for social
-networking. It does not include blockchain, cryptocurrency, wallets, tokens,
-or Web3 transactions. Those capabilities are outside the DanzStak product
-boundary and must not be introduced into DanzStak.
+networking. It is not a cryptocurrency, wallet, exchange or Web3 product.
+The only permitted token feature is an optional checkout method: a member may
+pay DanzStak with SFS Token through Phantom after DanzStak's server has
+independently verified the on-chain payment. DanzStak does not award, earn,
+hold, custody or exchange SFS Token, and it does not require or integrate a
+separate platform account. Stripe remains the card-payment option. No other SFS or
+wallet feature belongs in DanzStak.
 ## Migration objective
 
 The owner wants DanzStak to help users leave billionaire-owned social platforms. Data portability is a core product goal: users should be able to copy their own Facebook profile and content into DanzStak while keeping Facebook, or migrate and then close Facebook after verifying their imported data. Account closure must remain a separate user-controlled action on Facebook. The importer should preview supported content, preserve original dates where available, let the user batch-select an audience with Public as the initial choice, and prevent duplicate imports. Facebook connections, likes, and comments must not be represented as actions taken by real DanzStak members.
@@ -122,7 +126,7 @@ The current priority is stabilizing the existing DanzStak site: feed, profiles, 
 The owner confirmed this next-feature order after the current site stabilization pass:
 
 1. A Facebook data import tool, launched from a button in Edit Profile. Start with the owner's Facebook data export: preview supported content, choose what to import, and detect duplicates before publishing anything to DanzStak. Existing DanzStak ownership, audience, and original-content requirements still apply. Importing a friend list must not create accepted DanzStak friendships automatically.
-2. Email notification and mailbox delivery workflows. DanzStak now runs a dedicated Stalwart mailbox host at `inbox.danzstak.com`, with public SMTP delivery on 25, authenticated TLS submission on 465, IMAP over TLS on 993, and HTTPS account access on 443. There is no public SSH or plaintext client-authentication port. Amazon SES remains the restricted outbound relay. Stalwart routes every non-local recipient through the `ses-relay` MTA route and signs with one RSA DKIM signature; SES supplies the final transport signature. Do not enable a second Stalwart DKIM algorithm while SES is the relay because SES rejects duplicate `DKIM-Signature` headers. Keep mailbox administration on the existing protected path and never broaden the server role or relay permissions beyond verified DanzStak senders.
+2. Email notification and support-mail workflows use Amazon SES in `us-east-1`. The verified DanzStak domain uses SES DKIM and a custom MAIL FROM domain. Incoming `support@danzstak.com` mail is accepted by an SES receipt rule and stored in a private encrypted DanzStak S3 bucket with bounded retention; it is not forwarded to another platform or personal mailbox. Outbound application mail is sent through SES by IAM-scoped services. DanzStak does not operate a separate mailbox or SMTP server. Keep sending, receipt, storage and bounce/complaint permissions least-privileged and never put SMTP credentials in the repository.
 3. A geo-based tour-booking agent/module for bands to locate clubs and contact them about booking their act. The planned flow includes optional location permission or manual city entry, distance filters, venue profiles, multi-stop tour planning, proposed dates, travel distances, and per-venue booking-request status. Email delivery can support booking notifications after the email phase is complete.
 4. An admin dashboard for site monitoring and management, including review of post and group reports.
 5. Native Android Studio/Kotlin and Xcode/Swift apps as the final phase. The website is the requested distribution hub; direct Android APK distribution and Apple-eligible distribution routes must be evaluated before implementation. Native call integration belongs here, including reliable incoming voice/video ringing from push.

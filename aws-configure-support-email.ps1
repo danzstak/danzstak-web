@@ -1,12 +1,16 @@
+param(
+  [string]$Region = "us-east-1",
+  [string]$AppRegion = "us-west-1"
+)
+
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $false
 
-$Region = "us-west-1"
 $Domain = "danzstak.com"
 $SupportAddress = "support@$Domain"
 $HostedZoneId = "Z0864481MZJ0HPSLQPR9"
 $AccountId = "635288116224"
-$Bucket = "danzstak-support-mail-$AccountId"
+$Bucket = "danzstak-support-mail-$AccountId-$Region"
 $RuleSet = "DanzStakSupportMail"
 $Rule = "SupportAddress"
 $TicketsTable = "DANZSTAK-SupportTickets"
@@ -92,7 +96,11 @@ try {
 
   aws s3api head-bucket --bucket $Bucket 2>$null
   if ($LASTEXITCODE -ne 0) {
-    aws s3api create-bucket --region $Region --bucket $Bucket --create-bucket-configuration LocationConstraint=$Region | Out-Null
+    if ($Region -eq "us-east-1") {
+      aws s3api create-bucket --region $Region --bucket $Bucket | Out-Null
+    } else {
+      aws s3api create-bucket --region $Region --bucket $Bucket --create-bucket-configuration LocationConstraint=$Region | Out-Null
+    }
     Assert-AwsSuccess "Support mail bucket creation failed."
   }
   aws s3api put-public-access-block --bucket $Bucket --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
@@ -150,30 +158,33 @@ try {
   aws ses set-active-receipt-rule-set --region $Region --rule-set-name $RuleSet
   Assert-AwsSuccess "Support receipt rule activation failed."
 
-  $tableStatus = aws dynamodb describe-table --region $Region --table-name $TicketsTable --query 'Table.TableStatus' --output text 2>$null
+  $tableStatus = aws dynamodb describe-table --region $AppRegion --table-name $TicketsTable --query 'Table.TableStatus' --output text 2>$null
   if ($LASTEXITCODE -ne 0 -or -not $tableStatus) {
-    aws dynamodb create-table --region $Region --table-name $TicketsTable --billing-mode PAY_PER_REQUEST --attribute-definitions AttributeName=ticketId,AttributeType=S --key-schema AttributeName=ticketId,KeyType=HASH --tags Key=Application,Value=DanzStak Key=Purpose,Value=Support --output json | Out-Null
+    aws dynamodb create-table --region $AppRegion --table-name $TicketsTable --billing-mode PAY_PER_REQUEST --attribute-definitions AttributeName=ticketId,AttributeType=S --key-schema AttributeName=ticketId,KeyType=HASH --tags Key=Application,Value=DanzStak Key=Purpose,Value=Support --output json | Out-Null
     Assert-AwsSuccess "Support ticket table creation failed."
-    aws dynamodb wait table-exists --region $Region --table-name $TicketsTable
+    aws dynamodb wait table-exists --region $AppRegion --table-name $TicketsTable
     Assert-AwsSuccess "Support ticket table did not become ready."
   }
-  aws dynamodb update-time-to-live --region $Region --table-name $TicketsTable --time-to-live-specification Enabled=true,AttributeName=expiresAt --output json | Out-Null
+  aws dynamodb update-time-to-live --region $AppRegion --table-name $TicketsTable --time-to-live-specification Enabled=true,AttributeName=expiresAt --output json | Out-Null
   if ($LASTEXITCODE -ne 0) {
-    $ttl = aws dynamodb describe-time-to-live --region $Region --table-name $TicketsTable --query 'TimeToLiveDescription.TimeToLiveStatus' --output text
+    $ttl = aws dynamodb describe-time-to-live --region $AppRegion --table-name $TicketsTable --query 'TimeToLiveDescription.TimeToLiveStatus' --output text
     if ($ttl -notin @("ENABLED", "ENABLING")) { throw "Support ticket retention could not be enabled." }
   }
-  aws dynamodb update-continuous-backups --region $Region --table-name $TicketsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
+  aws dynamodb update-continuous-backups --region $AppRegion --table-name $TicketsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
   Assert-AwsSuccess "Support ticket point-in-time recovery could not be enabled."
 
-  $routeId = aws apigatewayv2 get-routes --region $Region --api-id $ApiId --query "Items[?RouteKey=='POST /support-tickets'].RouteId | [0]" --output text
+  $routeId = aws apigatewayv2 get-routes --region $AppRegion --api-id $ApiId --query "Items[?RouteKey=='POST /support-tickets'].RouteId | [0]" --output text
   Assert-AwsSuccess "Support API routes could not be inspected."
   if (-not $routeId -or $routeId -eq "None") {
-    aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /support-tickets" --target "integrations/$AuthIntegrationId" --output json | Out-Null
-    Assert-AwsSuccess "Support API route creation failed."
+    aws apigatewayv2 create-route --region $AppRegion --api-id $ApiId --route-key "POST /support-tickets" --target "integrations/$AuthIntegrationId" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      $existingRouteId = aws apigatewayv2 get-routes --region $AppRegion --api-id $ApiId --query "Items[?RouteKey=='POST /support-tickets'].RouteId | [0]" --output text
+      if (-not $existingRouteId -or $existingRouteId -eq "None") { throw "Support API route creation failed." }
+    }
   }
-  aws lambda add-permission --region $Region --function-name DANZSTAK-Auth-API --statement-id AllowSupportTicketsFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:${AccountId}:${ApiId}/*/POST/support-tickets" --output json 2>$null | Out-Null
+  aws lambda add-permission --region $AppRegion --function-name DANZSTAK-Auth-API --statement-id AllowSupportTicketsFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${AppRegion}:${AccountId}:${ApiId}/*/POST/support-tickets" --output json 2>$null | Out-Null
   if ($LASTEXITCODE -ne 0) {
-    $permission = aws lambda get-policy --region $Region --function-name DANZSTAK-Auth-API --query Policy --output text
+    $permission = aws lambda get-policy --region $AppRegion --function-name DANZSTAK-Auth-API --query Policy --output text
     if ($permission -notmatch "AllowSupportTicketsFromApiGateway") { throw "Support API invoke permission failed." }
   }
 
