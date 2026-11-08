@@ -35,7 +35,8 @@ function kit(look) {
       await page.locator(`#epkPreview[data-look="${look}"]`).waitFor({state:"visible"});
       const state = await page.evaluate(() => {
         const preview=document.getElementById("epkPreview"), hero=preview.querySelector(".epk-hero"), style=getComputedStyle(preview), heroStyle=getComputedStyle(hero);
-        return { scrollWidth:document.documentElement.scrollWidth, bodyWidth:document.body.scrollWidth, look:preview.dataset.look, ground:style.backgroundColor, ink:style.color, display:heroStyle.fontFamily, emptyNotes:preview.querySelectorAll(".empty-note").length, sections:preview.querySelectorAll(".epk-body>section").length, reviewsHidden:document.getElementById("epkReviews").hidden };
+        const loadButton=preview.querySelector(".epk-player-load");
+        return { scrollWidth:document.documentElement.scrollWidth, bodyWidth:document.body.scrollWidth, look:preview.dataset.look, ground:style.backgroundColor, ink:style.color, display:heroStyle.fontFamily, emptyNotes:preview.querySelectorAll(".empty-note").length, sections:preview.querySelectorAll(".epk-body>section").length, reviewsHidden:document.getElementById("epkReviews").hidden, iframeCount:preview.querySelectorAll("iframe").length, loadButtonCount:preview.querySelectorAll(".epk-player-load").length, loadButtonHeight:loadButton?.getBoundingClientRect().height || 0 };
       });
       assert.equal(errors.length,0,`${look} ${width}px browser errors: ${errors.join(" | ")}`);
       assert.equal(externalFonts.length,0,`${look} requested a third-party font`);
@@ -45,7 +46,18 @@ function kit(look) {
       assert.equal(state.emptyNotes,0,`${look} public page exposes an empty placeholder`);
       assert.ok(state.sections>=2,`${look} lost useful sparse content`);
       assert.equal(state.reviewsHidden,true,`${look} exposes optional review errors on the public EPK`);
+      assert.equal(state.iframeCount,0,`${look} eagerly loads a third-party player before consent`);
+      assert.equal(state.loadButtonCount,look === "punk" ? 0 : 1,`${look} has the wrong number of explicit player controls`);
+      if (look !== "punk") assert.ok(state.loadButtonHeight>=44,`${look} player control is too small to tap`);
       await page.screenshot({ path:path.join(captureDir,`${look}-${width}.png`), fullPage:true });
+      if (look === "techno" && width === 390) {
+        await page.locator(".epk-player-load").click();
+        await page.locator(".epk-media-card iframe").waitFor({state:"attached"});
+        assert.equal(await page.locator("#epkPreview iframe").count(),1,"explicit activation must load exactly one player");
+        await page.evaluate(() => Object.defineProperty(document,"hidden",{configurable:true,value:true}));
+        await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+        assert.equal(await page.locator("#epkPreview iframe").count(),0,"hidden EPK pages must unload active players");
+      }
       await context.close();
     }
     for (const width of widths) {

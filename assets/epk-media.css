@@ -27,9 +27,15 @@
 .epk-downloads a { display: block; padding: 8px; }
 .epk-logo { display: block; width: auto; max-width: min(220px,70%); max-height: 82px; object-fit: contain; object-position: left center; margin-bottom: 12px; }
 .epk-embeds { display: grid; gap: 12px; }
-.epk-embeds > div { min-width: 0; }
+.epk-media-card { min-width: 0; padding: 12px; border: 1px solid currentColor; }
 .epk-embeds h3 { margin: 0 0 6px; font-size: 1rem; }
-.epk-embeds iframe { display: block; width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 10px; margin: 0 0 7px; background: #10141b; }
+.epk-media-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.epk-player-load { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border: 1px solid currentColor; background: transparent; color: inherit; font: inherit; font-weight: 800; cursor: pointer; }
+.epk-player-load::before { content: "\25B6"; font-size: .8em; }
+.epk-player-load[hidden] { display: none; }
+.epk-player-load:hover,
+.epk-player-load:focus-visible { background: color-mix(in srgb,currentColor 12%,transparent); }
+.epk-embeds iframe { display: block; width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 10px; margin: 10px 0 0; background: #10141b; }
 .epk-provider { margin: 0; color: #596579; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
 .epk-contact { display: grid; gap: 8px; }
 .epk-contact p { margin: 0; font-weight: 800; }
@@ -54,4 +60,6 @@
 
 @media print {
   .epk-public-actions { display: none !important; }
+  .epk-player-load,
+  .epk-embeds iframe { display: none !important; }
 }

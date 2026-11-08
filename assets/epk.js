@@ -86,7 +86,7 @@
   function section(title, content) { if (!content) return; const wrap = document.createElement("section"); wrap.dataset.epkSection = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); wrap.append(text("h2", title), content); preview.querySelector(".epk-body").append(wrap); }
   function list(items) { if (!items?.length) return null; const ul = document.createElement("ul"); items.forEach(item => ul.append(text("li", item))); return ul; }
   function links(items) { if (!items?.length) return null; const wrap = document.createElement("div"); wrap.className = "link-list"; items.forEach(item => { if (!/^https:\/\//i.test(item.url || "")) return; const a = text("a", item.label); a.href = item.url; a.target = "_blank"; a.rel = "noopener noreferrer"; wrap.append(a); }); return wrap; }
-  function providerEmbed(item) {
+  function providerSource(item) {
     let source = "";
     try {
       const url = new URL(item.url), host = url.hostname.replace(/^www\./, "").toLowerCase();
@@ -95,10 +95,7 @@
       else if (host === "vimeo.com") { const id = url.pathname.split("/").filter(Boolean).find(part => /^\d+$/.test(part)); if (id) source = `https://player.vimeo.com/video/${id}`; }
       else if (host === "open.spotify.com" && /^\/(track|album|playlist|episode|show)\/[A-Za-z0-9]+/.test(url.pathname)) source = `https://open.spotify.com/embed${url.pathname}`;
     } catch {}
-    if (!source) return null;
-    const frame = document.createElement("iframe");
-    frame.src = source; frame.title = item.label; frame.loading = "lazy"; frame.allow = "autoplay; encrypted-media; fullscreen; picture-in-picture"; frame.referrerPolicy = "strict-origin-when-cross-origin"; frame.allowFullscreen = true;
-    return frame;
+    return source;
   }
   function providerName(value) {
     try {
@@ -114,7 +111,56 @@
     } catch {}
     return "External media";
   }
-  function mediaLinks(items) { if (!items?.length) return null; const wrap = document.createElement("div"); wrap.className = "epk-embeds"; items.forEach(item => { if (!/^https:\/\//i.test(item.url || "")) return; const card = document.createElement("div"), embed = providerEmbed(item), provider = providerName(item.url), a = text("a", `Open on ${provider}`); a.href = item.url; a.target = "_blank"; a.rel = "noopener noreferrer"; card.append(text("p", provider, "epk-provider"), text("h3", item.label)); if (embed) card.append(embed); card.append(a); wrap.append(card); }); return wrap; }
+  function stopProviderEmbeds(except = null) {
+    document.querySelectorAll(".epk-media-card[data-player-active='true']").forEach(card => {
+      if (card === except) return;
+      card.querySelector("iframe")?.remove();
+      const button = card.querySelector(".epk-player-load");
+      if (button) button.hidden = false;
+      delete card.dataset.playerActive;
+    });
+  }
+  function activateProvider(card, item, source, button) {
+    stopProviderEmbeds(card);
+    card.querySelector("iframe")?.remove();
+    const frame = document.createElement("iframe");
+    frame.src = source;
+    frame.title = `${item.label} player`;
+    frame.loading = "eager";
+    frame.allow = "encrypted-media; fullscreen; picture-in-picture";
+    frame.referrerPolicy = "strict-origin-when-cross-origin";
+    frame.allowFullscreen = true;
+    card.dataset.playerActive = "true";
+    button.hidden = true;
+    button.after(frame);
+  }
+  function mediaLinks(items) {
+    if (!items?.length) return null;
+    const wrap = document.createElement("div");
+    wrap.className = "epk-embeds";
+    items.forEach(item => {
+      if (!/^https:\/\//i.test(item.url || "")) return;
+      const card = document.createElement("article"), actions = document.createElement("div"), source = providerSource(item), provider = providerName(item.url), link = text("a", `Open on ${provider}`);
+      card.className = "epk-media-card";
+      actions.className = "epk-media-actions";
+      link.href = item.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      if (source) {
+        const load = text("button", `Load ${provider} player`, "epk-player-load");
+        load.type = "button";
+        load.setAttribute("aria-label", `Load ${item.label} from ${provider}`);
+        load.addEventListener("click", () => activateProvider(card, item, source, load));
+        actions.append(load);
+      }
+      actions.append(link);
+      card.append(text("p", provider, "epk-provider"), text("h3", item.label), actions);
+      wrap.append(card);
+    });
+    return wrap;
+  }
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stopProviderEmbeds(); });
+  window.addEventListener("pagehide", () => stopProviderEmbeds());
   function render(kit = {}) {
     preview.replaceChildren(); const hero = document.createElement("div"), body = document.createElement("div"); hero.className = "epk-hero"; body.className = "epk-body";
     const look = epkLooks.has(kit.look) ? kit.look : "techno";

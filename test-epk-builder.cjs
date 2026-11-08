@@ -44,6 +44,10 @@ assert.match(client, /discardEpkMedia/, "failed EPK uploads should be removed fr
 assert.match(client, /method:"DELETE"[\s\S]*EPK and its private files were deleted/, "the EPK owner should receive an explicit permanent-delete flow");
 assert.match(client, /youtube-nocookie\.com\/embed/, "supported video providers should render privacy-enhanced embeds");
 assert.match(client, /open\.spotify\.com\/embed/, "supported music providers should render provider-hosted embeds");
+assert.match(client, /Load \$\{provider\} player[\s\S]*addEventListener\("click", \(\) => activateProvider/, "provider players must load only after explicit interaction");
+assert.match(client, /stopProviderEmbeds\(card\)[\s\S]*card\.querySelector\("iframe"\)\?\.remove\(\)/, "starting an EPK player must stop any previous player");
+assert.match(client, /visibilitychange[\s\S]*document\.hidden[\s\S]*stopProviderEmbeds\(\)[\s\S]*pagehide/, "EPK players must stop when the page becomes hidden or exits");
+assert.doesNotMatch(client, /allow = "autoplay/, "EPK provider frames must not receive autoplay permission");
 for (const provider of ["SoundCloud","Bandcamp","TikTok","Instagram","Facebook"]) assert.match(client, new RegExp(`return "${provider}"`), `${provider} links should receive a recognizable safe preview`);
 assert.match(client, /section\("Follow", links\(kit\.socialLinks\)\)/, "social links should render on the public EPK");
 assert.match(client, /mailto:\$\{publicEmail\}/, "the artist-approved public booking email should be actionable");
