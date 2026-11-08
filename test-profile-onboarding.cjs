@@ -8,13 +8,15 @@ const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 
 assert.match(feed, /id="profileOnboarding"[^>]*hidden/, 'the identity prompt is present but hidden until an incomplete profile is confirmed');
 assert.match(feed, /What should people call you\?/, 'the prompt uses ordinary language rather than profile jargon');
-assert.match(feed, /assets\/profile-onboarding\.js\?v=8/, 'the live feed loads current first-login identity behavior');
+assert.match(feed, /assets\/profile-onboarding\.js\?v=9/, 'the live feed loads current first-login identity behavior');
 assert.match(feed, /assets\/profile-onboarding\.css\?v=2/, 'the live feed loads responsive identity styling');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.css"/, 'the installed app keeps the identity layout available offline');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.js"/, 'the installed app keeps the identity behavior available offline');
 assert.match(source, /toLocaleLowerCase\(\)/, 'generic account detection ignores capitalization');
 assert.match(source, /"danzstak member", "danzstak user", "new member"/, 'legacy generic display names are detected');
 assert.match(source, /"danzstak-member", "danzstak\.member", "danzstak_member", "member", "new-member"/, 'legacy generic usernames are detected');
+assert.match(source, /if \(!genericName\) return;/, 'an existing visible name never blocks the Mix just because its automatic username is generic');
+assert.doesNotMatch(source, /if \(!genericName && !genericHandle\) return;/, 'username cleanup alone cannot reopen first-name onboarding');
 assert.match(source, /suggestedHandle\(nameInput\.value\)/, 'typing a name automatically suggests a username');
 assert.match(feed, /id="profileOnboardingHandle"[^>]*type="hidden"/, 'new members only have to understand and enter one visible name field');
 assert.match(source, /DanzStak handles the username for you/, 'plain-language help explains that the technical username is automatic');
@@ -49,4 +51,4 @@ assert.match(source, /onboardingDismissed \|\| !onboardingEligible \|\| !homeIsA
 assert.match(css, /@media\(max-width:700px\)/, 'the identity card stacks on phones');
 assert.doesNotMatch(source, /profile\.email|username@|email address/i, 'identity onboarding never exposes or requests an account email');
 
-console.log('Profile onboarding checks passed: generic members receive a simple responsive name prompt in all 15 languages with server conflict suggestions.');
+console.log('Profile onboarding checks passed: only members missing a visible name receive the localized setup prompt; automatic usernames stay out of the way.');

@@ -144,9 +144,13 @@ jobs:
             }
           }
           throw 'Static review server did not start.'
-      - name: Verify signed-in device management in real browsers
+      - name: Verify signed-in account flows in real browsers
         shell: pwsh
-        run: node .\browser-checks\account-security.cjs
+        env:
+          DANZSTAK_BASE_URL: http://127.0.0.1:8132
+        run: |
+          node .\browser-checks\account-security.cjs
+          node .\browser-checks\profile-onboarding-identity.cjs
       - name: Stop static review server
         if: always()
         shell: pwsh

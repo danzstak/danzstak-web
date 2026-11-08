@@ -136,7 +136,7 @@
       const normalizedHandle = String(profile.handle || "").trim().replace(/^@/, "").toLocaleLowerCase();
       const genericName = !normalizedName || ["danzstak member", "danzstak user", "new member"].includes(normalizedName);
       const genericHandle = !normalizedHandle || ["danzstak-member", "danzstak.member", "danzstak_member", "member", "new-member"].includes(normalizedHandle);
-      if (!genericName && !genericHandle) return;
+      if (!genericName) return;
       onboardingEligible = true;
       nameInput.value = genericName ? "" : profile.name;
       handleInput.value = genericHandle ? suggestedHandle(nameInput.value) : profile.handle;
