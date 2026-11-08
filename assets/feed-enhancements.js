@@ -357,7 +357,7 @@ function renderSavedPosts(list) {
       const preview = media.cloneNode(false);
       preview.removeAttribute("id");
       preview.className = "saved-post-media";
-      if (preview.tagName === "VIDEO") { preview.controls = true; preview.autoplay = false; preview.muted = false; preview.preload = "metadata"; }
+      if (preview.tagName === "VIDEO") { preview.controls = true; preview.autoplay = false; preview.muted = true; preview.preload = "metadata"; }
       card.appendChild(preview);
     }
     card.appendChild(view); list.appendChild(card);
@@ -1829,7 +1829,7 @@ function renderWorkspace(name) {
       card.className = "feed-media-card";
       const copy = source.cloneNode();
       copy.removeAttribute("loading");
-      if (copy.tagName === "VIDEO") { copy.controls = true; copy.autoplay = false; copy.muted = false; }
+      if (copy.tagName === "VIDEO") { copy.controls = true; copy.autoplay = false; copy.muted = true; }
       const caption = document.createElement("p");
       caption.textContent = source.closest(".post")?.querySelector(".post-content")?.textContent || "Shared on DanzStak";
       card.append(copy, caption);
