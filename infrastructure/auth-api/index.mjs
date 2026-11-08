@@ -1097,7 +1097,7 @@ async function groupExists(groupId) {
     Key: { userEmail: { S: `GROUP#${groupId}` }, groupId: { S: "META" } },
     ConsistentRead: true
   }));
-  return Boolean(found.Item);
+  return Boolean(found.Item && found.Item.deletionState?.S !== "pending");
 }
 
 async function groupRecord(groupId) {
@@ -1107,7 +1107,7 @@ async function groupRecord(groupId) {
     Key: { userEmail: { S: `GROUP#${groupId}` }, groupId: { S: "META" } },
     ConsistentRead: true
   }));
-  return found.Item || null;
+  return found.Item?.deletionState?.S === "pending" ? null : found.Item || null;
 }
 
 async function groupMembership(groupId, userEmail) {
@@ -1140,7 +1140,7 @@ async function listGroups(event) {
   const counts = new Map();
   for (const item of memberships) counts.set(item.groupId.S, (counts.get(item.groupId.S) || 0) + 1);
   const viewerMemberships = new Map(memberships.filter(item => item.userEmail?.S === viewerEmail).map(item => [item.groupId.S, item]));
-  const groups = items.filter(item => item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#")).map(item => {
+  const groups = items.filter(item => item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#") && item.deletionState?.S !== "pending").map(item => {
     const id = item.userEmail.S.slice(6), isOwner = item.ownerId?.S === userId, membership = viewerMemberships.get(id);
     const storedDescription = item.description?.S || "";
     const description = storedDescription === "A new DanzStak community group." ? "A new DanzStak Tribe." : storedDescription || "A DanzStak Tribe.";
@@ -1324,7 +1324,7 @@ async function updateGroupCover(event) {
       Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
       UpdateExpression: "SET coverKey = :cover, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
       ExpressionAttributeValues: expressionValues,
-      ConditionExpression: "attribute_exists(userEmail) AND (attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now) AND " + (oldKey ? "coverKey = :oldCover" : "attribute_not_exists(coverKey)")
+      ConditionExpression: "attribute_exists(userEmail) AND attribute_not_exists(deletionState) AND (attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now) AND " + (oldKey ? "coverKey = :oldCover" : "attribute_not_exists(coverKey)")
     }));
   } catch (error) {
     if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "The Tribe cover changed on another device. Try again." }) };
@@ -1344,29 +1344,58 @@ async function deleteGroup(event) {
   const found = await db.send(new GetItemCommand({ TableName: groupsTable, Key: key, ConsistentRead: true }));
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
   if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the Tribe founder can delete it." }) };
-  const coverCleanup = await cleanupGroupCoverObjects(id, [found.Item.coverKey?.S || "", ...(found.Item.coverCleanup?.SS || [])], { allowActive: true });
-  if (coverCleanup.pending) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe cover could not be removed yet. Try again.", deleted: false }) };
-  const members = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId" });
+  const storedCoverKey = found.Item.coverKey?.S || "";
+  if (found.Item.deletionState?.S !== "pending") {
+    const pendingValues = { ":owner": { S: userId }, ":pending": { S: "pending" }, ":started": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
+    const pendingConditions = ["ownerId = :owner", "attribute_not_exists(deletionState)", "(attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now)"];
+    if (storedCoverKey) { pendingValues[":cover"] = { S: storedCoverKey }; pendingConditions.push("coverKey = :cover"); }
+    else pendingConditions.push("attribute_not_exists(coverKey)");
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: groupsTable,
+        Key: key,
+        UpdateExpression: "SET deletionState = :pending, deletionStartedAt = :started REMOVE coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+        ConditionExpression: pendingConditions.join(" AND "),
+        ExpressionAttributeValues: pendingValues
+      }));
+      found.Item.deletionState = { S: "pending" };
+      found.Item.deletionStartedAt = pendingValues[":started"];
+    } catch (error) {
+      if (error.name !== "ConditionalCheckFailedException") throw error;
+      const current = await db.send(new GetItemCommand({ TableName: groupsTable, Key: key, ConsistentRead: true }));
+      if (current.Item?.ownerId?.S !== userId || current.Item?.deletionState?.S !== "pending") return { statusCode: 409, headers, body: JSON.stringify({ error: "The Tribe changed on another device. Try deletion again.", deleted: false }) };
+      found.Item = current.Item;
+    }
+  }
+  let members;
+  try {
+    members = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId", ConsistentRead: true });
+  } catch (error) {
+    console.error("Tribe member discovery remains pending", { id, error });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe deletion is safely pending. Try again.", deleted: false, deletionPending: true }) };
+  }
   let pendingMemberDeletes = members.map(item => () => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })));
   for (let attempt = 0; attempt < 3 && pendingMemberDeletes.length; attempt += 1) {
     const settled = await Promise.allSettled(pendingMemberDeletes.map(remove => remove()));
     pendingMemberDeletes = pendingMemberDeletes.filter((remove, index) => settled[index].status === "rejected");
   }
-  if (pendingMemberDeletes.length) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe members could not be removed yet. Try again.", deleted: false }) };
+  if (pendingMemberDeletes.length) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe deletion is safely pending. Try again.", deleted: false, deletionPending: true }) };
+  const coverCleanup = await cleanupGroupCoverObjects(id, [found.Item.coverKey?.S || "", ...(found.Item.coverCleanup?.SS || [])], { allowActive: true });
+  if (coverCleanup.pending) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe deletion is safely pending. Try again.", deleted: false, deletionPending: true }) };
   let deleted = false;
-  const deleteValues = { ":owner": { S: userId } };
-  const storedCoverKey = found.Item.coverKey?.S || "";
-  if (storedCoverKey) deleteValues[":cover"] = { S: storedCoverKey };
+  const deleteValues = { ":owner": { S: userId }, ":pending": { S: "pending" } };
+  const pendingCoverKey = found.Item.coverKey?.S || "";
+  if (pendingCoverKey) deleteValues[":cover"] = { S: pendingCoverKey };
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      await db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key, ConditionExpression: "ownerId = :owner AND " + (storedCoverKey ? "coverKey = :cover" : "attribute_not_exists(coverKey)"), ExpressionAttributeValues: deleteValues }));
+      await db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key, ConditionExpression: "ownerId = :owner AND deletionState = :pending AND " + (pendingCoverKey ? "coverKey = :cover" : "attribute_not_exists(coverKey)"), ExpressionAttributeValues: deleteValues }));
       deleted = true;
       break;
     } catch (error) {
       if (attempt === 2) console.error("Tribe deletion remains pending", { id, error });
     }
   }
-  if (!deleted) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe could not be removed yet. Try again.", deleted: false }) };
+  if (!deleted) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe deletion is safely pending. Try again.", deleted: false, deletionPending: true }) };
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
@@ -1378,14 +1407,14 @@ async function broadcastGroup(event) {
   if (!/^[a-f0-9-]{36}$/.test(id)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid Tribe required." }) };
   const data = parseJsonBody(event), message = String(data?.message || "").trim();
   if (!message || message.length > 500) return { statusCode: 400, headers, body: JSON.stringify({ error: "Announcement must contain 1–500 characters." }) };
-  const found = await db.send(new GetItemCommand({ TableName: groupsTable, Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } }, ConsistentRead: true }));
-  if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
-  if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the Tribe creator can notify @everyone." }) };
+  const meta = await groupRecord(id);
+  if (!meta) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
+  if (meta.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the Tribe creator can notify @everyone." }) };
   const actorEmail = await accountForSub(userId);
   if (!actorEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
   const members = (await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail" }))
     .map(item => item.userEmail?.S).filter(email => email && email !== actorEmail && !email.startsWith("GROUP#"));
-  const createdAt = new Date().toISOString(), eventId = `group_everyone#${id}#${randomUUID()}`, groupName = found.Item.name?.S || "your Tribe";
+  const createdAt = new Date().toISOString(), eventId = `group_everyone#${id}#${randomUUID()}`, groupName = meta.name?.S || "your Tribe";
   for (let offset = 0; offset < members.length; offset += 25) {
     await Promise.all(members.slice(offset, offset + 25).map(userEmail => db.send(new PutItemCommand({
       TableName: engagementNotificationsTable,
@@ -1664,6 +1693,7 @@ async function getSecurePosts(event) {
   const friendEmails = new Set();
   const blockedEmails = new Set();
   const viewerGroupIds = new Set();
+  const activeGroupIds = new Set(defaultGroupIds);
   const groupNames = new Map([
     ["default-0", "Visual Artist"], ["default-1", "DJs & Producers"], ["default-2", "Fans"], ["default-3", "Venues"], ["default-4", "Events"],
     ["default-5", "Scenes"], ["default-6", "Bands"], ["default-7", "Industry"], ["default-8", "Politics"], ["default-9", "Religion"]
@@ -1681,11 +1711,17 @@ async function getSecurePosts(event) {
     const groupItems = await scanAll({ TableName: groupsTable, ConsistentRead: true });
     for (const item of groupItems) {
       if (item.userEmail?.S === viewerEmail && item.groupId?.S && item.groupId.S !== "META") viewerGroupIds.add(item.groupId.S);
-      if (item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#")) groupNames.set(item.userEmail.S.slice(6), item.name?.S || "Tribe");
+      if (item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#") && item.deletionState?.S !== "pending") {
+        const groupId = item.userEmail.S.slice(6);
+        activeGroupIds.add(groupId);
+        groupNames.set(groupId, item.name?.S || "Tribe");
+      }
     }
   }
 
-  const canView = item => item.userId?.S === userId || (!blockedEmails.has(item.userEmail?.S) && (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S))));
+  const canView = item => item.groupId?.S
+    ? activeGroupIds.has(item.groupId.S) && (item.userId?.S === userId || !blockedEmails.has(item.userEmail?.S) && viewerGroupIds.has(item.groupId.S))
+    : item.userId?.S === userId || !blockedEmails.has(item.userEmail?.S) && (item.audience?.S === "public" || item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S));
   const accessibleSources = new Map(rawPosts.filter(canView).map(item => [item.postId.S, item]));
   const visiblePosts = rawPosts.filter(item => item.placementRemoved?.BOOL !== true && canView(item) && (!item.sharedPostId?.S || accessibleSources.has(item.sharedPostId.S)));
   const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));

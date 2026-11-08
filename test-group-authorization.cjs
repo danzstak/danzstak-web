@@ -1,10 +1,10 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('infrastructure/auth-api/index.mjs','utf8');
 const a=source.indexOf('async function createGroup(event)'),b=source.indexOf('async function canViewProfileMedia(',a);
-let authenticated=true,owner='owner',existing=true;const writes=[];
-class Get {constructor(input){this.input=input;}}class Put {constructor(input){this.input=input;}}class Delete {constructor(input){this.input=input;}}
-const context=vm.createContext({corsHeaders:()=>({}),allowedOrigins:new Set(['https://danzstak.com']),getAuthenticatedUser:async()=>authenticated?'owner':null,groupCategories:new Set(['Artists']),groupsTable:'groups',randomUUID:()=> '11111111-1111-1111-1111-111111111111',accountForSub:async()=> 'owner@example.com',
- GetItemCommand:Get,PutItemCommand:Put,DeleteItemCommand:Delete,scanAll:async()=>[],db:{send:async command=>{if(command instanceof Get)return {Item:existing?{ownerId:{S:owner}}:undefined};writes.push(command.input);return {};}}
+let authenticated=true,owner='owner',existing=true,deletionState='';const writes=[];
+class Get {constructor(input){this.input=input;}}class Put {constructor(input){this.input=input;}}class Update {constructor(input){this.input=input;}}class Delete {constructor(input){this.input=input;}}
+const context=vm.createContext({corsHeaders:()=>({}),allowedOrigins:new Set(['https://danzstak.com']),getAuthenticatedUser:async()=>authenticated?'owner':null,groupCategories:new Set(['Artists']),groupsTable:'groups',randomUUID:()=> '11111111-1111-1111-1111-111111111111',now:()=>100,accountForSub:async()=> 'owner@example.com',
+ GetItemCommand:Get,PutItemCommand:Put,UpdateItemCommand:Update,DeleteItemCommand:Delete,scanAll:async()=>[],db:{send:async command=>{if(command instanceof Get)return {Item:existing?{ownerId:{S:owner},...(deletionState?{deletionState:{S:deletionState}}:{})}:undefined};writes.push(command.input);if(command instanceof Update)deletionState='pending';if(command instanceof Delete&&command.input.Key.groupId.S==='META')existing=false;return {};}}
 });vm.runInContext(source.slice(a,b),context);
 async function call(name,body,origin='https://danzstak.com') {context.event={headers:{origin},body:JSON.stringify(body),pathParameters:{groupId:'11111111-1111-1111-1111-111111111111'}};return vm.runInContext(name+'(event)',context);}
 (async()=>{

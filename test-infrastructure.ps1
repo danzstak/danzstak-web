@@ -68,7 +68,7 @@ if ($callTemplate.Contains("kind:{S:'reel'},content:{S:url.href},createdAt:{S:cr
 foreach ($feedPaginationControl in @('async function scanAll(request, maximumItems = 5000)', 'page.LastEvaluatedKey', 'await scanAll({ TableName: postsTable', 'async function batchGetFriendships(viewerEmail, friendEmails)', 'offset += 100', 'result.UnprocessedKeys?.[friendsTable]?.Keys')) {
   if (-not $authApi.Contains($feedPaginationControl)) { throw "Feed pagination or complete friendship authorization is missing: $feedPaginationControl" }
 }
-foreach ($completeCleanupControl in @('async function queryAll(request, maximumItems = 5000)', 'const members = await scanAll({ TableName: groupsTable', 'const memberships = await scanAll({', 'queryAll({ TableName: reactionsTable', 'queryAll({ TableName: commentsTable', 'linkedStories = await scanAll({', 'const items = await queryAll({ TableName: engagementNotificationsTable')) {
+foreach ($completeCleanupControl in @('async function queryAll(request, maximumItems = 5000)', 'members = await scanAll({ TableName: groupsTable', 'const memberships = await scanAll({', 'queryAll({ TableName: reactionsTable', 'queryAll({ TableName: commentsTable', 'linkedStories = await scanAll({', 'const items = await queryAll({ TableName: engagementNotificationsTable')) {
   if (-not $authApi.Contains($completeCleanupControl)) { throw "Engagement, profile authorization, or deletion cleanup stops at one DynamoDB page: $completeCleanupControl" }
 }
 foreach ($diyBookingControl in @('genre ? `${genre} music club` : "DIY punk metal rock music club"', 'function isBookableClub(place, genre = "")', 'function hasBookingContact(place)', 'const wrongScale =', 'const wrongFormat =', 'const eventNotRoom =', 'MaxResults: 50', 'slice(0, 24)', 'Filter: { BoundingBox:')) {
@@ -381,9 +381,11 @@ if (-not $template.Contains("if(body.action==='list'){")) {
 foreach ($groupAuthorizationControl in @(
   "const defaultGroupIds=new Set(",
   'async function groupExists(groupId)',
+  "found.Item&&found.Item.deletionState?.S!=='pending'",
   'async function sharesValidGroup(a,b)',
-  "if(!(await groupExists(groupId)))return json(404,{error:'Group not found'})",
-  'sharedGroup:await sharesValidGroup(myGroups,theirs)',
+  "ConditionExpression:'attribute_exists(userEmail) AND attribute_not_exists(deletionState)'",
+  'sharedGroup:await sharesValidGroup(activeGroups,theirs)',
+  '- !GetAtt GroupMembersTable.Arn',
   'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]'
 )) {
   if (-not $template.Contains($groupAuthorizationControl)) { throw "Messaging/calling accepts unverified group authorization: $groupAuthorizationControl" }
