@@ -189,6 +189,10 @@ async function createPortraitVideo(browser) {
             clapperInside: dailyClapper
               ? dailyClapper.left >= dailyCard.left && dailyClapper.bottom <= dailyCard.bottom
               : false,
+            clapperOverPortrait: dailyClapper
+              ? dailyClapper.left >= dailyPortrait.left && dailyClapper.right <= dailyPortrait.right
+                && dailyClapper.top >= dailyPortrait.top && dailyClapper.bottom <= dailyPortrait.bottom
+              : false,
             backgroundSize: getComputedStyle(document.querySelector("#storiesRail .story-create-avatar")).backgroundSize
           } : null,
           firstPostTop,
@@ -205,6 +209,7 @@ async function createPortraitVideo(browser) {
       assert.equal(geometry.dailyPortrait.radius, "50%", `${width}px Dailies portrait does not match the profile avatar`);
       assert.equal(geometry.dailyPortrait.backgroundSize, "cover", `${width}px Dailies portrait is not cropped to fill the tile`);
       assert.equal(geometry.dailyPortrait.clapperInside, true, `${width}px Dailies clapper is not contained in the lower-left of the image`);
+      assert.equal(geometry.dailyPortrait.clapperOverPortrait, true, `${width}px Dailies clapper is beside the portrait instead of over it`);
       assert.ok(geometry.image.aligned, `${width}px direct image is inset: ${JSON.stringify(geometry.image)}`);
       assert.ok(geometry.video.aligned, `${width}px direct video is inset: ${JSON.stringify(geometry.video)}`);
       if (width < 700) {

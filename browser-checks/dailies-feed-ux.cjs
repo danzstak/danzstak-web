@@ -67,6 +67,7 @@ function fixture(url) {
           avatarBackground: getComputedStyle(avatar).backgroundImage,
           avatarRadius: getComputedStyle(avatar).borderRadius,
           avatarDominatesArt: avatarRect.width >= artRect.width * .88 && avatarRect.height >= artRect.height * .88,
+          slateInsideAvatar: slateRect.left >= avatarRect.left && slateRect.right <= avatarRect.right && slateRect.top >= avatarRect.top && slateRect.bottom <= avatarRect.bottom,
           artCoversCreator: Math.abs(artRect.left - creatorRect.left) <= 1 && Math.abs(artRect.top - creatorRect.top) <= 1 && Math.abs(artRect.width - creatorRect.width) <= 1 && Math.abs(artRect.height - creatorRect.height) <= 1,
           take: slate.querySelector("small").textContent,
           clock: slate.querySelector("time").textContent,
@@ -88,6 +89,7 @@ function fixture(url) {
       assert.notEqual(result.avatarBackground, "none", `${width}px genuine profile picture was not installed`);
       assert.equal(result.avatarRadius, "50%", `${width}px Dailies profile image must match the circular profile portrait`);
       assert.equal(result.avatarDominatesArt, true, `${width}px Dailies profile image is too small for its artwork`);
+      assert.equal(result.slateInsideAvatar, true, `${width}px Dailies clapper is not over the profile image`);
       assert.equal(result.artCoversCreator, true, `${width}px Dailies artwork does not fill the complete creator tile`);
       assert.equal(result.take, "TAKE 5", `${width}px durable Dailies take count is wrong`);
       assert.ok(result.clock.length > 0, `${width}px local slate time is missing`);

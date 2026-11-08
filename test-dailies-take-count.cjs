@@ -38,8 +38,8 @@ assert.match(art, /#storiesRail:not\(:has\(\.story\[data-story-id\]\)\) \.story-
   "the Dailies artwork must fill the complete square without a dead label strip");
 assert.match(art, /#storiesRail \.story-create-caption \{[\s\S]*?position:absolute;[\s\S]*?inset:6px 6px auto auto;/,
   "the Dailies label must overlay the image instead of consuming a separate row");
-assert.match(art, /#storiesRail \.daily-clapper \{[\s\S]*?inset:auto auto 5px 6px;/,
-  "the compact Dailies clapper must stay over the lower-left corner of the artwork");
+assert.match(art, /#storiesRail \.daily-clapper \{[\s\S]*?inset:auto auto 18px 18px;[\s\S]*?width:58px;/,
+  "the compact Dailies clapper must sit over the profile picture's lower-left corner");
 
 const createStoryLine = template.split("\n").find(line => line.includes("async function createStory("));
 class TransactWriteItemsCommand { constructor(input) { this.input = input; } }

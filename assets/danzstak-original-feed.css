@@ -179,13 +179,12 @@ body.danzstak-original #storiesRail .story {
 }
 body.danzstak-original #storiesRail .story-create {
   position:relative;
-  overflow:hidden;
+  overflow:visible;
   padding:0!important;
   border:0;
   background:transparent!important;
   box-shadow:none;
-  border-radius:16px;
-  box-shadow:0 10px 28px rgba(18,29,45,.16);
+  border-radius:50%;
 }
 body.danzstak-original #storiesRail .story-create::before {display:none}
 body.danzstak-original #storiesRail .story-create-caption {
@@ -229,6 +228,10 @@ body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-crea
   height:100%;
   min-height:0;
 }
+body.danzstak-original #storiesRail .story-create-art {
+  border-radius:50%;
+  background:transparent!important;
+}
 body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-caption {
   inset:6px 6px auto auto;
   width:auto;
@@ -246,9 +249,9 @@ body.danzstak-original #storiesRail .story-create-identity {
 }
 body.danzstak-original #storiesRail .story-create-avatar {
   position:absolute;
-  inset:7px;
-  width:calc(100% - 14px);
-  height:calc(100% - 14px);
+  inset:3px;
+  width:calc(100% - 6px);
+  height:calc(100% - 6px);
   aspect-ratio:1;
   border:5px solid #fff;
   outline:3px solid var(--ds-accent);
@@ -264,8 +267,8 @@ body.danzstak-original #storiesRail .story-create:hover .story-create-avatar {tr
 body.danzstak-original #storiesRail .daily-clapper {
   display:grid!important;
   position:absolute;
-  inset:auto auto 5px 6px;
-  width:62px;
+  inset:auto auto 18px 18px;
+  width:58px;
   box-sizing:border-box;
   align-content:start;
   justify-items:start;
@@ -449,9 +452,9 @@ body.danzstak-original .right :is(h3,h2) {
     height:100%;
   }
   body.danzstak-original #storiesRail .story-create-avatar {
-    inset:7px;
-    width:calc(100% - 14px);
-    height:calc(100% - 14px);
+    inset:3px;
+    width:calc(100% - 6px);
+    height:calc(100% - 6px);
     aspect-ratio:1;
     border:5px solid #fff;
     outline:3px solid var(--ds-accent);
@@ -464,8 +467,8 @@ body.danzstak-original .right :is(h3,h2) {
   body.danzstak-original #storiesRail .daily-clapper {
     display:grid!important;
     position:absolute;
-    inset:auto auto 5px 6px;
-    width:min(62px,calc(100% - 12px));
+    inset:auto auto 18px 18px;
+    width:min(58px,calc(100% - 36px));
     box-sizing:border-box;
     align-content:start;
     justify-items:start;
