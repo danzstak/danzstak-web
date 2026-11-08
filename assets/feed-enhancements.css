@@ -339,6 +339,7 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
 }
 
 /* The Roll preview opens the selected card without covering native video controls. */
+.reels-list .reel-card{position:relative}
 .reel-media-stage{position:relative}
 .reel-fullscreen-trigger{position:absolute;z-index:5;top:8px;right:8px;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid #ffffff66;border-radius:50%;background:#0b101acc;color:#fff;font-size:22px;cursor:pointer}
 .reel-fullscreen-trigger:focus-visible{outline:3px solid #ff7a00;outline-offset:2px}

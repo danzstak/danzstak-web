@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
 const css = fs.readFileSync("assets/responsive-media.css", "utf8");
+const feedCss = fs.readFileSync("assets/feed-enhancements.css", "utf8");
 const script = fs.readFileSync("assets/responsive-media.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 
@@ -18,6 +19,7 @@ assert.match(css, /\.roll-fullscreen \.danzstak-reel-shell>\.reel-player\{[^}]*h
 assert.match(css, /\.post>\.ds-responsive-media[\s\S]*margin-inline:calc\(var\(--post-inline-padding,12px\) \* -1\)/, "direct post media must align to both card edges");
 assert.match(css, /\.ds-media-control--sound\{right:10px;bottom:10px\}/);
 assert.match(css, /\.ds-media-control--fullscreen\{right:10px;top:10px\}/);
+assert.match(feedCss, /\.reels-list \.reel-card\{position:relative\}/, "each Roll preview must contain its own fullscreen control instead of covering the Roll header launcher");
 
 assert.match(script, /video\.videoWidth/);
 assert.match(script, /ratio < \.82 \? "portrait" : ratio > 1\.18 \? "landscape" : "square"/, "portrait, landscape and square videos must be classified from intrinsic dimensions");
