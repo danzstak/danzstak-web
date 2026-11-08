@@ -56,6 +56,33 @@ function fixture(pathname) {
         await page.goto(`${baseUrl}/${target}`, { waitUntil: "domcontentloaded" });
         await page.locator(populatedSelector).first().waitFor({ state: "visible" });
         await page.waitForTimeout(100);
+        if (name === "home") {
+          const install = page.locator("body > .install-app-button");
+          await install.waitFor({ state: "visible", timeout: 3000 });
+          const headerControls = await page.evaluate(() => {
+            const rect = selector => {
+              const box = document.querySelector(selector)?.getBoundingClientRect();
+              return box ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height } : null;
+            };
+            const pivot = rect("#pivotButton");
+            const installButton = rect("body > .install-app-button");
+            const pivotTarget = pivot
+              ? document.elementFromPoint((pivot.left + pivot.right) / 2, (pivot.top + pivot.bottom) / 2)
+              : null;
+            return {
+              pivot,
+              install: installButton,
+              pivotTarget: Boolean(pivotTarget?.closest?.("#pivotButton")),
+              pivotLabel: document.querySelector("#pivotButton")?.textContent?.trim() || ""
+            };
+          });
+          assert.equal(headerControls.pivotLabel, "Pivot", `${width}px Pivot label must remain intact`);
+          assert.ok(headerControls.pivot && headerControls.install, `${width}px Pivot and Install controls must both render`);
+          assert.ok(headerControls.pivot.right + 4 <= headerControls.install.left, `${width}px Install overlaps Pivot: ${JSON.stringify(headerControls)}`);
+          assert.equal(headerControls.pivotTarget, true, `${width}px Pivot center must remain clickable above other controls`);
+          assert.ok(headerControls.pivot.width >= 68 && headerControls.pivot.height >= 38, `${width}px Pivot control is clipped: ${JSON.stringify(headerControls.pivot)}`);
+          assert.ok(headerControls.install.width >= 36 && headerControls.install.height >= 36, `${width}px Install control is undersized: ${JSON.stringify(headerControls.install)}`);
+        }
         if (name === "friends") {
           assert.equal(await page.locator(".friend-workspace-row").count(), 1, `${width}px accepted friend card is missing`);
           assert.match(await page.getByRole("tab", { name: /^Online/ }).textContent() || "", /1$/, `${width}px accepted online friend must appear in the Online tab`);
@@ -117,6 +144,32 @@ function fixture(pathname) {
         await context.close();
       }
     }
+    const desktop = await browser.newContext({ viewport: { width: 1366, height: 900 }, serviceWorkers: "block" });
+    const desktopPage = await desktop.newPage();
+    await desktopPage.route("https://api.danzstak.com/**", route => {
+      const url = new URL(route.request().url());
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(url.pathname)) });
+    });
+    await desktopPage.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
+    await desktopPage.locator(".post-composer").waitFor({ state: "visible" });
+    await desktopPage.locator(".topbar .install-app-button").waitFor({ state: "visible", timeout: 3000 });
+    const desktopHeader = await desktopPage.evaluate(() => {
+      const rect = selector => {
+        const box = document.querySelector(selector)?.getBoundingClientRect();
+        return box ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom } : null;
+      };
+      return {
+        pivot: rect("#pivotButton"),
+        install: rect(".topbar .install-app-button"),
+        scrollWidth: document.documentElement.scrollWidth
+      };
+    });
+    assert.ok(desktopHeader.pivot && desktopHeader.install, "desktop Pivot and Install controls must both render");
+    assert.ok(desktopHeader.pivot.right <= desktopHeader.install.left || desktopHeader.install.right <= desktopHeader.pivot.left, `desktop Install overlaps Pivot: ${JSON.stringify(desktopHeader)}`);
+    assert.ok(desktopHeader.scrollWidth <= 1366, `desktop header overflows: ${JSON.stringify(desktopHeader)}`);
+    if (captureDir) await desktopPage.screenshot({ path: path.join(captureDir, "home-1366.png"), fullPage: true });
+    results.push("home-1366");
+    await desktop.close();
     console.log(`Core social mobile browser checks passed: ${results.length} page/viewport combinations.`);
   } finally {
     await browser.close();

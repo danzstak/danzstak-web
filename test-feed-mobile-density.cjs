@@ -24,7 +24,7 @@ assert.match(css, /\.reels-rail:not\(\.has-reels\):not\(\.is-adding\)[^{]*\{padd
 assert.match(css, /\.reel-import-form\[hidden\],\.roll-close\[hidden\],\.roll-open\[hidden\]\{display:none!important\}/, "hidden Roll controls must not be revived by shared icon styles");
 assert.match(html, /assets\/feed-enhancements\.css\?v=502/);
 assert.match(html, /assets\/feed-enhancements\.js\?v=534/);
-assert.match(html, /assets\/danzstak-original-feed\.css\?v=15/);
+assert.match(html, /assets\/danzstak-original-feed\.css\?v=16/);
 assert.match(worker, /danzstak-shell-v729/);
 
 console.log("Feed density checks passed: Dailies-first order, compact recovery, collapsed Roll authoring, and PWA refresh.");
