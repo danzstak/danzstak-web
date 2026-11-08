@@ -80,7 +80,27 @@ function responseFor(endpoint) {
       }
       await context.close();
     }
-    console.log(`Account-security browser checks passed at ${widths.join(", ")}px.`);
+
+    const exportContext = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block", acceptDownloads: true });
+    const exportPage = await exportContext.newPage();
+    const exportPosts = Array.from({ length: 250 }, (_, index) => ({ postId: `post-${index}`, isOwner: false, content: `Post ${index}`, createdAt: "2026-11-08T12:00:00.000Z" }));
+    await exportPage.route("https://api.danzstak.com/**", route => {
+      const url = new URL(route.request().url());
+      if (url.pathname === "/secure-posts") return json(route, { posts: exportPosts });
+      if (url.pathname === "/engagement") return json(route, { myReaction: url.searchParams.get("postId") === "post-249" ? "Fire" : "", comments: [] });
+      if (url.pathname === "/groups/membership") return json(route, { groupIds: [] });
+      return json(route, responseFor(url.pathname));
+    });
+    await exportPage.goto(`${baseUrl}/feed.html?view=settings`, { waitUntil: "domcontentloaded" });
+    const exportButton = exportPage.getByRole("button", { name: "Download my DanzStak data" });
+    await exportButton.waitFor({ state: "visible" });
+    const [download] = await Promise.all([exportPage.waitForEvent("download"), exportButton.click()]);
+    const archive = JSON.parse(fs.readFileSync(await download.path(), "utf8"));
+    assert.equal(archive.reactions.some(reaction => reaction.postId === "post-249" && reaction.reaction === "Fire"), true, "account export omitted activity beyond the former 200-post ceiling");
+    assert.equal(archive.incompleteSources.length, 0, "the complete 250-post fixture was reported as incomplete");
+    await exportContext.close();
+
+    console.log(`Account-security browser checks passed at ${widths.join(", ")}px; the generated account archive retains activity beyond 200 posts.`);
   } finally {
     await browser.close();
   }

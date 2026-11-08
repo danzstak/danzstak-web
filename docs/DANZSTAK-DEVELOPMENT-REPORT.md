@@ -4,6 +4,12 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Complete account-export activity collection
+
+- **FIXED AND TESTED IN PR #173; PRODUCTION UNCHANGED:** The self-service JSON export no longer stops checking comments and reactions after the first 200 visible posts. It now processes every post returned by the authenticated Feed API with at most three engagement requests in flight, reports progress on larger accounts, and gives the user operation up to five minutes rather than failing larger exports under the former one-minute budget.
+- Per-post failures remain explicitly listed in `incompleteSources`. The existing server-side 5,000-post collection ceiling is now also disclosed as `posts:server-limit-reached` instead of being presented as a complete export. Activity attached to posts no longer returned by the authenticated Feed remains an open backend-export limitation; this change does not claim the full account-erasure/export issue is complete.
+- **TESTED:** the executable regression collects 250 posts, proves the final post's reaction survives, enforces the three-request concurrency bound, records an individual failed source, and rejects restoration of the retired 200-post slice. The browser gate generates and downloads a real 250-post archive at 390px and proves activity from post 250 is present. `browser-checks/account-security.cjs` passes at 320, 360, 390, 414, 430, 768, 1024 and 1366px. The complete `test-regressions.ps1` gate passes, including social persistence, SYNC/calls, media, Booking/EPK/Tour Manager, payments, PWA, site smoke and infrastructure checks. Feed requests account-export core and controller version `v288`; the network-first PWA code path remains on reviewed shell `danzstak-shell-v764`.
+
 ### Failure-safe comment deletion
 
 - **FIXED AND TESTED IN PR #173; BACKEND NOT DEPLOYED:** Deleting a comment now removes that comment's reaction rows and all notifications whose meaning depends on the removed comment before deleting the comment record. This includes the post owner's comment alert, a parent comment owner's reply alert, and reply alerts delivered to the deleted parent-comment owner. Independently authored replies remain visible and keep their own post-owner alerts.
