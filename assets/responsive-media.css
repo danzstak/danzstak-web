@@ -88,5 +88,24 @@ iframe.reel-player.ds-responsive-media{object-fit:initial}
     width:calc(100% + 24px);
     margin-inline:-12px;
   }
+  /* Mix uses the familiar 4:5 portrait preview used by major social feeds.
+     The source remains untouched; fullscreen restores the complete frame. */
+  #feed .post>.danzstak-native-video-shell[data-video-layout="portrait"]{
+    aspect-ratio:4/5!important;
+    overflow:hidden;
+  }
+  #feed .post>.danzstak-native-video-shell[data-video-layout="portrait"]>video{
+    width:100%;
+    height:100%;
+    max-height:none;
+    aspect-ratio:auto;
+    object-fit:cover;
+    object-position:center;
+  }
+  #feed .post>.danzstak-native-video-shell[data-video-layout="portrait"]>video:fullscreen{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+  }
   .ds-media-control{--ds-media-control-size:42px}
 }

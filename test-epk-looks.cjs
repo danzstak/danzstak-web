@@ -27,7 +27,7 @@ for (const [look, ink, ground] of [["techno", "EDEDEA", "0B0B0C"], ["punk", "121
 }
 assert.match(css, /data-look="punk"\] \.epk-body h2\{color:var\(--epk-ink\)\}/, "Punk small labels must use accessible ink instead of the low-contrast accent");
 assert.match(css, /data-look="metal"\] \.epk-body h2\{color:var\(--epk-ink\)/, "Metal small labels must use accessible ink instead of the low-contrast accent");
-assert.match(worker, /danzstak-shell-v735/);
+assert.match(worker, /danzstak-shell-v736/);
 assert.match(worker, /\/assets\/epk-looks\.css/);
 for (const file of ["archivo","jetbrains-mono","anton","special-elite","work-sans","pirata-one","oswald","source-serif-4","syne","dm-sans"]) {
   assert.ok(fs.statSync(`assets/fonts/${file}.woff2`).size > 1000, `${file} font file is missing or empty`);

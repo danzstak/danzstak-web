@@ -19,6 +19,12 @@ assert.match(css, /\.roll-fullscreen \.danzstak-reel-shell>\.reel-player\{[^}]*h
 assert.match(css, /\.post>\.ds-responsive-media[\s\S]*margin-inline:calc\(var\(--post-inline-padding,12px\) \* -1\)/, "direct post media must align to both card edges");
 assert.match(css, /\.ds-media-control--sound\{right:10px;bottom:10px\}/);
 assert.match(css, /\.ds-media-control--fullscreen\{right:10px;top:10px\}/);
+assert.match(css, /#feed \.post>\.danzstak-native-video-shell\[data-video-layout="portrait"\]\{[\s\S]*?aspect-ratio:4\/5!important;[\s\S]*?overflow:hidden;/,
+  "portrait videos must use a compact 4:5 Mix preview instead of swallowing the phone viewport");
+assert.match(css, /#feed \.post>\.danzstak-native-video-shell\[data-video-layout="portrait"\]>video\{[\s\S]*?height:100%;[\s\S]*?object-fit:cover;/,
+  "the 4:5 portrait preview must fill its frame without stretching");
+assert.match(css, /#feed \.post>\.danzstak-native-video-shell\[data-video-layout="portrait"\]>video:fullscreen\{[\s\S]*?object-fit:contain;/,
+  "fullscreen portrait playback must restore the complete uncropped source");
 assert.match(feedCss, /\.reels-list \.reel-card\{position:relative\}/, "each Roll preview must contain its own fullscreen control instead of covering the Roll header launcher");
 
 assert.match(script, /video\.videoWidth/);
@@ -31,10 +37,10 @@ assert.match(script, /MutationObserver/, "dynamically loaded feed, Chat and Roll
 
 for (const file of ["feed.html", "messages.html", "profile.html", "epk.html"]) {
   const html = fs.readFileSync(file, "utf8");
-  assert.match(html, /assets\/responsive-media\.css\?v=4/, `${file} must load the shared responsive-media styles`);
+  assert.match(html, /assets\/responsive-media\.css\?v=5/, `${file} must load the shared responsive-media styles`);
   assert.match(html, /assets\/responsive-media\.js\?v=2/, `${file} must load the shared responsive-media behavior`);
 }
-assert.match(worker, /danzstak-shell-v735/);
+assert.match(worker, /danzstak-shell-v736/);
 assert.match(worker, /\/assets\/responsive-media\.js/);
 assert.match(worker, /\/assets\/responsive-media\.css/);
 

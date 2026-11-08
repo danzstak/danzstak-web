@@ -76,6 +76,6 @@ const fs = require("node:fs");
   assert.match(client, /permanently bounced; this contact is now suppressed/);
   assert.match(client, /reported this email; this contact is now suppressed/);
   assert.match(page, /booking-selections\.js\?v=17/);
-assert.match(worker, /danzstak-shell-v735/);
+assert.match(worker, /danzstak-shell-v736/);
   console.log("Booking provider-event checks passed: delivery state, duplicate protection, permanent-bounce and complaint suppression, transient-bounce handling, private keys, and SES event infrastructure.");
 })().catch(error => { console.error(error); process.exit(1); });
