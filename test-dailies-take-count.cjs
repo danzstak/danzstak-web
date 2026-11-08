@@ -26,6 +26,10 @@ assert.match(feed, /formatDailyDate\(now\)/,
   "the creator clapper must show today's date");
 assert.doesNotMatch(art, /daily-clapper \{display:none!important\}/,
   "the creator clapper must remain visible on an empty Dailies rail");
+assert.match(art, /#storiesRail \.story-create-identity \{[\s\S]*?inset:0;[\s\S]*?width:100%;[\s\S]*?height:100%;/,
+  "the creator profile image must fill the Dailies artwork instead of floating as a small portrait");
+assert.match(art, /#storiesRail \.daily-clapper \{[\s\S]*?inset:auto auto 5px 6px;/,
+  "the compact Dailies clapper must stay over the lower-left corner of the artwork");
 
 const createStoryLine = template.split("\n").find(line => line.includes("async function createStory("));
 class TransactWriteItemsCommand { constructor(input) { this.input = input; } }

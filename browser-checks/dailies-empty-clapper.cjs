@@ -69,11 +69,9 @@ function fixture(url) {
           artWidth: artRect.width,
           artHeight: artRect.height,
           artRatio: artRect.width / artRect.height,
-          clearPhotoHeight: slateRect.top - artRect.top,
+          photoCoversArt: Math.abs(photoRect.left - artRect.left) <= 1 && Math.abs(photoRect.top - artRect.top) <= 1 && Math.abs(photoRect.width - artRect.width) <= 1 && Math.abs(photoRect.height - artRect.height) <= 1,
           bottomInset: artRect.bottom - slateRect.bottom,
-          photoBottom: photoRect.bottom,
-          slateTopEdge: slateRect.top,
-          imageSlateGap: slateRect.top - photoRect.bottom
+          leftInset: slateRect.left - artRect.left
         };
       });
       assert.equal(errors.length, 0, `${width}px page errors: ${errors.join(" | ")}`);
@@ -84,18 +82,17 @@ function fixture(url) {
       assert.equal(result.slateVisible, true, `${width}px clapper is clipped or hidden`);
       assert.equal(result.photoVisible, true, `${width}px creator photo is missing below the clapper`);
       assert.equal(result.photoSize, "cover", `${width}px creator photo does not fill its slot`);
-      assert.equal(result.photoPosition, "50% 50%", `${width}px creator photo is not centered`);
-      assert.equal(result.photoRadius, "50%", `${width}px Dailies creator photo is not round`);
-      assert.ok(Math.abs(result.photoWidth - result.photoHeight) <= 1, `${width}px Dailies creator photo is not square before rounding`);
+      assert.equal(result.photoPosition, "50% 28%", `${width}px creator face is not framed in the upper center`);
+      assert.equal(result.photoRadius, "0px", `${width}px Dailies creator photo must fill the artwork without an inset circle`);
+      assert.equal(result.photoCoversArt, true, `${width}px Dailies creator photo does not fill its artwork`);
       assert.equal(result.plusPresent, false, `${width}px Dailies creator still shows a separate plus sign`);
       if (width <= 700) {
         assert.ok(Math.abs(result.tileWidth - result.tileHeight) <= 1, `${width}px Dailies creator card is not square`);
         assert.ok(result.slateWidth <= 76, `${width}px clapper is too wide: ${result.slateWidth}px`);
         assert.ok(result.artWidth >= 127, `${width}px Dailies photo slot is too narrow: ${result.artWidth}px`);
         assert.ok(result.artRatio >= 1.2, `${width}px Dailies photo slot is too tall and narrow: ${result.artRatio}`);
-        assert.ok(result.clearPhotoHeight >= 44, `${width}px placeholder image area is too short: ${result.clearPhotoHeight}px`);
-        assert.ok(result.imageSlateGap >= 2, `${width}px clapper overlaps the placeholder image by ${Math.abs(result.imageSlateGap)}px`);
         assert.ok(result.bottomInset >= 5 && result.bottomInset <= 10, `${width}px clapper is not anchored at the lower-left: ${result.bottomInset}px bottom inset`);
+        assert.ok(result.leftInset >= 5 && result.leftInset <= 10, `${width}px clapper is not anchored at the lower-left: ${result.leftInset}px left inset`);
       }
       assert.ok(result.tileHeight >= 128, `${width}px Dailies creator tile is too short`);
       await page.screenshot({ path: path.join(output, `empty-dailies-${width}.png`) });

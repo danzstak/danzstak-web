@@ -44,12 +44,15 @@ function fixture(url) {
       const result = await page.evaluate(() => {
         const creator = document.querySelector(".story-create");
         const avatar = document.querySelector(".story-create-avatar");
+        const art = document.querySelector(".story-create-art");
         const slate = document.querySelector(".daily-clapper");
         const slateRect = slate.getBoundingClientRect();
         const icons = [...document.querySelectorAll(".composer-media-button")];
         const longName = document.querySelector('.story[data-story-id="daily-video-1"] .story-author-link');
         const nameMore = document.querySelector('.story[data-story-id="daily-video-1"] .story-name-more');
         const creatorRect = creator.getBoundingClientRect();
+        const avatarRect = avatar.getBoundingClientRect();
+        const artRect = art.getBoundingClientRect();
         const longNameRect = longName.getBoundingClientRect();
         const storyRect = document.querySelector('.story[data-story-id="daily-video-1"]').getBoundingClientRect();
         return {
@@ -58,6 +61,7 @@ function fixture(url) {
           creatorLabel: creator.getAttribute("aria-label"),
           avatarBackground: getComputedStyle(avatar).backgroundImage,
           avatarRadius: getComputedStyle(avatar).borderRadius,
+          avatarCoversArt: Math.abs(avatarRect.left - artRect.left) <= 1 && Math.abs(avatarRect.top - artRect.top) <= 1 && Math.abs(avatarRect.width - artRect.width) <= 1 && Math.abs(avatarRect.height - artRect.height) <= 1,
           take: slate.querySelector("small").textContent,
           clock: slate.querySelector("time").textContent,
           slateVisible: slateRect.width > 0 && slateRect.height > 0 && getComputedStyle(slate).display !== "none",
@@ -76,7 +80,8 @@ function fixture(url) {
       assert.equal(result.railLabel, "Dailies");
       assert.match(result.creatorLabel, /Dailies/);
       assert.notEqual(result.avatarBackground, "none", `${width}px genuine profile picture was not installed`);
-      if (width < 700) assert.equal(result.avatarRadius, "50%", `${width}px Dailies profile image is not round`);
+      assert.equal(result.avatarRadius, "0px", `${width}px Dailies profile image must not remain a small inset circle`);
+      assert.equal(result.avatarCoversArt, true, `${width}px Dailies profile image does not fill its artwork`);
       assert.equal(result.take, "TAKE 5", `${width}px durable Dailies take count is wrong`);
       assert.ok(result.clock.length > 0, `${width}px local slate time is missing`);
       assert.equal(result.slateVisible, true, `${width}px creator clapper is hidden`);
