@@ -54,8 +54,8 @@ for (const language of expectedLanguages) {
   assert.ok(values.every(value => String(value).trim()), `${language} block-management translations must not be blank`);
 }
 
-assert.match(feed, /assets\/feed-enhancements\.css\?v=502/);
-assert.match(feed, /assets\/i18n\.js\?v=397/);
-assert.match(feed, /assets\/feed-enhancements\.js\?v=534/);
+assert.match(feed, /assets\/feed-enhancements\.css\?v=503/);
+assert.match(feed, /assets\/i18n\.js\?v=398/);
+assert.match(feed, /assets\/feed-enhancements\.js\?v=535/);
 
 console.log("Account-blocking checks passed: atomic ownership, discovery/contact denial, feed/media filtering, Settings recovery, privacy, localization, and mobile controls.");
