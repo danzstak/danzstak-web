@@ -3933,8 +3933,47 @@ function epkDeletionPlan(existingItem, ownerPrefix, ownerKey) {
   if (publicId) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkSharePartition }, tourId: { S: publicId } } } });
   let previousKit = {};
   try { previousKit = JSON.parse(existingItem?.plan?.S || "{}"); } catch { previousKit = {}; }
-  const mediaKeys = (previousKit.media || []).map(item => item?.key || "").filter(key => epkMediaPattern(ownerPrefix).test(key));
+  const mediaKeys = [...new Set([
+    ...(previousKit.media || []).map(item => item?.key || ""),
+    ...(existingItem?.mediaCleanup?.SS || [])
+  ].filter(key => epkMediaPattern(ownerPrefix).test(key)))];
   return { transaction, mediaKeys };
+}
+
+async function cleanupEpkMediaObjects(ownerKey, ownerPrefix, keys, retainedKeys = []) {
+  const candidates = [...new Set((keys || []).filter(Boolean))];
+  const retained = new Set((retainedKeys || []).filter(key => epkMediaPattern(ownerPrefix).test(key)));
+  const owned = candidates.filter(key => epkMediaPattern(ownerPrefix).test(key) && !retained.has(key));
+  const resolved = candidates.filter(key => !epkMediaPattern(ownerPrefix).test(key) || retained.has(key));
+  const pending = [];
+  for (const key of owned) {
+    let removed = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }));
+        removed = true;
+        break;
+      } catch (error) {
+        if (attempt === 2) console.error("EPK media cleanup remains pending", { userId: ownerKey.userId.S, key, error });
+      }
+    }
+    if (removed) resolved.push(key);
+    else pending.push(key);
+  }
+  if (resolved.length) {
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: toursTable,
+        Key: ownerKey,
+        UpdateExpression: "DELETE mediaCleanup :resolved",
+        ExpressionAttributeValues: { ":resolved": { SS: resolved } },
+        ConditionExpression: "attribute_exists(userId)"
+      }));
+    } catch (error) {
+      console.error("EPK media cleanup queue remains pending", { userId: ownerKey.userId.S, error });
+    }
+  }
+  return { cleaned: candidates.length - pending.length, pending: pending.length };
 }
 
 async function deleteEpkOutreachShares(userId) {
@@ -3998,20 +4037,31 @@ async function epkWorkspace(event, method) {
   const nowIso = new Date().toISOString(), plan = JSON.stringify(kit), shareHash = /^[a-f0-9]{64}$/.test(existing.Item?.shareHash?.S || "") ? existing.Item.shareHash.S : "";
   if (Buffer.byteLength(plan, "utf8") > 200000) return reply(400, { error: "This EPK is too large." });
   const publicKey = { userId: { S: epkPublicPartition }, tourId: { S: publicId } };
+  let previousKit = {};
+  try { previousKit = JSON.parse(existing.Item?.plan?.S || "{}"); } catch { previousKit = {}; }
+  const retained = new Set((kit.media || []).map(item => item.key));
+  const removedKeys = (previousKit.media || []).map(item => item?.key || "").filter(key => epkMediaPattern(ownerPrefix).test(key) && !retained.has(key));
+  const pendingMediaCleanup = [...new Set([...(existing.Item?.mediaCleanup?.SS || []), ...removedKeys])];
+  const ownerValues = {
+    ":name": { S: `${kit.artistName} EPK` },
+    ":plan": { S: plan },
+    ":publicId": { S: publicId },
+    ":published": { BOOL: publish },
+    ":updated": { S: nowIso }
+  };
+  let ownerUpdate = "SET #name = :name, #plan = :plan, publicId = :publicId, published = :published, updatedAt = :updated";
+  if (shareHash) { ownerUpdate += ", shareHash = :shareHash"; ownerValues[":shareHash"] = { S: shareHash }; }
+  else ownerUpdate += " REMOVE shareHash";
+  if (removedKeys.length) { ownerUpdate += " ADD mediaCleanup :mediaCleanup"; ownerValues[":mediaCleanup"] = { SS: [...new Set(removedKeys)] }; }
   await db.send(new TransactWriteItemsCommand({ TransactItems: [
-    { Put: { TableName: toursTable, Item: { ...ownerKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, publicId: { S: publicId }, published: { BOOL: publish }, updatedAt: { S: nowIso }, ...(shareHash ? { shareHash: { S: shareHash } } : {}) } } },
+    { Update: { TableName: toursTable, Key: ownerKey, UpdateExpression: ownerUpdate, ExpressionAttributeNames: { "#name": "name", "#plan": "plan" }, ExpressionAttributeValues: ownerValues } },
     publish
       ? { Put: { TableName: toursTable, Item: { ...publicKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }
       : { Delete: { TableName: toursTable, Key: publicKey } },
     ...(shareHash ? [{ Put: { TableName: toursTable, Item: { userId: { S: epkSharePartition }, tourId: { S: publicId }, name: { S: `${kit.artistName} private EPK` }, plan: { S: plan }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }] : [])
   ] }));
-  const previousKit = existing.Item?.plan?.S ? JSON.parse(existing.Item.plan.S) : {}, retained = new Set((kit.media || []).map(item => item.key));
-  const removed = (previousKit.media || []).filter(item => epkMediaPattern(ownerPrefix).test(item.key || "") && !retained.has(item.key));
-  if (removed.length) {
-    const pending = await runCleanup(removed.map(item => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: item.key }))));
-    if (pending) console.error("EPK media cleanup remains pending", { userId, pending });
-  }
-  return reply(200, { publicId, published: publish, updatedAt: nowIso });
+  const cleanup = await cleanupEpkMediaObjects(ownerKey, ownerPrefix, pendingMediaCleanup, [...retained]);
+  return reply(200, { publicId, published: publish, updatedAt: nowIso, cleanupPending: cleanup.pending });
 }
 
 async function publicEpk(event, publicId) {
