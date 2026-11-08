@@ -35,7 +35,7 @@ function kit(look) {
       await page.locator(`#epkPreview[data-look="${look}"]`).waitFor({state:"visible"});
       const state = await page.evaluate(() => {
         const preview=document.getElementById("epkPreview"), hero=preview.querySelector(".epk-hero"), style=getComputedStyle(preview), heroStyle=getComputedStyle(hero);
-        return { scrollWidth:document.documentElement.scrollWidth, bodyWidth:document.body.scrollWidth, look:preview.dataset.look, ground:style.backgroundColor, ink:style.color, display:heroStyle.fontFamily, emptyNotes:preview.querySelectorAll(".empty-note").length, sections:preview.querySelectorAll(".epk-body>section").length };
+        return { scrollWidth:document.documentElement.scrollWidth, bodyWidth:document.body.scrollWidth, look:preview.dataset.look, ground:style.backgroundColor, ink:style.color, display:heroStyle.fontFamily, emptyNotes:preview.querySelectorAll(".empty-note").length, sections:preview.querySelectorAll(".epk-body>section").length, reviewsHidden:document.getElementById("epkReviews").hidden };
       });
       assert.equal(errors.length,0,`${look} ${width}px browser errors: ${errors.join(" | ")}`);
       assert.equal(externalFonts.length,0,`${look} requested a third-party font`);
@@ -44,6 +44,7 @@ function kit(look) {
       assert.notEqual(state.ground,"rgba(0, 0, 0, 0)");
       assert.equal(state.emptyNotes,0,`${look} public page exposes an empty placeholder`);
       assert.ok(state.sections>=2,`${look} lost useful sparse content`);
+      assert.equal(state.reviewsHidden,true,`${look} exposes optional review errors on the public EPK`);
       await page.screenshot({ path:path.join(captureDir,`${look}-${width}.png`), fullPage:true });
       await context.close();
     }
