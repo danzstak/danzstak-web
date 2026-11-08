@@ -188,6 +188,12 @@ if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
 foreach ($storyAudienceControl in @("audience=['public','friends','private'].includes(body.audience)", "x.audience?.S==='friends'&&friends.has(x.userEmail.S)")) {
   if (-not $template.Contains($storyAudienceControl)) { throw "Story audience enforcement is missing: $storyAudienceControl" }
 }
+$storyListing = [regex]::Match($template, 'async function getStories[\s\S]*?async function deleteStory').Value
+if ($storyListing.IndexOf("DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:key}") -lt 0 -or
+    $storyListing.IndexOf('DeleteItemCommand({TableName:process.env.STORIES_TABLE') -lt $storyListing.IndexOf("DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:key}") -or
+    -not $storyListing.Contains('if(!removed)return')) {
+  throw 'Expired Story cleanup must preserve its retry record until dedicated media is removed.'
+}
 $storyDeletion = [regex]::Match($template, 'async function deleteStory[\s\S]*?async function refreshSession').Value
 if ($storyDeletion.IndexOf('new DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:mediaKey}') -lt 0 -or
     $storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES_TABLE') -lt $storyDeletion.IndexOf('new DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:mediaKey}') -or
