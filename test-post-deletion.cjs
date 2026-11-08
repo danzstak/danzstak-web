@@ -20,12 +20,16 @@ const ownerId = 'owner-user-id';
 const ownerEmail = 'owner@example.com';
 const ownerPrefix = createHash('sha256').update(ownerEmail).digest('hex').slice(0, 24);
 const mediaKey = `users/${ownerPrefix}/22222222-2222-4222-a222-222222222222.jpg`;
+const parentCommentId = '1700000000000#aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const replyCommentId = '1700000000001#bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
-function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOwner = "", failMediaAttempts = 0, shares = [], sharedPostId = "" } = {}) {
+function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOwner = "", failMediaAttempts = 0, failNoticeAttempts = 0, shares = [], sharedPostId = "", taggedUsers = [{ M: { memberId: { S: 'tagged-member' }, userEmail: { S: 'tagged@example.com' } } }] } = {}) {
   const deletes = [];
   const updates = [];
   const mediaDeletes = [];
+  const collectionLimits = [];
   let mediaAttempts = 0;
+  let noticeAttempts = 0;
   const context = vm.createContext({
     corsHeaders: () => ({}),
     allowedOrigins: new Set(['https://danzstak.com']),
@@ -33,12 +37,15 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
     parseJsonBody: event => event.body ? JSON.parse(event.body) : null,
     postsTable: 'posts', storiesTable: 'stories', reactionsTable: 'reactions', commentsTable: 'comments', engagementNotificationsTable: 'notices',
     sha256: value => createHash('sha256').update(value).digest('hex'),
-    process: { env: { MEDIA_BUCKET: 'media' } },
+    process: { env: { MEDIA_BUCKET: 'media', POST_VIEWS_TABLE: 'postViews' } },
     GetItemCommand, DeleteItemCommand, DeleteObjectCommand, UpdateItemCommand,
     db: { send: async command => {
-      if (command instanceof GetItemCommand) return { Item: { postId: { S: postId }, userId: { S: storedOwner }, userEmail: { S: ownerEmail }, ...(!sharedPostId ? { mediaKey: { S: mediaKey } } : {}), ...(profileOwner ? { profileOwnerId: { S: profileOwner } } : {}), ...(sharedPostId ? { sharedPostId: { S: sharedPostId } } : {}) } };
+      if (command instanceof GetItemCommand) return { Item: { postId: { S: postId }, userId: { S: storedOwner }, userEmail: { S: ownerEmail }, taggedUsers: { L: taggedUsers }, ...(!sharedPostId ? { mediaKey: { S: mediaKey } } : {}), ...(profileOwner ? { profileOwnerId: { S: profileOwner } } : {}), ...(sharedPostId ? { sharedPostId: { S: sharedPostId } } : {}) } };
       if (command instanceof UpdateItemCommand) { updates.push(command.input); return {}; }
-      if (command instanceof DeleteItemCommand) { deletes.push(command.input); return {}; }
+      if (command instanceof DeleteItemCommand) {
+        if (command.input.TableName === 'notices' && ++noticeAttempts <= failNoticeAttempts) throw Error('temporary notification cleanup failure');
+        deletes.push(command.input); return {};
+      }
       throw Error('Unexpected database command');
     } },
     s3: { send: async command => {
@@ -46,17 +53,32 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
       if (mediaAttempts <= failMediaAttempts) throw Error('temporary storage failure');
       mediaDeletes.push(command.input); return {};
     } },
-    scanAll: async request => request.TableName === 'posts' ? shares : [{ storyId: { S: '33333333-3333-4333-a333-333333333333' } }],
-    queryAll: async request => request.TableName === 'reactions'
-      ? [{ postId: { S: postId }, userId: { S: 'reactor' } }]
+    scanAll: async (request, maximumItems) => {
+      collectionLimits.push({ operation: 'scan', table: request.TableName, maximumItems });
+      return request.TableName === 'posts' ? shares : [{ storyId: { S: '33333333-3333-4333-a333-333333333333' } }];
+    },
+    queryAll: async (request, maximumItems) => {
+      collectionLimits.push({ operation: 'query', table: request.TableName, maximumItems });
+      const requestedPostId = request.ExpressionAttributeValues?.[':p']?.S || postId;
+      return request.TableName === 'reactions'
+      ? [
+          { postId: { S: requestedPostId }, userId: { S: 'reactor' } },
+          { postId: { S: requestedPostId }, userId: { S: `comment#${parentCommentId}#comment-reactor` }, commentId: { S: parentCommentId } }
+        ]
       : request.TableName === 'comments'
-        ? [{ postId: { S: postId }, commentId: { S: 'comment' } }]
-        : [{ userEmail: { S: ownerEmail }, eventId: { S: 'notice' }, postId: { S: postId } }, { userEmail: { S: ownerEmail }, eventId: { S: 'other' }, postId: { S: 'other-post' } }],
+        ? [
+            { postId: { S: requestedPostId }, commentId: { S: parentCommentId }, userEmail: { S: 'commenter@example.com' } },
+            { postId: { S: requestedPostId }, commentId: { S: replyCommentId }, userEmail: { S: 'replier@example.com' }, parentCommentId: { S: parentCommentId } }
+          ]
+        : request.TableName === 'postViews'
+          ? [{ postId: { S: requestedPostId }, viewerKey: { S: '2026-11-08#hashed-viewer' } }]
+          : [];
+    },
     setTimeout: callback => { callback(); return 1; },
     console
   });
   vm.runInContext(cleanupCode + deleteCode, context);
-  return { context, deletes, updates, mediaDeletes, mediaAttempts: () => mediaAttempts };
+  return { context, deletes, updates, mediaDeletes, collectionLimits, mediaAttempts: () => mediaAttempts, noticeAttempts: () => noticeAttempts };
 }
 
 (async () => {
@@ -90,9 +112,14 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
   assert.ok(owner.deletes.some(item => item.TableName === 'posts' && item.Key.postId.S === postId), 'post record must be permanently deleted');
   assert.ok(owner.deletes.some(item => item.TableName === 'reactions'), 'post reactions must be deleted');
   assert.ok(owner.deletes.some(item => item.TableName === 'comments'), 'post comments must be deleted');
-  assert.ok(owner.deletes.some(item => item.TableName === 'notices' && item.Key.eventId.S === 'notice'), 'post notifications must be deleted');
+  assert.ok(owner.deletes.some(item => item.TableName === 'postViews' && item.Key.viewerKey.S === '2026-11-08#hashed-viewer'), 'post view telemetry must be deleted');
+  assert.ok(owner.deletes.some(item => item.TableName === 'notices' && item.Key.userEmail.S === ownerEmail && item.Key.eventId.S === `reaction#${postId}#reactor`), 'post-owner reaction notifications must be deleted');
+  assert.ok(owner.deletes.some(item => item.TableName === 'notices' && item.Key.userEmail.S === ownerEmail && item.Key.eventId.S === `comment#${replyCommentId}`), 'post-owner comment notifications must be deleted');
+  assert.ok(owner.deletes.some(item => item.TableName === 'notices' && item.Key.userEmail.S === 'commenter@example.com' && item.Key.eventId.S === `reply#${replyCommentId}`), 'reply notifications in another member partition must be deleted');
+  assert.ok(owner.deletes.some(item => item.TableName === 'notices' && item.Key.userEmail.S === 'tagged@example.com' && item.Key.eventId.S === `tag#${postId}#tagged-member`), 'tag notifications in another member partition must be deleted');
   assert.ok(owner.deletes.some(item => item.TableName === 'stories'), 'linked Story records must be deleted');
-  assert.ok(!owner.deletes.some(item => item.TableName === 'notices' && item.Key.eventId.S === 'other'), 'unrelated notifications must remain');
+  assert.ok(!owner.deletes.some(item => item.TableName === 'notices' && item.Key.eventId.S === `reaction#${postId}#comment#${parentCommentId}#comment-reactor`), 'comment reactions must not invent post notifications');
+  assert.ok(owner.collectionLimits.length >= 5 && owner.collectionLimits.every(item => item.maximumItems === Number.MAX_SAFE_INTEGER), 'delete everywhere must not silently stop after the shared 5,000-record helper limit');
 
   const shareId = '44444444-4444-4444-a444-444444444444';
   const share = { postId: { S: shareId }, userId: { S: 'sharer' }, userEmail: { S: 'sharer@example.com' }, sharedPostId: { S: postId }, content: { S: 'Shared a post.' } };
@@ -106,6 +133,22 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
   const cascadeResponse = await cascade.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId }, body: JSON.stringify({ mode: 'delete_everywhere' }) });
   assert.equal(JSON.parse(cascadeResponse.body).removedShares, 1);
   assert.ok(cascade.deletes.some(item => item.TableName === 'posts' && item.Key.postId.S === shareId), 'delete everywhere must remove every share placement');
+
+  const manyShares = Array.from({ length: 101 }, (_, index) => {
+    const suffix = String(index + 1).padStart(12, '0');
+    return { postId: { S: `44444444-4444-4444-a444-${suffix}` }, userId: { S: `sharer-${index}` }, userEmail: { S: `sharer-${index}@example.com` }, sharedPostId: { S: postId }, content: { S: `Share ${index + 1}` } };
+  });
+  const largeCascade = harness({ shares: manyShares });
+  const largeResponse = await largeCascade.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId }, body: JSON.stringify({ mode: 'delete_everywhere' }) });
+  assert.equal(JSON.parse(largeResponse.body).removedShares, 101, 'delete everywhere must report every dependent share');
+  const deletedPostIds = new Set(largeCascade.deletes.filter(item => item.TableName === 'posts').map(item => item.Key.postId.S));
+  assert.ok(manyShares.every(item => deletedPostIds.has(item.postId.S)), 'delete everywhere must remove 100+ share placements, not only the first page');
+
+  const noticeFailure = harness({ failNoticeAttempts: 999 });
+  const noticeFailureResponse = await noticeFailure.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId }, body: JSON.stringify({ mode: 'delete_everywhere' }) });
+  assert.equal(noticeFailureResponse.statusCode, 503, 'incomplete notification cleanup must keep deletion retryable');
+  assert.equal(noticeFailure.noticeAttempts(), 15, 'each cross-account notification cleanup receives the full three-attempt retry budget');
+  assert.ok(!noticeFailure.deletes.some(item => ['posts','comments','reactions','postViews','stories'].includes(item.TableName)), 'content records must remain until cross-account notification cleanup succeeds');
 
   const ownShare = harness({ sharedPostId: '55555555-5555-4555-a555-555555555555' });
   const ownShareResponse = await ownShare.context.deleteSecurePost({ headers: { origin: 'https://danzstak.com' }, pathParameters: { postId }, body: JSON.stringify({ mode: 'remove_here' }) });

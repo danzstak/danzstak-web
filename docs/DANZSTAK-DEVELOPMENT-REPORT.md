@@ -4,6 +4,14 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Creator-owned Delete everywhere cascade
+
+- **COMPLETE IN SOURCE AND LOCAL TESTS; BACKEND NOT DEPLOYED:** Deleting an original post now derives and removes the complete first-party graph before deleting the source: every direct DanzStak reshare, post/comment reactions, comments and replies, post-view telemetry, linked Story record, active media object, and post-related reaction/comment/reply/tag notifications. There is no removed-content placeholder.
+- Root cause: the earlier notification cleanup queried only the post author's notification partition. Reply notifications live in the parent commenter's partition and tag notifications live in the tagged member's partition, so those records could remain after the visible post disappeared. The cleanup also mixed notification deletion with engagement and post deletion, so a transient notification failure could become impossible to reconstruct on retry.
+- The corrected flow derives deterministic notification keys from the still-present post/reaction/comment/tag records, completes cross-account notification deletion first, then removes engagement/view/Story records, then share placements, and deletes the original source last. Each phase uses bounded retry and returns a retryable 503 without destroying the records needed by the next attempt. Media deletion remains owner-prefix checked and idempotent.
+- The deletion path no longer silently inherits the shared 5,000-record collection ceiling. Regression coverage proves a 101-share cascade, post-view cleanup, reply and tag notification cleanup across account partitions, full retry exhaustion without premature content deletion, creator-only destruction, profile-owner removal without author deletion, and media cleanup retries.
+- **TESTED:** focused post deletion, internal sharing, notification and post-view checks pass. The real-browser deletion dialog passes at 320, 360, 390, 414, 430 and 1366px with both **Remove from here** and creator-only **Delete everywhere**, the external-copy warning, no overflow and accessible viewport-contained actions. Production data and infrastructure were not touched.
+
 ### Existing-member name gate correction
 
 - **COMPLETE ON THE SAME-SITE REVIEW PWA; PRODUCTION FRONTEND UNCHANGED:** An established member with a real visible name now enters Mix directly. The first-run **What should people call you?** panel appears only when the visible name is still generic or missing; an automatically generated internal handle can no longer reopen onboarding.

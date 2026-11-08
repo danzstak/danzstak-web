@@ -2037,7 +2037,7 @@ async function deleteSecurePost(event) {
     TableName: postsTable,
     FilterExpression: "sharedPostId = :source",
     ExpressionAttributeValues: { ":source": { S: postId } }
-  });
+  }, Number.MAX_SAFE_INTEGER);
   if (mode === "remove_here" && !isShare && shares.length) {
     await db.send(new UpdateItemCommand({
       TableName: postsTable,
@@ -2060,7 +2060,7 @@ async function deleteSecurePost(event) {
       FilterExpression: "mediaKey = :media AND userEmail = :owner",
       ExpressionAttributeValues: { ":media": { S: found.Item.mediaKey.S }, ":owner": { S: found.Item.userEmail?.S || "" } },
       ProjectionExpression: "storyId"
-    });
+    }, Number.MAX_SAFE_INTEGER);
   }
   if (mediaKey) {
     const mediaCleanupPending = await runCleanup([
@@ -2071,29 +2071,62 @@ async function deleteSecurePost(event) {
       return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
     }
   }
+  const notificationCleanupTasks = [];
   const cleanupTasks = [];
+  const shareDeleteTasks = [];
   let sourceDeleteTask = null;
   for (const record of deletionRecords) {
     const recordId = record.postId.S;
-    const [reactions, comments, notices] = await Promise.all([
-      queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, userId", ConsistentRead: true }),
-      queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true }),
-      record.userEmail?.S ? queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: record.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true }) : Promise.resolve([])
+    const [reactions, comments, views] = await Promise.all([
+      queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, userId, commentId", ConsistentRead: true }, Number.MAX_SAFE_INTEGER),
+      queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, commentId, userEmail, parentCommentId", ConsistentRead: true }, Number.MAX_SAFE_INTEGER),
+      process.env.POST_VIEWS_TABLE ? queryAll({ TableName: process.env.POST_VIEWS_TABLE, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, viewerKey", ConsistentRead: true }, Number.MAX_SAFE_INTEGER) : Promise.resolve([])
     ]);
+    const commentById = new Map(comments.map(item => [item.commentId?.S, item]));
+    const notificationKeys = new Map();
+    const rememberNotification = (userEmail, eventId) => {
+      if (!userEmail || !eventId) return;
+      notificationKeys.set(`${userEmail}\u0000${eventId}`, { userEmail: { S: userEmail }, eventId: { S: eventId } });
+    };
+    for (const reaction of reactions) if (!reaction.commentId?.S && record.userEmail?.S && reaction.userId?.S) {
+      rememberNotification(record.userEmail.S, `reaction#${recordId}#${reaction.userId.S}`);
+    }
+    for (const comment of comments) {
+      if (record.userEmail?.S && comment.commentId?.S) rememberNotification(record.userEmail.S, `comment#${comment.commentId.S}`);
+      const parent = commentById.get(comment.parentCommentId?.S), parentEmail = parent?.userEmail?.S;
+      if (parentEmail && parentEmail !== record.userEmail?.S && parentEmail !== comment.userEmail?.S && comment.commentId?.S) {
+        rememberNotification(parentEmail, `reply#${comment.commentId.S}`);
+      }
+    }
+    for (const tag of record.taggedUsers?.L || []) {
+      const taggedEmail = tag.M?.userEmail?.S, taggedId = tag.M?.memberId?.S;
+      if (taggedEmail && taggedId) rememberNotification(taggedEmail, `tag#${recordId}#${taggedId}`);
+    }
     const deleteRecord = () => db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: recordId } } }));
     cleanupTasks.push(
       ...reactions.map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
       ...comments.map(item => () => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
-      ...notices.filter(item => item.postId?.S === recordId).map(item => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } })))
+      ...views.map(item => () => db.send(new DeleteItemCommand({ TableName: process.env.POST_VIEWS_TABLE, Key: { postId: item.postId, viewerKey: item.viewerKey } })))
     );
+    notificationCleanupTasks.push(...[...notificationKeys.values()].map(key => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: key }))));
     if (!isShare && recordId === postId) sourceDeleteTask = deleteRecord;
-    else cleanupTasks.push(deleteRecord);
+    else shareDeleteTasks.push(deleteRecord);
   }
   cleanupTasks.push(...linkedStories.map(item => () => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } }))));
+  const notificationCleanupPending = await runCleanup(notificationCleanupTasks);
+  if (notificationCleanupPending) {
+    console.error("Post notification deletion remains pending", { postId, notificationCleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The post is still being removed. Try again.", deleted: false, cleanupPending: notificationCleanupPending }) };
+  }
   const cleanupPending = await runCleanup(cleanupTasks);
   if (cleanupPending) {
     console.error("Post deletion cleanup remains pending", { postId, cleanupPending });
     return { statusCode: 503, headers, body: JSON.stringify({ error: "The post is still being removed. Try again.", deleted: false, cleanupPending }) };
+  }
+  const shareCleanupPending = await runCleanup(shareDeleteTasks);
+  if (shareCleanupPending) {
+    console.error("Post share deletion remains pending", { postId, shareCleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The post is still being removed. Try again.", deleted: false, cleanupPending: shareCleanupPending }) };
   }
   const sourceCleanupPending = sourceDeleteTask ? await runCleanup([sourceDeleteTask]) : 0;
   if (sourceCleanupPending) {
