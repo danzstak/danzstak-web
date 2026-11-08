@@ -157,6 +157,9 @@ async function createPortraitVideo(browser) {
           minHeight: getComputedStyle(row).minHeight
         }));
         const composer = document.querySelector("#newsFeedView .post-composer")?.getBoundingClientRect();
+        const dailyCard = document.querySelector("#storiesRail .story-create")?.getBoundingClientRect();
+        const dailyPortrait = document.querySelector("#storiesRail .story-create-avatar")?.getBoundingClientRect();
+        const dailyClapper = document.querySelector("#storiesRail .daily-clapper")?.getBoundingClientRect();
         const root = getComputedStyle(document.documentElement);
         return {
           documentWidth: document.documentElement.scrollWidth,
@@ -169,6 +172,18 @@ async function createPortraitVideo(browser) {
           composerHeight: composer?.height || 0,
           composerExpanded: document.querySelector("#postComposer")?.classList.contains("is-expanded") || false,
           composerTextHeight: document.querySelector("#postText")?.getBoundingClientRect().height || 0,
+          dailyPortrait: dailyCard && dailyPortrait ? {
+            card: [dailyCard.left, dailyCard.top, dailyCard.right, dailyCard.bottom],
+            portrait: [dailyPortrait.left, dailyPortrait.top, dailyPortrait.right, dailyPortrait.bottom],
+            fillsCard: Math.abs(dailyPortrait.left - dailyCard.left) <= 1
+              && Math.abs(dailyPortrait.top - dailyCard.top) <= 1
+              && Math.abs(dailyPortrait.right - dailyCard.right) <= 1
+              && Math.abs(dailyPortrait.bottom - dailyCard.bottom) <= 1,
+            clapperInside: dailyClapper
+              ? dailyClapper.left >= dailyCard.left && dailyClapper.bottom <= dailyCard.bottom
+              : false,
+            backgroundSize: getComputedStyle(document.querySelector("#storiesRail .story-create-avatar")).backgroundSize
+          } : null,
           firstPostTop,
           bodyClass: document.body.classList.contains("danzstak-original")
         };
@@ -179,6 +194,9 @@ async function createPortraitVideo(browser) {
       assert.equal(geometry.brand, "#1769e0");
       assert.equal(geometry.accent, "#ef6c20");
       assert.equal(normalize(geometry.headerBorder), "rgb(239,108,32)");
+      assert.ok(geometry.dailyPortrait?.fillsCard, `${width}px Dailies portrait does not fill its tile: ${JSON.stringify(geometry.dailyPortrait)}`);
+      assert.equal(geometry.dailyPortrait.backgroundSize, "cover", `${width}px Dailies portrait is not cropped to fill the tile`);
+      assert.equal(geometry.dailyPortrait.clapperInside, true, `${width}px Dailies clapper is not contained in the lower-left of the image`);
       assert.ok(geometry.image.aligned, `${width}px direct image is inset: ${JSON.stringify(geometry.image)}`);
       assert.ok(geometry.video.aligned, `${width}px direct video is inset: ${JSON.stringify(geometry.video)}`);
       if (width < 700) {
