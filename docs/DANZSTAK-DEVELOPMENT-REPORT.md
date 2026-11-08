@@ -6,9 +6,9 @@ Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PAS
 
 ### Mix feed spacing system
 
-- **COMPLETE LOCALLY; HOSTED REVIEW UPDATE PENDING:** Separate Mix posts now use one measured 16px vertical rhythm. Each phone post has 12px internal padding; desktop posts use 14px, within the requested 12–16px range. The desktop center feed is constrained to 470–500px instead of expanding toward the older 720px column.
+- **COMPLETE ON HOSTED REVIEW:** Separate Mix posts now use one measured 16px vertical rhythm. Each phone post has 12px internal padding; desktop posts use 14px, within the requested 12–16px range. The desktop center feed is constrained to 470–500px instead of expanding toward the older 720px column.
 - The rules are scoped to the Mix feed and preserve edge-aligned post media. Real-browser geometry passes at 320, 390, 430 and 1366px, including exact gaps/padding, no horizontal overflow, visible mobile reactions above the fixed navigation, 4:5 phone video previews and the existing Dailies treatment. The populated-feed gate passes at 320, 360, 390, 414 and 430px.
-- Functional/integration evidence: focused Feed, Pivot and PWA cache checks pass, and the complete `test-regressions.ps1` gate passes. Feed art-direction CSS is prepared as `v26` and the installed-PWA cache as `danzstak-shell-v758`. Production remains unchanged pending the owner's phone review.
+- Functional/integration evidence: focused Feed, Pivot and PWA cache checks pass, and the complete `test-regressions.ps1` gate passes. GitHub Review run `42502306521` passed implementation commit `bdf31fc13027da7ad36a16168bf2aaa3a77537bd`; Amplify DEVELOPMENT job `56` staged that exact commit successfully. No-cache probes confirm Feed art-direction CSS `v26` and installed-PWA cache `danzstak-shell-v758`. Both hosted browser gates pass at their complete viewport matrices, and the builder inspected the hosted 390px and 1366px results. Production remains unchanged pending the owner's phone review.
 
 ### EPK booking email identity and SYNC reply bridge
 
