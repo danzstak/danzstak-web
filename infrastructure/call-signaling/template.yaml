@@ -495,6 +495,7 @@ Resources:
           - Use public profile names or a neutral member label in all user-facing API fields, call copy, and push copy; keep account email addresses internal to routing and authorization.
           - Keep Story and Reel display labels aligned with saved public profile names or Cognito public names; never derive labels from email addresses.
           - Member discovery may expose only public profile names, public handles, avatars, opaque member IDs, relationship state, and privacy-respecting presence; never expose account email addresses.
+          - Allow public display names to repeat; reserve only normalized public handles as unique usernames.
     Properties:
       FunctionName: DANZSTAK-Call-Signaling
       Runtime: nodejs22.x
