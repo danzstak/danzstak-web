@@ -1853,3 +1853,15 @@ Status as of 2026-11-08: **IMPLEMENTED, TESTED, REVIEW-PWA DEPLOYED, AND HOSTED-
 - GitHub Review run [42515111340](https://github.com/danzstak/danzstak-web/actions/runs/42515111340) passed every job for exact branch head `c5267b681f41c3a01d108b1c5013a19942a5fc31`. AWS Amplify review job `70` deployed that exact head successfully from 20:27:09 to 20:28:07 Europe/Berlin.
 - No-cache hosted probes returned Feed enhancement JavaScript `v540`, PWA bootstrap `v428`, alert CSS `v236`, and installed shell `danzstak-shell-v764`. The Dailies identity-fallback and compact-alert browser gates then passed directly against `https://review.danzstak.com` at 320, 360, 390, 414, 430, and 1366px. Hosted evidence: `docs/screenshots/release-candidate/dailies-profile-fallback-hosted/` and `docs/screenshots/release-candidate/push-alert-hosted/`.
 - Production is unchanged. The owner's signed-in phone/PWA acceptance remains pending.
+
+# Release candidate — existing-account identity gate
+
+Status as of 2026-11-08: **IMPLEMENTED, TESTED, REVIEW-PWA DEPLOYED, AND HOSTED-BROWSER VERIFIED; PRODUCTION UNCHANGED**.
+
+- Root cause: the simple display-name prompt resubmitted a generated or legacy username along with the visible name. An existing account could therefore be stopped by a username ownership conflict even though public display names are intentionally allowed to repeat.
+- Existing accounts now bypass first-login naming when either a real visible name or an established username already exists. The naming form sends only the repeatable display name; it never claims, replaces, or validates the member's existing username.
+- A genuinely new account still receives the localized naming prompt, but **Not now** is immediately available and its dismissal is remembered for that account. Saving or skipping removes the prompt at once so it cannot cover the Mix.
+- All 15 supported languages now state that sign-in and username remain unchanged. The misleading `Liana` placeholder was removed.
+- Focused browser checks passed locally and directly against `https://review.danzstak.com` at 390 and 1366px. The gate separately verifies an established visible name, an established username with a generic display name, and a genuinely new identity; only the new identity sees the dismissible prompt, and its request body is exactly `{ name }`.
+- The complete local `test-regressions.ps1` suite passed, including every JavaScript regression, the 13-page site smoke test, release propagation behavior, and embedded-Lambda infrastructure validation. GitHub Review run [42521727931](https://github.com/danzstak/danzstak-web/actions/runs/42521727931) passed all five jobs for exact implementation commit `db631d814aca1677bf6bb54d4e88234b16d3059c`.
+- No-cache hosted probes confirmed `assets/profile-onboarding.js?v=10` and the new existing-account gate on the review PWA. Production remains unchanged pending the owner's physical-phone go/no-go.
