@@ -4,9 +4,9 @@ Status: **STAGING VERIFIED — NO TEST PASS, NO PRODUCTION DEPLOY**
 Prepared: 2026-11-08  
 Release owner: Shawn  
 Branch: `codex/release-candidate-2026-11-08`  
-Reviewed implementation: `d169b4a4c3c2ce0849f47f86580e2ccd5f2eae09`
+Reviewed implementation: `c5267b681f41c3a01d108b1c5013a19942a5fc31`
 Base/rollback commit: `04d41cccea19da3999e2ae69845532ce32b16e3f`  
-PWA cache: `danzstak-shell-v754`
+PWA cache: `danzstak-shell-v764`
 Production commit/deployment: **UNCHANGED / NOT DEPLOYED**
 
 ## Scope
@@ -19,7 +19,9 @@ Production commit/deployment: **UNCHANGED / NOT DEPLOYED**
 - [x] Versioned PWA assets and service-worker cache assertions.
 - [x] Functional Friends workflow: accept, remove with confirmation, discover and send request, with 44px controls at phone, tablet and desktop widths.
 - [x] Review screenshots and factual development-report evidence.
-- [x] Dailies uses the member's large circular profile treatment with no square backing panel; the compact date/Scene/Take clapper is fully over the lower-left of the portrait.
+- [x] Dailies uses the member's real profile photo as full rounded-square artwork with no exposed backing panel; the compact date/Scene/Take clapper is fully over the lower-left of the image.
+- [x] Legacy/local profile identities recover the member's real Dailies and composer photo from same-device profile media or an owned saved post instead of displaying a generic `D`.
+- [x] The optional phone notification prompt is a compact touch-safe strip above the bottom navigation instead of covering the Feed.
 - [x] Public EPKs keep the booking page clean when the optional Reviews service is empty or unavailable; real reviews and the eligible member composer remain available when their verified data loads.
 - [x] Public EPK media starts as fast provider link cards; a booker explicitly loads one external player, backgrounding unloads it, and no provider frame receives autoplay permission.
 
@@ -62,16 +64,16 @@ Evidence: `docs/screenshots/release-candidate/`, including `core-social-fluid-se
 
 ## Test 3 — integration, security and staging
 
-- [x] GitHub Review checks run `42493803031` concluded `success` at exact implementation commit `d169b4a4c3c2ce0849f47f86580e2ccd5f2eae09`.
+- [x] GitHub Review checks run `42515111340` concluded `success` at exact reviewed branch head `c5267b681f41c3a01d108b1c5013a19942a5fc31`.
 - [x] Feed, Friends, Notifications, Profile, SYNC, Pivot, The Roll, Booking and EPK shells returned HTTP 200 from staging.
-- [x] Delivered Feed assets match mobile-design CSS `v17`, Feed art-direction CSS `v24`, Feed enhancement CSS `v507`, Feed enhancement JavaScript `v538`, Pivot `v2` and Profile editor `v484`.
-- [x] Delivered service worker reports `danzstak-shell-v754`; the EPK loads `epk.js?v=19`, `epk-media.css?v=7` and `epk-reviews.js?v=2`.
+- [x] Delivered Feed assets include mobile-design CSS `v17`, Feed art-direction CSS `v28`, Feed enhancement CSS `v508`, Feed enhancement JavaScript `v540`, Pivot `v2`, alert CSS `v236`, and PWA bootstrap `v428`.
+- [x] Delivered service worker reports `danzstak-shell-v764`; no-cache probes confirm the matching current Feed assets.
 - [x] A fresh hosted browser context registered and activated the staging service worker, created the versioned shell cache, and controlled the next page load without clearing user storage.
 - [x] Required authentication, account-isolation, accessibility, link/privacy, Booking, EPK, Tour Manager, Stripe Test Mode and PWA regressions passed in the full gate.
 - [x] No credential, password, session token, webhook secret or private customer data is recorded in the branch evidence.
-- [x] Amplify DEVELOPMENT job `44` deployed exact commit `d169b4a4c3c2ce0849f47f86580e2ccd5f2eae09`; no-cache hosted probes return `danzstak-shell-v754`, EPK JavaScript `v19`, EPK media CSS `v7`, EPK Reviews JavaScript `v2` and the matching Feed assets. The staging branch remains separate from production.
+- [x] Amplify DEVELOPMENT job `70` deployed exact reviewed head `c5267b681f41c3a01d108b1c5013a19942a5fc31`; no-cache hosted probes return `danzstak-shell-v764` and the matching current Feed assets. The Dailies fallback and compact-alert browser matrices passed directly against the hosted review origin. The staging branch remains separate from production.
 
-Staging PWA: <https://codex-release-candidate-2026-11-08.d31oovi2mos5iz.amplifyapp.com/feed.html?release=d169b4a>
+Staging PWA: <https://review.danzstak.com/feed.html?release=c5267b6>
 
 ## Release decision
 

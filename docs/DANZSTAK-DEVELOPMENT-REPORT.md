@@ -1813,7 +1813,7 @@ Status as of 2026-11-08: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION 
 
 # Release candidate — Dailies identity fallback and compact alert prompt
 
-Status as of 2026-11-08: **IMPLEMENTED AND LOCALLY VERIFIED; REVIEW-PWA DEPLOYMENT PENDING**.
+Status as of 2026-11-08: **IMPLEMENTED, TESTED, REVIEW-PWA DEPLOYED, AND HOSTED-BROWSER VERIFIED; PRODUCTION UNCHANGED**.
 
 - The Dailies creator tile and compact Mix composer previously depended only on the current `/profiles` response. A legacy account whose saved profile photo was still available in same-device profile media or on its own saved posts could therefore show the generic `D` even though the member's real photo appeared elsewhere in DanzStak.
 - Mix now resolves the signed-in identity from the cloud profile first, retains the member's same-device profile photo as a fallback, and can recover a missing legacy profile picture from an owned post. The resolved photo fills the entire rounded-square Dailies tile; the date / `SCENE 1` / durable `TAKE N` clapper remains over the lower-left of that image.
@@ -1823,4 +1823,6 @@ Status as of 2026-11-08: **IMPLEMENTED AND LOCALLY VERIFIED; REVIEW-PWA DEPLOYME
 - The complete `test-regressions.ps1` gate passed, including all JavaScript regressions, 13-page site smoke checks, release propagation checks, and embedded-Lambda infrastructure validation. Focused Dailies Feed and full Feed/Profile art-direction browser suites also passed.
 - Versioned delivery advances to Feed enhancement JavaScript `v540`, PWA bootstrap `v428`, and installed shell `danzstak-shell-v764`.
 - Implementation commit: `a040e8aa81aafee8384d585c9a27e1feebfc25b2` on `codex/release-candidate-2026-11-08` in draft pull request [#173](https://github.com/danzstak/danzstak-web/pull/173).
-- Production is unchanged. GitHub Review, Amplify review deployment, hosted asset probes, hosted browser verification, and owner-phone acceptance remain pending for this exact commit.
+- GitHub Review run [42515111340](https://github.com/danzstak/danzstak-web/actions/runs/42515111340) passed every job for exact branch head `c5267b681f41c3a01d108b1c5013a19942a5fc31`. AWS Amplify review job `70` deployed that exact head successfully from 20:27:09 to 20:28:07 Europe/Berlin.
+- No-cache hosted probes returned Feed enhancement JavaScript `v540`, PWA bootstrap `v428`, alert CSS `v236`, and installed shell `danzstak-shell-v764`. The Dailies identity-fallback and compact-alert browser gates then passed directly against `https://review.danzstak.com` at 320, 360, 390, 414, 430, and 1366px. Hosted evidence: `docs/screenshots/release-candidate/dailies-profile-fallback-hosted/` and `docs/screenshots/release-candidate/push-alert-hosted/`.
+- Production is unchanged. The owner's signed-in phone/PWA acceptance remains pending.
