@@ -1810,3 +1810,17 @@ Status as of 2026-11-08: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION 
 - Hosted verification returned HTTPS 200, shell cache `danzstak-shell-v761`, the current responsive Feed assets, and a successful credentialed preflight with `access-control-allow-origin: https://review.danzstak.com` and `access-control-allow-credentials: true`.
 - A real signed-in browser session on the new origin loaded Profile, Dailies, Mix posts, comments, and The Roll instead of the old connection-error states. The Dailies portrait rendered as a loaded 512×512 `IMG` from the signed profile-media URL. Final owner-account verification on the physical phone remains the release go/no-go.
 - Review PWA: `https://review.danzstak.com/feed.html`. The old `amplifyapp.com` review URL must not be used for signed-in acceptance because its cross-site behavior is intentionally incompatible with the secure session cookie.
+
+# Release candidate — Dailies identity fallback and compact alert prompt
+
+Status as of 2026-11-08: **IMPLEMENTED AND LOCALLY VERIFIED; REVIEW-PWA DEPLOYMENT PENDING**.
+
+- The Dailies creator tile and compact Mix composer previously depended only on the current `/profiles` response. A legacy account whose saved profile photo was still available in same-device profile media or on its own saved posts could therefore show the generic `D` even though the member's real photo appeared elsewhere in DanzStak.
+- Mix now resolves the signed-in identity from the cloud profile first, retains the member's same-device profile photo as a fallback, and can recover a missing legacy profile picture from an owned post. The resolved photo fills the entire rounded-square Dailies tile; the date / `SCENE 1` / durable `TAKE N` clapper remains over the lower-left of that image.
+- The optional push-alert prompt no longer covers a large portion of the phone feed. It is a compact, touch-safe strip above the fixed bottom navigation, with the detail sentence hidden on phones and retained on desktop.
+- Actual-browser checks passed the profile-missing / owned-post-photo regression at 320, 360, 390, 414, 430, and 1366px. They require a loaded image, exact full-tile bounds, `cover` framing, the clapper inside the image, no backing box, no plus sign, and no overflow. Evidence: `docs/screenshots/release-candidate/dailies-profile-fallback/`.
+- The push-alert browser gate passed at the same six widths with 44px actions, no overflow, a measured gap above mobile navigation, and a compact phone height. Evidence: `docs/screenshots/release-candidate/push-alert/`.
+- The complete `test-regressions.ps1` gate passed, including all JavaScript regressions, 13-page site smoke checks, release propagation checks, and embedded-Lambda infrastructure validation. Focused Dailies Feed and full Feed/Profile art-direction browser suites also passed.
+- Versioned delivery advances to Feed enhancement JavaScript `v540`, PWA bootstrap `v428`, and installed shell `danzstak-shell-v764`.
+- Implementation commit: `a040e8aa81aafee8384d585c9a27e1feebfc25b2` on `codex/release-candidate-2026-11-08` in draft pull request [#173](https://github.com/danzstak/danzstak-web/pull/173).
+- Production is unchanged. GitHub Review, Amplify review deployment, hosted asset probes, hosted browser verification, and owner-phone acceptance remain pending for this exact commit.
