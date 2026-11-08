@@ -8,6 +8,16 @@ const requestedMember = new URLSearchParams(location.search).get("member") || ""
 const profilePath = "/profiles" + (requestedMember ? "?member=" + encodeURIComponent(requestedMember) : requestedUser ? "?email=" + encodeURIComponent(requestedUser) : "");
 const identityImageRefreshes = new WeakMap();
 
+const profileHeaderSearch = document.getElementById("profileHeaderSearch");
+const compactProfileSearchQuery = typeof matchMedia === "function"
+  ? matchMedia("(max-width: 360px)")
+  : { matches: false, addEventListener() {} };
+function syncProfileSearchPlaceholder() {
+  if (profileHeaderSearch) profileHeaderSearch.placeholder = compactProfileSearchQuery.matches ? "Search" : "Search posts and users";
+}
+syncProfileSearchPlaceholder();
+compactProfileSearchQuery.addEventListener?.("change", syncProfileSearchPlaceholder);
+
 async function profileFetch(path, options = {}, timeoutMs = 10000) {
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch("https://api.danzstak.com" + path, { ...options, signal: controller.signal }); }

@@ -57,7 +57,7 @@ for (const [file, expected] of [
   ["feed.html", "assets/identity-media.js?v=1"],
   ["messages.html", "assets/identity-media.js?v=1"],
   ["profile.html", "assets/identity-media.js?v=1"],
-  ["feed.html", "assets/feed-enhancements.js?v=537"],
+  ["feed.html", "assets/feed-enhancements.js?v=538"],
   ["feed.html", "assets/profile-onboarding.js?v=8"],
   ["feed.html", "assets/post-sharing.js?v=421"],
   ["feed.html", "assets/people-search.js?v=423"],
@@ -71,7 +71,7 @@ for (const [file, expected] of [
   ["profile.html", "assets/profile-editor.js?v=484"],
   ["booking.html", "assets/booking-agent.js?v=488"],
   ["profile.html", "assets/post-sharing.js?v=421"],
-  ["profile.html", "assets/profile.js?v=419"]
+  ["profile.html", "assets/profile.js?v=420"]
 ]) {
   assert.ok(read(file).includes(expected), `${file} must reference ${expected}`);
 }

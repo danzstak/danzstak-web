@@ -88,6 +88,7 @@ function fixture(pathname) {
             return {
               pivot,
               install: installButton,
+              searchPlaceholder: document.querySelector(".topbar .search")?.placeholder || "",
               pivotTarget: Boolean(pivotTarget?.closest?.("#pivotButton")),
               pivotLabel: document.querySelector("#pivotButton")?.textContent?.trim() || "",
               pivotHtml: document.querySelector("#pivotButton")?.outerHTML || ""
@@ -99,6 +100,7 @@ function fixture(pathname) {
           assert.equal(headerControls.pivotTarget, true, `${width}px Pivot center must remain clickable above other controls`);
           assert.ok(headerControls.pivot.width >= 60 && headerControls.pivot.height >= 38, `${width}px Pivot control is clipped: ${JSON.stringify(headerControls.pivot)}`);
           assert.ok(headerControls.install.width >= 36 && headerControls.install.height >= 36, `${width}px Install control is undersized: ${JSON.stringify(headerControls.install)}`);
+          assert.equal(headerControls.searchPlaceholder, width <= 360 ? "Search" : "Search posts and users", `${width}px global search prompt must not be visibly clipped`);
         }
         if (name === "friends") {
           assert.equal(await page.locator(".friend-workspace-row").count(), 1, `${width}px accepted friend card is missing`);
@@ -152,7 +154,7 @@ function fixture(pathname) {
               return { label: element.textContent.trim(), left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
             });
             const headerRect = element => { const box = element?.getBoundingClientRect(); return box ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height } : null; };
-            return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), pivot: headerRect(document.querySelector("#profileHeaderPivot")), install: headerRect(document.querySelector("body > .install-app-button")) } };
+            return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), searchPlaceholder: document.querySelector("#profileHeaderSearch")?.placeholder || "", pivot: headerRect(document.querySelector("#profileHeaderPivot")), install: headerRect(document.querySelector("body > .install-app-button")) } };
           });
           assert.equal(profileControls.actions.length, 3, `${width}px owner profile must retain Edit, Share, and Invite actions`);
           assert.ok(Math.max(...profileControls.actions.map(action => action.top)) - Math.min(...profileControls.actions.map(action => action.top)) <= 1, `${width}px profile actions must use one row: ${JSON.stringify(profileControls.actions)}`);
@@ -165,6 +167,7 @@ function fixture(pathname) {
           assert.ok(profileControls.header.pivot && profileControls.header.pivot.height >= 38, `${width}px profile Pivot is missing or clipped: ${JSON.stringify(profileControls.header)}`);
           assert.ok(profileControls.header.search.right + 4 <= profileControls.header.pivot.left, `${width}px profile Search overlaps Pivot: ${JSON.stringify(profileControls.header)}`);
           assert.ok(!profileControls.header.install || profileControls.header.pivot.right + 4 <= profileControls.header.install.left, `${width}px profile Pivot overlaps Install: ${JSON.stringify(profileControls.header)}`);
+          assert.equal(profileControls.header.searchPlaceholder, width <= 360 ? "Search" : "Search posts and users", `${width}px profile search prompt must not be visibly clipped`);
         }
         if (name === "settings") {
           const settingsGeometry = await page.evaluate(() => {

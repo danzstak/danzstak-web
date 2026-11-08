@@ -2568,7 +2568,14 @@ const search = document.querySelector(".search");
 search.type = "search";
 search.setAttribute("inputmode", "search");
 search.setAttribute("aria-label", "Search posts and users");
-search.placeholder = "Search posts and users";
+const compactSearchQuery = typeof matchMedia === "function"
+  ? matchMedia("(max-width: 360px)")
+  : { matches: false, addEventListener() {} };
+function syncSearchPlaceholder() {
+  search.placeholder = compactSearchQuery.matches ? "Search" : "Search posts and users";
+}
+syncSearchPlaceholder();
+compactSearchQuery.addEventListener?.("change", syncSearchPlaceholder);
 search.setAttribute("aria-controls", "feed");
 search.setAttribute("enterkeyhint", "search");
 const requestedSearch = new URLSearchParams(location.search).get("q")?.trim() || "";
