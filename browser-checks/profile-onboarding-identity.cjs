@@ -39,7 +39,10 @@ function fixture(pathname, established) {
         }));
         await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
         await page.locator("#storiesLoading").waitFor({ state: "detached" });
-        await page.waitForTimeout(100);
+        await page.waitForFunction(() => {
+          const daily = document.querySelector(".story-create-avatar");
+          return daily?.tagName === "IMG" && daily.complete && daily.naturalWidth > 0;
+        }, { timeout: 5000 });
         const result = await page.evaluate(() => {
           const panel = document.getElementById("profileOnboarding");
           const daily = document.querySelector(".story-create-avatar");
