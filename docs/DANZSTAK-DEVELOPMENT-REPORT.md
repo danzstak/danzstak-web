@@ -4,6 +4,18 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Existing-member name gate correction
+
+- **COMPLETE ON THE SAME-SITE REVIEW PWA; PRODUCTION FRONTEND UNCHANGED:** An established member with a real visible name now enters Mix directly. The first-run **What should people call you?** panel appears only when the visible name is still generic or missing; an automatically generated internal handle can no longer reopen onboarding.
+- **IDENTITY RULE CORRECTED:** Visible display names are not globally unique. Two members may both use a name such as **Liana**. Only the normalized public `@username` is reserved uniquely, and a conflicting username receives a numbered suggestion without changing the member's visible name.
+- Root cause: the client required both a non-generic display name and a non-generic internal handle before dismissing onboarding, while the profile API reserved display names in the same claim table as usernames. Both conditions were corrected and covered by behavior tests.
+- **TESTED:** `test-regressions.ps1` passed. The dedicated browser gate proves the established-name and truly-unnamed states at 390px and 1366px, requires the signed profile image in Dailies, and rejects horizontal overflow. The test was repeated locally three times after replacing a timing-sensitive fixed delay with an image-ready condition.
+- GitHub Review run [42512483871](https://github.com/danzstak/danzstak-web/actions/runs/42512483871) passed all five jobs for exact implementation commit `3212760ce3940225371d179898a59c7fc36a3553`, including the new account-flow browser gate.
+- AWS Amplify DEVELOPMENT job `68` succeeded in `us-west-1` for that exact commit. The hosted app serves Profile onboarding JavaScript `v9`, PWA controller `v426`, and installed-PWA cache `danzstak-shell-v762`.
+- The reviewed CloudFormation change set modified only `DANZSTAK-Call-Signaling` and its dynamic API integration, with no replacement or deletion. Stack `DANZSTAK-Call-Signaling` reached `UPDATE_COMPLETE` in `us-west-1` at `2026-11-08T18:52:37.673Z`.
+- **HOSTED ACCOUNT PROOF:** A signed-in browser opened [review.danzstak.com](https://review.danzstak.com/feed.html) with the Mix, Dailies, composer and posts visible and no name panel. This review origin is same-site with DanzStak authentication; the older Amplify hostname remains intentionally unable to reuse production cookies.
+- Remaining release gate: the owner should refresh the review PWA on the physical phone and confirm the panel is gone. This branch remains unmerged and the production frontend remains unchanged.
+
 ### Responsive feed and full-screen safe-zone engine
 
 - **COMPLETE ON HOSTED REVIEW; PRODUCTION UNCHANGED:** Phone Mix posts now use the requested device classes: a 12px inter-post gap at 320–375px and 16px above 375px. Each post retains 12px structural padding while direct photo/video media breaks through by exactly 12px and measures the full viewport width. The 15px body hierarchy and 44px minimum touch targets remain enforced.
