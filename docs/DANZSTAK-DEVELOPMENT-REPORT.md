@@ -4,6 +4,15 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Responsive feed and full-screen safe-zone engine
+
+- **COMPLETE ON HOSTED REVIEW; PRODUCTION UNCHANGED:** Phone Mix posts now use the requested device classes: a 12px inter-post gap at 320–375px and 16px above 375px. Each post retains 12px structural padding while direct photo/video media breaks through by exactly 12px and measures the full viewport width. The 15px body hierarchy and 44px minimum touch targets remain enforced.
+- Dailies full-screen viewing now reserves proportional 13% top and bottom safe zones around a 74% media window. The Roll reserves 8% at the top, 11% on the right for controls, and 22% at the bottom for captions/actions. Both use dynamic viewport units where supported, preserve source proportions, and prevent duplicate fullscreen controls from covering the close action.
+- **FUNCTIONAL/INTEGRATION TESTS:** the complete `test-regressions.ps1` gate passed, including feed density, responsive media, Dailies, single-audible-video playback, mobile navigation, accessibility, PWA refresh, 13-page site smoke, and infrastructure validation. GitHub Review run [42508343684](https://github.com/danzstak/danzstak-web/actions/runs/42508343684) passed all five jobs for exact commit `b6d08f82370d342c8b2a10c2d2c0f336d6fc43c9`.
+- **HOSTED VISUAL TESTS:** Feed/Profile geometry passed directly against the review PWA at 320, 360, 375, 390, 414, 430, and 1366px. Dailies/Roll safe-zone geometry passed at 320×568, 360×780, 375×812, 390×844, 414×896, 430×932, and 1366×900. Assertions cover exact viewport edges, responsive spacing, full-height viewers, safe-zone boundaries, 44px controls, pointer ownership, and one correct close icon.
+- AWS Amplify DEVELOPMENT job `62` succeeded in `us-west-1` for that exact commit. A fresh hosted browser registered and activated `/service-worker.js?pwa=425`, exposed only `danzstak-shell-v761`, and loaded Feed art-direction CSS `v28` plus Feed enhancement CSS `v508`.
+- Review PWA: [open the responsive release candidate](https://codex-release-candidate-2026-11-08.d31oovi2mos5iz.amplifyapp.com/feed.html). The remaining gate is the owner's physical-phone walkthrough; this work is not merged into `main` and is not deployed to production.
+
 ### Mix feed spacing system
 
 - **COMPLETE ON HOSTED REVIEW:** Separate Mix posts now use one measured 16px vertical rhythm. Each phone post has 12px internal padding; desktop posts use 14px, within the requested 12–16px range. The desktop center feed is constrained to 470–500px instead of expanding toward the older 720px column.
