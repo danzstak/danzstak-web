@@ -1687,7 +1687,7 @@ Status as of 2026-11-07: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 
 ## Release candidate — edge-to-edge Dailies creator image
 
-Status as of 2026-11-08: **IMPLEMENTED AND TESTED LOCALLY; REVIEW PWA DEPLOYMENT PENDING**.
+Status as of 2026-11-08: **IMPLEMENTED, TESTED, AND REVIEW-PWA VERIFIED; PRODUCTION UNCHANGED**.
 
 - Corrected the Dailies creator tile to use the member's profile image as the complete rounded-square artwork. The retired inset circular avatar, white ring, and exposed backing panel are removed.
 - The compact clapper is layered over the image at the lower-left eight-pixel inset. The profile image remains visible behind it and fills every other pixel of the tile with `cover` framing.
@@ -1695,7 +1695,10 @@ Status as of 2026-11-08: **IMPLEMENTED AND TESTED LOCALLY; REVIEW PWA DEPLOYMENT
 - Focused Dailies, Take-count, Feed-density, Pivot-header, art-direction, and PWA-refresh checks passed.
 - The actual-browser Dailies gate passed at 320, 360, 390, 414, 430, and 1366px. It measures exact image/artwork bounds, requires a square phone tile, requires `cover`, rejects the old circular geometry, and verifies the clapper remains inside the lower-left image corner.
 - The complete repository regression suite passed, including every JavaScript check, the 13-page site smoke suite, release propagation checks, and infrastructure validation.
-- Production remains unchanged. Owner phone acceptance is pending the review PWA deployment.
+- Implementation commit `58887f597873d8ba0197ad4b9fe1bfc2a830ec20` and browser-gate correction `5ab9894c6f9dc02a2ef1023c317b9390641431f1` are pushed to `codex/release-candidate-2026-11-08` in draft pull request [#173](https://github.com/danzstak/danzstak-web/pull/173).
+- GitHub Review checks run [42500668991](https://github.com/danzstak/danzstak-web/actions/runs/42500668991) passed on exact commit `5ab9894c6f9dc02a2ef1023c317b9390641431f1`. AWS Amplify review job `54` succeeded in `us-west-1` from 2026-11-08 17:35:23 to 17:36:19 Europe/Berlin.
+- No-cache hosted probes confirmed Feed art-direction CSS `v25` and PWA cache `danzstak-shell-v757`. The hosted Dailies browser gate passed again at 320, 360, 390, 414, 430, and 1366px against `https://codex-release-candidate-2026-11-08.d31oovi2mos5iz.amplifyapp.com/feed.html`.
+- Production remains unchanged. Physical owner-phone acceptance of the review PWA remains pending.
 
 # Dailies creator clapper and queued mobile-comment release
 
