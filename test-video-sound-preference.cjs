@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const assert = require("node:assert/strict");
 
 const media = fs.readFileSync("assets/media-visibility.js", "utf8");
+const feedEnhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const people = fs.readFileSync("assets/people-search.js", "utf8");
 const feed = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 const css = fs.readFileSync("assets/responsive-media.css", "utf8");
@@ -33,6 +34,7 @@ assert.match(feed, /enablejsapi=1&loop=0/, "YouTube embeds should end naturally 
 assert.match(media, /mutedAutoplayEnabled\(\)/, "muted viewport autoplay must be opt-in and disabled by default");
 assert.match(media, /inView=ratio>=thresholdFor\(entry\.target\)/, "visibility eligibility must use the shared feed or Roll threshold");
 assert.match(media, /globalThis\.danzstakMediaCoordinator=\{pauseAll,autoplayEnabled:mutedAutoplayEnabled,startSession,endSession,reconcile:reconcilePlayback\}/, "all navigation surfaces and The Roll must share one playback coordinator");
+assert.doesNotMatch(feedEnhancements, /tagName === "VIDEO"[^\n]+muted = false/, "saved posts and media galleries must never insert an unmuted video before the coordinator takes control");
 assert.match(media, /frame===audibleMedia\?'unMute':'mute'/, "loading an inactive YouTube player must not make it audible");
 assert.match(media, /controlYouTube\(element,'pauseVideo'\)/, "off-screen YouTube embeds should pause without being replaced");
 

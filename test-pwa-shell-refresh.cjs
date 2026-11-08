@@ -57,7 +57,7 @@ for (const [file, expected] of [
   ["feed.html", "assets/identity-media.js?v=1"],
   ["messages.html", "assets/identity-media.js?v=1"],
   ["profile.html", "assets/identity-media.js?v=1"],
-  ["feed.html", "assets/feed-enhancements.js?v=534"],
+  ["feed.html", "assets/feed-enhancements.js?v=535"],
   ["feed.html", "assets/profile-onboarding.js?v=8"],
   ["feed.html", "assets/post-sharing.js?v=421"],
   ["feed.html", "assets/people-search.js?v=423"],
