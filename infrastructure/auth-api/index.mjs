@@ -135,11 +135,12 @@ const tourManagerBilling = createTourManagerBilling({
   tableName: toursTable,
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
-  sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message }) => {
-    const replyTo = await accountForSub(userId);
-    if (!replyTo) throw new Error("Account email could not be verified");
+  sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message, replyToken }) => {
+    if (!/^[a-f0-9]{64}$/.test(replyToken || "")) throw new Error("Booking reply route is invalid");
+    const safeArtistName = String(artistName || "Artist").replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) || "Artist";
+    const replyTo = `${replyToken}@reply.danzstak.com`;
     const result = await ses.send(new SendEmailCommand({
-      FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
+      FromEmailAddress: `"${safeArtistName} via DanzStak" <booking@danzstak.com>`,
       ConfigurationSetName: "DanzStakTourManager",
       EmailTags: [
         { Name: "DanzStakArtistId", Value: userId },
@@ -150,22 +151,23 @@ const tourManagerBilling = createTourManagerBilling({
       ReplyToAddresses: [replyTo],
       Content: { Simple: {
         Subject: { Data: subject, Charset: "UTF-8" },
-        Body: { Text: { Data: `${message}\n\nSent by ${artistName} using DanzStak Tour Manager.\nVenue: ${venueName}\nReplies go directly to the artist.`, Charset: "UTF-8" } }
+        Body: { Text: { Data: `${message}\n\nSent by ${artistName} using DanzStak Tour Manager.\nVenue: ${venueName}\nReply to this email to continue securely in the artist's DanzStak SYNC booking thread.`, Charset: "UTF-8" } }
       } }
     }));
     return { messageId: result.MessageId || "" };
   },
-  sendBookingReply: async ({ userId, venueName, to, subject, message }) => {
-    const replyTo = await accountForSub(userId);
-    if (!replyTo) throw new Error("Account email could not be verified");
+  sendBookingReply: async ({ artistName, venueName, to, subject, message, replyToken }) => {
+    if (!/^[a-f0-9]{64}$/.test(replyToken || "")) throw new Error("Booking reply route is invalid");
+    const safeArtistName = String(artistName || "Artist").replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) || "Artist";
+    const replyTo = `${replyToken}@reply.danzstak.com`;
     const result = await ses.send(new SendEmailCommand({
-      FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
+      FromEmailAddress: `"${safeArtistName} via DanzStak" <booking@danzstak.com>`,
       ConfigurationSetName: "DanzStakTourManager",
       Destination: { ToAddresses: [to] },
       ReplyToAddresses: [replyTo],
       Content: { Simple: {
         Subject: { Data: `Re: ${String(subject || "Booking pitch").replace(/^Re:\s*/i, "")}`.slice(0, 200), Charset: "UTF-8" },
-        Body: { Text: { Data: `${message}\n\nReply from the artist through DanzStak Tour Manager.\nVenue: ${venueName}\nReplies go directly to the artist.`, Charset: "UTF-8" } }
+        Body: { Text: { Data: `${message}\n\nReply from ${safeArtistName} through DanzStak.\nVenue: ${venueName}\nReply to this email to continue securely in the artist's DanzStak SYNC booking thread.`, Charset: "UTF-8" } }
       } }
     }));
     return { messageId: result.MessageId || "" };
