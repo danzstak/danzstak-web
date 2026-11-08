@@ -6,13 +6,14 @@ const path = require("node:path");
 const { chromium } = require("playwright");
 
 const widths = [320, 360, 390, 414, 430, 1366];
-const output = path.resolve("docs/screenshots/dailies-clapper");
+const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8017").replace(/\/$/, "");
+const output = path.resolve(process.env.DANZSTAK_CAPTURE_DIR || "docs/screenshots/dailies-clapper");
 fs.mkdirSync(output, { recursive: true });
 
 function fixture(url) {
   const route = url.pathname;
   if (route === "/auth/session") return { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111", email: "daily@danzstak.invalid" } };
-  if (route === "/profiles") return { profile: { memberId: "11111111-1111-4111-8111-111111111111", name: "Daily Creator", handle: "dailycreator", username: "dailycreator", picture: "http://127.0.0.1:8017/assets/danzstak-share-fb-v2.jpg" } };
+  if (route === "/profiles") return { profile: { memberId: "11111111-1111-4111-8111-111111111111", name: "Daily Creator", handle: "dailycreator", username: "dailycreator", picture: `${baseUrl}/assets/danzstak-share-fb-v2.jpg` } };
   if (route === "/stories") return { dailyTakeCount: 5, stories: [], reels: [] };
   if (route === "/secure-posts") return { posts: [] };
   if (route === "/friends") return { friends: [] };
@@ -31,7 +32,7 @@ function fixture(url) {
       const errors = [];
       page.on("pageerror", error => errors.push(error.message));
       await page.route("https://api.danzstak.com/**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(new URL(route.request().url()))) }));
-      await page.goto("http://127.0.0.1:8017/feed.html?view=feed", { waitUntil: "domcontentloaded" });
+      await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.locator("#storiesLoading").waitFor({ state: "detached" });
       await page.waitForFunction(() => getComputedStyle(document.querySelector(".story-create-avatar")).backgroundImage !== "none");
       await page.evaluate(async () => {

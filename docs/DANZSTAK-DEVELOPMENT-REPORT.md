@@ -1715,6 +1715,8 @@ Status as of 2026-11-08: **REVIEW PWA DEPLOYED AND BROWSER-VERIFIED; PRODUCTION 
 - No-cache hosted probes confirm `assets/pwa.js?v=425`, worker registration `/service-worker.js?pwa=425`, and installed shell `danzstak-shell-v749`. The complete local regression suite passed again. The hosted core-social browser gate passed all 37 page/viewport combinations at 320, 360, 390, 414, 430, and 1366px; inspected captures are in `docs/screenshots/release-candidate/pwa-refresh-hosted/`.
 - Dedicated Dailies browser gates also passed with a real image fixture at 320, 360, 390, 414, 430, 1024, and 1366px. They measure the portrait and card rectangles, require the portrait to fill every tile edge with `cover`, prohibit the retired inset-circle layout, and require the clapper to remain contained over the lower-left of the image.
 - Review PWA: `https://codex-release-candidate-2026-11-08.d31oovi2mos5iz.amplifyapp.com/feed.html`. Production remains unchanged pending the owner's physical-device go/no-go.
+- A no-cache comparison on 2026-11-08 confirmed why the installed production PWA still shows the retired Dailies treatment: production serves Feed JavaScript `v534` and PWA bootstrap `v424`, while review staging serves Feed JavaScript `v538` and PWA bootstrap `v425`.
+- The dedicated Dailies browser gate now accepts a hosted base URL and separate evidence directory instead of being tied to localhost. It passed directly against the review PWA at 320, 360, 390, 414, 430, and 1366px with a real image fixture, proving `cover` sizing, the full circular profile treatment, transparent backing, and the contained lower-left clapper. This does not claim production has received the update; it has not.
 
 # Public EPK reviews — optional-service failure isolation
 
