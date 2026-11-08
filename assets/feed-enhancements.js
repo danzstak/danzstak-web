@@ -3663,48 +3663,105 @@ function beginCommentReply(post, comment, item) {
 }
 
 let commentViewerProfilePromise = null;
+function localViewerProfile() {
+  let profile = {};
+  let media = {};
+  try { profile = JSON.parse(localStorage.getItem("danzstak_profile_draft") || "{}"); } catch { /* Ignore corrupt local profile drafts. */ }
+  try { media = JSON.parse(localStorage.getItem("danzstak_profile_media") || "{}"); } catch { /* Ignore corrupt local profile media. */ }
+  return {
+    ...profile,
+    picture: String(profile.picture || media.avatar || "")
+  };
+}
+
 function loadCommentViewerProfile() {
-  if (!commentViewerProfilePromise) commentViewerProfilePromise = engagementFetch("/profiles", { credentials: "include", cache: "no-store" })
-    .then(async response => response.ok ? (await response.json()).profile || {} : {})
-    .catch(() => ({}));
+  if (!commentViewerProfilePromise) {
+    const localProfile = localViewerProfile();
+    commentViewerProfilePromise = engagementFetch("/profiles", { credentials: "include", cache: "no-store" })
+      .then(async response => {
+        const cloudProfile = response.ok ? (await response.json()).profile || {} : {};
+        return {
+          ...localProfile,
+          ...cloudProfile,
+          picture: String(cloudProfile.picture || localProfile.picture || "")
+        };
+      })
+      .catch(() => localProfile);
+  }
   return commentViewerProfilePromise;
 }
 
-function hydratePostComposerAvatar() {
+function setViewerProfilePicture(profile = {}) {
   if (typeof document.querySelector !== "function") return;
   const avatar = document.querySelector(".composer-avatar");
   if (!avatar) return;
-  loadCommentViewerProfile().then(profile => {
-    if (!avatar.isConnected) return;
-    avatar.textContent = String(profile.name || "D").trim().charAt(0).toUpperCase() || "D";
+  const initial = String(profile.name || profile.authorName || "D").trim().charAt(0).toUpperCase() || "D";
+  const picture = String(profile.picture || profile.authorPicture || "").trim();
+  if (!avatar.dataset.viewerPicture || picture) {
+    avatar.textContent = initial;
     avatar.style.backgroundImage = "";
-    const dailyAvatar = document.querySelector(".story-create-avatar");
-    if (dailyAvatar) {
-      dailyAvatar.textContent = String(profile.name || "D").trim().charAt(0).toUpperCase() || "D";
-      dailyAvatar.style.backgroundImage = "";
-    }
-    if (!profile.picture) return;
-    const image = new Image();
-    image.referrerPolicy = "no-referrer";
-    image.onload = () => {
-      if (!avatar.isConnected) return;
-      avatar.style.backgroundImage = `url("${profile.picture}")`;
-      avatar.textContent = "";
-    };
-    image.src = profile.picture;
-    if (dailyAvatar) {
+  }
+  const dailyAvatar = document.querySelector(".story-create-avatar");
+  if (dailyAvatar && (!dailyAvatar.dataset.viewerPicture || picture)) {
+    dailyAvatar.textContent = initial;
+    dailyAvatar.style.backgroundImage = "";
+  }
+  if (!picture) return;
+  avatar.dataset.viewerPicture = picture;
+  const image = new Image();
+  image.referrerPolicy = "no-referrer";
+  image.onload = () => {
+    if (!avatar.isConnected || avatar.dataset.viewerPicture !== picture) return;
+    avatar.style.backgroundImage = `url("${picture}")`;
+    avatar.textContent = "";
+  };
+  image.src = picture;
+  if (dailyAvatar) {
+    if (dailyAvatar.tagName === "IMG") {
+      dailyAvatar.src = picture;
+      dailyAvatar.dataset.viewerPicture = picture;
+      window.danzstakIdentityMedia?.install(dailyAvatar, profile);
+    } else {
       const dailyImage = document.createElement("img");
       dailyImage.className = "story-create-avatar story-create-avatar-image";
       dailyImage.alt = "";
-      dailyImage.src = profile.picture;
+      dailyImage.src = picture;
+      dailyImage.dataset.viewerPicture = picture;
       dailyImage.referrerPolicy = "no-referrer";
       window.danzstakIdentityMedia?.install(dailyImage, profile);
       dailyAvatar.replaceWith(dailyImage);
     }
+  }
+}
+
+function hydratePostComposerAvatar() {
+  if (typeof document === "undefined" || typeof document.querySelector !== "function" || !document.querySelector(".composer-avatar")) return;
+  loadCommentViewerProfile().then(profile => {
+    setViewerProfilePicture(profile);
+    hydrateViewerPictureFromPosts(window.danzstakLoadedPosts || []);
   });
 }
 
 hydratePostComposerAvatar();
+
+// Older accounts can have a visible profile picture on their saved posts even
+// when the profile endpoint has no picture yet. Reuse that authoritative post
+// identity so Mix and Dailies never fall back to a generic D for that member.
+function hydrateViewerPictureFromPosts(posts = []) {
+  const ownerPost = posts.find(post => post?.isOwner === true && String(post.authorPicture || "").trim());
+  if (!ownerPost) return;
+  setViewerProfilePicture({
+    memberId: String(ownerPost.userId || ""),
+    name: ownerPost.authorName || ownerPost.name || "DanzStak member",
+    picture: ownerPost.authorPicture
+  });
+}
+
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("danzstak:posts-loaded", event => {
+    hydrateViewerPictureFromPosts(event.detail?.posts || []);
+  });
+}
 
 function ensureCommentComposer(post) {
   const comments = post.querySelector(".comments"), input = comments?.querySelector(":scope > input, .comment-composer input");

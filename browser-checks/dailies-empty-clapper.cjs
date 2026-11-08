@@ -9,13 +9,23 @@ const widths = [320, 360, 390, 414, 430, 1366];
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8017").replace(/\/$/, "");
 const output = path.resolve(process.env.DANZSTAK_CAPTURE_DIR || "docs/screenshots/dailies-clapper");
 fs.mkdirSync(output, { recursive: true });
+const profilePortrait = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360"><defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#ff7a1a"/><stop offset="1" stop-color="#1769e0"/></linearGradient></defs><rect width="360" height="360" fill="url(#bg)"/><circle cx="180" cy="126" r="72" fill="#f4c8a4"/><path d="M95 132c4-88 166-103 173 3-29-28-48-53-78-60-29 32-60 50-95 57Z" fill="#2a1c19"/><circle cx="154" cy="126" r="7" fill="#1a2230"/><circle cx="207" cy="126" r="7" fill="#1a2230"/><path d="M151 164c22 17 44 17 64 0" fill="none" stroke="#874c3e" stroke-width="8" stroke-linecap="round"/><path d="M48 360c10-103 58-154 132-154s122 51 132 154" fill="#101722"/><path d="M126 218l54 54 54-54" fill="#fff" opacity=".9"/></svg>`;
 
 function fixture(url) {
   const route = url.pathname;
   if (route === "/auth/session") return { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111", email: "daily@danzstak.invalid" } };
-  if (route === "/profiles") return { profile: { memberId: "11111111-1111-4111-8111-111111111111", name: "Daily Creator", handle: "dailycreator", username: "dailycreator", picture: `${baseUrl}/assets/danzstak-share-fb-v2.jpg` } };
+  if (route === "/profiles") return { profile: { memberId: "11111111-1111-4111-8111-111111111111", name: "Daily Creator", handle: "dailycreator", username: "dailycreator" } };
   if (route === "/stories") return { dailyTakeCount: 5, stories: [], reels: [] };
-  if (route === "/secure-posts") return { posts: [] };
+  if (route === "/secure-posts") return { posts: [{
+    postId: "owner-profile-photo-source",
+    userId: "11111111-1111-4111-8111-111111111111",
+    isOwner: true,
+    authorName: "Daily Creator",
+    authorPicture: `${baseUrl}/__test-profile-portrait.svg`,
+    content: "The signed-in member's existing post supplies the legacy profile photo fallback.",
+    audience: "public",
+    createdAt: "2026-11-08T10:00:00.000Z"
+  }] };
   if (route === "/friends") return { friends: [] };
   if (["/calls/directory", "/people"].includes(route)) return { users: [] };
   if (["/notifications", "/engagement-notifications"].includes(route)) return { notifications: [] };
@@ -31,12 +41,19 @@ function fixture(url) {
       const page = await context.newPage();
       const errors = [];
       page.on("pageerror", error => errors.push(error.message));
+      await page.route(`${baseUrl}/__test-profile-portrait.svg`, route => route.fulfill({ status: 200, contentType: "image/svg+xml", body: profilePortrait }));
       await page.route("https://api.danzstak.com/**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(new URL(route.request().url()))) }));
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.locator("#storiesLoading").waitFor({ state: "detached" });
-      await page.waitForFunction(() => getComputedStyle(document.querySelector(".story-create-avatar")).backgroundImage !== "none");
+      await page.waitForFunction(() => {
+        const avatar = document.querySelector(".story-create-avatar");
+        return avatar?.tagName === "IMG" ? avatar.complete && avatar.naturalWidth > 0 : getComputedStyle(avatar).backgroundImage !== "none";
+      });
       await page.evaluate(async () => {
-        const source = getComputedStyle(document.querySelector(".story-create-avatar")).backgroundImage.match(/url\(["']?(.+?)["']?\)/)?.[1];
+        const avatar = document.querySelector(".story-create-avatar");
+        const source = avatar?.tagName === "IMG"
+          ? avatar.currentSrc || avatar.src
+          : getComputedStyle(avatar).backgroundImage.match(/url\(["']?(.+?)["']?\)/)?.[1];
         if (!source) throw new Error("Dailies profile image source is missing");
         await new Promise((resolve, reject) => { const image = new Image(); image.onload = resolve; image.onerror = reject; image.src = source; });
       });
@@ -57,9 +74,9 @@ function fixture(url) {
           scene: slate.querySelector("strong").textContent,
           date: slate.querySelector("time").textContent,
           slateVisible: slateRect.width > 0 && slateRect.height > 0 && slateRect.left >= tileRect.left && slateRect.right <= tileRect.right,
-          photoVisible: getComputedStyle(photo).backgroundImage !== "none",
-          photoSize: getComputedStyle(photo).backgroundSize,
-          photoPosition: getComputedStyle(photo).backgroundPosition,
+          photoVisible: photo.tagName === "IMG" ? photo.complete && photo.naturalWidth > 0 : getComputedStyle(photo).backgroundImage !== "none",
+          photoSize: photo.tagName === "IMG" ? getComputedStyle(photo).objectFit : getComputedStyle(photo).backgroundSize,
+          photoPosition: photo.tagName === "IMG" ? getComputedStyle(photo).objectPosition : getComputedStyle(photo).backgroundPosition,
           photoRadius: getComputedStyle(photo).borderRadius,
           photoWidth: photoRect.width,
           photoHeight: photoRect.height,

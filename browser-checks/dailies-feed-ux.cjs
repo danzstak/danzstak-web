@@ -40,9 +40,15 @@ function fixture(url) {
       await page.locator('.story[data-story-id="daily-video-1"]').waitFor({ timeout: 5000 }).catch(async error => {
         throw new Error(`${error.message}\nPage errors: ${errors.join(" | ")}\nRail: ${await page.locator("#storiesRail").innerHTML().catch(() => "missing")}`);
       });
-      await page.waitForFunction(() => getComputedStyle(document.querySelector(".story-create-avatar")).backgroundImage !== "none");
+      await page.waitForFunction(() => {
+        const avatar = document.querySelector(".story-create-avatar");
+        return avatar?.tagName === "IMG" ? avatar.complete && avatar.naturalWidth > 0 : getComputedStyle(avatar).backgroundImage !== "none";
+      });
       await page.evaluate(async () => {
-        const source = getComputedStyle(document.querySelector(".story-create-avatar")).backgroundImage.match(/url\(["']?(.+?)["']?\)/)?.[1];
+        const avatar = document.querySelector(".story-create-avatar");
+        const source = avatar?.tagName === "IMG"
+          ? avatar.currentSrc || avatar.src
+          : getComputedStyle(avatar).backgroundImage.match(/url\(["']?(.+?)["']?\)/)?.[1];
         if (!source) throw new Error("Dailies profile image source is missing");
         await new Promise((resolve, reject) => { const image = new Image(); image.onload = resolve; image.onerror = reject; image.src = source; });
       });
@@ -64,7 +70,7 @@ function fixture(url) {
           documentWidth: document.documentElement.scrollWidth,
           railLabel: document.querySelector("#storiesRail").getAttribute("aria-label"),
           creatorLabel: creator.getAttribute("aria-label"),
-          avatarBackground: getComputedStyle(avatar).backgroundImage,
+          avatarBackground: avatar.tagName === "IMG" ? avatar.currentSrc || avatar.src : getComputedStyle(avatar).backgroundImage,
           avatarRadius: getComputedStyle(avatar).borderRadius,
           avatarDominatesArt: avatarRect.width >= artRect.width * .88 && avatarRect.height >= artRect.height * .88,
           slateInsideAvatar: slateRect.left >= avatarRect.left && slateRect.right <= avatarRect.right && slateRect.top >= avatarRect.top && slateRect.bottom <= avatarRect.bottom,
@@ -87,7 +93,7 @@ function fixture(url) {
       assert.equal(result.railLabel, "Dailies");
       assert.match(result.creatorLabel, /Dailies/);
       assert.notEqual(result.avatarBackground, "none", `${width}px genuine profile picture was not installed`);
-      assert.equal(result.avatarRadius, "50%", `${width}px Dailies profile image must match the circular profile portrait`);
+      assert.equal(result.avatarRadius, "18px", `${width}px Dailies profile image must fill the rounded tile instead of remaining an inset circle`);
       assert.equal(result.avatarDominatesArt, true, `${width}px Dailies profile image is too small for its artwork`);
       assert.equal(result.slateInsideAvatar, true, `${width}px Dailies clapper is not over the profile image`);
       assert.equal(result.artCoversCreator, true, `${width}px Dailies artwork does not fill the complete creator tile`);
