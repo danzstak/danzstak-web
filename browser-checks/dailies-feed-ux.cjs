@@ -40,7 +40,12 @@ function fixture(url) {
       await page.locator('.story[data-story-id="daily-video-1"]').waitFor({ timeout: 5000 }).catch(async error => {
         throw new Error(`${error.message}\nPage errors: ${errors.join(" | ")}\nRail: ${await page.locator("#storiesRail").innerHTML().catch(() => "missing")}`);
       });
-      await page.waitForTimeout(150);
+      await page.waitForFunction(() => getComputedStyle(document.querySelector(".story-create-avatar")).backgroundImage !== "none");
+      await page.evaluate(async () => {
+        const source = getComputedStyle(document.querySelector(".story-create-avatar")).backgroundImage.match(/url\(["']?(.+?)["']?\)/)?.[1];
+        if (!source) throw new Error("Dailies profile image source is missing");
+        await new Promise((resolve, reject) => { const image = new Image(); image.onload = resolve; image.onerror = reject; image.src = source; });
+      });
       const result = await page.evaluate(() => {
         const creator = document.querySelector(".story-create");
         const avatar = document.querySelector(".story-create-avatar");

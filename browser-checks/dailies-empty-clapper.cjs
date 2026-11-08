@@ -33,7 +33,12 @@ function fixture(url) {
       await page.route("https://api.danzstak.com/**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(new URL(route.request().url()))) }));
       await page.goto("http://127.0.0.1:8017/feed.html?view=feed", { waitUntil: "domcontentloaded" });
       await page.locator("#storiesLoading").waitFor({ state: "detached" });
-      await page.waitForTimeout(100);
+      await page.waitForFunction(() => getComputedStyle(document.querySelector(".story-create-avatar")).backgroundImage !== "none");
+      await page.evaluate(async () => {
+        const source = getComputedStyle(document.querySelector(".story-create-avatar")).backgroundImage.match(/url\(["']?(.+?)["']?\)/)?.[1];
+        if (!source) throw new Error("Dailies profile image source is missing");
+        await new Promise((resolve, reject) => { const image = new Image(); image.onload = resolve; image.onerror = reject; image.src = source; });
+      });
       const result = await page.evaluate(() => {
         const tile = document.querySelector(".story-create");
         const slate = document.querySelector(".daily-clapper");
