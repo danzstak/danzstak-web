@@ -1687,3 +1687,14 @@ Status as of 2026-11-07: **IN PROGRESS — TESTED LOCALLY, NOT YET DEPLOYED**.
 - The queued mobile-comment gate also passed at 320, 360, 390, 414, and 430px: Reply and trash remain vertically centered on one nonwrapping action row, with trash at the far right.
 - The complete repository regression suite passed, including all `test-*.cjs` checks, site smoke tests, embedded Lambda syntax/infrastructure validation, social persistence, SYNC/calls, video/audio isolation, Booking/EPK/Tour Manager, Stripe, PWA, accessibility, and security checks.
 - Production deployment, production commit, Amplify job, CloudFront propagation, live API verification, and installed-PWA verification remain **PENDING** until the reviewed commit is merged and deployed.
+
+# Release candidate — full-size Dailies artwork and shared Profile header
+
+Status as of 2026-11-08: **REVIEW PWA DEPLOYED AND BROWSER-VERIFIED; PRODUCTION UNCHANGED**.
+
+- The member's real profile picture now fills the complete square Dailies creator tile with `cover`; it is no longer a small inset circle. The compact clapper remains in the lower-left, leaves the image recognizable, and continues to show the local date, `SCENE 1`, and the durable server-provided `TAKE N`.
+- The standalone Profile page now uses the same compact Search and Pivot header actions as the rest of the app. A Profile search carries its query into Mix, filters refreshed posts, and gives the search field focus without adding a second mobile header row.
+- Dailies browser checks passed at 320, 360, 390, 414, 430, and 1366px. They require the artwork to cover the entire tile, require a square phone tile, prohibit the old inset-circle geometry and separate plus sign, and keep the clapper inside the lower-left edge.
+- The complete repository regression suite passed, including all JavaScript checks, the 13-page site smoke suite, and infrastructure validation. GitHub Review checks run [42478998560](https://github.com/danzstak/danzstak-web/actions/runs/42478998560) passed for exact commit `d8cab21ef731d30affa1941a6a5c009f3b461e34`.
+- Hosted verification confirmed Feed JavaScript `v537` and installed-PWA shell `danzstak-shell-v745`. The hosted core social browser gate passed 37 page/viewport combinations, including Profile at 320, 360, 390, 414, 430, and 1366px.
+- Review PWA: `https://codex-release-candidate-2026-11-08.d31oovi2mos5iz.amplifyapp.com/feed.html`. Production remains unchanged pending the owner's physical-device go/no-go.
