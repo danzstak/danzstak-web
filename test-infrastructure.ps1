@@ -189,9 +189,11 @@ foreach ($storyAudienceControl in @("audience=['public','friends','private'].inc
   if (-not $template.Contains($storyAudienceControl)) { throw "Story audience enforcement is missing: $storyAudienceControl" }
 }
 $storyDeletion = [regex]::Match($template, 'async function deleteStory[\s\S]*?async function refreshSession').Value
-if ($storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES_TABLE') -lt 0 -or
-    $storyDeletion.IndexOf('for(let attempt=0;attempt<3;attempt++)') -lt $storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES_TABLE')) {
-  throw 'Story deletion must remove the database record before retrying dedicated-media cleanup.'
+if ($storyDeletion.IndexOf('new DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:mediaKey}') -lt 0 -or
+    $storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES_TABLE') -lt $storyDeletion.IndexOf('new DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:mediaKey}') -or
+    -not $storyDeletion.Contains("if(!removed)return json(503,{error:'Story media could not be removed yet. Try again.',deleted:false})") -or
+    -not $storyDeletion.Contains("ConditionExpression:'userEmail = :owner'")) {
+  throw 'Story deletion must preserve its creator-owned retry record until dedicated media is removed.'
 }
 foreach ($accountPreferenceControl in @('darkMode = :d', 'reduceMotion = :r', 'dataSaver = :s', '.includes(body.language)')) {
   if (-not $template.Contains($accountPreferenceControl)) { throw "Account settings persistence is missing: $accountPreferenceControl" }
