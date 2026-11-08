@@ -119,7 +119,7 @@
     if (parsed.mode === "tour" && !field("endCity")?.value.trim()) missing.push("turnaround city");
     if (missing.length) {
       requestStarted = false;
-      status.textContent = `Almost there—add the ${missing.join(" and ")}, then press Find venues and build route again.`;
+      status.textContent = `Almost there—add the ${missing.join(" and ")}, then press Plan my run again.`;
       document.querySelector("details.booking-tools")?.setAttribute("open", "");
       document.querySelector("details.booking-start")?.setAttribute("open", "");
       field("startCity")?.focus();

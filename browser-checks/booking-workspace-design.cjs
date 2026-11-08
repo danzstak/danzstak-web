@@ -124,7 +124,7 @@ function fixture(pathname, populated = true) {
       await page.locator("#startCity").fill("");
       await page.locator("#bookingBrief").fill("DIY punk. Travel south for 10 days and play 8 shows.");
       await page.locator("#bookingBriefForm button[type=submit]").click();
-      assert.match(await page.locator("#bookingBriefStatus").textContent(), /press Find venues and build route again/i);
+      assert.match(await page.locator("#bookingBriefStatus").textContent(), /press Plan my run again/i);
       await page.locator("#bandName").fill("The Test Rats");
       await page.locator("#startCity").fill("Tacoma, WA, United States");
       await page.locator("#bookingBriefExample").click();

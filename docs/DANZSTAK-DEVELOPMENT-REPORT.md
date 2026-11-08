@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Booking Agent — current-main reconciliation — 2026-11-08
+
+Status: **RECONCILED, FUNCTIONALLY AND VISUALLY VERIFIED LOCALLY; REVIEW PWA REBUILD PENDING; PRODUCTION UNCHANGED**.
+
+- Merged the Booking workspace with 108 newer `main` commits instead of discarding current EPK, Pivot, SYNC, security, feed, review, and PWA work.
+- Preserved the route-wide day sheet, cost/income estimates, sleep plan, road legs, evidence states, sparse-market discovery, and compact natural-language planning workflow while retaining the newer Booking selections, billing, opt-out, reply, and SYNC assets from `main`.
+- Fixed a real 768px cascade regression introduced by the newer shared design system: its forced top margin separated the act identity and tour request that belong on one row. The scoped Booking rule now owns that margin without weakening the shared system.
+- Replaced the clipped phone label with the concise **Plan my run** wording already required by this report. Fresh 320, 360, 390, 430, 768, and 1366px captures show the full label, 44px actions, no horizontal overflow, and the intended phone/tablet/desktop layout.
+- Installed-PWA cache advances to `danzstak-shell-v730`; Booking workspace CSS is `v7`; Booking conversation JavaScript is `v480`.
+- The complete `test-regressions.ps1` suite and the real-browser Booking matrix pass after reconciliation. The browser matrix uses controlled provider fixtures for layout and interaction proof; it does not represent fixture clubs as live venues.
+
 ## Issue #55 — compact Booking Agent workspace — 2026-11-06
 
 Status: **REVISED AFTER TWO INDEPENDENT QA PASSES; LOCAL FUNCTIONAL, VISUAL AND INTEGRATION GATES PASS; EXACT-HEAD HOSTED STAGING, REAL-ACCOUNT BOOKING PROOF AND INDEPENDENT APPROVAL PENDING; NOT DEPLOYED**.

@@ -12,7 +12,7 @@ assert.match(html, /class="tool-header"/);
 assert.match(html, /class="tool-brand"[\s\S]*?<span>DANZSTAK<\/span>/);
 assert.match(html, /<section class="booking-start"[\s\S]*?<section class="booking-identity"[\s\S]*?<section class="booking-brief"/);
 assert.match(html, /<h1 id="bookingBriefTitle">Where do you want to play\?<\/h1>/);
-assert.match(html, />Find venues and build route<\/button>/);
+assert.match(html, />Plan my run<\/button>/);
 assert.match(html, /Exact dates are optional while researching/);
 assert.match(html, /id="bookingBriefExample">Example<\/button>/);
 assert.match(html, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/);
@@ -20,7 +20,7 @@ assert.match(html, /<details class="planner-drawer">[\s\S]*?<summary>More tour o
 assert.match(html, /assets\/booking-workspace\.css\?v=7/);
 assert.match(html, /assets\/booking-map\.js\?v=448/);
 assert.match(html, /assets\/booking-agent\.js\?v=488/);
-assert.match(html, /assets\/booking-conversation\.js\?v=479/);
+assert.match(html, /assets\/booking-conversation\.js\?v=480/);
 
 assert.match(css, /\.booking-start[\s\S]*grid-template-columns: minmax\(270px, \.8fr\) minmax\(420px, 1\.2fr\)/);
 assert.match(css, /\.booking-page \.booking-lead[\s\S]*border-top: 3px solid var\(--booking-orange\)/);
@@ -39,7 +39,7 @@ assert.match(conversation, /let requestStarted = false/);
 assert.match(conversation, /requestStarted = true/);
 assert.match(conversation, /if \(requestStarted\) status\.textContent = routeStatus\.textContent/);
 assert.match(conversation, /const home = field\("startCity"\)\?\.value\.trim\(\)/);
-assert.match(conversation, /then press Find venues and build route again/);
+assert.match(conversation, /then press Plan my run again/);
 assert.doesNotMatch(conversation, /Momo, Italy|The Rats\./);
 
 assert.match(agent, /deadline = started \+ 5 \* 60 \* 1000/);

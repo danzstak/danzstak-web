@@ -106,7 +106,7 @@ const bookingConversation = fs.readFileSync("assets/booking-conversation.js", "u
 const bookingAgent = fs.readFileSync("assets/booking-agent.js", "utf8");
 const authApi = fs.readFileSync("infrastructure/auth-api/index.mjs", "utf8");
 assert.match(markup, /id="bookingBriefForm"/);
-assert.match(markup, /assets\/booking-conversation\.js\?v=479/);
+assert.match(markup, /assets\/booking-conversation\.js\?v=480/);
 assert.match(markup, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/, "manual fields and the venue map should stay behind one optional disclosure");
 assert.match(bookingConversation, /details\.booking-tools/,
   "a missing plain-language field should reveal the optional manual controls before moving focus");
