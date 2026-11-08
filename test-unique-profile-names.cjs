@@ -27,14 +27,16 @@ class GetItemCommand { constructor(input) { this.input = input; } }
 class TransactWriteItemsCommand { constructor(input) { this.input = input; } }
 class DeleteItemCommand { constructor(input) { this.input = input; } }
 class DeleteObjectCommand { constructor(input) { this.input = input; } }
+class HeadObjectCommand { constructor(input) { this.input = input; } }
 const writes = [];
 const lookups = [];
 const context = vm.createContext({
   process: { env: { SETTINGS_TABLE: "settings", PROFILE_NAMES_TABLE: "names", MEDIA_BUCKET: "media" } },
-  GetItemCommand, TransactWriteItemsCommand, DeleteItemCommand, DeleteObjectCommand,
+  GetItemCommand, TransactWriteItemsCommand, DeleteItemCommand, DeleteObjectCommand, HeadObjectCommand,
   json: (statusCode, body) => ({ statusCode, body }),
   ownerPrefix: () => "owner",
   randomUUID: () => "11111111-1111-4111-a111-111111111111",
+  now: () => 100,
   scanAll: async () => [{ userEmail: { S: "someone@example.com" }, profileName: { S: "Liana" }, profileHandle: { S: "liana" } }],
   getProfile: async () => ({ statusCode: 200, body: { profile: { name: "Liana", handle: "liana.2" } } }),
   s3: { send: async () => ({}) },

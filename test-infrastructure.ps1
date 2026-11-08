@@ -298,13 +298,15 @@ foreach ($protection in $requiredStoryDeletionProtections) {
 
 $profileUpdate = [regex]::Match($template, 'async function updateProfileUnique[\s\S]*?async function sendMessage').Value
 if (-not $profileUpdate.Contains('oldMedia.push(old)') -or
-    -not $profileUpdate.Contains('ADD profileMediaCleanup :profileCleanup') -or
+    -not $profileUpdate.Contains('profileMediaCleanup = :profileCleanup') -or
+    -not $profileUpdate.Contains('profileMediaCleanupClaim') -or
+    -not $profileUpdate.Contains('new HeadObjectCommand') -or
     -not $profileUpdate.Contains('await cleanupProfileMedia(user,pendingProfileMedia)') -or
     $profileUpdate.IndexOf('await cleanupProfileMedia(user,pendingProfileMedia)') -lt $profileUpdate.IndexOf('new TransactWriteItemsCommand')) {
   throw 'Profile media replacement must persist retryable cleanup work before deleting old S3 objects.'
 }
 $profileCleanup = [regex]::Match($template, 'async function cleanupProfileMedia[\s\S]*?async function updateProfileUnique').Value
-foreach ($profileCleanupControl in @('for(let attempt=0;attempt<3;attempt++)', "Key.startsWith(prefix)", 'DELETE profileMediaCleanup :resolved')) {
+foreach ($profileCleanupControl in @('for(let attempt=0;attempt<3;attempt++)', "Key.startsWith(prefix)", 'DELETE profileMediaCleanup :resolved', 'profileAvatarKey = :candidate OR profileCoverKey = :candidate OR profileVideoKey = :candidate')) {
   if (-not $profileCleanup.Contains($profileCleanupControl)) { throw "Profile media cleanup safeguard is missing: $profileCleanupControl" }
 }
 

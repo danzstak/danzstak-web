@@ -1205,11 +1205,45 @@ async function manageGroupElder(event) {
 
 const groupCoverKeyPattern = /^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif)$/;
 
-async function cleanupGroupCoverObjects(id, keys) {
+async function cleanupGroupCoverObjects(id, keys, { allowActive = false } = {}) {
   const candidates = [...new Set((keys || []).filter(Boolean))];
   const resolved = candidates.filter(key => !groupCoverKeyPattern.test(key));
   const pending = [];
   for (const key of candidates.filter(key => groupCoverKeyPattern.test(key))) {
+    const claim = randomUUID(), claimExpiresAt = now() + 300;
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: groupsTable,
+        Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+        UpdateExpression: "SET coverCleanupClaim = :claim, coverCleanupClaimKey = :candidate, coverCleanupClaimExpiresAt = :expires",
+        ConditionExpression: (allowActive ? "attribute_exists(userEmail)" : "contains(coverCleanup, :candidate)") + " AND (attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now)" + (allowActive ? "" : " AND (attribute_not_exists(coverKey) OR coverKey <> :candidate)"),
+        ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key }, ":expires": { N: String(claimExpiresAt) }, ":now": { N: String(now()) } }
+      }));
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") {
+        const current = await db.send(new GetItemCommand({
+          TableName: groupsTable,
+          Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+          ConsistentRead: true,
+          ProjectionExpression: "coverKey, coverCleanup"
+        }));
+        if (!allowActive && current.Item?.coverKey?.S === key) {
+          try {
+            await db.send(new UpdateItemCommand({
+              TableName: groupsTable,
+              Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+              UpdateExpression: "DELETE coverCleanup :resolved",
+              ConditionExpression: "coverKey = :candidate",
+              ExpressionAttributeValues: { ":resolved": { SS: [key] }, ":candidate": { S: key } }
+            }));
+            resolved.push(key);
+          } catch { pending.push(key); }
+        } else if (!(current.Item?.coverCleanup?.SS || []).includes(key)) resolved.push(key);
+        else pending.push(key);
+        continue;
+      }
+      throw error;
+    }
     let removed = false;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
@@ -1220,16 +1254,43 @@ async function cleanupGroupCoverObjects(id, keys) {
         if (attempt === 2) console.error("Tribe cover cleanup remains pending", { id, key, error });
       }
     }
-    if (removed) resolved.push(key);
-    else pending.push(key);
+    if (removed) {
+      try {
+        await db.send(new UpdateItemCommand({
+          TableName: groupsTable,
+          Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+          UpdateExpression: "DELETE coverCleanup :resolved REMOVE coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+          ConditionExpression: "coverCleanupClaim = :claim AND coverCleanupClaimKey = :candidate",
+          ExpressionAttributeValues: { ":resolved": { SS: [key] }, ":claim": { S: claim }, ":candidate": { S: key } }
+        }));
+        resolved.push(key);
+      } catch (error) {
+        console.error("Tribe cover cleanup acknowledgement remains pending", { id, key, error });
+        pending.push(key);
+      }
+    } else {
+      pending.push(key);
+      try {
+        await db.send(new UpdateItemCommand({
+          TableName: groupsTable,
+          Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+          UpdateExpression: "REMOVE coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+          ConditionExpression: "coverCleanupClaim = :claim AND coverCleanupClaimKey = :candidate",
+          ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key } }
+        }));
+      } catch (error) {
+        console.error("Tribe cover cleanup lease release remains pending", { id, key, error });
+      }
+    }
   }
-  if (resolved.length) {
+  const invalid = resolved.filter(key => !groupCoverKeyPattern.test(key));
+  if (invalid.length) {
     try {
       await db.send(new UpdateItemCommand({
         TableName: groupsTable,
         Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
         UpdateExpression: "DELETE coverCleanup :resolved",
-        ExpressionAttributeValues: { ":resolved": { SS: resolved } },
+        ExpressionAttributeValues: { ":resolved": { SS: invalid } },
         ConditionExpression: "attribute_exists(userEmail)"
       }));
     } catch (error) {
@@ -1253,17 +1314,17 @@ async function updateGroupCover(event) {
   catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded cover photo was not found." }) }; }
   const oldKey = meta.coverKey?.S || "";
   const replacedKey = oldKey && oldKey !== mediaKey && groupCoverKeyPattern.test(oldKey) ? oldKey : "";
-  const pendingCoverCleanup = [...new Set([...(meta.coverCleanup?.SS || []), replacedKey].filter(Boolean))];
-  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() } };
-  if (replacedKey) expressionValues[":coverCleanup"] = { SS: [replacedKey] };
+  const pendingCoverCleanup = [...new Set([...(meta.coverCleanup?.SS || []), replacedKey].filter(key => key && key !== mediaKey))];
+  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
+  if (pendingCoverCleanup.length) expressionValues[":coverCleanup"] = { SS: pendingCoverCleanup };
   if (oldKey) expressionValues[":oldCover"] = { S: oldKey };
   try {
     await db.send(new UpdateItemCommand({
       TableName: groupsTable,
       Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
-      UpdateExpression: "SET coverKey = :cover, updatedAt = :updated" + (replacedKey ? " ADD coverCleanup :coverCleanup" : ""),
+      UpdateExpression: "SET coverKey = :cover, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
       ExpressionAttributeValues: expressionValues,
-      ConditionExpression: "attribute_exists(userEmail) AND " + (oldKey ? "coverKey = :oldCover" : "attribute_not_exists(coverKey)")
+      ConditionExpression: "attribute_exists(userEmail) AND (attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now) AND " + (oldKey ? "coverKey = :oldCover" : "attribute_not_exists(coverKey)")
     }));
   } catch (error) {
     if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "The Tribe cover changed on another device. Try again." }) };
@@ -1283,7 +1344,7 @@ async function deleteGroup(event) {
   const found = await db.send(new GetItemCommand({ TableName: groupsTable, Key: key, ConsistentRead: true }));
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
   if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the Tribe founder can delete it." }) };
-  const coverCleanup = await cleanupGroupCoverObjects(id, [found.Item.coverKey?.S || "", ...(found.Item.coverCleanup?.SS || [])]);
+  const coverCleanup = await cleanupGroupCoverObjects(id, [found.Item.coverKey?.S || "", ...(found.Item.coverCleanup?.SS || [])], { allowActive: true });
   if (coverCleanup.pending) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe cover could not be removed yet. Try again.", deleted: false }) };
   const members = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId" });
   let pendingMemberDeletes = members.map(item => () => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })));
@@ -1375,7 +1436,39 @@ async function cleanupProfileMediaObjects(accountEmail, keys) {
   const candidates = [...new Set((keys || []).filter(Boolean))];
   const owned = candidates.filter(key => key.startsWith(prefix));
   const resolved = candidates.filter(key => !key.startsWith(prefix));
+  const pending = [];
   for (const key of owned) {
+    const claim = randomUUID(), claimExpiresAt = now() + 300;
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: settingsTable,
+        Key: { userEmail: { S: accountEmail } },
+        UpdateExpression: "SET profileMediaCleanupClaim = :claim, profileMediaCleanupClaimKey = :candidate, profileMediaCleanupClaimExpiresAt = :expires",
+        ConditionExpression: "contains(profileMediaCleanup, :candidate) AND (attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now) AND (attribute_not_exists(profileAvatarKey) OR profileAvatarKey <> :candidate) AND (attribute_not_exists(profileCoverKey) OR profileCoverKey <> :candidate) AND (attribute_not_exists(profileVideoKey) OR profileVideoKey <> :candidate)",
+        ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key }, ":expires": { N: String(claimExpiresAt) }, ":now": { N: String(now()) } }
+      }));
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") {
+        const current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "profileAvatarKey, profileCoverKey, profileVideoKey, profileMediaCleanup" }));
+        const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileVideoKey?.S].filter(Boolean));
+        if (active.has(key)) {
+          const activeConditions = ["profileAvatarKey = :candidate", "profileCoverKey = :candidate", "profileVideoKey = :candidate"].join(" OR ");
+          try {
+            await db.send(new UpdateItemCommand({
+              TableName: settingsTable,
+              Key: { userEmail: { S: accountEmail } },
+              UpdateExpression: "DELETE profileMediaCleanup :resolved",
+              ConditionExpression: activeConditions,
+              ExpressionAttributeValues: { ":resolved": { SS: [key] }, ":candidate": { S: key } }
+            }));
+            resolved.push(key);
+          } catch { pending.push(key); }
+        } else if (!(current.Item?.profileMediaCleanup?.SS || []).includes(key)) resolved.push(key);
+        else pending.push(key);
+        continue;
+      }
+      throw error;
+    }
     let removed = false;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
@@ -1386,21 +1479,49 @@ async function cleanupProfileMediaObjects(accountEmail, keys) {
         if (attempt === 2) console.error("Profile media cleanup remains pending", { key, error });
       }
     }
-    if (removed) resolved.push(key);
+    if (removed) {
+      try {
+        await db.send(new UpdateItemCommand({
+          TableName: settingsTable,
+          Key: { userEmail: { S: accountEmail } },
+          UpdateExpression: "DELETE profileMediaCleanup :resolved REMOVE profileMediaCleanupClaim, profileMediaCleanupClaimKey, profileMediaCleanupClaimExpiresAt",
+          ConditionExpression: "profileMediaCleanupClaim = :claim AND profileMediaCleanupClaimKey = :candidate",
+          ExpressionAttributeValues: { ":resolved": { SS: [key] }, ":claim": { S: claim }, ":candidate": { S: key } }
+        }));
+        resolved.push(key);
+      } catch (error) {
+        console.error("Profile media cleanup acknowledgement remains pending", { accountEmail, key, error });
+        pending.push(key);
+      }
+    } else {
+      pending.push(key);
+      try {
+        await db.send(new UpdateItemCommand({
+          TableName: settingsTable,
+          Key: { userEmail: { S: accountEmail } },
+          UpdateExpression: "REMOVE profileMediaCleanupClaim, profileMediaCleanupClaimKey, profileMediaCleanupClaimExpiresAt",
+          ConditionExpression: "profileMediaCleanupClaim = :claim AND profileMediaCleanupClaimKey = :candidate",
+          ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key } }
+        }));
+      } catch (error) {
+        console.error("Profile media cleanup lease release remains pending", { accountEmail, key, error });
+      }
+    }
   }
-  if (resolved.length) {
+  const invalid = resolved.filter(key => !key.startsWith(prefix));
+  if (invalid.length) {
     try {
       await db.send(new UpdateItemCommand({
         TableName: settingsTable,
         Key: { userEmail: { S: accountEmail } },
         UpdateExpression: "DELETE profileMediaCleanup :resolved",
-        ExpressionAttributeValues: { ":resolved": { SS: resolved } }
+        ExpressionAttributeValues: { ":resolved": { SS: invalid } }
       }));
     } catch (error) {
       console.error("Profile media cleanup queue remains pending", { accountEmail, error });
     }
   }
-  return { cleaned: resolved.length, pending: candidates.length - resolved.length };
+  return { cleaned: resolved.length, pending: pending.length };
 }
 
 async function setProfileVideo(event) {
@@ -1417,15 +1538,32 @@ async function setProfileVideo(event) {
   const key = { userEmail: { S: accountEmail } }, current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: key, ConsistentRead: true }));
   const oldKey = current.Item?.profileVideoKey?.S || "";
   const replacedKey = oldKey && oldKey !== mediaKey && oldKey.startsWith(`users/${ownerPrefix}/`) ? oldKey : "";
-  const pendingProfileMedia = [...new Set([...(current.Item?.profileMediaCleanup?.SS || []), replacedKey].filter(Boolean))];
-  const expressionValues = { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() } };
-  if (replacedKey) expressionValues[":profileCleanup"] = { SS: [replacedKey] };
-  await db.send(new UpdateItemCommand({
-    TableName: settingsTable,
-    Key: key,
-    UpdateExpression: "SET profileVideoKey = :video, updatedAt = :updated" + (replacedKey ? " ADD profileMediaCleanup :profileCleanup" : ""),
-    ExpressionAttributeValues: expressionValues
-  }));
+  if (mediaKey) {
+    try { await s3.send(new HeadObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey })); }
+    catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded profile video was not found." }) }; }
+  }
+  const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, mediaKey].filter(Boolean));
+  const pendingProfileMedia = [...new Set([...(current.Item?.profileMediaCleanup?.SS || []), replacedKey].filter(candidate => candidate && !active.has(candidate)))];
+  const expressionValues = { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
+  const conditions = ["attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now"];
+  for (const [field, token] of [["profileAvatarKey", "avatar"], ["profileCoverKey", "cover"], ["profileVideoKey", "oldVideo"]]) {
+    const value = current.Item?.[field]?.S || "";
+    if (value) { expressionValues[`:${token}`] = { S: value }; conditions.push(`${field} = :${token}`); }
+    else conditions.push(`attribute_not_exists(${field})`);
+  }
+  if (pendingProfileMedia.length) expressionValues[":profileCleanup"] = { SS: pendingProfileMedia };
+  try {
+    await db.send(new UpdateItemCommand({
+      TableName: settingsTable,
+      Key: key,
+      UpdateExpression: "SET profileVideoKey = :video, updatedAt = :updated" + (pendingProfileMedia.length ? ", profileMediaCleanup = :profileCleanup REMOVE " : " REMOVE profileMediaCleanup, ") + "profileMediaCleanupClaim, profileMediaCleanupClaimKey, profileMediaCleanupClaimExpiresAt",
+      ConditionExpression: conditions.map(condition => `(${condition})`).join(" AND "),
+      ExpressionAttributeValues: expressionValues
+    }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "Your profile media changed on another device. Reload and try again." }) };
+    throw error;
+  }
   await cleanupProfileMediaObjects(accountEmail, pendingProfileMedia);
   return { statusCode: 200, headers, body: JSON.stringify({ mediaKey }) };
 }
