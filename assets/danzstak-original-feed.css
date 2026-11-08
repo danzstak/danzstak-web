@@ -262,15 +262,15 @@ body.danzstak-original #storiesRail .story-create-caption {
 }
 body.danzstak-original #newsFeedView .post-composer,
 body.danzstak-original #feedStatus.feed-load-error,
-body.danzstak-original .reels-rail {
+body.danzstak-original .reels-rail:not(.roll-fullscreen) {
   border:0!important;
   background:transparent!important;
   box-shadow:none!important;
 }
 body.danzstak-original #feedStatus.feed-load-error {padding-inline:4px}
-body.danzstak-original .reels-rail {padding-inline:4px!important}
+body.danzstak-original .reels-rail:not(.roll-fullscreen) {padding-inline:4px!important}
 body.danzstak-original #feedStatus.feed-load-error,
-body.danzstak-original .reels-rail {margin-block:0!important}
+body.danzstak-original .reels-rail:not(.roll-fullscreen) {margin-block:0!important}
 body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create {
   flex:0 0 156px;
   width:156px;
@@ -562,19 +562,32 @@ body.danzstak-original .right :is(h3,h2) {
   body.danzstak-original #feed {gap:16px!important}
   body.danzstak-original #feed > .post {
     --post-inline-padding:12px!important;
-    margin:0!important;
+    width:100vw;
+    max-width:100vw;
+    margin:0 calc(50% - 50vw)!important;
     padding:12px!important;
+    border-inline:0;
+    border-radius:0;
+    box-sizing:border-box;
+  }
+  body.danzstak-original #feed .post > :is(.post-media,.feed-media-gallery,.danzstak-media-shell,.post-media-recovery) {
+    width:100vw!important;
+    max-width:100vw!important;
+    margin-inline:-12px!important;
   }
   body.danzstak-original #feed .post > img.post-media {
     width:100vw!important;
     height:125vw!important;
     max-height:none!important;
-    margin-inline:calc(50% - 50vw)!important;
+    margin-inline:-12px!important;
     aspect-ratio:4/5;
     object-fit:cover!important;
     object-position:center;
   }
   body.danzstak-original #feed > .post:has(> .danzstak-native-video-shell[data-video-layout="portrait"]) .post-actions {margin-top:4px!important}
+}
+@media(max-width:375px) {
+  body.danzstak-original #feed {gap:12px!important}
 }
 @media(prefers-reduced-motion:reduce){
   body.danzstak-original *,

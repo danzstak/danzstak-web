@@ -9,11 +9,11 @@ const origin = process.env.DANZSTAK_FEED_ORIGIN || "http://127.0.0.1:8024";
 const credentials = process.env.DANZSTAK_PREVIEW_USER && process.env.DANZSTAK_PREVIEW_PASSWORD
   ? { username: process.env.DANZSTAK_PREVIEW_USER, password: process.env.DANZSTAK_PREVIEW_PASSWORD }
   : null;
-const widths = [320, 390, 430, 1366];
+const widths = [320, 360, 375, 390, 414, 430, 1366];
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const imagePostId = "33333333-3333-4333-8333-333333333333";
 const videoPostId = "44444444-4444-4444-8444-444444444444";
-const output = path.resolve("docs/screenshots/issue-60-feed-art-direction");
+const output = path.resolve(process.env.DANZSTAK_VISUAL_OUTPUT || "docs/screenshots/issue-60-feed-art-direction");
 fs.mkdirSync(output, { recursive: true });
 
 const profile = {
@@ -161,13 +161,13 @@ async function createPortraitVideo(browser) {
       await page.locator("body").evaluate(body => body.classList.remove("danzstak-original"));
       await page.screenshot({ path: path.join(output, `before-feed-${width}.png`), fullPage: width >= 700 });
       await page.locator("body").evaluate(body => body.classList.add("danzstak-original"));
-      await page.waitForFunction(() => {
+      await page.waitForFunction(expectedGap => {
         const feed = document.querySelector("#feed");
         const post = feed?.querySelector(":scope > .post");
         return feed && post
-          && Math.abs(parseFloat(getComputedStyle(feed).rowGap) - 16) <= 1
+          && Math.abs(parseFloat(getComputedStyle(feed).rowGap) - expectedGap) <= 1
           && parseFloat(getComputedStyle(post).marginBottom) <= 1;
-      });
+      }, width <= 375 ? 12 : 16);
 
       const geometry = await page.evaluate(({ imagePostId, videoPostId }) => {
         const postGeometry = postId => {
@@ -268,13 +268,18 @@ async function createPortraitVideo(browser) {
       assert.equal(geometry.dailyPortrait.backgroundSize, "cover", `${width}px Dailies portrait is not cropped to fill the tile`);
       assert.equal(geometry.dailyPortrait.clapperInside, true, `${width}px Dailies clapper is not contained in the lower-left of the image`);
       assert.equal(geometry.dailyPortrait.clapperOverPortrait, true, `${width}px Dailies clapper is beside the portrait instead of over it`);
-      assert.ok(Math.abs(geometry.feedGap - 16) <= 1, `${width}px feed post gap is not 16px: ${geometry.feedGap}; computed ${geometry.feedRowGap}; margins ${geometry.firstPostMarginBottom}/${geometry.secondPostMarginTop}`);
+      const expectedGap = width <= 375 ? 12 : 16;
+      assert.ok(Math.abs(geometry.feedGap - expectedGap) <= 1, `${width}px feed post gap is not ${expectedGap}px: ${geometry.feedGap}; computed ${geometry.feedRowGap}; margins ${geometry.firstPostMarginBottom}/${geometry.secondPostMarginTop}`);
       assert.ok(geometry.image.aligned, `${width}px direct image is inset: ${JSON.stringify(geometry.image)}`);
       assert.ok(geometry.video.aligned, `${width}px direct video is inset: ${JSON.stringify(geometry.video)}`);
       assert.deepEqual(geometry.image.type.author, ["15px", "600", "20px"], `${width}px post author typography drifted`);
       assert.deepEqual(geometry.image.type.time, ["13px", "400", "16px"], `${width}px post metadata typography drifted`);
       assert.deepEqual(geometry.image.type.content, ["15px", "400", "21px"], `${width}px post body typography drifted`);
       if (width < 700) {
+        assert.ok(Math.abs(geometry.image.post[0]) <= 1 && Math.abs(geometry.image.post[1] - width) <= 1, `${width}px image post is not viewport-wide: ${JSON.stringify(geometry.image)}`);
+        assert.ok(Math.abs(geometry.image.media[0]) <= 1 && Math.abs(geometry.image.media[1] - width) <= 1, `${width}px image media is not exactly 100vw: ${JSON.stringify(geometry.image)}`);
+        assert.ok(Math.abs(geometry.video.post[0]) <= 1 && Math.abs(geometry.video.post[1] - width) <= 1, `${width}px video post is not viewport-wide: ${JSON.stringify(geometry.video)}`);
+        assert.ok(Math.abs(geometry.video.media[0]) <= 1 && Math.abs(geometry.video.media[1] - width) <= 1, `${width}px video media is not exactly 100vw: ${JSON.stringify(geometry.video)}`);
         assert.ok(Math.abs(geometry.image.ratio - .8) <= .02, `${width}px image preview is not 4:5: ${JSON.stringify(geometry.image)}`);
         assert.equal(geometry.image.fit, "cover", `${width}px image preview does not fill its 4:5 frame`);
         assert.ok(Math.abs(geometry.video.ratio - .8) <= .02, `${width}px portrait Mix preview is not 4:5: ${JSON.stringify(geometry.video)}`);

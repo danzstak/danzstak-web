@@ -26,6 +26,10 @@ assert.match(css, /#feed \.post>\.danzstak-native-video-shell\[data-video-layout
 assert.match(css, /#feed \.post>\.danzstak-native-video-shell\[data-video-layout="portrait"\]>video:fullscreen\{[\s\S]*?object-fit:contain;/,
   "fullscreen portrait playback must restore the complete uncropped source");
 assert.match(feedCss, /\.reels-list \.reel-card\{position:relative\}/, "each Roll preview must contain its own fullscreen control instead of covering the Roll header launcher");
+assert.match(feedCss, /\.story-viewer\{--story-safe-top:13vh;--story-safe-bottom:13vh;[\s\S]*?height:100vh;[\s\S]*?\.story-viewer-media\{position:absolute;inset:var\(--story-safe-top\) 0 var\(--story-safe-bottom\)/, "phone Dailies must reserve proportional 13vh top and bottom safe zones");
+assert.match(feedCss, /@media\(max-width:700px\)\{\.reels-rail\.roll-fullscreen\{--roll-safe-top:8vh;--roll-safe-right:11vw;--roll-safe-bottom:22vh;?\}/, "phone Roll must define proportional full-screen safe zones without wasting desktop space");
+assert.match(feedCss, /\.roll-fullscreen \.reel-details\{[\s\S]*?right:var\(--roll-safe-right\);[\s\S]*?min-height:var\(--roll-safe-bottom\);[\s\S]*?max-height:var\(--roll-safe-bottom\);/, "Roll captions must stay inside the lower safe zone and outside the right control tray");
+assert.match(feedCss, /\.roll-fullscreen \.ds-media-control--fullscreen\{display:none!important\}/, "provider fullscreen buttons must not overlap The Roll close control");
 
 assert.match(script, /video\.videoWidth/);
 assert.match(script, /ratio < \.82 \? "portrait" : ratio > 1\.18 \? "landscape" : "square"/, "portrait, landscape and square videos must be classified from intrinsic dimensions");
@@ -40,7 +44,7 @@ for (const file of ["feed.html", "messages.html", "profile.html", "epk.html"]) {
   assert.match(html, /assets\/responsive-media\.css\?v=6/, `${file} must load the shared responsive-media styles`);
   assert.match(html, /assets\/responsive-media\.js\?v=2/, `${file} must load the shared responsive-media behavior`);
 }
-assert.match(worker, /danzstak-shell-v760/);
+assert.match(worker, /danzstak-shell-v761/);
 assert.match(worker, /\/assets\/responsive-media\.js/);
 assert.match(worker, /\/assets\/responsive-media\.css/);
 
