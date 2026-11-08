@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Signed-in device security — 2026-11-08
+
+Status: **IN REVIEW — NOT DEPLOYED**.
+
+- Current-main implementation commits: `5d58668` adds the retained, encrypted, point-in-time-recoverable session-device registry and account-scoped APIs; `de7ba58` adds review evidence; `46f5e1b` preserves the current review gates; `c88bd8442f074c6c74ef753d19cb05d2edb771f2` refreshes the UI/evidence against current `main` and adds a required real-browser review job.
+- Settings now lists the member's active signed-in devices, identifies the current device, permits revoking a named remote device, and permits revoking all other sessions. Session identifiers, account email addresses, raw session secrets, IP addresses and fingerprinting data are not rendered or returned.
+- Backend enforcement uses opaque session hashes, fixed 30-day expiry, account-scoped conditional writes/deletes and a ten-minute recent-authentication requirement for remote revocation. Infrastructure retains the table across stack updates, enables point-in-time recovery and limits TTL to expired records. Existing Cognito policy and authentication entry points are unchanged.
+- The refreshed account-security section follows the site's fluid Settings layout rather than adding another decorative card. Real-browser checks pass at 320, 360, 390, 414, 430, 768, 1024 and 1366px, including Italian at 320px, 44px phone actions, no horizontal overflow, no browser errors, two-session rendering and the absence of private identifiers. Inspected captures are in `docs/screenshots/issue-78-account-security/`.
+- Functional and integration evidence: `test-account-security-sessions.cjs`, authentication and persistent-session tests pass. The complete `test-regressions.ps1` gate passes, including 13-page smoke and infrastructure validation. The pull-request workflow now executes the account-security browser matrix in addition to the existing regression, responsive/accessibility/security and release-evidence jobs.
+- Honest boundary: this is signed-in session/device management, **not TOTP MFA** and not a claim that Issue #78 is complete. No AWS stack, production API or PWA was changed in this review slice. Installed-device revocation still requires owner acceptance on a staging or production-approved build before deployment.
+- Separate defect found during the room walk: the older whole-site mobile harness cannot open The Roll because a nested fullscreen glyph intercepts the launcher click. That pre-existing Feed defect is not hidden and is not mixed into this security PR; it requires its own focused fix and regression test.
+
 ## Moving Day from Edit Profile — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
