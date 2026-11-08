@@ -25,7 +25,7 @@ assert.match(source, /message\.title = message\.getAttribute\("aria-label"\)/, '
 assert.match(css, /\.friend-workspace-row\{position:relative;display:grid;grid-template-columns:minmax\(0,1fr\) auto/, 'friend rows reserve one compact action column instead of creating a second row');
 assert.match(css, /\.friend-workspace-actions\{display:flex;align-items:center;gap:6px;flex-wrap:nowrap\}/, 'friend actions stay together without wrapping');
 assert.match(css, /\.friend-message-action,.friend-message-action\.ds-icon-button\{width:44px;min-width:44px;min-height:44px;/, 'the compact message control keeps a usable mobile touch target');
-assert.match(feed, /assets\/feed-enhancements\.css\?v=504/, 'the feed loads the current friend discovery styles');
+assert.match(feed, /assets\/feed-enhancements\.css\?v=505/, 'the feed loads the current friend discovery styles');
 assert.match(css, /@media\(max-width:700px\)\{\.friend-discovery-row button\.ds-icon-button\{width:44px;min-width:44px;height:44px;min-height:44px\}\}/, 'online-user Chat icons keep a full phone touch target');
 assert.match(feed, /assets\/feed-enhancements\.js\?v=536/, 'the feed loads the current localized friend discovery behavior');
 assert.match(source, /action\.dataset\.icon = "chat";[\s\S]*labelAction\(person\.friendStatus === "friends" \? "Message \{name\}"/, 'accepted online users use the same accessible Chat icon as saved friends');

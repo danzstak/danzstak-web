@@ -13,6 +13,7 @@ const pages = [
   ["notifications", "feed.html?view=notifications", ".notification-row"],
   ["chat", "messages.html", ".conversation-row"],
   ["profile", "profile.html", ".profile"],
+  ["settings", "feed.html?view=settings", ".settings-row"],
   ["menu", "feed.html?view=feed&menu=1", ".mobile-menu-open #mobileNavMenu"],
 ];
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
@@ -141,6 +142,39 @@ function fixture(pathname) {
           assert.ok(profileControls.tabs.length >= 5, `${width}px profile sections are missing: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(Math.max(...profileControls.tabs.map(tab => tab.top)) - Math.min(...profileControls.tabs.map(tab => tab.top)) <= 1, `${width}px profile tabs must stay on one row: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(profileControls.tabs.every(tab => tab.height >= 44), `${width}px profile tabs must retain touch targets: ${JSON.stringify(profileControls.tabs)}`);
+        }
+        if (name === "settings") {
+          const settingsGeometry = await page.evaluate(() => {
+            const visible = element => !element.hidden && getComputedStyle(element).display !== "none";
+            const rows = [...document.querySelectorAll(".settings-row")].filter(visible).map(element => {
+              const box = element.getBoundingClientRect();
+              const style = getComputedStyle(element);
+              const icon = element.querySelector(".settings-icon .ds-action-icon")?.getBoundingClientRect();
+              const controls = [...element.querySelectorAll("button,a,select,input")].filter(visible).map(control => {
+                const rect = control.getBoundingClientRect();
+                return { type: control.tagName, width: rect.width, height: rect.height };
+              });
+              return {
+                label: element.querySelector("strong")?.textContent?.trim() || "",
+                width: box.width,
+                background: style.backgroundColor,
+                radius: style.borderRadius,
+                leftBorder: style.borderLeftWidth,
+                rightBorder: style.borderRightWidth,
+                bottomBorder: style.borderBottomWidth,
+                icon: icon ? { width: icon.width, height: icon.height } : null,
+                controls
+              };
+            });
+            return { rows };
+          });
+          assert.ok(settingsGeometry.rows.length >= 16, `${width}px Settings rows are missing: ${JSON.stringify(settingsGeometry.rows)}`);
+          assert.ok(settingsGeometry.rows.every(row => row.background === "rgba(0, 0, 0, 0)"), `${width}px Settings must share the fluid page canvas: ${JSON.stringify(settingsGeometry.rows)}`);
+          assert.ok(settingsGeometry.rows.every(row => row.radius === "0px" && row.leftBorder === "0px" && row.rightBorder === "0px"), `${width}px Settings must not restore separate cards: ${JSON.stringify(settingsGeometry.rows)}`);
+          assert.ok(settingsGeometry.rows.every(row => row.bottomBorder === "1px"), `${width}px Settings rows need one quiet separator: ${JSON.stringify(settingsGeometry.rows)}`);
+          assert.ok(settingsGeometry.rows.every(row => row.icon && row.icon.width >= 20 && row.icon.width <= 24 && row.icon.height >= 20 && row.icon.height <= 24), `${width}px Settings icons must remain consistent: ${JSON.stringify(settingsGeometry.rows)}`);
+          const interactive = settingsGeometry.rows.flatMap(row => row.controls).filter(control => control.type !== "INPUT" || control.width > 30 || control.height > 30);
+          assert.ok(interactive.every(control => control.height >= 44), `${width}px Settings actions must retain 44px touch targets: ${JSON.stringify(interactive)}`);
         }
         if (name === "menu") {
           await page.waitForFunction(() => document.querySelector("#mobileNavMenu")?.getBoundingClientRect().left >= -0.5, null, { timeout: 1000 });
