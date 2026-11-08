@@ -1685,6 +1685,18 @@ Status as of 2026-11-07: **COMPLETE, MERGED, DEPLOYED, AND LIVE-VERIFIED**.
 - Post-deployment API checks returned HTTP 200, `image/svg+xml`, `no-store, private`, the exact production CORS origin, and a real SVG/path for a private EPK URL. An external URL was rejected with 400 and an external origin with 404. The live browser suite then passed again at 320, 360, 390, 414, 430, and 1366px against the real endpoint. Live screenshots: [390px](screenshots/epk-qr-live/epk-qr-390.png) and [1366px](screenshots/epk-qr-live/epk-qr-1366.png).
 - Installed-PWA shell is `danzstak-shell-v707`. Physical Android/iPhone scanning and installed-device acceptance remain **NOT TESTED** in this environment and are not represented as passed.
 
+## Release candidate — edge-to-edge Dailies creator image
+
+Status as of 2026-11-08: **IMPLEMENTED AND TESTED LOCALLY; REVIEW PWA DEPLOYMENT PENDING**.
+
+- Corrected the Dailies creator tile to use the member's profile image as the complete rounded-square artwork. The retired inset circular avatar, white ring, and exposed backing panel are removed.
+- The compact clapper is layered over the image at the lower-left eight-pixel inset. The profile image remains visible behind it and fills every other pixel of the tile with `cover` framing.
+- Feed art-direction CSS advances to `v25`; the installed-PWA shell advances to `danzstak-shell-v757` so an installed review PWA cannot retain the circular treatment.
+- Focused Dailies, Take-count, Feed-density, Pivot-header, art-direction, and PWA-refresh checks passed.
+- The actual-browser Dailies gate passed at 320, 360, 390, 414, 430, and 1366px. It measures exact image/artwork bounds, requires a square phone tile, requires `cover`, rejects the old circular geometry, and verifies the clapper remains inside the lower-left image corner.
+- The complete repository regression suite passed, including every JavaScript check, the 13-page site smoke suite, release propagation checks, and infrastructure validation.
+- Production remains unchanged. Owner phone acceptance is pending the review PWA deployment.
+
 # Dailies creator clapper and queued mobile-comment release
 
 Status as of 2026-11-07: **IN PROGRESS — TESTED LOCALLY, NOT YET DEPLOYED**.

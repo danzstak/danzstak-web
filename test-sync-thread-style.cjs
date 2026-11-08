@@ -16,6 +16,6 @@ assert.match(css, /\.message:not\(\.mine\)\+\.message:not\(\.mine\)\{[^}]*border
 assert.match(css, /\.message\.mine\+\.message:not\(\.mine\),\.message:not\(\.mine\)\+\.message\.mine\{margin-top:10px\}/, "speaker changes need a clear conversation gap");
 assert.match(css, /@media\(max-width:560px\)[^\n]*\.message\{max-width:88%\}/, "phone bubbles must leave room to distinguish sender sides");
 assert.match(html, /assets\/chat\.css\?v=457/, "messages must request the new thread styling");
-assert.match(worker, /danzstak-shell-v756/, "the PWA shell must advance for the updated conversation CSS");
+assert.match(worker, /danzstak-shell-v757/, "the PWA shell must advance for the updated conversation CSS");
 
 console.log("SYNC thread-style checks passed: clean canvas, readable paired bubbles, speaker grouping, phone fit, and PWA refresh.");

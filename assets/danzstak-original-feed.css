@@ -179,12 +179,12 @@ body.danzstak-original #storiesRail .story {
 }
 body.danzstak-original #storiesRail .story-create {
   position:relative;
-  overflow:visible;
+  overflow:hidden;
   padding:0!important;
   border:0;
   background:transparent!important;
   box-shadow:none;
-  border-radius:50%;
+  border-radius:18px;
 }
 body.danzstak-original #storiesRail .story-create::before {display:none}
 body.danzstak-original #storiesRail .story-create-caption {
@@ -229,7 +229,8 @@ body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-crea
   min-height:0;
 }
 body.danzstak-original #storiesRail .story-create-art {
-  border-radius:50%;
+  overflow:hidden;
+  border-radius:18px;
   background:transparent!important;
 }
 body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-caption {
@@ -249,25 +250,24 @@ body.danzstak-original #storiesRail .story-create-identity {
 }
 body.danzstak-original #storiesRail .story-create-avatar {
   position:absolute;
-  inset:3px;
-  width:calc(100% - 6px);
-  height:calc(100% - 6px);
+  inset:0;
+  width:100%;
+  height:100%;
   aspect-ratio:1;
-  border:5px solid #fff;
-  outline:3px solid var(--ds-accent);
-  outline-offset:-1px;
-  border-radius:50%;
+  border:0;
+  outline:0;
+  border-radius:18px;
   background-position:center 28%;
   background-size:cover!important;
   background-repeat:no-repeat;
-  box-shadow:0 9px 24px rgba(18,29,45,.24);
+  box-shadow:inset 0 0 0 3px var(--ds-accent),0 9px 24px rgba(18,29,45,.24);
   transition:transform .2s ease;
 }
 body.danzstak-original #storiesRail .story-create:hover .story-create-avatar {transform:scale(1.025)}
 body.danzstak-original #storiesRail .daily-clapper {
   display:grid!important;
   position:absolute;
-  inset:auto auto 18px 18px;
+  inset:auto auto 8px 8px;
   width:58px;
   box-sizing:border-box;
   align-content:start;
@@ -452,23 +452,22 @@ body.danzstak-original .right :is(h3,h2) {
     height:100%;
   }
   body.danzstak-original #storiesRail .story-create-avatar {
-    inset:3px;
-    width:calc(100% - 6px);
-    height:calc(100% - 6px);
+    inset:0;
+    width:100%;
+    height:100%;
     aspect-ratio:1;
-    border:5px solid #fff;
-    outline:3px solid var(--ds-accent);
-    outline-offset:-1px;
-    border-radius:50%;
+    border:0;
+    outline:0;
+    border-radius:18px;
     background-position:center 28%;
     background-size:cover;
-    box-shadow:0 9px 24px rgba(18,29,45,.24);
+    box-shadow:inset 0 0 0 3px var(--ds-accent),0 9px 24px rgba(18,29,45,.24);
   }
   body.danzstak-original #storiesRail .daily-clapper {
     display:grid!important;
     position:absolute;
-    inset:auto auto 18px 18px;
-    width:min(58px,calc(100% - 36px));
+    inset:auto auto 8px 8px;
+    width:min(58px,calc(100% - 16px));
     box-sizing:border-box;
     align-content:start;
     justify-items:start;
