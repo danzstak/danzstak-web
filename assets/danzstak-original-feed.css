@@ -54,11 +54,16 @@ body.danzstak-original .topnav button:focus-visible {
   background:rgba(255,255,255,.18);
 }
 body.danzstak-original .layout {
-  max-width:1380px;
-  grid-template-columns:minmax(184px,222px) minmax(0,720px) minmax(190px,244px);
+  max-width:1040px;
+  grid-template-columns:minmax(184px,222px) minmax(470px,500px) minmax(190px,244px);
   gap:clamp(12px,1.6vw,20px);
   margin-top:18px;
   align-items:start;
+}
+body.danzstak-original .center {
+  width:100%;
+  max-width:500px;
+  justify-self:center;
 }
 body.danzstak-original :is(.panel,.post) {
   border:1px solid var(--ds-border);
@@ -69,8 +74,15 @@ body.danzstak-original :is(.panel,.post) {
 body.danzstak-original .panel {padding:14px;margin-bottom:12px}
 body.danzstak-original .post {
   --post-inline-padding:14px;
-  padding:12px 14px;
-  margin-bottom:12px;
+  padding:14px;
+  margin-bottom:16px;
+}
+body.danzstak-original #feed {
+  display:grid;
+  gap:16px;
+}
+body.danzstak-original #feed > .post {
+  margin:0!important;
 }
 body.danzstak-original #feed .post > :is(.post-media,.feed-media-gallery,.danzstak-media-shell,.post-media-recovery) {
   width:calc(100% + var(--post-inline-padding) + var(--post-inline-padding));
@@ -300,7 +312,9 @@ body.danzstak-original .right :is(h3,h2) {
 }
 @media(max-width:1050px) {
   body.danzstak-original .layout {
-    grid-template-columns:minmax(170px,210px) minmax(0,720px);
+    grid-template-columns:minmax(160px,190px) minmax(470px,500px);
+    gap:12px;
+    padding-inline:8px;
     justify-content:center;
   }
 }
@@ -340,7 +354,7 @@ body.danzstak-original .right :is(h3,h2) {
   body.danzstak-original .post {
     border-radius:12px;
     box-shadow:none;
-    margin-bottom:9px;
+    margin-bottom:16px;
   }
   body.danzstak-original .topbar .topnav {
     border-top:1px solid #d8dee8;
@@ -420,8 +434,8 @@ body.danzstak-original .right :is(h3,h2) {
     box-shadow:none;
   }
   body.danzstak-original .post {
-    --post-inline-padding:11px;
-    padding:10px 11px;
+    --post-inline-padding:12px;
+    padding:12px;
   }
   body.danzstak-original .right {display:none}
   body.danzstak-original #storiesRail {margin:0 0 2px}
@@ -491,10 +505,13 @@ body.danzstak-original .right :is(h3,h2) {
     line-height:1.1;
   }
   body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-caption {padding:3px 7px}
-  /* Consecutive posts share one continuous canvas. Eight pixels remain between
-     the preceding action row and the next author, instead of an empty card band. */
-  body.danzstak-original #feed {gap:0}
-  body.danzstak-original #feed > .post {padding-block:4px!important}
+  /* Keep each phone post readable as its own block without wasting the feed. */
+  body.danzstak-original #feed {gap:16px!important}
+  body.danzstak-original #feed > .post {
+    --post-inline-padding:12px!important;
+    margin:0!important;
+    padding:12px!important;
+  }
   body.danzstak-original #feed > .post:has(> .danzstak-native-video-shell[data-video-layout="portrait"]) .post-actions {margin-top:4px!important}
 }
 @media(prefers-reduced-motion:reduce){

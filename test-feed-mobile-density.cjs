@@ -18,7 +18,8 @@ assert.match(originalFeedCss, /story-create-avatar[\s\S]*?inset:0;[\s\S]*?width:
 assert.match(originalFeedCss, /story-create-art\s*\{[\s\S]*?border-radius:18px;[\s\S]*?background:transparent!important;/, "Dailies must not leave a gray or white box behind the image");
 assert.match(originalFeedCss, /daily-clapper[\s\S]*?inset:auto auto 8px 8px;[\s\S]*?width:58px;/, "the clapper must overlay the image's lower-left corner");
 assert.match(originalFeedCss, /#newsFeedView \.post-composer,[\s\S]*?#feedStatus\.feed-load-error,[\s\S]*?\.reels-rail\s*\{[\s\S]*?border:0!important;[\s\S]*?background:transparent!important;[\s\S]*?box-shadow:none!important;/, "the top Mix must flow without stacked container boxes");
-assert.match(originalFeedCss, /#feed \{gap:0\}[\s\S]*?#feed > \.post \{padding-block:4px!important\}/, "consecutive phone posts must use one continuous eight-pixel rhythm");
+assert.match(originalFeedCss, /#feed \{gap:16px!important\}[\s\S]*?#feed > \.post \{[\s\S]*?--post-inline-padding:12px!important;[\s\S]*?margin:0!important;[\s\S]*?padding:12px!important;/, "phone posts must use a consistent 16px gap and 12px internal rhythm");
+assert.match(originalFeedCss, /grid-template-columns:minmax\(184px,222px\) minmax\(470px,500px\) minmax\(190px,244px\)/, "desktop Mix content must stay within the requested 470–500px center column");
 assert.match(source, /rollClose\.hidden = true;/, "the fullscreen close control must not appear in the inline Roll");
 assert.match(source, /reelForm\.hidden = true;/, "the external-link form must start collapsed");
 assert.match(source, /function setReelFormOpen\(open\)/, "The Roll must expose one intentional add-video disclosure");
@@ -27,7 +28,7 @@ assert.match(css, /\.reels-rail:not\(\.has-reels\):not\(\.is-adding\)[^{]*\{padd
 assert.match(css, /\.reel-import-form\[hidden\],\.roll-close\[hidden\],\.roll-open\[hidden\]\{display:none!important\}/, "hidden Roll controls must not be revived by shared icon styles");
 assert.match(html, /assets\/feed-enhancements\.css\?v=507/);
 assert.match(html, /assets\/feed-enhancements\.js\?v=538/);
-assert.match(html, /assets\/danzstak-original-feed\.css\?v=25/);
-assert.match(worker, /danzstak-shell-v757/);
+assert.match(html, /assets\/danzstak-original-feed\.css\?v=26/);
+assert.match(worker, /danzstak-shell-v758/);
 
 console.log("Feed density checks passed: Dailies-first order, compact recovery, collapsed Roll authoring, and PWA refresh.");

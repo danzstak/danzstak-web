@@ -141,6 +141,13 @@ async function createPortraitVideo(browser) {
       await page.locator("body").evaluate(body => body.classList.remove("danzstak-original"));
       await page.screenshot({ path: path.join(output, `before-feed-${width}.png`), fullPage: width >= 700 });
       await page.locator("body").evaluate(body => body.classList.add("danzstak-original"));
+      await page.waitForFunction(() => {
+        const feed = document.querySelector("#feed");
+        const post = feed?.querySelector(":scope > .post");
+        return feed && post
+          && Math.abs(parseFloat(getComputedStyle(feed).rowGap) - 16) <= 1
+          && parseFloat(getComputedStyle(post).marginBottom) <= 1;
+      });
 
       const geometry = await page.evaluate(({ imagePostId, videoPostId }) => {
         const postGeometry = postId => {
@@ -168,6 +175,11 @@ async function createPortraitVideo(browser) {
         const dailyCard = document.querySelector("#storiesRail .story-create")?.getBoundingClientRect();
         const dailyPortrait = document.querySelector("#storiesRail .story-create-avatar")?.getBoundingClientRect();
         const dailyClapper = document.querySelector("#storiesRail .daily-clapper")?.getBoundingClientRect();
+        const center = document.querySelector("#yourMixMain")?.getBoundingClientRect();
+        const feedPosts = [...document.querySelectorAll("#feed > .post")];
+        const firstFeedPost = feedPosts[0];
+        const firstFeedRect = firstFeedPost?.getBoundingClientRect();
+        const secondFeedRect = feedPosts[1]?.getBoundingClientRect();
         const root = getComputedStyle(document.documentElement);
         return {
           documentWidth: document.documentElement.scrollWidth,
@@ -180,6 +192,12 @@ async function createPortraitVideo(browser) {
           composerHeight: composer?.height || 0,
           composerExpanded: document.querySelector("#postComposer")?.classList.contains("is-expanded") || false,
           composerTextHeight: document.querySelector("#postText")?.getBoundingClientRect().height || 0,
+          centerWidth: center?.width || 0,
+          feedGap: firstFeedRect && secondFeedRect ? secondFeedRect.top - firstFeedRect.bottom : 0,
+          feedRowGap: document.querySelector("#feed") ? getComputedStyle(document.querySelector("#feed")).rowGap : "",
+          firstPostMarginBottom: firstFeedPost ? getComputedStyle(firstFeedPost).marginBottom : "",
+          secondPostMarginTop: feedPosts[1] ? getComputedStyle(feedPosts[1]).marginTop : "",
+          postPadding: firstFeedPost ? parseFloat(getComputedStyle(firstFeedPost).paddingLeft) : 0,
           dailyPortrait: dailyCard && dailyPortrait ? {
             card: [dailyCard.left, dailyCard.top, dailyCard.right, dailyCard.bottom],
             portrait: [dailyPortrait.left, dailyPortrait.top, dailyPortrait.right, dailyPortrait.bottom],
@@ -215,6 +233,7 @@ async function createPortraitVideo(browser) {
       assert.equal(geometry.dailyPortrait.backgroundSize, "cover", `${width}px Dailies portrait is not cropped to fill the tile`);
       assert.equal(geometry.dailyPortrait.clapperInside, true, `${width}px Dailies clapper is not contained in the lower-left of the image`);
       assert.equal(geometry.dailyPortrait.clapperOverPortrait, true, `${width}px Dailies clapper is beside the portrait instead of over it`);
+      assert.ok(Math.abs(geometry.feedGap - 16) <= 1, `${width}px feed post gap is not 16px: ${geometry.feedGap}; computed ${geometry.feedRowGap}; margins ${geometry.firstPostMarginBottom}/${geometry.secondPostMarginTop}`);
       assert.ok(geometry.image.aligned, `${width}px direct image is inset: ${JSON.stringify(geometry.image)}`);
       assert.ok(geometry.video.aligned, `${width}px direct video is inset: ${JSON.stringify(geometry.video)}`);
       if (width < 700) {
@@ -225,8 +244,13 @@ async function createPortraitVideo(browser) {
         assert.equal(geometry.video.fit, "contain", `${width}px desktop portrait video must remain contained`);
       }
       assert.ok(geometry.menuTargets.every(row => row.height >= 44), `${width}px menu row below 44px: ${JSON.stringify(geometry.menuTargets.filter(row => row.height < 44))}`);
-      if (width < 700) assert.ok(geometry.composerHeight <= 180, `${width}px composer is too tall: ${geometry.composerHeight}`);
+      if (width < 700) {
+        assert.ok(geometry.composerHeight <= 180, `${width}px composer is too tall: ${geometry.composerHeight}`);
+        assert.ok(Math.abs(geometry.postPadding - 12) <= 1, `${width}px post padding is not 12px: ${geometry.postPadding}`);
+      }
       if (width >= 700) {
+        assert.ok(geometry.centerWidth >= 470 && geometry.centerWidth <= 500, `${width}px desktop feed width is outside 470–500px: ${geometry.centerWidth}`);
+        assert.ok(Math.abs(geometry.postPadding - 14) <= 1, `${width}px desktop post padding is not 14px: ${geometry.postPadding}`);
         assert.ok(!geometry.composerExpanded && geometry.composerHeight <= 100 && geometry.composerTextHeight <= 48, `${width}px initial desktop composer is not compact: ${JSON.stringify(geometry)}`);
         assert.ok(geometry.firstPostTop > 0 && geometry.firstPostTop < 900, `${width}px first post is outside the initial viewport: ${geometry.firstPostTop}`);
       }
@@ -239,6 +263,12 @@ async function createPortraitVideo(browser) {
           scrollTo(0, Math.max(0, post.offsetTop - headerHeight));
         }, videoPostId);
         await page.waitForTimeout(80);
+        await page.evaluate(videoPostId => {
+          const actions = document.querySelector(`.post[data-post-id="${videoPostId}"] .post-actions`)?.getBoundingClientRect();
+          const navigation = document.querySelector(".topnav")?.getBoundingClientRect();
+          if (actions && navigation && actions.bottom > navigation.top) scrollBy(0, actions.bottom - navigation.top + 1);
+        }, videoPostId);
+        await page.waitForTimeout(40);
         const composition = await page.evaluate(videoPostId => {
           const post = document.querySelector(`.post[data-post-id="${videoPostId}"]`);
           const header = post.querySelector(".post-header").getBoundingClientRect();

@@ -4,6 +4,12 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Mix feed spacing system
+
+- **COMPLETE LOCALLY; HOSTED REVIEW UPDATE PENDING:** Separate Mix posts now use one measured 16px vertical rhythm. Each phone post has 12px internal padding; desktop posts use 14px, within the requested 12–16px range. The desktop center feed is constrained to 470–500px instead of expanding toward the older 720px column.
+- The rules are scoped to the Mix feed and preserve edge-aligned post media. Real-browser geometry passes at 320, 390, 430 and 1366px, including exact gaps/padding, no horizontal overflow, visible mobile reactions above the fixed navigation, 4:5 phone video previews and the existing Dailies treatment. The populated-feed gate passes at 320, 360, 390, 414 and 430px.
+- Functional/integration evidence: focused Feed, Pivot and PWA cache checks pass, and the complete `test-regressions.ps1` gate passes. Feed art-direction CSS is prepared as `v26` and the installed-PWA cache as `danzstak-shell-v758`. Production remains unchanged pending the owner's phone review.
+
 ### EPK booking email identity and SYNC reply bridge
 
 - **IN PROGRESS — NOT DEPLOYED:** Tour Manager now prepares booking mail as `Artist Name via DanzStak <booking@danzstak.com>` and uses an opaque, per-outreach `@reply.danzstak.com` Reply-To address. The artist's personal account email is no longer exposed to the venue.
