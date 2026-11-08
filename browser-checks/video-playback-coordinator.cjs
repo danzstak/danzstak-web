@@ -6,6 +6,7 @@ const path = require("node:path");
 const { chromium } = require("playwright");
 
 const coordinatorPath = path.resolve(__dirname, "..", "assets", "media-visibility.js");
+const coordinatorUrl = String(process.env.DANZSTAK_MEDIA_SCRIPT_URL || "").trim();
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
 
 (async () => {
@@ -41,7 +42,7 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
         attachStream(document.querySelector('#second'), 330);
       </script>
     </body></html>`);
-    await page.addScriptTag({ path: coordinatorPath });
+    await page.addScriptTag(coordinatorUrl ? { url: coordinatorUrl } : { path: coordinatorPath });
     await page.waitForTimeout(150);
 
     const initial = await page.evaluate(() => [...document.querySelectorAll("video")].map(video => ({ muted: video.muted, paused: video.paused, autoplay: video.autoplay })));
