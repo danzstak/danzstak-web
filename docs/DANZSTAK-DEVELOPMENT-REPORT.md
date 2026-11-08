@@ -4,6 +4,13 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Active profile and Tribe media cleanup race
+
+- **FIXED AND TESTED IN PR #173; BACKENDS NOT DEPLOYED:** A queued profile picture, profile cover, profile video or Tribe cover can no longer be deleted after that exact object becomes active again. Cleanup now acquires a short account/Tribe-scoped lease only while the authoritative record still queues the key and no active media field references it. Profile/Tribe writes reject a stale concurrent device while a deletion lease is active, compare the media fields read by that device, and verify that newly selected storage still exists.
+- Profile queue calculation now considers picture, cover and video together. Replacing a picture cannot delete the same key while the cover still uses it. Re-selecting **A** after an **A → B** change with failed cleanup removes **A** from the queue atomically and makes only **B** eligible for deletion. Tribe covers use the same cancellation and one-winner rules. Expired cleanup leases recover automatically instead of permanently blocking editing.
+- **TESTED:** the new executable race harness covers **A → B (three failed deletion attempts) → A**, same-key avatar/cover protection, current-reference cancellation, missing/stale queue work, storage existence validation and concurrent two-device swaps with one committed winner and one explicit 409. Tribe coverage adds the matching re-selection, current-cover and active-lease cases. The complete `test-regressions.ps1` gate passes, including every `test-*.cjs` file, 13-page site smoke, release verification, infrastructure validation and embedded Lambda syntax. Implementation commit: `61783717b286c8e40a42b62e4a6122e73caf3a5b`.
+- Production and the hosted review backend are unchanged. GitHub Review checks for this commit are pending at the time of this report update.
+
 ### Dailies signed-profile hydration race
 
 - **FIXED AND TESTED IN PR #173; PRODUCTION UNCHANGED:** Dailies profile-picture hydration now runs independently of the Mix composer. A missing or disconnected `.composer-avatar` can no longer return before the Dailies placeholder is replaced with the signed member's profile image.
