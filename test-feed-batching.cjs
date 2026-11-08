@@ -10,6 +10,8 @@ assert.match(source, /loadMorePosts\.textContent = "Show more posts";/, 'the nex
 assert.match(source, /visiblePosts\.length - renderedPostCount/, 'the control should expose an accurate remaining count');
 assert.match(source, /renderNextPostBatch\(Math\.max\(feedBatchSize, linkedPostIndex \+ 1\)\)/, 'shared post links must render their target even beyond the first batch');
 assert.match(source, /firstAddedPost\?\.focus\(\{ preventScroll: true \}\)/, 'keyboard users should land on newly revealed posts');
+assert.match(source, /No posts yet\. Create your first post!/, 'the main Mix empty state must not describe itself as the Saved screen');
+assert.doesNotMatch(source, /No saved posts yet\. Create your first post!/, 'the main Mix must not reuse Saved-screen wording');
 assert.doesNotMatch(source, /data\.posts\.forEach\(post => \{/, 'the initial feed must not eagerly build every historical post');
 
 console.log('Feed batching checks passed: bounded initial rendering, accessible expansion, and deep-linked post preservation.');
