@@ -32,6 +32,7 @@ function responseFor(endpoint) {
   if (endpoint === "/notifications" || endpoint === "/engagement-notifications") return { notifications: [] };
   if (endpoint === "/settings/presence") return { onlineVisible: true, callAlerts: true, messageAlerts: true, language: "en" };
   if (endpoint === "/settings/posts") return { pinned: [], saved: [], muted: [] };
+  if (endpoint === "/account-deletion") return { status: "not_requested", canCancel: false };
   return {};
 }
 
@@ -44,7 +45,13 @@ function responseFor(endpoint) {
       const page = await context.newPage();
       const errors = [];
       page.on("pageerror", error => errors.push(error.message));
-      await page.route("https://api.danzstak.com/**", route => json(route, responseFor(new URL(route.request().url()).pathname)));
+      await page.route("https://api.danzstak.com/**", route => {
+        const endpoint = new URL(route.request().url()).pathname;
+        if (endpoint === "/account-deletion" && route.request().method() === "POST") {
+          return json(route, { requestId: "deletion-browser-check", status: "request_received", canCancel: false });
+        }
+        return json(route, responseFor(endpoint));
+      });
       await page.goto(`${baseUrl}/feed.html?view=settings&security=1`, { waitUntil: "domcontentloaded" });
       const panel = page.locator("#accountSecurityPanel");
       await panel.locator(".account-security-device").first().waitFor({ state: "visible" });
@@ -70,6 +77,36 @@ function responseFor(endpoint) {
       assert.ok(geometry.documentWidth <= width, `${width}px document has horizontal overflow`);
       assert.equal(errors.length, 0, `${width}px browser errors: ${errors.join(" | ")}`);
       await page.screenshot({ path: path.join(captureDir, `settings-${width}.png`), fullPage: true });
+
+      const deleteControl = page.getByRole("button", { name: "Review permanent account deletion" });
+      await deleteControl.click();
+      const deletionDialog = page.locator(".account-deletion-dialog");
+      await deletionDialog.waitFor({ state: "visible" });
+      const deletionGeometry = await deletionDialog.evaluate(dialog => {
+        const box = dialog.getBoundingClientRect();
+        return { left: box.left, right: box.right, viewport: innerWidth, labelledBy: dialog.getAttribute("aria-labelledby") };
+      });
+      assert.ok(deletionGeometry.left >= -0.5 && deletionGeometry.right <= deletionGeometry.viewport + 0.5, `${width}px deletion dialog overflows: ${JSON.stringify(deletionGeometry)}`);
+      assert.equal(deletionGeometry.labelledBy, "accountDeletionTitle", `${width}px deletion dialog must retain an accessible name`);
+      assert.equal(await deletionDialog.getByRole("link", { name: "Verify identity to continue" }).getAttribute("href"), "https://api.danzstak.com/auth/account-deletion/reauth");
+      assert.match(await deletionDialog.textContent(), /starts immediately and cannot be undone/i, `${width}px deletion disclosure must state immediate irreversibility`);
+      assert.match(await deletionDialog.textContent(), /copies outside DanzStak cannot be recalled/i, `${width}px deletion disclosure must state its off-platform limit`);
+      await page.screenshot({ path: path.join(captureDir, `account-deletion-${width}.png`), fullPage: true });
+      await deletionDialog.getByRole("button", { name: "Close" }).click();
+
+      if (width === 390) {
+        await page.goto(`${baseUrl}/feed.html?view=settings&deletion=verified`, { waitUntil: "domcontentloaded" });
+        await page.getByRole("button", { name: "Review permanent account deletion" }).click();
+        const confirmation = page.getByRole("textbox", { name: "Type DELETE MY DANZSTAK ACCOUNT to confirm account deletion" });
+        await confirmation.fill("DELETE");
+        await page.getByRole("button", { name: "Delete permanently now" }).click();
+        await page.getByText("Type the exact phrase: DELETE MY DANZSTAK ACCOUNT").waitFor();
+        await confirmation.fill("DELETE MY DANZSTAK ACCOUNT");
+        await page.getByRole("button", { name: "Delete permanently now" }).click();
+        await page.getByText("Permanent deletion is queued. It cannot be cancelled or restored.").waitFor();
+        assert.equal(await page.getByRole("button", { name: "Cancel deletion request" }).count(), 0, "permanent deletion must not offer cancellation");
+        await page.screenshot({ path: path.join(captureDir, "account-deletion-confirmed-390.png"), fullPage: true });
+      }
 
       if (width === 320) {
         await page.evaluate(() => window.danzstakSetLanguage("it"));

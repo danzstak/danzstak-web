@@ -21,15 +21,16 @@ const verify=async value=>{context.value=value;return vm.runInContext('verifyIdT
  for(const changed of [{iss:'https://evil.test'},{aud:'other-app'},{token_use:'access'},{nonce:'wrong'},{sub:'another-user'},{exp:1000},{iat:1061},{exp:'2000'}]) await assert.rejects(verify(token(changed)));
  await assert.rejects(verify(token({}, {alg:'none',kid:'test-key'})));
  const forged=token().split('.');forged[1]=Buffer.from(JSON.stringify({...claims,sub:'forged-user'})).toString('base64url');await assert.rejects(verify(forged.join('.')));
- let item,reads=0;const digest=value=>crypto.createHash('sha256').update(value).digest('hex');
- const sessions=vm.createContext({sessionCookieName:'__Host-danzstak_session',tableName:'sessions',now:()=>1000,sha256:digest,
-  GetItemCommand:class{constructor(input){this.input=input;}},db:{send:async command=>{reads++;assert.equal(command.input.ConsistentRead,true);assert.equal(command.input.Key.sessionId.S,digest('a'.repeat(64)));return {Item:item};}}});
+ let item,deletion,reads=0;const digest=value=>crypto.createHash('sha256').update(value).digest('hex');
+ const sessions=vm.createContext({sessionCookieName:'__Host-danzstak_session',tableName:'sessions',now:()=>1000,sha256:digest,deletionRequestKey:userId=>'delete:'+userId,
+  GetItemCommand:class{constructor(input){this.input=input;}},db:{send:async command=>{assert.equal(command.input.ConsistentRead,true);if(command.input.Key.sessionId.S.startsWith('delete:'))return {Item:deletion};reads++;assert.equal(command.input.Key.sessionId.S,digest('a'.repeat(64)));return {Item:item};}}});
  vm.runInContext(between('function getCookie(', 'function secureCookie(')+between('async function getAuthenticatedSession(', 'const groupCategories'),sessions);
  const session=async cookie=>{sessions.event={cookies:cookie?[`__Host-danzstak_session=${cookie}`]:[]};return vm.runInContext('getAuthenticatedUser(event)',sessions);};
  assert.equal(await session(),null);assert.equal(await session('malformed'),null);assert.equal(reads,0);
  const valid={type:{S:'user_session'},userId:{S:'owner-1'},expiresAt:{N:'2000'}};
  for(const invalid of [undefined,{...valid,type:{S:'oauth_pending'}},{...valid,userId:undefined},{...valid,expiresAt:{N:'1000'}},{...valid,expiresAt:{N:'NaN'}}]){item=invalid;assert.equal(await session('a'.repeat(64)),null);}
  item=valid;assert.equal(await session('a'.repeat(64)),'owner-1');
+ deletion={type:{S:'account_deletion_request'},status:{S:'in_progress'}};assert.equal(await session('a'.repeat(64)),null,'active permanent deletion must invalidate an otherwise live session');deletion=undefined;
  let acceptance,writes=0,started=0;
  const legal=vm.createContext({legalVersion:currentLegalVersion,legalCookieName:'legal',siteUrl:'https://danzstak.com',tableName:'sessions',allowedOrigins:new Set(['https://danzstak.com']),now:()=>1000,sha256:digest,
   randomValue:()=> 'b'.repeat(64),corsHeaders:()=>({}),secureCookie:()=> 'secure-test-cookie',clearCookie:()=> 'clear-test-cookie',

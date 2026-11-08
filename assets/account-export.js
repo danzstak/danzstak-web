@@ -40,7 +40,7 @@
   async function downloadAccountData(onStatus) {
     const status = typeof onStatus === "function" ? onStatus : () => {};
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+    const timeout = setTimeout(() => controller.abort(), 10 * 60 * 1000);
     status("Collecting your DanzStak data…");
     try {
       const endpoints = {
@@ -55,7 +55,8 @@
         notifications: "/notifications",
         engagementNotifications: "/engagement-notifications",
         tours: "/tours",
-        bookingWorkspace: "/booking-pipeline"
+        bookingWorkspace: "/booking-pipeline",
+        mediaManifest: "/account-export/media"
       };
       const names = Object.keys(endpoints);
       const results = await Promise.allSettled(names.map(name => request(endpoints[name], controller.signal, name === "groups" ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "list" }) } : {})));
@@ -90,18 +91,58 @@
       });
 
       const archive = window.danzstakAccountExportCore.buildAccountArchive(sources, engagementByPost, messagesByContact);
-      const blob = new Blob([JSON.stringify(archive, null, 2)], { type: "application/json" });
+      const media = Array.isArray(sources.mediaManifest?.files) ? sources.mediaManifest.files : [];
+      const maximumArchiveBytes = 300 * 1024 * 1024;
+      const canPackageMedia = Boolean(window.fflate?.zipSync) && sources.mediaManifest?.complete === true && archive.media.totalBytes <= maximumArchiveBytes;
+      const zipFiles = {};
+      const mediaFailures = [];
+      if (canPackageMedia && media.length) {
+        status(`Downloading ${media.length} media file${media.length === 1 ? "" : "s"}…`);
+        const downloaded = await mapLimit(media, 3, async (file, index) => {
+          const archivePath = String(file.archivePath || "");
+          if (!/^media\/[a-z-]+\/(?!.*(?:^|\/)\.\.(?:\/|$))[^\0]+$/i.test(archivePath) || !/^https:\/\//.test(String(file.downloadUrl || ""))) return { error: archivePath || `media-${index + 1}` };
+          try {
+            const response = await fetch(file.downloadUrl, { signal: controller.signal, cache: "no-store", credentials: "omit" });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            if (Number(file.size) >= 0 && bytes.byteLength !== Number(file.size)) throw new Error("size mismatch");
+            return { archivePath, bytes };
+          } catch { return { error: archivePath }; }
+        });
+        for (const item of downloaded) {
+          if (item.error) mediaFailures.push(item.error);
+          else zipFiles[item.archivePath] = [item.bytes, { level: 0 }];
+        }
+      }
+      archive.mediaArchive = {
+        packaged: canPackageMedia,
+        downloadedFiles: Object.keys(zipFiles).length,
+        failedFiles: mediaFailures,
+        reason: canPackageMedia ? (mediaFailures.length ? "Some media downloads failed and are listed here." : "") : !window.fflate?.zipSync ? "ZIP support was unavailable in this browser." : sources.mediaManifest?.complete !== true ? "The server media manifest was incomplete." : "Media exceeds the 300 MB in-browser packaging limit."
+      };
+      if (!canPackageMedia || mediaFailures.length) archive.notIncluded.push("Uploaded media binary files listed by mediaArchive");
+      const json = JSON.stringify(archive, null, 2);
+      let blob, extension;
+      if (canPackageMedia) {
+        zipFiles["account-data.json"] = [new TextEncoder().encode(json), { level: 6 }];
+        blob = new Blob([window.fflate.zipSync(zipFiles)], { type: "application/zip" });
+        extension = "zip";
+      } else {
+        blob = new Blob([json], { type: "application/json" });
+        extension = "json";
+      }
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       const date = new Date().toISOString().slice(0, 10);
       link.href = url;
-      link.download = `danzstak-account-${date}.json`;
+      link.download = `danzstak-account-${date}.${extension}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       const incomplete = archive.incompleteSources.length;
-      status(incomplete ? `Your JSON download is ready. ${incomplete} data source${incomplete === 1 ? " was" : "s were"} unavailable and listed inside the file.` : "Your DanzStak JSON download is ready.");
+      const mediaNotice = archive.mediaArchive.reason ? ` ${archive.mediaArchive.reason}` : "";
+      status(incomplete ? `Your ${extension.toUpperCase()} download is ready. ${incomplete} data source${incomplete === 1 ? " was" : "s were"} unavailable and listed inside the file.${mediaNotice}` : `Your DanzStak ${extension.toUpperCase()} download is ready.${mediaNotice}`);
       return archive;
     } catch (error) {
       const message = error.name === "AbortError" ? "The export took too long. Please try again." : error.message;

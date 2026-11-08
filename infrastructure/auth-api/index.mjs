@@ -23,9 +23,16 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import {
   CognitoIdentityProviderClient,
-  ListUsersCommand
+  ListUsersCommand,
+  AdminDeleteUserCommand
 } from "@aws-sdk/client-cognito-identity-provider";
-import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  DeleteObjectsCommand
+} from "@aws-sdk/client-s3";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import {
@@ -40,6 +47,19 @@ import {
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import QRCode from "qrcode";
+import {
+  DELETION_CONFIRMATION,
+  beginDeletionPhase,
+  cancelDeletionRequest,
+  completeDeletionPhase,
+  createDeletionRequest,
+  deletionRequestKey,
+  failDeletionPhase,
+  publicDeletionStatus
+} from "./account-data-control.mjs";
+import { ACCOUNT_TABLES, accountMediaPrefixes, runAccountErasurePhase } from "./account-erasure.mjs";
+import { createDynamoAccountErasureAdapters } from "./account-erasure-dynamodb.mjs";
+import { accountMediaExportEntry, publicMediaManifest } from "./account-export-media.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
@@ -71,6 +91,27 @@ const userPoolId = process.env.COGNITO_USER_POOL_ID;
 const siteUrl = process.env.SITE_URL;
 const mediaBucket = process.env.MEDIA_BUCKET;
 
+const accountErasureAdapters = tableName ? createDynamoAccountErasureAdapters({
+  db,
+  s3,
+  cognito,
+  sessionsTable: tableName,
+  mediaBucket,
+  userPoolId,
+  tables: { ...ACCOUNT_TABLES, tours: toursTable, postViews: process.env.POST_VIEWS_TABLE || ACCOUNT_TABLES.postViews },
+  commands: {
+    ScanCommand,
+    QueryCommand,
+    DeleteItemCommand,
+    PutItemCommand,
+    UpdateItemCommand,
+    ListObjectsV2Command,
+    DeleteObjectsCommand,
+    AdminDeleteUserCommand,
+    ListUsersCommand
+  }
+}) : null;
+
 const callbackUrl = "https://api.danzstak.com/auth/callback";
 const allowedOrigin = "https://danzstak.com";
 const reviewOrigin = "https://review.danzstak.com";
@@ -89,6 +130,7 @@ const issuer =
 const sessionCookieName = "__Host-danzstak_session";
 const oauthCookieName = "__Host-danzstak_oauth";
 const legalCookieName = "__Host-danzstak_legal";
+const deletionProofCookieName = "__Host-danzstak_delete_proof";
 const legalVersion = "2026-10-26";
 const sessionLifetimeSeconds = 30 * 24 * 60 * 60;
 const recentAuthenticationSeconds = 10 * 60;
@@ -529,7 +571,7 @@ async function verifyIdToken(token, expectedNonce, expectedSub) {
 }
 
 // START SECURE COGNITO LOGIN OR SIGNUP
-async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null) {
+async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null, purpose = null) {
   const state = randomValue();
   const verifier = randomValue();
   const nonce = randomValue();
@@ -550,6 +592,10 @@ async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null)
   if (mobile) {
     pendingItem.mobilePlatform = { S: mobile.platform };
     pendingItem.mobileChallenge = { S: mobile.challenge };
+  }
+  if (purpose?.type === "account_deletion_reauth" && purpose.userId) {
+    pendingItem.purpose = { S: purpose.type };
+    pendingItem.expectedUserId = { S: purpose.userId };
   }
 
   await db.send(new PutItemCommand({
@@ -575,7 +621,7 @@ async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null)
   url.searchParams.set("nonce", nonce);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
-  if (mode === "reauth") url.searchParams.set("prompt", "login");
+  if (mode === "reauth" || purpose?.type === "account_deletion_reauth") url.searchParams.set("prompt", "login");
 
   const browserCookie = secureCookie(
     oauthCookieName,
@@ -815,6 +861,31 @@ async function completeLogin(event) {
     );
   }
 
+  if (pending.purpose?.S === "account_deletion_reauth") {
+    if (!pending.expectedUserId?.S || !safeEqual(pending.expectedUserId.S, user.sub)) {
+      return redirect(siteUrl + "/feed.html?view=settings&deletion=identity-mismatch", [expiredBrowserCookie]);
+    }
+    const proof = randomValue();
+    await db.send(new PutItemCommand({
+      TableName: tableName,
+      Item: {
+        sessionId: { S: sha256("delete-proof:" + proof) },
+        type: { S: "account_deletion_proof" },
+        userId: { S: user.sub },
+        expiresAt: { N: String(now() + 600) }
+      },
+      ConditionExpression: "attribute_not_exists(sessionId)"
+    }));
+    return redirect(
+      siteUrl + "/feed.html?view=settings&deletion=verified",
+      [secureCookie(deletionProofCookieName, proof, 600), expiredBrowserCookie]
+    );
+  }
+
+  if (await activeAccountDeletion(user.sub)) {
+    return redirect(siteUrl + "/?account=deletion-in-progress", [expiredBrowserCookie, clearCookie(sessionCookieName)]);
+  }
+
   let acceptedLegal = null;
   if (pending.legalAcceptanceId?.S) {
     const legalKey = { sessionId: { S: pending.legalAcceptanceId.S } };
@@ -965,6 +1036,15 @@ async function exchangeMobileSession(event) {
   if (item?.type?.S !== "mobile_exchange" || item.platform?.S !== platform || Number(item.expiresAt?.N || 0) <= now() || !safeEqual(item.challenge?.S, sha256(verifier)) || !/^[a-f0-9]{64}$/.test(item.sessionToken?.S || "")) {
     return errorResponse(401, "Native login expired or was already used");
   }
+  const sessionResult = await db.send(new GetItemCommand({
+    TableName: tableName,
+    Key: { sessionId: { S: sha256(item.sessionToken.S) } },
+    ConsistentRead: true
+  }));
+  const sessionUserId = sessionResult.Item?.type?.S === "user_session" ? sessionResult.Item.userId?.S : "";
+  if (!sessionUserId || await activeAccountDeletion(sessionUserId)) {
+    return errorResponse(401, "This DanzStak account is being permanently deleted");
+  }
   try {
     await db.send(new DeleteItemCommand({
       TableName: tableName,
@@ -1013,6 +1093,8 @@ async function getAuthenticatedSession(event, { touch = true } = {}) {
   ) {
     return null;
   }
+
+  if (await activeAccountDeletion(session.userId.S)) return null;
 
   let deviceId = session.deviceId?.S || "";
   let deviceLabel = session.deviceLabel?.S || sessionDeviceLabel(event);
@@ -1084,6 +1166,345 @@ async function getAuthenticatedSession(event, { touch = true } = {}) {
 
 async function getAuthenticatedUser(event) {
   return (await getAuthenticatedSession(event))?.userId || null;
+}
+
+async function activeAccountDeletion(userId) {
+  if (!userId) return null;
+  const result = await db.send(new GetItemCommand({
+    TableName: tableName,
+    Key: { sessionId: { S: deletionRequestKey(userId) } },
+    ConsistentRead: true
+  }));
+  const item = result.Item;
+  if (item?.type?.S !== "account_deletion_request" || item.status?.S === "cancelled") return null;
+  return item;
+}
+
+async function revokeAllSessionsForUser(userId) {
+  let ExclusiveStartKey;
+  do {
+    const page = await db.send(new ScanCommand({
+      TableName: tableName,
+      ConsistentRead: true,
+      FilterExpression: "#type = :sessionType AND userId = :userId",
+      ExpressionAttributeNames: { "#type": "type" },
+      ExpressionAttributeValues: { ":sessionType": { S: "user_session" }, ":userId": { S: userId } },
+      ProjectionExpression: "sessionId",
+      ExclusiveStartKey
+    }));
+    for (const item of page.Items || []) {
+      if (!item.sessionId?.S) continue;
+      await db.send(new DeleteItemCommand({
+        TableName: tableName,
+        Key: { sessionId: item.sessionId },
+        ConditionExpression: "#type = :sessionType AND userId = :userId",
+        ExpressionAttributeNames: { "#type": "type" },
+        ExpressionAttributeValues: { ":sessionType": { S: "user_session" }, ":userId": { S: userId } }
+      })).catch(error => {
+        if (error?.name !== "ConditionalCheckFailedException") throw error;
+      });
+    }
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+
+  ExclusiveStartKey = undefined;
+  do {
+    const page = await db.send(new QueryCommand({
+      TableName: sessionDevicesTable,
+      KeyConditionExpression: "userId = :userId",
+      ExpressionAttributeValues: { ":userId": { S: userId } },
+      ProjectionExpression: "userId, deviceId",
+      ConsistentRead: true,
+      ExclusiveStartKey
+    }));
+    for (const item of page.Items || []) {
+      if (!item.deviceId?.S) continue;
+      await db.send(new DeleteItemCommand({
+        TableName: sessionDevicesTable,
+        Key: { userId: { S: userId }, deviceId: item.deviceId }
+      }));
+    }
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+}
+
+async function startAccountDeletionReauth(event) {
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return errorResponse(401, "Authentication required");
+  return startLogin("login", "", null, { type: "account_deletion_reauth", userId });
+}
+
+function deletionItemToRequest(item) {
+  if (!item || item.type?.S !== "account_deletion_request") return null;
+  return {
+    requestId: item.requestId?.S || "",
+    userId: item.userId?.S || "",
+    accountEmail: item.accountEmail?.S || "",
+    status: item.status?.S || "request_received",
+    phaseIndex: Number(item.phaseIndex?.N || 0),
+    requestedAt: Number(item.requestedAt?.N || 0),
+    graceEndsAt: Number(item.graceEndsAt?.N || 0),
+    updatedAt: Number(item.updatedAt?.N || 0),
+    completedAt: item.completedAt?.N ? Number(item.completedAt.N) : null,
+    failure: item.failure?.S || null
+  };
+}
+
+async function accountDeletionStatus(event) {
+  const headers = corsHeaders(event.headers?.origin || event.headers?.Origin);
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required" }) };
+  const result = await db.send(new GetItemCommand({
+    TableName: tableName,
+    Key: { sessionId: { S: deletionRequestKey(userId) } },
+    ConsistentRead: true
+  }));
+  return { statusCode: 200, headers, body: JSON.stringify(publicDeletionStatus(deletionItemToRequest(result.Item), now())) };
+}
+
+async function requestAccountDeletion(event) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const headers = corsHeaders(origin);
+  if (!allowedOrigins.has(origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "DanzStak origin required" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required" }) };
+  let body;
+  try { body = JSON.parse(event.body || "{}"); }
+  catch { return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid deletion request" }) }; }
+  const proof = getCookie(event, deletionProofCookieName);
+  if (!proof || !/^[a-f0-9]{64}$/.test(proof)) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: "Verify your account again before requesting deletion", reauthRequired: true }) };
+  }
+  const proofKey = { sessionId: { S: sha256("delete-proof:" + proof) } };
+  const proofResult = await db.send(new GetItemCommand({ TableName: tableName, Key: proofKey, ConsistentRead: true }));
+  const proofItem = proofResult.Item;
+  if (proofItem?.type?.S !== "account_deletion_proof" || proofItem.userId?.S !== userId || Number(proofItem.expiresAt?.N || 0) <= now()) {
+    return { statusCode: 403, headers, cookies: [clearCookie(deletionProofCookieName)], body: JSON.stringify({ error: "Account verification expired", reauthRequired: true }) };
+  }
+  const requestKey = { sessionId: { S: deletionRequestKey(userId) } };
+  const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: requestKey, ConsistentRead: true }));
+  if (existing.Item) {
+    return { statusCode: 200, headers, cookies: [clearCookie(deletionProofCookieName)], body: JSON.stringify(publicDeletionStatus(deletionItemToRequest(existing.Item), now())) };
+  }
+  const accountEmail = await accountForSub(userId);
+  let request;
+  try {
+    request = createDeletionRequest({
+      userId,
+      accountEmail,
+      confirmation: body.confirmation,
+      proofVerified: true,
+      requestId: body.requestId,
+      now: now()
+    });
+  } catch (error) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: error.message }) };
+  }
+  try {
+    await db.send(new TransactWriteItemsCommand({ TransactItems: [
+      { Delete: {
+        TableName: tableName,
+        Key: proofKey,
+        ConditionExpression: "#type = :proof AND userId = :userId",
+        ExpressionAttributeNames: { "#type": "type" },
+        ExpressionAttributeValues: { ":proof": { S: "account_deletion_proof" }, ":userId": { S: userId } }
+      } },
+      { Put: {
+        TableName: tableName,
+        Item: {
+          ...requestKey,
+          type: { S: "account_deletion_request" },
+          requestId: { S: request.requestId },
+          userId: { S: request.userId },
+          accountEmail: { S: request.accountEmail },
+          status: { S: request.status },
+          phaseIndex: { N: String(request.phaseIndex) },
+          requestedAt: { N: String(request.requestedAt) },
+          graceEndsAt: { N: String(request.graceEndsAt) },
+          updatedAt: { N: String(request.updatedAt) }
+        },
+        ConditionExpression: "attribute_not_exists(sessionId)"
+      } }
+    ] }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException" || error.name === "TransactionCanceledException") {
+      return { statusCode: 409, headers, cookies: [clearCookie(deletionProofCookieName)], body: JSON.stringify({ error: "Deletion verification was already used. Verify again." }) };
+    }
+    throw error;
+  }
+  await revokeAllSessionsForUser(userId);
+  return {
+    statusCode: 202,
+    headers,
+    cookies: [clearCookie(deletionProofCookieName), clearCookie(sessionCookieName), clearCookie(oauthCookieName), clearCookie(legalCookieName)],
+    body: JSON.stringify(publicDeletionStatus(request, now()))
+  };
+}
+
+async function cancelAccountDeletion(event) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const headers = corsHeaders(origin);
+  if (!allowedOrigins.has(origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "DanzStak origin required" }) };
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required" }) };
+  const key = { sessionId: { S: deletionRequestKey(userId) } };
+  const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
+  let cancelled;
+  try { cancelled = cancelDeletionRequest(deletionItemToRequest(existing.Item), now()); }
+  catch (error) { return { statusCode: 409, headers, body: JSON.stringify({ error: error.message }) }; }
+  try {
+    await db.send(new UpdateItemCommand({
+      TableName: tableName,
+      Key: key,
+      UpdateExpression: "SET #status = :cancelled, updatedAt = :updated",
+      ConditionExpression: "#status = :received AND graceEndsAt > :now",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":cancelled": { S: "cancelled" },
+        ":received": { S: "request_received" },
+        ":updated": { N: String(cancelled.updatedAt) },
+        ":now": { N: String(now()) }
+      }
+    }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "This deletion request can no longer be cancelled" }) };
+    throw error;
+  }
+  return { statusCode: 200, headers, body: JSON.stringify(publicDeletionStatus(cancelled, now())) };
+}
+
+async function getAccountExportMedia(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const accountEmail = await accountForSub(userId);
+  if (!accountEmail || !mediaBucket) return { statusCode: 503, headers, body: JSON.stringify({ error: "Media export is not configured." }) };
+  const prefixes = accountMediaPrefixes(accountEmail), objects = [];
+  let complete = true;
+  for (const Prefix of prefixes) {
+    let ContinuationToken;
+    do {
+      const page = await s3.send(new ListObjectsV2Command({ Bucket: mediaBucket, Prefix, ContinuationToken, MaxKeys: 250 }));
+      objects.push(...(page.Contents || []));
+      ContinuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+      if (objects.length >= 2000 && ContinuationToken) { complete = false; break; }
+    } while (ContinuationToken);
+    if (!complete) break;
+  }
+  const files = objects.slice(0, 2000).map(object => accountMediaExportEntry(object, prefixes, (key, filename) => signedMediaUrl(key, 900, {
+    "response-content-disposition": `attachment; filename="${String(filename).replace(/[\r\n"\\]/g, "-")}"`
+  }))).filter(Boolean);
+  const manifest = publicMediaManifest(files, complete && objects.length <= 2000);
+  return { statusCode: 200, headers, body: JSON.stringify({ ...manifest, files }) };
+}
+
+async function dueAccountDeletionRequests(limit = 5) {
+  const requests = [];
+  let ExclusiveStartKey;
+  do {
+    const page = await db.send(new ScanCommand({
+      TableName: tableName,
+      ConsistentRead: true,
+      FilterExpression: "#type = :request AND graceEndsAt <= :now AND (#status = :received OR #status = :progress OR #status = :failed)",
+      ExpressionAttributeNames: { "#type": "type", "#status": "status" },
+      ExpressionAttributeValues: {
+        ":request": { S: "account_deletion_request" },
+        ":now": { N: String(now()) },
+        ":received": { S: "request_received" },
+        ":progress": { S: "in_progress" },
+        ":failed": { S: "failed" }
+      },
+      ExclusiveStartKey
+    }));
+    requests.push(...(page.Items || []));
+    ExclusiveStartKey = page.LastEvaluatedKey;
+  } while (ExclusiveStartKey && requests.length < limit);
+  return requests.slice(0, limit);
+}
+
+async function sendAccountDeletionReceipt(request) {
+  if (!request?.accountEmail || !request?.requestId) return false;
+  try {
+    await ses.send(new SendEmailCommand({
+      FromEmailAddress: "DanzStak Privacy <support@danzstak.com>",
+      Destination: { ToAddresses: [request.accountEmail] },
+      Content: { Simple: {
+        Subject: { Data: "Your DanzStak account deletion is complete", Charset: "UTF-8" },
+        Body: { Text: { Data: `Your active DanzStak account data has been removed. Receipt: ${request.requestId}\n\nLimited records may remain only for payment, safety, legal, backup, or cache obligations described in the DanzStak Privacy Policy. Messages authored by another member remain that member's content; messages and media you authored were removed. This receipt does not contain your deleted content.`, Charset: "UTF-8" } }
+      } }
+    }));
+    return true;
+  } catch (error) {
+    console.error("Account deletion receipt delivery failed", { requestId: request.requestId, errorName: error?.name || "Error" });
+    return false;
+  }
+}
+
+async function processAccountDeletionQueue(limit = 5) {
+  if (!accountErasureAdapters) throw new Error("Account erasure is not configured");
+  const items = await dueAccountDeletionRequests(limit);
+  const results = [];
+  for (const item of items) {
+    const request = deletionItemToRequest(item), key = { sessionId: item.sessionId }, claim = beginDeletionPhase(request, now());
+    if (!claim.phase) continue;
+    const lockToken = randomValue(), lockUntil = now() + 300;
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: tableName,
+        Key: key,
+        UpdateExpression: "SET #status = :progress, updatedAt = :updated, lockToken = :lock, lockUntil = :lockUntil REMOVE failure",
+        ConditionExpression: "phaseIndex = :phaseIndex AND (#status = :received OR #status = :progress OR #status = :failed) AND (attribute_not_exists(lockUntil) OR lockUntil < :now)",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: {
+          ":progress": { S: "in_progress" }, ":received": { S: "request_received" }, ":failed": { S: "failed" },
+          ":updated": { N: String(now()) }, ":lock": { S: lockToken }, ":lockUntil": { N: String(lockUntil) },
+          ":phaseIndex": { N: String(request.phaseIndex) }, ":now": { N: String(now()) }
+        }
+      }));
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") continue;
+      throw error;
+    }
+    try {
+      const summary = await runAccountErasurePhase(claim.phase, request, accountErasureAdapters);
+      const completed = completeDeletionPhase({ ...claim.request, status: "in_progress" }, claim.phase, now());
+      const expressionValues = {
+        ":phaseIndex": { N: String(completed.phaseIndex) }, ":status": { S: completed.status },
+        ":updated": { N: String(completed.updatedAt) }, ":lock": { S: lockToken },
+        ":summary": { S: JSON.stringify(summary) }
+      };
+      let updateExpression = "SET phaseIndex = :phaseIndex, #status = :status, updatedAt = :updated, lastPhaseSummary = :summary REMOVE lockToken, lockUntil, failure";
+      if (completed.completedAt) {
+        updateExpression = "SET phaseIndex = :phaseIndex, #status = :status, updatedAt = :updated, completedAt = :completed, expiresAt = :expires, lastPhaseSummary = :summary REMOVE lockToken, lockUntil, failure, accountEmail, userId";
+        expressionValues[":completed"] = { N: String(completed.completedAt) };
+        expressionValues[":expires"] = { N: String(completed.completedAt + 35 * 86400) };
+      }
+      await db.send(new UpdateItemCommand({
+        TableName: tableName,
+        Key: key,
+        UpdateExpression: updateExpression,
+        ConditionExpression: "lockToken = :lock",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: expressionValues
+      }));
+      if (completed.completedAt) await sendAccountDeletionReceipt(request);
+      results.push({ requestId: request.requestId, phase: claim.phase, status: completed.status, summary });
+    } catch (error) {
+      const failed = failDeletionPhase({ ...claim.request, status: "in_progress" }, claim.phase, error, now());
+      await db.send(new UpdateItemCommand({
+        TableName: tableName,
+        Key: key,
+        UpdateExpression: "SET #status = :failed, updatedAt = :updated, failure = :failure REMOVE lockToken, lockUntil",
+        ConditionExpression: "lockToken = :lock",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: {
+          ":failed": { S: failed.status }, ":updated": { N: String(failed.updatedAt) },
+          ":failure": { S: failed.failure }, ":lock": { S: lockToken }
+        }
+      }));
+      results.push({ requestId: request.requestId, phase: claim.phase, status: "failed" });
+    }
+  }
+  return { processed: results.length, results };
 }
 
 const groupCategories = new Set(["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"]);
@@ -4991,6 +5412,10 @@ export const handler = async event => {
     if (Array.isArray(event?.Records) && event.Records.some(record => record?.EventSource === "aws:sns")) {
       return await tourManagerBilling(event);
     }
+
+    if (event?.source === "danzstak.account-data-control" && event?.detail?.action === "process-account-deletions") {
+      return await processAccountDeletionQueue(5);
+    }
     if (path?.startsWith("/tour-manager/") || path?.startsWith("/phone-number/")) {
       if (method === "POST" && ["/tour-manager/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);
@@ -5042,6 +5467,25 @@ export const handler = async event => {
 
     if (method === "POST" && path === "/auth/sessions/revoke-others") {
       return await revokeOtherAccountSessions(event);
+    }
+
+    if (method === "GET" && path === "/auth/account-deletion/reauth") {
+      return await startAccountDeletionReauth(event);
+    }
+
+    if (method === "GET" && path === "/account-deletion") {
+      return await accountDeletionStatus(event);
+    }
+
+    if (method === "POST" && path === "/account-deletion") {
+      return await requestAccountDeletion(event);
+    }
+
+    if (method === "DELETE" && path === "/account-deletion") {
+      return await cancelAccountDeletion(event);
+    }
+    if (method === "GET" && path === "/account-export/media") {
+      return await getAccountExportMedia(event);
     }
 
     if (method === "GET" && path === "/secure-posts") {
