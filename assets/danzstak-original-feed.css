@@ -181,7 +181,20 @@ body.danzstak-original #storiesRail .story-create {
   box-shadow:none;
 }
 body.danzstak-original #storiesRail .story-create::before {display:none}
-body.danzstak-original #storiesRail .story-create-caption {background:transparent}
+body.danzstak-original #storiesRail .story-create-caption {
+  position:absolute;
+  inset:6px 6px auto auto;
+  z-index:6;
+  display:block!important;
+  width:auto;
+  padding:3px 7px;
+  border-radius:999px;
+  background:rgba(7,20,43,.82);
+  color:#fff;
+  font-size:11px;
+  line-height:1.2;
+  text-align:center;
+}
 body.danzstak-original #newsFeedView .post-composer,
 body.danzstak-original #feedStatus.feed-load-error,
 body.danzstak-original .reels-rail {
@@ -202,17 +215,16 @@ body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-crea
   align-items:stretch;
 }
 body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-art {
-  flex:1 1 auto;
+  position:absolute;
+  inset:0;
   width:100%;
+  height:100%;
   min-height:0;
 }
 body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-caption {
-  flex:0 0 34px;
-  flex-direction:row;
-  justify-content:center;
-  gap:0;
-  padding:5px 8px;
-  text-align:center;
+  inset:6px 6px auto auto;
+  width:auto;
+  padding:3px 7px;
 }
 body.danzstak-original .story-create-detail {
   display:none;
@@ -389,8 +401,10 @@ body.danzstak-original .right :is(h3,h2) {
     height:var(--daily-card-size)!important;
   }
   body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-art {
-    flex-basis:auto;
+    position:absolute;
+    inset:0;
     width:100%;
+    height:100%;
     min-height:0!important;
   }
   body.danzstak-original #storiesRail .story-create-identity {
@@ -436,7 +450,7 @@ body.danzstak-original .right :is(h3,h2) {
     font-size:6.5px;
     line-height:1.1;
   }
-  body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-caption {padding:10px 12px}
+  body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-caption {padding:3px 7px}
   /* Consecutive posts share one continuous canvas. Eight pixels remain between
      the preceding action row and the next author, instead of an empty card band. */
   body.danzstak-original #feed {gap:0}

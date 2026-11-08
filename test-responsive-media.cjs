@@ -34,7 +34,7 @@ for (const file of ["feed.html", "messages.html", "profile.html", "epk.html"]) {
   assert.match(html, /assets\/responsive-media\.css\?v=4/, `${file} must load the shared responsive-media styles`);
   assert.match(html, /assets\/responsive-media\.js\?v=2/, `${file} must load the shared responsive-media behavior`);
 }
-assert.match(worker, /danzstak-shell-v734/);
+assert.match(worker, /danzstak-shell-v735/);
 assert.match(worker, /\/assets\/responsive-media\.js/);
 assert.match(worker, /\/assets\/responsive-media\.css/);
 

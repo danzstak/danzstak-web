@@ -44,10 +44,12 @@ function fixture(url) {
         const slate = document.querySelector(".daily-clapper");
         const photo = document.querySelector(".story-create-avatar");
         const art = document.querySelector(".story-create-art");
+        const caption = document.querySelector(".story-create-caption");
         const tileRect = tile.getBoundingClientRect();
         const slateRect = slate.getBoundingClientRect();
         const artRect = art.getBoundingClientRect();
         const photoRect = photo.getBoundingClientRect();
+        const captionRect = caption.getBoundingClientRect();
         return {
           overflow: document.documentElement.scrollWidth > innerWidth,
           take: slate.querySelector("small").textContent,
@@ -75,6 +77,9 @@ function fixture(url) {
           artHeight: artRect.height,
           artRatio: artRect.width / artRect.height,
           photoCoversArt: Math.abs(photoRect.left - artRect.left) <= 1 && Math.abs(photoRect.top - artRect.top) <= 1 && Math.abs(photoRect.width - artRect.width) <= 1 && Math.abs(photoRect.height - artRect.height) <= 1,
+          artCoversTile: Math.abs(artRect.left - tileRect.left) <= 1 && Math.abs(artRect.top - tileRect.top) <= 1 && Math.abs(artRect.width - tileRect.width) <= 1 && Math.abs(artRect.height - tileRect.height) <= 1,
+          captionInside: captionRect.left >= tileRect.left && captionRect.right <= tileRect.right && captionRect.top >= tileRect.top && captionRect.bottom <= tileRect.bottom,
+          captionOverlapsSlate: !(captionRect.right <= slateRect.left || captionRect.left >= slateRect.right || captionRect.bottom <= slateRect.top || captionRect.top >= slateRect.bottom),
           bottomInset: artRect.bottom - slateRect.bottom,
           leftInset: slateRect.left - artRect.left
         };
@@ -90,12 +95,15 @@ function fixture(url) {
       assert.equal(result.photoPosition, "50% 28%", `${width}px creator face is not framed in the upper center`);
       assert.equal(result.photoRadius, "0px", `${width}px Dailies creator photo must fill the artwork without an inset circle`);
       assert.equal(result.photoCoversArt, true, `${width}px Dailies creator photo does not fill its artwork`);
+      assert.equal(result.artCoversTile, true, `${width}px Dailies artwork leaves a dead label strip`);
+      assert.equal(result.captionInside, true, `${width}px Dailies label is outside the image tile`);
+      assert.equal(result.captionOverlapsSlate, false, `${width}px Dailies label collides with the clapper`);
       assert.equal(result.plusPresent, false, `${width}px Dailies creator still shows a separate plus sign`);
       if (width <= 700) {
         assert.ok(Math.abs(result.tileWidth - result.tileHeight) <= 1, `${width}px Dailies creator card is not square`);
         assert.ok(result.slateWidth <= 76, `${width}px clapper is too wide: ${result.slateWidth}px`);
         assert.ok(result.artWidth >= 127, `${width}px Dailies photo slot is too narrow: ${result.artWidth}px`);
-        assert.ok(result.artRatio >= 1.2, `${width}px Dailies photo slot is too tall and narrow: ${result.artRatio}`);
+        assert.ok(Math.abs(result.artRatio - 1) <= .02, `${width}px Dailies photo does not fill the square tile: ${result.artRatio}`);
         assert.ok(result.bottomInset >= 5 && result.bottomInset <= 10, `${width}px clapper is not anchored at the lower-left: ${result.bottomInset}px bottom inset`);
         assert.ok(result.leftInset >= 5 && result.leftInset <= 10, `${width}px clapper is not anchored at the lower-left: ${result.leftInset}px left inset`);
       }
