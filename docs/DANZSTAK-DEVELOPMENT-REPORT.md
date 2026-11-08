@@ -4,6 +4,12 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Visible-name onboarding gate
+
+- **FIXED AND TESTED IN PR #173; PRODUCTION UNCHANGED:** First-time naming now depends only on the public display name. An account still shown as **DanzStak member** receives the simple, dismissible naming prompt even if it already owns a generated or custom username; an account with an established visible name enters Mix without interruption even when its internal handle is generic.
+- The form continues to submit only `{ name }`, so it cannot reclaim, replace or conflict with the member's username. Feed now requests `profile-onboarding.js?v=11` so the corrected behavior reaches the installed PWA through the existing network-first code path.
+- **TESTED:** the browser matrix passed three consecutive local runs at 320, 390 and 1366px. It covers established-name/generic-handle, generic-name/custom-handle and genuinely new-account states, verifies Dailies keeps the signed profile image, and proves the save request changes only the visible name. The complete `test-regressions.ps1` gate passes. GitHub Review run [42530106757](https://github.com/danzstak/danzstak-web/actions/runs/42530106757) passed all five jobs for implementation commit `ff50fc74aeff257bbb009997737ba58c21da5fa4`.
+
 ### Failure-safe Tribe deletion
 
 - **FIXED AND TESTED IN PR #173; BACKENDS NOT DEPLOYED:** Deleting a Tribe now atomically marks its metadata as `pending` before member, cover and metadata cleanup begins. A failed member scan, member deletion, cover deletion or final metadata deletion returns an explicit retryable response while the Tribe remains hidden from discovery, Mix, SYNC contacts, announcements, cover changes and new joins.
