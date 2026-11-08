@@ -4,6 +4,13 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Dailies signed-profile hydration race
+
+- **FIXED AND TESTED IN PR #173; PRODUCTION UNCHANGED:** Dailies profile-picture hydration now runs independently of the Mix composer. A missing or disconnected `.composer-avatar` can no longer return before the Dailies placeholder is replaced with the signed member's profile image.
+- Root cause: the Dailies replacement was nested in the composer callback, and the browser gate checked the image before the asynchronous profile response completed on the slower Windows runner. The gate now waits up to five seconds for `img.story-create-avatar` to attach, then keeps the existing loaded-image assertion so a real missing or broken profile picture still fails with the same diagnostic.
+- Regression coverage removes the Mix composer, restores the Dailies placeholder and proves the owned-post fallback hydrates exactly one Dailies image. The Feed script cache key advanced to `v541`, with every cache-version assertion updated together.
+- **TESTED:** `browser-checks/profile-onboarding-identity.cjs` passed three consecutive local runs at 390 and 1366px. `browser-checks/account-security.cjs` passed at 320, 360, 390, 414, 430, 768, 1024 and 1366px. The complete `test-regressions.ps1` gate passed, including 13-page site smoke and infrastructure validation. GitHub Review run [42524768814](https://github.com/danzstak/danzstak-web/actions/runs/42524768814) passed all five jobs for implementation commit `1d7b59ddf0d8c74e9a5ed24f9d5d4cfd69a286ff`, including the previously failing Windows `browser-account-security` job.
+
 ### SYNC message Delete everywhere durability
 
 - **COMPLETE IN SOURCE AND LOCAL TESTS; BACKEND NOT DEPLOYED:** A sender removing a SYNC message for everyone now removes an owned photo/video attachment before destroying the database record that makes cleanup retryable. Three failed storage attempts return a retryable 503 and leave the message, reactions and conversation references intact instead of reporting success with orphaned private media.
