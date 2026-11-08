@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## SYNC foreground ringing and two-party media proof — 2026-11-08
+
+Status: **TESTED LOCALLY — READY FOR REVIEW; NOT DEPLOYED; REAL-PHONE ACCEPTANCE STILL REQUIRED**.
+
+- Current-main implementation commit: `baa6839d5712aa584106cebe162259b19453a63f` on `codex/call-audio-reliability`. It carries the focused foreground-ringtone work from the older green review branch onto current `main` without reverting newer Mix, Dailies or SYNC work.
+- Foreground incoming calls now use one shared ringtone owner, an explicit user-enabled audio context, visible Answer/Decline recovery when audio policy blocks sound, bounded tone/vibration cadence and complete decline/answer/timeout/page-teardown cleanup. The global feed/profile call surface and the full SYNC incoming screen do not create competing tones for the same call.
+- Browser media proof: `browser-checks/call-video-two-party.cjs` connects two genuinely independent browser peers and verifies bidirectional audio and video RTP, local/remote tracks, mic and camera controls, and complete hangup cleanup. `browser-checks/call-audio-output.cjs` verifies dedicated voice-call output and user-gesture recovery at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px.
+- Foreground-call visual proof: `browser-checks/foreground-call-ringtone.cjs` passes at 320, 360, 390, 414, 430 and 1366px. Fresh inspected captures are in `docs/screenshots/foreground-call-ringtone/`; the incoming screen is contained, Answer and Decline remain touchable, and the compact feed alert stays above the phone navigation.
+- Integration proof: the complete `test-regressions.ps1` suite passes after the rebase, including all call/message/feed/EPK/Booking/Stripe/PWA checks, the 13-page site smoke test and the 142579-byte infrastructure template validation. PWA cache is prepared as `danzstak-shell-v731`; `chat.js?v=452`, `incoming-calls.js?v=300` and `incoming-calls.css?v=235` are cache-busted consistently.
+- Honest boundary: headless browser peers prove the WebRTC media path and browser audio-policy recovery, but they do **not** prove audible ringing, speaker routing or intelligible conversation on the owner's physical Android/iPhone devices and real Wi-Fi/cellular networks. Issue #27 remains open until the owner tests a phone-accessible staging PWA with two real accounts/devices in both directions. No production deployment, AWS change or TURN service is included here.
+
 ## Moving Day from Edit Profile — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.
