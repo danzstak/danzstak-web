@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Published EPK → venue outreach handoff — 2026-11-08
+
+Status: **TESTED AND READY FOR OWNER REVIEW; DRAFT PR; NOT DEPLOYED**.
+
+- A published EPK now exposes one clear next step inside the existing editor: **Find clubs to pitch** opens worldwide venue discovery and **Review selected clubs** resumes the artist's saved booking workspace.
+- The handoff remains hidden for unpublished drafts, unpublishing or deletion hides it again, and it does not send email, spend a credit, unlock a contact or start Checkout. Existing recipient/message review and artist approval remain mandatory.
+- Functional evidence: the complete `test-regressions.ps1` gate passed after installing the locked backend dependencies. The focused `test-epk-booking-handoff.cjs` covers draft/published state, both routes, deletion, 44px controls, PWA refresh and absence of automatic send/payment behavior.
+- Browser evidence: `browser-checks/epk-booking-handoff.cjs` passed at 320, 360, 390, 414, 430 and 1366px with no page errors, clipping, overlap or horizontal overflow. Inspected captures are in `docs/screenshots/epk-booking-handoff/`.
+- Review evidence: draft pull request [#174](https://github.com/danzstak/danzstak-web/pull/174), implementation commit `715385801501c2613f8fa98b340089e11b42bc87`. GitHub `release-evidence`, `responsive-accessibility-security` and `regression` checks all passed in run `42442156016`.
+- Prepared PWA asset versions: EPK CSS `v8`, EPK JavaScript `v19`, service-worker cache `danzstak-shell-v730`.
+- Honest boundary: there is no production merge, AWS deployment, staging deployment or physical-phone owner acceptance in this slice. Production remains on `main`; PR #174 stays draft pending owner go/no-go.
+
 ## Moving Day from Edit Profile — 2026-11-07
 
 Status: **DEPLOYED AND VERIFIED ON THE LIVE PWA**.

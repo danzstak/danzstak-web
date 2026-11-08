@@ -8,7 +8,7 @@
   <title>EPK Builder | DanzStak</title>
   <meta name="description" content="Build and publish a clear electronic press kit for venues, promoters, record stores, and press.">
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="assets/epk.css?v=7">
+  <link rel="stylesheet" href="assets/epk.css?v=8">
   <link rel="stylesheet" href="assets/epk-looks.css?v=1">
   <link rel="stylesheet" href="assets/epk-production.css?v=1">
   <link rel="stylesheet" href="assets/epk-reviews.css?v=1">
@@ -52,6 +52,10 @@
         <div class="form-actions"><button type="button" id="saveDraft">Save private draft</button><button type="button" id="publishEpk" class="primary">Publish EPK</button><button type="button" id="unpublishEpk">Unpublish</button><button type="button" id="deleteEpk" class="danger epk-delete" aria-label="Delete EPK" title="Delete EPK">🗑️</button></div>
         <p id="epkStatus" role="status" aria-live="polite">Loading your private draft...</p>
         <p id="publicLinkRow" hidden>Public link: <a id="publicLink" target="_blank" rel="noopener noreferrer"></a> <button type="button" id="copyPublicLink">Copy link</button></p>
+        <section id="epkBookingHandoff" class="epk-booking-handoff" aria-labelledby="epkBookingHandoffTitle" hidden>
+          <div><p class="eyebrow">Next: get booked</p><h2 id="epkBookingHandoffTitle">Ready to pitch this EPK?</h2><p>Find sourced venue leads, choose clubs, then review every recipient and message before anything is sent.</p></div>
+          <div class="epk-booking-handoff__actions"><a class="primary" href="booking.html#venueQuickTitle">Find clubs to pitch</a><a href="booking-selections.html">Review selected clubs</a></div>
+        </section>
         <details class="epk-private-share"><summary>Private review link for a booker or manager</summary><p class="hint">Save your latest changes first. Anyone with this secret link can review every EPK file and private booking detail. Create a replacement link or revoke it at any time.</p><div class="form-actions"><button type="button" id="createPrivateLink">Create private link</button><button type="button" id="revokePrivateLink" hidden>Revoke private link</button></div><p id="privateLinkRow" hidden>Private link: <a id="privateLink" target="_blank" rel="noopener noreferrer"></a> <button type="button" id="copyPrivateLink">Copy link</button></p><p id="privateShareStatus" role="status" aria-live="polite"></p></details>
       </form>
       <article id="epkPreview" class="epk-preview" aria-label="EPK preview"></article>
@@ -80,7 +84,7 @@
   <script src="assets/icon-buttons.js?v=9" defer></script>
   <script src="assets/epk-production.js?v=1" defer></script>
   <script src="assets/epk-reviews.js?v=1" defer></script>
-  <script src="assets/epk.js?v=18" defer></script>
+  <script src="assets/epk.js?v=19" defer></script>
   <script src="assets/responsive-media.js?v=2" defer></script>
 </body>
 </html>
