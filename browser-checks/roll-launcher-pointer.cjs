@@ -30,7 +30,10 @@ async function pointerOwner(page, selector) {
     return {
       box: { left: box.left, top: box.top, right: box.right, bottom: box.bottom },
       ownsCenter: Boolean(hit && (hit === control || control.contains(hit))),
-      hit: hit?.className || hit?.tagName || ""
+      hit: hit?.className || hit?.tagName || "",
+      hitTag: hit?.tagName || "",
+      hitHtml: hit?.outerHTML?.slice(0, 240) || "",
+      hitParent: hit?.parentElement?.className || hit?.parentElement?.tagName || ""
     };
   });
 }

@@ -277,7 +277,7 @@ body.danzstak-original .right :is(h3,h2) {
 @media(max-width:700px) {
   body.danzstak-original {background:var(--ds-canvas);background-image:none}
   body.danzstak-original .topbar {
-    grid-template-columns:38px minmax(0,3fr) minmax(68px,1fr)!important;
+    grid-template-columns:38px minmax(0,3fr) minmax(60px,1fr)!important;
     background:var(--ds-brand-strong);
     border-bottom:2px solid var(--ds-accent);
   }
@@ -285,14 +285,15 @@ body.danzstak-original .right :is(h3,h2) {
   body.danzstak-original .pivot-header-button {
     grid-column:3;
     width:100%;
-    min-width:68px;
+    min-width:60px;
     min-height:38px;
     height:38px;
-    padding:6px 8px;
+    gap:4px;
+    padding:6px;
     border-radius:10px;
     font-size:12px;
   }
-  body.danzstak-original .pivot-header-button .ds-action-icon {width:17px;height:17px}
+  body.danzstak-original .pivot-header-button .ds-action-icon {width:14px;height:14px}
   body.danzstak-original:has(> .install-app-button:not([hidden])) .topbar {
     padding-right:max(52px,calc(env(safe-area-inset-right) + 44px))!important;
   }

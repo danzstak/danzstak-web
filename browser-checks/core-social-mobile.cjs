@@ -73,14 +73,15 @@ function fixture(pathname) {
               pivot,
               install: installButton,
               pivotTarget: Boolean(pivotTarget?.closest?.("#pivotButton")),
-              pivotLabel: document.querySelector("#pivotButton")?.textContent?.trim() || ""
+              pivotLabel: document.querySelector("#pivotButton")?.textContent?.trim() || "",
+              pivotHtml: document.querySelector("#pivotButton")?.outerHTML || ""
             };
           });
-          assert.equal(headerControls.pivotLabel, "Pivot", `${width}px Pivot label must remain intact`);
+          assert.equal(headerControls.pivotLabel, "Pivot", `${width}px Pivot label must remain intact: ${JSON.stringify(headerControls)}`);
           assert.ok(headerControls.pivot && headerControls.install, `${width}px Pivot and Install controls must both render`);
           assert.ok(headerControls.pivot.right + 4 <= headerControls.install.left, `${width}px Install overlaps Pivot: ${JSON.stringify(headerControls)}`);
           assert.equal(headerControls.pivotTarget, true, `${width}px Pivot center must remain clickable above other controls`);
-          assert.ok(headerControls.pivot.width >= 68 && headerControls.pivot.height >= 38, `${width}px Pivot control is clipped: ${JSON.stringify(headerControls.pivot)}`);
+          assert.ok(headerControls.pivot.width >= 60 && headerControls.pivot.height >= 38, `${width}px Pivot control is clipped: ${JSON.stringify(headerControls.pivot)}`);
           assert.ok(headerControls.install.width >= 36 && headerControls.install.height >= 36, `${width}px Install control is undersized: ${JSON.stringify(headerControls.install)}`);
         }
         if (name === "friends") {

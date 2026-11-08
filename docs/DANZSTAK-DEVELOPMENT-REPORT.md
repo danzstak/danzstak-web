@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Unified mobile/SYNC/Booking review candidate — 2026-11-08
+
+Status: **LOCAL FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; HOSTED STAGING PENDING; PRODUCTION UNCHANGED**.
+
+- Branch `codex/release-candidate-2026-11-08` integrates the current-main Roll launcher fix, compact Pivot/PWA header, video playback coordinator, foreground-call/two-party media work, signed-in device security, and the reconciled Booking workspace. It does not merge or deploy `main`.
+- Integration QA found and corrected one cross-branch defect: the shared icon upgrader could strip the visible Pivot label. Header and profile Pivot controls now opt into labeled-icon layout, use unique IDs, and share one delegated Moving Day dialog. The phone Pivot control remains readable/touchable while allowing Search to occupy roughly three quarters of the Search/Pivot row at 320–430px.
+- Functional browser gates pass sequentially: core social mobile (`26` page/viewport combinations), Pivot and profile Pivot (`320, 360, 390, 414, 430, 1366px`), Roll pointer/fullscreen (`320, 360, 390, 414, 430, 1366px`), signed-in device security (`320, 360, 390, 414, 430, 768, 1024, 1366px`), Booking workspace (`320, 360, 390, 430, 768, 1366px`), video playback coordination, and a real two-browser WebRTC offer/answer with bidirectional audio/video tracks and hangup cleanup.
+- Visual captures in `docs/screenshots/release-candidate/` cover Home, Friends, Notifications, SYNC, Profile, Pivot/Moving Day, selective Facebook import, The Roll inline/fullscreen, and video playback. The builder inspected the 320px Home, 390px SYNC, 320px Moving Day, and 320px Roll views; no horizontal overflow, overlapping primary screen, clipped primary action, or unintended dialog was found.
+- The complete `test-regressions.ps1` gate passes after integration, including all social, media, call, Booking, EPK, Tour Manager, Stripe Test Mode, PWA, localization, accessibility and security checks; the 13-page site smoke check; and the 142,568-byte infrastructure template validation.
+- Installed-PWA cache is `danzstak-shell-v733`. Feed art-direction CSS is `v17`, Pivot JavaScript is `v2`, and Profile editor JavaScript is `v484`, with matching cache assertions.
+- Honest boundary: hosted Amplify delivery and installed physical-device acceptance have not yet run for this unified branch. Two-browser WebRTC evidence does not prove audible ringing, speaker routing, or intelligible conversation on the owner's real Android/iPhone and Wi-Fi/cellular networks. Stripe checks are controlled Test Mode regressions, not live charges. Production remains at its prior commit until the owner gives a go after reviewing staging on a phone.
+
 ## SYNC foreground ringing and two-party media proof — 2026-11-08
 
 Status: **TESTED LOCALLY — READY FOR REVIEW; NOT DEPLOYED; REAL-PHONE ACCEPTANCE STILL REQUIRED**.

@@ -42,7 +42,7 @@ for (const [file, expected] of [
   ["messages.html", "assets/soft-ui.css?v=427"],
   ["profile.html", "assets/soft-ui.css?v=427"],
   ["feed.html", "assets/mobile-design-system.css?v=14"],
-  ["feed.html", "assets/danzstak-original-feed.css?v=16"],
+  ["feed.html", "assets/danzstak-original-feed.css?v=17"],
   ["messages.html", "assets/mobile-design-system.css?v=14"],
   ["booking.html", "assets/mobile-design-system.css?v=14"],
   ["epk.html", "assets/mobile-design-system.css?v=14"],
@@ -68,7 +68,7 @@ for (const [file, expected] of [
   ["messages.html", "assets/chat.css?v=457"],
   ["messages.html", "assets/direct-messages.js?v=493"],
   ["profile.html", "assets/profile-sharing.js?v=416"],
-  ["profile.html", "assets/profile-editor.js?v=483"],
+  ["profile.html", "assets/profile-editor.js?v=484"],
   ["booking.html", "assets/booking-agent.js?v=488"],
   ["profile.html", "assets/post-sharing.js?v=421"],
   ["profile.html", "assets/profile.js?v=419"]
