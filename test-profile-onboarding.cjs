@@ -8,14 +8,14 @@ const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 
 assert.match(feed, /id="profileOnboarding"[^>]*hidden/, 'the identity prompt is present but hidden until an incomplete profile is confirmed');
 assert.match(feed, /What should people call you\?/, 'the prompt uses ordinary language rather than profile jargon');
-assert.match(feed, /assets\/profile-onboarding\.js\?v=10/, 'the live feed loads current first-login identity behavior');
+assert.match(feed, /assets\/profile-onboarding\.js\?v=11/, 'the live feed loads current first-login identity behavior');
 assert.match(feed, /assets\/profile-onboarding\.css\?v=2/, 'the live feed loads responsive identity styling');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.css"/, 'the installed app keeps the identity layout available offline');
 assert.match(serviceWorker, /"\/assets\/profile-onboarding\.js"/, 'the installed app keeps the identity behavior available offline');
 assert.match(source, /toLocaleLowerCase\(\)/, 'generic account detection ignores capitalization');
 assert.match(source, /"danzstak member", "danzstak user", "new member"/, 'legacy generic display names are detected');
-assert.match(source, /"danzstak-member", "danzstak\.member", "danzstak_member", "member", "new-member"/, 'legacy generic usernames are detected');
-assert.match(source, /return genericName && genericHandle;/, 'an established display name or username keeps existing accounts out of first-login onboarding');
+assert.match(source, /return genericName;/, 'only the public display name determines whether simple identity onboarding is needed');
+assert.doesNotMatch(source, /genericHandle|normalizedHandle/, 'a generated or custom username cannot hide a missing public display name');
 assert.match(source, /if \(!needsIdentityOnboarding\(profile\)\) return;/, 'the identity prompt is gated by the complete existing-account check');
 assert.doesNotMatch(feed, /id="profileOnboardingHandle"/, 'the simple naming prompt never asks for or changes the account username');
 assert.match(source, /Your sign-in and username stay unchanged/, 'plain-language help promises the existing account identity will not be replaced');
@@ -47,4 +47,4 @@ assert.match(source, /onboardingDismissed \|\| !onboardingEligible \|\| !homeIsA
 assert.match(css, /@media\(max-width:700px\)/, 'the identity card stacks on phones');
 assert.doesNotMatch(source, /profile\.email|username@|email address/i, 'identity onboarding never exposes or requests an account email');
 
-console.log('Profile onboarding checks passed: established accounts bypass setup, visible names never reclaim usernames, and the prompt is dismissible.');
+console.log('Profile onboarding checks passed: established display names bypass setup, usernames stay unchanged, and the prompt is dismissible.');

@@ -107,10 +107,8 @@
 
   function needsIdentityOnboarding(profile = {}) {
     const normalizedName = String(profile.name || "").trim().replace(/\s+/g, " ").toLocaleLowerCase();
-    const normalizedHandle = String(profile.handle || "").trim().replace(/^@/, "").toLocaleLowerCase();
     const genericName = !normalizedName || ["danzstak member", "danzstak user", "new member"].includes(normalizedName);
-    const genericHandle = !normalizedHandle || ["danzstak-member", "danzstak.member", "danzstak_member", "member", "new-member"].includes(normalizedHandle);
-    return genericName && genericHandle;
+    return genericName;
   }
 
   async function request(url, options = {}, timeoutMs = 12000) {

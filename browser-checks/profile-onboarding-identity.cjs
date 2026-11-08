@@ -4,14 +4,14 @@ const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8017").replace(/\/$/, "");
-const widths = [390, 1366];
+const widths = [320, 390, 1366];
 
 function fixture(pathname, identityState) {
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111", email: "liana@danzstak.invalid" } };
   if (pathname === "/profiles") return { profile: {
     memberId: "11111111-1111-4111-8111-111111111111",
     name: identityState === "named" ? "Liana" : "DanzStak member",
-    handle: identityState === "handled" ? "liana" : "danzstak-member",
+    handle: identityState === "custom-handle" ? "liana" : "danzstak-member",
     picture: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`
   } };
   if (pathname === "/stories") return { dailyTakeCount: 0, stories: [], reels: [] };
@@ -27,7 +27,7 @@ function fixture(pathname, identityState) {
   const browser = await chromium.launch({ channel: "msedge", headless: true });
   try {
     for (const width of widths) {
-      for (const identityState of ["named", "handled", "new"]) {
+      for (const identityState of ["named", "custom-handle", "new"]) {
         const context = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: "block" });
         const page = await context.newPage();
         const errors = [];
@@ -36,13 +36,13 @@ function fixture(pathname, identityState) {
         await page.route("https://api.danzstak.com/**", route => {
           const request = route.request();
           const pathname = new URL(request.url()).pathname;
-          if (identityState === "new" && pathname === "/profiles" && request.method() === "POST") {
+          if (identityState !== "named" && pathname === "/profiles" && request.method() === "POST") {
             const payload = request.postDataJSON();
             profileWrites.push(payload);
             return route.fulfill({
               status: 200,
               contentType: "application/json",
-              body: JSON.stringify({ profile: { ...fixture("/profiles", "new").profile, name: payload.name } })
+              body: JSON.stringify({ profile: { ...fixture("/profiles", identityState).profile, name: payload.name } })
             });
           }
           return route.fulfill({
@@ -54,6 +54,11 @@ function fixture(pathname, identityState) {
         await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
         await page.locator("#storiesLoading").waitFor({ state: "detached" });
         await page.locator("img.story-create-avatar").waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+        if (identityState === "named") {
+          await page.waitForFunction(() => document.getElementById("menuProfileName")?.textContent?.trim() === "Liana", null, { timeout: 5000 });
+        } else {
+          await page.locator("#profileOnboarding").waitFor({ state: "visible", timeout: 5000 });
+        }
         const result = await page.evaluate(() => {
           const panel = document.getElementById("profileOnboarding");
           const daily = document.querySelector(".story-create-avatar");
@@ -88,8 +93,8 @@ function fixture(pathname, identityState) {
           await page.locator("img.story-create-avatar").waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
           assert.equal(await page.locator("img.story-create-avatar").count(), 1, `${width}px Dailies hydration still depended on the Mix composer`);
         }
-        if (identityState !== "new") {
-          assert.equal(result.panelHidden, true, `${width}px an established ${identityState === "named" ? "visible name" : "username"} was blocked by identity setup`);
+        if (identityState === "named") {
+          assert.equal(result.panelHidden, true, `${width}px an established visible name was blocked by identity setup`);
         } else {
           assert.equal(result.panelVisible, true, `${width}px a genuinely unnamed member did not receive simple onboarding`);
           await page.locator("#profileOnboardingName").fill("Liana");
@@ -101,7 +106,7 @@ function fixture(pathname, identityState) {
         await context.close();
       }
     }
-    console.log(`Profile-onboarding browser checks passed at ${widths.join(", ")}px: established names and usernames enter Mix; only brand-new identities see dismissible setup.`);
+    console.log(`Profile-onboarding browser checks passed at ${widths.join(", ")}px: established visible names enter Mix; generic names receive dismissible setup without changing usernames.`);
   } finally {
     await browser.close();
   }
