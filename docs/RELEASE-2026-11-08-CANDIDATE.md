@@ -59,6 +59,7 @@ Evidence: `docs/screenshots/release-candidate/`, `docs/screenshots/issue-55-book
 - [x] Feed, Friends, Notifications, Profile, SYNC, Pivot, The Roll, Booking and EPK shells returned HTTP 200 from staging.
 - [x] Delivered Feed/Profile assets match CSS `v17`, Pivot `v2` and Profile editor `v484`.
 - [x] Delivered service worker reports `danzstak-shell-v733`.
+- [x] A fresh hosted browser context registered and activated the staging service worker, created cache `danzstak-shell-v733`, and controlled the next page load without clearing user storage.
 - [x] Required authentication, account-isolation, accessibility, link/privacy, Booking, EPK, Tour Manager, Stripe Test Mode and PWA regressions passed in the full gate.
 - [x] No credential, password, session token, webhook secret or private customer data is recorded in the branch evidence.
 - [x] Amplify DEVELOPMENT job `2` built exact head `95b86c0742741397d2839fc29f75f206f0b41ba4` successfully in `us-west-1`.
