@@ -91,6 +91,21 @@ function fixture(pathname) {
         }
         if (name === "notifications") {
           assert.equal(await page.locator(".notification-row").count(), 2, `${width}px populated notification sources did not remain visible together`);
+          const notificationSurface = await page.locator(".notification-row").first().evaluate(element => {
+            const style = getComputedStyle(element);
+            return {
+              background: style.backgroundColor,
+              radius: style.borderRadius,
+              leftBorder: style.borderLeftWidth,
+              rightBorder: style.borderRightWidth,
+              bottomBorder: style.borderBottomWidth
+            };
+          });
+          assert.equal(notificationSurface.background, "rgba(0, 0, 0, 0)", `${width}px notifications must share the fluid page canvas`);
+          assert.equal(notificationSurface.radius, "0px", `${width}px notifications must not restore separate rounded cards`);
+          assert.equal(notificationSurface.leftBorder, "0px", `${width}px notifications must not restore a left card edge`);
+          assert.equal(notificationSurface.rightBorder, "0px", `${width}px notifications must not restore a right card edge`);
+          assert.equal(notificationSurface.bottomBorder, "1px", `${width}px notification rows need a single quiet separator`);
           const notificationTargets = await page.locator(".notification-row a, .notification-row button").evaluateAll(elements => elements.map(element => {
             const rect = element.getBoundingClientRect();
             return { label: element.getAttribute("aria-label") || element.textContent?.trim() || "", width: rect.width, height: rect.height };
