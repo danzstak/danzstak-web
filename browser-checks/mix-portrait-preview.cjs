@@ -16,7 +16,7 @@ fs.mkdirSync(output, { recursive: true });
       const context = await browser.newContext({ viewport: { width, height: 844 } });
       const page = await context.newPage();
       await page.setContent(`<!doctype html><html><head>
-        <link rel="stylesheet" href="http://127.0.0.1:8017/assets/responsive-media.css?v=5">
+        <link rel="stylesheet" href="http://127.0.0.1:8017/assets/responsive-media.css?v=6">
         <style>html,body{margin:0;background:#edf2f8;font:16px Arial}.post{--post-inline-padding:12px;width:100%;box-sizing:border-box;padding:12px}.post-header{display:flex;gap:9px;align-items:center;padding:4px 0 10px}.avatar{width:40px;height:40px;border-radius:50%;background:#1769e0}.copy{display:grid;gap:3px}.copy small{color:#647084}.post-text{margin:0 0 10px;line-height:1.35}.post-actions{display:flex;justify-content:space-around;padding:10px 0}.danzstak-media-shell{margin-top:0!important}</style>
       </head><body><main id="feed"><article class="post">
         <header class="post-header"><span class="avatar"></span><span class="copy"><strong>Touring Artist</strong><small>5m · Public</small></span></header>

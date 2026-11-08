@@ -2,8 +2,11 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const line = fs.readFileSync('infrastructure/call-signaling/template.yaml', 'utf8')
-  .split('\n').find(value => value.includes('async function getStories('));
+const templateLines = fs.readFileSync('infrastructure/call-signaling/template.yaml', 'utf8').split('\n');
+const getStoriesStart = templateLines.findIndex(value => value.includes('async function getStories('));
+const getStoriesEnd = templateLines.findIndex((value,index) => index > getStoriesStart && value.includes('async function deleteStory('));
+const getStoriesSource = templateLines.slice(getStoriesStart,getStoriesEnd).join('\n');
+assert.ok(getStoriesStart >= 0 && getStoriesEnd > getStoriesStart,'getStories must remain extractable for domain tests');
 const current = 200000;
 const iso = seconds => new Date(seconds * 1000).toISOString();
 const story = (id, email, audience, ageSeconds, expiresAt) => ({
@@ -44,7 +47,7 @@ const ctx = vm.createContext({
   mapLimit:async(values,_limit,task)=>Promise.all(values.map(task)),
   console:{warn(){}}, signedMediaUrl:(_,key)=>'https://media.test/'+key, json:(_,payload)=>payload
 });
-vm.runInContext(line.trim(),ctx);
+vm.runInContext(getStoriesSource.trim(),ctx);
 (async()=>{
   const result=await ctx.getStories({email:'me@example.com'});
   assert.deepEqual(Array.from(result.stories,value=>value.storyId),['own','public','friend']);

@@ -455,6 +455,7 @@ body.danzstak-original .right :is(h3,h2) {
      the preceding action row and the next author, instead of an empty card band. */
   body.danzstak-original #feed {gap:0}
   body.danzstak-original #feed > .post {padding-block:4px!important}
+  body.danzstak-original #feed > .post:has(> .danzstak-native-video-shell[data-video-layout="portrait"]) .post-actions {margin-top:4px!important}
 }
 @media(prefers-reduced-motion:reduce){
   body.danzstak-original *,

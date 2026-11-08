@@ -37,10 +37,10 @@ assert.match(script, /MutationObserver/, "dynamically loaded feed, Chat and Roll
 
 for (const file of ["feed.html", "messages.html", "profile.html", "epk.html"]) {
   const html = fs.readFileSync(file, "utf8");
-  assert.match(html, /assets\/responsive-media\.css\?v=5/, `${file} must load the shared responsive-media styles`);
+  assert.match(html, /assets\/responsive-media\.css\?v=6/, `${file} must load the shared responsive-media styles`);
   assert.match(html, /assets\/responsive-media\.js\?v=2/, `${file} must load the shared responsive-media behavior`);
 }
-assert.match(worker, /danzstak-shell-v736/);
+assert.match(worker, /danzstak-shell-v738/);
 assert.match(worker, /\/assets\/responsive-media\.js/);
 assert.match(worker, /\/assets\/responsive-media\.css/);
 

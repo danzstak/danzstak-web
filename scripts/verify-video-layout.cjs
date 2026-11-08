@@ -31,7 +31,7 @@ function asset(name) {
         *{box-sizing:border-box}body{margin:0;padding:12px;background:#eef2f6;font-family:Arial}.post{--post-inline-padding:12px;width:min(100%,420px);margin:0 auto 18px;padding:12px;background:#fff}.post h2{margin:0 0 8px;font-size:15px}.reels-list{display:grid;gap:16px;width:min(100%,420px);margin:auto}.reel-card{display:block!important;min-height:0!important;width:100%!important;background:#fff!important}.reel-card>iframe,.reel-card>.danzstak-media-shell{width:100%}
       </style><main id="native"></main><section class="reels-list" id="providers"></section>`);
       await page.addStyleTag(asset("feed-enhancements.css?v=487"));
-      await page.addStyleTag(asset("responsive-media.css?v=5"));
+      await page.addStyleTag(asset("responsive-media.css?v=6"));
       await page.addScriptTag(asset("icon-buttons.js?v=7"));
 
       await page.evaluate(() => {
