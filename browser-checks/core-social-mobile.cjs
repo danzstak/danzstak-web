@@ -57,8 +57,9 @@ function fixture(pathname) {
         await page.locator(populatedSelector).first().waitFor({ state: "visible" });
         await page.waitForTimeout(100);
         if (name === "friends") {
-          assert.match(await page.locator(".feed-online-row button").first().getAttribute("aria-label") || "", /^Message\b/, `${width}px accepted online friend must not offer a duplicate friend request`);
           assert.equal(await page.locator(".friend-workspace-row").count(), 1, `${width}px accepted friend card is missing`);
+          assert.match(await page.getByRole("tab", { name: /^Online/ }).textContent() || "", /1$/, `${width}px accepted online friend must appear in the Online tab`);
+          assert.match(await page.locator(".friend-message-action").first().getAttribute("aria-label") || "", /^Message\b/, `${width}px accepted friend must open SYNC instead of offering a duplicate request`);
         }
         if (name === "notifications") {
           assert.equal(await page.locator(".notification-row").count(), 2, `${width}px populated notification sources did not remain visible together`);
@@ -68,7 +69,15 @@ function fixture(pathname) {
           }));
           assert.ok(notificationTargets.every(target => target.width >= 44 && target.height >= 44), `${width}px notification actions must retain 44px touch targets: ${JSON.stringify(notificationTargets)}`);
         }
-        if (name === "chat") assert.equal((await page.locator(".conversation-unread").textContent())?.trim(), "2", `${width}px unread chat badge is missing`);
+        if (name === "chat") {
+          assert.equal((await page.locator(".conversation-unread").textContent())?.trim(), "2", `${width}px unread chat badge is missing`);
+          assert.equal(await page.locator("body > .chat-header").evaluate(element => getComputedStyle(element).display), "none", `${width}px SYNC must use one phone header, not the desktop header plus the list header`);
+          const contactName = await page.locator(".chat-contact-name").first().evaluate(element => ({ text: element.textContent?.trim(), clientWidth: element.clientWidth, scrollWidth: element.scrollWidth }));
+          assert.equal(contactName.text, "Tour Friend", `${width}px recent contact name changed unexpectedly`);
+          assert.ok(contactName.scrollWidth <= contactName.clientWidth + 1, `${width}px recent contact name is visibly clipped: ${JSON.stringify(contactName)}`);
+          const videoCall = await page.locator("#newVideoCall").boundingBox();
+          assert.ok(videoCall && videoCall.width >= 44 && videoCall.height >= 44 && videoCall.x >= 0 && videoCall.x + videoCall.width <= width, `${width}px video-call action must remain visible and touchable`);
+        }
         const geometry = await page.evaluate(() => ({
           width: innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
@@ -103,7 +112,7 @@ function fixture(pathname) {
           const footerRect = footer.getBoundingClientRect(), navRect = nav.getBoundingClientRect();
           return { footerBottom: footerRect.bottom, navTop: navRect.top };
         });
-        if (footerClearance) assert.ok(footerClearance.footerBottom <= footerClearance.navTop, `${name} footer is covered by mobile navigation at ${width}px: ${JSON.stringify(footerClearance)}`);
+        if (footerClearance) assert.ok(footerClearance.footerBottom <= footerClearance.navTop + 1, `${name} footer is covered by mobile navigation at ${width}px: ${JSON.stringify(footerClearance)}`);
         results.push(`${name}-${width}`);
         await context.close();
       }

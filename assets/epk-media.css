@@ -48,8 +48,8 @@
 @media (max-width: 680px) {
   .epk-media-item { grid-template-columns: 56px minmax(0,1fr); }
   .epk-media-item img { width: 56px; height: 56px; }
-  .epk-public-actions { justify-content: stretch; }
-  .epk-public-actions button { flex: 1 1 0; }
+  .epk-public-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+  .epk-public-actions button { min-height: 44px; padding: 8px; font-size: .86rem; line-height: 1.2; }
 }
 
 @media print {

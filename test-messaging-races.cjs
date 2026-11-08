@@ -16,6 +16,7 @@ function setup() {
   const classes = new Set();
   const requests = [];
   const context = vm.createContext({ URLSearchParams, AbortController, setTimeout, clearTimeout,
+    crypto: { randomUUID: () => '00000000-0000-4000-8000-000000000001' },
     location: { search: '', origin: 'https://danzstak.com' }, window: {},
     localStorage: { getItem: () => '{}', setItem() {} },
     document: { hidden: false, getElementById: id => elements.get(id) || null, querySelector: () => null, createElement: element,

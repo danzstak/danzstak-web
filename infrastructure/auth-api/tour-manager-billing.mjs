@@ -1,4 +1,4 @@
-import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UXjMtFgtfNMBXOVCLeEk8vI";
 export const TOUR_MANAGER_PRODUCT_ID = "prod_VYr5JIwpaFSX7b";
@@ -34,7 +34,14 @@ const PROFESSIONAL_KEY = "TOUR_MANAGER#PROFESSIONAL_ENTITLEMENT";
 const PHONE_ENTITLEMENT_KEY = "PHONE#ACTIVATION_ENTITLEMENT";
 const BOOKING_WORKSPACE_KEY = "booking-workspace-v1";
 const EVENT_OWNER = "STRIPE#TOUR_MANAGER_EVENTS";
+const SUPPRESSION_OWNER = "TOUR_MANAGER#GLOBAL_SUPPRESSION";
+const OPT_OUT_TOKEN_OWNER = "TOUR_MANAGER#OPT_OUT_TOKEN";
+const PROVIDER_MESSAGE_OWNER = "TOUR_MANAGER#PROVIDER_MESSAGE";
+const PROVIDER_EVENT_OWNER = "TOUR_MANAGER#PROVIDER_EVENT";
+const DANZSTAK_POSTAL_ADDRESS = "DanzStak LLC, 2063 Main St. #237, Oakley, CA 94561, USA";
 const MAX_CREDITS_PER_CHECKOUT = 500;
+export const MAX_NEW_PITCHES_PER_24_HOURS = 20;
+export const BOOKING_CONTACT_COOLDOWN_SECONDS = 30 * 24 * 60 * 60;
 const WEBHOOK_TYPES = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired", "charge.refunded"]);
 const securityHeaders = { "content-type": "application/json", "cache-control": "no-store", "strict-transport-security": "max-age=63072000; includeSubDomains; preload", "x-content-type-options": "nosniff", "x-frame-options": "DENY", "referrer-policy": "no-referrer" };
 
@@ -49,6 +56,25 @@ function phoneEntitlementKey(userId) { return { userId: { S: userId }, tourId: {
 function eventKey(eventId) { return { userId: { S: EVENT_OWNER }, tourId: { S: eventId } }; }
 function ledgerKey(userId, at, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#LEDGER#${at}#${id}` } }; }
 function sendKey(userId, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${id}` } }; }
+function outreachHourKey(userId, at) { const hour = Math.floor(at / 3600000); return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#OUTREACH_HOUR#${String(hour).padStart(12, "0")}` } }; }
+function normalizedRecipientHash(value) { return createHash("sha256").update(String(value || "").trim().toLowerCase()).digest("hex"); }
+function recipientCooldownKey(userId, recipient) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#RECIPIENT_COOLDOWN#${normalizedRecipientHash(recipient)}` } }; }
+function suppressionKey(recipient) { return { userId: { S: SUPPRESSION_OWNER }, tourId: { S: normalizedRecipientHash(recipient) } }; }
+function providerMessageKey(messageId) { return { userId: { S: PROVIDER_MESSAGE_OWNER }, tourId: { S: createHash("sha256").update(String(messageId || "")).digest("hex") } }; }
+function providerEventKey(eventId) { return { userId: { S: PROVIDER_EVENT_OWNER }, tourId: { S: createHash("sha256").update(String(eventId || "")).digest("hex") } }; }
+function optOutTokenHash(token) { return createHash("sha256").update(`tour-manager-opt-out:${String(token || "")}`).digest("hex"); }
+function optOutTokenKey(token) { return { userId: { S: OPT_OUT_TOKEN_OWNER }, tourId: { S: optOutTokenHash(token) } }; }
+function optOutFooter(token) { return `${DANZSTAK_POSTAL_ADDRESS}\nReply or offer dates securely: https://danzstak.com/booking-reply.html#token=${token}\nDon't want booking pitches through DanzStak? Opt out: https://danzstak.com/booking-opt-out.html#token=${token}`; }
+function outreachWindow(items, at) {
+  const currentHour = Math.floor(at / 3600000), oldestHour = currentHour - 23;
+  let previousHourCount = 0, currentHourCount = 0;
+  for (const item of items || []) {
+    const bucket = Number(String(item.tourId?.S || "").slice("TOUR_MANAGER#OUTREACH_HOUR#".length)), count = Number(item.sendCount?.N || 0);
+    if (!Number.isInteger(bucket) || bucket < oldestHour || bucket > currentHour || !Number.isFinite(count) || count < 0) continue;
+    if (bucket === currentHour) currentHourCount += count; else previousHourCount += count;
+  }
+  return { previousHourCount, currentHourCount, total: previousHourCount + currentHourCount };
+}
 function contactUnlockKey(userId, venueKey) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#CONTACT_UNLOCK#${venueKey}` } }; }
 function validVenueKey(value) { return typeof value === "string" && /^[a-f0-9]{20}$/.test(value); }
 
@@ -62,12 +88,41 @@ export function verifyStripeSignature(payload, header, secret, currentTime = Dat
   return signatures.some(signature => { if (!/^[a-f0-9]{64}$/i.test(signature)) return false; const candidate = Buffer.from(signature, "hex"); return candidate.length === expected.length && timingSafeEqual(candidate, expected); });
 }
 
-export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, env = process.env, fetcher = fetch, clock = Date.now }) {
+export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, env = process.env, fetcher = fetch, clock = Date.now }) {
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
   const testMode = () => env.STRIPE_SECRET_KEY?.startsWith("sk_test_");
   const paymentsAllowed = () => Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) && (testMode() || (env.TOUR_MANAGER_LIVE_PAYMENTS === "true" && env.STRIPE_SECRET_KEY.startsWith("sk_live_")));
   const nowIso = () => new Date(clock()).toISOString();
   const browserHeaders = event => corsHeaders(event.headers?.origin || event.headers?.Origin);
+
+  async function providerEvents(event) {
+    const records = Array.isArray(event?.Records) ? event.Records : [];
+    if (!records.length || records.some(record => record?.EventSource !== "aws:sns" || typeof record?.Sns?.Message !== "string")) return null;
+    let processed = 0, ignored = 0, duplicates = 0;
+    for (const record of records) {
+      let notification;
+      try { notification = JSON.parse(record.Sns.Message); } catch { ignored += 1; continue; }
+      const type = String(notification?.eventType || notification?.notificationType || "").toLowerCase();
+      const messageId = String(notification?.mail?.messageId || "").trim();
+      if (!/^[a-zA-Z0-9._-]{8,200}$/.test(messageId) || !["delivery", "bounce", "complaint"].includes(type)) { ignored += 1; continue; }
+      const mapping = await db.send(new GetItemCommand({ TableName: tableName, Key: providerMessageKey(messageId), ConsistentRead: true })), tags = notification?.mail?.tags || {}, item = mapping.Item || { artistId: { S: String(tags.DanzStakArtistId?.[0] || "") }, sendId: { S: String(tags.DanzStakSendId?.[0] || "") }, recipientHash: { S: String(tags.DanzStakRecipientHash?.[0] || "") } };
+      if (!validUserId(item?.artistId?.S) || !/^[a-zA-Z0-9_-]{16,100}$/.test(item?.sendId?.S || "") || !/^[a-f0-9]{64}$/.test(item?.recipientHash?.S || "")) { ignored += 1; continue; }
+      if (type === "bounce" && String(notification?.bounce?.bounceType || "").toLowerCase() !== "permanent") { ignored += 1; continue; }
+      const eventId = String(record.Sns.MessageId || `${type}:${messageId}:${notification?.mail?.timestamp || ""}`), at = nowIso(), status = type === "delivery" ? "delivered" : type === "bounce" ? "bounced" : "complained";
+      const transaction = [
+        { Put: { TableName: tableName, Item: { ...providerEventKey(eventId), eventType: { S: type }, providerMessageHash: { S: providerMessageKey(messageId).tourId.S }, processedAt: { S: at } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Update: { TableName: tableName, Key: sendKey(item.artistId.S, item.sendId.S), UpdateExpression: "SET #status = :status, providerEventAt = :at", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":status": { S: status }, ":at": { S: at } } } }
+      ];
+      if (type !== "delivery") transaction.push({ Put: { TableName: tableName, Item: { userId: { S: SUPPRESSION_OWNER }, tourId: { S: item.recipientHash.S }, reason: { S: type === "bounce" ? "permanent_bounce" : "provider_complaint" }, source: { S: "ses_event" }, optedOutAt: { S: at } } } });
+      try { await db.send(new TransactWriteItemsCommand({ TransactItems: transaction })); processed += 1; }
+      catch (error) {
+        const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: providerEventKey(eventId), ConsistentRead: true }));
+        if (duplicate.Item) { duplicates += 1; continue; }
+        throw error;
+      }
+    }
+    return { processed, ignored, duplicates };
+  }
 
   async function stripe(path, options = {}) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
@@ -205,9 +260,198 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       status: item.status?.S || "unknown",
       createdAt: item.createdAt?.S || "",
       sentAt: item.sentAt?.S || "",
-      providerAcceptedAt: item.providerAcceptedAt?.S || ""
+      providerAcceptedAt: item.providerAcceptedAt?.S || "",
+      repliedAt: item.repliedAt?.S || "",
+      followUpTo: item.followUpTo?.S || ""
     }));
-    return response(200, { messages }, headers);
+    const replyResult = await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#BOOKING_REPLY#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 200 }));
+    const replies = (replyResult.Items || []).map(item => ({ id: item.tourId?.S || "", outreachId: item.outreachId?.S || "", venueKey: item.venueKey?.S || "", direction: item.direction?.S === "outbound" ? "outbound" : "inbound", action: item.action?.S || "reply", content: item.content?.S || "", proposedDate: item.proposedDate?.S || "", status: item.status?.S || "received", appliedStatus: item.appliedStatus?.S || "", appliedAt: item.appliedAt?.S || "", createdAt: item.createdAt?.S || "" }));
+    return response(200, { messages, replies }, headers);
+  }
+
+  async function outreachPreflight(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), outreachId = String(body?.outreachId || "").trim(), followUpTo = String(body?.followUpTo || "").trim();
+    if (!venueKey || venueKey.length > 240 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || !/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId)) return response(400, { error: "Choose a saved venue, public booking email, and valid outreach draft." }, headers);
+    const preflightMs = clock(), [workspace, contactAccess, suppressed, cooldown, hourly] = await Promise.all([
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: contactUnlockKey(userId, venueKey), ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: suppressionKey(to), ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: recipientCooldownKey(userId, to), ConsistentRead: true })),
+      db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#OUTREACH_HOUR#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 48 }))
+    ]);
+    let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
+    const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to));
+    if (!venue) return response(409, { error: "Save this venue and its public booking email before review." }, headers);
+    if (contactAccess.Item?.status?.S !== "active") return response(402, { error: "Unlock this venue's booking contact before review." }, headers);
+    if (suppressed.Item) return response(409, { error: "This contact opted out of DanzStak booking pitches and cannot be emailed." }, headers);
+    let followUpSource;
+    if (followUpTo) {
+      if (!/^[a-zA-Z0-9_-]{16,100}$/.test(followUpTo)) return response(400, { error: "Choose a valid booking thread to follow up." }, headers);
+      followUpSource = (await db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, followUpTo), ConsistentRead: true }))).Item;
+      const due = String(venue.booking?.followUp || ""), today = new Date(preflightMs).toISOString().slice(0, 10);
+      if (!followUpSource || followUpSource.venueKey?.S !== venueKey || followUpSource.recipient?.S !== to) return response(409, { error: "This follow-up does not match the saved venue thread." }, headers);
+      if (!due || due > today) return response(409, { error: "This follow-up is not due yet." }, headers);
+      if (followUpSource.repliedAt?.S) return response(409, { error: "This venue already replied. Continue the existing thread instead of sending a follow-up." }, headers);
+      if (followUpSource.followUpSendId?.S) return response(409, { error: "The one allowed follow-up has already been prepared or sent." }, headers);
+      if (!["sent", "delivered"].includes(followUpSource.status?.S || "")) return response(409, { error: "Only a successfully submitted booking pitch can be followed up." }, headers);
+    } else if (Number(cooldown.Item?.nextAllowedAt?.N || 0) > Math.floor(preflightMs / 1000)) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead." }, headers);
+    if (outreachWindow(hourly.Items, preflightMs).total >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
+    const token = randomBytes(32).toString("hex"), createdAt = new Date(preflightMs).toISOString(), expiresAt = Math.floor(preflightMs / 1000) + 400 * 86400;
+    await db.send(new PutItemCommand({ TableName: tableName, Item: { ...optOutTokenKey(token), artistId: { S: userId }, outreachId: { S: outreachId }, venueKey: { S: venueKey }, recipientHash: { S: normalizedRecipientHash(to) }, ...(followUpTo ? { followUpTo: { S: followUpTo } } : {}), createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } }, ConditionExpression: "attribute_not_exists(userId)" }));
+    return response(200, { footer: optOutFooter(token), suppressionChecked: true }, headers);
+  }
+
+  async function optOut(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const token = String(parseBody(event)?.token || "").trim();
+    if (!/^[a-f0-9]{64}$/.test(token)) return response(400, { error: "This opt-out link is invalid or expired." }, headers);
+    const tokenResult = await db.send(new GetItemCommand({ TableName: tableName, Key: optOutTokenKey(token), ConsistentRead: true })), item = tokenResult.Item, currentSeconds = Math.floor(clock() / 1000);
+    if (!item || Number(item.expiresAt?.N || 0) <= currentSeconds || !/^[a-f0-9]{64}$/.test(item.recipientHash?.S || "")) return response(400, { error: "This opt-out link is invalid or expired." }, headers);
+    const key = { userId: { S: SUPPRESSION_OWNER }, tourId: { S: item.recipientHash.S } }, optedOutAt = nowIso();
+    try {
+      await db.send(new PutItemCommand({ TableName: tableName, Item: { ...key, reason: { S: "recipient_opt_out" }, source: { S: "booking_email_footer" }, optedOutAt: { S: optedOutAt } }, ConditionExpression: "attribute_not_exists(userId)" }));
+      return response(200, { optedOut: true, alreadyOptedOut: false }, headers);
+    } catch (error) {
+      const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
+      if (existing.Item) return response(200, { optedOut: true, alreadyOptedOut: true }, headers);
+      throw error;
+    }
+  }
+
+  async function externalReply(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const body = parseBody(event), token = String(body?.token || "").trim(), content = String(body?.content || "").trim(), proposedDate = String(body?.proposedDate || "").trim(), action = ["reply", "interested", "offer_date", "confirm_date", "pass"].includes(String(body?.action)) ? String(body.action) : "reply", clientMessageId = String(body?.clientMessageId || "").trim();
+    const dateAction = action === "offer_date" || action === "confirm_date";
+    if (!/^[a-f0-9]{64}$/.test(token) || content.length < 1 || content.length > 4000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(clientMessageId) || (proposedDate && !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate)) || (dateAction && !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate))) return response(400, { error: "Write a reply of 1 to 4,000 characters and include a valid date when offering or confirming one." }, headers);
+    const tokenResult = await db.send(new GetItemCommand({ TableName: tableName, Key: optOutTokenKey(token), ConsistentRead: true })), item = tokenResult.Item, nowSeconds = Math.floor(clock() / 1000);
+    if (!item || !validUserId(item.artistId?.S) || !/^[a-zA-Z0-9_-]{16,100}$/.test(item.outreachId?.S || "") || Number(item.expiresAt?.N || 0) <= nowSeconds) return response(400, { error: "This secure reply link is invalid or expired." }, headers);
+    const at = nowIso(), replyKey = { userId: { S: item.artistId.S }, tourId: { S: `TOUR_MANAGER#BOOKING_REPLY#${item.outreachId.S}#${clientMessageId}` } };
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...replyKey, outreachId: { S: item.outreachId.S }, venueKey: { S: item.venueKey?.S || "" }, direction: { S: "inbound" }, action: { S: action }, content: { S: content }, ...(proposedDate ? { proposedDate: { S: proposedDate } } : {}), createdAt: { S: at } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Update: { TableName: tableName, Key: sendKey(item.artistId.S, item.outreachId.S), UpdateExpression: "SET #status = :replied, repliedAt = :at", ConditionExpression: "attribute_exists(userId)", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":replied": { S: "replied" }, ":at": { S: at } } } }
+      ] }));
+      return response(201, { received: true }, headers);
+    } catch (error) {
+      const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: replyKey, ConsistentRead: true }));
+      if (duplicate.Item) return response(200, { received: true, duplicate: true }, headers);
+      throw error;
+    }
+  }
+
+  async function artistReply(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    if (typeof sendBookingReply !== "function") return response(503, { error: "Booking reply delivery is not configured." }, headers);
+    const body = parseBody(event), outreachId = String(body?.outreachId || "").trim(), content = String(body?.content || "").trim(), clientMessageId = String(body?.clientMessageId || "").trim();
+    if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !/^[a-zA-Z0-9_-]{16,100}$/.test(clientMessageId) || content.length < 1 || content.length > 4000) return response(400, { error: "Write a reply of 1 to 4,000 characters for a valid booking thread." }, headers);
+    const source = await db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, outreachId), ConsistentRead: true })), message = source.Item, to = String(message?.recipient?.S || "").trim().toLowerCase();
+    if (!message || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return response(404, { error: "This booking thread is unavailable." }, headers);
+    if (["bounced", "complained", "opted_out"].includes(message.status?.S || "")) return response(409, { error: "This contact cannot receive another message." }, headers);
+    const suppressed = await db.send(new GetItemCommand({ TableName: tableName, Key: suppressionKey(to), ConsistentRead: true }));
+    if (suppressed.Item) return response(409, { error: "This contact opted out or cannot receive another message." }, headers);
+    const at = nowIso(), replyKey = { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#BOOKING_REPLY#${outreachId}#artist#${clientMessageId}` } }, item = { ...replyKey, outreachId: { S: outreachId }, venueKey: { S: message.venueKey?.S || "" }, direction: { S: "outbound" }, action: { S: "reply" }, content: { S: content }, status: { S: "sending" }, createdAt: { S: at } };
+    try {
+      await db.send(new PutItemCommand({ TableName: tableName, Item: item, ConditionExpression: "attribute_not_exists(userId)" }));
+    } catch (error) {
+      const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: replyKey, ConsistentRead: true }));
+      if (existing.Item) return response(existing.Item.status?.S === "sent" ? 200 : 202, { status: existing.Item.status?.S || "pending", duplicate: true }, headers);
+      throw error;
+    }
+    try {
+      const delivery = await sendBookingReply({ userId, outreachId, venueName: message.venueName?.S || "Venue", to, subject: message.subject?.S || "Booking pitch", message: content });
+      if (!delivery?.messageId) throw new Error("Email provider did not accept the reply");
+      const sentAt = nowIso();
+      await db.send(new UpdateItemCommand({ TableName: tableName, Key: replyKey, UpdateExpression: "SET #status = :sent, sentAt = :sentAt, providerMessageId = :messageId", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sent": { S: "sent" }, ":sending": { S: "sending" }, ":sentAt": { S: sentAt }, ":messageId": { S: delivery.messageId } } }));
+      return response(200, { status: "sent" }, headers);
+    } catch (error) {
+      await db.send(new UpdateItemCommand({ TableName: tableName, Key: replyKey, UpdateExpression: "SET #status = :review, failedAt = :at", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":review": { S: "reconciliation_required" }, ":sending": { S: "sending" }, ":at": { S: nowIso() } } })).catch(() => null);
+      return response(502, { error: "The email provider did not confirm this reply. It was not retried, preventing a duplicate. Check the thread before trying again." }, headers);
+    }
+  }
+
+  async function useProposedDate(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const body = parseBody(event), outreachId = String(body?.outreachId || "").trim(), replyId = String(body?.replyId || "").trim(), confirmDate = body?.confirm === true;
+    const prefix = `TOUR_MANAGER#BOOKING_REPLY#${outreachId}#`;
+    if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !replyId.startsWith(prefix) || replyId.length > 260 || replyId.includes("#artist#")) return response(400, { error: "Choose a valid venue date offer." }, headers);
+    const [replyResult, workspaceResult] = await Promise.all([
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: replyId } }, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }))
+    ]);
+    const offer = replyResult.Item, workspace = workspaceResult.Item, proposedDate = offer?.proposedDate?.S || "", venueKey = offer?.venueKey?.S || "";
+    const expectedAction = confirmDate ? "confirm_date" : "offer_date";
+    if (offer?.direction?.S !== "inbound" || offer?.action?.S !== expectedAction || !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate) || !venueKey) return response(409, { error: confirmDate ? "This reply does not contain a written venue date confirmation." : "This reply does not contain a usable venue date offer." }, headers);
+    let plan; try { plan = JSON.parse(workspace?.plan?.S || ""); } catch { plan = null; }
+    const venue = plan?.venues?.find(item => item?.venueKey === venueKey);
+    if (!venue || !workspace?.revision?.S) return response(409, { error: "Save this venue in Tour Manager before adding its proposed date." }, headers);
+    const replySummary = String(offer.content?.S || "").slice(0, 3000);
+    const status = confirmDate ? "Confirmed" : "Date proposed";
+    if (offer.appliedStatus?.S) {
+      if (offer.appliedStatus.S !== status) return response(409, { error: "This venue reply was already applied with a different booking status." }, headers);
+      return response(200, { saved: true, duplicate: true, proposedDate, venueName: String(venue.name || "Venue"), status, revision: workspace.revision.S }, headers);
+    }
+    venue.booking = { ...(venue.booking || {}), status, showDate: proposedDate, replySummary, ...(confirmDate ? { confirmationEvidence: `Venue confirmed ${proposedDate}: ${replySummary}`.slice(0, 3000) } : {}) };
+    const revision = randomUUID(), at = nowIso();
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...workspace, userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY }, plan: { S: JSON.stringify(plan) }, revision: { S: revision }, updatedAt: { S: at } }, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { S: workspace.revision.S } } } },
+        { Update: { TableName: tableName, Key: { userId: { S: userId }, tourId: { S: replyId } }, UpdateExpression: "SET appliedStatus = :status, appliedAt = :at", ConditionExpression: "attribute_exists(userId) AND attribute_not_exists(appliedStatus)", ExpressionAttributeValues: { ":status": { S: status }, ":at": { S: at } } } }
+      ] }));
+    } catch (error) {
+      return response(409, { error: "Your Tour Manager changed on another device. Reload it, then add this date again." }, headers);
+    }
+    return response(200, { saved: true, proposedDate, venueName: String(venue.name || "Venue"), status, revision }, headers);
+  }
+
+  async function useVenueReplyStatus(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const body = parseBody(event), outreachId = String(body?.outreachId || "").trim(), replyId = String(body?.replyId || "").trim();
+    const prefix = `TOUR_MANAGER#BOOKING_REPLY#${outreachId}#`;
+    if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !replyId.startsWith(prefix) || replyId.length > 260 || replyId.includes("#artist#")) return response(400, { error: "Choose a valid venue reply." }, headers);
+    const [replyResult, workspaceResult] = await Promise.all([
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: replyId } }, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }))
+    ]);
+    const venueReply = replyResult.Item, workspace = workspaceResult.Item, venueKey = venueReply?.venueKey?.S || "";
+    const statusByAction = { interested: "Interested", pass: "Declined" }, status = statusByAction[venueReply?.action?.S || ""];
+    if (venueReply?.direction?.S !== "inbound" || !status || !venueKey) return response(409, { error: "This reply does not contain an interest or pass decision." }, headers);
+    let plan; try { plan = JSON.parse(workspace?.plan?.S || ""); } catch { plan = null; }
+    const venue = plan?.venues?.find(item => item?.venueKey === venueKey);
+    if (!venue || !workspace?.revision?.S) return response(409, { error: "Save this venue in Tour Manager before updating its booking status." }, headers);
+    if (venueReply.appliedStatus?.S) {
+      if (venueReply.appliedStatus.S !== status) return response(409, { error: "This venue reply was already applied with a different booking status." }, headers);
+      return response(200, { saved: true, duplicate: true, status, venueName: String(venue.name || "Venue"), revision: workspace.revision.S }, headers);
+    }
+    venue.booking = { ...(venue.booking || {}), status, replySummary: String(venueReply.content?.S || "").slice(0, 3000) };
+    if (status === "Declined") {
+      delete venue.booking.showDate;
+      delete venue.booking.confirmationEvidence;
+    }
+    const revision = randomUUID(), at = nowIso();
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...workspace, userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY }, plan: { S: JSON.stringify(plan) }, revision: { S: revision }, updatedAt: { S: at } }, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { S: workspace.revision.S } } } },
+        { Update: { TableName: tableName, Key: { userId: { S: userId }, tourId: { S: replyId } }, UpdateExpression: "SET appliedStatus = :status, appliedAt = :at", ConditionExpression: "attribute_exists(userId) AND attribute_not_exists(appliedStatus)", ExpressionAttributeValues: { ":status": { S: status }, ":at": { S: at } } } }
+      ] }));
+    } catch (error) {
+      return response(409, { error: "Your Tour Manager changed on another device. Reload it, then review this reply again." }, headers);
+    }
+    return response(200, { saved: true, status, venueName: String(venue.name || "Venue"), revision }, headers);
   }
 
   async function loadVerifiedSession(session, expectedLive) {
@@ -386,8 +630,9 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const userId = await authenticate(event);
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
     if (typeof sendBookingEmail !== "function") return response(503, { error: "Booking email delivery is not configured." }, headers);
-    const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), subject = String(body?.subject || "").trim(), message = String(body?.message || "").trim(), id = String(body?.idempotencyKey || "").trim();
-    if (!venueKey || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || subject.length < 3 || subject.length > 180 || message.length < 20 || message.length > 5000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(id)) return response(400, { error: "Choose a saved venue, reviewed email, subject, message, and valid send identifier." }, headers);
+    const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), subject = String(body?.subject || "").trim(), message = String(body?.message || "").trim(), id = String(body?.idempotencyKey || "").trim(), followUpTo = String(body?.followUpTo || "").trim(), template = ["band", "dj", "festival"].includes(String(body?.template)) ? String(body.template) : "custom";
+    if (body?.artistApproved !== true) return response(400, { error: "Review the exact recipient and message, then approve this email before sending." }, headers);
+    if (!venueKey || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || subject.length < 3 || subject.length > 180 || message.length < 20 || message.length > 5000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(id) || followUpTo && !/^[a-zA-Z0-9_-]{16,100}$/.test(followUpTo)) return response(400, { error: "Choose a saved venue, reviewed email, subject, message, and valid send identifier." }, headers);
     const workspace = await db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }));
     let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
     const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to)), artistName = String(plan.artist?.name || "").trim(), epk = String(plan.artist?.epk || "").trim();
@@ -395,27 +640,75 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const contactAccess = await db.send(new GetItemCommand({ TableName: tableName, Key: contactUnlockKey(userId, venueKey), ConsistentRead: true }));
     if (contactAccess.Item?.status?.S !== "active") return response(402, { error: "Unlock this venue's booking contact before sending." }, headers);
     if (!artistName) return response(409, { error: "Add your act name and save the booking workspace before sending." }, headers);
-    if (!/^https:\/\//i.test(epk) || !message.includes(epk)) return response(409, { error: "Publish and save the artist EPK, then include its exact public link in the reviewed email." }, headers);
+    if (!/^https:\/\//i.test(epk)) return response(409, { error: "Publish and save the artist EPK before sending." }, headers);
+    if (typeof validateOutreachEpkLink === "function") {
+      const validShare = await validateOutreachEpkLink({ userId, venueKey, outreachId: id, message });
+      if (!validShare) return response(409, { error: "Preview a current private EPK link for this venue before sending." }, headers);
+    } else if (!message.includes(epk)) return response(409, { error: "Publish and save the artist EPK, then include its exact public link in the reviewed email." }, headers);
     const key = sendKey(userId, id), existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
     if (existing.Item) return response(existing.Item.status?.S === "sent" ? 200 : 202, { status: existing.Item.status?.S || "pending", duplicate: true, messageId: existing.Item.providerMessageId?.S || "" }, headers);
-    const reservedAt = nowIso();
+    const reservationMs = clock(), reservationSeconds = Math.floor(reservationMs / 1000), reservedAt = new Date(reservationMs).toISOString(), hourKey = outreachHourKey(userId, reservationMs), cooldownKey = recipientCooldownKey(userId, to);
+    const footerToken = message.match(/https:\/\/danzstak\.com\/booking-opt-out\.html#token=([a-f0-9]{64})/)?.[1] || "";
+    if (!footerToken || !message.includes(DANZSTAK_POSTAL_ADDRESS)) return response(409, { error: "Preview the required DanzStak postal and opt-out footer before sending." }, headers);
+    const [hourlyResult, cooldownResult, suppressedResult, footerResult] = await Promise.all([
+      db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#OUTREACH_HOUR#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 48 })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: cooldownKey, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: suppressionKey(to), ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: optOutTokenKey(footerToken), ConsistentRead: true }))
+    ]);
+    if (suppressedResult.Item) return response(409, { error: "This contact opted out of DanzStak booking pitches and cannot be emailed." }, headers);
+    const footerItem = footerResult.Item;
+    if (!footerItem || footerItem.artistId?.S !== userId || footerItem.outreachId?.S !== id || footerItem.venueKey?.S !== venueKey || footerItem.recipientHash?.S !== normalizedRecipientHash(to) || Number(footerItem.expiresAt?.N || 0) <= reservationSeconds || (footerItem.followUpTo?.S || "") !== followUpTo) return response(409, { error: "Preview a current opt-out footer for this exact venue and recipient before sending." }, headers);
+    let followUpSource;
+    if (followUpTo) {
+      followUpSource = (await db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, followUpTo), ConsistentRead: true }))).Item;
+      const due = String(venue.booking?.followUp || ""), today = new Date(reservationMs).toISOString().slice(0, 10);
+      if (!followUpSource || followUpSource.venueKey?.S !== venueKey || followUpSource.recipient?.S !== to || !due || due > today || followUpSource.repliedAt?.S || followUpSource.followUpSendId?.S || !["sent", "delivered"].includes(followUpSource.status?.S || "")) return response(409, { error: "This follow-up is no longer eligible. Reload the booking thread before sending." }, headers);
+    }
+    const { previousHourCount, currentHourCount, total: recentOutreachCount } = outreachWindow(hourlyResult.Items, reservationMs);
+    if (recentOutreachCount >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
+    const cooldownUntil = Number(cooldownResult.Item?.nextAllowedAt?.N || 0);
+    if (!followUpTo && cooldownUntil > reservationSeconds) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead.", availableAt: new Date(cooldownUntil * 1000).toISOString() }, headers);
+    const currentHourAllowance = MAX_NEW_PITCHES_PER_24_HOURS - previousHourCount, cooldownExpiresAt = reservationSeconds + BOOKING_CONTACT_COOLDOWN_SECONDS;
     try {
-      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+      const reservationItems = [
+        { ConditionCheck: { TableName: tableName, Key: suppressionKey(to), ConditionExpression: "attribute_not_exists(userId)" } },
+        { ConditionCheck: { TableName: tableName, Key: optOutTokenKey(footerToken), ConditionExpression: "artistId = :artistId AND outreachId = :outreachId AND venueKey = :venueKey AND recipientHash = :recipientHash AND expiresAt > :now", ExpressionAttributeValues: { ":artistId": { S: userId }, ":outreachId": { S: id }, ":venueKey": { S: venueKey }, ":recipientHash": { S: normalizedRecipientHash(to) }, ":now": { N: String(reservationSeconds) } } } },
         { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :minusOne, reservedCredits :one SET updatedAt = :updatedAt", ConditionExpression: "credits >= :one", ExpressionAttributeValues: { ":minusOne": { N: "-1" }, ":one": { N: "1" }, ":updatedAt": { S: reservedAt } } } },
-        { Put: { TableName: tableName, Item: { ...key, status: { S: "reserved" }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, recipient: { S: to }, subject: { S: subject }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Update: { TableName: tableName, Key: hourKey, UpdateExpression: "ADD sendCount :one SET updatedAt = :updatedAt, expiresAt = :expiresAt", ConditionExpression: "attribute_not_exists(sendCount) OR sendCount < :allowance", ExpressionAttributeValues: { ":one": { N: "1" }, ":allowance": { N: String(currentHourAllowance) }, ":updatedAt": { S: reservedAt }, ":expiresAt": { N: String(reservationSeconds + 31 * 86400) } } } },
+        { Put: { TableName: tableName, Item: { ...key, status: { S: "reserved" }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, recipient: { S: to }, subject: { S: subject }, message: { S: message }, template: { S: template }, ...(followUpTo ? { followUpTo: { S: followUpTo } } : {}), artistApprovedAt: { S: reservedAt }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(userId, reservedAt, id), entryType: { S: "email_reservation" }, delta: { N: "-1" }, status: { S: "reserved" }, description: { S: `Booking email reserved for ${String(venue.name || "venue").slice(0, 160)}` }, createdAt: { S: reservedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
-      ] }));
-    } catch (error) { const raced = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true })); if (raced.Item) return response(202, { status: raced.Item.status?.S || "pending", duplicate: true }, headers); return response(402, { error: "Not enough booking-email credits." }, headers); }
+      ];
+      if (followUpTo) reservationItems.splice(4, 0, { Update: { TableName: tableName, Key: sendKey(userId, followUpTo), UpdateExpression: "SET followUpSendId = :sendId, followUpReservedAt = :at", ConditionExpression: "attribute_exists(userId) AND attribute_not_exists(followUpSendId) AND attribute_not_exists(repliedAt) AND (#status = :sent OR #status = :delivered)", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sendId": { S: id }, ":at": { S: reservedAt }, ":sent": { S: "sent" }, ":delivered": { S: "delivered" } } } });
+      else reservationItems.splice(4, 0, { Put: { TableName: tableName, Item: { ...cooldownKey, recipientHash: { S: normalizedRecipientHash(to) }, venueKey: { S: venueKey }, sendId: { S: id }, createdAt: { S: reservedAt }, nextAllowedAt: { N: String(cooldownExpiresAt) }, expiresAt: { N: String(cooldownExpiresAt) } }, ConditionExpression: "attribute_not_exists(userId) OR nextAllowedAt <= :now", ExpressionAttributeValues: { ":now": { N: String(reservationSeconds) } } } });
+      await db.send(new TransactWriteItemsCommand({ TransactItems: reservationItems }));
+    } catch (error) {
+      const [raced, latestHour, latestCooldown, latestCredit, latestFollowUpSource] = await Promise.all([
+        db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true })),
+        db.send(new GetItemCommand({ TableName: tableName, Key: hourKey, ConsistentRead: true })),
+        db.send(new GetItemCommand({ TableName: tableName, Key: cooldownKey, ConsistentRead: true })),
+        db.send(new GetItemCommand({ TableName: tableName, Key: creditKey(userId), ConsistentRead: true })),
+        followUpTo ? db.send(new GetItemCommand({ TableName: tableName, Key: sendKey(userId, followUpTo), ConsistentRead: true })) : Promise.resolve({})
+      ]);
+      if (raced.Item) return response(202, { status: raced.Item.status?.S || "pending", duplicate: true }, headers);
+      if (previousHourCount + Number(latestHour.Item?.sendCount?.N || 0) >= MAX_NEW_PITCHES_PER_24_HOURS) return response(429, { error: "You reached the 20 new booking pitches allowed in 24 hours. Try again after an earlier pitch leaves the window." }, headers);
+      const nextAllowedAt = Number(latestCooldown.Item?.nextAllowedAt?.N || 0);
+      if (!followUpTo && nextAllowedAt > reservationSeconds) return response(409, { error: "This booking contact was already pitched in the last 30 days. Continue the existing thread instead.", availableAt: new Date(nextAllowedAt * 1000).toISOString() }, headers);
+      if (followUpTo && (latestFollowUpSource.Item?.followUpSendId?.S || latestFollowUpSource.Item?.repliedAt?.S)) return response(409, { error: latestFollowUpSource.Item.repliedAt?.S ? "This venue replied before the follow-up was sent. Continue the booking thread instead." : "The one allowed follow-up has already been prepared or sent." }, headers);
+      if (Number(latestCredit.Item?.credits?.N || 0) < 1) return response(402, { error: "Not enough booking-email credits." }, headers);
+      throw error;
+    }
     let providerAccepted = false;
     try {
       await db.send(new UpdateItemCommand({ TableName: tableName, Key: key, UpdateExpression: "SET #status = :sending, sendingAt = :at", ConditionExpression: "#status = :reserved", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sending": { S: "sending" }, ":reserved": { S: "reserved" }, ":at": { S: nowIso() } } }));
-      const delivery = await sendBookingEmail({ userId, artistName, venueName: venue.name, to, subject, message });
+      const delivery = await sendBookingEmail({ userId, sendId: id, artistName, venueName: venue.name, to, subject, message });
       if (!delivery?.messageId) throw new Error("Email provider did not accept the message");
       await db.send(new UpdateItemCommand({ TableName: tableName, Key: key, UpdateExpression: "SET #status = :accepted, providerAcceptedAt = :at, providerMessageId = :messageId", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":accepted": { S: "provider_accepted" }, ":sending": { S: "sending" }, ":at": { S: nowIso() }, ":messageId": { S: delivery.messageId } } }));
       providerAccepted = true;
       const sentAt = nowIso();
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
         { Update: { TableName: tableName, Key: key, UpdateExpression: "SET #status = :sent, sentAt = :at", ConditionExpression: "#status = :accepted", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":sent": { S: "sent" }, ":accepted": { S: "provider_accepted" }, ":at": { S: sentAt } } } },
+        { Put: { TableName: tableName, Item: { ...providerMessageKey(delivery.messageId), artistId: { S: userId }, sendId: { S: id }, recipientHash: { S: normalizedRecipientHash(to) }, createdAt: { S: sentAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
         { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD sentEmails :one, reservedCredits :minusOne SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":minusOne": { N: "-1" }, ":at": { S: sentAt } } } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(userId, sentAt, `${id}-sent`), entryType: { S: "email_sent" }, delta: { N: "0" }, status: { S: "settled" }, description: { S: `Booking email sent to ${String(venue.name || "venue").slice(0, 160)}` }, createdAt: { S: sentAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
       ] }));
@@ -425,17 +718,23 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       const state = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
       if (state.Item?.status?.S === "sending" && !state.Item?.providerMessageId?.S) {
         const restoredAt = nowIso();
-        await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        const restoreItems = [
           { Update: { TableName: tableName, Key: key, UpdateExpression: "SET #status = :restored, failedAt = :at", ConditionExpression: "#status = :sending", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":restored": { S: "restored" }, ":sending": { S: "sending" }, ":at": { S: restoredAt } } } },
           { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :one, reservedCredits :minusOne SET updatedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":minusOne": { N: "-1" }, ":at": { S: restoredAt } } } },
+          { Update: { TableName: tableName, Key: hourKey, UpdateExpression: "ADD sendCount :minusOne SET updatedAt = :at", ConditionExpression: "sendCount >= :one", ExpressionAttributeValues: { ":minusOne": { N: "-1" }, ":one": { N: "1" }, ":at": { S: restoredAt } } } },
           { Put: { TableName: tableName, Item: { ...ledgerKey(userId, restoredAt, `${id}-restore`), entryType: { S: "email_restored" }, delta: { N: "1" }, status: { S: "restored" }, description: { S: `Credit restored after ${String(venue.name || "venue").slice(0, 160)} email failed` }, createdAt: { S: restoredAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
-        ] }));
+        ];
+        if (followUpTo) restoreItems.splice(3, 0, { Update: { TableName: tableName, Key: sendKey(userId, followUpTo), UpdateExpression: "REMOVE followUpSendId, followUpReservedAt", ConditionExpression: "followUpSendId = :sendId", ExpressionAttributeValues: { ":sendId": { S: id } } } });
+        else restoreItems.splice(3, 0, { Delete: { TableName: tableName, Key: cooldownKey, ConditionExpression: "sendId = :sendId", ExpressionAttributeValues: { ":sendId": { S: id } } } });
+        await db.send(new TransactWriteItemsCommand({ TransactItems: restoreItems }));
       }
       return response(502, { error: "The email provider did not accept the booking email. Your credit was restored." }, headers);
     }
   }
 
   return async function handle(event) {
+    const providerResponse = await providerEvents(event);
+    if (providerResponse) return providerResponse;
     const method = event?.requestContext?.http?.method, path = event?.rawPath;
     if (method === "POST" && path === "/tour-manager/stripe/webhook") return webhook(event);
     if (method === "POST" && path === "/tour-manager/checkout") return checkout(event);
@@ -445,7 +744,15 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (method === "GET" && path === "/phone-number/entitlement") return phoneEntitlement(event);
     if (method === "GET" && path === "/tour-manager/credits") return credits(event);
     if (method === "GET" && path === "/tour-manager/outreach") return outreach(event);
+    if (method === "POST" && path === "/tour-manager/outreach/preflight") return outreachPreflight(event);
+    if (method === "POST" && path === "/tour-manager/opt-out") return optOut(event);
+    if (method === "POST" && path === "/tour-manager/reply") return externalReply(event);
+    if (method === "POST" && path === "/tour-manager/outreach/reply") return artistReply(event);
+    if (method === "POST" && path === "/tour-manager/outreach/use-date") return useProposedDate(event);
+    if (method === "POST" && path === "/tour-manager/outreach/use-status") return useVenueReplyStatus(event);
     if (method === "POST" && path === "/tour-manager/emails/send") return sendEmail(event);
     return null;
   };
 }
+
+export { normalizedRecipientHash, outreachHourKey, outreachWindow, recipientCooldownKey, suppressionKey, providerMessageKey, providerEventKey, optOutTokenHash, optOutFooter };

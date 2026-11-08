@@ -9,7 +9,8 @@ assert.match(html, /<span>Add to Mix<\/span>/, "composer uses the DanzStak Add t
 assert.match(html, /id="storiesRail"[^>]+aria-label="Dailies"/, "Dailies rail has its public product name");
 assert.match(html, /class="story-create-avatar"/, "creator tile has a real identity image target");
 assert.match(html, /class="daily-clapper"/, "creator tile exposes the clapper metadata surface");
-assert.match(html, /updateDailyCreatorSlate\(\(data\.stories/, "Take count is derived from returned owner video records");
+assert.match(html, /Number\(data\.dailyTakeCount\)/, "Take count comes from the server-authoritative lifetime Dailies video counter");
+assert.doesNotMatch(html, /filter\(story => story\.isOwner && story\.mediaType === "video"\)\.length/, "Take count must not fall when visible Dailies expire");
 assert.match(html, /loadedmetadata/, "video duration comes from genuine media metadata");
 assert.match(html, /story-video-slate/, "video Dailies render a compact slate");
 assert.match(js, /composer-media-button/, "photo and video pickers share icon-button styling");

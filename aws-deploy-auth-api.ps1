@@ -11,10 +11,12 @@ $Bundle = Join-Path $env:TEMP "danzstak-auth-api.zip"
 $Stage = Join-Path $env:TEMP ("danzstak-auth-api-" + [guid]::NewGuid().ToString("N"))
 $Policy = Join-Path $env:TEMP "danzstak-auth-api-policy.json"
 $Environment = Join-Path $env:TEMP "danzstak-auth-api-environment.json"
+$SesEventDestination = Join-Path $env:TEMP "danzstak-tour-manager-ses-events.json"
 $ApiId = "0872gqal4m"
 $AuthIntegrationId = "5pipi5a"
 $ToursTable = "DANZSTAK-Tours"
 $VenueDirectoryTable = "DANZSTAK-VenueDirectory"
+$ReviewsTable = "DANZSTAK-Reviews"
 
 $previousErrorPreference = $ErrorActionPreference
 $ErrorActionPreference = "SilentlyContinue"
@@ -53,6 +55,19 @@ try {
     aws dynamodb update-continuous-backups --region $Region --table-name $VenueDirectoryTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Venue directory recovery protection failed." }
   }
+  $previousErrorPreference = $ErrorActionPreference
+  $ErrorActionPreference = "SilentlyContinue"
+  aws dynamodb describe-table --region $Region --table-name $ReviewsTable --output json 2>$null | Out-Null
+  $reviewsDescribeExit = $LASTEXITCODE
+  $ErrorActionPreference = $previousErrorPreference
+  if ($reviewsDescribeExit -ne 0) {
+    aws dynamodb create-table --region $Region --table-name $ReviewsTable --billing-mode PAY_PER_REQUEST --attribute-definitions AttributeName=pk,AttributeType=S AttributeName=sk,AttributeType=S --key-schema AttributeName=pk,KeyType=HASH AttributeName=sk,KeyType=RANGE --tags Key=Application,Value=DanzStak Key=Purpose,Value=MemberReviews --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Reviews table creation failed." }
+    aws dynamodb wait table-exists --region $Region --table-name $ReviewsTable
+    if ($LASTEXITCODE -ne 0) { throw "Reviews table did not become ready." }
+  }
+  aws dynamodb update-continuous-backups --region $Region --table-name $ReviewsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection failed." }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
   Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$Package,$PackageLock -Destination $Stage
   Push-Location $Stage
@@ -117,7 +132,10 @@ try {
         Sid = "SupportMailNotification"
         Effect = "Allow"
         Action = @("ses:SendEmail")
-        Resource = "arn:aws:ses:us-west-1:635288116224:identity/danzstak.com"
+        Resource = @(
+          "arn:aws:ses:us-west-1:635288116224:identity/danzstak.com",
+          "arn:aws:ses:us-west-1:635288116224:configuration-set/DanzStakTourManager"
+        )
       },
       @{
         Sid = "TourRoutePlanning"
@@ -145,6 +163,12 @@ try {
         Effect = "Allow"
         Action = @("dynamodb:Scan", "dynamodb:GetItem")
         Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-VenueDirectory"
+      },
+      @{
+        Sid = "MemberReviews"
+        Effect = "Allow"
+        Action = @("dynamodb:BatchGetItem", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query", "dynamodb:TransactWriteItems")
+        Resource = "arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Reviews"
       }
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $Policy -Encoding ascii
@@ -166,6 +190,7 @@ try {
   $postViewsTable = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Engagement --query "Stacks[0].Outputs[?OutputKey=='PostViewsTableName'].OutputValue | [0]" --output text
   if ($LASTEXITCODE -ne 0) { throw "Post view configuration could not be resolved." }
   if ($postViewsTable -and $postViewsTable -ne 'None') { $variables.POST_VIEWS_TABLE = [string]$postViewsTable }
+  $variables.REVIEWS_TABLE = [string]$ReviewsTable
   @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
   aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }
@@ -195,6 +220,50 @@ try {
     throw "Auth API deployment status is $($configuration.LastUpdateStatus)."
   }
 
+  $sesTopicArn = aws sns create-topic --region $Region --name DANZSTAK-TourManager-SES-Events --query TopicArn --output text
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$sesTopicArn)) { throw "Tour Manager SES event topic could not be created or resolved." }
+  $lambdaArn = [string]$configuration.FunctionArn
+  $subscriptionArn = aws sns list-subscriptions-by-topic --region $Region --topic-arn $sesTopicArn --query "Subscriptions[?Protocol=='lambda' && Endpoint=='$lambdaArn'].SubscriptionArn | [0]" --output text
+  if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event subscription could not be inspected." }
+  if (-not $subscriptionArn -or $subscriptionArn -eq 'None') {
+    $previousErrorPreference = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourManagerSesEvents --action lambda:InvokeFunction --principal sns.amazonaws.com --source-arn $sesTopicArn --output json 2>$null | Out-Null
+    $permissionExit = $LASTEXITCODE
+    $ErrorActionPreference = $previousErrorPreference
+    if ($permissionExit -ne 0) {
+      $policyText = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
+      if ($LASTEXITCODE -ne 0 -or $policyText -notmatch 'AllowTourManagerSesEvents') { throw "Tour Manager SES event invoke permission failed." }
+    }
+    aws sns subscribe --region $Region --topic-arn $sesTopicArn --protocol lambda --notification-endpoint $lambdaArn --return-subscription-arn --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event Lambda subscription failed." }
+  }
+  $previousErrorPreference = $ErrorActionPreference
+  $ErrorActionPreference = "SilentlyContinue"
+  aws sesv2 get-configuration-set --region $Region --configuration-set-name DanzStakTourManager --output json 2>$null | Out-Null
+  $configurationSetExit = $LASTEXITCODE
+  $ErrorActionPreference = $previousErrorPreference
+  if ($configurationSetExit -ne 0) {
+    aws sesv2 create-configuration-set --region $Region --configuration-set-name DanzStakTourManager --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES configuration set creation failed." }
+  }
+  @{
+    Enabled = $true
+    MatchingEventTypes = @("DELIVERY", "BOUNCE", "COMPLAINT")
+    SnsDestination = @{ TopicArn = [string]$sesTopicArn }
+  } | ConvertTo-Json -Depth 5 -Compress | Set-Content -LiteralPath $SesEventDestination -Encoding ascii
+  $previousErrorPreference = $ErrorActionPreference
+  $ErrorActionPreference = "SilentlyContinue"
+  aws sesv2 get-configuration-set-event-destinations --region $Region --configuration-set-name DanzStakTourManager --query "EventDestinations[?Name=='BookingDeliveryEvents'] | [0]" --output json 2>$null | Out-Null
+  $eventDestinationExit = $LASTEXITCODE
+  $ErrorActionPreference = $previousErrorPreference
+  if ($eventDestinationExit -ne 0) { throw "Tour Manager SES event destination could not be inspected." }
+  aws sesv2 update-configuration-set-event-destination --region $Region --configuration-set-name DanzStakTourManager --event-destination-name BookingDeliveryEvents --event-destination "file://$SesEventDestination" --output json 2>$null | Out-Null
+  if ($LASTEXITCODE -ne 0) {
+    aws sesv2 create-configuration-set-event-destination --region $Region --configuration-set-name DanzStakTourManager --event-destination-name BookingDeliveryEvents --event-destination "file://$SesEventDestination" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Tour Manager SES event destination configuration failed." }
+  }
+
   $routes = aws apigatewayv2 get-routes --region $Region --api-id $ApiId --output json | ConvertFrom-Json
   if ($LASTEXITCODE -ne 0) { throw "Tour route API could not be inspected." }
   $routeId = ($routes.Items | Where-Object { $_.RouteKey -eq "POST /tour/route" } | Select-Object -First 1).RouteId
@@ -202,7 +271,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/share", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /auth/mobile-login", "POST /auth/mobile-session", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
@@ -243,6 +312,10 @@ try {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowBookingPipelineFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/booking-pipeline" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Booking pipeline API invoke permission failed." }
   }
+  if ($permission -notmatch "AllowReviewsFromApiGateway") {
+    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowReviewsFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/review*" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Reviews API invoke permission failed." }
+  }
   if ($permission -notmatch "AllowTourManagerBillingFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourManagerBillingFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/tour-manager/*" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour Manager billing API invoke permission failed." }
@@ -256,6 +329,7 @@ try {
   Remove-Item -LiteralPath $Bundle -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $Policy -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $Environment -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $SesEventDestination -Force -ErrorAction SilentlyContinue
   $resolvedStage = [IO.Path]::GetFullPath($Stage)
   $resolvedTemp = [IO.Path]::GetFullPath($env:TEMP).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
   if ($resolvedStage.StartsWith($resolvedTemp, [StringComparison]::OrdinalIgnoreCase)) {

@@ -1,0 +1,13 @@
+.epk-reviews{max-width:850px;margin:18px auto 0;padding:20px;background:#fff;border:1px solid #d8dee8;border-radius:14px;box-shadow:0 10px 28px #23375212;color:#172033}
+.epk-reviews__heading{display:flex;align-items:end;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid #e4e8ef}
+.epk-reviews__heading .eyebrow{margin:0 0 4px}.epk-reviews__heading h2{margin:0;font-size:1.45rem}.epk-reviews__count{margin:0;color:#667085;font-size:.88rem;font-weight:750}
+.epk-reviews__status{margin:14px 0;color:#596579}.epk-reviews__status:empty{display:none}
+.epk-review-form{display:grid;gap:12px;margin:16px 0 20px;padding:16px;border:1px solid #d8dee8;border-radius:12px;background:#f7f9fc}
+.epk-review-form h3,.epk-review-form p{margin:0}.epk-review-form p{color:#596579;font-size:.88rem;line-height:1.45}.epk-review-form label{margin:0}.epk-review-form button{justify-self:start;min-height:44px}
+.epk-review-list{display:grid;gap:12px}.epk-review-card{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;padding:14px 0;border-bottom:1px solid #e4e8ef}.epk-review-card:last-child{border-bottom:0;padding-bottom:0}
+.epk-review-card__avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#e8edf4;color:#344054;display:grid;place-items:center;font-weight:850}
+.epk-review-card__main{min-width:0}.epk-review-card__meta{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px}.epk-review-card__meta strong{font-size:.98rem}.epk-review-card__meta span,.epk-review-card__meta time{color:#667085;font-size:.8rem}.epk-review-card__body{margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+.epk-review-card__actions{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}.epk-review-card__actions button{min-height:44px;padding:8px 12px}.epk-review-card__actions .epk-review-delete{margin-left:auto;color:#9f1d18;border-color:#e7b7b4;background:#fff8f7}
+.epk-review-edit{display:grid;gap:10px;margin-top:10px}.epk-review-edit textarea{min-height:120px}.epk-review-empty{margin:0;padding:12px 0;color:#667085}
+@media(max-width:700px){.epk-reviews{margin:12px 0 0;padding:16px 12px;border-radius:12px}.epk-reviews__heading{align-items:start}.epk-review-form{padding:14px 12px}.epk-review-card{grid-template-columns:38px minmax(0,1fr)}.epk-review-card__avatar{width:38px;height:38px}.epk-review-card__actions{gap:4px}.epk-review-card__actions button{padding-inline:10px}}
+@media print{.epk-reviews{display:none!important}}

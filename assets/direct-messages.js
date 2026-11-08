@@ -22,6 +22,19 @@ const messageMedia = document.getElementById("messageMedia");
 const messageCamera = document.getElementById("messageCamera");
 const messageMediaPreview = document.getElementById("messageMediaPreview");
 const messageList = document.getElementById("messageList");
+const messageSelectionToolbar = document.getElementById("messageSelectionToolbar");
+const messageSelectionCount = document.getElementById("messageSelectionCount");
+const copySelectedMessagesButton = document.getElementById("copySelectedMessages");
+const cancelMessageSelectionButton = document.getElementById("cancelMessageSelection");
+const messageCopyFallbackLabel = document.getElementById("messageCopyFallbackLabel");
+const messageCopyFallback = document.getElementById("messageCopyFallback");
+const contactDetailsDialog = document.getElementById("contactDetailsDialog");
+const contactDetailsName = document.getElementById("contactDetailsName");
+const contactDetailsAvatar = document.getElementById("contactDetailsAvatar");
+const contactDetailsPresence = document.getElementById("contactDetailsPresence");
+const contactDetailsProfile = document.getElementById("contactDetailsProfile");
+const contactDetailsBlock = document.getElementById("contactDetailsBlock");
+const contactDetailsStatus = document.getElementById("contactDetailsStatus");
 const sendButton = messageForm?.querySelector('button[type="submit"]');
 const textButton = document.getElementById("startText");
 const conversationActions = [textButton, document.getElementById("startPhone"), document.getElementById("startVideo")].filter(Boolean);
@@ -82,14 +95,17 @@ let currentEmail = "";
 let loadingMessages = false;
 let conversationVersion = 0;
 const pendingMessageSends = new Set();
+let retryMessageSend = null;
 let nextMessageCursor = "";
 const shownMessages = new Set();
+const selectedMessages = new Map();
 let cachedConversations = [];
 let activeCanContact = false;
 let reactionTimer = null;
 let selectedMessageMedia = null;
 let selectedMessageMediaUrl = "";
 let mobileHistoryConversation = null;
+let activeConversation = null;
 
 function usesMobileConversationHistory() {
   return window.parent === window && window.matchMedia?.("(max-width: 760px)").matches === true;
@@ -109,6 +125,88 @@ function closeConversationFromControl() {
     return;
   }
   closeConversation({ focusList: true });
+}
+
+function populateContactDetails() {
+  if (!activeConversation || !contactDetailsDialog) return;
+  const name = activeConversation.name || messageTranslate("DanzStak member");
+  const profileHref = activeConversation.memberId ? "profile.html?member=" + encodeURIComponent(activeConversation.memberId) : "profile.html";
+  contactDetailsName.textContent = name;
+  contactDetailsPresence.textContent = messageTranslate(activeConversation.online === true ? "Online" : "Offline");
+  contactDetailsProfile.href = profileHref;
+  contactDetailsProfile.setAttribute("aria-label", `${messageTranslate("View profile")}: ${name}`);
+  contactDetailsAvatar.textContent = name.charAt(0).toUpperCase();
+  contactDetailsAvatar.style.backgroundImage = activeConversation.picture ? `url("${activeConversation.picture}")` : "";
+  contactDetailsAvatar.classList.toggle("has-photo", Boolean(activeConversation.picture));
+  contactDetailsBlock.disabled = !activeConversation.memberId;
+  for (const id of ["contactDetailsPhone", "contactDetailsVideo"]) {
+    const button = document.getElementById(id);
+    if (button) button.disabled = !activeCanContact;
+  }
+  contactDetailsStatus.textContent = activeConversation.memberId ? "" : messageTranslate("This contact cannot be blocked from this saved chat.");
+}
+
+function openContactDetails({ updateHistory = true } = {}) {
+  if (!activeConversation || !contactDetailsDialog) return;
+  populateContactDetails();
+  if (!contactDetailsDialog.open) contactDetailsDialog.showModal();
+  if (document.body?.dataset) document.body.dataset.syncScreen = "contact-details";
+  if (updateHistory && usesMobileConversationHistory() && history.state?.danzstakContactDetails !== true) {
+    const currentState = history.state && typeof history.state === "object" ? history.state : {};
+    history.pushState({ ...currentState, danzstakContactDetails: true }, "");
+  }
+  document.getElementById("closeContactDetails")?.focus();
+}
+
+function closeContactDetails({ fromHistory = false, restoreFocus = true } = {}) {
+  if (!contactDetailsDialog?.open) return;
+  if (!fromHistory && usesMobileConversationHistory() && history.state?.danzstakContactDetails === true) {
+    history.back();
+    return;
+  }
+  contactDetailsDialog.close();
+  if (document.body?.dataset) document.body.dataset.syncScreen = "conversation";
+  if (restoreFocus) conversationName?.focus();
+}
+
+function startCallFromContactDetails(controlId) {
+  const startCall = () => document.getElementById(controlId)?.click();
+  if (usesMobileConversationHistory() && history.state?.danzstakContactDetails === true) {
+    window.addEventListener("popstate", startCall, { once: true });
+    closeContactDetails();
+    return;
+  }
+  closeContactDetails({ fromHistory: true });
+  startCall();
+}
+
+async function blockActiveContact() {
+  if (!activeConversation?.memberId || contactDetailsBlock.disabled) return;
+  const name = activeConversation.name || messageTranslate("DanzStak member");
+  const confirmed = await window.danzstakConfirm(messageTranslate("Blocking stops this member from finding and contacting you. They will not be notified."), {
+    title: messageFormat("Block {name}?", { name }),
+    confirmLabel: messageTranslate("Block member"),
+    danger: true
+  });
+  if (!confirmed) return;
+  contactDetailsBlock.disabled = true;
+  contactDetailsStatus.textContent = messageTranslate("Blocking…");
+  try {
+    const response = await directFetch("/friends/block", {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId: activeConversation.memberId })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || messageTranslate("Member could not be blocked."));
+    contactDetailsStatus.textContent = messageTranslate("Member blocked.");
+    closeContactDetails({ fromHistory: true, restoreFocus: false });
+    closeConversation({ focusList: true });
+    if (usesMobileConversationHistory() && history.state?.danzstakContactDetails === true) history.go(-2);
+    loadConversations();
+  } catch (error) {
+    contactDetailsStatus.textContent = error.message;
+    contactDetailsBlock.disabled = false;
+  }
 }
 function setConversationActionsEnabled(enabled) {
   for (const button of conversationActions) button.disabled = !enabled;
@@ -363,10 +461,119 @@ function openMessageDeleteChoices(item, message, palette) {
   palette.querySelector("button")?.focus();
 }
 
+async function copyDirectMessage(item, message) {
+  const content = String(message.content || "");
+  if (!content) return;
+  let timeout;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await Promise.race([
+      navigator.clipboard.writeText(content),
+      new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error("Clipboard unavailable")), 3000); })
+    ]);
+    callStatus.textContent = messageTranslate("Copied.");
+  } catch {
+    const text = item.querySelector(".message-text");
+    const selection = window.getSelection?.();
+    if (text && selection && typeof document.createRange === "function") {
+      const range = document.createRange();
+      range.selectNodeContents(text);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    callStatus.textContent = messageTranslate("Select the message text and copy it.");
+  } finally { clearTimeout(timeout); }
+}
+
+function updateMessageSelection() {
+  const count = selectedMessages.size;
+  if (messageSelectionToolbar) messageSelectionToolbar.hidden = count === 0;
+  if (messageSelectionCount) messageSelectionCount.textContent = messageFormat("{count} selected", { count });
+  if (messageCopyFallbackLabel) messageCopyFallbackLabel.hidden = true;
+  if (messageCopyFallback) messageCopyFallback.value = "";
+  for (const item of messageList?.querySelectorAll(".message[data-message-id]") || []) {
+    const selected = selectedMessages.has(item.dataset.messageId);
+    item.classList.toggle("is-selected", selected);
+    const baseLabel = item.dataset.baseAriaLabel || item.getAttribute("aria-label") || "";
+    item.dataset.baseAriaLabel = baseLabel;
+    item.setAttribute("aria-label", selected ? `${messageTranslate("Selected")}. ${baseLabel}` : baseLabel);
+  }
+}
+
+function clearMessageSelection({ focusMessage = false } = {}) {
+  const firstId = selectedMessages.keys().next().value;
+  selectedMessages.clear();
+  updateMessageSelection();
+  if (focusMessage && firstId) messageList?.querySelector(`[data-message-id="${CSS.escape(firstId)}"]`)?.focus();
+}
+
+function toggleMessageSelection(item, message) {
+  if (!message.content) return;
+  if (selectedMessages.has(message.messageId)) selectedMessages.delete(message.messageId);
+  else selectedMessages.set(message.messageId, message);
+  document.querySelector(".message-reaction-palette")?.remove();
+  updateMessageSelection();
+  if (selectedMessages.size) item.focus();
+}
+
+function selectedMessageCopyText() {
+  return [...selectedMessages.values()]
+    .sort((left, right) => String(left.createdAt || "").localeCompare(String(right.createdAt || "")) || String(left.messageId).localeCompare(String(right.messageId)))
+    .map(message => {
+      const speaker = message.senderEmail === currentEmail ? messageTranslate("You") : activeContactName;
+      const time = new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return `${speaker} · ${time}\n${String(message.content || "")}`;
+    })
+    .join("\n\n");
+}
+
+async function copySelectedDirectMessages() {
+  const count = selectedMessages.size;
+  const content = selectedMessageCopyText();
+  if (!count || !content) return;
+  let timeout;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await Promise.race([
+      navigator.clipboard.writeText(content),
+      new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error("Clipboard unavailable")), 3000); })
+    ]);
+    clearMessageSelection();
+    callStatus.textContent = messageFormat("Copied {count} messages.", { count });
+  } catch {
+    if (messageCopyFallback && messageCopyFallbackLabel) {
+      messageCopyFallback.value = content;
+      messageCopyFallbackLabel.hidden = false;
+      messageCopyFallback.focus();
+      messageCopyFallback.select();
+    }
+    callStatus.textContent = messageTranslate("Copy is unavailable. The selected messages are ready for manual copying.");
+  } finally { clearTimeout(timeout); }
+}
+
 function openMessageReactions(item, message, x, y, focusFirst = false) {
   document.querySelector(".message-reaction-palette")?.remove();
   const palette = document.createElement("div"); palette.className = "message-reaction-palette"; palette.style.left = Math.max(8, Math.min(x - 110, innerWidth - 248)) + "px"; palette.style.top = Math.max(8, y - 64) + "px";
   for (const emoji of ["👍","❤️","😂","😮","😢","😡"]) { const button = document.createElement("button"); button.type = "button"; button.textContent = emoji; button.setAttribute("aria-label", messageFormat(message.myReaction === emoji ? "Remove {emoji}" : "React with {emoji}", { emoji })); button.classList.toggle("selected", message.myReaction === emoji); button.addEventListener("click", async () => { button.disabled = true; try { await saveMessageReaction(item, message, emoji); palette.remove(); } catch (error) { callStatus.textContent = error.message; button.disabled = false; } }); palette.appendChild(button); }
+  if (message.content) {
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.className = "message-copy-choice";
+    copy.dataset.icon = "copy";
+    copy.textContent = messageTranslate("Copy message");
+    copy.title = messageTranslate("Copy message");
+    copy.setAttribute("aria-label", messageTranslate("Copy message"));
+    copy.addEventListener("click", async () => { await copyDirectMessage(item, message); palette.remove(); item.focus(); });
+    palette.appendChild(copy);
+    const select = document.createElement("button");
+    select.type = "button";
+    select.className = "message-select-choice";
+    select.textContent = messageTranslate("Select message");
+    select.title = messageTranslate("Select message");
+    select.setAttribute("aria-label", messageTranslate("Select message"));
+    select.addEventListener("click", () => toggleMessageSelection(item, message));
+    palette.appendChild(select);
+  }
   if (message.senderEmail === currentEmail && message.content) {
     const edit = document.createElement("button");
     edit.type = "button";
@@ -389,6 +596,8 @@ function openMessageReactions(item, message, x, y, focusFirst = false) {
   palette.appendChild(remove);
   palette.addEventListener("keydown", event => { if (event.key === "Escape") { event.preventDefault(); palette.remove(); item.focus(); } });
   document.body.appendChild(palette);
+  const paletteBox = palette.getBoundingClientRect();
+  if (paletteBox.right > innerWidth - 8) palette.style.left = Math.max(8, innerWidth - paletteBox.width - 8) + "px";
   if (focusFirst) palette.querySelector("button")?.focus();
 }
 
@@ -405,6 +614,7 @@ function updateConversationPresence(conversation) {
 
 function openConversation(conversation, { updateHistory = true } = {}) {
   closeConversation();
+  activeConversation = { ...conversation };
   document.body.classList.add("is-conversation-open");
   if (document.body?.dataset) {
     const callMode = document.body.dataset.callMode;
@@ -445,6 +655,8 @@ function openConversation(conversation, { updateHistory = true } = {}) {
 }
 
 function closeConversation({ focusList = false, preserveDraft = true } = {}) {
+  closeContactDetails({ fromHistory: true, restoreFocus: false });
+  clearMessageSelection();
   const closingContact = contactInput.value.trim().toLowerCase();
   if (closingContact && preserveDraft) saveChatDraft(closingContact, messageInput.value);
   conversationVersion += 1;
@@ -463,6 +675,7 @@ function closeConversation({ focusList = false, preserveDraft = true } = {}) {
   directContact = "";
   activeContactName = messageTranslate("Contact");
   activeCanContact = false;
+  activeConversation = null;
   setConversationActionsEnabled(false);
   nextMessageCursor = "";
   shownMessages.clear();
@@ -576,6 +789,7 @@ function directMessageItem(message) {
   const sharedUrl = firstSafeMessageUrl(message.content);
   if (sharedUrl) item.appendChild(messageLinkPreview(sharedUrl));
   item.setAttribute("aria-label", messageAccessibleSummary(message, mine));
+  item.dataset.baseAriaLabel = item.getAttribute("aria-label");
   const meta = document.createElement("span");
   meta.className = "message-meta";
   meta.textContent = (mine ? messageTranslate("You") : activeContactName) + " · " + new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + (message.editedAt ? " · " + messageTranslate("edited") : "");
@@ -588,14 +802,24 @@ function directMessageItem(message) {
   }
   item.appendChild(meta);
   updateMessageReactionBadge(item, message);
-  item.addEventListener("pointerdown", event => { reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
+  item.addEventListener("pointerdown", event => { if (event.target.closest?.(".message-text")) return; reactionTimer = setTimeout(() => openMessageReactions(item, message, event.clientX, event.clientY), 550); });
   for (const type of ["pointerup","pointercancel","pointerleave"]) item.addEventListener(type, () => { clearTimeout(reactionTimer); reactionTimer = null; });
-  item.addEventListener("contextmenu", event => { event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
+  item.addEventListener("contextmenu", event => { if (event.target.closest?.(".message-text")) return; event.preventDefault(); clearTimeout(reactionTimer); openMessageReactions(item, message, event.clientX, event.clientY); });
+  item.addEventListener("click", event => {
+    if (!selectedMessages.size || event.target.closest?.("a,button,input,textarea,video")) return;
+    event.preventDefault();
+    toggleMessageSelection(item, message);
+  });
   item.addEventListener("keydown", event => {
+    if (selectedMessages.size && (event.key === " " || event.key === "Enter")) { event.preventDefault(); toggleMessageSelection(item, message); return; }
     if (mine && message.content && event.key.toLowerCase() === "e" && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); openMessageEditor(item, message); return; }
     if (!isReactionKeyboardShortcut(event)) return;
     event.preventDefault(); const rect = item.getBoundingClientRect(); openMessageReactions(item, message, rect.left + rect.width / 2, rect.top, true);
   });
+  if (selectedMessages.has(message.messageId)) {
+    item.classList.add("is-selected");
+    item.setAttribute("aria-label", `${messageTranslate("Selected")}. ${item.dataset.baseAriaLabel}`);
+  }
   return item;
 }
 
@@ -643,6 +867,14 @@ function pendingMessageItem(content, mediaFile) {
   item.appendChild(meta);
   return item;
 }
+
+copySelectedMessagesButton?.addEventListener("click", copySelectedDirectMessages);
+cancelMessageSelectionButton?.addEventListener("click", () => clearMessageSelection({ focusMessage: true }));
+document.addEventListener?.("keydown", event => {
+  if (event.key !== "Escape" || !selectedMessages.size || document.querySelector(".message-reaction-palette")) return;
+  event.preventDefault();
+  clearMessageSelection({ focusMessage: true });
+});
 
 function renderEarlierMessagesButton() {
   messageList.querySelector(".load-earlier-messages")?.remove();
@@ -919,6 +1151,7 @@ async function loadConversations() {
       });
     }
     cachedConversations = [...contacts.values()];
+    if (activeFilter === "bookings") return;
     const focusedControl = document.activeElement?.closest?.(".conversation-user,.chat-contact");
     const focusedContact = focusedControl?.dataset.contactEmail || "";
     const focusedSelector = focusedControl?.classList.contains("chat-contact") ? ".chat-contact" : ".conversation-user";
@@ -989,7 +1222,7 @@ async function loadConversations() {
       button.addEventListener("click", () => openConversationFromInbox(conversation));
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [kind, targetId] of [["phone", "startPhone"], ["video", "startVideo"]]) {
-        const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.appendChild(createCallActionIcon(kind)); call.title = `${messageTranslate(targetId === "startPhone" ? "Phone call" : "Video call")}: ${publicName}`; call.setAttribute("aria-label", call.title);
+        const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.dataset.callKind = kind; call.appendChild(createCallActionIcon(kind)); call.title = `${messageTranslate(targetId === "startPhone" ? "Phone call" : "Video call")}: ${publicName}`; call.setAttribute("aria-label", call.title);
         call.disabled = conversation.canContact === false;
         call.addEventListener("click", () => { openConversation(conversation); document.getElementById(targetId)?.click(); });
         calls.appendChild(call);
@@ -1011,7 +1244,7 @@ async function loadConversations() {
   }
 }
 
-chatSearch?.addEventListener("input", loadConversations);
+chatSearch?.addEventListener("input", () => activeFilter === "bookings" ? window.danzstakLoadBookingThreads?.() : loadConversations());
 document.getElementById("newChat")?.addEventListener("click", () => {
   activeFilter = "contacts";
   chatFilters.forEach(item => {
@@ -1027,19 +1260,29 @@ document.getElementById("newChat")?.addEventListener("click", () => {
 });
 const chatFilters = [...document.querySelectorAll("[data-chat-filter]")];
 const syncSectionNote = document.getElementById("syncSectionNote");
+const inviteFriendContacts = document.getElementById("inviteFriendContacts");
 const syncSectionCopy = {
   chats: "Your saved conversations.",
+  bookings: "Replies from clubs and venues you contacted through Tour Manager.",
   calls: "Start a secure voice or video call with an available contact.",
   contacts: "Friends and shared Tribe members you are permitted to contact."
 };
 document.body.dataset.syncScreen = activeFilter;
+const syncAuxiliaryActions = () => { if (inviteFriendContacts) inviteFriendContacts.hidden = activeFilter !== "contacts"; };
 chatFilters.forEach(button => button.addEventListener("click", () => {
   chatFilters.forEach(item => { const selected = item === button; item.classList.toggle("active", selected); item.setAttribute("aria-selected", String(selected)); item.tabIndex = selected ? 0 : -1; });
   activeFilter = button.dataset.chatFilter;
   document.body.dataset.syncScreen = activeFilter;
+  syncAuxiliaryActions();
   if (syncSectionNote) syncSectionNote.textContent = messageTranslate(syncSectionCopy[activeFilter] || syncSectionCopy.chats);
-  loadConversations();
+  if (activeFilter === "bookings") window.danzstakLoadBookingThreads?.();
+  else { window.danzstakLeaveBookingThreads?.(); loadConversations(); }
 }));
+document.getElementById("newVideoCall")?.addEventListener("click", () => {
+  const calls = chatFilters.find(button => button.dataset.chatFilter === "calls");
+  calls?.click();
+  document.querySelector("#conversationUsers .conversation-user")?.focus();
+});
 document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
   if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
   const current = chatFilters.indexOf(document.activeElement);
@@ -1050,6 +1293,12 @@ document.querySelector(".chat-filters")?.addEventListener("keydown", event => {
 });
 document.getElementById("headerPhone")?.addEventListener("click", () => document.getElementById("startPhone")?.click());
 document.getElementById("headerVideo")?.addEventListener("click", () => document.getElementById("startVideo")?.click());
+for (const trigger of [conversationAvatar, conversationName]) trigger?.addEventListener("click", event => { event.preventDefault(); openContactDetails(); });
+document.getElementById("closeContactDetails")?.addEventListener("click", () => closeContactDetails());
+document.getElementById("contactDetailsPhone")?.addEventListener("click", () => startCallFromContactDetails("headerPhone"));
+document.getElementById("contactDetailsVideo")?.addEventListener("click", () => startCallFromContactDetails("headerVideo"));
+contactDetailsBlock?.addEventListener("click", blockActiveContact);
+contactDetailsDialog?.addEventListener("cancel", event => { event.preventDefault(); closeContactDetails(); });
 document.getElementById("minimizeConversation")?.addEventListener("click", () => {
   if (window.parent === window) {
     closeConversationFromControl();
@@ -1073,6 +1322,14 @@ document.getElementById("closeConversation")?.addEventListener("click", closeCon
 
 window.addEventListener("popstate", event => {
   if (!usesMobileConversationHistory()) return;
+  if (event.state?.danzstakContactDetails === true && activeConversation) {
+    openContactDetails({ updateHistory: false });
+    return;
+  }
+  if (contactDetailsDialog?.open) {
+    closeContactDetails({ fromHistory: true });
+    return;
+  }
   if (event.state?.danzstakChatOpen === true && mobileHistoryConversation) {
     openConversation(mobileHistoryConversation, { updateHistory: false });
     return;
@@ -1116,10 +1373,22 @@ messageForm?.addEventListener("submit", async event => {
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
+  const mediaFile = selectedMessageMedia;
+  const retry = retryMessageSend
+    && retryMessageSend.recipientEmail === recipientEmail
+    && retryMessageSend.content === content
+    && retryMessageSend.mediaFile === mediaFile
+    ? retryMessageSend
+    : null;
+  if (retryMessageSend && !retry) {
+    retryMessageSend = null;
+  }
+  const clientMessageId = retry?.clientMessageId || `${String(Date.now()).padStart(13, "0")}#${crypto.randomUUID()}`;
   if (window.navigator?.onLine === false && window.danzstakQueueOffline) {
     try {
       if (selectedMessageMedia) throw new Error(messageTranslate("Attachments need a connection. Your draft is still here."));
-      window.danzstakQueueOffline("/messages", { recipientEmail, content });
+      window.danzstakQueueOffline("/messages", { recipientEmail, content, clientMessageId });
+      retryMessageSend = null;
       messageInput.value = "";
       saveChatDraft(recipientEmail, "");
       callStatus.textContent = messageTranslate("Saved offline — waiting to send when you reconnect.");
@@ -1127,22 +1396,22 @@ messageForm?.addEventListener("submit", async event => {
     return;
   }
   const version = conversationVersion;
-  const mediaFile = selectedMessageMedia;
   const pendingItem = pendingMessageItem(content, mediaFile);
+  let attachment = retry?.attachment || {};
   pendingMessageSends.add(version);
   sendButton.disabled = true;
   messageList.appendChild(pendingItem);
   messageList.scrollTop = messageList.scrollHeight;
   if (content && messageInput.value.trim() === content) messageInput.value = "";
   try {
-    if (mediaFile) callStatus.textContent = messageTranslate("Uploading attachment…");
-    const attachment = mediaFile ? await uploadSelectedMessageMedia(mediaFile) : {};
-    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, ...attachment }) });
+    if (mediaFile && !attachment.mediaKey) callStatus.textContent = messageTranslate("Uploading attachment…");
+    if (mediaFile && !attachment.mediaKey) attachment = await uploadSelectedMessageMedia(mediaFile);
+    const response = await directFetch("/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recipientEmail, content, clientMessageId, ...attachment }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      await discardMessageMedia(attachment.mediaKey);
       throw new Error(data.error || messageTranslate("Message could not be sent"));
     }
+    retryMessageSend = null;
     if (version !== conversationVersion) { await loadConversations(); return; }
     if (data.message?.messageId) {
       shownMessages.add(data.message.messageId);
@@ -1152,10 +1421,12 @@ messageForm?.addEventListener("submit", async event => {
     }
     saveChatDraft(recipientEmail, "");
     if (selectedMessageMedia === mediaFile) clearSelectedMessageMedia();
+    callStatus.textContent = messageTranslate("Delivered");
     await loadConversations();
   } catch (error) {
     pendingItem.remove();
     if (version === conversationVersion) {
+      retryMessageSend = { recipientEmail, content, mediaFile, clientMessageId, attachment };
       if (content && !messageInput.value.trim()) messageInput.value = content;
       callStatus.textContent = messageFormat("{error}. Your message is still in the composer.", { error: error.message });
       messageInput.focus();

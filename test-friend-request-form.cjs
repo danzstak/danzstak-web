@@ -16,18 +16,18 @@ assert.match(source, /const requestTarget = \/\^\[a-f0-9-\]\{36\}\$\/\.test\(mem
 assert.match(source, /action\.textContent = feedTranslate\("Accept"\)/, 'incoming requests can be accepted from the same localized list');
 assert.match(source, /action\.textContent = feedTranslate\("Requested"\)/, 'sent requests have an understandable localized state');
 assert.match(source, /action\.textContent = feedTranslate\(person\.friendStatus === "friends" \? "Message" : "Tribe Message"\)/, 'existing connections can be messaged instead of receiving duplicate requests');
-assert.match(source, /onlineHeading\.textContent = feedTranslate\("Users online"\)/, 'the top Friends workspace section has a localized Users online heading');
-assert.match(source, /friendsHeading\.textContent = feedTranslate\("Your friends"\)/, 'accepted friends remain visible below a localized heading');
+assert.match(source, /\["all", "All friends"\], \["online", "Online"\], \["requests", "Requests"\], \["find", "Find friends"\]/, 'Friends provides one compact set of truthful directory tabs');
+assert.match(source, /window\.danzstakMountPeopleFinder\?\.\(finderHost, \{ compact: true, searchInput: search \}\)/, 'member discovery reuses the single Friends search field');
 assert.doesNotMatch(source, /Add a friend by email/, 'ordinary users are not required to know account email addresses');
-assert.match(css, /\.friend-discovery-list\{display:grid;/, 'online-user discovery uses a responsive compact grid');
+assert.match(css, /\.friends-workspace-list\{display:grid;grid-template-columns:repeat\(auto-fit,minmax\(280px,1fr\)\)/, 'the unified directory uses a responsive compact grid');
 assert.match(source, /message\.dataset\.icon = "chat"/, 'the friend message action uses the shared recognizable Chat icon');
-assert.match(source, /message\.title = `\$\{feedTranslate\("Message"\)\}: \$\{displayName\.textContent\}`/, 'the compact friend message action keeps a descriptive desktop tooltip');
-assert.match(css, /\.friend-workspace-row\{grid-template-columns:minmax\(0,1fr\) auto\}/, 'mobile friend rows reserve one compact action column instead of creating a second row');
+assert.match(source, /message\.title = message\.getAttribute\("aria-label"\)/, 'the compact friend message action keeps a descriptive desktop tooltip');
+assert.match(css, /\.friend-workspace-row\{position:relative;display:grid;grid-template-columns:minmax\(0,1fr\) auto/, 'friend rows reserve one compact action column instead of creating a second row');
 assert.match(css, /\.friend-workspace-actions\{display:flex;align-items:center;gap:6px;flex-wrap:nowrap\}/, 'friend actions stay together without wrapping');
-assert.match(css, /\.friend-message-action,.friend-message-action\.ds-icon-button,.friend-remove-action,.friend-remove-action\.ds-icon-button\{width:44px;min-width:44px;min-height:44px;/, 'the compact friend controls keep usable mobile touch targets');
-assert.match(feed, /assets\/feed-enhancements\.css\?v=500/, 'the feed loads the current friend discovery styles');
+assert.match(css, /\.friend-message-action,.friend-message-action\.ds-icon-button\{width:44px;min-width:44px;min-height:44px;/, 'the compact message control keeps a usable mobile touch target');
+assert.match(feed, /assets\/feed-enhancements\.css\?v=502/, 'the feed loads the current friend discovery styles');
 assert.match(css, /@media\(max-width:700px\)\{\.friend-discovery-row button\.ds-icon-button\{width:44px;min-width:44px;height:44px;min-height:44px\}\}/, 'online-user Chat icons keep a full phone touch target');
-assert.match(feed, /assets\/feed-enhancements\.js\?v=529/, 'the feed loads the current localized friend discovery behavior');
+assert.match(feed, /assets\/feed-enhancements\.js\?v=534/, 'the feed loads the current localized friend discovery behavior');
 assert.match(source, /action\.dataset\.icon = "chat";[\s\S]*labelAction\(person\.friendStatus === "friends" \? "Message \{name\}"/, 'accepted online users use the same accessible Chat icon as saved friends');
 
 console.log('Friend discovery checks passed: the Friends button lists online users with one-tap relationship actions and no email lookup.');

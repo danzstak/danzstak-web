@@ -10,6 +10,7 @@ const { createHash } = require("node:crypto");
   const riderKey = `epk/${owner}/22222222-2222-4222-a222-222222222222.pdf`;
   const kit = cleanEpk({
     artistName: "Codex Band",
+    look: "punk",
     socialLinks: [
       { label:"Instagram", url:"https://www.instagram.com/codex-band" },
       { label:"Unsafe", url:"javascript:alert(1)" }
@@ -25,6 +26,8 @@ const { createHash } = require("node:crypto");
     ]
   }, owner);
   assert.equal(kit.artistName, "Codex Band");
+  assert.equal(kit.look, "punk", "the artist's selected EPK look should persist independently of content");
+  assert.equal(cleanEpk({ artistName:"Fallback", look:"javascript:alert(1)" }, owner).look, "techno", "unknown looks must fall back to the bounded default");
   assert.deepEqual(kit.socialLinks, [{ label:"Instagram", url:"https://www.instagram.com/codex-band" }], "social links should persist while unsafe schemes are rejected");
   assert.equal(kit.media.length, 2, "valid owner-scoped media should remain in the artist draft");
   assert.equal(cleanEpk({ artistName:"Codex Band", media:[{ key:photoKey.replace(owner, "fedcba9876543210fedcba98"), role:"press-photo", name:"Stolen" }] }, owner), null, "another artist's object key must reject the entire update");

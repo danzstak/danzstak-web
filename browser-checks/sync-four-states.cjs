@@ -81,7 +81,7 @@ async function assertViewport(page, width, state) {
       await page.locator(".conversation-user").first().waitFor({ state: "visible" });
       assert.equal(errors.length, 0, `${width}px browser errors: ${errors.join(" | ")}`);
       assert.equal((await page.locator("#messagesTitle").textContent()).trim(), "SYNC");
-      assert.deepEqual(await page.locator("[data-chat-filter]").allTextContents(), ["Chats", "Calls", "Contacts"]);
+      assert.deepEqual(await page.locator("[data-chat-filter]").allTextContents(), ["Chats", "Bookings", "Calls", "Contacts"]);
       for (const tab of await page.locator("[data-chat-filter]").all()) {
         const box = await tab.boundingBox();
         assert.ok(box && box.height >= 44, `${width}px SYNC section tabs must preserve a 44px touch target`);

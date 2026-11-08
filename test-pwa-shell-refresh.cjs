@@ -18,6 +18,9 @@ assert.match(serviceWorker, /"\/assets\/brand-language-aliases\.js"/, "the offli
 assert.match(serviceWorker, /"\/assets\/booking-map\.js"/, "the installable shell must keep the Booking Agent map controls available");
 assert.match(serviceWorker, /"\/assets\/booking-discovery\.js"/, "the installable shell must keep natural-language venue discovery available");
 assert.match(serviceWorker, /"\/assets\/booking-discovery\.css"/, "the installable shell must keep venue discovery readable offline");
+assert.match(serviceWorker, /"\/booking-selections\.html"/, "the installable shell must keep the reviewed booking workspace available");
+assert.match(serviceWorker, /"\/assets\/booking-selections\.js"/, "the installable shell must keep pitch review behavior available");
+assert.match(serviceWorker, /"\/assets\/booking-selections\.css"/, "the installable shell must keep pitch review readable offline");
 assert.match(serviceWorker, /"\/assets\/record-stores-pagination\.css"/, "the installable shell must keep record-store pagination readable offline");
 assert.match(serviceWorker, /"\/assets\/epk-media\.css"/, "the installable shell must keep EPK media management styled offline");
 assert.match(serviceWorker, /"\/assets\/user-content-links\.js"/, "the offline shell must keep user links clickable");
@@ -38,14 +41,14 @@ for (const [file, expected] of [
   ["feed.html", "assets/soft-ui.css?v=427"],
   ["messages.html", "assets/soft-ui.css?v=427"],
   ["profile.html", "assets/soft-ui.css?v=427"],
-  ["feed.html", "assets/mobile-design-system.css?v=13"],
-  ["feed.html", "assets/danzstak-original-feed.css?v=7"],
-  ["messages.html", "assets/mobile-design-system.css?v=13"],
-  ["booking.html", "assets/mobile-design-system.css?v=13"],
-  ["epk.html", "assets/mobile-design-system.css?v=13"],
-  ["profile.html", "assets/mobile-design-system.css?v=13"],
-  ["record-stores.html", "assets/mobile-design-system.css?v=13"],
-  ["feed.html", "assets/feed-enhancements.css?v=500"],
+  ["feed.html", "assets/mobile-design-system.css?v=14"],
+  ["feed.html", "assets/danzstak-original-feed.css?v=15"],
+  ["messages.html", "assets/mobile-design-system.css?v=14"],
+  ["booking.html", "assets/mobile-design-system.css?v=14"],
+  ["epk.html", "assets/mobile-design-system.css?v=14"],
+  ["profile.html", "assets/mobile-design-system.css?v=14"],
+  ["record-stores.html", "assets/mobile-design-system.css?v=14"],
+  ["feed.html", "assets/feed-enhancements.css?v=502"],
   ["feed.html", "assets/pwa.js?v=424"],
   ["messages.html", "assets/pwa.js?v=424"],
   ["profile.html", "assets/pwa.js?v=424"],
@@ -54,20 +57,20 @@ for (const [file, expected] of [
   ["feed.html", "assets/identity-media.js?v=1"],
   ["messages.html", "assets/identity-media.js?v=1"],
   ["profile.html", "assets/identity-media.js?v=1"],
-  ["feed.html", "assets/feed-enhancements.js?v=529"],
+  ["feed.html", "assets/feed-enhancements.js?v=534"],
   ["feed.html", "assets/profile-onboarding.js?v=8"],
-  ["feed.html", "assets/post-sharing.js?v=420"],
-  ["feed.html", "assets/people-search.js?v=422"],
+  ["feed.html", "assets/post-sharing.js?v=421"],
+  ["feed.html", "assets/people-search.js?v=423"],
   ["feed.html", "assets/media-visibility.js?v=391"],
   ["messages.html", "assets/media-visibility.js?v=391"],
   ["profile.html", "assets/media-visibility.js?v=391"],
   ["messages.html", "assets/chat.js?v=450"],
-  ["messages.html", "assets/chat.css?v=451"],
-  ["messages.html", "assets/direct-messages.js?v=485"],
+  ["messages.html", "assets/chat.css?v=457"],
+  ["messages.html", "assets/direct-messages.js?v=493"],
   ["profile.html", "assets/profile-sharing.js?v=416"],
-  ["profile.html", "assets/profile-editor.js?v=482"],
+  ["profile.html", "assets/profile-editor.js?v=483"],
   ["booking.html", "assets/booking-agent.js?v=488"],
-  ["profile.html", "assets/post-sharing.js?v=420"],
+  ["profile.html", "assets/post-sharing.js?v=421"],
   ["profile.html", "assets/profile.js?v=419"]
 ]) {
   assert.ok(read(file).includes(expected), `${file} must reference ${expected}`);

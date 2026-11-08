@@ -55,6 +55,42 @@ button,a,input,select,textarea{touch-action:manipulation}
 :focus-visible{outline:3px solid color-mix(in srgb,var(--ds-focus) 72%,transparent);outline-offset:2px}
 .ds-mobile-nav{display:none}
 
+/* One fluid application canvas. Functional controls keep their boundaries;
+   decorative section shells do not become isolated dashboard boxes. */
+body:not(.public-mode) :where(.panel,.card){
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+#feed>.post,.profile-post-card{
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.ds-tool-page :where(.hero,.planner,.summary,.booking-board,.booking-brief,.booking-identity,.venue-quick-search,.booking-tools,.planner-drawer,.route-map,.epk-guide,.epk-form,.search-card,.placement-card){
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.ds-tool-page main>:first-child{margin-top:0!important}
+.ds-tool-page :where(.planner-grid,.epk-layout,.booking-board,.booking-brief,.venue-quick-search,.search-card,.placement-card){margin-top:8px!important}
+.messages-page .chat-shell{
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.messages-page .chat-sidebar{background:transparent!important}
+.messages-page .sync-sections{border:0!important;background:transparent!important}
+.profile-page :where(.edit-profile-panel,.profile-wall-composer,.profile-friend-card){
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.profile-page main>:first-child{margin-top:0!important}
+
 /* Shared professional-tool shell. */
 .ds-tool-page>header{min-height:58px}
 .ds-tool-page>header img{object-fit:contain}
@@ -77,6 +113,7 @@ button,a,input,select,textarea{touch-action:manipulation}
     border-top:1px solid #ffffff42;background:var(--ds-blue);box-shadow:0 -2px 12px #10182826;
   }
   .ds-mobile-nav a{display:grid;place-items:center;min-width:0;min-height:48px;padding:5px;border-radius:8px;color:#fff;text-decoration:none}
+  .ds-mobile-nav a{transform:translateY(-4px)}
   .ds-mobile-nav a[aria-current=page]{background:#ffffff22;box-shadow:inset 0 -3px 0 #fff}
   .ds-mobile-nav .ds-action-icon{width:22px;height:22px}
   .ds-tool-page>header{
@@ -151,6 +188,7 @@ button,a,input,select,textarea{touch-action:manipulation}
     min-width:0!important;min-height:44px!important;padding:4px!important;
     border:0!important;border-radius:8px!important;background:transparent!important;box-shadow:none!important;
   }
+  .topbar .topnav button{transform:translateY(-4px)}
   .topbar .topnav button[aria-current=page]{background:#ffffff24!important;box-shadow:inset 0 -2px 0 #fff!important}
   .topbar .nav-icon{width:21px;height:21px;flex-basis:21px}
   .topbar .nav-count{top:0;right:calc(50% - 20px)}

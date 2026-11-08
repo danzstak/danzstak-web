@@ -7,13 +7,13 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-UWT0uW5pMULqVLIzI65FCyb9huc5dBcs7HlWlJG0JY0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-QOP0iR4PMEhxCBP9fRZVfpKjEO54ndjYr8LZO4mHVrc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
 <link rel="shortcut icon" href="assets/favicon-32.png?v=3" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=3" sizes="180x180">
-<script src="assets/offline.js?v=2"></script>
+<script src="assets/offline.js?v=3"></script>
 <script src="assets/display-preferences.js?v=343"></script>
 <title>DanzStak | Your Mix</title>
 
@@ -257,16 +257,19 @@ textarea {
 #feedStatus.feed-load-error {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  flex-wrap: nowrap;
   gap: 10px;
-  padding: 12px 14px;
+  margin: 0 0 8px;
+  padding: 10px 12px;
   border: 1px solid #d7dee8;
   border-radius: 12px;
   background: #fff;
   color: #4b5563;
-  text-align: center;
+  text-align: left;
 }
+
+#feedStatus.feed-load-error > span { min-width: 0; line-height: 1.35; }
 
 #feedStatus.feed-load-error .secondary {
   min-height: 38px;
@@ -345,22 +348,26 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 }
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=500">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=502">
+<link rel="stylesheet" href="assets/facebook-import.css?v=341">
+<link rel="stylesheet" href="assets/pivot.css?v=1">
+<link rel="stylesheet" href="assets/invite-sharing.css?v=1">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
 <link rel="stylesheet" href="assets/profile-onboarding.css?v=2">
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=233">
 <link rel="stylesheet" href="assets/responsive-media.css?v=4">
-<link rel="stylesheet" href="assets/mobile-design-system.css?v=13">
-<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=7">
+<link rel="stylesheet" href="assets/mobile-design-system.css?v=14">
+<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=15">
+<link rel="stylesheet" href="assets/artist-hq.css?v=1">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=8" defer></script>
-<script src="assets/i18n.js?v=394" defer></script>
+<script src="assets/i18n.js?v=397" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/identity-media.js?v=1"></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
-<script src="assets/post-sharing.js?v=420" defer></script>
+<script src="assets/post-sharing.js?v=421" defer></script>
 <script src="assets/media-tags.js?v=359" defer></script>
 </head>
 
@@ -378,6 +385,8 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
     placeholder="Search DanzStak"
     aria-label="Search DanzStak"
   >
+
+  <button id="pivotButton" class="pivot-header-button" type="button" aria-label="Pivot your data to DanzStak" title="Pivot your data to DanzStak"><span data-menu-icon="refresh" aria-hidden="true"></span><span>Pivot</span></button>
 
   <nav class="topnav">
     <button type="button" data-route="home" aria-label="Home" title="Home"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></svg></button>
@@ -411,6 +420,8 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
       <a href="#photos" data-feature="Photos"><span class="menu-icon" data-menu-icon="image" aria-hidden="true"></span><span class="menu-label">Photos</span></a>
       <a href="#videos" data-feature="Videos"><span class="menu-icon" data-menu-icon="film" aria-hidden="true"></span><span class="menu-label">Videos</span></a>
       <p class="menu-section-heading">Music &amp; Entertainment</p>
+      <a href="#hq" data-feature="HQ"><span class="menu-icon" data-menu-icon="home" aria-hidden="true"></span><span class="menu-label">Artist HQ</span></a>
+      <a href="booking-selections.html#tourManagerTitle"><span class="menu-icon" data-menu-icon="calendar" aria-hidden="true"></span><span class="menu-label">Tour Manager</span></a>
       <a href="#events" data-feature="Events"><span class="menu-icon" data-menu-icon="microphone" aria-hidden="true"></span><span class="menu-label">Events</span></a>
       <a href="booking.html"><span class="menu-icon" data-menu-icon="bus" aria-hidden="true"></span><span class="menu-label">Booking Agent</span></a>
       <a href="record-stores.html"><span class="menu-icon" data-menu-icon="disc" aria-hidden="true"></span><span class="menu-label">Record Stores</span></a>
@@ -455,6 +466,11 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
     </section>
 
     <div id="newsFeedView">
+    <section id="storiesRail" class="stories" aria-label="Dailies">
+      <button type="button" class="story story-create" aria-label="Add a photo or video to Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small>TAKE 0</small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><span><span class="story-create-label">Dailies</span><small class="story-create-detail">Add today's photo or video</small></span></span></button>
+      <div id="storiesLoading" class="story"><span>Loading Dailies</span></div>
+    </section>
+
     <section class="panel post-composer" id="postComposer">
       <h3 class="composer-title"><span class="composer-avatar" aria-hidden="true">D</span><span>Add to Mix</span></h3>
 
@@ -482,11 +498,6 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
           Post
         </button>
       </div>
-    </section>
-
-    <section id="storiesRail" class="stories" aria-label="Dailies">
-      <button type="button" class="story story-create" aria-label="Add a photo or video to Dailies"><span class="story-create-art" aria-hidden="true"><span class="daily-clapper"><strong>SCENE 1</strong><small>TAKE 0</small><time></time></span><span class="story-create-identity"><span class="story-create-avatar">D</span></span></span><span class="story-create-caption"><b aria-hidden="true">+</b><span class="story-create-label">Dailies</span></span></button>
-      <div id="storiesLoading" class="story"><span>Loading Dailies</span></div>
     </section>
 
     <p id="feedStatus" class="muted" role="status">
@@ -929,6 +940,10 @@ function formatDailyClock(date = new Date()) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
+function formatDailyDate(date = new Date()) {
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(date);
+}
+
 function updateDailyCreatorSlate(takeCount = 0) {
   if (typeof document === "undefined" || typeof document.querySelector !== "function") return;
   const slate = document.querySelector(".daily-clapper");
@@ -937,12 +952,15 @@ function updateDailyCreatorSlate(takeCount = 0) {
   const clock = slate.querySelector("time");
   const now = new Date();
   clock.dateTime = now.toISOString();
-  clock.textContent = formatDailyClock(now);
+  clock.textContent = formatDailyDate(now);
 }
 
 if (typeof document !== "undefined" && typeof document.querySelector === "function") {
   updateDailyCreatorSlate();
-  if (typeof setInterval === "function") setInterval(() => updateDailyCreatorSlate(document.querySelectorAll('.story[data-story-owner="true"][data-media-type="video"]').length), 30000);
+  if (typeof setInterval === "function") setInterval(() => {
+    const count = Number(document.querySelector(".daily-clapper")?.dataset.takeCount || 0);
+    updateDailyCreatorSlate(count);
+  }, 30000);
 }
 
 async function refreshStoryMedia(story) {
@@ -1030,7 +1048,10 @@ async function loadStories() {
     storiesRail.querySelector(".story-empty")?.remove();
     storiesRail.querySelectorAll(".story[data-story-id]").forEach(item => item.remove());
     const visibleStories = (data.stories || []).slice(0, 12);
-    updateDailyCreatorSlate((data.stories || []).filter(story => story.isOwner && story.mediaType === "video").length);
+    const dailyTakeCount = Math.max(0, Number(data.dailyTakeCount) || 0);
+    const creatorSlate = document.querySelector(".daily-clapper");
+    if (creatorSlate) creatorSlate.dataset.takeCount = String(dailyTakeCount);
+    updateDailyCreatorSlate(dailyTakeCount);
     for (const [storyIndex, story] of visibleStories.entries()) {
       const item = document.createElement("article");
       item.className = "story";
@@ -1322,6 +1343,7 @@ async function loadPosts() {
         post.groupId,
         post.groupName
       );
+      if (post.sharedPostId) article.dataset.sharedPostId = post.sharedPostId;
 
       if (post.mediaKey && ["image", "video"].includes(post.mediaType)) {
         let recovery = null;
@@ -1798,17 +1820,21 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 </script>
 
 <script src="assets/push-notifications.js?v=307" defer></script>
-<script src="assets/icon-buttons.js?v=7" defer></script>
+<script src="assets/icon-buttons.js?v=9" defer></script>
+<script src="assets/facebook-import.js?v=343" defer></script>
+<script src="assets/pivot.js?v=1" defer></script>
 <script src="assets/device-settings.js?v=233" defer></script>
 <script src="assets/activity-history-core.js?v=287" defer></script>
 <script src="assets/account-export-core.js?v=287" defer></script>
 <script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/feed-enhancements.js?v=529" defer></script>
+<script src="assets/artist-hq.js?v=1" defer></script>
+<script src="assets/invite-sharing.js?v=1" defer></script>
+<script src="assets/feed-enhancements.js?v=534" defer></script>
 <script src="assets/profile-onboarding.js?v=8" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
 <script src="assets/incoming-calls.js?v=298" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
-<script src="assets/app-feedback.js?v=3" defer></script>
+<script src="assets/app-feedback.js?v=4" defer></script>
 <script src="assets/logout.js?v=311" defer></script>
 <script src="assets/pwa.js?v=424" defer></script>
 <script src="assets/app-downloads.js?v=292" defer></script>
@@ -1821,7 +1847,7 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 <script src="assets/media-visibility.js?v=391" defer></script>
 <script src="assets/responsive-media.js?v=2" defer></script>
 <script src="assets/text-emojis.js?v=231" defer></script>
-<script src="assets/people-search.js?v=422" defer></script>
+<script src="assets/people-search.js?v=423" defer></script>
 <script src="assets/post-views.js?v=307" defer></script>
 </body>
 </html>

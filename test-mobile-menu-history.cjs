@@ -12,6 +12,6 @@ assert.match(source, /setMobileMenu\(true, \{ updateHistory: false, fromHistory:
 assert.match(source, /setMobileMenu\(false, \{ fromHistory: true \}\)/, "Back must close the menu without another history action");
 assert.match(source, /event\.target\.closest\("a"\)\) setMobileMenu\(false\)/, "selecting a destination must still close immediately before routing");
 assert.doesNotMatch(source, /danzstakMenuOpen:\s*(?:user|email|route|label|text)/, "menu history state must not contain user or navigation data");
-assert.match(feed, /assets\/feed-enhancements\.js\?v=529/, "the feed must load the exclusive mobile-navigation build");
+assert.match(feed, /assets\/feed-enhancements\.js\?v=534/, "the feed must load the exclusive mobile-navigation build");
 
 console.log("Mobile menu history checks passed: Back, Escape and outside click dismiss; Forward restores; route selection stays immediate; history contains no user data.");

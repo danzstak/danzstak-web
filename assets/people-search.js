@@ -136,10 +136,10 @@
     return row;
   }
 
-  window.danzstakMountPeopleFinder = function mountPeopleFinder(container) {
+  window.danzstakMountPeopleFinder = function mountPeopleFinder(container, options = {}) {
     if (!container || container.querySelector(".friend-name-finder")) return;
     const finder = document.createElement("section");
-    finder.className = "friend-name-finder";
+    finder.className = "friend-name-finder" + (options.compact ? " friend-name-finder-compact" : "");
     finder.setAttribute("aria-labelledby", "friendNameFinderTitle");
     const title = document.createElement("h3");
     title.id = "friendNameFinderTitle";
@@ -151,7 +151,7 @@
     label.className = "friend-name-search";
     const labelText = document.createElement("span");
     labelText.textContent = "Name";
-    const search = document.createElement("input");
+    const search = options.searchInput || document.createElement("input");
     search.type = "search";
     search.autocomplete = "off";
     search.placeholder = "Example: Sigmund";
@@ -162,14 +162,17 @@
     finderStatus.setAttribute("role", "status");
     const results = document.createElement("div");
     results.className = "user-search-list friend-name-results";
-    label.append(labelText, search);
-    finder.append(title, instructions, label, finderStatus, results);
+    if (options.compact) finder.append(finderStatus, results);
+    else {
+      label.append(labelText, search);
+      finder.append(title, instructions, label, finderStatus, results);
+    }
     container.appendChild(finder);
 
     let finderGeneration = 0;
     let finderTimer;
     let finderController;
-    search.addEventListener("input", () => {
+    const searchMembers = () => {
       const version = ++finderGeneration;
       const query = search.value.trim();
       clearTimeout(finderTimer);
@@ -193,7 +196,10 @@
           finderStatus.textContent = error.message || "Member search is temporarily unavailable.";
         } finally { clearTimeout(timeout); }
       }, 250);
-    });
+    };
+    search.addEventListener("input", searchMembers);
+    if (search.value.trim()) searchMembers();
+    return { search, refresh: searchMembers };
   };
 
   async function runSearch(version, query) {

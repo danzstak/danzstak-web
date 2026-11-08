@@ -17,7 +17,7 @@ assert.match(client, /Standalone audio files are not supported/);
 assert.match(client, /purpose: "message"/);
 assert.match(client, /uploadSelectedMessageMedia/);
 assert.match(client, /async function discardMessageMedia\(mediaKey\)/, "failed message attachments need an ownership-checked cleanup path");
-assert.match(client, /if \(!response\.ok\) \{\s*await discardMessageMedia\(attachment\.mediaKey\)/, "a rejected message must discard its completed upload");
+assert.doesNotMatch(client, /if \(!response\.ok\) \{\s*await discardMessageMedia\(attachment\.mediaKey\)/, "a send response cannot safely discard media because the message may already be committed");
 assert.match(client, /catch \(error\) \{\s*await discardMessageMedia\(ticket\.mediaKey\)/, "a failed object upload must attempt cleanup");
 assert.match(client, /media\.className = "message-attachment"/);
 assert.match(client, /\(!content && !selectedMessageMedia\)/);
@@ -34,4 +34,4 @@ assert.match(template, /mediaType:x\.mediaType\?\.S\|\|''/);
 assert.match(template, /mediaUrl:x\.mediaKey\?\.S\?signedMediaUrl\('GET',x\.mediaKey\.S,3600\):''/);
 assert.ok(template.indexOf("Invalid message attachment") < template.indexOf("mediaAttributes=mediaKey"), "Ownership must be checked before media is stored");
 
-console.log("Message media checks passed: photo/video selection, upload, ownership validation, signed delivery, and no standalone audio.");
+console.log("Message media checks passed: photo/video selection, safe uncertain delivery, ownership validation, signed delivery, and no standalone audio.");

@@ -82,6 +82,49 @@ window.danzstakConfirm = function danzstakConfirm(message, {
   });
 };
 
+window.danzstakChoose = function danzstakChoose(message, { title = "Choose an action", choices = [] } = {}) {
+  const valid = choices.filter(choice => choice && choice.value && choice.label);
+  if (!valid.length) return Promise.resolve("");
+  if (typeof HTMLDialogElement === "undefined") {
+    const answer = window.prompt(`${title}\n\n${message}\n\n${valid.map((choice, index) => `${index + 1}. ${choice.label}`).join("\n")}`);
+    return Promise.resolve(valid[Number(answer) - 1]?.value || "");
+  }
+  return new Promise(resolve => {
+    const opener = document.activeElement;
+    const dialog = document.createElement("dialog");
+    const form = document.createElement("form");
+    const heading = document.createElement("h2");
+    const copy = document.createElement("p");
+    const actions = document.createElement("div");
+    dialog.className = "danzstak-confirm-dialog";
+    form.method = "dialog";
+    heading.textContent = title;
+    copy.textContent = String(message || "Choose what DanzStak should remove.");
+    actions.className = "danzstak-confirm-actions danzstak-choice-actions";
+    actions.style.flexWrap = "wrap";
+    const cancel = document.createElement("button");
+    cancel.type = "submit"; cancel.value = ""; cancel.textContent = "Cancel";
+    actions.append(cancel);
+    for (const choice of valid) {
+      const button = document.createElement("button");
+      button.type = "submit"; button.value = choice.value; button.textContent = choice.label;
+      button.className = choice.danger ? "is-danger" : "is-primary";
+      actions.append(button);
+    }
+    form.append(heading, copy, actions); dialog.append(form); document.body.append(dialog);
+    let settled = false;
+    const finish = value => {
+      if (settled) return;
+      settled = true; dialog.remove();
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+      resolve(value);
+    };
+    dialog.addEventListener("close", () => finish(dialog.returnValue), { once: true });
+    dialog.addEventListener("cancel", event => { event.preventDefault(); dialog.close(""); });
+    dialog.showModal(); cancel.focus();
+  });
+};
+
 window.addEventListener("danzstak:feedback", event => {
   window.danzstakShowFeedback(event.detail?.message, event.detail || {});
 });

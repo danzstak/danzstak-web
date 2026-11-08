@@ -39,6 +39,7 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
+import QRCode from "qrcode";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
@@ -62,6 +63,7 @@ const settingsTable = "DanzStak-UserSettings";
 const supportTicketsTable = process.env.SUPPORT_TICKETS_TABLE || "DANZSTAK-SupportTickets";
 const toursTable = process.env.TOURS_TABLE || "DANZSTAK-Tours";
 const venueDirectoryTable = process.env.VENUE_DIRECTORY_TABLE || "DANZSTAK-VenueDirectory";
+const reviewsTable = process.env.REVIEWS_TABLE || "DANZSTAK-Reviews";
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -128,16 +130,38 @@ const tourManagerBilling = createTourManagerBilling({
   corsHeaders,
   tableName: toursTable,
   env: stripeEnvironment,
-  sendBookingEmail: async ({ userId, artistName, venueName, to, subject, message }) => {
+  validateOutreachEpkLink: validateBookingOutreachEpkLink,
+  sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message }) => {
     const replyTo = await accountForSub(userId);
     if (!replyTo) throw new Error("Account email could not be verified");
     const result = await ses.send(new SendEmailCommand({
       FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
+      ConfigurationSetName: "DanzStakTourManager",
+      EmailTags: [
+        { Name: "DanzStakArtistId", Value: userId },
+        { Name: "DanzStakSendId", Value: sendId },
+        { Name: "DanzStakRecipientHash", Value: createHash("sha256").update(String(to).trim().toLowerCase()).digest("hex") }
+      ],
       Destination: { ToAddresses: [to] },
       ReplyToAddresses: [replyTo],
       Content: { Simple: {
         Subject: { Data: subject, Charset: "UTF-8" },
         Body: { Text: { Data: `${message}\n\nSent by ${artistName} using DanzStak Tour Manager.\nVenue: ${venueName}\nReplies go directly to the artist.`, Charset: "UTF-8" } }
+      } }
+    }));
+    return { messageId: result.MessageId || "" };
+  },
+  sendBookingReply: async ({ userId, venueName, to, subject, message }) => {
+    const replyTo = await accountForSub(userId);
+    if (!replyTo) throw new Error("Account email could not be verified");
+    const result = await ses.send(new SendEmailCommand({
+      FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
+      ConfigurationSetName: "DanzStakTourManager",
+      Destination: { ToAddresses: [to] },
+      ReplyToAddresses: [replyTo],
+      Content: { Simple: {
+        Subject: { Data: `Re: ${String(subject || "Booking pitch").replace(/^Re:\s*/i, "")}`.slice(0, 200), Charset: "UTF-8" },
+        Body: { Text: { Data: `${message}\n\nReply from the artist through DanzStak Tour Manager.\nVenue: ${venueName}\nReplies go directly to the artist.`, Charset: "UTF-8" } }
       } }
     }));
     return { messageId: result.MessageId || "" };
@@ -257,6 +281,30 @@ function epkDownloadName(value, key) {
   const extension = String(key || "").match(/\.(jpg|png|webp|pdf)$/i)?.[0]?.toLowerCase() || "";
   const base = String(value || "press-material").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._ -]+/g, "-").replace(/[\r\n"\\/]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 120) || "press-material";
   return base.toLowerCase().endsWith(extension) ? base : `${base}${extension}`;
+}
+
+function validEpkQrUrl(value) {
+  let url;
+  try { url = new URL(String(value || "")); } catch { return false; }
+  if (url.origin !== allowedOrigin || url.pathname !== "/epk.html") return false;
+  const parameters = [...url.searchParams.entries()];
+  if (parameters.length !== 1) return false;
+  const [kind, identifier] = parameters[0];
+  const fragment = new URLSearchParams(url.hash.slice(1));
+  if (kind === "id") return /^[a-z0-9-]{3,64}$/.test(identifier) && !url.hash;
+  if (!/^(share|outreach)$/.test(kind) || fragment.size !== 1 || !fragment.has("token")) return false;
+  if (!/^[a-f0-9]{64}$/.test(fragment.get("token") || "")) return false;
+  return kind === "share" ? /^[a-z0-9-]{3,64}$/.test(identifier) : /^[a-f0-9]{32}$/.test(identifier);
+}
+
+async function epkQr(event) {
+  const origin = event.headers?.origin;
+  const headers = { ...corsHeaders(origin), "content-type": "image/svg+xml; charset=utf-8", "cache-control": "no-store, private" };
+  if (!allowedOrigins.has(origin)) return { statusCode: 404, headers, body: "EPK link not found." };
+  const url = String(parseJsonBody(event)?.url || "");
+  if (!validEpkQrUrl(url)) return { statusCode: 400, headers, body: "The EPK link is not valid." };
+  const body = await QRCode.toString(url, { type: "svg", errorCorrectionLevel: "M", margin: 2, width: 512 });
+  return { statusCode: 200, headers, body };
 }
 
 function corsHeaders(origin) {
@@ -1258,13 +1306,14 @@ async function getSecurePosts(event) {
     }
   }
 
-  const visiblePosts = rawPosts.filter(item => item.userId?.S === userId || (!blockedEmails.has(item.userEmail?.S) && (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S)))));
+  const canView = item => item.userId?.S === userId || (!blockedEmails.has(item.userEmail?.S) && (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S))));
+  const accessibleSources = new Map(rawPosts.filter(canView).map(item => [item.postId.S, item]));
+  const visiblePosts = rawPosts.filter(item => item.placementRemoved?.BOOL !== true && canView(item) && (!item.sharedPostId?.S || accessibleSources.has(item.sharedPostId.S)));
   const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));
   const authorProfiles = typeof loadFeedAuthorProfiles === "function" ? await loadFeedAuthorProfiles([...visiblePosts,...tagNames]) : new Map();
   const authorNames = await loadFeedAuthorNames([...visiblePosts,...tagNames], authorProfiles);
   const authorName = email => authorNames.get(String(email || "").trim().toLowerCase()) || "DanzStak member";
   const authorPicture = email => authorProfiles.get(String(email || "").trim().toLowerCase())?.picture || "";
-  const visibleSources = new Map(visiblePosts.map(item => [item.postId.S,item]));
   const sharedPreview = item => item ? ({postId:item.postId.S,authorMemberId:item.userId?.S || "",content:item.content.S,authorName:authorName(item.userEmail?.S),authorPicture:authorPicture(item.userEmail?.S),createdAt:item.createdAt.S,mediaType:item.mediaType?.S || "",mediaUrl:item.mediaKey?.S ? signedMediaUrl(item.mediaKey.S,3600) : ""}) : null;
   const posts = visiblePosts.map(item => ({
       postId: item.postId.S,
@@ -1281,7 +1330,7 @@ async function getSecurePosts(event) {
       viewCount: Math.max(0,Number(item.viewCount?.N || 0)),
       taggedUsers:(item.taggedUsers?.L || []).map(tag => ({memberId:tag.M?.memberId?.S || "",name:authorNames.get(tag.M?.userEmail?.S) || tag.M?.name?.S || "DanzStak member",isMe:tag.M?.memberId?.S === userId})),
       sharedPostId:item.sharedPostId?.S || "",
-      sharedPost:sharedPreview(visibleSources.get(item.sharedPostId?.S)),
+      sharedPost:sharedPreview(accessibleSources.get(item.sharedPostId?.S)),
       audience: item.audience?.S ?? "public",
       groupId: item.groupId?.S || "",
       groupName: item.groupId?.S ? groupNames.get(item.groupId.S) || "Tribe" : "",
@@ -1304,6 +1353,7 @@ async function postForEngagement(postId, userId) {
   const found = await db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }));
   const post = found.Item;
   if (!post) return { error: "Post not found.", statusCode: 404 };
+  if (post.placementRemoved?.BOOL === true) return { error: "Post is not available.", statusCode: 404 };
   if (post.userId?.S === userId) return { post };
   const viewerEmail = await accountForSub(userId);
   if (!viewerEmail) return { error: "Account email could not be verified.", statusCode: 409 };
@@ -1833,6 +1883,25 @@ async function deleteSecurePost(event) {
     }));
     return { statusCode: 200, headers, body: JSON.stringify({ deleted: false, removedFromProfile: true }) };
   }
+  const request = parseJsonBody(event) || {};
+  const mode = request.mode === "remove_here" ? "remove_here" : "delete_everywhere";
+  const isShare = Boolean(found.Item.sharedPostId?.S);
+  const shares = isShare ? [] : await scanAll({
+    TableName: postsTable,
+    FilterExpression: "sharedPostId = :source",
+    ExpressionAttributeValues: { ":source": { S: postId } }
+  });
+  if (mode === "remove_here" && !isShare && shares.length) {
+    await db.send(new UpdateItemCommand({
+      TableName: postsTable,
+      Key: { postId: { S: postId } },
+      UpdateExpression: "SET placementRemoved = :yes, placementRemovedAt = :at",
+      ConditionExpression: "userId = :owner",
+      ExpressionAttributeValues: { ":yes": { BOOL: true }, ":at": { S: new Date().toISOString() }, ":owner": { S: userId } }
+    }));
+    return { statusCode: 200, headers, body: JSON.stringify({ deleted: false, removedFromHere: true, sharesPreserved: shares.length }) };
+  }
+  const deletionRecords = mode === "delete_everywhere" && !isShare ? [...shares, found.Item] : [found.Item];
   let linkedStories = [];
   let mediaKey = "";
   if (found.Item.mediaKey?.S) {
@@ -1846,11 +1915,6 @@ async function deleteSecurePost(event) {
       ProjectionExpression: "storyId"
     });
   }
-  const [reactions, comments, notices] = await Promise.all([
-    queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, userId", ConsistentRead: true }),
-    queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true }),
-    found.Item.userEmail?.S ? queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: found.Item.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true }) : Promise.resolve([])
-  ]);
   if (mediaKey) {
     const mediaCleanupPending = await runCleanup([
       () => s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey }))
@@ -1860,16 +1924,36 @@ async function deleteSecurePost(event) {
       return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
     }
   }
-  await db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: postId } } }));
-  const cleanupTasks = [
-    ...reactions.map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
-    ...comments.map(item => () => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
-    ...notices.filter(item => item.postId?.S === postId).map(item => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } }))),
-    ...linkedStories.map(item => () => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } })))
-  ];
+  const cleanupTasks = [];
+  let sourceDeleteTask = null;
+  for (const record of deletionRecords) {
+    const recordId = record.postId.S;
+    const [reactions, comments, notices] = await Promise.all([
+      queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, userId", ConsistentRead: true }),
+      queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true }),
+      record.userEmail?.S ? queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: record.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true }) : Promise.resolve([])
+    ]);
+    const deleteRecord = () => db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: recordId } } }));
+    cleanupTasks.push(
+      ...reactions.map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
+      ...comments.map(item => () => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
+      ...notices.filter(item => item.postId?.S === recordId).map(item => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } })))
+    );
+    if (!isShare && recordId === postId) sourceDeleteTask = deleteRecord;
+    else cleanupTasks.push(deleteRecord);
+  }
+  cleanupTasks.push(...linkedStories.map(item => () => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } }))));
   const cleanupPending = await runCleanup(cleanupTasks);
-  if (cleanupPending) console.error("Post deletion cleanup remains pending", { postId, cleanupPending });
-  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true, cleanupPending }) };
+  if (cleanupPending) {
+    console.error("Post deletion cleanup remains pending", { postId, cleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The post is still being removed. Try again.", deleted: false, cleanupPending }) };
+  }
+  const sourceCleanupPending = sourceDeleteTask ? await runCleanup([sourceDeleteTask]) : 0;
+  if (sourceCleanupPending) {
+    console.error("Post source deletion remains pending", { postId, sourceCleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The post is still being removed. Try again.", deleted: false, cleanupPending: sourceCleanupPending }) };
+  }
+  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true, deletedEverywhere: mode === "delete_everywhere" && !isShare, removedShares: mode === "delete_everywhere" && !isShare ? shares.length : 0, cleanupPending: 0 }) };
 }
 
 async function resolveMediaTags(ids, ownerId, previous, declined) {
@@ -3400,9 +3484,48 @@ const bookingWorkspaceId = "booking-workspace-v1";
 const epkWorkspaceId = "epk-workspace-v1";
 const epkPublicPartition = "epk-public";
 const epkSharePartition = "epk-private-share";
+const epkOutreachPartition = "epk-outreach-share";
+const epkOutreachPrefix = "EPK#OUTREACH#";
 
 const epkMediaRoles = new Set(["press-photo", "logo", "artwork", "press-clipping", "biography", "technical-rider", "hospitality-rider", "stage-plot", "other"]);
 const epkMediaPattern = ownerPrefix => new RegExp(`^epk/${ownerPrefix}/[a-f0-9-]{36}\\.(jpg|png|webp|pdf)$`);
+
+const reviewTargetTypes = new Set(["show", "release"]);
+const reviewIdPattern = /^[a-f0-9]{32}$/;
+
+function reviewTargetId(targetType, artistUserId, naturalKey) {
+  if (!reviewTargetTypes.has(targetType) || !artistUserId || !naturalKey) return "";
+  return sha256(`review-target:${targetType}:${artistUserId}:${String(naturalKey).trim().toLowerCase()}`).slice(0, 32);
+}
+
+function cleanReviewDraft(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  if ((Array.isArray(data.media) && data.media.length) || data.video || data.images) return null;
+  const targetType = String(data.targetType || "").trim().toLowerCase();
+  const targetId = String(data.targetId || "").trim().toLowerCase();
+  const artistPublicId = String(data.artistPublicId || "").trim().toLowerCase();
+  const body = typeof data.body === "string" ? data.body.trim() : "";
+  if (!reviewTargetTypes.has(targetType) || !reviewIdPattern.test(targetId) || !/^[a-z0-9-]{3,64}$/.test(artistPublicId)) return null;
+  if (body.length < 10 || body.length > 5000 || Buffer.byteLength(body, "utf8") > 12000) return null;
+  return { targetType, targetId, artistPublicId, body };
+}
+
+function reviewEntityToView(item) {
+  if (!item?.reviewId?.S || !item?.authorUserId?.S || !item?.targetId?.S) return null;
+  return {
+    reviewId: item.reviewId.S,
+    authorUserId: item.authorUserId.S,
+    artistUserId: item.artistUserId?.S || "",
+    artistPublicId: item.artistPublicId?.S || "",
+    targetType: item.targetType?.S || "",
+    targetId: item.targetId.S,
+    targetTitle: item.targetTitle?.S || "",
+    targetDetail: item.targetDetail?.S || "",
+    body: item.body?.S || "",
+    createdAt: item.createdAt?.S || "",
+    updatedAt: item.updatedAt?.S || ""
+  };
+}
 
 function cleanEpk(data, ownerPrefix = "") {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
@@ -3428,15 +3551,28 @@ function cleanEpk(data, ownerPrefix = "") {
     return { id: text(item.id, 36) || key.split("/").at(-1).split(".")[0], key, role, name, public: item.public === true, featured: item.featured === true };
   });
   if (media.length !== rawMedia.length) return null;
+  const look = new Set(["techno", "punk", "metal", "house"]).has(data.look) ? data.look : "techno";
+  const actType = new Set(["band", "dj", "electronic", "solo"]).has(data.actType) ? data.actType : "band";
+  const plotKinds = new Set(["vocal-mic", "instrument-mic", "di", "monitor", "amplifier", "drum-kit", "keyboard", "dj-mixer", "playback", "power", "other"]), plotPositions = new Set(["rear-left", "rear-center", "rear-right", "front-left", "front-center", "front-right"]), inputConnections = new Set(["mic", "di", "stereo-di", "line", "power"]), inputStands = new Set(["none", "straight", "boom", "short"]);
+  const plotItems = list(data.production?.plotItems, 24, item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const label = text(item.label, 100), kind = plotKinds.has(item.kind) ? item.kind : "", position = plotPositions.has(item.position) ? item.position : "";
+    return label && kind && position ? { id:text(item.id,64), kind, label, position } : null;
+  });
+  const inputs = list(data.production?.inputs, 48, item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const source = text(item.source, 100), connection = inputConnections.has(item.connection) ? item.connection : "", stand = inputStands.has(item.stand) ? item.stand : "";
+    return source && connection && stand ? { id:text(item.id,64), source, connection, stand, phantom:item.phantom === true, notes:text(item.notes,240) } : null;
+  });
   const kit = {
-    artistName: text(data.artistName, 120), hometown: text(data.hometown, 160),
+    artistName: text(data.artistName, 120), hometown: text(data.hometown, 160), actType, look,
     genres: list(data.genres, 8, item => text(item, 60)), shortPitch: text(data.shortPitch, 300),
     shortBio: text(data.shortBio, 1000), bio: text(data.bio, 5000), lineup: list(data.lineup, 16, item => text(item, 160)),
     releases: list(data.releases, 20, item => text(item, 300)), achievements: list(data.achievements, 20, item => text(item, 300)),
     notableShows: list(data.notableShows, 20, item => text(item, 240)), pressQuotes: quotes,
     musicLinks: links(data.musicLinks), videoLinks: links(data.videoLinks), socialLinks: links(data.socialLinks),
     heroImage: https(data.heroImage), logoImage: https(data.logoImage), media,
-    stageRequirements: text(data.stageRequirements, 3000), techRequirements: text(data.techRequirements, 5000), hospitalityRequirements: text(data.hospitalityRequirements, 3000),
+    stageRequirements: text(data.stageRequirements, 3000), production: { plotItems, inputs }, techRequirements: text(data.techRequirements, 5000), hospitalityRequirements: text(data.hospitalityRequirements, 3000),
     bookingName: text(data.bookingName, 120), bookingEmail: email(data.bookingEmail),
     bookingPhone: text(data.bookingPhone, 40), website: https(data.website),
     publicDetails: {
@@ -3466,25 +3602,54 @@ async function validatedEpkMedia(media) {
   return media;
 }
 
-function epkForViewer(kit, publicView = false, ownerView = true) {
+function epkForViewer(kit, publicView = false, ownerView = true, allowDownloads = true) {
   const copy = structuredClone(kit || {});
   copy.media = (copy.media || []).filter(item => !publicView || item.public).map(item => {
     const expires = publicView ? 3600 : 900, downloadName = epkDownloadName(item.name, item.key);
-    return {
+    const view = {
       ...item,
-      url: signedMediaUrl(item.key, expires),
-      downloadUrl: signedMediaUrl(item.key, expires, { "response-content-disposition": `attachment; filename="${downloadName}"` })
+      url: signedMediaUrl(item.key, expires)
     };
+    if (allowDownloads) view.downloadUrl = signedMediaUrl(item.key, expires, { "response-content-disposition": `attachment; filename="${downloadName}"` });
+    return view;
   });
   if (publicView && copy.publicDetails && typeof copy.publicDetails === "object") {
     if (copy.publicDetails.bookingEmail !== true) copy.bookingEmail = "";
     if (copy.publicDetails.bookingPhone !== true) copy.bookingPhone = "";
-    if (copy.publicDetails.technical !== true) copy.techRequirements = "";
+    if (copy.publicDetails.technical !== true) { copy.techRequirements = ""; copy.production = { plotItems:[], inputs:[] }; }
     if (copy.publicDetails.hospitality !== true) copy.hospitalityRequirements = "";
     delete copy.publicDetails;
   }
   if (!ownerView) delete copy.publicDetails;
   return copy;
+}
+
+function epkOutreachTokenMatches(token, storedHash) {
+  return /^[a-f0-9]{64}$/.test(token || "")
+    && /^[a-f0-9]{64}$/.test(storedHash || "")
+    && safeEqual(sha256(`epk-outreach:${token}`), storedHash);
+}
+
+function epkOutreachLinkParts(value) {
+  try {
+    const url = new URL(String(value || ""));
+    const shareId = url.searchParams.get("outreach") || "", token = new URLSearchParams(url.hash.slice(1)).get("token") || "";
+    if (url.origin !== "https://danzstak.com" || url.pathname !== "/epk.html" || !/^[a-f0-9]{32}$/.test(shareId) || !/^[a-f0-9]{64}$/.test(token)) return null;
+    return { shareId, token, href: url.href };
+  } catch { return null; }
+}
+
+async function validateBookingOutreachEpkLink({ userId, venueKey, outreachId, message }) {
+  const match = String(message || "").match(/https:\/\/danzstak\.com\/epk\.html\?outreach=[a-f0-9]{32}#token=[a-f0-9]{64}/i);
+  const parts = epkOutreachLinkParts(match?.[0] || "");
+  if (!parts) return false;
+  const result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: parts.shareId } }, ConsistentRead: true }));
+  const item = result.Item;
+  return item?.ownerId?.S === userId
+    && item?.venueKey?.S === venueKey
+    && item?.outreachId?.S === outreachId
+    && Number(item?.expiresAt?.N || 0) > now()
+    && epkOutreachTokenMatches(parts.token, item?.shareHash?.S || "");
 }
 
 function epkDeletionPlan(existingItem, ownerPrefix, ownerKey) {
@@ -3496,6 +3661,19 @@ function epkDeletionPlan(existingItem, ownerPrefix, ownerKey) {
   try { previousKit = JSON.parse(existingItem?.plan?.S || "{}"); } catch { previousKit = {}; }
   const mediaKeys = (previousKit.media || []).map(item => item?.key || "").filter(key => epkMediaPattern(ownerPrefix).test(key));
   return { transaction, mediaKeys };
+}
+
+async function deleteEpkOutreachShares(userId) {
+  const mappings = await queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: userId }, ":prefix": { S: epkOutreachPrefix } }, ConsistentRead: true }, 500);
+  for (let offset = 0; offset < mappings.length; offset += 50) {
+    const batch = mappings.slice(offset, offset + 50), transaction = [];
+    for (const item of batch) {
+      transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: item.tourId.S } } } });
+      if (/^[a-f0-9]{32}$/.test(item.shareId?.S || "")) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: item.shareId.S } } } });
+    }
+    if (transaction.length) await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
+  }
+  return mappings.length;
 }
 
 function epkShareTokenMatches(token, storedHash) {
@@ -3524,6 +3702,7 @@ async function epkWorkspace(event, method) {
       console.error("EPK media deletion remains pending", { userId, cleanupPending });
       return reply(503, { error: "EPK files could not be removed yet. Try again.", deleted: false });
     }
+    await deleteEpkOutreachShares(userId);
     await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
     return reply(200, { deleted: true, cleanupPending: false });
   }
@@ -3606,6 +3785,270 @@ async function privateEpkShare(event, method, publicId = "") {
   ] }));
   return reply(200, { privateShared: true, publicId: id, token });
 }
+
+async function outreachEpkShare(event, method, shareId = "") {
+  const headers = { ...corsHeaders(event.headers?.origin), "cache-control": "no-store, private", pragma: "no-cache" };
+  const reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(404, { error: "EPK not found." });
+  if (shareId) {
+    const data = parseJsonBody(event), token = String(data?.token || ""), openId = String(data?.openId || "");
+    if (!/^[a-f0-9]{32}$/.test(shareId) || !/^[a-f0-9]{64}$/.test(token) || !/^[a-f0-9-]{16,100}$/i.test(openId)) return reply(404, { error: "This booking EPK link is invalid or has expired." });
+    let result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: shareId } }, ConsistentRead: true }));
+    let item = result.Item;
+    if (!item || Number(item.expiresAt?.N || 0) <= now() || !epkOutreachTokenMatches(token, item.shareHash?.S || "")) return reply(404, { error: "This booking EPK link is invalid or has expired." });
+    const openedAt = new Date().toISOString(), openHash = sha256(`epk-open:${shareId}:${openId}`), ownerId = item.ownerId?.S || "", outreachId = item.outreachId?.S || "";
+    if (!ownerId || !/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId)) return reply(404, { error: "This booking EPK link is invalid or has expired." });
+    const values = { ":zero": { N: "0" }, ":one": { N: "1" }, ":opened": { S: openedAt }, ":hash": { S: openHash } };
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Update: { TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: shareId } }, UpdateExpression: "SET openCount = if_not_exists(openCount, :zero) + :one, firstOpenedAt = if_not_exists(firstOpenedAt, :opened), lastOpenedAt = :opened, lastOpenHash = :hash", ConditionExpression: "attribute_not_exists(lastOpenHash) OR lastOpenHash <> :hash", ExpressionAttributeValues: values } },
+        { Update: { TableName: toursTable, Key: { userId: { S: ownerId }, tourId: { S: `${epkOutreachPrefix}${outreachId}` } }, UpdateExpression: "SET openCount = if_not_exists(openCount, :zero) + :one, firstOpenedAt = if_not_exists(firstOpenedAt, :opened), lastOpenedAt = :opened", ConditionExpression: "shareId = :shareId", ExpressionAttributeValues: { ":zero": values[":zero"], ":one": values[":one"], ":opened": values[":opened"], ":shareId": { S: shareId } } } }
+      ] }));
+    } catch (error) {
+      if (error.name !== "TransactionCanceledException" && error.name !== "ConditionalCheckFailedException") throw error;
+    }
+    result = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: shareId } }, ConsistentRead: true }));
+    item = result.Item;
+    if (!item || Number(item.expiresAt?.N || 0) <= now() || !epkOutreachTokenMatches(token, item.shareHash?.S || "")) return reply(404, { error: "This booking EPK link is invalid or has expired." });
+    return reply(200, {
+      kit: epkForViewer(JSON.parse(item.plan?.S || "{}"), true, false, item.allowPdf?.BOOL === true),
+      private: true,
+      bookingShare: true,
+      permissions: { allowPdf: item.allowPdf?.BOOL === true },
+      disclosure: "The artist can see that this venue link was opened and when. DanzStak does not store who viewed it.",
+      expiresAt: new Date(Number(item.expiresAt.N) * 1000).toISOString(),
+      updatedAt: item.epkUpdatedAt?.S || ""
+    });
+  }
+
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  if (method === "GET") {
+    const items = await queryAll({ TableName: toursTable, KeyConditionExpression: "userId = :user AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":user": { S: userId }, ":prefix": { S: epkOutreachPrefix } }, ConsistentRead: true }, 500);
+    return reply(200, { shares: items.map(item => ({ outreachId: String(item.outreachId?.S || item.tourId?.S?.slice(epkOutreachPrefix.length) || ""), venueKey: item.venueKey?.S || "", venueName: item.venueName?.S || "Venue", shareId: item.shareId?.S || "", openCount: Number(item.openCount?.N || 0), firstOpenedAt: item.firstOpenedAt?.S || "", lastOpenedAt: item.lastOpenedAt?.S || "", expiresAt: item.expiresAt?.N ? new Date(Number(item.expiresAt.N) * 1000).toISOString() : "", revoked: item.revoked?.BOOL === true })) });
+  }
+  const data = parseJsonBody(event), action = String(data?.action || "create"), venueKey = String(data?.venueKey || "").trim(), outreachId = String(data?.outreachId || "").trim();
+  if (!/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId) || !venueKey || venueKey.length > 240) return reply(400, { error: "Choose a saved venue and a valid outreach draft." });
+  const ownerKey = { userId: { S: userId }, tourId: { S: epkWorkspaceId } }, mapKey = { userId: { S: userId }, tourId: { S: `${epkOutreachPrefix}${outreachId}` } };
+  const [epkResult, workspaceResult, priorResult] = await Promise.all([
+    db.send(new GetItemCommand({ TableName: toursTable, Key: ownerKey, ConsistentRead: true })),
+    db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: bookingWorkspaceId } }, ConsistentRead: true })),
+    db.send(new GetItemCommand({ TableName: toursTable, Key: mapKey, ConsistentRead: true }))
+  ]);
+  if (!epkResult.Item || epkResult.Item.published?.BOOL !== true) return reply(409, { error: "Publish the EPK before creating a venue link." });
+  let workspace = {}; try { workspace = JSON.parse(workspaceResult.Item?.plan?.S || "{}"); } catch { workspace = {}; }
+  const venue = (workspace.venues || []).find(item => item?.venueKey === venueKey);
+  if (!venue) return reply(404, { error: "Save this venue in the booking workspace first." });
+  const oldShareId = priorResult.Item?.shareId?.S || "";
+  if (action === "revoke") {
+    if (!/^[a-f0-9]{32}$/.test(oldShareId)) return reply(200, { revoked: false });
+    await db.send(new TransactWriteItemsCommand({ TransactItems: [
+      { Delete: { TableName: toursTable, Key: mapKey } },
+      { Delete: { TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: oldShareId } } } }
+    ] }));
+    return reply(200, { revoked: true });
+  }
+  if (action !== "create") return reply(400, { error: "Choose create or revoke." });
+  const token = randomValue(), newShareId = randomBytes(16).toString("hex"), shareHash = sha256(`epk-outreach:${token}`), createdAt = new Date().toISOString(), expiresAt = now() + 45 * 86400, allowPdf = data?.allowPdf === true;
+  const publicItem = { userId: { S: epkOutreachPartition }, tourId: { S: newShareId }, ownerId: { S: userId }, outreachId: { S: outreachId }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, plan: { S: epkResult.Item.plan?.S || "{}" }, shareHash: { S: shareHash }, epkUpdatedAt: { S: epkResult.Item.updatedAt?.S || createdAt }, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } };
+  const ownerItem = { ...mapKey, outreachId: { S: outreachId }, shareId: { S: newShareId }, venueKey: { S: venueKey }, venueName: publicItem.venueName, allowPdf: { BOOL: allowPdf }, openCount: { N: "0" }, createdAt: { S: createdAt }, expiresAt: { N: String(expiresAt) } };
+  const transaction = [
+    { Put: { TableName: toursTable, Item: publicItem } },
+    { Put: { TableName: toursTable, Item: ownerItem } }
+  ];
+  if (/^[a-f0-9]{32}$/.test(oldShareId) && oldShareId !== newShareId) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkOutreachPartition }, tourId: { S: oldShareId } } } });
+  await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
+  return reply(200, { outreachId, venueKey, shareId: newShareId, shareUrl: `https://danzstak.com/epk.html?outreach=${newShareId}#token=${token}`, expiresAt: new Date(expiresAt * 1000).toISOString(), permissions: { allowPdf } });
+}
+
+function reviewTargetsFromPublishedEpk(item) {
+  if (!item?.ownerId?.S || !item?.plan?.S) return [];
+  let kit;
+  try { kit = JSON.parse(item.plan.S); } catch { return []; }
+  const artistUserId = item.ownerId.S, artistName = String(kit.artistName || "Artist").trim().slice(0, 120);
+  const makeTargets = (targetType, values) => {
+    const seen = new Set();
+    return (Array.isArray(values) ? values : []).slice(0, 20).map(value => {
+      const label = typeof value === "string" ? value.trim().slice(0, 300) : "";
+      const normalized = label.toLowerCase();
+      if (!label || seen.has(normalized)) return null;
+      seen.add(normalized);
+      const targetId = reviewTargetId(targetType, artistUserId, label);
+      return targetId ? { targetType, targetId, artistUserId, artistName, title: label, detail: targetType === "show" ? "Show" : "Release" } : null;
+    }).filter(Boolean);
+  };
+  return [
+    ...makeTargets("show", kit.notableShows),
+    ...makeTargets("release", kit.releases)
+  ];
+}
+
+async function publishedReviewTargets(publicId) {
+  if (!/^[a-z0-9-]{3,64}$/.test(publicId)) return [];
+  const result = await db.send(new GetItemCommand({
+    TableName: toursTable,
+    Key: { userId: { S: epkPublicPartition }, tourId: { S: publicId } },
+    ConsistentRead: true
+  }));
+  return reviewTargetsFromPublishedEpk(result.Item);
+}
+
+async function reviewableTargets(event) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  const publicId = String(event.queryStringParameters?.artist || "").trim().toLowerCase();
+  const targets = await publishedReviewTargets(publicId);
+  if (!targets.length) return reply(404, { error: "This artist has no published shows or releases available for review." });
+  if (userId) {
+    const viewerEmail = await accountForSub(userId), artistEmail = await accountForSub(targets[0].artistUserId);
+    if (!viewerEmail || !artistEmail || await isBlockedPair(viewerEmail, artistEmail)) return reply(404, { error: "Review targets are not available." });
+  }
+  return reply(200, { artistPublicId: publicId, artistName: targets[0].artistName, canReview: Boolean(userId && userId !== targets[0].artistUserId), targets: targets.map(({ artistUserId: _artistUserId, ...target }) => target) });
+}
+
+function reviewRecordKeys(review) {
+  const suffix = `${review.createdAt}#${review.reviewId}`;
+  return [
+    { pk: { S: `REVIEW#${review.reviewId}` }, sk: { S: "META" } },
+    { pk: { S: `UNIQUE#${review.authorUserId}#${review.targetType}#${review.targetId}` }, sk: { S: "LOCK" } },
+    { pk: { S: "REVIEWS" }, sk: { S: suffix } },
+    { pk: { S: `TARGET#${review.targetType}#${review.targetId}` }, sk: { S: suffix } },
+    { pk: { S: `ARTIST#${review.artistUserId}` }, sk: { S: suffix } },
+    { pk: { S: `AUTHOR#${review.authorUserId}` }, sk: { S: suffix } }
+  ];
+}
+
+async function reviewItemsByKeys(keys) {
+  const ordered = [], lookup = new Map();
+  for (let offset = 0; offset < keys.length; offset += 100) {
+    let pending = keys.slice(offset, offset + 100).map(reviewId => ({ pk: { S: `REVIEW#${reviewId}` }, sk: { S: "META" } }));
+    for (let attempt = 0; pending.length && attempt < 4; attempt += 1) {
+      const result = await db.send(new BatchGetItemCommand({ RequestItems: { [reviewsTable]: { Keys: pending, ConsistentRead: true } } }));
+      for (const item of result.Responses?.[reviewsTable] || []) lookup.set(item.reviewId?.S || "", item);
+      pending = result.UnprocessedKeys?.[reviewsTable]?.Keys || [];
+    }
+  }
+  for (const id of keys) if (lookup.has(id)) ordered.push(lookup.get(id));
+  return ordered;
+}
+
+async function visibleReviewViews(items, viewerId, surface = "") {
+  const viewerEmail = viewerId ? await accountForSub(viewerId) : "";
+  if (viewerId && !viewerEmail) return [];
+  const views = [], emailByUser = new Map(viewerId ? [[viewerId, viewerEmail]] : []), targetsByArtist = new Map();
+  const emailFor = async userId => {
+    if (!emailByUser.has(userId)) emailByUser.set(userId, await accountForSub(userId));
+    return emailByUser.get(userId);
+  };
+  for (const item of items) {
+    if (surface && item.hiddenPlacements?.SS?.includes(surface)) continue;
+    const view = reviewEntityToView(item);
+    if (!view) continue;
+    if (!targetsByArtist.has(view.artistPublicId)) targetsByArtist.set(view.artistPublicId, await publishedReviewTargets(view.artistPublicId));
+    if (!targetsByArtist.get(view.artistPublicId).some(target => target.targetType === view.targetType && target.targetId === view.targetId)) continue;
+    const authorEmail = await emailFor(view.authorUserId), artistEmail = await emailFor(view.artistUserId);
+    if (!authorEmail || !artistEmail) continue;
+    if (viewerEmail && (await isBlockedPair(viewerEmail, authorEmail) || await isBlockedPair(viewerEmail, artistEmail))) continue;
+    const profile = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: authorEmail } }, ProjectionExpression: "profileName, profileAvatarKey", ConsistentRead: true }));
+    views.push({ ...view, authorName: String(profile.Item?.profileName?.S || "DanzStak member").slice(0, 80), authorAvatar: profile.Item?.profileAvatarKey?.S ? signedMediaUrl(profile.Item.profileAvatarKey.S, 3600) : "", ownedByViewer: view.authorUserId === viewerId });
+  }
+  return views;
+}
+
+async function listReviews(event) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  const targetType = String(event.queryStringParameters?.targetType || "").trim().toLowerCase();
+  const targetId = String(event.queryStringParameters?.targetId || "").trim().toLowerCase();
+  const artistPublicId = String(event.queryStringParameters?.artist || "").trim().toLowerCase();
+  const surface = new Set(["epk", "news", "mix", "target"]).has(String(event.queryStringParameters?.surface || "").trim().toLowerCase()) ? String(event.queryStringParameters.surface).trim().toLowerCase() : "";
+  let partition = "REVIEWS";
+  if (targetType || targetId) {
+    if (!reviewTargetTypes.has(targetType) || !reviewIdPattern.test(targetId)) return reply(400, { error: "Choose a valid show or release." });
+    partition = `TARGET#${targetType}#${targetId}`;
+  } else if (artistPublicId) {
+    const targets = await publishedReviewTargets(artistPublicId);
+    if (!targets.length) return reply(404, { error: "Artist not found." });
+    partition = `ARTIST#${targets[0].artistUserId}`;
+  }
+  const result = await db.send(new QueryCommand({ TableName: reviewsTable, KeyConditionExpression: "pk = :pk", ExpressionAttributeValues: { ":pk": { S: partition } }, ProjectionExpression: "reviewId", ScanIndexForward: false, Limit: 50, ConsistentRead: true }));
+  const reviewIds = (result.Items || []).map(item => item.reviewId?.S || "").filter(reviewId => reviewIdPattern.test(reviewId));
+  return reply(200, { reviews: await visibleReviewViews(await reviewItemsByKeys(reviewIds), userId, surface) });
+}
+
+async function createReview(event) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const authorUserId = await getAuthenticatedUser(event);
+  if (!authorUserId) return reply(401, { error: "Authentication required." });
+  const draft = cleanReviewDraft(parseJsonBody(event));
+  if (!draft) return reply(400, { error: "Choose a published show or release and write a review between 10 and 5,000 characters. Review media is not available yet." });
+  const targets = await publishedReviewTargets(draft.artistPublicId), target = targets.find(item => item.targetType === draft.targetType && item.targetId === draft.targetId);
+  if (!target) return reply(404, { error: "That show or release is no longer available for review." });
+  if (target.artistUserId === authorUserId) return reply(403, { error: "Artists cannot review their own show or release." });
+  const [authorEmail, artistEmail] = await Promise.all([accountForSub(authorUserId), accountForSub(target.artistUserId)]);
+  if (!authorEmail || !artistEmail) return reply(409, { error: "The member accounts could not be verified." });
+  if (await isBlockedPair(authorEmail, artistEmail)) return reply(403, { error: "You cannot review this artist." });
+  const reviewId = sha256(`review:${authorUserId}:${target.targetType}:${target.targetId}`).slice(0, 32), createdAt = new Date().toISOString();
+  const review = { reviewId, authorUserId, artistUserId: target.artistUserId, artistPublicId: draft.artistPublicId, targetType: target.targetType, targetId: target.targetId, targetTitle: target.title, targetDetail: target.detail, body: draft.body, createdAt, updatedAt: createdAt };
+  const [entityKey, uniqueKey, ...indexKeys] = reviewRecordKeys(review);
+  const entity = { ...entityKey, entityType: { S: "review" }, reviewId: { S: reviewId }, authorUserId: { S: authorUserId }, artistUserId: { S: target.artistUserId }, artistPublicId: { S: draft.artistPublicId }, targetType: { S: target.targetType }, targetId: { S: target.targetId }, targetTitle: { S: target.title }, targetDetail: { S: target.detail }, body: { S: draft.body }, createdAt: { S: createdAt }, updatedAt: { S: createdAt } };
+  const indexItem = key => ({ ...key, entityType: { S: "review-index" }, reviewId: { S: reviewId }, createdAt: { S: createdAt } });
+  try {
+    await db.send(new TransactWriteItemsCommand({ TransactItems: [
+      { Put: { TableName: reviewsTable, Item: entity, ConditionExpression: "attribute_not_exists(pk)" } },
+      { Put: { TableName: reviewsTable, Item: { ...uniqueKey, entityType: { S: "review-unique" }, reviewId: { S: reviewId } }, ConditionExpression: "attribute_not_exists(pk)" } },
+      ...indexKeys.map(key => ({ Put: { TableName: reviewsTable, Item: indexItem(key), ConditionExpression: "attribute_not_exists(pk)" } }))
+    ] }));
+  } catch (error) {
+    if (error.name === "TransactionCanceledException" || error.name === "ConditionalCheckFailedException") return reply(409, { error: "You already reviewed this show or release. Edit your existing review instead." });
+    throw error;
+  }
+  return reply(201, { review: { ...review, authorName: "You", authorAvatar: "", ownedByViewer: true } });
+}
+
+async function updateReview(event, reviewId) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const data = parseJsonBody(event), body = data?.body;
+  if (data?.action === "remove_from_here") {
+    const surface = String(data.surface || "").trim().toLowerCase();
+    if (!new Set(["epk", "news", "mix", "target"]).has(surface)) return reply(400, { error: "Choose where to remove this review." });
+    try {
+      await db.send(new UpdateItemCommand({ TableName: reviewsTable, Key: { pk: { S: `REVIEW#${reviewId}` }, sk: { S: "META" } }, UpdateExpression: "SET updatedAt = :updated ADD hiddenPlacements :surface", ConditionExpression: "authorUserId = :author", ExpressionAttributeValues: { ":surface": { SS: [surface] }, ":updated": { S: new Date().toISOString() }, ":author": { S: userId } } }));
+      return reply(200, { removedFrom: surface, reviewId });
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") return reply(404, { error: "Review not found." });
+      throw error;
+    }
+  }
+  if (typeof body !== "string" || body.trim().length < 10 || body.trim().length > 5000 || Buffer.byteLength(body.trim(), "utf8") > 12000) return reply(400, { error: "Write a review between 10 and 5,000 characters." });
+  try {
+    const result = await db.send(new UpdateItemCommand({ TableName: reviewsTable, Key: { pk: { S: `REVIEW#${reviewId}` }, sk: { S: "META" } }, UpdateExpression: "SET body = :body, updatedAt = :updated", ConditionExpression: "authorUserId = :author", ExpressionAttributeValues: { ":body": { S: body.trim() }, ":updated": { S: new Date().toISOString() }, ":author": { S: userId } }, ReturnValues: "ALL_NEW" }));
+    return reply(200, { review: { ...reviewEntityToView(result.Attributes), ownedByViewer: true } });
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return reply(404, { error: "Review not found." });
+    throw error;
+  }
+}
+
+async function deleteReview(event, reviewId) {
+  const headers = corsHeaders(event.headers?.origin), reply = (statusCode, data) => ({ statusCode, headers, body: JSON.stringify(data) });
+  if (!allowedOrigins.has(event.headers?.origin)) return reply(403, { error: "Forbidden origin" });
+  const userId = await getAuthenticatedUser(event);
+  if (!userId) return reply(401, { error: "Authentication required." });
+  const result = await db.send(new GetItemCommand({ TableName: reviewsTable, Key: { pk: { S: `REVIEW#${reviewId}` }, sk: { S: "META" } }, ConsistentRead: true }));
+  const review = reviewEntityToView(result.Item);
+  if (!review || review.authorUserId !== userId) return reply(404, { error: "Review not found." });
+  const keys = reviewRecordKeys(review);
+  await db.send(new TransactWriteItemsCommand({ TransactItems: keys.map(key => ({ Delete: { TableName: reviewsTable, Key: key } })) }));
+  return reply(200, { deleted: true, reviewId });
+}
+
 const bookingPipelineStatuses = new Set(["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined", "No response"]);
 const legacyBookingStatuses = new Map([["Research", "Not contacted"], ["Ready to pitch", "Email prepared"], ["Contacted", "Email sent"], ["In conversation", "Reply received"], ["Hold", "Interested"]]);
 
@@ -3682,7 +4125,7 @@ async function bookingWorkspace(event, method) {
     const status = bookingPipelineStatuses.has(requestedStatus) ? requestedStatus : "Not contacted";
     const showDate = date(b.showDate), confirmationEvidence = text(b.confirmationEvidence, 3000);
     if (status === "Confirmed" && (!showDate || !confirmationEvidence)) invalidConfirmation = true;
-    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), outreachDraft: text(b.outreachDraft, 5000) } };
+    return { name: text(v.name, 160), address: text(v.address), venueKey: text(v.venueKey), categories: list(v.categories, x => text(x, 80)), websites: list(v.websites, https), emails: list(v.emails, x => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x) ? text(x, 254) : ""), phones: list(v.phones, x => text(x, 30)), sourceUrl: https(v.sourceUrl), sourceName: text(v.sourceName), sources, activityEvidence: text(v.activityEvidence, 1000), discoveredAt: timestamp(v.discoveredAt), imageUrl: https(v.imageUrl), ...(Array.isArray(v.position) && v.position.length === 2 && v.position.every(Number.isFinite) && Math.abs(v.position[0]) <= 180 && Math.abs(v.position[1]) <= 90 ? { position: v.position } : {}), booking: { status, showDate, dateEnd: date(b.dateEnd), followUp: date(b.followUp), performanceFee: Math.max(0, Math.min(10000000, Number(b.performanceFee) || 0)), feeCurrency: /^[A-Z]{3}$/.test(String(b.feeCurrency || "").toUpperCase()) ? String(b.feeCurrency).toUpperCase() : "USD", deal: text(b.deal, 2000), replySummary: text(b.replySummary, 3000), confirmationEvidence, notes: text(b.notes, 2000), pitchTemplate: ["band", "dj", "festival"].includes(String(b.pitchTemplate)) ? String(b.pitchTemplate) : "band", expectedDraw: Math.max(0, Math.min(100000, Number(b.expectedDraw) || 0)), setDetails: text(b.setDetails, 300), allowEpkPdfDownload: b.allowEpkPdfDownload === true, outreachSubject: text(b.outreachSubject, 180), outreachDraft: text(b.outreachDraft, 5000) } };
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
   if (invalidConfirmation) return reply(400, { error: "A confirmed performance requires a show date and written confirmation evidence." });
@@ -3866,6 +4309,9 @@ export const handler = async event => {
   const path = event?.rawPath;
 
   try {
+    if (Array.isArray(event?.Records) && event.Records.some(record => record?.EventSource === "aws:sns")) {
+      return await tourManagerBilling(event);
+    }
     if (path?.startsWith("/tour-manager/") || path?.startsWith("/phone-number/")) {
       if (method === "POST" && ["/tour-manager/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);
@@ -4000,11 +4446,21 @@ export const handler = async event => {
     if ((method === "GET" || method === "POST") && path === "/booking-pipeline") return await bookingWorkspace(event, method);
     if (method === "PATCH" && path === "/booking-pipeline/identity") return await bookingIdentity(event);
     if ((method === "GET" || method === "POST" || method === "DELETE") && path === "/epk") return await epkWorkspace(event, method);
+    if (method === "POST" && path === "/epk/qr") return await epkQr(event);
     if (method === "POST" && path === "/epk/share") return await privateEpkShare(event, method);
+    if ((method === "GET" || method === "POST") && path === "/epk/outreach-share") return await outreachEpkShare(event, method);
+    const epkOutreachMatch = path.match(/^\/epk\/outreach\/([a-f0-9]{32})$/i);
+    if (method === "POST" && epkOutreachMatch) return await outreachEpkShare(event, method, epkOutreachMatch[1].toLowerCase());
     const epkPublicMatch = path.match(/^\/epk\/public\/([a-z0-9-]{3,64})$/i);
     if (method === "GET" && epkPublicMatch) return await publicEpk(event, epkPublicMatch[1]);
     const epkPrivateMatch = path.match(/^\/epk\/shared\/([a-z0-9-]{3,64})$/i);
     if (method === "POST" && epkPrivateMatch) return await privateEpkShare(event, method, epkPrivateMatch[1]);
+    if (method === "GET" && path === "/review-targets") return await reviewableTargets(event);
+    if (method === "GET" && path === "/reviews") return await listReviews(event);
+    if (method === "POST" && path === "/reviews") return await createReview(event);
+    const reviewMatch = path.match(/^\/reviews\/([a-f0-9]{32})$/i);
+    if (method === "PATCH" && reviewMatch) return await updateReview(event, reviewMatch[1].toLowerCase());
+    if (method === "DELETE" && reviewMatch) return await deleteReview(event, reviewMatch[1].toLowerCase());
     if (method === "GET" && path === "/tours") return await listTourPlans(event);
     if (method === "POST" && path === "/tours") return await saveTourPlan(event);
     if (method === "DELETE" && path.startsWith("/tours/")) return await deleteTourPlan(event, decodeURIComponent(path.slice(7)));
@@ -4032,4 +4488,4 @@ export const handler = async event => {
 
 // Named exports keep provider and classifier integration tests on the same
 // implementation that Lambda runs. They do not expose an HTTP route.
-export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkDownloadName };
+export { geocodeTourPlace, multiSourceDiscovery, recordStoreCandidates, isRecordStore, isBookableClub, deduplicateVenues, cleanEpk, epkForViewer, epkDeletionPlan, epkShareTokenMatches, epkOutreachTokenMatches, epkOutreachLinkParts, epkDownloadName, validEpkQrUrl, reviewTargetId, cleanReviewDraft, reviewEntityToView, reviewTargetsFromPublishedEpk, reviewRecordKeys };

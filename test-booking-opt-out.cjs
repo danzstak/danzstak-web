@@ -1,0 +1,31 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+
+(async () => {
+  const html = fs.readFileSync("booking-opt-out.html", "utf8"), client = fs.readFileSync("assets/booking-opt-out.js", "utf8"), booking = fs.readFileSync("assets/booking-selections.js", "utf8"), server = fs.readFileSync("infrastructure/auth-api/tour-manager-billing.mjs", "utf8"), deploy = fs.readFileSync("aws-deploy-auth-api.ps1", "utf8"), worker = fs.readFileSync("service-worker.js", "utf8");
+  const { normalizedRecipientHash, suppressionKey, optOutTokenHash, optOutFooter } = await import("./infrastructure/auth-api/tour-manager-billing.mjs");
+  assert.match(html, /<meta name="robots" content="noindex,nofollow,noarchive">/);
+  assert.match(html, /connect-src 'self' https:\/\/api\.danzstak\.com/);
+  assert.match(html, /Stop future booking pitches/);
+  assert.match(client, /new URLSearchParams\(location\.hash\.slice\(1\)\)/, "The browser must read the private token from the fragment");
+  assert.match(client, /history\.replaceState\(null, "", `\$\{location\.pathname\}\$\{location\.search\}`\)/, "The fragment must be removed from visible history after reading");
+  assert.match(client, /credentials:"omit"/, "The recipient opt-out must not attach a DanzStak session");
+  assert.match(client, /method:"POST"/);
+  assert.doesNotMatch(html, /bookings@example|recipientHash|token=[a-f0-9]/i, "The static page must not expose recipient information or a token");
+  assert.match(booking, /tour-manager\/outreach\/preflight/);
+  assert.match(booking, /reviewedMessage = `\$\{currentMessage[\s\S]*\$\{preflight\.footer\}`/, "The exact review must include the server-issued footer");
+  assert.match(server, /DanzStak LLC, 2063 Main St\. #237, Oakley, CA 94561, USA/);
+  assert.match(server, /This contact opted out of DanzStak booking pitches and cannot be emailed/);
+  assert.match(server, /ConditionCheck: \{ TableName: tableName, Key: suppressionKey\(to\), ConditionExpression: "attribute_not_exists\(userId\)"/, "Suppression must be rechecked atomically with credit reservation");
+  assert.match(server, /POST" && path === "\/tour-manager\/outreach\/preflight/);
+  assert.match(server, /POST" && path === "\/tour-manager\/opt-out/);
+  assert.match(deploy, /POST \/tour-manager\/outreach\/preflight/);
+  assert.match(deploy, /POST \/tour-manager\/opt-out/);
+assert.match(worker, /danzstak-shell-v730/);
+  assert.match(worker, /booking-opt-out\.html/);
+  assert.equal(normalizedRecipientHash(" Venue@Example.com "), normalizedRecipientHash("venue@example.com"));
+  assert.doesNotMatch(suppressionKey("venue@example.com").tourId.S, /venue|example/i);
+  assert.equal(optOutTokenHash("a".repeat(64)).length, 64);
+  assert.match(optOutFooter("a".repeat(64)), /booking-opt-out\.html#token=a{64}/);
+  console.log("Booking opt-out checks passed: exact reviewed footer, fragment token privacy, global suppression, accountless confirmation, safe keys, routes, and PWA assets.");
+})().catch(error => { console.error(error); process.exit(1); });

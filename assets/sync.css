@@ -14,7 +14,7 @@
 .sync-wordmark{margin-inline:auto;color:var(--sync-ink);font-size:.88rem;letter-spacing:.14em}
 .sync-kicker{display:block;margin-bottom:1px;color:var(--sync-orange);font-size:.68rem;font-weight:850;letter-spacing:.12em;text-transform:uppercase}
 .chats-heading h1{margin:0;font-size:1.55rem;letter-spacing:-.03em}
-.sync-sections{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px!important;padding:4px!important;border:1px solid var(--sync-line);border-radius:12px;background:#edf1f6}
+.sync-sections{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px!important;padding:4px!important;border:1px solid var(--sync-line);border-radius:12px;background:#edf1f6}
 .sync-sections button{min-width:0!important;min-height:44px!important;padding:7px 5px!important;border:0!important;border-radius:9px!important;background:transparent!important;color:var(--sync-muted)!important;font-size:.82rem!important;font-weight:800!important;box-shadow:none!important}
 .sync-sections button.active{background:var(--sync-surface)!important;color:var(--sync-blue)!important;box-shadow:0 1px 3px #10182818!important}
 .sync-section-note{min-height:18px;margin:8px 2px;color:var(--sync-muted);font-size:.76rem;line-height:1.35}
@@ -29,6 +29,12 @@ body[data-sync-screen="contacts"] .chat-contact-strip{display:none}
 body[data-sync-screen="calls"] .conversation-call-actions{display:flex}
 body[data-sync-screen="contacts"] .conversation-call-actions{display:none}
 .conversation-user,.conversation-call{border-radius:10px!important}
+.booking-message strong{display:block;margin-bottom:4px}.booking-message p{margin:0 0 5px}.booking-message time{display:block;color:var(--sync-muted);font-size:.7rem}.booking-date-offer{font-weight:800}
+.booking-use-date{min-height:44px;margin:5px 0 8px;border:1px solid #1769e0;border-radius:10px;background:#fff;color:#0c57bd;font-weight:800}
+.message-form[hidden]{display:none!important}
+.booking-reply-composer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:9px 10px calc(9px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--sync-line);background:#fff}.booking-reply-composer[hidden]{display:none!important}.booking-reply-composer textarea{min-height:48px;max-height:132px;resize:vertical;border:1px solid #cbd3df;border-radius:18px;padding:11px 13px;font:inherit}.booking-reply-composer .message-send{align-self:start;min-width:64px;min-height:48px;border-radius:18px!important}.booking-reply-status{grid-column:1/-1;margin:0;color:var(--sync-muted);font-size:.74rem;line-height:1.35}
+body[data-sync-screen="bookings"] .conversation-status,body[data-sync-screen="bookings"] #makePlans,body[data-sync-screen="bookings"] #headerPhone,body[data-sync-screen="bookings"] #headerVideo,body[data-sync-screen="bookings"] #conversationMore{display:none!important}
+body.is-booking-thread #callStatus,body.is-booking-thread .conversation-status,body.is-booking-thread #makePlans,body.is-booking-thread #headerPhone,body.is-booking-thread #headerVideo,body.is-booking-thread #conversationMore{display:none!important}
 .conversation-header-actions #headerPhone,
 .conversation-header-actions #headerVideo{width:44px;min-width:44px;height:44px;min-height:44px}
 .conversation-user:focus-visible,.conversation-call:focus-visible,.chat-heading-button:focus-visible,.new-chat-button:focus-visible{outline:3px solid #f3a449!important;outline-offset:1px}
@@ -95,9 +101,11 @@ body[data-call-mode] .media-controls button{width:56px;min-width:56px;height:56p
 body[data-call-mode] .media-controls .hangup-button{background:#df3347!important;border-color:#df3347!important}
 
 @media(max-width:760px){
-  .chat-header{height:56px!important;min-height:56px!important;padding:6px 10px!important}
-  .sync-wordmark{font-size:.78rem}
-  body:not(.is-conversation-open) .chat-sidebar{min-height:calc(100dvh - 56px)!important;padding:12px 12px calc(82px + env(safe-area-inset-bottom,0px))!important}
+  /* The phone list owns the screen. Its SYNC heading is the app bar, so the
+     desktop brand row must not consume a second line above it. */
+  .messages-page>.chat-header{display:none!important}
+  .chat-shell{min-height:100dvh!important}
+  body:not(.is-conversation-open) .chat-sidebar{min-height:100dvh!important;padding:12px 12px calc(82px + env(safe-area-inset-bottom,0px))!important}
   .chats-heading{margin-bottom:10px!important}
   .chat-search{min-height:42px!important}
   .sync-section-note{margin-bottom:5px}
@@ -109,6 +117,8 @@ body[data-call-mode] .media-controls .hangup-button{background:#df3347!important
   body[data-sync-screen="calls"] .conversation-row{grid-template-columns:minmax(0,1fr) auto!important}
   body[data-sync-screen="calls"] .conversation-call-actions{display:flex!important}
   .chat-contact-strip{margin-bottom:6px!important}
+  .chat-contact{flex-basis:72px;min-width:72px}
+  .chat-contact-name{width:72px}
   body.is-conversation-open:not([data-call-mode]) .conversation{background:#fff!important}
   body.is-conversation-open:not([data-call-mode]) .conversation-header{min-height:58px!important}
   body.is-conversation-open:not([data-call-mode]) .message-list{padding-bottom:18px!important}

@@ -9,24 +9,18 @@ assert.notEqual(start, -1, "Friends workspace block should exist");
 assert.notEqual(end, -1, "Friends workspace block should have a stable boundary");
 
 const friendsBlock = source.slice(start, end);
-const directoryParsed = friendsBlock.indexOf("const directoryPeople = new Map");
-const onlineRendered = friendsBlock.indexOf("renderOnlineFriendList(onlineList");
+const directoryParsed = friendsBlock.indexOf("directoryUsers = (await directoryResponse.json()).users || [];");
 const directoryGuard = friendsBlock.indexOf("if (!isCurrentWorkspace()) return;", directoryParsed);
-
 assert(directoryParsed >= 0, "Friends workspace should parse the online directory");
-assert(onlineRendered > directoryParsed, "Friends workspace should render online users after parsing");
-assert(
-  directoryGuard > directoryParsed && directoryGuard < onlineRendered,
-  "A stale Friends request must be rejected before online users are rendered"
-);
+assert(directoryGuard > directoryParsed, "A stale Friends request must be rejected before directory state is rendered");
 
-const friendsParsed = friendsBlock.indexOf("const friends = (await friendsResponse.json()).friends || [];");
-const emptyRendered = friendsBlock.indexOf("if (!friends.length)", friendsParsed);
+const friendsParsed = friendsBlock.indexOf("const friendData = await friendsResponse.json();");
+const rendered = friendsBlock.indexOf("renderTab();", friendsParsed);
 const friendsGuard = friendsBlock.indexOf("if (!isCurrentWorkspace()) return;", friendsParsed);
 
 assert(friendsParsed >= 0, "Friends workspace should parse accepted friends");
 assert(
-  friendsGuard > friendsParsed && friendsGuard < emptyRendered,
+  friendsGuard > friendsParsed && friendsGuard < rendered,
   "A stale Friends request must be rejected after accepted friends are parsed"
 );
 
@@ -41,6 +35,6 @@ assert(
 );
 
 const feedHtml = fs.readFileSync("feed.html", "utf8");
-assert.match(feedHtml, /assets\/feed-enhancements\.js\?v=529/, "Feed should load the localized guarded Friends workspace build");
+assert.match(feedHtml, /assets\/feed-enhancements\.js\?v=534/, "Feed should load the localized guarded Friends workspace build");
 
 console.log("Friends stale-response guard checks passed.");

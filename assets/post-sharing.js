@@ -102,8 +102,9 @@
   window.danzstakSharePost = post => { void openShareDialog(post); };
   window.danzstakRenderSharedPost = (article, post) => {
     if (!post.sharedPostId || article.querySelector(".shared-post-card")) return;
+    article.dataset.sharedPostId = post.sharedPostId;
     const card = document.createElement('div'); card.className = 'shared-post-card';
-    if (!post.sharedPost) card.textContent = 'The original post is no longer available to you.';
+    if (!post.sharedPost) { article.remove(); return; }
     else {
       const source = post.sharedPost, memberId = String(source.authorMemberId || ''), validMemberId = /^[a-f0-9-]{36}$/.test(memberId), name = document.createElement(validMemberId ? 'a' : 'strong'); name.textContent = source.authorName;
       if (validMemberId) { name.href = 'profile.html?member=' + encodeURIComponent(memberId); name.className = 'shared-post-author'; }

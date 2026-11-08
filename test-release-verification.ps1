@@ -29,4 +29,14 @@ $failed = $false
 try { Wait-ForPublishedWorker -Url 'https://example.test/service-worker.js' -ExpectedCache 'danzstak-shell-v175' -MaxAttempts 3 -RetrySeconds 0 }
 catch { $failed = $true }
 if (-not $failed -or $script:workerChecks -ne 3) { throw 'A permanently wrong release must fail within the configured limit.' }
-Write-Host 'Release verification checks passed: propagation delay, network recovery, and bounded failure.'
+$browserVerifier = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'scripts\verify-live-pwa.cjs') -Raw -Encoding utf8
+if ($browserVerifier -notmatch 'readFileSync\(resolve\(__dirname, "\.\.", "service-worker\.js"\)') {
+  throw 'Browser PWA verification must derive the expected cache from the release service worker.'
+}
+if ($browserVerifier -match 'expectedCache\s*=.*danzstak-shell-v\d+') {
+  throw 'Browser PWA verification must not hard-code a cache version.'
+}
+if ($browserVerifier -notmatch '/login\.html\?pwa-check=1' -or $browserVerifier -notmatch 'serviceWorker\.register\("/service-worker\.js"\)') {
+  throw 'Browser PWA verification must use a stable route and explicitly verify registration.'
+}
+Write-Host 'Release verification checks passed: propagation delay, network recovery, bounded failure, and current-cache browser verification.'

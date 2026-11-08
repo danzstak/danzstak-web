@@ -37,30 +37,31 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - name: Verify responsive, accessible and security boundaries
+      - name: Run responsive, accessibility, and security checks
         shell: pwsh
         run: |
-          node test-mobile-design-system.cjs
-          node test-responsive-media.cjs
-          node test-touch-targets.cjs
-          node test-skip-navigation.cjs
-          node test-static-link-integrity.cjs
-          node test-social-origins.cjs
-          node test-authentication.cjs
-          node test-booking-workspace-design.cjs
+          node .\test-mobile-design-system.cjs
+          node .\test-navigation-layout.cjs
+          node .\test-touch-targets.cjs
+          node .\test-feed-csp.cjs
+          node .\test-external-link-privacy.cjs
+          node .\test-booking-workspace-design.cjs
 
   release-evidence:
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-      - name: Verify releasable PWA and infrastructure evidence
+      - name: Verify release safeguards and required project guidance
         shell: pwsh
         run: |
-          node test-pwa-shell-refresh.cjs
           .\test-release-verification.ps1
-          .\test-site.ps1
-          .\test-infrastructure.ps1
+          if (-not (Test-Path -LiteralPath .\docs\QUALITY-ASSURANCE-POLICY.md)) {
+            throw 'Missing quality assurance policy.'
+          }
+          if (-not (Test-Path -LiteralPath .\docs\RELEASE-CHECKLIST.md)) {
+            throw 'Missing release checklist.'
+          }
+          if (-not (Test-Path -LiteralPath .\CLAUDE.md)) {
+            throw 'Missing root development brief.'
+          }

@@ -2,7 +2,7 @@
 (() => {
   const api = "https://api.danzstak.com", balance = document.getElementById("bookingCreditBalance"), summary = document.getElementById("bookingCreditSummary"), status = document.getElementById("bookingCreditStatus"), activity = document.getElementById("bookingCreditActivity"), form = document.getElementById("buyBookingCredits"), quantity = document.getElementById("bookingCreditQuantity");
   const unlockedContacts = new Set();
-  window.danzstakTourManagerBilling = { credits: null, outreach: [] };
+  window.danzstakTourManagerBilling = { credits: null, outreach: [], replies: [], refreshOutreach: null };
   async function request(path, options = {}) { const response = await fetch(api + path, { credentials: "include", cache: "no-store", ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Tour Manager billing is unavailable."); return data; }
   async function refresh() {
     try {
@@ -20,16 +20,18 @@
     try {
       const data = await request("/tour-manager/outreach");
       window.danzstakTourManagerBilling.outreach = Array.isArray(data.messages) ? data.messages : [];
+      window.danzstakTourManagerBilling.replies = Array.isArray(data.replies) ? data.replies : [];
       document.dispatchEvent(new CustomEvent("danzstak-tour-manager-billing", { detail: window.danzstakTourManagerBilling }));
     } catch (error) { if (status && !status.textContent) status.textContent = error.message; }
   }
+  window.danzstakTourManagerBilling.refreshOutreach = refreshOutreach;
   form?.addEventListener("submit", async event => {
     event.preventDefault(); const count = Number(quantity.value);
     if (!Number.isInteger(count) || count < 1 || count > 500) { status.textContent = "Choose 1 to 500 credits."; return; }
     const button = form.querySelector("button"); button.disabled = true; status.textContent = "Opening secure Stripe Checkout…";
     try { const data = await request("/tour-manager/checkout", { method: "POST", body: JSON.stringify({ quantity: count }) }); location.assign(data.checkoutUrl); } catch (error) { status.textContent = error.message; button.disabled = false; }
   });
-  window.danzstakSendBookingEmail = async payload => { const id = crypto.randomUUID().replaceAll("-", ""); const data = await request("/tour-manager/emails/send", { method: "POST", body: JSON.stringify({ ...payload, idempotencyKey: id }) }); await Promise.all([refresh(), refreshOutreach()]); return data; };
+  window.danzstakSendBookingEmail = async payload => { const id = payload.idempotencyKey || crypto.randomUUID().replaceAll("-", ""); const data = await request("/tour-manager/emails/send", { method: "POST", body: JSON.stringify({ ...payload, idempotencyKey: id }) }); await Promise.all([refresh(), refreshOutreach()]); return data; };
   window.danzstakBookingContactUnlocked = venueKey => unlockedContacts.has(String(venueKey || ""));
   window.danzstakUnlockBookingContact = async venueKey => {
     const data = await request("/tour-manager/contact-unlock/checkout", { method: "POST", body: JSON.stringify({ venueKey }) });

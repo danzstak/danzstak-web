@@ -27,13 +27,17 @@ const deletedRecords = [], deletedMedia = [];
 class DeleteItemCommand { constructor(input) { this.input=input; } }
 class DeleteObjectCommand { constructor(input) { this.input=input; } }
 class ListUsersCommand { constructor(input) { this.input=input; } }
+class GetItemCommand { constructor(input) { this.input=input; } }
 const ctx = vm.createContext({
-  process:{env:{STORIES_TABLE:'stories',FRIENDS_TABLE:'friends',MEDIA_BUCKET:'media',USER_POOL_ID:'pool'}}, now:()=>current,
+  process:{env:{STORIES_TABLE:'stories',FRIENDS_TABLE:'friends',SETTINGS_TABLE:'settings',MEDIA_BUCKET:'media',USER_POOL_ID:'pool'}}, now:()=>current,
   scanAll:async input=>{assert.equal(input.TableName,'stories');assert.ok(!input.FilterExpression);return items;},
   queryAll:async()=>[{status:{S:'friends'},friendEmail:{S:'friend@example.com'}}],
-  db:{send:async command=>{deletedRecords.push(command.input.Key.storyId.S);}},
+  db:{send:async command=>{
+    if (command instanceof GetItemCommand) return {Item:{dailyTakeCount:{N:'5'}}};
+    deletedRecords.push(command.input.Key.storyId.S);
+  }},
   s3:{send:async command=>{deletedMedia.push(command.input.Key);}}, DeleteItemCommand, DeleteObjectCommand,
-  ListUsersCommand,
+  ListUsersCommand, GetItemCommand,
   cognito:{send:async command=>{const email=command.input.Filter.match(/"(.*)"/)[1];return {Users:[{Attributes:[{Name:'email',Value:email},{Name:'sub',Value:`member-${email}`},{Name:'name',Value:email==='someone@example.com'?'Public Story Author':email==='friend@example.com'?'Friend Story Author':'Current Member'}]}]};}},
   publicProfile:async(email,account)=>({memberId:account.Attributes.find(value=>value.Name==='sub').Value,name:account.Attributes.find(value=>value.Name==='name').Value}),
   blockedStatus:status=>status==='blocked'||status==='blocked_by',
@@ -45,6 +49,7 @@ vm.runInContext(line.trim(),ctx);
   const result=await ctx.getStories({email:'me@example.com'});
   assert.deepEqual(Array.from(result.stories,value=>value.storyId),['own','public','friend']);
   assert.deepEqual(Array.from(result.reels,value=>value.id),['reel'],'Reels remain until owner deletion');
+  assert.equal(result.dailyTakeCount,5,'Dailies returns the durable creator take count');
   assert.deepEqual(deletedRecords.sort(),['expired-legacy','expired-ttl']);
   assert.deepEqual(deletedMedia.sort(),['stories/expired-legacy.png','stories/expired-ttl.png']);
   assert.equal(result.stories[1].isOwner,false);

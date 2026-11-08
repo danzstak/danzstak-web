@@ -6,7 +6,7 @@ const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf
 const code = source.slice(source.indexOf('  if (name === "Friends") {'), source.indexOf('  if (["Photos", "Videos"].includes(name)) {'));
 const nodes = [];
 function node(tag) {
-  const item = { tag, children: [], append(...items) { this.children.push(...items); }, appendChild(item) { this.children.push(item); }, replaceChildren() { this.children = []; }, setAttribute() {}, addEventListener() {} };
+  const item = { tag, tagName: tag.toUpperCase(), children: [], dataset: {}, classList: { add() {} }, value: "", append(...items) { this.children.push(...items); }, appendChild(item) { this.children.push(item); }, replaceChildren() { this.children = []; }, setAttribute() {}, addEventListener() {}, focus() {} };
   nodes.push(item); return item;
 }
 vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
@@ -22,10 +22,10 @@ setImmediate(async () => {
     assert.equal(nodes.filter(item => item.tag === 'a').length, 1, 'presence failure must not hide accepted friends');
     assert.equal(nodes.find(item => item.tag === 'a').href, 'profile.html?member=44444444-4444-4444-4444-444444444444');
     assert.doesNotMatch(nodes.find(item => item.tag === 'a').href, /@|%40/);
-    assert.ok(nodes.some(item => item.tag === 'small' && item.textContent === 'Status unavailable'), 'presence failure must not falsely label a friend offline');
+    assert.ok(nodes.some(item => item.tag === 'small' && item.textContent === 'Friend'), 'presence failure must show the relationship without falsely labeling a friend offline');
     const mergedNodes = [];
     function mergedNode(tag) {
-      const item = { tag, children: [], append(...items) { this.children.push(...items); }, appendChild(child) { this.children.push(child); }, replaceChildren() { this.children = []; }, setAttribute() {}, addEventListener() {} };
+      const item = { tag, tagName: tag.toUpperCase(), children: [], dataset: {}, classList: { add() {} }, value: "", append(...items) { this.children.push(...items); }, appendChild(child) { this.children.push(child); }, replaceChildren() { this.children = []; }, setAttribute() {}, addEventListener() {}, focus() {} };
       mergedNodes.push(item); return item;
     }
     vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
@@ -46,7 +46,7 @@ setImmediate(async () => {
       constructor() { const listeners = []; this.signal = { aborted: false, addEventListener(type, fn) { if (type === 'abort') listeners.push(fn); } }; this.abort = () => { this.signal.aborted = true; listeners.forEach(fn => fn()); }; }
     }
     function timeoutNode(tag) {
-      const item = { tag, children: [], listeners: {}, append(...items) { this.children.push(...items); }, appendChild(child) { this.children.push(child); }, replaceChildren(...items) { this.children = items; }, setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { this.listeners[name] = fn; } };
+      const item = { tag, tagName: tag.toUpperCase(), children: [], listeners: {}, dataset: {}, classList: { add() {} }, value: "", append(...items) { this.children.push(...items); }, appendChild(child) { this.children.push(child); }, replaceChildren(...items) { this.children = items; }, setAttribute(name, value) { this[name] = value; }, addEventListener(name, fn) { this.listeners[name] = fn; }, focus() {} };
       timeoutNodes.push(item); return item;
     }
     vm.runInNewContext(`function render(){const name = "Friends"; ${code}} render();`, {
