@@ -144,7 +144,10 @@ function showInstallButtonTemporarily() {
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
-      const registration = await navigator.serviceWorker.register("/service-worker.js", { updateViaCache: "none" });
+      // Version the registration URL as well as the app script. An older
+      // cache-first worker can otherwise keep a phone on new HTML plus retired
+      // CSS until every PWA window has been closed.
+      const registration = await navigator.serviceWorker.register("/service-worker.js?pwa=425", { updateViaCache: "none" });
       if (registration.waiting) offerUpdate(registration.waiting);
       registration.addEventListener("updatefound", () => {
         const installing = registration.installing;

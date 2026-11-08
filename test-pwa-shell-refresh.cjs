@@ -32,6 +32,7 @@ assert.match(serviceWorker, /60 \* 60 \* 1000/, "background shell refresh must b
 assert.match(serviceWorker, /type === "REFRESH_SHELL"/, "service worker must accept refresh requests");
 
 assert.match(pwa, /type: "REFRESH_SHELL"/, "PWA controller must request a shell refresh");
+assert.match(pwa, /serviceWorker\.register\("\/service-worker\.js\?pwa=425", \{ updateViaCache: "none" \}\)/, "installed phones must request the current worker URL instead of reusing a retired registration response");
 assert.match(pwa, /navigator\.connection\?\.saveData !== true/, "PWA must respect data-saver mode");
 assert.ok((pwa.match(/refreshOfflineShell\(\)/g) || []).length >= 2, "PWA must refresh after registration and when visible again");
 assert.match(hostingHeaders, /Cache-Control'[\s\S]*public, max-age=300, must-revalidate/, "Amplify must not cache app-shell files at the edge for a year");
@@ -49,9 +50,9 @@ for (const [file, expected] of [
   ["profile.html", "assets/mobile-design-system.css?v=16"],
   ["record-stores.html", "assets/mobile-design-system.css?v=16"],
   ["feed.html", "assets/feed-enhancements.css?v=507"],
-  ["feed.html", "assets/pwa.js?v=424"],
-  ["messages.html", "assets/pwa.js?v=424"],
-  ["profile.html", "assets/pwa.js?v=424"],
+  ["feed.html", "assets/pwa.js?v=425"],
+  ["messages.html", "assets/pwa.js?v=425"],
+  ["profile.html", "assets/pwa.js?v=425"],
   ["record-stores.html", "assets/record-stores-pagination.css?v=2"],
   ["record-stores.html", "assets/record-stores.js?v=6"],
   ["feed.html", "assets/identity-media.js?v=1"],
