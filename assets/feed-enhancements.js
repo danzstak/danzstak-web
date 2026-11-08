@@ -2291,7 +2291,17 @@ function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {})
     delete nextState.danzstakMenuOpen;
     history.replaceState(nextState, "");
   }
-  if (shouldOpen) mobileNavMenu?.querySelector("[data-menu-close], a")?.focus({ preventScroll: true });
+  if (shouldOpen) {
+    const focusMenu = () => {
+      if (!document.body.classList.contains("mobile-menu-open") || mobileNavMenu?.contains(document.activeElement)) return;
+      (mobileNavMenu?.querySelector("[data-menu-close]") || mobileNavMenu?.querySelector("a"))?.focus({ preventScroll: true });
+    };
+    focusMenu();
+    // Route restoration and icon enhancement can finish after the drawer opens.
+    // Re-assert focus on the next frame so those startup tasks cannot strand it
+    // on the page underneath the modal mobile menu.
+    requestAnimationFrame(focusMenu);
+  }
   else if (wasOpen) mobileMenuControl?.focus({ preventScroll: true });
 }
 function closeMobileMenuFromControl() {

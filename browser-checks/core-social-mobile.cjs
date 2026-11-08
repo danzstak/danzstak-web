@@ -13,14 +13,15 @@ const pages = [
   ["notifications", "feed.html?view=notifications", ".notification-row"],
   ["chat", "messages.html", ".conversation-row"],
   ["profile", "profile.html", ".profile"],
+  ["menu", "feed.html?view=feed&menu=1", ".mobile-menu-open #mobileNavMenu"],
 ];
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
 
 function fixture(pathname) {
-  const profile = { memberId: "11111111-1111-4111-8111-111111111111", name: "DanzStak Test Artist", username: "testartist", bio: "Independent artist testing the DanzStak mobile experience.", picture: "", cover: "", website: "https://example.com" };
+  const profile = { memberId: "11111111-1111-4111-8111-111111111111", name: "DanzStak Test Artist", username: "testartist", handle: "testartist", bio: "Independent artist testing the DanzStak mobile experience.", picture: "", cover: "", website: "https://example.com" };
   const friend = { memberId: "22222222-2222-4222-8222-222222222222", email: "tour-friend@danzstak.invalid", name: "Tour Friend", picture: "" };
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111", email: "test-artist@danzstak.invalid" } };
-  if (pathname === "/profiles") return { profile };
+  if (pathname === "/profiles" || pathname === "/profile") return { profile };
   if (pathname === "/secure-posts") return { posts: [] };
   if (pathname === "/friends") return { friends: [friend], incoming: [], outgoing: [] };
   if (pathname === "/calls/directory" || pathname === "/people") return { users: [{ ...friend, online: true, canContact: true, friendStatus: "friends" }] };
@@ -140,6 +141,52 @@ function fixture(pathname) {
           assert.ok(profileControls.tabs.length >= 5, `${width}px profile sections are missing: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(Math.max(...profileControls.tabs.map(tab => tab.top)) - Math.min(...profileControls.tabs.map(tab => tab.top)) <= 1, `${width}px profile tabs must stay on one row: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(profileControls.tabs.every(tab => tab.height >= 44), `${width}px profile tabs must retain touch targets: ${JSON.stringify(profileControls.tabs)}`);
+        }
+        if (name === "menu") {
+          const menuGeometry = await page.evaluate(() => {
+            const drawer = document.querySelector("#mobileNavMenu");
+            const menu = drawer.querySelector(".menu");
+            const close = drawer.querySelector("[data-menu-close]");
+            const rows = [...drawer.querySelectorAll(".menu > a, .menu > .menu-action")].filter(element => !element.hidden && getComputedStyle(element).display !== "none").map(element => {
+              const box = element.getBoundingClientRect();
+              const icon = element.querySelector(".menu-icon")?.getBoundingClientRect();
+              return { label: element.textContent.trim(), top: box.top, height: box.height, iconWidth: icon?.width || 0, iconHeight: icon?.height || 0 };
+            });
+            const drawerBox = drawer.getBoundingClientRect();
+            const menuStyle = getComputedStyle(menu);
+            const closeBox = close.getBoundingClientRect();
+            return {
+              bodyOpen: document.body.classList.contains("mobile-menu-open"),
+              drawer: { left: drawerBox.left, right: drawerBox.right, top: drawerBox.top, bottom: drawerBox.bottom, width: drawerBox.width, height: drawerBox.height, scrollHeight: drawer.scrollHeight, clientHeight: drawer.clientHeight },
+              close: { width: closeBox.width, height: closeBox.height },
+              rows,
+              menuGap: menuStyle.gap,
+              menuJustify: menuStyle.justifyContent,
+              activeElementInside: drawer.contains(document.activeElement),
+              activeElementClose: document.activeElement?.matches?.("[data-menu-close]") === true,
+              activeElement: { tag: document.activeElement?.tagName || "", id: document.activeElement?.id || "", className: String(document.activeElement?.className || "") },
+              backdropOwnsOutsideTap: (() => {
+                const x = Math.min(innerWidth - 2, drawerBox.right + Math.max(2, (innerWidth - drawerBox.right) / 2));
+                const y = innerHeight - 26;
+                const target = document.elementFromPoint(x, y);
+                return !target?.closest?.(".ds-mobile-nav");
+              })(),
+            };
+          });
+          assert.equal(menuGeometry.bodyOpen, true, `${width}px menu route must open the drawer`);
+          assert.ok(menuGeometry.drawer.left >= -0.5 && menuGeometry.drawer.right <= width + 0.5, `${width}px menu drawer escapes the viewport: ${JSON.stringify(menuGeometry.drawer)}`);
+          assert.ok(menuGeometry.drawer.width <= Math.min(340, width * 0.87) + 1, `${width}px menu drawer is too wide: ${JSON.stringify(menuGeometry.drawer)}`);
+          assert.ok(Math.abs(menuGeometry.drawer.top) <= 1 && Math.abs(menuGeometry.drawer.height - 844) <= 1, `${width}px menu must own one viewport-height region: ${JSON.stringify(menuGeometry.drawer)}`);
+          assert.ok(menuGeometry.drawer.scrollHeight > menuGeometry.drawer.clientHeight, `${width}px complete menu must scroll inside its drawer`);
+          assert.ok(menuGeometry.rows.length >= 16, `${width}px menu destinations are missing`);
+          assert.ok(menuGeometry.rows.every(row => row.height >= 44 && row.height <= 52), `${width}px menu rows must stay within the compact 44–52px range: ${JSON.stringify(menuGeometry.rows)}`);
+          assert.ok(menuGeometry.rows.every(row => row.iconWidth >= 20 && row.iconWidth <= 22 && row.iconHeight >= 20 && row.iconHeight <= 22), `${width}px menu icons must remain consistently 20–22px: ${JSON.stringify(menuGeometry.rows)}`);
+          assert.equal(menuGeometry.menuGap, "0px", `${width}px menu must not distribute blank gaps between rows`);
+          assert.equal(menuGeometry.menuJustify, "flex-start", `${width}px menu rows must flow from the top`);
+          assert.ok(menuGeometry.close.width >= 44 && menuGeometry.close.height >= 44, `${width}px menu close action must retain a 44px touch target`);
+          assert.equal(menuGeometry.activeElementInside, true, `${width}px opening Menu must move focus into the drawer: ${JSON.stringify(menuGeometry.activeElement)}`);
+          assert.equal(menuGeometry.activeElementClose, true, `${width}px opening Menu must focus its close action: ${JSON.stringify(menuGeometry.activeElement)}`);
+          assert.equal(menuGeometry.backdropOwnsOutsideTap, true, `${width}px bottom navigation must remain behind the menu backdrop`);
         }
         const geometry = await page.evaluate(() => ({
           width: innerWidth,
