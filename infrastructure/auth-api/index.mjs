@@ -3465,7 +3465,10 @@ async function searchVenues(event) {
     let radiusMiles = requestedRadiusMiles;
     let discovery = await multiSourceDiscovery(point, "venue", { genre: parsed.genre, radiusMiles });
     let discovered = discovery.places.filter(place => approximateMilesBetween(point.position, place.position) <= radiusMiles).filter(place => isSupportedBookingLead(place, parsed.genre));
-    const expandedFromMiles = discovered.length < 5 && radiusMiles < 75 ? radiusMiles : null;
+    // A handful of results is not useful tour research in a sparse market.
+    // Expand once before presenting the locality as covered so nearby rooms in
+    // distinct towns remain available with their real distance and address.
+    const expandedFromMiles = discovered.length < 10 && radiusMiles < 75 ? radiusMiles : null;
     if (expandedFromMiles) {
       radiusMiles = Math.min(75, Math.max(40, radiusMiles * 2));
       discovery = await multiSourceDiscovery(point, "venue", { genre: parsed.genre, radiusMiles });

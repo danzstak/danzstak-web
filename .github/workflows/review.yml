@@ -50,6 +50,7 @@ jobs:
           node .\test-static-link-integrity.cjs
           node .\test-social-origins.cjs
           node .\test-authentication.cjs
+          node .\test-booking-workspace-design.cjs
 
   browser-call-media:
     runs-on: windows-latest

@@ -44,6 +44,8 @@ assert.match(source, /requireDisambiguation[\s\S]*statusCode: 409/, "ambiguous o
 assert.match(source, /bookingSuitability: assessment\.suitability/, "discovery results must disclose suitability separately from venue existence");
 assert.match(source, /coverageNotice/, "empty and partial results must explain coverage honestly");
 assert.match(source, /GOOGLE_PLACES_API_KEY/, "the licensed optional discovery provider must keep its credential server-side");
+assert.match(source, /discovered\.length < 10 && radiusMiles < 75/, "weak markets must expand before being presented as adequately covered");
+assert.match(source, /Math\.min\(75, Math\.max\(40, radiusMiles \* 2\)\)/, "automatic nearby-market expansion must remain bounded");
 
 for (const forbidden of ["Ryan's", "Celebrità", "Phenomenon", "Gilda", "Altstadt", "Dynamo", "Effenaar", "LAB-1", "POPEI", "De Club"]) {
   assert.equal(source.includes(`name: "${forbidden}"`) || source.includes(`name: '${forbidden}'`), false, `${forbidden} must not be hard-coded as a benchmark shortcut`);
