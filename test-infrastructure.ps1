@@ -150,7 +150,7 @@ if (-not $template.Contains('expiresAt:{N:String(now()+120)}')) {
 if ($template.Contains('expiresAt:{N:String(now()+7200)}')) {
   throw 'Online presence is incorrectly coupled to the two-hour signed-in activity window'
 }
-foreach ($scheduledStoryCleanup in @('DANZSTAK-Expired-Story-Cleanup', 'Type: AWS::Events::Rule', 'ScheduleExpression: rate(15 minutes)', 'Principal: events.amazonaws.com', "item.kind?.S==='reel'", "item.mediaKey.S.startsWith('stories/')", 'Resource: !Sub ''${MediaBucket.Arn}/stories/*''')) {
+foreach ($scheduledStoryCleanup in @('DANZSTAK-Expired-Story-Cleanup', 'Type: AWS::Events::Rule', 'ScheduleExpression: rate(15 minutes)', 'Principal: events.amazonaws.com', "item.kind?.S==='reel'", "mediaKey.startsWith('stories/')", "if(!mediaRemoved)return false", "return {expired:expired.length,cleaned,pending:expired.length-cleaned}", 'Resource: !Sub ''${MediaBucket.Arn}/stories/*''')) {
   if (-not $template.Contains($scheduledStoryCleanup)) { throw "Stories: scheduled database/media cleanup is incomplete: $scheduledStoryCleanup" }
 }
 foreach ($paginationControl in @('async function scanAll(input,maximumItems=5000)', 'async function queryAll(input,maximumItems=5000)', 'page.LastEvaluatedKey', 'scanAll({TableName:process.env.PRESENCE_TABLE', 'queryAll({TableName:process.env.FRIENDS_TABLE', 'scanAll({TableName:process.env.STORIES_TABLE', 'async function groupIds(email){const items=await queryAll')) {
