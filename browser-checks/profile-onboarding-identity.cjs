@@ -31,12 +31,29 @@ function fixture(pathname, established) {
         const context = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: "block" });
         const page = await context.newPage();
         const errors = [];
+        const profileWrites = [];
         page.on("pageerror", error => errors.push(error.message));
-        await page.route("https://api.danzstak.com/**", route => route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify(fixture(new URL(route.request().url()).pathname, established))
-        }));
+        await page.route("https://api.danzstak.com/**", route => {
+          const request = route.request();
+          const pathname = new URL(request.url()).pathname;
+          if (!established && pathname === "/profiles" && request.method() === "POST") {
+            const payload = request.postDataJSON();
+            profileWrites.push(payload);
+            const firstAttempt = profileWrites.length === 1;
+            return route.fulfill({
+              status: firstAttempt ? 409 : 200,
+              contentType: "application/json",
+              body: JSON.stringify(firstAttempt
+                ? { error: "That username is already taken. Try liana.2 or another username.", suggestion: "liana.2" }
+                : { profile: { ...fixture("/profiles", false).profile, name: payload.name, handle: payload.handle } })
+            });
+          }
+          return route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify(fixture(pathname, established))
+          });
+        });
         await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
         await page.locator("#storiesLoading").waitFor({ state: "detached" });
         await page.waitForFunction(() => {
@@ -63,6 +80,15 @@ function fixture(pathname, established) {
           assert.equal(result.panelHidden, true, `${width}px an established visible name was blocked by internal username setup`);
         } else {
           assert.equal(result.panelVisible, true, `${width}px a genuinely unnamed member did not receive simple onboarding`);
+          await page.locator("#profileOnboardingName").fill("Liana");
+          await page.locator("#profileOnboardingSave").click();
+          await page.locator("#profileOnboardingNext").waitFor({ state: "visible" });
+          assert.deepEqual(profileWrites, [
+            { name: "Liana", handle: "liana" },
+            { name: "Liana", handle: "liana.2" }
+          ], `${width}px a duplicate generated username did not retry once with the server suggestion`);
+          assert.match(await page.locator("#profileOnboardingStatus").textContent(), /name is ready/i, `${width}px the shared display name did not complete onboarding`);
+          assert.equal(await page.locator("#menuProfileName").textContent(), "Liana", `${width}px the visible name was changed to resolve an internal username conflict`);
         }
         await context.close();
       }
