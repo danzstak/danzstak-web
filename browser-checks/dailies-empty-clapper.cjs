@@ -76,7 +76,7 @@ function fixture(url) {
           artWidth: artRect.width,
           artHeight: artRect.height,
           artRatio: artRect.width / artRect.height,
-          photoCoversArt: Math.abs(photoRect.left - artRect.left) <= 1 && Math.abs(photoRect.top - artRect.top) <= 1 && Math.abs(photoRect.width - artRect.width) <= 1 && Math.abs(photoRect.height - artRect.height) <= 1,
+          photoDominatesArt: photoRect.width >= artRect.width * .88 && photoRect.height >= artRect.height * .88,
           artCoversTile: Math.abs(artRect.left - tileRect.left) <= 1 && Math.abs(artRect.top - tileRect.top) <= 1 && Math.abs(artRect.width - tileRect.width) <= 1 && Math.abs(artRect.height - tileRect.height) <= 1,
           captionInside: captionRect.left >= tileRect.left && captionRect.right <= tileRect.right && captionRect.top >= tileRect.top && captionRect.bottom <= tileRect.bottom,
           captionOverlapsSlate: !(captionRect.right <= slateRect.left || captionRect.left >= slateRect.right || captionRect.bottom <= slateRect.top || captionRect.top >= slateRect.bottom),
@@ -93,8 +93,8 @@ function fixture(url) {
       assert.equal(result.photoVisible, true, `${width}px creator photo is missing below the clapper`);
       assert.equal(result.photoSize, "cover", `${width}px creator photo does not fill its slot`);
       assert.equal(result.photoPosition, "50% 28%", `${width}px creator face is not framed in the upper center`);
-      assert.equal(result.photoRadius, "0px", `${width}px Dailies creator photo must fill the artwork without an inset circle`);
-      assert.equal(result.photoCoversArt, true, `${width}px Dailies creator photo does not fill its artwork`);
+      assert.equal(result.photoRadius, "50%", `${width}px Dailies creator photo must match the circular profile portrait`);
+      assert.equal(result.photoDominatesArt, true, `${width}px Dailies creator photo is too small for its artwork`);
       assert.equal(result.artCoversTile, true, `${width}px Dailies artwork leaves a dead label strip`);
       assert.equal(result.captionInside, true, `${width}px Dailies label is outside the image tile`);
       assert.equal(result.captionOverlapsSlate, false, `${width}px Dailies label collides with the clapper`);
@@ -102,7 +102,8 @@ function fixture(url) {
       if (width <= 700) {
         assert.ok(Math.abs(result.tileWidth - result.tileHeight) <= 1, `${width}px Dailies creator card is not square`);
         assert.ok(result.slateWidth <= 76, `${width}px clapper is too wide: ${result.slateWidth}px`);
-        assert.ok(result.artWidth >= 127, `${width}px Dailies photo slot is too narrow: ${result.artWidth}px`);
+        assert.ok(result.artWidth >= 148, `${width}px Dailies photo slot is too narrow: ${result.artWidth}px`);
+        assert.ok(result.photoWidth >= 134 && result.photoHeight >= 134, `${width}px Dailies profile image is smaller than the profile treatment`);
         assert.ok(Math.abs(result.artRatio - 1) <= .02, `${width}px Dailies photo does not fill the square tile: ${result.artRatio}`);
         assert.ok(result.bottomInset >= 5 && result.bottomInset <= 10, `${width}px clapper is not anchored at the lower-left: ${result.bottomInset}px bottom inset`);
         assert.ok(result.leftInset >= 5 && result.leftInset <= 10, `${width}px clapper is not anchored at the lower-left: ${result.leftInset}px left inset`);

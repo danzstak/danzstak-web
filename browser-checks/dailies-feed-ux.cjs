@@ -66,7 +66,7 @@ function fixture(url) {
           creatorLabel: creator.getAttribute("aria-label"),
           avatarBackground: getComputedStyle(avatar).backgroundImage,
           avatarRadius: getComputedStyle(avatar).borderRadius,
-          avatarCoversArt: Math.abs(avatarRect.left - artRect.left) <= 1 && Math.abs(avatarRect.top - artRect.top) <= 1 && Math.abs(avatarRect.width - artRect.width) <= 1 && Math.abs(avatarRect.height - artRect.height) <= 1,
+          avatarDominatesArt: avatarRect.width >= artRect.width * .88 && avatarRect.height >= artRect.height * .88,
           artCoversCreator: Math.abs(artRect.left - creatorRect.left) <= 1 && Math.abs(artRect.top - creatorRect.top) <= 1 && Math.abs(artRect.width - creatorRect.width) <= 1 && Math.abs(artRect.height - creatorRect.height) <= 1,
           take: slate.querySelector("small").textContent,
           clock: slate.querySelector("time").textContent,
@@ -86,8 +86,8 @@ function fixture(url) {
       assert.equal(result.railLabel, "Dailies");
       assert.match(result.creatorLabel, /Dailies/);
       assert.notEqual(result.avatarBackground, "none", `${width}px genuine profile picture was not installed`);
-      assert.equal(result.avatarRadius, "0px", `${width}px Dailies profile image must not remain a small inset circle`);
-      assert.equal(result.avatarCoversArt, true, `${width}px Dailies profile image does not fill its artwork`);
+      assert.equal(result.avatarRadius, "50%", `${width}px Dailies profile image must match the circular profile portrait`);
+      assert.equal(result.avatarDominatesArt, true, `${width}px Dailies profile image is too small for its artwork`);
       assert.equal(result.artCoversCreator, true, `${width}px Dailies artwork does not fill the complete creator tile`);
       assert.equal(result.take, "TAKE 5", `${width}px durable Dailies take count is wrong`);
       assert.ok(result.clock.length > 0, `${width}px local slate time is missing`);
@@ -97,6 +97,7 @@ function fixture(url) {
         assert.ok(result.icons.every(icon => icon.svg && icon.height >= 38), `${width}px media controls are not usable: ${JSON.stringify(result.icons)}`);
         assert.ok(Math.abs(result.creatorWidth - result.creatorHeight) <= 1, `${width}px Dailies creator card is not square`);
         assert.ok(Math.abs(result.storyWidth - result.storyHeight) <= 1, `${width}px Dailies media card is not square`);
+        assert.ok(result.creatorWidth >= 148, `${width}px Dailies profile tile is smaller than the profile treatment`);
       }
       assert.ok(result.longNameHeight > 20 && result.longNameInside, `${width}px creator name is clipped or escapes its tile`);
       assert.match(result.fullNameLabel, /The Extraordinarily Long Touring Artist Name/, `${width}px long name has no expanded affordance`);

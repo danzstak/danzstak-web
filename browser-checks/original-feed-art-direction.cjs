@@ -183,10 +183,9 @@ async function createPortraitVideo(browser) {
           dailyPortrait: dailyCard && dailyPortrait ? {
             card: [dailyCard.left, dailyCard.top, dailyCard.right, dailyCard.bottom],
             portrait: [dailyPortrait.left, dailyPortrait.top, dailyPortrait.right, dailyPortrait.bottom],
-            fillsCard: Math.abs(dailyPortrait.left - dailyCard.left) <= 1
-              && Math.abs(dailyPortrait.top - dailyCard.top) <= 1
-              && Math.abs(dailyPortrait.right - dailyCard.right) <= 1
-              && Math.abs(dailyPortrait.bottom - dailyCard.bottom) <= 1,
+            dominatesCard: dailyPortrait.width >= dailyCard.width * .88
+              && dailyPortrait.height >= dailyCard.height * .88,
+            radius: getComputedStyle(document.querySelector("#storiesRail .story-create-avatar")).borderRadius,
             clapperInside: dailyClapper
               ? dailyClapper.left >= dailyCard.left && dailyClapper.bottom <= dailyCard.bottom
               : false,
@@ -202,7 +201,8 @@ async function createPortraitVideo(browser) {
       assert.equal(geometry.brand, "#1769e0");
       assert.equal(geometry.accent, "#ef6c20");
       assert.equal(normalize(geometry.headerBorder), "rgb(239,108,32)");
-      assert.ok(geometry.dailyPortrait?.fillsCard, `${width}px Dailies portrait does not fill its tile: ${JSON.stringify(geometry.dailyPortrait)}`);
+      assert.ok(geometry.dailyPortrait?.dominatesCard, `${width}px Dailies portrait is too small for its tile: ${JSON.stringify(geometry.dailyPortrait)}`);
+      assert.equal(geometry.dailyPortrait.radius, "50%", `${width}px Dailies portrait does not match the profile avatar`);
       assert.equal(geometry.dailyPortrait.backgroundSize, "cover", `${width}px Dailies portrait is not cropped to fill the tile`);
       assert.equal(geometry.dailyPortrait.clapperInside, true, `${width}px Dailies clapper is not contained in the lower-left of the image`);
       assert.ok(geometry.image.aligned, `${width}px direct image is inset: ${JSON.stringify(geometry.image)}`);
