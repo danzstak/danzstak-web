@@ -1203,6 +1203,42 @@ async function manageGroupElder(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ memberId, role: elder ? "elder" : "member" }) };
 }
 
+const groupCoverKeyPattern = /^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif)$/;
+
+async function cleanupGroupCoverObjects(id, keys) {
+  const candidates = [...new Set((keys || []).filter(Boolean))];
+  const resolved = candidates.filter(key => !groupCoverKeyPattern.test(key));
+  const pending = [];
+  for (const key of candidates.filter(key => groupCoverKeyPattern.test(key))) {
+    let removed = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }));
+        removed = true;
+        break;
+      } catch (error) {
+        if (attempt === 2) console.error("Tribe cover cleanup remains pending", { id, key, error });
+      }
+    }
+    if (removed) resolved.push(key);
+    else pending.push(key);
+  }
+  if (resolved.length) {
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: groupsTable,
+        Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+        UpdateExpression: "DELETE coverCleanup :resolved",
+        ExpressionAttributeValues: { ":resolved": { SS: resolved } },
+        ConditionExpression: "attribute_exists(userEmail)"
+      }));
+    } catch (error) {
+      console.error("Tribe cover cleanup queue remains pending", { id, error });
+    }
+  }
+  return { cleaned: candidates.length - pending.length, pending: pending.length };
+}
+
 async function updateGroupCover(event) {
   const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -1216,18 +1252,25 @@ async function updateGroupCover(event) {
   try { await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: mediaKey })); }
   catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded cover photo was not found." }) }; }
   const oldKey = meta.coverKey?.S || "";
-  await db.send(new UpdateItemCommand({
-    TableName: groupsTable,
-    Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
-    UpdateExpression: "SET coverKey = :cover, updatedAt = :updated",
-    ExpressionAttributeValues: { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() } },
-    ConditionExpression: "attribute_exists(userEmail)"
-  }));
-  if (oldKey && oldKey !== mediaKey) {
-    try { await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: oldKey })); }
-    catch (error) { console.error("Tribe cover cleanup remains pending", { id, error }); }
+  const replacedKey = oldKey && oldKey !== mediaKey && groupCoverKeyPattern.test(oldKey) ? oldKey : "";
+  const pendingCoverCleanup = [...new Set([...(meta.coverCleanup?.SS || []), replacedKey].filter(Boolean))];
+  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() } };
+  if (replacedKey) expressionValues[":coverCleanup"] = { SS: [replacedKey] };
+  if (oldKey) expressionValues[":oldCover"] = { S: oldKey };
+  try {
+    await db.send(new UpdateItemCommand({
+      TableName: groupsTable,
+      Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+      UpdateExpression: "SET coverKey = :cover, updatedAt = :updated" + (replacedKey ? " ADD coverCleanup :coverCleanup" : ""),
+      ExpressionAttributeValues: expressionValues,
+      ConditionExpression: "attribute_exists(userEmail) AND " + (oldKey ? "coverKey = :oldCover" : "attribute_not_exists(coverKey)")
+    }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "The Tribe cover changed on another device. Try again." }) };
+    throw error;
   }
-  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600) }) };
+  const cleanup = await cleanupGroupCoverObjects(id, pendingCoverCleanup);
+  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600), cleanupPending: cleanup.pending }) };
 }
 
 async function deleteGroup(event) {
@@ -1240,12 +1283,29 @@ async function deleteGroup(event) {
   const found = await db.send(new GetItemCommand({ TableName: groupsTable, Key: key, ConsistentRead: true }));
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
   if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the Tribe founder can delete it." }) };
+  const coverCleanup = await cleanupGroupCoverObjects(id, [found.Item.coverKey?.S || "", ...(found.Item.coverCleanup?.SS || [])]);
+  if (coverCleanup.pending) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe cover could not be removed yet. Try again.", deleted: false }) };
   const members = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId" });
-  await Promise.all([db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key })), ...members.map(item => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })))]);
-  if (found.Item.coverKey?.S) {
-    try { await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: found.Item.coverKey.S })); }
-    catch (error) { console.error("Deleted Tribe cover cleanup remains pending", { id, error }); }
+  let pendingMemberDeletes = members.map(item => () => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })));
+  for (let attempt = 0; attempt < 3 && pendingMemberDeletes.length; attempt += 1) {
+    const settled = await Promise.allSettled(pendingMemberDeletes.map(remove => remove()));
+    pendingMemberDeletes = pendingMemberDeletes.filter((remove, index) => settled[index].status === "rejected");
   }
+  if (pendingMemberDeletes.length) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe members could not be removed yet. Try again.", deleted: false }) };
+  let deleted = false;
+  const deleteValues = { ":owner": { S: userId } };
+  const storedCoverKey = found.Item.coverKey?.S || "";
+  if (storedCoverKey) deleteValues[":cover"] = { S: storedCoverKey };
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key, ConditionExpression: "ownerId = :owner AND " + (storedCoverKey ? "coverKey = :cover" : "attribute_not_exists(coverKey)"), ExpressionAttributeValues: deleteValues }));
+      deleted = true;
+      break;
+    } catch (error) {
+      if (attempt === 2) console.error("Tribe deletion remains pending", { id, error });
+    }
+  }
+  if (!deleted) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe could not be removed yet. Try again.", deleted: false }) };
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
