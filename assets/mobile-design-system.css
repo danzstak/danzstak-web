@@ -145,6 +145,49 @@ body:not(.public-mode) :where(.panel,.card){
   .ds-tool-page .map-shell,.ds-tool-page #map{max-width:100%;border-radius:var(--ds-radius);overflow:hidden}
 }
 
+/* Profile actions stay compact without sacrificing familiar labels or touch size.
+   Sections remain a single, horizontally scrollable row when every owner tab is
+   available, rather than turning the profile header into several button rows. */
+@media(max-width:600px){
+  .profile-actions{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+    margin:14px 0;
+  }
+  .profile-actions>button{
+    width:100%;
+    min-width:0;
+    min-height:44px;
+    padding:7px 4px;
+    font-size:12px;
+    line-height:1.15;
+    white-space:normal;
+  }
+  .profile-tabs{
+    display:flex;
+    flex-wrap:nowrap;
+    gap:3px;
+    width:100%;
+    margin-top:14px;
+    padding-top:8px;
+    overflow-x:auto;
+    overscroll-behavior-inline:contain;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .profile-tabs::-webkit-scrollbar{display:none}
+  .profile-tabs button{
+    flex:1 0 auto;
+    min-width:50px;
+    min-height:44px;
+    padding:8px 7px;
+    font-size:11px;
+    line-height:1.15;
+    white-space:nowrap;
+  }
+}
+
 /* Profile uses the same phone application shell without changing its desktop account navigation. */
 @media(max-width:700px){
   body.profile-page{padding-bottom:calc(54px + env(safe-area-inset-bottom) + 2px)}
