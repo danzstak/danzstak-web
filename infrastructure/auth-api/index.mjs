@@ -1310,6 +1310,39 @@ async function getProfileVideo(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ mediaKey, mediaUrl: signedMediaUrl(mediaKey, 3600) }) };
 }
 
+async function cleanupProfileMediaObjects(accountEmail, keys) {
+  const prefix = `users/${sha256(accountEmail).slice(0, 24)}/`;
+  const candidates = [...new Set((keys || []).filter(Boolean))];
+  const owned = candidates.filter(key => key.startsWith(prefix));
+  const resolved = candidates.filter(key => !key.startsWith(prefix));
+  for (const key of owned) {
+    let removed = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: key }));
+        removed = true;
+        break;
+      } catch (error) {
+        if (attempt === 2) console.error("Profile media cleanup remains pending", { key, error });
+      }
+    }
+    if (removed) resolved.push(key);
+  }
+  if (resolved.length) {
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: settingsTable,
+        Key: { userEmail: { S: accountEmail } },
+        UpdateExpression: "DELETE profileMediaCleanup :resolved",
+        ExpressionAttributeValues: { ":resolved": { SS: resolved } }
+      }));
+    } catch (error) {
+      console.error("Profile media cleanup queue remains pending", { accountEmail, error });
+    }
+  }
+  return { cleaned: resolved.length, pending: candidates.length - resolved.length };
+}
+
 async function setProfileVideo(event) {
   const headers = corsHeaders(event.headers?.origin);
   if (!allowedOrigins.has(event.headers?.origin) && !/^Bearer\s+[a-f0-9]{64}$/i.test(event.headers?.authorization || event.headers?.Authorization || "")) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -1323,16 +1356,17 @@ async function setProfileVideo(event) {
   if (mediaKey && !new RegExp(`^users/${ownerPrefix}/[a-f0-9-]{36}\\.(mp4|webm|mov)$`).test(mediaKey)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Invalid profile video." }) };
   const key = { userEmail: { S: accountEmail } }, current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: key, ConsistentRead: true }));
   const oldKey = current.Item?.profileVideoKey?.S || "";
+  const replacedKey = oldKey && oldKey !== mediaKey && oldKey.startsWith(`users/${ownerPrefix}/`) ? oldKey : "";
+  const pendingProfileMedia = [...new Set([...(current.Item?.profileMediaCleanup?.SS || []), replacedKey].filter(Boolean))];
+  const expressionValues = { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() } };
+  if (replacedKey) expressionValues[":profileCleanup"] = { SS: [replacedKey] };
   await db.send(new UpdateItemCommand({
     TableName: settingsTable,
     Key: key,
-    UpdateExpression: "SET profileVideoKey = :video, updatedAt = :updated",
-    ExpressionAttributeValues: { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() } }
+    UpdateExpression: "SET profileVideoKey = :video, updatedAt = :updated" + (replacedKey ? " ADD profileMediaCleanup :profileCleanup" : ""),
+    ExpressionAttributeValues: expressionValues
   }));
-  if (oldKey && oldKey !== mediaKey && oldKey.startsWith(`users/${ownerPrefix}/`)) {
-    try { await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: oldKey })); }
-    catch (error) { console.error("Profile video cleanup remains pending", { oldKey, error }); }
-  }
+  await cleanupProfileMediaObjects(accountEmail, pendingProfileMedia);
   return { statusCode: 200, headers, body: JSON.stringify({ mediaKey }) };
 }
 

@@ -25,22 +25,27 @@ async function upload(purpose) {
   assert.equal((await upload('../other')).statusCode,400);
   context.event={body:JSON.stringify({avatarKey:'users/owner/new.png'})};
   assert.equal((await vm.runInContext('updateProfileUnique(event,{email:"owner@example.com"})',context)).statusCode,200);
-  assert.equal(deleted,1,'cleanup failure does not undo a committed profile');
+  assert.equal(deleted,3,'cleanup failure receives the full retry budget without undoing a committed profile');
+  assert.match(template,/ADD profileMediaCleanup :profileCleanup/,'failed profile cleanup stays durably queued for a later save');
   context.event={body:JSON.stringify({avatarKey:'users/another/new.png'})};
   assert.equal((await vm.runInContext('updateProfileUnique(event,{email:"owner@example.com"})',context)).statusCode,403);
   const auth = fs.readFileSync('infrastructure/auth-api/index.mjs','utf8');
-  const videoCode = auth.slice(auth.indexOf('async function setProfileVideo(event)'), auth.indexOf('// CHECK SESSION'));
+  const videoCode = auth.slice(auth.indexOf('async function cleanupProfileMediaObjects(accountEmail, keys)'), auth.indexOf('// CHECK SESSION'));
+  let videoDeletes=0;
   const videoContext = vm.createContext({
     corsHeaders:()=>({}), allowedOrigins:new Set(['https://danzstak.com']),
     getAuthenticatedUser:async()=> 'user-id', accountForSub:async()=> 'owner@example.com', sha256:()=> 'a'.repeat(24),
     settingsTable:'settings', process:{env:{}}, console:{error:()=>{}},
     GetItemCommand:class {}, UpdateItemCommand:class {}, DeleteObjectCommand:class {},
     db:{send:async()=>({Item:{profileVideoKey:{S:'users/'+ 'a'.repeat(24)+'/old.mp4'}}})},
-    s3:{send:async()=>{throw new Error('cleanup unavailable');}},
+    s3:{send:async()=>{videoDeletes++;throw new Error('cleanup unavailable');}},
     event:{headers:{origin:'https://danzstak.com'},body:JSON.stringify({mediaKey:'users/'+ 'a'.repeat(24)+'/11111111-1111-1111-1111-111111111111.mp4'})}
   });
   vm.runInContext(videoCode,videoContext);
   assert.equal((await vm.runInContext('setProfileVideo(event)',videoContext)).statusCode,200,'video save survives old-file cleanup failure');
+  assert.equal(videoDeletes,3,'profile video cleanup receives the full retry budget');
+  assert.match(auth,/ADD profileMediaCleanup :profileCleanup/,'replaced profile video is committed to the shared durable cleanup queue');
+  assert.match(auth,/await cleanupProfileMediaObjects\(accountEmail, pendingProfileMedia\)/,'profile video saves retry pending profile-media cleanup');
   const editor=fs.readFileSync('assets/profile-editor.js','utf8');
   assert.ok(editor.includes('purpose: "profile"'));
   assert.ok(!editor.includes('await discardCloudMedia('),'ambiguous saves cannot delete newly committed media');
