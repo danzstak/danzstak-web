@@ -127,6 +127,52 @@ body.danzstak-original .post .post-author-details strong {
   color:var(--ds-ink);
   letter-spacing:-.01em;
 }
+body.danzstak-original .post-author {
+  color:var(--ds-ink);
+  font-size:15px;
+  font-weight:600;
+  line-height:20px;
+}
+body.danzstak-original .post :is(.post-time,.post-audience) {
+  color:#65676b;
+  font-size:13px;
+  font-weight:400;
+  line-height:16px;
+}
+body.danzstak-original .post-content {
+  margin:12px 0;
+  color:var(--ds-ink);
+  font-size:15px;
+  font-weight:400;
+  line-height:21px;
+}
+body.danzstak-original .post.is-short-text .post-content {
+  font-size:17px;
+  line-height:22px;
+}
+body.danzstak-original .post-content.is-collapsed {
+  display:-webkit-box;
+  overflow:hidden;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:7;
+}
+body.danzstak-original .post-text-toggle {
+  display:inline-flex;
+  min-width:44px;
+  min-height:44px;
+  align-items:center;
+  margin:-8px 0 2px;
+  padding:8px 0;
+  border:0;
+  background:transparent;
+  color:var(--ds-brand);
+  font:inherit;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+}
+body.danzstak-original .post-text-toggle:hover,
+body.danzstak-original .post-text-toggle:focus-visible {text-decoration:underline}
 body.danzstak-original #feed .post :is(button,a):focus-visible,
 body.danzstak-original .menu :is(a,button):focus-visible {
   outline:3px solid var(--ds-focus);
@@ -236,8 +282,8 @@ body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-crea
 body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-art {
   position:absolute;
   inset:0;
-  width:100%;
-  height:100%;
+  width:100%!important;
+  height:100%!important;
   min-height:0;
 }
 body.danzstak-original #storiesRail .story-create-art {
@@ -261,10 +307,12 @@ body.danzstak-original #storiesRail .story-create-identity {
   height:100%;
 }
 body.danzstak-original #storiesRail .story-create-avatar {
+  display:grid;
+  place-items:center;
   position:absolute;
   inset:0;
-  width:100%;
-  height:100%;
+  width:100%!important;
+  height:100%!important;
   aspect-ratio:1;
   border:0;
   outline:0;
@@ -272,6 +320,11 @@ body.danzstak-original #storiesRail .story-create-avatar {
   background-position:center 28%;
   background-size:cover!important;
   background-repeat:no-repeat;
+  object-fit:cover;
+  object-position:center 28%;
+  color:#fff;
+  font-size:42px;
+  font-weight:900;
   box-shadow:inset 0 0 0 3px var(--ds-accent),0 9px 24px rgba(18,29,45,.24);
   transition:transform .2s ease;
 }
@@ -348,7 +401,7 @@ body.danzstak-original .right :is(h3,h2) {
   body.danzstak-original .layout {
     display:block;
     margin:0;
-    padding:8px 0 0;
+    padding:8px 0 0!important;
   }
   body.danzstak-original .panel,
   body.danzstak-original .post {
@@ -455,8 +508,8 @@ body.danzstak-original .right :is(h3,h2) {
   body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create-art {
     position:absolute;
     inset:0;
-    width:100%;
-    height:100%;
+    width:100%!important;
+    height:100%!important;
     min-height:0!important;
   }
   body.danzstak-original #storiesRail .story-create-identity {
@@ -467,8 +520,8 @@ body.danzstak-original .right :is(h3,h2) {
   }
   body.danzstak-original #storiesRail .story-create-avatar {
     inset:0;
-    width:100%;
-    height:100%;
+    width:100%!important;
+    height:100%!important;
     aspect-ratio:1;
     border:0;
     outline:0;
@@ -511,6 +564,15 @@ body.danzstak-original .right :is(h3,h2) {
     --post-inline-padding:12px!important;
     margin:0!important;
     padding:12px!important;
+  }
+  body.danzstak-original #feed .post > img.post-media {
+    width:100vw!important;
+    height:125vw!important;
+    max-height:none!important;
+    margin-inline:calc(50% - 50vw)!important;
+    aspect-ratio:4/5;
+    object-fit:cover!important;
+    object-position:center;
   }
   body.danzstak-original #feed > .post:has(> .danzstak-native-video-shell[data-video-layout="portrait"]) .post-actions {margin-top:4px!important}
 }

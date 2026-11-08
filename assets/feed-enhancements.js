@@ -3679,7 +3679,10 @@ function hydratePostComposerAvatar() {
     avatar.textContent = String(profile.name || "D").trim().charAt(0).toUpperCase() || "D";
     avatar.style.backgroundImage = "";
     const dailyAvatar = document.querySelector(".story-create-avatar");
-    if (dailyAvatar) dailyAvatar.textContent = String(profile.name || "D").trim().charAt(0).toUpperCase() || "D";
+    if (dailyAvatar) {
+      dailyAvatar.textContent = String(profile.name || "D").trim().charAt(0).toUpperCase() || "D";
+      dailyAvatar.style.backgroundImage = "";
+    }
     if (!profile.picture) return;
     const image = new Image();
     image.referrerPolicy = "no-referrer";
@@ -3690,8 +3693,13 @@ function hydratePostComposerAvatar() {
     };
     image.src = profile.picture;
     if (dailyAvatar) {
-      dailyAvatar.style.backgroundImage = `url("${profile.picture}")`;
-      dailyAvatar.textContent = "";
+      const dailyImage = document.createElement("img");
+      dailyImage.className = "story-create-avatar story-create-avatar-image";
+      dailyImage.alt = "";
+      dailyImage.src = profile.picture;
+      dailyImage.referrerPolicy = "no-referrer";
+      window.danzstakIdentityMedia?.install(dailyImage, profile);
+      dailyAvatar.replaceWith(dailyImage);
     }
   });
 }

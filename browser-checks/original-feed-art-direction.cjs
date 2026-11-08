@@ -25,7 +25,7 @@ const profile = {
   location: "San Francisco, California",
   work: "Artist · Producer · Live act",
   website: "https://danzstak.com",
-  picture: `${origin}/assets/danzstak-d-icon.png`,
+  picture: `${origin}/__test-profile-portrait.svg`,
   cover: `${origin}/assets/danzstak-share-fb-v2.jpg`,
   isOwner: true,
   cloudProfile: true
@@ -122,12 +122,32 @@ async function createPortraitVideo(browser) {
       });
       const page = await context.newPage();
       const errors = [];
+      const consoleErrors = [];
       page.on("pageerror", error => errors.push(error.message));
+      page.on("console", message => { if (message.type() === "error") consoleErrors.push(message.text()); });
+      await page.route(`${origin}/__test-profile-portrait.svg`, route => route.fulfill({
+        status: 200,
+        contentType: "image/svg+xml",
+        body: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360"><defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#ff7a1a"/><stop offset="1" stop-color="#1769e0"/></linearGradient></defs><rect width="360" height="360" fill="url(#bg)"/><circle cx="180" cy="126" r="72" fill="#f4c8a4"/><path d="M95 132c4-88 166-103 173 3-29-28-48-53-78-60-29 32-60 50-95 57Z" fill="#2a1c19"/><circle cx="154" cy="126" r="7" fill="#1a2230"/><circle cx="207" cy="126" r="7" fill="#1a2230"/><path d="M151 164c22 17 44 17 64 0" fill="none" stroke="#874c3e" stroke-width="8" stroke-linecap="round"/><path d="M48 360c10-103 58-154 132-154s122 51 132 154" fill="#101722"/><path d="M126 218l54 54 54-54" fill="#fff" opacity=".9"/></svg>`
+      }));
       await page.route("https://media.example.invalid/**", route => route.fulfill({ status: 200, contentType: "video/webm", body: portraitVideo }));
       await page.route("https://api.danzstak.com/**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(new URL(route.request().url()))) }));
       await page.goto(`${origin}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
-      await page.locator(`.post[data-post-id="${videoPostId}"]`).waitFor();
+      try {
+        await page.locator(`.post[data-post-id="${videoPostId}"]`).waitFor();
+      } catch (error) {
+        const feedState = await page.evaluate(() => ({
+          status: document.querySelector("#feedStatus")?.textContent?.trim() || "",
+          posts: [...document.querySelectorAll("#feed > .post")].map(post => post.dataset.postId || post.className)
+        }));
+        throw new Error(`${error.message}\nFeed state: ${JSON.stringify(feedState)}\nPage errors: ${errors.join(" | ")}\nConsole errors: ${consoleErrors.join(" | ")}`);
+      }
       await page.locator(".composer-media-tools").waitFor({ state: "attached" });
+      await page.locator("#storiesRail img.story-create-avatar-image").waitFor();
+      await page.waitForFunction(() => {
+        const image = document.querySelector("#storiesRail img.story-create-avatar-image");
+        return image?.complete && image.naturalWidth > 0;
+      });
       await page.locator(`.post[data-post-id="${videoPostId}"] video`).evaluate(video => {
         video.preload = "metadata";
         video.load();
@@ -156,12 +176,20 @@ async function createPortraitVideo(browser) {
           const p = post.getBoundingClientRect();
           const m = media.getBoundingClientRect();
           const player = media.matches("video") ? media : media.querySelector("video");
+          const authorStyle = getComputedStyle(post.querySelector(".post-author"));
+          const timeStyle = getComputedStyle(post.querySelector(".post-time"));
+          const contentStyle = getComputedStyle(post.querySelector(".post-content"));
           return {
             post: [p.left, p.right],
             media: [m.left, m.right],
             aligned: Math.abs(p.left - m.left) <= 1 && Math.abs(p.right - m.right) <= 1,
             ratio: m.width / m.height,
-            fit: player ? getComputedStyle(player).objectFit : ""
+            fit: player ? getComputedStyle(player).objectFit : getComputedStyle(media).objectFit,
+            type: {
+              author: [authorStyle.fontSize, authorStyle.fontWeight, authorStyle.lineHeight],
+              time: [timeStyle.fontSize, timeStyle.fontWeight, timeStyle.lineHeight],
+              content: [contentStyle.fontSize, contentStyle.fontWeight, contentStyle.lineHeight]
+            }
           };
         };
         const firstPostTop = document.querySelector("#feed .post")?.getBoundingClientRect().top || 0;
@@ -174,6 +202,7 @@ async function createPortraitVideo(browser) {
         const composer = document.querySelector("#newsFeedView .post-composer")?.getBoundingClientRect();
         const dailyCard = document.querySelector("#storiesRail .story-create")?.getBoundingClientRect();
         const dailyPortrait = document.querySelector("#storiesRail .story-create-avatar")?.getBoundingClientRect();
+        const dailyPortraitElement = document.querySelector("#storiesRail .story-create-avatar");
         const dailyClapper = document.querySelector("#storiesRail .daily-clapper")?.getBoundingClientRect();
         const center = document.querySelector("#yourMixMain")?.getBoundingClientRect();
         const feedPosts = [...document.querySelectorAll("#feed > .post")];
@@ -208,6 +237,9 @@ async function createPortraitVideo(browser) {
               && Math.abs(dailyPortrait.right - dailyCard.right) <= 1
               && Math.abs(dailyPortrait.bottom - dailyCard.bottom) <= 1,
             radius: getComputedStyle(document.querySelector("#storiesRail .story-create-avatar")).borderRadius,
+            isImage: dailyPortraitElement?.tagName === "IMG",
+            imageLoaded: dailyPortraitElement?.tagName === "IMG" ? dailyPortraitElement.complete && dailyPortraitElement.naturalWidth > 0 : false,
+            objectFit: getComputedStyle(dailyPortraitElement).objectFit,
             clapperInside: dailyClapper
               ? dailyClapper.left >= dailyCard.left && dailyClapper.bottom <= dailyCard.bottom
               : false,
@@ -230,13 +262,21 @@ async function createPortraitVideo(browser) {
       assert.ok(geometry.dailyPortrait?.dominatesCard, `${width}px Dailies portrait is too small for its tile: ${JSON.stringify(geometry.dailyPortrait)}`);
       assert.equal(geometry.dailyPortrait.fillsCard, true, `${width}px Dailies image does not fill the complete container`);
       assert.equal(geometry.dailyPortrait.radius, "18px", `${width}px Dailies image must use the tile corners instead of an inset circle`);
+      assert.equal(geometry.dailyPortrait.isImage, true, `${width}px Dailies must render the signed-in member's profile picture as an image`);
+      assert.equal(geometry.dailyPortrait.imageLoaded, true, `${width}px Dailies profile picture did not load`);
+      assert.equal(geometry.dailyPortrait.objectFit, "cover", `${width}px Dailies profile picture does not fill the tile`);
       assert.equal(geometry.dailyPortrait.backgroundSize, "cover", `${width}px Dailies portrait is not cropped to fill the tile`);
       assert.equal(geometry.dailyPortrait.clapperInside, true, `${width}px Dailies clapper is not contained in the lower-left of the image`);
       assert.equal(geometry.dailyPortrait.clapperOverPortrait, true, `${width}px Dailies clapper is beside the portrait instead of over it`);
       assert.ok(Math.abs(geometry.feedGap - 16) <= 1, `${width}px feed post gap is not 16px: ${geometry.feedGap}; computed ${geometry.feedRowGap}; margins ${geometry.firstPostMarginBottom}/${geometry.secondPostMarginTop}`);
       assert.ok(geometry.image.aligned, `${width}px direct image is inset: ${JSON.stringify(geometry.image)}`);
       assert.ok(geometry.video.aligned, `${width}px direct video is inset: ${JSON.stringify(geometry.video)}`);
+      assert.deepEqual(geometry.image.type.author, ["15px", "600", "20px"], `${width}px post author typography drifted`);
+      assert.deepEqual(geometry.image.type.time, ["13px", "400", "16px"], `${width}px post metadata typography drifted`);
+      assert.deepEqual(geometry.image.type.content, ["15px", "400", "21px"], `${width}px post body typography drifted`);
       if (width < 700) {
+        assert.ok(Math.abs(geometry.image.ratio - .8) <= .02, `${width}px image preview is not 4:5: ${JSON.stringify(geometry.image)}`);
+        assert.equal(geometry.image.fit, "cover", `${width}px image preview does not fill its 4:5 frame`);
         assert.ok(Math.abs(geometry.video.ratio - .8) <= .02, `${width}px portrait Mix preview is not 4:5: ${JSON.stringify(geometry.video)}`);
         assert.equal(geometry.video.fit, "cover", `${width}px portrait Mix preview does not fill its frame`);
       } else {
