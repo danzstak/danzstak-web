@@ -293,6 +293,12 @@ body.danzstak-original .right :is(h3,h2) {
     font-size:12px;
   }
   body.danzstak-original .pivot-header-button .ds-action-icon {width:17px;height:17px}
+  body.danzstak-original:has(> .install-app-button:not([hidden])) .topbar {
+    padding-right:max(52px,calc(env(safe-area-inset-right) + 44px))!important;
+  }
+  body.danzstak-original:has(> .install-app-button:not([hidden])) .topbar .search {
+    padding-right:11px!important;
+  }
   body.danzstak-original .topnav {grid-column:1/-1}
   body.danzstak-original .layout {
     display:block;
