@@ -73,7 +73,8 @@ const mediaBucket = process.env.MEDIA_BUCKET;
 
 const callbackUrl = "https://api.danzstak.com/auth/callback";
 const allowedOrigin = "https://danzstak.com";
-const allowedOrigins = new Set([allowedOrigin, "https://www.danzstak.com"]);
+const reviewOrigin = "https://review.danzstak.com";
+const allowedOrigins = new Set([allowedOrigin, "https://www.danzstak.com", reviewOrigin]);
 const securityHeaders = {
   "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
   "x-content-type-options": "nosniff",
