@@ -4,6 +4,12 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Failure-safe Tribe deletion
+
+- **FIXED AND TESTED IN PR #173; BACKENDS NOT DEPLOYED:** Deleting a Tribe now atomically marks its metadata as `pending` before member, cover and metadata cleanup begins. A failed member scan, member deletion, cover deletion or final metadata deletion returns an explicit retryable response while the Tribe remains hidden from discovery, Mix, SYNC contacts, announcements, cover changes and new joins.
+- Custom-Tribe joins now use a DynamoDB transaction that checks active metadata and writes membership together, so deletion cannot race a late join. Default Tribes keep their existing membership path. Retrying a pending deletion is idempotent: member rows are removed first, owned cover objects next, and the founder-owned metadata last.
+- **TESTED:** executable failure paths cover member discovery failure, member deletion failure, storage failure, final metadata failure, destructive-operation ordering, concurrent/repeated deletion and successful recovery. A behavioral feed test proves pending-Tribe posts are invisible even to the founder while active joined-Tribe posts remain visible. The complete `test-regressions.ps1` gate passes, including every `test-*.cjs` file, release verification, 13-page site smoke, infrastructure checks and embedded Lambda syntax. GitHub Review run [42529364038](https://github.com/danzstak/danzstak-web/actions/runs/42529364038) passed all five jobs for implementation commit `9477cefe52c027644b6bbb2d7995d68b90246cbf`. Production and the hosted review backend are unchanged.
+
 ### Active profile and Tribe media cleanup race
 
 - **FIXED AND TESTED IN PR #173; BACKENDS NOT DEPLOYED:** A queued profile picture, profile cover, profile video or Tribe cover can no longer be deleted after that exact object becomes active again. Cleanup now acquires a short account/Tribe-scoped lease only while the authoritative record still queues the key and no active media field references it. Profile/Tribe writes reject a stale concurrent device while a deletion lease is active, compare the media fields read by that device, and verify that newly selected storage still exists.
