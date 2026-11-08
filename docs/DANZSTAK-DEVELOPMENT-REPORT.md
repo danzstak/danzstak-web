@@ -1877,3 +1877,15 @@ Status as of 2026-11-08: **IMPLEMENTED AND TESTED; AWS BACKEND AND PRODUCTION UN
 - The complete local `test-regressions.ps1` suite passed, including every JavaScript regression, the 13-page site smoke test, release propagation behavior, and embedded-Lambda infrastructure validation.
 - Implementation commit `9094e55681f0cb4544660424ac140f83de89dae2` passed all five jobs in GitHub Review run [42522544172](https://github.com/danzstak/danzstak-web/actions/runs/42522544172).
 - This change modifies Lambda infrastructure source but has **not** been deployed to AWS. Production and the review frontend remain unchanged pending the owner's release gate.
+
+# Release candidate — durable Tribe cover removal
+
+Status as of 2026-11-08: **IMPLEMENTED AND TESTED; AWS BACKEND AND PRODUCTION UNCHANGED**.
+
+- Root cause: replacing a Tribe cover committed the new key and then made one best-effort storage deletion. Deleting a Tribe removed its database records before making the same one-shot cover deletion. Either storage failure could therefore leave media without a durable retry record.
+- Replaced cover keys are now committed atomically to a durable `coverCleanup` set with the new cover. Cleanup receives three bounded attempts, and a later cover save retries every pending key. A stale Elder update is rejected rather than overwriting a cover changed on another device.
+- Tribe deletion removes current and queued cover media first. It then retries membership removal and deletes the metadata retry anchor last. A storage, membership, metadata, or concurrent-cover failure returns a retryable response while preserving enough state to finish safely.
+- The former static cover test is now an executable backend harness. It verifies durable queueing and recovery, storage-first ordering, three-attempt limits, stale-update protection, record preservation on failure, and metadata-last deletion.
+- The complete local `test-regressions.ps1` suite passed, including every JavaScript regression, the 13-page site smoke test, release propagation behavior, and infrastructure validation.
+- Implementation commit `ff100cfbac26e41b02172ea1e85077da8c46b954` passed all five jobs in GitHub Review run [42523317807](https://github.com/danzstak/danzstak-web/actions/runs/42523317807).
+- This Auth API change has **not** been deployed to AWS. Production and the review frontend remain unchanged pending the owner's release gate.
