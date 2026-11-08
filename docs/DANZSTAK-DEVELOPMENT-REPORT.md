@@ -1865,3 +1865,15 @@ Status as of 2026-11-08: **IMPLEMENTED, TESTED, REVIEW-PWA DEPLOYED, AND HOSTED-
 - Focused browser checks passed locally and directly against `https://review.danzstak.com` at 390 and 1366px. The gate separately verifies an established visible name, an established username with a generic display name, and a genuinely new identity; only the new identity sees the dismissible prompt, and its request body is exactly `{ name }`.
 - The complete local `test-regressions.ps1` suite passed, including every JavaScript regression, the 13-page site smoke test, release propagation behavior, and embedded-Lambda infrastructure validation. GitHub Review run [42521727931](https://github.com/danzstak/danzstak-web/actions/runs/42521727931) passed all five jobs for exact implementation commit `db631d814aca1677bf6bb54d4e88234b16d3059c`.
 - No-cache hosted probes confirmed `assets/profile-onboarding.js?v=10` and the new existing-account gate on the review PWA. Production remains unchanged pending the owner's physical-phone go/no-go.
+
+# Release candidate — durable scheduled Dailies expiry
+
+Status as of 2026-11-08: **IMPLEMENTED AND TESTED; AWS BACKEND AND PRODUCTION UNCHANGED**.
+
+- Root cause: the 15-minute scheduled expiry worker deleted an expired Daily's DynamoDB record before removing its dedicated S3 object. If that storage request failed, the retry record was already gone and the media object could be orphaned permanently.
+- Scheduled expiry now removes dedicated `stories/` media first with three bounded attempts. It deletes the database record only after media removal succeeds, so a failed storage operation preserves a durable record for the next scheduled run. Database removal also receives three attempts; repeating a successful S3 delete is safe and idempotent.
+- Roll videos remain durable, current Dailies remain untouched, scan pagination is preserved, and legacy references outside the dedicated `stories/` prefix are expired without deleting potentially shared media.
+- A new executable worker harness verifies storage-first ordering, S3 and DynamoDB retry limits, pagination, current-Daily preservation, Roll preservation, prefix isolation, legacy expiry, and the durable retry record. The infrastructure gate also asserts the fail-safe worker contract.
+- The complete local `test-regressions.ps1` suite passed, including every JavaScript regression, the 13-page site smoke test, release propagation behavior, and embedded-Lambda infrastructure validation.
+- Implementation commit `9094e55681f0cb4544660424ac140f83de89dae2` passed all five jobs in GitHub Review run [42522544172](https://github.com/danzstak/danzstak-web/actions/runs/42522544172).
+- This change modifies Lambda infrastructure source but has **not** been deployed to AWS. Production and the review frontend remain unchanged pending the owner's release gate.
