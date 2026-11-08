@@ -53,10 +53,7 @@ function fixture(pathname, identityState) {
         });
         await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
         await page.locator("#storiesLoading").waitFor({ state: "detached" });
-        await page.waitForFunction(() => {
-          const daily = document.querySelector(".story-create-avatar");
-          return daily?.tagName === "IMG" && daily.complete && daily.naturalWidth > 0;
-        }, { timeout: 5000 });
+        await page.locator("img.story-create-avatar").waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
         const result = await page.evaluate(() => {
           const panel = document.getElementById("profileOnboarding");
           const daily = document.querySelector(".story-create-avatar");
@@ -73,6 +70,24 @@ function fixture(pathname, identityState) {
         assert.equal(result.overflow, false, `${width}px identity state overflows horizontally`);
         assert.equal(result.dailyIsImage, true, `${width}px Dailies did not use the signed profile image`);
         assert.equal(result.dailyLoaded, true, `${width}px Dailies profile image failed to load`);
+        if (identityState === "named") {
+          await page.evaluate(() => {
+            document.querySelector(".composer-avatar")?.remove();
+            const image = document.querySelector("img.story-create-avatar");
+            const placeholder = document.createElement("span");
+            placeholder.className = "story-create-avatar";
+            placeholder.textContent = "D";
+            image?.replaceWith(placeholder);
+            window.dispatchEvent(new CustomEvent("danzstak:posts-loaded", { detail: { posts: [{
+              isOwner: true,
+              userId: "11111111-1111-4111-8111-111111111111",
+              authorName: "Liana",
+              authorPicture: "/assets/danzstak-share-fb-v2.jpg"
+            }] } }));
+          });
+          await page.locator("img.story-create-avatar").waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
+          assert.equal(await page.locator("img.story-create-avatar").count(), 1, `${width}px Dailies hydration still depended on the Mix composer`);
+        }
         if (identityState !== "new") {
           assert.equal(result.panelHidden, true, `${width}px an established ${identityState === "named" ? "visible name" : "username"} was blocked by identity setup`);
         } else {

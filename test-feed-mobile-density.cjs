@@ -38,7 +38,7 @@ assert.match(source, /reelsRail\.classList\.toggle\("has-reels", reels\.length >
 assert.match(css, /\.reels-rail:not\(\.has-reels\):not\(\.is-adding\)[^{]*\{padding:10px 12px!important\}/, "the empty Roll must remain compact");
 assert.match(css, /\.reel-import-form\[hidden\],\.roll-close\[hidden\],\.roll-open\[hidden\]\{display:none!important\}/, "hidden Roll controls must not be revived by shared icon styles");
 assert.match(html, /assets\/feed-enhancements\.css\?v=508/);
-assert.match(html, /assets\/feed-enhancements\.js\?v=540/);
+assert.match(html, /assets\/feed-enhancements\.js\?v=541/);
 assert.match(html, /assets\/danzstak-original-feed\.css\?v=28/);
 assert.match(worker, /danzstak-shell-v764/);
 

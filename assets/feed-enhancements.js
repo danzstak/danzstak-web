@@ -3701,11 +3701,6 @@ function setViewerProfilePicture(profile = {}) {
     avatar.textContent = initial;
     avatar.style.backgroundImage = "";
   }
-  const dailyAvatar = document.querySelector(".story-create-avatar");
-  if (dailyAvatar && (!dailyAvatar.dataset.viewerPicture || picture)) {
-    dailyAvatar.textContent = initial;
-    dailyAvatar.style.backgroundImage = "";
-  }
   if (!picture) return;
   avatar.dataset.viewerPicture = picture;
   const image = new Image();
@@ -3716,22 +3711,32 @@ function setViewerProfilePicture(profile = {}) {
     avatar.textContent = "";
   };
   image.src = picture;
-  if (dailyAvatar) {
-    if (dailyAvatar.tagName === "IMG") {
-      dailyAvatar.src = picture;
-      dailyAvatar.dataset.viewerPicture = picture;
-      window.danzstakIdentityMedia?.install(dailyAvatar, profile);
-    } else {
-      const dailyImage = document.createElement("img");
-      dailyImage.className = "story-create-avatar story-create-avatar-image";
-      dailyImage.alt = "";
-      dailyImage.src = picture;
-      dailyImage.dataset.viewerPicture = picture;
-      dailyImage.referrerPolicy = "no-referrer";
-      window.danzstakIdentityMedia?.install(dailyImage, profile);
-      dailyAvatar.replaceWith(dailyImage);
-    }
+}
+
+function setDailyCreatorPicture(profile = {}) {
+  if (typeof document.querySelector !== "function") return;
+  const dailyAvatar = document.querySelector(".story-create-avatar");
+  if (!dailyAvatar?.isConnected) return;
+  const initial = String(profile.name || profile.authorName || "D").trim().charAt(0).toUpperCase() || "D";
+  const picture = String(profile.picture || profile.authorPicture || "").trim();
+  if (!picture) {
+    if (dailyAvatar.tagName !== "IMG" && !dailyAvatar.dataset.viewerPicture) dailyAvatar.textContent = initial;
+    return;
   }
+  if (dailyAvatar.tagName === "IMG") {
+    dailyAvatar.src = picture;
+    dailyAvatar.dataset.viewerPicture = picture;
+    window.danzstakIdentityMedia?.install(dailyAvatar, profile);
+    return;
+  }
+  const dailyImage = document.createElement("img");
+  dailyImage.className = "story-create-avatar story-create-avatar-image";
+  dailyImage.alt = "";
+  dailyImage.src = picture;
+  dailyImage.dataset.viewerPicture = picture;
+  dailyImage.referrerPolicy = "no-referrer";
+  window.danzstakIdentityMedia?.install(dailyImage, profile);
+  dailyAvatar.replaceWith(dailyImage);
 }
 
 function hydratePostComposerAvatar() {
@@ -3742,7 +3747,13 @@ function hydratePostComposerAvatar() {
   });
 }
 
+function hydrateDailyCreatorPicture() {
+  if (typeof document === "undefined" || typeof document.querySelector !== "function") return;
+  loadCommentViewerProfile().then(setDailyCreatorPicture);
+}
+
 hydratePostComposerAvatar();
+hydrateDailyCreatorPicture();
 
 // Older accounts can have a visible profile picture on their saved posts even
 // when the profile endpoint has no picture yet. Reuse that authoritative post
@@ -3751,6 +3762,11 @@ function hydrateViewerPictureFromPosts(posts = []) {
   const ownerPost = posts.find(post => post?.isOwner === true && String(post.authorPicture || "").trim());
   if (!ownerPost) return;
   setViewerProfilePicture({
+    memberId: String(ownerPost.userId || ""),
+    name: ownerPost.authorName || ownerPost.name || "DanzStak member",
+    picture: ownerPost.authorPicture
+  });
+  setDailyCreatorPicture({
     memberId: String(ownerPost.userId || ""),
     name: ownerPost.authorName || ownerPost.name || "DanzStak member",
     picture: ownerPost.authorPicture
