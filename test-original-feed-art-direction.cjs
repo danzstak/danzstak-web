@@ -23,7 +23,7 @@ assert.match(art, /@media\(min-width:701px\)[\s\S]*post-composer:not\(\.is-expan
 assert.match(art, /\.topbar\s*\{[\s\S]*?background:#101722;[\s\S]*?border-bottom:3px solid var\(--ds-accent\)/, "the first viewport must use the DanzStak stage-and-orange header instead of stock social blue");
 assert.match(art, /\.topbar \.topnav\s*\{[\s\S]*?background:rgba\(255,255,255,\.96\)/, "the phone navigation must use the premium light application bar");
 assert.match(art, /\.story-create:hover \.story-create-avatar \{transform:scale\(1\.025\)\}/, "Dailies artwork needs a restrained interactive finish");
-assert.match(worker, /danzstak-shell-v755/);
+assert.match(worker, /danzstak-shell-v756/);
 assert.match(worker, /\/assets\/danzstak-original-feed\.css/, "the installed PWA must cache the art-direction layer");
 
 console.log("Original Feed art-direction checks passed: shared tokens, edge media, touch targets, and PWA caching.");

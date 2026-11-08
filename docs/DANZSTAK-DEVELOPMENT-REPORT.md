@@ -1727,3 +1727,14 @@ Status as of 2026-11-08: **IMPLEMENTED, TESTED, AND REVIEW-DEPLOYED; PRODUCTION 
 - The installed-PWA shell advances to `danzstak-shell-v755` and the EPK review script to `v3`, preventing the review PWA from retaining the coupled loader.
 - Exact implementation commit `1518c9951da3b0858fe86a82daf3c2580961cb00` passed GitHub Review run `42496775169`. AWS Amplify review job `48` deployed that exact commit successfully to the release-candidate PWA.
 - The EPK review browser suite then passed against the hosted PWA at 320, 360, 390, 414, 430, and 1366px with no horizontal overflow and touch-sized controls, including the optional session failure, optional target timeout, public-review failure, and all-success scenarios. Review URL: `https://codex-release-candidate-2026-11-08.d31oovi2mos5iz.amplifyapp.com/epk.html`.
+
+# Public EPK — complete booking-facing media proof
+
+Status as of 2026-11-08: **IMPLEMENTED AND LOCALLY VERIFIED; REVIEW DEPLOYMENT PENDING; PRODUCTION UNCHANGED**.
+
+- The public EPK acceptance fixture previously contained no press image, biography, releases, music, video, shows, press quote, or booking contact. It could prove the stage/booth plot, but it could not prove the complete page a talent buyer receives.
+- The actual public-page gate now renders a deterministic full artist kit for both band and DJ/electronic act paths: authorized press artwork, short and full biographies, lineup, releases, externally hosted music links, an externally hosted live-video link, social link, shows, achievement, sourced press quote, stage requirements, production details, and artist-approved booking contact.
+- Music and video remain links to their providers. Compact provider cards identify Bandcamp, Spotify, and YouTube without copying or hosting audio/video. Embedded players remain click-to-load, receive no autoplay permission, and only one provider frame may exist at a time.
+- Activating a supported player now places the iframe in the full-width media-card content area instead of injecting it between action controls. The browser gate measures the frame against its parent card and rejects overflow or a narrow action-row player.
+- Actual-browser checks passed for complete band and DJ public EPKs at 390 and 1366px and for the builder at 320, 360, 390, 414, 430, and 1366px. All four artist looks passed at phone and desktop widths, and the Reviews matrix passed at all six widths after one transient screenshot-protocol retry.
+- The complete repository regression suite passed, including social persistence, media/audio coordination, SYNC/calls, Booking/EPK/Tour Manager, Stripe entitlements/refunds, support-email SES-only behavior, worldwide discovery, accessibility, PWA, site smoke, and infrastructure validation. The installed-PWA shell advances to `danzstak-shell-v756`, EPK JavaScript to `v20`, and EPK media CSS to `v8`.

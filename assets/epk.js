@@ -111,6 +111,9 @@
     } catch {}
     return "External media";
   }
+  function providerMark(provider) {
+    return ({YouTube:"YT",Vimeo:"VM",Spotify:"SP",SoundCloud:"SC",Bandcamp:"BC",TikTok:"TT",Instagram:"IG",Facebook:"FB"})[provider] || "↗";
+  }
   function stopProviderEmbeds(except = null) {
     document.querySelectorAll(".epk-media-card[data-player-active='true']").forEach(card => {
       if (card === except) return;
@@ -132,7 +135,7 @@
     frame.allowFullscreen = true;
     card.dataset.playerActive = "true";
     button.hidden = true;
-    button.after(frame);
+    card.append(frame);
   }
   function mediaLinks(items) {
     if (!items?.length) return null;
@@ -140,8 +143,13 @@
     wrap.className = "epk-embeds";
     items.forEach(item => {
       if (!/^https:\/\//i.test(item.url || "")) return;
-      const card = document.createElement("article"), actions = document.createElement("div"), source = providerSource(item), provider = providerName(item.url), link = text("a", `Open on ${provider}`);
+      const card = document.createElement("article"), mark = text("span", "", "epk-provider-mark"), copy = document.createElement("div"), actions = document.createElement("div"), source = providerSource(item), provider = providerName(item.url), link = text("a", `Open on ${provider}`);
       card.className = "epk-media-card";
+      card.dataset.provider = provider.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      mark.textContent = providerMark(provider);
+      mark.setAttribute("aria-hidden", "true");
+      copy.className = "epk-media-copy";
+      copy.append(text("p", provider, "epk-provider"), text("h3", item.label));
       actions.className = "epk-media-actions";
       link.href = item.url;
       link.target = "_blank";
@@ -154,7 +162,7 @@
         actions.append(load);
       }
       actions.append(link);
-      card.append(text("p", provider, "epk-provider"), text("h3", item.label), actions);
+      card.append(mark, copy, actions);
       wrap.append(card);
     });
     return wrap;

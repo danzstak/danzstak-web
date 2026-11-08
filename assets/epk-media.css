@@ -27,15 +27,18 @@
 .epk-downloads a { display: block; padding: 8px; }
 .epk-logo { display: block; width: auto; max-width: min(220px,70%); max-height: 82px; object-fit: contain; object-position: left center; margin-bottom: 12px; }
 .epk-embeds { display: grid; gap: 12px; }
-.epk-media-card { min-width: 0; padding: 12px; border: 1px solid currentColor; }
-.epk-embeds h3 { margin: 0 0 6px; font-size: 1rem; }
-.epk-media-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.epk-media-card { display: grid; grid-template-columns: 44px minmax(0,1fr); gap: 10px 12px; align-items: center; min-width: 0; padding: 14px; border: 1px solid currentColor; }
+.epk-provider-mark { display: grid; width: 44px; height: 44px; place-items: center; border: 1px solid currentColor; border-radius: 50%; font-family: var(--epk-detail,monospace); font-size: .78rem; font-weight: 900; letter-spacing: .04em; color: var(--epk-ground,#0b0b0c); background: var(--epk-accent,#ff5a1f); }
+.epk-media-copy { min-width: 0; }
+.epk-embeds h3 { margin: 3px 0 0; font-size: 1rem; overflow-wrap: anywhere; }
+.epk-media-actions { display: flex; grid-column: 1 / -1; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.epk-media-actions a { display: inline-flex; min-height: 44px; align-items: center; padding: 8px 2px; font-weight: 800; text-underline-offset: 3px; }
 .epk-player-load { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border: 1px solid currentColor; background: transparent; color: inherit; font: inherit; font-weight: 800; cursor: pointer; }
 .epk-player-load::before { content: "\25B6"; font-size: .8em; }
 .epk-player-load[hidden] { display: none; }
 .epk-player-load:hover,
 .epk-player-load:focus-visible { background: color-mix(in srgb,currentColor 12%,transparent); }
-.epk-embeds iframe { display: block; width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 10px; margin: 10px 0 0; background: #10141b; }
+.epk-embeds iframe { display: block; grid-column: 1 / -1; width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 10px; margin: 2px 0 0; background: #10141b; }
 .epk-provider { margin: 0; color: #596579; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
 .epk-contact { display: grid; gap: 8px; }
 .epk-contact p { margin: 0; font-weight: 800; }
