@@ -4,10 +4,10 @@ Status: **STAGING VERIFIED — NO TEST PASS, NO PRODUCTION DEPLOY**
 Prepared: 2026-11-08  
 Release owner: Shawn  
 Branch: `codex/release-candidate-2026-11-08`  
-Reviewed implementation: `d6b5fdb823fd462e9349108ed16fc2b030902e37`  
-Evidence/report head: `95b86c0742741397d2839fc29f75f206f0b41ba4`  
+Reviewed implementation: `e8b8b694cf3572799044fed0b80a95bc9668f326`
+Latest verification-only head: `fb5ca212058bb3d9f45fe405d6222a14be9f4edd`
 Base/rollback commit: `04d41cccea19da3999e2ae69845532ce32b16e3f`  
-PWA cache: `danzstak-shell-v733`  
+PWA cache: `danzstak-shell-v742`
 Production commit/deployment: **UNCHANGED / NOT DEPLOYED**
 
 ## Scope
@@ -42,7 +42,7 @@ Out of scope and still required:
 
 ## Test 2 — visual and accessibility
 
-- [x] Core social mobile passed 26 page/viewport combinations on staging.
+- [x] Core social mobile passed 31 page/viewport combinations on staging, including the open Menu at every phone width.
 - [x] Pivot/Profile Pivot passed at 320, 360, 390, 414, 430 and 1366px.
 - [x] The Roll passed at 320, 360, 390, 414, 430 and 1366px.
 - [x] Account security passed at 320, 360, 390, 414, 430, 768, 1024 and 1366px.
@@ -55,14 +55,14 @@ Evidence: `docs/screenshots/release-candidate/`, `docs/screenshots/issue-55-book
 
 ## Test 3 — integration, security and staging
 
-- [x] GitHub Review checks run `42440129907` concluded `success` at exact branch head `95b86c0742741397d2839fc29f75f206f0b41ba4`.
+- [x] GitHub Review checks run `42471960926` concluded `success` for the menu implementation; the verification-only follow-up waits for its current run before production review.
 - [x] Feed, Friends, Notifications, Profile, SYNC, Pivot, The Roll, Booking and EPK shells returned HTTP 200 from staging.
-- [x] Delivered Feed/Profile assets match CSS `v17`, Pivot `v2` and Profile editor `v484`.
-- [x] Delivered service worker reports `danzstak-shell-v733`.
-- [x] A fresh hosted browser context registered and activated the staging service worker, created cache `danzstak-shell-v733`, and controlled the next page load without clearing user storage.
+- [x] Delivered Feed assets match mobile-design CSS `v15`, Feed art-direction CSS `v21`, Feed enhancement JavaScript `v536`, Pivot `v2` and Profile editor `v484`.
+- [x] Delivered service worker reports `danzstak-shell-v742`.
+- [x] A fresh hosted browser context registered and activated the staging service worker, created the versioned shell cache, and controlled the next page load without clearing user storage.
 - [x] Required authentication, account-isolation, accessibility, link/privacy, Booking, EPK, Tour Manager, Stripe Test Mode and PWA regressions passed in the full gate.
 - [x] No credential, password, session token, webhook secret or private customer data is recorded in the branch evidence.
-- [x] Amplify DEVELOPMENT job `2` built exact head `95b86c0742741397d2839fc29f75f206f0b41ba4` successfully in `us-west-1`.
+- [x] No-cache hosted probes return the current `danzstak-shell-v742` and the matching Feed assets; the staging branch remains separate from production.
 
 Staging PWA: <https://codex-release-candidate-2026-11-08.d31oovi2mos5iz.amplifyapp.com/feed.html>
 
