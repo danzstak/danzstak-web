@@ -4,6 +4,12 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### SYNC message Delete everywhere durability
+
+- **COMPLETE IN SOURCE AND LOCAL TESTS; BACKEND NOT DEPLOYED:** A sender removing a SYNC message for everyone now removes an owned photo/video attachment before destroying the database record that makes cleanup retryable. Three failed storage attempts return a retryable 503 and leave the message, reactions and conversation references intact instead of reporting success with orphaned private media.
+- The route rejects attachment keys outside the sender's private message prefix, removes every reaction without the shared query ceiling, retries transient reaction cleanup, repairs both conversation previews to the preceding real message, and deletes the source message last. It no longer leaves a **Message deleted** placeholder. **Remove for me** remains private to the requesting account and does not remove the shared message or media.
+- **TESTED:** the new executable failure-path harness proves sender-only authorization, foreign-media rejection, full storage retry exhaustion without database destruction, recovery after two temporary storage and reaction failures, unbounded reaction collection, preview repair, destructive-operation ordering and remove-here isolation. `test-message-edit.cjs`, `test-infrastructure.ps1`, embedded Lambda syntax validation and the complete `test-regressions.ps1` gate pass. No AWS stack or production backend was changed.
+
 ### Creator-owned Delete everywhere cascade
 
 - **COMPLETE IN SOURCE AND LOCAL TESTS; BACKEND NOT DEPLOYED:** Deleting an original post now derives and removes the complete first-party graph before deleting the source: every direct DanzStak reshare, post/comment reactions, comments and replies, post-view telemetry, linked Story record, active media object, and post-related reaction/comment/reply/tag notifications. There is no removed-content placeholder.
