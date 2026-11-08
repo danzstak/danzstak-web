@@ -185,6 +185,10 @@ async function createPortraitVideo(browser) {
             portrait: [dailyPortrait.left, dailyPortrait.top, dailyPortrait.right, dailyPortrait.bottom],
             dominatesCard: dailyPortrait.width >= dailyCard.width * .88
               && dailyPortrait.height >= dailyCard.height * .88,
+            fillsCard: Math.abs(dailyPortrait.left - dailyCard.left) <= 1
+              && Math.abs(dailyPortrait.top - dailyCard.top) <= 1
+              && Math.abs(dailyPortrait.right - dailyCard.right) <= 1
+              && Math.abs(dailyPortrait.bottom - dailyCard.bottom) <= 1,
             radius: getComputedStyle(document.querySelector("#storiesRail .story-create-avatar")).borderRadius,
             clapperInside: dailyClapper
               ? dailyClapper.left >= dailyCard.left && dailyClapper.bottom <= dailyCard.bottom
@@ -206,7 +210,8 @@ async function createPortraitVideo(browser) {
       assert.equal(geometry.accent, "#ef6c20");
       assert.equal(normalize(geometry.headerBorder), "rgb(239,108,32)");
       assert.ok(geometry.dailyPortrait?.dominatesCard, `${width}px Dailies portrait is too small for its tile: ${JSON.stringify(geometry.dailyPortrait)}`);
-      assert.equal(geometry.dailyPortrait.radius, "50%", `${width}px Dailies portrait does not match the profile avatar`);
+      assert.equal(geometry.dailyPortrait.fillsCard, true, `${width}px Dailies image does not fill the complete container`);
+      assert.equal(geometry.dailyPortrait.radius, "18px", `${width}px Dailies image must use the tile corners instead of an inset circle`);
       assert.equal(geometry.dailyPortrait.backgroundSize, "cover", `${width}px Dailies portrait is not cropped to fill the tile`);
       assert.equal(geometry.dailyPortrait.clapperInside, true, `${width}px Dailies clapper is not contained in the lower-left of the image`);
       assert.equal(geometry.dailyPortrait.clapperOverPortrait, true, `${width}px Dailies clapper is beside the portrait instead of over it`);
