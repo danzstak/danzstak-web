@@ -153,7 +153,15 @@ function fixture(pathname) {
               const box = element.getBoundingClientRect();
               return { label: element.textContent.trim(), left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
             });
-            const headerRect = element => { const box = element?.getBoundingClientRect(); return box ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height } : null; };
+            const headerRect = element => {
+              if (!element || element.hidden) return null;
+              const style = getComputedStyle(element);
+              if (style.display === "none" || style.visibility === "hidden") return null;
+              const box = element.getBoundingClientRect();
+              return box.width > 0 && box.height > 0
+                ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height }
+                : null;
+            };
             return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), searchPlaceholder: document.querySelector("#profileHeaderSearch")?.placeholder || "", pivot: headerRect(document.querySelector("#profileHeaderPivot")), install: headerRect(document.querySelector("body > .install-app-button")) } };
           });
           assert.equal(profileControls.actions.length, 3, `${width}px owner profile must retain Edit, Share, and Invite actions`);
