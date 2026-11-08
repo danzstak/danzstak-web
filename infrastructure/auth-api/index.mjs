@@ -2022,15 +2022,51 @@ async function deleteComment(event) {
   const userId = await getAuthenticatedUser(event), postId = String(event.queryStringParameters?.postId || ""), commentId = String(event.pathParameters?.commentId || "");
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   if (!/^[a-f0-9-]{36}$/.test(postId) || !/^\d{13}#[a-f0-9-]{36}$/.test(commentId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid comment." }) };
-  const [comment, post] = await Promise.all([
+  const [commentResult, post] = await Promise.all([
     db.send(new GetItemCommand({ TableName: commentsTable, Key: { postId: { S: postId }, commentId: { S: commentId } }, ConsistentRead: true })),
     db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }))
   ]);
-  if (!comment.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Comment not found." }) };
-  if (comment.Item.userId?.S !== userId && post.Item?.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the comment or post owner can delete this comment." }) };
-  await db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: { S: postId }, commentId: { S: commentId } } }));
-  if (post.Item?.userEmail?.S) await db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: { S: post.Item.userEmail.S }, eventId: { S: `comment#${commentId}` } } }));
-  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
+  const comment = commentResult.Item;
+  if (!comment) return { statusCode: 404, headers, body: JSON.stringify({ error: "Comment not found." }) };
+  if (comment.userId?.S !== userId && post.Item?.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the comment or post owner can delete this comment." }) };
+  const [comments, reactions] = await Promise.all([
+    queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, commentId, userId, userEmail, parentCommentId", ConsistentRead: true }, Number.MAX_SAFE_INTEGER),
+    queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, userId, commentId", ConsistentRead: true }, Number.MAX_SAFE_INTEGER)
+  ]);
+  const commentsById = new Map(comments.map(item => [item.commentId?.S, item]));
+  commentsById.set(commentId, comment);
+  const notificationKeys = new Map();
+  const rememberNotification = (userEmail, eventId) => {
+    if (!userEmail || !eventId) return;
+    notificationKeys.set(`${userEmail}\u0000${eventId}`, { userEmail: { S: userEmail }, eventId: { S: eventId } });
+  };
+  const postOwnerEmail = post.Item?.userEmail?.S || "", commentOwnerEmail = comment.userEmail?.S || "";
+  if (postOwnerEmail) rememberNotification(postOwnerEmail, `comment#${commentId}`);
+  const parent = commentsById.get(comment.parentCommentId?.S), parentEmail = parent?.userEmail?.S || "";
+  if (parentEmail && parentEmail !== postOwnerEmail) rememberNotification(parentEmail, `reply#${commentId}`);
+  for (const child of comments) if (child.parentCommentId?.S === commentId && commentOwnerEmail && commentOwnerEmail !== postOwnerEmail) {
+    rememberNotification(commentOwnerEmail, `reply#${child.commentId?.S || ""}`);
+  }
+  const cleanupTasks = [
+    ...reactions.filter(item => item.commentId?.S === commentId).map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
+    ...[...notificationKeys.values()].map(key => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: key })))
+  ];
+  const cleanupPending = await runCleanup(cleanupTasks);
+  if (cleanupPending) {
+    console.error("Comment dependency deletion remains pending", { postId, commentId, cleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The comment is still being removed. Try again.", deleted: false, cleanupPending }) };
+  }
+  const commentCleanupPending = await runCleanup([() => db.send(new DeleteItemCommand({
+    TableName: commentsTable,
+    Key: { postId: { S: postId }, commentId: { S: commentId } },
+    ConditionExpression: "userId = :owner",
+    ExpressionAttributeValues: { ":owner": { S: comment.userId.S } }
+  }))]);
+  if (commentCleanupPending) {
+    console.error("Comment deletion remains pending", { postId, commentId, commentCleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The comment is still being removed. Try again.", deleted: false, cleanupPending: commentCleanupPending }) };
+  }
+  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true, cleanupPending: 0 }) };
 }
 
 async function getEngagementNotifications(event) {
