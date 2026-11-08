@@ -8,7 +8,7 @@ const mobile = fs.readFileSync("assets/mobile-design-system.css", "utf8");
 const profileHeader = fs.readFileSync("assets/profile-app-header.css", "utf8");
 const feedEnhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 
-assert.match(profile, /assets\/mobile-design-system\.css\?v=15/,
+assert.match(profile, /assets\/mobile-design-system\.css\?v=16/,
   "the profile must load the shared mobile application shell");
 assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">[\s\S]*?data-icon="home"[\s\S]*?data-icon="users"[\s\S]*?data-icon="chat"[\s\S]*?data-icon="bell"[\s\S]*?data-icon="menu"/,
   "the profile must expose the same five primary mobile destinations as the rest of DanzStak");
@@ -26,6 +26,8 @@ assert.match(mobile, /body\.profile-page>header \.brand span,body\.profile-page>
   "desktop account actions must not consume the phone profile header");
 assert.match(mobile, /body\.profile-page>header \.brand img\{width:34px;height:34px;/,
   "the phone profile header must use the compact official brand mark");
+assert.match(mobile, /@media\(max-width:360px\)[\s\S]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/,
+  "all five Profile tabs must fit at the narrowest supported phone width");
 assert.doesNotMatch(profile, /\.header-actions\{display:grid;grid-template-columns:repeat\(3/,
   "the retired three-text-button phone header must not remain as a competing layout");
 assert.match(profile, /html,body\{max-width:100%;overflow-x:hidden;overflow-x:clip\}/,

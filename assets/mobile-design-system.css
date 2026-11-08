@@ -188,6 +188,23 @@ body:not(.public-mode) :where(.panel,.card){
   }
 }
 
+/* Keep all five public profile destinations fully visible at the narrowest
+   supported phone width instead of clipping the final tab. */
+@media(max-width:360px){
+  .profile-tabs{
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:2px;
+    overflow:visible;
+  }
+  .profile-tabs button{
+    min-width:0;
+    padding-inline:1px;
+    font-size:10px;
+    letter-spacing:-.015em;
+  }
+}
+
 /* Profile uses the same phone application shell without changing its desktop account navigation. */
 @media(max-width:700px){
   body.profile-page{padding-bottom:calc(54px + env(safe-area-inset-bottom) + 2px)}

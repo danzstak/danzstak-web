@@ -146,7 +146,7 @@ function fixture(pathname) {
             });
             const tabs = visible(".profile-tabs > button").map(element => {
               const box = element.getBoundingClientRect();
-              return { label: element.textContent.trim(), top: box.top, bottom: box.bottom, height: box.height };
+              return { label: element.textContent.trim(), left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
             });
             const headerRect = element => { const box = element?.getBoundingClientRect(); return box ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height } : null; };
             return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), pivot: headerRect(document.querySelector("#profileHeaderPivot")), install: headerRect(document.querySelector("body > .install-app-button")) } };
@@ -157,6 +157,7 @@ function fixture(pathname) {
           assert.ok(profileControls.tabs.length >= 5, `${width}px profile sections are missing: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(Math.max(...profileControls.tabs.map(tab => tab.top)) - Math.min(...profileControls.tabs.map(tab => tab.top)) <= 1, `${width}px profile tabs must stay on one row: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(profileControls.tabs.every(tab => tab.height >= 44), `${width}px profile tabs must retain touch targets: ${JSON.stringify(profileControls.tabs)}`);
+          assert.ok(profileControls.tabs.every(tab => tab.left >= 0 && tab.right <= width), `${width}px profile tabs must all remain fully visible: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(profileControls.header.search && profileControls.header.search.height >= 38, `${width}px profile search is missing or clipped: ${JSON.stringify(profileControls.header)}`);
           assert.ok(profileControls.header.pivot && profileControls.header.pivot.height >= 38, `${width}px profile Pivot is missing or clipped: ${JSON.stringify(profileControls.header)}`);
           assert.ok(profileControls.header.search.right + 4 <= profileControls.header.pivot.left, `${width}px profile Search overlaps Pivot: ${JSON.stringify(profileControls.header)}`);
