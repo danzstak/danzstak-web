@@ -18,6 +18,20 @@ const pages = [
 ];
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
 
+async function captureViewport(page, file, width, height) {
+  let failure;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await page.screenshot({ path: file, clip: { x: 0, y: 0, width, height }, animations: "disabled", caret: "hide" });
+      return;
+    } catch (error) {
+      failure = error;
+      await page.waitForTimeout(100);
+    }
+  }
+  throw failure;
+}
+
 function fixture(pathname) {
   const profile = { memberId: "11111111-1111-4111-8111-111111111111", name: "DanzStak Test Artist", username: "testartist", handle: "testartist", bio: "Independent artist testing the DanzStak mobile experience.", picture: "", cover: "", website: "https://example.com" };
   const friend = { memberId: "22222222-2222-4222-8222-222222222222", email: "tour-friend@danzstak.invalid", name: "Tour Friend", picture: "" };
@@ -134,7 +148,8 @@ function fixture(pathname) {
               const box = element.getBoundingClientRect();
               return { label: element.textContent.trim(), top: box.top, bottom: box.bottom, height: box.height };
             });
-            return { actions, tabs };
+            const headerRect = element => { const box = element?.getBoundingClientRect(); return box ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height } : null; };
+            return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), pivot: headerRect(document.querySelector("#profileHeaderPivot")), install: headerRect(document.querySelector("body > .install-app-button")) } };
           });
           assert.equal(profileControls.actions.length, 3, `${width}px owner profile must retain Edit, Share, and Invite actions`);
           assert.ok(Math.max(...profileControls.actions.map(action => action.top)) - Math.min(...profileControls.actions.map(action => action.top)) <= 1, `${width}px profile actions must use one row: ${JSON.stringify(profileControls.actions)}`);
@@ -142,6 +157,10 @@ function fixture(pathname) {
           assert.ok(profileControls.tabs.length >= 5, `${width}px profile sections are missing: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(Math.max(...profileControls.tabs.map(tab => tab.top)) - Math.min(...profileControls.tabs.map(tab => tab.top)) <= 1, `${width}px profile tabs must stay on one row: ${JSON.stringify(profileControls.tabs)}`);
           assert.ok(profileControls.tabs.every(tab => tab.height >= 44), `${width}px profile tabs must retain touch targets: ${JSON.stringify(profileControls.tabs)}`);
+          assert.ok(profileControls.header.search && profileControls.header.search.height >= 38, `${width}px profile search is missing or clipped: ${JSON.stringify(profileControls.header)}`);
+          assert.ok(profileControls.header.pivot && profileControls.header.pivot.height >= 38, `${width}px profile Pivot is missing or clipped: ${JSON.stringify(profileControls.header)}`);
+          assert.ok(profileControls.header.search.right + 4 <= profileControls.header.pivot.left, `${width}px profile Search overlaps Pivot: ${JSON.stringify(profileControls.header)}`);
+          assert.ok(!profileControls.header.install || profileControls.header.pivot.right + 4 <= profileControls.header.install.left, `${width}px profile Pivot overlaps Install: ${JSON.stringify(profileControls.header)}`);
         }
         if (name === "settings") {
           const settingsGeometry = await page.evaluate(() => {
@@ -247,7 +266,7 @@ function fixture(pathname) {
           // Viewport captures preserve fixed-element composition accurately; Chromium's
           // stitched full-page mode can paint offscreen fixed skip links and navigation
           // at misleading document coordinates.
-          await page.screenshot({ path: path.join(captureDir, `${name}-${width}.png`), clip: { x: 0, y: 0, width, height: 844 } });
+          await captureViewport(page, path.join(captureDir, `${name}-${width}.png`), width, 844);
         }
         await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
         await page.waitForTimeout(50);
@@ -287,6 +306,27 @@ function fixture(pathname) {
     assert.ok(desktopHeader.scrollWidth <= 1366, `desktop header overflows: ${JSON.stringify(desktopHeader)}`);
     if (captureDir) await desktopPage.screenshot({ path: path.join(captureDir, "home-1366.png"), fullPage: true });
     results.push("home-1366");
+    await desktopPage.goto(`${baseUrl}/profile.html`, { waitUntil: "domcontentloaded" });
+    await desktopPage.locator(".profile").waitFor({ state: "visible" });
+    const desktopProfileHeader = await desktopPage.evaluate(() => {
+      const rect = selector => { const box = document.querySelector(selector)?.getBoundingClientRect(); return box ? { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height } : null; };
+      return { search: rect("#profileHeaderSearch"), pivot: rect("#profileHeaderPivot"), actions: rect(".profile-app-header .header-actions"), scrollWidth: document.documentElement.scrollWidth };
+    });
+    assert.ok(desktopProfileHeader.search && desktopProfileHeader.search.width >= 180 && desktopProfileHeader.search.height >= 42, `desktop profile Search is missing or clipped: ${JSON.stringify(desktopProfileHeader)}`);
+    assert.ok(desktopProfileHeader.pivot && desktopProfileHeader.pivot.height >= 42, `desktop profile Pivot is missing or clipped: ${JSON.stringify(desktopProfileHeader)}`);
+    assert.ok(desktopProfileHeader.actions && desktopProfileHeader.actions.width > 0, `desktop profile account navigation is missing: ${JSON.stringify(desktopProfileHeader)}`);
+    assert.ok(desktopProfileHeader.search.right < desktopProfileHeader.pivot.left && desktopProfileHeader.pivot.right < desktopProfileHeader.actions.left, `desktop profile header controls overlap: ${JSON.stringify(desktopProfileHeader)}`);
+    assert.ok(desktopProfileHeader.scrollWidth <= 1366, `desktop profile header overflows: ${JSON.stringify(desktopProfileHeader)}`);
+    if (captureDir) await desktopPage.screenshot({ path: path.join(captureDir, "profile-1366.png"), fullPage: true });
+    await desktopPage.locator("#profileHeaderSearch").fill("Tour Friend");
+    await Promise.all([
+      desktopPage.waitForURL(url => url.pathname.endsWith("/feed.html") && url.searchParams.get("q") === "Tour Friend"),
+      desktopPage.locator("#profileHeaderSearch").press("Enter"),
+    ]);
+    await desktopPage.locator(".search").waitFor({ state: "visible" });
+    assert.equal(await desktopPage.locator(".search").inputValue(), "Tour Friend", "profile search query must arrive intact in Your Mix");
+    assert.equal(await desktopPage.locator(".search").evaluate(element => element === document.activeElement), true, "cross-page profile search must focus the Feed search box");
+    results.push("profile-1366-search");
     await desktop.close();
     console.log(`Core social mobile browser checks passed: ${results.length} page/viewport combinations.`);
   } finally {

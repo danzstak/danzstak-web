@@ -2571,6 +2571,8 @@ search.setAttribute("aria-label", "Search posts and users");
 search.placeholder = "Search posts and users";
 search.setAttribute("aria-controls", "feed");
 search.setAttribute("enterkeyhint", "search");
+const requestedSearch = new URLSearchParams(location.search).get("q")?.trim() || "";
+if (requestedSearch) search.value = requestedSearch.slice(0, 120);
 const searchFeedback = document.createElement("p");
 searchFeedback.className = "muted feed-search-feedback";
 searchFeedback.setAttribute("role", "status");
@@ -2592,12 +2594,17 @@ function filterFeedPosts() {
     : "";
 }
 search.addEventListener("input", filterFeedPosts);
+window.addEventListener("danzstak:posts-loaded", filterFeedPosts);
 window.addEventListener("danzstak:show-search", () => {
   if (!search.value.trim()) return;
   const url = new URL(location.href); url.hash = ""; url.searchParams.set("view", "feed");
   history.replaceState({}, "", url.pathname + url.search); restoreWorkspaceRoute();
 });
 filterFeedPosts();
+if (requestedSearch) {
+  requestAnimationFrame(() => search.focus({ preventScroll: true }));
+  window.addEventListener("load", () => search.focus({ preventScroll: true }), { once: true });
+}
 
 document.querySelector('[data-feature="Music"]')?.remove();
 document.querySelectorAll(".story span").forEach(label => {
