@@ -12,7 +12,7 @@
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
   <link rel="stylesheet" href="assets/mobile-design-system.css?v=18">
   <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
-  <link rel="stylesheet" href="assets/store.css?v=2">
+  <link rel="stylesheet" href="assets/store.css?v=3">
 </head>
 <body>
   <a class="skip-link" href="#storeMain">Skip to store</a>
@@ -55,7 +55,14 @@
           <input id="productId" type="hidden"><input id="productRevision" type="hidden">
           <label>Product name<input id="productTitle" maxlength="120" required></label>
           <label>Description<textarea id="productDescription" maxlength="2000" rows="4"></textarea></label>
-          <label>HTTPS image URL<input id="productImage" type="url" inputmode="url" placeholder="https://"></label>
+          <label>Product images (one HTTPS URL per line, up to 8)<textarea id="productImages" inputmode="url" maxlength="16384" rows="3" placeholder="https://" required></textarea></label>
+          <div class="product-specifics-inputs">
+            <label>Medium / material<input id="productMedium" maxlength="80" placeholder="Cotton, vinyl, screen print…" required></label>
+            <label>Dimensions<input id="productDimensions" maxlength="120" placeholder="24 × 36 in, size L…" required></label>
+            <label>Condition<select id="productCondition" required><option>New</option><option>Mint</option><option>Excellent</option><option>Good</option></select></label>
+            <label>Year created (optional)<input id="productYear" type="number" min="1000" max="2100" step="1" inputmode="numeric"></label>
+            <label>Signature status (optional)<input id="productSignature" maxlength="100" placeholder="Signed, numbered, unsigned…"></label>
+          </div>
           <div class="product-numbers">
             <label>Price (USD)<input id="productPrice" inputmode="decimal" placeholder="25.00" required></label>
             <label>Shipping (USD)<input id="productShipping" inputmode="decimal" value="0.00" required></label>
@@ -75,6 +82,6 @@
     <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1" aria-current="page"></a>
   </nav>
   <script src="assets/icon-buttons.js?v=10" defer></script>
-  <script src="assets/store.js?v=3" defer></script>
+  <script src="assets/store.js?v=4" defer></script>
 </body>
 </html>

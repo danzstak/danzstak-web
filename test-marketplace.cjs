@@ -9,7 +9,7 @@ const fs = require("node:fs");
   assert.match(storeScript, /store catalog is temporarily unavailable/i, "network failures must not expose raw browser errors in Store");
   assert.match(eventScript, /event details are temporarily unavailable/i, "network failures must not expose raw browser errors on public events");
 
-  const { createMarketplace, marketplaceFeeCents, encodeBazaarCursor, decodeBazaarCursor } = await import("./infrastructure/auth-api/marketplace.mjs");
+  const { createMarketplace, marketplaceFeeCents, encodeBazaarCursor, decodeBazaarCursor, shippingFeeAvoidanceRisk } = await import("./infrastructure/auth-api/marketplace.mjs");
 
   class Command { constructor(input) { this.input = input; } }
   class GetItemCommand extends Command {}
@@ -62,10 +62,26 @@ const fs = require("node:fs");
   });
   const event = (method, path, body, origin = "https://danzstak.com", queryStringParameters) => ({ requestContext: { http: { method } }, rawPath: path, headers: { origin }, body: body === undefined ? "" : JSON.stringify(body), queryStringParameters });
   const bodyOf = result => JSON.parse(result.body);
+  const physicalProduct = (overrides = {}) => ({
+    title: "Tour shirt",
+    description: "Black cotton shirt\n\nPrinted by hand in Seattle.",
+    images: ["https://cdn.example.com/shirt-front.webp", "https://cdn.example.com/shirt-back.webp"],
+    itemSpecifics: { medium: "Heavyweight cotton", dimensions: "Size L", condition: "New", yearCreated: 2026, signatureStatus: "Unsigned" },
+    priceCents: 2_500,
+    shippingCents: 500,
+    inventory: 12,
+    status: "published",
+    productType: "physical",
+    ...overrides
+  });
 
   assert.equal(marketplaceFeeCents(100), 5);
   assert.equal(marketplaceFeeCents(1_999), 100, "5% fee rounds to integer cents on the server");
+  assert.equal(marketplaceFeeCents(1_999), 100, "seller-set shipping is never included in DanzStak's fee base");
+  assert.notEqual(marketplaceFeeCents(1_999), marketplaceFeeCents(1_999 + 699), "shipping must not be passed into the marketplace fee calculation");
   assert.throws(() => marketplaceFeeCents(12.5), /integer cents/);
+  assert.equal(shippingFeeAvoidanceRisk({ priceCents: 100, shippingCents: 1_500 }), true, "$1 item plus $15 shipping is blocked as a fee-avoidance risk");
+  assert.equal(shippingFeeAvoidanceRisk({ priceCents: 1_000, shippingCents: 1_500 }), false, "ordinary seller-set shipping remains available");
   const cursorKey = { pk:{S:"SHOP#artist_12345678"}, sk:{S:"PRODUCT#11111111-1111-4111-8111-111111111111"}, bazaarPk:{S:"BAZAAR#PUBLISHED"}, bazaarSk:{S:"2026-11-09T12:00:00.000Z#artist_12345678#11111111-1111-4111-8111-111111111111"} };
   assert.deepEqual(decodeBazaarCursor(encodeBazaarCursor(cursorKey)), cursorKey, "Bazaar pagination cursors round-trip without exposing a mutable query");
   assert.equal(decodeBazaarCursor("not-a-valid-cursor"), undefined);
@@ -84,12 +100,23 @@ const fs = require("node:fs");
 
   const invalidAudio = await service(event("POST", "/marketplace/products", { title: "Audio file", priceCents: 500, inventory: 1, productType: "audio", imageUrl: "https://example.com/cover.jpg" }));
   assert.equal(invalidAudio.statusCode, 400, "audio products are rejected rather than silently converted");
+  const missingSpecifics = await service(event("POST", "/marketplace/products", { ...physicalProduct(), itemSpecifics: undefined }));
+  assert.equal(missingSpecifics.statusCode, 400, "published goods require marketplace item specifics");
+  const invalidCondition = await service(event("POST", "/marketplace/products", physicalProduct({ itemSpecifics: { ...physicalProduct().itemSpecifics, condition: "Unknown" } })));
+  assert.equal(invalidCondition.statusCode, 400, "condition values are server validated");
+  const tooManyImages = await service(event("POST", "/marketplace/products", physicalProduct({ images: Array.from({ length: 9 }, (_, index) => `https://cdn.example.com/${index}.webp`) })));
+  assert.equal(tooManyImages.statusCode, 400, "a listing accepts no more than eight HTTPS images");
+  const inflatedShipping = await service(event("POST", "/marketplace/products", physicalProduct({ priceCents: 100, shippingCents: 1_500 })));
+  assert.equal(inflatedShipping.statusCode, 422, "disproportionate shipping is blocked before the listing is stored");
+  assert.match(bodyOf(inflatedShipping).error, /shipping is unusually high/i);
 
-  const created = await service(event("POST", "/marketplace/products", { title: "Tour shirt", description: "Black cotton shirt", priceCents: 2_500, shippingCents: 500, inventory: 12, status: "published", imageUrl: "https://cdn.example.com/shirt.webp" }));
+  const created = await service(event("POST", "/marketplace/products", physicalProduct()));
   assert.equal(created.statusCode, 201);
   const product = bodyOf(created).product;
   assert.equal(product.available, true);
   assert.equal(product.inventory, 12);
+  assert.deepEqual(product.images, physicalProduct().images, "all validated product images survive the API round trip");
+  assert.deepEqual(product.itemSpecifics, physicalProduct().itemSpecifics, "item specifics survive the API round trip");
 
   signedInUser = "viewer_12345678";
   const publicShop = await service(event("GET", "/marketplace/shop/artist_12345678"));
@@ -136,7 +163,7 @@ const fs = require("node:fs");
   const officialStore = await service(event("PUT", "/marketplace/store", { name: "Wrong name", description: "Official DanzStak merchandise.", status: "published" }));
   assert.equal(officialStore.statusCode, 201);
   assert.equal(bodyOf(officialStore).shop.name, "DanzStak Official Store", "the official store name cannot be replaced by browser input");
-  const officialProduct = await service(event("POST", "/marketplace/store/products", { title: "Official shirt", priceCents: 2_500, inventory: 10, status: "published" }));
+  const officialProduct = await service(event("POST", "/marketplace/store/products", physicalProduct({ title: "Official shirt", inventory: 10 })));
   assert.equal(officialProduct.statusCode, 201);
   signedInUser = "viewer_12345678";
   const publicOfficialStore = await service(event("GET", "/marketplace/store"));
@@ -147,11 +174,15 @@ const fs = require("node:fs");
   const storePage = fs.readFileSync("store.html", "utf8");
   const feedPage = fs.readFileSync("feed.html", "utf8");
   assert.match(storePage, /id="bazaarSearch"/);
+  for (const field of ["productImages", "productMedium", "productDimensions", "productCondition", "productYear", "productSignature"]) assert.match(storePage, new RegExp(`id="${field}"`));
   assert.match(storeScript, /\/marketplace\/bazaar/);
   assert.match(storeScript, /Sold by \$\{product\.shopName\}/);
   assert.match(storeScript, /memberProductUrl\(product\)/, "each Bazaar item must deep-link to its original member-shop item");
+  assert.match(storeScript, /function renderProductDetail\(/, "the canonical seller listing has a real product-detail view");
+  assert.match(storeScript, /descriptionBlocks\(product\.description\)/, "plain-text description paragraphs are rendered safely without HTML injection");
+  assert.doesNotMatch(storePage + storeScript, /\b(?:bid|auction)\b/i, "the Bazaar is fixed-price only and must not expose bidding controls");
   assert.match(feedPage, /DanzStak Official Store/);
   assert.match(feedPage, /store\.html\?view=bazaar[\s\S]*DanzStak Bazaar/);
 
-  console.log("Marketplace catalog checks passed: member-shop items flow into the Bazaar, seller links remain canonical, official products stay separate, physical-only rules hold, and exact 5% fee math remains server-owned.");
+  console.log("Marketplace catalog checks passed: member-shop items flow into the fixed-price Bazaar, seller links remain canonical, item specifics and images are validated, inflated shipping is blocked, and the exact 5% item-price-only fee remains server-owned.");
 })().catch(error => { console.error(error); process.exit(1); });

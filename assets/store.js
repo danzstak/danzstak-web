@@ -40,12 +40,17 @@
     return `store.html?${query}`;
   }
 
+  function productImages(product) {
+    return Array.isArray(product.images) && product.images.length ? product.images : product.imageUrl ? [product.imageUrl] : [];
+  }
+
   function productImage(product, destination = "") {
-    if (!product.imageUrl) return null;
+    const source = productImages(product)[0];
+    if (!source) return null;
     const image = document.createElement("img");
     image.className = "product-image";
-    image.src = product.imageUrl;
-    image.alt = "";
+    image.src = source;
+    image.alt = product.title;
     image.loading = "lazy";
     image.referrerPolicy = "no-referrer";
     if (!destination) return image;
@@ -58,18 +63,102 @@
   }
 
   function resetProductForm() {
-    byId("productForm").reset(); byId("productId").value = ""; byId("productRevision").value = ""; byId("productShipping").value = "0.00"; byId("productFormTitle").textContent = "Add a physical product"; byId("cancelProductEdit").hidden = true;
+    byId("productForm").reset(); byId("productId").value = ""; byId("productRevision").value = ""; byId("productShipping").value = "0.00"; byId("productCondition").value = "New"; byId("productFormTitle").textContent = "Add a physical product"; byId("cancelProductEdit").hidden = true;
   }
   function editProduct(product) {
-    byId("productId").value = product.id; byId("productRevision").value = product.revision; byId("productTitle").value = product.title; byId("productDescription").value = product.description; byId("productImage").value = product.imageUrl; byId("productPrice").value = (product.priceCents / 100).toFixed(2); byId("productShipping").value = (product.shippingCents / 100).toFixed(2); byId("productInventory").value = product.inventory; byId("productStatus").value = product.status; byId("productFormTitle").textContent = `Edit ${product.title}`; byId("cancelProductEdit").hidden = false; byId("productTitle").focus();
+    const specifics = product.itemSpecifics || {};
+    byId("productId").value = product.id; byId("productRevision").value = product.revision; byId("productTitle").value = product.title; byId("productDescription").value = product.description; byId("productImages").value = productImages(product).join("\n"); byId("productMedium").value = specifics.medium || ""; byId("productDimensions").value = specifics.dimensions || ""; byId("productCondition").value = specifics.condition || "New"; byId("productYear").value = specifics.yearCreated || ""; byId("productSignature").value = specifics.signatureStatus || ""; byId("productPrice").value = (product.priceCents / 100).toFixed(2); byId("productShipping").value = (product.shippingCents / 100).toFixed(2); byId("productInventory").value = product.inventory; byId("productStatus").value = product.status; byId("productFormTitle").textContent = `Edit ${product.title}`; byId("cancelProductEdit").hidden = false; byId("productTitle").focus();
   }
   async function archiveProduct(product) {
     if (!confirm(`Remove ${product.title} from your shop? Existing order records are kept.`)) return;
     try { await request(`/marketplace/products/${encodeURIComponent(product.id)}`, {method:"DELETE"}); status.textContent = `${product.title} removed.`; await load(); } catch (error) { status.textContent = error.message; }
   }
+
+  function descriptionBlocks(text) {
+    return String(text || "").trim().split(/\n\s*\n/).map(value => value.trim()).filter(Boolean);
+  }
+
+  function renderProductDetail(shop, product) {
+    products.replaceChildren();
+    products.classList.remove("product-grid");
+    products.classList.add("product-detail-shell");
+    products.setAttribute("aria-label", `${product.title} details`);
+    const article = node("article", "", "product-detail");
+    const gallery = node("div", "", "product-gallery");
+    const images = productImages(product);
+    const main = document.createElement("img");
+    main.className = "product-image product-detail-image";
+    main.src = images[0];
+    main.alt = product.title;
+    main.referrerPolicy = "no-referrer";
+    gallery.append(main);
+    if (images.length > 1) {
+      const thumbnails = node("div", "", "product-thumbnails");
+      images.forEach((source, index) => {
+        const button = node("button", "", index === 0 ? "is-selected" : "");
+        button.type = "button";
+        button.setAttribute("aria-label", `Show image ${index + 1} of ${images.length}`);
+        const image = document.createElement("img");
+        image.src = source;
+        image.alt = "";
+        image.loading = "lazy";
+        image.referrerPolicy = "no-referrer";
+        button.append(image);
+        button.addEventListener("click", () => {
+          main.src = source;
+          for (const sibling of thumbnails.children) sibling.classList.toggle("is-selected", sibling === button);
+        });
+        thumbnails.append(button);
+      });
+      gallery.append(thumbnails);
+    }
+    const copy = node("div", "", "product-detail-copy");
+    copy.append(node("p", shop.name, "store-eyebrow"), node("h2", product.title), node("p", money(product.priceCents), "product-price"));
+    copy.append(node("p", product.shippingCents ? `Shipping: ${money(product.shippingCents)}` : "Shipping included", "product-note"));
+    const specifics = product.itemSpecifics || {};
+    const rows = [
+      ["Medium / material", specifics.medium],
+      ["Dimensions", specifics.dimensions],
+      ["Condition", specifics.condition],
+      ["Year created", specifics.yearCreated],
+      ["Signature", specifics.signatureStatus]
+    ].filter(([, value]) => value !== "" && value !== null && value !== undefined);
+    if (rows.length) {
+      copy.append(node("h3", "Item specifics"));
+      const list = node("dl", "", "item-specifics");
+      for (const [label, value] of rows) {
+        const row = node("div");
+        row.append(node("dt", label), node("dd", String(value)));
+        list.append(row);
+      }
+      copy.append(list);
+    }
+    if (product.description) {
+      const description = node("section", "", "product-description");
+      description.append(node("h3", "Description"));
+      for (const block of descriptionBlocks(product.description)) description.append(node("p", block));
+      copy.append(description);
+    }
+    copy.append(node("p", product.available ? "Secure ordering opens after seller verification and payout testing." : "Unavailable", "product-note"));
+    const links = node("div", "", "product-detail-links");
+    const shopLink = node("a", `Back to ${shop.name}`, "store-secondary-action");
+    shopLink.href = shop.official ? "store.html" : `store.html?member=${encodeURIComponent(shop.memberId || memberId)}`;
+    const bazaarLink = node("a", "Browse the Bazaar", "store-secondary-action");
+    bazaarLink.href = "store.html?view=bazaar";
+    links.append(shopLink, bazaarLink);
+    copy.append(links);
+    article.append(gallery, copy);
+    products.append(article);
+    document.title = `${product.title} | ${shop.name}`;
+  }
+
   function renderProducts(shop) {
     products.replaceChildren();
     if (!shop.products.length) { products.append(node("p", managing ? "No products yet. Add your first physical item below." : "No products are available right now.")); return; }
+    const selectedProduct = selectedProductId ? shop.products.find(product => product.id === selectedProductId) : null;
+    if (selectedProduct && !managing) { renderProductDetail(shop, selectedProduct); return; }
+    products.classList.remove("product-detail-shell");
+    products.classList.add("product-grid");
     for (const product of shop.products) {
       const card = node("article","","product-card");
       card.id = `product-${product.id}`;
@@ -85,18 +174,11 @@
       } else copy.append(node("p",product.available ? "Secure ordering opens after seller verification and payout testing." : "Unavailable","product-note"));
       card.append(copy); products.append(card);
     }
-    if (selectedProductId) {
-      const selected = document.getElementById(`product-${CSS.escape(selectedProductId)}`);
-      if (selected) {
-        selected.classList.add("selected-product");
-        requestAnimationFrame(() => selected.scrollIntoView({ block:"center" }));
-      }
-    }
   }
 
   function renderBazaar() {
     const query = byId("bazaarSearch").value.trim().toLocaleLowerCase();
-    const visible = query ? bazaarListings.filter(product => `${product.title} ${product.description} ${product.shopName}`.toLocaleLowerCase().includes(query)) : bazaarListings;
+    const visible = query ? bazaarListings.filter(product => `${product.title} ${product.description} ${product.shopName} ${Object.values(product.itemSpecifics || {}).join(" ")}`.toLocaleLowerCase().includes(query)) : bazaarListings;
     products.replaceChildren();
     for (const product of visible) {
       const destination = memberProductUrl(product);
@@ -171,7 +253,8 @@
   });
   byId("productForm").addEventListener("submit", async event => {
     event.preventDefault(); const price=cents(byId("productPrice").value),shipping=cents(byId("productShipping").value); if(price===null||shipping===null){status.textContent="Enter prices in dollars and cents, for example 25.00.";return;}
-    const id=byId("productId").value, payload={title:byId("productTitle").value,description:byId("productDescription").value,imageUrl:byId("productImage").value,priceCents:price,shippingCents:shipping,inventory:Number(byId("productInventory").value),status:byId("productStatus").value,productType:"physical"}; if(id) payload.revision=Number(byId("productRevision").value);
+    const images=byId("productImages").value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean);
+    const id=byId("productId").value, payload={title:byId("productTitle").value,description:byId("productDescription").value,images,itemSpecifics:{medium:byId("productMedium").value,dimensions:byId("productDimensions").value,condition:byId("productCondition").value,yearCreated:byId("productYear").value,signatureStatus:byId("productSignature").value},priceCents:price,shippingCents:shipping,inventory:Number(byId("productInventory").value),status:byId("productStatus").value,productType:"physical"}; if(id) payload.revision=Number(byId("productRevision").value);
     status.textContent=id?"Saving product…":"Adding product…";
     try { await request(id?`/marketplace/products/${encodeURIComponent(id)}`:"/marketplace/products",{method:id?"PATCH":"POST",body:JSON.stringify(payload)}); resetProductForm(); status.textContent=id?"Product updated.":"Product added."; await load(); }
     catch(error){status.textContent=error.message;}
