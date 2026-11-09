@@ -80,6 +80,10 @@ const kit = {
       assert.equal(savedWorkspace?.artist?.name, kit.artistName, `${width}px saved workspace act mismatch`);
       assert.equal(savedWorkspace?.artist?.epk, `${origin}/epk.html?id=road-test`, `${width}px saved workspace EPK mismatch`);
       assert.equal(savedWorkspace?.artist?.pitch, kit.shortPitch, `${width}px saved workspace pitch mismatch`);
+      const venueNext = page.locator("#chooseVenuesNext");
+      assert.equal(await venueNext.textContent(), "Choose venues", `${width}px should name the next action clearly when the pipeline is empty`);
+      assert.equal(await venueNext.getAttribute("href"), "booking.html", `${width}px should continue directly to worldwide venue discovery`);
+      assert.ok(await venueNext.evaluate(node => node.getBoundingClientRect().height) >= 44, `${width}px venue-discovery action must retain a 44px touch target`);
       assert.equal(errors.length, 0, `${width}px browser errors: ${errors.join(" | ")}`);
       await page.locator(".artist-workspace").screenshot({ path:path.join(output, `booking-handoff-${width}.png`) });
       if (width === 390) {
@@ -90,6 +94,8 @@ const kit = {
         await page.locator("#bookingAccountStatus").filter({ hasText:"Booking workspace unchanged" }).waitFor();
         assert.equal(await page.locator("#pitchArtist").inputValue(), "Another Act", "declining an act switch must retain the current act");
         assert.equal(await page.locator("#pitchEpk").inputValue(), "https://example.com/another-epk", "declining an act switch must retain the current EPK");
+        await venueNext.click();
+        await page.waitForURL(url => url.pathname.endsWith("/booking.html"));
       }
       await context.close();
     }

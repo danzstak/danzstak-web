@@ -29,3 +29,6 @@
 .tour-manager-stats,.tour-finance-summary{margin-top:8px}
 .tour-manager-stats div,.tour-finance-summary div{padding:7px 0;background:transparent}
 @media(max-width:390px){.tour-manager-dashboard{padding:6px 0}}
+.booking-next-action{display:inline-flex;min-height:44px;padding:8px 12px;align-items:center;justify-content:center;border:1px solid #0e5fc4;border-radius:9px;background:#1769e0;color:#fff;font-weight:800;text-decoration:none}
+.booking-workspace-actions .secondary{border-color:#b8c4d2;background:#fff;color:#344054}
+@media(max-width:620px){.booking-workspace-actions .booking-next-action{min-width:0}.booking-workspace-actions .secondary{grid-column:1/-1}}
