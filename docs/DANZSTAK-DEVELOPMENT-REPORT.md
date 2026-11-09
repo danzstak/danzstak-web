@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Booking-contact Checkout and verified return — 2026-11-09
+
+Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
+
+- Root cause: a newly selected venue could expose the real **Unlock booking contact · $0.75** action while the proposed date or other booking facts were still dirty. Checkout rejected that state and sent the artist back to a separate save control. After a successful Stripe return, the page also did not wait for the webhook entitlement or return the artist to the purchased venue.
+- Contact Checkout now saves the private account workspace first and stops before payment if that save fails. A successful return polls the authenticated entitlement endpoint, reports verification truthfully, removes the payment result from the address bar, scrolls back to the exact purchased venue and focuses the now-visible contact. A delayed webhook remains **still verifying** instead of claiming success or inviting a duplicate charge.
+- Website, email, call and unlock controls now retain the 44px mobile touch minimum. The installed review shell advances to `danzstak-shell-v778` with `booking-billing.js?v=6`, `booking-selections.js?v=22` and `booking-selections.css?v=14`.
+- **TESTED:** `test-regressions.ps1` passes completely. The stateful contact-Checkout browser matrix passed three consecutive local runs and one hosted run at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. It proves save → Checkout ordering, edited-date persistence, delayed webhook polling, entitlement rendering, address-bar cleanup, exact venue focus, 44px controls, no page errors and no horizontal overflow. The hosted return fixture deliberately delays the booking workspace beyond entitlement arrival to exercise slow-device recovery.
+- [PR #195](https://github.com/danzstak/danzstak-web/pull/195) passed all five GitHub **Review checks** jobs in run [42580772245](https://github.com/danzstak/danzstak-web/actions/runs/42580772245) and was squash-merged into `codex/release-candidate-2026-11-08` as `cd590e71521503ab067485401c31969277d59842`.
+- **HOSTED REVIEW:** no-cache probes confirm the three versioned Booking assets and installed shell above on [review.danzstak.com](https://review.danzstak.com/booking-selections.html). Builder-reviewed hosted evidence is in [`docs/screenshots/booking-contact-unlock-return/`](screenshots/booking-contact-unlock-return/). No charge, email, AWS, Stripe or production change was made; the owner phone go/no-go remains required.
+
 ## Saved pitch to exact booking-email review — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
