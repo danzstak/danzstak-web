@@ -14,10 +14,10 @@ assert.match(html, /#feedStatus\.feed-load-error\s*\{[\s\S]*?justify-content: sp
 assert.match(html, /story-create-detail">Add today's photo or video</, "empty Dailies must explain how to fill the row");
 assert.match(originalFeedCss, /#storiesRail \.story\s*\{[\s\S]*?aspect-ratio:1;/, "Dailies media cards must stay square");
 assert.match(originalFeedCss, /--daily-card-size:clamp\(148px,42vw,168px\);[\s\S]*?min-height:var\(--daily-card-size\)!important;[\s\S]*?height:var\(--daily-card-size\)!important;/, "phone Dailies cards must keep the responsive square profile size");
-assert.match(originalFeedCss, /story-create-avatar[\s\S]*?inset:0;[\s\S]*?width:100%!important;[\s\S]*?height:100%!important;[\s\S]*?border-radius:18px;[\s\S]*?background-size:cover!important;/, "Dailies must fill the complete rounded tile with the member image despite shared image sizing");
+assert.match(originalFeedCss, /story-create-avatar[\s\S]*?inset:0;[\s\S]*?width:100%!important;[\s\S]*?height:100%!important;[\s\S]*?border-radius:50%!important;[\s\S]*?background-size:cover!important;/, "Dailies must expand the round member image to the complete tile bounds despite shared image sizing");
 assert.match(originalFeedCss, /story-create-avatar[\s\S]*?object-fit:cover;[\s\S]*?object-position:center 28%;/, "the Dailies member photo must crop edge-to-edge inside the tile");
 assert.match(source, /dailyImage\.className = "story-create-avatar-pending";[\s\S]*?dailyImage\.hidden = true;[\s\S]*?dailyImage\.onload = \(\) => \{[\s\S]*?dailyImage\.className = "story-create-avatar story-create-avatar-image";[\s\S]*?currentAvatar\.replaceWith\(dailyImage\);[\s\S]*?danzstakIdentityMedia\?\.install\(dailyImage, profile,[\s\S]*?identity\.appendChild\(dailyImage\);[\s\S]*?dailyImage\.src = picture;/, "Dailies must keep the visible fallback until the signed-in member's resilient profile image has loaded");
-assert.match(originalFeedCss, /story-create-art\s*\{[\s\S]*?border-radius:18px;[\s\S]*?background:transparent!important;/, "Dailies must not leave a gray or white box behind the image");
+assert.match(originalFeedCss, /story-create-art\s*\{[\s\S]*?border-radius:18px;[\s\S]*?background:transparent!important;/, "Dailies must keep the space behind the full-size round profile image transparent");
 assert.match(originalFeedCss, /daily-clapper[\s\S]*?inset:auto auto 8px 8px;[\s\S]*?width:58px;/, "the clapper must overlay the image's lower-left corner");
 assert.match(originalFeedCss, /#newsFeedView \.post-composer,[\s\S]*?#feedStatus\.feed-load-error,[\s\S]*?\.reels-rail:not\(\.roll-fullscreen\)\s*\{[\s\S]*?border:0!important;[\s\S]*?background:transparent!important;[\s\S]*?box-shadow:none!important;/, "the inline Mix must flow without stacked container boxes while fullscreen Roll remains isolated");
 assert.match(originalFeedCss, /#feed \{gap:16px!important\}[\s\S]*?#feed > \.post \{[\s\S]*?--post-inline-padding:12px!important;[\s\S]*?width:100vw;[\s\S]*?padding:12px!important;/, "standard and large phones must use a 16px post gap with 12px internal padding");
@@ -39,7 +39,7 @@ assert.match(css, /\.reels-rail:not\(\.has-reels\):not\(\.is-adding\)[^{]*\{padd
 assert.match(css, /\.reel-import-form\[hidden\],\.roll-close\[hidden\],\.roll-open\[hidden\]\{display:none!important\}/, "hidden Roll controls must not be revived by shared icon styles");
 assert.match(html, /assets\/feed-enhancements\.css\?v=509/);
 assert.match(html, /assets\/feed-enhancements\.js\?v=544/);
-assert.match(html, /assets\/danzstak-original-feed\.css\?v=28/);
-assert.match(worker, /danzstak-shell-v788/);
+assert.match(html, /assets\/danzstak-original-feed\.css\?v=30/);
+assert.match(worker, /danzstak-shell-v789/);
 
 console.log("Feed density checks passed: Dailies-first order, compact recovery, collapsed Roll authoring, and PWA refresh.");

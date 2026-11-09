@@ -175,7 +175,7 @@ Connect what exists: Tour Manager outreach (POST /tour-manager/emails/send, SES,
 
 ## Task 5: SYNC standalone + SYNC Network numbers (later phase; reference)
 
-SYNC-only sign-up on the same account system; its own entry (https://www.google.com/url?q=http://sync.danzstak.com&source=gmail&ust=1794099440213000&sa=E or /sync), PWA, native later; contact discovery without uploading address books; free DanzStak-to-DanzStak chat and calls, paid numbers and calls/texts to regular phones; provider comparison (AWS, Telnyx, Twilio, Bandwidth) behind one swappable interface; monthly plan instead of $3 one-time, owner sets prices; compliance before launch (A2P 10DLC, E911, KYC, STIR/SHAKEN, recording consent with default no recording, EU/Italy local rules, telecom taxes); number recycling cool-down, spam reporting, new-account limits. See also instructions/pages/04-chat and 12-phone-service.
+SYNC-only sign-up on the same account system; its own entry (`sync.danzstak.com` or `/sync`) as an installable PWA only; contact discovery without uploading address books; free DanzStak-to-DanzStak chat and calls, paid numbers and calls/texts to regular phones; provider comparison (AWS, Telnyx, Twilio, Bandwidth) behind one swappable interface; monthly plan instead of $3 one-time, owner sets prices; compliance before launch (A2P 10DLC, E911, KYC, STIR/SHAKEN, recording consent with default no recording, EU/Italy local rules, telecom taxes); number recycling cool-down, spam reporting, new-account limits. See also instructions/pages/04-chat and 12-phone-service. Do not create native Android/iOS projects or APKs.
 
 ## Other open finding
 

@@ -14,7 +14,7 @@ assert.match(html, /id="pivotButton"[^>]*aria-label="Pivot your data to DanzStak
 assert.match(html, /assets\/facebook-import\.js\?v=343/);
 assert.match(html, /assets\/pivot\.js\?v=2/);
 assert.match(html, /assets\/pivot\.css\?v=1/);
-assert.match(html, /assets\/danzstak-original-feed\.css\?v=28/);
+assert.match(html, /assets\/danzstak-original-feed\.css\?v=30/);
 assert.match(feedCss, /grid-template-columns:38px minmax\(0,3fr\) minmax\(60px,1fr\)/, "phone search and Pivot must use a three-quarter/one-quarter content split");
 assert.match(source, /facebook:[\s\S]*ready: true/);
 assert.match(source, /window\.openDanzStakFacebookImport\?\.\(activeTrigger\)/, "Facebook Pivot must open the real selective importer from either entry point");
@@ -32,7 +32,7 @@ assert.match(source, /Your imported content is trackable inside DanzStak/);
 assert.match(source, /DanzStak tracks content, not people/);
 assert.match(source, /Independent screenshots or copies uploaded to another platform may not be traceable or removable/);
 assert.match(source, /Nothing imports automatically/);
-assert.match(worker, /danzstak-shell-v788/);
+assert.match(worker, /danzstak-shell-v789/);
 assert.match(worker, /\/assets\/pivot\.js/);
 assert.match(worker, /\/assets\/pivot\.css/);
 assert.match(profile, /assets\/pivot\.css\?v=1/);
