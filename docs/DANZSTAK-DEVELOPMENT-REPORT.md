@@ -1990,6 +1990,19 @@ Status as of 2026-11-08: **IMPLEMENTED AND TESTED; AWS BACKEND AND PRODUCTION UN
 - Implementation commit `ff100cfbac26e41b02172ea1e85077da8c46b954` passed all five jobs in GitHub Review run [42523317807](https://github.com/danzstak/danzstak-web/actions/runs/42523317807).
 - This Auth API change has **not** been deployed to AWS. Production and the review frontend remain unchanged pending the owner's release gate.
 
+# Connected EPK-to-booking handoff
+
+Status as of 2026-11-09: **IMPLEMENTED, TESTED, MERGED TO THE REVIEW RELEASE CANDIDATE, AND HOSTED-BROWSER VERIFIED; PRODUCTION UNCHANGED**.
+
+- A published EPK now presents a clear **Use this EPK for booking** next step. The handoff opens the real private Booking workspace and carries the artist name, genres, hometown, public EPK link, and short pitch; it does not send outreach or start payment.
+- Existing selected venues, route details, and tour costs remain intact. If the saved workspace belongs to a different act, DanzStak asks before replacing the act details. Declining leaves the current workspace unchanged.
+- Signed-in handoffs save the imported EPK details to the account workspace. The completion state leads the artist to select venues and review every pitch before sending.
+- The actual-browser gate passed locally and directly against `https://review.danzstak.com` at 320, 360, 375, 390, 414, 430, 768, 1024, and 1366px. It verifies the published-only handoff, 44px targets, no horizontal overflow, imported values, persistent account save, cleared handoff URL, and different-act cancellation. Inspected evidence is in `docs/screenshots/epk-booking-connected-handoff/`.
+- The complete local `test-regressions.ps1` suite passed, including all JavaScript regressions, the 15-page site smoke suite, and infrastructure validation.
+- Pull request [#183](https://github.com/danzstak/danzstak-web/pull/183) passed all five jobs in GitHub Review run [42564346888](https://github.com/danzstak/danzstak-web/actions/runs/42564346888) and was squash-merged into `codex/release-candidate-2026-11-08` as `6b2825b154a891f233580e792dcd262051bfffaa`.
+- No-cache hosted probes confirmed EPK JavaScript `v22`, EPK CSS `v10`, Booking workspace JavaScript `v18`, Booking workspace CSS `v10`, and installed-PWA shell `danzstak-shell-v772`.
+- Review PWA: `https://review.danzstak.com/epk.html`. Production remains unchanged pending the owner's complete release-candidate go/no-go.
+
 # Release candidate — retry-safe SYNC unread counts
 
 Status as of 2026-11-09: **IMPLEMENTED AND TESTED; AWS BACKEND AND PRODUCTION UNCHANGED**.
