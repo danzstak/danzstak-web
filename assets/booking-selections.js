@@ -441,6 +441,26 @@
     const contactUnlocked = window.danzstakBookingContactUnlocked?.(identity(venue)) === true;
     const email = contactUnlocked ? (venue.emails || []).find(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) : undefined;
     button.disabled = !email;
+    const creditPrompt = document.createElement("div"), creditMessage = document.createElement("p"), buyCredit = document.createElement("button");
+    creditPrompt.className = "booking-credit-needed";
+    creditMessage.textContent = "No booking-email credit is ready. You can still preview the exact message before buying.";
+    buyCredit.type = "button";
+    buyCredit.className = "secondary";
+    buyCredit.textContent = "Buy 1 credit · $1.50";
+    buyCredit.addEventListener("click", async () => {
+      buyCredit.disabled = true;
+      try {
+        if (dirty && !(await saveWorkspaceSnapshot())) throw new Error("DanzStak could not save this pitch. Check the account status and try again before checkout.");
+        if (typeof window.danzstakStartBookingCreditCheckout !== "function") throw new Error("Secure credit checkout is unavailable. Reload and try again.");
+        const opened = await window.danzstakStartBookingCreditCheckout({ quantity:1, venueKey:identity(venue), button:buyCredit });
+        if (!opened) buyCredit.disabled = false;
+      } catch (error) {
+        window.danzstakShowFeedback?.(error.message, { urgent:true });
+        buyCredit.disabled = false;
+      }
+    });
+    creditPrompt.append(creditMessage, buyCredit);
+    creditPrompt.hidden = !window.danzstakTourManagerBilling?.credits || Number(window.danzstakTourManagerBilling.credits.bookingEmailCredits || 0) > 0;
     button.addEventListener("click", async () => {
       const currentArtist = artist(), currentSubject = subject.value.trim(), currentMessage = draft.value.trim();
       if (booking.dateEnd && booking.showDate && booking.dateEnd < booking.showDate) { window.danzstakShowFeedback?.("The end of the date range cannot be before the proposed show date.", { urgent:true }); return; }
@@ -450,16 +470,16 @@
       }
       if (!currentArtist.epk || !currentMessage.includes(currentArtist.epk) || currentSubject.length < 3) { window.danzstakShowFeedback?.("Use your published EPK link in the message and add a clear subject before review.", { urgent:true }); return; }
       button.disabled = true;
+      let outreachId = "";
       try {
         if (dirty) {
           button.textContent = "Saving current pitch…";
           if (!(await saveWorkspaceSnapshot())) throw new Error("DanzStak could not save this pitch. Check the account status and try again before sending.");
         }
         button.textContent = "Creating private EPK link…";
-        const outreachId = crypto.randomUUID().replaceAll("-", ""), share = await createVenueEpkShare(venue, outreachId, allowPdf.checked);
-        let preflight;
-        try { preflight = await createOutreachPreflight(venue, email, outreachId); }
-        catch (error) { await revokeVenueEpkShare(venue, outreachId); throw error; }
+        outreachId = crypto.randomUUID().replaceAll("-", "");
+        const share = await createVenueEpkShare(venue, outreachId, allowPdf.checked);
+        const preflight = await createOutreachPreflight(venue, email, outreachId);
         const reviewedMessage = `${currentMessage.replaceAll(currentArtist.epk, share.shareUrl)}\n\n---\n${preflight.footer}`;
         if (reviewedMessage.length > 5000) { await revokeVenueEpkShare(venue, outreachId); throw new Error("Shorten the pitch so the required postal and opt-out footer fits in the email."); }
         if (!(await reviewSend({ venue, to:email, subject:currentSubject, message:reviewedMessage }))) { await revokeVenueEpkShare(venue, outreachId); button.disabled = false; button.textContent = "Preview exact email"; return; }
@@ -470,14 +490,20 @@
         render();
         await saveWorkspaceSnapshot();
       } catch (error) {
+        if (outreachId) await revokeVenueEpkShare(venue, outreachId);
         window.danzstakShowFeedback?.(error.message, { urgent: true });
+        if (error.status === 402 && /booking-email credits/i.test(error.message)) {
+          creditPrompt.hidden = false;
+          creditMessage.textContent = "Your pitch is saved. Buy one credit, then DanzStak will return you to this venue to review it again. Nothing sends automatically.";
+          buyCredit.focus();
+        }
         button.disabled = false;
         button.textContent = "Preview exact email";
       }
     });
     const note = document.createElement("small");
     note.textContent = email ? "DanzStak saves your current pitch before review. Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Venue replies arrive in your private SYNC Bookings inbox." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
-    section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, note);
+    section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, creditPrompt, note);
     const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered", "replied"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
     if (initialPitch && (followUpDue || existingFollowUp || hasReply)) {
       const followUp = document.createElement("section"), heading = document.createElement("h3"), state = document.createElement("p");
@@ -510,6 +536,20 @@
       followUp.prepend(heading, state); section.append(followUp);
     }
     return section;
+  }
+
+  function focusCreditVenue(detail, attempt = 0) {
+    const venueKey = String(detail?.venueKey || "");
+    if (!venueKey) return;
+    const card = [...document.querySelectorAll(".venue-card[data-venue-key]")].find(node => node.dataset.venueKey === venueKey);
+    const target = card?.querySelector(".booking-follow-up button, .outreach > button:not(.secondary)");
+    if (!card || !target) {
+      if (attempt < 50) setTimeout(() => focusCreditVenue(detail, attempt + 1), 100);
+      return;
+    }
+    card.scrollIntoView({ block:"center", behavior:"smooth" });
+    target.focus({ preventScroll:true });
+    if (detail.status === "verified") window.danzstakShowFeedback?.("Credit ready. Review this venue's exact email again; nothing was sent automatically.");
   }
 
   async function accountRequest(method, body) {
@@ -655,6 +695,8 @@
   });
   document.addEventListener("danzstak-contact-unlocks", render);
   document.addEventListener("danzstak-tour-manager-billing", renderDashboard);
+  document.addEventListener("danzstak-tour-manager-credits", render);
+  document.addEventListener("danzstak-booking-credit-return", event => { render(); focusCreditVenue(event.detail); });
   render();
   if (loadAccount) {
     loadWorkspace().then(loaded => {
@@ -662,4 +704,5 @@
       return null;
     });
   }
+  if (window.danzstakBookingCreditReturn) focusCreditVenue(window.danzstakBookingCreditReturn);
 })();
