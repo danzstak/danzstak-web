@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Artist HQ to exact waiting venue reply — 2026-11-09
+
+Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
+
+- Root cause: Artist HQ correctly counted booking threads awaiting the artist, but its primary action still used the retired `messages.html#bookings` hash. SYNC does not read that hash, so the button could open ordinary Chats instead of the venue reply it advertised.
+- When exactly one venue needs an answer, **Answer venue** now opens that exact private SYNC Bookings thread. When several venues need answers, **Answer venues** opens the Bookings inbox. Empty, answered and unavailable states also open the real `?section=bookings` route.
+- The deep link remains privacy-safe: SYNC validates the opaque outreach identifier, removes it from the address bar immediately, and opens only the authenticated artist's matching thread. Booking replies still travel by email to the venue and do not consume another booking-email credit.
+- **TESTED:** `test-regressions.ps1` passes completely. The stateful Artist HQ browser gate passed three consecutive local runs and one hosted run at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. It loads one waiting and one already-answered venue, verifies the exact link, clicks it, verifies URL cleanup and the requested venue/reply, and enforces 44px controls with no horizontal overflow.
+- [PR #187](https://github.com/danzstak/danzstak-web/pull/187) passed all five GitHub **Review checks** jobs in run [42569537623](https://github.com/danzstak/danzstak-web/actions/runs/42569537623) and was squash-merged into `codex/release-candidate-2026-11-08` as `6ef0ab5a282cf3991a0534dbf8d5a1ed92fddc89`.
+- **HOSTED REVIEW:** no-cache probes confirm `artist-hq.js?v=2` and installed shell `danzstak-shell-v774` on [review.danzstak.com](https://review.danzstak.com/feed.html?view=hq). The nine-width HQ-to-SYNC gate passes against that hosted PWA. Builder-reviewed evidence is in [`docs/screenshots/artist-hq-booking-handoff/`](screenshots/artist-hq-booking-handoff/). Production remains unchanged pending the owner's complete release-candidate go/no-go.
+
 ## Venue reply to exact SYNC booking thread — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
