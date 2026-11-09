@@ -11,6 +11,26 @@ const widths = [320, 360, 390, 414, 430, 1366];
 const ownerId = "11111111-1111-4111-8111-111111111111";
 fs.mkdirSync(output, { recursive: true });
 
+async function captureViewport(page, file) {
+  const viewport = page.viewportSize();
+  let failure;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await page.screenshot({
+        path: file,
+        clip: { x: 0, y: 0, width: viewport.width, height: viewport.height },
+        animations: "disabled",
+        caret: "hide"
+      });
+      return;
+    } catch (error) {
+      failure = error;
+      await page.waitForTimeout(150);
+    }
+  }
+  throw failure;
+}
+
 function fixture(pathname) {
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: ownerId, email: "artist@example.test" } };
   if (pathname === "/profiles") return { profile: { memberId: ownerId, name: "Alice Rivera", handle: "alice-rivera", picture: "", cloudProfile: true } };
@@ -92,12 +112,12 @@ function fixture(pathname) {
         assert.equal(shell.borderTop, "0px", `${width}px ${shell.selector} still has a container border`);
         assert.equal(shell.shadow, "none", `${width}px ${shell.selector} still has a container shadow`);
       }
-      await page.screenshot({ path: path.join(output, `feed-recovery-${width}.png`), fullPage: false });
+      await captureViewport(page, path.join(output, `feed-recovery-${width}.png`));
 
       await page.getByRole("button", { name: "Add video" }).click();
       await page.locator(".reel-import-form").waitFor({ state: "visible" });
       assert.equal(await page.locator(".roll-add-toggle").getAttribute("aria-expanded"), "true");
-      if (width === 390) await page.screenshot({ path: path.join(output, "feed-roll-add-390.png"), fullPage: false });
+      if (width === 390) await captureViewport(page, path.join(output, "feed-roll-add-390.png"));
       await page.getByRole("button", { name: "Cancel" }).click();
       await page.locator(".reel-import-form").waitFor({ state: "hidden" });
       if (width < 700) {
@@ -113,7 +133,7 @@ function fixture(pathname) {
         const expectedPostGap = width <= 375 ? 12 : 16;
         assert.equal(postGap.feedGap, `${expectedPostGap}px`, `${width}px feed must use the approved responsive inter-post gap`);
         assert.ok(Math.abs(postGap.gap - expectedPostGap) <= 2, `${width}px consecutive post rhythm must match the approved ${expectedPostGap}px gap: ${JSON.stringify(postGap)}`);
-        if (width === 390) await page.screenshot({ path: path.join(output, "feed-continuous-posts-390.png"), fullPage: false });
+        if (width === 390) await captureViewport(page, path.join(output, "feed-continuous-posts-390.png"));
       }
       await context.close();
     }
