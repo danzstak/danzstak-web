@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
 
-const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8016").replace(/\/$/, "");
+const baseUrl = String(process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_LOCAL_URL || "http://127.0.0.1:8016").replace(/\/$/, "");
 const widths = [320, 360, 390, 414, 430, 1366];
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR
   ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR)
@@ -33,18 +33,26 @@ const postId = "33333333-3333-4333-8333-333333333333";
       const errors = [];
       const authenticatedCallRequests = [];
       page.on("pageerror", error => errors.push(error.message));
-      await page.route("https://api.danzstak.com/**", route => {
+      await page.route("https://api.danzstak.com/**", async route => {
         const request = route.request();
         const url = new URL(request.url());
+        const corsHeaders = {
+          "access-control-allow-origin": new URL(baseUrl).origin,
+          "access-control-allow-credentials": "true",
+          "access-control-allow-headers": "content-type,x-danzstak-device-id,x-danzstak-device-token",
+          "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS"
+        };
+        if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers: corsHeaders });
         let body = {};
         if (url.pathname === "/auth/session") body = { authenticated: true, user: { sub: ownerId, email: "callee@danzstak.invalid" } };
         else if (url.pathname === "/profiles") body = { profile: { memberId: ownerId, name: "Callee Artist", handle: "callee", username: "callee", bio: "Independent artist testing a populated DanzStak feed.", picture: `${baseUrl}/assets/danzstak-d-icon.png` } };
         else if (url.pathname.startsWith("/calls/")) {
-          const headers = request.headers();
+          const headers = await request.allHeaders();
           const authenticated = headers["x-danzstak-device-id"] === "device-browser-test" && headers["x-danzstak-device-token"] === "token-browser-test";
           authenticatedCallRequests.push({ path: url.pathname, authenticated });
           if (!authenticated) return route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ code: "CALL_DEVICE_REGISTRATION_REQUIRED" }) });
           if (url.pathname === "/calls/inbox") body = { events: offerActive ? [{ eventId: "offer-event", callId: "22222222-2222-4222-8222-222222222222", signalType: "offer", senderEmail: "caller@danzstak.invalid", senderName: "Tour Friend", mode: "phone" }] : [] };
+          else if (url.pathname === "/calls/devices") body = { devices: [{ deviceId: "device-browser-test", name: "Browser test phone", allowCalls: true, lastUsedAt: "2026-11-09T10:00:00.000Z" }] };
         }
         else if (url.pathname === "/secure-posts") body = { posts: [{ postId, userId: ownerId, authorName: "Callee Artist", content: "West Coast dates are coming together. Rehearsal tonight, then the van heads north.", createdAt: "2026-11-07T18:30:00.000Z", audience: "public", isOwner: true, mediaType: "image", mediaUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`, viewCount: 42, commentPolicy: "everyone" }] };
         else if (url.pathname === "/engagement") body = { myReaction: "", reactionCounts: { Like: 8, Love: 4 }, comments: [] };
@@ -55,19 +63,38 @@ const postId = "33333333-3333-4333-8333-333333333333";
         else if (url.pathname === "/groups") body = { groups: [] };
         else if (url.pathname === "/news") body = { articles: [] };
         else if (url.pathname === "/settings/presence") body = { visible: true };
-        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+        return route.fulfill({ status: 200, contentType: "application/json", headers: corsHeaders, body: JSON.stringify(body) });
       });
 
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
+      await page.evaluate(() => new Promise((resolve, reject) => {
+        const request = indexedDB.open("danzstak-call-device", 1);
+        request.onupgradeneeded = () => request.result.createObjectStore("credentials");
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const db = request.result;
+          const transaction = db.transaction("credentials", "readwrite");
+          transaction.objectStore("credentials").put({
+            deviceId: "device-browser-test",
+            deviceToken: "token-browser-test"
+          }, "current");
+          transaction.oncomplete = () => { db.close(); resolve(); };
+          transaction.onerror = () => reject(transaction.error);
+        };
+      }));
+      const registeredInbox = page.waitForResponse(response => (
+        new URL(response.url()).pathname === "/calls/inbox" && response.status() === 200
+      ), { timeout: 5000 });
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await registeredInbox;
       await page.locator(`.post[data-post-id="${postId}"]`).waitFor({ state: "visible" });
-      await page.evaluate(() => {
-        window.danzstakCallingDeviceHeaders = async () => ({
-          "x-danzstak-device-id": "device-browser-test",
-          "x-danzstak-device-token": "token-browser-test"
-        });
-      });
       await page.locator(`.post[data-post-id="${postId}"] .post-content`).click();
       offerActive = true;
+      const authenticatedInbox = page.waitForResponse(response => (
+        new URL(response.url()).pathname === "/calls/inbox" && response.status() === 200
+      ), { timeout: 5000 });
+      await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+      await authenticatedInbox;
       const popup = page.locator(".global-incoming-call");
       await popup.waitFor({ state: "visible", timeout: 5000 });
       await page.waitForFunction(() => window.__toneStarts > 0, null, { timeout: 2000 });

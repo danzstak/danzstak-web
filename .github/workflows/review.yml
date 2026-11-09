@@ -84,6 +84,8 @@ jobs:
           DANZSTAK_FEED_ORIGIN: http://127.0.0.1:8017
         run: |
           node .\browser-checks\call-video-two-party.cjs
+          node .\browser-checks\call-audio-output.cjs
+          node .\browser-checks\foreground-call-ringtone.cjs
           node .\browser-checks\mix-portrait-preview.cjs
           node .\browser-checks\original-feed-art-direction.cjs
       - name: Stop local review server
