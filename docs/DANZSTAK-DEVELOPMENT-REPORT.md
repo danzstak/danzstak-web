@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Branded sparse SYNC surfaces — 2026-11-09
+
+Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
+
+- Sparse saved-chat and conversation areas now use a lightweight, original musical-score surface with the official DanzStak D as a restrained centered watermark. The platform remains light mode; real conversation rows, empty-state copy, message bubbles and composer controls stay opaque and readable above the artwork.
+- The score is a self-contained SVG with no external requests or scripts. The installed review shell advances to `danzstak-shell-v784`, SYNC CSS to `v10`, and the service worker caches the new asset for installed-PWA use.
+- **TESTED:** `test-regressions.ps1` passes completely. The SYNC browser matrix passes at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px, checking the score layer, D watermark, restrained opacity, row and bubble readability, stable avatars, composer fit and no horizontal overflow. Builder-reviewed evidence is in [`docs/screenshots/sync-music-surface/`](screenshots/sync-music-surface/).
+- [PR #205](https://github.com/danzstak/danzstak-web/pull/205) passed all five GitHub **Review checks** jobs in run [42607454276](https://github.com/danzstak/danzstak-web/actions/runs/42607454276) and was squash-merged into `codex/release-candidate-2026-11-08` as `fb868c5c5a010ed3381b2ae48540bf210b34793b`.
+- **HOSTED REVIEW:** no-cache probes confirm `assets/sync.css?v=10`, `danzstak-shell-v784` and a `200 image/svg+xml` response for the score asset on [review.danzstak.com](https://review.danzstak.com/messages.html). The hosted browser gate passes at 390 and 1366px. Production still serves its prior SYNC CSS and shell; no AWS, Stripe, SES, support-email or production change was made. The owner phone go/no-go remains required.
+
 ## SYNC avatar refresh stability and familiar mobile layout — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE SIGNED-IN REVIEW PWA; PRODUCTION UNCHANGED.**
