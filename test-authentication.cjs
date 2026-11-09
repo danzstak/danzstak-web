@@ -2,6 +2,10 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const crypto=require('node:crypto');
 const source=fs.readFileSync('infrastructure/auth-api/index.mjs','utf8');
 const currentLegalVersion=source.match(/const legalVersion = "([^"]+)"/)[1];
+assert.match(source,/const loginHandoffSeconds = 15 \* 60;/,'phone sign-in handoffs must allow enough time to choose or change a Cognito account');
+assert.match(source,/expiresAt: \{ N: String\(now\(\) \+ loginHandoffSeconds\) \}/,'the pending OAuth proof must use the shared handoff window');
+assert.match(source,/oauthCookieName,[\s\S]{0,100}browserSecret,[\s\S]{0,100}loginHandoffSeconds/,'the browser-bound OAuth cookie must live for the full handoff window');
+assert.match(source,/redirect\(siteUrl \+ "\/\?signin=expired", \[expiredBrowserCookie\]\)/,'an expired phone login must return to a retryable DanzStak screen instead of raw API output');
 assert.equal(fs.readFileSync('assets/home.js','utf8').match(/const legalVersion = "([^"]+)"/)[1],currentLegalVersion,'signup and API must accept the same policy version');
 const between=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)));
 const pair=crypto.generateKeyPairSync('rsa',{modulusLength:2048});
@@ -24,7 +28,7 @@ const verify=async value=>{context.value=value;return vm.runInContext('verifyIdT
  let item,reads=0;const digest=value=>crypto.createHash('sha256').update(value).digest('hex');
  const sessions=vm.createContext({sessionCookieName:'__Host-danzstak_session',tableName:'sessions',now:()=>1000,sha256:digest,
   GetItemCommand:class{constructor(input){this.input=input;}},db:{send:async command=>{reads++;assert.equal(command.input.ConsistentRead,true);assert.equal(command.input.Key.sessionId.S,digest('a'.repeat(64)));return {Item:item};}}});
- vm.runInContext(between('function getCookie(', 'function secureCookie(')+between('async function getAuthenticatedUser(', 'const groupCategories'),sessions);
+ vm.runInContext(between('function getCookie(', 'function secureCookie(')+between('async function getAuthenticatedSession(', 'const groupCategories'),sessions);
  const session=async cookie=>{sessions.event={cookies:cookie?[`__Host-danzstak_session=${cookie}`]:[]};return vm.runInContext('getAuthenticatedUser(event)',sessions);};
  assert.equal(await session(),null);assert.equal(await session('malformed'),null);assert.equal(reads,0);
  const valid={type:{S:'user_session'},userId:{S:'owner-1'},expiresAt:{N:'2000'}};
@@ -47,15 +51,15 @@ const verify=async value=>{context.value=value;return vm.runInContext('verifyIdT
  acceptance.expiresAt.N='2000';assert.equal((await vm.runInContext('startSignup(event)',legal)).mode,'signup');assert.equal(started,1);
  let useCookie=true,failRevocation=false;const revoked=[];
  const signout=vm.createContext({allowedOrigins:new Set(['https://danzstak.com']),corsHeaders:()=>({}),getSessionId:()=>useCookie?'a'.repeat(64):null,
-  getAuthenticatedUser:async()=>useCookie?'owner-1':null,accountForSub:async()=> 'owner@example.com',sha256:digest,tableName:'sessions',presenceTable:'presence',sessionCookieName:'session',clearCookie:()=> 'cleared',console:{error(){}},
+  getAuthenticatedSession:async()=>useCookie?{userId:'owner-1',deviceId:'11111111-1111-4111-8111-111111111111'}:null,accountForSub:async()=> 'owner@example.com',sha256:digest,tableName:'sessions',sessionDevicesTable:'devices',presenceTable:'presence',sessionCookieName:'session',clearCookie:()=> 'cleared',console:{error(){}},
   DeleteItemCommand:class{constructor(input){this.input=input;}},db:{send:async command=>{if(command.input.TableName==='sessions'){assert.equal(command.input.ExpressionAttributeValues[':userSession'].S,'user_session');if(failRevocation)throw Error('revocation unavailable');}revoked.push(command.input);return {};}}
  });
  vm.runInContext(between('async function logout(event)', '// API GATEWAY ROUTES'),signout);
  signout.event={headers:{origin:'https://untrusted.example','content-type':'application/json'}};assert.equal((await vm.runInContext('logout(event)',signout)).statusCode,403);assert.equal(revoked.length,0);
  signout.event={headers:{origin:'https://danzstak.com'}};assert.equal((await vm.runInContext('logout(event)',signout)).statusCode,415);assert.equal(revoked.length,0);
  signout.event={headers:{origin:'https://danzstak.com','content-type':'application/json'}};
- let signedOut=await vm.runInContext('logout(event)',signout);assert.equal(signedOut.statusCode,200);assert.equal(signedOut.cookies[0],'cleared');assert.equal(revoked.length,2);
- assert.equal(revoked[0].Key.sessionId.S,digest('a'.repeat(64)));assert.equal(revoked[1].TableName,'presence');
+ let signedOut=await vm.runInContext('logout(event)',signout);assert.equal(signedOut.statusCode,200);assert.equal(signedOut.cookies[0],'cleared');assert.equal(revoked.length,3);
+ assert.equal(revoked[0].Key.sessionId.S,digest('a'.repeat(64)));assert.equal(revoked[1].TableName,'devices');assert.equal(revoked[2].TableName,'presence');
  failRevocation=true;await assert.rejects(vm.runInContext('logout(event)',signout));failRevocation=false;useCookie=false;revoked.length=0;
  signedOut=await vm.runInContext('logout(event)',signout);assert.equal(signedOut.statusCode,200);assert.equal(revoked.length,0,'signing out twice remains safe and idempotent');
  console.log('Authentication checks passed: real RSA signatures, token claims, opaque sessions, expiration, signup consent gates, and session revocation.');

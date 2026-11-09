@@ -32,6 +32,7 @@ assert.match(serviceWorker, /60 \* 60 \* 1000/, "background shell refresh must b
 assert.match(serviceWorker, /type === "REFRESH_SHELL"/, "service worker must accept refresh requests");
 
 assert.match(pwa, /type: "REFRESH_SHELL"/, "PWA controller must request a shell refresh");
+assert.match(pwa, /serviceWorker\.register\("\/service-worker\.js\?pwa=429", \{ updateViaCache: "none" \}\)/, "installed phones must request the current worker URL instead of reusing a retired registration response");
 assert.match(pwa, /navigator\.connection\?\.saveData !== true/, "PWA must respect data-saver mode");
 assert.ok((pwa.match(/refreshOfflineShell\(\)/g) || []).length >= 2, "PWA must refresh after registration and when visible again");
 assert.match(hostingHeaders, /Cache-Control'[\s\S]*public, max-age=300, must-revalidate/, "Amplify must not cache app-shell files at the edge for a year");
@@ -41,37 +42,37 @@ for (const [file, expected] of [
   ["feed.html", "assets/soft-ui.css?v=427"],
   ["messages.html", "assets/soft-ui.css?v=427"],
   ["profile.html", "assets/soft-ui.css?v=427"],
-  ["feed.html", "assets/mobile-design-system.css?v=14"],
-  ["feed.html", "assets/danzstak-original-feed.css?v=15"],
-  ["messages.html", "assets/mobile-design-system.css?v=14"],
-  ["booking.html", "assets/mobile-design-system.css?v=14"],
-  ["epk.html", "assets/mobile-design-system.css?v=14"],
-  ["profile.html", "assets/mobile-design-system.css?v=14"],
-  ["record-stores.html", "assets/mobile-design-system.css?v=14"],
-  ["feed.html", "assets/feed-enhancements.css?v=502"],
-  ["feed.html", "assets/pwa.js?v=424"],
-  ["messages.html", "assets/pwa.js?v=424"],
-  ["profile.html", "assets/pwa.js?v=424"],
+  ["feed.html", "assets/mobile-design-system.css?v=18"],
+  ["feed.html", "assets/danzstak-original-feed.css?v=28"],
+  ["messages.html", "assets/mobile-design-system.css?v=18"],
+  ["booking.html", "assets/mobile-design-system.css?v=18"],
+  ["epk.html", "assets/mobile-design-system.css?v=18"],
+  ["profile.html", "assets/mobile-design-system.css?v=18"],
+  ["record-stores.html", "assets/mobile-design-system.css?v=18"],
+  ["feed.html", "assets/feed-enhancements.css?v=509"],
+  ["feed.html", "assets/pwa.js?v=429"],
+  ["messages.html", "assets/pwa.js?v=429"],
+  ["profile.html", "assets/pwa.js?v=429"],
   ["record-stores.html", "assets/record-stores-pagination.css?v=2"],
   ["record-stores.html", "assets/record-stores.js?v=6"],
-  ["feed.html", "assets/identity-media.js?v=1"],
-  ["messages.html", "assets/identity-media.js?v=1"],
-  ["profile.html", "assets/identity-media.js?v=1"],
-  ["feed.html", "assets/feed-enhancements.js?v=534"],
-  ["feed.html", "assets/profile-onboarding.js?v=8"],
+  ["feed.html", "assets/identity-media.js?v=2"],
+  ["messages.html", "assets/identity-media.js?v=2"],
+  ["profile.html", "assets/identity-media.js?v=2"],
+  ["feed.html", "assets/feed-enhancements.js?v=544"],
+  ["feed.html", "assets/profile-onboarding.js?v=12"],
   ["feed.html", "assets/post-sharing.js?v=421"],
   ["feed.html", "assets/people-search.js?v=423"],
   ["feed.html", "assets/media-visibility.js?v=391"],
   ["messages.html", "assets/media-visibility.js?v=391"],
   ["profile.html", "assets/media-visibility.js?v=391"],
-  ["messages.html", "assets/chat.js?v=450"],
-  ["messages.html", "assets/chat.css?v=457"],
-  ["messages.html", "assets/direct-messages.js?v=493"],
+  ["messages.html", "assets/chat.js?v=454"],
+  ["messages.html", "assets/chat.css?v=458"],
+  ["messages.html", "assets/direct-messages.js?v=496"],
   ["profile.html", "assets/profile-sharing.js?v=416"],
-  ["profile.html", "assets/profile-editor.js?v=483"],
-  ["booking.html", "assets/booking-agent.js?v=480"],
+  ["profile.html", "assets/profile-editor.js?v=485"],
+  ["booking.html", "assets/booking-agent.js?v=488"],
   ["profile.html", "assets/post-sharing.js?v=421"],
-  ["profile.html", "assets/profile.js?v=419"]
+  ["profile.html", "assets/profile.js?v=420"]
 ]) {
   assert.ok(read(file).includes(expected), `${file} must reference ${expected}`);
 }

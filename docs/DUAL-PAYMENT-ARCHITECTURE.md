@@ -4,8 +4,9 @@ Status: **Stripe implemented locally; Stripe-hosted test blocked; SFS/Phantom di
 
 ## Non-negotiable boundaries
 
-- Stripe remains in the existing SFScoop Stripe account. DANZSTAK does not create replacement Products, change the connected bank account, or alter SFScoop checkout/webhook behavior.
-- DANZSTAK remains fully usable without SFScoop, Phantom, a crypto wallet, or SFS Tokens. Card checkout and free functionality must not depend on wallet infrastructure.
+- Stripe and SFS Token via Phantom are the only approved payment methods. They share DanzStak entitlements but keep independent verification paths.
+- SFS is payment only. DANZSTAK does not award, let members earn, hold, custody, exchange or display a stored SFS balance, and it does not require or integrate another platform account.
+- DANZSTAK remains fully usable without Phantom, a crypto wallet, or SFS Tokens. Card checkout and free functionality must not depend on wallet infrastructure.
 - The existing SFS token contract, liquidity pool and token economics are outside this integration and must not be modified.
 - No entitlement is granted from a client assertion. A trusted server-side verifier must first produce final payment evidence.
 
@@ -37,7 +38,7 @@ Stripe currently writes `paymentMethod=stripe`. A future SFS adapter must write 
 - Uses Stripe event IDs and DynamoDB conditional transactions for idempotent fulfillment.
 - Fails closed when test secrets are absent and when a live key is supplied without the explicit live-payments gate.
 
-Stripe is **not operationally complete** until the three Price objects and full hosted Checkout/webhook flow pass in Test Mode using the existing SFScoop Stripe account.
+Stripe is **not operationally complete** until the three Price objects and full hosted Checkout/webhook flow pass in Test Mode using the configured Stripe account.
 
 ## Future Phantom/SFS adapter — blocked design
 
@@ -63,7 +64,7 @@ Proposed flow after approval:
 6. Server queries an approved chain RPC, waits for the configured finality and independently validates mint, decimals, sender, receiver, amount, reference and quote expiry.
 7. A conditional record keyed by network plus transaction signature prevents reuse. Only then does the shared entitlement transaction run with `paymentMethod=sfs`.
 
-Visiting SFScoop, connecting Phantom, signing a challenge, submitting an unconfirmed transaction or presenting a client-computed token amount must never grant access.
+Connecting Phantom, signing a challenge, submitting an unconfirmed transaction or presenting a client-computed token amount must never grant access.
 
 ## Required tests before SFS activation
 

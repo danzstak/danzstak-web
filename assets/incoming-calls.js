@@ -4,7 +4,14 @@
   const API = "https://api.danzstak.com";
   let current = null;
   let polling = false;
+  let callDeviceRegistrationRequired = false;
   let previousFocus = null;
+  let ringtoneContext = null;
+  let ringtoneTimer = null;
+  let ringtoneStopTimer = null;
+  let ringtoneDeadline = 0;
+  const RINGTONE_DURATION_MS = 25000;
+  const ringtonePulses = new Set();
   const handledCalls = new Map();
   const t = value => window.danzstakTranslate?.(value) || value;
   const tf = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), t(key));
@@ -22,6 +29,53 @@
   const answer = popup.querySelector("[data-answer]");
   const decline = popup.querySelector("[data-decline]");
 
+  async function unlockRingtone() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    try {
+      if (!ringtoneContext || ringtoneContext.state === "closed") ringtoneContext = new AudioContextClass();
+      if (ringtoneContext.state === "suspended") await ringtoneContext.resume();
+      if (current && !document.hidden && !ringtoneTimer) startRingtone();
+    } catch { /* The visible incoming-call screen remains the fallback. */ }
+  }
+
+  function playRingtonePulse(frequency, delay = 0) {
+    const timeout = setTimeout(() => {
+      ringtonePulses.delete(timeout);
+      if (!current || document.hidden || ringtoneContext?.state !== "running") return;
+      const oscillator = ringtoneContext.createOscillator();
+      const gain = ringtoneContext.createGain();
+      oscillator.frequency.value = frequency;
+      gain.gain.value = 0.055;
+      oscillator.connect(gain).connect(ringtoneContext.destination);
+      oscillator.start();
+      oscillator.stop(ringtoneContext.currentTime + 0.24);
+    }, delay);
+    ringtonePulses.add(timeout);
+  }
+
+  function stopRingtone() {
+    if (ringtoneTimer) clearInterval(ringtoneTimer);
+    ringtoneTimer = null;
+    if (ringtoneStopTimer) clearTimeout(ringtoneStopTimer);
+    ringtoneStopTimer = null;
+    for (const timeout of ringtonePulses) clearTimeout(timeout);
+    ringtonePulses.clear();
+  }
+
+  function startRingtone() {
+    stopRingtone();
+    const remaining = ringtoneDeadline - Date.now();
+    if (!current || document.hidden || ringtoneContext?.state !== "running" || remaining <= 0) return;
+    const pulse = () => {
+      playRingtonePulse(720);
+      playRingtonePulse(880, 320);
+    };
+    pulse();
+    ringtoneTimer = setInterval(pulse, 2400);
+    ringtoneStopTimer = setTimeout(stopRingtone, remaining);
+  }
+
   function renderCurrentCall() {
     if (!current) return;
     label.textContent = tf("{name} is calling by {mode}.", {
@@ -34,18 +88,26 @@
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
+      const deviceHeaders = path.startsWith("/calls/")
+        ? await globalThis.danzstakCallingDeviceHeaders?.() || {}
+        : {};
       const response = await fetch(API + path, {
         credentials: "include",
         cache: "no-store",
         ...options,
         signal: controller.signal,
-        headers: { "content-type": "application/json", ...(options.headers || {}) }
+        headers: { "content-type": "application/json", ...deviceHeaders, ...(options.headers || {}) }
       });
-      if (!response.ok) throw new Error("Call service unavailable");
-      return response.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const error = new Error(data.error || "Call service unavailable");
+        error.code = data.code || "";
+        throw error;
+      }
+      return data;
     } catch (error) {
       if (error.name === "AbortError") throw new Error("Call service took too long. Try again.");
-      if (error.message === "Call service unavailable") throw error;
+      if (error.code || error.message === "Call service unavailable") throw error;
       throw new Error("DanzStak cannot connect to calls right now. Check your connection and try again.");
     } finally { clearTimeout(timeout); }
   }
@@ -53,11 +115,13 @@
   function showCall(event) {
     if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
     current = event;
+    ringtoneDeadline = Date.now() + RINGTONE_DURATION_MS;
     renderCurrentCall();
     popup.hidden = false;
     previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     answer.focus();
     navigator.vibrate?.([400, 180, 400, 180, 400]);
+    startRingtone();
     // The service worker owns background notifications; polling only updates this page.
   }
 
@@ -66,6 +130,8 @@
     handledCalls.set(current.callId, Date.now() + 120000);
     popup.hidden = true;
     current = null;
+    stopRingtone();
+    ringtoneDeadline = 0;
     navigator.vibrate?.(0);
     previousFocus?.focus();
     previousFocus = null;
@@ -85,6 +151,8 @@
     const event = current;
     handledCalls.set(event.callId, Date.now() + 120000);
     if (typeof window.openMessageDrawer === "function") {
+      stopRingtone();
+      ringtoneDeadline = 0;
       navigator.vibrate?.(0);
       popup.hidden = true;
       current = null;
@@ -95,6 +163,8 @@
     destination.searchParams.set("contact", event.senderEmail);
     destination.searchParams.set("answer", "1");
     destination.searchParams.set("callId", event.callId);
+    stopRingtone();
+    ringtoneDeadline = 0;
     navigator.vibrate?.(0);
     location.assign(destination.href);
   });
@@ -109,6 +179,8 @@
       handledCalls.set(event.callId, Date.now() + 120000);
       popup.hidden = true;
       current = null;
+      stopRingtone();
+      ringtoneDeadline = 0;
       navigator.vibrate?.(0);
       previousFocus?.focus();
       previousFocus = null;
@@ -127,7 +199,7 @@
   });
 
   async function poll() {
-    if (document.hidden || polling) return;
+    if (document.hidden || polling || callDeviceRegistrationRequired) return;
     polling = true;
     for (const [callId, expiry] of handledCalls) if (expiry <= Date.now()) handledCalls.delete(callId);
     try {
@@ -145,12 +217,26 @@
       }
       const offer = (inbox.events || []).find(event => event.signalType === "offer" && ["phone", "video"].includes(event.mode) && !handledCalls.has(event.callId));
       if (offer) showCall(offer);
-    } catch { /* Retry quietly while the user remains on the site. */ }
+      callDeviceRegistrationRequired = false;
+    } catch (error) {
+      if (error.code === "CALL_DEVICE_REGISTRATION_REQUIRED") callDeviceRegistrationRequired = true;
+      /* Other transient failures retry quietly while the user remains on the site. */
+    }
     finally { polling = false; }
   }
 
+  document.addEventListener("pointerdown", unlockRingtone, { capture: true, passive: true });
+  document.addEventListener("keydown", unlockRingtone, { capture: true });
+  window.addEventListener?.("danzstak:call-device-registered", () => {
+    callDeviceRegistrationRequired = false;
+    poll();
+  });
   poll();
   setInterval(poll, 2000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopRingtone();
+    else { if (current) startRingtone(); poll(); }
+  });
+  window.addEventListener?.("pagehide", stopRingtone);
   if (typeof MutationObserver === "function") new MutationObserver(renderCurrentCall).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
 })();

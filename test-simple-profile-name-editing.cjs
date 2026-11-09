@@ -21,6 +21,6 @@ for (const language of ['en','es','fr','de','pt','it','ko','ja','zh-Hans','zh-Ha
 }
 assert.equal((editor.match(/language:"/g) || []).length, 15, "every supported profile language localizes the visible language control");
 assert.match(editor, /resolveProfileLanguage/, "the editor resolves every supported locale explicitly");
-assert.match(profile, /profile-editor\.js\?v=483/, "the profile loads the simplified editor release");
+assert.match(profile, /profile-editor\.js\?v=485/, "the profile loads the simplified editor release");
 
 console.log("Simple profile-name editing checks passed: owners can tap their name and all 15 languages explain visible names without username jargon.");

@@ -50,18 +50,22 @@
     image.replaceWith(fallback);
   }
 
-  function install(image, person) {
+  function install(image, person, options = {}) {
     if (!image || image.tagName !== "IMG") return image;
     image.referrerPolicy = "no-referrer";
+    const fail = () => {
+      if (typeof options.onFailure === "function") options.onFailure(image, person);
+      else replaceWithInitial(image, person);
+    };
     let attempted = false;
     image.addEventListener("error", async () => {
-      if (attempted) { replaceWithInitial(image, person); return; }
+      if (attempted) { fail(); return; }
       attempted = true;
       const failedUrl = image.currentSrc || image.src;
       const profile = await fetchFreshProfile(person);
       const freshUrl = String(profile?.picture || "");
       if (!image.isConnected) return;
-      if (!freshUrl || freshUrl === failedUrl) { replaceWithInitial(image, person); return; }
+      if (!freshUrl || freshUrl === failedUrl) { fail(); return; }
       image.src = freshUrl;
     });
     return image;

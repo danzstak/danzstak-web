@@ -17,7 +17,7 @@ function safeHttpsUrl(value, allowedHosts) {
   let url;
   try { url = new URL(String(value)); } catch { return ""; }
   if (url.protocol !== "https:" || url.username || url.password || url.hash) return "";
-  if (allowedHosts.size && !allowedHosts.has(url.hostname.toLowerCase())) return "";
+  if (!allowedHosts.size || !allowedHosts.has(url.hostname.toLowerCase())) return "";
   return url.toString();
 }
 
@@ -57,6 +57,9 @@ function validateAdapter(input) {
   if (typeof input.scan !== "function") throw new TypeError(`StakGuard adapter ${input.id} has no scan function.`);
   if (!["licensed_api", "official_public_lookup", "member_handoff"].includes(input.mode)) throw new TypeError(`StakGuard adapter ${input.id} has an invalid mode.`);
   const hosts = new Set((input.allowedHosts || []).map(host => String(host).toLowerCase()).filter(Boolean));
+  if (input.enabled === true && input.mode !== "member_handoff" && hosts.size === 0) {
+    throw new TypeError(`StakGuard adapter ${input.id} must declare an evidence hostname allowlist.`);
+  }
   return Object.freeze({
     id:String(input.id), displayName:bounded(input.displayName, 100, input.id), mode:input.mode,
     enabled:input.enabled === true, coverageVersion:bounded(input.coverageVersion, 80, "unversioned"),
@@ -67,14 +70,24 @@ function validateAdapter(input) {
 async function runAdapter(adapter, context, timeoutMs, now) {
   const requestId = randomUUID();
   const controller = new AbortController();
-  const abortFromParent = () => controller.abort(context.signal?.reason);
+  let finishAbort;
+  const abortResult = new Promise(resolve => { finishAbort = resolve; });
+  const abortFromParent = () => {
+    controller.abort(context.signal?.reason);
+    finishAbort("scan_cancelled");
+  };
   context.signal?.addEventListener("abort", abortFromParent, { once:true });
-  const timer = setTimeout(() => controller.abort(new Error("provider_timeout")), timeoutMs);
+  const timer = setTimeout(() => {
+    controller.abort(new Error("provider_timeout"));
+    finishAbort("provider_timeout");
+  }, timeoutMs);
+  const scanResult = Promise.resolve()
+    .then(() => adapter.scan({ identity:context.identity, signal:controller.signal, requestId }))
+    .then(result => ({ type:"result", result }), () => ({ type:"provider_error" }));
   try {
-    const result = await adapter.scan({ identity:context.identity, signal:controller.signal, requestId });
-    return normalizeResult(adapter, result, now().toISOString(), requestId);
-  } catch (error) {
-    const errorClass = controller.signal.aborted ? (context.signal?.aborted ? "scan_cancelled" : "provider_timeout") : "provider_error";
+    const outcome = await Promise.race([scanResult, abortResult]);
+    if (outcome?.type === "result") return normalizeResult(adapter, outcome.result, now().toISOString(), requestId);
+    const errorClass = typeof outcome === "string" ? outcome : "provider_error";
     return normalizeResult(adapter, { status:"unknown", errorClass }, now().toISOString(), requestId);
   } finally {
     clearTimeout(timer);

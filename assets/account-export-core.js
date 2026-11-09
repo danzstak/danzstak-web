@@ -18,6 +18,32 @@
     return { comments, reactions };
   }
 
+  async function collectAccountEngagement(posts, requestEngagement, options = {}) {
+    const items = Array.isArray(posts) ? posts : [];
+    const request = typeof requestEngagement === "function" ? requestEngagement : async () => ({});
+    const onProgress = typeof options.onProgress === "function" ? options.onProgress : () => {};
+    const concurrency = Math.max(1, Math.min(8, Number(options.concurrency) || 3));
+    const engagementByPost = {};
+    const incompleteSources = [];
+    let next = 0, completed = 0;
+
+    async function worker() {
+      while (next < items.length) {
+        const post = items[next++];
+        const postId = String(post?.postId || "").trim();
+        if (postId) {
+          try { engagementByPost[postId] = await request(postId); }
+          catch { incompleteSources.push(`engagement:${postId}`); }
+        }
+        completed += 1;
+        onProgress(completed, items.length);
+      }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+    return { engagementByPost, incompleteSources };
+  }
+
   function buildAccountArchive(sources, engagementByPost, messagesByContact, generatedAt = new Date().toISOString()) {
     const posts = Array.isArray(sources.posts?.posts) ? sources.posts.posts : [];
     const activity = ownedActivity(posts, engagementByPost);
@@ -51,5 +77,5 @@
     };
   }
 
-  return { buildAccountArchive, ownedActivity };
+  return { buildAccountArchive, collectAccountEngagement, ownedActivity };
 });

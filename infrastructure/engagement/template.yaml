@@ -17,6 +17,76 @@ Parameters:
     Type: String
     Default: DANZSTAK-Auth-API-role-zjknf4ur
 Resources:
+  MarketplaceTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Durable member shops, the official DanzStak Store, product inventory and later ticket/order records require one server-owned ledger.
+        must: [Keep point-in-time recovery and encryption enabled, Never expose direct browser table access, Keep all prices and quantities as server-validated integers.]
+    Properties:
+      TableName: DANZSTAK-Marketplace
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}
+      SSESpecification: {SSEEnabled: true}
+  MarketplacePolicy:
+    Type: AWS::IAM::Policy
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: The Auth API owns marketplace catalog persistence and enforces member ownership, official-store administration and inventory rules.
+        must: [Scope access to the marketplace table, Never grant browser clients direct DynamoDB access.]
+    Properties:
+      PolicyName: DanzStakMarketplaceAccess
+      Roles: [!Ref AuthRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:TransactWriteItems]
+            Resource: !GetAtt MarketplaceTable.Arn
+  SessionDevicesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Signed-in device records let members review and revoke account sessions without exposing opaque session tokens.
+        must: [Keep point-in-time recovery and encryption enabled, Store only coarse device labels and never IP addresses or raw user agents, Keep session records account-scoped.]
+    Properties:
+      TableName: DANZSTAK-SessionDevices
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      AttributeDefinitions:
+        - {AttributeName: userId, AttributeType: S}
+        - {AttributeName: deviceId, AttributeType: S}
+      KeySchema:
+        - {AttributeName: userId, KeyType: HASH}
+        - {AttributeName: deviceId, KeyType: RANGE}
+      TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}
+      SSESpecification: {SSEEnabled: true}
+  SessionDevicesPolicy:
+    Type: AWS::IAM::Policy
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: The Auth API must list and revoke only the signed-in member's server-side device sessions.
+        must: [Keep access scoped to the dedicated session-device table, Do not grant browser clients direct DynamoDB access.]
+    Properties:
+      PolicyName: DanzStakSessionDevices
+      Roles: [!Ref AuthRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:UpdateItem, dynamodb:Query]
+            Resource: !GetAtt SessionDevicesTable.Arn
   PostViewsTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -240,6 +310,66 @@ Resources:
   LegalAcceptanceRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /auth/legal-acceptance', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ListAccountSessionsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /auth/sessions', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  RevokeAccountSessionRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /auth/sessions/{deviceId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  RevokeOtherAccountSessionsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /auth/sessions/revoke-others', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ReauthenticateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /auth/reauth', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GetOfficialStoreRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/store', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  PutOfficialStoreRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'PUT /marketplace/store', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GetOwnShopRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/shop', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  PutOwnShopRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'PUT /marketplace/shop', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GetMemberShopRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/shop/{memberId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  CreateProductRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/products', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  UpdateProductRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'PATCH /marketplace/products/{productId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  DeleteProductRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /marketplace/products/{productId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  CreateOfficialProductRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/store/products', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  UpdateOfficialProductRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'PATCH /marketplace/store/products/{productId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  DeleteOfficialProductRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /marketplace/store/products/{productId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ListMarketplaceEventsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/events', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  CreateMarketplaceEventRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/events', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GetMarketplaceEventRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/events/{eventId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  UpdateMarketplaceEventRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'PATCH /marketplace/events/{eventId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  CreateTicketTierRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/events/{eventId}/tiers', Target: !Sub 'integrations/${AuthIntegrationId}'}
   EngagementInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -296,7 +426,24 @@ Resources:
       FunctionName: !Ref AuthFunctionName
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/POST/auth/legal-acceptance'
+  AccountSecurityInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/auth/*'
+  MarketplaceInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/marketplace/*'
+      SourceAccount: !Ref AWS::AccountId
 Outputs:
+  MarketplaceTableName: {Value: !Ref MarketplaceTable}
+  SessionDevicesTableName: {Value: !Ref SessionDevicesTable}
   PostViewsTableName: {Value: !Ref PostViewsTable}
   ReactionsTableName: {Value: !Ref ReactionsTable}
   CommentsTableName: {Value: !Ref CommentsTable}

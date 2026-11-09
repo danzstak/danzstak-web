@@ -15,6 +15,7 @@ When two directives conflict, the newer dated one wins; if unclear, stop and ask
 - No deploys. No AWS, Stripe or credential changes.
 - Never commit secrets, keys, passwords, account IDs or login notes. The repo is public.
 - DanzStak never hosts music. No audio-only uploads (MP3, WAV, FLAC, AIFF, AAC, OGG...), no audio storage, no first-party music streaming. Music is always a link or authorized embed (Bandcamp, SoundCloud, YouTube, etc.).
+- Payments are limited to Stripe or SFS Token through Phantom. SFS Token is payment only: DanzStak does not award it, let members earn it, hold or custody it, exchange it, or require another platform account. Phantom may connect only after an explicit checkout choice, and no entitlement is granted until DanzStak independently verifies the finalized on-chain payment server-side. No other SFS feature or outside-platform dependency belongs in the product.
 - User video uploads are approved (phone video from shows, clubs, daily life), with rights affirmation, DMCA process and server-side checks that a file is real video, not disguised audio. Full rules: instructions/00e-no-music-hosting.md. No hosting goes live without owner approval of costs.
 - If DMCA problems grow, the owner may restrict video uploads; repeat infringers lose upload rights.
 - Downloading from DanzStak is very hard by default. Do not show download controls or grant reusable public media URLs unless the creator explicitly allows downloads. Where DanzStak controls media, use access-checked short-lived delivery, restrictive response headers and cache rules, and revoke access on privacy/deletion changes. Be honest that browser playback cannot prevent screenshots, screen recording or determined capture; this is strong deterrence and creator control, not an impossible guarantee.
@@ -94,6 +95,17 @@ Later phase (after users): SYNC standalone, device registration, SYNC Network nu
 | StakGuard: see which brokers have your data + remove it | Free | Spec only |
 | StakGuard monitoring | $4 a month, no auto-renewal; prepay any months at $4 each (e.g. $20 = 5 months) | Spec only |
 
+## Shops and event tickets (owner-set, 2026-11-09)
+
+- DanzStak has one official **DanzStak Store** in the main app menu. It is a platform destination, not a permanent sales block inserted into Mix.
+- A member may create one public shop, choose its name, and reach its management tools from their profile. The public shop appears as a **Shop** tab/page on that member's profile. DanzStak does not create a separate storefront for a member who has not chosen to open one.
+- Published events may sell capacity-limited tickets through DanzStak. Tickets must be unique, verifiable at check-in, and protected against duplicate issuance. The event organizer manages availability, cancellation and attendee communication from the event tools.
+- DanzStak receives exactly **5% of each completed member-shop sale and each completed event-ticket sale**. The checkout must disclose the full price and fee before confirmation. Refunds reverse the corresponding fee; the backend, not browser display code, enforces the calculation.
+- For physical goods, seller proceeds are not released until carrier delivery or buyer receipt is confirmed and the dispute path remains available. Use a payment provider's supported marketplace hold/release or delayed-transfer flow. Do not call DanzStak a licensed escrow service unless legal and provider review explicitly permits that claim.
+- Required commerce foundations include seller identity and payout onboarding, product inventory, shipping and tracking, receipts, taxes, returns/refunds, disputes, fraud controls, ticket capacity, cancellation, check-in and audit history. No placeholder checkout, unverified payout, live charge or seller promise is allowed.
+- Music remains links or authorized embeds only. A shop must never turn into audio-file hosting or first-party music streaming.
+- This marketplace is a separate tested product phase. Do not silently add it to a feed-only release or activate live payments before the owner reviews the complete checkout and payout workflow.
+
 AI-assisted EPK rules:
 
 - Helps the artist write: bio, one-line pitch, booking pitch emails, press-kit checklist ("missing: live photos, tech rider"), and a stage plot / input list draft from what they type. The artist reviews and edits everything; nothing AI-written is published or sent unseen.
@@ -163,7 +175,7 @@ Connect what exists: Tour Manager outreach (POST /tour-manager/emails/send, SES,
 
 ## Task 5: SYNC standalone + SYNC Network numbers (later phase; reference)
 
-SYNC-only sign-up on the same account system; its own entry (https://www.google.com/url?q=http://sync.danzstak.com&source=gmail&ust=1794099440213000&sa=E or /sync), PWA, native later; contact discovery without uploading address books; free DanzStak-to-DanzStak chat and calls, paid numbers and calls/texts to regular phones; provider comparison (AWS, Telnyx, Twilio, Bandwidth) behind one swappable interface; monthly plan instead of $3 one-time, owner sets prices; compliance before launch (A2P 10DLC, E911, KYC, STIR/SHAKEN, recording consent with default no recording, EU/Italy local rules, telecom taxes); number recycling cool-down, spam reporting, new-account limits. See also instructions/pages/04-chat and 12-phone-service.
+SYNC-only sign-up on the same account system; its own entry (`sync.danzstak.com` or `/sync`) as an installable PWA only; contact discovery without uploading address books; free DanzStak-to-DanzStak chat and calls, paid numbers and calls/texts to regular phones; provider comparison (AWS, Telnyx, Twilio, Bandwidth) behind one swappable interface; monthly plan instead of $3 one-time, owner sets prices; compliance before launch (A2P 10DLC, E911, KYC, STIR/SHAKEN, recording consent with default no recording, EU/Italy local rules, telecom taxes); number recycling cool-down, spam reporting, new-account limits. See also instructions/pages/04-chat and 12-phone-service. Do not create native Android/iOS projects or APKs.
 
 ## Other open finding
 

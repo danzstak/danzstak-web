@@ -26,10 +26,10 @@ for (const language of languages) {
   });
 }
 
-assert.match(messages, /messageTranslate\(message\.read \? "Read" : "Delivered"\)/, "receipt labels should follow the selected language");
+assert.match(messages, /messageTranslate\(message\.read \? "Read" : "Sent"\)/, "receipt labels should follow the selected language without overstating delivery");
 assert.match(messages, /messageTranslate\("Sending…"\)/, "pending delivery text should follow the selected language");
 assert.match(messages, /messageTranslate\("edited"\)/, "edited markers should follow the selected language");
 assert.match(messages, /messageFormat\("You: \{text\}\. Sending\."/, "pending message announcements should preserve user text inside a localized template");
 assert.match(messages, /messageFormat\(Number\(conversation\.unread\) === 1 \? "\{count\} unread message" : "\{count\} unread messages"/, "unread badges should use localized singular and plural labels");
 
-console.log("Message delivery localization checks passed: sending, delivered, read, edited, pending announcements, and unread counts cover all supported locales.");
+console.log("Message delivery localization checks passed: sending, sent, read, edited, pending announcements, and unread counts cover all supported locales.");

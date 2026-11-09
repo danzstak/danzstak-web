@@ -18,16 +18,19 @@ assert.match(identity, /credentials: "include"/, "identity recovery must remain 
 assert.match(identity, /cache: "no-store"/, "recovery must not reuse an expired profile response");
 assert.match(identity, /if \(attempted\)/, "a broken replacement URL must not cause an infinite retry loop");
 assert.match(identity, /replaceWithInitial\(image, person\)/, "unavailable photos need an accessible visual fallback");
+assert.match(identity, /typeof options\.onFailure === "function"/, "callers that preserve an existing portrait need an explicit failure callback");
 assert.match(feed, /danzstakIdentityMedia\?\.install/g, "feed social avatars must use identity recovery");
+assert.match(feed, /story-create-avatar-pending/, "Dailies must preload a signed portrait before replacing its visible fallback");
+assert.match(feed, /currentAvatar\.replaceWith\(dailyImage\)/, "Dailies must swap the portrait only after it loads");
 assert.match(feedPage, /danzstakIdentityMedia\?\.install\(image, \{ memberId: authorMemberId, name: author, picture: authorPicture \}\)/, "post author photos must use identity recovery");
-assert.ok(feedPage.indexOf("assets/identity-media.js?v=1") < feedPage.indexOf("function createPostElement"), "post author recovery must load before the inline post renderer can run");
+assert.ok(feedPage.indexOf("assets/identity-media.js?v=2") < feedPage.indexOf("function createPostElement"), "post author recovery must load before the inline post renderer can run");
 assert.match(search, /danzstakIdentityMedia\?\.install\(avatar, person\)/, "member search avatars must recover");
 assert.match(messages, /danzstakIdentityMedia\?\.install\(avatar, conversation\)/, "saved-chat avatars must recover");
 assert.match(profile, /danzstakIdentityMedia\?\.install\(avatar, friend\)/, "profile friend avatars must recover");
 assert.match(worker, /"\/assets\/identity-media\.js"/, "the installable app must cache identity recovery");
 
 for (const page of ["feed.html", "messages.html", "profile.html"]) {
-  assert.match(fs.readFileSync(page, "utf8"), /assets\/identity-media\.js\?v=1/, `${page} must load identity recovery`);
+  assert.match(fs.readFileSync(page, "utf8"), /assets\/identity-media\.js\?v=2/, `${page} must load identity recovery`);
 }
 
 (async () => {

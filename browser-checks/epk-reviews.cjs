@@ -98,6 +98,28 @@ const reviews = {
       await page.screenshot({ path: path.join(captureDir, `reviews-${width}.png`), fullPage: true });
       await context.close();
     }
+    const cases = [
+      { name: "session-network-error", reviews: "ok", targets: "ok", session: "fail", visible: true, composer: false },
+      { name: "targets-timeout", reviews: "ok", targets: "fail", session: "ok", visible: true, composer: false },
+      { name: "reviews-fail", reviews: "fail", targets: "ok", session: "ok", visible: false, composer: false },
+      { name: "all-succeed", reviews: "ok", targets: "ok", session: "ok", visible: true, composer: true }
+    ];
+    for (const width of [390, 1366]) for (const testCase of cases) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: "block" });
+      const page = await context.newPage();
+      await page.route("https://api.danzstak.com/epk/public/**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ kit }) }));
+      await page.route("https://api.danzstak.com/reviews**", route => testCase.reviews === "ok" ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(reviews) }) : route.abort("failed"));
+      await page.route("https://api.danzstak.com/review-targets**", route => testCase.targets === "ok" ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(targets) }) : route.abort("timedout"));
+      await page.route("https://api.danzstak.com/auth/session", route => testCase.session === "ok" ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ signedIn: true }) }) : route.abort("failed"));
+      await page.goto(`${baseUrl}/epk.html?id=night-circuit`, { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.getElementById("epkReviews")?.dataset.reviewsReady === "true");
+      const state = await page.evaluate(() => ({ sectionVisible: !document.getElementById("epkReviews").hidden, composerVisible: !document.getElementById("epkReviewForm").hidden, cards: document.querySelectorAll("#epkReviewList .epk-review-card").length, status: document.getElementById("epkReviewsStatus").textContent }));
+      assert.equal(state.sectionVisible, testCase.visible, `${width}px ${testCase.name} section visibility: ${JSON.stringify(state)}`);
+      assert.equal(state.composerVisible, testCase.composer, `${width}px ${testCase.name} composer visibility: ${JSON.stringify(state)}`);
+      assert.equal(state.cards, testCase.visible ? 1 : 0, `${width}px ${testCase.name} published review count: ${JSON.stringify(state)}`);
+      assert.doesNotMatch(state.status, /unavailable|error|failed/i, `${width}px ${testCase.name} exposed an optional-service error`);
+      await context.close();
+    }
     console.log(`EPK review browser checks passed at ${widths.join(", ")}px with no overflow and touch-sized controls.`);
   } finally {
     await browser.close();

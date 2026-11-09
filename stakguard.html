@@ -8,7 +8,7 @@
   <title>StakGuard | DanzStak</title>
   <meta name="description" content="Review supported data-broker findings, prepare removal requests, and understand optional StakGuard monitoring.">
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="assets/stakguard.css?v=1">
+  <link rel="stylesheet" href="assets/stakguard.css?v=2">
   <link rel="stylesheet" href="assets/accessibility.css?v=364">
   <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 </head>
@@ -57,7 +57,7 @@
 
     <section id="removalTools" class="dashboard-section" aria-labelledby="removeTitle">
       <div class="section-heading"><div><p class="eyebrow">Free removal help</p><h2 id="removeTitle">Remove what you can</h2></div><span class="free-chip">Free</span></div>
-      <p class="section-intro">StakGuard will prepare source-specific requests for you to review. Opening a form is not the same as submitting it, and a submitted request is not proof of removal.</p>
+      <p class="section-intro">StakGuard prepares verified source-specific requests for you to review and send from your own email, or hands you to the broker's official form. DanzStak does not send or submit the request for you. Opening a draft or form is not submission, and submission is not proof of removal.</p>
       <div class="official-tools">
         <a href="https://privacy.ca.gov/drop/" target="_blank" rel="noopener noreferrer"><strong>California DROP</strong><span>Official free deletion request for eligible California residents</span><small>Opens privacy.ca.gov</small></a>
         <a href="https://consumer.ftc.gov/articles/what-know-about-people-search-sites-sell-your-information" target="_blank" rel="noopener noreferrer"><strong>FTC opt-out guidance</strong><span>What people-search removals can and cannot do</span><small>Opens consumer.ftc.gov</small></a>
@@ -85,10 +85,27 @@
     </section>
   </main>
 
+  <dialog id="removalDialog" class="removal-dialog" aria-labelledby="removalDialogTitle">
+    <form method="dialog">
+      <header><div><p class="eyebrow">Member-controlled request</p><h2 id="removalDialogTitle">Prepare removal request</h2></div><button type="submit" value="cancel" aria-label="Close request">×</button></header>
+    </form>
+    <p id="removalSource"></p>
+    <p class="dialog-warning">Review and complete every bracketed field. DanzStak does not receive, store, or send what you type here.</p>
+    <label class="request-label" for="removalDraft">Your request draft</label>
+    <textarea id="removalDraft" spellcheck="true"></textarea>
+    <div class="dialog-actions">
+      <button type="button" id="copyRemovalDraft">Copy request</button>
+      <a id="emailRemovalDraft" href="#">Open my email app</a>
+      <a id="officialRemovalForm" href="#" target="_blank" rel="noopener noreferrer">Official form</a>
+    </div>
+    <p class="dialog-note">Your email app opening does not mean the request was sent. Keep the broker's reply or receipt. StakGuard will not call it removed without provider evidence or a permitted recheck.</p>
+    <p id="removalStatus" role="status" aria-live="polite"></p>
+  </dialog>
+
   <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
     <a href="feed.html?view=feed" aria-label="Home">Home</a><a href="feed.html?view=friends" aria-label="Friends">Friends</a><a href="messages.html" aria-label="SYNC">SYNC</a><a href="feed.html?view=notifications" aria-label="Buzz">Buzz</a><a href="feed.html?view=feed&amp;menu=1" aria-label="Menu">Menu</a>
   </nav>
-  <script src="assets/stakguard-brokers.js?v=1" defer></script>
-  <script src="assets/stakguard.js?v=1" defer></script>
+  <script src="assets/stakguard-brokers.js?v=2" defer></script>
+  <script src="assets/stakguard.js?v=2" defer></script>
 </body>
 </html>

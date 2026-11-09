@@ -11,6 +11,20 @@ fs.mkdirSync(output, { recursive:true });
 const shareId = "1234567890abcdef1234567890abcdef", token = "a".repeat(64);
 const kit = { artistName:"Road Test", hometown:"Seattle", genres:["Punk"], shortPitch:"A direct live set for independent rooms.", shortBio:"Road Test makes fast independent music and arrives prepared.", bio:"", lineup:["Alex — vocals", "Sam — drums"], releases:["First Run — 2026"], achievements:[], notableShows:["Test Room — Portland"], pressQuotes:[], musicLinks:[{label:"Listen on Bandcamp",url:"https://example.com/music"}], videoLinks:[{label:"Live video",url:"https://example.com/video"}], socialLinks:[], media:[], stageRequirements:"Clear 12 × 10 ft stage", techRequirements:"Two vocal microphones", hospitalityRequirements:"", bookingName:"Road Test", bookingEmail:"booking@example.com", bookingPhone:"", website:"https://example.com" };
 
+async function captureViewport(page, file) {
+  let failure;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await page.screenshot({ path:file, fullPage:false, animations:"disabled", caret:"hide" });
+      return;
+    } catch (error) {
+      failure = error;
+      await page.waitForTimeout(100);
+    }
+  }
+  throw failure;
+}
+
 (async () => {
   const browser = await chromium.launch({ channel:"msedge", headless:true });
   try {
@@ -24,6 +38,9 @@ const kit = { artistName:"Road Test", hometown:"Seattle", genres:["Punk"], short
       await page.goto(url, { waitUntil:"domcontentloaded" });
       await page.locator("#publicEpkNotice").filter({ hasText:"does not store who viewed it" }).waitFor();
       assert.equal(await page.locator("#printEpk").isHidden(), true, "PDF action must respect the artist's per-link permission");
+      assert.equal(await page.locator("#copyEpkLink").isHidden(), true, "a venue-specific private link must not invite recipients to copy its tracked token");
+      assert.equal(await page.locator("#showEpkQr").isHidden(), true, "a venue-specific private link must not expose a reusable QR code");
+      assert.equal(await page.locator("#publicEpkActions").isHidden(), true, "the empty private-link action bar must not consume space");
       assert.equal(await page.locator('a[href="https://example.com/music"]').getAttribute("href"), "https://example.com/music");
       const geometry = await page.evaluate(() => ({ scrollWidth:document.documentElement.scrollWidth, clientWidth:document.documentElement.clientWidth, statusHeight:document.querySelector("#publicEpkNotice").getBoundingClientRect().height }));
       assert.ok(geometry.scrollWidth <= geometry.clientWidth + 1, `${width}px private EPK overflows`); assert.ok(geometry.statusHeight > 0);
@@ -31,7 +48,7 @@ const kit = { artistName:"Road Test", hometown:"Seattle", genres:["Punk"], short
       assert.equal(openIds.length, 2); assert.equal(openIds[0], openIds[1], "reload in one browser session must reuse the open ID");
       await page.getByRole("heading", { name:"Road Test", exact:true }).waitFor();
       assert.equal(await page.locator('a[href="https://example.com/music"]').count(), 1);
-      await page.screenshot({ path:path.join(output, `venue-epk-${width}.png`), fullPage:false });
+      await captureViewport(page, path.join(output, `venue-epk-${width}.png`));
       await context.close();
     }
     console.log("Venue EPK browser checks passed at 320, 360, 390, 414, 430, 1366px.");

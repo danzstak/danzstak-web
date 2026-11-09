@@ -54,7 +54,7 @@ foreach ($profileVideoRoute in @('GET /profile-video', 'POST /profile-video', 'P
 foreach ($legalRoute in @('POST /auth/legal-acceptance', 'LegalAcceptanceInvokePermission')) {
   if (-not $engagementTemplate.Contains($legalRoute)) { throw "Signup consent route is missing: $legalRoute" }
 }
-foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 'friendEmails.has(item.userEmail?.S)', 'data.originalContentCertified !== true', 'sha256(userEmail).slice(0, 24)', 'sha256(accountEmail).slice(0, 24)', 'Post media ownership could not be verified', 'function signedMediaUrl(', 'mediaUrl: item.mediaKey?.S ? signedMediaUrl', 'mediaUrl: signedMediaUrl(mediaKey, 3600)', '"strict-transport-security"', '"x-content-type-options"', '"x-frame-options"', 'user: userId && email ? { email } : undefined', 'async function getEngagement(event)', 'async function setReaction(event)', 'async function addComment(event)', 'async function deleteComment(event)', 'async function updateSecurePost(event)', 'commentPolicy === "off"', 'commentPolicy === "friends"', 'async function getEngagementNotifications(event)', 'async function clearEngagementNotifications(event)', 'reactions.map', 'comments.map', 'notices.filter', 'const storiesTable = "DANZSTAK-Stories"', 'linkedStories.map')) {
+foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 'friendEmails.has(item.userEmail?.S)', 'data.originalContentCertified !== true', 'sha256(userEmail).slice(0, 24)', 'sha256(accountEmail).slice(0, 24)', 'Post media ownership could not be verified', 'function signedMediaUrl(', 'mediaUrl: item.mediaKey?.S ? signedMediaUrl', 'mediaUrl: signedMediaUrl(mediaKey, 3600)', '"strict-transport-security"', '"x-content-type-options"', '"x-frame-options"', 'user: userId && email ? { email } : undefined', 'async function getEngagement(event)', 'async function setReaction(event)', 'async function addComment(event)', 'async function deleteComment(event)', 'async function updateSecurePost(event)', 'commentPolicy === "off"', 'commentPolicy === "friends"', 'async function getEngagementNotifications(event)', 'async function clearEngagementNotifications(event)', 'reactions.map', 'comments.map', 'notificationCleanupTasks', 'rememberNotification(parentEmail, `reply#${comment.commentId.S}`)', 'rememberNotification(taggedEmail, `tag#${recordId}#${taggedId}`)', 'const storiesTable = "DANZSTAK-Stories"', 'linkedStories.map')) {
   if (-not $authApi.Contains($required)) { throw "Auth API post authorization safeguard is missing: $required" }
 }
 $callTemplate = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'infrastructure\call-signaling\template.yaml') -Raw -Encoding utf8
@@ -68,7 +68,7 @@ if ($callTemplate.Contains("kind:{S:'reel'},content:{S:url.href},createdAt:{S:cr
 foreach ($feedPaginationControl in @('async function scanAll(request, maximumItems = 5000)', 'page.LastEvaluatedKey', 'await scanAll({ TableName: postsTable', 'async function batchGetFriendships(viewerEmail, friendEmails)', 'offset += 100', 'result.UnprocessedKeys?.[friendsTable]?.Keys')) {
   if (-not $authApi.Contains($feedPaginationControl)) { throw "Feed pagination or complete friendship authorization is missing: $feedPaginationControl" }
 }
-foreach ($completeCleanupControl in @('async function queryAll(request, maximumItems = 5000)', 'const members = await scanAll({ TableName: groupsTable', 'const memberships = await scanAll({', 'queryAll({ TableName: reactionsTable', 'queryAll({ TableName: commentsTable', 'linkedStories = await scanAll({', 'const items = await queryAll({ TableName: engagementNotificationsTable')) {
+foreach ($completeCleanupControl in @('async function queryAll(request, maximumItems = 5000)', 'members = await scanAll({ TableName: groupsTable', 'const memberships = await scanAll({', 'queryAll({ TableName: reactionsTable', 'queryAll({ TableName: commentsTable', 'linkedStories = await scanAll({', 'const items = await queryAll({ TableName: engagementNotificationsTable')) {
   if (-not $authApi.Contains($completeCleanupControl)) { throw "Engagement, profile authorization, or deletion cleanup stops at one DynamoDB page: $completeCleanupControl" }
 }
 foreach ($diyBookingControl in @('genre ? `${genre} music club` : "DIY punk metal rock music club"', 'function isBookableClub(place, genre = "")', 'function hasBookingContact(place)', 'const wrongScale =', 'const wrongFormat =', 'const eventNotRoom =', 'MaxResults: 50', 'slice(0, 24)', 'Filter: { BoundingBox:')) {
@@ -94,11 +94,11 @@ foreach ($routeFallbackControl in @('while (points.length >= 3)', 'if (!directio
 if (-not $authApi.Contains('const items = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :meta"')) {
   throw 'The Groups directory still stops at the first DynamoDB scan page.'
 }
-foreach ($authoritativeDeleteControl in @('async function runCleanup(tasks, attempts = 3)', 'await Promise.allSettled(batch.map(task => task()))', 'const cleanupPending = await runCleanup(cleanupTasks)', 'deletedEverywhere: mode === "delete_everywhere"', 'removedShares: mode === "delete_everywhere"')) {
+foreach ($authoritativeDeleteControl in @('async function runCleanup(tasks, attempts = 3)', 'await Promise.allSettled(batch.map(task => task()))', 'const notificationCleanupPending = await runCleanup(notificationCleanupTasks)', 'const cleanupPending = await runCleanup(cleanupTasks)', 'const shareCleanupPending = await runCleanup(shareDeleteTasks)', 'const sourceCleanupPending = sourceDeleteTask ? await runCleanup([sourceDeleteTask]) : 0', 'deletedEverywhere: mode === "delete_everywhere"', 'removedShares: mode === "delete_everywhere"')) {
   if (-not $authApi.Contains($authoritativeDeleteControl)) { throw "Post deletion can reappear or abandon cleanup without retries: $authoritativeDeleteControl" }
 }
 $postDeletion = [regex]::Match($authApi, 'async function deleteSecurePost[\s\S]*?async function updateSecurePost').Value
-foreach ($postDeleteControl in @('FilterExpression: "sharedPostId = :source"', 'placementRemoved = :yes', 'TableName: postsTable, Key: { postId: { S: recordId } }', 'const cleanupPending = await runCleanup(cleanupTasks)')) {
+foreach ($postDeleteControl in @('FilterExpression: "sharedPostId = :source"', '}, Number.MAX_SAFE_INTEGER);', 'placementRemoved = :yes', 'TableName: postsTable, Key: { postId: { S: recordId } }', 'ProjectionExpression: "postId, viewerKey"', 'const cleanupPending = await runCleanup(cleanupTasks)')) {
   if (-not $postDeletion.Contains($postDeleteControl)) { throw "Post deletion must preserve remove-here sources and remove every share through retryable cleanup: $postDeleteControl" }
 }
 foreach ($retiredCleanupLimit in @('TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId", Limit: 500', 'TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, Limit: 100')) {
@@ -150,7 +150,7 @@ if (-not $template.Contains('expiresAt:{N:String(now()+120)}')) {
 if ($template.Contains('expiresAt:{N:String(now()+7200)}')) {
   throw 'Online presence is incorrectly coupled to the two-hour signed-in activity window'
 }
-foreach ($scheduledStoryCleanup in @('DANZSTAK-Expired-Story-Cleanup', 'Type: AWS::Events::Rule', 'ScheduleExpression: rate(15 minutes)', 'Principal: events.amazonaws.com', "item.kind?.S==='reel'", "item.mediaKey.S.startsWith('stories/')", 'Resource: !Sub ''${MediaBucket.Arn}/stories/*''')) {
+foreach ($scheduledStoryCleanup in @('DANZSTAK-Expired-Story-Cleanup', 'Type: AWS::Events::Rule', 'ScheduleExpression: rate(15 minutes)', 'Principal: events.amazonaws.com', "item.kind?.S==='reel'", "mediaKey.startsWith('stories/')", "if(!mediaRemoved)return false", "return {expired:expired.length,cleaned,pending:expired.length-cleaned}", 'Resource: !Sub ''${MediaBucket.Arn}/stories/*''')) {
   if (-not $template.Contains($scheduledStoryCleanup)) { throw "Stories: scheduled database/media cleanup is incomplete: $scheduledStoryCleanup" }
 }
 foreach ($paginationControl in @('async function scanAll(input,maximumItems=5000)', 'async function queryAll(input,maximumItems=5000)', 'page.LastEvaluatedKey', 'scanAll({TableName:process.env.PRESENCE_TABLE', 'queryAll({TableName:process.env.FRIENDS_TABLE', 'scanAll({TableName:process.env.STORIES_TABLE', 'async function groupIds(email){const items=await queryAll')) {
@@ -176,16 +176,30 @@ foreach ($logoutPresenceBehavior in @('const presenceTable = "DANZSTAK-Presence"
 }
 if (-not $engagementTemplate.Contains('Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DANZSTAK-Presence')) { throw 'Auth API lacks permission to clear presence during logout' }
 if (-not $engagementTemplate.Contains('Resource: arn:aws:dynamodb:us-west-1:635288116224:table/DanzStak-UserSettings')) { throw 'Auth API lacks permission to enforce muted post notifications' }
+foreach ($sessionDeviceControl in @('SessionDevicesTable:', 'TableName: DANZSTAK-SessionDevices', 'PointInTimeRecoveryEnabled: true', 'TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}', "RouteKey: 'GET /auth/sessions'", "RouteKey: 'DELETE /auth/sessions/{deviceId}'", "RouteKey: 'POST /auth/sessions/revoke-others'", "RouteKey: 'GET /auth/reauth'")) {
+  if (-not $engagementTemplate.Contains($sessionDeviceControl)) { throw "Account session-device infrastructure is missing: $sessionDeviceControl" }
+}
+foreach ($sessionDeployControl in @('SESSION_DEVICES_TABLE', 'AccountSessionDevices', 'GET /auth/sessions', 'DELETE /auth/sessions/{deviceId}', 'POST /auth/sessions/revoke-others', 'GET /auth/reauth')) {
+  if (-not $authDeploy.Contains($sessionDeployControl)) { throw "Auth API session-device deployment is missing: $sessionDeployControl" }
+}
 if (-not $template.Contains("body.action==='view'&&mediaKey.startsWith")) {
   throw 'Raw media URL access is not restricted to the authenticated owner.'
 }
 foreach ($storyAudienceControl in @("audience=['public','friends','private'].includes(body.audience)", "x.audience?.S==='friends'&&friends.has(x.userEmail.S)")) {
   if (-not $template.Contains($storyAudienceControl)) { throw "Story audience enforcement is missing: $storyAudienceControl" }
 }
+$storyListing = [regex]::Match($template, 'async function getStories[\s\S]*?async function deleteStory').Value
+if ($storyListing.IndexOf("DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:key}") -lt 0 -or
+    $storyListing.IndexOf('DeleteItemCommand({TableName:process.env.STORIES_TABLE') -lt $storyListing.IndexOf("DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:key}") -or
+    -not $storyListing.Contains('if(!removed)return')) {
+  throw 'Expired Story cleanup must preserve its retry record until dedicated media is removed.'
+}
 $storyDeletion = [regex]::Match($template, 'async function deleteStory[\s\S]*?async function refreshSession').Value
-if ($storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES_TABLE') -lt 0 -or
-    $storyDeletion.IndexOf('for(let attempt=0;attempt<3;attempt++)') -lt $storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES_TABLE')) {
-  throw 'Story deletion must remove the database record before retrying dedicated-media cleanup.'
+if ($storyDeletion.IndexOf('new DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:mediaKey}') -lt 0 -or
+    $storyDeletion.IndexOf('new DeleteItemCommand({TableName:process.env.STORIES_TABLE') -lt $storyDeletion.IndexOf('new DeleteObjectCommand({Bucket:process.env.MEDIA_BUCKET,Key:mediaKey}') -or
+    -not $storyDeletion.Contains("if(!removed)return json(503,{error:'Story media could not be removed yet. Try again.',deleted:false})") -or
+    -not $storyDeletion.Contains("ConditionExpression:'userEmail = :owner'")) {
+  throw 'Story deletion must preserve its creator-owned retry record until dedicated media is removed.'
 }
 foreach ($accountPreferenceControl in @('darkMode = :d', 'reduceMotion = :r', 'dataSaver = :s', '.includes(body.language)')) {
   if (-not $template.Contains($accountPreferenceControl)) { throw "Account settings persistence is missing: $accountPreferenceControl" }
@@ -224,7 +238,9 @@ $requiredMessagingProtections = @(
   "hiddenMessages=new Set(state.Item?.hiddenMessages?.SS||[])",
   ".filter(x=>x.createdAt.S>hiddenBefore&&!hiddenMessages.has(x.messageId.S))",
   ".filter(x=>x.preview?.S)",
-  "conversationUpdate(recipient,user.email,1)"
+  "unreadPending:{BOOL:true}",
+  "SET unreadCounted = :counted REMOVE unreadPending",
+  "ConditionExpression:'unreadPending = :pending AND attribute_not_exists(unreadCounted)'"
 )
 foreach ($protection in $requiredMessagingProtections) {
   if (-not $template.Contains($protection)) {
@@ -233,8 +249,10 @@ foreach ($protection in $requiredMessagingProtections) {
 }
 
 $requiredUnreadMessaging = @(
-  "conversationUpdate(user.email,recipient,0)",
-  "UpdateExpression:'SET unread = :n'",
+  "UpdateExpression:'ADD unread :one'",
+  "await markUnreadOnce()",
+  "conversationUpdate(user.email,recipient)",
+  "conversationUpdate(recipient,user.email)",
   "event.queryStringParameters?.read==='1'",
   "unread:Number(x.unread?.N||0)",
   "type:'message'"
@@ -284,9 +302,16 @@ foreach ($protection in $requiredStoryDeletionProtections) {
 
 $profileUpdate = [regex]::Match($template, 'async function updateProfileUnique[\s\S]*?async function sendMessage').Value
 if (-not $profileUpdate.Contains('oldMedia.push(old)') -or
-    -not $profileUpdate.Contains('await Promise.all(oldMedia.map') -or
-    $profileUpdate.IndexOf('await Promise.all(oldMedia.map') -lt $profileUpdate.IndexOf('new TransactWriteItemsCommand')) {
-  throw 'Profile media must be replaced in DynamoDB before the old S3 objects are deleted.'
+    -not $profileUpdate.Contains('profileMediaCleanup = :profileCleanup') -or
+    -not $profileUpdate.Contains('profileMediaCleanupClaim') -or
+    -not $profileUpdate.Contains('new HeadObjectCommand') -or
+    -not $profileUpdate.Contains('await cleanupProfileMedia(user,pendingProfileMedia)') -or
+    $profileUpdate.IndexOf('await cleanupProfileMedia(user,pendingProfileMedia)') -lt $profileUpdate.IndexOf('new TransactWriteItemsCommand')) {
+  throw 'Profile media replacement must persist retryable cleanup work before deleting old S3 objects.'
+}
+$profileCleanup = [regex]::Match($template, 'async function cleanupProfileMedia[\s\S]*?async function updateProfileUnique').Value
+foreach ($profileCleanupControl in @('for(let attempt=0;attempt<3;attempt++)', "Key.startsWith(prefix)", 'DELETE profileMediaCleanup :resolved', 'profileAvatarKey = :candidate OR profileCoverKey = :candidate OR profileVideoKey = :candidate')) {
+  if (-not $profileCleanup.Contains($profileCleanupControl)) { throw "Profile media cleanup safeguard is missing: $profileCleanupControl" }
 }
 
 $requiredDataPermissions = @(
@@ -360,9 +385,11 @@ if (-not $template.Contains("if(body.action==='list'){")) {
 foreach ($groupAuthorizationControl in @(
   "const defaultGroupIds=new Set(",
   'async function groupExists(groupId)',
+  "found.Item&&found.Item.deletionState?.S!=='pending'",
   'async function sharesValidGroup(a,b)',
-  "if(!(await groupExists(groupId)))return json(404,{error:'Group not found'})",
-  'sharedGroup:await sharesValidGroup(myGroups,theirs)',
+  "ConditionExpression:'attribute_exists(userEmail) AND attribute_not_exists(deletionState)'",
+  'sharedGroup:await sharesValidGroup(activeGroups,theirs)',
+  '- !GetAtt GroupMembersTable.Arn',
   'Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:Scan, dynamodb:DeleteItem]'
 )) {
   if (-not $template.Contains($groupAuthorizationControl)) { throw "Messaging/calling accepts unverified group authorization: $groupAuthorizationControl" }

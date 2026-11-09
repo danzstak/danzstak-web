@@ -48,14 +48,14 @@
     city.value = savedCity || String(epk.hometown || profile.location || "").trim();
     loading = false;
     save.disabled = false;
-    if (savedAct || savedCity) setState("saved", "Saved booking details loaded from your account.");
-    else if (act.value || city.value) setState("dirty", "Suggested from your EPK or profile. Check the details, then save them for future bookings.");
-    else setState("", "Add your home city once and save it. The act name can stay blank while you browse.");
+    if (savedAct || savedCity) setState("saved", "Saved.");
+    else if (act.value || city.value) setState("dirty", "Suggested from your profile. Check and save.");
+    else setState("", "Add your home city, then save.");
   }
 
   function changed() {
     if (loading) return;
-    setState("dirty", "Not saved yet. Save these details to use them on your other devices.");
+    setState("dirty", "Not saved yet.");
   }
 
   act.addEventListener("input", changed);

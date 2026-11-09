@@ -1,0 +1,37 @@
+name: Authenticated Booking provider smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: Public city and genre query (no private data)
+        required: false
+        default: punk clubs in Tacoma, Washington, United States
+      worldwide_matrix:
+        description: Run the bounded six-locality worldwide benchmark instead of one query
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: authenticated-booking-provider-smoke
+  cancel-in-progress: false
+
+jobs:
+  real-provider-read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DANZSTAK_SYNTHETIC_SESSION_A: ${{ secrets.DANZSTAK_SYNTHETIC_SESSION_A }}
+      DANZSTAK_BOOKING_SMOKE_QUERY: ${{ inputs.query }}
+      DANZSTAK_BOOKING_SMOKE_MATRIX: ${{ inputs.worldwide_matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Verify authenticated real-provider venue discovery without mutations
+        run: node scripts/booking-provider-smoke.cjs

@@ -10,6 +10,18 @@ One internal coordinator accepts an authenticated member-owned search profile an
 2. **Official public lookup** — the source's current terms and robots/access rules permit automated lookup without login, CAPTCHA bypass, rate-limit evasion, or collection of unrelated people.
 3. **Member handoff** — automation is not permitted or needs sensitive proof; DanzStak links the official form and records only member-controlled milestones.
 
+## Member-controlled request handoff
+
+A handoff is functional removal help, not a scan and not delegated submission:
+
+1. The registry names the verified broker/controller, official privacy page, current request address or form, last-checked date and jurisdiction.
+2. DanzStak prepares a neutral template containing placeholders only. The member reviews and completes it locally.
+3. **Copy request** writes the reviewed text to the member's clipboard. **Open my email app** creates a `mailto:` draft addressed to the verified privacy contact. The member decides whether to send it. The official form remains available separately.
+4. DanzStak does not receive the completed draft, send the message, log into a broker, solve a CAPTCHA, scrape a results page or impersonate the member.
+5. Opening a draft/form is not **submitted**. Submission needs member-supplied receipt evidence or an approved provider acknowledgement. **Removed** needs controller evidence or a permitted recheck.
+
+The first verified handoff is PeopleConnect, checked against its [Suppression Center](https://suppression.peopleconnect.us/privacy-center), [privacy policy](https://peopleconnect.us/privacy-policy/) and published `privacy@peopleconnect.us` contact on 2026-11-09. Other listed sources remain under review and expose no prepared email action. Every contact and template must be rechecked before release.
+
 Each adapter returns the same evidence envelope:
 
 ```text
@@ -30,6 +42,8 @@ Allowed scan statuses are `found_verified`, `found_suspected`, `not_found`, `unk
 - Per-account and per-source rate limits, bounded timeouts, retry backoff, circuit breakers, and deletion/export are mandatory.
 - No SSN, password, government-ID image, DROP ID, address-book upload, raw breach material, CAPTCHA bypass, private-login scraping, or cross-member search.
 - Every new adapter ships disabled and requires source-specific legal/terms review, controlled tests, and owner approval before it can receive member data.
+- Enabled scan adapters must declare a non-empty exact-host evidence allowlist. Evidence URLs fail closed when the allowlist is missing or the URL contains credentials, a fragment or an unexpected host.
+- Coordinator timeout is enforced outside the adapter promise, so a provider that ignores `AbortSignal` cannot hold a member request open indefinitely.
 
 ## Build order
 

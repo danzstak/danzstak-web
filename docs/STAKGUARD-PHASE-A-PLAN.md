@@ -16,6 +16,9 @@ StakGuard is for every DanzStak member under **Settings → Your data**. It is s
 2. The [FTC's people-search guidance](https://consumer.ftc.gov/articles/what-know-about-people-search-sites-sell-your-information) says site-by-site opt-outs are generally free, may not remove public records, and may need repeating. StakGuard must not claim an opt-out erases the internet.
 3. The European Commission explains that [GDPR erasure is conditional](https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en), with exceptions such as legal obligations, freedom of expression, and legal claims. A draft must use a legal basis only after jurisdiction/controller validation.
 4. A viable licensed integration exists in principle: [Optery publishes an API](https://www.optery.com/api/) and a sandbox reference, but public per-member API pricing is not disclosed. No vendor selection is possible until a written quote, DPA/subprocessor review, supported-country list, deletion/export behavior, evidence model, and permitted white-label use are obtained.
+5. PeopleConnect's official [Suppression Center](https://suppression.peopleconnect.us/privacy-center), [privacy policy](https://peopleconnect.us/privacy-policy/) and published privacy address (`privacy@peopleconnect.us`) support a member-controlled handoff. Its terms prohibit scraping and automated access. DanzStak may prepare a neutral request and open the member's email application or official form, but must not operate the form, bypass verification, impersonate the member, or describe an opened draft as submitted. Recheck this source before each release because addresses and processes can change.
+
+This handoff reduces scraping and automated-submission risk; it does not prove that StakGuard has no legal obligations. Privacy notices, data minimization, security, consumer-protection claims, jurisdiction-specific rights and each source's current terms still require review before real member data is collected or a supported source is advertised.
 
 ## Phase A deliverable
 
@@ -33,6 +36,7 @@ Add `stakguard.html` plus isolated CSS/JavaScript and a **Your data → StakGuar
 - exact states: suspected/verified found, draft prepared, submitted with evidence, awaiting response, rejected/exempted, source-confirmed removed, search delisted only, not found on recheck, reappeared, and unknown due to outage;
 - source, detection/check dates, exposed field categories without raw values, confidence, and evidence provenance;
 - a source-specific removal draft that the member reviews, copies, or hands off to the official form; opening a form is never recorded as submission;
+- one verified PeopleConnect handoff that contains placeholders only, keeps edits in the browser, and lets the member copy the request or open their own email application; DanzStak sends nothing and stores no completed draft;
 - direct free-tool links, including California DROP, with jurisdiction and limitation copy;
 - monitoring price calculator showing `$4 × months`, paid-through behavior, no auto-renewal, one expiry reminder, and an intentionally disabled **Not available yet** purchase control.
 
@@ -73,6 +77,7 @@ At the common US online-card illustrative rate of `2.9% + $0.30`, a $4 payment l
 
 - Static tests reject payment/checkout routes, network scan calls, real-looking PII, claims of live monitoring, old product names, auto-renewal, and annual/discount language.
 - Browser tests at 320, 360, 390, 414, 430, and 1366px verify no overflow, 44px controls, keyboard/focus behavior, status semantics, disabled purchase control, exact price math, and safe external links.
+- Member-handoff tests verify the exact reviewed recipient, placeholder-only draft, official source URL, no network submission, no false sent/removed status and a visible four-tab section navigation at 320px.
 - Accessibility checks cover headings, landmarks, status labels, contrast, screen-reader names, and non-color status cues.
 - Full `test-regressions.ps1` and all review checks must pass.
 - PR includes inspected screenshots at every required width and ends with the Room faxed checklist.

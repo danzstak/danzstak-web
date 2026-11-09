@@ -15,6 +15,6 @@ assert.match(editor, /Profile video saved[\s\S]{0,90}showProfileFeedback/, "succ
 assert.match(styles, /\.profile-toast\{[^}]*safe-area-inset-bottom/, "profile feedback should clear mobile safe areas");
 assert.match(styles, /@media\(prefers-reduced-motion:reduce\)\{\.profile-toast\{transition:none\}\}/, "profile feedback should respect reduced motion");
 assert.match(profile, /profile-editor\.css\?v=395/);
-assert.match(profile, /profile-editor\.js\?v=483/);
+assert.match(profile, /profile-editor\.js\?v=485/);
 
 console.log("Profile feedback checks passed: edit-profile actions use compact, accessible, nonblocking messages.");

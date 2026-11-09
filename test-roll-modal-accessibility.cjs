@@ -16,6 +16,6 @@ assert.match(source, /rollBackgroundState\.forEach\(\(\{ element, wasInert \}\) 
 assert.match(source, /if \(event\.key !== "Tab" \|\| !reelsRail\.classList\.contains\("roll-fullscreen"\)\) return/, "fullscreen Roll must contain keyboard focus");
 assert.match(source, /if \(rollPlaceholder \|\| reelsRail\.classList\.contains\("roll-fullscreen"\)\) return/, "feed refreshes must not pull the active modal back into the page");
 assert.match(styles, /\.roll-fullscreen \.reel-import-form\{display:none\}/, "off-screen import controls must not remain keyboard reachable in fullscreen");
-assert.match(feed, /assets\/feed-enhancements\.css\?v=502/, "the feed must load the modal-accessibility styles");
+assert.match(feed, /assets\/feed-enhancements\.css\?v=509/, "the feed must load the modal-accessibility styles");
 
 console.log("Roll modal accessibility checks passed: background isolation, dialog naming, focus containment, hidden import controls, and state restoration are present.");

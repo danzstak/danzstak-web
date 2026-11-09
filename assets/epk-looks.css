@@ -10,7 +10,7 @@
 .epk-preview[data-look] .epk-body h2{color:var(--epk-accent);font-size:.82rem}
 .epk-preview[data-look] .epk-body section{padding-bottom:20px;border-bottom:1px solid color-mix(in srgb,var(--epk-ink) 20%,transparent)}
 .epk-preview[data-look] a{color:var(--epk-ink)}
-.epk-preview[data-look] .link-list a,.epk-preview[data-look] .epk-embeds>div{border:1px solid color-mix(in srgb,var(--epk-ink) 30%,transparent);border-radius:var(--epk-radius);background:color-mix(in srgb,var(--epk-ink) 5%,transparent)}
+.epk-preview[data-look] .link-list a,.epk-preview[data-look] .epk-media-card{border:1px solid color-mix(in srgb,var(--epk-ink) 30%,transparent);border-radius:var(--epk-radius);background:color-mix(in srgb,var(--epk-ink) 5%,transparent)}
 .epk-preview[data-look] .quote{border-color:var(--epk-accent)}
 .epk-preview[data-look="techno"] .epk-hero h1{font-stretch:125%}
 .epk-preview[data-look="punk"]{--epk-ground:#efe8da;--epk-ink:#121110;--epk-accent:#e5452e;--epk-detail:"Special Elite",monospace;--epk-body:"Work Sans",Arial,sans-serif;--epk-display:Anton,Impact,sans-serif}

@@ -5,17 +5,21 @@ const assert = require('node:assert/strict');
 const source = readFileSync(join(__dirname, 'assets/feed-enhancements.js'), 'utf8');
 const code = source.slice(source.indexOf('const search = document.querySelector(".search");'), source.indexOf('document.querySelector(\'[data-feature="Music"]\')'));
 let observer;
-const search = { value: '', setAttribute() {}, addEventListener(_, handler) { this.input = handler; } };
+const search = { value: '', setAttribute() {}, addEventListener(_, handler) { this.input = handler; }, focus() { this.focused = true; } };
 const feedback = { setAttribute() {} };
 const post = (text, author) => ({ hidden: false, textContent: `${author} ${text} Like Comment Share`, querySelector: selector => ({ textContent: selector === '.post-content' ? text : author }) });
 const posts = [post('Live music tonight', 'Alice'), post('New photography', 'Bob')];
-const context = vm.createContext({ window:{addEventListener(){}}, document: {
+const context = vm.createContext({ URLSearchParams, location: { search: '?q=music', href: 'https://danzstak.test/feed.html?view=feed&q=music' }, requestAnimationFrame(callback) { callback(); }, window:{addEventListener(){}}, document: {
   querySelector: () => search, querySelectorAll: () => posts, createElement: () => feedback,
   getElementById: () => ({ insertAdjacentElement() {} }) },
   MutationObserver: class { constructor(callback) { observer = callback; } observe() {} },
   refreshFeedMediaWorkspace() {}
 });
 vm.runInContext(code, context);
+assert.equal(search.value, 'music', 'a profile-header query must arrive in the Feed search box');
+assert.equal(search.focused, true, 'a cross-page search must focus the Feed search box');
+assert.equal(posts[0].hidden, false);
+assert.equal(posts[1].hidden, true, 'a cross-page query must filter the already-rendered Feed');
 vm.runInContext(source.slice(source.lastIndexOf('new MutationObserver(records => {'), source.lastIndexOf('})();')), context);
 search.value = 'MUSIC'; search.input();
 assert.equal(posts[0].hidden, false);

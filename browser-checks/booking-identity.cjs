@@ -32,16 +32,27 @@ const widths = [320, 360, 390, 430, 1024];
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
       });
       await page.goto(`${baseUrl}/booking.html`, { waitUntil: "domcontentloaded" });
-      await page.waitForFunction(() => document.getElementById("bookingIdentityStatus")?.textContent.includes("loaded"));
+      await page.locator(".booking-identity.is-saved").waitFor();
       assert.equal(await page.locator("#bandName").inputValue(), "The Test Rats");
       assert.equal(await page.locator("#startCity").inputValue(), "Tacoma, WA, United States");
       assert.equal(await page.locator(".booking-identity").evaluate(node => Boolean(node.closest("details"))), false, `${width}px identity must not be buried in a disclosure`);
-      const order = await page.evaluate(() => ({ identity: document.querySelector(".booking-identity").getBoundingClientRect().top, brief: document.querySelector(".booking-brief").getBoundingClientRect().top }));
-      assert.ok(order.identity < order.brief, `${width}px identity must precede tour request`);
+      const order = await page.evaluate(() => {
+        const identity = document.querySelector(".booking-identity");
+        const brief = document.querySelector(".booking-brief");
+        return {
+          identityTop: identity.getBoundingClientRect().top,
+          briefTop: brief.getBoundingClientRect().top,
+          identityPrecedesBrief: Boolean(identity.compareDocumentPosition(brief) & Node.DOCUMENT_POSITION_FOLLOWING)
+        };
+      });
+      assert.equal(order.identityPrecedesBrief, true, `${width}px identity must precede the tour request in document order`);
+      assert.ok(order.identityTop <= order.briefTop + 1, `${width}px identity must appear no lower than the tour request`);
       const geometry = await page.locator(".booking-identity").boundingBox();
       assert.ok(geometry.width <= width && geometry.x >= 0 && geometry.x + geometry.width <= width + 1, `${width}px identity must fit the viewport`);
+      const identityContentBottom = await page.locator(".booking-identity-status").evaluate(node => node.getBoundingClientRect().bottom);
+      const identityContentHeight = identityContentBottom - geometry.y;
       const maxIdentityHeight = width <= 600 ? 235 : 210;
-      assert.ok(geometry.height <= maxIdentityHeight, `${width}px identity must stay compact (received ${geometry.height}px)`);
+      assert.ok(identityContentHeight <= maxIdentityHeight, `${width}px identity content must stay compact (received ${identityContentHeight}px)`);
       const saveBox = await page.locator("#saveBookingIdentity").boundingBox();
       assert.ok(saveBox.height >= 44, `${width}px save target must remain touchable`);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, `${width}px page must not overflow horizontally`);

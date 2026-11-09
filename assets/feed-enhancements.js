@@ -320,7 +320,7 @@ function openPostInFeed(post) {
 
 function renderPublishedEvents(publishedEvents) {
   publishedEvents.replaceChildren();
-  const eventPosts = [...document.querySelectorAll("#feed .post")].filter(post => post.querySelector(".post-content")?.textContent.startsWith("📅 Event:"));
+  const eventPosts = [...document.querySelectorAll("#feed .post")].filter(post => /^(?:Event:|\u{1F4C5}\s*Event:)/u.test(post.querySelector(".post-content")?.textContent || ""));
   if (!eventPosts.length) {
     const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No published events yet."; publishedEvents.appendChild(empty);
   }
@@ -357,7 +357,7 @@ function renderSavedPosts(list) {
       const preview = media.cloneNode(false);
       preview.removeAttribute("id");
       preview.className = "saved-post-media";
-      if (preview.tagName === "VIDEO") { preview.controls = true; preview.autoplay = false; preview.muted = false; preview.preload = "metadata"; }
+      if (preview.tagName === "VIDEO") { preview.controls = true; preview.autoplay = false; preview.muted = true; preview.preload = "metadata"; }
       card.appendChild(preview);
     }
     card.appendChild(view); list.appendChild(card);
@@ -1829,7 +1829,7 @@ function renderWorkspace(name) {
       card.className = "feed-media-card";
       const copy = source.cloneNode();
       copy.removeAttribute("loading");
-      if (copy.tagName === "VIDEO") { copy.controls = true; copy.autoplay = false; copy.muted = false; }
+      if (copy.tagName === "VIDEO") { copy.controls = true; copy.autoplay = false; copy.muted = true; }
       const caption = document.createElement("p");
       caption.textContent = source.closest(".post")?.querySelector(".post-content")?.textContent || "Shared on DanzStak";
       card.append(copy, caption);
@@ -1846,10 +1846,15 @@ function renderWorkspace(name) {
   }
 
   if (name === "Events") {
-    featureText.textContent = "Create event announcements and find events shared in Your Mix.";
+    featureText.textContent = "Publish an event to Your Mix and, when ready, add capacity-limited tickets.";
     workspace.classList.add("events-workspace");
     const title = field("Event name", "text", "Show or performance");
-    const date = field("Date", "date", "");
+    const date = field("Starts", "datetime-local", "");
+    const endDate = field("Ends (optional)", "datetime-local", "");
+    const venue = field("Venue", "text", "Club or venue name");
+    const address = field("Venue address (optional)", "text", "Public venue address");
+    const capacity = field("Capacity", "number", "100");
+    capacity.input.min = "1"; capacity.input.max = "100000"; capacity.input.step = "1"; capacity.input.value = "100";
     const audience = document.createElement("select");
     audience.setAttribute("aria-label", "Event audience");
     for (const [value, label] of [["public", "Public"], ["friends", "Friends"], ["private", "Just me"]]) {
@@ -1864,28 +1869,60 @@ function renderWorkspace(name) {
     const eventCertified = document.createElement("input");
     eventCertified.type = "checkbox";
     eventCertification.append(eventCertified, document.createTextNode("I created this event announcement and authorize sharing it through DanzStak."));
+    const ticketLabel = document.createElement("label");
+    ticketLabel.className = "event-certification";
+    const ticketSales = document.createElement("input");
+    ticketSales.type = "checkbox";
+    ticketLabel.append(ticketSales, document.createTextNode("Sell capacity-limited tickets after secure checkout review"));
+    const ticketFields = document.createElement("div");
+    ticketFields.className = "event-ticket-fields";
+    ticketFields.hidden = true;
+    const ticketName = field("Ticket name", "text", "General admission");
+    const ticketPrice = field("Ticket price (USD)", "text", "15.00");
+    ticketPrice.input.inputMode = "decimal";
+    ticketFields.append(ticketName.wrap, ticketPrice.wrap);
+    ticketSales.addEventListener("change", () => { ticketFields.hidden = !ticketSales.checked; if (ticketSales.checked && !ticketName.input.value) ticketName.input.value = "General admission"; });
     const publishedHeading = document.createElement("h4");
     publishedHeading.textContent = "Published events";
     const publishedEvents = document.createElement("div");
     publishedEvents.className = "published-events";
     renderPublishedEvents(publishedEvents);
+    let clientEventId = crypto.randomUUID(), clientTierId = crypto.randomUUID();
     button.addEventListener("click", async () => {
-      if (!title.input.value.trim() || !date.input.value) return title.input.focus();
+      if (!title.input.value.trim() || !date.input.value || !venue.input.value.trim()) return (!title.input.value.trim() ? title.input : !date.input.value ? date.input : venue.input).focus();
       if (!eventCertified.checked) {
         featureText.textContent = "Confirm that you created this event announcement before publishing.";
         eventCertified.focus();
         return;
       }
+      const eventCapacity = Number(capacity.input.value);
+      if (!Number.isInteger(eventCapacity) || eventCapacity < 1 || eventCapacity > 100000) { featureText.textContent = "Enter an event capacity from 1 to 100,000."; capacity.input.focus(); return; }
+      if (ticketSales.checked && audience.value !== "public") { featureText.textContent = "Ticketed events must be Public so buyers can open the event page."; audience.focus(); return; }
+      const priceMatch = ticketSales.checked ? ticketPrice.input.value.trim().match(/^(\d{1,7})(?:\.(\d{1,2}))?$/) : null;
+      const priceCents = priceMatch ? Number(priceMatch[1]) * 100 + Number((priceMatch[2] || "").padEnd(2, "0")) : 0;
+      if (ticketSales.checked && (!ticketName.input.value.trim() || priceCents < 50)) { featureText.textContent = "Enter a ticket name and price of at least $0.50."; ticketPrice.input.focus(); return; }
       const submittedTitle = title.input.value.trim();
       const submittedDate = date.input.value;
       button.disabled = true;
       featureText.textContent = "Publishing event…";
       try {
-        const formattedDate = new Date(submittedDate + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+        const startsAt = new Date(submittedDate), endsAt = endDate.input.value ? new Date(endDate.input.value) : null;
+        if (Number.isNaN(startsAt.valueOf()) || endsAt && (Number.isNaN(endsAt.valueOf()) || endsAt <= startsAt)) throw new Error("Choose valid start and end times.");
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+        const eventResponse = await postActionFetch("/marketplace/events", { method:"POST", credentials:"include", cache:"no-store", headers:{"Content-Type":"application/json"}, body:JSON.stringify({clientEventId,title:submittedTitle,description:"",venueName:venue.input.value.trim(),venueAddress:address.input.value.trim(),startsAt:startsAt.toISOString(),endsAt:endsAt?.toISOString()||"",timezone,capacity:eventCapacity,status:audience.value==="public"?"published":"draft",ticketSalesEnabled:ticketSales.checked}) });
+        const eventData = await eventResponse.json().catch(() => ({}));
+        if (!eventResponse.ok) throw new Error(eventData.error || "Event details could not be saved.");
+        if (ticketSales.checked) {
+          const tierResponse = await postActionFetch(`/marketplace/events/${encodeURIComponent(eventData.event.id)}/tiers`, {method:"POST",credentials:"include",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({clientTierId,name:ticketName.input.value.trim(),description:"",priceCents,capacity:eventCapacity,status:"on_sale"})});
+          const tierData = await tierResponse.json().catch(() => ({}));
+          if (!tierResponse.ok) throw new Error(tierData.error || "Ticket offer could not be saved.");
+        }
+        const formattedDate = startsAt.toLocaleString(undefined, { year: "numeric", month: "long", day: "numeric", hour:"numeric", minute:"2-digit" });
+        const ticketCopy = ticketSales.checked ? `\nTickets: $${(priceCents / 100).toFixed(2)} · ${eventCapacity} capacity\nhttps://danzstak.com/event.html?id=${eventData.event.id}` : "";
         const response = await postActionFetch("/secure-posts", {
           method: "POST", credentials: "include", cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: `📅 Event: ${submittedTitle}\n${formattedDate}`, audience: audience.value, originalContentCertified: true })
+          body: JSON.stringify({ content: `Event: ${submittedTitle}\n${formattedDate}\n${venue.input.value.trim()}${ticketCopy}`, audience: audience.value, originalContentCertified: true })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Event could not be published");
@@ -1893,14 +1930,23 @@ function renderWorkspace(name) {
         if (title.input.value.trim() === submittedTitle && date.input.value === submittedDate) {
           title.input.value = "";
           date.input.value = "";
+          endDate.input.value = "";
+          venue.input.value = "";
+          address.input.value = "";
+          capacity.input.value = "100";
+          ticketSales.checked = false;
+          ticketFields.hidden = true;
+          ticketName.input.value = "";
+          ticketPrice.input.value = "";
         }
+        clientEventId = crypto.randomUUID(); clientTierId = crypto.randomUUID();
         eventCertified.checked = false;
         if (typeof window.loadPosts === "function") await window.loadPosts();
         if (isCurrentWorkspace()) renderPublishedEvents(publishedEvents);
       } catch (error) { if (isCurrentWorkspace()) featureText.textContent = error.message; }
       finally { button.disabled = false; }
     });
-    workspace.append(title.wrap, date.wrap, audience, eventCertification, button, publishedHeading, publishedEvents);
+    workspace.append(title.wrap, date.wrap, endDate.wrap, venue.wrap, address.wrap, capacity.wrap, audience, ticketLabel, ticketFields, eventCertification, button, publishedHeading, publishedEvents);
     return;
   }
 
@@ -2038,7 +2084,133 @@ function renderWorkspace(name) {
     legalLinks.append(privacyLink, termsLink);
     const sessionInfo = document.createElement("span");
     sessionInfo.className = "settings-detail";
-    sessionInfo.textContent = "Stay signed in until you sign out";
+    sessionInfo.textContent = feedTranslate("Sessions expire 30 days after sign-in");
+    const securityButton = document.createElement("button");
+    securityButton.type = "button";
+    securityButton.className = "secondary";
+    securityButton.textContent = feedTranslate("Review");
+    securityButton.setAttribute("aria-expanded", "false");
+    securityButton.setAttribute("aria-controls", "accountSecurityPanel");
+    securityButton.setAttribute("aria-label", feedTranslate("Review signed-in devices"));
+    const securityPanel = document.createElement("section");
+    securityPanel.id = "accountSecurityPanel";
+    securityPanel.className = "account-security-panel";
+    securityPanel.hidden = true;
+    securityPanel.setAttribute("aria-labelledby", "accountSecurityHeading");
+    const securityHeading = document.createElement("h4");
+    securityHeading.id = "accountSecurityHeading";
+    securityHeading.textContent = feedTranslate("Signed-in devices");
+    const securityStatus = document.createElement("p");
+    securityStatus.className = "account-security-status";
+    securityStatus.setAttribute("role", "status");
+    securityStatus.setAttribute("aria-live", "polite");
+    const securityDevices = document.createElement("div");
+    securityDevices.className = "account-security-devices";
+    const signOutOthers = document.createElement("button");
+    signOutOthers.type = "button";
+    signOutOthers.className = "secondary account-security-signout-all";
+    signOutOthers.textContent = feedTranslate("Sign out other devices");
+    signOutOthers.hidden = true;
+    securityPanel.append(securityHeading, securityStatus, securityDevices, signOutOthers);
+
+    async function accountSecurityFetch(path, options = {}) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      try {
+        const response = await fetch(`https://api.danzstak.com${path}`, { credentials: "include", cache: "no-store", ...options, signal: controller.signal });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const error = new Error(data.error || feedTranslate("Account security could not be updated."));
+          error.reauthenticationRequired = data.reauthenticationRequired === true;
+          error.reauthenticationUrl = data.reauthenticationUrl || "";
+          throw error;
+        }
+        return data;
+      } catch (error) {
+        if (error.name === "AbortError") throw new Error(feedTranslate("Account security took too long to respond."));
+        throw error;
+      } finally { clearTimeout(timeout); }
+    }
+
+    function showSecurityError(error) {
+      securityStatus.replaceChildren(document.createTextNode(error.message));
+      if (error.reauthenticationRequired && /^https:\/\/api\.danzstak\.com\/auth\/reauth$/.test(error.reauthenticationUrl)) {
+        const reauthenticate = document.createElement("a");
+        reauthenticate.className = "secondary";
+        reauthenticate.href = error.reauthenticationUrl;
+        reauthenticate.textContent = feedTranslate("Sign in again");
+        securityStatus.append(document.createTextNode(" "), reauthenticate);
+      }
+    }
+
+    async function loadAccountSessions() {
+      securityStatus.textContent = feedTranslate("Loading signed-in devices…");
+      securityDevices.replaceChildren();
+      signOutOthers.hidden = true;
+      try {
+        const data = await accountSecurityFetch("/auth/sessions");
+        const devices = Array.isArray(data.devices) ? data.devices : [];
+        securityStatus.textContent = devices.length
+          ? feedFormat(devices.length === 1 ? "{count} signed-in device." : "{count} signed-in devices.", { count: devices.length })
+          : feedTranslate("No active devices were returned.");
+        for (const device of devices) {
+          const row = document.createElement("div");
+          row.className = "account-security-device";
+          const copy = document.createElement("span");
+          copy.className = "account-security-device-copy";
+          const name = document.createElement("strong");
+          name.textContent = device.label || feedTranslate("DanzStak session");
+          const detail = document.createElement("small");
+          const locale = document.documentElement.lang || undefined;
+          const lastUsed = Number(device.lastUsedAt) > 0 ? new Date(Number(device.lastUsedAt) * 1000).toLocaleString(locale) : feedTranslate("Unknown");
+          const expires = Number(device.expiresAt) > 0 ? new Date(Number(device.expiresAt) * 1000).toLocaleDateString(locale) : feedTranslate("Unknown");
+          detail.textContent = feedFormat(device.current ? "This device · Last active {lastUsed} · Expires {expires}" : "Last active {lastUsed} · Expires {expires}", { lastUsed, expires });
+          copy.append(name, detail);
+          row.append(copy);
+          if (!device.current && /^[0-9a-f-]{36}$/i.test(device.deviceId || "")) {
+            const revoke = document.createElement("button");
+            revoke.type = "button";
+            revoke.className = "secondary";
+            revoke.textContent = feedTranslate("Sign out");
+            revoke.setAttribute("aria-label", feedFormat("Sign out {device}", { device: device.label || feedTranslate("this device") }));
+            revoke.addEventListener("click", async () => {
+              if (!(await window.danzstakConfirm(feedFormat("This ends the DanzStak session on {device}.", { device: device.label || feedTranslate("this device") }), {
+                title: feedTranslate("Sign out this device?"),
+                confirmLabel: feedTranslate("Sign out device"),
+                danger: true
+              }))) return;
+              revoke.disabled = true;
+              try {
+                await accountSecurityFetch(`/auth/sessions/${encodeURIComponent(device.deviceId)}`, { method: "DELETE" });
+                await loadAccountSessions();
+              } catch (error) { showSecurityError(error); revoke.disabled = false; }
+            });
+            row.append(revoke);
+          }
+          securityDevices.append(row);
+        }
+        signOutOthers.hidden = devices.filter(device => !device.current).length === 0;
+      } catch (error) { showSecurityError(error); }
+    }
+
+    securityButton.addEventListener("click", () => {
+      securityPanel.hidden = !securityPanel.hidden;
+      securityButton.setAttribute("aria-expanded", String(!securityPanel.hidden));
+      if (!securityPanel.hidden) loadAccountSessions();
+    });
+    signOutOthers.addEventListener("click", async () => {
+      if (!(await window.danzstakConfirm(feedTranslate("This ends every other active DanzStak session. Your current session stays signed in."), {
+        title: feedTranslate("Sign out every other device?"),
+        confirmLabel: feedTranslate("Sign out other devices"),
+        danger: true
+      }))) return;
+      signOutOthers.disabled = true;
+      try {
+        await accountSecurityFetch("/auth/sessions/revoke-others", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        await loadAccountSessions();
+      } catch (error) { showSecurityError(error); }
+      finally { signOutOthers.disabled = false; }
+    });
     const logout = document.createElement("button");
     logout.type = "button"; logout.className = "secondary"; logout.dataset.logout = ""; logout.textContent = "Logout"; logout.setAttribute("aria-label", "Log out of DanzStak");
     const button = document.createElement("button");
@@ -2100,6 +2272,7 @@ function renderWorkspace(name) {
       } catch (error) { if (isCurrentWorkspace()) featureText.textContent = error.message; }
       finally { button.disabled = false; }
     });
+    const accountSecurityRow = settingRow("shield", "Account security", securityButton);
     workspace.append(
       heading,
       settingRow("user", "Edit Profile", editProfile),
@@ -2115,12 +2288,15 @@ function renderWorkspace(name) {
       settingRow("smartphone", "App and device settings", appSettings),
       settingRow("activity", "Your DanzStak activity", activityButton),
       settingRow("download", "Download my data", exportButton),
+      accountSecurityRow,
+      securityPanel,
       settingRow("clock", "Session", sessionInfo),
       settingRow("file", "Legal and privacy", legalLinks),
       settingRow("logout", "Account", logout),
       button
     );
     renderBlockedMembers(blockedMembers);
+    if (new URLSearchParams(location.search).get("security") === "1") queueMicrotask(() => securityButton.click());
   }
 }
 
@@ -2161,7 +2337,17 @@ function setMobileMenu(open, { updateHistory = true, fromHistory = false } = {})
     delete nextState.danzstakMenuOpen;
     history.replaceState(nextState, "");
   }
-  if (shouldOpen) mobileNavMenu?.querySelector("[data-menu-close], a")?.focus({ preventScroll: true });
+  if (shouldOpen) {
+    const focusMenu = () => {
+      if (!document.body.classList.contains("mobile-menu-open") || mobileNavMenu?.contains(document.activeElement)) return;
+      (mobileNavMenu?.querySelector("[data-menu-close]") || mobileNavMenu?.querySelector("a"))?.focus({ preventScroll: true });
+    };
+    focusMenu();
+    // Route restoration and icon enhancement can finish after the drawer opens.
+    // Re-assert focus on the next frame so those startup tasks cannot strand it
+    // on the page underneath the modal mobile menu.
+    requestAnimationFrame(focusMenu);
+  }
   else if (wasOpen) mobileMenuControl?.focus({ preventScroll: true });
 }
 function closeMobileMenuFromControl() {
@@ -2428,9 +2614,18 @@ const search = document.querySelector(".search");
 search.type = "search";
 search.setAttribute("inputmode", "search");
 search.setAttribute("aria-label", "Search posts and users");
-search.placeholder = "Search posts and users";
+const compactSearchQuery = typeof matchMedia === "function"
+  ? matchMedia("(max-width: 360px)")
+  : { matches: false, addEventListener() {} };
+function syncSearchPlaceholder() {
+  search.placeholder = compactSearchQuery.matches ? "Search" : "Search posts and users";
+}
+syncSearchPlaceholder();
+compactSearchQuery.addEventListener?.("change", syncSearchPlaceholder);
 search.setAttribute("aria-controls", "feed");
 search.setAttribute("enterkeyhint", "search");
+const requestedSearch = new URLSearchParams(location.search).get("q")?.trim() || "";
+if (requestedSearch) search.value = requestedSearch.slice(0, 120);
 const searchFeedback = document.createElement("p");
 searchFeedback.className = "muted feed-search-feedback";
 searchFeedback.setAttribute("role", "status");
@@ -2452,12 +2647,17 @@ function filterFeedPosts() {
     : "";
 }
 search.addEventListener("input", filterFeedPosts);
+window.addEventListener("danzstak:posts-loaded", filterFeedPosts);
 window.addEventListener("danzstak:show-search", () => {
   if (!search.value.trim()) return;
   const url = new URL(location.href); url.hash = ""; url.searchParams.set("view", "feed");
   history.replaceState({}, "", url.pathname + url.search); restoreWorkspaceRoute();
 });
 filterFeedPosts();
+if (requestedSearch) {
+  requestAnimationFrame(() => search.focus({ preventScroll: true }));
+  window.addEventListener("load", () => search.focus({ preventScroll: true }), { once: true });
+}
 
 document.querySelector('[data-feature="Music"]')?.remove();
 document.querySelectorAll(".story span").forEach(label => {
@@ -3509,40 +3709,144 @@ function beginCommentReply(post, comment, item) {
 }
 
 let commentViewerProfilePromise = null;
+function localViewerProfile() {
+  let profile = {};
+  let media = {};
+  try { profile = JSON.parse(localStorage.getItem("danzstak_profile_draft") || "{}"); } catch { /* Ignore corrupt local profile drafts. */ }
+  try { media = JSON.parse(localStorage.getItem("danzstak_profile_media") || "{}"); } catch { /* Ignore corrupt local profile media. */ }
+  return {
+    ...profile,
+    picture: String(profile.picture || media.avatar || "")
+  };
+}
+
 function loadCommentViewerProfile() {
-  if (!commentViewerProfilePromise) commentViewerProfilePromise = engagementFetch("/profiles", { credentials: "include", cache: "no-store" })
-    .then(async response => response.ok ? (await response.json()).profile || {} : {})
-    .catch(() => ({}));
+  if (!commentViewerProfilePromise) {
+    const localProfile = localViewerProfile();
+    commentViewerProfilePromise = engagementFetch("/profiles", { credentials: "include", cache: "no-store" })
+      .then(async response => {
+        const cloudProfile = response.ok ? (await response.json()).profile || {} : {};
+        return {
+          ...localProfile,
+          ...cloudProfile,
+          picture: String(cloudProfile.picture || localProfile.picture || "")
+        };
+      })
+      .catch(() => localProfile);
+  }
   return commentViewerProfilePromise;
 }
 
-function hydratePostComposerAvatar() {
+function setViewerProfilePicture(profile = {}) {
   if (typeof document.querySelector !== "function") return;
   const avatar = document.querySelector(".composer-avatar");
   if (!avatar) return;
-  loadCommentViewerProfile().then(profile => {
-    if (!avatar.isConnected) return;
-    avatar.textContent = String(profile.name || "D").trim().charAt(0).toUpperCase() || "D";
+  const initial = String(profile.name || profile.authorName || "D").trim().charAt(0).toUpperCase() || "D";
+  const picture = String(profile.picture || profile.authorPicture || "").trim();
+  if (!avatar.dataset.viewerPicture || picture) {
+    avatar.textContent = initial;
     avatar.style.backgroundImage = "";
-    const dailyAvatar = document.querySelector(".story-create-avatar");
-    if (dailyAvatar) dailyAvatar.textContent = String(profile.name || "D").trim().charAt(0).toUpperCase() || "D";
-    if (!profile.picture) return;
-    const image = new Image();
-    image.referrerPolicy = "no-referrer";
-    image.onload = () => {
-      if (!avatar.isConnected) return;
-      avatar.style.backgroundImage = `url("${profile.picture}")`;
-      avatar.textContent = "";
-    };
-    image.src = profile.picture;
-    if (dailyAvatar) {
-      dailyAvatar.style.backgroundImage = `url("${profile.picture}")`;
-      dailyAvatar.textContent = "";
+  }
+  if (!picture) return;
+  avatar.dataset.viewerPicture = picture;
+  const image = new Image();
+  image.referrerPolicy = "no-referrer";
+  image.onload = () => {
+    if (!avatar.isConnected || avatar.dataset.viewerPicture !== picture) return;
+    avatar.style.backgroundImage = `url("${picture}")`;
+    avatar.textContent = "";
+  };
+  image.src = picture;
+}
+
+function setDailyCreatorPicture(profile = {}) {
+  if (typeof document.querySelector !== "function") return;
+  const dailyAvatar = document.querySelector(".story-create-avatar");
+  if (!dailyAvatar?.isConnected) return;
+  const identity = dailyAvatar.closest(".story-create-identity");
+  const initial = String(profile.name || profile.authorName || "D").trim().charAt(0).toUpperCase() || "D";
+  const picture = String(profile.picture || profile.authorPicture || "").trim();
+  if (!picture) {
+    identity?.querySelector("img.story-create-avatar-pending")?.remove();
+    if (identity) delete identity.dataset.pendingPicture;
+    if (dailyAvatar.tagName !== "IMG" && !dailyAvatar.dataset.viewerPicture) dailyAvatar.textContent = initial;
+    return;
+  }
+  if (dailyAvatar.tagName === "IMG" && dailyAvatar.dataset.viewerPicture === picture && dailyAvatar.complete && dailyAvatar.naturalWidth > 0) return;
+  if (!identity) return;
+  const previousCandidate = identity.querySelector("img.story-create-avatar-pending");
+  if (previousCandidate?.dataset.viewerPicture === picture) return;
+  previousCandidate?.remove();
+  identity.dataset.pendingPicture = picture;
+  const dailyImage = document.createElement("img");
+  dailyImage.className = "story-create-avatar-pending";
+  dailyImage.alt = "";
+  dailyImage.dataset.viewerPicture = picture;
+  dailyImage.referrerPolicy = "no-referrer";
+  dailyImage.hidden = true;
+  dailyImage.onload = () => {
+    const currentAvatar = identity.querySelector(".story-create-avatar");
+    if (!dailyImage.isConnected || !currentAvatar || identity.dataset.pendingPicture !== dailyImage.dataset.viewerPicture) {
+      dailyImage.remove();
+      return;
     }
+    dailyImage.className = "story-create-avatar story-create-avatar-image";
+    dailyImage.hidden = false;
+    currentAvatar.replaceWith(dailyImage);
+    delete identity.dataset.pendingPicture;
+  };
+  window.danzstakIdentityMedia?.install(dailyImage, profile, {
+    onFailure: () => {
+      if (identity.dataset.pendingPicture === dailyImage.dataset.viewerPicture) delete identity.dataset.pendingPicture;
+      dailyImage.remove();
+    }
+  });
+  identity.appendChild(dailyImage);
+  dailyImage.src = picture;
+}
+
+function hydratePostComposerAvatar() {
+  if (typeof document === "undefined" || typeof document.querySelector !== "function" || !document.querySelector(".composer-avatar")) return;
+  loadCommentViewerProfile().then(profile => {
+    setViewerProfilePicture(profile);
+    hydrateViewerPictureFromPosts(window.danzstakLoadedPosts || []);
   });
 }
 
+function hydrateDailyCreatorPicture() {
+  if (typeof document === "undefined" || typeof document.querySelector !== "function") return;
+  loadCommentViewerProfile().then(setDailyCreatorPicture);
+}
+
 hydratePostComposerAvatar();
+hydrateDailyCreatorPicture();
+
+// Older accounts can have a visible profile picture on their saved posts even
+// when the profile endpoint has no picture yet. Reuse that authoritative post
+// identity so Mix and Dailies never fall back to a generic D for that member.
+function hydrateViewerPictureFromPosts(posts = []) {
+  const ownerPost = posts.find(post => post?.isOwner === true && String(post.authorPicture || "").trim());
+  if (!ownerPost) return;
+  setViewerProfilePicture({
+    memberId: String(ownerPost.userId || ""),
+    name: ownerPost.authorName || ownerPost.name || "DanzStak member",
+    picture: ownerPost.authorPicture
+  });
+  setDailyCreatorPicture({
+    memberId: String(ownerPost.userId || ""),
+    name: ownerPost.authorName || ownerPost.name || "DanzStak member",
+    picture: ownerPost.authorPicture
+  });
+}
+
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("danzstak:posts-loaded", event => {
+    hydrateViewerPictureFromPosts(event.detail?.posts || []);
+  });
+  if (Array.isArray(window.danzstakLoadedPosts)) {
+    hydrateViewerPictureFromPosts(window.danzstakLoadedPosts);
+  }
+}
 
 function ensureCommentComposer(post) {
   const comments = post.querySelector(".comments"), input = comments?.querySelector(":scope > input, .comment-composer input");

@@ -5,6 +5,7 @@
   const brief = document.getElementById("bookingBrief");
   const status = document.getElementById("bookingBriefStatus");
   if (!form || !brief || !status) return;
+  let requestStarted = false;
   const field = id => document.getElementById(id);
   const setValue = (id, value) => {
     const control = field(id);
@@ -109,6 +110,7 @@
 
   form.addEventListener("submit", event => {
     event.preventDefault();
+    requestStarted = true;
     const parsed = parseTourBrief(brief.value);
     if (!brief.value.trim()) { status.textContent = "Describe where you are starting, how long you have, and where you want to go."; brief.focus(); return; }
     applyTourBrief(parsed);
@@ -116,7 +118,8 @@
     if (!field("startCity")?.value.trim()) missing.push("home town");
     if (parsed.mode === "tour" && !field("endCity")?.value.trim()) missing.push("turnaround city");
     if (missing.length) {
-      status.textContent = `Almost there—add the ${missing.join(" and ")}, then press Find the run again.`;
+      requestStarted = false;
+      status.textContent = `Almost there—add the ${missing.join(" and ")}, then press Plan my run again.`;
       document.querySelector("details.booking-tools")?.setAttribute("open", "");
       document.querySelector("details.booking-start")?.setAttribute("open", "");
       field("startCity")?.focus();
@@ -127,14 +130,23 @@
   });
 
   document.getElementById("bookingBriefExample")?.addEventListener("click", () => {
-    brief.value = "The Rats. DIY punk. From Momo, Italy to Berlin and back home for 10 days.";
+    const act = field("bandName")?.value.trim();
+    const home = field("startCity")?.value.trim();
+    const destination = field("endCity")?.value.trim();
+    const artist = act ? `${act}. ` : "";
+    if (home && destination) brief.value = `${artist}DIY punk. From ${home} to ${destination} and back home. 10 days. 8 shows.`;
+    else if (home) brief.value = `${artist}DIY punk. From ${home} and travel south, then back home. 10 days. 8 shows.`;
+    else brief.value = `${artist}DIY punk. Start from your home city and travel south, then return home. 10 days. 8 shows.`;
+    status.textContent = "";
     brief.focus();
   });
 
   window.danzstakParseTourBrief = parseTourBrief;
   const routeStatus = field("routeSearchStatus");
   if (routeStatus && typeof MutationObserver !== "undefined") {
-    new MutationObserver(() => { status.textContent = routeStatus.textContent; })
+    new MutationObserver(() => {
+      if (requestStarted) status.textContent = routeStatus.textContent;
+    })
       .observe(routeStatus, { childList: true, characterData: true, subtree: true });
   }
 })();

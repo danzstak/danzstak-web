@@ -1,9 +1,13 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { chromium } = require("playwright");
 
 const widths = [320, 360, 390, 414, 430];
+const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8016").replace(/\/$/, "");
+const captureDir = String(process.env.DANZSTAK_CAPTURE_DIR || "");
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const friendId = "22222222-2222-4222-8222-222222222222";
 const postId = "33333333-3333-4333-8333-333333333333";
@@ -22,7 +26,7 @@ function fixture(url) {
     audience: "public",
     isOwner: true,
     mediaType: "image",
-    mediaUrl: "http://127.0.0.1:8016/assets/danzstak-share-fb-v2.jpg",
+    mediaUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`,
     viewCount: 27,
     commentPolicy: "everyone"
   }] };
@@ -69,7 +73,7 @@ function fixture(url) {
         const url = new URL(route.request().url());
         return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(url)) });
       });
-      await page.goto("http://127.0.0.1:8016/feed.html?view=feed", { waitUntil: "domcontentloaded" });
+      await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.locator(`.post[data-post-id="${postId}"]`).waitFor();
       await page.locator(`.post[data-post-id="${postId}"] .commentBtn`).click();
       await page.locator(`.comment[data-comment-id="${commentId}"]`).waitFor();
@@ -120,6 +124,10 @@ function fixture(url) {
       assert.ok(Math.abs(geometry.replyCenter - geometry.removeCenter) <= 1, `${width}px Reply and Delete are not vertically centered on the same row: ${JSON.stringify(geometry)}`);
       assert.ok(geometry.removeRight <= geometry.commentRight + 1, `${width}px Delete escapes its comment`);
       assert.ok(geometry.removeRight - geometry.replyLeft > 100, `${width}px comment actions are not distributed across the row`);
+      if (captureDir) {
+        fs.mkdirSync(captureDir, { recursive: true });
+        await page.screenshot({ path: path.join(captureDir, `populated-feed-${width}.png`), fullPage: true });
+      }
       await context.close();
     }
     console.log(`Populated feed mobile browser checks passed: ${widths.length} viewport widths.`);

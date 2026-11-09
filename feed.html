@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1769e0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-QOP0iR4PMEhxCBP9fRZVfpKjEO54ndjYr8LZO4mHVrc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; script-src 'self' 'sha256-41kBYJsLYKEikvfJiLnA5+w1SCC/6L5rB51lA7BePE8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com; media-src 'self' blob: https:; frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://www.tiktok.com https://www.facebook.com https://www.instagram.com https://www.dailymotion.com https://streamable.com https://player.twitch.tv https://clips.twitch.tv; object-src 'none'; base-uri 'none'; form-action 'self' https://api.danzstak.com; frame-ancestors 'none'; upgrade-insecure-requests">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-192.png?v=3" sizes="192x192" type="image/png">
@@ -348,24 +348,23 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
 }
 </style>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
-<link rel="stylesheet" href="assets/feed-enhancements.css?v=502">
+<link rel="stylesheet" href="assets/feed-enhancements.css?v=509">
 <link rel="stylesheet" href="assets/facebook-import.css?v=341">
 <link rel="stylesheet" href="assets/pivot.css?v=1">
 <link rel="stylesheet" href="assets/invite-sharing.css?v=1">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 <link rel="stylesheet" href="assets/user-content-links.css?v=1">
-<link rel="stylesheet" href="assets/profile-onboarding.css?v=2">
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">
-<link rel="stylesheet" href="assets/incoming-calls.css?v=233">
-<link rel="stylesheet" href="assets/responsive-media.css?v=4">
-<link rel="stylesheet" href="assets/mobile-design-system.css?v=14">
-<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=15">
-<link rel="stylesheet" href="assets/artist-hq.css?v=1">
+<link rel="stylesheet" href="assets/incoming-calls.css?v=236">
+<link rel="stylesheet" href="assets/responsive-media.css?v=6">
+<link rel="stylesheet" href="assets/mobile-design-system.css?v=18">
+<link rel="stylesheet" href="assets/danzstak-original-feed.css?v=28">
+<link rel="stylesheet" href="assets/artist-hq.css?v=2">
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=8" defer></script>
-<script src="assets/i18n.js?v=397" defer></script>
+<script src="assets/i18n.js?v=399" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
-<script src="assets/identity-media.js?v=1"></script>
+<script src="assets/identity-media.js?v=2"></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
 <script src="assets/post-sharing.js?v=421" defer></script>
 <script src="assets/media-tags.js?v=359" defer></script>
@@ -386,7 +385,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
     aria-label="Search DanzStak"
   >
 
-  <button id="pivotButton" class="pivot-header-button" type="button" aria-label="Pivot your data to DanzStak" title="Pivot your data to DanzStak"><span data-menu-icon="refresh" aria-hidden="true"></span><span>Pivot</span></button>
+  <button id="pivotButton" class="pivot-header-button" type="button" data-pivot-trigger data-icon-layout="label" aria-label="Pivot your data to DanzStak" title="Pivot your data to DanzStak"><span data-menu-icon="refresh" aria-hidden="true"></span><span>Pivot</span></button>
 
   <nav class="topnav">
     <button type="button" data-route="home" aria-label="Home" title="Home"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></svg></button>
@@ -423,6 +422,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
       <a href="#hq" data-feature="HQ"><span class="menu-icon" data-menu-icon="home" aria-hidden="true"></span><span class="menu-label">Artist HQ</span></a>
       <a href="booking-selections.html#tourManagerTitle"><span class="menu-icon" data-menu-icon="calendar" aria-hidden="true"></span><span class="menu-label">Tour Manager</span></a>
       <a href="#events" data-feature="Events"><span class="menu-icon" data-menu-icon="microphone" aria-hidden="true"></span><span class="menu-label">Events</span></a>
+      <a href="store.html"><span class="menu-icon" data-menu-icon="store" aria-hidden="true"></span><span class="menu-label">DanzStak Store</span></a>
       <a href="booking.html"><span class="menu-icon" data-menu-icon="bus" aria-hidden="true"></span><span class="menu-label">Booking Agent</span></a>
       <a href="record-stores.html"><span class="menu-icon" data-menu-icon="disc" aria-hidden="true"></span><span class="menu-label">Record Stores</span></a>
       <a href="epk.html"><span class="menu-icon" data-menu-icon="folder" aria-hidden="true"></span><span class="menu-label">EPK Builder</span></a>
@@ -433,7 +433,7 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
       <a href="support.html"><span class="menu-icon" data-menu-icon="help" aria-hidden="true"></span><span class="menu-label">Support</span></a>
       <a href="privacy.html"><span class="menu-icon" data-menu-icon="lock" aria-hidden="true"></span><span class="menu-label">Privacy Policy</span></a>
       <a href="terms.html"><span class="menu-icon" data-menu-icon="file" aria-hidden="true"></span><span class="menu-label">Terms of Service</span></a>
-      <a class="app-menu-link" href="downloads/danzstak-android-test.apk" data-app-platform="android" download><span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.2 5.4 5.8 3a.7.7 0 0 1 1.2-.7l1.5 2.5a9.7 9.7 0 0 1 7 0L17 2.3a.7.7 0 1 1 1.2.7l-1.4 2.4A6.5 6.5 0 0 1 20 11H4a6.5 6.5 0 0 1 3.2-5.6ZM8 8.2a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Zm8 0a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8ZM4 12h16v6.2a1.8 1.8 0 0 1-1.8 1.8H17v2a1 1 0 0 1-2 0v-2H9v2a1 1 0 0 1-2 0v-2H5.8A1.8 1.8 0 0 1 4 18.2V12Z"/></svg></span><span class="menu-label">Android Preview</span></a>
+      <a class="app-menu-link" href="#install-danzstak" data-app-platform="android"><span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.2 5.4 5.8 3a.7.7 0 0 1 1.2-.7l1.5 2.5a9.7 9.7 0 0 1 7 0L17 2.3a.7.7 0 1 1 1.2.7l-1.4 2.4A6.5 6.5 0 0 1 20 11H4a6.5 6.5 0 0 1 3.2-5.6ZM8 8.2a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8Zm8 0a.9.9 0 1 0 0-1.8.9.9 0 0 0 0 1.8ZM4 12h16v6.2a1.8 1.8 0 0 1-1.8 1.8H17v2a1 1 0 0 1-2 0v-2H9v2a1 1 0 0 1-2 0v-2H5.8A1.8 1.8 0 0 1 4 18.2V12Z"/></svg></span><span class="menu-label">Install on Android</span></a>
       <a class="app-menu-link" href="#install-danzstak" data-app-platform="apple"><span class="menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M16.7 12.8c0-2.5 2-3.7 2.1-3.8a4.6 4.6 0 0 0-3.6-2c-1.5-.2-3 .9-3.8.9-.8 0-2-1-3.3-.9A4.9 4.9 0 0 0 4 9.5c-1.8 3.1-.5 7.6 1.2 10.1.9 1.2 1.9 2.6 3.2 2.5 1.3 0 1.8-.8 3.4-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.2 3.1-2.5a10.9 10.9 0 0 0 1.4-2.9 4.4 4.4 0 0 1-3-3.9ZM14.2 5.4a4.5 4.5 0 0 0 1-3.3 4.6 4.6 0 0 0-3 1.6 4.3 4.3 0 0 0-1.1 3.2 3.8 3.8 0 0 0 3.1-1.5Z"/></svg></span><span class="menu-label">Apple App</span></a>
       <button type="button" class="menu-action logout-menu-link" data-logout><span class="menu-icon" data-menu-icon="logout" aria-hidden="true"></span><span class="menu-label">Logout</span></button>
     </div>
@@ -445,25 +445,6 @@ video.post-media { height:auto; max-height:none; object-fit:contain; object-posi
     <section id="featureView" class="panel" hidden>
       <h3 id="featureTitle"></h3>
       <p id="featureDescription" class="muted"></p>
-    </section>
-
-    <section id="profileOnboarding" class="panel profile-onboarding" aria-labelledby="profileOnboardingTitle" hidden>
-      <div class="profile-onboarding-copy">
-        <p class="profile-onboarding-kicker">Welcome to DanzStak</p>
-        <h2 id="profileOnboardingTitle">What should people call you?</h2>
-        <p id="profileOnboardingHelp">Add your name once so friends can recognize and find you.</p>
-      </div>
-      <form id="profileOnboardingForm">
-        <label><span id="profileOnboardingNameLabel">Name people see</span><input id="profileOnboardingName" name="name" minlength="2" maxlength="80" autocomplete="name" placeholder="Liana" required></label>
-        <input id="profileOnboardingHandle" name="handle" type="hidden">
-        <button class="primary" id="profileOnboardingSave" type="submit">Save my name</button>
-      </form>
-      <p id="profileOnboardingLater" class="profile-onboarding-later">You can change this later in Settings → Edit Profile.</p>
-      <p id="profileOnboardingStatus" class="muted" role="status" aria-live="polite"></p>
-      <div id="profileOnboardingNext" class="profile-onboarding-next" hidden>
-        <button class="primary" id="profileOnboardingFindPeople" type="button">Find people</button>
-        <button class="secondary" id="profileOnboardingDone" type="button">Not now</button>
-      </div>
     </section>
 
     <div id="newsFeedView">
@@ -825,6 +806,8 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   article.dataset.commentSetting = String(commentPolicy === "friends" ? 1 : commentPolicy === "off" ? 2 : 0);
   if (groupId) { article.dataset.groupId = groupId; article.dataset.groupName = groupName || "Tribe"; }
   article.dataset.editHistory = JSON.stringify(Array.isArray(editHistory) ? editHistory : []);
+  const normalizedPostContent = String(content || "").trim();
+  if (normalizedPostContent.length > 0 && normalizedPostContent.length <= 35) article.classList.add("is-short-text");
 
   const header = document.createElement("div");
   header.className = "post-header";
@@ -878,6 +861,21 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
   const body = document.createElement("p");
   body.className = "post-content";
   body.textContent = content;
+  let textToggle = null;
+  if (normalizedPostContent.length > 280) {
+    body.classList.add("is-collapsed");
+    textToggle = document.createElement("button");
+    textToggle.type = "button";
+    textToggle.className = "post-text-toggle";
+    textToggle.textContent = translateInterface("See more");
+    textToggle.setAttribute("aria-expanded", "false");
+    textToggle.addEventListener("click", () => {
+      const expanded = textToggle.getAttribute("aria-expanded") === "true";
+      textToggle.setAttribute("aria-expanded", String(!expanded));
+      body.classList.toggle("is-collapsed", expanded);
+      textToggle.textContent = translateInterface(expanded ? "See more" : "See less");
+    });
+  }
 
   const actions = document.createElement("div");
   actions.className = "post-actions";
@@ -895,6 +893,7 @@ function createPostElement(content, author = "DanzStak member", createdAt = null
     '<div class="commentList"></div>';
 
   article.append(header, body);
+  if (textToggle) article.appendChild(textToggle);
   if (mediaUrl && ["image", "video"].includes(mediaType)) {
     const media = document.createElement(mediaType === "image" ? "img" : "video");
     media.src = mediaUrl;
@@ -1307,7 +1306,7 @@ async function loadPosts() {
     if (data.posts.length === 0) {
 
       feedStatus.textContent =
-        "No saved posts yet. Create your first post!";
+        "No posts yet. Create your first post!";
 
       return;
     }
@@ -1820,25 +1819,26 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 
 </script>
 
+<script src="assets/call-devices.js?v=2" defer></script>
 <script src="assets/push-notifications.js?v=307" defer></script>
-<script src="assets/icon-buttons.js?v=9" defer></script>
+<script src="assets/icon-buttons.js?v=10" defer></script>
 <script src="assets/facebook-import.js?v=343" defer></script>
-<script src="assets/pivot.js?v=1" defer></script>
+<script src="assets/pivot.js?v=2" defer></script>
 <script src="assets/device-settings.js?v=233" defer></script>
 <script src="assets/activity-history-core.js?v=287" defer></script>
-<script src="assets/account-export-core.js?v=287" defer></script>
-<script src="assets/account-export.js?v=287" defer></script>
-<script src="assets/artist-hq.js?v=1" defer></script>
+<script src="assets/account-export-core.js?v=288" defer></script>
+<script src="assets/account-export.js?v=288" defer></script>
+<script src="assets/artist-hq.js?v=3" defer></script>
 <script src="assets/invite-sharing.js?v=1" defer></script>
-<script src="assets/feed-enhancements.js?v=534" defer></script>
-<script src="assets/profile-onboarding.js?v=8" defer></script>
+<script src="assets/feed-enhancements.js?v=544" defer></script>
+<script src="assets/profile-onboarding.js?v=12" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
-<script src="assets/incoming-calls.js?v=298" defer></script>
+<script src="assets/incoming-calls.js?v=302" defer></script>
 <script src="assets/session-cleanup.js?v=293" defer></script>
 <script src="assets/app-feedback.js?v=4" defer></script>
 <script src="assets/logout.js?v=311" defer></script>
-<script src="assets/pwa.js?v=424" defer></script>
-<script src="assets/app-downloads.js?v=292" defer></script>
+<script src="assets/pwa.js?v=429" defer></script>
+<script src="assets/app-downloads.js?v=293" defer></script>
 <dialog class="install-help" id="installHelp" aria-labelledby="installHelpTitle">
   <header><h2 id="installHelpTitle">Install DanzStak</h2></header>
   <p id="installHelpText"></p>

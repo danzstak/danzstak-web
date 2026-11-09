@@ -8,19 +8,19 @@ const links = value => userLinkTokens(value).filter(token => token.type === "lin
 const text = value => userLinkTokens(value).map(token => token.text).join("");
 
 for (const [entered, destination] of [
-  ["sfscoop.com", "https://sfscoop.com/"],
-  ["www.sfscoop.com", "https://www.sfscoop.com/"],
-  ["https://sfscoop.com", "https://sfscoop.com/"],
-  ["app.sfscoop.com", "https://app.sfscoop.com/"],
+  ["danzstak.com", "https://danzstak.com/"],
+  ["www.danzstak.com", "https://www.danzstak.com/"],
+  ["https://danzstak.com", "https://danzstak.com/"],
+  ["app.example.com", "https://app.example.com/"],
   ["youtube.com", "https://youtube.com/"],
   ["spotify.com", "https://spotify.com/"]
 ]) {
   assert.deepEqual(links(entered), [{ type: "link", text: entered, href: destination }], `${entered} should link to ${destination}`);
 }
 
-const multiple = userLinkTokens("Hear sfscoop.com, then youtube.com.");
-assert.deepEqual(multiple.filter(token => token.type === "link").map(token => token.href), ["https://sfscoop.com/", "https://youtube.com/"]);
-assert.equal(multiple.map(token => token.text).join(""), "Hear sfscoop.com, then youtube.com.", "displayed punctuation and text must stay unchanged");
+const multiple = userLinkTokens("Hear danzstak.com, then youtube.com.");
+assert.deepEqual(multiple.filter(token => token.type === "link").map(token => token.href), ["https://danzstak.com/", "https://youtube.com/"]);
+assert.equal(multiple.map(token => token.text).join(""), "Hear danzstak.com, then youtube.com.", "displayed punctuation and text must stay unchanged");
 
 const path = "example.com/music/show?id=42&from=mobile";
 assert.equal(links(path)[0]?.href, "https://example.com/music/show?id=42&from=mobile", "paths and query parameters should survive");

@@ -53,7 +53,7 @@ Commands/tests and results:
 - [ ] No horizontal overflow, clipped content, overlapping primary screens, or unexpected wrapping remains.
 - [ ] Images and video preserve the intended aspect ratio and grid alignment.
 - [ ] Keyboard focus, labels, touch targets, and destructive confirmations were checked.
-- [ ] Mobile screenshots were compared with the SFScoop quality benchmark.
+- [ ] Mobile screenshots were compared with the approved professional quality benchmark.
 
 Screenshot/evidence paths:
 

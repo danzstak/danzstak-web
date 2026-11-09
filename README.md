@@ -4,9 +4,13 @@ Official DanzStak social networking and music platform website.
 ## Product boundary
 
 DanzStak is an installable, responsive Progressive Web App for social
-networking. It does not include blockchain, cryptocurrency, wallets, tokens,
-or Web3 transactions. Those capabilities are outside the DanzStak product
-boundary and must not be introduced into DanzStak.
+networking. It is not a cryptocurrency, wallet, exchange or Web3 product.
+The only permitted token feature is an optional checkout method: a member may
+pay DanzStak with SFS Token through Phantom after DanzStak's server has
+independently verified the on-chain payment. DanzStak does not award, earn,
+hold, custody or exchange SFS Token, and it does not require or integrate a
+separate platform account. Stripe remains the card-payment option. No other SFS or
+wallet feature belongs in DanzStak.
 ## Migration objective
 
 The owner wants DanzStak to help users leave billionaire-owned social platforms. Data portability is a core product goal: users should be able to copy their own Facebook profile and content into DanzStak while keeping Facebook, or migrate and then close Facebook after verifying their imported data. Account closure must remain a separate user-controlled action on Facebook. The importer should preview supported content, preserve original dates where available, let the user batch-select an audience with Public as the initial choice, and prevent duplicate imports. Facebook connections, likes, and comments must not be represented as actions taken by real DanzStak members.
@@ -122,10 +126,10 @@ The current priority is stabilizing the existing DanzStak site: feed, profiles, 
 The owner confirmed this next-feature order after the current site stabilization pass:
 
 1. A Facebook data import tool, launched from a button in Edit Profile. Start with the owner's Facebook data export: preview supported content, choose what to import, and detect duplicates before publishing anything to DanzStak. Existing DanzStak ownership, audience, and original-content requirements still apply. Importing a friend list must not create accepted DanzStak friendships automatically.
-2. Email notification and mailbox delivery workflows. DanzStak now runs a dedicated Stalwart mailbox host at `inbox.danzstak.com`, with public SMTP delivery on 25, authenticated TLS submission on 465, IMAP over TLS on 993, and HTTPS account access on 443. There is no public SSH or plaintext client-authentication port. Amazon SES remains the restricted outbound relay. Stalwart routes every non-local recipient through the `ses-relay` MTA route and signs with one RSA DKIM signature; SES supplies the final transport signature. Do not enable a second Stalwart DKIM algorithm while SES is the relay because SES rejects duplicate `DKIM-Signature` headers. Keep mailbox administration on the existing protected path and never broaden the server role or relay permissions beyond verified DanzStak senders.
+2. Email notification and support-mail workflows use Amazon SES in `us-east-1`. The verified DanzStak domain uses SES DKIM and a custom MAIL FROM domain. Incoming `support@danzstak.com` mail is accepted by an SES receipt rule and stored in a private encrypted DanzStak S3 bucket with bounded retention; it is not forwarded to another platform or personal mailbox. Outbound application mail is sent through SES by IAM-scoped services. DanzStak does not operate a separate mailbox or SMTP server. Keep sending, receipt, storage and bounce/complaint permissions least-privileged and never put SMTP credentials in the repository.
 3. A geo-based tour-booking agent/module for bands to locate clubs and contact them about booking their act. The planned flow includes optional location permission or manual city entry, distance filters, venue profiles, multi-stop tour planning, proposed dates, travel distances, and per-venue booking-request status. Email delivery can support booking notifications after the email phase is complete.
 4. An admin dashboard for site monitoring and management, including review of post and group reports.
-5. Native Android Studio/Kotlin and Xcode/Swift apps as the final phase. The website is the requested distribution hub; direct Android APK distribution and Apple-eligible distribution routes must be evaluated before implementation. Native call integration belongs here, including reliable incoming voice/video ringing from push.
+5. The installable PWA is the only DanzStak app. Android and iPhone users install it from `danzstak.com`; do not add native Android/iOS projects, APK downloads or app-store installation paths.
 
 ## Artist growth products
 
@@ -187,13 +191,13 @@ One authorized physical Android call retry delivered a notification but did not 
 
 Live API checking observed an intermittent 503; a direct retry returned the expected 401. CloudWatch showed zero Lambda execution errors but throttled invocations, and the regional account concurrency limit was only 10. AWS rejected an increase to 100 because its API requires a value above the standard 1,000 baseline. A request for 1,001 was submitted (request ID `03b40f639c3149e7a0844d27f00453d2zupH4jm0`), with status PENDING at submission. That is a requested limit, not applied capacity or provisioned/paid idle instances. Hidden pages now pause idle call/contact polling, and conversation-list refreshes cannot overlap. Recheck live security and throttling after AWS applies the quota.
 
-The owner requires text pushes to produce one brief alert, with voice/video pushes ringing as calls. Web notifications explicitly request sound and use a short single vibration for texts versus a call vibration pattern and Answer/Dismiss actions for calls. Sound still follows Android/browser notification settings. `requireInteraction` keeps a notification present; it does not create a looping ringtone. Continuous closed-app ringing requires Android-native call integration rather than repeated web pushes. References: [Web notification options](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/showNotification), [Android CallStyle](https://developer.android.com/develop/ui/compose/notifications/call-style).
+The owner requires text pushes to produce one brief alert, with voice/video pushes ringing as calls where the browser and operating system permit it. Web notifications explicitly request sound and use a short single vibration for texts versus a call vibration pattern and Answer/Dismiss actions for calls. Sound still follows Android/browser notification settings. `requireInteraction` keeps a notification present; it does not create a looping ringtone. Continuous closed-PWA ringing is not guaranteed by web notification APIs and must not be claimed as supported. Reference: [Web notification options](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/showNotification).
 
 ## Operator and distribution requirements
 
 The owner confirmed DanzStak LLC is a California registered LLC, with the public mailing address 2063 Main St. #237, Oakley, CA 94561, USA. Site notices identify the company while preserving creators' ownership of user content. The independent DanzStak mail service and support@danzstak.com mailbox were configured and inbound/outbound delivery was confirmed by the owner. The support page, Privacy Policy, and Terms now publish that verified contact. The signup policy version is 2026-10-26. The policies describe the actual website and are not a certification of legal compliance.
 
-The owner has Android/Apple developer accounts under Datappaloosa. Use native projects, not web wrappers. Final app download/install buttons belong on DanzStak after the website modules are complete. The owner prohibits Google Play, Apple App Store, and external social-platform publishing; use the developer accounts only for permitted signing/notarization and website distribution. Apple Web Distribution has eligibility and regional restrictions, so native iPhone website-only installation must not be promised globally. The existing website-installable PWA remains available.
+DanzStak is distributed only as the website-installable PWA from `danzstak.com`. Do not add Android Studio, Xcode, APK, Google Play or Apple App Store projects or download links. Installation guidance must use the browser's Install or Add to Home Screen flow.
 
 ## Current interaction audit
 
@@ -225,7 +229,7 @@ Current v229 work: internal Share to DanzStak feed with source author/reference 
 
 Deployed account tools now include photo/video tags with opt-in/out and self-removal, Featured Posts, private anniversary Memories, a Settings activity view for recent owner posts and comments, and a self-service JSON download covering account/profile settings, owned social activity, friends, groups, Stories/Reels metadata, conversations/messages, notifications, and saved tours. The export explicitly identifies unavailable sources and does not claim to contain uploaded media binaries or support correspondence. Still unfinished and authorized: separate Delete profile and Delete account controls, Delete my data, explicit final erasure confirmation, and a working erasure backend. Profile deletion meaning (hide reversibly versus clear details/photos) remains an unanswered clarification. No destructive production account deletion is authorized as a test. Do not ship inert controls or claim data erasure that has not run.
 
-AWS Lambda capacity request remains pending (CASE_OPENED when last checked). Closed-PWA continuous call ringing remains unresolved and belongs to the native-app phase. Roadmap after current site work: email service, tour booking, admin dashboard, then native Android/iOS with website distribution constraints already documented.
+AWS Lambda capacity request remains pending (CASE_OPENED when last checked). Closed-PWA continuous call ringing remains unresolved and must be described honestly as a browser/operating-system limitation. Roadmap after current site work: email service, tour booking and the admin dashboard. The PWA remains the sole application.
 
 ### Release v230 — media tags
 Photo/video tagging now supports accepted friends, an account tagging preference, self-removal, and protection against silently restoring removed tags. Consent and friendship are checked transactionally when new tags are committed. Profile posts render tags and credited shared-post previews. Shared links to one's own profile retain editing controls. Comment reactor summaries show friend names for all reaction types.
