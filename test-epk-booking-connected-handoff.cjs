@@ -19,7 +19,7 @@ assert.match(bookingClient, /artistName[\s\S]*genres[\s\S]*hometown[\s\S]*shortP
 assert.match(bookingClient, /Switch the act for this pitch\?/, "a different saved act must not be replaced silently");
 assert.match(bookingClient, /persist\(\);[\s\S]*render\(\);[\s\S]*saveWorkspaceSnapshot\(\)/, "the connected handoff must persist the imported EPK details");
 assert.match(bookingClient, /Choose venues and review each pitch before sending/, "the completion status must lead to the next artist-controlled step");
-assert.match(worker, /danzstak-shell-v773/, "the installed PWA must fetch the connected EPK workflow");
+assert.match(worker, /danzstak-shell-v774/, "the installed PWA must fetch the connected EPK workflow");
 assert.doesNotMatch(epkHtml, /tour-manager\/emails\/send|checkout|payment/i, "publishing an EPK must never send outreach or start payment");
 
 console.log("Connected EPK-to-booking handoff checks passed.");
