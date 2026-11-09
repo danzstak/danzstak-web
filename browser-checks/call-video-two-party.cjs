@@ -68,7 +68,10 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
       const appLocal = stream;
       const remotePeer = new RTCPeerConnection({ iceServers: [] });
       const remoteLocal = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      remoteLocal.getTracks().forEach(track => remotePeer.addTrack(track, remoteLocal));
+      // Deliberately omit the MediaStream argument. Valid WebRTC peers can
+      // deliver these as track events with event.streams empty; SYNC still
+      // needs to assemble and play both remote tracks.
+      remoteLocal.getTracks().forEach(track => remotePeer.addTrack(track));
       const remoteReceived = new MediaStream();
       remotePeer.addEventListener("track", event => remoteReceived.addTrack(event.track));
 

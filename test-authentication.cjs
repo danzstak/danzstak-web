@@ -2,6 +2,10 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const crypto=require('node:crypto');
 const source=fs.readFileSync('infrastructure/auth-api/index.mjs','utf8');
 const currentLegalVersion=source.match(/const legalVersion = "([^"]+)"/)[1];
+assert.match(source,/const loginHandoffSeconds = 15 \* 60;/,'phone sign-in handoffs must allow enough time to choose or change a Cognito account');
+assert.match(source,/expiresAt: \{ N: String\(now\(\) \+ loginHandoffSeconds\) \}/,'the pending OAuth proof must use the shared handoff window');
+assert.match(source,/oauthCookieName,[\s\S]{0,100}browserSecret,[\s\S]{0,100}loginHandoffSeconds/,'the browser-bound OAuth cookie must live for the full handoff window');
+assert.match(source,/redirect\(siteUrl \+ "\/\?signin=expired", \[expiredBrowserCookie\]\)/,'an expired phone login must return to a retryable DanzStak screen instead of raw API output');
 assert.equal(fs.readFileSync('assets/home.js','utf8').match(/const legalVersion = "([^"]+)"/)[1],currentLegalVersion,'signup and API must accept the same policy version');
 const between=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)));
 const pair=crypto.generateKeyPairSync('rsa',{modulusLength:2048});

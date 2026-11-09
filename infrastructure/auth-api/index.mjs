@@ -93,6 +93,7 @@ const sessionCookieName = "__Host-danzstak_session";
 const oauthCookieName = "__Host-danzstak_oauth";
 const legalCookieName = "__Host-danzstak_legal";
 const legalVersion = "2026-10-26";
+const loginHandoffSeconds = 15 * 60;
 const sessionLifetimeSeconds = 30 * 24 * 60 * 60;
 const recentAuthenticationSeconds = 10 * 60;
 const sessionTouchIntervalSeconds = 15 * 60;
@@ -562,7 +563,7 @@ async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null)
       verifier: { S: verifier },
       nonce: { S: nonce },
       browserHash: { S: sha256(browserSecret) },
-      expiresAt: { N: String(now() + 300) }
+      expiresAt: { N: String(now() + loginHandoffSeconds) }
   };
   if (legalAcceptanceId) pendingItem.legalAcceptanceId = { S: legalAcceptanceId };
   if (mode === "reauth") pendingItem.reauthentication = { BOOL: true };
@@ -599,7 +600,7 @@ async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null)
   const browserCookie = secureCookie(
     oauthCookieName,
     browserSecret,
-    300
+    loginHandoffSeconds
   );
 
   return redirect(url.toString(), [browserCookie]);
@@ -670,11 +671,7 @@ async function completeLogin(event) {
     !browserSecret ||
     !/^[a-f0-9]{64}$/.test(browserSecret)
   ) {
-    return errorResponse(
-      400,
-      "Login browser verification failed. Please start login again.",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=expired", [expiredBrowserCookie]);
   }
 
   const pendingKey = {
@@ -699,11 +696,7 @@ async function completeLogin(event) {
     !pending.nonce?.S ||
     !pending.browserHash?.S
   ) {
-    return errorResponse(
-      400,
-      "Login request expired. Please start again.",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=expired", [expiredBrowserCookie]);
   }
 
   if (

@@ -10,7 +10,6 @@
   "orientation": "any",
   "categories": ["social", "entertainment"],
   "related_applications": [
-    {"platform": "play", "id": "com.danzstak.app"},
     {"platform": "webapp", "url": "/manifest.webmanifest", "id": "https://danzstak.com/"}
   ],
   "prefer_related_applications": false,
