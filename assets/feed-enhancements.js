@@ -3797,6 +3797,9 @@ if (typeof window !== "undefined" && typeof window.addEventListener === "functio
   window.addEventListener("danzstak:posts-loaded", event => {
     hydrateViewerPictureFromPosts(event.detail?.posts || []);
   });
+  if (Array.isArray(window.danzstakLoadedPosts)) {
+    hydrateViewerPictureFromPosts(window.danzstakLoadedPosts);
+  }
 }
 
 function ensureCommentComposer(post) {

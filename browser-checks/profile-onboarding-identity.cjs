@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8017").replace(/\/$/, "");
-const widths = [320, 390, 1366];
+const widths = [320, 360, 375, 390, 414, 430, 1366];
 
 function fixture(pathname, identityState) {
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111", email: "liana@danzstak.invalid" } };
@@ -45,15 +45,7 @@ function fixture(pathname, identityState) {
         await page.route("https://api.danzstak.com/**", route => {
           const request = route.request();
           const pathname = new URL(request.url()).pathname;
-          if (identityState !== "named" && pathname === "/profiles" && request.method() === "POST") {
-            const payload = request.postDataJSON();
-            profileWrites.push(payload);
-            return route.fulfill({
-              status: 200,
-              contentType: "application/json",
-              body: JSON.stringify({ profile: { ...fixture("/profiles", identityState).profile, name: payload.name } })
-            });
-          }
+          if (pathname === "/profiles" && request.method() === "POST") profileWrites.push(request.postDataJSON());
           return route.fulfill({
             status: 200,
             contentType: "application/json",
@@ -72,20 +64,30 @@ function fixture(pathname, identityState) {
           releaseProfilePicture?.();
         }
         await page.locator("img.story-create-avatar").waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
-        if (identityState === "named") {
-          await page.waitForFunction(() => document.getElementById("menuProfileName")?.textContent?.trim() === "Liana", null, { timeout: 5000 });
-        } else {
-          await page.locator("#profileOnboarding").waitFor({ state: "visible", timeout: 5000 });
-        }
+        await page.waitForFunction(() => document.getElementById("menuProfileName")?.textContent?.trim() !== "My Profile", null, { timeout: 5000 });
         const result = await page.evaluate(() => {
-          const panel = document.getElementById("profileOnboarding");
           const daily = document.querySelector(".story-create-avatar");
-          const panelRect = panel.getBoundingClientRect();
+          const art = document.querySelector(".story-create-art");
+          const clapper = document.querySelector(".daily-clapper");
+          const dailyRect = daily?.getBoundingClientRect();
+          const artRect = art?.getBoundingClientRect();
+          const clapperRect = clapper?.getBoundingClientRect();
           return {
-            panelHidden: panel.hidden,
-            panelVisible: !panel.hidden && panelRect.width > 0 && panelRect.height > 0,
+            onboardingCount: document.querySelectorAll("#profileOnboarding").length,
             dailyIsImage: daily?.tagName === "IMG",
             dailyLoaded: daily?.tagName === "IMG" && daily.complete && daily.naturalWidth > 0,
+            imageFillsTile: Boolean(dailyRect && artRect
+              && Math.abs(dailyRect.left - artRect.left) <= 1
+              && Math.abs(dailyRect.top - artRect.top) <= 1
+              && Math.abs(dailyRect.right - artRect.right) <= 1
+              && Math.abs(dailyRect.bottom - artRect.bottom) <= 1),
+            clapperOverlaysLowerLeft: Boolean(clapperRect && dailyRect
+              && clapperRect.left >= dailyRect.left
+              && clapperRect.left - dailyRect.left <= 12
+              && clapperRect.bottom <= dailyRect.bottom
+              && dailyRect.bottom - clapperRect.bottom <= 12
+              && clapperRect.right > dailyRect.left
+              && clapperRect.top < dailyRect.bottom),
             overflow: document.documentElement.scrollWidth > innerWidth
           };
         });
@@ -93,6 +95,9 @@ function fixture(pathname, identityState) {
         assert.equal(result.overflow, false, `${width}px identity state overflows horizontally`);
         assert.equal(result.dailyIsImage, true, `${width}px Dailies did not use the signed profile image`);
         assert.equal(result.dailyLoaded, true, `${width}px Dailies profile image failed to load`);
+        assert.equal(result.imageFillsTile, true, `${width}px Dailies profile image did not fill the tile`);
+        assert.equal(result.clapperOverlaysLowerLeft, true, `${width}px Dailies clapper was not over the image at lower left`);
+        assert.equal(result.onboardingCount, 0, `${width}px the feed still contained the blocking visible-name prompt`);
         if (identityState === "named") {
           await page.evaluate(() => {
             document.querySelector(".composer-avatar")?.remove();
@@ -111,20 +116,11 @@ function fixture(pathname, identityState) {
           await page.locator("img.story-create-avatar").waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
           assert.equal(await page.locator("img.story-create-avatar").count(), 1, `${width}px Dailies hydration still depended on the Mix composer`);
         }
-        if (identityState === "named") {
-          assert.equal(result.panelHidden, true, `${width}px an established visible name was blocked by identity setup`);
-        } else {
-          assert.equal(result.panelVisible, true, `${width}px a genuinely unnamed member did not receive simple onboarding`);
-          await page.locator("#profileOnboardingName").fill("Liana");
-          await page.locator("#profileOnboardingSave").click();
-          await page.locator("#profileOnboarding").waitFor({ state: "hidden" });
-          assert.deepEqual(profileWrites, [{ name: "Liana" }], `${width}px the visible-name form attempted to claim or replace a username`);
-          assert.equal(await page.locator("#menuProfileName").textContent(), "Liana", `${width}px the visible name was changed to resolve an internal username conflict`);
-        }
+        assert.deepEqual(profileWrites, [], `${width}px opening Mix attempted to claim or replace a username`);
         await context.close();
       }
     }
-    console.log(`Profile-onboarding browser checks passed at ${widths.join(", ")}px: established visible names enter Mix; generic names receive dismissible setup without changing usernames.`);
+    console.log(`Profile-identity browser checks passed at ${widths.join(", ")}px: Mix has no blocking visible-name prompt and signed profile images hydrate without changing usernames.`);
   } finally {
     await browser.close();
   }
