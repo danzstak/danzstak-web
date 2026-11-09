@@ -17,5 +17,8 @@ export function cleanReply(text) {
   return String(text || "").replace(/\u0000/g, "").split(/\r?\nOn .+wrote:\s*$|\r?\nFrom:\s.+$/im)[0].trim().slice(0, 4000);
 }
 export function receiptIsSafe(receipt) {
-  return [receipt?.spamVerdict, receipt?.virusVerdict, receipt?.spfVerdict, receipt?.dkimVerdict].every(item => !item?.status || ["PASS", "GRAY"].includes(item.status));
+  const verdict = item => String(item?.status || "").trim().toUpperCase();
+  const spam = verdict(receipt?.spamVerdict), virus = verdict(receipt?.virusVerdict);
+  const authentication = [receipt?.dmarcVerdict, receipt?.dkimVerdict, receipt?.spfVerdict].map(verdict);
+  return spam === "PASS" && virus === "PASS" && authentication.includes("PASS");
 }
