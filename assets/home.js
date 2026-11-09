@@ -3,6 +3,7 @@
 const api = "https://api.danzstak.com";
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
+const resetPasswordBtn = document.getElementById("resetPasswordBtn");
 const status = document.getElementById("sessionStatus");
 const signupBtn = document.getElementById("signupBtn");
 const legalConsent = document.getElementById("legalConsent");
@@ -51,6 +52,7 @@ signupBtn.addEventListener("click", async () => {
 function showSession(loggedIn, message) {
   loginBtn.hidden = loggedIn;
   logoutBtn.hidden = !loggedIn;
+  resetPasswordBtn.hidden = loggedIn;
   signupBtn.hidden = loggedIn;
   legalConsent.hidden = loggedIn;
   status.textContent = message;

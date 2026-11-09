@@ -29,6 +29,8 @@ const screenshotDir = String(process.env.DANZSTAK_SCREENSHOT_DIR || "").trim();
           message: document.getElementById("sessionStatus")?.textContent?.trim(),
           loginVisible: !document.getElementById("loginBtn")?.hidden,
           logoutVisible: !document.getElementById("logoutBtn")?.hidden,
+          resetVisible: !document.getElementById("resetPasswordBtn")?.hidden,
+          resetHref: document.getElementById("resetPasswordBtn")?.getAttribute("href"),
           exploreCount: document.querySelectorAll("#publicExploreBtn, #feedBtn").length,
           overflow: document.documentElement.scrollWidth > innerWidth
         }));
@@ -39,10 +41,13 @@ const screenshotDir = String(process.env.DANZSTAK_SCREENSHOT_DIR || "").trim();
         if (authenticated) {
           assert.equal(result.loginVisible, false, `${width}px remembered session exposed a second login action`);
           assert.equal(result.logoutVisible, true, `${width}px remembered session did not expose logout`);
+          assert.equal(result.resetVisible, false, `${width}px remembered session exposed reset before logout`);
           assert.match(result.message, /Log out to use a different account/);
         } else {
           assert.equal(result.loginVisible, true, `${width}px signed-out failure did not expose login`);
           assert.equal(result.logoutVisible, false, `${width}px signed-out failure exposed logout`);
+          assert.equal(result.resetVisible, true, `${width}px signed-out failure did not expose password recovery`);
+          assert.equal(result.resetHref, "https://api.danzstak.com/auth/reset-password");
         }
         if (screenshotDir && !authenticated) {
           await page.screenshot({ path: path.join(screenshotDir, `login-failure-${width}.png`), fullPage: false });

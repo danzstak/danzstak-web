@@ -577,7 +577,11 @@ async function startLogin(mode = "login", legalAcceptanceId = "") {
     .digest("base64url");
 
   const url = new URL(
-    mode === "signup" ? "/signup" : "/oauth2/authorize",
+    mode === "signup"
+      ? "/signup"
+      : mode === "reset"
+        ? "/forgotPassword"
+        : "/oauth2/authorize",
     cognitoDomain
   );
 
@@ -592,7 +596,7 @@ async function startLogin(mode = "login", legalAcceptanceId = "") {
   // Never reuse Cognito's remembered-account chooser for an explicit DanzStak
   // login. Members must always receive a fresh credential prompt so they can
   // correct an address, switch accounts, or recover from a failed attempt.
-  if (mode !== "signup") url.searchParams.set("prompt", "login");
+  if (mode === "login" || mode === "reauth") url.searchParams.set("prompt", "login");
 
   const browserCookie = secureCookie(
     oauthCookieName,
@@ -4925,6 +4929,10 @@ export const handler = async event => {
 
     if (method === "GET" && path === "/auth/signup") {
       return await startSignup(event);
+    }
+
+    if (method === "GET" && path === "/auth/reset-password") {
+      return await startLogin("reset");
     }
 
     if (method === "POST" && path === "/auth/legal-acceptance") {
