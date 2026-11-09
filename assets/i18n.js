@@ -629,21 +629,21 @@
   id:["Beberapa obrolan atau status online sementara tidak tersedia.","Coba lagi kontak"]
  };
  for(const [language,values] of Object.entries(partialMessageGuidance)){const dictionary=dictionaries[language]||(dictionaries[language]={});partialMessageKeys.forEach((key,index)=>dictionary[key]=values[index]);}
- const messageDeliveryKeys=["Delivered","Read","Sending…","edited","{count} unread message","{count} unread messages","You: {text}. Sending."];
+ const messageDeliveryKeys=["Sent","Read","Sending…","edited","{count} unread message","{count} unread messages","You: {text}. Sending."];
  const messageDeliveryGuidance={
-  es:["Entregado","Leído","Enviando…","editado","{count} mensaje sin leer","{count} mensajes sin leer","Tú: {text}. Enviando."],
-  fr:["Distribué","Lu","Envoi…","modifié","{count} message non lu","{count} messages non lus","Vous : {text}. Envoi."],
-  de:["Zugestellt","Gelesen","Wird gesendet…","bearbeitet","{count} ungelesene Nachricht","{count} ungelesene Nachrichten","Du: {text}. Wird gesendet."],
-  pt:["Entregue","Lida","Enviando…","editada","{count} mensagem não lida","{count} mensagens não lidas","Você: {text}. Enviando."],
-  it:["Consegnato","Letto","Invio…","modificato","{count} messaggio non letto","{count} messaggi non letti","Tu: {text}. Invio."],
-  ko:["전달됨","읽음","보내는 중…","수정됨","읽지 않은 메시지 {count}개","읽지 않은 메시지 {count}개","나: {text}. 보내는 중."],
-  ja:["配信済み","既読","送信中…","編集済み","未読メッセージ{count}件","未読メッセージ{count}件","あなた：{text}。送信中。"],
-  "zh-Hans":["已送达","已读","正在发送…","已编辑","{count}条未读消息","{count}条未读消息","你：{text}。正在发送。"],
-  "zh-Hant":["已送達","已讀","正在傳送…","已編輯","{count}則未讀訊息","{count}則未讀訊息","你：{text}。正在傳送。"],
-  fil:["Naihatid","Nabasa","Ipinapadala…","na-edit","{count} hindi pa nabasang mensahe","{count} hindi pa nabasang mensahe","Ikaw: {text}. Ipinapadala."],
-  hi:["पहुँचा दिया गया","पढ़ा गया","भेजा जा रहा है…","संपादित","{count} अपठित संदेश","{count} अपठित संदेश","आप: {text}। भेजा जा रहा है।"],
-  vi:["Đã gửi đến","Đã đọc","Đang gửi…","đã chỉnh sửa","{count} tin nhắn chưa đọc","{count} tin nhắn chưa đọc","Bạn: {text}. Đang gửi."],
-  th:["ส่งถึงแล้ว","อ่านแล้ว","กำลังส่ง…","แก้ไขแล้ว","ข้อความที่ยังไม่ได้อ่าน {count} ข้อความ","ข้อความที่ยังไม่ได้อ่าน {count} ข้อความ","คุณ: {text} กำลังส่ง"],
+  es:["Enviado","Leído","Enviando…","editado","{count} mensaje sin leer","{count} mensajes sin leer","Tú: {text}. Enviando."],
+  fr:["Envoyé","Lu","Envoi…","modifié","{count} message non lu","{count} messages non lus","Vous : {text}. Envoi."],
+  de:["Gesendet","Gelesen","Wird gesendet…","bearbeitet","{count} ungelesene Nachricht","{count} ungelesene Nachrichten","Du: {text}. Wird gesendet."],
+  pt:["Enviada","Lida","Enviando…","editada","{count} mensagem não lida","{count} mensagens não lidas","Você: {text}. Enviando."],
+  it:["Inviato","Letto","Invio…","modificato","{count} messaggio non letto","{count} messaggi non letti","Tu: {text}. Invio."],
+  ko:["전송됨","읽음","보내는 중…","수정됨","읽지 않은 메시지 {count}개","읽지 않은 메시지 {count}개","나: {text}. 보내는 중."],
+  ja:["送信済み","既読","送信中…","編集済み","未読メッセージ{count}件","未読メッセージ{count}件","あなた：{text}。送信中。"],
+  "zh-Hans":["已发送","已读","正在发送…","已编辑","{count}条未读消息","{count}条未读消息","你：{text}。正在发送。"],
+  "zh-Hant":["已傳送","已讀","正在傳送…","已編輯","{count}則未讀訊息","{count}則未讀訊息","你：{text}。正在傳送。"],
+  fil:["Naipadala","Nabasa","Ipinapadala…","na-edit","{count} hindi pa nabasang mensahe","{count} hindi pa nabasang mensahe","Ikaw: {text}. Ipinapadala."],
+  hi:["भेजा गया","पढ़ा गया","भेजा जा रहा है…","संपादित","{count} अपठित संदेश","{count} अपठित संदेश","आप: {text}। भेजा जा रहा है।"],
+  vi:["Đã gửi","Đã đọc","Đang gửi…","đã chỉnh sửa","{count} tin nhắn chưa đọc","{count} tin nhắn chưa đọc","Bạn: {text}. Đang gửi."],
+  th:["ส่งแล้ว","อ่านแล้ว","กำลังส่ง…","แก้ไขแล้ว","ข้อความที่ยังไม่ได้อ่าน {count} ข้อความ","ข้อความที่ยังไม่ได้อ่าน {count} ข้อความ","คุณ: {text} กำลังส่ง"],
   id:["Terkirim","Dibaca","Mengirim…","diedit","{count} pesan belum dibaca","{count} pesan belum dibaca","Anda: {text}. Mengirim."]
  };
  for(const [language,values] of Object.entries(messageDeliveryGuidance))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(messageDeliveryKeys.map((key,index)=>[key,values[index]])));

@@ -94,6 +94,8 @@ let activeContactName = messageTranslate("Contact");
 let currentEmail = "";
 let loadingMessages = false;
 let conversationVersion = 0;
+let conversationFeedbackVersion = 0;
+let availabilityNoticePending = false;
 const pendingMessageSends = new Set();
 let retryMessageSend = null;
 let nextMessageCursor = "";
@@ -642,6 +644,8 @@ function updateConversationPresence(conversation) {
 
 function openConversation(conversation, { updateHistory = true } = {}) {
   closeConversation();
+  conversationFeedbackVersion += 1;
+  availabilityNoticePending = true;
   activeConversation = { ...conversation };
   document.body.classList.add("is-conversation-open");
   if (document.body?.dataset) {
@@ -825,7 +829,7 @@ function directMessageItem(message) {
     const receipt = document.createElement("span");
     receipt.className = message.read ? "message-receipt is-read" : "message-receipt";
     receipt.textContent = message.read ? "✓✓" : "✓";
-    receipt.setAttribute("aria-label", messageTranslate(message.read ? "Read" : "Delivered"));
+    receipt.setAttribute("aria-label", messageTranslate(message.read ? "Read" : "Sent"));
     meta.append(" ", receipt);
   }
   item.appendChild(meta);
@@ -849,6 +853,15 @@ function directMessageItem(message) {
     item.setAttribute("aria-label", `${messageTranslate("Selected")}. ${item.dataset.baseAriaLabel}`);
   }
   return item;
+}
+
+function updateDirectMessageReceipt(item, message) {
+  const receipt = item?.querySelector?.(".message-receipt");
+  if (!receipt || message.senderEmail !== currentEmail) return;
+  const read = message.read === true;
+  receipt.classList.toggle("is-read", read);
+  receipt.textContent = read ? "✓✓" : "✓";
+  receipt.setAttribute("aria-label", messageTranslate(read ? "Read" : "Sent"));
 }
 
 function firstSafeMessageUrl(content) {
@@ -949,6 +962,9 @@ async function loadEarlierMessages() {
 
 async function loadDirectMessages(reset = false) {
   const version = conversationVersion;
+  const feedbackVersion = conversationFeedbackVersion;
+  const showAvailability = reset && availabilityNoticePending;
+  if (showAvailability) availabilityNoticePending = false;
   if (!document.body.classList.contains("is-conversation-open")) return;
   if (document.hidden && !reset) return;
   const contact = contactInput?.value.trim().toLowerCase();
@@ -969,7 +985,10 @@ async function loadDirectMessages(reset = false) {
     for (const message of data.messages || []) {
       if (shownMessages.has(message.messageId)) {
         const existing = [...messageList.querySelectorAll(".message")].find(item => item.dataset.messageId === message.messageId);
-        if (existing) updateMessageReactionBadge(existing, message);
+        if (existing) {
+          updateMessageReactionBadge(existing, message);
+          updateDirectMessageReceipt(existing, message);
+        }
         continue;
       }
       shownMessages.add(message.messageId);
@@ -986,7 +1005,9 @@ async function loadDirectMessages(reset = false) {
     setConversationActionsEnabled(activeCanContact);
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
-    if (!window.danzstakCallRegistrationRequired?.()) {
+    // Only the first load for this conversation may show availability, and
+    // never after a newer user action has produced more useful feedback.
+    if (showAvailability && feedbackVersion === conversationFeedbackVersion && !window.danzstakCallRegistrationRequired?.()) {
       callStatus.textContent = activeCanContact
         ? messageFormat("You can message {name} directly.", { name: activeContactName })
         : messageTranslate("Saved chat. Become friends or join the same Tribe to send new messages or call.");
@@ -1427,6 +1448,8 @@ messageForm?.addEventListener("submit", async event => {
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
+  conversationFeedbackVersion += 1;
+  availabilityNoticePending = false;
   const mediaFile = selectedMessageMedia;
   const retry = retryMessageSend
     && retryMessageSend.recipientEmail === recipientEmail
@@ -1475,7 +1498,7 @@ messageForm?.addEventListener("submit", async event => {
     }
     saveChatDraft(recipientEmail, "");
     if (selectedMessageMedia === mediaFile) clearSelectedMessageMedia();
-    callStatus.textContent = messageTranslate("Delivered");
+    callStatus.textContent = messageTranslate("Sent");
     await loadConversations();
   } catch (error) {
     pendingItem.remove();
