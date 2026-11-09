@@ -30,6 +30,8 @@ assert.match(js, /navigator\.clipboard\.writeText\(draft\.value\)/);
 assert.doesNotMatch(js, /fetch\s*\(/, "Phase A must not send scan data or create payments");
 assert.doesNotMatch(html + js, /Example verified match|example findings|data-review=/i);
 assert.doesNotMatch(html + js, /checkout|stripe|subscribe now|renews automatically|annual discount/i);
+assert.doesNotMatch(html + js, /privacy score|(?:percent|%) of (?:the )?(?:web|internet) removed|all (?:of the )?(?:dark web|tor|internet)/i, "Phase A must not invent universal privacy coverage");
+assert.doesNotMatch(html + js + registry, /sfscoop/i, "StakGuard billing and member data must remain independent of SFScoop");
 assert.match(registry, /Official process under review/);
 assert.match(registry, /Verified member handoff/);
 assert.match(registry, /privacy@peopleconnect\.us/);
