@@ -17,6 +17,9 @@
       return data;
     } catch (error) {
       if (error.name === "AbortError") throw new Error("The store took too long to respond. Try again.");
+      if (error instanceof TypeError || error.message === "Failed to fetch") {
+        throw new Error("The store catalog is temporarily unavailable. Your shop data is safe. Try again shortly.");
+      }
       throw error;
     } finally { clearTimeout(timeout); }
   }

@@ -1,8 +1,14 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 
 (async () => {
+  const storeScript = fs.readFileSync("assets/store.js", "utf8");
+  const eventScript = fs.readFileSync("assets/event.js", "utf8");
+  assert.match(storeScript, /store catalog is temporarily unavailable/i, "network failures must not expose raw browser errors in Store");
+  assert.match(eventScript, /event details are temporarily unavailable/i, "network failures must not expose raw browser errors on public events");
+
   const { createMarketplace, marketplaceFeeCents } = await import("./infrastructure/auth-api/marketplace.mjs");
 
   class Command { constructor(input) { this.input = input; } }
