@@ -2162,7 +2162,7 @@ Status as of 2026-11-09: **IMPLEMENTED, TESTED, MERGED TO THE REVIEW RELEASE CAN
 
 # Release candidate — Dailies parity, clear SYNC controls, and recoverable sign-in
 
-Status as of 2026-11-09: **IMPLEMENTED AND TESTED LOCALLY; REVIEW DEPLOYMENT PENDING; PRODUCTION UNCHANGED**.
+Status as of 2026-11-09: **IMPLEMENTED, TESTED, MERGED, AND HOSTED-BROWSER VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED**.
 
 - Dailies now uses the same complete 168px round profile treatment on desktop as on phones. The signed profile image fills the tile, the tile backing stays transparent, the orange inset identity ring remains, and the clapper overlays the lower-left of the image without an outer grey shadow.
 - The Dailies identity browser gate passed at 320, 360, 375, 390, 414, 430, and 1366px. It measures exact image/tile bounds, loaded image state, circular geometry, transparent backing, the contained lower-left clapper, no blocking profile-name prompt, and no horizontal overflow. Builder-inspected captures are in `docs/screenshots/dailies-desktop-sync-footer/`.
@@ -2172,4 +2172,7 @@ Status as of 2026-11-09: **IMPLEMENTED AND TESTED LOCALLY; REVIEW DEPLOYMENT PEN
 - The login-failure browser gate passed at 390 and 1366px for both signed-out and remembered-session states. It requires the inline credential message, clean retry controls, remembered-session logout, no Explore control, and no overflow. Inspected captures are in `docs/screenshots/login-failure/`.
 - The complete `test-regressions.ps1` gate passed after the changes, including authentication, account security, SYNC chat and calls, Booking Agent, EPK, Tour Manager, Stripe boundaries and refunds, marketplace/ticketing, media/audio coordination, PWA caching, infrastructure validation, release verification, and all 15 site pages. Focused actual-browser gates for Dailies, SYNC, and login behavior also passed.
 - Versioned delivery advances to installed shell `danzstak-shell-v790`, PWA registration/bootstrap `v430`, Dailies CSS `v31`, SYNC CSS `v459`, and landing-page behavior `v312` so older installed clients request the corrected assets.
-- Review branch, pull request, exact commit, GitHub checks, Amplify deployment, and hosted-browser verification will be recorded after the review release is published. Production remains unchanged pending the owner's physical-phone go/no-go.
+- Pull request [#217](https://github.com/danzstak/danzstak-web/pull/217) passed all five jobs in GitHub Review run [42703470884](https://github.com/danzstak/danzstak-web/actions/runs/42703470884) and was squash-merged into `codex/release-candidate-2026-11-08` as `40c0388e9e56396d5a148f98ba5e7ca84f12b34f`.
+- No-cache hosted probes confirm landing behavior `v312`, Dailies CSS `v31`, SYNC CSS `v459`, PWA bootstrap `v430`, and installed shell `danzstak-shell-v790` on `https://review.danzstak.com`.
+- The Dailies gate passed directly against the hosted PWA at 320, 360, 375, 390, 414, 430, and 1366px. Hosted login recovery passed at 390 and 1366px, and embedded SYNC passed at 320 and 390px. Builder-inspected hosted captures are in `docs/screenshots/dailies-desktop-sync-footer-hosted/`, `docs/screenshots/login-failure-hosted/`, and `docs/screenshots/sync-footer-fix-hosted/`.
+- The review frontend is ready for the owner's physical-device walkthrough. The Cognito callback, forced fresh credential prompt, and password-reset route are backend source changes and remain intentionally undeployed until the owner gives the production API go. Production remains unchanged.
