@@ -68,7 +68,7 @@ Evidence: `docs/screenshots/release-candidate/`, including `core-social-fluid-se
 
 ## Test 3 — integration, security and staging
 
-- [x] GitHub Review checks run `42545364309` concluded `success` in all five jobs at exact implementation head `6d7986d726be5b4d2f452ebf2dac08f04c9b965e`; the subsequent `f0fe3d2` commit stabilizes the hosted pointer target in the same passing browser regression without changing application behavior.
+- [x] GitHub Review checks run `42545364309` concluded `success` in all five jobs at exact implementation head `6d7986d726be5b4d2f452ebf2dac08f04c9b965e`; the subsequent `f0fe3d2` commit stabilizes the hosted pointer target in the same passing browser regression without changing application behavior. Review run `42547834364` also concluded `success` in all five jobs at `f973a26fcb43c3ffacda7f39cb054e7111a80318` after the mandatory browser-call job was expanded to include foreground ringtone/device-authentication and nine-width audio-output recovery on every review.
 - [x] Feed, Friends, Notifications, Profile, SYNC, Pivot, The Roll, Booking and EPK shells returned HTTP 200 from staging.
 - [x] Delivered Feed assets include mobile-design CSS `v17`, Feed art-direction CSS `v28`, Feed enhancement CSS `v508`, Feed enhancement JavaScript `v542`, identity-media recovery `v2`, Pivot `v2`, alert CSS `v236`, and PWA bootstrap `v428`.
 - [x] Delivered service worker reports `danzstak-shell-v768`; no-cache probes confirm `assets/epk.css?v=9`, `assets/call-devices.js?v=2`, `assets/incoming-calls.js?v=301` and the matching current Feed assets.
@@ -77,7 +77,7 @@ Evidence: `docs/screenshots/release-candidate/`, including `core-social-fluid-se
 - [x] No credential, password, session token, webhook secret or private customer data is recorded in the branch evidence.
 - [x] No-cache hosted probes return `danzstak-shell-v768`, `assets/epk.css?v=9` and the matching current Feed assets. The authenticated foreground-call matrix passes directly against the hosted review origin at 320, 360, 390, 414, 430 and 1366px. The load-gated Dailies portrait matrix passed three consecutive runs at 320, 390 and 1366px. The hosted one-page PDF is exactly one page and was visually inspected. The staging branch remains separate from production.
 
-Staging PWA: <https://review.danzstak.com/feed.html?release=f0fe3d2>
+Staging PWA: <https://review.danzstak.com/feed.html?release=f973a26>
 
 ## Release decision
 
