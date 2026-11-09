@@ -32,7 +32,16 @@ function fixture(pathname, identityState) {
         const page = await context.newPage();
         const errors = [];
         const profileWrites = [];
+        let releaseProfilePicture;
+        let profilePictureGate;
         page.on("pageerror", error => errors.push(error.message));
+        if (width === 320 && identityState === "named") {
+          profilePictureGate = new Promise(resolve => { releaseProfilePicture = resolve; });
+          await page.route("**/assets/danzstak-share-fb-v2.jpg", async route => {
+            await profilePictureGate;
+            await route.continue();
+          });
+        }
         await page.route("https://api.danzstak.com/**", route => {
           const request = route.request();
           const pathname = new URL(request.url()).pathname;
@@ -53,6 +62,15 @@ function fixture(pathname, identityState) {
         });
         await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
         await page.locator("#storiesLoading").waitFor({ state: "detached" });
+        if (width === 320 && identityState === "named") {
+          await page.locator("img.story-create-avatar-pending").waitFor({ state: "attached", timeout: 5000 });
+          const pendingState = await page.evaluate(() => ({
+            fallbackVisible: document.querySelector(".story-create-avatar")?.tagName === "SPAN",
+            candidateHidden: Boolean(document.querySelector("img.story-create-avatar-pending")?.hidden)
+          }));
+          assert.deepEqual(pendingState, { fallbackVisible: true, candidateHidden: true }, "Dailies must keep the initial visible until the signed profile picture is ready");
+          releaseProfilePicture?.();
+        }
         await page.locator("img.story-create-avatar").waitFor({ state: "attached", timeout: 5000 }).catch(() => {});
         if (identityState === "named") {
           await page.waitForFunction(() => document.getElementById("menuProfileName")?.textContent?.trim() === "Liana", null, { timeout: 5000 });

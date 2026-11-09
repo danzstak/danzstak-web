@@ -3717,26 +3717,46 @@ function setDailyCreatorPicture(profile = {}) {
   if (typeof document.querySelector !== "function") return;
   const dailyAvatar = document.querySelector(".story-create-avatar");
   if (!dailyAvatar?.isConnected) return;
+  const identity = dailyAvatar.closest(".story-create-identity");
   const initial = String(profile.name || profile.authorName || "D").trim().charAt(0).toUpperCase() || "D";
   const picture = String(profile.picture || profile.authorPicture || "").trim();
   if (!picture) {
+    identity?.querySelector("img.story-create-avatar-pending")?.remove();
+    if (identity) delete identity.dataset.pendingPicture;
     if (dailyAvatar.tagName !== "IMG" && !dailyAvatar.dataset.viewerPicture) dailyAvatar.textContent = initial;
     return;
   }
-  if (dailyAvatar.tagName === "IMG") {
-    dailyAvatar.src = picture;
-    dailyAvatar.dataset.viewerPicture = picture;
-    window.danzstakIdentityMedia?.install(dailyAvatar, profile);
-    return;
-  }
+  if (dailyAvatar.tagName === "IMG" && dailyAvatar.dataset.viewerPicture === picture && dailyAvatar.complete && dailyAvatar.naturalWidth > 0) return;
+  if (!identity) return;
+  const previousCandidate = identity.querySelector("img.story-create-avatar-pending");
+  if (previousCandidate?.dataset.viewerPicture === picture) return;
+  previousCandidate?.remove();
+  identity.dataset.pendingPicture = picture;
   const dailyImage = document.createElement("img");
-  dailyImage.className = "story-create-avatar story-create-avatar-image";
+  dailyImage.className = "story-create-avatar-pending";
   dailyImage.alt = "";
-  dailyImage.src = picture;
   dailyImage.dataset.viewerPicture = picture;
   dailyImage.referrerPolicy = "no-referrer";
-  window.danzstakIdentityMedia?.install(dailyImage, profile);
-  dailyAvatar.replaceWith(dailyImage);
+  dailyImage.hidden = true;
+  dailyImage.onload = () => {
+    const currentAvatar = identity.querySelector(".story-create-avatar");
+    if (!dailyImage.isConnected || !currentAvatar || identity.dataset.pendingPicture !== dailyImage.dataset.viewerPicture) {
+      dailyImage.remove();
+      return;
+    }
+    dailyImage.className = "story-create-avatar story-create-avatar-image";
+    dailyImage.hidden = false;
+    currentAvatar.replaceWith(dailyImage);
+    delete identity.dataset.pendingPicture;
+  };
+  window.danzstakIdentityMedia?.install(dailyImage, profile, {
+    onFailure: () => {
+      if (identity.dataset.pendingPicture === dailyImage.dataset.viewerPicture) delete identity.dataset.pendingPicture;
+      dailyImage.remove();
+    }
+  });
+  identity.appendChild(dailyImage);
+  dailyImage.src = picture;
 }
 
 function hydratePostComposerAvatar() {
