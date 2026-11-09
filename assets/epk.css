@@ -29,6 +29,14 @@
 .epk-qr-dialog img{display:block;width:min(256px,100%);height:auto;aspect-ratio:1;margin:18px auto;background:#fff}
 .epk-qr-dialog p{line-height:1.45}
 .epk-qr-download{padding:10px 14px;border-radius:10px;background:#1268d8;color:#fff;font-weight:800;text-decoration:none}
+.epk-booking-handoff{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;margin:18px 0 6px;padding:18px 0;border-top:1px solid #d8dee8;border-bottom:1px solid #d8dee8}
+.epk-booking-handoff[hidden]{display:none}
+.epk-booking-handoff .eyebrow{margin:0 0 3px;color:#b84700;font-size:.76rem}
+.epk-booking-handoff h2{margin:0 0 5px;font-size:1.25rem}
+.epk-booking-handoff p{margin:0;line-height:1.45}
+.epk-booking-handoff__actions{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:210px}
+.epk-booking-handoff__actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid #aeb8c7;border-radius:10px;color:#0b56b3;font-weight:800;text-align:center;text-decoration:none}
+.epk-booking-handoff__actions a.primary{border-color:#1268d8;color:#fff}
 
 @media(max-width:700px){
   .epk-guide{padding:14px;margin-bottom:12px}
@@ -43,6 +51,8 @@
   .epk-preview-open .epk-preview{display:block}
   .epk-preview-open .epk-form{display:none}
   .epk-preview-open .epk-guide-checklist,.epk-preview-open .epk-guide-progress-text,.epk-preview-open .epk-guide progress,.epk-preview-open .epk-guide-actions{display:none}
+  .epk-booking-handoff{grid-template-columns:1fr;gap:12px;padding-block:16px}
+  .epk-booking-handoff__actions{min-width:0}
 }
 
 @media print{.epk-guide{display:none!important}}

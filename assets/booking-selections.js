@@ -18,6 +18,7 @@
   const saveAccount = document.getElementById("saveBookingAccount");
   const loadAccount = document.getElementById("loadBookingAccount");
   const artistInputs = { name: "pitchArtist", genre: "pitchGenre", hometown: "pitchHometown", epk: "pitchEpk", pitch: "pitchSummary" };
+  const epkHandoffRequested = new URLSearchParams(location.search).get("from") === "epk";
   const tourInputs = { name: "tmName", currency: "tmCurrency", departOn: "tmDepartOn", returnBy: "tmReturnBy", distanceKm: "tmDistanceKm", vehicleType: "tmVehicleType", fuelLitersPer100Km: "tmFuelUse", fuelPricePerLiter: "tmFuelPrice", people: "tmPeople", mealPerPersonDay: "tmMeals", nights: "tmNights", rooms: "tmRooms", roomRate: "tmRoomRate", tolls: "tmTolls", parking: "tmParking", vehicleRental: "tmVehicleRental", equipment: "tmEquipment", crew: "tmCrew", miscellaneous: "tmMisc", contingencyPercent: "tmContingency", confirmedRevenue: "tmConfirmedRevenueInput", potentialRevenue: "tmPotentialRevenue" };
   const artist = () => Object.fromEntries(Object.entries(artistInputs).map(([key, id]) => [key, document.getElementById(id).value.trim()]));
   const tour = () => Object.fromEntries(Object.entries(tourInputs).map(([key, id]) => { const input = document.getElementById(id); return [key, input.type === "number" ? Number(input.value || 0) : input.value.trim()]; }));
@@ -45,24 +46,62 @@
     if (Array.isArray(parsed)) venues = parsed.slice(0, 100);
   } catch {}
 
-  document.getElementById("usePublishedEpk")?.addEventListener("click", async () => {
+  function clearEpkHandoffQuery() {
+    const url = new URL(location.href);
+    url.searchParams.delete("from");
+    history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  async function usePublishedEpk({ save = false, clearHandoff = false } = {}) {
     const button = document.getElementById("usePublishedEpk");
-    button.disabled = true;
+    if (button) button.disabled = true;
     accountStatus.textContent = "Finding your published EPK…";
     try {
       const response = await fetchWithTimeout("https://api.danzstak.com/epk", { credentials: "include", cache: "no-store" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Your EPK could not be loaded.");
       if (!data.published || !data.publicId) throw new Error("Publish your EPK before adding it to a booking inquiry.");
-      document.getElementById("pitchEpk").value = new URL(`epk.html?id=${encodeURIComponent(data.publicId)}`, location.origin).href;
+      const kit = data.kit && typeof data.kit === "object" ? data.kit : {};
+      const next = {
+        name: String(kit.artistName || "").trim(),
+        genre: Array.isArray(kit.genres) ? kit.genres.map(value => String(value).trim()).filter(Boolean).join(", ") : "",
+        hometown: String(kit.hometown || "").trim(),
+        epk: new URL(`epk.html?id=${encodeURIComponent(data.publicId)}`, location.origin).href,
+        pitch: String(kit.shortPitch || kit.shortBio || "").trim()
+      };
+      const current = artist();
+      if (current.name && next.name && current.name.localeCompare(next.name, undefined, { sensitivity:"base" }) !== 0) {
+        if (!window.danzstakConfirm) throw new Error("DanzStak could not open the act-switch review. Reload and try again.");
+        const confirmReplace = await window.danzstakConfirm(`This workspace is for ${current.name}. Use the published EPK for ${next.name} and replace the act details? Saved venues and tour costs will stay.`, { title:"Switch the act for this pitch?", confirmLabel:"Use published EPK" });
+        if (!confirmReplace) {
+          accountStatus.textContent = "Booking workspace unchanged.";
+          return false;
+        }
+      }
+      for (const [key, value] of Object.entries(next)) {
+        if (value) document.getElementById(artistInputs[key]).value = value;
+      }
       dirty = true;
-      accountStatus.textContent = "Published EPK added. Save the booking workspace to keep it.";
+      persist();
+      render();
+      accountStatus.textContent = "Published EPK and act details added. Saving your private booking workspace…";
+      if (save && accountLoaded) {
+        await saveWorkspaceSnapshot();
+        if (!dirty) accountStatus.textContent = "Published EPK and act details saved. Choose venues and review each pitch before sending.";
+      } else {
+        accountStatus.textContent = "Published EPK and act details added. Sign in and save the booking workspace to keep them.";
+      }
+      if (clearHandoff) clearEpkHandoffQuery();
+      return true;
     } catch (error) {
       accountStatus.textContent = error.name === "AbortError" ? "Your EPK took too long to load. Try again." : error.message;
+      return false;
     } finally {
-      button.disabled = false;
+      if (button) button.disabled = false;
     }
-  });
+  }
+
+  document.getElementById("usePublishedEpk")?.addEventListener("click", () => usePublishedEpk({ save:true }));
 
   const link = (label, href) => {
     const anchor = document.createElement("a");
@@ -475,7 +514,7 @@
   }
 
   async function loadWorkspace(manual = false) {
-    if (manual && dirty && !(await window.danzstakConfirm("Unsaved edits to existing venues and artist details will be replaced. Export CSV first to keep a copy.", { title: "Reload account records?", confirmLabel: "Reload records", danger: true }))) return;
+    if (manual && dirty && !(await window.danzstakConfirm("Unsaved edits to existing venues and artist details will be replaced. Export CSV first to keep a copy.", { title: "Reload account records?", confirmLabel: "Reload records", danger: true }))) return false;
     saveAccount.disabled = true;
     loadAccount.disabled = true;
     const enabled = [...document.querySelectorAll("main input, main select, main textarea, main button")].filter(c => !c.disabled);
@@ -503,8 +542,10 @@
       render();
       accountStatus.textContent = dirty ? "Account workspace loaded with new map selections. Save to keep the additions." : "Private account workspace loaded.";
       if (additions.length > retainedAdditions.length) accountStatus.textContent += ` Workspace limit: ${additions.length - retainedAdditions.length} new selections could not be added. Remove old leads and select them again on the map.`;
+      return true;
     } catch (error) {
       accountStatus.textContent = error.message;
+      return false;
     } finally {
       enabled.forEach(c => { c.disabled = false; });
       saveAccount.disabled = !accountLoaded;
@@ -598,5 +639,10 @@
   document.addEventListener("danzstak-contact-unlocks", render);
   document.addEventListener("danzstak-tour-manager-billing", renderDashboard);
   render();
-  if (loadAccount) loadWorkspace();
+  if (loadAccount) {
+    loadWorkspace().then(loaded => {
+      if (epkHandoffRequested) return usePublishedEpk({ save:loaded, clearHandoff:true });
+      return null;
+    });
+  }
 })();
