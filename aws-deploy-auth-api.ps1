@@ -6,6 +6,7 @@ $RoleName = "DANZSTAK-Auth-API-role-zjknf4ur"
 $Source = Join-Path $PSScriptRoot "infrastructure\auth-api\index.mjs"
 $TourManagerBillingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\tour-manager-billing.mjs"
 $MarketplaceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\marketplace.mjs"
+$MarketplaceCommerceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\marketplace-commerce.mjs"
 $TicketingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\ticketing.mjs"
 $Package = Join-Path $PSScriptRoot "infrastructure\auth-api\package.json"
 $PackageLock = Join-Path $PSScriptRoot "infrastructure\auth-api\package-lock.json"
@@ -39,6 +40,8 @@ node --check $Source
 if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript validation failed." }
 node --check $MarketplaceSource
 if ($LASTEXITCODE -ne 0) { throw "Marketplace API JavaScript validation failed." }
+node --check $MarketplaceCommerceSource
+if ($LASTEXITCODE -ne 0) { throw "Marketplace commerce JavaScript validation failed." }
 node --check $TicketingSource
 if ($LASTEXITCODE -ne 0) { throw "Ticketing API JavaScript validation failed." }
 
@@ -77,7 +80,7 @@ try {
   aws dynamodb update-continuous-backups --region $Region --table-name $ReviewsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection failed." }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$MarketplaceSource,$TicketingSource,$Package,$PackageLock -Destination $Stage
+  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$MarketplaceSource,$MarketplaceCommerceSource,$TicketingSource,$Package,$PackageLock -Destination $Stage
   Push-Location $Stage
   try {
     npm ci --omit=dev --ignore-scripts --no-audit --no-fund
@@ -169,7 +172,11 @@ try {
         Action = @("secretsmanager:GetSecretValue")
         Resource = @(
           "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/secret-key-*",
-          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/webhook-secret-*"
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/webhook-secret-*",
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/marketplace-secret-key-*",
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/marketplace-webhook-secret-*",
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/easypost/api-key-*",
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/easypost/webhook-secret-*"
         )
       },
       @{

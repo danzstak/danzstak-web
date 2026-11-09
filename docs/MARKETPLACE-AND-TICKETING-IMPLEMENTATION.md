@@ -29,11 +29,13 @@ One encrypted, point-in-time-recoverable DynamoDB table stores shops, products, 
 
 1. **Implemented on the review branches:** durable shops and physical-product catalogs, official store authorization, profile Shop tab, owner management, the mixed Bazaar catalog and mobile visual gates.
 2. **Implemented on the review branch:** published events, ticket tiers, atomic tier-capacity allocation and public ticket availability. Ticket issuance and check-in remain part of the payment phase.
-3. **Not implemented or advertised as available:** Test Mode seller onboarding and Checkout; verified webhooks, inventory reservation, orders and 5% ledger.
-4. **Not implemented or advertised as available:** physical shipment/receipt confirmation, delayed payout, returns/refunds and disputes.
-5. **Current review gate:** staging PWA, screenshots at 320/360/390/414/430/1366px, full regression gate and owner phone review. Controlled two-account payment tests begin only after phases 3 and 4 exist.
+3. **Implemented on the dependent review branch; disabled and not deployed:** Stripe Connect recipient onboarding, server-priced Checkout, atomic inventory reservation, signed Stripe webhooks, durable orders, exact 5% item-only fee ledger and account-isolated order reads.
+4. **Implemented on the dependent review branch; disabled and not deployed:** seller tracking, signed EasyPost delivery events, buyer receipt confirmation, one-time seller transfer, payout blocking/reversal for refunds and disputes, and race compensation. Partial refunds remain manual review.
+5. **Current review gate:** screenshots at 320/360/390/414/430/1366px, complete regression/CI gate and owner review. Controlled two-account hosted Test Mode payment tests require the dedicated DanzStak Stripe/EasyPost secrets and endpoints; production remains off.
 
 Production activation is a separate owner-approved release after all phases and payment-provider configuration pass.
+
+Detailed payment architecture, routes, configuration and blockers: [MARKETPLACE-COMMERCE.md](MARKETPLACE-COMMERCE.md).
 
 ## Visual evidence
 
