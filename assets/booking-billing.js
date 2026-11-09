@@ -1,6 +1,7 @@
 "use strict";
 (() => {
   const api = "https://api.danzstak.com", balance = document.getElementById("bookingCreditBalance"), summary = document.getElementById("bookingCreditSummary"), status = document.getElementById("bookingCreditStatus"), activity = document.getElementById("bookingCreditActivity"), form = document.getElementById("buyBookingCredits"), quantity = document.getElementById("bookingCreditQuantity");
+  const creditCheckoutKey = "danzstakBookingCreditCheckout";
   const unlockedContacts = new Set();
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
   window.danzstakTourManagerBilling = { credits: null, outreach: [], replies: [], refreshOutreach: null };
@@ -15,7 +16,8 @@
       if (!activity.children.length) activity.append(Object.assign(document.createElement("li"), { textContent: "No activity yet." }));
       window.danzstakTourManagerBilling.credits = data;
       document.dispatchEvent(new CustomEvent("danzstak-tour-manager-billing", { detail: window.danzstakTourManagerBilling }));
-    } catch (error) { summary.textContent = error.message; }
+      return data;
+    } catch (error) { summary.textContent = error.message; return null; }
   }
   async function refreshOutreach() {
     try {
@@ -30,7 +32,11 @@
     event.preventDefault(); const count = Number(quantity.value);
     if (!Number.isInteger(count) || count < 1 || count > 500) { status.textContent = "Choose 1 to 500 credits."; return; }
     const button = form.querySelector("button"); button.disabled = true; status.textContent = "Opening secure Stripe Checkout…";
-    try { const data = await request("/tour-manager/checkout", { method: "POST", body: JSON.stringify({ quantity: count }) }); location.assign(data.checkoutUrl); } catch (error) { status.textContent = error.message; button.disabled = false; }
+    try {
+      const data = await request("/tour-manager/checkout", { method: "POST", body: JSON.stringify({ quantity: count }) });
+      try { sessionStorage.setItem(creditCheckoutKey, JSON.stringify({ quantity:count, startedAt:Date.now() })); } catch {}
+      location.assign(data.checkoutUrl);
+    } catch (error) { status.textContent = error.message; button.disabled = false; }
   });
   window.danzstakSendBookingEmail = async payload => { const id = payload.idempotencyKey || crypto.randomUUID().replaceAll("-", ""); const data = await request("/tour-manager/emails/send", { method: "POST", body: JSON.stringify({ ...payload, idempotencyKey: id }) }); await Promise.all([refresh(), refreshOutreach()]); return data; };
   window.danzstakBookingContactUnlocked = venueKey => unlockedContacts.has(String(venueKey || ""));
@@ -86,11 +92,53 @@
     }
     status.textContent = "Payment was received, but Stripe is still verifying it. Keep this page open or reload it to check again; you will not be charged twice.";
   }
+  function creditCheckoutMarker() {
+    try {
+      const marker = JSON.parse(sessionStorage.getItem(creditCheckoutKey) || "null");
+      const quantity = Number(marker?.quantity), startedAt = Number(marker?.startedAt);
+      if (Number.isInteger(quantity) && quantity > 0 && quantity <= 500 && Number.isFinite(startedAt)) return { quantity, startedAt };
+    } catch {}
+    return null;
+  }
+  function clearCreditResult() {
+    try { sessionStorage.removeItem(creditCheckoutKey); } catch {}
+    const url = new URL(location.href);
+    url.searchParams.delete("credits");
+    history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+  function settledCreditPurchase(data, marker, returnedAt) {
+    const earliest = marker ? marker.startedAt - 300000 : returnedAt - 1800000;
+    return (data?.activity || []).find(item => {
+      const at = Date.parse(item.at || ""), purchased = Number(item.credits);
+      return item.type === "purchase" && item.status === "settled" && Number.isFinite(at) && at >= earliest
+        && purchased > 0 && (!marker || purchased >= marker.quantity);
+    }) || null;
+  }
+  async function finishCreditReturn(result) {
+    if (result === "cancelled") {
+      status.textContent = "Checkout cancelled. No credits were added.";
+      clearCreditResult();
+      return;
+    }
+    if (result !== "success") return;
+    const marker = creditCheckoutMarker(), returnedAt = Date.now();
+    status.textContent = "Payment received. Verifying your booking-email credits…";
+    for (let attempt = 0; attempt < 10; attempt++) {
+      if (attempt) await wait(1500);
+      const data = await refresh(), purchase = settledCreditPurchase(data, marker, returnedAt);
+      if (purchase) {
+        const purchased = Number(purchase.credits);
+        status.textContent = `Credits verified. ${purchased} booking email credit${purchased === 1 ? " is" : "s are"} ready to send.`;
+        clearCreditResult();
+        return;
+      }
+    }
+    status.textContent = "Payment was received, but Stripe is still verifying the credits. Keep this page open or reload it to check again; you will not be charged twice.";
+  }
   const params = new URLSearchParams(location.search), result = params.get("credits");
-  if (result === "success") status.textContent = "Payment received. Credits appear after Stripe verifies the webhook.";
-  if (result === "cancelled") status.textContent = "Checkout cancelled. No credits were added.";
   const contactResult = params.get("contact"), returnedVenueKey = String(params.get("venueKey") || "").trim().slice(0, 200);
-  refresh();
+  if (result) finishCreditReturn(result);
+  else refresh();
   refreshOutreach();
   if (contactResult) finishContactReturn(contactResult, returnedVenueKey);
   else refreshContactUnlocks();
