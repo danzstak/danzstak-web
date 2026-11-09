@@ -4,9 +4,9 @@ Status: **STAGING VERIFIED — NO TEST PASS, NO PRODUCTION DEPLOY**
 Prepared: 2026-11-08  
 Release owner: Shawn  
 Branch: `codex/release-candidate-2026-11-08`  
-Reviewed implementation: `6ef0ab5`
+Reviewed implementation: `5130571`
 Base/rollback commit: `04d41cccea19da3999e2ae69845532ce32b16e3f`  
-PWA cache: `danzstak-shell-v774`
+PWA cache: `danzstak-shell-v775`
 Production commit/deployment: **UNCHANGED / NOT DEPLOYED**
 
 ## Scope
@@ -27,6 +27,7 @@ Production commit/deployment: **UNCHANGED / NOT DEPLOYED**
 - [x] Public EPK media starts as fast provider link cards; a booker explicitly loads one external player, backgrounding unloads it, and no provider frame receives autoplay permission.
 - [x] One-page EPK press output is exactly one Letter page, keeps the bounded booking essentials, and prints on a clean white page outside the selected artist look.
 - [x] Published EPKs hand off to the Booking workspace; a waiting venue reply opens from Booking or Artist HQ in the exact private SYNC Bookings thread.
+- [x] An EPK handed to Booking now continues through an explicit **Choose venues** action, which becomes **Add venues** after the artist has selected clubs.
 
 Affected surfaces are static HTML/CSS/browser JavaScript, regression/browser checks, PWA cache metadata, Booking infrastructure source already present in the reviewed branch, and documentation. No production stack, database migration, live Stripe configuration, live email configuration or production branch changed during this review.
 
@@ -58,6 +59,7 @@ Out of scope and still required:
 - [x] Account security passed at 320, 360, 390, 414, 430, 768, 1024 and 1366px.
 - [x] Booking passed at 320, 360, 390, 430, 768 and 1366px.
 - [x] Artist HQ to the exact waiting SYNC booking thread passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px.
+- [x] The connected EPK-to-Booking workflow and its primary venue-discovery continuation passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px locally and on hosted staging.
 - [x] Dailies portrait/clapper geometry passed locally and on hosted staging at 320, 360, 390, 414, 430 and 1366px. The gate rejects a gray/white backing box and rejects any clapper positioned beside or below the portrait.
 - [x] Public EPKs passed all four genre looks at 390 and 1366px with the optional Reviews failure surface absent. The successful Reviews path separately passed at 320, 360, 390, 414, 430 and 1366px.
 - [x] Public EPK media passed all four looks at 390 and 1366px with zero eager iframes; the Techno 390px interaction loaded exactly one frame and removed it on page hide.
@@ -73,13 +75,13 @@ Evidence: `docs/screenshots/release-candidate/`, including `core-social-fluid-se
 - [x] GitHub Review checks run `42545364309` concluded `success` in all five jobs at exact implementation head `6d7986d726be5b4d2f452ebf2dac08f04c9b965e`; the subsequent `f0fe3d2` commit stabilizes the hosted pointer target in the same passing browser regression without changing application behavior. Review run `42547834364` also concluded `success` in all five jobs at `f973a26fcb43c3ffacda7f39cb054e7111a80318` after the mandatory browser-call job was expanded to include foreground ringtone/device-authentication and nine-width audio-output recovery on every review.
 - [x] Feed, Friends, Notifications, Profile, SYNC, Pivot, The Roll, Booking and EPK shells returned HTTP 200 from staging.
 - [x] Delivered Feed assets include mobile-design CSS `v17`, Feed art-direction CSS `v28`, Feed enhancement CSS `v508`, Feed enhancement JavaScript `v542`, identity-media recovery `v2`, Pivot `v2`, alert CSS `v236`, and PWA bootstrap `v428`.
-- [x] Delivered service worker reports `danzstak-shell-v768`; no-cache probes confirm `assets/epk.css?v=9`, `assets/call-devices.js?v=2`, `assets/incoming-calls.js?v=301` and the matching current Feed assets.
+- [x] Delivered service worker reports `danzstak-shell-v775`; no-cache probes confirm `assets/booking-selections.js?v=20`, `assets/booking-selections.css?v=12`, `assets/epk.css?v=9`, `assets/call-devices.js?v=2`, `assets/incoming-calls.js?v=301` and the matching current Feed assets.
 - [x] A fresh hosted browser context registered and activated the staging service worker, created the versioned shell cache, and controlled the next page load without clearing user storage.
 - [x] Required authentication, account-isolation, accessibility, link/privacy, Booking, EPK, Tour Manager, Stripe Test Mode and PWA regressions passed in the full gate.
 - [x] No credential, password, session token, webhook secret or private customer data is recorded in the branch evidence.
-- [x] No-cache hosted probes return `danzstak-shell-v774`, `assets/artist-hq.js?v=2`, `assets/epk.css?v=9` and the matching current Feed assets. The authenticated foreground-call matrix passes directly against the hosted review origin at 320, 360, 390, 414, 430 and 1366px. The load-gated Dailies portrait matrix passed three consecutive runs at 320, 390 and 1366px. The hosted one-page PDF is exactly one page and was visually inspected. The staging branch remains separate from production.
+- [x] No-cache hosted probes return `danzstak-shell-v775`, `assets/booking-selections.js?v=20`, `assets/booking-selections.css?v=12`, `assets/artist-hq.js?v=2`, `assets/epk.css?v=9` and the matching current Feed assets. The authenticated foreground-call matrix passes directly against the hosted review origin at 320, 360, 390, 414, 430 and 1366px. The connected EPK-to-venue continuation passes at all nine required widths. The load-gated Dailies portrait matrix passed three consecutive runs at 320, 390 and 1366px. The hosted one-page PDF is exactly one page and was visually inspected. The staging branch remains separate from production.
 
-Staging PWA: <https://review.danzstak.com/feed.html?view=hq&release=6ef0ab5>
+Staging PWA: <https://review.danzstak.com/feed.html?view=hq&release=5130571>
 
 ## Release decision
 
