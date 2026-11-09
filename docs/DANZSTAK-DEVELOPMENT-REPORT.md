@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## Venue reply to exact SYNC booking thread — 2026-11-09
+
+Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
+
+- An answered venue card in the Booking workspace now opens the exact private conversation in **SYNC → Bookings**. The handoff uses the existing opaque outreach identifier, removes it from the address bar immediately after parsing, and never exposes a public message or account-email workflow.
+- The Booking workspace now recognizes the backend's real `replied` outreach state. A venue reply takes precedence over an earlier follow-up state, so the artist always receives the direct **Open this reply in SYNC** action instead of another reminder.
+- The send explanation now accurately says venue replies arrive in the artist's private SYNC Bookings inbox. The artist can answer the venue by email from that thread; replies do not consume another booking-email credit.
+- The four SYNC sections remain inside the sidebar at the 768px split-pane breakpoint. The exact-thread action and all measured controls retain at least a 44px touch target.
+- **TESTED:** `test-regressions.ps1` passes completely, including all Booking, EPK, Tour Manager, SYNC/call, Stripe, PWA, 15-page site-smoke and infrastructure checks. The booking-to-SYNC browser workflow passes at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. It verifies the real `replied` state, exact thread selection, immediate URL cleanup, no fake call UI, no horizontal overflow, status/date actions, venue-email reply routing and zero extra credit charge.
+- [PR #185](https://github.com/danzstak/danzstak-web/pull/185) passed all five GitHub **Review checks** jobs in run [42567805748](https://github.com/danzstak/danzstak-web/actions/runs/42567805748) and was squash-merged into `codex/release-candidate-2026-11-08` as `70d8b621a596144abc54b2fab51d842ebe017e4e`.
+- **HOSTED REVIEW:** no-cache probes confirm `booking-selections.js?v=19`, `booking-sync.js?v=6`, `chat.css?v=458` and installed shell `danzstak-shell-v773` on [review.danzstak.com](https://review.danzstak.com/booking-selections.html). The same nine-width real-browser workflow passes against the hosted PWA. Builder-reviewed evidence is in [`docs/screenshots/booking-sync/`](screenshots/booking-sync/). Production remains unchanged pending the owner's complete release-candidate go/no-go.
+
 ## SYNC call-device recovery — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
