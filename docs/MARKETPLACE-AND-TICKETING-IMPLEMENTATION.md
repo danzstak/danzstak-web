@@ -1,10 +1,11 @@
 # DanzStak shops and event tickets
 
-Status: **IN DEVELOPMENT ON `codex/marketplace-ticketing`; NOT DEPLOYED; LIVE PAYMENTS DISABLED.**
+Status: **CATALOG FOUNDATION AND BAZAAR IMPLEMENTED ON REVIEW BRANCHES; NOT DEPLOYED; LIVE PAYMENTS DISABLED.**
 
 ## Product placement
 
-- The official **DanzStak Store** is a main-menu destination.
+- The official **DanzStak Official Store** is a main-menu destination.
+- **DanzStak Bazaar** is a separate main-menu destination. It aggregates available published products from every published member shop, shows the seller's shop name, and deep-links to the original product in that shop. It never creates a second copy of the product record.
 - A member may open one named shop. Its public catalog appears as a **Shop** tab on that member's profile; management is owner-only.
 - Ticket sales attach to a published DanzStak event. Products and ticket offers may be shared as ordinary chronological Mix posts, but neither becomes a permanent Mix sales block.
 
@@ -24,7 +25,7 @@ One encrypted, point-in-time-recoverable DynamoDB table stores shops, products, 
 
 ## Delivery phases
 
-1. **Implemented on the review branch:** durable shops and physical-product catalogs, official store authorization, profile Shop tab, owner management and mobile visual gates.
+1. **Implemented on the review branches:** durable shops and physical-product catalogs, official store authorization, profile Shop tab, owner management, the mixed Bazaar catalog and mobile visual gates.
 2. **Implemented on the review branch:** published events, ticket tiers, atomic tier-capacity allocation and public ticket availability. Ticket issuance and check-in remain part of the payment phase.
 3. **Not implemented or advertised as available:** Test Mode seller onboarding and Checkout; verified webhooks, inventory reservation, orders and 5% ledger.
 4. **Not implemented or advertised as available:** physical shipment/receipt confirmation, delayed payout, returns/refunds and disputes.
@@ -35,6 +36,8 @@ Production activation is a separate owner-approved release after all phases and 
 ## Visual evidence
 
 - [Official store at 390px](screenshots/marketplace-ticketing/official-store-390.png)
+- [DanzStak Bazaar at 390px](screenshots/bazaar-local/bazaar-390.png)
+- [DanzStak Bazaar at 1366px](screenshots/bazaar-local/bazaar-1366.png)
 - [Member shop at 390px](screenshots/marketplace-ticketing/member-shop-390.png)
 - [Shop manager at 390px](screenshots/marketplace-ticketing/shop-manager-390.png)
 - [Published event and ticket availability at 390px](screenshots/marketplace-ticketing/published-event-390.png)

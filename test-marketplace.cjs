@@ -9,7 +9,7 @@ const fs = require("node:fs");
   assert.match(storeScript, /store catalog is temporarily unavailable/i, "network failures must not expose raw browser errors in Store");
   assert.match(eventScript, /event details are temporarily unavailable/i, "network failures must not expose raw browser errors on public events");
 
-  const { createMarketplace, marketplaceFeeCents } = await import("./infrastructure/auth-api/marketplace.mjs");
+  const { createMarketplace, marketplaceFeeCents, encodeBazaarCursor, decodeBazaarCursor } = await import("./infrastructure/auth-api/marketplace.mjs");
 
   class Command { constructor(input) { this.input = input; } }
   class GetItemCommand extends Command {}
@@ -21,6 +21,13 @@ const fs = require("node:fs");
   const db = { async send(command) {
     if (command instanceof GetItemCommand) return { Item: records.get(keyOf(command.input.Key)) };
     if (command instanceof QueryCommand) {
+      if (command.input.IndexName === "BazaarIndex") {
+        const partition = command.input.ExpressionAttributeValues[":bazaar"].S;
+        const items = [...records.values()]
+          .filter(item => item.bazaarPk?.S === partition)
+          .sort((a, b) => b.bazaarSk.S.localeCompare(a.bazaarSk.S));
+        return { Items: items.slice(0, command.input.Limit || 24) };
+      }
       const prefix = command.input.ExpressionAttributeValues[":pk"].S;
       const sortPrefix = command.input.ExpressionAttributeValues[":product"].S;
       return { Items: [...records.values()].filter(item => item.pk.S === prefix && item.sk.S.startsWith(sortPrefix)).sort((a, b) => a.sk.S.localeCompare(b.sk.S)) };
@@ -53,17 +60,22 @@ const fs = require("node:fs");
     env: { MARKETPLACE_ADMIN_USER_IDS: "admin_12345678" },
     clock: () => Date.parse("2026-11-09T12:00:00.000Z")
   });
-  const event = (method, path, body, origin = "https://danzstak.com") => ({ requestContext: { http: { method } }, rawPath: path, headers: { origin }, body: body === undefined ? "" : JSON.stringify(body) });
+  const event = (method, path, body, origin = "https://danzstak.com", queryStringParameters) => ({ requestContext: { http: { method } }, rawPath: path, headers: { origin }, body: body === undefined ? "" : JSON.stringify(body), queryStringParameters });
   const bodyOf = result => JSON.parse(result.body);
 
   assert.equal(marketplaceFeeCents(100), 5);
   assert.equal(marketplaceFeeCents(1_999), 100, "5% fee rounds to integer cents on the server");
   assert.throws(() => marketplaceFeeCents(12.5), /integer cents/);
+  const cursorKey = { pk:{S:"SHOP#artist_12345678"}, sk:{S:"PRODUCT#11111111-1111-4111-8111-111111111111"}, bazaarPk:{S:"BAZAAR#PUBLISHED"}, bazaarSk:{S:"2026-11-09T12:00:00.000Z#artist_12345678#11111111-1111-4111-8111-111111111111"} };
+  assert.deepEqual(decodeBazaarCursor(encodeBazaarCursor(cursorKey)), cursorKey, "Bazaar pagination cursors round-trip without exposing a mutable query");
+  assert.equal(decodeBazaarCursor("not-a-valid-cursor"), undefined);
 
   const missing = await service(event("GET", "/marketplace/shop/artist_12345678"));
   assert.equal(missing.statusCode, 404);
   const rejectedOrigin = await service(event("PUT", "/marketplace/shop", { name: "Nope", status: "published" }, "https://evil.example"));
   assert.equal(rejectedOrigin.statusCode, 403);
+  const invalidBazaarCursor = await service(event("GET", "/marketplace/bazaar", undefined, "https://danzstak.com", { cursor:"not-a-valid-cursor" }));
+  assert.equal(invalidBazaarCursor.statusCode, 400);
 
   const opened = await service(event("PUT", "/marketplace/shop", { name: "Eroticon Records", description: "Independent releases and tour merchandise.", status: "published" }));
   assert.equal(opened.statusCode, 201);
@@ -87,6 +99,11 @@ const fs = require("node:fs");
   assert.equal(publicData.revision, undefined, "public shop responses do not expose owner revision state");
   assert.equal(publicData.products.length, 1, "draft products stay private");
   assert.equal(publicData.products[0].inventory, undefined, "public products expose availability rather than exact stock");
+  const bazaar = await service(event("GET", "/marketplace/bazaar"));
+  assert.equal(bazaar.statusCode, 200);
+  assert.equal(bodyOf(bazaar).listings.length, 1, "a published available member item appears automatically in the Bazaar");
+  assert.equal(bodyOf(bazaar).listings[0].shopName, "Eroticon Records", "Bazaar items name the original member shop");
+  assert.equal(bodyOf(bazaar).listings[0].memberId, "artist_12345678", "Bazaar items link back to the seller shop");
 
   signedInUser = "artist_12345678";
   const stale = await service(event("PATCH", `/marketplace/products/${product.id}`, { ...product, revision: 99, inventory: 9, status: "published" }));
@@ -96,6 +113,18 @@ const fs = require("node:fs");
   assert.equal(bodyOf(updated).product.revision, 2);
   assert.equal(bodyOf(updated).product.inventory, 9);
 
+  signedInUser = "artist_12345678";
+  const soldOut = await service(event("PATCH", `/marketplace/products/${product.id}`, { ...product, revision: 2, inventory: 0, status: "sold_out" }));
+  assert.equal(soldOut.statusCode, 200);
+  signedInUser = "viewer_12345678";
+  assert.equal(bodyOf(await service(event("GET", "/marketplace/bazaar"))).listings.length, 0, "sold-out items leave the Bazaar automatically");
+  signedInUser = "artist_12345678";
+  const relisted = await service(event("PATCH", `/marketplace/products/${product.id}`, { ...product, revision: 3, inventory: 4, status: "published" }));
+  assert.equal(relisted.statusCode, 200);
+  signedInUser = "viewer_12345678";
+  assert.equal(bodyOf(await service(event("GET", "/marketplace/bazaar"))).listings.length, 1, "restocked published items return to the Bazaar automatically");
+
+  signedInUser = "artist_12345678";
   const archived = await service(event("DELETE", `/marketplace/products/${product.id}`));
   assert.equal(archived.statusCode, 200);
   signedInUser = "viewer_12345678";
@@ -106,13 +135,23 @@ const fs = require("node:fs");
   signedInUser = "admin_12345678";
   const officialStore = await service(event("PUT", "/marketplace/store", { name: "Wrong name", description: "Official DanzStak merchandise.", status: "published" }));
   assert.equal(officialStore.statusCode, 201);
-  assert.equal(bodyOf(officialStore).shop.name, "DanzStak Store", "the official store name cannot be replaced by browser input");
+  assert.equal(bodyOf(officialStore).shop.name, "DanzStak Official Store", "the official store name cannot be replaced by browser input");
   const officialProduct = await service(event("POST", "/marketplace/store/products", { title: "Official shirt", priceCents: 2_500, inventory: 10, status: "published" }));
   assert.equal(officialProduct.statusCode, 201);
   signedInUser = "viewer_12345678";
   const publicOfficialStore = await service(event("GET", "/marketplace/store"));
   assert.equal(publicOfficialStore.statusCode, 200);
   assert.equal(bodyOf(publicOfficialStore).shop.products.length, 1);
+  assert.equal(bodyOf(await service(event("GET", "/marketplace/bazaar"))).listings.length, 0, "official-store products stay in the Official Store and never mix into the member Bazaar");
 
-  console.log("Marketplace catalog checks passed: one member shop, official-store authorization, physical-only products, safe public views, inventory, optimistic edits and exact 5% fee math.");
+  const storePage = fs.readFileSync("store.html", "utf8");
+  const feedPage = fs.readFileSync("feed.html", "utf8");
+  assert.match(storePage, /id="bazaarSearch"/);
+  assert.match(storeScript, /\/marketplace\/bazaar/);
+  assert.match(storeScript, /Sold by \$\{product\.shopName\}/);
+  assert.match(storeScript, /memberProductUrl\(product\)/, "each Bazaar item must deep-link to its original member-shop item");
+  assert.match(feedPage, /DanzStak Official Store/);
+  assert.match(feedPage, /store\.html\?view=bazaar[\s\S]*DanzStak Bazaar/);
+
+  console.log("Marketplace catalog checks passed: member-shop items flow into the Bazaar, seller links remain canonical, official products stay separate, physical-only rules hold, and exact 5% fee math remains server-owned.");
 })().catch(error => { console.error(error); process.exit(1); });

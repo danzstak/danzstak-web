@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## DanzStak Bazaar member-shop catalog — 2026-11-09
+
+Status: **IMPLEMENTED AND TESTED ON `codex/danzstak-bazaar`; NOT DEPLOYED; LIVE COMMERCE REMAINS DISABLED.**
+
+- The main menu now has two distinct destinations: **DanzStak Official Store** for platform merchandise and **DanzStak Bazaar** for the mixed member marketplace.
+- A published, in-stock physical product is indexed into the Bazaar from its one authoritative member-shop record. Selling out, archiving or unpublishing removes it from public Bazaar results; official-store products remain separate. Each Bazaar card shows the product, price, shipping, seller shop name and a deep link to the exact item in that member shop.
+- The backend uses a sparse `BazaarIndex` rather than scanning the marketplace ledger. Public reads re-check the current shop publication state, validate bounded opaque cursors and return no exact inventory or private owner state. Music/audio products remain rejected.
+- The phone Bazaar uses a compact two-column marketplace grid with search by product or shop name. Desktop expands the same catalog without changing the familiar navigation model. Installed-PWA cache advances to `danzstak-shell-v790`.
+- **TESTED:** the complete `test-regressions.ps1` gate passed. Marketplace unit tests cover automatic publish/restock inclusion, sold-out/archive removal, official-store separation, canonical seller links, invalid cursors, physical-only products, optimistic revisions and server-owned 5% fee math. The real-browser marketplace matrix passed at 320, 360, 390, 414, 430 and 1366px, including search/clear behavior, product deep links, loaded images, 44px touch targets and no horizontal overflow. Builder-reviewed evidence: [Bazaar at 390px](screenshots/bazaar-local/bazaar-390.png) and [Bazaar at 1366px](screenshots/bazaar-local/bazaar-1366.png).
+- **NOT COMPLETE / NOT CLAIMED:** checkout, seller Stripe Connect onboarding, taxes, shipping labels/tracking, delivery or buyer-receipt confirmation, delayed seller transfer, refunds, disputes and live charges are still absent. DanzStak must retain exactly 5% and release seller proceeds only through a provider-supported delayed-transfer flow after delivery evidence; it must not describe that flow as licensed escrow without legal/provider approval.
+- No AWS, Stripe, SES, support-email or production deployment change was made in this branch.
+
 ## Live SYNC sent/read receipts — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
@@ -137,7 +149,7 @@ Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED O
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; AWS BACKEND AND PRODUCTION UNCHANGED; CHECKOUT AND LIVE SALES DISABLED.**
 
-- The official **DanzStak Store** is a main-menu destination. Each member can open one named physical-goods shop, manage products from their profile, and expose a Shop tab only when that shop exists. Music remains external links; the product API rejects audio-product types.
+- The **DanzStak Official Store** is a main-menu destination. Each member can open one named physical-goods shop, manage products from their profile, and expose a Shop tab only when that shop exists. Music remains external links; the product API rejects audio-product types.
 - Published events now have durable server-owned records, IANA time zones, organizer ownership, capacity and ticket tiers. Concurrent tier creation uses a DynamoDB transaction and an event-level allocation condition so two devices cannot create tiers that exceed venue capacity.
 - Catalog records live in a retained, encrypted, point-in-time-recoverable DynamoDB table. Public responses hide draft/archived products, exact stock, organizer IDs and internal revision state. Mutations require an authenticated account and an approved origin. Official-store writes require a configured administrator ID.
 - The server owns integer-cent prices, inventory, capacity and the exact 5% fee calculation. Public Store and Event pages deliberately contain no purchase control while seller onboarding, provider-backed payment holds, shipping, refunds, disputes, ticket issuance and check-in are unfinished. This prevents a visual catalog from being mistaken for operational commerce.

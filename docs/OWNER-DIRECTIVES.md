@@ -97,8 +97,9 @@ Later phase (after users): SYNC standalone, device registration, SYNC Network nu
 
 ## Shops and event tickets (owner-set, 2026-11-09)
 
-- DanzStak has one official **DanzStak Store** in the main app menu. It is a platform destination, not a permanent sales block inserted into Mix.
-- A member may create one public shop, choose its name, and reach its management tools from their profile. The public shop appears as a **Shop** tab/page on that member's profile. DanzStak does not create a separate storefront for a member who has not chosen to open one.
+- DanzStak has one official **DanzStak Official Store** in the main app menu. It is a platform destination, not a permanent sales block inserted into Mix.
+- **DanzStak Bazaar** is a second main-menu destination. It mixes every available item published by member shops into one familiar marketplace catalog. Every item names the seller's shop and links to that member shop and exact item; the Bazaar is an index of the original listing, not a duplicate listing.
+- A member may create one public shop, choose its name, and reach its management tools from their profile. The public shop appears as a **Shop** tab/page on that member's profile. Publishing, editing, selling out or removing an item changes both the member shop and the Bazaar because both read the same server-owned product record. DanzStak does not create a separate storefront for a member who has not chosen to open one.
 - Published events may sell capacity-limited tickets through DanzStak. Tickets must be unique, verifiable at check-in, and protected against duplicate issuance. The event organizer manages availability, cancellation and attendee communication from the event tools.
 - DanzStak receives exactly **5% of each completed member-shop sale and each completed event-ticket sale**. The checkout must disclose the full price and fee before confirmation. Refunds reverse the corresponding fee; the backend, not browser display code, enforces the calculation.
 - For physical goods, seller proceeds are not released until carrier delivery or buyer receipt is confirmed and the dispute path remains available. Use a payment provider's supported marketplace hold/release or delayed-transfer flow. Do not call DanzStak a licensed escrow service unless legal and provider review explicitly permits that claim.

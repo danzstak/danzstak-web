@@ -54,6 +54,9 @@ foreach ($profileVideoRoute in @('GET /profile-video', 'POST /profile-video', 'P
 foreach ($legalRoute in @('POST /auth/legal-acceptance', 'LegalAcceptanceInvokePermission')) {
   if (-not $engagementTemplate.Contains($legalRoute)) { throw "Signup consent route is missing: $legalRoute" }
 }
+foreach ($bazaarControl in @('IndexName: BazaarIndex', 'AttributeName: bazaarPk', 'AttributeName: bazaarSk', "RouteKey: 'GET /marketplace/bazaar'", '!Sub ''${MarketplaceTable.Arn}/index/*''')) {
+  if (-not $engagementTemplate.Contains($bazaarControl)) { throw "Bazaar catalog infrastructure is missing: $bazaarControl" }
+}
 foreach ($required in @('BatchGetItemCommand', 'item.audience?.S === "public"', 'friendEmails.has(item.userEmail?.S)', 'data.originalContentCertified !== true', 'sha256(userEmail).slice(0, 24)', 'sha256(accountEmail).slice(0, 24)', 'Post media ownership could not be verified', 'function signedMediaUrl(', 'mediaUrl: item.mediaKey?.S ? signedMediaUrl', 'mediaUrl: signedMediaUrl(mediaKey, 3600)', '"strict-transport-security"', '"x-content-type-options"', '"x-frame-options"', 'user: userId && email ? { email } : undefined', 'async function getEngagement(event)', 'async function setReaction(event)', 'async function addComment(event)', 'async function deleteComment(event)', 'async function updateSecurePost(event)', 'commentPolicy === "off"', 'commentPolicy === "friends"', 'async function getEngagementNotifications(event)', 'async function clearEngagementNotifications(event)', 'reactions.map', 'comments.map', 'notificationCleanupTasks', 'rememberNotification(parentEmail, `reply#${comment.commentId.S}`)', 'rememberNotification(taggedEmail, `tag#${recordId}#${taggedId}`)', 'const storiesTable = "DANZSTAK-Stories"', 'linkedStories.map')) {
   if (-not $authApi.Contains($required)) { throw "Auth API post authorization safeguard is missing: $required" }
 }
