@@ -1,25 +1,39 @@
 /* SYNC product shell: one coherent layer over the legacy chat implementation. */
 :root{
+  --sync-grid:4px;
+  --sync-font-body:"Segoe UI",-apple-system,BlinkMacSystemFont,"Roboto","Helvetica Neue",sans-serif;
   --sync-blue:#1769e0;
   --sync-orange:#ef7d21;
   --sync-ink:#172033;
-  --sync-muted:#667085;
+  --sync-muted:#667781;
   --sync-line:#e2e7ee;
   --sync-surface:#fff;
   --sync-soft:#f4f6f9;
+  --sync-canvas:#efeae2;
+  --sync-incoming:#fff;
+  --sync-outgoing:#d9efff;
   --sync-call:#08111f;
   --sync-call-panel:#101d30;
 }
-.messages-page{background:var(--sync-soft);color:var(--sync-ink)}
-.sync-wordmark{margin-inline:auto;color:var(--sync-ink);font-size:.88rem;letter-spacing:.14em}
+.messages-page{background:var(--sync-soft);color:var(--sync-ink);font-family:var(--sync-font-body)}
+.sync-wordmark{margin-inline:auto;color:var(--sync-ink);font-size:22px;line-height:1.2;letter-spacing:.08em}
 .sync-kicker{display:block;margin-bottom:1px;color:var(--sync-orange);font-size:.68rem;font-weight:850;letter-spacing:.12em;text-transform:uppercase}
-.chats-heading h1{margin:0;font-size:1.55rem;letter-spacing:-.03em}
+.chats-heading h1{margin:0;font-size:22px;line-height:1.2;letter-spacing:-.03em}
 .sync-sections{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px!important;padding:4px!important;border:1px solid var(--sync-line);border-radius:12px;background:#edf1f6}
 .sync-sections button{min-width:0!important;min-height:44px!important;padding:7px 5px!important;border:0!important;border-radius:9px!important;background:transparent!important;color:var(--sync-muted)!important;font-size:.82rem!important;font-weight:800!important;box-shadow:none!important}
 .sync-sections button.active{background:var(--sync-surface)!important;color:var(--sync-blue)!important;box-shadow:0 1px 3px #10182818!important}
 .sync-section-note{min-height:18px;margin:8px 2px;color:var(--sync-muted);font-size:.76rem;line-height:1.35}
-.chat-sidebar{background:var(--sync-surface)}
-.conversation-row{border-bottom:1px solid #eef1f5}
+.chat-sidebar{padding:12px 16px;background:var(--sync-surface)}
+.conversation-row{height:72px;min-height:72px;border-bottom:1px solid #e9edef}
+.conversation-user{height:72px;min-height:72px!important;grid-template-columns:48px minmax(0,1fr) auto!important;gap:12px!important;margin:0!important;padding:12px 0!important;border-radius:0!important}
+.conversation-avatar-wrap,.conversation-list-avatar{width:48px!important;height:48px!important}
+.conversation-copy{gap:4px}
+.conversation-copy strong{font-size:16px;line-height:20px;font-weight:600}
+.conversation-copy small{font-size:14px!important;line-height:20px;color:var(--sync-muted)}
+.conversation-list-meta{gap:6px!important}
+.conversation-user time{font-size:12px!important;line-height:16px;color:var(--sync-muted)}
+.conversation-unread{min-width:22px;height:22px;font-size:12px!important;font-weight:700}
+.conversation-user.is-unread .conversation-copy strong{font-weight:700}
 .conversation-row[data-sync-section="calls"] .conversation-user small{font-size:0}
 .conversation-row[data-sync-section="calls"] .conversation-user small::after{content:"Available for a secure SYNC call";font-size:.76rem}
 .conversation-row[data-sync-section="contacts"] .conversation-user small{font-size:0}
@@ -38,6 +52,21 @@ body.is-booking-thread #callStatus,body.is-booking-thread .conversation-status,b
 .conversation-header-actions #headerPhone,
 .conversation-header-actions #headerVideo{width:44px;min-width:44px;height:44px;min-height:44px}
 .conversation-user:focus-visible,.conversation-call:focus-visible,.chat-heading-button:focus-visible,.new-chat-button:focus-visible{outline:3px solid #f3a449!important;outline-offset:1px}
+
+/* One familiar conversation rhythm, with DanzStak color and branding. */
+.message-list{padding:12px 16px 20px;background:var(--sync-canvas);scrollbar-gutter:stable}
+.message{max-width:min(75%,540px);margin:2px 0;padding:8px 12px;border:1px solid #dde3eb;border-radius:0 12px 12px 12px;background:var(--sync-incoming);color:var(--sync-ink);font-size:15px;line-height:20px;box-shadow:0 1px 1px #17203312}
+.message.mine{margin-left:auto;border-color:#a8d5ff;border-radius:12px 0 12px 12px;background:var(--sync-outgoing);color:var(--sync-ink)}
+.message.mine+.message.mine,.message:not(.mine)+.message:not(.mine){margin-top:2px}
+.message.mine+.message:not(.mine),.message:not(.mine)+.message.mine{margin-top:8px}
+.message-meta{margin-top:3px;color:var(--sync-muted);text-align:right;font-size:11px;line-height:14px}
+.conversation-name{font-size:16px;line-height:20px;font-weight:600}
+.conversation-presence{font-size:12px}
+.message-form{min-height:52px;gap:8px;padding:8px 12px;border-top:1px solid var(--sync-line);background:#fff}
+.message-input-shell{min-height:44px;border-radius:24px}
+.message-input-shell #messageInput{padding:9px 12px!important;font-size:15px;line-height:20px}
+.message-attach,.message-camera,.message-form>.message-send{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:8px!important}
+.message-attach .ds-action-icon,.message-camera .ds-action-icon,.message-form>.message-send .ds-action-icon{width:24px;height:24px}
 
 /* Incoming and active calls are primary screens, never cards inside the inbox. */
 .sync-call-screen{
@@ -105,13 +134,13 @@ body[data-call-mode] .media-controls .hangup-button{background:#df3347!important
      desktop brand row must not consume a second line above it. */
   .messages-page>.chat-header{display:none!important}
   .chat-shell{min-height:100dvh!important}
-  body:not(.is-conversation-open) .chat-sidebar{min-height:100dvh!important;padding:12px 12px calc(82px + env(safe-area-inset-bottom,0px))!important}
+  body:not(.is-conversation-open) .chat-sidebar{min-height:100dvh!important;padding:12px 16px calc(82px + env(safe-area-inset-bottom,0px))!important}
   .chats-heading{margin-bottom:10px!important}
   .chat-search{min-height:42px!important}
   .sync-section-note{margin-bottom:5px}
-  .conversation-row{min-height:66px}
-  .conversation-user{min-height:64px!important;padding:7px 4px!important}
-  .conversation-list-avatar,.conversation-avatar-wrap{width:46px!important;height:46px!important}
+  .conversation-row{height:72px;min-height:72px}
+  .conversation-user{height:72px;min-height:72px!important;padding:12px 0!important}
+  .conversation-list-avatar,.conversation-avatar-wrap{width:48px!important;height:48px!important}
   .conversation-call-actions{gap:1px!important}
   .conversation-call{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important}
   body[data-sync-screen="calls"] .conversation-row{grid-template-columns:minmax(0,1fr) auto!important}
@@ -121,7 +150,7 @@ body[data-call-mode] .media-controls .hangup-button{background:#df3347!important
   .chat-contact-name{width:72px}
   body.is-conversation-open:not([data-call-mode]) .conversation{background:#fff!important}
   body.is-conversation-open:not([data-call-mode]) .conversation-header{min-height:58px!important}
-  body.is-conversation-open:not([data-call-mode]) .message-list{padding-bottom:18px!important}
+  body.is-conversation-open:not([data-call-mode]) .message-list{padding:12px 16px 18px!important}
   body.is-conversation-open:not([data-call-mode]) .message-form{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))!important}
 }
 

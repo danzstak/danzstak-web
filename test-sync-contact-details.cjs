@@ -25,7 +25,7 @@ assert.match(html, /id="contactDetailsVideo"[^>]*data-icon-layout="label"/, "vid
 assert.match(icons, /control\.dataset\.iconLayout === "label"/, "shared icons must support compact icon-and-label actions without erasing text");
 assert.match(css, /@media\(max-width:560px\)[\s\S]*?\.contact-details-dialog\{width:100%;max-width:none;height:100dvh/, "phone contact details must be a dedicated full-screen view");
 assert.match(html, /assets\/chat\.css\?v=458/);
-assert.match(html, /assets\/direct-messages\.js\?v=494/);
+assert.match(html, /assets\/direct-messages\.js\?v=495/);
 assert.match(html, /id="newVideoCall"[^>]*data-icon="video"[^>]*aria-label="Start a video call"/, "SYNC must expose a visible video-call entry point");
 assert.match(source, /newVideoCall"[\s\S]*?dataset\.chatFilter === "calls"/, "the video-call entry point must open the functional Calls directory");
 
