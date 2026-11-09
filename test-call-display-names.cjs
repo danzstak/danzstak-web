@@ -17,7 +17,7 @@ assert.match(chat, /setStatus\(tf\("Connecting to \{name\}…"\,\{name:contactNa
 assert.doesNotMatch(chat, /setStatus\("Connected securely to "\+contact\+"\."\)/);
 assert.doesNotMatch(chat, /setStatus\("Connecting to "\+contact\+"…"\)/);
 assert.match(messages, /window\.danzstakActiveContactName = conversation\.name \|\| "DanzStak member"/);
-assert.match(messages, /call\.addEventListener\("click", \(\) => \{ openConversation\(conversation\); document\.getElementById\(targetId\)\?\.click\(\); \}\)/);
+assert.match(messages, /call\.addEventListener\("click", \(\) => \{[\s\S]*openConversation\(cachedConversations\.find\(item => item\.contactEmail === conversation\.contactEmail\) \|\| conversation\);[\s\S]*document\.getElementById\(targetId\)\?\.click\(\);[\s\S]*\}\)/);
 assert.doesNotMatch(messages, /call\.addEventListener\("click", \(\) => \{ contactInput\.value = conversation\.contactEmail/);
 assert.match(messages, /call\.title = `\$\{messageTranslate\(targetId === "startPhone" \? "Phone call" : "Video call"\)\}: \$\{publicName\}`/);
 assert.doesNotMatch(messages, /call\.title = `[^`]*\$\{conversation\.contactEmail\}/);
