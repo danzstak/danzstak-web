@@ -1,7 +1,7 @@
 "use strict";
 const assert=require("node:assert/strict"),fs=require("node:fs");
 const template=fs.readFileSync("infrastructure/call-signaling/template.yaml","utf8");
-const html=fs.readFileSync("messages.html","utf8"),client=fs.readFileSync("assets/call-devices.js","utf8"),chat=fs.readFileSync("assets/chat.js","utf8"),push=fs.readFileSync("assets/push-notifications.js","utf8"),worker=fs.readFileSync("service-worker.js","utf8");
+const html=fs.readFileSync("messages.html","utf8"),feed=fs.readFileSync("feed.html","utf8"),client=fs.readFileSync("assets/call-devices.js","utf8"),chat=fs.readFileSync("assets/chat.js","utf8"),directMessages=fs.readFileSync("assets/direct-messages.js","utf8"),incoming=fs.readFileSync("assets/incoming-calls.js","utf8"),push=fs.readFileSync("assets/push-notifications.js","utf8"),worker=fs.readFileSync("service-worker.js","utf8");
 
 assert.match(template,/CallingDevicesTable:[\s\S]*TableName: DANZSTAK-CallingDevices[\s\S]*PointInTimeRecoveryEnabled: true[\s\S]*SSEEnabled: true/,"calling devices need retained encrypted recoverable storage");
 assert.match(template,/TimeToLiveSpecification:[\s\S]*AttributeName: expiresAt[\s\S]*Enabled: true/,"short-lived registration challenges need TTL cleanup");
@@ -28,11 +28,20 @@ assert.ok(html.includes('id="registerThisDevice"'),"the current installation nee
 assert.ok(html.includes("Registration does not expose a phone number"),"the UI must distinguish device enrollment from telephone service");
 assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"call requests need the current installation credential");
+assert.ok(feed.indexOf('assets/call-devices.js?v=2')<feed.indexOf('assets/incoming-calls.js?v=302'),"the feed must load the installation credential before its global incoming-call listener");
+assert.match(incoming,/path\.startsWith\("\/calls\/"\)[\s\S]*globalThis\.danzstakCallingDeviceHeaders/,"the feed's incoming-call requests must authenticate the registered installation");
+assert.match(incoming,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*callDeviceRegistrationRequired = true/,"unregistered feed installations must stop wasteful incoming-call polling");
+assert.match(incoming,/danzstak:call-device-registered[\s\S]*callDeviceRegistrationRequired = false[\s\S]*poll\(\)/,"incoming-call polling must resume immediately after device registration");
 assert.match(client,/confirm\(`\$\{t\("Revoke"\)\} \$\{device\.name\}\? \$\{t\("It will stop receiving SYNC calls\."\)\}`\)/,"lost-device revocation must require deliberate localized confirmation");
 assert.match(client,/renameDevice\(device\)[\s\S]*method:"PATCH"/,"registered devices must be renameable without re-enrollment");
 assert.match(client,/activity\.textContent=lastActive\(device\.lastUsedAt\)/,"device management must show the server-recorded last active time");
 assert.match(chat,/path\.startsWith\("\/calls\/"\)\?await globalThis\.danzstakCallingDeviceHeaders/,"calling requests must authenticate the installation");
 assert.match(chat,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*danzstakOpenCallingDevices/,"blocked calls must open the registration recovery flow");
+assert.match(chat,/showCallRegistrationRequired[\s\S]{0,220}This device is not registered for calls\.[\s\S]{0,220}Register this device/,"passive call polling must explain that device registration is required instead of claiming an automatic reconnect");
+assert.match(chat,/callDeviceRegistrationRequired&&!peer&&!pending&&!autoAnswer/,"SYNC must pause idle call polling until the device is registered");
+assert.match(chat,/danzstak:call-device-registered[\s\S]*callDeviceRegistrationRequired=false[\s\S]*poll\(\)/,"SYNC must resume call polling after registration");
+assert.match(chat,/async function start\(kind\)[\s\S]*callDeviceRegistrationRequired[\s\S]*danzstakOpenCallingDevices/,"call actions on an unregistered device must open setup before requesting media");
+assert.match(directMessages,/danzstakCallRegistrationRequired[\s\S]*You can message \{name\} directly\./,"opening a conversation must preserve the actionable call-registration message");
 assert.match(chat,/signal\("answer",peer\.localDescription,offer\.eventId\)/,"the answering installation must bind its answer to the exact incoming offer");
 assert.match(chat,/CALL_ALREADY_ANSWERED[\s\S]*This call was answered on another device/,"losing installations must stop with a truthful one-answer result");
 assert.match(chat,/DANZSTAK_CALL_RESOLVED/,"open Messages screens must stop immediately when another device answers");

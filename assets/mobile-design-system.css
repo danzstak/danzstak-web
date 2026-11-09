@@ -1,3 +1,10 @@
+@font-face{
+  font-family:"DanzStak Sans";
+  src:url("fonts/archivo.woff2") format("woff2");
+  font-weight:400 900;
+  font-stretch:75% 125%;
+  font-display:swap;
+}
 :root{
   color-scheme:light;
   --ds-brand:#1769e0;
@@ -15,7 +22,7 @@
   --ds-border:#d9e1eb;
   --ds-border-strong:#b9c5d5;
   --ds-focus:#ff9b32;
-  --ds-font:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  --ds-font:"DanzStak Sans",ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
   --ds-font-display:var(--ds-font);
   --ds-text-xs:.75rem;
   --ds-text-sm:.875rem;
@@ -110,11 +117,15 @@ body:not(.public-mode) :where(.panel,.card){
     grid-template-columns:repeat(5,minmax(0,1fr));
     height:calc(54px + env(safe-area-inset-bottom));
     padding:3px max(4px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px,env(safe-area-inset-left));
-    border-top:1px solid #ffffff42;background:var(--ds-blue);box-shadow:0 -2px 12px #10182826;
+    border-top:1px solid #d8dee8;
+    background:rgba(255,255,255,.96);
+    box-shadow:0 -8px 24px #10182814;
+    backdrop-filter:blur(16px) saturate(1.2);
+    -webkit-backdrop-filter:blur(16px) saturate(1.2);
   }
-  .ds-mobile-nav a{display:grid;place-items:center;min-width:0;min-height:48px;padding:5px;border-radius:8px;color:#fff;text-decoration:none}
+  .ds-mobile-nav a{display:grid;place-items:center;min-width:0;min-height:48px;padding:5px;border-radius:10px;color:#3f4b5d;text-decoration:none}
   .ds-mobile-nav a{transform:translateY(-4px)}
-  .ds-mobile-nav a[aria-current=page]{background:#ffffff22;box-shadow:inset 0 -3px 0 #fff}
+  .ds-mobile-nav a[aria-current=page]{background:var(--ds-accent-soft);color:#b74708;box-shadow:inset 0 3px 0 var(--ds-accent)}
   .ds-mobile-nav .ds-action-icon{width:22px;height:22px}
   .ds-tool-page>header{
     position:sticky;
@@ -143,6 +154,66 @@ body:not(.public-mode) :where(.panel,.card){
   .ds-tool-page .form-actions{gap:var(--ds-space-2)}
   .ds-tool-page .form-actions>*{flex:1 1 140px}
   .ds-tool-page .map-shell,.ds-tool-page #map{max-width:100%;border-radius:var(--ds-radius);overflow:hidden}
+}
+
+/* Profile actions stay compact without sacrificing familiar labels or touch size.
+   Sections remain a single, horizontally scrollable row when every owner tab is
+   available, rather than turning the profile header into several button rows. */
+@media(max-width:600px){
+  .profile-actions{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+    margin:14px 0;
+  }
+  .profile-actions>button{
+    width:100%;
+    min-width:0;
+    min-height:44px;
+    padding:7px 4px;
+    font-size:12px;
+    line-height:1.15;
+    white-space:normal;
+  }
+  .profile-tabs{
+    display:flex;
+    flex-wrap:nowrap;
+    gap:3px;
+    width:100%;
+    margin-top:14px;
+    padding-top:8px;
+    overflow-x:auto;
+    overscroll-behavior-inline:contain;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .profile-tabs::-webkit-scrollbar{display:none}
+  .profile-tabs button{
+    flex:1 0 auto;
+    min-width:50px;
+    min-height:44px;
+    padding:8px 7px;
+    font-size:11px;
+    line-height:1.15;
+    white-space:nowrap;
+  }
+}
+
+/* Keep all five public profile destinations fully visible at the narrowest
+   supported phone width instead of clipping the final tab. */
+@media(max-width:360px){
+  .profile-tabs{
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:2px;
+    overflow:visible;
+  }
+  .profile-tabs button{
+    min-width:0;
+    padding-inline:1px;
+    font-size:10px;
+    letter-spacing:-.015em;
+  }
 }
 
 /* Profile uses the same phone application shell without changing its desktop account navigation. */

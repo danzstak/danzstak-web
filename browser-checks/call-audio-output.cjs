@@ -1,11 +1,14 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { chromium } = require("playwright");
 
 const baseUrl = process.env.DANZSTAK_LOCAL_URL || "http://127.0.0.1:8017";
-const widths = [320, 360, 375, 390, 414, 430, 768, 1024];
+const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
 const memberId = "00000000-0000-4000-8000-000000000001";
+const output = path.resolve(__dirname, "..", "docs", "screenshots", "foreground-call-ringtone");
 const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 
 (async () => {
@@ -13,8 +16,18 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
   try {
     for (const width of widths) {
       const context = await browser.newContext({ viewport: { width, height: width < 700 ? 844 : 768 }, hasTouch: width < 700, isMobile: width < 700, serviceWorkers: "block" });
+      await context.addInitScript(() => {
+        window.__syncToneStarts = 0;
+        window.AudioContext = class FakeAudioContext {
+          constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; }
+          async resume() { this.state = "running"; }
+          createOscillator() { return { frequency: { value: 0 }, connect(node) { return node; }, start() { window.__syncToneStarts++; }, stop() {} }; }
+          createGain() { return { gain: { value: 0 }, connect(node) { return node; } }; }
+        };
+      });
       const page = await context.newPage();
       const errors = [];
+      let callEvents = [];
       page.on("pageerror", error => errors.push(error.message));
       await page.route("https://api.danzstak.com/**", route => {
         const endpoint = new URL(route.request().url()).pathname;
@@ -25,7 +38,7 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
         if (endpoint === "/calls/directory") return json(route, { users: [{ email: "alice@example.test", memberId, name: "Alice", online: true, friendStatus: "friends" }] });
         if (endpoint === "/messages") return json(route, { messages: [], canContact: true });
         if (endpoint === "/calls/devices") return json(route, { devices: [] });
-        if (endpoint === "/calls/inbox") return json(route, { events: [] });
+        if (endpoint === "/calls/inbox") return json(route, { events: callEvents });
         return json(route, {});
       });
       await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
@@ -62,6 +75,20 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
       assert.equal(state.recoveryVisible, true, `${width}px blocked output must expose Hear call`);
       assert.match(state.recoveryStatus, /Hear call/);
       assert.equal(state.recovered, true, `${width}px user recovery must resume and clear the prompt`);
+      await page.locator("body").click({ position: { x: 4, y: 4 } });
+      callEvents = [{ eventId: `offer-${width}`, callId: `00000000-0000-4000-8000-${String(width).padStart(12, "0")}`, signalType: "offer", senderEmail: "alice@example.test", senderName: "Alice", mode: "phone", payload: { type: "offer", sdp: "test" } }];
+      await page.evaluate(() => poll());
+      await page.locator("#incomingCall").waitFor({ state: "visible" });
+      await page.waitForFunction(() => window.__syncToneStarts > 0);
+      const incoming = await page.locator("#incomingCall").boundingBox();
+      assert.ok(incoming && incoming.x >= 0 && incoming.x + incoming.width <= width, `${width}px SYNC incoming call must fit the viewport`);
+      for (const id of ["acceptCall", "declineCall"]) {
+        const target = await page.locator(`#${id}`).boundingBox();
+        assert.ok(target && target.width >= 44 && target.height >= 44, `${width}px ${id} must retain a 44px target`);
+      }
+      await page.screenshot({ path: path.join(output, `sync-incoming-${width}.png`), fullPage: true });
+      await page.locator("#declineCall").click();
+      await page.locator("#incomingCall").waitFor({ state: "hidden" });
       assert.deepEqual(errors, [], `${width}px browser errors: ${errors.join(" | ")}`);
       await context.close();
     }

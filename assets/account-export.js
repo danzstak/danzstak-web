@@ -40,7 +40,7 @@
   async function downloadAccountData(onStatus) {
     const status = typeof onStatus === "function" ? onStatus : () => {};
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
     status("Collecting your DanzStak data…");
     try {
       const endpoints = {
@@ -68,12 +68,18 @@
       if (!sources.account && !sources.profile) throw new Error("Your account could not be verified for export.");
 
       status("Collecting your posts, comments, reactions, and messages…");
-      const posts = Array.isArray(sources.posts?.posts) ? sources.posts.posts.slice(0, 200) : [];
-      const engagementByPost = {};
-      await mapLimit(posts, 3, async post => {
-        try { engagementByPost[post.postId] = await request("/engagement?postId=" + encodeURIComponent(post.postId), controller.signal); }
-        catch { sources.incompleteSources.push("engagement:" + post.postId); }
+      const posts = Array.isArray(sources.posts?.posts) ? sources.posts.posts : [];
+      if (posts.length >= 5000) sources.incompleteSources.push("posts:server-limit-reached");
+      const engagement = await window.danzstakAccountExportCore.collectAccountEngagement(posts, postId => (
+        request("/engagement?postId=" + encodeURIComponent(postId), controller.signal)
+      ), {
+        concurrency: 3,
+        onProgress(completed, total) {
+          if (total > 25 && (completed % 25 === 0 || completed === total)) status(`Collecting your post activity… ${completed} of ${total}`);
+        }
       });
+      const engagementByPost = engagement.engagementByPost;
+      sources.incompleteSources.push(...engagement.incompleteSources);
       const conversations = Array.isArray(sources.conversations?.conversations) ? sources.conversations.conversations : [];
       const messagesByContact = {};
       await mapLimit(conversations, 2, async conversation => {

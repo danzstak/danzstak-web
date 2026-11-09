@@ -2,8 +2,11 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-const line = fs.readFileSync('infrastructure/call-signaling/template.yaml', 'utf8')
-  .split('\n').find(value => value.includes('async function getStories('));
+const templateLines = fs.readFileSync('infrastructure/call-signaling/template.yaml', 'utf8').split('\n');
+const getStoriesStart = templateLines.findIndex(value => value.includes('async function getStories('));
+const getStoriesEnd = templateLines.findIndex((value,index) => index > getStoriesStart && value.includes('async function deleteStory('));
+const getStoriesSource = templateLines.slice(getStoriesStart,getStoriesEnd).join('\n');
+assert.ok(getStoriesStart >= 0 && getStoriesEnd > getStoriesStart,'getStories must remain extractable for domain tests');
 const current = 200000;
 const iso = seconds => new Date(seconds * 1000).toISOString();
 const story = (id, email, audience, ageSeconds, expiresAt) => ({
@@ -21,9 +24,10 @@ const items = [
   story('private','other@example.com','private',300,current+86100),
   story('expired-ttl','someone@example.com','public',90000,current-3600),
   story('expired-legacy','someone@example.com','public',90000),
+  story('expired-failed','someone@example.com','public',90000,current-3600),
   reel
 ];
-const deletedRecords = [], deletedMedia = [];
+const deletedRecords = [], deletedMedia = [], cleanupEvents = [];
 class DeleteItemCommand { constructor(input) { this.input=input; } }
 class DeleteObjectCommand { constructor(input) { this.input=input; } }
 class ListUsersCommand { constructor(input) { this.input=input; } }
@@ -34,24 +38,28 @@ const ctx = vm.createContext({
   queryAll:async()=>[{status:{S:'friends'},friendEmail:{S:'friend@example.com'}}],
   db:{send:async command=>{
     if (command instanceof GetItemCommand) return {Item:{dailyTakeCount:{N:'5'}}};
-    deletedRecords.push(command.input.Key.storyId.S);
+    const id=command.input.Key.storyId.S;
+    deletedRecords.push(id);
+    cleanupEvents.push(`record:${id}`);
   }},
-  s3:{send:async command=>{deletedMedia.push(command.input.Key);}}, DeleteItemCommand, DeleteObjectCommand,
+  s3:{send:async command=>{const key=command.input.Key;deletedMedia.push(key);cleanupEvents.push(`media:${key}`);if(key==='stories/expired-failed.png')throw Error('temporary storage failure');}}, DeleteItemCommand, DeleteObjectCommand,
   ListUsersCommand, GetItemCommand,
   cognito:{send:async command=>{const email=command.input.Filter.match(/"(.*)"/)[1];return {Users:[{Attributes:[{Name:'email',Value:email},{Name:'sub',Value:`member-${email}`},{Name:'name',Value:email==='someone@example.com'?'Public Story Author':email==='friend@example.com'?'Friend Story Author':'Current Member'}]}]};}},
   publicProfile:async(email,account)=>({memberId:account.Attributes.find(value=>value.Name==='sub').Value,name:account.Attributes.find(value=>value.Name==='name').Value}),
   blockedStatus:status=>status==='blocked'||status==='blocked_by',
   mapLimit:async(values,_limit,task)=>Promise.all(values.map(task)),
-  console:{warn(){}}, signedMediaUrl:(_,key)=>'https://media.test/'+key, json:(_,payload)=>payload
+  console:{warn(){},error(){}}, signedMediaUrl:(_,key)=>'https://media.test/'+key, json:(_,payload)=>payload
 });
-vm.runInContext(line.trim(),ctx);
+vm.runInContext(getStoriesSource.trim(),ctx);
 (async()=>{
   const result=await ctx.getStories({email:'me@example.com'});
   assert.deepEqual(Array.from(result.stories,value=>value.storyId),['own','public','friend']);
   assert.deepEqual(Array.from(result.reels,value=>value.id),['reel'],'Reels remain until owner deletion');
   assert.equal(result.dailyTakeCount,5,'Dailies returns the durable creator take count');
   assert.deepEqual(deletedRecords.sort(),['expired-legacy','expired-ttl']);
-  assert.deepEqual(deletedMedia.sort(),['stories/expired-legacy.png','stories/expired-ttl.png']);
+  assert.deepEqual(deletedMedia.sort(),['stories/expired-failed.png','stories/expired-failed.png','stories/expired-failed.png','stories/expired-legacy.png','stories/expired-ttl.png']);
+  for(const id of ['expired-legacy','expired-ttl'])assert.ok(cleanupEvents.indexOf(`media:stories/${id}.png`)<cleanupEvents.indexOf(`record:${id}`),`expired ${id} media must be removed before its retry record`);
+  assert.ok(!cleanupEvents.includes('record:expired-failed'),'an expired Story record must remain retryable when storage cleanup is unavailable');
   assert.equal(result.stories[1].isOwner,false);
   assert.equal(result.stories.find(value=>value.storyId==='public').displayName,'Public Story Author');
   assert.equal(result.stories.find(value=>value.storyId==='friend').displayName,'Friend Story Author');

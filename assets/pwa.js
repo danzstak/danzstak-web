@@ -20,10 +20,7 @@ async function detectInstalledDanzStak(recheck = false) {
     if (typeof navigator.getInstalledRelatedApps !== "function") return false;
     try {
       const apps = await navigator.getInstalledRelatedApps();
-      const installed = apps.some(app =>
-        app?.id === "com.danzstak.app" ||
-        app?.platform === "webapp"
-      );
+      const installed = apps.some(app => app?.platform === "webapp");
       if (installed) {
         knownInstalled = true;
         try { localStorage.setItem(installStateKey, "1"); } catch { /* Storage is optional. */ }
@@ -144,7 +141,10 @@ function showInstallButtonTemporarily() {
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
-      const registration = await navigator.serviceWorker.register("/service-worker.js", { updateViaCache: "none" });
+      // Version the registration URL as well as the app script. An older
+      // cache-first worker can otherwise keep a phone on new HTML plus retired
+      // CSS until every PWA window has been closed.
+      const registration = await navigator.serviceWorker.register("/service-worker.js?pwa=429", { updateViaCache: "none" });
       if (registration.waiting) offerUpdate(registration.waiting);
       registration.addEventListener("updatefound", () => {
         const installing = registration.installing;

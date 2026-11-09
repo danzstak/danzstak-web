@@ -56,7 +56,11 @@ async function run(fail, genre = "DIY Punk") {
   assert.match(source, /Filter: \{ BoundingBox: boundingBox \}/, "provider searches must be geographically bounded instead of leaking global names into a city search");
   assert.match(source, /path === "\/venues\/search"/, "natural-language venue discovery needs an authenticated API route");
   assert.match(bookingMarkup, /id="venueQuickQuery"/, "the booking page should expose a simple natural-language club finder");
+  assert.match(bookingMarkup, /class="venue-quick-search"[\s\S]*id="openVenueSelections"[\s\S]*id="venueQuickResults"/, "the simple club finder should keep the selected-club continuation in its primary flow");
   assert.match(quickSearchClient, /danzstak:venue-search-results/, "quick-search venues should be passed to the booking map");
+  assert.match(quickSearchClient, /className = "venue-quick-select"[\s\S]*danzstakToggleBookingVenue\(venue\)/, "every sourced venue card needs a direct booking-list action");
+  assert.match(quickSearchClient, /Add to booking list/, "the quick venue action should expose its unselected state");
+  assert.match(quickSearchClient, /Remove from booking list/, "the quick venue action should expose its selected state");
   assert.match(source, /canExpand: radiusMiles < 150/, "venue discovery should expose an explicit wider-area continuation");
   assert.match(quickSearchClient, /seen\.has\(identity\)/, "wider venue searches should not repeat clubs already displayed");
   assert.match(quickSearchClient, /hasMore \? search\(page \+ 1, radiusMiles, true\) : canExpand/, "pagination and radius expansion must be separate actions");

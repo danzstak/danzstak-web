@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
-const { buildAccountArchive, ownedActivity } = require('./assets/account-export-core.js');
+const fs = require('node:fs');
+const { buildAccountArchive, collectAccountEngagement, ownedActivity } = require('./assets/account-export-core.js');
 
 const posts = [
   { postId: 'mine', isOwner: true, content: 'Mine' },
@@ -40,4 +41,27 @@ assert.equal(archive.bookingWorkspace.venues[0].stage, 'contacted');
 assert.deepEqual(archive.incompleteSources, ['supportTickets']);
 assert.ok(archive.notIncluded.includes('Uploaded media binary files'));
 assert.equal(archive.generatedAt, '2026-10-26T12:00:00.000Z');
-console.log('Account export checks passed: owned content, activity, connections, messages, tours, booking workspace, and incomplete-source reporting.');
+
+(async () => {
+  const exportPosts = Array.from({ length: 250 }, (_, index) => ({ postId: `post-${index}` }));
+  let active = 0, peak = 0;
+  const progress = [];
+  const collected = await collectAccountEngagement(exportPosts, async postId => {
+    active += 1;
+    peak = Math.max(peak, active);
+    await new Promise(resolve => setImmediate(resolve));
+    active -= 1;
+    if (postId === 'post-173') throw new Error('fixture outage');
+    return { myReaction: postId === 'post-249' ? 'Fire' : '' };
+  }, { concurrency: 3, onProgress: (complete, total) => progress.push([complete, total]) });
+
+  assert.equal(Object.hasOwn(collected.engagementByPost, 'post-249'), true, 'exports must include engagement beyond the former 200-post ceiling');
+  assert.equal(collected.engagementByPost['post-249'].myReaction, 'Fire');
+  assert.deepEqual(collected.incompleteSources, ['engagement:post-173']);
+  assert.ok(peak <= 3, 'account export must keep API fan-out bounded');
+  assert.deepEqual(progress.at(-1), [250, 250]);
+  const browserSource = fs.readFileSync('assets/account-export.js', 'utf8');
+  assert.doesNotMatch(browserSource, /posts\.slice\(0,\s*200\)/, 'account export must not silently truncate activity at 200 posts');
+  assert.match(browserSource, /posts:server-limit-reached/, 'the existing server ceiling must be disclosed inside the export');
+  console.log('Account export checks passed: all returned posts, bounded activity collection, owned content, messages, booking data, and honest incomplete-source reporting.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

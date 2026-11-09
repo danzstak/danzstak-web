@@ -36,6 +36,7 @@ grow a real scene, or bring their people over from a billionaire platform?* If n
   (a gig poster, a record sleeve, a setlist, a tour laminate, a crate of records).
 - Navigation order puts music tools before Feed.
 - **DanzStak never hosts music.** No audio-only uploads, audio storage or first-party music streaming; music is always a link or authorized embed. User video uploads are approved with DMCA and rights rules (`instructions/00e-no-music-hosting.md`).
+- **Payments are Stripe or verified SFS Token through Phantom only.** DanzStak does not award, earn, hold, custody or exchange SFS, and never requires or integrates another platform account. Phantom is used only at checkout after explicit user action; access is granted only after independent server-side on-chain verification.
 - Creators own their content on DanzStak. DanzStak takes only the limited permission needed to show it, ending on delete. Creators control sharing, keep attribution, and can export or delete everywhere (`instructions/00d-user-content-ownership.md`). Every deletion offers **Remove from here** (only this placement) and, for the original creator, **Delete everywhere** (the original and every in-service share disappear from feeds, profiles, Tribes, chat, search and notifications; DanzStak links/embeds stop working; media is purged from active storage and caches, with backups governed by account-erasure rules). No placeholder remains. A resharer can remove only their own share. Confirm plainly that screenshots, downloads and copies outside DanzStak cannot be recalled.
 - Copy speaks like the scene, not like a corporation. Keep existing brand names
   (Digital Clubhouse, Your Mix, SYNC, Tribes, The Roll) and add more in that spirit.
@@ -134,7 +135,7 @@ Rules: each look is a token set, not a separate codebase. One accent per look. C
 - **Keep the tests green.** Run the existing regression suite; add tests for new behavior.
 - **Fax the room before every PR** (`docs/OWNER-DIRECTIVES.md`). No go, no show.
 - **Never** commit secrets, keys, passwords or AWS credentials. The repo is public.
-- Respect the product boundary in `README.md` (no crypto/Web3 in DanzStak) and the independence rules
+- Respect the product boundary in `README.md` (no crypto/Web3 product; only the approved SFS Token checkout exception) and the independence rules
   (no core dependency on Big Tech APIs).
 - Be candid about what is verified versus unverified, as `docs/OWNER-DIRECTIVES.md` requires.
 
@@ -148,6 +149,11 @@ Read the codebase, then reply with:
 Do not write code until the plan is approved.
 
 ---
+
+## Marketplace directive (owner, 2026-11-09)
+
+- The official DanzStak Store is a main-menu platform destination. A member-named shop appears as a Shop tab/page on that member's profile, not as a permanent Mix sales block.
+- DanzStak receives 5% of completed member-shop sales and event-ticket sales. Physical-goods seller proceeds release only after confirmed receipt through a provider-supported marketplace flow. No live commerce without tested seller onboarding, payouts, inventory/capacity, shipping or check-in, receipts, refunds, taxes, disputes and fraud controls. Full rules: `docs/OWNER-DIRECTIVES.md`.
 
 ## Idea bank (for discussion, not yet approved)
 

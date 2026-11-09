@@ -6,6 +6,7 @@ const source = readFileSync(join(__dirname, 'infrastructure/auth-api/index.mjs')
 const code = source.slice(source.indexOf('async function getSecurePosts(event)'), source.indexOf('async function postForEngagement('));
 const row = (id, owner, audience) => ({ postId: { S: id }, ...(owner ? { userId: { S: owner } } : {}), content: { S: 'Post content' }, createdAt: { S: '2026-10-25T00:00:00Z' }, audience: { S: audience } });
 const context = vm.createContext({ event: { headers: {} }, corsHeaders: () => ({}), getAuthenticatedUser: async () => 'viewer', postsTable: 'Posts',
+  defaultGroupIds: new Set(),
   scanAll: async () => [row('mine', 'viewer', 'private'), row('other', 'someone-else', 'public'), row('legacy', null, 'public'), row('private-other', 'someone-else', 'private')],
   accountForSub: async () => 'viewer@example.com', postEditHistory: () => [], loadFeedAuthorNames: async items => { assert.equal(items.some(item => item.postId.S === 'private-other'), false); return new Map(); } });
 vm.runInContext(code, context);

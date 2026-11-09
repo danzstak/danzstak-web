@@ -1,8 +1,8 @@
 # DANZSTAK Stripe Integration
 
 **Branch:** `danzstak-patch-1`  
-**Status:** Test-mode implementation complete locally; the AWS credential now authenticates to the intended SFScoop account, but Stripe-hosted validation is blocked because the supplied Prices are unavailable in Test Mode and the endpoint signing secret is missing.
-**Account decision:** DANZSTAK intentionally uses the existing SFScoop Stripe account. Do not create a second Stripe account and do not modify SFScoop's existing checkout or webhook behavior.
+**Status:** Test-mode implementation is present. Re-verify the current configured Stripe account, Prices and endpoint signing secret before any live activation.
+**Account decision:** DANZSTAK uses its configured Stripe integration as an independent payment method. Do not alter unrelated Stripe products or checkout/webhook behavior.
 
 ## Product configuration
 
@@ -12,7 +12,7 @@
 | Professional: Tour Manager / booking-email unit | $1.50 | `prod_VYr5JIwpaFSX7b` | `price_1UXjMtFgtfNMBXOVCLeEk8vI` | One-time |
 | DANZSTAK assigned-number activation | $3.00 expected | `prod_VYrUnT8yvXS0Ek` | `price_1UXjlYFgtfNMBXOVD42xjrTc` | One-time |
 
-The backend fails closed unless Stripe returns these exact Price and Product IDs, currency, one-time quantity and unit amount. On 2026-11-03 the updated AWS secret `danzstak/stripe/secret-key` authenticated in Test Mode to Stripe account `acct_1RRZmKFgtfNMBXOV`, display name **SFScoop**. Charges and payouts are enabled on that account. All three supplied Price IDs returned Stripe Test Mode `resource_missing`, so their amounts, billing types, Product relationships, and active states cannot be verified with this test key. This is consistent with the supplied IDs being Live Mode objects, but live configuration remains unverified because no live credential was used. No replacement Product or Price was created.
+The backend fails closed unless Stripe returns the exact approved Price and Product IDs, currency, one-time quantity and unit amount. Account mode, object ownership and active state must be verified through authenticated Stripe reads; matching key prefixes are not proof. No replacement live Product or Price may be created as a workaround.
 
 ## Feature entitlements
 
@@ -23,7 +23,7 @@ The backend fails closed unless Stripe returns these exact Price and Product IDs
 
 ## Webhook implementation checklist
 
-1. Supply the approved existing Test Mode Price IDs for the three products in account `acct_1RRZmKFgtfNMBXOV`, if they already exist. The current live-looking IDs cannot be used for a test transaction. Do not recreate or alter live SFScoop Products as a workaround.
+1. Supply approved Test Mode Price IDs for the three products if they are not already configured. Live IDs cannot be used for a test transaction. Do not recreate or alter live Products as a workaround.
 2. Public HTTPS webhook receiver: `https://api.danzstak.com/tour-manager/stripe/webhook`. The route exists in API Gateway, but `danzstak/stripe/webhook-secret` does not exist, so the test deployment correctly stops before changing Lambda and the endpoint is not operational for Stripe.
 3. In Stripe test mode, register that destination for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, and `charge.refunded`.
 4. Verify Stripe signatures using the webhook signing secret stored only in a secure backend secret manager. Never commit `sk_` or `whsec_` credentials.

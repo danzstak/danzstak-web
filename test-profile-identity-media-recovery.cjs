@@ -14,6 +14,6 @@ assert.match(source, /freshUrl === String\(url \|\| ""\)/, "recovery must not re
 assert.match(source, /loadRecoverableProfileImage\(avatar, profile\.picture, "picture"/, "avatar failures must request a fresh signed URL");
 assert.match(source, /loadRecoverableProfileImage\(cover, profile\.cover, "cover"/, "cover failures must request a fresh signed URL");
 assert.match(source, /Keep the accessible initial or branded cover gradient/, "failed recovery must preserve a usable fallback");
-assert.match(page, /assets\/profile\.js\?v=419/, "the profile page must load the refreshed identity-media controller");
+assert.match(page, /assets\/profile\.js\?v=420/, "the profile page must load the refreshed identity-media controller");
 
 console.log("Profile identity media recovery checks passed.");

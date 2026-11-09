@@ -71,10 +71,10 @@ assert.match(bookingUi, /returnPool\.length >= returnCount \+ 2[\s\S]*returnPool
 assert.match(bookingUi, /Math\.ceil\(\(shows \+ 1\) \* 0\.55\)/, "an eight-show round trip should retain three useful return-leg targets");
 assert.match(bookingUi, /targetPoints = targetTourMarkets\(data\)/, "the route map should show the proposed outbound-and-return run instead of every discovery town");
 assert.match(bookingUi, /stopLine\.textContent = points\.map/, "the route overview should name the intermediate towns in one compact line");
-assert.match(bookingUi, /displayedMarkets = targetMarkets\.filter/, "result cards should be limited to the proposed target markets");
-assert.match(bookingUi, /slice\(0, 8\)/, "the initial result page should stay compact on phones");
+assert.match(bookingUi, /displayedMarkets = routeMarkets\.filter/, "every itinerary market should remain available for progressive research");
+assert.doesNotMatch(bookingUi, /targetTourMarkets\(data\)\.slice\(0, 8\)/, "the route must not hide corridor towns behind an arbitrary eight-market cap");
 assert.match(bookingUi, /displayedMarkets\.forEach\(\(market, index\)/, "displayed route markets must receive dates spread across the selected tour window");
-assert.match(bookingUi, /Array\.isArray\(market\.venues\) && market\.venues\.length > 0/, "only markets with real club leads should produce result cards");
+assert.match(bookingUi, /researchPending: true/, "markets without an initial club hit should stay visible as honest research targets");
 assert.match(bookingUi, /function routeItineraryMarkets\(route, candidates = \[\]\)/, "the browser should guard against an older API returning only route endpoints");
 assert.match(bookingUi, /"Medford, Oregon"[\s\S]*"Redding, California"/, "the browser fallback should retain Medford and Redding between Seattle and San Francisco");
 assert.match(bookingUi, /return start\.includes\("seattle"\) \? i5Markets : \[\.\.\.i5Markets\]\.reverse\(\)/, "the browser fallback should follow either requested travel direction");
@@ -84,8 +84,8 @@ assert.match(bookingUi, /section\.open = false/, "tour stops should start collap
 assert.match(bookingUi, /needsHomeDay = !data\.route\.local && days > 1/, "a round-trip calendar must reserve its final day for reaching home");
 assert.match(bookingUi, /finalHomeDay = needsHomeDay && day === days - 1/, "the final round-trip day must not be consumed by another venue target");
 assert.match(bookingUi, /returningHome = finalHomeDay \|\| showIndex >= shows/, "a rest day must not claim the band is returning home while later shows remain");
-assert.match(bookingUi, /drive toward the next show, load-in buffer, laundry or sleep/, "mid-tour rest days should point toward the next show");
-assert.doesNotMatch(bookingUi, /details\.open = true/, "the day-by-day calendar should not force a long result page open");
+assert.match(bookingUi, /Drive toward the next show; load-in buffer, laundry, or sleep/, "mid-tour rest days should point toward the next show");
+assert.match(bookingUi, /details\.open = true/, "the compact day sheet should be visible without another disclosure click");
 assert.doesNotMatch(source, /fallbackLabel: `Tour corridor stop/, "reverse-geocode failures must not become fake corridor stops");
 assert.match(source, /const verifiedTacomaRooms = \[/, "the I-5 directory must include reviewed Tacoma rooms");
 for (const room of ["Real Art Tacoma", "Airport Tavern", "Jazzbones", "Spanish Ballroom"]) {

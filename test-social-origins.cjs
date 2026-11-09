@@ -10,7 +10,9 @@ const call=(method,path,origin)=>context.exports.handler({requestContext:{http:{
  assert.equal(identityReads,0,'blocked mutation origins cannot reach identity or side effects');
  assert.equal((await call('POST','/auth/refresh','https://untrusted.example')).statusCode,403);assert.equal(refreshes,0);
  assert.equal((await call('POST','/calls/signal','https://danzstak.com')).statusCode,401);assert.equal(identityReads,1);
+ assert.equal((await call('POST','/calls/signal','https://review.danzstak.com')).statusCode,401);assert.equal(identityReads,2);
  assert.equal((await call('GET','/profiles')).statusCode,401,'read routes retain normal session authentication');
  assert.equal((await call('POST','/auth/refresh','https://danzstak.com')).statusCode,200);assert.equal(refreshes,1);
+ assert.equal((await call('POST','/auth/refresh','https://review.danzstak.com')).statusCode,200);assert.equal(refreshes,2);
  console.log('Social API origin checks passed: blocked mutations, refresh protection, trusted clients, and authenticated reads.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

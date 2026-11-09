@@ -29,6 +29,14 @@
 .epk-qr-dialog img{display:block;width:min(256px,100%);height:auto;aspect-ratio:1;margin:18px auto;background:#fff}
 .epk-qr-dialog p{line-height:1.45}
 .epk-qr-download{padding:10px 14px;border-radius:10px;background:#1268d8;color:#fff;font-weight:800;text-decoration:none}
+.epk-booking-handoff{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;margin:18px 0 6px;padding:18px 0;border-top:1px solid #d8dee8;border-bottom:1px solid #d8dee8}
+.epk-booking-handoff[hidden]{display:none}
+.epk-booking-handoff .eyebrow{margin:0 0 3px;color:#b84700;font-size:.76rem}
+.epk-booking-handoff h2{margin:0 0 5px;font-size:1.25rem}
+.epk-booking-handoff p{margin:0;line-height:1.45}
+.epk-booking-handoff__actions{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:210px}
+.epk-booking-handoff__actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid #aeb8c7;border-radius:10px;color:#0b56b3;font-weight:800;text-align:center;text-decoration:none}
+.epk-booking-handoff__actions a.primary{border-color:#1268d8;color:#fff}
 
 @media(max-width:700px){
   .epk-guide{padding:14px;margin-bottom:12px}
@@ -43,16 +51,19 @@
   .epk-preview-open .epk-preview{display:block}
   .epk-preview-open .epk-form{display:none}
   .epk-preview-open .epk-guide-checklist,.epk-preview-open .epk-guide-progress-text,.epk-preview-open .epk-guide progress,.epk-preview-open .epk-guide-actions{display:none}
+  .epk-booking-handoff{grid-template-columns:1fr;gap:12px;padding-block:16px}
+  .epk-booking-handoff__actions{min-width:0}
 }
 
 @media print{.epk-guide{display:none!important}}
 
 @page{size:letter;margin:.4in}
 @media print{
+  html,body,main{background:#fff!important}
   .epk-public-actions,.epk-public-notice,.ds-mobile-nav,.skip-link{display:none!important}
   body[data-epk-print="full"] .epk-preview[data-look] .epk-body>section{break-inside:auto!important}
   body[data-epk-print="full"] .epk-body h2{break-after:avoid}
-  body[data-epk-print="full"] .epk-embeds>div,body[data-epk-print="full"] blockquote,body[data-epk-print="full"] li,body[data-epk-print="full"] .epk-contact,body[data-epk-print="full"] .epk-plot,body[data-epk-print="full"] .epk-input-row{break-inside:avoid}
+  body[data-epk-print="full"] .epk-embeds>*,body[data-epk-print="full"] blockquote,body[data-epk-print="full"] li,body[data-epk-print="full"] .epk-contact,body[data-epk-print="full"] .epk-plot,body[data-epk-print="full"] .epk-input-row{break-inside:avoid}
   body[data-epk-print="one-page"] .epk-preview{font-size:9pt}
   body[data-epk-print="one-page"] .epk-hero{min-height:105px!important;padding:14px 18px!important;margin:0!important;border-radius:0!important}
   body[data-epk-print="one-page"] .epk-hero h1{font-size:30pt!important;margin:24px 0 2px!important;line-height:.92!important}
@@ -69,10 +80,10 @@
   body[data-epk-print="one-page"] .epk-body p{margin:0;line-height:1.25}
   body[data-epk-print="one-page"] [data-epk-section="about"] p{max-height:4.9em;overflow:hidden}
   body[data-epk-print="one-page"] .epk-embeds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
-  body[data-epk-print="one-page"] .epk-embeds>div{padding:6px!important;break-inside:avoid}
+  body[data-epk-print="one-page"] .epk-embeds>*{padding:6px!important;break-inside:avoid}
   body[data-epk-print="one-page"] .epk-embeds iframe{display:none!important}
   body[data-epk-print="one-page"] .epk-embeds p,body[data-epk-print="one-page"] .epk-embeds h3{margin:0 0 2px!important;font-size:8pt!important}
-  body[data-epk-print="one-page"] .epk-embeds>div:nth-child(n+3),body[data-epk-print="one-page"] li:nth-child(n+4),body[data-epk-print="one-page"] blockquote:nth-child(n+3){display:none!important}
+  body[data-epk-print="one-page"] .epk-embeds>:nth-child(n+3),body[data-epk-print="one-page"] li:nth-child(n+4),body[data-epk-print="one-page"] blockquote:nth-child(n+3){display:none!important}
   body[data-epk-print="one-page"] blockquote{margin:3px 0;padding-left:7px;font-size:8pt;line-height:1.2}
   body[data-epk-print="one-page"] .epk-contact{display:flex;flex-wrap:wrap;gap:5px 14px;align-items:center}
   body[data-epk-print="one-page"] .epk-contact>*{margin:0}

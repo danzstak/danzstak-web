@@ -1,8 +1,7 @@
 "use strict";
 
 (() => {
-  const trigger = document.getElementById("pivotButton");
-  if (!trigger) return;
+  let activeTrigger = null;
 
   const guides = {
     facebook: {
@@ -73,7 +72,7 @@
     const official = document.createElement("a"); official.href = data.link; official.target = "_blank"; official.rel = "noopener noreferrer"; official.referrerPolicy = "no-referrer"; official.textContent = data.linkLabel; actions.append(official);
     if (data.ready) {
       const choose = document.createElement("button"); choose.type = "button"; choose.className = "primary"; choose.textContent = "Choose Facebook export";
-      choose.addEventListener("click", () => { dialog.close(); window.openDanzStakFacebookImport?.(trigger); });
+      choose.addEventListener("click", () => { dialog.close(); window.openDanzStakFacebookImport?.(activeTrigger); });
       actions.prepend(choose);
     } else {
       const note = document.createElement("p"); note.className = "pivot-availability"; note.textContent = `${data.label} preview and selective import are not ready yet. Download your export, keep it private, and do not upload it to DanzStak yet.`; guide.append(heading, list, note, actions);
@@ -94,7 +93,15 @@
   });
   dialog.querySelector(".pivot-close").addEventListener("click", () => dialog.close());
   dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
-  dialog.addEventListener("close", () => trigger.focus());
-  trigger.addEventListener("click", () => { active = "facebook"; renderGuide(); dialog.showModal(); setTimeout(() => platforms.querySelector("button")?.focus(), 0); });
+  dialog.addEventListener("close", () => activeTrigger?.isConnected && activeTrigger.focus());
+  document.addEventListener("click", event => {
+    const trigger = event.target.closest?.("[data-pivot-trigger]");
+    if (!trigger) return;
+    activeTrigger = trigger;
+    active = "facebook";
+    renderGuide();
+    dialog.showModal();
+    setTimeout(() => platforms.querySelector("button")?.focus(), 0);
+  });
   renderGuide();
 })();

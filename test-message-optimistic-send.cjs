@@ -17,7 +17,9 @@ assert.doesNotMatch(client, /if \(retryMessageSend && !retry\) \{\s*await discar
 assert.doesNotMatch(client, /if \(!response\.ok\) \{\s*await discardMessageMedia/, "a failed or lost response must not delete media from a possibly committed message");
 assert.match(client, /if \(content && !messageInput\.value\.trim\(\)\) messageInput\.value = content/, "failed text must return to the composer");
 assert.match(client, /Your message is still in the composer/, "failed delivery must explain that the draft was preserved");
-assert.match(client, /callStatus\.textContent = messageTranslate\("Delivered"\)/, "a confirmed retry must replace stale failure text with a truthful delivered state");
+assert.match(client, /callStatus\.textContent = messageTranslate\("Sent"\)/, "a confirmed retry must replace stale failure text with a truthful sent state");
+assert.match(client, /const showAvailability = reset && availabilityNoticePending/, "availability guidance must be limited to the initial conversation load");
+assert.match(client, /showAvailability && feedbackVersion === conversationFeedbackVersion/, "a late initial response must not overwrite newer send or retry feedback");
 assert.match(styles, /\.message-pending\{opacity:/, "pending messages need a distinct visual state");
 
 console.log("Optimistic messaging checks passed: immediate sending state, confirmation replacement, deduplication, and draft recovery.");

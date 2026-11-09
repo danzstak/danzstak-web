@@ -9,11 +9,10 @@ const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.2:8023")
 const captureDir = path.resolve(process.env.DANZSTAK_CAPTURE_DIR || "docs/screenshots/epk-qr");
 const liveQr = process.env.DANZSTAK_LIVE_QR === "1";
 const widths = [320, 360, 390, 414, 430, 1366];
-const token = "a".repeat(64);
 const kit = { artistName:"Night Circuit", hometown:"Berlin, Germany", actType:"electronic", look:"techno", genres:["Techno"], shortPitch:"A hardware live set ready for independent rooms.", publicDetails:{}, media:[] };
 
 (async () => {
-  const encodedUrl = `https://danzstak.com/epk.html?share=night-circuit#token=${token}`;
+  const encodedUrl = "https://danzstak.com/epk.html?id=night-circuit";
   const qrSvg = await QRCode.toString(encodedUrl, { type:"svg", errorCorrectionLevel:"M", margin:2, width:512 });
   fs.mkdirSync(captureDir, { recursive:true });
   const browser = await chromium.launch({ channel:"msedge", headless:true });
@@ -23,9 +22,9 @@ const kit = { artistName:"Night Circuit", hometown:"Berlin, Germany", actType:"e
       const page = await context.newPage(), errors = [], requests = [];
       page.on("pageerror", error => errors.push(error.message));
       page.on("request", request => { if (request.url() === "https://api.danzstak.com/epk/qr" && request.method() === "POST") requests.push(JSON.parse(request.postData() || "{}")); });
-      await page.route("https://api.danzstak.com/epk/shared/**", route => route.fulfill({ status:200, contentType:"application/json", body:JSON.stringify({ kit, private:true }) }));
+      await page.route("https://api.danzstak.com/epk/public/**", route => route.fulfill({ status:200, contentType:"application/json", body:JSON.stringify({ kit, private:false }) }));
       if (!liveQr) await page.route("https://api.danzstak.com/epk/qr", route => route.fulfill({ status:200, contentType:"image/svg+xml", body:qrSvg }));
-      await page.goto(`${baseUrl}/epk.html?share=night-circuit#token=${token}`, { waitUntil:"networkidle" });
+      await page.goto(`${baseUrl}/epk.html?id=night-circuit`, { waitUntil:"networkidle" });
       await page.getByRole("button", { name:"QR code" }).click();
       await page.getByRole("heading", { name:"Share this EPK" }).waitFor();
       await page.locator("#epkQrImage[src^='data:image/svg+xml']").waitFor();
@@ -40,6 +39,6 @@ const kit = { artistName:"Night Circuit", hometown:"Berlin, Germany", actType:"e
       assert.equal(await page.locator("#epkQrDialog").evaluate(dialog => dialog.open), false);
       await context.close();
     }
-    console.log("EPK QR browser checks passed: exact private link, visible/downloadable SVG, accessible targets, no overflow, and clean close at six widths.");
+    console.log("EPK QR browser checks passed: exact published link, visible/downloadable SVG, accessible targets, no overflow, and clean close at six widths.");
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

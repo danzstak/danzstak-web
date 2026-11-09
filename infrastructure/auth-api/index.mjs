@@ -39,6 +39,8 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
+import { createMarketplace } from "./marketplace.mjs";
+import { createTicketing } from "./ticketing.mjs";
 import QRCode from "qrcode";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -50,6 +52,7 @@ const geoRoutes = new GeoRoutesClient({ region: "us-west-2", maxAttempts: 3 });
 const secretsManager = new SecretsManagerClient({ region: "us-west-1", maxAttempts: 3 });
 
 const tableName = process.env.SESSIONS_TABLE;
+const sessionDevicesTable = process.env.SESSION_DEVICES_TABLE || "DANZSTAK-SessionDevices";
 const postsTable = "DANZSTAK-Posts";
 const friendsTable = "DANZSTAK-Friends";
 const reactionsTable = "DANZSTAK-Reactions";
@@ -64,6 +67,7 @@ const supportTicketsTable = process.env.SUPPORT_TICKETS_TABLE || "DANZSTAK-Suppo
 const toursTable = process.env.TOURS_TABLE || "DANZSTAK-Tours";
 const venueDirectoryTable = process.env.VENUE_DIRECTORY_TABLE || "DANZSTAK-VenueDirectory";
 const reviewsTable = process.env.REVIEWS_TABLE || "DANZSTAK-Reviews";
+const marketplaceTable = process.env.MARKETPLACE_TABLE || "DANZSTAK-Marketplace";
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -72,7 +76,8 @@ const mediaBucket = process.env.MEDIA_BUCKET;
 
 const callbackUrl = "https://api.danzstak.com/auth/callback";
 const allowedOrigin = "https://danzstak.com";
-const allowedOrigins = new Set([allowedOrigin, "https://www.danzstak.com"]);
+const reviewOrigin = "https://review.danzstak.com";
+const allowedOrigins = new Set([allowedOrigin, "https://www.danzstak.com", reviewOrigin]);
 const securityHeaders = {
   "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
   "x-content-type-options": "nosniff",
@@ -88,6 +93,10 @@ const sessionCookieName = "__Host-danzstak_session";
 const oauthCookieName = "__Host-danzstak_oauth";
 const legalCookieName = "__Host-danzstak_legal";
 const legalVersion = "2026-10-26";
+const loginHandoffSeconds = 15 * 60;
+const sessionLifetimeSeconds = 30 * 24 * 60 * 60;
+const recentAuthenticationSeconds = 10 * 60;
+const sessionTouchIntervalSeconds = 15 * 60;
 const stripeEnvironment = { ...process.env };
 const stripeSecretName = process.env.STRIPE_SECRET_NAME || "danzstak/stripe/secret-key";
 const stripeWebhookSecretName = process.env.STRIPE_WEBHOOK_SECRET_NAME || "danzstak/stripe/webhook-secret";
@@ -131,11 +140,12 @@ const tourManagerBilling = createTourManagerBilling({
   tableName: toursTable,
   env: stripeEnvironment,
   validateOutreachEpkLink: validateBookingOutreachEpkLink,
-  sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message }) => {
-    const replyTo = await accountForSub(userId);
-    if (!replyTo) throw new Error("Account email could not be verified");
+  sendBookingEmail: async ({ userId, sendId, artistName, venueName, to, subject, message, replyToken }) => {
+    if (!/^[a-f0-9]{64}$/.test(replyToken || "")) throw new Error("Booking reply route is invalid");
+    const safeArtistName = String(artistName || "Artist").replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) || "Artist";
+    const replyTo = `${replyToken}@reply.danzstak.com`;
     const result = await ses.send(new SendEmailCommand({
-      FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
+      FromEmailAddress: `"${safeArtistName} via DanzStak" <booking@danzstak.com>`,
       ConfigurationSetName: "DanzStakTourManager",
       EmailTags: [
         { Name: "DanzStakArtistId", Value: userId },
@@ -146,26 +156,43 @@ const tourManagerBilling = createTourManagerBilling({
       ReplyToAddresses: [replyTo],
       Content: { Simple: {
         Subject: { Data: subject, Charset: "UTF-8" },
-        Body: { Text: { Data: `${message}\n\nSent by ${artistName} using DanzStak Tour Manager.\nVenue: ${venueName}\nReplies go directly to the artist.`, Charset: "UTF-8" } }
+        Body: { Text: { Data: `${message}\n\nSent by ${artistName} using DanzStak Tour Manager.\nVenue: ${venueName}\nReply to this email to continue securely in the artist's DanzStak SYNC booking thread.`, Charset: "UTF-8" } }
       } }
     }));
     return { messageId: result.MessageId || "" };
   },
-  sendBookingReply: async ({ userId, venueName, to, subject, message }) => {
-    const replyTo = await accountForSub(userId);
-    if (!replyTo) throw new Error("Account email could not be verified");
+  sendBookingReply: async ({ artistName, venueName, to, subject, message, replyToken }) => {
+    if (!/^[a-f0-9]{64}$/.test(replyToken || "")) throw new Error("Booking reply route is invalid");
+    const safeArtistName = String(artistName || "Artist").replace(/[\r\n"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) || "Artist";
+    const replyTo = `${replyToken}@reply.danzstak.com`;
     const result = await ses.send(new SendEmailCommand({
-      FromEmailAddress: "DanzStak Tour Manager <booking@danzstak.com>",
+      FromEmailAddress: `"${safeArtistName} via DanzStak" <booking@danzstak.com>`,
       ConfigurationSetName: "DanzStakTourManager",
       Destination: { ToAddresses: [to] },
       ReplyToAddresses: [replyTo],
       Content: { Simple: {
         Subject: { Data: `Re: ${String(subject || "Booking pitch").replace(/^Re:\s*/i, "")}`.slice(0, 200), Charset: "UTF-8" },
-        Body: { Text: { Data: `${message}\n\nReply from the artist through DanzStak Tour Manager.\nVenue: ${venueName}\nReplies go directly to the artist.`, Charset: "UTF-8" } }
+        Body: { Text: { Data: `${message}\n\nReply from ${safeArtistName} through DanzStak.\nVenue: ${venueName}\nReply to this email to continue securely in the artist's DanzStak SYNC booking thread.`, Charset: "UTF-8" } }
       } }
     }));
     return { messageId: result.MessageId || "" };
   }
+});
+
+const marketplace = createMarketplace({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: marketplaceTable,
+  env: process.env
+});
+const ticketing = createTicketing({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: marketplaceTable
 });
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -376,6 +403,15 @@ function getSessionId(event) {
     : null;
 }
 
+function sessionDeviceLabel(event, pending = null) {
+  if (pending?.mobilePlatform?.S === "android") return "DanzStak Android app";
+  if (pending?.mobilePlatform?.S === "ios") return "DanzStak iPhone or iPad app";
+  const value = String(event?.headers?.["user-agent"] || event?.headers?.["User-Agent"] || "");
+  const browser = /Edg\//.test(value) ? "Edge" : /Firefox\//.test(value) ? "Firefox" : /CriOS\//.test(value) ? "Chrome" : /Chrome\//.test(value) ? "Chrome" : /Safari\//.test(value) ? "Safari" : "Browser";
+  const device = /Android/i.test(value) ? "Android" : /iPhone|iPad|iPod/i.test(value) ? "iPhone or iPad" : /Windows/i.test(value) ? "Windows" : /Macintosh|Mac OS X/i.test(value) ? "Mac" : /Linux/i.test(value) ? "Linux" : "device";
+  return `${browser} on ${device}`.slice(0, 80);
+}
+
 function secureCookie(name, value, maxAge) {
   return (
     name + "=" + value +
@@ -527,9 +563,10 @@ async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null)
       verifier: { S: verifier },
       nonce: { S: nonce },
       browserHash: { S: sha256(browserSecret) },
-      expiresAt: { N: String(now() + 300) }
+      expiresAt: { N: String(now() + loginHandoffSeconds) }
   };
   if (legalAcceptanceId) pendingItem.legalAcceptanceId = { S: legalAcceptanceId };
+  if (mode === "reauth") pendingItem.reauthentication = { BOOL: true };
   if (mobile) {
     pendingItem.mobilePlatform = { S: mobile.platform };
     pendingItem.mobileChallenge = { S: mobile.challenge };
@@ -558,11 +595,12 @@ async function startLogin(mode = "login", legalAcceptanceId = "", mobile = null)
   url.searchParams.set("nonce", nonce);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
+  if (mode === "reauth") url.searchParams.set("prompt", "login");
 
   const browserCookie = secureCookie(
     oauthCookieName,
     browserSecret,
-    300
+    loginHandoffSeconds
   );
 
   return redirect(url.toString(), [browserCookie]);
@@ -633,11 +671,7 @@ async function completeLogin(event) {
     !browserSecret ||
     !/^[a-f0-9]{64}$/.test(browserSecret)
   ) {
-    return errorResponse(
-      400,
-      "Login browser verification failed. Please start login again.",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=expired", [expiredBrowserCookie]);
   }
 
   const pendingKey = {
@@ -662,11 +696,7 @@ async function completeLogin(event) {
     !pending.nonce?.S ||
     !pending.browserHash?.S
   ) {
-    return errorResponse(
-      400,
-      "Login request expired. Please start again.",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=expired", [expiredBrowserCookie]);
   }
 
   if (
@@ -808,7 +838,24 @@ async function completeLogin(event) {
   }
 
   const sessionId = randomValue();
-  const expiresAt = now() + 31536000;
+  const issuedAt = now();
+  const expiresAt = issuedAt + sessionLifetimeSeconds;
+  const deviceId = randomUUID();
+  const deviceLabel = sessionDeviceLabel(event, pending);
+
+  let hasExistingDevice = false;
+  try {
+    const existing = await db.send(new QueryCommand({
+      TableName: sessionDevicesTable,
+      KeyConditionExpression: "userId = :userId",
+      ExpressionAttributeValues: { ":userId": { S: user.sub } },
+      ProjectionExpression: "deviceId",
+      Limit: 1
+    }));
+    hasExistingDevice = Boolean(existing.Items?.length);
+  } catch (error) {
+    console.error("Session device history could not be checked", { errorName: error?.name || "Error" });
+  }
 
   await db.send(new PutItemCommand({
     TableName: tableName,
@@ -816,15 +863,57 @@ async function completeLogin(event) {
       sessionId: { S: sha256(sessionId) },
       type: { S: "user_session" },
       userId: { S: user.sub },
+      deviceId: { S: deviceId },
+      deviceLabel: { S: deviceLabel },
+      createdAt: { N: String(issuedAt) },
+      authenticatedAt: { N: String(issuedAt) },
+      lastUsedAt: { N: String(issuedAt) },
       expiresAt: { N: String(expiresAt) }
     },
     ConditionExpression: "attribute_not_exists(sessionId)"
   }));
 
+  try {
+    await db.send(new PutItemCommand({
+      TableName: sessionDevicesTable,
+      Item: {
+        userId: { S: user.sub },
+        deviceId: { S: deviceId },
+        sessionHash: { S: sha256(sessionId) },
+        deviceLabel: { S: deviceLabel },
+        createdAt: { N: String(issuedAt) },
+        authenticatedAt: { N: String(issuedAt) },
+        lastUsedAt: { N: String(issuedAt) },
+        expiresAt: { N: String(expiresAt) }
+      },
+      ConditionExpression: "attribute_not_exists(userId) AND attribute_not_exists(deviceId)"
+    }));
+  } catch (error) {
+    try { await db.send(new DeleteItemCommand({ TableName: tableName, Key: { sessionId: { S: sha256(sessionId) } } })); }
+    catch (cleanupError) { console.error("Incomplete session cleanup", { errorName: cleanupError?.name || "Error" }); }
+    throw error;
+  }
+
+  if (hasExistingDevice) {
+    try {
+      const accountEmail = await accountForSub(user.sub);
+      if (accountEmail) await ses.send(new SendEmailCommand({
+        FromEmailAddress: "DanzStak Support <support@danzstak.com>",
+        Destination: { ToAddresses: [accountEmail] },
+        Content: { Simple: {
+          Subject: { Data: "New DanzStak sign-in", Charset: "UTF-8" },
+          Body: { Text: { Data: `A new sign-in to your DanzStak account was completed using ${deviceLabel}.\n\nReview signed-in devices in DanzStak Settings. If this was not you, sign out that device and change your password.\n\nDanzStak never asks for your password or verification code by email.`, Charset: "UTF-8" } }
+        } }
+      }));
+    } catch (error) {
+      console.error("New sign-in alert could not be sent", { errorName: error?.name || "Error" });
+    }
+  }
+
   const sessionCookie = secureCookie(
     sessionCookieName,
     sessionId,
-    31536000
+    sessionLifetimeSeconds
   );
 
   const responseCookies = [sessionCookie, expiredBrowserCookie];
@@ -860,7 +949,7 @@ async function completeLogin(event) {
     return redirect(`danzstak://${pending.mobilePlatform.S}/auth?code=${exchangeCode}`, [expiredBrowserCookie]);
   }
 
-  return redirect(siteUrl + "/", responseCookies);
+  return redirect(pending.reauthentication?.BOOL ? siteUrl + "/feed.html?view=settings&security=1" : siteUrl + "/", responseCookies);
 }
 
 async function startMobileLogin(event) {
@@ -903,22 +992,23 @@ async function exchangeMobileSession(event) {
   return {
     statusCode: 200,
     headers: { ...securityHeaders, "content-type": "application/json", "cache-control": "no-store" },
-    body: JSON.stringify({ sessionToken: item.sessionToken.S, expiresIn: 31536000 })
+    body: JSON.stringify({ sessionToken: item.sessionToken.S, expiresIn: sessionLifetimeSeconds })
   };
 }
 
 // VALIDATE SERVER-SIDE SESSION
-async function getAuthenticatedUser(event) {
+async function getAuthenticatedSession(event, { touch = true } = {}) {
   const sessionId = getSessionId(event);
 
   if (!sessionId) {
     return null;
   }
 
+  const sessionHash = sha256(sessionId);
   const result = await db.send(new GetItemCommand({
     TableName: tableName,
     Key: {
-      sessionId: { S: sha256(sessionId) }
+      sessionId: { S: sessionHash }
     },
     ConsistentRead: true
   }));
@@ -936,7 +1026,76 @@ async function getAuthenticatedUser(event) {
     return null;
   }
 
-  return session.userId.S;
+  let deviceId = session.deviceId?.S || "";
+  let deviceLabel = session.deviceLabel?.S || sessionDeviceLabel(event);
+  if (!deviceId && typeof sessionDevicesTable === "string" && sessionDevicesTable) {
+    try {
+      const proposedDeviceId = randomUUID();
+      const updated = await db.send(new UpdateItemCommand({
+        TableName: tableName,
+        Key: { sessionId: { S: sessionHash } },
+        UpdateExpression: "SET deviceId = if_not_exists(deviceId, :deviceId), deviceLabel = if_not_exists(deviceLabel, :deviceLabel), createdAt = if_not_exists(createdAt, :createdAt), authenticatedAt = if_not_exists(authenticatedAt, :authenticatedAt), lastUsedAt = if_not_exists(lastUsedAt, :lastUsedAt)",
+        ConditionExpression: "#type = :sessionType AND userId = :userId AND expiresAt > :now",
+        ExpressionAttributeNames: { "#type": "type" },
+        ExpressionAttributeValues: {
+          ":deviceId": { S: proposedDeviceId }, ":deviceLabel": { S: deviceLabel },
+          ":createdAt": { N: String(now()) }, ":authenticatedAt": { N: String(now()) }, ":lastUsedAt": { N: String(now()) },
+          ":sessionType": { S: "user_session" }, ":userId": { S: session.userId.S }, ":now": { N: String(now()) }
+        },
+        ReturnValues: "ALL_NEW"
+      }));
+      deviceId = updated.Attributes?.deviceId?.S || proposedDeviceId;
+      deviceLabel = updated.Attributes?.deviceLabel?.S || deviceLabel;
+      await db.send(new PutItemCommand({
+        TableName: sessionDevicesTable,
+        Item: {
+          userId: { S: session.userId.S }, deviceId: { S: deviceId }, sessionHash: { S: sessionHash }, deviceLabel: { S: deviceLabel },
+          createdAt: updated.Attributes?.createdAt || { N: String(now()) },
+          authenticatedAt: updated.Attributes?.authenticatedAt || { N: String(now()) },
+          lastUsedAt: updated.Attributes?.lastUsedAt || { N: String(now()) }, expiresAt: { N: String(expiresAt) }
+        }
+      }));
+    } catch (error) {
+      console.error("Legacy session device registration failed", { errorName: error?.name || "Error" });
+    }
+  }
+
+  const lastUsedAt = Number(session.lastUsedAt?.N || 0);
+  if (touch && deviceId && lastUsedAt <= now() - sessionTouchIntervalSeconds) {
+    const touchedAt = now();
+    try {
+      await Promise.all([
+        db.send(new UpdateItemCommand({
+          TableName: tableName, Key: { sessionId: { S: sessionHash } },
+          UpdateExpression: "SET lastUsedAt = :lastUsedAt", ConditionExpression: "#type = :sessionType AND userId = :userId AND expiresAt > :now",
+          ExpressionAttributeNames: { "#type": "type" },
+          ExpressionAttributeValues: { ":lastUsedAt": { N: String(touchedAt) }, ":sessionType": { S: "user_session" }, ":userId": { S: session.userId.S }, ":now": { N: String(touchedAt) } }
+        })),
+        db.send(new UpdateItemCommand({
+          TableName: sessionDevicesTable, Key: { userId: { S: session.userId.S }, deviceId: { S: deviceId } },
+          UpdateExpression: "SET lastUsedAt = :lastUsedAt, expiresAt = :expiresAt",
+          ExpressionAttributeValues: { ":lastUsedAt": { N: String(touchedAt) }, ":expiresAt": { N: String(expiresAt) } }
+        }))
+      ]);
+    } catch (error) {
+      console.error("Session activity update failed", { errorName: error?.name || "Error" });
+    }
+  }
+
+  return {
+    userId: session.userId.S,
+    sessionHash,
+    deviceId,
+    deviceLabel,
+    createdAt: Number(session.createdAt?.N || 0),
+    authenticatedAt: Number(session.authenticatedAt?.N || session.createdAt?.N || 0),
+    lastUsedAt: Math.max(lastUsedAt, touch ? now() : 0),
+    expiresAt
+  };
+}
+
+async function getAuthenticatedUser(event) {
+  return (await getAuthenticatedSession(event))?.userId || null;
 }
 
 const groupCategories = new Set(["Artists", "DJs & Producers", "Fans", "Venues & Promoters", "Events", "Local Scenes", "Creators", "Industry Networking", "Politics", "Religion"]);
@@ -950,7 +1109,7 @@ async function groupExists(groupId) {
     Key: { userEmail: { S: `GROUP#${groupId}` }, groupId: { S: "META" } },
     ConsistentRead: true
   }));
-  return Boolean(found.Item);
+  return Boolean(found.Item && found.Item.deletionState?.S !== "pending");
 }
 
 async function groupRecord(groupId) {
@@ -960,7 +1119,7 @@ async function groupRecord(groupId) {
     Key: { userEmail: { S: `GROUP#${groupId}` }, groupId: { S: "META" } },
     ConsistentRead: true
   }));
-  return found.Item || null;
+  return found.Item?.deletionState?.S === "pending" ? null : found.Item || null;
 }
 
 async function groupMembership(groupId, userEmail) {
@@ -993,7 +1152,7 @@ async function listGroups(event) {
   const counts = new Map();
   for (const item of memberships) counts.set(item.groupId.S, (counts.get(item.groupId.S) || 0) + 1);
   const viewerMemberships = new Map(memberships.filter(item => item.userEmail?.S === viewerEmail).map(item => [item.groupId.S, item]));
-  const groups = items.filter(item => item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#")).map(item => {
+  const groups = items.filter(item => item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#") && item.deletionState?.S !== "pending").map(item => {
     const id = item.userEmail.S.slice(6), isOwner = item.ownerId?.S === userId, membership = viewerMemberships.get(id);
     const storedDescription = item.description?.S || "";
     const description = storedDescription === "A new DanzStak community group." ? "A new DanzStak Tribe." : storedDescription || "A DanzStak Tribe.";
@@ -1056,6 +1215,103 @@ async function manageGroupElder(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ memberId, role: elder ? "elder" : "member" }) };
 }
 
+const groupCoverKeyPattern = /^users\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|png|webp|gif)$/;
+
+async function cleanupGroupCoverObjects(id, keys, { allowActive = false } = {}) {
+  const candidates = [...new Set((keys || []).filter(Boolean))];
+  const resolved = candidates.filter(key => !groupCoverKeyPattern.test(key));
+  const pending = [];
+  for (const key of candidates.filter(key => groupCoverKeyPattern.test(key))) {
+    const claim = randomUUID(), claimExpiresAt = now() + 300;
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: groupsTable,
+        Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+        UpdateExpression: "SET coverCleanupClaim = :claim, coverCleanupClaimKey = :candidate, coverCleanupClaimExpiresAt = :expires",
+        ConditionExpression: (allowActive ? "attribute_exists(userEmail)" : "contains(coverCleanup, :candidate)") + " AND (attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now)" + (allowActive ? "" : " AND (attribute_not_exists(coverKey) OR coverKey <> :candidate)"),
+        ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key }, ":expires": { N: String(claimExpiresAt) }, ":now": { N: String(now()) } }
+      }));
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") {
+        const current = await db.send(new GetItemCommand({
+          TableName: groupsTable,
+          Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+          ConsistentRead: true,
+          ProjectionExpression: "coverKey, coverCleanup"
+        }));
+        if (!allowActive && current.Item?.coverKey?.S === key) {
+          try {
+            await db.send(new UpdateItemCommand({
+              TableName: groupsTable,
+              Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+              UpdateExpression: "DELETE coverCleanup :resolved",
+              ConditionExpression: "coverKey = :candidate",
+              ExpressionAttributeValues: { ":resolved": { SS: [key] }, ":candidate": { S: key } }
+            }));
+            resolved.push(key);
+          } catch { pending.push(key); }
+        } else if (!(current.Item?.coverCleanup?.SS || []).includes(key)) resolved.push(key);
+        else pending.push(key);
+        continue;
+      }
+      throw error;
+    }
+    let removed = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }));
+        removed = true;
+        break;
+      } catch (error) {
+        if (attempt === 2) console.error("Tribe cover cleanup remains pending", { id, key, error });
+      }
+    }
+    if (removed) {
+      try {
+        await db.send(new UpdateItemCommand({
+          TableName: groupsTable,
+          Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+          UpdateExpression: "DELETE coverCleanup :resolved REMOVE coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+          ConditionExpression: "coverCleanupClaim = :claim AND coverCleanupClaimKey = :candidate",
+          ExpressionAttributeValues: { ":resolved": { SS: [key] }, ":claim": { S: claim }, ":candidate": { S: key } }
+        }));
+        resolved.push(key);
+      } catch (error) {
+        console.error("Tribe cover cleanup acknowledgement remains pending", { id, key, error });
+        pending.push(key);
+      }
+    } else {
+      pending.push(key);
+      try {
+        await db.send(new UpdateItemCommand({
+          TableName: groupsTable,
+          Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+          UpdateExpression: "REMOVE coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+          ConditionExpression: "coverCleanupClaim = :claim AND coverCleanupClaimKey = :candidate",
+          ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key } }
+        }));
+      } catch (error) {
+        console.error("Tribe cover cleanup lease release remains pending", { id, key, error });
+      }
+    }
+  }
+  const invalid = resolved.filter(key => !groupCoverKeyPattern.test(key));
+  if (invalid.length) {
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: groupsTable,
+        Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+        UpdateExpression: "DELETE coverCleanup :resolved",
+        ExpressionAttributeValues: { ":resolved": { SS: invalid } },
+        ConditionExpression: "attribute_exists(userEmail)"
+      }));
+    } catch (error) {
+      console.error("Tribe cover cleanup queue remains pending", { id, error });
+    }
+  }
+  return { cleaned: candidates.length - pending.length, pending: pending.length };
+}
+
 async function updateGroupCover(event) {
   const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event), id = String(event.pathParameters?.groupId || "");
   if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -1069,18 +1325,25 @@ async function updateGroupCover(event) {
   try { await s3.send(new HeadObjectCommand({ Bucket: mediaBucket, Key: mediaKey })); }
   catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded cover photo was not found." }) }; }
   const oldKey = meta.coverKey?.S || "";
-  await db.send(new UpdateItemCommand({
-    TableName: groupsTable,
-    Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
-    UpdateExpression: "SET coverKey = :cover, updatedAt = :updated",
-    ExpressionAttributeValues: { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() } },
-    ConditionExpression: "attribute_exists(userEmail)"
-  }));
-  if (oldKey && oldKey !== mediaKey) {
-    try { await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: oldKey })); }
-    catch (error) { console.error("Tribe cover cleanup remains pending", { id, error }); }
+  const replacedKey = oldKey && oldKey !== mediaKey && groupCoverKeyPattern.test(oldKey) ? oldKey : "";
+  const pendingCoverCleanup = [...new Set([...(meta.coverCleanup?.SS || []), replacedKey].filter(key => key && key !== mediaKey))];
+  const expressionValues = { ":cover": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
+  if (pendingCoverCleanup.length) expressionValues[":coverCleanup"] = { SS: pendingCoverCleanup };
+  if (oldKey) expressionValues[":oldCover"] = { S: oldKey };
+  try {
+    await db.send(new UpdateItemCommand({
+      TableName: groupsTable,
+      Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } },
+      UpdateExpression: "SET coverKey = :cover, updatedAt = :updated" + (pendingCoverCleanup.length ? ", coverCleanup = :coverCleanup REMOVE " : " REMOVE coverCleanup, ") + "coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+      ExpressionAttributeValues: expressionValues,
+      ConditionExpression: "attribute_exists(userEmail) AND attribute_not_exists(deletionState) AND (attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now) AND " + (oldKey ? "coverKey = :oldCover" : "attribute_not_exists(coverKey)")
+    }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "The Tribe cover changed on another device. Try again." }) };
+    throw error;
   }
-  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600) }) };
+  const cleanup = await cleanupGroupCoverObjects(id, pendingCoverCleanup);
+  return { statusCode: 200, headers, body: JSON.stringify({ coverUrl: signedMediaUrl(mediaKey, 3600), cleanupPending: cleanup.pending }) };
 }
 
 async function deleteGroup(event) {
@@ -1093,12 +1356,58 @@ async function deleteGroup(event) {
   const found = await db.send(new GetItemCommand({ TableName: groupsTable, Key: key, ConsistentRead: true }));
   if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
   if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the Tribe founder can delete it." }) };
-  const members = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId" });
-  await Promise.all([db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key })), ...members.map(item => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })))]);
-  if (found.Item.coverKey?.S) {
-    try { await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: found.Item.coverKey.S })); }
-    catch (error) { console.error("Deleted Tribe cover cleanup remains pending", { id, error }); }
+  const storedCoverKey = found.Item.coverKey?.S || "";
+  if (found.Item.deletionState?.S !== "pending") {
+    const pendingValues = { ":owner": { S: userId }, ":pending": { S: "pending" }, ":started": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
+    const pendingConditions = ["ownerId = :owner", "attribute_not_exists(deletionState)", "(attribute_not_exists(coverCleanupClaim) OR coverCleanupClaimExpiresAt < :now)"];
+    if (storedCoverKey) { pendingValues[":cover"] = { S: storedCoverKey }; pendingConditions.push("coverKey = :cover"); }
+    else pendingConditions.push("attribute_not_exists(coverKey)");
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: groupsTable,
+        Key: key,
+        UpdateExpression: "SET deletionState = :pending, deletionStartedAt = :started REMOVE coverCleanupClaim, coverCleanupClaimKey, coverCleanupClaimExpiresAt",
+        ConditionExpression: pendingConditions.join(" AND "),
+        ExpressionAttributeValues: pendingValues
+      }));
+      found.Item.deletionState = { S: "pending" };
+      found.Item.deletionStartedAt = pendingValues[":started"];
+    } catch (error) {
+      if (error.name !== "ConditionalCheckFailedException") throw error;
+      const current = await db.send(new GetItemCommand({ TableName: groupsTable, Key: key, ConsistentRead: true }));
+      if (current.Item?.ownerId?.S !== userId || current.Item?.deletionState?.S !== "pending") return { statusCode: 409, headers, body: JSON.stringify({ error: "The Tribe changed on another device. Try deletion again.", deleted: false }) };
+      found.Item = current.Item;
+    }
   }
+  let members;
+  try {
+    members = await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail, groupId", ConsistentRead: true });
+  } catch (error) {
+    console.error("Tribe member discovery remains pending", { id, error });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe deletion is safely pending. Try again.", deleted: false, deletionPending: true }) };
+  }
+  let pendingMemberDeletes = members.map(item => () => db.send(new DeleteItemCommand({ TableName: groupsTable, Key: { userEmail: item.userEmail, groupId: item.groupId } })));
+  for (let attempt = 0; attempt < 3 && pendingMemberDeletes.length; attempt += 1) {
+    const settled = await Promise.allSettled(pendingMemberDeletes.map(remove => remove()));
+    pendingMemberDeletes = pendingMemberDeletes.filter((remove, index) => settled[index].status === "rejected");
+  }
+  if (pendingMemberDeletes.length) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe deletion is safely pending. Try again.", deleted: false, deletionPending: true }) };
+  const coverCleanup = await cleanupGroupCoverObjects(id, [found.Item.coverKey?.S || "", ...(found.Item.coverCleanup?.SS || [])], { allowActive: true });
+  if (coverCleanup.pending) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe deletion is safely pending. Try again.", deleted: false, deletionPending: true }) };
+  let deleted = false;
+  const deleteValues = { ":owner": { S: userId }, ":pending": { S: "pending" } };
+  const pendingCoverKey = found.Item.coverKey?.S || "";
+  if (pendingCoverKey) deleteValues[":cover"] = { S: pendingCoverKey };
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await db.send(new DeleteItemCommand({ TableName: groupsTable, Key: key, ConditionExpression: "ownerId = :owner AND deletionState = :pending AND " + (pendingCoverKey ? "coverKey = :cover" : "attribute_not_exists(coverKey)"), ExpressionAttributeValues: deleteValues }));
+      deleted = true;
+      break;
+    } catch (error) {
+      if (attempt === 2) console.error("Tribe deletion remains pending", { id, error });
+    }
+  }
+  if (!deleted) return { statusCode: 503, headers, body: JSON.stringify({ error: "Tribe deletion is safely pending. Try again.", deleted: false, deletionPending: true }) };
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
@@ -1110,14 +1419,14 @@ async function broadcastGroup(event) {
   if (!/^[a-f0-9-]{36}$/.test(id)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Valid Tribe required." }) };
   const data = parseJsonBody(event), message = String(data?.message || "").trim();
   if (!message || message.length > 500) return { statusCode: 400, headers, body: JSON.stringify({ error: "Announcement must contain 1–500 characters." }) };
-  const found = await db.send(new GetItemCommand({ TableName: groupsTable, Key: { userEmail: { S: `GROUP#${id}` }, groupId: { S: "META" } }, ConsistentRead: true }));
-  if (!found.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
-  if (found.Item.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the Tribe creator can notify @everyone." }) };
+  const meta = await groupRecord(id);
+  if (!meta) return { statusCode: 404, headers, body: JSON.stringify({ error: "Tribe not found." }) };
+  if (meta.ownerId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the Tribe creator can notify @everyone." }) };
   const actorEmail = await accountForSub(userId);
   if (!actorEmail) return { statusCode: 409, headers, body: JSON.stringify({ error: "Account email could not be verified." }) };
   const members = (await scanAll({ TableName: groupsTable, FilterExpression: "groupId = :id", ExpressionAttributeValues: { ":id": { S: id } }, ProjectionExpression: "userEmail" }))
     .map(item => item.userEmail?.S).filter(email => email && email !== actorEmail && !email.startsWith("GROUP#"));
-  const createdAt = new Date().toISOString(), eventId = `group_everyone#${id}#${randomUUID()}`, groupName = found.Item.name?.S || "your Tribe";
+  const createdAt = new Date().toISOString(), eventId = `group_everyone#${id}#${randomUUID()}`, groupName = meta.name?.S || "your Tribe";
   for (let offset = 0; offset < members.length; offset += 25) {
     await Promise.all(members.slice(offset, offset + 25).map(userEmail => db.send(new PutItemCommand({
       TableName: engagementNotificationsTable,
@@ -1163,6 +1472,99 @@ async function getProfileVideo(event) {
   return { statusCode: 200, headers, body: JSON.stringify({ mediaKey, mediaUrl: signedMediaUrl(mediaKey, 3600) }) };
 }
 
+async function cleanupProfileMediaObjects(accountEmail, keys) {
+  const prefix = `users/${sha256(accountEmail).slice(0, 24)}/`;
+  const candidates = [...new Set((keys || []).filter(Boolean))];
+  const owned = candidates.filter(key => key.startsWith(prefix));
+  const resolved = candidates.filter(key => !key.startsWith(prefix));
+  const pending = [];
+  for (const key of owned) {
+    const claim = randomUUID(), claimExpiresAt = now() + 300;
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: settingsTable,
+        Key: { userEmail: { S: accountEmail } },
+        UpdateExpression: "SET profileMediaCleanupClaim = :claim, profileMediaCleanupClaimKey = :candidate, profileMediaCleanupClaimExpiresAt = :expires",
+        ConditionExpression: "contains(profileMediaCleanup, :candidate) AND (attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now) AND (attribute_not_exists(profileAvatarKey) OR profileAvatarKey <> :candidate) AND (attribute_not_exists(profileCoverKey) OR profileCoverKey <> :candidate) AND (attribute_not_exists(profileVideoKey) OR profileVideoKey <> :candidate)",
+        ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key }, ":expires": { N: String(claimExpiresAt) }, ":now": { N: String(now()) } }
+      }));
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") {
+        const current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: { userEmail: { S: accountEmail } }, ConsistentRead: true, ProjectionExpression: "profileAvatarKey, profileCoverKey, profileVideoKey, profileMediaCleanup" }));
+        const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, current.Item?.profileVideoKey?.S].filter(Boolean));
+        if (active.has(key)) {
+          const activeConditions = ["profileAvatarKey = :candidate", "profileCoverKey = :candidate", "profileVideoKey = :candidate"].join(" OR ");
+          try {
+            await db.send(new UpdateItemCommand({
+              TableName: settingsTable,
+              Key: { userEmail: { S: accountEmail } },
+              UpdateExpression: "DELETE profileMediaCleanup :resolved",
+              ConditionExpression: activeConditions,
+              ExpressionAttributeValues: { ":resolved": { SS: [key] }, ":candidate": { S: key } }
+            }));
+            resolved.push(key);
+          } catch { pending.push(key); }
+        } else if (!(current.Item?.profileMediaCleanup?.SS || []).includes(key)) resolved.push(key);
+        else pending.push(key);
+        continue;
+      }
+      throw error;
+    }
+    let removed = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: key }));
+        removed = true;
+        break;
+      } catch (error) {
+        if (attempt === 2) console.error("Profile media cleanup remains pending", { key, error });
+      }
+    }
+    if (removed) {
+      try {
+        await db.send(new UpdateItemCommand({
+          TableName: settingsTable,
+          Key: { userEmail: { S: accountEmail } },
+          UpdateExpression: "DELETE profileMediaCleanup :resolved REMOVE profileMediaCleanupClaim, profileMediaCleanupClaimKey, profileMediaCleanupClaimExpiresAt",
+          ConditionExpression: "profileMediaCleanupClaim = :claim AND profileMediaCleanupClaimKey = :candidate",
+          ExpressionAttributeValues: { ":resolved": { SS: [key] }, ":claim": { S: claim }, ":candidate": { S: key } }
+        }));
+        resolved.push(key);
+      } catch (error) {
+        console.error("Profile media cleanup acknowledgement remains pending", { accountEmail, key, error });
+        pending.push(key);
+      }
+    } else {
+      pending.push(key);
+      try {
+        await db.send(new UpdateItemCommand({
+          TableName: settingsTable,
+          Key: { userEmail: { S: accountEmail } },
+          UpdateExpression: "REMOVE profileMediaCleanupClaim, profileMediaCleanupClaimKey, profileMediaCleanupClaimExpiresAt",
+          ConditionExpression: "profileMediaCleanupClaim = :claim AND profileMediaCleanupClaimKey = :candidate",
+          ExpressionAttributeValues: { ":claim": { S: claim }, ":candidate": { S: key } }
+        }));
+      } catch (error) {
+        console.error("Profile media cleanup lease release remains pending", { accountEmail, key, error });
+      }
+    }
+  }
+  const invalid = resolved.filter(key => !key.startsWith(prefix));
+  if (invalid.length) {
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: settingsTable,
+        Key: { userEmail: { S: accountEmail } },
+        UpdateExpression: "DELETE profileMediaCleanup :resolved",
+        ExpressionAttributeValues: { ":resolved": { SS: invalid } }
+      }));
+    } catch (error) {
+      console.error("Profile media cleanup queue remains pending", { accountEmail, error });
+    }
+  }
+  return { cleaned: resolved.length, pending: pending.length };
+}
+
 async function setProfileVideo(event) {
   const headers = corsHeaders(event.headers?.origin);
   if (!allowedOrigins.has(event.headers?.origin) && !/^Bearer\s+[a-f0-9]{64}$/i.test(event.headers?.authorization || event.headers?.Authorization || "")) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
@@ -1176,16 +1578,34 @@ async function setProfileVideo(event) {
   if (mediaKey && !new RegExp(`^users/${ownerPrefix}/[a-f0-9-]{36}\\.(mp4|webm|mov)$`).test(mediaKey)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Invalid profile video." }) };
   const key = { userEmail: { S: accountEmail } }, current = await db.send(new GetItemCommand({ TableName: settingsTable, Key: key, ConsistentRead: true }));
   const oldKey = current.Item?.profileVideoKey?.S || "";
-  await db.send(new UpdateItemCommand({
-    TableName: settingsTable,
-    Key: key,
-    UpdateExpression: "SET profileVideoKey = :video, updatedAt = :updated",
-    ExpressionAttributeValues: { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() } }
-  }));
-  if (oldKey && oldKey !== mediaKey && oldKey.startsWith(`users/${ownerPrefix}/`)) {
-    try { await s3.send(new DeleteObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: oldKey })); }
-    catch (error) { console.error("Profile video cleanup remains pending", { oldKey, error }); }
+  const replacedKey = oldKey && oldKey !== mediaKey && oldKey.startsWith(`users/${ownerPrefix}/`) ? oldKey : "";
+  if (mediaKey) {
+    try { await s3.send(new HeadObjectCommand({ Bucket: process.env.MEDIA_BUCKET, Key: mediaKey })); }
+    catch { return { statusCode: 404, headers, body: JSON.stringify({ error: "Uploaded profile video was not found." }) }; }
   }
+  const active = new Set([current.Item?.profileAvatarKey?.S, current.Item?.profileCoverKey?.S, mediaKey].filter(Boolean));
+  const pendingProfileMedia = [...new Set([...(current.Item?.profileMediaCleanup?.SS || []), replacedKey].filter(candidate => candidate && !active.has(candidate)))];
+  const expressionValues = { ":video": { S: mediaKey }, ":updated": { S: new Date().toISOString() }, ":now": { N: String(now()) } };
+  const conditions = ["attribute_not_exists(profileMediaCleanupClaim) OR profileMediaCleanupClaimExpiresAt < :now"];
+  for (const [field, token] of [["profileAvatarKey", "avatar"], ["profileCoverKey", "cover"], ["profileVideoKey", "oldVideo"]]) {
+    const value = current.Item?.[field]?.S || "";
+    if (value) { expressionValues[`:${token}`] = { S: value }; conditions.push(`${field} = :${token}`); }
+    else conditions.push(`attribute_not_exists(${field})`);
+  }
+  if (pendingProfileMedia.length) expressionValues[":profileCleanup"] = { SS: pendingProfileMedia };
+  try {
+    await db.send(new UpdateItemCommand({
+      TableName: settingsTable,
+      Key: key,
+      UpdateExpression: "SET profileVideoKey = :video, updatedAt = :updated" + (pendingProfileMedia.length ? ", profileMediaCleanup = :profileCleanup REMOVE " : " REMOVE profileMediaCleanup, ") + "profileMediaCleanupClaim, profileMediaCleanupClaimKey, profileMediaCleanupClaimExpiresAt",
+      ConditionExpression: conditions.map(condition => `(${condition})`).join(" AND "),
+      ExpressionAttributeValues: expressionValues
+    }));
+  } catch (error) {
+    if (error.name === "ConditionalCheckFailedException") return { statusCode: 409, headers, body: JSON.stringify({ error: "Your profile media changed on another device. Reload and try again." }) };
+    throw error;
+  }
+  await cleanupProfileMediaObjects(accountEmail, pendingProfileMedia);
   return { statusCode: 200, headers, body: JSON.stringify({ mediaKey }) };
 }
 
@@ -1285,6 +1705,7 @@ async function getSecurePosts(event) {
   const friendEmails = new Set();
   const blockedEmails = new Set();
   const viewerGroupIds = new Set();
+  const activeGroupIds = new Set(defaultGroupIds);
   const groupNames = new Map([
     ["default-0", "Visual Artist"], ["default-1", "DJs & Producers"], ["default-2", "Fans"], ["default-3", "Venues"], ["default-4", "Events"],
     ["default-5", "Scenes"], ["default-6", "Bands"], ["default-7", "Industry"], ["default-8", "Politics"], ["default-9", "Religion"]
@@ -1302,11 +1723,17 @@ async function getSecurePosts(event) {
     const groupItems = await scanAll({ TableName: groupsTable, ConsistentRead: true });
     for (const item of groupItems) {
       if (item.userEmail?.S === viewerEmail && item.groupId?.S && item.groupId.S !== "META") viewerGroupIds.add(item.groupId.S);
-      if (item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#")) groupNames.set(item.userEmail.S.slice(6), item.name?.S || "Tribe");
+      if (item.groupId?.S === "META" && item.userEmail?.S?.startsWith("GROUP#") && item.deletionState?.S !== "pending") {
+        const groupId = item.userEmail.S.slice(6);
+        activeGroupIds.add(groupId);
+        groupNames.set(groupId, item.name?.S || "Tribe");
+      }
     }
   }
 
-  const canView = item => item.userId?.S === userId || (!blockedEmails.has(item.userEmail?.S) && (item.groupId?.S ? viewerGroupIds.has(item.groupId.S) : item.audience?.S === "public" || (item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S))));
+  const canView = item => item.groupId?.S
+    ? activeGroupIds.has(item.groupId.S) && (item.userId?.S === userId || !blockedEmails.has(item.userEmail?.S) && viewerGroupIds.has(item.groupId.S))
+    : item.userId?.S === userId || !blockedEmails.has(item.userEmail?.S) && (item.audience?.S === "public" || item.audience?.S === "friends" && friendEmails.has(item.userEmail?.S));
   const accessibleSources = new Map(rawPosts.filter(canView).map(item => [item.postId.S, item]));
   const visiblePosts = rawPosts.filter(item => item.placementRemoved?.BOOL !== true && canView(item) && (!item.sharedPostId?.S || accessibleSources.has(item.sharedPostId.S)));
   const tagNames = visiblePosts.flatMap(item => (item.taggedUsers?.L || []).map(tag => ({userEmail:tag.M?.userEmail})));
@@ -1607,15 +2034,51 @@ async function deleteComment(event) {
   const userId = await getAuthenticatedUser(event), postId = String(event.queryStringParameters?.postId || ""), commentId = String(event.pathParameters?.commentId || "");
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   if (!/^[a-f0-9-]{36}$/.test(postId) || !/^\d{13}#[a-f0-9-]{36}$/.test(commentId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid comment." }) };
-  const [comment, post] = await Promise.all([
+  const [commentResult, post] = await Promise.all([
     db.send(new GetItemCommand({ TableName: commentsTable, Key: { postId: { S: postId }, commentId: { S: commentId } }, ConsistentRead: true })),
     db.send(new GetItemCommand({ TableName: postsTable, Key: { postId: { S: postId } }, ConsistentRead: true }))
   ]);
-  if (!comment.Item) return { statusCode: 404, headers, body: JSON.stringify({ error: "Comment not found." }) };
-  if (comment.Item.userId?.S !== userId && post.Item?.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the comment or post owner can delete this comment." }) };
-  await db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: { S: postId }, commentId: { S: commentId } } }));
-  if (post.Item?.userEmail?.S) await db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: { S: post.Item.userEmail.S }, eventId: { S: `comment#${commentId}` } } }));
-  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
+  const comment = commentResult.Item;
+  if (!comment) return { statusCode: 404, headers, body: JSON.stringify({ error: "Comment not found." }) };
+  if (comment.userId?.S !== userId && post.Item?.userId?.S !== userId) return { statusCode: 403, headers, body: JSON.stringify({ error: "Only the comment or post owner can delete this comment." }) };
+  const [comments, reactions] = await Promise.all([
+    queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, commentId, userId, userEmail, parentCommentId", ConsistentRead: true }, Number.MAX_SAFE_INTEGER),
+    queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: postId } }, ProjectionExpression: "postId, userId, commentId", ConsistentRead: true }, Number.MAX_SAFE_INTEGER)
+  ]);
+  const commentsById = new Map(comments.map(item => [item.commentId?.S, item]));
+  commentsById.set(commentId, comment);
+  const notificationKeys = new Map();
+  const rememberNotification = (userEmail, eventId) => {
+    if (!userEmail || !eventId) return;
+    notificationKeys.set(`${userEmail}\u0000${eventId}`, { userEmail: { S: userEmail }, eventId: { S: eventId } });
+  };
+  const postOwnerEmail = post.Item?.userEmail?.S || "", commentOwnerEmail = comment.userEmail?.S || "";
+  if (postOwnerEmail) rememberNotification(postOwnerEmail, `comment#${commentId}`);
+  const parent = commentsById.get(comment.parentCommentId?.S), parentEmail = parent?.userEmail?.S || "";
+  if (parentEmail && parentEmail !== postOwnerEmail) rememberNotification(parentEmail, `reply#${commentId}`);
+  for (const child of comments) if (child.parentCommentId?.S === commentId && commentOwnerEmail && commentOwnerEmail !== postOwnerEmail) {
+    rememberNotification(commentOwnerEmail, `reply#${child.commentId?.S || ""}`);
+  }
+  const cleanupTasks = [
+    ...reactions.filter(item => item.commentId?.S === commentId).map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
+    ...[...notificationKeys.values()].map(key => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: key })))
+  ];
+  const cleanupPending = await runCleanup(cleanupTasks);
+  if (cleanupPending) {
+    console.error("Comment dependency deletion remains pending", { postId, commentId, cleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The comment is still being removed. Try again.", deleted: false, cleanupPending }) };
+  }
+  const commentCleanupPending = await runCleanup([() => db.send(new DeleteItemCommand({
+    TableName: commentsTable,
+    Key: { postId: { S: postId }, commentId: { S: commentId } },
+    ConditionExpression: "userId = :owner",
+    ExpressionAttributeValues: { ":owner": { S: comment.userId.S } }
+  }))]);
+  if (commentCleanupPending) {
+    console.error("Comment deletion remains pending", { postId, commentId, commentCleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The comment is still being removed. Try again.", deleted: false, cleanupPending: commentCleanupPending }) };
+  }
+  return { statusCode: 200, headers, body: JSON.stringify({ deleted: true, cleanupPending: 0 }) };
 }
 
 async function getEngagementNotifications(event) {
@@ -1890,7 +2353,7 @@ async function deleteSecurePost(event) {
     TableName: postsTable,
     FilterExpression: "sharedPostId = :source",
     ExpressionAttributeValues: { ":source": { S: postId } }
-  });
+  }, Number.MAX_SAFE_INTEGER);
   if (mode === "remove_here" && !isShare && shares.length) {
     await db.send(new UpdateItemCommand({
       TableName: postsTable,
@@ -1913,7 +2376,7 @@ async function deleteSecurePost(event) {
       FilterExpression: "mediaKey = :media AND userEmail = :owner",
       ExpressionAttributeValues: { ":media": { S: found.Item.mediaKey.S }, ":owner": { S: found.Item.userEmail?.S || "" } },
       ProjectionExpression: "storyId"
-    });
+    }, Number.MAX_SAFE_INTEGER);
   }
   if (mediaKey) {
     const mediaCleanupPending = await runCleanup([
@@ -1924,29 +2387,62 @@ async function deleteSecurePost(event) {
       return { statusCode: 503, headers, body: JSON.stringify({ error: "Post media could not be removed yet. Try again.", deleted: false }) };
     }
   }
+  const notificationCleanupTasks = [];
   const cleanupTasks = [];
+  const shareDeleteTasks = [];
   let sourceDeleteTask = null;
   for (const record of deletionRecords) {
     const recordId = record.postId.S;
-    const [reactions, comments, notices] = await Promise.all([
-      queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, userId", ConsistentRead: true }),
-      queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, commentId", ConsistentRead: true }),
-      record.userEmail?.S ? queryAll({ TableName: engagementNotificationsTable, KeyConditionExpression: "userEmail = :u", ExpressionAttributeValues: { ":u": { S: record.userEmail.S } }, ProjectionExpression: "userEmail, eventId, postId", ConsistentRead: true }) : Promise.resolve([])
+    const [reactions, comments, views] = await Promise.all([
+      queryAll({ TableName: reactionsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, userId, commentId", ConsistentRead: true }, Number.MAX_SAFE_INTEGER),
+      queryAll({ TableName: commentsTable, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, commentId, userEmail, parentCommentId", ConsistentRead: true }, Number.MAX_SAFE_INTEGER),
+      process.env.POST_VIEWS_TABLE ? queryAll({ TableName: process.env.POST_VIEWS_TABLE, KeyConditionExpression: "postId = :p", ExpressionAttributeValues: { ":p": { S: recordId } }, ProjectionExpression: "postId, viewerKey", ConsistentRead: true }, Number.MAX_SAFE_INTEGER) : Promise.resolve([])
     ]);
+    const commentById = new Map(comments.map(item => [item.commentId?.S, item]));
+    const notificationKeys = new Map();
+    const rememberNotification = (userEmail, eventId) => {
+      if (!userEmail || !eventId) return;
+      notificationKeys.set(`${userEmail}\u0000${eventId}`, { userEmail: { S: userEmail }, eventId: { S: eventId } });
+    };
+    for (const reaction of reactions) if (!reaction.commentId?.S && record.userEmail?.S && reaction.userId?.S) {
+      rememberNotification(record.userEmail.S, `reaction#${recordId}#${reaction.userId.S}`);
+    }
+    for (const comment of comments) {
+      if (record.userEmail?.S && comment.commentId?.S) rememberNotification(record.userEmail.S, `comment#${comment.commentId.S}`);
+      const parent = commentById.get(comment.parentCommentId?.S), parentEmail = parent?.userEmail?.S;
+      if (parentEmail && parentEmail !== record.userEmail?.S && parentEmail !== comment.userEmail?.S && comment.commentId?.S) {
+        rememberNotification(parentEmail, `reply#${comment.commentId.S}`);
+      }
+    }
+    for (const tag of record.taggedUsers?.L || []) {
+      const taggedEmail = tag.M?.userEmail?.S, taggedId = tag.M?.memberId?.S;
+      if (taggedEmail && taggedId) rememberNotification(taggedEmail, `tag#${recordId}#${taggedId}`);
+    }
     const deleteRecord = () => db.send(new DeleteItemCommand({ TableName: postsTable, Key: { postId: { S: recordId } } }));
     cleanupTasks.push(
       ...reactions.map(item => () => db.send(new DeleteItemCommand({ TableName: reactionsTable, Key: { postId: item.postId, userId: item.userId } }))),
       ...comments.map(item => () => db.send(new DeleteItemCommand({ TableName: commentsTable, Key: { postId: item.postId, commentId: item.commentId } }))),
-      ...notices.filter(item => item.postId?.S === recordId).map(item => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: { userEmail: item.userEmail, eventId: item.eventId } })))
+      ...views.map(item => () => db.send(new DeleteItemCommand({ TableName: process.env.POST_VIEWS_TABLE, Key: { postId: item.postId, viewerKey: item.viewerKey } })))
     );
+    notificationCleanupTasks.push(...[...notificationKeys.values()].map(key => () => db.send(new DeleteItemCommand({ TableName: engagementNotificationsTable, Key: key }))));
     if (!isShare && recordId === postId) sourceDeleteTask = deleteRecord;
-    else cleanupTasks.push(deleteRecord);
+    else shareDeleteTasks.push(deleteRecord);
   }
   cleanupTasks.push(...linkedStories.map(item => () => db.send(new DeleteItemCommand({ TableName: storiesTable, Key: { storyId: item.storyId } }))));
+  const notificationCleanupPending = await runCleanup(notificationCleanupTasks);
+  if (notificationCleanupPending) {
+    console.error("Post notification deletion remains pending", { postId, notificationCleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The post is still being removed. Try again.", deleted: false, cleanupPending: notificationCleanupPending }) };
+  }
   const cleanupPending = await runCleanup(cleanupTasks);
   if (cleanupPending) {
     console.error("Post deletion cleanup remains pending", { postId, cleanupPending });
     return { statusCode: 503, headers, body: JSON.stringify({ error: "The post is still being removed. Try again.", deleted: false, cleanupPending }) };
+  }
+  const shareCleanupPending = await runCleanup(shareDeleteTasks);
+  if (shareCleanupPending) {
+    console.error("Post share deletion remains pending", { postId, shareCleanupPending });
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "The post is still being removed. Try again.", deleted: false, cleanupPending: shareCleanupPending }) };
   }
   const sourceCleanupPending = sourceDeleteTask ? await runCleanup([sourceDeleteTask]) : 0;
   if (sourceCleanupPending) {
@@ -3321,7 +3817,10 @@ async function searchVenues(event) {
     let radiusMiles = requestedRadiusMiles;
     let discovery = await multiSourceDiscovery(point, "venue", { genre: parsed.genre, radiusMiles });
     let discovered = discovery.places.filter(place => approximateMilesBetween(point.position, place.position) <= radiusMiles).filter(place => isSupportedBookingLead(place, parsed.genre));
-    const expandedFromMiles = discovered.length < 5 && radiusMiles < 75 ? radiusMiles : null;
+    // A handful of results is not useful tour research in a sparse market.
+    // Expand once before presenting the locality as covered so nearby rooms in
+    // distinct towns remain available with their real distance and address.
+    const expandedFromMiles = discovered.length < 10 && radiusMiles < 75 ? radiusMiles : null;
     if (expandedFromMiles) {
       radiusMiles = Math.min(75, Math.max(40, radiusMiles * 2));
       discovery = await multiSourceDiscovery(point, "venue", { genre: parsed.genre, radiusMiles });
@@ -3656,8 +4155,47 @@ function epkDeletionPlan(existingItem, ownerPrefix, ownerKey) {
   if (publicId) transaction.push({ Delete: { TableName: toursTable, Key: { userId: { S: epkSharePartition }, tourId: { S: publicId } } } });
   let previousKit = {};
   try { previousKit = JSON.parse(existingItem?.plan?.S || "{}"); } catch { previousKit = {}; }
-  const mediaKeys = (previousKit.media || []).map(item => item?.key || "").filter(key => epkMediaPattern(ownerPrefix).test(key));
+  const mediaKeys = [...new Set([
+    ...(previousKit.media || []).map(item => item?.key || ""),
+    ...(existingItem?.mediaCleanup?.SS || [])
+  ].filter(key => epkMediaPattern(ownerPrefix).test(key)))];
   return { transaction, mediaKeys };
+}
+
+async function cleanupEpkMediaObjects(ownerKey, ownerPrefix, keys, retainedKeys = []) {
+  const candidates = [...new Set((keys || []).filter(Boolean))];
+  const retained = new Set((retainedKeys || []).filter(key => epkMediaPattern(ownerPrefix).test(key)));
+  const owned = candidates.filter(key => epkMediaPattern(ownerPrefix).test(key) && !retained.has(key));
+  const resolved = candidates.filter(key => !epkMediaPattern(ownerPrefix).test(key) || retained.has(key));
+  const pending = [];
+  for (const key of owned) {
+    let removed = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: key }));
+        removed = true;
+        break;
+      } catch (error) {
+        if (attempt === 2) console.error("EPK media cleanup remains pending", { userId: ownerKey.userId.S, key, error });
+      }
+    }
+    if (removed) resolved.push(key);
+    else pending.push(key);
+  }
+  if (resolved.length) {
+    try {
+      await db.send(new UpdateItemCommand({
+        TableName: toursTable,
+        Key: ownerKey,
+        UpdateExpression: "DELETE mediaCleanup :resolved",
+        ExpressionAttributeValues: { ":resolved": { SS: resolved } },
+        ConditionExpression: "attribute_exists(userId)"
+      }));
+    } catch (error) {
+      console.error("EPK media cleanup queue remains pending", { userId: ownerKey.userId.S, error });
+    }
+  }
+  return { cleaned: candidates.length - pending.length, pending: pending.length };
 }
 
 async function deleteEpkOutreachShares(userId) {
@@ -3721,20 +4259,31 @@ async function epkWorkspace(event, method) {
   const nowIso = new Date().toISOString(), plan = JSON.stringify(kit), shareHash = /^[a-f0-9]{64}$/.test(existing.Item?.shareHash?.S || "") ? existing.Item.shareHash.S : "";
   if (Buffer.byteLength(plan, "utf8") > 200000) return reply(400, { error: "This EPK is too large." });
   const publicKey = { userId: { S: epkPublicPartition }, tourId: { S: publicId } };
+  let previousKit = {};
+  try { previousKit = JSON.parse(existing.Item?.plan?.S || "{}"); } catch { previousKit = {}; }
+  const retained = new Set((kit.media || []).map(item => item.key));
+  const removedKeys = (previousKit.media || []).map(item => item?.key || "").filter(key => epkMediaPattern(ownerPrefix).test(key) && !retained.has(key));
+  const pendingMediaCleanup = [...new Set([...(existing.Item?.mediaCleanup?.SS || []), ...removedKeys])];
+  const ownerValues = {
+    ":name": { S: `${kit.artistName} EPK` },
+    ":plan": { S: plan },
+    ":publicId": { S: publicId },
+    ":published": { BOOL: publish },
+    ":updated": { S: nowIso }
+  };
+  let ownerUpdate = "SET #name = :name, #plan = :plan, publicId = :publicId, published = :published, updatedAt = :updated";
+  if (shareHash) { ownerUpdate += ", shareHash = :shareHash"; ownerValues[":shareHash"] = { S: shareHash }; }
+  else ownerUpdate += " REMOVE shareHash";
+  if (removedKeys.length) { ownerUpdate += " ADD mediaCleanup :mediaCleanup"; ownerValues[":mediaCleanup"] = { SS: [...new Set(removedKeys)] }; }
   await db.send(new TransactWriteItemsCommand({ TransactItems: [
-    { Put: { TableName: toursTable, Item: { ...ownerKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, publicId: { S: publicId }, published: { BOOL: publish }, updatedAt: { S: nowIso }, ...(shareHash ? { shareHash: { S: shareHash } } : {}) } } },
+    { Update: { TableName: toursTable, Key: ownerKey, UpdateExpression: ownerUpdate, ExpressionAttributeNames: { "#name": "name", "#plan": "plan" }, ExpressionAttributeValues: ownerValues } },
     publish
       ? { Put: { TableName: toursTable, Item: { ...publicKey, name: { S: `${kit.artistName} EPK` }, plan: { S: plan }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }
       : { Delete: { TableName: toursTable, Key: publicKey } },
     ...(shareHash ? [{ Put: { TableName: toursTable, Item: { userId: { S: epkSharePartition }, tourId: { S: publicId }, name: { S: `${kit.artistName} private EPK` }, plan: { S: plan }, shareHash: { S: shareHash }, ownerId: { S: userId }, updatedAt: { S: nowIso } } } }] : [])
   ] }));
-  const previousKit = existing.Item?.plan?.S ? JSON.parse(existing.Item.plan.S) : {}, retained = new Set((kit.media || []).map(item => item.key));
-  const removed = (previousKit.media || []).filter(item => epkMediaPattern(ownerPrefix).test(item.key || "") && !retained.has(item.key));
-  if (removed.length) {
-    const pending = await runCleanup(removed.map(item => () => s3.send(new DeleteObjectCommand({ Bucket: mediaBucket, Key: item.key }))));
-    if (pending) console.error("EPK media cleanup remains pending", { userId, pending });
-  }
-  return reply(200, { publicId, published: publish, updatedAt: nowIso });
+  const cleanup = await cleanupEpkMediaObjects(ownerKey, ownerPrefix, pendingMediaCleanup, [...retained]);
+  return reply(200, { publicId, published: publish, updatedAt: nowIso, cleanupPending: cleanup.pending });
 }
 
 async function publicEpk(event, publicId) {
@@ -4222,6 +4771,139 @@ async function deleteTourPlan(event, tourId) {
   return { statusCode: 200, headers, body: JSON.stringify({ deleted: true }) };
 }
 
+function accountSecurityOriginAllowed(event) {
+  const origin = event.headers?.origin || event.headers?.Origin || "";
+  const authorization = event.headers?.authorization || event.headers?.Authorization || "";
+  return allowedOrigins.has(origin) || /^Bearer\s+[a-f0-9]{64}$/i.test(authorization);
+}
+
+function publicSessionDevice(item, currentDeviceId) {
+  const deviceId = item?.deviceId?.S || "";
+  return {
+    deviceId,
+    label: String(item?.deviceLabel?.S || "DanzStak session").slice(0, 80),
+    current: Boolean(deviceId && deviceId === currentDeviceId),
+    createdAt: Number(item?.createdAt?.N || 0),
+    lastUsedAt: Number(item?.lastUsedAt?.N || 0),
+    expiresAt: Number(item?.expiresAt?.N || 0)
+  };
+}
+
+async function listAccountSessions(event) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const headers = corsHeaders(origin);
+  if (!accountSecurityOriginAllowed(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const authenticated = await getAuthenticatedSession(event, { touch: false });
+  if (!authenticated) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const result = await db.send(new QueryCommand({
+    TableName: sessionDevicesTable,
+    KeyConditionExpression: "userId = :userId",
+    ExpressionAttributeValues: { ":userId": { S: authenticated.userId } },
+    Limit: 50,
+    ConsistentRead: true
+  }));
+  const devices = (result.Items || [])
+    .filter(item => Number(item.expiresAt?.N || 0) > now())
+    .map(item => publicSessionDevice(item, authenticated.deviceId));
+  if (authenticated.deviceId && !devices.some(device => device.current)) {
+    devices.push({
+      deviceId: authenticated.deviceId, label: authenticated.deviceLabel || "This device", current: true,
+      createdAt: authenticated.createdAt, lastUsedAt: authenticated.lastUsedAt, expiresAt: authenticated.expiresAt
+    });
+  }
+  devices.sort((first, second) => Number(second.current) - Number(first.current) || second.lastUsedAt - first.lastUsedAt);
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({ devices, sessionLifetimeSeconds, recentAuthenticationSeconds })
+  };
+}
+
+function recentAuthenticationRequired(authenticated, headers) {
+  if (authenticated.authenticatedAt > now() - recentAuthenticationSeconds) return null;
+  return {
+    statusCode: 403,
+    headers,
+    body: JSON.stringify({
+      error: "Sign in again before signing out another device.",
+      reauthenticationRequired: true,
+      reauthenticationUrl: "https://api.danzstak.com/auth/reauth"
+    })
+  };
+}
+
+async function revokeAccountSession(event, deviceId) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const headers = corsHeaders(origin);
+  if (!accountSecurityOriginAllowed(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  if (!/^[0-9a-f-]{36}$/i.test(deviceId)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid device identifier." }) };
+  const authenticated = await getAuthenticatedSession(event, { touch: false });
+  if (!authenticated) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  if (deviceId === authenticated.deviceId) return { statusCode: 400, headers, body: JSON.stringify({ error: "Use Logout to sign out this device." }) };
+  const reauthentication = recentAuthenticationRequired(authenticated, headers);
+  if (reauthentication) return reauthentication;
+  const key = { userId: { S: authenticated.userId }, deviceId: { S: deviceId } };
+  const found = await db.send(new GetItemCommand({ TableName: sessionDevicesTable, Key: key, ConsistentRead: true }));
+  const sessionHash = found.Item?.sessionHash?.S || "";
+  if (!/^[a-f0-9]{64}$/.test(sessionHash)) {
+    await db.send(new DeleteItemCommand({ TableName: sessionDevicesTable, Key: key }));
+    return { statusCode: 200, headers, body: JSON.stringify({ revoked: true, alreadyInactive: true }) };
+  }
+  try {
+    await db.send(new DeleteItemCommand({
+      TableName: tableName,
+      Key: { sessionId: { S: sessionHash } },
+      ConditionExpression: "#type = :sessionType AND userId = :userId",
+      ExpressionAttributeNames: { "#type": "type" },
+      ExpressionAttributeValues: { ":sessionType": { S: "user_session" }, ":userId": { S: authenticated.userId } }
+    }));
+  } catch (error) {
+    if (error?.name !== "ConditionalCheckFailedException") throw error;
+  }
+  await db.send(new DeleteItemCommand({ TableName: sessionDevicesTable, Key: key }));
+  return { statusCode: 200, headers, body: JSON.stringify({ revoked: true }) };
+}
+
+async function revokeOtherAccountSessions(event) {
+  const origin = event.headers?.origin || event.headers?.Origin;
+  const headers = corsHeaders(origin);
+  if (!accountSecurityOriginAllowed(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin" }) };
+  const contentType = event.headers?.["content-type"] || event.headers?.["Content-Type"] || "";
+  if (!/^application\/json(?:\s*;|$)/i.test(contentType)) return { statusCode: 415, headers, body: JSON.stringify({ error: "JSON content type required" }) };
+  const authenticated = await getAuthenticatedSession(event, { touch: false });
+  if (!authenticated) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const reauthentication = recentAuthenticationRequired(authenticated, headers);
+  if (reauthentication) return reauthentication;
+  const result = await db.send(new QueryCommand({
+    TableName: sessionDevicesTable,
+    KeyConditionExpression: "userId = :userId",
+    ExpressionAttributeValues: { ":userId": { S: authenticated.userId } },
+    Limit: 50,
+    ConsistentRead: true
+  }));
+  let revoked = 0;
+  for (const item of result.Items || []) {
+    const deviceId = item.deviceId?.S || "";
+    if (!deviceId || deviceId === authenticated.deviceId) continue;
+    const sessionHash = item.sessionHash?.S || "";
+    if (/^[a-f0-9]{64}$/.test(sessionHash)) {
+      try {
+        await db.send(new DeleteItemCommand({
+          TableName: tableName, Key: { sessionId: { S: sessionHash } },
+          ConditionExpression: "#type = :sessionType AND userId = :userId",
+          ExpressionAttributeNames: { "#type": "type" },
+          ExpressionAttributeValues: { ":sessionType": { S: "user_session" }, ":userId": { S: authenticated.userId } }
+        }));
+      } catch (error) {
+        if (error?.name !== "ConditionalCheckFailedException") throw error;
+      }
+    }
+    await db.send(new DeleteItemCommand({ TableName: sessionDevicesTable, Key: { userId: { S: authenticated.userId }, deviceId: { S: deviceId } } }));
+    revoked += 1;
+  }
+  return { statusCode: 200, headers, body: JSON.stringify({ revoked }) };
+}
+
 // LOG OUT
 async function logout(event) {
   const origin = event.headers?.origin;
@@ -4252,7 +4934,8 @@ async function logout(event) {
   }
 
   const sessionId = getSessionId(event);
-  const userId = await getAuthenticatedUser(event);
+  const authenticated = await getAuthenticatedSession(event, { touch: false });
+  const userId = authenticated?.userId || null;
   const userEmail = userId ? await accountForSub(userId) : "";
 
   if (sessionId) {
@@ -4276,6 +4959,17 @@ async function logout(event) {
       ) {
         throw error;
       }
+    }
+  }
+
+  if (authenticated?.deviceId) {
+    try {
+      await db.send(new DeleteItemCommand({
+        TableName: sessionDevicesTable,
+        Key: { userId: { S: authenticated.userId }, deviceId: { S: authenticated.deviceId } }
+      }));
+    } catch (error) {
+      console.error("Session device cleanup failed during logout", { errorName: error?.name || "Error" });
     }
   }
 
@@ -4314,6 +5008,12 @@ export const handler = async event => {
       const billingResponse = await tourManagerBilling(event);
       if (billingResponse) return billingResponse;
     }
+    if (path?.startsWith("/marketplace/")) {
+      const ticketingResponse = await ticketing(event);
+      if (ticketingResponse) return ticketingResponse;
+      const marketplaceResponse = await marketplace(event);
+      if (marketplaceResponse) return marketplaceResponse;
+    }
 
     if (method === "GET" && path === "/auth/login") {
       return await startLogin("login");
@@ -4341,6 +5041,25 @@ export const handler = async event => {
 
     if (method === "GET" && path === "/auth/session") {
       return await checkSession(event);
+    }
+
+    if (method === "GET" && path === "/auth/reauth") {
+      const authenticated = await getAuthenticatedSession(event, { touch: false });
+      if (!authenticated) return redirect(siteUrl + "/?signin=required");
+      return await startLogin("reauth");
+    }
+
+    if (method === "GET" && path === "/auth/sessions") {
+      return await listAccountSessions(event);
+    }
+
+    const accountSessionMatch = path?.match(/^\/auth\/sessions\/([0-9a-f-]{36})$/i);
+    if (method === "DELETE" && accountSessionMatch) {
+      return await revokeAccountSession(event, accountSessionMatch[1]);
+    }
+
+    if (method === "POST" && path === "/auth/sessions/revoke-others") {
+      return await revokeOtherAccountSessions(event);
     }
 
     if (method === "GET" && path === "/secure-posts") {

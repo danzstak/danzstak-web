@@ -60,7 +60,7 @@ function json(route, body, status = 200) {
       assert.equal(requests[1].clientMessageId, requests[0].clientMessageId, `${width}px retry must reuse its stable message ID`);
       assert.equal(await page.locator(".message.mine", { hasText: "Can we hold Friday for the show?" }).count(), 1, `${width}px must render one confirmed message`);
       assert.equal(await page.locator(".message.is-pending").count(), 0, `${width}px must not leave a duplicate pending bubble`);
-      assert.equal((await page.locator("#callStatus").textContent()).trim(), "Delivered", `${width}px confirmed retry must clear stale connection and composer errors`);
+      assert.equal((await page.locator("#callStatus").textContent()).trim(), "Sent", `${width}px confirmed retry must clear stale connection and composer errors without overstating delivery`);
       const layout = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }));
       assert.ok(layout.scrollWidth <= layout.clientWidth, `${width}px must not overflow horizontally: ${JSON.stringify(layout)}`);
       assert.ok(sendHeightBefore >= 44, `${width}px send control must retain a 44px touch target: ${sendHeightBefore}`);

@@ -6,6 +6,7 @@
   const printButton = document.getElementById("printVenueSheet");
   const downloadButton = document.getElementById("downloadVenueCsv");
   const clearButton = document.getElementById("clearVenueSelections");
+  const chooseVenuesNext = document.getElementById("chooseVenuesNext");
   const storageKey = "danzstakBookingVenueSelections";
   const stages = ["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined", "No response"];
   const legacyStages = { Research: "Not contacted", "Ready to pitch": "Email prepared", Contacted: "Email sent", "In conversation": "Reply received", Hold: "Interested" };
@@ -18,6 +19,15 @@
   const saveAccount = document.getElementById("saveBookingAccount");
   const loadAccount = document.getElementById("loadBookingAccount");
   const artistInputs = { name: "pitchArtist", genre: "pitchGenre", hometown: "pitchHometown", epk: "pitchEpk", pitch: "pitchSummary" };
+  const epkHandoffRequested = new URLSearchParams(location.search).get("from") === "epk";
+  const followUpFocusVenue = (() => {
+    const url = new URL(location.href), value = String(url.searchParams.get("focusVenue") || "");
+    if (url.searchParams.has("focusVenue")) {
+      url.searchParams.delete("focusVenue");
+      history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+    return value.length <= 240 ? value : "";
+  })();
   const tourInputs = { name: "tmName", currency: "tmCurrency", departOn: "tmDepartOn", returnBy: "tmReturnBy", distanceKm: "tmDistanceKm", vehicleType: "tmVehicleType", fuelLitersPer100Km: "tmFuelUse", fuelPricePerLiter: "tmFuelPrice", people: "tmPeople", mealPerPersonDay: "tmMeals", nights: "tmNights", rooms: "tmRooms", roomRate: "tmRoomRate", tolls: "tmTolls", parking: "tmParking", vehicleRental: "tmVehicleRental", equipment: "tmEquipment", crew: "tmCrew", miscellaneous: "tmMisc", contingencyPercent: "tmContingency", confirmedRevenue: "tmConfirmedRevenueInput", potentialRevenue: "tmPotentialRevenue" };
   const artist = () => Object.fromEntries(Object.entries(artistInputs).map(([key, id]) => [key, document.getElementById(id).value.trim()]));
   const tour = () => Object.fromEntries(Object.entries(tourInputs).map(([key, id]) => { const input = document.getElementById(id); return [key, input.type === "number" ? Number(input.value || 0) : input.value.trim()]; }));
@@ -45,24 +55,62 @@
     if (Array.isArray(parsed)) venues = parsed.slice(0, 100);
   } catch {}
 
-  document.getElementById("usePublishedEpk")?.addEventListener("click", async () => {
+  function clearEpkHandoffQuery() {
+    const url = new URL(location.href);
+    url.searchParams.delete("from");
+    history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  async function usePublishedEpk({ save = false, clearHandoff = false } = {}) {
     const button = document.getElementById("usePublishedEpk");
-    button.disabled = true;
+    if (button) button.disabled = true;
     accountStatus.textContent = "Finding your published EPK…";
     try {
       const response = await fetchWithTimeout("https://api.danzstak.com/epk", { credentials: "include", cache: "no-store" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Your EPK could not be loaded.");
       if (!data.published || !data.publicId) throw new Error("Publish your EPK before adding it to a booking inquiry.");
-      document.getElementById("pitchEpk").value = new URL(`epk.html?id=${encodeURIComponent(data.publicId)}`, location.origin).href;
+      const kit = data.kit && typeof data.kit === "object" ? data.kit : {};
+      const next = {
+        name: String(kit.artistName || "").trim(),
+        genre: Array.isArray(kit.genres) ? kit.genres.map(value => String(value).trim()).filter(Boolean).join(", ") : "",
+        hometown: String(kit.hometown || "").trim(),
+        epk: new URL(`epk.html?id=${encodeURIComponent(data.publicId)}`, location.origin).href,
+        pitch: String(kit.shortPitch || kit.shortBio || "").trim()
+      };
+      const current = artist();
+      if (current.name && next.name && current.name.localeCompare(next.name, undefined, { sensitivity:"base" }) !== 0) {
+        if (!window.danzstakConfirm) throw new Error("DanzStak could not open the act-switch review. Reload and try again.");
+        const confirmReplace = await window.danzstakConfirm(`This workspace is for ${current.name}. Use the published EPK for ${next.name} and replace the act details? Saved venues and tour costs will stay.`, { title:"Switch the act for this pitch?", confirmLabel:"Use published EPK" });
+        if (!confirmReplace) {
+          accountStatus.textContent = "Booking workspace unchanged.";
+          return false;
+        }
+      }
+      for (const [key, value] of Object.entries(next)) {
+        if (value) document.getElementById(artistInputs[key]).value = value;
+      }
       dirty = true;
-      accountStatus.textContent = "Published EPK added. Save the booking workspace to keep it.";
+      persist();
+      render();
+      accountStatus.textContent = "Published EPK and act details added. Saving your private booking workspace…";
+      if (save && accountLoaded) {
+        await saveWorkspaceSnapshot();
+        if (!dirty) accountStatus.textContent = "Published EPK and act details saved. Choose venues and review each pitch before sending.";
+      } else {
+        accountStatus.textContent = "Published EPK and act details added. Sign in and save the booking workspace to keep them.";
+      }
+      if (clearHandoff) clearEpkHandoffQuery();
+      return true;
     } catch (error) {
       accountStatus.textContent = error.name === "AbortError" ? "Your EPK took too long to load. Try again." : error.message;
+      return false;
     } finally {
-      button.disabled = false;
+      if (button) button.disabled = false;
     }
-  });
+  }
+
+  document.getElementById("usePublishedEpk")?.addEventListener("click", () => usePublishedEpk({ save:true }));
 
   const link = (label, href) => {
     const anchor = document.createElement("a");
@@ -168,6 +216,10 @@
   function updateControls() {
     const available = venues.length > 0;
     for (const button of [printButton, downloadButton, clearButton]) if (button) button.disabled = !available;
+    if (typeof chooseVenuesNext !== "undefined" && chooseVenuesNext) {
+      chooseVenuesNext.textContent = available ? "Add venues" : "Choose venues";
+      chooseVenuesNext.setAttribute("aria-label", available ? "Add more venues from the worldwide venue map" : "Choose venues from the worldwide venue map");
+    }
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const due = venues.filter(v => v.booking?.followUp && v.booking.followUp <= today && !["Confirmed", "Declined"].includes(bookingStatus(v))).length;
@@ -272,6 +324,7 @@
     ].filter(Boolean).join(" — ");
     links.className = "venue-links";
     const venueKey = identity(venue);
+    card.dataset.venueKey = venueKey;
     const hasDirectContact = (venue.emails || []).some(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) || (venue.phones || []).length > 0;
     const contactUnlocked = window.danzstakBookingContactUnlocked?.(venueKey) === true;
     if (typeof venue.imageUrl === "string" && /^https:\/\//.test(venue.imageUrl)) {
@@ -291,10 +344,15 @@
       unlock.className = "unlock-contact";
       unlock.textContent = "Unlock booking contact · $0.75";
       unlock.addEventListener("click", async () => {
-        if (dirty) { window.danzstakShowFeedback?.("Save your booking workspace before unlocking its contact.", { urgent: true }); return; }
         unlock.disabled = true;
-        unlock.textContent = "Opening secure checkout…";
-        try { await window.danzstakUnlockBookingContact(venueKey); }
+        try {
+          if (dirty) {
+            unlock.textContent = "Saving current venue…";
+            if (!(await saveWorkspaceSnapshot())) throw new Error("DanzStak could not save this venue. Check the account status and try again before checkout.");
+          }
+          unlock.textContent = "Opening secure checkout…";
+          await window.danzstakUnlockBookingContact(venueKey);
+        }
         catch (error) { window.danzstakShowFeedback?.(error.message, { urgent: true }); unlock.disabled = false; unlock.textContent = "Unlock booking contact · $0.75"; }
       });
       links.append(unlock);
@@ -391,6 +449,26 @@
     const contactUnlocked = window.danzstakBookingContactUnlocked?.(identity(venue)) === true;
     const email = contactUnlocked ? (venue.emails || []).find(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) : undefined;
     button.disabled = !email;
+    const creditPrompt = document.createElement("div"), creditMessage = document.createElement("p"), buyCredit = document.createElement("button");
+    creditPrompt.className = "booking-credit-needed";
+    creditMessage.textContent = "No booking-email credit is ready. You can still preview the exact message before buying.";
+    buyCredit.type = "button";
+    buyCredit.className = "secondary";
+    buyCredit.textContent = "Buy 1 credit · $1.50";
+    buyCredit.addEventListener("click", async () => {
+      buyCredit.disabled = true;
+      try {
+        if (dirty && !(await saveWorkspaceSnapshot())) throw new Error("DanzStak could not save this pitch. Check the account status and try again before checkout.");
+        if (typeof window.danzstakStartBookingCreditCheckout !== "function") throw new Error("Secure credit checkout is unavailable. Reload and try again.");
+        const opened = await window.danzstakStartBookingCreditCheckout({ quantity:1, venueKey:identity(venue), button:buyCredit });
+        if (!opened) buyCredit.disabled = false;
+      } catch (error) {
+        window.danzstakShowFeedback?.(error.message, { urgent:true });
+        buyCredit.disabled = false;
+      }
+    });
+    creditPrompt.append(creditMessage, buyCredit);
+    creditPrompt.hidden = !window.danzstakTourManagerBilling?.credits || Number(window.danzstakTourManagerBilling.credits.bookingEmailCredits || 0) > 0;
     button.addEventListener("click", async () => {
       const currentArtist = artist(), currentSubject = subject.value.trim(), currentMessage = draft.value.trim();
       if (booking.dateEnd && booking.showDate && booking.dateEnd < booking.showDate) { window.danzstakShowFeedback?.("The end of the date range cannot be before the proposed show date.", { urgent:true }); return; }
@@ -399,17 +477,17 @@
         return;
       }
       if (!currentArtist.epk || !currentMessage.includes(currentArtist.epk) || currentSubject.length < 3) { window.danzstakShowFeedback?.("Use your published EPK link in the message and add a clear subject before review.", { urgent:true }); return; }
-      if (dirty) {
-        window.danzstakShowFeedback?.("Save your booking workspace before sending so DanzStak can verify the venue contact.", { urgent: true });
-        return;
-      }
       button.disabled = true;
-      button.textContent = "Creating private EPK link…";
+      let outreachId = "";
       try {
-        const outreachId = crypto.randomUUID().replaceAll("-", ""), share = await createVenueEpkShare(venue, outreachId, allowPdf.checked);
-        let preflight;
-        try { preflight = await createOutreachPreflight(venue, email, outreachId); }
-        catch (error) { await revokeVenueEpkShare(venue, outreachId); throw error; }
+        if (dirty) {
+          button.textContent = "Saving current pitch…";
+          if (!(await saveWorkspaceSnapshot())) throw new Error("DanzStak could not save this pitch. Check the account status and try again before sending.");
+        }
+        button.textContent = "Creating private EPK link…";
+        outreachId = crypto.randomUUID().replaceAll("-", "");
+        const share = await createVenueEpkShare(venue, outreachId, allowPdf.checked);
+        const preflight = await createOutreachPreflight(venue, email, outreachId);
         const reviewedMessage = `${currentMessage.replaceAll(currentArtist.epk, share.shareUrl)}\n\n---\n${preflight.footer}`;
         if (reviewedMessage.length > 5000) { await revokeVenueEpkShare(venue, outreachId); throw new Error("Shorten the pitch so the required postal and opt-out footer fits in the email."); }
         if (!(await reviewSend({ venue, to:email, subject:currentSubject, message:reviewedMessage }))) { await revokeVenueEpkShare(venue, outreachId); button.disabled = false; button.textContent = "Preview exact email"; return; }
@@ -420,20 +498,31 @@
         render();
         await saveWorkspaceSnapshot();
       } catch (error) {
+        if (outreachId) await revokeVenueEpkShare(venue, outreachId);
         window.danzstakShowFeedback?.(error.message, { urgent: true });
+        if (error.status === 402 && /booking-email credits/i.test(error.message)) {
+          creditPrompt.hidden = false;
+          creditMessage.textContent = "Your pitch is saved. Buy one credit, then DanzStak will return you to this venue to review it again. Nothing sends automatically.";
+          buyCredit.focus();
+        }
         button.disabled = false;
         button.textContent = "Preview exact email";
       }
     });
     const note = document.createElement("small");
-    note.textContent = email ? "Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Replies go to your account email." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
-    section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, note);
-    const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
+    note.textContent = email ? "DanzStak saves your current pitch before review. Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Venue replies arrive in your private SYNC Bookings inbox." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
+    section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, creditPrompt, note);
+    const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered", "replied"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
     if (initialPitch && (followUpDue || existingFollowUp || hasReply)) {
       const followUp = document.createElement("section"), heading = document.createElement("h3"), state = document.createElement("p");
       followUp.className = "booking-follow-up"; heading.textContent = "Follow-up";
-      if (existingFollowUp) state.textContent = existingFollowUp.status === "delivered" ? "Your one follow-up was delivered." : "Your one follow-up was submitted. No additional reminder will be sent.";
-      else if (hasReply) state.textContent = "This venue replied. Continue in the SYNC booking thread instead of sending a reminder.";
+      if (hasReply) {
+        state.textContent = "This venue replied. Continue in the private SYNC booking thread instead of sending a reminder.";
+        const openThread = link("Open this reply in SYNC", `messages.html?section=bookings&outreach=${encodeURIComponent(initialPitch.id)}`);
+        openThread.className = "booking-thread-link";
+        followUp.append(openThread);
+      }
+      else if (existingFollowUp) state.textContent = existingFollowUp.status === "delivered" ? "Your one follow-up was delivered." : "Your one follow-up was submitted. No additional reminder will be sent.";
       else {
         state.textContent = `Due ${booking.followUp}. DanzStak allows one artist-approved reminder for this pitch.`;
         const followButton = document.createElement("button");
@@ -457,6 +546,34 @@
     return section;
   }
 
+  function focusCreditVenue(detail, attempt = 0) {
+    const venueKey = String(detail?.venueKey || "");
+    if (!venueKey) return;
+    const card = [...document.querySelectorAll(".venue-card[data-venue-key]")].find(node => node.dataset.venueKey === venueKey);
+    const target = card?.querySelector(".booking-follow-up button, .outreach > button:not(.secondary)");
+    if (!card || !target) {
+      if (attempt < 50) setTimeout(() => focusCreditVenue(detail, attempt + 1), 100);
+      return;
+    }
+    target.scrollIntoView({ block:"center", behavior:"auto" });
+    target.focus({ preventScroll:true });
+    if (detail.status === "verified") window.danzstakShowFeedback?.("Credit ready. Review this venue's exact email again; nothing was sent automatically.");
+  }
+
+  function focusFollowUpVenue(venueKey, attempt = 0) {
+    if (!venueKey) return;
+    const card = [...document.querySelectorAll(".venue-card[data-venue-key]")].find(node => node.dataset.venueKey === venueKey);
+    const target = card?.querySelector(".booking-follow-up button");
+    if (!card || !target) {
+      if (attempt < 50) setTimeout(() => focusFollowUpVenue(venueKey, attempt + 1), 100);
+      else window.danzstakShowFeedback?.("This follow-up is no longer due. Your booking workspace is current.");
+      return;
+    }
+    target.scrollIntoView({ block:"center", behavior:"auto" });
+    target.focus({ preventScroll:true });
+    window.danzstakShowFeedback?.("Follow-up ready. Review the reminder before using one credit; nothing was sent automatically.");
+  }
+
   async function accountRequest(method, body) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
@@ -475,7 +592,7 @@
   }
 
   async function loadWorkspace(manual = false) {
-    if (manual && dirty && !(await window.danzstakConfirm("Unsaved edits to existing venues and artist details will be replaced. Export CSV first to keep a copy.", { title: "Reload account records?", confirmLabel: "Reload records", danger: true }))) return;
+    if (manual && dirty && !(await window.danzstakConfirm("Unsaved edits to existing venues and artist details will be replaced. Export CSV first to keep a copy.", { title: "Reload account records?", confirmLabel: "Reload records", danger: true }))) return false;
     saveAccount.disabled = true;
     loadAccount.disabled = true;
     const enabled = [...document.querySelectorAll("main input, main select, main textarea, main button")].filter(c => !c.disabled);
@@ -503,8 +620,10 @@
       render();
       accountStatus.textContent = dirty ? "Account workspace loaded with new map selections. Save to keep the additions." : "Private account workspace loaded.";
       if (additions.length > retainedAdditions.length) accountStatus.textContent += ` Workspace limit: ${additions.length - retainedAdditions.length} new selections could not be added. Remove old leads and select them again on the map.`;
+      return true;
     } catch (error) {
       accountStatus.textContent = error.message;
+      return false;
     } finally {
       enabled.forEach(c => { c.disabled = false; });
       saveAccount.disabled = !accountLoaded;
@@ -526,7 +645,8 @@
       try { sessionStorage.removeItem("danzstakBookingMapAdditions"); } catch {}
       dirty = false;
       accountStatus.textContent = "Saved privately to your account. Available on your other devices.";
-    } catch (error) { accountStatus.textContent = error.message; }
+      return true;
+    } catch (error) { accountStatus.textContent = error.message; return false; }
     finally {
       enabled.forEach(c => { c.disabled = false; });
       saveAccount.disabled = false;
@@ -597,6 +717,14 @@
   });
   document.addEventListener("danzstak-contact-unlocks", render);
   document.addEventListener("danzstak-tour-manager-billing", renderDashboard);
+  document.addEventListener("danzstak-tour-manager-credits", render);
+  document.addEventListener("danzstak-booking-credit-return", event => { render(); focusCreditVenue(event.detail); });
   render();
-  if (loadAccount) loadWorkspace();
+  if (loadAccount) {
+    loadWorkspace().then(async loaded => {
+      if (epkHandoffRequested) await usePublishedEpk({ save:loaded, clearHandoff:true });
+      if (loaded && followUpFocusVenue) focusFollowUpVenue(followUpFocusVenue);
+    });
+  }
+  if (window.danzstakBookingCreditReturn) focusCreditVenue(window.danzstakBookingCreditReturn);
 })();

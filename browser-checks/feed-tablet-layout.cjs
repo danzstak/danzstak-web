@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 
 const widths = [701, 768, 820, 880, 1024];
+const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8016").replace(/\/$/, "");
 
 function fixture(pathname) {
   if (pathname === "/auth/session") return { authenticated: true, user: { sub: "11111111-1111-4111-8111-111111111111", email: "tablet-test@danzstak.invalid" } };
@@ -35,7 +36,7 @@ function fixture(pathname) {
         const request = route.request(), url = new URL(request.url());
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(url.pathname)) });
       });
-      await page.goto("http://127.0.0.1:8016/feed.html?view=feed", { waitUntil: "domcontentloaded" });
+      await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.locator("#postComposer").waitFor({ state: "visible" });
       const geometry = await page.evaluate(() => {
         const rect = selector => {

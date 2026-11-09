@@ -35,7 +35,7 @@ function fixture(pathname) {
       await panel.waitFor({ state: "visible" });
       const section = panel.locator(".profile-import");
       await section.locator("summary").click();
-      const pivot = section.locator("#pivotButton");
+      const pivot = section.locator(".profile-pivot-button");
       await pivot.waitFor({ state: "visible" });
       assert.match(await pivot.textContent(), /Open Moving Day/);
       const buttonBox = await pivot.boundingBox();

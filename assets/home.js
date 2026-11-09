@@ -81,8 +81,14 @@ async function checkSession() {
     }
 
     if (response.status === 401) {
-      const legalRequired = new URLSearchParams(location.search).get("legal") === "required";
-      showSession(false, legalRequired ? "Agree to the Terms of Service and acknowledge the Privacy Policy before signing up." : "Not signed in. Click Log In or Sign Up.");
+      const params = new URLSearchParams(location.search);
+      const legalRequired = params.get("legal") === "required";
+      const loginExpired = params.get("signin") === "expired";
+      showSession(false, legalRequired
+        ? "Agree to the Terms of Service and acknowledge the Privacy Policy before signing up."
+        : loginExpired
+          ? "Sign-in took too long to finish. Please tap Log In and try again."
+          : "Not signed in. Click Log In or Sign Up.");
       return;
     }
 

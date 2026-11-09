@@ -75,9 +75,9 @@ function fixture(pathname) {
       assert.ok(geometry.documentWidth <= width, `${width}px feed overflows: ${JSON.stringify(geometry)}`);
       assert.ok(geometry.stories.top < geometry.composer.top && geometry.composer.bottom <= geometry.error.top + 1 && geometry.error.bottom <= geometry.roll.top + 1, `${width}px Mix order is wrong: ${JSON.stringify(geometry)}`);
       if (width < 700) {
-        assert.ok(geometry.stories.height <= 165, `${width}px Dailies row is too tall: ${geometry.stories.height}`);
-        assert.ok(geometry.dailyCreate.width >= geometry.stories.width - 8, `${width}px empty Dailies must fill its row: ${JSON.stringify(geometry)}`);
-        assert.ok(geometry.dailyCreate.height >= 148 && geometry.dailyCreate.height <= 156, `${width}px empty Dailies action must use the approved double-height spacing: ${geometry.dailyCreate.height}`);
+        assert.ok(geometry.stories.height <= 178, `${width}px Dailies row is too tall: ${geometry.stories.height}`);
+        assert.ok(geometry.dailyCreate.width >= 148 && geometry.dailyCreate.width <= 168, `${width}px Dailies tile must keep the approved responsive story width: ${JSON.stringify(geometry)}`);
+        assert.ok(geometry.dailyCreate.height >= 148 && geometry.dailyCreate.height <= 168, `${width}px Dailies action must remain a responsive square: ${geometry.dailyCreate.height}`);
         assert.ok(geometry.composer.height <= 120, `${width}px composer is too tall: ${geometry.composer.height}`);
         assert.ok(geometry.error.height <= 92, `${width}px recovery panel is too tall: ${geometry.error.height}`);
         assert.ok(geometry.roll.height <= 92, `${width}px empty Roll is too tall: ${geometry.roll.height}`);
@@ -106,12 +106,13 @@ function fixture(pathname) {
           const first = createPostElement("First continuous post", "First artist", new Date().toISOString(), "public");
           const second = createPostElement("Second continuous post", "Second artist", new Date().toISOString(), "public");
           feed.replaceChildren(first, second);
-          const firstActions = first.querySelector(".post-actions").getBoundingClientRect();
-          const secondHeader = second.querySelector(".post-header").getBoundingClientRect();
-          return { gap: secondHeader.top - firstActions.bottom, feedGap: getComputedStyle(feed).gap };
+          const firstPost = first.getBoundingClientRect();
+          const secondPost = second.getBoundingClientRect();
+          return { gap: secondPost.top - firstPost.bottom, feedGap: getComputedStyle(feed).gap };
         });
-        assert.equal(postGap.feedGap, "0px", `${width}px feed still inserts a grid gap between posts`);
-        assert.ok(postGap.gap >= 6 && postGap.gap <= 10, `${width}px consecutive post rhythm must be one continuous 8px space: ${JSON.stringify(postGap)}`);
+        const expectedPostGap = width <= 375 ? 12 : 16;
+        assert.equal(postGap.feedGap, `${expectedPostGap}px`, `${width}px feed must use the approved responsive inter-post gap`);
+        assert.ok(Math.abs(postGap.gap - expectedPostGap) <= 2, `${width}px consecutive post rhythm must match the approved ${expectedPostGap}px gap: ${JSON.stringify(postGap)}`);
         if (width === 390) await page.screenshot({ path: path.join(output, "feed-continuous-posts-390.png"), fullPage: false });
       }
       await context.close();

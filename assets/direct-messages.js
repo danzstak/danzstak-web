@@ -94,6 +94,8 @@ let activeContactName = messageTranslate("Contact");
 let currentEmail = "";
 let loadingMessages = false;
 let conversationVersion = 0;
+let conversationFeedbackVersion = 0;
+let availabilityNoticePending = false;
 const pendingMessageSends = new Set();
 let retryMessageSend = null;
 let nextMessageCursor = "";
@@ -106,6 +108,34 @@ let selectedMessageMedia = null;
 let selectedMessageMediaUrl = "";
 let mobileHistoryConversation = null;
 let activeConversation = null;
+let lastChatContactSignature = "";
+let lastConversationListSignature = "";
+
+function stableIdentityPicture(value) {
+  const picture = String(value || "").trim();
+  if (!picture) return "";
+  try {
+    const parsed = new URL(picture, location.origin);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") return `${parsed.origin}${parsed.pathname}`;
+  } catch {}
+  return picture;
+}
+
+function conversationVisualState(conversation) {
+  return {
+    contactEmail: String(conversation?.contactEmail || "").toLowerCase(),
+    memberId: String(conversation?.memberId || ""),
+    name: String(conversation?.name || "DanzStak member"),
+    picture: stableIdentityPicture(conversation?.picture),
+    preview: String(conversation?.preview || ""),
+    updatedAt: String(conversation?.updatedAt || ""),
+    online: conversation?.online === true,
+    canContact: conversation?.canContact !== false,
+    unread: Math.max(0, Number(conversation?.unread || 0)),
+    hasConversation: conversation?.hasConversation === true,
+    sharedGroup: conversation?.sharedGroup === true
+  };
+}
 
 function usesMobileConversationHistory() {
   return window.parent === window && window.matchMedia?.("(max-width: 760px)").matches === true;
@@ -614,6 +644,8 @@ function updateConversationPresence(conversation) {
 
 function openConversation(conversation, { updateHistory = true } = {}) {
   closeConversation();
+  conversationFeedbackVersion += 1;
+  availabilityNoticePending = true;
   activeConversation = { ...conversation };
   document.body.classList.add("is-conversation-open");
   if (document.body?.dataset) {
@@ -797,7 +829,7 @@ function directMessageItem(message) {
     const receipt = document.createElement("span");
     receipt.className = message.read ? "message-receipt is-read" : "message-receipt";
     receipt.textContent = message.read ? "✓✓" : "✓";
-    receipt.setAttribute("aria-label", messageTranslate(message.read ? "Read" : "Delivered"));
+    receipt.setAttribute("aria-label", messageTranslate(message.read ? "Read" : "Sent"));
     meta.append(" ", receipt);
   }
   item.appendChild(meta);
@@ -821,6 +853,15 @@ function directMessageItem(message) {
     item.setAttribute("aria-label", `${messageTranslate("Selected")}. ${item.dataset.baseAriaLabel}`);
   }
   return item;
+}
+
+function updateDirectMessageReceipt(item, message) {
+  const receipt = item?.querySelector?.(".message-receipt");
+  if (!receipt || message.senderEmail !== currentEmail) return;
+  const read = message.read === true;
+  receipt.classList.toggle("is-read", read);
+  receipt.textContent = read ? "✓✓" : "✓";
+  receipt.setAttribute("aria-label", messageTranslate(read ? "Read" : "Sent"));
 }
 
 function firstSafeMessageUrl(content) {
@@ -921,6 +962,9 @@ async function loadEarlierMessages() {
 
 async function loadDirectMessages(reset = false) {
   const version = conversationVersion;
+  const feedbackVersion = conversationFeedbackVersion;
+  const showAvailability = reset && availabilityNoticePending;
+  if (showAvailability) availabilityNoticePending = false;
   if (!document.body.classList.contains("is-conversation-open")) return;
   if (document.hidden && !reset) return;
   const contact = contactInput?.value.trim().toLowerCase();
@@ -941,7 +985,10 @@ async function loadDirectMessages(reset = false) {
     for (const message of data.messages || []) {
       if (shownMessages.has(message.messageId)) {
         const existing = [...messageList.querySelectorAll(".message")].find(item => item.dataset.messageId === message.messageId);
-        if (existing) updateMessageReactionBadge(existing, message);
+        if (existing) {
+          updateMessageReactionBadge(existing, message);
+          updateDirectMessageReceipt(existing, message);
+        }
         continue;
       }
       shownMessages.add(message.messageId);
@@ -958,9 +1005,13 @@ async function loadDirectMessages(reset = false) {
     setConversationActionsEnabled(activeCanContact);
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
-    callStatus.textContent = activeCanContact
-      ? messageFormat("You can message {name} directly.", { name: activeContactName })
-      : messageTranslate("Saved chat. Become friends or join the same Tribe to send new messages or call.");
+    // Only the first load for this conversation may show availability, and
+    // never after a newer user action has produced more useful feedback.
+    if (showAvailability && feedbackVersion === conversationFeedbackVersion && !window.danzstakCallRegistrationRequired?.()) {
+      callStatus.textContent = activeCanContact
+        ? messageFormat("You can message {name} directly.", { name: activeContactName })
+        : messageTranslate("Saved chat. Become friends or join the same Tribe to send new messages or call.");
+    }
   } catch (error) {
     if (version === conversationVersion) {
       const message = error.message || messageTranslate("Messages could not be loaded");
@@ -987,6 +1038,8 @@ async function readMessagingArrayResponse(response, key) {
 }
 function renderConversationLoadError() {
   if (!conversationUsers) return;
+  lastConversationListSignature = "";
+  lastChatContactSignature = "";
   if (typeof chatContacts !== "undefined" && chatContacts) {
     chatContacts.replaceChildren();
     chatContacts.hidden = true;
@@ -1017,13 +1070,16 @@ function openConversationFromInbox(conversation) {
 }
 function renderChatContactStrip(conversations) {
   if (typeof chatContacts === "undefined" || !chatContacts) return;
-  chatContacts.replaceChildren();
   const eligible = conversations
     .filter(conversation => conversation?.contactEmail && conversation.canContact !== false)
     .sort((left, right) => {
       const recent = String(right.updatedAt || "").localeCompare(String(left.updatedAt || ""));
       return recent || String(left.name || "").localeCompare(String(right.name || ""));
     });
+  const signature = JSON.stringify(eligible.map(conversationVisualState));
+  if (signature === lastChatContactSignature) return;
+  lastChatContactSignature = signature;
+  chatContacts.replaceChildren();
   chatContacts.hidden = eligible.length === 0;
   for (const conversation of eligible) {
     const name = conversation.name || "DanzStak member";
@@ -1055,7 +1111,9 @@ function renderChatContactStrip(conversations) {
     label.className = "chat-contact-name";
     label.textContent = name;
     button.append(avatarWrap, label);
-    button.addEventListener("click", () => openConversationFromInbox(conversation));
+    button.addEventListener("click", () => openConversationFromInbox(
+      cachedConversations.find(item => item.contactEmail === conversation.contactEmail) || conversation
+    ));
     chatContacts.appendChild(button);
   }
 }
@@ -1151,7 +1209,10 @@ async function loadConversations() {
       });
     }
     cachedConversations = [...contacts.values()];
-    if (activeFilter === "bookings") return;
+    if (activeFilter === "bookings") {
+      lastConversationListSignature = "";
+      return;
+    }
     const focusedControl = document.activeElement?.closest?.(".conversation-user,.chat-contact");
     const focusedContact = focusedControl?.dataset.contactEmail || "";
     const focusedSelector = focusedControl?.classList.contains("chat-contact") ? ".chat-contact" : ".conversation-user";
@@ -1160,7 +1221,6 @@ async function loadConversations() {
       const activeConversation = cachedConversations.find(item => item.contactEmail === activeContact);
       if (activeConversation) updateConversationPresence(activeConversation);
     }
-    conversationUsers.replaceChildren();
     renderChatContactStrip(cachedConversations);
     const query = chatSearch?.value.trim().toLowerCase() || "";
     const visible = cachedConversations.filter(item => {
@@ -1172,6 +1232,16 @@ async function loadConversations() {
           : activeFilter === "contacts";
       return matchesSearch && matchesFilter;
     });
+    const listSignature = JSON.stringify({
+      activeFilter,
+      query,
+      activeContact,
+      sourcesComplete,
+      conversations: visible.map(conversationVisualState)
+    });
+    if (listSignature === lastConversationListSignature) return;
+    lastConversationListSignature = listSignature;
+    conversationUsers.replaceChildren();
     if (!visible.length) {
       const empty = document.createElement("p");
       empty.className = "chat-note";
@@ -1219,12 +1289,17 @@ async function loadConversations() {
         meta.appendChild(badge);
       }
       copy.append(name, preview); button.append(avatarWrap, copy, meta);
-      button.addEventListener("click", () => openConversationFromInbox(conversation));
+      button.addEventListener("click", () => openConversationFromInbox(
+        cachedConversations.find(item => item.contactEmail === conversation.contactEmail) || conversation
+      ));
       const calls = document.createElement("div"); calls.className = "conversation-call-actions";
       for (const [kind, targetId] of [["phone", "startPhone"], ["video", "startVideo"]]) {
         const call = document.createElement("button"), publicName = conversation.name || "DanzStak member"; call.type = "button"; call.className = "conversation-call"; call.dataset.callKind = kind; call.appendChild(createCallActionIcon(kind)); call.title = `${messageTranslate(targetId === "startPhone" ? "Phone call" : "Video call")}: ${publicName}`; call.setAttribute("aria-label", call.title);
         call.disabled = conversation.canContact === false;
-        call.addEventListener("click", () => { openConversation(conversation); document.getElementById(targetId)?.click(); });
+        call.addEventListener("click", () => {
+          openConversation(cachedConversations.find(item => item.contactEmail === conversation.contactEmail) || conversation);
+          document.getElementById(targetId)?.click();
+        });
         calls.appendChild(call);
       }
       row.append(button, calls); conversationUsers.appendChild(row);
@@ -1373,6 +1448,8 @@ messageForm?.addEventListener("submit", async event => {
   const content = messageInput.value.trim();
   const recipientEmail = contactInput.value.trim().toLowerCase();
   if ((!content && !selectedMessageMedia) || !recipientEmail || !activeCanContact || pendingMessageSends.has(conversationVersion)) return;
+  conversationFeedbackVersion += 1;
+  availabilityNoticePending = false;
   const mediaFile = selectedMessageMedia;
   const retry = retryMessageSend
     && retryMessageSend.recipientEmail === recipientEmail
@@ -1421,7 +1498,7 @@ messageForm?.addEventListener("submit", async event => {
     }
     saveChatDraft(recipientEmail, "");
     if (selectedMessageMedia === mediaFile) clearSelectedMessageMedia();
-    callStatus.textContent = messageTranslate("Delivered");
+    callStatus.textContent = messageTranslate("Sent");
     await loadConversations();
   } catch (error) {
     pendingItem.remove();
