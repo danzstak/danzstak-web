@@ -33,7 +33,10 @@ assert.doesNotMatch(html + js, /checkout|stripe|subscribe now|renews automatical
 assert.match(registry, /Official process under review/);
 assert.match(registry, /Verified member handoff/);
 assert.match(registry, /privacy@peopleconnect\.us/);
+assert.match(registry, /I am making this request for myself\./);
+assert.doesNotMatch(registry, /\bon behalf of\b|authorized agent|power of attorney/i, "The prepared request must remain a direct member request");
 for (const placeholder of ["[YOUR FULL NAME]", "[YOUR EMAIL]", "[RECORD URL]", "[YOUR STATE OR COUNTRY]"]) assert.ok(registry.includes(placeholder), `${placeholder} is missing from the member-reviewed request`);
+assert.doesNotMatch(js, /XMLHttpRequest|sendBeacon|requestSubmit\s*\(|\.submit\s*\(|new\s+FormData\s*\(/, "Phase A must not submit a request through another browser transport");
 assert.match(feed, /href="stakguard\.html"/);
 assert.match(settings, /Open StakGuard/);
 assert.match(worker, /danzstak-shell-v790/);

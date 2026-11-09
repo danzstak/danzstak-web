@@ -23,6 +23,8 @@ The public privacy contact is `privacy@peopleconnect.us`. PeopleConnect's proces
 
 Having the member send their own request materially reduces scraping, impersonation and unauthorized automated-submission risk. It does **not** by itself establish that there are no compliance obligations. Before collecting real identifiers or advertising live broker coverage, DanzStak still needs reviewed privacy disclosures, data-minimization/retention controls, account isolation, security controls, jurisdiction-specific wording, accurate consumer claims and re-verification of each broker's current terms and channel.
 
+California's adopted DROP regulation [section 7621](https://cppa.ca.gov/regulations/pdf/drop_noa.pdf) requires disclosure when an authorized agent aids a consumer in DROP, while the California Attorney General's [CCPA consumer guidance](https://www.oag.ca.gov/privacy/ccpa) explains the permission and identity checks a business may apply to an authorized-agent request. The tested Phase A path deliberately does not access DROP, submit through DROP, sign or send on a member's behalf, or claim authority. It prepares a direct first-person request locally and leaves the member as the sole sender. This is an engineering boundary for counsel to review, not a claim of blanket legal immunity.
+
 ## Remaining gates
 
 1. Owner phone walkthrough of the draft handoff and wording.
