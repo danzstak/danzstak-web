@@ -1,5 +1,14 @@
 # DANZSTAK development report
 
+## Installed-PWA light launch surface — 2026-11-09
+
+Status: **IMPLEMENTED AND TESTED IN DRAFT PR #213; PRODUCTION UNCHANGED.**
+
+- A no-cache production audit confirmed `https://danzstak.com` serves `danzstak-shell-v789`, matching `origin/main` commit `9fa6b929619a1910f5eb6a1ab9ca4135f816f2e3`; the public read-only health check passed Home, Mix, SYNC, Booking, EPK, manifest, service worker and versioned asset delivery. CloudFront returns the service worker, HTML and manifest with `max-age=300, must-revalidate`.
+- Root cause found during the audit: the light-mode-only app still declared manifest `background_color: #0b0b12`, allowing an installed phone to show a near-black operating-system launch splash before the light DanzStak canvas appeared.
+- The manifest now uses the shared light canvas `#edf2f7`; the installed shell advances to `danzstak-shell-v790`, and the PWA-only regression pins the exact launch color so a dark splash cannot silently return.
+- **TESTED:** focused PWA-only, light-mode, shell-refresh and mobile-design-system checks pass. The complete `test-regressions.ps1` gate also passes, including every JavaScript regression, release verification, 15-page site smoke and 153,861-byte infrastructure validation. No backend, AWS, Stripe, SES or production state changed.
+
 ## Live SYNC sent/read receipts — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**

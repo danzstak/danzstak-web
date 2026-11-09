@@ -29,7 +29,7 @@ assert.doesNotMatch(art, /#storiesRail \.story-create-avatar\s*\{[\s\S]*?border-
 assert.match(art, /\.layout\s*\{[\s\S]*?grid-template-columns:minmax\(184px,222px\) minmax\(470px,500px\) minmax\(190px,244px\)/, "the desktop center column must use the owner-selected 470–500px feed width");
 assert.match(art, /#feed\s*\{[\s\S]*?display:grid;[\s\S]*?gap:16px;/, "posts must keep a 16px vertical gap");
 assert.match(art, /\.post\s*\{[\s\S]*?--post-inline-padding:14px;[\s\S]*?padding:14px;[\s\S]*?margin-bottom:16px;/, "desktop post cards must keep 14px internal padding and a 16px rhythm");
-assert.match(worker, /danzstak-shell-v789/);
+assert.match(worker, /danzstak-shell-v790/);
 assert.match(worker, /\/assets\/danzstak-original-feed\.css/, "the installed PWA must cache the art-direction layer");
 
 console.log("Original Feed art-direction checks passed: shared tokens, edge media, touch targets, and PWA caching.");
