@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## SYNC avatar refresh stability and familiar mobile layout — 2026-11-09
+
+Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE SIGNED-IN REVIEW PWA; PRODUCTION UNCHANGED.**
+
+- Root cause of the reported image loop: SYNC refreshed conversation data every 15 seconds and rebuilt both avatar surfaces on every response. The backend correctly returned fresh signed S3 URLs, but each new signing query replaced the image element and restarted its request even though the underlying profile picture had not changed.
+- SYNC now compares stable picture identity plus real visible conversation state before replacing either list. Unchanged avatars remain mounted, while name, message preview, unread, presence, photo path and other genuine visual changes still rerender. Reused rows resolve the latest cached contact before opening a message or call, so the fix does not retain stale signed contact data.
+- The same change applies the approved familiar messaging rhythm without copying another product's trade dress: 72px rows, 48px avatars, compact paired bubbles, 16px phone insets, a warm thread canvas, a 52px composer and DanzStak light-mode branding. The installed review shell advances to `danzstak-shell-v783`, direct messages to `v495` and SYNC CSS to `v9`.
+- **TESTED:** `test-regressions.ps1` passes completely. The actual-browser gate forces a second conversation refresh with a different signed query and proves both avatar nodes and their displayed sources remain unchanged. It also passes the list, Calls and active-thread layout at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Builder-reviewed evidence is in [`docs/screenshots/sync-modern-layout/`](screenshots/sync-modern-layout/).
+- [PR #203](https://github.com/danzstak/danzstak-web/pull/203) passed all five GitHub **Review checks** jobs in run [42600898086](https://github.com/danzstak/danzstak-web/actions/runs/42600898086) and was squash-merged into `codex/release-candidate-2026-11-08` as `76ecf808611ebda06118344625a24ba6b1baaf29`.
+- **HOSTED REVIEW:** no-cache probes confirm `assets/direct-messages.js?v=495`, `assets/sync.css?v=9` and `danzstak-shell-v783` on [review.danzstak.com](https://review.danzstak.com/messages.html). A signed-in browser held the real conversation and contact avatars across the next refresh: both sources stayed stable, both images remained loaded and the conversation list remained visible. No AWS, Stripe, SES, support-email or production deployment change was made; the owner phone go/no-go remains required.
+
 ## Artist HQ due follow-ups and real credit balance — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
