@@ -21,6 +21,9 @@ assert.match(backend, /body\?\.artistApproved !== true[\s\S]*approve this email 
 assert.match(client, /Review one follow-up · 1 credit[\s\S]*followUpTo:initialPitch\.id/, "a due reminder must be reviewed, charged once, and bound to its original pitch");
 assert.match(client, /Venue replies arrive in your private SYNC Bookings inbox/, "the send explanation must describe the real private reply destination");
 assert.match(client, /Open this reply in SYNC[\s\S]*messages\.html\?section=bookings&outreach=/, "a venue reply must link to its exact SYNC booking thread");
+assert.match(client, /if \(dirty\)[\s\S]*Saving current pitch…[\s\S]*await saveWorkspaceSnapshot\(\)[\s\S]*Creating private EPK link…/, "preview must save dirty pitch facts before creating a private EPK link");
+assert.match(client, /async function saveWorkspaceSnapshot\(\)[\s\S]*return true;[\s\S]*return false;/, "workspace saves must report success or failure to the pitch review flow");
+assert.match(client, /DanzStak saves your current pitch before review\./, "the venue card must explain the safe one-action save and review flow");
 assert.match(client, /\["sent", "delivered", "replied"\][\s\S]*if \(hasReply\)[\s\S]*else if \(existingFollowUp\)/, "the real replied status must open SYNC even when an earlier follow-up exists");
 assert.match(backend, /attribute_not_exists\(followUpSendId\)[\s\S]*attribute_not_exists\(repliedAt\)/, "the server must atomically prevent a second follow-up or a reminder after reply");
 assert.match(backend, /This follow-up is not due yet/, "the server must enforce the artist's saved follow-up date");
@@ -28,7 +31,7 @@ for (const field of ["message: { S: message }", "template: { S: template }", "ar
 for (const field of ["pitchTemplate", "expectedDraw", "setDetails", "outreachSubject"]) assert.match(workspace, new RegExp(field), `the account workspace must persist ${field}`);
 assert.match(styles, /\.booking-send-review[\s\S]*max-height:[^;]+vh/, "the review dialog must be bounded on phones");
 assert.match(styles, /\.booking-send-actions button\{min-height:44px\}/, "review actions must remain touch sized");
-assert.match(markup, /booking-selections\.css\?v=12/);
-assert.match(markup, /booking-selections\.js\?v=20/);
+assert.match(markup, /booking-selections\.css\?v=13/);
+assert.match(markup, /booking-selections\.js\?v=21/);
 
 console.log("Booking pitch review checks passed: templates, artist-entered facts, overwrite protection, exact preview, explicit approval, one safe follow-up, server enforcement, persistence, and mobile geometry.");

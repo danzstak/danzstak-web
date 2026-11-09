@@ -156,6 +156,7 @@ jobs:
           node .\browser-checks\profile-onboarding-identity.cjs
           node .\browser-checks\push-alert-prompt.cjs
           node .\browser-checks\epk-booking-connected-handoff.cjs
+          node .\browser-checks\booking-save-preview.cjs
           node .\browser-checks\booking-sync.cjs http://127.0.0.1:8132
           node .\browser-checks\artist-hq.cjs http://127.0.0.1:8132
       - name: Stop static review server
