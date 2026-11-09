@@ -4,9 +4,9 @@ Status: **STAGING VERIFIED — NO TEST PASS, NO PRODUCTION DEPLOY**
 Prepared: 2026-11-08  
 Release owner: Shawn  
 Branch: `codex/release-candidate-2026-11-08`  
-Reviewed implementation: `c5267b681f41c3a01d108b1c5013a19942a5fc31`
+Reviewed implementation: `0bf475a7d90734cf1bd30e93fc859f78ea61cd1c`
 Base/rollback commit: `04d41cccea19da3999e2ae69845532ce32b16e3f`  
-PWA cache: `danzstak-shell-v764`
+PWA cache: `danzstak-shell-v765`
 Production commit/deployment: **UNCHANGED / NOT DEPLOYED**
 
 ## Scope
@@ -19,7 +19,7 @@ Production commit/deployment: **UNCHANGED / NOT DEPLOYED**
 - [x] Versioned PWA assets and service-worker cache assertions.
 - [x] Functional Friends workflow: accept, remove with confirmation, discover and send request, with 44px controls at phone, tablet and desktop widths.
 - [x] Review screenshots and factual development-report evidence.
-- [x] Dailies uses the member's real profile photo as full rounded-square artwork with no exposed backing panel; the compact date/Scene/Take clapper is fully over the lower-left of the image.
+- [x] Dailies uses the member's real profile photo as full rounded-square artwork with no exposed backing panel; the compact date/Scene/Take clapper is fully over the lower-left of the image. The visible fallback remains in place until the signed portrait has actually loaded.
 - [x] Legacy/local profile identities recover the member's real Dailies and composer photo from same-device profile media or an owned saved post instead of displaying a generic `D`.
 - [x] The optional phone notification prompt is a compact touch-safe strip above the bottom navigation instead of covering the Feed.
 - [x] Public EPKs keep the booking page clean when the optional Reviews service is empty or unavailable; real reviews and the eligible member composer remain available when their verified data loads.

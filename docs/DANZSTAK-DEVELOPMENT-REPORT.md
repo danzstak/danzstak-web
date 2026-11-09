@@ -4,6 +4,12 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Dailies portrait load readiness
+
+- **FIXED AND LOCALLY TESTED IN PR #173; HOSTED STAGING UPDATE PENDING; PRODUCTION UNCHANGED:** Dailies no longer removes its visible initial/photo fallback before the signed profile portrait has loaded. It now keeps the existing tile visible, preloads a hidden connected candidate so expired signed URLs can still recover, and performs the DOM swap only after the candidate reports a real loaded image. A final image failure removes only the candidate and preserves the usable fallback.
+- Root cause: the earlier asynchronous profile hydration inserted an `img.story-create-avatar` immediately. On the slower hosted review origin, the DOM assertion could see that element before its image bytes had loaded, leaving the first Dailies tile visibly blank even though fast local runs passed.
+- **TESTED:** the browser regression deliberately holds the profile-picture request, proves the visible fallback remains while a hidden candidate is pending, then releases the request and keeps the existing real-image assertions at 320, 390 and 1366px. Focused Dailies, identity-media and PWA refresh checks pass. The complete `test-regressions.ps1` gate passes, including every JavaScript regression, release verification, the 13-page site smoke test and infrastructure validation. Exact implementation commit: `0bf475a7d90734cf1bd30e93fc859f78ea61cd1c`. Feed now requests `feed-enhancements.js?v=542` and `identity-media.js?v=2`; the reviewed shell advances to `danzstak-shell-v765`.
+
 ### Complete account-export activity collection
 
 - **FIXED AND TESTED IN PR #173; PRODUCTION UNCHANGED:** The self-service JSON export no longer stops checking comments and reactions after the first 200 visible posts. It now processes every post returned by the authenticated Feed API with at most three engagement requests in flight, reports progress on larger accounts, and gives the user operation up to five minutes rather than failing larger exports under the former one-minute budget.
