@@ -153,10 +153,7 @@ infrastructure/cognito-email-allowlist/
 __pycache__/
 *.py[cod]
 
-# Native Android local state and unsigned build output
-native/android/.gradle/
-native/android/local.properties
-native/android/**/build/
+# Signing material must remain outside the repository if native apps are built later.
 *.jks
 *.keystore
 

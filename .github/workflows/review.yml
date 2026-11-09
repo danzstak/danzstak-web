@@ -155,6 +155,7 @@ jobs:
           DANZSTAK_BASE_URL: http://127.0.0.1:8132
         run: |
           node .\browser-checks\account-security.cjs
+          node .\browser-checks\pwa-install-entry.cjs
           node .\browser-checks\profile-onboarding-identity.cjs
           node .\browser-checks\push-alert-prompt.cjs
           node .\browser-checks\epk-booking-connected-handoff.cjs
