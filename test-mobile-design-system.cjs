@@ -53,7 +53,7 @@ for (const file of ["booking.html", "record-stores.html", "epk.html", "profile.h
   assert.match(html, /data-icon="menu"[^>]*aria-current="page"/, `${file} must identify its secondary Menu destination`);
 }
 assert.match(pages.find(([name]) => name === "messages.html")[1], /data-icon="chat"[^>]*aria-current="page"/, "Chat must identify its direct mobile destination");
-assert.match(pages.find(([name]) => name === "messages.html")[1], /assets\/sync\.css\?v=10/, "Chat must request the current compact mobile layout instead of a cached stylesheet");
+assert.match(pages.find(([name]) => name === "messages.html")[1], /assets\/sync\.css\?v=11/, "Chat must request the current compact mobile layout instead of a cached stylesheet");
 assert.match(fs.readFileSync("assets/feed-enhancements.js", "utf8"), /function syncMobileMenuCurrent[\s\S]*directMobileDestinations\.has\(workspaceName\)/, "Feed workspaces must synchronize the shared Menu current state");
 
 console.log("Shared mobile design-system checks passed: consistent tokens, edge media, action geometry, tool navigation, and PWA caching.");

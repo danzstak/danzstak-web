@@ -155,8 +155,8 @@ async function captureViewport(page, fileName) {
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.addStyleTag({ content: ".push-alert-prompt{display:none!important}" });
       await page.waitForSelector("#feed article.post");
-      await page.waitForSelector("#profileOnboarding:not([hidden])");
-      assert.equal(await page.locator("#profileOnboarding").isVisible(), true, `${width}px: incomplete profiles should receive name setup on Home`);
+      await page.locator("#profileOnboarding").waitFor({ state: "hidden" });
+      assert.equal(await page.locator("#profileOnboarding").isVisible(), false, `${width}px: Mix must open directly without a blocking visible-name prompt`);
       if (width <= 430) {
         await page.locator("#feed article.post").evaluate(post => {
           if (post.querySelector("video.post-media")) return;
@@ -212,7 +212,7 @@ async function captureViewport(page, fileName) {
         });
         assert.ok(shellMetrics.headerHeight <= 52, `${width}px: mobile header is oversized: ${JSON.stringify(shellMetrics)}`);
         assert.ok(shellMetrics.navHeight <= 52, `${width}px: mobile navigation is oversized: ${JSON.stringify(shellMetrics)}`);
-        assert.ok(shellMetrics.postPadding <= 10, `${width}px: feed cards waste horizontal space: ${JSON.stringify(shellMetrics)}`);
+        assert.ok(shellMetrics.postPadding >= 11.5 && shellMetrics.postPadding <= 12.5, `${width}px: feed cards must keep the approved 12px mobile padding: ${JSON.stringify(shellMetrics)}`);
         assert.ok(shellMetrics.bodyFont >= 15, `${width}px: body copy is too small to read comfortably: ${JSON.stringify(shellMetrics)}`);
         assert.ok(shellMetrics.postFont >= 15, `${width}px: post copy is too small to read comfortably: ${JSON.stringify(shellMetrics)}`);
         assert.ok(shellMetrics.postLineHeight / shellMetrics.postFont >= 1.35, `${width}px: post copy line spacing is too tight: ${JSON.stringify(shellMetrics)}`);
@@ -348,13 +348,13 @@ async function captureViewport(page, fileName) {
         await assertExclusiveFeedScreen(page, "friends");
         assert.equal(await page.locator(".mobile-menu-control").getAttribute("aria-current"), null, "Friends must retain its own primary navigation state");
         assert.equal(await page.locator("#profileOnboarding").isVisible(), false, "Friends must not inherit the Home identity-onboarding card");
-        await page.waitForSelector(".friend-discovery-row button[data-icon='chat']");
-        const onlineMessageAction = await page.locator(".friend-discovery-row button[data-icon='chat']").evaluate(action => {
+        await page.waitForSelector(".friend-workspace-row .friend-message-action");
+        const onlineMessageAction = await page.locator(".friend-workspace-row .friend-message-action").first().evaluate(action => {
           const box = action.getBoundingClientRect();
           return { width: box.width, height: box.height, label: action.getAttribute("aria-label"), title: action.title };
         });
         assert.ok(onlineMessageAction.width >= 44 && onlineMessageAction.height >= 44, `Friends online-message action needs a 44px phone target: ${JSON.stringify(onlineMessageAction)}`);
-        assert.equal(onlineMessageAction.label, "Message Mobile Friend", "Friends online-message icon needs the complete member name");
+        assert.equal(onlineMessageAction.label, "Message: Mobile Friend", "Friends online-message icon needs the complete member name");
         assert.equal(onlineMessageAction.title, onlineMessageAction.label, "Friends online-message icon needs a matching tooltip");
         await captureViewport(page, "friends-390.png");
 
@@ -400,7 +400,7 @@ async function captureViewport(page, fileName) {
       await assertNoIosInputZoom(page, `Booking Agent ${width}px`);
       const bookingHeader = await page.locator("body.ds-tool-page>header").evaluate(header => ({ height: header.getBoundingClientRect().height, navVisible: getComputedStyle(header.querySelector("nav")).display !== "none" }));
       assert.ok(bookingHeader.height <= 60, `${width}px: professional-tool header is oversized: ${JSON.stringify(bookingHeader)}`);
-      assert.equal(bookingHeader.navVisible, false, `${width}px: desktop tool links must not duplicate mobile navigation`);
+      assert.equal(bookingHeader.navVisible, width > 700, `${width}px: tool-header links must appear only when the mobile navigation is absent`);
       const bookingPrimary = await page.locator("#bookingBriefForm button.primary").evaluate(button => {
         const style = getComputedStyle(button);
         return { background: style.backgroundColor, color: style.color, height: button.getBoundingClientRect().height };
@@ -558,6 +558,8 @@ async function captureViewport(page, fileName) {
       await assertNoOverflow(page, `Desktop Profile ${width}px`);
       assert.equal(await page.locator("body.profile-page>header .header-actions").isVisible(), true, `${width}px: desktop Profile account navigation must remain available`);
       assert.equal(await page.locator("body.profile-page>.ds-mobile-nav").isVisible(), false, `${width}px: mobile navigation must not duplicate desktop Profile navigation`);
+      const profileBrand = await page.locator("body.profile-page>header .brand img").evaluate(image => ({ width: image.getBoundingClientRect().width, height: image.getBoundingClientRect().height }));
+      assert.ok(profileBrand.width >= 38 && profileBrand.height >= 38, `${width}px: Profile brand mark is squeezed below a recognizable size: ${JSON.stringify(profileBrand)}`);
       await captureViewport(page, `profile-${width}.png`);
 
       await page.goto(`${baseUrl}/feed.html?view=feed#settings`, { waitUntil: "domcontentloaded" });
@@ -618,7 +620,7 @@ async function captureViewport(page, fileName) {
       }
       await page.locator('.topnav [data-feature="Friends"]').click();
       await page.waitForSelector(".friends-workspace-list");
-      await page.waitForSelector(".friend-discovery-row button[data-icon='chat']");
+      await page.waitForSelector(".friend-workspace-row .friend-message-action");
       await assertNoOverflow(page, `Desktop Friends ${width}px`);
       assert.equal(await page.locator("#featureView").isVisible(), true, `${width}px: desktop Friends workspace must be visible`);
       assert.equal(await page.locator("#newsFeedView").isVisible(), false, `${width}px: desktop Friends must not stack over the feed`);
