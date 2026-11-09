@@ -198,9 +198,29 @@
 }
 
 .booking-page .venue-quick-search > #venueQuickStatus,
+.booking-page .venue-quick-search > .venue-selection-bar,
 .booking-page .venue-quick-search > .venue-quick-results,
 .booking-page .venue-quick-search > #venueQuickMore {
   grid-column: 1 / -1;
+}
+
+.booking-page .venue-quick-search > .venue-selection-bar {
+  display: grid;
+  grid-template-columns: auto minmax(150px, max-content);
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 8px 0;
+  border-block: 1px solid #d8dee8;
+}
+
+.booking-page .venue-quick-search > .venue-selection-bar[hidden] {
+  display: none !important;
+}
+
+.booking-page .venue-quick-search > .venue-selection-bar button {
+  min-height: 44px;
+  margin: 0;
 }
 
 .booking-page .route-cost-summary {
@@ -488,9 +508,21 @@
   }
 
   .booking-page .venue-quick-search > #venueQuickStatus,
+  .booking-page .venue-quick-search > .venue-selection-bar,
   .booking-page .venue-quick-search > .venue-quick-results,
   .booking-page .venue-quick-search > #venueQuickMore {
     grid-column: 1;
+  }
+
+  .booking-page .venue-quick-search > .venue-selection-bar {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .booking-page .venue-quick-search > .venue-selection-bar strong,
+  .booking-page .venue-quick-search > .venue-selection-bar button {
+    font-size: 13px;
+    white-space: nowrap;
   }
 }
 

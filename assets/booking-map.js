@@ -29,6 +29,7 @@
   const selectedVenues = new Map();
   const selectionCount = document.getElementById("selectedVenueCount");
   const openSelections = document.getElementById("openVenueSelections");
+  const selectionBar = selectionCount?.closest(".venue-selection-bar");
   let searchBounds = null;
   let searchScope = "city";
   let drawingRoute = false;
@@ -69,6 +70,7 @@
     const count = selectedVenues.size;
     if (selectionCount) selectionCount.textContent = `${count} club${count === 1 ? "" : "s"} selected`;
     if (openSelections) openSelections.disabled = count === 0;
+    if (selectionBar) selectionBar.hidden = count === 0;
     persistSelectedVenues();
     window.dispatchEvent(new CustomEvent("danzstak:booking-selection", { detail: { count } }));
   }

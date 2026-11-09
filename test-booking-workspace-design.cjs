@@ -17,8 +17,10 @@ assert.match(html, /Exact dates are optional while researching/);
 assert.match(html, /id="bookingBriefExample">Example<\/button>/);
 assert.match(html, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/);
 assert.match(html, /<details class="planner-drawer">[\s\S]*?<summary>More tour options: genre, crew, van and budget<\/summary>/);
-assert.match(html, /assets\/booking-workspace\.css\?v=7/);
-assert.match(html, /assets\/booking-map\.js\?v=448/);
+assert.match(html, /assets\/booking-workspace\.css\?v=8/);
+assert.match(html, /assets\/booking-map\.js\?v=449/);
+assert.match(html, /assets\/booking-discovery\.css\?v=3/);
+assert.match(html, /assets\/booking-discovery\.js\?v=4/);
 assert.match(html, /assets\/booking-agent\.js\?v=488/);
 assert.match(html, /assets\/booking-conversation\.js\?v=480/);
 
@@ -73,7 +75,7 @@ assert.doesNotMatch(agent, /Choose the first date and the date the act must be h
 assert.match(map, /danzstak:booking-selection/);
 assert.match(map, /window\.danzstakToggleBookingVenue/);
 
-assert.match(worker, /danzstak-shell-v775/);
+assert.match(worker, /danzstak-shell-v776/);
 assert.match(worker, /"\/assets\/booking-workspace\.css"/);
 
 console.log("Booking workspace design checks passed: one compact planning card, truthful status timing, shared tool header, optional advanced controls, and PWA coverage.");
