@@ -1,5 +1,17 @@
 # DANZSTAK development report
 
+## SYNC call-device recovery — 2026-11-09
+
+Status: **IMPLEMENTED AND FULLY VERIFIED LOCALLY ON `codex/sync-device-recovery`; REVIEW-PWA DEPLOYMENT PENDING; PRODUCTION UNCHANGED.**
+
+- Root cause: an installation that had not yet registered for SYNC calls received the backend's correct `CALL_DEVICE_REGISTRATION_REQUIRED` response, but both the full SYNC screen and the Feed/Profile incoming-call listener treated it as a temporary network outage. SYNC displayed a misleading automatic-reconnect message and repeated `/calls/inbox` every two seconds even though only device registration could recover it.
+- SYNC now shows the actionable message **This device is not registered for calls. Register this device.** Opening a phone or video call from that state opens the existing Calling Devices setup before microphone or camera permission is requested. Registration immediately resumes call inbox checks, and opening a conversation no longer overwrites the recovery message with generic messaging copy.
+- Feed and Profile now stop their background call-inbox polling after the same registration-required response and resume only after the installation is registered. Other transient failures retain the existing quiet retry behavior.
+- The installed-PWA shell advances to `danzstak-shell-v771`; Feed/Profile request incoming-call listener `v302`, while SYNC requests call controller `v453` and direct messages `v494`.
+- **FUNCTIONAL AND INTEGRATION TESTS:** the complete `test-regressions.ps1` gate passes, including all SYNC/message/call, social, Booking, EPK, Tour Manager, Stripe, PWA, 15-page site-smoke and infrastructure checks. Focused call cleanup and registration tests prove one failed inbox request, paused polling, immediate post-registration recovery, authenticated device headers and setup-before-media behavior.
+- **VISUAL TESTS:** the real-browser gate passes at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. It opens a real conversation, verifies the visible recovery copy, opens and completes the Calling Devices workflow, enforces 44px controls and zero horizontal overflow, and captures both changed states. Builder-reviewed evidence: [`docs/screenshots/release-candidate/sync-device-recovery-local/`](screenshots/release-candidate/sync-device-recovery-local/).
+- Implementation commit: `e12fc68`. Review PR, all five GitHub Review jobs and hosted `review.danzstak.com` verification remain the next gate. Physical-phone audible ring, answer handoff and two-way microphone/speaker/video behavior remain an owner device test; this correction does not claim that hardware/network path is complete. The current Google STUN/no-DanzStak-TURN limitation is unchanged and remains a later phase under the owner directives.
+
 ## Member shops and event-ticket catalog foundation — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; AWS BACKEND AND PRODUCTION UNCHANGED; CHECKOUT AND LIVE SALES DISABLED.**
