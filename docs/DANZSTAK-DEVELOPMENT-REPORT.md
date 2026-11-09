@@ -2082,3 +2082,15 @@ Status as of 2026-11-09: **IMPLEMENTED AND TESTED; AWS BACKEND AND PRODUCTION UN
 - Focused message and infrastructure checks passed. The complete `test-regressions.ps1` gate passed, including all JavaScript regressions, release propagation checks, the 13-page site smoke suite, and embedded-Lambda syntax/infrastructure validation.
 - Implementation commit: `3cd065e7f76a4303d1574f2e34d129652675f586` on `codex/release-candidate-2026-11-08` in draft pull request [#173](https://github.com/danzstak/danzstak-web/pull/173).
 - This change is backend infrastructure source only. It has **not** been deployed to the shared AWS API. The review PWA and production continue using the previously deployed messaging backend until the owner approves the complete release candidate.
+
+# Booking-email credit Checkout return
+
+Status as of 2026-11-09: **IMPLEMENTED, TESTED, MERGED TO THE REVIEW RELEASE CANDIDATE, AND HOSTED-BROWSER VERIFIED; PRODUCTION UNCHANGED**.
+
+- The Booking workspace now records the requested credit quantity before leaving for Stripe Checkout. On return it polls the authenticated credit ledger and does not announce usable credits until a matching settled purchase appears.
+- A verified return refreshes the visible balance, removes the `credits` result from the URL and clears the temporary same-tab Checkout marker. Cancellation performs the same cleanup without adding credits. A slow webhook remains visibly pending and does not invite a second purchase.
+- Credit quantity, purchase and recent-activity controls keep a 44px minimum phone target. The installed review-PWA shell advances to `danzstak-shell-v779`, Booking billing JavaScript to `v7` and Booking selection CSS to `v15`.
+- `browser-checks/booking-credit-return.cjs` passed three consecutive local runs at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px, including delayed settlement, balance refresh, URL/session cleanup, cancellation, touch targets, overflow and page-error checks. The complete `test-regressions.ps1` suite passed.
+- Pull request [#197](https://github.com/danzstak/danzstak-web/pull/197) passed all five jobs in GitHub Review run [42583039148](https://github.com/danzstak/danzstak-web/actions/runs/42583039148) and was squash-merged into `codex/release-candidate-2026-11-08` as `96b22742b48711182cf76d674e5de92df5d93545`.
+- No-cache hosted probes confirmed `assets/booking-billing.js?v=7`, `assets/booking-selections.css?v=15` and `danzstak-shell-v779`. The same nine-width browser matrix then passed directly against `https://review.danzstak.com`; hosted captures are in `docs/screenshots/booking-credit-return/`.
+- No real payment, email or production deployment was performed. A Stripe Test Mode manual purchase/webhook check and the owner's installed-phone walkthrough remain release gates.
