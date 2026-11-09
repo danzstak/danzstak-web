@@ -295,15 +295,26 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /marketplace/store", "PUT /marketplace/store", "GET /marketplace/shop", "PUT /marketplace/shop", "GET /marketplace/shop/{memberId}", "POST /marketplace/products", "PATCH /marketplace/products/{productId}", "DELETE /marketplace/products/{productId}", "POST /marketplace/store/products", "PATCH /marketplace/store/products/{productId}", "DELETE /marketplace/store/products/{productId}", "GET /marketplace/events", "POST /marketplace/events", "GET /marketplace/events/{eventId}", "PATCH /marketplace/events/{eventId}", "POST /marketplace/events/{eventId}/tiers", "GET /auth/mobile-login", "POST /auth/mobile-session", "GET /auth/sessions", "DELETE /auth/sessions/{deviceId}", "POST /auth/sessions/revoke-others", "GET /auth/reauth", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /marketplace/store", "PUT /marketplace/store", "GET /marketplace/shop", "PUT /marketplace/shop", "GET /marketplace/shop/{memberId}", "POST /marketplace/products", "PATCH /marketplace/products/{productId}", "DELETE /marketplace/products/{productId}", "POST /marketplace/store/products", "PATCH /marketplace/store/products/{productId}", "DELETE /marketplace/store/products/{productId}", "GET /marketplace/events", "POST /marketplace/events", "GET /marketplace/events/{eventId}", "PATCH /marketplace/events/{eventId}", "POST /marketplace/events/{eventId}/tiers", "GET /auth/sessions", "DELETE /auth/sessions/{deviceId}", "POST /auth/sessions/revoke-others", "GET /auth/reauth", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null
       if ($LASTEXITCODE -ne 0) { throw "Tour plans API route $routeKey creation failed." }
     }
   }
+  foreach ($obsoleteRouteKey in @("GET /auth/mobile-login", "POST /auth/mobile-session")) {
+    $obsoleteRouteId = ($routes.Items | Where-Object { $_.RouteKey -eq $obsoleteRouteKey } | Select-Object -First 1).RouteId
+    if (-not [string]::IsNullOrWhiteSpace([string]$obsoleteRouteId)) {
+      aws apigatewayv2 delete-route --region $Region --api-id $ApiId --route-id $obsoleteRouteId
+      if ($LASTEXITCODE -ne 0) { throw "Obsolete native authentication route $obsoleteRouteKey could not be removed." }
+    }
+  }
   $permission = aws lambda get-policy --region $Region --function-name $FunctionName --query Policy --output text
   if ($LASTEXITCODE -ne 0) { throw "Auth API invoke permissions could not be inspected." }
+  if ($permission -match "AllowNativeAuthFromApiGateway") {
+    aws lambda remove-permission --region $Region --function-name $FunctionName --statement-id AllowNativeAuthFromApiGateway
+    if ($LASTEXITCODE -ne 0) { throw "Obsolete native authentication API permission could not be removed." }
+  }
   if ($permission -notmatch "AllowTourRouteFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourRouteFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/POST/tour/route" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API invoke permission failed." }
@@ -343,10 +354,6 @@ try {
   if ($permission -notmatch "AllowTourManagerBillingFromApiGateway") {
     aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowTourManagerBillingFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/tour-manager/*" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour Manager billing API invoke permission failed." }
-  }
-  if ($permission -notmatch "AllowNativeAuthFromApiGateway") {
-    aws lambda add-permission --region $Region --function-name $FunctionName --statement-id AllowNativeAuthFromApiGateway --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn "arn:aws:execute-api:${Region}:635288116224:${ApiId}/*/*/auth/mobile-*" --output json | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Native authentication API invoke permission failed." }
   }
   Write-Host "DanzStak Auth API authorization safeguards deployed successfully."
 } finally {

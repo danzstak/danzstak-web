@@ -143,9 +143,10 @@ function fixture(pathname) {
           assert.ok(videoCall && videoCall.width >= 44 && videoCall.height >= 44 && videoCall.x >= 0 && videoCall.x + videoCall.width <= width, `${width}px video-call action must remain visible and touchable`);
         }
         if (name === "profile") {
+          await page.getByRole("link", { name: /(?:Open|Manage) my shop/ }).waitFor({ state: "visible" });
           const profileControls = await page.evaluate(() => {
             const visible = selector => [...document.querySelectorAll(selector)].filter(element => !element.hidden && getComputedStyle(element).display !== "none");
-            const actions = visible(".profile-actions > button").map(element => {
+            const actions = visible(".profile-actions > button, .profile-actions > a").map(element => {
               const box = element.getBoundingClientRect();
               return { label: element.textContent.trim(), top: box.top, bottom: box.bottom, width: box.width, height: box.height };
             });
@@ -164,7 +165,7 @@ function fixture(pathname) {
             };
             return { actions, tabs, header: { search: headerRect(document.querySelector("#profileHeaderSearch")), searchPlaceholder: document.querySelector("#profileHeaderSearch")?.placeholder || "", pivot: headerRect(document.querySelector("#profileHeaderPivot")), install: headerRect(document.querySelector("body > .install-app-button")) } };
           });
-          assert.equal(profileControls.actions.length, 3, `${width}px owner profile must retain Edit, Share, and Invite actions`);
+          assert.deepEqual(profileControls.actions.map(action => action.label), ["Edit Profile", "Open my shop", "Share Profile", "Invite People"], `${width}px owner profile must retain Edit, Shop, Share, and Invite actions`);
           assert.ok(Math.max(...profileControls.actions.map(action => action.top)) - Math.min(...profileControls.actions.map(action => action.top)) <= 1, `${width}px profile actions must use one row: ${JSON.stringify(profileControls.actions)}`);
           assert.ok(profileControls.actions.every(action => action.height >= 44 && action.width > 0), `${width}px profile actions must retain touch targets: ${JSON.stringify(profileControls.actions)}`);
           assert.ok(profileControls.tabs.length >= 5, `${width}px profile sections are missing: ${JSON.stringify(profileControls.tabs)}`);

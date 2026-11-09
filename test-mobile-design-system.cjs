@@ -25,6 +25,8 @@ assert.match(css, /\.ds-mobile-nav\{[\s\S]*background:rgba\(255,255,255,\.96\)/,
 assert.match(css, /\.ds-mobile-nav a\[aria-current=page\]\{background:var\(--ds-accent-soft\);color:#b74708;box-shadow:inset 0 3px 0 var\(--ds-accent\)\}/, "the current destination must carry a DanzStak orange cue");
 assert.match(css, /\.post>\.post-media[\s\S]*margin-left:-10px/, "phone media must extend through the card gutters consistently");
 assert.match(css, /\.post-actions\{display:grid;grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/, "post actions must remain one compact row");
+assert.match(css, /\.profile-actions\{[\s\S]*display:flex;[\s\S]*flex-wrap:nowrap/, "phone profile actions must share one compact row even when the Shop action is present");
+assert.match(css, /\.profile-actions>:is\(button,a\)\{[\s\S]*flex:1 1 0/, "phone profile buttons and links must share the row evenly");
 assert.match(chatCss, /body\.is-conversation-open \.conversation-header\{[\s\S]*grid-template-columns:44px minmax\(0,1fr\) auto/, "phone Chat must reserve readable space for the contact name");
 assert.match(chatCss, /body\.is-conversation-open \.conversation-avatar\{display:none\}/, "phone Chat must remove the redundant header avatar instead of clipping the contact name");
 assert.match(chatCss, /body\.is-conversation-open #minimizeConversation\{display:none!important\}/, "phone Chat must override the shared icon display when hiding desktop-only minimize");
@@ -37,10 +39,10 @@ assert.match(css, /body\{padding-bottom:calc\(50px \+ env\(safe-area-inset-botto
 assert.match(css, /body\.profile-page\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "Profile must clear its fixed mobile navigation");
 assert.match(css, /\.messages-page:not\(\.is-conversation-open\)\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "the SYNC inbox must clear its fixed mobile navigation");
 assert.match(feedCss, /\.notification-actions :is\(button,a\)\{[^}]*min-width:44px;min-height:44px/, "notification actions must retain 44px phone targets");
-assert.match(worker, /danzstak-shell-v788/);
+assert.match(worker, /danzstak-shell-v789/);
 assert.match(worker, /\/assets\/mobile-design-system\.css/, "the installed PWA must cache the shared mobile system");
 
-for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=17/, `${file} must load the same mobile design system`);
+for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=18/, `${file} must load the same mobile design system`);
 for (const file of ["messages.html", "booking.html", "record-stores.html", "epk.html", "profile.html"]) {
   const html = pages.find(([name]) => name === file)[1];
   assert.match(html, /class="ds-mobile-nav"/, `${file} must expose the consistent mobile navigation`);
