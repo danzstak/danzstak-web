@@ -24,6 +24,39 @@ const fs = require("node:fs");
 
   const plain = "Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nWe can host you March 5.=0AWhat fee do you need?";
   assert.equal(inbound.decodePart(plain), "We can host you March 5.\nWhat fee do you need?");
+  const multipart = [
+    'Content-Type: multipart/alternative; boundary="reply-boundary"',
+    "",
+    "This is a multi-part message in MIME format.",
+    "--reply-boundary",
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: quoted-printable",
+    "",
+    "Ci vediamo a Novara.=0ACompenso: =E2=82=AC500.",
+    "--reply-boundary",
+    "Content-Type: text/html; charset=UTF-8",
+    "",
+    "<p>Ci vediamo a Novara.</p>",
+    "--reply-boundary--",
+    ""
+  ].join("\r\n");
+  assert.equal(inbound.decodePart(multipart), "Ci vediamo a Novara.\nCompenso: €500.", "multipart preambles must not replace the venue reply and UTF-8 amounts must remain intact");
+  const mixedWithTextAttachment = [
+    'Content-Type: multipart/mixed; boundary="mixed-boundary"',
+    "",
+    "--mixed-boundary",
+    'Content-Type: text/plain; name="notes.txt"',
+    "Content-Disposition: attachment; filename=notes.txt",
+    "",
+    "private attachment text",
+    "--mixed-boundary",
+    "Content-Type: text/plain; charset=UTF-8",
+    "",
+    "The venue reply body.",
+    "--mixed-boundary--",
+    ""
+  ].join("\r\n");
+  assert.equal(inbound.decodePart(mixedWithTextAttachment), "The venue reply body.", "text attachments must not be mistaken for the venue reply");
   assert.equal(inbound.cleanReply("Sounds good.\n\nOn Nov 8, Artist wrote:\nold copy"), "Sounds good.");
   assert.equal(inbound.receiptIsSafe({ spamVerdict: { status: "PASS" }, virusVerdict: { status: "PASS" }, spfVerdict: { status: "PASS" }, dkimVerdict: { status: "PASS" } }), true);
   assert.equal(inbound.receiptIsSafe({ spamVerdict: { status: "PASS" }, virusVerdict: { status: "PASS" }, spfVerdict: { status: "GRAY" }, dkimVerdict: { status: "PASS" } }), true, "one verified sender-authentication path is sufficient");
@@ -35,5 +68,5 @@ const fs = require("node:fs");
   assert.equal(inbound.receiptIsSafe({ spamVerdict: { status: "FAIL" }, virusVerdict: { status: "PASS" }, spfVerdict: { status: "PASS" } }), false);
   assert.equal(inbound.receiptIsSafe({}), false, "missing scan verdicts must fail closed");
 
-  console.log("Booking email-to-SYNC bridge checks passed: artist sender identity, private route, sender binding, fail-closed SES verdicts, MIME text extraction and duplicate protection.");
+  console.log("Booking email-to-SYNC bridge checks passed: artist sender identity, private route, sender binding, fail-closed SES verdicts, multipart/UTF-8 MIME extraction and duplicate protection.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
