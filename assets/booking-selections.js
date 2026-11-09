@@ -316,6 +316,7 @@
     ].filter(Boolean).join(" — ");
     links.className = "venue-links";
     const venueKey = identity(venue);
+    card.dataset.venueKey = venueKey;
     const hasDirectContact = (venue.emails || []).some(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) || (venue.phones || []).length > 0;
     const contactUnlocked = window.danzstakBookingContactUnlocked?.(venueKey) === true;
     if (typeof venue.imageUrl === "string" && /^https:\/\//.test(venue.imageUrl)) {
@@ -335,10 +336,15 @@
       unlock.className = "unlock-contact";
       unlock.textContent = "Unlock booking contact · $0.75";
       unlock.addEventListener("click", async () => {
-        if (dirty) { window.danzstakShowFeedback?.("Save your booking workspace before unlocking its contact.", { urgent: true }); return; }
         unlock.disabled = true;
-        unlock.textContent = "Opening secure checkout…";
-        try { await window.danzstakUnlockBookingContact(venueKey); }
+        try {
+          if (dirty) {
+            unlock.textContent = "Saving current venue…";
+            if (!(await saveWorkspaceSnapshot())) throw new Error("DanzStak could not save this venue. Check the account status and try again before checkout.");
+          }
+          unlock.textContent = "Opening secure checkout…";
+          await window.danzstakUnlockBookingContact(venueKey);
+        }
         catch (error) { window.danzstakShowFeedback?.(error.message, { urgent: true }); unlock.disabled = false; unlock.textContent = "Unlock booking contact · $0.75"; }
       });
       links.append(unlock);
