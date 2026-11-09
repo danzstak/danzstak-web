@@ -15,6 +15,15 @@
   const bookingInput = document.createElement("textarea");
   const bookingStatus = document.createElement("p");
   const bookingSend = document.createElement("button");
+  const requested = new URLSearchParams(location.search);
+  const requestedSection = requested.get("section") || "";
+  let requestedOutreachId = /^[a-zA-Z0-9_-]{16,100}$/.test(requested.get("outreach") || "") ? requested.get("outreach") : "";
+  if (requested.has("section") || requested.has("outreach")) {
+    const cleanUrl = new URL(location.href);
+    cleanUrl.searchParams.delete("section");
+    cleanUrl.searchParams.delete("outreach");
+    history.replaceState(history.state, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+  }
   let loading = false;
 
   bookingForm.id = "bookingReplyForm";
@@ -205,6 +214,11 @@
       row.append(button);
       list.append(row);
     }
+    if (requestedOutreachId) {
+      const requestedThread = threads.find(thread => thread.message.id === requestedOutreachId);
+      if (requestedThread) renderThread(requestedThread);
+      requestedOutreachId = "";
+    }
   }
 
   async function load() {
@@ -234,6 +248,10 @@
     name.setAttribute("href", "profile.html");
     avatar.setAttribute("href", "profile.html");
   };
+
+  if (requestedSection === "bookings") {
+    document.querySelector('[data-chat-filter="bookings"]')?.click();
+  }
 
   bookingForm.addEventListener("submit", async event => {
     event.preventDefault();
