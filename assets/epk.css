@@ -49,6 +49,7 @@
 
 @page{size:letter;margin:.4in}
 @media print{
+  html,body,main{background:#fff!important}
   .epk-public-actions,.epk-public-notice,.ds-mobile-nav,.skip-link{display:none!important}
   body[data-epk-print="full"] .epk-preview[data-look] .epk-body>section{break-inside:auto!important}
   body[data-epk-print="full"] .epk-body h2{break-after:avoid}
