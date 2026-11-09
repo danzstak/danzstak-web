@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 720 360" fill="none">
+  <g stroke="#38516f" stroke-width="2" stroke-linecap="round" opacity=".14">
+    <path d="M0 70h720M0 82h720M0 94h720M0 106h720M0 118h720"/>
+    <path d="M0 242h720M0 254h720M0 266h720M0 278h720M0 290h720"/>
+  </g>
+  <g fill="#38516f" opacity=".14">
+    <ellipse cx="92" cy="106" rx="10" ry="7" transform="rotate(-15 92 106)"/>
+    <path d="M100 104V48h3v56zM103 48c20 4 27 14 31 26-10-8-18-11-31-12z"/>
+    <ellipse cx="178" cy="82" rx="10" ry="7" transform="rotate(-15 178 82)"/>
+    <path d="M186 80V32h3v48z"/>
+    <ellipse cx="250" cy="118" rx="10" ry="7" transform="rotate(-15 250 118)"/>
+    <path d="M258 116V58h3v58zM261 58h61v3h-61z"/>
+    <ellipse cx="314" cy="106" rx="10" ry="7" transform="rotate(-15 314 106)"/>
+    <path d="M322 104V58h3v46z"/>
+    <ellipse cx="438" cy="94" rx="10" ry="7" transform="rotate(-15 438 94)"/>
+    <path d="M446 92V38h3v54zM449 38c17 5 25 14 28 25-9-7-18-10-28-11z"/>
+    <ellipse cx="560" cy="118" rx="10" ry="7" transform="rotate(-15 560 118)"/>
+    <path d="M568 116V62h3v54z"/>
+    <ellipse cx="630" cy="82" rx="10" ry="7" transform="rotate(-15 630 82)"/>
+    <path d="M638 80V31h3v49z"/>
+    <ellipse cx="140" cy="278" rx="10" ry="7" transform="rotate(-15 140 278)"/>
+    <path d="M148 276v-56h3v56z"/>
+    <ellipse cx="230" cy="254" rx="10" ry="7" transform="rotate(-15 230 254)"/>
+    <path d="M238 252v-46h3v46zM241 206c18 4 27 13 31 25-10-7-19-10-31-11z"/>
+    <ellipse cx="350" cy="290" rx="10" ry="7" transform="rotate(-15 350 290)"/>
+    <path d="M358 288v-58h3v58zM361 230h61v3h-61z"/>
+    <ellipse cx="414" cy="278" rx="10" ry="7" transform="rotate(-15 414 278)"/>
+    <path d="M422 276v-46h3v46z"/>
+    <ellipse cx="526" cy="266" rx="10" ry="7" transform="rotate(-15 526 266)"/>
+    <path d="M534 264v-54h3v54z"/>
+    <ellipse cx="642" cy="290" rx="10" ry="7" transform="rotate(-15 642 290)"/>
+    <path d="M650 288v-55h3v55zM653 233c17 4 25 13 29 24-9-7-18-10-29-11z"/>
+  </g>
+</svg>

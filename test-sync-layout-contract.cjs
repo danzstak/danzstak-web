@@ -14,7 +14,7 @@ assert.match(css, /\.conversation-user\{height:72px;min-height:72px!important;[^
 assert.match(css, /\.conversation-copy strong\{font-size:16px;line-height:20px;font-weight:600/, "conversation titles need the compact hierarchy");
 assert.match(css, /\.conversation-copy small\{font-size:14px!important;line-height:20px/, "conversation previews need readable 14px text");
 assert.match(css, /\.conversation-user time\{font-size:12px!important;line-height:16px/, "conversation timestamps need the 12px meta scale");
-assert.match(css, /\.message-list\{padding:12px 16px 20px;background:var\(--sync-canvas\)/, "threads need a warm, full-width conversation canvas");
+assert.match(css, /\.message-list\{padding:12px 16px 20px;scrollbar-gutter:stable\}/, "threads need a compact full-width conversation canvas");
 assert.match(css, /\.message\{max-width:min\(75%,540px\)[^}]*padding:8px 12px[^}]*border-radius:0 12px 12px 12px[^}]*font-size:15px;line-height:20px/, "incoming bubbles need the measured mobile geometry");
 assert.match(css, /\.message\.mine\{[^}]*border-radius:12px 0 12px 12px[^}]*background:var\(--sync-outgoing\)/, "outgoing bubbles need the mirrored DanzStak treatment");
 assert.match(css, /\.message\.mine\+\.message\.mine,\.message:not\(\.mine\)\+\.message:not\(\.mine\)\{margin-top:2px\}/, "same-speaker messages need a 2px rhythm");
@@ -22,7 +22,7 @@ assert.match(css, /\.message\.mine\+\.message:not\(\.mine\),\.message:not\(\.min
 assert.match(css, /\.message-form\{min-height:52px;gap:8px;padding:8px 12px/, "the composer needs the measured 52px minimum");
 assert.match(css, /\.message-input-shell\{min-height:44px;border-radius:24px\}/, "the message field needs a familiar rounded shell");
 assert.match(css, /\.message-input-shell #messageInput\{padding:9px 12px!important;font-size:15px;line-height:20px\}/, "composer text needs the 15px input scale");
-assert.match(html, /assets\/sync\.css\?v=9/, "SYNC must request the new layout contract");
-assert.match(worker, /danzstak-shell-v783/, "the installed PWA must advance for the SYNC contract");
+assert.match(html, /assets\/sync\.css\?v=10/, "SYNC must request the new layout contract");
+assert.match(worker, /danzstak-shell-v784/, "the installed PWA must advance for the SYNC contract");
 
 console.log("SYNC layout-contract checks passed: conversation rows, typography, bubbles, composer, DanzStak branding, and PWA refresh.");

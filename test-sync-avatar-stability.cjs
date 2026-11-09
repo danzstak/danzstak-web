@@ -12,6 +12,6 @@ assert.match(source, /const signature = JSON\.stringify\(eligible\.map\(conversa
 assert.match(source, /const listSignature = JSON\.stringify\([\s\S]*conversations: visible\.map\(conversationVisualState\)[\s\S]*if \(listSignature === lastConversationListSignature\) return;\s*lastConversationListSignature = listSignature;\s*conversationUsers\.replaceChildren\(\);/, "the conversation list must reconcile semantic changes before rebuilding avatar nodes");
 assert.match(source, /cachedConversations\.find\(item => item\.contactEmail === conversation\.contactEmail\) \|\| conversation/, "reused rows must open the newest cached contact data");
 assert.match(html, /assets\/direct-messages\.js\?v=495/, "SYNC must request the avatar-stability implementation");
-assert.match(worker, /danzstak-shell-v783/, "the installed PWA must advance for the avatar-stability fix");
+assert.match(worker, /danzstak-shell-v784/, "the installed PWA must advance for the avatar-stability fix");
 
 console.log("SYNC avatar-stability checks passed: refreshed signed URLs keep the existing images while real contact changes still rerender.");
