@@ -4,6 +4,13 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Foreground SYNC call authentication in the PWA
+
+- **FIXED AND VERIFIED ON HOSTED STAGING IN PR #173; PRODUCTION UNCHANGED:** Feed now loads the existing registered-call-device credential helper before the global incoming-call listener. Inbox polling, decline signalling and acknowledgement attach the same short-lived installation headers already used by the full SYNC screen.
+- Root cause: the backend correctly rejects `/calls/inbox`, `/calls/signal` and `/calls/ack` without an active registered-device credential. `messages.html` loaded and used that credential, but `feed.html` did not load `call-devices.js`, and `incoming-calls.js` did not attach its headers. A generic push alert could therefore arrive while foreground Feed polling and decline failed with 403, which presented as a notification that did not become a usable ringing call.
+- **TESTED:** focused device-registration and notification tests pass. The browser regression makes the simulated backend return 403 for every call request without the exact device headers and passes at 320, 360, 390, 414, 430 and 1366px locally and against `https://review.danzstak.com`. The complete `test-regressions.ps1` gate passes, including every call/message/feed/Booking/EPK/Stripe/PWA regression, 13-page site smoke and infrastructure validation. GitHub Review run [42545364309](https://github.com/danzstak/danzstak-web/actions/runs/42545364309) passed all five jobs at implementation commit `6d7986d726be5b4d2f452ebf2dac08f04c9b965e`; the hosted-test stabilization commit is `f0fe3d2`. No-cache probes confirm `call-devices.js?v=2`, `incoming-calls.js?v=301` and `danzstak-shell-v768` on the review PWA.
+- Physical-phone audible ring, answer handoff, microphone/speaker routing and two-way audio/video remain the owner acceptance gate. No AWS backend or production deployment was made for this frontend correction.
+
 ### Release QA and one-page EPK PDF
 
 - **FIXED AND VERIFIED ON HOSTED STAGING IN PR #173; PRODUCTION UNCHANGED:** The one-page press PDF is one Letter page again. Its media-card limit now applies to every semantic card element, not only legacy `div` children, so Listen, Watch, Shows, Press and Booking remain on the same page. Print backgrounds now end on clean white paper instead of leaving a gray application-canvas block below the EPK.

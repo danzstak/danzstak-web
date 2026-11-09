@@ -4,9 +4,9 @@ Status: **STAGING VERIFIED — NO TEST PASS, NO PRODUCTION DEPLOY**
 Prepared: 2026-11-08  
 Release owner: Shawn  
 Branch: `codex/release-candidate-2026-11-08`  
-Reviewed implementation: `db4851da7f1c7af31ec52358c14f0dd8b4f235fb`
+Reviewed implementation: `f0fe3d2`
 Base/rollback commit: `04d41cccea19da3999e2ae69845532ce32b16e3f`  
-PWA cache: `danzstak-shell-v767`
+PWA cache: `danzstak-shell-v768`
 Production commit/deployment: **UNCHANGED / NOT DEPLOYED**
 
 ## Scope
@@ -14,6 +14,7 @@ Production commit/deployment: **UNCHANGED / NOT DEPLOYED**
 - [x] Compact phone header, labeled Pivot entry points, Dailies presentation and fluid Feed layout.
 - [x] Feed media coordinator: silent startup, one audible player, viewport pause/handoff and background pause.
 - [x] SYNC foreground-call recovery and controlled two-party audio/video call path.
+- [x] Feed foreground call polling and decline authenticate with the registered installation instead of failing behind a generic push alert.
 - [x] Signed-in device/session security controls.
 - [x] Reconciled Booking workspace, route research, venue selection and tour-cost presentation.
 - [x] Versioned PWA assets and service-worker cache assertions.
@@ -67,16 +68,16 @@ Evidence: `docs/screenshots/release-candidate/`, including `core-social-fluid-se
 
 ## Test 3 — integration, security and staging
 
-- [x] GitHub Review checks run `42543235718` concluded `success` in all five jobs at exact reviewed branch head `db4851da7f1c7af31ec52358c14f0dd8b4f235fb`.
+- [x] GitHub Review checks run `42545364309` concluded `success` in all five jobs at exact implementation head `6d7986d726be5b4d2f452ebf2dac08f04c9b965e`; the subsequent `f0fe3d2` commit stabilizes the hosted pointer target in the same passing browser regression without changing application behavior.
 - [x] Feed, Friends, Notifications, Profile, SYNC, Pivot, The Roll, Booking and EPK shells returned HTTP 200 from staging.
 - [x] Delivered Feed assets include mobile-design CSS `v17`, Feed art-direction CSS `v28`, Feed enhancement CSS `v508`, Feed enhancement JavaScript `v542`, identity-media recovery `v2`, Pivot `v2`, alert CSS `v236`, and PWA bootstrap `v428`.
-- [x] Delivered service worker reports `danzstak-shell-v767`; no-cache probes confirm `assets/epk.css?v=9` and the matching current Feed assets.
+- [x] Delivered service worker reports `danzstak-shell-v768`; no-cache probes confirm `assets/epk.css?v=9`, `assets/call-devices.js?v=2`, `assets/incoming-calls.js?v=301` and the matching current Feed assets.
 - [x] A fresh hosted browser context registered and activated the staging service worker, created the versioned shell cache, and controlled the next page load without clearing user storage.
 - [x] Required authentication, account-isolation, accessibility, link/privacy, Booking, EPK, Tour Manager, Stripe Test Mode and PWA regressions passed in the full gate.
 - [x] No credential, password, session token, webhook secret or private customer data is recorded in the branch evidence.
-- [x] No-cache hosted probes return `danzstak-shell-v767`, `assets/epk.css?v=9` and the matching current Feed assets. The load-gated Dailies portrait matrix passed three consecutive runs directly against the hosted review origin at 320, 390 and 1366px. The hosted one-page PDF is exactly one page and was visually inspected. The staging branch remains separate from production.
+- [x] No-cache hosted probes return `danzstak-shell-v768`, `assets/epk.css?v=9` and the matching current Feed assets. The authenticated foreground-call matrix passes directly against the hosted review origin at 320, 360, 390, 414, 430 and 1366px. The load-gated Dailies portrait matrix passed three consecutive runs at 320, 390 and 1366px. The hosted one-page PDF is exactly one page and was visually inspected. The staging branch remains separate from production.
 
-Staging PWA: <https://review.danzstak.com/feed.html?release=db4851d>
+Staging PWA: <https://review.danzstak.com/feed.html?release=f0fe3d2>
 
 ## Release decision
 
