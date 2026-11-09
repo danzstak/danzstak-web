@@ -7,7 +7,7 @@ const { chromium } = require("playwright-core");
 
 const origin = String(process.env.DANZSTAK_BOOKING_ORIGIN || "http://127.0.0.1:8027").replace(/\/$/, "");
 const output = path.resolve("docs/screenshots/issue-55-booking-workspace");
-const widths = [320, 360, 390, 430, 768, 1366];
+const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
 fs.mkdirSync(output, { recursive: true });
 
 let venueFixture = 0;
@@ -132,7 +132,21 @@ function fixture(pathname, populated = true) {
       await page.locator("#venueQuickQuery").fill("punk clubs in Tacoma");
       assert.equal(await page.locator("#venueQuickQuery").evaluate(element => document.activeElement === element), true, `${width}px query must remain usable with the keyboard focused`);
       await page.locator("#venueQuickForm button").click();
-      await page.waitForTimeout(60);
+      const quickVenue = page.locator("#venueQuickResults article", { hasText: "Researched Route Club" }).first();
+      await quickVenue.waitFor({ state: "visible" });
+      const quickSelect = quickVenue.locator(".venue-quick-select");
+      assert.ok(await quickSelect.evaluate(element => element.getBoundingClientRect().height >= 44), `${width}px quick venue selection must retain a 44px target`);
+      assert.equal((await quickSelect.textContent()).trim(), "Add to booking list", `${width}px sourced venues need a direct selection action`);
+      await quickSelect.click();
+      assert.match(await page.locator("#selectedVenueCount").textContent(), /1 club selected/);
+      assert.equal(await page.locator(".venue-quick-search > .venue-selection-bar").isVisible(), true, `${width}px selected-club review must stay in the primary finder`);
+      assert.equal(await page.locator("#openVenueSelections").isEnabled(), true);
+      assert.equal((await page.locator("#openVenueSelections").textContent()).trim(), "Review selected clubs");
+      assert.equal((await quickSelect.textContent()).trim(), "Remove from booking list");
+      await page.locator(".venue-quick-search").screenshot({ path: path.join(output, `venue-selection-${width}.png`) });
+      await quickSelect.click();
+      assert.match(await page.locator("#selectedVenueCount").textContent(), /0 clubs selected/);
+      assert.equal(await page.locator(".venue-quick-search > .venue-selection-bar").isHidden(), true, `${width}px empty selection bar should not waste feed space`);
       if (width === 390) {
         await page.locator("#startCity").fill("Seattle, Washington");
         await page.locator("#bookingBrief").fill("Punk. Seattle to San Francisco and home. 10 days. 8 shows.");
@@ -187,6 +201,11 @@ function fixture(pathname, populated = true) {
       });
       await page.waitForTimeout(50);
       await page.screenshot({ path: path.join(output, `booking-${width}.png`), fullPage: width >= 700 });
+      if (width === 390) {
+        await page.locator("#openVenueSelections").click();
+        await page.waitForURL(url => url.pathname.endsWith("/booking-selections.html"));
+      }
+      assert.equal(errors.length, 0, `${width}px page errors after venue selection: ${errors.join(" | ")}`);
       await context.close();
 
       const emptyContext = await browser.newContext({ viewport: { width, height: width < 700 ? 844 : 900 }, serviceWorkers: "block", reducedMotion: "reduce" });

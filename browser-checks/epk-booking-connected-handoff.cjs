@@ -33,11 +33,20 @@ const kit = {
       await page.route("https://api.danzstak.com/**", async route => {
         const request = route.request(), url = new URL(request.url()), method = request.method();
         let body = {};
-        if (url.pathname === "/epk") body = { kit, publicId:"road-test", published:true, privateShared:false };
-        else if (url.pathname === "/booking-pipeline" && method === "GET") body = { venues:[], artist:{}, tour:{}, revision:"revision-1", estimate:null };
+        if (url.pathname === "/auth/session") body = { authenticated:true, user:{ sub:"11111111-1111-4111-8111-111111111111" } };
+        else if (url.pathname === "/epk") body = { kit, publicId:"road-test", published:true, privateShared:false };
+        else if (url.pathname === "/profiles") body = { profile:{ name:kit.artistName, location:kit.hometown } };
+        else if (url.pathname === "/booking-pipeline" && method === "GET") body = { venues:savedWorkspace?.venues || [], artist:savedWorkspace?.artist || {}, tour:savedWorkspace?.tour || {}, revision:"revision-1", estimate:null };
         else if (url.pathname === "/booking-pipeline" && method === "POST") {
           savedWorkspace = request.postDataJSON();
           body = { revision:"revision-2", estimate:null };
+        } else if (url.pathname === "/venues/search") {
+          body = { venues:[{
+            venueKey:"fixture-road-room", name:"Road Room", address:"100 Tour Ave, Tacoma, WA",
+            position:[-122.44,47.25], categories:["Live music venue"], websites:["https://example.com/road-room"],
+            emails:[], phones:[], sources:[{ name:"Official venue website", url:"https://example.com/road-room" }],
+            activityEvidence:"Current live calendar found", bookingSuitability:"needs-research"
+          }], page:0, radiusMiles:25, hasMore:false, canExpand:false, location:{ label:"Tacoma, Washington" } };
         } else if (url.pathname === "/epk/outreach-share") body = { shares:[] };
         else if (url.pathname === "/tour-manager/credits") body = { bookingEmailCredits:0, purchasedCredits:0, sentEmails:0, reservedCredits:0, activity:[] };
         else if (url.pathname === "/tour-manager/outreach") body = { messages:[], replies:[] };
@@ -96,7 +105,20 @@ const kit = {
         assert.equal(await page.locator("#pitchEpk").inputValue(), "https://example.com/another-epk", "declining an act switch must retain the current EPK");
         await venueNext.click();
         await page.waitForURL(url => url.pathname.endsWith("/booking.html"));
+        await page.locator("#venueQuickQuery").fill("punk clubs in Tacoma");
+        await page.locator("#venueQuickForm button").click();
+        const roadRoom = page.locator("#venueQuickResults article", { hasText:"Road Room" });
+        await roadRoom.waitFor({ state:"visible" });
+        await roadRoom.locator(".venue-quick-select").click();
+        assert.match(await page.locator("#selectedVenueCount").textContent(), /1 club selected/);
+        await page.locator("#openVenueSelections").click();
+        await page.waitForURL(url => url.pathname.endsWith("/booking-selections.html"));
+        await page.locator("#selectedVenueCards article", { hasText:"Road Room" }).waitFor({ state:"visible" });
+        assert.equal(await page.locator("#pitchArtist").inputValue(), kit.artistName, "venue selection must retain the published EPK act");
+        assert.equal(await page.locator("#pitchEpk").inputValue(), `${origin}/epk.html?id=road-test`, "venue selection must retain the published EPK link");
+        await page.locator("#selectedVenueCards article", { hasText:"Road Room" }).screenshot({ path:path.join(output, "connected-venue-390.png") });
       }
+      assert.equal(errors.length, 0, `${width}px browser errors after the complete handoff: ${errors.join(" | ")}`);
       await context.close();
     }
     console.log(`Connected EPK-to-booking browser checks passed at ${widths.join(", ")}px.`);

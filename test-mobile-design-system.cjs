@@ -37,7 +37,7 @@ assert.match(css, /body\{padding-bottom:calc\(50px \+ env\(safe-area-inset-botto
 assert.match(css, /body\.profile-page\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "Profile must clear its fixed mobile navigation");
 assert.match(css, /\.messages-page:not\(\.is-conversation-open\)\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "the SYNC inbox must clear its fixed mobile navigation");
 assert.match(feedCss, /\.notification-actions :is\(button,a\)\{[^}]*min-width:44px;min-height:44px/, "notification actions must retain 44px phone targets");
-assert.match(worker, /danzstak-shell-v775/);
+assert.match(worker, /danzstak-shell-v776/);
 assert.match(worker, /\/assets\/mobile-design-system\.css/, "the installed PWA must cache the shared mobile system");
 
 for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=17/, `${file} must load the same mobile design system`);
