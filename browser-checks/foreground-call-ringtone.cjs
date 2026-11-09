@@ -66,7 +66,7 @@ const postId = "33333333-3333-4333-8333-333333333333";
           "x-danzstak-device-token": "token-browser-test"
         });
       });
-      await page.mouse.click(width - 24, 24);
+      await page.locator(`.post[data-post-id="${postId}"] .post-content`).click();
       offerActive = true;
       const popup = page.locator(".global-incoming-call");
       await popup.waitFor({ state: "visible", timeout: 5000 });
