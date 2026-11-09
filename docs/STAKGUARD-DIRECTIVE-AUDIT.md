@@ -48,6 +48,12 @@ The canonical StakGuard issue contains additional requirements beyond the Phase 
 - A broker may require its designated channel and identity verification, and legal exceptions may permit retention. Never promise that an email must be honored or that deletion is guaranteed.
 - **Submitted**, **removed**, **not found** and **clean** are evidence states, not optimistic UI labels.
 
+## Claims explicitly rejected
+
+The product, marketing, Terms and support copy must not claim that this design makes DanzStak **100% legally insulated**, creates **zero regulatory burden**, eliminates privacy/data-security liability, guarantees a broker will honor email, or removes lawsuit/CFAA risk. A member-operated handoff narrows the technical role; it does not decide DanzStak's legal classification or erase duties created when DanzStak collects identifiers, records status, receives a forwarded receipt, sells monitoring or uses a processor.
+
+The current Phase A boundary therefore rejects outbound BCC tracking and automatic inbound parsing. Those features would cause DanzStak to receive and process request content and identifiers. A future explicit receipt-forwarding option requires owner approval, counsel/privacy review, a disclosed lawful purpose, minimum collection, security, account isolation, retention, export/deletion and a truthful statement that forwarding is optional.
+
 ## Correct build order
 
 1. Finish and review the dated source registry and privacy/security design.
