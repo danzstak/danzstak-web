@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## EPK to venue-discovery next step — 2026-11-09
+
+Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
+
+- Root cause: after publishing an EPK and choosing **Use this EPK for booking**, the Booking workspace correctly saved the handoff but did not present an obvious primary next action. A small header link was the only way back to worldwide venue discovery, so an artist could reach the right workspace and still have no clear way to choose clubs.
+- The workspace now presents a primary **Choose venues** action beside **Save to account** when the venue list is empty. Once venues exist, the same action becomes **Add venues**. Both states open the real worldwide venue map and preserve the saved artist, EPK and tour workspace.
+- Phone actions use two compact columns for Save/Choose and one full-width secondary Reload action; desktop keeps the actions compact and inline. All measured controls retain at least a 44px touch target.
+- **TESTED:** `test-regressions.ps1` passes completely, including all JavaScript, browser, release, 15-page site-smoke and infrastructure gates. The connected EPK-to-Booking browser workflow passed three consecutive local runs and one hosted run at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. It publishes an EPK, hands it to Booking, verifies the selected EPK, checks the primary venue action and at 390px follows that action to `/booking.html` with no horizontal overflow.
+- [PR #189](https://github.com/danzstak/danzstak-web/pull/189) passed all five GitHub **Review checks** jobs in run [42571437716](https://github.com/danzstak/danzstak-web/actions/runs/42571437716) and was squash-merged into `codex/release-candidate-2026-11-08` as `51305716260160691400dd433f7ca0126c6bb732`.
+- **HOSTED REVIEW:** no-cache probes confirm `booking-selections.js?v=20`, `booking-selections.css?v=12` and installed shell `danzstak-shell-v775` on [review.danzstak.com](https://review.danzstak.com/booking-selections.html). The same nine-width connected workflow passes against that hosted PWA. Builder-reviewed evidence is in [`docs/screenshots/epk-booking-connected-handoff/`](screenshots/epk-booking-connected-handoff/). Production remains unchanged pending the owner's complete release-candidate phone go/no-go.
+
 ## Artist HQ to exact waiting venue reply — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
