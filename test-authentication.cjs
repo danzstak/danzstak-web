@@ -1,6 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const source=fs.readFileSync('infrastructure/auth-api/index.mjs','utf8');
+const deploySource=fs.readFileSync('aws-deploy-auth-api.ps1','utf8');
 const currentLegalVersion=source.match(/const legalVersion = "([^"]+)"/)[1];
 assert.match(source,/const loginHandoffSeconds = 15 \* 60;/,'phone sign-in handoffs must allow enough time to choose or change a Cognito account');
 assert.match(source,/expiresAt: \{ N: String\(now\(\) \+ loginHandoffSeconds\) \}/,'the pending OAuth proof must use the shared handoff window');
@@ -9,6 +10,7 @@ assert.match(source,/redirect\(siteUrl \+ "\/\?signin=expired", \[expiredBrowser
 assert.match(source,/if \(mode === "login" \|\| mode === "reauth"\) url\.searchParams\.set\("prompt", "login"\);/,'explicit login must force fresh email and password fields instead of Cognito remembered-account reuse');
 assert.match(source,/mode === "reset"[\s\S]{0,80}"\/forgotPassword"/,'password recovery must use Cognito managed login instead of trapping members on DanzStak');
 assert.match(source,/path === "\/auth\/reset-password"[\s\S]{0,100}startLogin\("reset"\)/,'the public password-recovery route must open Cognito forgot-password');
+assert.match(deploySource,/"GET \/auth\/reset-password"/,'the Auth API deployment must publish the password-recovery route through API Gateway');
 assert.match(source,/redirect\(siteUrl \+ "\/\?signin=failed", \[expiredBrowserCookie\]\)/,'credential and token failures must return to the DanzStak login screen');
 assert.match(source,/path === "\/auth\/callback"[\s\S]{0,180}signin=unavailable/,'unexpected callback failures must return to DanzStak instead of a white API error page');
 assert.equal(fs.readFileSync('assets/home.js','utf8').match(/const legalVersion = "([^"]+)"/)[1],currentLegalVersion,'signup and API must accept the same policy version');
