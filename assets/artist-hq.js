@@ -35,6 +35,10 @@
       return thread.length && thread.at(-1).direction === "inbound" && thread.at(-1).action !== "pass";
     });
   }
+  function bookingInboxHref(outreachId = "") {
+    const id = String(outreachId || "");
+    return /^[a-zA-Z0-9_-]{16,100}$/.test(id) ? `messages.html?section=bookings&outreach=${encodeURIComponent(id)}` : "messages.html?section=bookings";
+  }
   async function render(root, description, isCurrent = () => true) {
     root.classList.add("artist-hq-workspace");
     description.textContent = "Your EPK and booking work in one place. Nothing is sent or confirmed without you.";
@@ -53,8 +57,9 @@
     } else grid.append(card("EPK", "Unavailable", "Your EPK was not changed. Try again when the connection returns.", [action("Open EPK", "epk.html")]));
     if (outreachResult.status === "fulfilled") {
       const data = outreachResult.value, messages = Array.isArray(data.messages) ? data.messages : [], replies = Array.isArray(data.replies) ? data.replies : [], needs = latestNeedsReply(messages, replies), offers = replies.filter(reply => reply.direction === "inbound" && reply.action === "offer_date").length;
-      grid.append(card("Venue replies", needs.length, needs.length ? `${needs.length} booking thread${needs.length === 1 ? " needs" : "s need"} your answer. ${offers} date offer${offers === 1 ? "" : "s"} received.` : messages.length ? "No venue reply is waiting on you." : "Send a reviewed EPK pitch to start a booking thread.", [action(needs.length ? "Answer venues" : "Open bookings", "messages.html#bookings", needs.length > 0), action("Tour Manager", "booking-selections.html#tourManagerTitle")]));
-    } else grid.append(card("Venue replies", "Unavailable", "Your saved booking work is safe. Try again when the connection returns.", [action("Open SYNC", "messages.html#bookings")]));
+      const replyHref = needs.length === 1 ? bookingInboxHref(needs[0].id) : bookingInboxHref();
+      grid.append(card("Venue replies", needs.length, needs.length ? `${needs.length} booking thread${needs.length === 1 ? " needs" : "s need"} your answer. ${offers} date offer${offers === 1 ? "" : "s"} received.` : messages.length ? "No venue reply is waiting on you." : "Send a reviewed EPK pitch to start a booking thread.", [action(needs.length === 1 ? "Answer venue" : needs.length ? "Answer venues" : "Open bookings", replyHref, needs.length > 0), action("Tour Manager", "booking-selections.html#tourManagerTitle")]));
+    } else grid.append(card("Venue replies", "Unavailable", "Your saved booking work is safe. Try again when the connection returns.", [action("Open SYNC", bookingInboxHref())]));
     if (creditsResult.status === "fulfilled") {
       const balance = Math.max(0, Number(creditsResult.value.balance || 0));
       grid.append(card("Email credits", balance, `${balance} artist-approved booking email${balance === 1 ? "" : "s"} available.`, [action("Review outreach", "booking-selections.html", true)]));
