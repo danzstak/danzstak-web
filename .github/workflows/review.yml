@@ -165,6 +165,7 @@ jobs:
           node .\browser-checks\booking-credit-resume.cjs
           node .\browser-checks\booking-sync.cjs http://127.0.0.1:8132
           node .\browser-checks\artist-hq.cjs http://127.0.0.1:8132
+          node .\browser-checks\stakguard-phase-a.cjs
       - name: Stop static review server
         if: always()
         shell: pwsh

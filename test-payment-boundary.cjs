@@ -11,6 +11,7 @@ const readTree = relative => {
   const entries = fs.statSync(target).isDirectory()
     ? fs.readdirSync(target, { withFileTypes: true }).flatMap(entry => {
         const child = path.join(relative, entry.name);
+        if (entry.isSymbolicLink()) return [];
         return entry.isDirectory() ? [readTree(child)] : [read(child)];
       })
     : [read(relative)];

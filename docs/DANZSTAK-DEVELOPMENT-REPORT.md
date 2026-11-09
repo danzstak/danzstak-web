@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## StakGuard provider foundation and member-controlled opt-out — 2026-11-09
+
+Status: **TESTED LOCALLY — DRAFT REVIEW; NO LIVE SCANNING, PAYMENT OR DEPLOYMENT**.
+
+- Added a phone-first **Settings → Your data → StakGuard** dashboard. It contains no example member findings: before a permitted provider runs, it states **No scan provider connected**, reports zero sources checked and never labels the member exposed, clean or removed.
+- The free surface links to California DROP, FTC people-search guidance and Google Results About You. PeopleConnect now has one verified member-controlled handoff: StakGuard prepares a placeholder-only request for the member to review, copy, open in their own email app or take to the official form. DanzStak sends and stores nothing from the completed draft. Spokeo, Whitepages and BeenVerified remain **under verification**.
+- The monitoring estimator implements the owner-set `$4 × whole months` math for 1–12 prepaid months, states no subscription or automatic renewal and keeps purchase disabled. No Stripe product, checkout, entitlement or charge was added.
+- Added a server-side provider coordinator boundary for independently approved licensed APIs or permitted official lookups. Disabled and member-handoff adapters never scan; adapters must declare an exact evidence-host allowlist; timeouts remain bounded even when an adapter ignores cancellation; outages return `unknown`; unsafe metadata and raw provider errors do not escape.
+- Current-main reconciliation advances the installed shell to `danzstak-shell-v790` while preserving the StakGuard offline page and assets.
+- **TESTED:** the complete `test-regressions.ps1` gate passes, including the StakGuard static/provider tests, release verification, 16-page site smoke and 153,861-byte infrastructure validation. The provider test proves a non-cooperative adapter cannot exceed the coordinator timeout and an enabled adapter without an evidence-host allowlist is rejected.
+- **VISUAL:** `browser-checks/stakguard-phase-a.cjs` passes at 320, 360, 390, 414, 430 and 1366px with no horizontal overflow, hidden section actions, browser errors, sample findings, payment path or sub-44px action. It opens and validates the real PeopleConnect draft, verified `mailto:` recipient, official form, evidence warning and close path. Builder-reviewed captures are in `docs/screenshots/stakguard-phase-a/`.
+- Honest boundary: no scan source is connected, no real identifier has left DanzStak, and opening the PeopleConnect draft/form is not recorded as submission. A live scan still requires a lawful licensed/permitted source, privacy controls and a consenting controlled test account. Stealth browsing, CAPTCHA bypass, login scraping and rate-limit evasion are prohibited. Member-sent requests reduce those risks but do not remove DanzStak's privacy, security, consumer-protection or source-terms obligations.
+- Direct-consumer boundary now cites California DROP section 7621 and California Attorney General CCPA guidance. The focused regression requires first-person **for myself** wording, rejects agent/“on behalf of” language, and fails if Phase A adds `fetch`, XHR, beacon, browser form submission or `FormData`. The complete regression gate passed again after this hardening.
+
 ## Live SYNC sent/read receipts — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
