@@ -21,6 +21,11 @@ const fs = require("node:fs");
   assert.match(inboundSource, /TOUR_MANAGER#BOOKING_REPLY#/, "accepted email must enter the existing private SYNC booking thread");
   assert.match(inboundSetup, /Recipients = @\("reply\.danzstak\.com"\)/, "the SES rule must be limited to the separate EPK reply subdomain");
   assert.match(inboundSetup, /ScanEnabled = \$true/, "SES spam and malware scanning must remain enabled for EPK replies");
+  assert.match(inboundSetup, /aws sts get-caller-identity/, "the setup must resolve its AWS account at runtime");
+  assert.match(inboundSetup, /route53 list-hosted-zones-by-name/, "the setup must resolve the DanzStak hosted zone at runtime");
+  assert.doesNotMatch(inboundSetup, /["']\d{12}["']/, "the public setup script must not commit an AWS account ID");
+  assert.match(inboundSetup, /"AWS:SourceAccount" = \$AccountId/, "SES receipt writes must be scoped to the authenticated account");
+  assert.match(inboundSetup, /"AWS:SourceArn" = "arn:aws:ses:\$\{Region\}:\$\{AccountId\}:receipt-rule-set\/\$\{RuleSet\}:receipt-rule\/\$Rule"/, "SES receipt writes must be scoped to the exact booking-reply rule");
 
   const plain = "Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nWe can host you March 5.=0AWhat fee do you need?";
   assert.equal(inbound.decodePart(plain), "We can host you March 5.\nWhat fee do you need?");

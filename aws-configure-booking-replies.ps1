@@ -4,13 +4,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$AccountId = "635288116224"
-$HostedZoneId = "Z0864481MZJ0HPSLQPR9"
 $RuleSet = "DanzStakSupportMail"
 $Rule = "BookingReplies"
 $FunctionName = "DANZSTAK-Booking-Inbound"
 $RoleName = "DANZSTAK-Booking-Inbound-role"
-$Bucket = "danzstak-booking-replies-$AccountId-$Region"
 $Source = Join-Path $PSScriptRoot "infrastructure\booking-inbound"
 $Stage = Join-Path $env:TEMP ("danzstak-booking-inbound-" + [guid]::NewGuid().ToString("N"))
 $Bundle = Join-Path $env:TEMP "danzstak-booking-inbound.zip"
@@ -23,8 +20,17 @@ $DnsFile = Join-Path $env:TEMP "danzstak-booking-inbound-dns.json"
 function Assert-Success([string]$Message) { if ($LASTEXITCODE -ne 0) { throw $Message } }
 
 try {
-  aws sts get-caller-identity --region $Region --output json | Out-Null
+  $IdentityJson = aws sts get-caller-identity --region $Region --output json
   Assert-Success "AWS authentication is missing or expired. Run aws login."
+  $Identity = $IdentityJson | ConvertFrom-Json
+  $AccountId = ([string]$Identity.Account).Trim()
+  if ($AccountId -notmatch '^\d{12}$') { throw "AWS did not return a valid account identity." }
+  $ZonesJson = aws route53 list-hosted-zones-by-name --dns-name "danzstak.com" --max-items 5 --output json
+  Assert-Success "DanzStak hosted-zone lookup failed."
+  $Zone = ($ZonesJson | ConvertFrom-Json).HostedZones | Where-Object { $_.Name -eq "danzstak.com." } | Select-Object -First 1
+  $HostedZoneId = ([string]$Zone.Id).Replace("/hostedzone/", "").Trim()
+  if ($HostedZoneId -notmatch '^Z[A-Z0-9]+$') { throw "DanzStak hosted zone was not found in the authenticated AWS account." }
+  $Bucket = "danzstak-booking-replies-$AccountId-$Region"
   node --check (Join-Path $Source "index.mjs")
   Assert-Success "Inbound booking handler validation failed."
 
@@ -40,7 +46,7 @@ try {
   @{
     Version = "2012-10-17"
     Statement = @(
-      @{ Sid = "AllowSesReceipt"; Effect = "Allow"; Principal = @{ Service = "ses.amazonaws.com" }; Action = "s3:PutObject"; Resource = "arn:aws:s3:::$Bucket/incoming/*"; Condition = @{ StringEquals = @{ "AWS:SourceAccount" = $AccountId } } },
+      @{ Sid = "AllowSesReceipt"; Effect = "Allow"; Principal = @{ Service = "ses.amazonaws.com" }; Action = "s3:PutObject"; Resource = "arn:aws:s3:::$Bucket/incoming/*"; Condition = @{ StringEquals = @{ "AWS:SourceAccount" = $AccountId }; ArnLike = @{ "AWS:SourceArn" = "arn:aws:ses:${Region}:${AccountId}:receipt-rule-set/${RuleSet}:receipt-rule/$Rule" } } },
       @{ Sid = "DenyInsecureTransport"; Effect = "Deny"; Principal = "*"; Action = "s3:*"; Resource = @("arn:aws:s3:::$Bucket", "arn:aws:s3:::$Bucket/*"); Condition = @{ Bool = @{ "aws:SecureTransport" = "false" } } }
     )
   } | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $BucketPolicyFile -Encoding ascii
