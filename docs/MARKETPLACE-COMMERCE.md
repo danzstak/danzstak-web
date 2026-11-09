@@ -96,6 +96,15 @@ The supplied Phantom receive QR confirms the owner wallet `8Cx5YqBgS43uqDrBzeSpD
 
 The QR and same-device payment link expire with the three-minute quote. They never permit an editable amount. DanzStak grants nothing merely because the QR was displayed or Phantom returned a signature: the server waits for finalized chain evidence, then verifies the unique reference, exact Token-2022 mint, exact amount, sender, owner wallet and derived destination token account `8haVhbmoDEkRNp3TGzbgmM4zjDbxy5BMhVp9m1Gtn548`. The reference cannot fulfill a second order. Phantom/Solana Pay compatibility with this Token-2022 mint must pass Android, iPhone and desktop tests before the QR is enabled.
 
+### Getting SFS
+
+The future payment chooser may offer two optional, clearly external paths before the payment QR:
+
+- **Earn SFS on SFScoop** opens the independent SFScoop service. DanzStak does not create or link an SFScoop account, track participation, award tokens or promise earnings.
+- **Buy SFS externally** shows the verified SFS mint and opens an independent wallet or trading venue that is legally available to that user. DanzStak does not sell, swap, custody, mark up or recommend an investment in SFS.
+
+External links use `noopener noreferrer`, carry no DanzStak account data and never count as payment. Current Raydium interface terms list the USA among prohibited jurisdictions, so DanzStak must not hard-wire a Raydium purchase link for every member. Provider availability and financial-promotion wording require legal/jurisdiction review before this control is enabled. When the member returns, DanzStak discards the old quote and requests a fresh DexScreener quote before showing the payment QR.
+
 These public addresses and the quote decision do not authorize activation. The wallet can technically own SOL and other token accounts; DanzStak must enforce the exact mint and destination token account. The owner must still approve a signing mechanism or reviewed payment program, finality threshold, server RPC/provider, refund method and tax treatment. A direct user-to-user wallet transfer cannot be presented as delivery-protected Bazaar Checkout because it bypasses DanzStak's payout hold, refund and dispute controls. SFS payments must use the same canonical order, inventory, delivery and tax rules as Stripe or remain an explicitly unprotected wallet action outside Buy It Now.
 
 ## Release blockers
