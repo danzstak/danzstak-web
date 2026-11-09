@@ -6,6 +6,9 @@ assert.match(source,/const loginHandoffSeconds = 15 \* 60;/,'phone sign-in hando
 assert.match(source,/expiresAt: \{ N: String\(now\(\) \+ loginHandoffSeconds\) \}/,'the pending OAuth proof must use the shared handoff window');
 assert.match(source,/oauthCookieName,[\s\S]{0,100}browserSecret,[\s\S]{0,100}loginHandoffSeconds/,'the browser-bound OAuth cookie must live for the full handoff window');
 assert.match(source,/redirect\(siteUrl \+ "\/\?signin=expired", \[expiredBrowserCookie\]\)/,'an expired phone login must return to a retryable DanzStak screen instead of raw API output');
+assert.match(source,/if \(mode !== "signup"\) url\.searchParams\.set\("prompt", "login"\);/,'explicit login must force fresh email and password fields instead of Cognito remembered-account reuse');
+assert.match(source,/redirect\(siteUrl \+ "\/\?signin=failed", \[expiredBrowserCookie\]\)/,'credential and token failures must return to the DanzStak login screen');
+assert.match(source,/path === "\/auth\/callback"[\s\S]{0,180}signin=unavailable/,'unexpected callback failures must return to DanzStak instead of a white API error page');
 assert.equal(fs.readFileSync('assets/home.js','utf8').match(/const legalVersion = "([^"]+)"/)[1],currentLegalVersion,'signup and API must accept the same policy version');
 const between=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)));
 const pair=crypto.generateKeyPairSync('rsa',{modulusLength:2048});

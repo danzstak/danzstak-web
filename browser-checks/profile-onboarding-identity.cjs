@@ -86,6 +86,8 @@ function fixture(pathname, identityState) {
               && Math.abs(dailyRect.right - artRect.right) <= 1
               && Math.abs(dailyRect.bottom - artRect.bottom) <= 1),
             dailyBorderRadius: getComputedStyle(daily).borderRadius,
+            dailySize: dailyRect ? { width: dailyRect.width, height: dailyRect.height } : null,
+            dailyShadow: getComputedStyle(daily).boxShadow,
             tileBackingIsTransparent: (() => {
               const color = getComputedStyle(art).backgroundColor;
               return color === "transparent" || /rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(color);
@@ -106,6 +108,11 @@ function fixture(pathname, identityState) {
         assert.equal(result.dailyLoaded, true, `${width}px Dailies profile image failed to load`);
         assert.equal(result.imageFillsTile, true, `${width}px Dailies profile image did not fill the tile`);
         assert.equal(result.dailyBorderRadius, "50%", `${width}px Dailies profile image was not round (computed ${result.dailyBorderRadius})`);
+        assert.equal(result.dailyShadow.trim().endsWith("inset"), true, `${width}px Dailies profile image retained an outer grey shadow/backing (${result.dailyShadow})`);
+        if (width === 1366) {
+          assert.ok(Math.abs(result.dailySize.width - 168) <= 1 && Math.abs(result.dailySize.height - 168) <= 1,
+            `desktop Dailies profile image must use the full 168px tile (got ${result.dailySize.width}x${result.dailySize.height})`);
+        }
         assert.equal(result.tileBackingIsTransparent, true, `${width}px Dailies tile added an unwanted backing behind the round image`);
         assert.equal(result.clapperOverlaysLowerLeft, true, `${width}px Dailies clapper was not over the image at lower left`);
         assert.equal(result.onboardingCount, 0, `${width}px the feed still contained the blocking visible-name prompt`);
