@@ -23,7 +23,7 @@ assert.match(hq, /Nothing is sent or confirmed without you/);
 assert.doesNotMatch(hq, /innerHTML|insertAdjacentHTML|outerHTML/);
 assert.match(css, /min-height:44px/);
 assert.match(css, /@media\(max-width:760px\)/);
-assert.match(worker, /danzstak-shell-v770/);
+assert.match(worker, /danzstak-shell-v771/);
 assert.match(worker, /\/assets\/artist-hq\.js/);
 assert.match(worker, /\/assets\/artist-hq\.css/);
 

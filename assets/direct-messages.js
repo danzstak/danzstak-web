@@ -958,9 +958,11 @@ async function loadDirectMessages(reset = false) {
     setConversationActionsEnabled(activeCanContact);
     messageInput.disabled = !activeCanContact;
     sendButton.disabled = !activeCanContact;
-    callStatus.textContent = activeCanContact
-      ? messageFormat("You can message {name} directly.", { name: activeContactName })
-      : messageTranslate("Saved chat. Become friends or join the same Tribe to send new messages or call.");
+    if (!window.danzstakCallRegistrationRequired?.()) {
+      callStatus.textContent = activeCanContact
+        ? messageFormat("You can message {name} directly.", { name: activeContactName })
+        : messageTranslate("Saved chat. Become friends or join the same Tribe to send new messages or call.");
+    }
   } catch (error) {
     if (version === conversationVersion) {
       const message = error.message || messageTranslate("Messages could not be loaded");
