@@ -1,9 +1,9 @@
 # Marketplace — Mobile-first page contract
 
-**Status:** Specification scaffold; not implemented, tested, or approved by this document.
+**Status:** Shop and Bazaar catalog foundation implemented and tested on review branches; checkout, seller payout and production approval remain incomplete.
 
 ## Required functions
-Physical merchandise listings, product details, safe checkout plan.
+Fixed-price physical merchandise listings (no bidding), product image galleries and item specifics, DanzStak Official Store, a DanzStak Bazaar that mixes available member-shop listings while linking to their canonical shops, and a safe checkout/payout plan. The seller sets shipping separately; DanzStak's 5% applies only to the item price, with server-side rejection of disproportionate shipping.
 
 ## Visual design
 Follow `instructions/00c-design-direction-80-20.md`: familiar social-network interaction patterns, distinct DANZSTAK branding, light mode only. Produce mobile mockup first, then tablet and desktop. Link actual screenshots and approved visual assets here before final implementation signoff.
@@ -17,7 +17,7 @@ Follow `instructions/00c-design-direction-80-20.md`: familiar social-network int
 
 ## Tracking
 - Design: pending review
-- Codex implementation: not verified
-- Functional testing: not verified
+- Codex implementation: catalog and Bazaar verified; commerce incomplete
+- Functional testing: catalog, item detail and fee-avoidance validation verified; commerce incomplete
 - PWA preview: not verified
 - Owner approval: pending

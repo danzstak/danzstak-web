@@ -23,7 +23,7 @@ Resources:
     UpdateReplacePolicy: Retain
     Metadata:
       com.aws.cloudformation.Context:
-        why: Durable member shops, the official DanzStak Store, product inventory and later ticket/order records require one server-owned ledger.
+        why: Durable member shops, the DanzStak Official Store, product inventory and later ticket/order records require one server-owned ledger.
         must: [Keep point-in-time recovery and encryption enabled, Never expose direct browser table access, Keep all prices and quantities as server-validated integers.]
     Properties:
       TableName: DANZSTAK-Marketplace
@@ -32,9 +32,17 @@ Resources:
       AttributeDefinitions:
         - {AttributeName: pk, AttributeType: S}
         - {AttributeName: sk, AttributeType: S}
+        - {AttributeName: bazaarPk, AttributeType: S}
+        - {AttributeName: bazaarSk, AttributeType: S}
       KeySchema:
         - {AttributeName: pk, KeyType: HASH}
         - {AttributeName: sk, KeyType: RANGE}
+      GlobalSecondaryIndexes:
+        - IndexName: BazaarIndex
+          KeySchema:
+            - {AttributeName: bazaarPk, KeyType: HASH}
+            - {AttributeName: bazaarSk, KeyType: RANGE}
+          Projection: {ProjectionType: ALL}
       TimeToLiveSpecification: {AttributeName: expiresAt, Enabled: true}
       SSESpecification: {SSEEnabled: true}
   MarketplacePolicy:
@@ -51,7 +59,9 @@ Resources:
         Statement:
           - Effect: Allow
             Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:UpdateItem, dynamodb:Query, dynamodb:TransactWriteItems]
-            Resource: !GetAtt MarketplaceTable.Arn
+            Resource:
+              - !GetAtt MarketplaceTable.Arn
+              - !Sub '${MarketplaceTable.Arn}/index/*'
   SessionDevicesTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -325,6 +335,9 @@ Resources:
   GetOfficialStoreRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/store', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GetBazaarRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/bazaar', Target: !Sub 'integrations/${AuthIntegrationId}'}
   PutOfficialStoreRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'PUT /marketplace/store', Target: !Sub 'integrations/${AuthIntegrationId}'}
