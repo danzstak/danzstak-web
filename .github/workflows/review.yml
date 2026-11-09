@@ -87,6 +87,7 @@ jobs:
           node .\browser-checks\call-audio-output.cjs
           node .\browser-checks\foreground-call-ringtone.cjs
           node .\browser-checks\sync-thread-style.cjs
+          node .\browser-checks\message-read-receipt.cjs
           node .\browser-checks\mix-portrait-preview.cjs
           node .\browser-checks\original-feed-art-direction.cjs
           node .\browser-checks\marketplace-ticketing.cjs

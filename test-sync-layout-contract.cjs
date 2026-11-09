@@ -23,6 +23,6 @@ assert.match(css, /\.message-form\{min-height:52px;gap:8px;padding:8px 12px/, "t
 assert.match(css, /\.message-input-shell\{min-height:44px;border-radius:24px\}/, "the message field needs a familiar rounded shell");
 assert.match(css, /\.message-input-shell #messageInput\{padding:9px 12px!important;font-size:15px;line-height:20px\}/, "composer text needs the 15px input scale");
 assert.match(html, /assets\/sync\.css\?v=10/, "SYNC must request the new layout contract");
-assert.match(worker, /danzstak-shell-v784/, "the installed PWA must advance for the SYNC contract");
+assert.match(worker, /danzstak-shell-v785/, "the installed PWA must advance for the SYNC contract");
 
 console.log("SYNC layout-contract checks passed: conversation rows, typography, bubbles, composer, DanzStak branding, and PWA refresh.");
