@@ -87,12 +87,15 @@
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
+      const deviceHeaders = path.startsWith("/calls/")
+        ? await globalThis.danzstakCallingDeviceHeaders?.() || {}
+        : {};
       const response = await fetch(API + path, {
         credentials: "include",
         cache: "no-store",
         ...options,
         signal: controller.signal,
-        headers: { "content-type": "application/json", ...(options.headers || {}) }
+        headers: { "content-type": "application/json", ...deviceHeaders, ...(options.headers || {}) }
       });
       if (!response.ok) throw new Error("Call service unavailable");
       return response.json().catch(() => ({}));

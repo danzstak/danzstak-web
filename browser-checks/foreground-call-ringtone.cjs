@@ -31,6 +31,7 @@ const postId = "33333333-3333-4333-8333-333333333333";
       });
       const page = await context.newPage();
       const errors = [];
+      const authenticatedCallRequests = [];
       page.on("pageerror", error => errors.push(error.message));
       await page.route("https://api.danzstak.com/**", route => {
         const request = route.request();
@@ -38,7 +39,13 @@ const postId = "33333333-3333-4333-8333-333333333333";
         let body = {};
         if (url.pathname === "/auth/session") body = { authenticated: true, user: { sub: ownerId, email: "callee@danzstak.invalid" } };
         else if (url.pathname === "/profiles") body = { profile: { memberId: ownerId, name: "Callee Artist", handle: "callee", username: "callee", bio: "Independent artist testing a populated DanzStak feed.", picture: `${baseUrl}/assets/danzstak-d-icon.png` } };
-        else if (url.pathname === "/calls/inbox") body = { events: offerActive ? [{ eventId: "offer-event", callId: "22222222-2222-4222-8222-222222222222", signalType: "offer", senderEmail: "caller@danzstak.invalid", senderName: "Tour Friend", mode: "phone" }] : [] };
+        else if (url.pathname.startsWith("/calls/")) {
+          const headers = request.headers();
+          const authenticated = headers["x-danzstak-device-id"] === "device-browser-test" && headers["x-danzstak-device-token"] === "token-browser-test";
+          authenticatedCallRequests.push({ path: url.pathname, authenticated });
+          if (!authenticated) return route.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ code: "CALL_DEVICE_REGISTRATION_REQUIRED" }) });
+          if (url.pathname === "/calls/inbox") body = { events: offerActive ? [{ eventId: "offer-event", callId: "22222222-2222-4222-8222-222222222222", signalType: "offer", senderEmail: "caller@danzstak.invalid", senderName: "Tour Friend", mode: "phone" }] : [] };
+        }
         else if (url.pathname === "/secure-posts") body = { posts: [{ postId, userId: ownerId, authorName: "Callee Artist", content: "West Coast dates are coming together. Rehearsal tonight, then the van heads north.", createdAt: "2026-11-07T18:30:00.000Z", audience: "public", isOwner: true, mediaType: "image", mediaUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`, viewCount: 42, commentPolicy: "everyone" }] };
         else if (url.pathname === "/engagement") body = { myReaction: "", reactionCounts: { Like: 8, Love: 4 }, comments: [] };
         else if (url.pathname === "/friends") body = { friends: [{ memberId: "22222222-2222-4222-8222-222222222222", email: "caller@danzstak.invalid", name: "Tour Friend", online: true }], incoming: [], outgoing: [] };
@@ -53,6 +60,12 @@ const postId = "33333333-3333-4333-8333-333333333333";
 
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.locator(`.post[data-post-id="${postId}"]`).waitFor({ state: "visible" });
+      await page.evaluate(() => {
+        window.danzstakCallingDeviceHeaders = async () => ({
+          "x-danzstak-device-id": "device-browser-test",
+          "x-danzstak-device-token": "token-browser-test"
+        });
+      });
       await page.mouse.click(width - 24, 24);
       offerActive = true;
       const popup = page.locator(".global-incoming-call");
@@ -75,6 +88,7 @@ const postId = "33333333-3333-4333-8333-333333333333";
       assert.ok(geometry.actions.every(target => target.width >= 44 && target.height >= 44), `${width}px incoming actions must retain 44px touch targets: ${JSON.stringify(geometry.actions)}`);
       assert.match(await popup.textContent(), /Tour Friend/, `${width}px incoming call must identify the caller by display name`);
       assert.doesNotMatch(await popup.textContent(), /@/, `${width}px incoming call must not expose account email`);
+      assert.ok(authenticatedCallRequests.some(request => request.path === "/calls/inbox" && request.authenticated), `${width}px incoming-call polling must use the registered device credential`);
 
       fs.mkdirSync(captureDir, { recursive: true });
       await page.screenshot({ path: path.join(captureDir, `foreground-call-${width}.png`), fullPage: true });
@@ -82,6 +96,7 @@ const postId = "33333333-3333-4333-8333-333333333333";
       offerActive = false;
       await popup.locator("[data-decline]").click();
       await popup.waitFor({ state: "hidden" });
+      assert.ok(authenticatedCallRequests.some(request => request.path === "/calls/signal" && request.authenticated), `${width}px decline signaling must use the registered device credential`);
       await context.close();
     }
     console.log(`Foreground call ringtone browser checks passed: ${widths.length} viewport widths.`);

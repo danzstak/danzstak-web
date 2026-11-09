@@ -1,7 +1,7 @@
 "use strict";
 const assert=require("node:assert/strict"),fs=require("node:fs");
 const template=fs.readFileSync("infrastructure/call-signaling/template.yaml","utf8");
-const html=fs.readFileSync("messages.html","utf8"),client=fs.readFileSync("assets/call-devices.js","utf8"),chat=fs.readFileSync("assets/chat.js","utf8"),push=fs.readFileSync("assets/push-notifications.js","utf8"),worker=fs.readFileSync("service-worker.js","utf8");
+const html=fs.readFileSync("messages.html","utf8"),feed=fs.readFileSync("feed.html","utf8"),client=fs.readFileSync("assets/call-devices.js","utf8"),chat=fs.readFileSync("assets/chat.js","utf8"),incoming=fs.readFileSync("assets/incoming-calls.js","utf8"),push=fs.readFileSync("assets/push-notifications.js","utf8"),worker=fs.readFileSync("service-worker.js","utf8");
 
 assert.match(template,/CallingDevicesTable:[\s\S]*TableName: DANZSTAK-CallingDevices[\s\S]*PointInTimeRecoveryEnabled: true[\s\S]*SSEEnabled: true/,"calling devices need retained encrypted recoverable storage");
 assert.match(template,/TimeToLiveSpecification:[\s\S]*AttributeName: expiresAt[\s\S]*Enabled: true/,"short-lived registration challenges need TTL cleanup");
@@ -28,6 +28,8 @@ assert.ok(html.includes('id="registerThisDevice"'),"the current installation nee
 assert.ok(html.includes("Registration does not expose a phone number"),"the UI must distinguish device enrollment from telephone service");
 assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"call requests need the current installation credential");
+assert.ok(feed.indexOf('assets/call-devices.js?v=2')<feed.indexOf('assets/incoming-calls.js?v=301'),"the feed must load the installation credential before its global incoming-call listener");
+assert.match(incoming,/path\.startsWith\("\/calls\/"\)[\s\S]*globalThis\.danzstakCallingDeviceHeaders/,"the feed's incoming-call requests must authenticate the registered installation");
 assert.match(client,/confirm\(`\$\{t\("Revoke"\)\} \$\{device\.name\}\? \$\{t\("It will stop receiving SYNC calls\."\)\}`\)/,"lost-device revocation must require deliberate localized confirmation");
 assert.match(client,/renameDevice\(device\)[\s\S]*method:"PATCH"/,"registered devices must be renameable without re-enrollment");
 assert.match(client,/activity\.textContent=lastActive\(device\.lastUsedAt\)/,"device management must show the server-recorded last active time");
