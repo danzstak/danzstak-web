@@ -238,7 +238,9 @@ $requiredMessagingProtections = @(
   "hiddenMessages=new Set(state.Item?.hiddenMessages?.SS||[])",
   ".filter(x=>x.createdAt.S>hiddenBefore&&!hiddenMessages.has(x.messageId.S))",
   ".filter(x=>x.preview?.S)",
-  "conversationUpdate(recipient,user.email,1)"
+  "unreadPending:{BOOL:true}",
+  "SET unreadCounted = :counted REMOVE unreadPending",
+  "ConditionExpression:'unreadPending = :pending AND attribute_not_exists(unreadCounted)'"
 )
 foreach ($protection in $requiredMessagingProtections) {
   if (-not $template.Contains($protection)) {
@@ -247,8 +249,10 @@ foreach ($protection in $requiredMessagingProtections) {
 }
 
 $requiredUnreadMessaging = @(
-  "conversationUpdate(user.email,recipient,0)",
-  "UpdateExpression:'SET unread = :n'",
+  "UpdateExpression:'ADD unread :one'",
+  "await markUnreadOnce()",
+  "conversationUpdate(user.email,recipient)",
+  "conversationUpdate(recipient,user.email)",
   "event.queryStringParameters?.read==='1'",
   "unread:Number(x.unread?.N||0)",
   "type:'message'"
