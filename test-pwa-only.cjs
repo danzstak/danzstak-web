@@ -16,6 +16,7 @@ assert.doesNotMatch(trackedFiles, /\.apk$/im, "APK binaries must stay out of the
 assert.doesNotMatch(authApi, /\/auth\/mobile-(?:login|session)|mobile_exchange|danzstak:\/\//, "native login exchanges must not remain in the PWA backend");
 assert.doesNotMatch(deployScript, /create-route[^\r\n]+\/auth\/mobile-(?:login|session)/i, "deployment must not recreate native authentication routes");
 assert.equal(manifest.display, "standalone", "the website must remain installable as a standalone PWA");
+assert.equal(manifest.background_color, "#edf2f7", "the installed PWA launch surface must match the light-only app canvas");
 assert.equal(manifest.prefer_related_applications, false, "the PWA must not prefer a native application");
 assert.deepEqual(manifest.related_applications.map(app => app.platform), ["webapp"], "the manifest must advertise only the web app");
 assert.match(readme, /The installable PWA is the only DanzStak app\./, "the PWA-only product decision must remain explicit");

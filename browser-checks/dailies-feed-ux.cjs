@@ -11,6 +11,26 @@ const friendId = "22222222-2222-4222-8222-222222222222";
 const output = path.resolve("docs/screenshots/issue-49");
 fs.mkdirSync(output, { recursive: true });
 
+async function captureViewport(page, file) {
+  const viewport = page.viewportSize();
+  let failure;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await page.screenshot({
+        path: file,
+        clip: { x: 0, y: 0, width: viewport.width, height: viewport.height },
+        animations: "disabled",
+        caret: "hide"
+      });
+      return;
+    } catch (error) {
+      failure = error;
+      await page.waitForTimeout(150);
+    }
+  }
+  throw failure;
+}
+
 function fixture(url) {
   if (url.pathname === "/auth/session") return { authenticated: true, user: { sub: ownerId, email: "stage@danzstak.invalid" } };
   if (url.pathname === "/profiles") return { profile: { memberId: ownerId, name: "Long Dailies Creator Name", username: "dailycreator", picture: "http://127.0.0.1:8017/assets/danzstak-share-fb-v2.jpg" } };
@@ -110,7 +130,7 @@ function fixture(url) {
       assert.ok(result.longNameHeight > 20 && result.longNameInside, `${width}px creator name is clipped or escapes its tile`);
       assert.match(result.fullNameLabel, /The Extraordinarily Long Touring Artist Name/, `${width}px long name has no expanded affordance`);
       const screenshot = path.join(output, `feed-after-${width}.png`);
-      await page.screenshot({ path: screenshot });
+      await captureViewport(page, screenshot);
       await context.close();
     }
     console.log(`Dailies feed browser checks passed at ${widths.join(", ")}px.`);

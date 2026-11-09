@@ -21,8 +21,8 @@ assert.match(css, /\.message\.mine\+\.message\.mine,\.message:not\(\.mine\)\+\.m
 assert.match(css, /\.message\.mine\+\.message:not\(\.mine\),\.message:not\(\.mine\)\+\.message\.mine\{margin-top:8px\}/, "speaker changes need an 8px rhythm");
 assert.match(css, /\.message-form\{min-height:52px;gap:8px;padding:8px 12px/, "the composer needs the measured 52px minimum");
 assert.match(css, /\.message-input-shell\{min-height:44px;border-radius:24px\}/, "the message field needs a familiar rounded shell");
-assert.match(css, /\.message-input-shell #messageInput\{padding:9px 12px!important;font-size:15px;line-height:20px\}/, "composer text needs the 15px input scale");
-assert.match(html, /assets\/sync\.css\?v=10/, "SYNC must request the new layout contract");
-assert.match(worker, /danzstak-shell-v789/, "the installed PWA must advance for the SYNC contract");
+assert.match(css, /\.message-input-shell #messageInput\{padding:9px 12px!important;font-size:16px;line-height:20px\}/, "composer text needs the 16px iOS-safe input scale");
+assert.match(html, /assets\/sync\.css\?v=11/, "SYNC must request the new layout contract");
+assert.match(worker, /danzstak-shell-v790/, "the installed PWA must advance for the SYNC contract");
 
 console.log("SYNC layout-contract checks passed: conversation rows, typography, bubbles, composer, DanzStak branding, and PWA refresh.");

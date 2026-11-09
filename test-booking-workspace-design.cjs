@@ -17,7 +17,7 @@ assert.match(html, /Exact dates are optional while researching/);
 assert.match(html, /id="bookingBriefExample">Example<\/button>/);
 assert.match(html, /<details class="booking-tools">[\s\S]*?<summary>Use the map or fill in the details yourself<\/summary>/);
 assert.match(html, /<details class="planner-drawer">[\s\S]*?<summary>More tour options: genre, crew, van and budget<\/summary>/);
-assert.match(html, /assets\/booking-workspace\.css\?v=8/);
+assert.match(html, /assets\/booking-workspace\.css\?v=10/);
 assert.match(html, /assets\/booking-map\.js\?v=449/);
 assert.match(html, /assets\/booking-discovery\.css\?v=3/);
 assert.match(html, /assets\/booking-discovery\.js\?v=4/);
@@ -29,7 +29,9 @@ assert.match(css, /\.booking-page \.booking-lead[\s\S]*border-top: 3px solid var
 assert.match(css, /\.booking-page \.booking-brief-actions[\s\S]*grid-template-columns: minmax\(150px, 1fr\) auto/);
 assert.match(css, /\.booking-page \.venue-quick-search[\s\S]*grid-template-columns: minmax\(240px, \.8fr\) minmax\(340px, 1\.2fr\)/);
 assert.match(css, /@media \(max-width: 700px\)/);
+assert.match(css, /@media \(max-width: 700px\) \{[\s\S]*?\.booking-page \.tool-header nav \{ display: none; \}/, "phone layout must not duplicate desktop tool links above the bottom navigation");
 assert.match(css, /min-height: 44px/);
+assert.match(css, /\.booking-page \.booking-brief textarea \{[\s\S]*?font-size: 16px;/, "phone booking brief must not trigger iOS focus zoom");
 assert.match(css, /\.route-cost-summary/);
 assert.match(css, /\.market-research/);
 assert.match(css, /\.tour-sheet-workspace/);
@@ -75,7 +77,7 @@ assert.doesNotMatch(agent, /Choose the first date and the date the act must be h
 assert.match(map, /danzstak:booking-selection/);
 assert.match(map, /window\.danzstakToggleBookingVenue/);
 
-assert.match(worker, /danzstak-shell-v789/);
+assert.match(worker, /danzstak-shell-v790/);
 assert.match(worker, /"\/assets\/booking-workspace\.css"/);
 
 console.log("Booking workspace design checks passed: one compact planning card, truthful status timing, shared tool header, optional advanced controls, and PWA coverage.");

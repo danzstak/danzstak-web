@@ -343,6 +343,7 @@
 }
 
 @media (max-width: 700px) {
+  .booking-page .tool-header nav { display: none; }
   .booking-page .tour-sheet-workspace { grid-template-columns: 1fr; }
   .booking-page .tour-sheet-workspace .route-cost-summary { position: static; grid-row: 2; }
   .booking-page .route-cost-summary dl { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -472,7 +473,7 @@
 
   .booking-page .booking-brief textarea {
     min-height: 62px;
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .booking-page #bookingBriefStatus:empty {
