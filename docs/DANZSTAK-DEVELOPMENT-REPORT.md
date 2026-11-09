@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Zero-credit booking pitch recovery — 2026-11-09
+
+Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
+
+- Root cause: an artist could save a venue, build a private per-venue EPK link, review the exact booking email and approve it, but a zero-credit response ended the journey. Buying a credit from the separate balance panel did not preserve or restore the exact venue, and the unused private share remained active after the rejected send.
+- Each zero-credit venue now offers **Buy 1 credit · $1.50** without hiding exact-email preview. A rejected send revokes its unused private EPK link. Checkout preserves the saved pitch and opaque venue key, accepts only a Stripe-hosted Checkout URL, waits for the existing verified ledger settlement, removes payment state from the address bar and restores focus to the exact venue.
+- Payment never sends outreach. The artist must review the exact recipient and message again and explicitly approve it before the one successful send. The installed review shell advances to `danzstak-shell-v780` with `booking-billing.js?v=8`, `booking-selections.js?v=23` and `booking-selections.css?v=16`.
+- **TESTED:** `test-regressions.ps1` passes completely. The new stateful recovery gate passed three consecutive local runs and one hosted run at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. It proves the first send receives 402, sends nothing and revokes the private share; Checkout buys exactly one credit; delayed webhook settlement returns to the exact venue; no automatic email is sent; and a fresh exact-message review and approval produces exactly one send. It also enforces 44px controls, no page errors and no horizontal overflow.
+- [PR #199](https://github.com/danzstak/danzstak-web/pull/199) passed all five GitHub **Review checks** jobs in run [42586936554](https://github.com/danzstak/danzstak-web/actions/runs/42586936554) and was squash-merged into `codex/release-candidate-2026-11-08` as `37da2d2850708286614bc1fe523856e87791b9f3`.
+- **HOSTED REVIEW:** no-cache probes confirm the three versioned Booking assets and `danzstak-shell-v780` on [review.danzstak.com](https://review.danzstak.com/booking-selections.html). Builder-reviewed hosted evidence is in [`docs/screenshots/booking-credit-resume/`](screenshots/booking-credit-resume/). No real charge, email, AWS, Stripe or production change was made; the owner phone go/no-go remains required.
+
 ## Booking-contact Checkout and verified return — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
