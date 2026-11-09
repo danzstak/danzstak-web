@@ -4,6 +4,7 @@
   const API = "https://api.danzstak.com";
   let current = null;
   let polling = false;
+  let callDeviceRegistrationRequired = false;
   let previousFocus = null;
   let ringtoneContext = null;
   let ringtoneTimer = null;
@@ -97,11 +98,16 @@
         signal: controller.signal,
         headers: { "content-type": "application/json", ...deviceHeaders, ...(options.headers || {}) }
       });
-      if (!response.ok) throw new Error("Call service unavailable");
-      return response.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const error = new Error(data.error || "Call service unavailable");
+        error.code = data.code || "";
+        throw error;
+      }
+      return data;
     } catch (error) {
       if (error.name === "AbortError") throw new Error("Call service took too long. Try again.");
-      if (error.message === "Call service unavailable") throw error;
+      if (error.code || error.message === "Call service unavailable") throw error;
       throw new Error("DanzStak cannot connect to calls right now. Check your connection and try again.");
     } finally { clearTimeout(timeout); }
   }
@@ -193,7 +199,7 @@
   });
 
   async function poll() {
-    if (document.hidden || polling) return;
+    if (document.hidden || polling || callDeviceRegistrationRequired) return;
     polling = true;
     for (const [callId, expiry] of handledCalls) if (expiry <= Date.now()) handledCalls.delete(callId);
     try {
@@ -211,12 +217,20 @@
       }
       const offer = (inbox.events || []).find(event => event.signalType === "offer" && ["phone", "video"].includes(event.mode) && !handledCalls.has(event.callId));
       if (offer) showCall(offer);
-    } catch { /* Retry quietly while the user remains on the site. */ }
+      callDeviceRegistrationRequired = false;
+    } catch (error) {
+      if (error.code === "CALL_DEVICE_REGISTRATION_REQUIRED") callDeviceRegistrationRequired = true;
+      /* Other transient failures retry quietly while the user remains on the site. */
+    }
     finally { polling = false; }
   }
 
   document.addEventListener("pointerdown", unlockRingtone, { capture: true, passive: true });
   document.addEventListener("keydown", unlockRingtone, { capture: true });
+  window.addEventListener?.("danzstak:call-device-registered", () => {
+    callDeviceRegistrationRequired = false;
+    poll();
+  });
   poll();
   setInterval(poll, 2000);
   document.addEventListener("visibilitychange", () => {

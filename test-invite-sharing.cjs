@@ -27,7 +27,7 @@ for (const [page, expected] of [[feed, "assets/invite-sharing.js?v=1"], [message
   assert.ok(page.includes("assets/invite-sharing.css?v=1"), "Friends and SYNC must load shared invite styling");
 }
 assert.match(messages, /data-invite-friend[^>]+aria-label="Invite a friend"/, "SYNC must expose an accessible invite action");
-assert.match(worker, /danzstak-shell-v770/);
+assert.match(worker, /danzstak-shell-v771/);
 assert.match(worker, /assets\/invite-sharing\.js/);
 assert.match(worker, /assets\/invite-sharing\.css/);
 
