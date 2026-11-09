@@ -10,6 +10,7 @@ const width = Number(process.env.DANZSTAK_VIEWPORT_WIDTH || 390);
 const screenshot = String(process.env.DANZSTAK_SCREENSHOT || "");
 const callsScreenshot = String(process.env.DANZSTAK_CALLS_SCREENSHOT || "");
 const listScreenshot = String(process.env.DANZSTAK_LIST_SCREENSHOT || "");
+const embeddedScreenshot = String(process.env.DANZSTAK_EMBEDDED_SCREENSHOT || "");
 const uuid = index => `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
 const json = (route, body) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 
@@ -45,6 +46,28 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
   });
 
   try {
+    if (width <= 700) {
+      const embeddedPage = await context.newPage();
+      await embeddedPage.goto(`${baseUrl}/messages.html?embedded=1`, { waitUntil: "domcontentloaded" });
+      const embeddedGeometry = await embeddedPage.locator(".chat-heading-actions").evaluate(actions => {
+        const rect = node => node?.getBoundingClientRect();
+        const navigation = document.querySelector(".ds-mobile-nav");
+        const footer = document.querySelector(".site-ownership");
+        return {
+          actions: rect(actions),
+          navigation: rect(navigation),
+          footerDisplay: footer ? getComputedStyle(footer).display : "missing",
+          overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth
+        };
+      });
+      assert.ok(embeddedGeometry.navigation, `${width}px embedded SYNC mobile navigation is missing`);
+      assert.ok(embeddedGeometry.actions.bottom <= embeddedGeometry.navigation.top - 7,
+        `${width}px embedded SYNC actions overlap navigation: actions end ${embeddedGeometry.actions.bottom}, navigation begins ${embeddedGeometry.navigation.top}`);
+      assert.equal(embeddedGeometry.footerDisplay, "none", `${width}px embedded SYNC ownership footer is visible behind controls`);
+      assert.equal(embeddedGeometry.overflow, false, `${width}px embedded SYNC overflows horizontally`);
+      if (embeddedScreenshot) { fs.mkdirSync(path.dirname(embeddedScreenshot), { recursive: true }); await embeddedPage.screenshot({ path: embeddedScreenshot }); }
+      await embeddedPage.close();
+    }
     await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
     const chatRow = page.locator('.conversation-row[data-sync-section="chats"]').first();
     await chatRow.waitFor();

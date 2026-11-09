@@ -40,5 +40,6 @@ assert.match(chatCss, /\.embedded-messages>\.site-ownership\{display:none\}/, "t
 assert.match(chatCss, /\.embedded-messages \.chats-heading h1\{position:absolute;width:1px;height:1px/, "the embedded drawer keeps one visible Chats heading while preserving the iframe heading for assistive technology");
 assert.match(chatCss, /\.embedded-messages \.chats-heading\{position:static;min-height:0;height:0/, "the embedded list must not reserve an empty heading row");
 assert.match(chatCss, /\.embedded-messages \.chat-heading-actions\{position:fixed;right:18px;bottom:max\(40px,calc\(env\(safe-area-inset-bottom\) \+ 18px\)\)/, "the embedded compose action floats above browser chrome and device safe areas");
+assert.match(chatCss, /@media\(max-width:700px\)\{\.embedded-messages \.chat-heading-actions\{bottom:calc\(62px \+ env\(safe-area-inset-bottom,0px\)\)\}/, "the embedded SYNC action row must clear the fixed mobile navigation");
 
 console.log("Message drawer checks passed: feed popup, icon toggle, compact chat, and video-only full screen.");
