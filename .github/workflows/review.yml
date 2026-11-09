@@ -88,6 +88,7 @@ jobs:
           node .\browser-checks\foreground-call-ringtone.cjs
           node .\browser-checks\mix-portrait-preview.cjs
           node .\browser-checks\original-feed-art-direction.cjs
+          node .\browser-checks\marketplace-ticketing.cjs
       - name: Stop local review server
         if: always()
         shell: pwsh

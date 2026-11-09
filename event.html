@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1769e0"><meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; script-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>Event | DanzStak</title><meta name="description" content="Event details and tickets on DanzStak.">
+  <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png"><link rel="stylesheet" href="assets/mobile-design-system.css?v=17"><link rel="stylesheet" href="assets/icon-buttons.css?v=4"><link rel="stylesheet" href="assets/event.css?v=1">
+</head>
+<body>
+  <a class="skip-link" href="#eventMain">Skip to event</a>
+  <header class="event-header"><a href="feed.html?view=feed" aria-label="DanzStak home"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a><nav><a href="feed.html?view=events">Events</a><a href="messages.html">SYNC</a></nav></header>
+  <main id="eventMain" class="event-main" tabindex="-1">
+    <p class="event-kicker">DanzStak event</p><h1 id="eventTitle">Loading event…</h1><p id="eventStatus" role="status" aria-live="polite">Checking event details.</p>
+    <section id="eventDetails" hidden><p id="eventWhen" class="event-when"></p><p id="eventVenue"></p><p id="eventDescription"></p><section aria-labelledby="ticketTitle"><h2 id="ticketTitle">Tickets</h2><div id="ticketTiers" class="ticket-tiers"></div></section></section>
+  </main>
+  <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation"><a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a><a role="button" data-icon="users" aria-label="Friends" title="Friends" href="feed.html?view=friends"></a><a role="button" data-icon="chat" aria-label="SYNC" title="SYNC" href="messages.html"></a><a role="button" data-icon="bell" aria-label="Buzz" title="Buzz" href="feed.html?view=notifications"></a><a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1"></a></nav>
+  <script src="assets/icon-buttons.js?v=10" defer></script><script src="assets/event.js?v=1" defer></script>
+</body>
+</html>

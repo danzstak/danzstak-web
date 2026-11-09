@@ -146,6 +146,12 @@ editButton.type = "button";
 editButton.className = "button";
 editButton.textContent = profileEditorWords.edit;
 actions.appendChild(editButton);
+const shopManagementLink = document.createElement("a");
+shopManagementLink.className = "button";
+shopManagementLink.href = "store.html?manage=1";
+shopManagementLink.textContent = "Open my shop";
+shopManagementLink.hidden = viewingOtherProfile;
+actions.appendChild(shopManagementLink);
 bioElement.insertAdjacentElement("afterend", actions);
 const nameEditHint = document.createElement("button");
 nameEditHint.type = "button";
@@ -446,12 +452,12 @@ const tabs = document.createElement("nav");
 tabs.className = "profile-tabs";
 tabs.setAttribute("aria-label", "Profile sections");
 tabs.setAttribute("role", "tablist");
-for (const name of ["Posts", "Featured", "Memories", "About", "Friends", "Media"]) {
+for (const name of ["Posts", "Featured", "Memories", "About", "Friends", "Media", "Shop"]) {
   const tab = document.createElement("button");
   tab.type = "button";
   tab.textContent = name;
   tab.dataset.profileTab = name;
-  if (name === "Memories") tab.hidden = true;
+  if (["Memories", "Shop"].includes(name)) tab.hidden = true;
   tab.classList.toggle("active", name === "Posts");
   tab.setAttribute("role", "tab");
   tab.setAttribute("aria-selected", String(name === "Posts"));
@@ -630,7 +636,7 @@ function profileWallComposer(profile) {
 
 const profileTabRoutes = new Map([
   ["posts", "Posts"], ["featured", "Featured"], ["memories", "Memories"],
-  ["about", "About"], ["friends", "Friends"], ["media", "Media"]
+  ["about", "About"], ["friends", "Friends"], ["media", "Media"], ["shop", "Shop"]
 ]);
 function requestedProfileTab() {
   return profileTabRoutes.get(String(window.location?.hash || "").replace(/^#/, "").toLowerCase()) || "Posts";
@@ -743,6 +749,43 @@ async function loadProfileFriends() {
   } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }
 }
 
+let profileShop = null;
+async function loadProfileShop() {
+  const version = profileTabVersion;
+  tabMessage.textContent = "Loading shop…";
+  try {
+    const profile = window.danzstakCurrentProfile || {};
+    const endpoint = profile.isOwner === true ? "/marketplace/shop" : `/marketplace/shop/${encodeURIComponent(profile.memberId || "")}`;
+    const response = await profileFetch(profileApi + endpoint, { credentials:"include", cache:"no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "This shop could not be loaded.");
+    if (version !== profileTabVersion) return;
+    profileShop = data.shop;
+    tabMessage.replaceChildren();
+    const heading = document.createElement("h2"); heading.textContent = profileShop.name;
+    const description = document.createElement("p"); description.textContent = profileShop.description || "Physical goods from this DanzStak member.";
+    const link = document.createElement("a"); link.className = "button"; link.href = profile.isOwner === true ? "store.html?manage=1" : `store.html?member=${encodeURIComponent(profile.memberId || "")}`; link.textContent = profile.isOwner === true ? "Manage shop" : "Open shop";
+    const count = document.createElement("p"); count.className = "muted"; count.textContent = `${profileShop.products.length} product${profileShop.products.length === 1 ? "" : "s"}`;
+    tabMessage.append(heading, description, count, link);
+  } catch (error) { if (version === profileTabVersion) tabMessage.textContent = error.message; }
+}
+
+async function configureProfileShop(profile = {}) {
+  const shopTab = tabs.querySelector('[data-profile-tab="Shop"]');
+  if (!shopTab || !profile.memberId) return;
+  try {
+    const endpoint = profile.isOwner === true ? "/marketplace/shop" : `/marketplace/shop/${encodeURIComponent(profile.memberId)}`;
+    const response = await profileFetch(profileApi + endpoint, { credentials:"include", cache:"no-store" });
+    if (!response.ok) return;
+    const data = await response.json().catch(() => ({}));
+    if (!data.shop) return;
+    profileShop = data.shop;
+    shopTab.hidden = false;
+    shopManagementLink.textContent = "Manage my shop";
+    if (requestedProfileTab() === "Shop") shopTab.click();
+  } catch { /* A shop is optional; leave the tab hidden when unavailable. */ }
+}
+
 tabs.addEventListener("click", async event => {
   const tab = event.target.closest("[data-profile-tab]");
   if (!tab) return;
@@ -757,6 +800,7 @@ tabs.addEventListener("click", async event => {
   else if (name === "Memories" && !viewingOtherProfile) await loadProfilePosts(false, "memories");
   else if (name === "Friends") await loadProfileFriends();
   else if (name === "Media") await loadProfilePosts(true);
+  else if (name === "Shop") await loadProfileShop();
 });
 tabs.addEventListener("keydown", event => {
   if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -965,6 +1009,7 @@ function applyLoadedProfile(profile = {}) {
     }
   }
   applyProfile(profile.cloudProfile ? profile : savedProfile());
+  void configureProfileShop(profile);
   if (profile.cloudProfile) {
     fitCoverButton.classList.toggle("active", Boolean(profile.coverFit));
     fitCoverButton.textContent = profile.coverFit ? "Fill Cover Box" : "Fit Entire Cover";
@@ -973,7 +1018,9 @@ function applyLoadedProfile(profile = {}) {
   if (tabs.dataset.initialized !== "true") {
     tabs.dataset.initialized = "true";
     const requested = requestedProfileTab();
-    const target = requested === "Memories" && profile.isOwner !== true ? "Posts" : requested;
+    const requestedTab = tabs.querySelector(`[data-profile-tab="${requested}"]`);
+    let target = requested === "Memories" && profile.isOwner !== true ? "Posts" : requested;
+    if (requestedTab?.hidden) target = "Posts";
     tabs.querySelector(`[data-profile-tab="${target}"]`).click();
   }
 }

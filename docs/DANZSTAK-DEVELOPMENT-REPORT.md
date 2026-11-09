@@ -1,5 +1,18 @@
 # DANZSTAK development report
 
+## Member shops and event-ticket catalog foundation — 2026-11-09
+
+Status: **IMPLEMENTED AND LOCALLY TESTED ON `codex/marketplace-ticketing`; REVIEW PWA PENDING; AWS BACKEND AND PRODUCTION UNCHANGED; CHECKOUT AND LIVE SALES DISABLED.**
+
+- The official **DanzStak Store** is a main-menu destination. Each member can open one named physical-goods shop, manage products from their profile, and expose a Shop tab only when that shop exists. Music remains external links; the product API rejects audio-product types.
+- Published events now have durable server-owned records, IANA time zones, organizer ownership, capacity and ticket tiers. Concurrent tier creation uses a DynamoDB transaction and an event-level allocation condition so two devices cannot create tiers that exceed venue capacity.
+- Catalog records live in a retained, encrypted, point-in-time-recoverable DynamoDB table. Public responses hide draft/archived products, exact stock, organizer IDs and internal revision state. Mutations require an authenticated account and an approved origin. Official-store writes require a configured administrator ID.
+- The server owns integer-cent prices, inventory, capacity and the exact 5% fee calculation. Public Store and Event pages deliberately contain no purchase control while seller onboarding, provider-backed payment holds, shipping, refunds, disputes, ticket issuance and check-in are unfinished. This prevents a visual catalog from being mistaken for operational commerce.
+- The Events composer saves a durable event and optional ticket tier before creating its chronological Mix post. Member and official store pages use the shared mobile shell, edge-to-edge phone media and 44px controls; the installed-PWA cache advances to `danzstak-shell-v770`.
+- **TESTED:** the complete `test-regressions.ps1` suite passes, including marketplace authorization/catalog tests, exact 5% math, ticket ownership, sequential and concurrent capacity enforcement, existing Stripe boundaries, authentication, Booking, EPK, SYNC, PWA, 15-page site smoke and infrastructure validation. A real-browser gate passes the official store, member shop, shop manager and published event at 320, 360, 390, 414, 430 and 1366px with no overflow or clipped controls, loaded/edge-aligned media and 44px touch targets.
+- Visual evidence: [`docs/screenshots/marketplace-ticketing/`](screenshots/marketplace-ticketing/). Implementation commit: `b4c1f5e`.
+- **REMAINING BEFORE ANY SALES:** choose and approve the marketplace payment/payout provider flow; complete seller identity and payout onboarding; implement Test Mode checkout and signed webhooks; atomic inventory reservations and order ledger; carrier delivery/buyer receipt release; taxes, returns, refunds, disputes and fraud controls; unique ticket issuance, cancellation and one-time check-in; controlled two-account payment tests; owner phone go/no-go. No production deployment or payment configuration change was made.
+
 ## Unified mobile/SYNC/Booking review candidate — 2026-11-08
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
