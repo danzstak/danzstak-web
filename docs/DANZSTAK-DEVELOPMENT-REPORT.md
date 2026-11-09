@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Live SYNC sent/read receipts — 2026-11-09
+
+Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
+
+- Root cause: the API already returned an evidence-backed `read` state, but a background thread refresh updated only reactions on bubbles that were already rendered. The sender therefore kept seeing one stale check even after the recipient opened the message. The client also described server acceptance as **Delivered**, although that response proves **Sent**, not recipient delivery.
+- Existing outgoing bubbles now update in place: one check means **Sent** and two blue checks mean **Read**. The message node is retained, so scroll, selection and keyboard context stay stable. A late initial/background response can no longer overwrite newer send or retry feedback with the generic conversation notice.
+- The truthful **Sent** state is available in every supported language. Delivery advances to `assets/direct-messages.js?v=496`, `assets/i18n.js?v=399` and installed-PWA shell `danzstak-shell-v785`.
+- **TESTED:** `test-regressions.ps1` passes completely. The new real-browser gate passed repeatedly at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px; it proves one-check Sent, an in-place transition to two-check Read, truthful post-send feedback, no page errors and no horizontal overflow. The existing idempotent retry browser matrix also passes. Builder-reviewed evidence is in [`docs/screenshots/message-read-receipt/`](screenshots/message-read-receipt/).
+- [PR #207](https://github.com/danzstak/danzstak-web/pull/207) passed all five GitHub **Review checks** jobs in run [42611913147](https://github.com/danzstak/danzstak-web/actions/runs/42611913147) and was squash-merged into `codex/release-candidate-2026-11-08` as `834ade36d34cdb1e125e55e8070a8fc8dd293783`.
+- **HOSTED REVIEW:** no-cache probes confirm the three versions above on [review.danzstak.com](https://review.danzstak.com/messages.html). The nine-width receipt matrix passes directly against the hosted review PWA. No AWS, Stripe, SES, support-email or production deployment change was made; the owner phone go/no-go remains required.
+
 ## Branded sparse SYNC surfaces — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
