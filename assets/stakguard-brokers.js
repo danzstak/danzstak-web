@@ -1,7 +1,7 @@
 "use strict";
 window.STAKGUARD_BROKER_REGISTRY = Object.freeze([
   { name:"California DROP", jurisdiction:"California", status:"Official free tool", checked:"2026-11-09", url:"https://privacy.ca.gov/drop/" },
-  { name:"Spokeo", jurisdiction:"United States", status:"Official process under review", checked:"2026-11-09", url:"https://www.spokeo.com/optout" },
+  { name:"Spokeo", jurisdiction:"United States", status:"Verified official form", checked:"2026-11-09", url:"https://www.spokeo.com/optout", channel:"official_form" },
   { name:"Whitepages", jurisdiction:"United States", status:"Official process under review", checked:"2026-11-09", url:"https://www.whitepages.com/suppression-requests" },
   { name:"BeenVerified", jurisdiction:"United States", status:"Official process under review", checked:"2026-11-09", url:"https://www.beenverified.com/app/optout/search" },
   {
