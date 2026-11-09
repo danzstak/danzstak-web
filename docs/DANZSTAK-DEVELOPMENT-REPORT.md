@@ -1947,3 +1947,16 @@ Status as of 2026-11-08: **IMPLEMENTED AND TESTED; AWS BACKEND AND PRODUCTION UN
 - The complete local `test-regressions.ps1` suite passed, including every JavaScript regression, the 13-page site smoke test, release propagation behavior, and infrastructure validation.
 - Implementation commit `ff100cfbac26e41b02172ea1e85077da8c46b954` passed all five jobs in GitHub Review run [42523317807](https://github.com/danzstak/danzstak-web/actions/runs/42523317807).
 - This Auth API change has **not** been deployed to AWS. Production and the review frontend remain unchanged pending the owner's release gate.
+
+# Release candidate — retry-safe SYNC unread counts
+
+Status as of 2026-11-09: **IMPLEMENTED AND TESTED; AWS BACKEND AND PRODUCTION UNCHANGED**.
+
+- Root cause: every accepted direct message replaced the recipient's conversation unread count with `1`. A second or third unread message therefore still displayed one unread item, and replaying the same idempotent send after the recipient had read it could mark that chat unread again.
+- Every newly stored message now carries a private retry marker. One DynamoDB transaction removes that marker, marks the message counted, and atomically increments the recipient's unread total. The message ID remains the idempotency key, so a retry cannot increment twice.
+- Messages stored before this marker was introduced are left unchanged on retry, preventing a rollout from double-counting legacy messages. A projection failure remains recoverable: retry repairs the conversation preview without sending another push or changing the unread total.
+- Sending no longer forces the sender-side unread count to zero. Recipient reads remain the authority for clearing unread state, so an offline queued send cannot erase incoming messages the sender has not opened.
+- The executable message harness now verifies: one durable write and one push, exact-payload retries, multiple-message increments, retry after read, legacy-message retry, projection failure and repair, attachment preservation, and payload-collision rejection.
+- Focused message and infrastructure checks passed. The complete `test-regressions.ps1` gate passed, including all JavaScript regressions, release propagation checks, the 13-page site smoke suite, and embedded-Lambda syntax/infrastructure validation.
+- Implementation commit: `3cd065e7f76a4303d1574f2e34d129652675f586` on `codex/release-candidate-2026-11-08` in draft pull request [#173](https://github.com/danzstak/danzstak-web/pull/173).
+- This change is backend infrastructure source only. It has **not** been deployed to the shared AWS API. The review PWA and production continue using the previously deployed messaging backend until the owner approves the complete release candidate.
