@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Primary Club Finder venue selection — 2026-11-09
+
+Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
+
+- Root cause: the primary Club Finder returned sourced venue cards but provided no way to add one to the booking workspace. Selection controls and the selected-club continuation existed only inside the collapsed advanced map workflow, so the normal EPK → Booking → find clubs journey stopped before an artist could prepare a pitch.
+- Every sourced Club Finder result now has a real **Add to booking list** / **Remove from booking list** control. Unverified web-research leads remain research-only. Selection state stays synchronized across quick results, route cards and map markers.
+- The primary Club Finder now shows a compact **Review selected clubs** continuation only after a venue is selected. It opens the real saved-venue workspace while preserving the artist, published EPK and booking state.
+- **TESTED:** `test-regressions.ps1` passes completely. The venue-selection browser matrix and connected EPK → Booking → search → select → review workflow each passed three consecutive local runs and one hosted run at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. The hosted run verified 44px controls, Add/Remove synchronization, selected-count state, the final saved venue card, EPK/artist preservation, no page errors and no horizontal overflow.
+- [PR #191](https://github.com/danzstak/danzstak-web/pull/191) passed all five GitHub **Review checks** jobs in run [42574210579](https://github.com/danzstak/danzstak-web/actions/runs/42574210579) and was squash-merged into `codex/release-candidate-2026-11-08` as `6cb2e63bf2b06ca662d78a06b373eea4d2127d64`.
+- **HOSTED REVIEW:** no-cache probes confirm `booking-discovery.js?v=4`, `booking-discovery.css?v=3`, `booking-map.js?v=449`, `booking-workspace.css?v=8` and installed shell `danzstak-shell-v776` on [review.danzstak.com](https://review.danzstak.com/booking.html). Builder-reviewed hosted evidence is in [`docs/screenshots/issue-55-booking-workspace/`](screenshots/issue-55-booking-workspace/) and [`docs/screenshots/epk-booking-connected-handoff/`](screenshots/epk-booking-connected-handoff/). No AWS, Stripe, email or production deployment change was made; the owner phone go/no-go remains required.
+
 ## EPK to venue-discovery next step — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
