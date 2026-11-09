@@ -4,8 +4,8 @@ const html = fs.readFileSync("epk.html","utf8"), client = fs.readFileSync("asset
 
 assert.match(html,/id="printEpkOnePage"[^>]*>One-page press PDF</);
 assert.match(html,/id="printEpk"[^>]*>Full press PDF</);
-assert.match(html,/assets\/epk\.css\?v=9/);
-assert.match(html,/assets\/epk\.js\?v=21/);
+assert.match(html,/assets\/epk\.css\?v=10/);
+assert.match(html,/assets\/epk\.js\?v=22/);
 assert.match(client,/dataset\.epkSection/);
 assert.match(client,/document\.querySelectorAll\("\.epk-pdf-action"\)/,"private booking permissions must govern both PDF actions");
 assert.match(client,/printEpk\("one-page"\)/);
@@ -15,5 +15,5 @@ for (const section of ["about","listen","watch","notable-shows","press","booking
 assert.match(css,/@page\{size:letter;margin:\.4in\}/);
 assert.match(css,/data-epk-print="one-page"[\s\S]*\.epk-embeds iframe\{display:none!important\}/);
 assert.match(css,/\.epk-embeds>:nth-child\(n\+3\)/,"one-page press output must bound every rich-media card regardless of its semantic element");
-assert.match(worker,/danzstak-shell-v771/);
+assert.match(worker,/danzstak-shell-v772/);
 console.log("EPK press PDF checks passed: explicit one-page/full modes, bounded summary content, permission parity, print cleanup, and PWA refresh.");

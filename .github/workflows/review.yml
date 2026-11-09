@@ -155,6 +155,7 @@ jobs:
           node .\browser-checks\account-security.cjs
           node .\browser-checks\profile-onboarding-identity.cjs
           node .\browser-checks\push-alert-prompt.cjs
+          node .\browser-checks\epk-booking-connected-handoff.cjs
       - name: Stop static review server
         if: always()
         shell: pwsh

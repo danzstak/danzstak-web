@@ -14,15 +14,15 @@ assert.match(html, /id="showEpkQr"[^>]*>QR code</);
 assert.match(html, /<dialog id="epkQrDialog"[^>]*aria-labelledby="epkQrTitle"/);
 assert.match(html, /id="epkQrImage"[^>]*alt="QR code for this EPK link"/);
 assert.match(html, /id="downloadEpkQr"[^>]*download=/);
-assert.match(html, /assets\/epk\.css\?v=9/);
-assert.match(html, /assets\/epk\.js\?v=21/);
+assert.match(html, /assets\/epk\.css\?v=10/);
+assert.match(html, /assets\/epk\.js\?v=22/);
 assert.match(client, /new URL\("https:\/\/danzstak\.com\/epk\.html"\)/);
 assert.match(client, /\/epk\/qr[^\n]*method:"POST"/);
 assert.match(client, /new Blob\(\[svg\], \{ type:"image\/svg\+xml" \}\)/);
 assert.doesNotMatch(client, /epkQr[^\n]*innerHTML/i);
 assert.match(css, /\.epk-qr-dialog button,.epk-qr-download\{min-height:44px/);
 assert.equal(packageJson.dependencies.qrcode, "1.5.4");
-assert.match(worker, /danzstak-shell-v771/);
+assert.match(worker, /danzstak-shell-v772/);
 assert.match(deploy, /POST \/epk\/qr/, "the guarded API deployment must expose the QR route");
 
 (async () => {
