@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## Saved pitch to exact booking-email review — 2026-11-09
+
+Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
+
+- Root cause: after editing a proposed date or pitch inside a long selected-venue card, **Preview exact email** rejected the unsaved state and told the artist to scroll back to the account controls. The normal EPK → venue → reviewed pitch journey therefore had a phone-only dead end immediately before outreach.
+- **Preview exact email** now saves the current account workspace first, then creates the venue-specific private EPK link and exact email preflight. If saving fails, the flow stops before creating the private share or outreach preflight. Nothing sends until the artist reviews the exact recipient and message and ticks the approval checkbox.
+- The existing one-credit reservation/restoration, provider acceptance, duplicate protection and private SYNC Bookings reply route remain unchanged. The approval row now retains a measured 44px mobile touch target.
+- **TESTED:** `test-regressions.ps1` passes completely. The stateful save-and-preview browser matrix passed three consecutive local runs and one hosted run at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. It proves the controlled save-failure path creates no private share and sends no email; the successful path enforces save → private link → preflight → explicit approval → one send, while checking persisted send state, page errors, touch targets and horizontal overflow.
+- [PR #193](https://github.com/danzstak/danzstak-web/pull/193) passed all five GitHub **Review checks** jobs in run [42576646131](https://github.com/danzstak/danzstak-web/actions/runs/42576646131) and was squash-merged into `codex/release-candidate-2026-11-08` as `34572e45834234b37c8975583f09795f864fc90f`.
+- **HOSTED REVIEW:** no-cache probes confirm `booking-selections.js?v=21`, `booking-selections.css?v=13` and installed shell `danzstak-shell-v777` on [review.danzstak.com](https://review.danzstak.com/booking-selections.html). Builder-reviewed hosted evidence is in [`docs/screenshots/booking-save-preview/`](screenshots/booking-save-preview/). No real email, charge, AWS, Stripe or production deployment change was made; the owner phone go/no-go remains required.
+
 ## Primary Club Finder venue selection — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE REVIEW PWA; PRODUCTION UNCHANGED.**
