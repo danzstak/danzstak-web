@@ -19,13 +19,16 @@ assert.match(client, /confirm\.disabled = true[\s\S]*confirm\.disabled = !check\
 assert.match(client, /artistApproved:true/, "the reviewed send must carry an explicit approval assertion");
 assert.match(backend, /body\?\.artistApproved !== true[\s\S]*approve this email before sending/, "the server must reject drafts that were not approved");
 assert.match(client, /Review one follow-up · 1 credit[\s\S]*followUpTo:initialPitch\.id/, "a due reminder must be reviewed, charged once, and bound to its original pitch");
+assert.match(client, /Venue replies arrive in your private SYNC Bookings inbox/, "the send explanation must describe the real private reply destination");
+assert.match(client, /Open this reply in SYNC[\s\S]*messages\.html\?section=bookings&outreach=/, "a venue reply must link to its exact SYNC booking thread");
+assert.match(client, /\["sent", "delivered", "replied"\][\s\S]*if \(hasReply\)[\s\S]*else if \(existingFollowUp\)/, "the real replied status must open SYNC even when an earlier follow-up exists");
 assert.match(backend, /attribute_not_exists\(followUpSendId\)[\s\S]*attribute_not_exists\(repliedAt\)/, "the server must atomically prevent a second follow-up or a reminder after reply");
 assert.match(backend, /This follow-up is not due yet/, "the server must enforce the artist's saved follow-up date");
 for (const field of ["message: { S: message }", "template: { S: template }", "artistApprovedAt: { S: reservedAt }"]) assert.ok(backend.includes(field), `the immutable send record must retain ${field}`);
 for (const field of ["pitchTemplate", "expectedDraw", "setDetails", "outreachSubject"]) assert.match(workspace, new RegExp(field), `the account workspace must persist ${field}`);
 assert.match(styles, /\.booking-send-review[\s\S]*max-height:[^;]+vh/, "the review dialog must be bounded on phones");
 assert.match(styles, /\.booking-send-actions button\{min-height:44px\}/, "review actions must remain touch sized");
-assert.match(markup, /booking-selections\.css\?v=10/);
-assert.match(markup, /booking-selections\.js\?v=18/);
+assert.match(markup, /booking-selections\.css\?v=11/);
+assert.match(markup, /booking-selections\.js\?v=19/);
 
 console.log("Booking pitch review checks passed: templates, artist-entered facts, overwrite protection, exact preview, explicit approval, one safe follow-up, server enforcement, persistence, and mobile geometry.");

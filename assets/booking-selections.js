@@ -465,14 +465,19 @@
       }
     });
     const note = document.createElement("small");
-    note.textContent = email ? "Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Replies go to your account email." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
+    note.textContent = email ? "Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Venue replies arrive in your private SYNC Bookings inbox." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
     section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, note);
-    const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
+    const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered", "replied"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
     if (initialPitch && (followUpDue || existingFollowUp || hasReply)) {
       const followUp = document.createElement("section"), heading = document.createElement("h3"), state = document.createElement("p");
       followUp.className = "booking-follow-up"; heading.textContent = "Follow-up";
-      if (existingFollowUp) state.textContent = existingFollowUp.status === "delivered" ? "Your one follow-up was delivered." : "Your one follow-up was submitted. No additional reminder will be sent.";
-      else if (hasReply) state.textContent = "This venue replied. Continue in the SYNC booking thread instead of sending a reminder.";
+      if (hasReply) {
+        state.textContent = "This venue replied. Continue in the private SYNC booking thread instead of sending a reminder.";
+        const openThread = link("Open this reply in SYNC", `messages.html?section=bookings&outreach=${encodeURIComponent(initialPitch.id)}`);
+        openThread.className = "booking-thread-link";
+        followUp.append(openThread);
+      }
+      else if (existingFollowUp) state.textContent = existingFollowUp.status === "delivered" ? "Your one follow-up was delivered." : "Your one follow-up was submitted. No additional reminder will be sent.";
       else {
         state.textContent = `Due ${booking.followUp}. DanzStak allows one artist-approved reminder for this pitch.`;
         const followButton = document.createElement("button");
