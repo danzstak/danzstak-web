@@ -6,6 +6,7 @@
   const printButton = document.getElementById("printVenueSheet");
   const downloadButton = document.getElementById("downloadVenueCsv");
   const clearButton = document.getElementById("clearVenueSelections");
+  const chooseVenuesNext = document.getElementById("chooseVenuesNext");
   const storageKey = "danzstakBookingVenueSelections";
   const stages = ["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined", "No response"];
   const legacyStages = { Research: "Not contacted", "Ready to pitch": "Email prepared", Contacted: "Email sent", "In conversation": "Reply received", Hold: "Interested" };
@@ -207,6 +208,10 @@
   function updateControls() {
     const available = venues.length > 0;
     for (const button of [printButton, downloadButton, clearButton]) if (button) button.disabled = !available;
+    if (typeof chooseVenuesNext !== "undefined" && chooseVenuesNext) {
+      chooseVenuesNext.textContent = available ? "Add venues" : "Choose venues";
+      chooseVenuesNext.setAttribute("aria-label", available ? "Add more venues from the worldwide venue map" : "Choose venues from the worldwide venue map");
+    }
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const due = venues.filter(v => v.booking?.followUp && v.booking.followUp <= today && !["Confirmed", "Declined"].includes(bookingStatus(v))).length;
