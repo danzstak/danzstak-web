@@ -19,6 +19,8 @@ A handoff is functional removal help, not a scan and not delegated submission:
 3. **Copy request** writes the reviewed text to the member's clipboard. **Open my email app** creates a `mailto:` draft addressed to the verified privacy contact. The member decides whether to send it. The official form remains available separately.
 4. DanzStak does not receive the completed draft, send the message, log into a broker, solve a CAPTCHA, scrape a results page or impersonate the member.
 5. Opening a draft/form is not **submitted**. Submission needs member-supplied receipt evidence or an approved provider acknowledgement. **Removed** needs controller evidence or a permitted recheck.
+6. The draft has no hidden BCC/CC recipient, forwarding address, tracking pixel or automatic receipt capture. If a later release lets a member explicitly forward or upload a receipt, it needs a separately approved data model, disclosure, retention period, export/deletion controls and account isolation.
+7. Use the source's verified designated channel. Do not assume an arbitrary email address creates a valid statutory request, bypasses identity verification, eliminates legal exceptions, or guarantees deletion.
 
 The first verified handoff is PeopleConnect, checked against its [Suppression Center](https://suppression.peopleconnect.us/privacy-center), [privacy policy](https://peopleconnect.us/privacy-policy/) and published `privacy@peopleconnect.us` contact on 2026-11-09. Other listed sources remain under review and expose no prepared email action. Every contact and template must be rechecked before release.
 

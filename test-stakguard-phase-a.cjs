@@ -37,6 +37,7 @@ assert.match(registry, /I am making this request for myself\./);
 assert.doesNotMatch(registry, /\bon behalf of\b|authorized agent|power of attorney/i, "The prepared request must remain a direct member request");
 for (const placeholder of ["[YOUR FULL NAME]", "[YOUR EMAIL]", "[RECORD URL]", "[YOUR STATE OR COUNTRY]"]) assert.ok(registry.includes(placeholder), `${placeholder} is missing from the member-reviewed request`);
 assert.doesNotMatch(js, /XMLHttpRequest|sendBeacon|requestSubmit\s*\(|\.submit\s*\(|new\s+FormData\s*\(/, "Phase A must not submit a request through another browser transport");
+assert.doesNotMatch(html + js + registry, /(?:[?&]|\b)(?:bcc|cc)=|tracking pixel|tracker address|auto(?:matic)? receipt/i, "Phase A must not copy or invisibly track a member's removal request");
 assert.match(feed, /href="stakguard\.html"/);
 assert.match(settings, /Open StakGuard/);
 assert.match(worker, /danzstak-shell-v790/);
