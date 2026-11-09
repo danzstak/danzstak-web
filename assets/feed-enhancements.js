@@ -320,7 +320,7 @@ function openPostInFeed(post) {
 
 function renderPublishedEvents(publishedEvents) {
   publishedEvents.replaceChildren();
-  const eventPosts = [...document.querySelectorAll("#feed .post")].filter(post => post.querySelector(".post-content")?.textContent.startsWith("📅 Event:"));
+  const eventPosts = [...document.querySelectorAll("#feed .post")].filter(post => /^(?:Event:|\u{1F4C5}\s*Event:)/u.test(post.querySelector(".post-content")?.textContent || ""));
   if (!eventPosts.length) {
     const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "No published events yet."; publishedEvents.appendChild(empty);
   }
@@ -1846,10 +1846,15 @@ function renderWorkspace(name) {
   }
 
   if (name === "Events") {
-    featureText.textContent = "Create event announcements and find events shared in Your Mix.";
+    featureText.textContent = "Publish an event to Your Mix and, when ready, add capacity-limited tickets.";
     workspace.classList.add("events-workspace");
     const title = field("Event name", "text", "Show or performance");
-    const date = field("Date", "date", "");
+    const date = field("Starts", "datetime-local", "");
+    const endDate = field("Ends (optional)", "datetime-local", "");
+    const venue = field("Venue", "text", "Club or venue name");
+    const address = field("Venue address (optional)", "text", "Public venue address");
+    const capacity = field("Capacity", "number", "100");
+    capacity.input.min = "1"; capacity.input.max = "100000"; capacity.input.step = "1"; capacity.input.value = "100";
     const audience = document.createElement("select");
     audience.setAttribute("aria-label", "Event audience");
     for (const [value, label] of [["public", "Public"], ["friends", "Friends"], ["private", "Just me"]]) {
@@ -1864,28 +1869,60 @@ function renderWorkspace(name) {
     const eventCertified = document.createElement("input");
     eventCertified.type = "checkbox";
     eventCertification.append(eventCertified, document.createTextNode("I created this event announcement and authorize sharing it through DanzStak."));
+    const ticketLabel = document.createElement("label");
+    ticketLabel.className = "event-certification";
+    const ticketSales = document.createElement("input");
+    ticketSales.type = "checkbox";
+    ticketLabel.append(ticketSales, document.createTextNode("Sell capacity-limited tickets after secure checkout review"));
+    const ticketFields = document.createElement("div");
+    ticketFields.className = "event-ticket-fields";
+    ticketFields.hidden = true;
+    const ticketName = field("Ticket name", "text", "General admission");
+    const ticketPrice = field("Ticket price (USD)", "text", "15.00");
+    ticketPrice.input.inputMode = "decimal";
+    ticketFields.append(ticketName.wrap, ticketPrice.wrap);
+    ticketSales.addEventListener("change", () => { ticketFields.hidden = !ticketSales.checked; if (ticketSales.checked && !ticketName.input.value) ticketName.input.value = "General admission"; });
     const publishedHeading = document.createElement("h4");
     publishedHeading.textContent = "Published events";
     const publishedEvents = document.createElement("div");
     publishedEvents.className = "published-events";
     renderPublishedEvents(publishedEvents);
+    let clientEventId = crypto.randomUUID(), clientTierId = crypto.randomUUID();
     button.addEventListener("click", async () => {
-      if (!title.input.value.trim() || !date.input.value) return title.input.focus();
+      if (!title.input.value.trim() || !date.input.value || !venue.input.value.trim()) return (!title.input.value.trim() ? title.input : !date.input.value ? date.input : venue.input).focus();
       if (!eventCertified.checked) {
         featureText.textContent = "Confirm that you created this event announcement before publishing.";
         eventCertified.focus();
         return;
       }
+      const eventCapacity = Number(capacity.input.value);
+      if (!Number.isInteger(eventCapacity) || eventCapacity < 1 || eventCapacity > 100000) { featureText.textContent = "Enter an event capacity from 1 to 100,000."; capacity.input.focus(); return; }
+      if (ticketSales.checked && audience.value !== "public") { featureText.textContent = "Ticketed events must be Public so buyers can open the event page."; audience.focus(); return; }
+      const priceMatch = ticketSales.checked ? ticketPrice.input.value.trim().match(/^(\d{1,7})(?:\.(\d{1,2}))?$/) : null;
+      const priceCents = priceMatch ? Number(priceMatch[1]) * 100 + Number((priceMatch[2] || "").padEnd(2, "0")) : 0;
+      if (ticketSales.checked && (!ticketName.input.value.trim() || priceCents < 50)) { featureText.textContent = "Enter a ticket name and price of at least $0.50."; ticketPrice.input.focus(); return; }
       const submittedTitle = title.input.value.trim();
       const submittedDate = date.input.value;
       button.disabled = true;
       featureText.textContent = "Publishing event…";
       try {
-        const formattedDate = new Date(submittedDate + "T12:00:00").toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+        const startsAt = new Date(submittedDate), endsAt = endDate.input.value ? new Date(endDate.input.value) : null;
+        if (Number.isNaN(startsAt.valueOf()) || endsAt && (Number.isNaN(endsAt.valueOf()) || endsAt <= startsAt)) throw new Error("Choose valid start and end times.");
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+        const eventResponse = await postActionFetch("/marketplace/events", { method:"POST", credentials:"include", cache:"no-store", headers:{"Content-Type":"application/json"}, body:JSON.stringify({clientEventId,title:submittedTitle,description:"",venueName:venue.input.value.trim(),venueAddress:address.input.value.trim(),startsAt:startsAt.toISOString(),endsAt:endsAt?.toISOString()||"",timezone,capacity:eventCapacity,status:audience.value==="public"?"published":"draft",ticketSalesEnabled:ticketSales.checked}) });
+        const eventData = await eventResponse.json().catch(() => ({}));
+        if (!eventResponse.ok) throw new Error(eventData.error || "Event details could not be saved.");
+        if (ticketSales.checked) {
+          const tierResponse = await postActionFetch(`/marketplace/events/${encodeURIComponent(eventData.event.id)}/tiers`, {method:"POST",credentials:"include",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({clientTierId,name:ticketName.input.value.trim(),description:"",priceCents,capacity:eventCapacity,status:"on_sale"})});
+          const tierData = await tierResponse.json().catch(() => ({}));
+          if (!tierResponse.ok) throw new Error(tierData.error || "Ticket offer could not be saved.");
+        }
+        const formattedDate = startsAt.toLocaleString(undefined, { year: "numeric", month: "long", day: "numeric", hour:"numeric", minute:"2-digit" });
+        const ticketCopy = ticketSales.checked ? `\nTickets: $${(priceCents / 100).toFixed(2)} · ${eventCapacity} capacity\nhttps://danzstak.com/event.html?id=${eventData.event.id}` : "";
         const response = await postActionFetch("/secure-posts", {
           method: "POST", credentials: "include", cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: `📅 Event: ${submittedTitle}\n${formattedDate}`, audience: audience.value, originalContentCertified: true })
+          body: JSON.stringify({ content: `Event: ${submittedTitle}\n${formattedDate}\n${venue.input.value.trim()}${ticketCopy}`, audience: audience.value, originalContentCertified: true })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Event could not be published");
@@ -1893,14 +1930,23 @@ function renderWorkspace(name) {
         if (title.input.value.trim() === submittedTitle && date.input.value === submittedDate) {
           title.input.value = "";
           date.input.value = "";
+          endDate.input.value = "";
+          venue.input.value = "";
+          address.input.value = "";
+          capacity.input.value = "100";
+          ticketSales.checked = false;
+          ticketFields.hidden = true;
+          ticketName.input.value = "";
+          ticketPrice.input.value = "";
         }
+        clientEventId = crypto.randomUUID(); clientTierId = crypto.randomUUID();
         eventCertified.checked = false;
         if (typeof window.loadPosts === "function") await window.loadPosts();
         if (isCurrentWorkspace()) renderPublishedEvents(publishedEvents);
       } catch (error) { if (isCurrentWorkspace()) featureText.textContent = error.message; }
       finally { button.disabled = false; }
     });
-    workspace.append(title.wrap, date.wrap, audience, eventCertification, button, publishedHeading, publishedEvents);
+    workspace.append(title.wrap, date.wrap, endDate.wrap, venue.wrap, address.wrap, capacity.wrap, audience, ticketLabel, ticketFields, eventCertification, button, publishedHeading, publishedEvents);
     return;
   }
 

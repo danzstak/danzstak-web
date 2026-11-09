@@ -39,6 +39,8 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
+import { createMarketplace } from "./marketplace.mjs";
+import { createTicketing } from "./ticketing.mjs";
 import QRCode from "qrcode";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -65,6 +67,7 @@ const supportTicketsTable = process.env.SUPPORT_TICKETS_TABLE || "DANZSTAK-Suppo
 const toursTable = process.env.TOURS_TABLE || "DANZSTAK-Tours";
 const venueDirectoryTable = process.env.VENUE_DIRECTORY_TABLE || "DANZSTAK-VenueDirectory";
 const reviewsTable = process.env.REVIEWS_TABLE || "DANZSTAK-Reviews";
+const marketplaceTable = process.env.MARKETPLACE_TABLE || "DANZSTAK-Marketplace";
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -173,6 +176,22 @@ const tourManagerBilling = createTourManagerBilling({
     }));
     return { messageId: result.MessageId || "" };
   }
+});
+
+const marketplace = createMarketplace({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: marketplaceTable,
+  env: process.env
+});
+const ticketing = createTicketing({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: marketplaceTable
 });
 
 const now = () => Math.floor(Date.now() / 1000);
@@ -4995,6 +5014,12 @@ export const handler = async event => {
       if (method === "POST" && ["/tour-manager/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);
       if (billingResponse) return billingResponse;
+    }
+    if (path?.startsWith("/marketplace/")) {
+      const ticketingResponse = await ticketing(event);
+      if (ticketingResponse) return ticketingResponse;
+      const marketplaceResponse = await marketplace(event);
+      if (marketplaceResponse) return marketplaceResponse;
     }
 
     if (method === "GET" && path === "/auth/login") {
