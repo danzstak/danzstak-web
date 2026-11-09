@@ -81,6 +81,13 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
     assert.equal(listGeometry.timeSize, "12px");
     assert.equal(listGeometry.badgeSize, "12px");
     assert.equal(listGeometry.overflow, false, `${width}px conversation list overflows horizontally`);
+    const listSurface = await page.locator(".chat-list-panel").evaluate(element => {
+      const computed = getComputedStyle(element), watermark = getComputedStyle(element, "::after");
+      return { backgroundImage:computed.backgroundImage, watermarkImage:watermark.backgroundImage, watermarkOpacity:watermark.opacity };
+    });
+    assert.match(listSurface.backgroundImage, /danzstak-score-pattern\.svg/, `${width}px sparse chat list is missing its musical-score layer`);
+    assert.match(listSurface.watermarkImage, /danzstak-d-icon\.png/, `${width}px sparse chat list is missing its DanzStak watermark`);
+    assert.equal(listSurface.watermarkOpacity, "0.055", `${width}px chat-list watermark is not restrained`);
     const initialPicture = await chatRow.locator("img.conversation-list-avatar").getAttribute("src");
     await page.evaluate(() => {
       window.__danzstakConversationAvatar = document.querySelector("img.conversation-list-avatar");
@@ -111,9 +118,12 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
     assert.equal(await messages.count(), 5);
     const style = await page.locator("#messageList").evaluate(element => {
       const computed = getComputedStyle(element);
-      return { backgroundColor: computed.backgroundColor, backgroundImage: computed.backgroundImage, overflowX: element.scrollWidth > element.clientWidth };
+      const watermark = getComputedStyle(element, "::after");
+      return { backgroundColor: computed.backgroundColor, backgroundImage: computed.backgroundImage, watermarkImage: watermark.backgroundImage, watermarkOpacity: watermark.opacity, overflowX: element.scrollWidth > element.clientWidth };
     });
-    assert.equal(style.backgroundImage, "none", "conversation canvas must not use wallpaper noise");
+    assert.match(style.backgroundImage, /danzstak-score-pattern\.svg/, "conversation canvas must use the restrained musical-score layer");
+    assert.match(style.watermarkImage, /danzstak-d-icon\.png/, "conversation canvas must use the official DanzStak watermark");
+    assert.equal(style.watermarkOpacity, "0.055", "the DanzStak watermark must remain faint behind messages");
     assert.equal(style.backgroundColor, "rgb(239, 234, 226)");
     assert.equal(style.overflowX, false, "conversation must not overflow horizontally");
     const bubbleStyle = async index => messages.nth(index).evaluate(element => {
@@ -167,7 +177,7 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
     assert.ok(composer && composer.y + composer.height <= (width < 700 ? 844 : 900), "fixed conversation composer must remain visible");
     if (screenshot) { fs.mkdirSync(path.dirname(screenshot), { recursive: true }); await page.screenshot({ path: screenshot }); }
     assert.deepEqual(errors, [], `thread styling must not raise browser errors: ${errors.join(" | ")}`);
-    console.log(`SYNC WhatsApp-familiar thread check passed at ${width}px: clean canvas, grouped bubbles, composer fit, and no overflow.`);
+    console.log(`SYNC WhatsApp-familiar thread check passed at ${width}px: branded canvas, grouped bubbles, composer fit, and no overflow.`);
   } finally {
     await context.close();
     await browser.close();

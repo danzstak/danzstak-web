@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE = "danzstak-shell-v783";
+const CACHE = "danzstak-shell-v784";
 const SHELL = [
   "/assets/offline.js", "/assets/identity-media.js", "/assets/user-content-links.js", "/assets/user-content-links.css", "/assets/invite-sharing.js", "/assets/invite-sharing.css",
   "/assets/fonts/archivo.woff2", "/assets/fonts/jetbrains-mono.woff2", "/assets/fonts/anton.woff2", "/assets/fonts/special-elite.woff2", "/assets/fonts/work-sans.woff2", "/assets/fonts/pirata-one.woff2", "/assets/fonts/oswald.woff2", "/assets/fonts/source-serif-4.woff2", "/assets/fonts/syne.woff2", "/assets/fonts/dm-sans.woff2",
@@ -13,7 +13,7 @@ const SHELL = [
   "/assets/mobile-keyboard.js",
   "/assets/languages.js", "/assets/brand-language-aliases.js", "/assets/i18n.js",
   "/", "/index.html", "/feed.html", "/messages.html", "/profile.html", "/privacy.html", "/terms.html", "/support.html", "/booking.html", "/booking-selections.html", "/booking-opt-out.html", "/booking-reply.html", "/record-stores.html", "/epk.html", "/store.html", "/event.html",
-  "/manifest.webmanifest", "/assets/danzstak-d-icon.png", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-apps-v3.png",
+  "/manifest.webmanifest", "/assets/danzstak-d-icon.png", "/assets/danzstak-score-pattern.svg", "/assets/favicon-32.png", "/assets/favicon-192.png", "/assets/favicon-512.png", "/assets/apple-touch-icon.png", "/assets/danzstak-logo.png", "/assets/danzstak-share-apps-v3.png",
   "/assets/media-visibility.js", "/assets/text-emojis.js", "/assets/story-book.svg", "/assets/device-settings.js", "/assets/home.js", "/assets/app-feedback.js", "/assets/app-feedback.css", "/assets/pwa.js", "/assets/app-downloads.js", "/assets/logout.js", "/assets/session-cleanup.js", "/assets/session-activity.js", "/assets/profile.js", "/assets/profile-editor.js",
   "/assets/profile-collections.js", "/assets/activity-history-core.js", "/assets/account-export-core.js", "/assets/account-export.js",
   "/assets/booking-workspace.css", "/assets/store.css", "/assets/store.js", "/assets/event.css", "/assets/event.js",
