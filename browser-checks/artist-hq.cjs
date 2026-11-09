@@ -74,6 +74,12 @@ function fixture(pathname) {
       await followUp.click();
       await page.locator(".booking-follow-up button").waitFor({ state:"visible" });
       await page.waitForFunction(() => document.activeElement?.textContent?.includes("Review one follow-up"));
+      await page.waitForFunction(() => {
+        const element = document.querySelector(".booking-follow-up button");
+        if (!element) return false;
+        const rect = element.getBoundingClientRect();
+        return rect.height >= 44 && rect.top >= 0 && rect.bottom <= innerHeight;
+      }, null, { timeout:5000 }).catch(() => {});
       assert.equal(new URL(page.url()).search, "", `${width}px follow-up venue key remained in the address bar`);
       assert.match((await page.locator(".booking-follow-up").textContent()).trim(), /Due 2026-11-08/, `${width}px exact follow-up was not visible`);
       const followUpRect = await page.locator(".booking-follow-up button").evaluate(element => { const rect = element.getBoundingClientRect(); return { top:rect.top, bottom:rect.bottom, height:rect.height, viewport:innerHeight }; });
