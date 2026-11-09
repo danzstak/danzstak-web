@@ -95,6 +95,17 @@ Later phase (after users): SYNC standalone, device registration, SYNC Network nu
 | StakGuard: see which brokers have your data + remove it | Free | Spec only |
 | StakGuard monitoring | $4 a month, no auto-renewal; prepay any months at $4 each (e.g. $20 = 5 months) | Spec only |
 
+## Shops and event tickets (owner-set, 2026-11-09)
+
+- DanzStak has one official **DanzStak Store** in the main app menu. It is a platform destination, not a permanent sales block inserted into Mix.
+- A member may create one public shop, choose its name, and reach its management tools from their profile. The public shop appears as a **Shop** tab/page on that member's profile. DanzStak does not create a separate storefront for a member who has not chosen to open one.
+- Published events may sell capacity-limited tickets through DanzStak. Tickets must be unique, verifiable at check-in, and protected against duplicate issuance. The event organizer manages availability, cancellation and attendee communication from the event tools.
+- DanzStak receives exactly **5% of each completed member-shop sale and each completed event-ticket sale**. The checkout must disclose the full price and fee before confirmation. Refunds reverse the corresponding fee; the backend, not browser display code, enforces the calculation.
+- For physical goods, seller proceeds are not released until carrier delivery or buyer receipt is confirmed and the dispute path remains available. Use a payment provider's supported marketplace hold/release or delayed-transfer flow. Do not call DanzStak a licensed escrow service unless legal and provider review explicitly permits that claim.
+- Required commerce foundations include seller identity and payout onboarding, product inventory, shipping and tracking, receipts, taxes, returns/refunds, disputes, fraud controls, ticket capacity, cancellation, check-in and audit history. No placeholder checkout, unverified payout, live charge or seller promise is allowed.
+- Music remains links or authorized embeds only. A shop must never turn into audio-file hosting or first-party music streaming.
+- This marketplace is a separate tested product phase. Do not silently add it to a feed-only release or activate live payments before the owner reviews the complete checkout and payout workflow.
+
 AI-assisted EPK rules:
 
 - Helps the artist write: bio, one-line pitch, booking pitch emails, press-kit checklist ("missing: live photos, tech rider"), and a stage plot / input list draft from what they type. The artist reviews and edits everything; nothing AI-written is published or sent unseen.

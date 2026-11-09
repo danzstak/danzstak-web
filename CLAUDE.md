@@ -150,6 +150,11 @@ Do not write code until the plan is approved.
 
 ---
 
+## Marketplace directive (owner, 2026-11-09)
+
+- The official DanzStak Store is a main-menu platform destination. A member-named shop appears as a Shop tab/page on that member's profile, not as a permanent Mix sales block.
+- DanzStak receives 5% of completed member-shop sales and event-ticket sales. Physical-goods seller proceeds release only after confirmed receipt through a provider-supported marketplace flow. No live commerce without tested seller onboarding, payouts, inventory/capacity, shipping or check-in, receipts, refunds, taxes, disputes and fraud controls. Full rules: `docs/OWNER-DIRECTIVES.md`.
+
 ## Idea bank (for discussion, not yet approved)
 
 **Migration**
