@@ -4,6 +4,13 @@
 
 Status: **LOCAL AND HOSTED STAGING FUNCTIONAL, VISUAL, AND INTEGRATION GATES PASS; OWNER PHYSICAL-PHONE GATE PENDING; PRODUCTION UNCHANGED**.
 
+### Release QA and one-page EPK PDF
+
+- **FIXED AND VERIFIED ON HOSTED STAGING IN PR #173; PRODUCTION UNCHANGED:** The one-page press PDF is one Letter page again. Its media-card limit now applies to every semantic card element, not only legacy `div` children, so Listen, Watch, Shows, Press and Booking remain on the same page. Print backgrounds now end on clean white paper instead of leaving a gray application-canvas block below the EPK.
+- The builder rendered and inspected the actual hosted PDF. It contains one page, keeps two Listen and two Watch links, preserves the three newest show entries, two press quotes and booking contacts, and has no clipping, overlap or second page. Private-PDF permission checks still pass. Exact implementation commits: `52de2cde7a46c7260de38e98a9b3934f783c9210` and `db4851da7f1c7af31ec52358c14f0dd8b4f235fb`.
+- Release-browser checks were corrected where they had drifted from the approved interface: fractional 22px icon rounding now receives a 0.01px rendering tolerance; Booking waits for the actual saved state and validates DOM order plus visible compact content in the intentional desktop side-by-side row; Mix validates the approved 148–168px square Dailies tile and 12px/16px responsive inter-post rhythm; shared fluid-layout and tablet checks now use current selectors and configurable review origins. Functional assertions remain intact.
+- **TESTED:** `test-regressions.ps1` passes completely, including every JavaScript regression, release verification, 13-page smoke test and infrastructure validation. Hosted gates pass for the full Mix, Friends, SYNC, call, Booking, EPK, fluid-layout and tablet matrices. GitHub Review run [42543235718](https://github.com/danzstak/danzstak-web/actions/runs/42543235718) passed all five jobs at `db4851da7f1c7af31ec52358c14f0dd8b4f235fb`. No-cache probes return `assets/epk.css?v=9` and `danzstak-shell-v767` from `https://review.danzstak.com`.
+
 ### Dailies portrait load readiness
 
 - **FIXED AND VERIFIED ON HOSTED STAGING IN PR #173; PRODUCTION UNCHANGED:** Dailies no longer removes its visible initial/photo fallback before the signed profile portrait has loaded. It now keeps the existing tile visible, preloads a hidden connected candidate so expired signed URLs can still recover, and performs the DOM swap only after the candidate reports a real loaded image. A final image failure removes only the candidate and preserves the usable fallback.
