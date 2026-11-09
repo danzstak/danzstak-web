@@ -20,6 +20,14 @@
   const loadAccount = document.getElementById("loadBookingAccount");
   const artistInputs = { name: "pitchArtist", genre: "pitchGenre", hometown: "pitchHometown", epk: "pitchEpk", pitch: "pitchSummary" };
   const epkHandoffRequested = new URLSearchParams(location.search).get("from") === "epk";
+  const followUpFocusVenue = (() => {
+    const url = new URL(location.href), value = String(url.searchParams.get("focusVenue") || "");
+    if (url.searchParams.has("focusVenue")) {
+      url.searchParams.delete("focusVenue");
+      history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+    return value.length <= 240 ? value : "";
+  })();
   const tourInputs = { name: "tmName", currency: "tmCurrency", departOn: "tmDepartOn", returnBy: "tmReturnBy", distanceKm: "tmDistanceKm", vehicleType: "tmVehicleType", fuelLitersPer100Km: "tmFuelUse", fuelPricePerLiter: "tmFuelPrice", people: "tmPeople", mealPerPersonDay: "tmMeals", nights: "tmNights", rooms: "tmRooms", roomRate: "tmRoomRate", tolls: "tmTolls", parking: "tmParking", vehicleRental: "tmVehicleRental", equipment: "tmEquipment", crew: "tmCrew", miscellaneous: "tmMisc", contingencyPercent: "tmContingency", confirmedRevenue: "tmConfirmedRevenueInput", potentialRevenue: "tmPotentialRevenue" };
   const artist = () => Object.fromEntries(Object.entries(artistInputs).map(([key, id]) => [key, document.getElementById(id).value.trim()]));
   const tour = () => Object.fromEntries(Object.entries(tourInputs).map(([key, id]) => { const input = document.getElementById(id); return [key, input.type === "number" ? Number(input.value || 0) : input.value.trim()]; }));
@@ -547,9 +555,23 @@
       if (attempt < 50) setTimeout(() => focusCreditVenue(detail, attempt + 1), 100);
       return;
     }
-    card.scrollIntoView({ block:"center", behavior:"smooth" });
+    target.scrollIntoView({ block:"center", behavior:"auto" });
     target.focus({ preventScroll:true });
     if (detail.status === "verified") window.danzstakShowFeedback?.("Credit ready. Review this venue's exact email again; nothing was sent automatically.");
+  }
+
+  function focusFollowUpVenue(venueKey, attempt = 0) {
+    if (!venueKey) return;
+    const card = [...document.querySelectorAll(".venue-card[data-venue-key]")].find(node => node.dataset.venueKey === venueKey);
+    const target = card?.querySelector(".booking-follow-up button");
+    if (!card || !target) {
+      if (attempt < 50) setTimeout(() => focusFollowUpVenue(venueKey, attempt + 1), 100);
+      else window.danzstakShowFeedback?.("This follow-up is no longer due. Your booking workspace is current.");
+      return;
+    }
+    target.scrollIntoView({ block:"center", behavior:"auto" });
+    target.focus({ preventScroll:true });
+    window.danzstakShowFeedback?.("Follow-up ready. Review the reminder before using one credit; nothing was sent automatically.");
   }
 
   async function accountRequest(method, body) {
@@ -699,9 +721,9 @@
   document.addEventListener("danzstak-booking-credit-return", event => { render(); focusCreditVenue(event.detail); });
   render();
   if (loadAccount) {
-    loadWorkspace().then(loaded => {
-      if (epkHandoffRequested) return usePublishedEpk({ save:loaded, clearHandoff:true });
-      return null;
+    loadWorkspace().then(async loaded => {
+      if (epkHandoffRequested) await usePublishedEpk({ save:loaded, clearHandoff:true });
+      if (loaded && followUpFocusVenue) focusFollowUpVenue(followUpFocusVenue);
     });
   }
   if (window.danzstakBookingCreditReturn) focusCreditVenue(window.danzstakBookingCreditReturn);

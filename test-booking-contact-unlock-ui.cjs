@@ -21,7 +21,7 @@ assert.match(billing, /focusVenueContact[\s\S]*scrollIntoView[\s\S]*target\.focu
 assert.match(page, /booking-billing\.js\?v=8/);
 assert.match(billing, /creditCheckoutMarker[\s\S]*finishCreditReturn[\s\S]*Verifying your booking-email credits[\s\S]*settledCreditPurchase[\s\S]*Credits verified/, "a successful credit Checkout return must wait for a settled ledger purchase");
 assert.match(billing, /clearCreditResult[\s\S]*searchParams\.delete\("credits"\)/, "completed credit Checkout state must leave the address bar");
-assert.match(page, /booking-selections\.js\?v=23/);
+assert.match(page, /booking-selections\.js\?v=24/);
 assert.match(deployment, /POST \/tour-manager\/contact-unlock\/checkout/);
 assert.match(deployment, /GET \/tour-manager\/contact-unlocks/);
 
