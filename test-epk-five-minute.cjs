@@ -28,5 +28,5 @@ assert.match(client, /kit\.media\.some\(item => item\.contentType\?\.startsWith\
 assert.match(css, /\.epk-guided \.epk-form \[data-epk-step\]/, "guided mode should show one step without deleting advanced fields");
 assert.match(css, /\.epk-preview-open \.epk-form\{display:none\}/, "the phone preview should not overlap the editor");
 assert.match(css, /grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/, "desktop essentials should use a compact single row");
-assert.match(worker, /danzstak-shell-v765/, "the installed PWA must retain the guided EPK assets");
+assert.match(worker, /danzstak-shell-v766/, "the installed PWA must retain the guided EPK assets");
 console.log("Five-minute EPK checks passed: private guide, bounded steps, live preview, link-only media, and PWA refresh.");

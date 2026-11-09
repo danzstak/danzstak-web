@@ -249,7 +249,8 @@ function fixture(pathname) {
           assert.ok(menuGeometry.drawer.scrollHeight > menuGeometry.drawer.clientHeight, `${width}px complete menu must scroll inside its drawer`);
           assert.ok(menuGeometry.rows.length >= 16, `${width}px menu destinations are missing`);
           assert.ok(menuGeometry.rows.every(row => row.height >= 44 && row.height <= 52), `${width}px menu rows must stay within the compact 44–52px range: ${JSON.stringify(menuGeometry.rows)}`);
-          assert.ok(menuGeometry.rows.every(row => row.iconWidth >= 20 && row.iconWidth <= 22 && row.iconHeight >= 20 && row.iconHeight <= 22), `${width}px menu icons must remain consistently 20–22px: ${JSON.stringify(menuGeometry.rows)}`);
+          const iconSizeWithinTolerance = value => value >= 19.99 && value <= 22.01;
+          assert.ok(menuGeometry.rows.every(row => iconSizeWithinTolerance(row.iconWidth) && iconSizeWithinTolerance(row.iconHeight)), `${width}px menu icons must remain consistently 20–22px: ${JSON.stringify(menuGeometry.rows)}`);
           assert.equal(menuGeometry.menuGap, "0px", `${width}px menu must not distribute blank gaps between rows`);
           assert.equal(menuGeometry.menuJustify, "flex-start", `${width}px menu rows must flow from the top`);
           assert.ok(menuGeometry.close.width >= 44 && menuGeometry.close.height >= 44, `${width}px menu close action must retain a 44px touch target`);

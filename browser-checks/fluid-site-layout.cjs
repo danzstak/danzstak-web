@@ -32,7 +32,7 @@ const pages = [
   { name: "friends", url: "/feed.html#friends", selector: ".friends-directory-workspace" },
   { name: "hq", url: "/feed.html?view=hq", selector: ".artist-hq-card" },
   { name: "sync", url: "/messages.html", selector: ".chat-shell" },
-  { name: "booking", url: "/booking.html", selector: ".hero" },
+  { name: "booking", url: "/booking.html", selector: ".booking-main" },
   { name: "booking-identity", url: "/booking.html", selector: ".booking-identity" },
   { name: "tour-manager", url: "/booking-selections.html", selector: ".tour-manager-dashboard" },
   { name: "tour-pitch", url: "/booking-selections.html", selector: ".artist-workspace" },
