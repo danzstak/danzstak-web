@@ -20,6 +20,7 @@ const officialStore = {
 };
 const memberShop = {
   id: "member-shop",
+  memberId: "11111111-1111-4111-8111-111111111111",
   name: "Night Circuit Shop",
   description: "Physical releases, shirts and tour merchandise from Night Circuit.",
   official: false,
@@ -52,6 +53,7 @@ function payload(pathname) {
   if (pathname === "/marketplace/store") return { shop: officialStore };
   if (pathname === "/marketplace/bazaar") return bazaar;
   if (pathname === "/marketplace/shop") return { shop: memberShop };
+  if (pathname === "/marketplace/payouts/status") return { connected: true, ready: false };
   if (pathname.startsWith("/marketplace/shop/")) return { shop: memberShop };
   if (pathname === `/marketplace/events/${eventId}`) return { event: publishedEvent };
   return {};
@@ -91,6 +93,7 @@ async function inspect(page, width, label) {
     for (const width of widths) {
       for (const screen of [
         { label: "official-store", url: "store.html", ready: "DanzStak tour shirt" },
+        { label: "official-product", url: "store.html?product=official-shirt", ready: "Item specifics" },
         { label: "bazaar", url: "store.html?view=bazaar", ready: "Signal tour shirt" },
         { label: "member-shop", url: "store.html?member=11111111-1111-4111-8111-111111111111", ready: "Signal tour shirt" },
         { label: "member-product", url: "store.html?member=11111111-1111-4111-8111-111111111111&product=tour-shirt", ready: "Item specifics" },
@@ -121,6 +124,15 @@ async function inspect(page, width, label) {
           assert.equal(await page.locator(".product-thumbnails button").count(), 2, `${width}px product detail must expose every product image`);
           assert.equal(await page.locator(".product-description p").count(), 2, `${width}px product description must preserve paragraph breaks`);
           assert.equal(await page.locator(".item-specifics dd").count(), 5, `${width}px product detail must show complete item specifics`);
+          await page.getByRole("button", { name: "Buy It Now" }).waitFor({ state: "visible" });
+          await page.getByText("The 5% DanzStak fee applies to the item price only, never shipping.", { exact: false }).waitFor({ state: "visible" });
+        }
+        if (screen.label === "official-product") {
+          await page.getByText("Official Store checkout is not enabled in this release candidate.", { exact: true }).waitFor({ state: "visible" });
+        }
+        if (screen.label === "shop-manager") {
+          await page.getByText("Stripe still needs information before your shop can accept orders.", { exact: true }).waitFor({ state: "visible" });
+          await page.getByRole("button", { name: "Continue payout setup" }).waitFor({ state: "visible" });
         }
         if (screen.label !== "published-event") await page.waitForFunction(() => [...document.querySelectorAll(".product-image")].every(image => image.complete && image.naturalWidth > 0));
         await page.waitForTimeout(100);

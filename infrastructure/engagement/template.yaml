@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Durable reactions, comments, and engagement notifications for DanzStak
+Description: >-
+  DanzStak social engagement and marketplace ledger routes — reuses one authenticated Lambda and retained DynamoDB table for atomic catalog, order and payout state
 Metadata:
   AWSToolsMetrics:
     AWSAgentToolkit: aws-cloudformation@3
@@ -368,6 +369,62 @@ Resources:
   DeleteOfficialProductRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /marketplace/store/products/{productId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplaceCheckoutRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Creates server-priced Stripe Checkout sessions only after reserving canonical inventory and live-verifying the seller payout account.
+        must: [Never trust browser prices or payout destinations, Keep Test Mode fail-closed until separately enabled.]
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/checkout', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplacePayoutOnboardingRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Gives an authenticated seller a single-use Stripe-hosted Connect onboarding link without exposing account credentials.
+        must: [Bind each connected account to the authenticated seller and current Stripe mode, Never expose secret keys.]
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/payouts/onboarding', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplacePayoutStatusRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Rechecks the seller transfer capability with Stripe before Bazaar checkout can proceed.
+        must: [Do not treat a return from onboarding as proof that payout requirements are complete.]
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/payouts/status', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplaceStripeWebhookRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Applies verified Stripe payment, refund and dispute events idempotently to the marketplace ledger.
+        must: [Verify the raw-body Stripe signature, Retrieve canonical payment state from Stripe before changing inventory or payout state.]
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/stripe/webhook', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplaceShippingWebhookRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Converts a signed carrier delivery event into a one-time seller transfer after a final refund and dispute check.
+        must: [Verify EasyPost HMAC v2 over the raw request, Use Stripe idempotency and Charge source_transaction for the transfer.]
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/shipping/webhook', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplaceOrderRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Shows private order state to its buyer or seller without exposing seller accounting to the buyer.
+        must: [Enforce buyer or seller ownership server-side.]
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/orders/{orderId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplaceOrderTrackingRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Lets only the seller attach provider-verified shipment tracking to a paid order.
+        must: [Reject tracking before verified payment and map one provider tracker to one order.]
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/orders/{orderId}/tracking', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplaceOrderDeliveryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Lets only the buyer confirm receipt through the same idempotent payout state machine as carrier delivery.
+        must: [Release at most one seller transfer and recheck refund or dispute state immediately before transfer.]
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/orders/{orderId}/confirm-delivery', Target: !Sub 'integrations/${AuthIntegrationId}'}
   ListMarketplaceEventsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/events', Target: !Sub 'integrations/${AuthIntegrationId}'}

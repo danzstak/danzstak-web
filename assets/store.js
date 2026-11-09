@@ -6,6 +6,7 @@
   const managing = params.get("manage") === "1";
   const browsingBazaar = params.get("view") === "bazaar";
   const selectedProductId = params.get("product") || "";
+  const returnedOrderId = params.get("order") || "";
   const byId = id => document.getElementById(id);
   const products = byId("storeProducts"), status = byId("storeStatus"), manager = byId("shopManager"), productManager = byId("productManager");
   let currentShop = null;
@@ -74,6 +75,66 @@
     try { await request(`/marketplace/products/${encodeURIComponent(product.id)}`, {method:"DELETE"}); status.textContent = `${product.title} removed.`; await load(); } catch (error) { status.textContent = error.message; }
   }
 
+  async function startCheckout(shop, product, button) {
+    if (!product.available || shop.official || !shop.memberId) return;
+    button.disabled = true;
+    button.textContent = "Opening secure checkout…";
+    status.textContent = "Reserving this item at its server-verified price…";
+    try {
+      const data = await request("/marketplace/checkout", { method:"POST", body:JSON.stringify({ sellerId:shop.memberId, productId:product.id }) });
+      if (!String(data.checkoutUrl || "").startsWith("https://checkout.stripe.com/")) throw new Error("Secure checkout did not return a valid Stripe page.");
+      location.assign(data.checkoutUrl);
+    } catch (error) {
+      status.textContent = error.message;
+      button.disabled = false;
+      button.textContent = "Buy It Now";
+    }
+  }
+
+  async function loadSellerPayoutStatus() {
+    const payoutStatus = byId("sellerPayoutStatus"), payoutButton = byId("sellerPayoutButton");
+    try {
+      const data = await request("/marketplace/payouts/status");
+      if (data.ready) {
+        payoutStatus.textContent = "Ready to receive delivery-based seller payouts.";
+        payoutButton.textContent = "Review payout details";
+      } else if (data.connected) {
+        payoutStatus.textContent = "Stripe still needs information before your shop can accept orders.";
+        payoutButton.textContent = "Continue payout setup";
+      } else {
+        payoutStatus.textContent = "Connect a verified Stripe payout account before buyers can check out.";
+      }
+    } catch (error) {
+      payoutStatus.textContent = error.message;
+    }
+  }
+
+  async function startSellerPayoutOnboarding() {
+    const button = byId("sellerPayoutButton"), payoutStatus = byId("sellerPayoutStatus");
+    button.disabled = true;
+    payoutStatus.textContent = "Creating a secure Stripe onboarding link…";
+    try {
+      const data = await request("/marketplace/payouts/onboarding", { method:"POST", body:JSON.stringify({ country:byId("sellerCountry").value }) });
+      if (!String(data.onboardingUrl || "").startsWith("https://connect.stripe.com/")) throw new Error("Stripe onboarding did not return a safe link.");
+      location.assign(data.onboardingUrl);
+    } catch (error) {
+      payoutStatus.textContent = error.message;
+      button.disabled = false;
+    }
+  }
+
+  async function showReturnedOrder() {
+    if (!/^[a-f0-9-]{36}$/i.test(returnedOrderId) || params.get("checkout") !== "success") return;
+    try {
+      const data = await request(`/marketplace/orders/${encodeURIComponent(returnedOrderId)}`), order = data.order || {};
+      status.textContent = order.status === "paid_pending_shipment" || order.status === "shipped" || order.status === "delivered"
+        ? `Payment verified for ${order.productTitle}. Order status: ${String(order.status).replaceAll("_", " ")}.`
+        : "Payment is still being verified. This page will show the order only after the signed Stripe webhook is accepted.";
+    } catch (error) {
+      status.textContent = error.message;
+    }
+  }
+
   function descriptionBlocks(text) {
     return String(text || "").trim().split(/\n\s*\n/).map(value => value.trim()).filter(Boolean);
   }
@@ -139,7 +200,12 @@
       for (const block of descriptionBlocks(product.description)) description.append(node("p", block));
       copy.append(description);
     }
-    copy.append(node("p", product.available ? "Secure ordering opens after seller verification and payout testing." : "Unavailable", "product-note"));
+    if (product.available && !shop.official && shop.memberId) {
+      const buy = node("button", "Buy It Now", "store-buy-action");
+      buy.type = "button";
+      buy.addEventListener("click", () => startCheckout(shop, product, buy));
+      copy.append(buy, node("p", "DanzStak verifies payment, waits for delivery, then releases the seller payout. The 5% DanzStak fee applies to the item price only, never shipping.", "product-note"));
+    } else copy.append(node("p", product.available ? "Official Store checkout is not enabled in this release candidate." : "Unavailable", "product-note"));
     const links = node("div", "", "product-detail-links");
     const shopLink = node("a", `Back to ${shop.name}`, "store-secondary-action");
     shopLink.href = shop.official ? "store.html" : `store.html?member=${encodeURIComponent(shop.memberId || memberId)}`;
@@ -171,7 +237,11 @@
       if(managing) {
         copy.append(node("p",`${product.inventory} in stock · ${product.status.replace("_"," ")}`,"product-note"));
         const actions=node("div","","product-actions"), edit=node("button","Edit"), remove=node("button","Remove","store-secondary-action"); edit.type=remove.type="button"; edit.addEventListener("click",()=>editProduct(product)); remove.addEventListener("click",()=>archiveProduct(product)); actions.append(edit,remove); copy.append(actions);
-      } else copy.append(node("p",product.available ? "Secure ordering opens after seller verification and payout testing." : "Unavailable","product-note"));
+      } else copy.append(node("p", product.available
+        ? shop.official
+          ? "Official Store checkout is not enabled in this release candidate."
+          : "Secure ordering opens after seller verification and payout testing."
+        : "Unavailable", "product-note"));
       card.append(copy); products.append(card);
     }
   }
@@ -238,7 +308,7 @@
     else if(!memberId) byId("manageShopLink").hidden=false;
     const path=managing?"/marketplace/shop":memberId?`/marketplace/shop/${encodeURIComponent(memberId)}`:"/marketplace/store";
     status.textContent="Loading store…";
-    try { const data=await request(path); showShop(data.shop); status.textContent=data.shop.products.length?`${data.shop.products.length} product${data.shop.products.length===1?"":"s"}.`:"No products are available right now."; }
+    try { const data=await request(path); showShop(data.shop); status.textContent=data.shop.products.length?`${data.shop.products.length} product${data.shop.products.length===1?"":"s"}.`:"No products are available right now."; if(managing) await loadSellerPayoutStatus(); await showReturnedOrder(); }
     catch(error) {
       if(managing && error.status===404) { currentShop=null; products.replaceChildren(); productManager.hidden=true; status.textContent="Name your shop to open a private draft. Publish it only when it is ready."; return; }
       if(!memberId && !managing && error.status===404) { byId("storeTitle").textContent="DanzStak Official Store"; products.replaceChildren(); status.textContent="The official store is being stocked. No products are available right now."; return; }
@@ -260,6 +330,7 @@
     catch(error){status.textContent=error.message;}
   });
   byId("cancelProductEdit").addEventListener("click",resetProductForm);
+  byId("sellerPayoutButton").addEventListener("click",startSellerPayoutOnboarding);
   byId("bazaarSearch").addEventListener("input", renderBazaar);
   byId("clearBazaarSearch").addEventListener("click", () => { byId("bazaarSearch").value = ""; renderBazaar(); byId("bazaarSearch").focus(); });
   byId("loadMoreBazaar").addEventListener("click", () => loadBazaar(true));

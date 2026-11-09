@@ -40,6 +40,7 @@ import {
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import { createMarketplace } from "./marketplace.mjs";
+import { createMarketplaceCommerce } from "./marketplace-commerce.mjs";
 import { createTicketing } from "./ticketing.mjs";
 import QRCode from "qrcode";
 
@@ -98,9 +99,16 @@ const sessionLifetimeSeconds = 30 * 24 * 60 * 60;
 const recentAuthenticationSeconds = 10 * 60;
 const sessionTouchIntervalSeconds = 15 * 60;
 const stripeEnvironment = { ...process.env };
+const marketplaceEnvironment = { ...process.env };
 const stripeSecretName = process.env.STRIPE_SECRET_NAME || "danzstak/stripe/secret-key";
 const stripeWebhookSecretName = process.env.STRIPE_WEBHOOK_SECRET_NAME || "danzstak/stripe/webhook-secret";
+const stripeMarketplaceSecretName = process.env.STRIPE_MARKETPLACE_SECRET_NAME || "danzstak/stripe/marketplace-secret-key";
+const stripeMarketplaceWebhookSecretName = process.env.STRIPE_MARKETPLACE_WEBHOOK_SECRET_NAME || "danzstak/stripe/marketplace-webhook-secret";
+const easyPostKeySecretName = process.env.EASYPOST_KEY_SECRET_NAME || "danzstak/easypost/api-key";
+const easyPostWebhookSecretName = process.env.EASYPOST_WEBHOOK_SECRET_NAME || "danzstak/easypost/webhook-secret";
 let stripeSecretsPromise = null;
+let marketplacePaymentSecretsPromise = null;
+let marketplaceShippingSecretsPromise = null;
 
 function secretText(result, fields) {
   const raw = typeof result?.SecretString === "string" ? result.SecretString : result?.SecretBinary ? Buffer.from(result.SecretBinary).toString("utf8") : "";
@@ -129,6 +137,46 @@ async function ensureStripeSecrets() {
   }
   const ready = await stripeSecretsPromise;
   if (!ready) stripeSecretsPromise = null;
+  return ready;
+}
+
+async function ensureMarketplacePaymentSecrets() {
+  if (marketplaceEnvironment.STRIPE_SECRET_KEY && marketplaceEnvironment.STRIPE_MARKETPLACE_WEBHOOK_SECRET) return true;
+  if (!marketplacePaymentSecretsPromise) {
+    marketplacePaymentSecretsPromise = Promise.all([
+      marketplaceEnvironment.STRIPE_SECRET_KEY ? Promise.resolve(null) : secretsManager.send(new GetSecretValueCommand({ SecretId: stripeMarketplaceSecretName })),
+      secretsManager.send(new GetSecretValueCommand({ SecretId: stripeMarketplaceWebhookSecretName }))
+    ]).then(([keyResult, webhookResult]) => {
+      const key = marketplaceEnvironment.STRIPE_SECRET_KEY || secretText(keyResult, ["STRIPE_SECRET_KEY", "secretKey", "key", "value"]);
+      const webhook = secretText(webhookResult, ["STRIPE_MARKETPLACE_WEBHOOK_SECRET", "webhookSecret", "secret", "value"]);
+      if (!/^sk_(?:test|live)_/.test(key) || !webhook.startsWith("whsec_")) throw new Error("Marketplace Stripe secret format is invalid");
+      marketplaceEnvironment.STRIPE_SECRET_KEY = key;
+      marketplaceEnvironment.STRIPE_MARKETPLACE_WEBHOOK_SECRET = webhook;
+      return true;
+    }).catch(() => false);
+  }
+  const ready = await marketplacePaymentSecretsPromise;
+  if (!ready) marketplacePaymentSecretsPromise = null;
+  return ready;
+}
+
+async function ensureMarketplaceShippingSecrets() {
+  if (marketplaceEnvironment.EASYPOST_API_KEY && marketplaceEnvironment.EASYPOST_WEBHOOK_SECRET) return true;
+  if (!marketplaceShippingSecretsPromise) {
+    marketplaceShippingSecretsPromise = Promise.all([
+      secretsManager.send(new GetSecretValueCommand({ SecretId: easyPostKeySecretName })),
+      secretsManager.send(new GetSecretValueCommand({ SecretId: easyPostWebhookSecretName }))
+    ]).then(([keyResult, webhookResult]) => {
+      const key = secretText(keyResult, ["EASYPOST_API_KEY", "apiKey", "key", "value"]);
+      const webhook = secretText(webhookResult, ["EASYPOST_WEBHOOK_SECRET", "webhookSecret", "secret", "value"]);
+      if (!key || !webhook) throw new Error("EasyPost secret format is invalid");
+      marketplaceEnvironment.EASYPOST_API_KEY = key;
+      marketplaceEnvironment.EASYPOST_WEBHOOK_SECRET = webhook;
+      return true;
+    }).catch(() => false);
+  }
+  const ready = await marketplaceShippingSecretsPromise;
+  if (!ready) marketplaceShippingSecretsPromise = null;
   return ready;
 }
 
@@ -186,6 +234,14 @@ const marketplace = createMarketplace({
   corsHeaders,
   tableName: marketplaceTable,
   env: process.env
+});
+const marketplaceCommerce = createMarketplaceCommerce({
+  db,
+  commands: { GetItemCommand, PutItemCommand, UpdateItemCommand, TransactWriteItemsCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: marketplaceTable,
+  env: marketplaceEnvironment
 });
 const ticketing = createTicketing({
   db,
@@ -4942,6 +4998,12 @@ export const handler = async event => {
       if (billingResponse) return billingResponse;
     }
     if (path?.startsWith("/marketplace/")) {
+      if ((method === "GET" && path === "/marketplace/payouts/status") || (method === "POST" && (["/marketplace/checkout", "/marketplace/stripe/webhook", "/marketplace/payouts/onboarding"].includes(path) || /^\/marketplace\/orders\/[a-f0-9-]{36}\/confirm-delivery$/i.test(path)))) await ensureMarketplacePaymentSecrets();
+      if (method === "POST" && (path === "/marketplace/shipping/webhook" || /^\/marketplace\/orders\/[a-f0-9-]{36}\/tracking$/i.test(path))) {
+        await Promise.all([ensureMarketplacePaymentSecrets(), ensureMarketplaceShippingSecrets()]);
+      }
+      const marketplaceCommerceResponse = await marketplaceCommerce(event);
+      if (marketplaceCommerceResponse) return marketplaceCommerceResponse;
       const ticketingResponse = await ticketing(event);
       if (ticketingResponse) return ticketingResponse;
       const marketplaceResponse = await marketplace(event);

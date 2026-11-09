@@ -47,7 +47,7 @@ The SFS adapter must not be enabled until the owner approves all of the followin
 - exact blockchain network and cluster;
 - canonical SFS token contract/mint address and token decimals;
 - DANZSTAK receiving wallet or reviewed payment-program address;
-- authoritative USD-to-SFS quote source, quote lifetime and rounding rule;
+- the selected exact-pair DexScreener quote policy, risk limits and operational monitoring;
 - wallet ownership challenge format, domain binding, nonce lifetime and replay protection;
 - minimum confirmation/finality rule and chain reorganization policy;
 - transaction parsing rules that verify sender, receiver, mint, amount and unique reference/memo;
@@ -79,3 +79,15 @@ Connecting Phantom, signing a challenge, submitting an unconfirmed transaction o
 - privacy, CSP, dependency and wallet-phishing review.
 
 No Phantom dependency, wallet button, token quote endpoint, receiving address or SFS transaction verifier is present in the application today.
+
+## Bazaar payment boundary
+
+The Bazaar may offer SFS only after it preserves the same server-owned order, inventory, delivery, refund, dispute and tax rules as Stripe. A direct buyer-to-seller token transfer cannot be represented as protected Buy It Now because DanzStak cannot delay, reverse or reliably adjudicate that transfer. It may exist later only as a clearly unprotected person-to-person wallet action outside protected marketplace Checkout, and only if the owner deliberately expands the current no-wallet-feature product boundary.
+
+On 2026-11-09, a finalized mainnet Solana RPC read verified the owner-supplied mint `H2147Ppmd4CESHuCzPQf89rNnEgKrx98NDF4vi6HZZeK` as a Token-2022 **SFS Token / SFS** mint with two decimals, no freeze authority and an active mint/update authority. The currently indexed Raydium SFS/SOL pair is `AzeRe3RMmHPTG2Tkh4HLV3npHz1BsQhS856QVK4y1FQN`. Finalized reads also verified owner-supplied settlement wallet `8Cx5YqBgS43uqDrBzeSpDyBoQSp9fH71SwQ1e39m631C` and its initialized SFS token account `8haVhbmoDEkRNp3TGzbgmM4zjDbxy5BMhVp9m1Gtn548`.
+
+The owner selected DexScreener as the server-side quote source using the exact Solana pair endpoint. Quotes expire after three minutes, round up to `0.01 SFS`, carry a one-time order nonce and fail closed on any identity, price, liquidity, expiry or risk-limit failure. The initial risk policy requires at least `$5,000` reported pool liquidity and limits an order to `1%` of pool liquidity. Each order gets a Solana Pay QR and same-device link containing the native settlement wallet as recipient, the exact SFS mint and amount, and an opaque unique reference; a static receive-wallet QR is never used for checkout. These are proposed public identifiers and controls only; activation remains blocked on an owner-approved signing mechanism/program, finality, RPC verification, refunds, tax treatment and controlled security tests.
+
+The owner describes the current pool relationship as approximately `300 SFS = 1 SOL`, with an intended later transition to a `$0.50` SFS/USDC market when SOL reaches `$150` or more. That is token policy, not a hard-coded checkout price. DanzStak continues reading the exact approved SFS/SOL pair until the replacement SFS/USDC market or mechanism is live, independently verifiable and explicitly approved.
+
+Members may obtain SFS from independent external sources before returning to Checkout. DanzStak does not advertise or integrate another platform account, treat an external handoff as proof of payment, award tokens, sell or swap SFS, custody funds, mark up SFS, or send member data to an external destination. Checkout refreshes the quote after the member returns. Any direct external acquisition link requires jurisdiction and financial-promotion review; it remains absent from the active product.
