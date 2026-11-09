@@ -443,13 +443,13 @@
         return;
       }
       if (!currentArtist.epk || !currentMessage.includes(currentArtist.epk) || currentSubject.length < 3) { window.danzstakShowFeedback?.("Use your published EPK link in the message and add a clear subject before review.", { urgent:true }); return; }
-      if (dirty) {
-        window.danzstakShowFeedback?.("Save your booking workspace before sending so DanzStak can verify the venue contact.", { urgent: true });
-        return;
-      }
       button.disabled = true;
-      button.textContent = "Creating private EPK link…";
       try {
+        if (dirty) {
+          button.textContent = "Saving current pitch…";
+          if (!(await saveWorkspaceSnapshot())) throw new Error("DanzStak could not save this pitch. Check the account status and try again before sending.");
+        }
+        button.textContent = "Creating private EPK link…";
         const outreachId = crypto.randomUUID().replaceAll("-", ""), share = await createVenueEpkShare(venue, outreachId, allowPdf.checked);
         let preflight;
         try { preflight = await createOutreachPreflight(venue, email, outreachId); }
@@ -470,7 +470,7 @@
       }
     });
     const note = document.createElement("small");
-    note.textContent = email ? "Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Venue replies arrive in your private SYNC Bookings inbox." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
+    note.textContent = email ? "DanzStak saves your current pitch before review. Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Venue replies arrive in your private SYNC Bookings inbox." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
     section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, note);
     const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered", "replied"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
     if (initialPitch && (followUpDue || existingFollowUp || hasReply)) {
@@ -577,7 +577,8 @@
       try { sessionStorage.removeItem("danzstakBookingMapAdditions"); } catch {}
       dirty = false;
       accountStatus.textContent = "Saved privately to your account. Available on your other devices.";
-    } catch (error) { accountStatus.textContent = error.message; }
+      return true;
+    } catch (error) { accountStatus.textContent = error.message; return false; }
     finally {
       enabled.forEach(c => { c.disabled = false; });
       saveAccount.disabled = false;

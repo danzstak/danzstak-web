@@ -23,7 +23,7 @@ assert.match(billingBackend, /include its exact public link/, "Booking emails mu
 assert.match(billing, /danzstak-tour-manager-billing/, "Billing and outreach totals must update the dashboard");
 assert.match(css, /@media\(max-width:390px\)/, "The dashboard must have a narrow-phone layout");
 assert.match(html, /booking-billing\.js\?v=5/);
-assert.match(html, /booking-selections\.css\?v=12/);
-assert.match(html, /booking-selections\.js\?v=20/);
+assert.match(html, /booking-selections\.css\?v=13/);
+assert.match(html, /booking-selections\.js\?v=21/);
 
 console.log("Tour Manager dashboard checks passed: complete booking states, confirmation evidence, EPK enforcement, outreach history, expense totals, calendar, and mobile layout.");
