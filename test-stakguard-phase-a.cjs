@@ -33,6 +33,11 @@ assert.doesNotMatch(html + js, /checkout|stripe|subscribe now|renews automatical
 assert.doesNotMatch(html + js, /privacy score|(?:percent|%) of (?:the )?(?:web|internet) removed|all (?:of the )?(?:dark web|tor|internet)/i, "Phase A must not invent universal privacy coverage");
 assert.doesNotMatch(html + js + registry, /sfscoop/i, "StakGuard billing and member data must remain independent of SFScoop");
 assert.doesNotMatch(html + js + registry, /100% legally|zero (?:legal|regulatory|liability|lawsuit|compliance|ip blocking)/i, "StakGuard must not claim blanket legal immunity");
+assert.doesNotMatch(
+  html + js + registry,
+  /completely (?:legally )?insulated|virtually zero (?:legal|compliance) risk|safe harbor via|pure profit|near-zero infrastructure overhead|sole legal responsibility/i,
+  "StakGuard must not market a member-controlled request flow as legal immunity or risk-free profit"
+);
 assert.match(registry, /Official process under review/);
 assert.match(registry, /Verified member handoff/);
 assert.match(registry, /privacy@peopleconnect\.us/);
