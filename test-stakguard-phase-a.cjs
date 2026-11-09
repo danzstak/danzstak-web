@@ -11,6 +11,7 @@ const feed = read("feed.html");
 const settings = read("assets/device-settings.js");
 const worker = read("service-worker.js");
 const provider = read("docs/STAKGUARD-SCAN-PROVIDER.md");
+const phaseReport = read("docs/STAKGUARD-PHASE-A-REPORT.md");
 
 assert.match(html, /No scan provider connected/);
 assert.match(html, /No scan has run/);
@@ -53,6 +54,10 @@ for (const asset of ["/stakguard.html", "/assets/stakguard.css", "/assets/stakgu
 assert.match(provider, /found_verified/);
 assert.match(provider, /unknown`, never `not_found` or `clean`/);
 assert.match(provider, /Every new adapter ships disabled/);
+assert.match(phaseReport, /primary contact email/);
+assert.match(phaseReport, /not automatically a designated deletion or opt-out inbox/);
+assert.match(phaseReport, /requires the member to confirm California residency/);
+assert.match(phaseReport, /DROP[\s\S]*not initiated by email/);
 assert.match(css, /min-height:44px/);
 
 const urls = [...registry.matchAll(/url:"([^"]+)"/g)].map(match => new URL(match[1]));
