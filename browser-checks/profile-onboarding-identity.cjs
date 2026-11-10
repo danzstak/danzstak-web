@@ -1,9 +1,12 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { chromium } = require("playwright");
 
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || "http://127.0.0.1:8017").replace(/\/$/, "");
+const screenshotDir = String(process.env.DANZSTAK_SCREENSHOT_DIR || "").trim();
 const widths = [320, 360, 375, 390, 414, 430, 1366];
 
 function fixture(pathname, identityState) {
@@ -24,6 +27,7 @@ function fixture(pathname, identityState) {
 }
 
 (async () => {
+  if (screenshotDir) fs.mkdirSync(screenshotDir, { recursive: true });
   const browser = await chromium.launch({ channel: "msedge", headless: true });
   try {
     for (const width of widths) {
@@ -81,6 +85,13 @@ function fixture(pathname, identityState) {
               && Math.abs(dailyRect.top - artRect.top) <= 1
               && Math.abs(dailyRect.right - artRect.right) <= 1
               && Math.abs(dailyRect.bottom - artRect.bottom) <= 1),
+            dailyBorderRadius: getComputedStyle(daily).borderRadius,
+            dailySize: dailyRect ? { width: dailyRect.width, height: dailyRect.height } : null,
+            dailyShadow: getComputedStyle(daily).boxShadow,
+            tileBackingIsTransparent: (() => {
+              const color = getComputedStyle(art).backgroundColor;
+              return color === "transparent" || /rgba\([^)]*,\s*0(?:\.0+)?\)$/.test(color);
+            })(),
             clapperOverlaysLowerLeft: Boolean(clapperRect && dailyRect
               && clapperRect.left >= dailyRect.left
               && clapperRect.left - dailyRect.left <= 12
@@ -96,6 +107,13 @@ function fixture(pathname, identityState) {
         assert.equal(result.dailyIsImage, true, `${width}px Dailies did not use the signed profile image`);
         assert.equal(result.dailyLoaded, true, `${width}px Dailies profile image failed to load`);
         assert.equal(result.imageFillsTile, true, `${width}px Dailies profile image did not fill the tile`);
+        assert.equal(result.dailyBorderRadius, "50%", `${width}px Dailies profile image was not round (computed ${result.dailyBorderRadius})`);
+        assert.equal(result.dailyShadow.trim().endsWith("inset"), true, `${width}px Dailies profile image retained an outer grey shadow/backing (${result.dailyShadow})`);
+        if (width === 1366) {
+          assert.ok(Math.abs(result.dailySize.width - 168) <= 1 && Math.abs(result.dailySize.height - 168) <= 1,
+            `desktop Dailies profile image must use the full 168px tile (got ${result.dailySize.width}x${result.dailySize.height})`);
+        }
+        assert.equal(result.tileBackingIsTransparent, true, `${width}px Dailies tile added an unwanted backing behind the round image`);
         assert.equal(result.clapperOverlaysLowerLeft, true, `${width}px Dailies clapper was not over the image at lower left`);
         assert.equal(result.onboardingCount, 0, `${width}px the feed still contained the blocking visible-name prompt`);
         if (identityState === "named") {
@@ -117,6 +135,12 @@ function fixture(pathname, identityState) {
           assert.equal(await page.locator("img.story-create-avatar").count(), 1, `${width}px Dailies hydration still depended on the Mix composer`);
         }
         assert.deepEqual(profileWrites, [], `${width}px opening Mix attempted to claim or replace a username`);
+        if (screenshotDir && identityState === "named") {
+          await page.screenshot({
+            path: path.join(screenshotDir, `dailies-round-profile-${width}.png`),
+            fullPage: false
+          });
+        }
         await context.close();
       }
     }

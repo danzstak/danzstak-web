@@ -3,10 +3,9 @@
 const api = "https://api.danzstak.com";
 const loginBtn = document.getElementById("loginBtn");
 const logoutBtn = document.getElementById("logoutBtn");
-const feedBtn = document.getElementById("feedBtn");
+const resetPasswordBtn = document.getElementById("resetPasswordBtn");
 const status = document.getElementById("sessionStatus");
 const signupBtn = document.getElementById("signupBtn");
-const publicExploreBtn = document.getElementById("publicExploreBtn");
 const legalConsent = document.getElementById("legalConsent");
 const legalAgreement = document.getElementById("legalAgreement");
 const legalVersion = "2026-10-26";
@@ -53,15 +52,33 @@ signupBtn.addEventListener("click", async () => {
 function showSession(loggedIn, message) {
   loginBtn.hidden = loggedIn;
   logoutBtn.hidden = !loggedIn;
-  feedBtn.hidden = !loggedIn;
+  resetPasswordBtn.hidden = loggedIn;
   signupBtn.hidden = loggedIn;
-  publicExploreBtn.hidden = loggedIn;
   legalConsent.hidden = loggedIn;
   status.textContent = message;
   status.hidden = !message;
+  if (message) status.scrollIntoView?.({ block: "center", behavior: "instant" });
+}
+
+function signInMessage(params) {
+  if (params.get("legal") === "required") {
+    return "Agree to the Terms of Service and acknowledge the Privacy Policy before signing up.";
+  }
+  if (params.get("signin") === "expired") {
+    return "Sign-in took too long to finish. Tap Log In to try again.";
+  }
+  if (params.get("signin") === "failed") {
+    return "Email or password is incorrect. Check both and try again.";
+  }
+  if (params.get("signin") === "unavailable") {
+    return "Sign-in is temporarily unavailable. Please try again.";
+  }
+  return "";
 }
 
 async function checkSession() {
+  const params = new URLSearchParams(location.search);
+  const issue = signInMessage(params);
   try {
     const response = await homeFetch("/auth/session", {
       method: "GET",
@@ -74,6 +91,10 @@ async function checkSession() {
 
       if (data.authenticated === true) {
         try { sessionStorage.removeItem("danzstak_install_prompt_shown"); } catch { /* Optional device hint must not block sign-in. */ }
+        if (issue) {
+          showSession(true, issue + " Log out to use a different account.");
+          return;
+        }
         showSession(true, "");
         window.location.replace("feed.html");
         return;
@@ -81,14 +102,7 @@ async function checkSession() {
     }
 
     if (response.status === 401) {
-      const params = new URLSearchParams(location.search);
-      const legalRequired = params.get("legal") === "required";
-      const loginExpired = params.get("signin") === "expired";
-      showSession(false, legalRequired
-        ? "Agree to the Terms of Service and acknowledge the Privacy Policy before signing up."
-        : loginExpired
-          ? "Sign-in took too long to finish. Please tap Log In and try again."
-          : "Not signed in. Click Log In or Sign Up.");
+      showSession(false, issue || "Not signed in. Click Log In or Sign Up.");
       return;
     }
 

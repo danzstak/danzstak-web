@@ -230,7 +230,8 @@ body.danzstak-original #storiesRail {
   margin-block:0 5px;
 }
 body.danzstak-original #storiesRail .story {
-  flex:0 0 156px;
+  flex:0 0 168px;
+  width:168px;
   min-height:0;
   height:auto;
   aspect-ratio:1;
@@ -272,8 +273,8 @@ body.danzstak-original .reels-rail:not(.roll-fullscreen) {padding-inline:4px!imp
 body.danzstak-original #feedStatus.feed-load-error,
 body.danzstak-original .reels-rail:not(.roll-fullscreen) {margin-block:0!important}
 body.danzstak-original #storiesRail:not(:has(.story[data-story-id])) .story-create {
-  flex:0 0 156px;
-  width:156px;
+  flex:0 0 168px;
+  width:168px;
   min-height:0;
   height:auto;
   flex-direction:column;
@@ -305,6 +306,9 @@ body.danzstak-original #storiesRail .story-create-identity {
   inset:0;
   width:100%;
   height:100%;
+  overflow:hidden;
+  border-radius:18px;
+  background:transparent;
 }
 body.danzstak-original #storiesRail .story-create-avatar {
   display:grid;
@@ -316,7 +320,7 @@ body.danzstak-original #storiesRail .story-create-avatar {
   aspect-ratio:1;
   border:0;
   outline:0;
-  border-radius:18px;
+  border-radius:50%!important;
   background-position:center 28%;
   background-size:cover!important;
   background-repeat:no-repeat;
@@ -325,7 +329,7 @@ body.danzstak-original #storiesRail .story-create-avatar {
   color:#fff;
   font-size:42px;
   font-weight:900;
-  box-shadow:inset 0 0 0 3px var(--ds-accent),0 9px 24px rgba(18,29,45,.24);
+  box-shadow:inset 0 0 0 3px var(--ds-accent);
   transition:transform .2s ease;
 }
 body.danzstak-original #storiesRail .story-create:hover .story-create-avatar {transform:scale(1.025)}
@@ -525,10 +529,10 @@ body.danzstak-original .right :is(h3,h2) {
     aspect-ratio:1;
     border:0;
     outline:0;
-    border-radius:18px;
+    border-radius:50%!important;
     background-position:center 28%;
     background-size:cover;
-    box-shadow:inset 0 0 0 3px var(--ds-accent),0 9px 24px rgba(18,29,45,.24);
+    box-shadow:inset 0 0 0 3px var(--ds-accent);
   }
   body.danzstak-original #storiesRail .daily-clapper {
     display:grid!important;

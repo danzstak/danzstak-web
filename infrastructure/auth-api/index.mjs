@@ -577,7 +577,11 @@ async function startLogin(mode = "login", legalAcceptanceId = "") {
     .digest("base64url");
 
   const url = new URL(
-    mode === "signup" ? "/signup" : "/oauth2/authorize",
+    mode === "signup"
+      ? "/signup"
+      : mode === "reset"
+        ? "/forgotPassword"
+        : "/oauth2/authorize",
     cognitoDomain
   );
 
@@ -589,7 +593,10 @@ async function startLogin(mode = "login", legalAcceptanceId = "") {
   url.searchParams.set("nonce", nonce);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
-  if (mode === "reauth") url.searchParams.set("prompt", "login");
+  // Never reuse Cognito's remembered-account chooser for an explicit DanzStak
+  // login. Members must always receive a fresh credential prompt so they can
+  // correct an address, switch accounts, or recover from a failed attempt.
+  if (mode === "login" || mode === "reauth") url.searchParams.set("prompt", "login");
 
   const browserCookie = secureCookie(
     oauthCookieName,
@@ -652,11 +659,7 @@ async function completeLogin(event) {
     typeof state !== "string" ||
     !/^[a-f0-9]{64}$/.test(state)
   ) {
-    return errorResponse(
-      400,
-      "Invalid login response",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=failed", [expiredBrowserCookie]);
   }
 
   const browserSecret = getCookie(event, oauthCookieName);
@@ -699,11 +702,7 @@ async function completeLogin(event) {
       sha256(browserSecret)
     )
   ) {
-    return errorResponse(
-      400,
-      "Login was started in a different browser.",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=expired", [expiredBrowserCookie]);
   }
 
   // Consume the OAuth request exactly once.
@@ -723,11 +722,7 @@ async function completeLogin(event) {
     }));
   } catch (error) {
     if (error.name === "ConditionalCheckFailedException") {
-      return errorResponse(
-        400,
-        "Login request already used.",
-        [expiredBrowserCookie]
-      );
+      return redirect(siteUrl + "/?signin=expired", [expiredBrowserCookie]);
     }
 
     throw error;
@@ -754,11 +749,7 @@ async function completeLogin(event) {
   );
 
   if (!tokenResponse.ok) {
-    return errorResponse(
-      401,
-      "Cognito login failed",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=failed", [expiredBrowserCookie]);
   }
 
   const tokens = await tokenResponse.json();
@@ -767,11 +758,7 @@ async function completeLogin(event) {
     typeof tokens.access_token !== "string" ||
     typeof tokens.id_token !== "string"
   ) {
-    return errorResponse(
-      401,
-      "Invalid Cognito token response",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=failed", [expiredBrowserCookie]);
   }
 
   const userResponse = await fetch(
@@ -785,21 +772,13 @@ async function completeLogin(event) {
   );
 
   if (!userResponse.ok) {
-    return errorResponse(
-      401,
-      "Unable to verify Cognito user",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=failed", [expiredBrowserCookie]);
   }
 
   const user = await userResponse.json();
 
   if (typeof user.sub !== "string" || !user.sub) {
-    return errorResponse(
-      401,
-      "Missing Cognito user identity",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=failed", [expiredBrowserCookie]);
   }
 
   try {
@@ -814,11 +793,7 @@ async function completeLogin(event) {
       error.message
     );
 
-    return errorResponse(
-      401,
-      "Cognito identity verification failed",
-      [expiredBrowserCookie]
-    );
+    return redirect(siteUrl + "/?signin=failed", [expiredBrowserCookie]);
   }
 
   let acceptedLegal = null;
@@ -826,7 +801,7 @@ async function completeLogin(event) {
     const legalKey = { sessionId: { S: pending.legalAcceptanceId.S } };
     const accepted = await db.send(new GetItemCommand({ TableName: tableName, Key: legalKey, ConsistentRead: true }));
     if (accepted.Item?.type?.S !== "legal_pending" || accepted.Item.legalVersion?.S !== legalVersion || Number(accepted.Item.expiresAt?.N || 0) <= now()) {
-      return errorResponse(400, "Legal acceptance expired. Please start signup again.", [expiredBrowserCookie, clearCookie(legalCookieName)]);
+      return redirect(siteUrl + "/?legal=required", [expiredBrowserCookie, clearCookie(legalCookieName)]);
     }
     acceptedLegal = { key: legalKey, item: accepted.Item };
   }
@@ -4956,6 +4931,10 @@ export const handler = async event => {
       return await startSignup(event);
     }
 
+    if (method === "GET" && path === "/auth/reset-password") {
+      return await startLogin("reset");
+    }
+
     if (method === "POST" && path === "/auth/legal-acceptance") {
       return await acceptLegalTerms(event);
     }
@@ -5120,10 +5099,11 @@ export const handler = async event => {
       errorMessage: error?.message || "Unknown error"
     });
 
-    return errorResponse(
-      500,
-      "Authentication service error"
-    );
+    if (method === "GET" && path === "/auth/callback") {
+      return redirect(siteUrl + "/?signin=unavailable", [clearCookie(oauthCookieName)]);
+    }
+
+    return errorResponse(500, "Authentication service error");
   }
 };
 

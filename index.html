@@ -92,7 +92,7 @@ footer{text-align:center;color:#999;padding:35px;border-top:1px solid #292936}
 <p><strong>The digital clubhouse for music culture.</strong><br>Artists, DJs, bands, music professionals, and fans connect, share, and build community.</p>
 <p class="trust-promise"><strong>Your data is not the product.</strong> DanzStak is built to help people connect, create, book opportunities, and keep control of their work. We do not sell or rent personal information, license user lists, or build advertising profiles. <a href="privacy.html">Read our privacy promise.</a></p>
 
-<a class="button" id="publicExploreBtn" href="#features">Explore DanzStak</a>
+<div id="sessionStatus" class="status" role="status" hidden></div>
 
 <button class="button" id="signupBtn" type="button"
 data-signup-url="https://api.danzstak.com/auth/signup" disabled>Sign Up</button>
@@ -101,19 +101,18 @@ data-signup-url="https://api.danzstak.com/auth/signup" disabled>Sign Up</button>
 href="https://api.danzstak.com/auth/login"
 id="loginBtn" hidden>Log In</a>
 
+<a class="button"
+href="https://api.danzstak.com/auth/reset-password"
+id="resetPasswordBtn" hidden>Forgot password?</a>
+
 <button class="button" id="logoutBtn"
 type="button" hidden>Log Out</button>
-
-<a class="button" id="feedBtn"
-href="feed.html"
-hidden>Explore DanzStak</a>
 
 <div id="legalConsent" class="legal-consent">
 <label><input id="legalAgreement" type="checkbox"><span>I have read and agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
 <p class="hint">Required to create a DanzStak account.</p>
 </div>
 
-<div id="sessionStatus" class="status" role="status" hidden></div>
 </section>
 
 <section class="features" id="features">
@@ -145,10 +144,10 @@ hidden>Explore DanzStak</a>
 <footer>&copy; 2026 DanzStak LLC. All rights reserved. &nbsp; <a href="privacy.html">Privacy Policy</a> &nbsp; <a href="terms.html">Terms of Service</a></footer>
 
 <script src="assets/session-cleanup.js?v=293" defer></script>
-<script src="assets/home.js?v=311" defer></script>
+<script src="assets/home.js?v=312" defer></script>
 <link rel="stylesheet" href="assets/app-feedback.css?v=2">
 <script src="assets/app-feedback.js?v=4" defer></script>
-<script src="assets/pwa.js?v=429" defer></script>
+<script src="assets/pwa.js?v=430" defer></script>
 <script src="assets/app-downloads.js?v=293" defer></script>
 </body>
 </html>

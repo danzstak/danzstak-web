@@ -100,6 +100,7 @@ Deployment evidence:
 
 - [ ] Website availability and core pages passed.
 - [ ] Authentication passed with a controlled account.
+- [ ] `node scripts/verify-hosted-auth-controls.cjs` passed against the deployed Auth API (fresh login, visible Show password control, password recovery, Back navigation, and mobile fit).
 - [ ] Feed loaded and controlled post persistence passed when in scope.
 - [ ] Chat and notifications passed with controlled accounts when in scope.
 - [ ] Media rendered correctly on mobile and desktop.

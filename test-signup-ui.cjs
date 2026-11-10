@@ -2,7 +2,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const source=fs.readFileSync('assets/home.js','utf8');
 async function setup({authenticated=false,agreementOk=true,search=''}={}){
  const nodes={},posts=[],assigned=[],replaced=[];
- for(const id of ['loginBtn','logoutBtn','feedBtn','sessionStatus','signupBtn','publicExploreBtn','legalConsent','legalAgreement']) nodes[id]={handlers:{},dataset:{signupUrl:'https://api.danzstak.com/auth/signup'},addEventListener(name,fn){this.handlers[name]=fn;},focus(){this.focused=true;}};
+ for(const id of ['loginBtn','logoutBtn','resetPasswordBtn','sessionStatus','signupBtn','legalConsent','legalAgreement']) nodes[id]={handlers:{},dataset:{signupUrl:'https://api.danzstak.com/auth/signup'},addEventListener(name,fn){this.handlers[name]=fn;},focus(){this.focused=true;}};
  const context=vm.createContext({document:{getElementById:id=>nodes[id]},window:{location:{assign:url=>assigned.push(url),replace:url=>replaced.push(url)}},location:{search},URLSearchParams,AbortController:class{constructor(){this.signal={};}abort(){}},setTimeout:()=>1,clearTimeout:()=>{},
   localStorage:{setItem(){throw Error('storage full');}},sessionStorage:{removeItem(){throw Error('storage blocked');}},
   fetch:async(url,options)=>{if(url.endsWith('/auth/session'))return {status:authenticated?200:401,json:async()=>({authenticated})};posts.push(JSON.parse(options.body));return {ok:agreementOk};},confirm:()=>true});
@@ -12,7 +12,12 @@ async function setup({authenticated=false,agreementOk=true,search=''}={}){
  const first=await setup();await first.nodes.signupBtn.handlers.click();assert.equal(first.posts.length,0,'unchecked agreement cannot reach the API');assert.equal(first.nodes.legalAgreement.focused,true);
  first.nodes.legalAgreement.checked=true;await first.nodes.signupBtn.handlers.click();assert.equal(first.assigned.length,1,'confirmed server acceptance redirects despite a full local cache');assert.equal(first.posts[0].termsAccepted,true);assert.equal(first.posts[0].privacyAcknowledged,true);
  const failed=await setup({agreementOk:false});failed.nodes.legalAgreement.checked=true;await failed.nodes.signupBtn.handlers.click();assert.equal(failed.assigned.length,0);assert.equal(failed.nodes.signupBtn.disabled,false,'failed agreement save remains retryable');
- const expired=await setup({search:'?signin=expired'});assert.equal(expired.nodes.sessionStatus.textContent,'Sign-in took too long to finish. Please tap Log In and try again.','an expired handoff must give the member a clear retry path');
+ const expired=await setup({search:'?signin=expired'});assert.equal(expired.nodes.sessionStatus.textContent,'Sign-in took too long to finish. Tap Log In to try again.','an expired handoff must give the member a clear retry path');
+ const credentialFailure=await setup({search:'?signin=failed'});assert.equal(credentialFailure.nodes.sessionStatus.textContent,'Email or password is incorrect. Check both and try again.','credential failures must stay on DanzStak with a useful generic message');
+ assert.equal(credentialFailure.nodes.resetPasswordBtn.hidden,false,'credential failures must offer password recovery');
+ const unavailable=await setup({search:'?signin=unavailable'});assert.equal(unavailable.nodes.sessionStatus.textContent,'Sign-in is temporarily unavailable. Please try again.','callback outages must stay on DanzStak');
+ const remembered=await setup({authenticated:true,search:'?signin=failed'});assert.deepEqual(remembered.replaced,[],'a failed login must not silently reopen a remembered DanzStak account');assert.equal(remembered.nodes.logoutBtn.hidden,false,'a remembered signed-in account must offer logout');assert.match(remembered.nodes.sessionStatus.textContent,/Log out to use a different account/);
+ assert.equal(remembered.nodes.resetPasswordBtn.hidden,true,'a remembered signed-in account must choose logout before password recovery');
  const signedIn=await setup({authenticated:true});assert.deepEqual(signedIn.replaced,['feed.html'],'blocked optional session storage cannot prevent a verified login');
  console.log('Signup UI checks passed: explicit agreement, failed saves, full cache, and signed-in redirect with blocked storage.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
