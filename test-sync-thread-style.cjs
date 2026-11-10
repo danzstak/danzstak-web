@@ -18,7 +18,7 @@ assert.match(syncCss, /\.message\.mine\{[^}]*background:var\(--sync-outgoing\)[^
 assert.match(syncCss, /\.message\.mine\+\.message\.mine,\.message:not\(\.mine\)\+\.message:not\(\.mine\)\{margin-top:2px\}/, "adjacent messages from one speaker need a compact rhythm");
 assert.match(syncCss, /\.message\.mine\+\.message:not\(\.mine\),\.message:not\(\.mine\)\+\.message\.mine\{margin-top:8px\}/, "speaker changes need a clear conversation gap");
 assert.match(html, /assets\/sync\.css\?v=11/, "messages must request the new SYNC styling");
-assert.match(worker, /danzstak-shell-v795/, "the PWA shell must advance for the updated conversation CSS");
+assert.match(worker, /danzstak-shell-v796/, "the PWA shell must advance for the updated conversation CSS");
 assert.match(worker, /\/assets\/danzstak-score-pattern\.svg/, "the installed PWA must cache the musical-score surface artwork");
 
 console.log("SYNC thread-style checks passed: branded music canvas, readable paired bubbles, speaker grouping, phone fit, and PWA refresh.");
