@@ -56,6 +56,11 @@ async function pointerOwner(page, selector) {
     for (const { width, height } of viewports) {
       const context = await browser.newContext({ viewport: { width, height }, serviceWorkers: "block" });
       const page = await context.newPage();
+      await page.route("https://www.youtube-nocookie.com/embed/**", route => route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: '<!doctype html><html><body style="margin:0;display:grid;place-items:center;width:100vw;height:100vh;overflow:hidden;background:linear-gradient(135deg,#24103f,#ef6c20);color:#fff;font:700 8vw Arial"><span>LANDSCAPE VIDEO</span></body></html>'
+      }));
       await page.route(`${baseUrl}/__safe-zone-story.svg`, route => route.fulfill({
         status: 200,
         contentType: "image/svg+xml",
@@ -65,6 +70,31 @@ async function pointerOwner(page, selector) {
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.locator('.story[data-story-id="safe-zone-story"] .story-open').waitFor();
       await page.locator(".reel-fullscreen-trigger").waitFor();
+      await page.locator(".reel-media-stage iframe.reel-player").waitFor();
+
+      const linkedPreview = await page.evaluate(() => {
+        const bounds = element => {
+          const rect = element.getBoundingClientRect();
+          return { left:rect.left, top:rect.top, right:rect.right, bottom:rect.bottom, width:rect.width, height:rect.height };
+        };
+        const stage = document.querySelector(".reels-rail:not(.roll-fullscreen) .reel-media-stage");
+        const player = stage?.querySelector("iframe.reel-player");
+        const card = stage?.closest(".reel-card");
+        const style = getComputedStyle(stage);
+        return {
+          stage:bounds(stage),
+          player:bounds(player),
+          card:bounds(card),
+          backgroundColor:style.backgroundColor,
+          backgroundImage:style.backgroundImage
+        };
+      });
+      assert.ok(Math.abs(linkedPreview.stage.height - linkedPreview.stage.width * 16 / 9) <= 2, `${width}px linked Roll preview does not own a 9:16 stage: ${JSON.stringify(linkedPreview)}`);
+      assert.ok(Math.abs(linkedPreview.player.width - linkedPreview.stage.width) <= 2, `${width}px linked Roll player does not fill the stage width: ${JSON.stringify(linkedPreview)}`);
+      assert.ok(Math.abs((linkedPreview.player.top + linkedPreview.player.bottom) / 2 - (linkedPreview.stage.top + linkedPreview.stage.bottom) / 2) <= 2, `${width}px linked Roll player is not vertically centered: ${JSON.stringify(linkedPreview)}`);
+      assert.ok(linkedPreview.player.height < linkedPreview.stage.height * .5, `${width}px landscape linked player was stretched inside the portrait stage: ${JSON.stringify(linkedPreview)}`);
+      assert.equal(linkedPreview.backgroundColor, "rgb(5, 7, 12)", `${width}px linked Roll stage is not using the dark media canvas`);
+      assert.match(linkedPreview.backgroundImage, /danzstak-score-pattern\.svg/, `${width}px linked Roll stage is missing the subtle music texture`);
 
       if (width <= 700) {
         await page.locator('.story[data-story-id="safe-zone-story"] .story-open').click();

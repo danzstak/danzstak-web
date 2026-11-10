@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## PWA v799 — dark centered stage for linked Roll videos — 2026-11-10
+
+Status: **IMPLEMENTED; FUNCTIONAL, VISUAL, INTEGRATION AND REGRESSION TESTS PASS; NOT DEPLOYED.**
+
+- **ROOT CAUSE:** Landscape provider embeds used their own 16:9 height at the top of The Roll's full-width card. The remaining portrait-height card inherited the old purple/orange card gradient, producing a large bright empty area beneath linked videos.
+- **CORRECTION:** Non-fullscreen Roll cards now own a fixed 9:16 dark media stage. Landscape and square provider embeds keep their source ratio, fill the available width, and center vertically; portrait and native video can fill the stage without stretching. The unused canvas uses a restrained, darker version of the SYNC music-score texture, while video details sit on a compact dark surface below it.
+- **SCOPE:** Fullscreen playback, provider-native controls, audio focus, viewport pausing, device Back behavior, source links, and external video hosting remain unchanged.
+- **BROWSER EVIDENCE:** `browser-checks/roll-launcher-pointer.cjs` verified a linked 16:9 provider player inside the 9:16 Roll stage at 320×568, 360×780, 375×812, 390×844, 414×896, 430×932, and 1366×900. At every width the player fills the stage width, remains vertically centered, keeps its source ratio, and exposes only the dark music-textured canvas around it. Builder-inspected captures are in `docs/screenshots/roll-dark-stage/`.
+- **REGRESSION EVIDENCE:** Responsive media, single-audible-video arbitration, mute-state inheritance, 60%-visibility playback, device Back history, and feed density checks pass. The complete `test-regressions.ps1` gate completed with `All local DanzStak regression checks passed.`
+- **PWA DELIVERY:** The reviewed frontend advances to `assets/responsive-media.css?v=8` and installed shell `danzstak-shell-v799`. No backend, payment, authentication, EPK, Booking/Tour, SYNC, SES, or AWS behavior changes.
+
 ## PWA v798 — device Back exits The Roll fullscreen — 2026-11-10
 
 Status: **DEPLOYED; REAL-BROWSER VERIFIED LOCALLY AND PUBLIC PWA DELIVERY VERIFIED.**
