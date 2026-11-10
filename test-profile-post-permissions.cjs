@@ -23,7 +23,8 @@ assert.match(settings, /Profile posting and tagging/);
 assert.match(settings, /settingRow\("edit", "Profile posting and tagging"/, "the settings row uses the shared edit icon instead of a missing-glyph emoji");
 assert.match(profile, /Allow accepted friends to tag me in photos and videos/);
 assert.match(profile, /profile\.allowTags = panel\.elements\.allowTags\.checked/);
-assert.match(profile, /profileMemberId:\s*profile\.memberId/);
+assert.match(profile, /if \(!profile\.isOwner\) body\.profileMemberId = profile\.memberId;/,
+  "posts made on another member's profile carry the destination member ID");
 assert.match(profile, /Remove from my profile/);
 assert.match(auth, /profilePostPermission/);
 assert.match(auth, /Only accepted friends can post on this profile/);

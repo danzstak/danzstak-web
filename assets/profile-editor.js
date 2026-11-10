@@ -452,12 +452,11 @@ const tabs = document.createElement("nav");
 tabs.className = "profile-tabs";
 tabs.setAttribute("aria-label", "Profile sections");
 tabs.setAttribute("role", "tablist");
-for (const name of ["Posts", "Featured", "Memories", "About", "Friends", "Media", "Shop"]) {
+for (const name of ["Posts", "About", "Photos", "Videos", "More"]) {
   const tab = document.createElement("button");
   tab.type = "button";
   tab.textContent = name;
   tab.dataset.profileTab = name;
-  if (["Memories", "Shop"].includes(name)) tab.hidden = true;
   tab.classList.toggle("active", name === "Posts");
   tab.setAttribute("role", "tab");
   tab.setAttribute("aria-selected", String(name === "Posts"));
@@ -500,7 +499,13 @@ function installProfilePostMedia(article, post) {
   retry.className = "secondary";
   retry.textContent = profileTranslate("Retry media");
   recovery.append(copy, retry);
-  const insert = node => { const tools = article.querySelector(".profile-post-tools"); if (tools) tools.before(node); else article.appendChild(node); };
+  const insert = node => {
+    const engagement = article.querySelector(".profile-post-engagement");
+    const tools = article.querySelector(".profile-post-tools");
+    if (engagement) engagement.before(node);
+    else if (tools) tools.before(node);
+    else article.appendChild(node);
+  };
   const showRecovery = () => { article.querySelector(".profile-post-media")?.remove(); if (!recovery.parentNode) insert(recovery); };
   const install = async () => {
     retry.disabled = true;
@@ -523,7 +528,12 @@ function installProfilePostMedia(article, post) {
 function profilePostCard(post) {
   const article = document.createElement("article");
   article.className = "profile-post-card";
-  if (post.postId) { article.dataset.postId = post.postId; article.dataset.isOwner = String(post.isOwner === true); article.dataset.viewCount = String(post.viewCount || 0); }
+  if (post.postId) {
+    article.dataset.postId = post.postId;
+    article.dataset.isOwner = String(post.isOwner === true);
+    article.dataset.viewCount = String(post.viewCount || 0);
+    article.dataset.audience = post.audience || "public";
+  }
   const currentProfile = window.danzstakCurrentProfile || {};
   const header = document.createElement("header");
   header.className = "profile-post-header";
@@ -606,7 +616,7 @@ function profilePostCard(post) {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Featured post could not be saved.");
         post.featured = !post.featured; paint();
-        if (!post.featured && tabs.querySelector('[data-profile-tab="Featured"]').getAttribute("aria-selected") === "true") article.remove();
+        if (!post.featured && article.closest(".profile-tab-message")?.dataset.profileMoreSection === "Featured") article.remove();
       } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
       finally { feature.disabled = false; }
     });
@@ -631,62 +641,218 @@ function profilePostCard(post) {
     tools.appendChild(remove);
   }
   if (tools.childElementCount) article.appendChild(tools);
+  window.danzstakEnhanceProfilePost?.(article, post);
   return article;
 }
 
 function profileWallComposer(profile) {
   const section = document.createElement("section");
   section.className = "profile-wall-composer";
-  if (!profile.canPostToProfile) {
+  if (!profile.canPostToProfile && profile.isOwner !== true) {
     const note = document.createElement("p");
     note.className = "muted";
     note.textContent = profile.profilePostPermission === "friends" ? "Only accepted friends can post on this profile." : "Only this member can post on their profile.";
     section.appendChild(note);
     return section;
   }
-  if (profile.isOwner) return section;
+  section.classList.toggle("profile-wall-composer-owner", profile.isOwner === true);
+  const compact = document.createElement("div");
+  compact.className = "profile-create-row";
+  const compactAvatar = document.createElement("span");
+  compactAvatar.className = "profile-create-avatar";
+  compactAvatar.textContent = "D";
+  compactAvatar.setAttribute("aria-hidden", "true");
+  const installCompactAvatar = viewer => {
+    const name = String(viewer?.name || "DanzStak member");
+    const picture = String(viewer?.picture || "");
+    if (!picture) { compactAvatar.textContent = name.charAt(0).toUpperCase() || "D"; return; }
+    const image = document.createElement("img");
+    image.className = compactAvatar.className;
+    image.src = picture;
+    image.alt = "";
+    image.referrerPolicy = "no-referrer";
+    window.danzstakIdentityMedia?.install(image, viewer);
+    compactAvatar.replaceWith(image);
+  };
+  if (profile.isOwner) installCompactAvatar(profile);
+  else profileFetch(profileApi + "/profiles", { credentials: "include", cache: "no-store" })
+    .then(async response => { if (response.ok) installCompactAvatar((await response.json()).profile || {}); })
+    .catch(() => {});
+  const opener = document.createElement("button");
+  opener.type = "button";
+  opener.className = "profile-create-opener";
+  opener.textContent = profile.isOwner ? "What’s on your mind?" : `Write something to ${profile.name || "this member"}…`;
+  opener.setAttribute("aria-expanded", "false");
+  compact.append(compactAvatar, opener);
+
+  const shortcuts = document.createElement("div");
+  shortcuts.className = "profile-create-shortcuts";
   const form = document.createElement("form");
-  const heading = document.createElement("h3");
+  form.className = "profile-create-form";
+  form.hidden = true;
   const textarea = document.createElement("textarea");
+  textarea.name = "content";
+  textarea.maxLength = 5000;
+  textarea.placeholder = profile.isOwner ? "What’s on your mind?" : `Write something to ${profile.name || "this member"}…`;
+  textarea.setAttribute("aria-label", textarea.placeholder);
+  const audience = document.createElement("select");
+  audience.name = "audience";
+  audience.setAttribute("aria-label", "Who can see this post");
+  for (const [value, label] of [["public", "Public"], ["friends", "Friends"], ["private", "Just me"]]) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    audience.appendChild(option);
+  }
+  if (!profile.isOwner) { audience.value = "public"; audience.hidden = true; }
+  const mediaInput = document.createElement("input");
+  mediaInput.type = "file";
+  mediaInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime";
+  mediaInput.hidden = true;
+  const preview = document.createElement("div");
+  preview.className = "profile-create-preview";
+  preview.hidden = true;
+  let selectedMedia = null;
+  const clearMedia = () => {
+    if (selectedMedia?.previewUrl) URL.revokeObjectURL(selectedMedia.previewUrl);
+    selectedMedia = null;
+    mediaInput.value = "";
+    preview.replaceChildren();
+    preview.hidden = true;
+  };
+  mediaInput.addEventListener("change", () => {
+    const file = mediaInput.files?.[0];
+    if (!file) return;
+    const mediaType = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "";
+    if (!mediaType || mediaType === "video" && file.size > 100 * 1024 * 1024) {
+      mediaInput.value = "";
+      showProfileFeedback(mediaType === "video" ? "Video must be smaller than 100 MB." : "Choose a supported photo or video.", { urgent: true });
+      return;
+    }
+    clearMedia();
+    selectedMedia = { file, mediaType, previewUrl: URL.createObjectURL(file) };
+    const media = document.createElement(mediaType === "image" ? "img" : "video");
+    media.src = selectedMedia.previewUrl;
+    media.alt = "";
+    if (mediaType === "video") { media.controls = true; media.muted = true; media.playsInline = true; }
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "secondary";
+    remove.textContent = "Remove media";
+    remove.addEventListener("click", clearMedia);
+    preview.append(media, remove);
+    preview.hidden = false;
+    form.hidden = false;
+    opener.setAttribute("aria-expanded", "true");
+  });
+  const addShortcut = (label, icon, handler) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "profile-create-shortcut";
+    const symbol = document.createElement("span");
+    symbol.setAttribute("aria-hidden", "true");
+    symbol.textContent = icon;
+    const copy = document.createElement("span");
+    copy.textContent = label;
+    button.append(symbol, copy);
+    button.addEventListener("click", handler);
+    shortcuts.appendChild(button);
+  };
+  addShortcut("Video", "▶", () => { mediaInput.accept = "video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
+  addShortcut("Photo/Video", "▧", () => { mediaInput.accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"; mediaInput.click(); });
+  const eventLink = document.createElement("a");
+  eventLink.className = "profile-create-shortcut";
+  eventLink.href = "feed.html?view=feed#events";
+  eventLink.innerHTML = '<span aria-hidden="true">◆</span><span>Life Event</span>';
+  shortcuts.appendChild(eventLink);
+
   const certifyLabel = document.createElement("label");
   const certify = document.createElement("input");
-  const submit = document.createElement("button");
-  const status = document.createElement("p");
-  heading.textContent = `Post on ${profile.name || "this member"}’s profile`;
-  textarea.name = "content"; textarea.maxLength = 5000; textarea.required = true; textarea.placeholder = "Write something…";
-  certify.type = "checkbox"; certify.required = true;
+  certify.type = "checkbox";
+  certify.required = true;
   certifyLabel.className = "profile-wall-certify";
   certifyLabel.append(certify, document.createTextNode("This is my original content and may be shared on DanzStak."));
-  submit.type = "submit"; submit.className = "button"; submit.textContent = "Post";
-  status.className = "muted"; status.setAttribute("role", "status");
-  form.append(heading, textarea, certifyLabel, submit, status);
+  const formActions = document.createElement("div");
+  formActions.className = "profile-create-form-actions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "secondary";
+  cancel.textContent = "Cancel";
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.className = "button";
+  submit.textContent = "Post";
+  const status = document.createElement("p");
+  status.className = "muted profile-create-status";
+  status.setAttribute("role", "status");
+  formActions.append(cancel, submit);
+  form.append(textarea, audience, mediaInput, preview, certifyLabel, formActions, status);
+  const closeForm = () => {
+    form.hidden = true;
+    opener.setAttribute("aria-expanded", "false");
+    textarea.value = "";
+    certify.checked = false;
+    status.textContent = "";
+    clearMedia();
+  };
+  opener.addEventListener("click", () => {
+    form.hidden = !form.hidden;
+    opener.setAttribute("aria-expanded", String(!form.hidden));
+    if (!form.hidden) textarea.focus();
+  });
+  cancel.addEventListener("click", closeForm);
   form.addEventListener("submit", async event => {
     event.preventDefault();
+    if (!textarea.value.trim() && !selectedMedia) return textarea.focus();
     if (!form.reportValidity()) return;
     submit.disabled = true; status.textContent = "Posting…";
+    let uploadedMediaKey = "";
     try {
-      const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: textarea.value, audience: "public", originalContentCertified: true, profileMemberId: profile.memberId }) });
+      let mediaKey = "", mediaType = "";
+      if (selectedMedia) {
+        const ticketResponse = await profileFetch(profileApi + "/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: selectedMedia.file.type, purpose: "post" }) }, 15000);
+        const ticket = await ticketResponse.json().catch(() => ({}));
+        if (!ticketResponse.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || "Media upload could not start.");
+        const uploadDeadline = Math.max(120000, Math.ceil(selectedMedia.file.size / (64 * 1024)) * 1000);
+        const uploadResponse = await profileFetch(ticket.uploadUrl, { method: "PUT", headers: { "Content-Type": selectedMedia.file.type }, body: selectedMedia.file }, uploadDeadline);
+        if (!uploadResponse.ok) throw new Error("Media upload failed.");
+        mediaKey = ticket.mediaKey;
+        mediaType = ticket.mediaType;
+        uploadedMediaKey = mediaKey;
+      }
+      const body = { content: textarea.value.trim() || "Shared media", audience: audience.value, originalContentCertified: true, mediaKey, mediaType };
+      if (!profile.isOwner) body.profileMemberId = profile.memberId;
+      const response = await profileFetch(profileApi + "/secure-posts", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "The post could not be published.");
-      textarea.value = ""; certify.checked = false; status.textContent = "Posted to this profile.";
+      uploadedMediaKey = "";
+      closeForm();
+      showProfileFeedback("Posted to this profile.");
       await loadProfilePosts(false);
-    } catch (error) { status.textContent = error.message; }
+    } catch (error) {
+      if (uploadedMediaKey) profileFetch(profileApi + "/stories", { method: "POST", credentials: "include", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "discard", mediaKey: uploadedMediaKey }) }, 5000).catch(() => {});
+      status.textContent = error.message;
+    }
     finally { submit.disabled = false; }
   });
-  section.appendChild(form);
+  section.append(compact, shortcuts, form);
   return section;
 }
 
 const profileTabRoutes = new Map([
-  ["posts", "Posts"], ["featured", "Featured"], ["memories", "Memories"],
-  ["about", "About"], ["friends", "Friends"], ["media", "Media"], ["shop", "Shop"]
+  ["posts", "Posts"], ["about", "About"], ["photos", "Photos"], ["videos", "Videos"], ["more", "More"],
+  ["featured", "More"], ["memories", "More"], ["friends", "More"], ["media", "More"], ["shop", "More"]
 ]);
 function requestedProfileTab() {
   return profileTabRoutes.get(String(window.location?.hash || "").replace(/^#/, "").toLowerCase()) || "Posts";
 }
+function requestedProfileMoreSection() {
+  const route = String(window.location?.hash || "").replace(/^#/, "").toLowerCase();
+  return new Map([["featured", "Featured"], ["memories", "Memories"], ["friends", "Friends"], ["media", "Media"], ["shop", "Shop"]]).get(route) || "";
+}
 
 let profileTabVersion = 0;
-async function loadProfilePosts(mediaOnly = false, collection = "posts") {
+async function loadProfilePosts(mediaOnly = false, collection = "posts", mediaType = "") {
   const version = profileTabVersion;
   tabMessage.textContent = mediaOnly ? "Loading media…" : "Loading posts…";
   try {
@@ -696,7 +862,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
     if (version !== profileTabVersion) return;
     const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
     let posts = window.danzstakProfileCollections.select(data.posts || [], collection, "", !viewingOtherProfile, new Date(), profileMemberId);
-    if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType));
+    if (mediaOnly) posts = posts.filter(post => post.mediaUrl && ["image", "video"].includes(post.mediaType) && (!mediaType || post.mediaType === mediaType));
     tabMessage.replaceChildren();
     if (collection === "posts" && !mediaOnly && window.danzstakCurrentProfile && typeof profileWallComposer === "function") tabMessage.appendChild(profileWallComposer(window.danzstakCurrentProfile));
     if (collection !== "posts") {
@@ -706,7 +872,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
       if (!posts.length) { const empty = document.createElement("p"); empty.textContent = collection === "memories" ? "No memories from this day yet." : "No featured posts to show yet."; tabMessage.appendChild(empty); }
     }
     for (const post of posts) tabMessage.appendChild(profilePostCard(post));
-    if (mediaOnly) {
+    if (mediaOnly && mediaType !== "image") {
       const params = new URLSearchParams();
       const profileMemberId = String(window.danzstakCurrentProfile?.memberId || "");
       if (viewingOtherProfile && /^[a-f0-9-]{36}$/.test(profileMemberId)) params.set("member", profileMemberId);
@@ -739,7 +905,7 @@ async function loadProfilePosts(mediaOnly = false, collection = "posts") {
         }
       }
     }
-    if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? "No photos or videos to show yet." : "No posts to show yet."; return; }
+    if (!posts.length && !tabMessage.childElementCount) { tabMessage.textContent = mediaOnly ? `No ${mediaType === "image" ? "photos" : mediaType === "video" ? "videos" : "photos or videos"} to show yet.` : "No posts to show yet."; return; }
   } catch (error) {
     if (version !== profileTabVersion) return;
     if (tabMessage.childElementCount) {
@@ -814,8 +980,7 @@ async function loadProfileShop() {
 }
 
 async function configureProfileShop(profile = {}) {
-  const shopTab = tabs.querySelector('[data-profile-tab="Shop"]');
-  if (!shopTab || !profile.memberId) return;
+  if (!profile.memberId) return;
   try {
     const endpoint = profile.isOwner === true ? "/marketplace/shop" : `/marketplace/shop/${encodeURIComponent(profile.memberId)}`;
     const response = await profileFetch(profileApi + endpoint, { credentials:"include", cache:"no-store" });
@@ -823,10 +988,49 @@ async function configureProfileShop(profile = {}) {
     const data = await response.json().catch(() => ({}));
     if (!data.shop) return;
     profileShop = data.shop;
-    shopTab.hidden = false;
     shopManagementLink.textContent = "Manage my shop";
-    if (requestedProfileTab() === "Shop") shopTab.click();
+    if (requestedProfileMoreSection() === "Shop" && tabs.dataset.initialized === "true") void openProfileMoreSection("Shop");
   } catch { /* A shop is optional; leave the tab hidden when unavailable. */ }
+}
+
+function profileMoreNavigation(active = "") {
+  const navigation = document.createElement("div");
+  navigation.className = "profile-more-navigation";
+  navigation.setAttribute("aria-label", "More profile sections");
+  const choices = ["Featured", ...(window.danzstakCurrentProfile?.isOwner === true ? ["Memories"] : []), "Friends", "Media", ...(profileShop ? ["Shop"] : [])];
+  for (const name of choices) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "secondary";
+    button.textContent = name;
+    button.classList.toggle("active", name === active);
+    button.setAttribute("aria-pressed", String(name === active));
+    button.addEventListener("click", () => void openProfileMoreSection(name));
+    navigation.appendChild(button);
+  }
+  return navigation;
+}
+
+async function openProfileMoreSection(name = "") {
+  profileTabVersion += 1;
+  tabMessage.dataset.profileMoreSection = name;
+  details.hidden = true;
+  tabMessage.hidden = false;
+  window.history?.replaceState?.(null, "", "#" + (name || "more").toLowerCase());
+  if (!name) {
+    tabMessage.replaceChildren(profileMoreNavigation());
+    const note = document.createElement("p");
+    note.className = "muted profile-more-note";
+    note.textContent = "Featured posts, friends, media and this member’s shop stay together here.";
+    tabMessage.appendChild(note);
+    return;
+  }
+  if (name === "Featured") await loadProfilePosts(false, "featured");
+  else if (name === "Memories" && window.danzstakCurrentProfile?.isOwner === true) await loadProfilePosts(false, "memories");
+  else if (name === "Friends") await loadProfileFriends();
+  else if (name === "Media") await loadProfilePosts(true);
+  else if (name === "Shop" && profileShop) await loadProfileShop();
+  if (tabMessage.dataset.profileMoreSection === name) tabMessage.prepend(profileMoreNavigation(name));
 }
 
 tabs.addEventListener("click", async event => {
@@ -835,15 +1039,16 @@ tabs.addEventListener("click", async event => {
   profileTabVersion += 1;
   tabs.querySelectorAll("button").forEach(button => { const selected = button === tab; button.classList.toggle("active", selected); button.setAttribute("aria-selected", String(selected)); button.tabIndex = selected ? 0 : -1; });
   const name = tab.dataset.profileTab;
-  window.history?.replaceState?.(null, "", "#" + name.toLowerCase());
+  const requestedMoreSection = name === "More" ? (tab.dataset.openSection || requestedProfileMoreSection()) : "";
+  delete tab.dataset.openSection;
+  window.history?.replaceState?.(null, "", "#" + (requestedMoreSection || name).toLowerCase());
+  tabMessage.dataset.profileMoreSection = "";
   details.hidden = name !== "About";
   tabMessage.hidden = name === "About";
   if (name === "Posts") await loadProfilePosts(false);
-  else if (name === "Featured") await loadProfilePosts(false, "featured");
-  else if (name === "Memories" && !viewingOtherProfile) await loadProfilePosts(false, "memories");
-  else if (name === "Friends") await loadProfileFriends();
-  else if (name === "Media") await loadProfilePosts(true);
-  else if (name === "Shop") await loadProfileShop();
+  else if (name === "Photos") await loadProfilePosts(true, "posts", "image");
+  else if (name === "Videos") await loadProfilePosts(true, "posts", "video");
+  else if (name === "More") await openProfileMoreSection(requestedMoreSection);
 });
 tabs.addEventListener("keydown", event => {
   if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -1021,7 +1226,6 @@ if (!viewingOtherProfile) {
   try { applyProfileMedia(JSON.parse(localStorage.getItem(profileMediaKey) || "{}")); } catch { /* Ignore corrupt local drafts. */ }
 }
 function applyLoadedProfile(profile = {}) {
-  tabs.querySelector('[data-profile-tab="Memories"]').hidden = profile.isOwner !== true;
   if (profile.isOwner === true) {
     viewingOtherProfile = false;
     editButton.hidden = false;
@@ -1062,8 +1266,10 @@ function applyLoadedProfile(profile = {}) {
     tabs.dataset.initialized = "true";
     const requested = requestedProfileTab();
     const requestedTab = tabs.querySelector(`[data-profile-tab="${requested}"]`);
-    let target = requested === "Memories" && profile.isOwner !== true ? "Posts" : requested;
+    let target = requested;
+    if (requested === "More" && requestedProfileMoreSection() === "Memories" && profile.isOwner !== true) target = "Posts";
     if (requestedTab?.hidden) target = "Posts";
+    if (target === "More") tabs.querySelector('[data-profile-tab="More"]').dataset.openSection = requestedProfileMoreSection();
     tabs.querySelector(`[data-profile-tab="${target}"]`).click();
   }
 }
