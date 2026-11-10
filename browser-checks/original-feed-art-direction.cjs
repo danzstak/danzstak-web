@@ -9,7 +9,7 @@ const origin = process.env.DANZSTAK_FEED_ORIGIN || "http://127.0.0.1:8024";
 const credentials = process.env.DANZSTAK_PREVIEW_USER && process.env.DANZSTAK_PREVIEW_PASSWORD
   ? { username: process.env.DANZSTAK_PREVIEW_USER, password: process.env.DANZSTAK_PREVIEW_PASSWORD }
   : null;
-const widths = [320, 360, 375, 390, 414, 430, 1366];
+const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const imagePostId = "33333333-3333-4333-8333-333333333333";
 const videoPostId = "44444444-4444-4444-8444-444444444444";
@@ -38,7 +38,7 @@ function fixture(url) {
   if (route === "/secure-posts") return { posts: [
     {
       postId: imagePostId, userId: ownerId, authorName: profile.name, authorPicture: profile.picture,
-      content: "West Coast dates are coming together. New live set, real clubs, no fake listings.",
+      content: "Will you migrate away from billionaire platforms? DanzStak gives artists a familiar social home without surrendering their work to an engagement algorithm. Bring the conversations, photos, and videos you choose. Keep the original dates, decide who can see each post, and build an EPK that can go straight to real venues.\n\nSFSCOOP — TAKE BACK YOUR SOCIAL NETWORK\n\nhttps://sfscoop.com",
       createdAt: "2026-11-05T18:30:00.000Z", audience: "public", isOwner: true,
       mediaType: "image", mediaUrl: `${origin}/assets/danzstak-share-fb-v2.jpg`, viewCount: 42, commentPolicy: "everyone"
     },
@@ -282,12 +282,9 @@ async function createPortraitVideo(browser) {
         assert.ok(Math.abs(geometry.video.media[0]) <= 1 && Math.abs(geometry.video.media[1] - width) <= 1, `${width}px video media is not exactly 100vw: ${JSON.stringify(geometry.video)}`);
         assert.ok(Math.abs(geometry.image.ratio - .8) <= .02, `${width}px image preview is not 4:5: ${JSON.stringify(geometry.image)}`);
         assert.equal(geometry.image.fit, "cover", `${width}px image preview does not fill its 4:5 frame`);
-        assert.ok(Math.abs(geometry.video.ratio - .8) <= .02, `${width}px portrait Mix preview is not 4:5: ${JSON.stringify(geometry.video)}`);
-        assert.equal(geometry.video.fit, "cover", `${width}px portrait Mix preview does not fill its frame`);
-      } else {
-        assert.ok(Math.abs(geometry.video.ratio - 9 / 16) <= .02, `${width}px desktop portrait source ratio was not preserved`);
-        assert.equal(geometry.video.fit, "contain", `${width}px desktop portrait video must remain contained`);
       }
+      assert.ok(Math.abs(geometry.video.ratio - .8) <= .02, `${width}px portrait Mix preview is not 4:5: ${JSON.stringify(geometry.video)}`);
+      assert.equal(geometry.video.fit, "cover", `${width}px portrait Mix preview does not fill its frame`);
       assert.ok(geometry.menuTargets.every(row => row.height >= 44), `${width}px menu row below 44px: ${JSON.stringify(geometry.menuTargets.filter(row => row.height < 44))}`);
       if (width < 700) {
         assert.ok(geometry.composerHeight <= 180, `${width}px composer is too tall: ${geometry.composerHeight}`);
@@ -356,19 +353,51 @@ async function createPortraitVideo(browser) {
       await page.goto(`${origin}/profile.html`, { waitUntil: "domcontentloaded" });
       await page.locator("#profileContent:not([hidden])").waitFor();
       await page.locator(".profile-bio").waitFor();
-      const profileGeometry = await page.evaluate(() => {
+      await page.locator(`.profile-post-card[data-post-id="${imagePostId}"] .profile-post-media`).waitFor();
+      const profileGeometry = await page.evaluate(imagePostId => {
         const card = document.querySelector(".card").getBoundingClientRect();
+        const post = document.querySelector(`.profile-post-card[data-post-id="${imagePostId}"]`);
+        const postRect = post.getBoundingClientRect();
+        const mediaRect = post.querySelector(".profile-post-media").getBoundingClientRect();
+        const content = post.querySelector(".profile-post-content");
+        const contentStyle = getComputedStyle(content);
+        const tools = [...post.querySelectorAll(".profile-post-tools > *")].map(node => node.getBoundingClientRect());
         return {
           documentWidth: document.documentElement.scrollWidth,
           inside: card.left >= 0 && card.right <= innerWidth + 1,
           surface: getComputedStyle(document.querySelector(".card")).backgroundColor,
-          profileUsesFeedScope: document.body.classList.contains("danzstak-original")
+          profileUsesFeedScope: document.body.classList.contains("danzstak-original"),
+          postWidth: postRect.width,
+          postEdges: [postRect.left, postRect.right],
+          mediaAligned: Math.abs(mediaRect.left - postRect.left) <= 1 && Math.abs(mediaRect.right - postRect.right) <= 1,
+          author: post.querySelector(".profile-post-author")?.textContent,
+          avatarIsImage: post.querySelector(".profile-post-avatar")?.tagName === "IMG",
+          postHeaderBackground: getComputedStyle(post.querySelector(".profile-post-header")).backgroundColor,
+          postHeaderPosition: getComputedStyle(post.querySelector(".profile-post-header")).position,
+          collapsed: content.classList.contains("is-collapsed"),
+          contentHeight: content.getBoundingClientRect().height,
+          lineHeight: parseFloat(contentStyle.lineHeight),
+          toolCount: tools.length,
+          toolsShareRow: tools.length < 2 || tools.every(rect => Math.abs(rect.top - tools[0].top) <= 1),
+          toolsMeetTarget: tools.every(rect => rect.height >= 44)
         };
-      });
+      }, imagePostId);
       assert.ok(profileGeometry.documentWidth <= width && profileGeometry.inside, `${width}px Profile overflow: ${JSON.stringify(profileGeometry)}`);
       assert.equal(normalize(profileGeometry.surface), "rgba(0,0,0,0)", "Profile must keep the shared fluid canvas instead of restoring a white container box");
       assert.equal(profileGeometry.profileUsesFeedScope, false, "Feed art direction must not leak into Profile");
+      assert.ok(profileGeometry.postWidth <= 502 && profileGeometry.mediaAligned, `${width}px imported Profile post is not a compact, full-width post: ${JSON.stringify(profileGeometry)}`);
+      if (width < 560) assert.ok(Math.abs(profileGeometry.postEdges[0]) <= 1 && Math.abs(profileGeometry.postEdges[1] - width) <= 1, `${width}px imported Profile post is not exactly viewport-wide: ${JSON.stringify(profileGeometry)}`);
+      assert.equal(profileGeometry.author, profile.name, `${width}px imported Profile post lost its author identity`);
+      assert.equal(profileGeometry.avatarIsImage, true, `${width}px imported Profile post lost its signed avatar`);
+      assert.equal(normalize(profileGeometry.postHeaderBackground), "rgba(0,0,0,0)", `${width}px Profile app-header paint leaked into the imported post header`);
+      assert.equal(profileGeometry.postHeaderPosition, "static", `${width}px imported post header inherited sticky app-header positioning`);
+      assert.ok(profileGeometry.collapsed && profileGeometry.contentHeight <= profileGeometry.lineHeight * 7.1, `${width}px imported Profile text was not compacted behind See more: ${JSON.stringify(profileGeometry)}`);
+      assert.ok(profileGeometry.toolCount >= 2 && profileGeometry.toolsShareRow && profileGeometry.toolsMeetTarget, `${width}px Profile actions are not one compact accessible row: ${JSON.stringify(profileGeometry)}`);
       await page.screenshot({ path: path.join(output, `profile-${width}.png`), fullPage: width >= 700 });
+      if (width < 700) {
+        await page.locator(`.profile-post-card[data-post-id="${imagePostId}"]`).scrollIntoViewIfNeeded();
+        await page.screenshot({ path: path.join(output, `profile-post-${width}.png`) });
+      }
       await context.close();
     }
     console.log(`Original Feed/Profile art-direction checks passed at ${widths.join(", ")}px.`);

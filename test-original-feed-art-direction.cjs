@@ -6,6 +6,9 @@ const fs = require("node:fs");
 const feed = fs.readFileSync("feed.html", "utf8");
 const art = fs.readFileSync("assets/danzstak-original-feed.css", "utf8");
 const foundation = fs.readFileSync("assets/mobile-design-system.css", "utf8");
+const profilePage = fs.readFileSync("profile.html", "utf8");
+const profileCss = fs.readFileSync("assets/profile-editor.css", "utf8");
+const profileScript = fs.readFileSync("assets/profile-editor.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 
 assert.match(feed, /<body class="danzstak-original">/, "the scoped art direction must be explicit");
@@ -29,7 +32,14 @@ assert.match(art, /#storiesRail \.story-create-avatar\s*\{[\s\S]*?width:100%!imp
 assert.match(art, /\.layout\s*\{[\s\S]*?grid-template-columns:minmax\(184px,222px\) minmax\(470px,500px\) minmax\(190px,244px\)/, "the desktop center column must use the owner-selected 470–500px feed width");
 assert.match(art, /#feed\s*\{[\s\S]*?display:grid;[\s\S]*?gap:16px;/, "posts must keep a 16px vertical gap");
 assert.match(art, /\.post\s*\{[\s\S]*?--post-inline-padding:14px;[\s\S]*?padding:14px;[\s\S]*?margin-bottom:16px;/, "desktop post cards must keep 14px internal padding and a 16px rhythm");
-assert.match(worker, /danzstak-shell-v792/);
+assert.match(profilePage, /\.profile-app-header\{position:sticky;/, "Profile app-header rules must be scoped instead of painting nested post headers");
+assert.doesNotMatch(profilePage, /(?:^|\n)header\{position:sticky;/, "nested Profile post headers must not inherit the app shell");
+assert.match(profileScript, /className = "profile-post-header"[\s\S]*className = "profile-post-avatar"[\s\S]*className = "profile-post-content"/, "Profile posts must retain a familiar author header and post body");
+assert.match(profileScript, /postContent\.trim\(\)\.length > 280[\s\S]*className = "profile-post-text-toggle"/, "long imported Profile posts must collapse behind an explicit See more control");
+assert.match(profileCss, /\.profile-post-card\{width:min\(100%,500px\)/, "desktop Profile posts must share the owner-selected 470–500px social column");
+assert.match(profileCss, /\.profile-post-media\{[^}]*width:calc\(100% \+ 24px\);[^}]*margin:12px -12px 0;/, "Profile media must break through post padding to the post edges");
+assert.match(profileCss, /\.profile-post-tools\{[^}]*display:flex;[^}]*gap:8px;/, "Profile post tools must remain one compact action row");
+assert.match(worker, /danzstak-shell-v793/);
 assert.match(worker, /\/assets\/danzstak-original-feed\.css/, "the installed PWA must cache the art-direction layer");
 
 console.log("Original Feed art-direction checks passed: shared tokens, edge media, touch targets, and PWA caching.");

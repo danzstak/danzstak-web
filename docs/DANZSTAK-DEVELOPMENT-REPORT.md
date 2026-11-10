@@ -2237,3 +2237,16 @@ Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; PHYSICAL-OWNER D
 - Read-only production health, release propagation, and live security passed. A fresh production browser installed and activated `/service-worker.js`, was controlled by it, and contained only the `danzstak-shell-v792` cache.
 - The complete visual matrix passed directly against `https://danzstak.com` at 320, 360, 375, 390, 414, 430, 768, 1024, and 1366px. The dedicated live Dailies/portrait-video gate passed at its seven widths, and live SYNC passed at 390px. Builder-inspected hosted captures are in `docs/screenshots/issue-55-current-audit-live/`.
 - Honest remaining evidence boundary: the exact v792 build has not yet been observed on the owner's physical Android or iPhone installed PWA. Automated production and fresh-browser PWA gates passed; physical-owner device confirmation is not claimed.
+
+# PWA v793 — imported profile posts and portrait-media parity
+
+Status as of 2026-11-10: **IMPLEMENTED AND TESTED LOCALLY; PRODUCTION REMAINS ON v792**.
+
+- The supplied Facebook/DanzStak comparison exposed two remaining parity defects: imported profile posts lacked a compact author header and familiar spacing, while portrait videos still consumed excessive height outside the phone-only breakpoint.
+- Imported profile posts now use a compact author row, 15px body copy, a seven-line **See more** expansion, edge-aligned media and one horizontal 44px action row. Phone posts fill the viewport; desktop posts remain a focused 500px center column.
+- Portrait Mix video previews now use 4:5 at phone, tablet and desktop widths. Fullscreen keeps the complete source visible with `contain`.
+- A generic `header` selector was painting the imported post header blue and making it sticky. The selector is now scoped to the actual Profile app header, and browser coverage rejects future app-header leakage into post content.
+- Actual-browser gates passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Inspected captures are in `docs/screenshots/pwa-v793-imported-post-media/`.
+- The complete local `test-regressions.ps1` suite passed, including Feed/Profile, media coordination, authentication, SYNC, Booking, EPK, Tour Manager, Stripe boundaries, PWA propagation, static-page smoke and infrastructure validation.
+- Installed delivery advances to `danzstak-shell-v793`, Profile CSS `v396`, Profile JavaScript `v486` and shared responsive-media CSS `v7`.
+- Authentication, Stripe, SES, support mail, databases and AWS backend behavior are unchanged. GitHub Review, exact-commit deployment and post-deployment production verification remain pending.

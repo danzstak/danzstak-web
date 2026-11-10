@@ -500,7 +500,7 @@ function installProfilePostMedia(article, post) {
   retry.className = "secondary";
   retry.textContent = profileTranslate("Retry media");
   recovery.append(copy, retry);
-  const insert = node => { const open = article.querySelector(".profile-post-open"); if (open) open.before(node); else article.appendChild(node); };
+  const insert = node => { const tools = article.querySelector(".profile-post-tools"); if (tools) tools.before(node); else article.appendChild(node); };
   const showRecovery = () => { article.querySelector(".profile-post-media")?.remove(); if (!recovery.parentNode) insert(recovery); };
   const install = async () => {
     retry.disabled = true;
@@ -524,6 +524,27 @@ function profilePostCard(post) {
   const article = document.createElement("article");
   article.className = "profile-post-card";
   if (post.postId) { article.dataset.postId = post.postId; article.dataset.isOwner = String(post.isOwner === true); article.dataset.viewCount = String(post.viewCount || 0); }
+  const currentProfile = window.danzstakCurrentProfile || {};
+  const header = document.createElement("header");
+  header.className = "profile-post-header";
+  const authorPicture = String(post.authorPicture || currentProfile.picture || "").trim();
+  const authorName = String(post.authorName || currentProfile.name || "DanzStak member").trim() || "DanzStak member";
+  const avatar = document.createElement(authorPicture ? "img" : "span");
+  avatar.className = "profile-post-avatar";
+  if (authorPicture) {
+    avatar.alt = "";
+    avatar.src = authorPicture;
+    avatar.referrerPolicy = "no-referrer";
+    window.danzstakIdentityMedia?.install(avatar, { name: authorName, picture: authorPicture });
+  } else {
+    avatar.textContent = authorName.charAt(0).toUpperCase() || "D";
+    avatar.setAttribute("aria-hidden", "true");
+  }
+  const authorDetails = document.createElement("div");
+  authorDetails.className = "profile-post-author-details";
+  const author = document.createElement("strong");
+  author.className = "profile-post-author";
+  author.textContent = authorName;
   const meta = document.createElement("div");
   meta.className = "profile-post-meta";
   const time = document.createElement("time");
@@ -531,10 +552,29 @@ function profilePostCard(post) {
   time.textContent = created && !Number.isNaN(created.valueOf()) ? created.toLocaleString() : "Recent post";
   const audience = document.createElement("span");
   audience.textContent = post.audience === "private" ? "Just me" : post.audience === "friends" ? "Friends" : "Public";
-  meta.append(time, audience);
+  meta.append(time, document.createTextNode(" · "), audience);
+  authorDetails.append(author, meta);
+  header.append(avatar, authorDetails);
   const text = document.createElement("p");
-  window.danzstakRenderUserText?.(text, post.content || "Shared media") || (text.textContent = post.content || "Shared media");
-  article.append(meta, text);
+  text.className = "profile-post-content";
+  const postContent = String(post.content || "Shared media");
+  window.danzstakRenderUserText?.(text, post.content || "Shared media") || (text.textContent = postContent);
+  article.append(header, text);
+  if (postContent.trim().length > 280) {
+    text.classList.add("is-collapsed");
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "profile-post-text-toggle";
+    toggle.textContent = profileTranslate("See more");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.addEventListener("click", () => {
+      const expanded = toggle.getAttribute("aria-expanded") === "true";
+      toggle.setAttribute("aria-expanded", String(!expanded));
+      text.classList.toggle("is-collapsed", expanded);
+      toggle.textContent = profileTranslate(expanded ? "See more" : "See less");
+    });
+    article.appendChild(toggle);
+  }
   if ((post.postId || typeof post.refreshMedia === "function") && ["image", "video"].includes(post.mediaType)) installProfilePostMedia(article, post);
   else if (post.mediaUrl && ["image", "video"].includes(post.mediaType)) {
     const media = document.createElement(post.mediaType === "image" ? "img" : "video");
@@ -543,12 +583,14 @@ function profilePostCard(post) {
     else { media.controls = true; media.preload = "metadata"; media.setAttribute("aria-label", post.content ? "Video: " + post.content : "Profile post video"); }
     article.appendChild(media);
   }
+  const tools = document.createElement("div");
+  tools.className = "profile-post-tools";
   if (/^[a-f0-9-]{36}$/.test(String(post.postId || ""))) {
     const open = document.createElement("a");
     open.className = "secondary profile-post-open";
     open.href = "feed.html#post-" + encodeURIComponent(post.postId);
     open.textContent = "View in Your Mix";
-    article.appendChild(open);
+    tools.appendChild(open);
   }
   window.danzstakRenderSharedPost?.(article, post);
   window.danzstakRenderMediaTags?.(article, post);
@@ -568,7 +610,7 @@ function profilePostCard(post) {
       } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
       finally { feature.disabled = false; }
     });
-    article.appendChild(feature);
+    tools.appendChild(feature);
   }
   if (post.canRemoveFromProfile === true && post.postId) {
     const remove = document.createElement("button");
@@ -586,8 +628,9 @@ function profilePostCard(post) {
       } catch (error) { showProfileFeedback(error.message, { urgent: true }); }
       finally { remove.disabled = false; }
     });
-    article.appendChild(remove);
+    tools.appendChild(remove);
   }
+  if (tools.childElementCount) article.appendChild(tools);
   return article;
 }
 

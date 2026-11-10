@@ -83,29 +83,30 @@ iframe.reel-player.ds-responsive-media{object-fit:initial}
 .ds-media-control--fullscreen{right:10px;top:10px}
 .ds-media-control:focus-visible{outline:3px solid #fff;outline-offset:2px}
 
+/* Mix presents portrait sources in the familiar 4:5 feed frame at every
+   viewport. The original 9:16 frame remains available in fullscreen. */
+#feed .post>.danzstak-native-video-shell[data-video-layout="portrait"]{
+  aspect-ratio:4/5!important;
+  overflow:hidden;
+}
+#feed .post>.danzstak-native-video-shell[data-video-layout="portrait"]>video{
+  width:100%;
+  height:100%;
+  max-height:none;
+  aspect-ratio:auto;
+  object-fit:cover;
+  object-position:center;
+}
+#feed .post>.danzstak-native-video-shell[data-video-layout="portrait"]>video:fullscreen{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
 @media(max-width:700px){
   .post>.ds-responsive-media,.post>.feed-media-gallery{
     width:calc(100% + 24px);
     margin-inline:-12px;
-  }
-  /* Mix uses the familiar 4:5 portrait preview used by major social feeds.
-     The source remains untouched; fullscreen restores the complete frame. */
-  #feed .post>.danzstak-native-video-shell[data-video-layout="portrait"]{
-    aspect-ratio:4/5!important;
-    overflow:hidden;
-  }
-  #feed .post>.danzstak-native-video-shell[data-video-layout="portrait"]>video{
-    width:100%;
-    height:100%;
-    max-height:none;
-    aspect-ratio:auto;
-    object-fit:cover;
-    object-position:center;
-  }
-  #feed .post>.danzstak-native-video-shell[data-video-layout="portrait"]>video:fullscreen{
-    width:100%;
-    height:100%;
-    object-fit:contain;
   }
   .ds-media-control{--ds-media-control-size:42px}
 }
