@@ -8,6 +8,13 @@
     "video.profile-post-media", "video.story-viewer-media"
   ].join(",");
 
+  function syncRollStage(media, layout, aspect) {
+    const stage = media.closest(".reel-media-stage");
+    if (!stage) return;
+    stage.dataset.videoLayout = layout;
+    stage.style.setProperty("--ds-media-aspect", aspect);
+  }
+
   function classify(video) {
     const width = Number(video.videoWidth || 0);
     const height = Number(video.videoHeight || 0);
@@ -15,7 +22,9 @@
     const ratio = width / height;
     const layout = ratio < .82 ? "portrait" : ratio > 1.18 ? "landscape" : "square";
     video.dataset.videoLayout = layout;
-    video.style.setProperty("--ds-media-aspect", `${width}/${height}`);
+    const aspect = `${width}/${height}`;
+    video.style.setProperty("--ds-media-aspect", aspect);
+    syncRollStage(video, layout, aspect);
     const shell = video.closest(".danzstak-media-shell");
     if (shell) {
       shell.dataset.videoLayout = layout;
@@ -24,13 +33,19 @@
   }
 
   function classifyFrame(frame) {
-    if (frame.dataset.videoLayout) return;
-    let url;
-    try { url = new URL(frame.src); } catch { return; }
-    const host = url.hostname.replace(/^www\./, "");
-    const portrait = host === "www.tiktok.com" || host === "tiktok.com" || host.endsWith("instagram.com");
-    frame.dataset.videoLayout = portrait ? "portrait" : "landscape";
-    frame.style.setProperty("--ds-media-aspect", portrait ? "9/16" : "16/9");
+    let layout = frame.dataset.videoLayout;
+    let aspect = frame.style.getPropertyValue("--ds-media-aspect").trim();
+    if (!layout || !aspect) {
+      let url;
+      try { url = new URL(frame.src); } catch { return; }
+      const host = url.hostname.replace(/^www\./, "");
+      const portrait = host === "www.tiktok.com" || host === "tiktok.com" || host.endsWith("instagram.com");
+      layout ||= portrait ? "portrait" : "landscape";
+      aspect ||= portrait ? "9/16" : "16/9";
+    }
+    frame.dataset.videoLayout = layout;
+    frame.style.setProperty("--ds-media-aspect", aspect);
+    syncRollStage(frame, layout, aspect);
   }
 
   function enhance(node) {

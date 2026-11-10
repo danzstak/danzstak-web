@@ -24,7 +24,10 @@ function fixture(url) {
   if (url.pathname === "/stories") return {
     dailyTakeCount: 1,
     stories: [{ storyId: "safe-zone-story", memberId: "11111111-1111-4111-8111-111111111111", displayName: "Roll Test Artist", mediaType: "image", mediaUrl: `${baseUrl}/__safe-zone-story.svg`, caption: "Phone safe-zone verification", createdAt: "2026-11-08T00:00:00.000Z", isOwner: false }],
-    reels: [{ id: "roll-pointer-fixture", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", authorName: "Roll Test Artist", memberId: "11111111-1111-4111-8111-111111111111", content: "Roll launcher pointer verification", sharedAt: "2026-11-08T00:00:00.000Z", isOwner: true }]
+    reels: [
+      { id: "roll-pointer-fixture", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", authorName: "Roll Test Artist", memberId: "11111111-1111-4111-8111-111111111111", content: "Landscape Roll fit verification", sharedAt: "2026-11-08T00:00:00.000Z", isOwner: true },
+      { id: "roll-portrait-fixture", url: "https://www.youtube.com/shorts/abcdefghijk", authorName: "Roll Test Artist", memberId: "11111111-1111-4111-8111-111111111111", content: "Portrait Roll fit verification", sharedAt: "2026-11-08T00:00:00.000Z", isOwner: true }
+    ]
   };
   if (url.pathname === "/friends") return { friends: [] };
   if (url.pathname === "/calls/directory" || url.pathname === "/people") return { users: [] };
@@ -36,7 +39,7 @@ function fixture(url) {
 }
 
 async function pointerOwner(page, selector) {
-  return page.locator(selector).evaluate(control => {
+  return page.locator(selector).first().evaluate(control => {
     const box = control.getBoundingClientRect();
     const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
     return {
@@ -56,11 +59,14 @@ async function pointerOwner(page, selector) {
     for (const { width, height } of viewports) {
       const context = await browser.newContext({ viewport: { width, height }, serviceWorkers: "block" });
       const page = await context.newPage();
-      await page.route("https://www.youtube-nocookie.com/embed/**", route => route.fulfill({
-        status: 200,
-        contentType: "text/html",
-        body: '<!doctype html><html><body style="margin:0;display:grid;place-items:center;width:100vw;height:100vh;overflow:hidden;background:linear-gradient(135deg,#24103f,#ef6c20);color:#fff;font:700 8vw Arial"><span>LANDSCAPE VIDEO</span></body></html>'
-      }));
+      await page.route("https://www.youtube-nocookie.com/embed/**", route => {
+        const portrait = new URL(route.request().url()).pathname.includes("abcdefghijk");
+        return route.fulfill({
+          status: 200,
+          contentType: "text/html",
+          body: `<!doctype html><html><body style="margin:0;display:grid;place-items:center;width:100vw;height:100vh;overflow:hidden;background:linear-gradient(135deg,#24103f,#ef6c20);color:#fff;font:700 8vw Arial"><span>${portrait ? "PORTRAIT VIDEO" : "LANDSCAPE VIDEO"}</span></body></html>`
+        });
+      });
       await page.route(`${baseUrl}/__safe-zone-story.svg`, route => route.fulfill({
         status: 200,
         contentType: "image/svg+xml",
@@ -69,8 +75,9 @@ async function pointerOwner(page, selector) {
       await page.route("https://api.danzstak.com/**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(fixture(new URL(route.request().url()))) }));
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.locator('.story[data-story-id="safe-zone-story"] .story-open').waitFor();
-      await page.locator(".reel-fullscreen-trigger").waitFor();
-      await page.locator(".reel-media-stage iframe.reel-player").waitFor();
+      await page.locator(".reel-fullscreen-trigger").first().waitFor();
+      await page.locator(".reel-media-stage iframe.reel-player").nth(1).waitFor();
+      await page.locator('.reel-media-stage[data-video-layout="landscape"]').evaluate(stage => stage.scrollIntoView({ block:"center", inline:"center" }));
 
       const linkedPreview = await page.evaluate(() => {
         const bounds = element => {
@@ -89,12 +96,36 @@ async function pointerOwner(page, selector) {
           backgroundImage:style.backgroundImage
         };
       });
-      assert.ok(Math.abs(linkedPreview.stage.height - linkedPreview.stage.width * 16 / 9) <= 2, `${width}px linked Roll preview does not own a 9:16 stage: ${JSON.stringify(linkedPreview)}`);
+      assert.ok(Math.abs(linkedPreview.stage.height - linkedPreview.stage.width * 9 / 16) <= 2, `${width}px linked Roll preview does not match its 16:9 provider: ${JSON.stringify(linkedPreview)}`);
       assert.ok(Math.abs(linkedPreview.player.width - linkedPreview.stage.width) <= 2, `${width}px linked Roll player does not fill the stage width: ${JSON.stringify(linkedPreview)}`);
-      assert.ok(Math.abs((linkedPreview.player.top + linkedPreview.player.bottom) / 2 - (linkedPreview.stage.top + linkedPreview.stage.bottom) / 2) <= 2, `${width}px linked Roll player is not vertically centered: ${JSON.stringify(linkedPreview)}`);
-      assert.ok(linkedPreview.player.height < linkedPreview.stage.height * .5, `${width}px landscape linked player was stretched inside the portrait stage: ${JSON.stringify(linkedPreview)}`);
+      assert.ok(Math.abs(linkedPreview.player.height - linkedPreview.stage.height) <= 2, `${width}px linked Roll player does not fill the ratio-matched stage: ${JSON.stringify(linkedPreview)}`);
+      assert.ok(linkedPreview.stage.top >= -1 && linkedPreview.stage.bottom <= height + 1, `${width}px linked Roll video cannot be seen in one device viewport: ${JSON.stringify(linkedPreview)}`);
       assert.equal(linkedPreview.backgroundColor, "rgb(5, 7, 12)", `${width}px linked Roll stage is not using the dark media canvas`);
       assert.match(linkedPreview.backgroundImage, /danzstak-score-pattern\.svg/, `${width}px linked Roll stage is missing the subtle music texture`);
+
+      await page.locator('.reel-media-stage[data-video-layout="portrait"]').evaluate(stage => stage.scrollIntoView({ block:"center", inline:"center" }));
+      const portraitPreview = await page.locator('.reel-media-stage[data-video-layout="portrait"]').evaluate(stage => {
+        const bounds = element => {
+          const rect = element.getBoundingClientRect();
+          return { left:rect.left, top:rect.top, right:rect.right, bottom:rect.bottom, width:rect.width, height:rect.height };
+        };
+        const player = stage.querySelector("iframe.reel-player");
+        const shell = player.parentElement;
+        const style = element => {
+          const computed = getComputedStyle(element);
+          return { width:computed.width, height:computed.height, aspectRatio:computed.aspectRatio, display:computed.display, flex:computed.flex };
+        };
+        return { stage:bounds(stage), player:bounds(player), shell:bounds(shell), playerStyle:style(player), shellStyle:style(shell) };
+      });
+      assert.ok(portraitPreview.stage.height <= Math.min(720, Math.max(280, height - 168)) + 2, `${width}px portrait Roll stage exceeds the usable device viewport: ${JSON.stringify(portraitPreview)}`);
+      assert.ok(portraitPreview.player.height <= portraitPreview.stage.height + 2 && portraitPreview.player.width <= portraitPreview.stage.width + 2, `${width}px portrait Roll player exceeds the fitted stage: ${JSON.stringify(portraitPreview)}`);
+      assert.ok(Math.abs(portraitPreview.player.width - portraitPreview.player.height * 9 / 16) <= 2, `${width}px portrait Roll player was cropped or stretched: ${JSON.stringify(portraitPreview)}`);
+      assert.ok(Math.abs((portraitPreview.player.top + portraitPreview.player.bottom) / 2 - (portraitPreview.stage.top + portraitPreview.stage.bottom) / 2) <= 2, `${width}px portrait Roll player is not vertically centered: ${JSON.stringify(portraitPreview)}`);
+      assert.ok(Math.abs((portraitPreview.player.left + portraitPreview.player.right) / 2 - (portraitPreview.stage.left + portraitPreview.stage.right) / 2) <= 2, `${width}px portrait Roll player is not horizontally centered: ${JSON.stringify(portraitPreview)}`);
+      assert.ok(portraitPreview.stage.top >= -1 && portraitPreview.stage.bottom <= height + 1, `${width}px portrait Roll video cannot be seen in one device viewport: ${JSON.stringify(portraitPreview)}`);
+      await page.waitForTimeout(50);
+      await page.locator('.reel-media-stage[data-video-layout="portrait"]').screenshot({ path:path.join(output, `roll-portrait-${width}.png`) });
+      await page.locator('.reel-media-stage[data-video-layout="landscape"]').evaluate(stage => stage.scrollIntoView({ block:"center", inline:"center" }));
 
       if (width <= 700) {
         await page.locator('.story[data-story-id="safe-zone-story"] .story-open').click();
@@ -125,7 +156,7 @@ async function pointerOwner(page, selector) {
       await launcher.scrollIntoViewIfNeeded();
       await page.waitForTimeout(50);
       const headerHit = await pointerOwner(page, ".roll-open");
-      const previewBox = await page.locator(".reel-fullscreen-trigger").evaluate(control => {
+      const previewBox = await page.locator(".reel-fullscreen-trigger").first().evaluate(control => {
         const box = control.getBoundingClientRect();
         return { top: box.top, bottom: box.bottom };
       });
@@ -146,7 +177,7 @@ async function pointerOwner(page, selector) {
       await page.locator(".roll-close").click();
       await page.locator(".reels-rail:not(.roll-fullscreen)").waitFor();
 
-      const preview = page.locator(".reel-fullscreen-trigger");
+      const preview = page.locator(".reel-fullscreen-trigger").first();
       await preview.scrollIntoViewIfNeeded();
       await page.waitForTimeout(50);
       const previewHit = await pointerOwner(page, ".reel-fullscreen-trigger");

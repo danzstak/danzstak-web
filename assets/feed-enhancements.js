@@ -4440,6 +4440,8 @@ function renderPlayableReels() {
     };
     const mediaStage = document.createElement("div");
     mediaStage.className = "reel-media-stage";
+    if (playerInfo?.layout) mediaStage.dataset.videoLayout = playerInfo.layout;
+    if (playerInfo?.aspect) mediaStage.style.setProperty("--ds-media-aspect", playerInfo.aspect);
     mediaStage.appendChild(fullscreenTrigger);
     if (playerInfo?.kind === "video") {
       mediaStage.appendChild(reel.internal ? createInternalVideo() : (() => {

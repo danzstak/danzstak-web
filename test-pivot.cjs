@@ -32,7 +32,7 @@ assert.match(source, /Your imported content is trackable inside DanzStak/);
 assert.match(source, /DanzStak tracks content, not people/);
 assert.match(source, /Independent screenshots or copies uploaded to another platform may not be traceable or removable/);
 assert.match(source, /Nothing imports automatically/);
-assert.match(worker, /danzstak-shell-v799/);
+assert.match(worker, /danzstak-shell-v800/);
 assert.match(worker, /\/assets\/pivot\.js/);
 assert.match(worker, /\/assets\/pivot\.css/);
 assert.match(profile, /assets\/pivot\.css\?v=1/);
