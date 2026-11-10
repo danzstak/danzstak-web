@@ -4,6 +4,7 @@
 
 Status: **IMPLEMENTED AND FULLY TESTED LOCALLY; NOT DEPLOYED. REAL SMS REMAINS DISABLED UNTIL OWNER-APPROVED AWS NOTIFY CONFIGURATION IS SUPPLIED.**
 
+- **IMPLEMENTATION COMMIT:** `a98b589c95d1afefc737bc39e4d5f79f3141009a` on `codex/sync-phone-device-setup`.
 - **WINDOW:** The orange attention-marked phone control in SYNC opens one responsive **Phone and device setup** window. Members can choose **Use my mobile number**, **Use a DanzStak number**, or **Skip number for now**. Number choice remains optional and is separate from secure device registration.
 - **PERSONAL NUMBER PRIVACY:** The form supplies a locally rendered country/calling-code list and a six-digit SMS challenge. Pending destinations are KMS-encrypted, codes are salted and hashed, challenges expire after ten minutes, resends have a 60-second cooldown, and sending/attempts are capped. A verified number is retained only as a salted hash plus its masked display value and country; it is never exposed on profiles or returned in plaintext.
 - **TRUTHFUL SMS GATE:** `SmsNotifyConfigurationId` defaults to `disabled`. `POST /sync/phone/start` returns `SMS_NOT_CONFIGURED` and explicitly says no text was sent until an owner-approved AWS End User Messaging SMS Protect/Notify configuration is deployed. No AWS messaging resource, phone number, Stripe configuration, or live payment setting was changed during this work.
