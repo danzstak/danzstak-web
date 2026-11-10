@@ -2254,3 +2254,15 @@ Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONF
 - Read-only production health passed. A clean browser installed and activated the production worker, was controlled by it and contained only the `danzstak-shell-v793` cache.
 - Both live browser matrices passed directly against `https://danzstak.com` at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Hosted captures are in `docs/screenshots/pwa-v793-imported-post-media-live/`.
 - Honest evidence boundary: the exact v793 build has not yet been observed on the owner's physical installed Android or iPhone PWA. Production automation and a fresh-browser installation passed; owner-device confirmation is not claimed.
+
+# PWA v794 — mobile Profile post contract
+
+Status as of 2026-11-10: **IMPLEMENTED, VISUALLY INSPECTED AND LOCALLY TESTED; DEPLOYMENT PENDING REVIEW CHECKS**.
+
+- Scope is Profile only. Mix, Stores, SYNC, authentication, payments and backend behavior are unchanged.
+- Phone Profile posts now use the supplied familiar layout contract: `#F0F2F5` canvas, white square cards, 8px post gaps, 12px/16px content padding, 40px round author images, 12px identity spacing, edge-to-edge media and a `#CED0D4` action divider with 44px controls.
+- The Profile shell was clipping otherwise correct edge geometry by 6px. Removing that parent clip made media visibly reach both phone edges; the correction was confirmed by re-rendering and visually inspecting the actual 390px screenshot.
+- `browser-checks/profile-post-layout.cjs` passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Captures are in `docs/screenshots/pwa-v794-profile-post-contract/`.
+- The official DanzStak account and ordinary members use the same shared Profile renderer and therefore receive the same geometry.
+- The complete `test-regressions.ps1` gate passed after the final code and cache-version changes.
+- Installed delivery advances to `danzstak-shell-v794` and shared mobile CSS `v19`. GitHub review, AWS Amplify deployment, production no-cache probes, installed-worker verification and the live browser matrix remain pending.
