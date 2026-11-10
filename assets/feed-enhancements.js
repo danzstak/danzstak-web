@@ -4124,7 +4124,6 @@ reelAddToggle.className = "roll-add-toggle";
 reelAddToggle.textContent = "+ Add video";
 reelAddToggle.setAttribute("aria-expanded", "false");
 reelAddToggle.setAttribute("aria-controls", "rollAddForm");
-const usesMobileRollHistory = () => matchMedia("(max-width: 700px)").matches;
 let rollPlaceholder = null;
 let rollBackgroundState = [];
 const rollSessionStatus = document.createElement("p");
@@ -4157,20 +4156,15 @@ function restoreRollBackground() {
 function setRollFullscreen(open, { updateHistory = true, fromHistory = false, startCard = null } = {}) {
   const shouldOpen = Boolean(open);
   if (!shouldOpen && !fromHistory && history.state?.danzstakRollOpen === true) {
-    if (usesMobileRollHistory()) {
-      history.back();
-      return;
-    }
-    const nextState = { ...history.state };
-    delete nextState.danzstakRollOpen;
-    history.replaceState(nextState, "");
+    history.back();
+    return;
   }
   if (shouldOpen) isolateRollFullscreen();
   reelsRail.classList.toggle("roll-fullscreen", shouldOpen);
   rollClose.hidden = !shouldOpen;
   document.body.classList.toggle("roll-view-open", shouldOpen);
   rollOpen.setAttribute("aria-expanded", String(shouldOpen));
-  if (shouldOpen && updateHistory && usesMobileRollHistory() && history.state?.danzstakRollOpen !== true) {
+  if (shouldOpen && updateHistory && history.state?.danzstakRollOpen !== true) {
     const currentState = history.state && typeof history.state === "object" ? history.state : {};
     history.pushState({ ...currentState, danzstakRollOpen: true }, "");
   }
@@ -4207,7 +4201,6 @@ reelsHeading.append(reelsTitle, reelsSourceNote, rollSessionStatus, reelAddToggl
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
 function restoreRollFullscreenFromHistory(event) {
-  if (!usesMobileRollHistory()) return;
   if (event.state?.danzstakRollOpen === true) {
     if (!reelsRail.classList.contains("roll-fullscreen")) setRollFullscreen(true, { updateHistory: false, fromHistory: true });
   } else if (reelsRail.classList.contains("roll-fullscreen")) setRollFullscreen(false, { updateHistory: false, fromHistory: true });

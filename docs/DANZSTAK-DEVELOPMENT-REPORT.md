@@ -1,5 +1,16 @@
 # DANZSTAK development report
 
+## PWA v798 — device Back exits The Roll fullscreen — 2026-11-10
+
+Status: **IMPLEMENTED AND REAL-BROWSER VERIFIED LOCALLY; NOT DEPLOYED.**
+
+- **ROOT CAUSE:** The Roll created a browser-history entry only below the 700px phone breakpoint. A tablet, desktop browser Back control, or device layout above that breakpoint could therefore leave Mix instead of dismissing the fullscreen viewer.
+- **CORRECTION:** Opening The Roll now adds one privacy-safe boolean history marker on every viewport. Android/iPhone system Back and browser Back close fullscreen, stop the media session, restore the exact Mix URL and scroll position, and leave the member on the page they were using. Forward restores fullscreen without creating a history loop. Close and Escape use the same history-safe exit.
+- **PRIVACY:** History stores only `danzstakRollOpen: true`; it never stores a video URL, title, member identity, media identifier, or playback data.
+- **BROWSER EVIDENCE:** `browser-checks/roll-launcher-pointer.cjs` exercised open → Back → same-page/position restoration → Forward → Close in Edge at 320×568, 360×780, 375×812, 390×844, 414×896, 430×932, and 1366×900. The builder inspected the 390px and 1366px captures in `docs/screenshots/roll-launcher-pointer/`.
+- **REGRESSION EVIDENCE:** Roll history, single-audible-video arbitration, 60%-visibility media coordination, source syntax, and whitespace checks pass. `test-regressions.ps1` completed successfully with `All local DanzStak regression checks passed.`
+- **PWA DELIVERY:** The reviewed frontend advances to `assets/feed-enhancements.js?v=546` and installed shell `danzstak-shell-v798`. Authentication, EPK, Booking/Tour, SYNC messages/calls, Stripe, marketplace settlement, SES, and AWS backend behavior are unchanged.
+
 ## PWA v796 — Official Shop and DanzStak Bazaar — 2026-11-10
 
 Status: **DEPLOYED AND VERIFIED IN PRODUCTION FOR CATALOG AND SHOP MANAGEMENT; CHECKOUT REMAINS DISABLED BY A DOCUMENTED STRIPE CONNECT BLOCKER.**
