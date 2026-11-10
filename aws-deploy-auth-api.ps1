@@ -6,6 +6,7 @@ $RoleName = "DANZSTAK-Auth-API-role-zjknf4ur"
 $Source = Join-Path $PSScriptRoot "infrastructure\auth-api\index.mjs"
 $TourManagerBillingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\tour-manager-billing.mjs"
 $MarketplaceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\marketplace.mjs"
+$MarketplacePaymentsSource = Join-Path $PSScriptRoot "infrastructure\auth-api\marketplace-payments.mjs"
 $TicketingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\ticketing.mjs"
 $Package = Join-Path $PSScriptRoot "infrastructure\auth-api\package.json"
 $PackageLock = Join-Path $PSScriptRoot "infrastructure\auth-api\package-lock.json"
@@ -39,6 +40,8 @@ node --check $Source
 if ($LASTEXITCODE -ne 0) { throw "Auth API JavaScript validation failed." }
 node --check $MarketplaceSource
 if ($LASTEXITCODE -ne 0) { throw "Marketplace API JavaScript validation failed." }
+node --check $MarketplacePaymentsSource
+if ($LASTEXITCODE -ne 0) { throw "Marketplace payments JavaScript validation failed." }
 node --check $TicketingSource
 if ($LASTEXITCODE -ne 0) { throw "Ticketing API JavaScript validation failed." }
 
@@ -77,7 +80,7 @@ try {
   aws dynamodb update-continuous-backups --region $Region --table-name $ReviewsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection failed." }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$MarketplaceSource,$TicketingSource,$Package,$PackageLock -Destination $Stage
+  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$MarketplaceSource,$MarketplacePaymentsSource,$TicketingSource,$Package,$PackageLock -Destination $Stage
   Push-Location $Stage
   try {
     npm ci --omit=dev --ignore-scripts --no-audit --no-fund
@@ -169,7 +172,8 @@ try {
         Action = @("secretsmanager:GetSecretValue")
         Resource = @(
           "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/secret-key-*",
-          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/webhook-secret-*"
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/webhook-secret-*",
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/marketplace-webhook-secret-*"
         )
       },
       @{
@@ -307,7 +311,7 @@ try {
     aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /tour/route" --target "integrations/$AuthIntegrationId" --output json | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Tour route API creation failed." }
   }
-  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /marketplace/store", "GET /marketplace/bazaar", "GET /marketplace/bazaar/{productId}", "PUT /marketplace/store", "GET /marketplace/shop", "PUT /marketplace/shop", "GET /marketplace/shop/{memberId}", "POST /marketplace/products", "PATCH /marketplace/products/{productId}", "DELETE /marketplace/products/{productId}", "POST /marketplace/store/products", "PATCH /marketplace/store/products/{productId}", "DELETE /marketplace/store/products/{productId}", "GET /marketplace/events", "POST /marketplace/events", "GET /marketplace/events/{eventId}", "PATCH /marketplace/events/{eventId}", "POST /marketplace/events/{eventId}/tiers", "GET /auth/reset-password", "GET /auth/sessions", "DELETE /auth/sessions/{deviceId}", "POST /auth/sessions/revoke-others", "GET /auth/reauth", "POST /groups/{groupId}/everyone")) {
+  foreach ($routeKey in @("POST /tour-manager/stripe/webhook", "POST /tour-manager/checkout", "GET /tour-manager/credits", "GET /tour-manager/outreach", "POST /tour-manager/outreach/preflight", "POST /tour-manager/opt-out", "POST /tour-manager/reply", "POST /tour-manager/outreach/reply", "POST /tour-manager/outreach/use-date", "POST /tour-manager/outreach/use-status", "POST /tour-manager/contact-unlock/checkout", "GET /tour-manager/contact-unlocks", "POST /phone-number/checkout", "GET /phone-number/entitlement", "POST /tour-manager/emails/send", "POST /venues/search", "POST /tour/manual-venue", "POST /record-stores/search", "GET /record-store-workspace", "POST /record-store-workspace", "GET /booking-pipeline", "POST /booking-pipeline", "PATCH /booking-pipeline/identity", "GET /epk", "POST /epk", "DELETE /epk", "POST /epk/qr", "POST /epk/share", "POST /epk/outreach-share", "GET /epk/outreach-share", "POST /epk/outreach/{shareId}", "GET /epk/public/{publicId}", "POST /epk/shared/{publicId}", "GET /review-targets", "GET /reviews", "POST /reviews", "PATCH /reviews/{reviewId}", "DELETE /reviews/{reviewId}", "GET /tours", "POST /tours", "DELETE /tours/{tourId}", "GET /marketplace/store", "GET /marketplace/bazaar", "GET /marketplace/bazaar/{productId}", "PUT /marketplace/store", "GET /marketplace/shop", "PUT /marketplace/shop", "GET /marketplace/shop/{memberId}", "POST /marketplace/products", "PATCH /marketplace/products/{productId}", "DELETE /marketplace/products/{productId}", "POST /marketplace/store/products", "PATCH /marketplace/store/products/{productId}", "DELETE /marketplace/store/products/{productId}", "GET /marketplace/events", "POST /marketplace/events", "GET /marketplace/events/{eventId}", "PATCH /marketplace/events/{eventId}", "POST /marketplace/events/{eventId}/tiers", "GET /marketplace/seller/status", "POST /marketplace/seller/onboarding", "POST /marketplace/checkout", "POST /marketplace/stripe/webhook", "GET /marketplace/orders", "GET /marketplace/orders/{orderId}", "POST /marketplace/orders/{orderId}/ship", "POST /marketplace/orders/{orderId}/confirm-delivery", "POST /marketplace/orders/{orderId}/refund", "GET /auth/reset-password", "GET /auth/sessions", "DELETE /auth/sessions/{deviceId}", "POST /auth/sessions/revoke-others", "GET /auth/reauth", "POST /groups/{groupId}/everyone")) {
     $existing = ($routes.Items | Where-Object { $_.RouteKey -eq $routeKey } | Select-Object -First 1).RouteId
     if ([string]::IsNullOrWhiteSpace([string]$existing)) {
       aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key $routeKey --target "integrations/$AuthIntegrationId" --output json | Out-Null

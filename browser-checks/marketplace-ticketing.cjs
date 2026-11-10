@@ -29,6 +29,7 @@ const memberShop = {
   products: [{ id: productId, revision: 3, title: "Signal tour shirt", description: "Black cotton tour shirt.", imageUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`, priceCents: 3000, shippingCents: 600, inventory: 12, status: "published", available: true }]
 };
 const bazaarProduct = { ...memberShop.products[0], memberId: "11111111-1111-4111-8111-111111111111", shopName: memberShop.name, danzstakFeeCents: 150 };
+const sellerOrder = { id:"44444444-4444-4444-8444-444444444444", productId, productTitle:"Signal tour shirt", buyerId:"buyer_12345678", sellerId:"seller_12345678", itemPriceCents:3000, shippingCents:600, totalCents:3600, feeCents:150, sellerPayoutCents:3450, currency:"usd", status:"paid_held", createdAt:"2026-11-10T12:00:00.000Z", updatedAt:"2026-11-10T12:00:00.000Z" };
 const publishedEvent = {
   id: eventId,
   title: "Night Circuit at The Room",
@@ -49,6 +50,8 @@ function payload(pathname) {
   if (pathname.startsWith("/marketplace/shop/")) return { shop: memberShop };
   if (pathname === "/marketplace/bazaar") return { products: [bazaarProduct] };
   if (pathname === `/marketplace/bazaar/${productId}`) return { product: bazaarProduct };
+  if (pathname === "/marketplace/seller/status") return { seller: { connected:true, ready:true, detailsSubmitted:true, payoutsEnabled:true, transfersActive:true, mode:"test" } };
+  if (pathname === "/marketplace/orders") return { role:"seller", orders:[sellerOrder] };
   if (pathname === `/marketplace/events/${eventId}`) return { event: publishedEvent };
   return {};
 }
@@ -86,7 +89,7 @@ async function inspect(page, width, label) {
         { label: "member-shop", url: "store.html?member=11111111-1111-4111-8111-111111111111", ready: "Signal tour shirt" },
         { label: "shop-manager", url: "store.html?manage=1", ready: "Open or edit your shop" },
         { label: "bazaar", url: "bazaar.html", ready: "Signal tour shirt" },
-        { label: "bazaar-product", url: `product.html?id=${productId}`, ready: "Secure checkout is being tested" },
+        { label: "bazaar-product", url: `product.html?id=${productId}`, ready: "Buy in Stripe Test Mode" },
         { label: "published-event", url: `event.html?id=${eventId}`, ready: "General admission" }
       ]) {
         const context = await browser.newContext({ viewport: { width, height: width === 1366 ? 900 : 844 }, serviceWorkers: "block" });
