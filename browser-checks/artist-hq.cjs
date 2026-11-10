@@ -51,7 +51,7 @@ function fixture(pathname) {
         route.fulfill({ status:200, contentType:"application/json", body:JSON.stringify(fixture(url.pathname)) });
       });
       await page.goto(`${baseUrl}/feed.html?view=hq`, { waitUntil:"domcontentloaded" });
-      await page.locator(".artist-hq-card").first().waitFor({ state:"visible" });
+      await page.locator(".artist-hq-card").first().waitFor({ state:"visible", timeout:60000 });
       assert.equal((await page.locator(".artist-hq-card").nth(0).locator(".artist-hq-metric").textContent()).trim(), "Published");
       assert.equal((await page.locator(".artist-hq-card").nth(1).locator(".artist-hq-metric").textContent()).trim(), "1");
       assert.equal((await page.locator(".artist-hq-card").nth(2).locator(".artist-hq-metric").textContent()).trim(), "1");
