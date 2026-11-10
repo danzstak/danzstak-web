@@ -83,6 +83,7 @@ function harness({ authenticatedUser = ownerId, storedOwner = ownerId, profileOw
 
 (async () => {
   assert.match(feedSource, /const data = await response\.json\(\)\.catch\(\(\) => \(\{\}\)\);\s*if \(!response\.ok\) throw new Error\(data\.error \|\| "The post could not be deleted from the server\."\)/, 'the feed must preserve a retryable server deletion error');
+  assert.match(source, /if \(method === "DELETE" && path\?\.startsWith\("\/secure-posts\/"\)\) \{\s*return errorResponse\(500, "The post could not be deleted from the server\. Try again\."\);/, 'post deletion failures must not be mislabeled as authentication failures');
   assert.match(feedSource, /window\.danzstakTranslate\?\.\(source\) \|\| source/, 'feed feedback must follow the selected language');
   assert.match(feedbackSource, /window\.danzstakTranslate\?\.\(source\) \|\| source/, 'shared feedback must follow the selected language');
   assert.match(translationsSource, /const deletionFeedbackKeys=/, 'post deletion feedback must have localized keys');

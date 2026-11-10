@@ -5126,6 +5126,10 @@ export const handler = async event => {
       return redirect(siteUrl + "/?signin=unavailable", [clearCookie(oauthCookieName)]);
     }
 
+    if (method === "DELETE" && path?.startsWith("/secure-posts/")) {
+      return errorResponse(500, "The post could not be deleted from the server. Try again.");
+    }
+
     return errorResponse(500, "Authentication service error");
   }
 };

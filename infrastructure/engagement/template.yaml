@@ -111,8 +111,8 @@ Resources:
     Type: AWS::IAM::Policy
     Metadata:
       com.aws.cloudformation.Context:
-        why: The view transaction needs only a conditional deduplication write and an aggregate update.
-        must: [Scope writes to the views table and existing posts table.]
+        why: The view transaction writes deduplication records, and creator deletion must query and remove those records before deleting a post.
+        must: [Scope access to the views table and existing posts table, Let creator deletion remove all view records for the deleted post.]
     Properties:
       PolicyName: DanzStakPostViews
       Roles: [!Ref AuthRoleName]
@@ -120,7 +120,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Action: [dynamodb:GetItem, dynamodb:PutItem]
+            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:Query]
             Resource: !GetAtt PostViewsTable.Arn
           - Effect: Allow
             Action: [dynamodb:GetItem, dynamodb:UpdateItem]
