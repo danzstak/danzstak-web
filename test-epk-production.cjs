@@ -14,7 +14,7 @@ const assert = require("node:assert/strict"), fs = require("node:fs");
   assert.match(productionClient, /inputs\.slice\(0,48\)/);
   assert.match(productionClient, /textContent=value/);
   assert.match(productionCss, /min-height:44px/);
-assert.match(worker, /danzstak-shell-v796/);
+assert.match(worker, /danzstak-shell-v797/);
   for (const asset of ["epk-production.css", "epk-production.js"]) assert.match(worker, new RegExp(`/assets/${asset.replace(".", "\\.")}`));
 
   const kit = cleanEpk({

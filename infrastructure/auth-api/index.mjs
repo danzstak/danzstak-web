@@ -40,6 +40,7 @@ import {
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import { createMarketplace } from "./marketplace.mjs";
+import { createMarketplacePayments } from "./marketplace-payments.mjs";
 import { createTicketing } from "./ticketing.mjs";
 import QRCode from "qrcode";
 
@@ -101,7 +102,9 @@ const sessionTouchIntervalSeconds = 15 * 60;
 const stripeEnvironment = { ...process.env };
 const stripeSecretName = process.env.STRIPE_SECRET_NAME || "danzstak/stripe/secret-key";
 const stripeWebhookSecretName = process.env.STRIPE_WEBHOOK_SECRET_NAME || "danzstak/stripe/webhook-secret";
+const stripeMarketplaceWebhookSecretName = process.env.STRIPE_MARKETPLACE_WEBHOOK_SECRET_NAME || "danzstak/stripe/marketplace-webhook-secret";
 let stripeSecretsPromise = null;
+let stripeMarketplaceSecretsPromise = null;
 
 function secretText(result, fields) {
   const raw = typeof result?.SecretString === "string" ? result.SecretString : result?.SecretBinary ? Buffer.from(result.SecretBinary).toString("utf8") : "";
@@ -130,6 +133,23 @@ async function ensureStripeSecrets() {
   }
   const ready = await stripeSecretsPromise;
   if (!ready) stripeSecretsPromise = null;
+  return ready;
+}
+
+async function ensureMarketplaceStripeSecrets() {
+  const baseReady = await ensureStripeSecrets();
+  if (!baseReady) return false;
+  if (stripeEnvironment.STRIPE_MARKETPLACE_WEBHOOK_SECRET) return true;
+  if (!stripeMarketplaceSecretsPromise) {
+    stripeMarketplaceSecretsPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: stripeMarketplaceWebhookSecretName })).then(result => {
+      const webhook = secretText(result, ["STRIPE_MARKETPLACE_WEBHOOK_SECRET", "webhookSecret", "secret", "value"]);
+      if (!webhook.startsWith("whsec_")) throw new Error("Stripe marketplace webhook secret format is invalid");
+      stripeEnvironment.STRIPE_MARKETPLACE_WEBHOOK_SECRET = webhook;
+      return true;
+    }).catch(() => false);
+  }
+  const ready = await stripeMarketplaceSecretsPromise;
+  if (!ready) stripeMarketplaceSecretsPromise = null;
   return ready;
 }
 
@@ -187,6 +207,14 @@ const marketplace = createMarketplace({
   corsHeaders,
   tableName: marketplaceTable,
   env: process.env
+});
+const marketplacePayments = createMarketplacePayments({
+  db,
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand },
+  authenticate: getAuthenticatedUser,
+  corsHeaders,
+  tableName: marketplaceTable,
+  env: stripeEnvironment
 });
 const ticketing = createTicketing({
   db,
@@ -4940,6 +4968,10 @@ export const handler = async event => {
       if (billingResponse) return billingResponse;
     }
     if (path?.startsWith("/marketplace/")) {
+      if (method === "POST" && path === "/marketplace/stripe/webhook") await ensureMarketplaceStripeSecrets();
+      else if (["/marketplace/seller/status", "/marketplace/seller/onboarding", "/marketplace/checkout", "/billing/portal"].includes(path)) await ensureStripeSecrets();
+      const paymentsResponse = await marketplacePayments(event);
+      if (paymentsResponse) return paymentsResponse;
       const ticketingResponse = await ticketing(event);
       if (ticketingResponse) return ticketingResponse;
       const marketplaceResponse = await marketplace(event);

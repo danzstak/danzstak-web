@@ -30,8 +30,11 @@
         <p>Sold by <a id="productShop" href="#"></a></p>
         <p id="productPrice" class="detail-price"></p>
         <p id="productShipping" class="detail-shipping"></p>
-        <button id="buyProduct" type="button" disabled>Secure checkout is being tested</button>
-        <p class="checkout-note">Purchases stay unavailable until seller identity, payout and delivery-release safeguards pass testing. DanzStak will not collect money before that.</p>
+        <button id="buyProduct" type="button">Buy in Stripe Test Mode</button>
+        <p id="checkoutStatus" class="checkout-note" role="status" aria-live="polite">Test cards only. DanzStak holds the seller portion until you confirm delivery. Live charging is off.</p>
+        <section id="orderStatus" class="order-status" hidden aria-labelledby="orderTitle">
+          <h2 id="orderTitle">Order status</h2><p id="orderSummary"></p><button id="confirmDelivery" type="button" hidden>Confirm item received</button><button id="managePayments" class="market-secondary-action" type="button">Manage test payments</button>
+        </section>
         <h2>About this item</h2>
         <p id="productDescription" class="detail-description"></p>
       </section>
@@ -45,6 +48,6 @@
     <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1" aria-current="page"></a>
   </nav>
   <script src="assets/icon-buttons.js?v=10" defer></script>
-  <script src="assets/product.js?v=1" defer></script>
+  <script src="assets/product.js?v=3" defer></script>
 </body>
 </html>

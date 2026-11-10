@@ -361,6 +361,36 @@ Resources:
   DeleteOfficialProductRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /marketplace/store/products/{productId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplaceSellerStatusRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/seller/status', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplaceSellerOnboardingRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/seller/onboarding', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplaceCheckoutRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/checkout', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  BillingPortalRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /billing/portal', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  MarketplaceStripeWebhookRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/stripe/webhook', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ListMarketplaceOrdersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/orders', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GetMarketplaceOrderRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/orders/{orderId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ShipMarketplaceOrderRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/orders/{orderId}/ship', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ConfirmMarketplaceDeliveryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/orders/{orderId}/confirm-delivery', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  RefundMarketplaceOrderRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/orders/{orderId}/refund', Target: !Sub 'integrations/${AuthIntegrationId}'}
   ListMarketplaceEventsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/events', Target: !Sub 'integrations/${AuthIntegrationId}'}
