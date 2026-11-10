@@ -353,4 +353,60 @@ body:not(.public-mode) :where(.panel,.card){
   .post-actions button{min-width:0;min-height:44px;padding:5px 2px;white-space:nowrap}
 }
 
+/* Profile posts use the familiar mobile social rhythm without changing Mix.
+   The gray page canvas supplies the 8px separation; each post is a square,
+   white surface with readable text gutters and true edge-to-edge media. */
+@media(max-width:560px){
+  body.profile-page{
+    background:#f0f2f5!important;
+    background-image:none!important;
+  }
+  .profile-page .card{
+    overflow:visible!important;
+  }
+  .profile-page .profile-post-card{
+    width:auto;
+    margin:0 calc(-16px - 6px)!important;
+    padding:12px 16px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:#fff!important;
+    box-shadow:none!important;
+  }
+  .profile-page .profile-post-card + .profile-post-card{
+    margin-top:8px!important;
+  }
+  .profile-page .profile-post-header{
+    gap:12px;
+    min-height:40px;
+  }
+  .profile-page .profile-post-avatar{
+    width:40px;
+    height:40px;
+    flex-basis:40px;
+  }
+  .profile-page .profile-post-card p{
+    margin:12px 0;
+  }
+  .profile-page .profile-post-media{
+    width:calc(100% + 32px);
+    max-width:none;
+    margin:12px -16px 0;
+    border-radius:0;
+  }
+  .profile-page .profile-post-tools{
+    flex-wrap:nowrap;
+    gap:8px;
+    margin-top:12px;
+    padding-top:6px;
+    border-top:1px solid #ced0d4;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .profile-page .profile-post-tools::-webkit-scrollbar{display:none}
+  .profile-page .profile-post-tools>*{
+    min-height:44px;
+  }
+}
+
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}

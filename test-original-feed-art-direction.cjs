@@ -12,7 +12,7 @@ const profileScript = fs.readFileSync("assets/profile-editor.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 
 assert.match(feed, /<body class="danzstak-original">/, "the scoped art direction must be explicit");
-assert.match(feed, /assets\/mobile-design-system\.css\?v=18[\s\S]*assets\/danzstak-original-feed\.css\?v=32/, "the Feed layer must extend the shared foundation");
+assert.match(feed, /assets\/mobile-design-system\.css\?v=19[\s\S]*assets\/danzstak-original-feed\.css\?v=32/, "the Feed layer must extend the shared foundation");
 assert.doesNotMatch(feed, /\.menu \.app-menu-link\s*\{[^}]*min-height:\s*42px/, "legacy application links must not undercut the shared touch target");
 assert.doesNotMatch(art, /--mix-/, "the Feed must not introduce a competing token palette");
 for (const token of ["--ds-brand", "--ds-accent", "--ds-ink", "--ds-canvas", "--ds-surface", "--ds-border", "--ds-touch"]) {
@@ -39,7 +39,13 @@ assert.match(profileScript, /postContent\.trim\(\)\.length > 280[\s\S]*className
 assert.match(profileCss, /\.profile-post-card\{width:min\(100%,500px\)/, "desktop Profile posts must share the owner-selected 470–500px social column");
 assert.match(profileCss, /\.profile-post-media\{[^}]*width:calc\(100% \+ 24px\);[^}]*margin:12px -12px 0;/, "Profile media must break through post padding to the post edges");
 assert.match(profileCss, /\.profile-post-tools\{[^}]*display:flex;[^}]*gap:8px;/, "Profile post tools must remain one compact action row");
-assert.match(worker, /danzstak-shell-v793/);
+assert.match(foundation, /body\.profile-page\{[\s\S]*?background:#f0f2f5!important;[\s\S]*?background-image:none!important;/, "mobile Profile must use the muted social canvas without a decorative gradient");
+assert.match(foundation, /\.profile-page \.card\{[\s\S]*?overflow:visible!important;/, "the Profile shell must not clip viewport-wide post media");
+assert.match(foundation, /\.profile-page \.profile-post-card\{[\s\S]*?padding:12px 16px!important;[\s\S]*?border-radius:0!important;[\s\S]*?background:#fff!important;[\s\S]*?box-shadow:none!important;/, "mobile Profile posts must be square white surfaces with 12px/16px padding and no shadow");
+assert.match(foundation, /\.profile-page \.profile-post-header\{[\s\S]*?gap:12px;[\s\S]*?min-height:40px;/, "mobile Profile headers must preserve the 40px avatar and 12px identity gap");
+assert.match(foundation, /\.profile-page \.profile-post-media\{[\s\S]*?width:calc\(100% \+ 32px\);[\s\S]*?margin:12px -16px 0;/, "mobile Profile media must break through the 16px text gutters to both card edges");
+assert.match(foundation, /\.profile-page \.profile-post-tools\{[\s\S]*?margin-top:12px;[\s\S]*?border-top:1px solid #ced0d4;/, "mobile Profile actions must use the familiar 12px media gap and hairline divider");
+assert.match(worker, /danzstak-shell-v794/);
 assert.match(worker, /\/assets\/danzstak-original-feed\.css/, "the installed PWA must cache the art-direction layer");
 
 console.log("Original Feed art-direction checks passed: shared tokens, edge media, touch targets, and PWA caching.");
