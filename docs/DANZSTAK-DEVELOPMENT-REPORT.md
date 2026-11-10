@@ -1,5 +1,21 @@
 # DANZSTAK development report
 
+## PWA v796 — Official Shop and DanzStak Bazaar — 2026-11-10
+
+Status: **IMPLEMENTED AND PASSING THE FOCUSED LOCAL QUALITY GATE; PRODUCTION DEPLOYMENT PENDING THE COMPLETE REGRESSION AND REVIEW CHECKS.**
+
+- Added two distinct marketplace destinations to the familiar DanzStak menu: **Official Shop** for DanzStak merchandise and **DanzStak Bazaar** for the combined published inventory of member shops.
+- Every member retains one named shop. A published, in-stock physical listing is written atomically to both the seller-owned catalog and the public Bazaar projection; drafts, sold-out items, closed shops and archived listings are removed from the Bazaar.
+- The Bazaar uses a compact fixed-price two-column phone grid and five-column desktop grid with square `object-fit: contain` media, two-line titles, seller shop names, price and shipping. Each listing opens a dedicated product page and links back to the seller's shop. No bidding interface exists.
+- DanzStak's marketplace fee is calculated on the server as exactly **5% of the item price only**. Shipping is excluded. Both browser and server reject a listing whose shipping price exceeds its item price, preventing a seller from hiding the sale price in postage.
+- Checkout is intentionally disabled and says so plainly. This slice does **not** claim delivery escrow, seller payout onboarding, tax handling, refunds or SFS settlement. DanzStak will not collect buyer money until those connected workflows are built and tested.
+- **STRIPE COMMERCE BLOCKER:** the connected Stripe CLI identifies the intended **DANZSTAK** sandbox account as `acct_1UXmCbDoNxcsrqZs`, but Stripe currently reports `charges_enabled: false`, `payouts_enabled: false`, and the `transfers` capability as `inactive`; the account's required platform details are past due. Therefore a genuine Test Mode buyer charge and delivery-confirmed connected-account transfer cannot be run yet. The owner must complete the DanzStak platform/Connect onboarding in Stripe before Checkout can be enabled. No Stripe key, webhook secret, product, live payment or SFS payment was changed in this slice.
+- Installed PWA delivery advances to `danzstak-shell-v796` and caches `bazaar.html`, `product.html` and their assets.
+- **FOCUSED FUNCTIONAL TESTS:** marketplace persistence, authorization, physical-only enforcement, public/private fields, inventory, optimistic edits, Bazaar create/update/archive behavior, shipping-abuse blocking and exact item-only fee math passed. Static-site smoke passed all 17 pages; infrastructure syntax passed with the new API routes.
+- **FOCUSED VISUAL TESTS:** the real-browser marketplace matrix passed at 320, 360, 390, 414, 430 and 1366px with no horizontal overflow, clipped controls, sub-44px controls or unloaded product media. Builder-inspected captures are in [`docs/screenshots/pwa-v796-shops/`](screenshots/pwa-v796-shops/).
+- Changed surfaces: `store.html`, `bazaar.html`, `product.html`, marketplace CSS/JavaScript, Feed menu, service worker, marketplace API, API Gateway/CloudFormation routing and marketplace regression/browser coverage.
+- Release commit, pull request, AWS deployment, production PWA verification and physical-device status will be recorded only after those steps actually complete.
+
 ## PWA v790 production release — 2026-11-10
 
 Status: **DEPLOYED AND VERIFIED IN PRODUCTION.**

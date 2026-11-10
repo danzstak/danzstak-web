@@ -15,9 +15,23 @@ const fs = require("node:fs");
   class GetItemCommand extends Command {}
   class PutItemCommand extends Command {}
   class QueryCommand extends Command {}
-  const commands = { GetItemCommand, PutItemCommand, QueryCommand };
+  class TransactWriteItemsCommand extends Command {}
+  const commands = { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand };
   const records = new Map();
   const keyOf = value => `${value.pk.S}|${value.sk.S}`;
+  function applyPut(input, source = records) {
+    const key = keyOf(input.Item), current = source.get(key);
+    if (input.ConditionExpression === "attribute_not_exists(pk)" && current) {
+      const error = new Error("exists"); error.name = "ConditionalCheckFailedException"; throw error;
+    }
+    if (input.ConditionExpression === "attribute_exists(pk)" && !current) {
+      const error = new Error("missing"); error.name = "ConditionalCheckFailedException"; throw error;
+    }
+    if (input.ConditionExpression === "revision = :revision" && current?.revision?.N !== input.ExpressionAttributeValues[":revision"].N) {
+      const error = new Error("stale"); error.name = "ConditionalCheckFailedException"; throw error;
+    }
+    source.set(key, structuredClone(input.Item));
+  }
   const db = { async send(command) {
     if (command instanceof GetItemCommand) return { Item: records.get(keyOf(command.input.Key)) };
     if (command instanceof QueryCommand) {
@@ -25,18 +39,17 @@ const fs = require("node:fs");
       const sortPrefix = command.input.ExpressionAttributeValues[":product"].S;
       return { Items: [...records.values()].filter(item => item.pk.S === prefix && item.sk.S.startsWith(sortPrefix)).sort((a, b) => a.sk.S.localeCompare(b.sk.S)) };
     }
-    if (command instanceof PutItemCommand) {
-      const key = keyOf(command.input.Item), current = records.get(key);
-      if (command.input.ConditionExpression === "attribute_not_exists(pk)" && current) {
-        const error = new Error("exists"); error.name = "ConditionalCheckFailedException"; throw error;
-      }
-      if (command.input.ConditionExpression === "attribute_exists(pk)" && !current) {
-        const error = new Error("missing"); error.name = "ConditionalCheckFailedException"; throw error;
-      }
-      if (command.input.ConditionExpression === "revision = :revision" && current?.revision?.N !== command.input.ExpressionAttributeValues[":revision"].N) {
-        const error = new Error("stale"); error.name = "ConditionalCheckFailedException"; throw error;
-      }
-      records.set(key, structuredClone(command.input.Item));
+    if (command instanceof PutItemCommand) { applyPut(command.input); return {}; }
+    if (command instanceof TransactWriteItemsCommand) {
+      const staged = new Map([...records.entries()].map(([key, value]) => [key, structuredClone(value)]));
+      try {
+        for (const operation of command.input.TransactItems) {
+          if (operation.Put) applyPut(operation.Put, staged);
+          else if (operation.Delete) staged.delete(keyOf(operation.Delete.Key));
+          else throw new Error("Unsupported transaction operation");
+        }
+      } catch (error) { error.name = "TransactionCanceledException"; throw error; }
+      records.clear(); for (const [key, value] of staged) records.set(key, value);
       return {};
     }
     throw new Error(`Unexpected command ${command.constructor.name}`);
@@ -72,12 +85,24 @@ const fs = require("node:fs");
 
   const invalidAudio = await service(event("POST", "/marketplace/products", { title: "Audio file", priceCents: 500, inventory: 1, productType: "audio", imageUrl: "https://example.com/cover.jpg" }));
   assert.equal(invalidAudio.statusCode, 400, "audio products are rejected rather than silently converted");
+  const inflatedShipping = await service(event("POST", "/marketplace/products", { title: "Hidden price", priceCents: 100, shippingCents: 1_500, inventory: 1, status: "published", imageUrl: "https://cdn.example.com/item.webp" }));
+  assert.equal(inflatedShipping.statusCode, 400, "shipping cannot be used to hide the item price");
+  assert.match(bodyOf(inflatedShipping).error, /shipping cannot cost more/i);
 
   const created = await service(event("POST", "/marketplace/products", { title: "Tour shirt", description: "Black cotton shirt", priceCents: 2_500, shippingCents: 500, inventory: 12, status: "published", imageUrl: "https://cdn.example.com/shirt.webp" }));
   assert.equal(created.statusCode, 201);
   const product = bodyOf(created).product;
   assert.equal(product.available, true);
   assert.equal(product.inventory, 12);
+  assert.equal(product.danzstakFeeCents, 125, "DanzStak earns 5% of item price only");
+
+  const bazaar = bodyOf(await service(event("GET", "/marketplace/bazaar")));
+  assert.equal(bazaar.products.length, 1);
+  assert.equal(bazaar.products[0].shopName, "Eroticon Records");
+  assert.equal(bazaar.products[0].shippingCents, 500);
+  assert.equal(bazaar.products[0].danzstakFeeCents, 125);
+  const bazaarProduct = bodyOf(await service(event("GET", `/marketplace/bazaar/${product.id}`))).product;
+  assert.equal(bazaarProduct.memberId, "artist_12345678");
 
   signedInUser = "viewer_12345678";
   const publicShop = await service(event("GET", "/marketplace/shop/artist_12345678"));
@@ -100,6 +125,8 @@ const fs = require("node:fs");
   assert.equal(archived.statusCode, 200);
   signedInUser = "viewer_12345678";
   assert.equal(bodyOf(await service(event("GET", "/marketplace/shop/artist_12345678"))).shop.products.length, 0, "archived products disappear from the public shop");
+  assert.equal(bodyOf(await service(event("GET", "/marketplace/bazaar"))).products.length, 0, "archived products disappear from the Bazaar");
+  assert.equal((await service(event("GET", `/marketplace/bazaar/${product.id}`))).statusCode, 404);
 
   signedInUser = "artist_12345678";
   assert.equal((await service(event("POST", "/marketplace/store/products", { title: "Unauthorized", priceCents: 500, inventory: 1 }))).statusCode, 403);
@@ -114,5 +141,5 @@ const fs = require("node:fs");
   assert.equal(publicOfficialStore.statusCode, 200);
   assert.equal(bodyOf(publicOfficialStore).shop.products.length, 1);
 
-  console.log("Marketplace catalog checks passed: one member shop, official-store authorization, physical-only products, safe public views, inventory, optimistic edits and exact 5% fee math.");
+  console.log("Marketplace catalog checks passed: Bazaar projection, one member shop, official-store authorization, physical-only products, shipping-abuse blocking, safe public views, inventory, optimistic edits and exact item-only 5% fee math.");
 })().catch(error => { console.error(error); process.exit(1); });

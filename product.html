@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#1769e0">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; style-src 'self'; script-src 'self'; img-src 'self' data: https:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>Product | DanzStak Bazaar</title>
+  <meta name="description" content="View a fixed-price item from a DanzStak member shop.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
+  <link rel="stylesheet" href="assets/mobile-design-system.css?v=19">
+  <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
+  <link rel="stylesheet" href="assets/bazaar.css?v=1">
+</head>
+<body>
+  <a class="skip-link" href="#productMain">Skip to product</a>
+  <header class="market-header">
+    <a class="market-brand" href="feed.html?view=feed" aria-label="DanzStak home"><img src="assets/danzstak-d-icon.png" alt=""><span>DANZSTAK</span></a>
+    <nav aria-label="Marketplace navigation"><a href="bazaar.html">Bazaar</a><a href="store.html">Official</a><a href="store.html?manage=1">My Shop</a></nav>
+  </header>
+  <main id="productMain" class="product-main" tabindex="-1">
+    <p id="productStatus" class="market-status" role="status" aria-live="polite">Loading product…</p>
+    <article id="productDetail" class="product-detail" hidden>
+      <div class="product-gallery"><img id="productImage" alt="" referrerpolicy="no-referrer"></div>
+      <section class="product-copy" aria-labelledby="productTitle">
+        <p class="market-eyebrow">Fixed price · no bidding</p>
+        <h1 id="productTitle"></h1>
+        <p>Sold by <a id="productShop" href="#"></a></p>
+        <p id="productPrice" class="detail-price"></p>
+        <p id="productShipping" class="detail-shipping"></p>
+        <button id="buyProduct" type="button" disabled>Secure checkout is being tested</button>
+        <p class="checkout-note">Purchases stay unavailable until seller identity, payout and delivery-release safeguards pass testing. DanzStak will not collect money before that.</p>
+        <h2>About this item</h2>
+        <p id="productDescription" class="detail-description"></p>
+      </section>
+    </article>
+  </main>
+  <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
+    <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
+    <a role="button" data-icon="users" aria-label="Friends" title="Friends" href="feed.html?view=friends"></a>
+    <a role="button" data-icon="chat" aria-label="SYNC" title="SYNC" href="messages.html"></a>
+    <a role="button" data-icon="bell" aria-label="Buzz" title="Buzz" href="feed.html?view=notifications"></a>
+    <a role="button" data-icon="menu" aria-label="Menu" title="Menu" href="feed.html?view=feed&amp;menu=1" aria-current="page"></a>
+  </nav>
+  <script src="assets/icon-buttons.js?v=10" defer></script>
+  <script src="assets/product.js?v=1" defer></script>
+</body>
+</html>

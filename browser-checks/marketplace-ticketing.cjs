@@ -9,6 +9,7 @@ const baseUrl = String(process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_LOC
 const widths = [320, 360, 390, 414, 430, 1366];
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
 const eventId = "33333333-3333-4333-8333-333333333333";
+const productId = "22222222-2222-4222-8222-222222222222";
 
 const officialStore = {
   id: "official",
@@ -25,8 +26,9 @@ const memberShop = {
   official: false,
   status: "published",
   revision: 2,
-  products: [{ id: "tour-shirt", revision: 3, title: "Signal tour shirt", description: "Black cotton tour shirt.", imageUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`, priceCents: 3000, shippingCents: 600, inventory: 12, status: "published", available: true }]
+  products: [{ id: productId, revision: 3, title: "Signal tour shirt", description: "Black cotton tour shirt.", imageUrl: `${baseUrl}/assets/danzstak-share-fb-v2.jpg`, priceCents: 3000, shippingCents: 600, inventory: 12, status: "published", available: true }]
 };
+const bazaarProduct = { ...memberShop.products[0], memberId: "11111111-1111-4111-8111-111111111111", shopName: memberShop.name, danzstakFeeCents: 150 };
 const publishedEvent = {
   id: eventId,
   title: "Night Circuit at The Room",
@@ -45,6 +47,8 @@ function payload(pathname) {
   if (pathname === "/marketplace/store") return { shop: officialStore };
   if (pathname === "/marketplace/shop") return { shop: memberShop };
   if (pathname.startsWith("/marketplace/shop/")) return { shop: memberShop };
+  if (pathname === "/marketplace/bazaar") return { products: [bazaarProduct] };
+  if (pathname === `/marketplace/bazaar/${productId}`) return { product: bazaarProduct };
   if (pathname === `/marketplace/events/${eventId}`) return { event: publishedEvent };
   return {};
 }
@@ -59,9 +63,9 @@ async function inspect(page, width, label) {
       const rect = element.getBoundingClientRect();
       return { label: element.getAttribute("aria-label") || element.textContent?.trim() || element.id || element.tagName, width: rect.width, height: rect.height, left: rect.left, right: rect.right };
     });
-    const media = [...document.querySelectorAll(".product-image")].filter(visible).map(element => {
+    const media = [...document.querySelectorAll(".product-image,.bazaar-image-frame img,.product-gallery img")].filter(visible).map(element => {
       const rect = element.getBoundingClientRect();
-      return { left: rect.left, right: rect.right, width: rect.width, naturalWidth: element.naturalWidth, complete: element.complete };
+      return { left: rect.left, right: rect.right, width: rect.width, naturalWidth: element.naturalWidth, complete: element.complete, edgeMedia: element.matches(".product-image,.product-gallery img") };
     });
     return { overflow: document.documentElement.scrollWidth > innerWidth, targets, media };
   });
@@ -69,7 +73,7 @@ async function inspect(page, width, label) {
   assert.ok(result.targets.every(target => target.left >= -1 && target.right <= width + 1), `${width}px ${label} has a clipped control: ${JSON.stringify(result.targets)}`);
   assert.ok(result.targets.every(target => target.height >= 44), `${width}px ${label} has a control below 44px: ${JSON.stringify(result.targets)}`);
   assert.ok(result.media.every(media => media.complete && media.naturalWidth > 0), `${width}px ${label} has unloaded product media: ${JSON.stringify(result.media)}`);
-  if (width <= 430 && result.media.length) assert.ok(result.media.every(media => media.left <= 1 && media.right >= width - 1), `${width}px ${label} media must align edge-to-edge: ${JSON.stringify(result.media)}`);
+  if (width <= 430 && result.media.some(media => media.edgeMedia)) assert.ok(result.media.filter(media => media.edgeMedia).every(media => media.left <= 1 && media.right >= width - 1), `${width}px ${label} media must align edge-to-edge: ${JSON.stringify(result.media)}`);
 }
 
 (async () => {
@@ -81,6 +85,8 @@ async function inspect(page, width, label) {
         { label: "official-store", url: "store.html", ready: "DanzStak tour shirt" },
         { label: "member-shop", url: "store.html?member=11111111-1111-4111-8111-111111111111", ready: "Signal tour shirt" },
         { label: "shop-manager", url: "store.html?manage=1", ready: "Open or edit your shop" },
+        { label: "bazaar", url: "bazaar.html", ready: "Signal tour shirt" },
+        { label: "bazaar-product", url: `product.html?id=${productId}`, ready: "Secure checkout is being tested" },
         { label: "published-event", url: `event.html?id=${eventId}`, ready: "General admission" }
       ]) {
         const context = await browser.newContext({ viewport: { width, height: width === 1366 ? 900 : 844 }, serviceWorkers: "block" });
@@ -93,7 +99,7 @@ async function inspect(page, width, label) {
         });
         await page.goto(`${baseUrl}/${screen.url}`, { waitUntil: "domcontentloaded" });
         await page.getByText(screen.ready, { exact: true }).first().waitFor({ state: "visible" });
-        if (screen.label !== "published-event") await page.waitForFunction(() => [...document.querySelectorAll(".product-image")].every(image => image.complete && image.naturalWidth > 0));
+        if (screen.label !== "published-event") await page.waitForFunction(() => [...document.querySelectorAll(".product-image,.bazaar-image-frame img,.product-gallery img")].every(image => image.complete && image.naturalWidth > 0));
         await page.waitForTimeout(100);
         assert.equal(errors.length, 0, `${width}px ${screen.label} page errors: ${errors.join(" | ")}`);
         await inspect(page, width, screen.label);
@@ -101,7 +107,7 @@ async function inspect(page, width, label) {
         await context.close();
       }
     }
-    console.log(`Marketplace and ticketing browser checks passed at ${widths.join(", ")}px with responsive catalogs, shop management and public event details.`);
+    console.log(`Marketplace and ticketing browser checks passed at ${widths.join(", ")}px with responsive official/member shops, Bazaar aggregation, product details, shop management and public event details.`);
   } finally {
     await browser.close();
   }

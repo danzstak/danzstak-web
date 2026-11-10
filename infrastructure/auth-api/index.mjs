@@ -182,7 +182,7 @@ const tourManagerBilling = createTourManagerBilling({
 
 const marketplace = createMarketplace({
   db,
-  commands: { GetItemCommand, PutItemCommand, QueryCommand },
+  commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand },
   authenticate: getAuthenticatedUser,
   corsHeaders,
   tableName: marketplaceTable,

@@ -325,6 +325,12 @@ Resources:
   GetOfficialStoreRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/store', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ListBazaarRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/bazaar', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  GetBazaarProductRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /marketplace/bazaar/{productId}', Target: !Sub 'integrations/${AuthIntegrationId}'}
   PutOfficialStoreRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'PUT /marketplace/store', Target: !Sub 'integrations/${AuthIntegrationId}'}

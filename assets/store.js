@@ -30,6 +30,10 @@
     if (!match) return null;
     return Number(match[1]) * 100 + Number((match[2] || "").padEnd(2,"0"));
   }
+  function updateFeePreview() {
+    const price = cents(byId("productPrice").value);
+    byId("feePreview").textContent = price === null ? "Enter an item price" : `${money(Math.round(price * 0.05))} on this item`;
+  }
   function node(tag, text = "", className = "") { const item = document.createElement(tag); item.textContent = text; if (className) item.className = className; return item; }
 
   function resetProductForm() {
@@ -54,7 +58,10 @@
       if(managing) {
         copy.append(node("p",`${product.inventory} in stock · ${product.status.replace("_"," ")}`,"product-note"));
         const actions=node("div","","product-actions"), edit=node("button","Edit"), remove=node("button","Remove","store-secondary-action"); edit.type=remove.type="button"; edit.addEventListener("click",()=>editProduct(product)); remove.addEventListener("click",()=>archiveProduct(product)); actions.append(edit,remove); copy.append(actions);
-      } else copy.append(node("p",product.available ? "Secure ordering opens after seller verification and payout testing." : "Unavailable","product-note"));
+      } else {
+        copy.append(node("p",product.available ? "Secure ordering opens after seller verification and payout testing." : "Unavailable","product-note"));
+        if(memberId && product.available) { const detail=node("a","View item","product-detail-link"); detail.href=`product.html?id=${encodeURIComponent(product.id)}`; copy.append(detail); }
+      }
       card.append(copy); products.append(card);
     }
   }
@@ -82,11 +89,14 @@
   });
   byId("productForm").addEventListener("submit", async event => {
     event.preventDefault(); const price=cents(byId("productPrice").value),shipping=cents(byId("productShipping").value); if(price===null||shipping===null){status.textContent="Enter prices in dollars and cents, for example 25.00.";return;}
+    if(shipping>price){status.textContent="Shipping cannot cost more than the item price. DanzStak blocks inflated postage that could hide the sale price.";return;}
     const id=byId("productId").value, payload={title:byId("productTitle").value,description:byId("productDescription").value,imageUrl:byId("productImage").value,priceCents:price,shippingCents:shipping,inventory:Number(byId("productInventory").value),status:byId("productStatus").value,productType:"physical"}; if(id) payload.revision=Number(byId("productRevision").value);
     status.textContent=id?"Saving product…":"Adding product…";
     try { await request(id?`/marketplace/products/${encodeURIComponent(id)}`:"/marketplace/products",{method:id?"PATCH":"POST",body:JSON.stringify(payload)}); resetProductForm(); status.textContent=id?"Product updated.":"Product added."; await load(); }
     catch(error){status.textContent=error.message;}
   });
   byId("cancelProductEdit").addEventListener("click",resetProductForm);
+  byId("productPrice").addEventListener("input",updateFeePreview);
+  updateFeePreview();
   load();
 })();

@@ -68,6 +68,10 @@ function productKey(ownerId, productId) {
   return { pk: { S: ownerKey(ownerId) }, sk: { S: `PRODUCT#${productId}` } };
 }
 
+function bazaarKey(productId) {
+  return { pk: { S: "BAZAAR" }, sk: { S: `PRODUCT#${productId}` } };
+}
+
 function number(item, name) {
   const value = Number(item?.[name]?.N);
   return Number.isFinite(value) ? value : 0;
@@ -96,6 +100,7 @@ function productView(item, own) {
     productType: item.productType?.S || "physical",
     priceCents: number(item, "priceCents"),
     shippingCents: number(item, "shippingCents"),
+    danzstakFeeCents: marketplaceFeeCents(number(item, "priceCents")),
     currency: item.currency?.S || "usd",
     available: number(item, "inventory") > 0 && item.status?.S === "published",
     createdAt: item.createdAt?.S || "",
@@ -103,6 +108,14 @@ function productView(item, own) {
   };
   if (own) Object.assign(result, { inventory: number(item, "inventory"), status: item.status?.S || "draft", revision: number(item, "revision") });
   return result;
+}
+
+function bazaarProductView(item) {
+  return {
+    ...productView(item, false),
+    memberId: item.ownerId?.S || "",
+    shopName: item.shopName?.S || "Member shop"
+  };
 }
 
 function cleanShop(body) {
@@ -124,8 +137,14 @@ function cleanProduct(body) {
   const shippingCents = positiveInteger(body.shippingCents ?? 0, 0, MAX_SHIPPING_CENTS);
   const inventory = positiveInteger(body.inventory, 0, MAX_INVENTORY);
   const status = String(body.status || "draft");
-  if (!title || description === null || imageUrl === null || priceCents === null || shippingCents === null || inventory === null || !["draft", "published", "sold_out"].includes(status)) return null;
+  if (!title || description === null || imageUrl === null || priceCents === null || shippingCents === null || shippingCents > priceCents || inventory === null || !["draft", "published", "sold_out"].includes(status)) return null;
   return { title, description, imageUrl, priceCents, shippingCents, inventory, status, productType: "physical", currency: "usd" };
+}
+
+function hasInflatedShipping(body) {
+  const price = positiveInteger(body?.priceCents, 50, MAX_PRODUCT_CENTS);
+  const shipping = positiveInteger(body?.shippingCents ?? 0, 0, MAX_SHIPPING_CENTS);
+  return price !== null && shipping !== null && shipping > price;
 }
 
 export function marketplaceFeeCents(subtotalCents) {
@@ -135,7 +154,7 @@ export function marketplaceFeeCents(subtotalCents) {
 }
 
 export function createMarketplace({ db, commands, authenticate, corsHeaders, tableName, env = process.env, clock = Date.now }) {
-  const { GetItemCommand, PutItemCommand, QueryCommand } = commands;
+  const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand } = commands;
   const browserHeaders = event => corsHeaders(event?.headers?.origin || event?.headers?.Origin);
   const nowIso = () => new Date(clock()).toISOString();
   const admins = new Set(String(env.MARKETPLACE_ADMIN_USER_IDS || "").split(",").map(value => value.trim()).filter(Boolean));
@@ -161,6 +180,63 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     return { shop: shopResult.Item, products: productResult.Items || [] };
   }
 
+  function bazaarProjection(shop, product) {
+    return {
+      ...bazaarKey(product.productId?.S || String(product.sk?.S || "").replace(/^PRODUCT#/, "")),
+      entityType: { S: "bazaar_product" },
+      ownerId: product.ownerId,
+      productId: product.productId,
+      shopName: shop.name,
+      title: product.title,
+      description: product.description,
+      imageUrl: product.imageUrl,
+      productType: product.productType,
+      priceCents: product.priceCents,
+      shippingCents: product.shippingCents,
+      inventory: product.inventory,
+      currency: product.currency,
+      status: product.status,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt
+    };
+  }
+
+  function bazaarMutation(shop, product) {
+    const visible = shop?.status?.S === "published" && product?.status?.S === "published" && number(product, "inventory") > 0;
+    return visible
+      ? { Put: { TableName: tableName, Item: bazaarProjection(shop, product) } }
+      : { Delete: { TableName: tableName, Key: bazaarKey(product.productId?.S || String(product.sk?.S || "").replace(/^PRODUCT#/, "")) } };
+  }
+
+  async function syncBazaar(shop, products) {
+    if (shop.ownerId?.S === OFFICIAL_OWNER || !products.length) return;
+    for (let index = 0; index < products.length; index += 25) {
+      const batch = products.slice(index, index + 25).map(product => bazaarMutation(shop, product));
+      await db.send(new TransactWriteItemsCommand({ TransactItems: batch }));
+    }
+  }
+
+  async function readBazaar(event) {
+    const headers = browserHeaders(event);
+    const result = await db.send(new QueryCommand({
+      TableName: tableName,
+      KeyConditionExpression: "pk = :pk AND begins_with(sk, :product)",
+      ExpressionAttributeValues: { ":pk": { S: "BAZAAR" }, ":product": { S: "PRODUCT#" } },
+      ConsistentRead: true,
+      Limit: 250
+    }));
+    const products = (result.Items || []).map(bazaarProductView).sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
+    return response(200, { products }, headers);
+  }
+
+  async function readBazaarProduct(event, productId) {
+    const headers = browserHeaders(event);
+    if (!PRODUCT_ID.test(productId)) return response(400, { error: "Valid product required." }, headers);
+    const result = await db.send(new GetItemCommand({ TableName: tableName, Key: bazaarKey(productId), ConsistentRead: true }));
+    if (!result.Item) return response(404, { error: "This product is no longer available." }, headers);
+    return response(200, { product: bazaarProductView(result.Item) }, headers);
+  }
+
   async function readShop(event, requestedOwner = "") {
     const headers = browserHeaders(event);
     const signedIn = await userId(event);
@@ -183,6 +259,8 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     const at = nowIso(), revision = number(existing.Item, "revision") + 1;
     const item = { ...key, entityType: { S: "shop" }, ownerId: { S: access.id }, name: { S: body.name }, description: { S: body.description }, status: { S: body.status }, revision: { N: String(revision) }, createdAt: existing.Item?.createdAt || { S: at }, updatedAt: { S: at } };
     await db.send(new PutItemCommand({ TableName: tableName, Item: item }));
+    const productResult = await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "pk = :pk AND begins_with(sk, :product)", ExpressionAttributeValues: { ":pk": { S: ownerKey(access.id) }, ":product": { S: "PRODUCT#" } }, ConsistentRead: true, Limit: 250 }));
+    await syncBazaar(item, productResult.Items || []);
     return response(existing.Item ? 200 : 201, { shop: shopView(item, [], true) }, access.headers);
   }
 
@@ -222,13 +300,16 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     if (target !== OFFICIAL_OWNER && target !== access.id) return response(403, { error: "You can manage only your own shop." }, access.headers);
     const shop = await db.send(new GetItemCommand({ TableName: tableName, Key: shopKey(target), ConsistentRead: true }));
     if (!shop.Item) return response(409, { error: "Open the shop before adding products." }, access.headers);
-    const body = cleanProduct(parseBody(event));
+    const request = parseBody(event), body = cleanProduct(request);
+    if (hasInflatedShipping(request)) return response(400, { error: "Shipping cannot cost more than the item price. DanzStak blocks inflated postage that could hide the sale price." }, access.headers);
     if (!body) return response(400, { error: "Enter a valid physical product, integer-cent price, inventory and HTTPS image." }, access.headers);
     const id = randomUUID(), at = nowIso(), item = { ...productKey(target, id), entityType: { S: "product" }, ownerId: { S: target }, productId: { S: id }, title: { S: body.title }, description: { S: body.description }, imageUrl: { S: body.imageUrl }, productType: { S: body.productType }, priceCents: { N: String(body.priceCents) }, shippingCents: { N: String(body.shippingCents) }, inventory: { N: String(body.inventory) }, currency: { S: body.currency }, status: { S: body.status }, revision: { N: "1" }, createdAt: { S: at }, updatedAt: { S: at } };
     try {
-      await db.send(new PutItemCommand({ TableName: tableName, Item: item, ConditionExpression: "attribute_not_exists(pk)" }));
+      const transaction = [{ Put: { TableName: tableName, Item: item, ConditionExpression: "attribute_not_exists(pk)" } }];
+      if (target !== OFFICIAL_OWNER) transaction.push(bazaarMutation(shop.Item, item));
+      await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
     } catch (error) {
-      if (error?.name === "ConditionalCheckFailedException") return response(409, { error: "Product could not be created. Try again." }, access.headers);
+      if (["ConditionalCheckFailedException", "TransactionCanceledException"].includes(error?.name)) return response(409, { error: "Product could not be created. Try again." }, access.headers);
       throw error;
     }
     return response(201, { product: productView(item, true) }, access.headers);
@@ -244,13 +325,17 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     const key = productKey(target, productId), existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
     if (!existing.Item) return response(404, { error: "Product not found." }, access.headers);
     const request = parseBody(event), body = cleanProduct(request), expectedRevision = positiveInteger(request?.revision, 1, Number.MAX_SAFE_INTEGER);
+    if (hasInflatedShipping(request)) return response(400, { error: "Shipping cannot cost more than the item price. DanzStak blocks inflated postage that could hide the sale price." }, access.headers);
     if (!body || expectedRevision === null) return response(400, { error: "Valid product fields and revision are required." }, access.headers);
     if (number(existing.Item, "revision") !== expectedRevision) return response(409, { error: "This product changed on another device. Reload it before saving." }, access.headers);
     const item = { ...existing.Item, title: { S: body.title }, description: { S: body.description }, imageUrl: { S: body.imageUrl }, priceCents: { N: String(body.priceCents) }, shippingCents: { N: String(body.shippingCents) }, inventory: { N: String(body.inventory) }, status: { S: body.status }, revision: { N: String(expectedRevision + 1) }, updatedAt: { S: nowIso() } };
     try {
-      await db.send(new PutItemCommand({ TableName: tableName, Item: item, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { N: String(expectedRevision) } } }));
+      const shop = await db.send(new GetItemCommand({ TableName: tableName, Key: shopKey(target), ConsistentRead: true }));
+      const transaction = [{ Put: { TableName: tableName, Item: item, ConditionExpression: "revision = :revision", ExpressionAttributeValues: { ":revision": { N: String(expectedRevision) } } } }];
+      if (target !== OFFICIAL_OWNER) transaction.push(bazaarMutation(shop.Item, item));
+      await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
     } catch (error) {
-      if (error?.name === "ConditionalCheckFailedException") return response(409, { error: "This product changed on another device. Reload it before saving." }, access.headers);
+      if (["ConditionalCheckFailedException", "TransactionCanceledException"].includes(error?.name)) return response(409, { error: "This product changed on another device. Reload it before saving." }, access.headers);
       throw error;
     }
     return response(200, { product: productView(item, true) }, access.headers);
@@ -266,7 +351,9 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     const key = productKey(target, productId), existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
     if (!existing.Item) return response(404, { error: "Product not found." }, access.headers);
     const item = { ...existing.Item, status: { S: "archived" }, revision: { N: String(number(existing.Item, "revision") + 1) }, updatedAt: { S: nowIso() } };
-    await db.send(new PutItemCommand({ TableName: tableName, Item: item, ConditionExpression: "attribute_exists(pk)" }));
+    const transaction = [{ Put: { TableName: tableName, Item: item, ConditionExpression: "attribute_exists(pk)" } }];
+    if (target !== OFFICIAL_OWNER) transaction.push({ Delete: { TableName: tableName, Key: bazaarKey(productId) } });
+    await db.send(new TransactWriteItemsCommand({ TransactItems: transaction }));
     return response(200, { archived: true, productId }, access.headers);
   }
 
@@ -274,6 +361,9 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
     const method = event?.requestContext?.http?.method || "";
     const path = event?.rawPath || "";
     if (method === "GET" && path === "/marketplace/store") return readShop(event, OFFICIAL_OWNER);
+    if (method === "GET" && path === "/marketplace/bazaar") return readBazaar(event);
+    const bazaarProduct = path.match(/^\/marketplace\/bazaar\/([a-f0-9-]{36})$/i);
+    if (method === "GET" && bazaarProduct) return readBazaarProduct(event, bazaarProduct[1]);
     if (method === "PUT" && path === "/marketplace/store") return saveOfficialStore(event);
     if (method === "GET" && path === "/marketplace/shop") return readShop(event);
     if (method === "PUT" && path === "/marketplace/shop") return saveShop(event);
@@ -291,4 +381,4 @@ export function createMarketplace({ db, commands, authenticate, corsHeaders, tab
   };
 }
 
-export { cleanShop, cleanProduct, shopKey, productKey, productView, shopView };
+export { cleanShop, cleanProduct, shopKey, productKey, bazaarKey, productView, shopView, bazaarProductView };
