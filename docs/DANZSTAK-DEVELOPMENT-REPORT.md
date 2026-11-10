@@ -2270,3 +2270,16 @@ Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONF
 - No-cache production probes confirmed shared mobile CSS `v19` and `danzstak-shell-v794`. The read-only public production health check passed for Home, Mix, SYNC, Booking, EPK, the manifest, worker and sampled versioned assets.
 - The complete Profile browser matrix passed directly against `https://danzstak.com` at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live captures are in `docs/screenshots/pwa-v794-profile-post-contract-live/`.
 - A fresh production browser installed and activated `/service-worker.js`, was controlled by it and contained only the `danzstak-shell-v794` cache. The exact build still requires the owner's physical installed-PWA walkthrough; that observation is not claimed here.
+
+# PWA v795 — complete Profile interactions
+
+Status as of 2026-11-10: **IMPLEMENTED AND TESTED; PRODUCTION UNCHANGED PENDING THE GREEN REVIEW GATE**.
+
+- Scope is Profile only. Mix, Stores, SYNC, Booking, EPK, Stripe, authentication and AWS backend behavior are unchanged.
+- Profile now has the supplied familiar five-tab navigation, a compact working create-post utility, real counters, working Like/Comment/Share controls and a nested comments interface. Photos and Videos filter actual posts; More preserves Featured, Memories, Friends, Media and Shop.
+- Posting uses the existing authenticated post/media APIs, audience choices and original-content certification. Comments and replies use the existing engagement APIs. No nonfunctional live-stream button was advertised; the video control selects supported video files and Life Event opens the existing event workflow.
+- The complete `test-regressions.ps1` gate passed, including every JavaScript contract, release verification, all 15 site pages and infrastructure syntax.
+- Both Profile browser gates passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. They verify layout, overflow, author identity, edge media, tabs, composer, counters, touch targets, nested replies and functional Like/comment/reply/share/post actions.
+- Builder-inspected evidence is in `docs/screenshots/pwa-v795-profile-interactions/`.
+- Installed delivery advances to `danzstak-shell-v795`, Profile CSS `v397`, Profile JavaScript `v487`, Profile interaction CSS/JavaScript `v1` and Profile share integration `v422`.
+- CI, merge, Amplify deployment, production asset probes, live browser tests and a clean PWA install remain open release gates. The owner's physical installed-phone observation is not claimed.

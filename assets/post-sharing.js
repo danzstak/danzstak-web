@@ -91,7 +91,7 @@
     copy.addEventListener('click', async () => { let timer; copy.disabled = true; try { await Promise.race([navigator.clipboard.writeText(url.href),new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Clipboard unavailable')),3000); })]); feedback.textContent = 'Link copied.'; } catch { link.focus(); link.select(); feedback.textContent = 'Select and copy the post link.'; } finally { clearTimeout(timer); copy.disabled = false; } });
     const close = document.createElement('button'); close.type = 'button'; close.textContent = 'Close'; close.addEventListener('click', () => dialog.close());
     const actions = document.createElement('div'); actions.className = 'post-share-actions'; actions.append(copy,close);
-    dialog.append(title,note,comment,destinationLabel,audienceLabel,publish,feedback,link,actions); dialog.onclose = () => post.querySelector('.shareBtn')?.focus(); dialog.showModal();
+    dialog.append(title,note,comment,destinationLabel,audienceLabel,publish,feedback,link,actions); dialog.onclose = () => post.querySelector('.shareBtn,.profile-post-share')?.focus(); dialog.showModal();
     feedback.textContent = 'Loading your Tribes…';
     try {
       const tribes = await joinedTribes();

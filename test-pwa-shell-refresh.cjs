@@ -70,9 +70,11 @@ for (const [file, expected] of [
   ["messages.html", "assets/chat.css?v=459"],
   ["messages.html", "assets/direct-messages.js?v=496"],
   ["profile.html", "assets/profile-sharing.js?v=416"],
-  ["profile.html", "assets/profile-editor.js?v=486"],
+  ["profile.html", "assets/profile-interactions.css?v=1"],
+  ["profile.html", "assets/profile-interactions.js?v=1"],
+  ["profile.html", "assets/profile-editor.js?v=487"],
   ["booking.html", "assets/booking-agent.js?v=488"],
-  ["profile.html", "assets/post-sharing.js?v=421"],
+  ["profile.html", "assets/post-sharing.js?v=422"],
   ["profile.html", "assets/profile.js?v=420"]
 ]) {
   assert.ok(read(file).includes(expected), `${file} must reference ${expected}`);

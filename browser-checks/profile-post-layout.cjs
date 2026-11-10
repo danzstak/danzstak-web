@@ -6,7 +6,7 @@ const path = require("node:path");
 const { chromium } = require("playwright");
 
 const origin = process.env.DANZSTAK_PROFILE_ORIGIN || "http://127.0.0.1:8024";
-const output = path.resolve(process.env.DANZSTAK_VISUAL_OUTPUT || "docs/screenshots/pwa-v794-profile-post-contract");
+const output = path.resolve(process.env.DANZSTAK_VISUAL_OUTPUT || "docs/screenshots/pwa-v795-profile-interactions");
 const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
 const ownerId = "11111111-1111-4111-8111-111111111111";
 const firstPostId = "33333333-3333-4333-8333-333333333333";

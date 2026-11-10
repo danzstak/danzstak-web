@@ -14,14 +14,16 @@ function requested(hash) {
   return context.requestedProfileTab();
 }
 
-assert.equal(requested('#friends'), 'Friends');
-assert.equal(requested('#media'), 'Media');
+assert.equal(requested('#photos'), 'Photos');
+assert.equal(requested('#videos'), 'Videos');
+assert.equal(requested('#friends'), 'More', 'legacy Friends links open the familiar More menu');
+assert.equal(requested('#media'), 'More', 'legacy Media links open the familiar More menu');
 assert.equal(requested('#about'), 'About');
 assert.equal(requested('#profileMain'), 'Posts', 'non-tab anchors safely fall back to Posts');
 assert.equal(requested(''), 'Posts', 'fresh profiles retain the Posts default');
-assert.match(source, /history\?\.replaceState\?\.\(null, "", "#" \+ name\.toLowerCase\(\)\)/,
+assert.match(source, /history\?\.replaceState\?\.\(null, "", "#" \+ \(requestedMoreSection \|\| name\)\.toLowerCase\(\)\)/,
   'selecting a profile tab updates its bookmarkable URL');
-assert.match(source, /requested === "Memories" && profile\.isOwner !== true \? "Posts" : requested/,
+assert.match(source, /requested === "More" && requestedProfileMoreSection\(\) === "Memories" && profile\.isOwner !== true\) target = "Posts"/,
   'another member cannot deep-link into private Memories');
 
-console.log('Profile tab-route checks passed: sections are bookmarkable and private Memories remain protected.');
+console.log('Profile tab-route checks passed: the five profile tabs are bookmarkable, legacy links resolve through More, and private Memories remain protected.');

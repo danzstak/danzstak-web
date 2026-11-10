@@ -1,0 +1,118 @@
+/* Profile interaction contract: familiar social geometry with DanzStak branding.
+   This file is profile-scoped so Mix keeps its own approved layout. */
+.profile-page .profile-tabs{
+  display:flex;align-items:stretch;gap:0;width:100%;height:44px;margin:18px 0 0;padding:0;
+  overflow-x:auto;border-top:1px solid #ced0d4;border-bottom:1px solid #ced0d4;background:#fff;
+  overscroll-behavior-inline:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch
+}
+.profile-page .profile-tabs::-webkit-scrollbar{display:none}
+.profile-page .profile-tabs button{
+  position:relative;flex:1 0 64px;min-width:64px;min-height:44px;padding:0 10px;border:0;border-radius:0;
+  background:#fff;color:#65676b;font:inherit;font-size:14px;font-weight:750;white-space:nowrap;cursor:pointer
+}
+.profile-page .profile-tabs button::after{content:"";position:absolute;right:8px;bottom:0;left:8px;height:3px;border-radius:3px 3px 0 0;background:transparent}
+.profile-page .profile-tabs button.active{background:#fff;color:#1769e0}
+.profile-page .profile-tabs button.active::after{background:#ef6c20}
+.profile-page .profile-tabs button:focus-visible{z-index:1;outline:3px solid #ff9b32;outline-offset:-3px}
+.profile-page .profile-tab-message{padding:0;color:#65676b}
+
+.profile-page .profile-wall-composer{
+  width:min(100%,500px);margin:8px auto;padding:12px;border:0;border-radius:0;background:#fff!important;box-shadow:none
+}
+.profile-page .profile-create-row{display:flex;align-items:center;gap:10px;min-height:36px}
+.profile-page :is(.profile-create-avatar,.profile-comment-viewer-avatar){
+  width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;border-radius:50%;object-fit:cover;
+  overflow:hidden;background:#1769e0;color:#fff;font-weight:850
+}
+.profile-page .profile-create-opener{
+  min-width:0;min-height:36px!important;height:36px;flex:1;padding:0 14px;border:0;border-radius:20px;background:#f0f2f5;color:#1c1e21;
+  font:inherit;font-size:15px;text-align:left;cursor:pointer
+}
+.profile-page .profile-create-opener:hover{background:#e4e6eb}
+.profile-page .profile-create-opener:focus-visible{outline:3px solid #ff9b32;outline-offset:2px}
+.profile-page .profile-create-shortcuts{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));height:40px;margin-top:12px;border-top:1px solid #ced0d4
+}
+.profile-page .profile-create-shortcut{
+  display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:40px;padding:0 5px;border:0;
+  background:#fff;color:#344054;font:inherit;font-size:12px;font-weight:700;text-decoration:none;cursor:pointer
+}
+.profile-page .profile-create-shortcut:hover{background:#f0f2f5}
+.profile-page .profile-create-shortcut:focus-visible{outline:3px solid #ff9b32;outline-offset:-3px}
+.profile-page .profile-create-shortcut>span:first-child{color:#1769e0;font-size:17px}
+.profile-page .profile-create-form{display:grid;gap:10px;margin-top:10px}
+.profile-page .profile-create-form textarea{
+  width:100%;min-height:96px;margin:0;padding:11px 12px;border:1px solid #ced0d4;border-radius:12px;background:#fff;
+  color:#050505;font:inherit;font-size:15px;line-height:1.4;resize:vertical
+}
+.profile-page .profile-create-form select{min-height:40px;padding:7px 10px;border:1px solid #ced0d4;border-radius:8px;background:#fff;font:inherit}
+.profile-page .profile-create-preview{display:grid;gap:8px}
+.profile-page .profile-create-preview :is(img,video){display:block;width:100%;max-height:420px;object-fit:contain;background:#0c111b}
+.profile-page .profile-create-form-actions{display:flex;justify-content:flex-end;gap:8px}
+.profile-page .profile-create-form-actions>*{min-height:44px}
+.profile-page .profile-create-status{min-height:18px;margin:0!important;font-size:13px}
+
+.profile-page .profile-post-engagement{margin-top:0;color:#65676b}
+.profile-page .profile-post-counters{
+  display:flex;align-items:center;justify-content:space-between;height:32px;min-height:32px;box-sizing:border-box;border-bottom:1px solid #ced0d4;font-size:13px
+}
+.profile-page .profile-post-reaction-count{color:#1769e0;font-weight:700}
+.profile-page .profile-post-comment-count{min-height:32px;padding:0;border:0;background:transparent;color:#65676b;font:inherit;cursor:pointer}
+.profile-page .profile-post-comment-count:hover{text-decoration:underline}
+.profile-page .profile-post-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));height:44px}
+.profile-page .profile-post-actions button{
+  min-width:0;min-height:44px;padding:0 4px;border:0;background:#fff;color:#65676b;font:inherit;font-size:14px;font-weight:750;cursor:pointer
+}
+.profile-page .profile-post-actions button:hover{background:#f0f2f5}
+.profile-page .profile-post-actions button:focus-visible{outline:3px solid #ff9b32;outline-offset:-3px}
+.profile-page .profile-post-actions button.is-active{color:#1769e0}
+.profile-page .profile-post-like::before{content:"👍";margin-right:6px;font-size:15px}
+.profile-page .profile-post-comment::before{content:"💬";margin-right:6px;font-size:15px}
+.profile-page .profile-post-share::before{content:"↗";margin-right:6px;color:#1769e0;font-size:18px;font-weight:900}
+.profile-page .profile-comments{padding-top:8px;border-top:1px solid #ced0d4}
+.profile-page .profile-comment-list{display:grid;gap:8px}
+.profile-page .profile-comment{display:grid;grid-template-columns:32px minmax(0,1fr);align-items:start;gap:8px;min-width:0}
+.profile-page .profile-comment-reply{grid-template-columns:24px minmax(0,1fr);margin-left:40px}
+.profile-page .profile-comment-avatar{display:grid;place-items:center;overflow:hidden;border-radius:50%;background:#1769e0;color:#fff;font-size:12px;font-weight:850;text-decoration:none}
+.profile-page .profile-comment-avatar-standard{width:32px;height:32px}
+.profile-page .profile-comment-avatar-reply{width:24px;height:24px}
+.profile-page .profile-comment-avatar img{width:100%;height:100%;object-fit:cover}
+.profile-page .profile-comment-content-wrap{min-width:0}
+.profile-page .profile-comment-bubble{display:inline-block;max-width:100%;padding:12px;border-radius:18px;background:#f0f2f5;color:#050505;overflow-wrap:anywhere}
+.profile-page .profile-comment-author{display:block;color:#050505;font-size:13px;font-weight:750;text-decoration:none}
+.profile-page .profile-comment-bubble p{margin:2px 0 0!important;font-size:14px;line-height:1.35;white-space:pre-wrap}
+.profile-page .profile-comment-actions{display:flex;align-items:center;gap:10px;min-height:24px;padding:4px 4px 0;font-size:12px}
+.profile-page .profile-comment-actions button{min-height:24px;padding:0;border:0;background:transparent;color:#65676b;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+.profile-page .profile-comment-actions button:is(:hover,:focus-visible){color:#1769e0;text-decoration:underline}
+.profile-page .profile-comment-actions button.is-active{color:#1769e0}
+.profile-page .profile-comment-delete{margin-left:auto!important}
+.profile-page .profile-comment-reaction-count{margin-left:auto;color:#1769e0}
+.profile-page .profile-comment-replying{margin:8px 44px 2px!important;color:#65676b;font-size:12px}
+.profile-page .profile-comment-composer{display:flex;align-items:center;gap:8px;margin-top:8px}
+.profile-page .profile-comment-input{min-width:0;min-height:36px;flex:1;padding:7px 12px;border:0;border-radius:18px;background:#f0f2f5;color:#050505;font:inherit;font-size:14px}
+.profile-page .profile-comment-input:focus{outline:3px solid #1769e030}
+.profile-page .profile-comment-send{min-width:44px;min-height:36px;padding:0 9px;border:0;border-radius:18px;background:#1769e0;color:#fff;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.profile-page .profile-comment-send:disabled{opacity:.55}
+
+.profile-page .profile-more-navigation{display:flex;gap:8px;max-width:500px;margin:8px auto;overflow-x:auto;scrollbar-width:none}
+.profile-page .profile-more-navigation::-webkit-scrollbar{display:none}
+.profile-page .profile-more-navigation button{flex:0 0 auto;min-height:44px}
+.profile-page .profile-more-navigation button.active{border-color:#1769e0;background:#e7f3ff;color:#1769e0}
+.profile-page .profile-more-note{max-width:500px;margin:8px auto!important}
+
+@media(max-width:560px){
+  .profile-page .profile-tabs{margin-inline:calc(-16px);width:calc(100% + 32px)}
+  .profile-page .profile-tabs button{flex:1 1 20%;min-width:0;padding-inline:2px;font-size:13px}
+  .profile-page .profile-wall-composer{width:auto;margin:8px calc(-16px - 6px);padding:12px 16px}
+  .profile-page .profile-post-engagement{margin-right:-16px;margin-left:-16px}
+  .profile-page .profile-post-counters{padding:0 16px}
+  .profile-page .profile-comments{padding-right:16px;padding-left:16px}
+  .profile-page .profile-more-navigation,.profile-page .profile-more-note{margin-right:calc(-16px - 6px)!important;margin-left:calc(-16px - 6px)!important;padding-right:16px;padding-left:16px}
+  .profile-page .profile-more-navigation{background:#fff}
+  .profile-page .profile-post-tools{margin-right:-16px;margin-left:-16px;padding-right:16px;padding-left:16px}
+}
+
+@media(max-width:350px){
+  .profile-page .profile-tabs button{font-size:12px;letter-spacing:-.02em}
+  .profile-page .profile-create-shortcut{gap:3px;padding-inline:2px;font-size:11px}
+}
