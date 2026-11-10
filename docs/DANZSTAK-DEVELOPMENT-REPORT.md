@@ -1,5 +1,15 @@
 # DANZSTAK development report
 
+## Production post-deletion backend correction — 2026-11-10
+
+Status: **IMPLEMENTED AND FULLY TESTED LOCALLY; AWS POLICY DEPLOYMENT AND SIGNED-IN PRODUCTION RETEST PENDING.**
+
+- **PRODUCTION DEFECT:** A creator could open the visible deletion flow in PWA v801, but the real `DELETE /secure-posts/{postId}` request returned HTTP 500 and the interface displayed **Authentication service error**.
+- **ROOT CAUSE:** Creator deletion queries and removes that post's daily view-deduplication records before removing the source post. `DanzStakPostViews` granted only `GetItem` and `PutItem`; it omitted the `Query` and `DeleteItem` actions used by the deletion implementation. The Lambda's catch-all response then mislabeled this storage-permission exception as an authentication failure. The earlier isolated browser fixture intercepted the API and therefore could not exercise this production IAM boundary.
+- **CORRECTION:** The reviewed PostViews policy now grants only the two additional actions required for creator deletion: `dynamodb:Query` and `dynamodb:DeleteItem` on the dedicated PostViews table. Post-delete server exceptions now return a deletion-specific retry message rather than an authentication diagnosis.
+- **REGRESSION COVERAGE:** Infrastructure validation now fails unless the PostViews policy contains the exact Get/Put/Query/Delete permission set. The post-deletion test also requires route-specific error wording, while preserving author checks, profile removal, dependency cleanup, retry ordering and media ownership tests.
+- **TESTS:** Focused post-deletion and infrastructure checks pass. The complete `test-regressions.ps1` gate finished with `All local DanzStak regression checks passed.` No frontend layout, service-worker cache, Stripe, SES, support-mail, EPK, Booking/Tour, SYNC or marketplace behavior changed.
+
 ## PWA v801 — visible owner post deletion — 2026-11-10
 
 Status: **DEPLOYED; FUNCTIONAL, VISUAL, INTEGRATION, FULL REGRESSION AND PUBLIC-PWA TESTS PASS.**

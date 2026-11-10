@@ -120,8 +120,8 @@ $engagementTemplate = Get-Content -LiteralPath $engagementTemplatePath -Raw -Enc
 foreach ($required in @('DANZSTAK-Reactions', 'DANZSTAK-Comments', 'DANZSTAK-EngagementNotifications', 'GET /engagement', 'POST /reactions', 'POST /comments', 'DELETE /comments/{commentId}', 'GET /engagement-notifications', 'POST /engagement-notifications/read', 'DeletionPolicy: Retain', 'dynamodb:UpdateItem')) {
   if (-not $engagementTemplate.Contains($required)) { throw "Engagement infrastructure is missing: $required" }
 }
-if ($engagementTemplate -notmatch 'Action: \[dynamodb:GetItem, dynamodb:PutItem\]\s+Resource: !GetAtt PostViewsTable\.Arn') {
-  throw 'Post-view duplicate detection lacks GetItem permission on PostViewsTable.'
+if ($engagementTemplate -notmatch 'Action: \[dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:Query\]\s+Resource: !GetAtt PostViewsTable\.Arn') {
+  throw 'Post-view storage lacks the Get/Put permissions for counting or the Query/Delete permissions required for creator post deletion.'
 }
 
 $publisherPath = Join-Path $PSScriptRoot 'aws-publish-site.ps1'
