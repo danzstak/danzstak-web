@@ -17,6 +17,7 @@ assert.match(recoveryDeploySource,/GET \/auth\/login[\s\S]+get-integration[\s\S]
 assert.match(recoveryDeploySource,/update-function-code/,'the scoped auth release must publish the reviewed Lambda bundle');
 assert.match(recoveryDeploySource,/GET \/auth\/reset-password/,'the scoped auth release must publish the password-recovery route');
 assert.match(recoveryDeploySource,/RollbackBundle[\s\S]+update-function-code/,'the scoped auth release must preserve a rollback path');
+assert.match(recoveryDeploySource,/Add-Type -AssemblyName System\.Net\.Http[\s\S]+HttpClientHandler/,'the scoped auth release must load its HTTP client assembly before live redirect verification');
 assert.doesNotMatch(recoveryDeploySource,/update-function-configuration|put-role-policy|\bsesv2\b|\bsns\b|\bdynamodb\b|secretsmanager/i,'the scoped auth release must not reconfigure IAM, SES, SNS, DynamoDB, Stripe secrets, or Lambda environment settings');
 assert.match(source,/redirect\(siteUrl \+ "\/\?signin=failed", \[expiredBrowserCookie\]\)/,'credential and token failures must return to the DanzStak login screen');
 assert.match(source,/path === "\/auth\/callback"[\s\S]{0,180}signin=unavailable/,'unexpected callback failures must return to DanzStak instead of a white API error page');
