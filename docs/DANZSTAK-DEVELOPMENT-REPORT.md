@@ -4,7 +4,7 @@
 
 Status: **IMPLEMENTED AND FULLY TESTED LOCALLY; NOT DEPLOYED. AWS RESOURCE CREATED, BUT REAL SMS REMAINS DISABLED BECAUSE AWS REJECTED ACTIVATION PENDING SUPPORT REVIEW.**
 
-- **IMPLEMENTATION COMMIT:** `987b8abd81a9fe54ac95871b9be2c6757fac41d9` on `codex/sync-phone-device-setup` (application code preceding this AWS status report).
+- **IMPLEMENTATION COMMIT:** `9872a8a5c40c4c15fc61e11d1b28181376f6597c` on `codex/sync-phone-device-setup`.
 - **OWNER CLARIFICATION:** A phone number may be skipped during signup and remains optional. Every browser, installed PWA, phone, tablet or computer must nevertheless register its own DanzStak installation credential before it can use SYNC.
 - **WINDOW:** An unregistered installation opens a non-dismissible **Register this device to use SYNC** gate before conversations, contacts, presence or calls load. After registration, the same responsive panel exposes the two optional number paths: **Use my mobile number** and **Use a DanzStak SYNC number**. SYNC no longer shows a misleading **Skip number for now** action because the mandatory step is device registration, not number collection.
 - **PERSONAL NUMBER PRIVACY:** The form supplies a locally rendered country/calling-code list and a six-digit SMS challenge. Pending destinations are KMS-encrypted, codes are salted and hashed, challenges expire after ten minutes, resends have a 60-second cooldown, and sending/attempts are capped. A verified number is retained only as a salted hash plus its masked display value and country; it is never exposed on profiles or returned in plaintext.
