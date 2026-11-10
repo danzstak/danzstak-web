@@ -2,7 +2,7 @@
 
 ## PWA v798 — device Back exits The Roll fullscreen — 2026-11-10
 
-Status: **IMPLEMENTED AND REAL-BROWSER VERIFIED LOCALLY; NOT DEPLOYED.**
+Status: **DEPLOYED; REAL-BROWSER VERIFIED LOCALLY AND PUBLIC PWA DELIVERY VERIFIED.**
 
 - **ROOT CAUSE:** The Roll created a browser-history entry only below the 700px phone breakpoint. A tablet, desktop browser Back control, or device layout above that breakpoint could therefore leave Mix instead of dismissing the fullscreen viewer.
 - **CORRECTION:** Opening The Roll now adds one privacy-safe boolean history marker on every viewport. Android/iPhone system Back and browser Back close fullscreen, stop the media session, restore the exact Mix URL and scroll position, and leave the member on the page they were using. Forward restores fullscreen without creating a history loop. Close and Escape use the same history-safe exit.
@@ -10,6 +10,7 @@ Status: **IMPLEMENTED AND REAL-BROWSER VERIFIED LOCALLY; NOT DEPLOYED.**
 - **BROWSER EVIDENCE:** `browser-checks/roll-launcher-pointer.cjs` exercised open → Back → same-page/position restoration → Forward → Close in Edge at 320×568, 360×780, 375×812, 390×844, 414×896, 430×932, and 1366×900. The builder inspected the 390px and 1366px captures in `docs/screenshots/roll-launcher-pointer/`.
 - **REGRESSION EVIDENCE:** Roll history, single-audible-video arbitration, 60%-visibility media coordination, source syntax, and whitespace checks pass. `test-regressions.ps1` completed successfully with `All local DanzStak regression checks passed.`
 - **PWA DELIVERY:** The reviewed frontend advances to `assets/feed-enhancements.js?v=546` and installed shell `danzstak-shell-v798`. Authentication, EPK, Booking/Tour, SYNC messages/calls, Stripe, marketplace settlement, SES, and AWS backend behavior are unchanged.
+- **DEPLOYMENT:** PR #243 merged to `main` as `62cb16bde432c2f6c0917e069da90d9a573b72e9`. The public `https://danzstak.com/service-worker.js` serves `danzstak-shell-v798`, and the public Mix loads `feed-enhancements.js?v=546` with the all-device history entry and Back exit. Signed-in interaction remains covered by the real-browser fixture matrix above; no owner credentials were used for production automation.
 
 ## PWA v796 — Official Shop and DanzStak Bazaar — 2026-11-10
 
