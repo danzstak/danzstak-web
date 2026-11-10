@@ -31,7 +31,7 @@ const assetBase = String(process.env.DANZSTAK_MEDIA_ASSET_BASE || "").replace(/\
     console.log("Browser playback: shell loaded");
     await page.addScriptTag(assetBase ? { url: `${assetBase}/assets/icon-buttons.js?v=7` } : { path: path.join(root, "assets", "icon-buttons.js") });
     console.log("Browser playback: icons loaded");
-    await page.addStyleTag(assetBase ? { url: `${assetBase}/assets/responsive-media.css?v=7` } : { path: path.join(root, "assets", "responsive-media.css") });
+    await page.addStyleTag(assetBase ? { url: `${assetBase}/assets/responsive-media.css?v=8` } : { path: path.join(root, "assets", "responsive-media.css") });
     await page.addScriptTag(assetBase ? { url: `${assetBase}/assets/media-visibility.js?v=390` } : { path: path.join(root, "assets", "media-visibility.js") });
     console.log("Browser playback: coordinator loaded");
 
