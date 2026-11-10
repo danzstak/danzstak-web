@@ -3225,7 +3225,7 @@ function addPostDeleteButton(post) {
   const optionIcons = {
     "Pin post": "⌖", "Save post": "♡", "View edit history": "↶", "Edit post": "✎",
     "Who can comment?": "◯", "Edit privacy": "◉", "Move to archive": "▰",
-    "Move to trash": "🗑️", "Delete post": "🗑️", "Turn off notifications": "♧", "Copy link": "⧉"
+    "Move to trash": "🗑️", "Delete post": "🗑️", "Remove from My Mix": "🗑️", "Turn off notifications": "♧", "Copy link": "⧉"
   };
 
   function option(title, description, handler) {
@@ -3242,7 +3242,7 @@ function addPostDeleteButton(post) {
     const copy = document.createElement("span");
     copy.className = "post-option-copy";
     const strong = document.createElement("strong");
-    strong.textContent = title === "Delete post" ? "🗑️" : title;
+    strong.textContent = title;
     copy.appendChild(strong);
     if (description) {
       const small = document.createElement("small");
@@ -3416,7 +3416,8 @@ function addPostDeleteButton(post) {
       showAppFeedback(`Post privacy changed to ${values[next]}.`);
     });
     option("Move to archive", "Hide this post from your account.", () => hidePostForAccount(post));
-  option("Delete post", "Permanently remove your post, or hide another member's post from Your Mix.", async () => {
+  const deleteTitle = owner ? "Delete post" : "Remove from My Mix";
+  option(deleteTitle, owner ? "Choose whether to remove this placement or delete your post everywhere." : "Hide this member's post from Your Mix.", async () => {
     const postId = post.dataset.postId;
     if (post.dataset.isOwner !== "true") {
       if (await window.danzstakConfirm("You did not create this post. It will only be removed from Your Mix.", { title: "Remove this post from Your Mix?", confirmLabel: "Remove from My Mix", danger: true })) await removePostFromThisFeed();
