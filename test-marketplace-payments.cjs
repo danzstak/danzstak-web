@@ -66,10 +66,11 @@ const { createHmac } = require("node:crypto");
     async retrieveAccount() { return { id:"acct_test_seller", details_submitted:true, payouts_enabled:true, capabilities:{transfers:"active"} }; },
     async createAccountLink() { return { url:"https://connect.stripe.com/test/onboarding" }; },
     async createCheckoutSession(order) { return { id:"cs_test_marketplace", url:"https://checkout.stripe.com/c/pay/test" , order}; },
-    async retrieveCheckoutSession() { return { id:"cs_test_marketplace", livemode:false, payment_status:"paid", amount_total:3000, currency:"usd", payment_intent:"pi_test_marketplace", metadata:{orderId:activeOrderId}, collected_information:{shipping_details:{name:"Test Buyer",address:{line1:"1 Test Way",city:"Seattle",state:"WA",postal_code:"98101",country:"US"}}} }; },
+    async retrieveCheckoutSession() { return { id:"cs_test_marketplace", livemode:false, payment_status:"paid", amount_total:3000, currency:"usd", payment_intent:"pi_test_marketplace", customer:"cus_test_buyer", metadata:{orderId:activeOrderId}, collected_information:{shipping_details:{name:"Test Buyer",address:{line1:"1 Test Way",city:"Seattle",state:"WA",postal_code:"98101",country:"US"}}} }; },
     async retrievePaymentIntent() { return { id:"pi_test_marketplace", status:"succeeded", amount_received:3000, latest_charge:"ch_test_marketplace" }; },
     async createTransfer(order, destination, charge) { transferRequest={order,destination,charge}; return {id:"tr_test_marketplace"}; },
-    async createRefund(order) { refundRequest=order; return {id:"re_test_marketplace",status:"succeeded"}; }
+    async createRefund(order) { refundRequest=order; return {id:"re_test_marketplace",status:"succeeded"}; },
+    async createPortalSession(customerId) { assert.equal(customerId,"cus_test_buyer"); return {url:"https://billing.stripe.com/p/session/test"}; }
   };
   const corsHeaders = origin => origin === "https://danzstak.com" ? {"access-control-allow-origin":origin} : {};
   const service = createMarketplacePayments({ db, commands, authenticate:async()=>signedIn, corsHeaders, tableName:"Marketplace", stripe, env:{STRIPE_MARKETPLACE_WEBHOOK_SECRET:"whsec_test_marketplace"}, clock:()=>Date.parse(now) });
@@ -102,6 +103,9 @@ const { createHmac } = require("node:crypto");
   const handled = await service(webhook);
   assert.equal(handled.statusCode, 200);
   assert.equal(records.get(`ORDER#${activeOrderId}|META`).status.S, "paid_held");
+  assert.equal(records.get(`BILLING#${buyerId}|STRIPE_CUSTOMER`).stripeCustomerId.S, "cus_test_buyer");
+  const portal = bodyOf(await service(event("POST", "/billing/portal", {})));
+  assert.match(portal.portalUrl, /^https:\/\/billing\.stripe\.com\//, "buyer can open the Test Mode Customer Portal");
   const duplicate = await service(webhook); assert.equal(bodyOf(duplicate).duplicate, true, "duplicate webhook is idempotent");
 
   signedIn = sellerId;

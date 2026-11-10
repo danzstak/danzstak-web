@@ -318,6 +318,11 @@ try {
       if ($LASTEXITCODE -ne 0) { throw "Tour plans API route $routeKey creation failed." }
     }
   }
+  $billingPortalRoute = ($routes.Items | Where-Object { $_.RouteKey -eq "POST /billing/portal" } | Select-Object -First 1).RouteId
+  if ([string]::IsNullOrWhiteSpace([string]$billingPortalRoute)) {
+    aws apigatewayv2 create-route --region $Region --api-id $ApiId --route-key "POST /billing/portal" --target "integrations/$AuthIntegrationId" --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Billing portal API route creation failed." }
+  }
   foreach ($obsoleteRouteKey in @("GET /auth/mobile-login", "POST /auth/mobile-session")) {
     $obsoleteRouteId = ($routes.Items | Where-Object { $_.RouteKey -eq $obsoleteRouteKey } | Select-Object -First 1).RouteId
     if (-not [string]::IsNullOrWhiteSpace([string]$obsoleteRouteId)) {

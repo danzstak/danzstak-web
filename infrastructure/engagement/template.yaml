@@ -370,6 +370,9 @@ Resources:
   MarketplaceCheckoutRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/checkout', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  BillingPortalRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /billing/portal', Target: !Sub 'integrations/${AuthIntegrationId}'}
   MarketplaceStripeWebhookRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /marketplace/stripe/webhook', Target: !Sub 'integrations/${AuthIntegrationId}'}

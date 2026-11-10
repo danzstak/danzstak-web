@@ -69,6 +69,15 @@
     } catch (error) { checkoutStatus.textContent = error.message; button.disabled = false; }
   });
 
+  byId("managePayments").addEventListener("click", async () => {
+    const button = byId("managePayments"); button.disabled = true; checkoutStatus.textContent = "Opening secure Stripe Test Mode payment management…";
+    try {
+      const data = await api("/billing/portal", { method:"POST", body:"{}" });
+      if (!/^https:\/\/billing\.stripe\.com\//.test(data.portalUrl || "")) throw new Error("Stripe did not return a secure payment-management link.");
+      location.assign(data.portalUrl);
+    } catch (error) { checkoutStatus.textContent = error.message; button.disabled = false; }
+  });
+
   load();
   loadOrder();
 })();

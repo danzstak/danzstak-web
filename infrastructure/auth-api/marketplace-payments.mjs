@@ -37,6 +37,7 @@ function productKey(ownerId, productId) { return { pk: { S: `SHOP#${ownerId}` },
 function bazaarKey(productId) { return { pk: { S: "BAZAAR" }, sk: { S: `PRODUCT#${productId}` } }; }
 function connectKey(ownerId) { return { pk: { S: `SHOP#${ownerId}` }, sk: { S: "STRIPE_CONNECT" } }; }
 function orderKey(orderId) { return { pk: { S: `ORDER#${orderId}` }, sk: { S: "META" } }; }
+function billingKey(memberId) { return { pk: { S: `BILLING#${memberId}` }, sk: { S: "STRIPE_CUSTOMER" } }; }
 function sellerOrdersKey(sellerId, createdAt, orderId) { return { pk: { S: `SELLER#${sellerId}` }, sk: { S: `ORDER#${createdAt}#${orderId}` } }; }
 function buyerOrdersKey(buyerId, createdAt, orderId) { return { pk: { S: `BUYER#${buyerId}` }, sk: { S: `ORDER#${createdAt}#${orderId}` } }; }
 function webhookKey(eventId) { return { pk: { S: `STRIPE_EVENT#${eventId}` }, sk: { S: "MARKETPLACE" } }; }
@@ -144,7 +145,7 @@ export function createStripeClient({ env = process.env, fetchImpl = fetch }) {
     },
     createCheckoutSession(order, product) {
       const params = {
-        mode: "payment", "payment_method_types[0]": "card", client_reference_id: order.buyerId,
+        mode: "payment", customer_creation: "always", "payment_method_types[0]": "card", client_reference_id: order.buyerId,
         expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
         "shipping_address_collection[allowed_countries][0]": "US",
         success_url: `https://danzstak.com/product.html?id=${encodeURIComponent(order.productId)}&order=${encodeURIComponent(order.id)}&checkout=success`,
@@ -174,6 +175,11 @@ export function createStripeClient({ env = process.env, fetchImpl = fetch }) {
     createRefund(order) {
       return request("/v1/refunds", { method: "POST", idempotencyKey: `marketplace-refund-${order.id}`, params: {
         payment_intent: order.paymentIntentId, reason: "requested_by_customer", "metadata[orderId]": order.id
+      } });
+    },
+    createPortalSession(customerId) {
+      return request("/v1/billing_portal/sessions", { method: "POST", params: {
+        customer: customerId, return_url: "https://danzstak.com/product.html"
       } });
     }
   };
@@ -379,6 +385,17 @@ export function createMarketplacePayments({ db, commands, authenticate, corsHead
     return response(200, { role, orders }, access.headers);
   }
 
+  async function customerPortal(event) {
+    const access = await requireMember(event); if (access.error) return access.error;
+    const billing = await get(billingKey(access.id)), customerId = string(billing, "stripeCustomerId");
+    if (!/^cus_/.test(customerId)) return response(409, { error: "Complete a DANZSTAK Test Mode purchase before opening payment management." }, access.headers);
+    try {
+      const session = await stripeClient.createPortalSession(customerId);
+      if (!/^https:\/\/billing\.stripe\.com\//.test(session.url || "")) throw new Error("Stripe did not return a secure Customer Portal link.");
+      return response(200, { portalUrl: session.url, mode: "test" }, access.headers);
+    } catch (error) { return response(502, { error: error.message || "Payment management is temporarily unavailable." }, access.headers); }
+  }
+
   async function shipOrder(event, orderId) {
     const access = await requireMember(event); if (access.error) return access.error;
     const item = await get(orderKey(orderId));
@@ -442,6 +459,8 @@ export function createMarketplacePayments({ db, commands, authenticate, corsHead
     if (string(item, "status") !== "checkout_pending") throw new Error("Order is not awaiting payment");
     const session = await stripeClient.retrieveCheckoutSession(sessionId);
     if (session.livemode || session.payment_status !== "paid" || Number(session.amount_total) !== number(item, "totalCents") || session.currency !== "usd" || session.metadata?.orderId !== orderId) throw new Error("Server-side payment verification failed");
+    const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+    if (!/^cus_/.test(customerId || "")) throw new Error("Checkout customer verification failed");
     const intent = await stripeClient.retrievePaymentIntent(session.payment_intent);
     const chargeId = typeof intent.latest_charge === "string" ? intent.latest_charge : intent.latest_charge?.id;
     if (!/^pi_/.test(intent.id || "") || !/^ch_/.test(chargeId || "") || intent.status !== "succeeded" || Number(intent.amount_received) !== number(item, "totalCents")) throw new Error("Payment Intent verification failed");
@@ -458,6 +477,7 @@ export function createMarketplacePayments({ db, commands, authenticate, corsHead
       country: String(address.country || "").slice(0, 2)
     };
     item = { ...item, status: { S: "paid_held" }, paymentIntentId: { S: intent.id }, chargeId: { S: chargeId }, shippingAddress: { S: JSON.stringify(shippingAddress) }, paidAt: { S: nowIso() }, updatedAt: { S: nowIso() } };
+    await put({ ...billingKey(string(item, "buyerId")), entityType: { S: "stripe_customer" }, memberId: { S: string(item, "buyerId") }, stripeCustomerId: { S: customerId }, updatedAt: { S: nowIso() } });
     await putOrder(item, "#status = :pending", { "#status": "status" }, { ":pending": { S: "checkout_pending" } });
   }
 
@@ -500,6 +520,7 @@ export function createMarketplacePayments({ db, commands, authenticate, corsHead
     if (method === "GET" && path === "/marketplace/seller/status") return sellerStatus(event);
     if (method === "POST" && path === "/marketplace/seller/onboarding") return sellerOnboarding(event);
     if (method === "POST" && path === "/marketplace/checkout") return checkout(event);
+    if (method === "POST" && path === "/billing/portal") return customerPortal(event);
     if (method === "GET" && path === "/marketplace/orders") return listOrders(event);
     const order = path.match(/^\/marketplace\/orders\/([a-f0-9-]{36})$/i);
     if (method === "GET" && order) return readOrder(event, order[1]);
@@ -513,4 +534,4 @@ export function createMarketplacePayments({ db, commands, authenticate, corsHead
   };
 }
 
-export { shopKey, productKey, bazaarKey, connectKey, orderKey, sellerOrdersKey, buyerOrdersKey, webhookKey, orderView, connectView };
+export { shopKey, productKey, bazaarKey, connectKey, orderKey, billingKey, sellerOrdersKey, buyerOrdersKey, webhookKey, orderView, connectView };

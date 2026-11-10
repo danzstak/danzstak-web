@@ -4969,7 +4969,7 @@ export const handler = async event => {
     }
     if (path?.startsWith("/marketplace/")) {
       if (method === "POST" && path === "/marketplace/stripe/webhook") await ensureMarketplaceStripeSecrets();
-      else if (["/marketplace/seller/status", "/marketplace/seller/onboarding", "/marketplace/checkout"].includes(path)) await ensureStripeSecrets();
+      else if (["/marketplace/seller/status", "/marketplace/seller/onboarding", "/marketplace/checkout", "/billing/portal"].includes(path)) await ensureStripeSecrets();
       const paymentsResponse = await marketplacePayments(event);
       if (paymentsResponse) return paymentsResponse;
       const ticketingResponse = await ticketing(event);
