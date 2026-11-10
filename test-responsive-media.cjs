@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const css = fs.readFileSync("assets/responsive-media.css", "utf8");
 const feedCss = fs.readFileSync("assets/feed-enhancements.css", "utf8");
 const script = fs.readFileSync("assets/responsive-media.js", "utf8");
+const visibilityScript = fs.readFileSync("assets/media-visibility.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 
 assert.match(css, /\.ds-responsive-media\{[\s\S]*width:100%;[\s\S]*max-width:100%;[\s\S]*margin:0/, "shared media must occupy its complete container without offsets");
@@ -38,13 +39,17 @@ assert.match(script, /shell\.style\.setProperty\("--ds-media-aspect"/, "intrinsi
 assert.match(script, /function classifyFrame\(frame\)/, "provider players must receive an appropriate default geometry");
 assert.match(script, /HTMLIFrameElement/, "third-party embeds must use the shared component without rewriting provider content");
 assert.match(script, /MutationObserver/, "dynamically loaded feed, Chat and Roll media must be enhanced consistently");
+assert.match(visibilityScript, /if\(element\.dataset\?\.videoLayout\)shell\.dataset\.videoLayout=element\.dataset\.videoLayout/,
+  "an already-classified imported video must pass its portrait layout to the audio wrapper");
+assert.match(visibilityScript, /const shell=video\.closest\?\.\('\.danzstak-media-shell'\);[\s\S]*shell\.dataset\.videoLayout=layout/,
+  "video metadata arriving after wrapping must also update the audio wrapper layout");
 
 for (const file of ["feed.html", "messages.html", "profile.html", "epk.html"]) {
   const html = fs.readFileSync(file, "utf8");
   assert.match(html, /assets\/responsive-media\.css\?v=6/, `${file} must load the shared responsive-media styles`);
   assert.match(html, /assets\/responsive-media\.js\?v=2/, `${file} must load the shared responsive-media behavior`);
 }
-assert.match(worker, /danzstak-shell-v791/);
+assert.match(worker, /danzstak-shell-v792/);
 assert.match(worker, /\/assets\/responsive-media\.js/);
 assert.match(worker, /\/assets\/responsive-media\.css/);
 

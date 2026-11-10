@@ -195,7 +195,7 @@ const json = (route, body) => route.fulfill({ status: 200, contentType: "applica
     assert.ok(composer.height >= 52, `${width}px composer is shorter than 52px`);
     assert.equal(composerState.paddingLeft, "12px");
     assert.equal(composerState.shellRadius, "24px");
-    assert.equal(composerState.inputSize, "15px");
+    assert.equal(composerState.inputSize, width < 700 ? "16px" : "15px");
     assert.ok(composerState.actions.every(rect => rect.width >= 44 && rect.height >= 44), `${width}px composer contains a small action`);
     assert.ok(composer && composer.y + composer.height <= (width < 700 ? 844 : 900), "fixed conversation composer must remain visible");
     if (screenshot) { fs.mkdirSync(path.dirname(screenshot), { recursive: true }); await page.screenshot({ path: screenshot }); }
