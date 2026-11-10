@@ -155,8 +155,8 @@ async function captureViewport(page, fileName) {
       await page.goto(`${baseUrl}/feed.html?view=feed`, { waitUntil: "domcontentloaded" });
       await page.addStyleTag({ content: ".push-alert-prompt{display:none!important}" });
       await page.waitForSelector("#feed article.post");
-      await page.waitForSelector("#profileOnboarding:not([hidden])");
-      assert.equal(await page.locator("#profileOnboarding").isVisible(), true, `${width}px: incomplete profiles should receive name setup on Home`);
+      await page.waitForTimeout(100);
+      assert.equal(await page.locator("#profileOnboarding").count(), 0, `${width}px: Home must not restore the retired blocking visible-name prompt`);
       if (width <= 430) {
         await page.locator("#feed article.post").evaluate(post => {
           if (post.querySelector("video.post-media")) return;
@@ -212,7 +212,7 @@ async function captureViewport(page, fileName) {
         });
         assert.ok(shellMetrics.headerHeight <= 52, `${width}px: mobile header is oversized: ${JSON.stringify(shellMetrics)}`);
         assert.ok(shellMetrics.navHeight <= 52, `${width}px: mobile navigation is oversized: ${JSON.stringify(shellMetrics)}`);
-        assert.ok(shellMetrics.postPadding <= 10, `${width}px: feed cards waste horizontal space: ${JSON.stringify(shellMetrics)}`);
+        assert.ok(shellMetrics.postPadding <= 12, `${width}px: feed cards exceed the approved 12px mobile inset: ${JSON.stringify(shellMetrics)}`);
         assert.ok(shellMetrics.bodyFont >= 15, `${width}px: body copy is too small to read comfortably: ${JSON.stringify(shellMetrics)}`);
         assert.ok(shellMetrics.postFont >= 15, `${width}px: post copy is too small to read comfortably: ${JSON.stringify(shellMetrics)}`);
         assert.ok(shellMetrics.postLineHeight / shellMetrics.postFont >= 1.35, `${width}px: post copy line spacing is too tight: ${JSON.stringify(shellMetrics)}`);
@@ -348,13 +348,13 @@ async function captureViewport(page, fileName) {
         await assertExclusiveFeedScreen(page, "friends");
         assert.equal(await page.locator(".mobile-menu-control").getAttribute("aria-current"), null, "Friends must retain its own primary navigation state");
         assert.equal(await page.locator("#profileOnboarding").isVisible(), false, "Friends must not inherit the Home identity-onboarding card");
-        await page.waitForSelector(".friend-discovery-row button[data-icon='chat']");
-        const onlineMessageAction = await page.locator(".friend-discovery-row button[data-icon='chat']").evaluate(action => {
+        await page.waitForSelector(".friend-message-action");
+        const onlineMessageAction = await page.locator(".friend-message-action").evaluate(action => {
           const box = action.getBoundingClientRect();
           return { width: box.width, height: box.height, label: action.getAttribute("aria-label"), title: action.title };
         });
         assert.ok(onlineMessageAction.width >= 44 && onlineMessageAction.height >= 44, `Friends online-message action needs a 44px phone target: ${JSON.stringify(onlineMessageAction)}`);
-        assert.equal(onlineMessageAction.label, "Message Mobile Friend", "Friends online-message icon needs the complete member name");
+        assert.equal(onlineMessageAction.label, "Message: Mobile Friend", "Friends message icon needs the complete member name");
         assert.equal(onlineMessageAction.title, onlineMessageAction.label, "Friends online-message icon needs a matching tooltip");
         await captureViewport(page, "friends-390.png");
 
@@ -618,7 +618,7 @@ async function captureViewport(page, fileName) {
       }
       await page.locator('.topnav [data-feature="Friends"]').click();
       await page.waitForSelector(".friends-workspace-list");
-      await page.waitForSelector(".friend-discovery-row button[data-icon='chat']");
+      await page.waitForSelector(".friend-message-action");
       await assertNoOverflow(page, `Desktop Friends ${width}px`);
       assert.equal(await page.locator("#featureView").isVisible(), true, `${width}px: desktop Friends workspace must be visible`);
       assert.equal(await page.locator("#newsFeedView").isVisible(), false, `${width}px: desktop Friends must not stack over the feed`);

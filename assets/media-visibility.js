@@ -51,9 +51,11 @@
   const parent=element.parentNode;if(!parent)return;
   const shell=document.createElement('div');shell.className='danzstak-media-shell';
   if(element.tagName==='VIDEO')shell.classList.add('danzstak-native-video-shell');
+  if(element.dataset?.videoLayout)shell.dataset.videoLayout=element.dataset.videoLayout;
+  const elementAspect=element.style?.getPropertyValue?.('--ds-media-aspect')||element.style?.getPropertyValue?.('--video-aspect');
+  if(elementAspect)shell.style.setProperty('--ds-media-aspect',elementAspect);
   if(element.classList?.contains?.('reel-player')){
    shell.classList.add('danzstak-reel-shell');
-   if(element.dataset?.videoLayout)shell.dataset.videoLayout=element.dataset.videoLayout;
    const mediaAspect=element.style?.getPropertyValue?.('--ds-media-aspect');
    if(mediaAspect)shell.style.setProperty('--ds-media-aspect',mediaAspect);
   }
@@ -87,6 +89,8 @@
    const layout=video.videoHeight>video.videoWidth?'portrait':'landscape';
    video.dataset.videoLayout=layout;
    video.style.setProperty('--video-aspect',layout==='portrait'?'9 / 16':'16 / 9');
+   const shell=video.closest?.('.danzstak-media-shell');
+   if(shell){shell.dataset.videoLayout=layout;shell.style.setProperty('--ds-media-aspect',layout==='portrait'?'9 / 16':'16 / 9');}
   };
   video.addEventListener('loadedmetadata',setLayout);
   if(video.readyState>=1)setLayout();

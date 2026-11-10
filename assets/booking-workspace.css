@@ -389,6 +389,10 @@
     padding: 6px 10px;
   }
 
+  .booking-page .tool-header nav {
+    display: none;
+  }
+
   .booking-page .tool-brand {
     min-height: 44px;
   }
@@ -472,7 +476,7 @@
 
   .booking-page .booking-brief textarea {
     min-height: 62px;
-    font-size: 15px;
+    font-size: 16px;
   }
 
   .booking-page #bookingBriefStatus:empty {
