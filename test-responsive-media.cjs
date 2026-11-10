@@ -21,7 +21,7 @@ assert.match(css, /\.post>\.ds-responsive-media[\s\S]*margin-inline:calc\(var\(-
 assert.match(css, /\.ds-media-control--sound\{right:10px;bottom:10px\}/);
 assert.match(css, /\.ds-media-control--fullscreen\{right:10px;top:10px\}/);
 assert.match(css, /#feed \.post>\.danzstak-native-video-shell\[data-video-layout="portrait"\]\{[\s\S]*?aspect-ratio:4\/5!important;[\s\S]*?overflow:hidden;/,
-  "portrait videos must use a compact 4:5 Mix preview instead of swallowing the phone viewport");
+  "portrait videos must use a compact 4:5 Mix preview at every viewport instead of swallowing the feed");
 assert.match(css, /#feed \.post>\.danzstak-native-video-shell\[data-video-layout="portrait"\]>video\{[\s\S]*?height:100%;[\s\S]*?object-fit:cover;/,
   "the 4:5 portrait preview must fill its frame without stretching");
 assert.match(css, /#feed \.post>\.danzstak-native-video-shell\[data-video-layout="portrait"\]>video:fullscreen\{[\s\S]*?object-fit:contain;/,
@@ -46,10 +46,10 @@ assert.match(visibilityScript, /const shell=video\.closest\?\.\('\.danzstak-medi
 
 for (const file of ["feed.html", "messages.html", "profile.html", "epk.html"]) {
   const html = fs.readFileSync(file, "utf8");
-  assert.match(html, /assets\/responsive-media\.css\?v=6/, `${file} must load the shared responsive-media styles`);
+  assert.match(html, /assets\/responsive-media\.css\?v=7/, `${file} must load the shared responsive-media styles`);
   assert.match(html, /assets\/responsive-media\.js\?v=2/, `${file} must load the shared responsive-media behavior`);
 }
-assert.match(worker, /danzstak-shell-v792/);
+assert.match(worker, /danzstak-shell-v793/);
 assert.match(worker, /\/assets\/responsive-media\.js/);
 assert.match(worker, /\/assets\/responsive-media\.css/);
 
