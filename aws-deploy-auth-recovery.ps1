@@ -57,12 +57,21 @@ function Get-RedirectLocation {
   $handler.AllowAutoRedirect = $false
   $client = [Net.Http.HttpClient]::new($handler)
   try {
-    $response = $client.GetAsync($Uri).GetAwaiter().GetResult()
-    $statusCode = [int]$response.StatusCode
-    if ($statusCode -lt 300 -or $statusCode -ge 400 -or -not $response.Headers.Location) {
-      throw "$Uri returned HTTP $statusCode instead of a redirect."
+    $statusCode = 0
+    foreach ($attempt in 1..12) {
+      $response = $null
+      try {
+        $response = $client.GetAsync($Uri).GetAwaiter().GetResult()
+        $statusCode = [int]$response.StatusCode
+        if ($statusCode -ge 300 -and $statusCode -lt 400 -and $response.Headers.Location) {
+          return [string]$response.Headers.Location
+        }
+      } finally {
+        if ($response) { $response.Dispose() }
+      }
+      if ($attempt -lt 12) { Start-Sleep -Seconds 5 }
     }
-    return [string]$response.Headers.Location
+    throw "$Uri returned HTTP $statusCode instead of a redirect after route propagation retries."
   } finally {
     $client.Dispose()
     $handler.Dispose()
