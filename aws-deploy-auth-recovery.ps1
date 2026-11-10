@@ -79,9 +79,11 @@ function Get-RedirectLocation {
 }
 
 $codeUpdated = $false
+$createdResetPermission = $false
 $createdResetRouteId = ""
 $changedResetRouteId = ""
 $previousResetTarget = ""
+$resetPermissionSid = "AllowAuthResetPasswordFromApiGateway"
 
 try {
   $identity = Invoke-AwsJson @("sts", "get-caller-identity", "--region", $Region, "--output", "json")
@@ -105,6 +107,16 @@ try {
   $functionArn = [string]$function.Configuration.FunctionArn
   if ($functionArn -ne "arn:aws:lambda:${Region}:$($identity.Account):function:${FunctionName}") {
     throw "The resolved Lambda does not match the authenticated DanzStak account."
+  }
+  $resetSourceArn = "arn:aws:execute-api:${Region}:$($identity.Account):${ApiId}/*/GET/auth/reset-password"
+  $policyResult = Invoke-AwsJson @("lambda", "get-policy", "--region", $Region, "--function-name", $FunctionName, "--output", "json")
+  $policy = ([string]$policyResult.Policy | ConvertFrom-Json)
+  $resetPermission = $policy.Statement | Where-Object { $_.Sid -eq $resetPermissionSid } | Select-Object -First 1
+  if ($resetPermission) {
+    $permissionSourceArn = [string]$resetPermission.Condition.ArnLike.PSObject.Properties["AWS:SourceArn"].Value
+    if ($resetPermission.Principal.Service -ne "apigateway.amazonaws.com" -or $permissionSourceArn -ne $resetSourceArn) {
+      throw "The existing password-recovery invoke permission is not scoped to the expected API route."
+    }
   }
 
   $routes = Invoke-AwsJson @("apigatewayv2", "get-routes", "--region", $Region, "--api-id", $ApiId, "--output", "json")
@@ -141,6 +153,7 @@ try {
     Write-Host "Function: $FunctionName"
     Write-Host "Login integration: $authIntegrationId"
     Write-Host "Reset route: $(if ($resetRoute) { 'present' } else { 'missing; will be created' })"
+    Write-Host "Reset invoke permission: $(if ($resetPermission) { 'present' } else { 'missing; will be created' })"
     Write-Host "Bundle SHA-256: $bundleHash"
     Write-Host "No AWS resources were changed. Rerun with -ConfirmProduction only after the owner gives GO."
     return
@@ -156,6 +169,12 @@ try {
   $codeUpdated = $true
   & aws lambda wait function-updated --region $Region --function-name $FunctionName
   if ($LASTEXITCODE -ne 0) { throw "Auth API code deployment did not finish." }
+
+  if (-not $resetPermission) {
+    & aws lambda add-permission --region $Region --function-name $FunctionName --statement-id $resetPermissionSid --action lambda:InvokeFunction --principal apigateway.amazonaws.com --source-arn $resetSourceArn --output json | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Password recovery invoke permission creation failed." }
+    $createdResetPermission = $true
+  }
 
   if (-not $resetRoute) {
     $created = Invoke-AwsJson @("apigatewayv2", "create-route", "--region", $Region, "--api-id", $ApiId, "--route-key", "GET /auth/reset-password", "--target", $authTarget, "--output", "json")
@@ -190,6 +209,9 @@ try {
         & aws apigatewayv2 delete-route --region $Region --api-id $ApiId --route-id $createdResetRouteId | Out-Null
       } elseif ($changedResetRouteId -and $previousResetTarget) {
         & aws apigatewayv2 update-route --region $Region --api-id $ApiId --route-id $changedResetRouteId --target $previousResetTarget --output json | Out-Null
+      }
+      if ($createdResetPermission) {
+        & aws lambda remove-permission --region $Region --function-name $FunctionName --statement-id $resetPermissionSid | Out-Null
       }
       if ($codeUpdated -and (Test-Path -LiteralPath $RollbackBundle -PathType Leaf)) {
         & aws lambda update-function-code --region $Region --function-name $FunctionName --zip-file "fileb://$RollbackBundle" --output json | Out-Null

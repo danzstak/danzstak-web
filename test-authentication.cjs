@@ -19,6 +19,9 @@ assert.match(recoveryDeploySource,/GET \/auth\/reset-password/,'the scoped auth 
 assert.match(recoveryDeploySource,/RollbackBundle[\s\S]+update-function-code/,'the scoped auth release must preserve a rollback path');
 assert.match(recoveryDeploySource,/Add-Type -AssemblyName System\.Net\.Http[\s\S]+HttpClientHandler/,'the scoped auth release must load its HTTP client assembly before live redirect verification');
 assert.match(recoveryDeploySource,/foreach \(\$attempt in 1\.\.12\)[\s\S]+Start-Sleep -Seconds 5/,'the scoped auth release must wait for API Gateway route propagation before rolling back');
+assert.match(recoveryDeploySource,/resetSourceArn = [^\n]+GET\/auth\/reset-password/,'the scoped auth release must scope its invoke permission to the password-recovery route');
+assert.match(recoveryDeploySource,/lambda add-permission[^\n]+--source-arn \$resetSourceArn/,'the scoped auth release must grant API Gateway invoke access with the route-scoped ARN');
+assert.match(recoveryDeploySource,/createdResetPermission[\s\S]+lambda remove-permission/,'the scoped auth release must roll back a newly created invoke permission on failure');
 assert.doesNotMatch(recoveryDeploySource,/update-function-configuration|put-role-policy|\bsesv2\b|\bsns\b|\bdynamodb\b|secretsmanager/i,'the scoped auth release must not reconfigure IAM, SES, SNS, DynamoDB, Stripe secrets, or Lambda environment settings');
 assert.match(source,/redirect\(siteUrl \+ "\/\?signin=failed", \[expiredBrowserCookie\]\)/,'credential and token failures must return to the DanzStak login screen');
 assert.match(source,/path === "\/auth\/callback"[\s\S]{0,180}signin=unavailable/,'unexpected callback failures must return to DanzStak instead of a white API error page');
