@@ -34,7 +34,10 @@ function responseFor(pathname) {
       await page.goto(`${origin}/feed.html?view=feed`, { waitUntil:"domcontentloaded" });
       const post = page.locator(`.post[data-post-id="${postId}"]`); await post.waitFor();
       await post.getByRole("button", { name:"Post options" }).click();
-      await page.getByRole("menuitem", { name:"Delete post" }).click();
+      const deleteOption = page.getByRole("menuitem", { name:"Delete post" });
+      await deleteOption.waitFor();
+      assert.equal((await deleteOption.innerText()).includes("Delete post"), true, `${width}px owner menu must visibly label the delete action`);
+      await deleteOption.click();
       const dialog = page.locator(".danzstak-confirm-dialog"); await dialog.waitFor();
       if (await dialog.locator('button[value="remove_here"]').count() !== 1) throw new Error(`Unexpected deletion dialog: ${await dialog.innerHTML()}`);
       assert.equal(await dialog.locator('button[value="remove_here"]').count(), 1);
