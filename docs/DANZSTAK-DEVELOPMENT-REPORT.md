@@ -2273,7 +2273,7 @@ Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONF
 
 # PWA v795 — complete Profile interactions
 
-Status as of 2026-11-10: **IMPLEMENTED AND TESTED; PRODUCTION UNCHANGED PENDING THE GREEN REVIEW GATE**.
+Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONFIRMATION PENDING**.
 
 - Scope is Profile only. Mix, Stores, SYNC, Booking, EPK, Stripe, authentication and AWS backend behavior are unchanged.
 - Profile now has the supplied familiar five-tab navigation, a compact working create-post utility, real counters, working Like/Comment/Share controls and a nested comments interface. Photos and Videos filter actual posts; More preserves Featured, Memories, Friends, Media and Shop.
@@ -2282,4 +2282,9 @@ Status as of 2026-11-10: **IMPLEMENTED AND TESTED; PRODUCTION UNCHANGED PENDING 
 - Both Profile browser gates passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. They verify layout, overflow, author identity, edge media, tabs, composer, counters, touch targets, nested replies and functional Like/comment/reply/share/post actions.
 - Builder-inspected evidence is in `docs/screenshots/pwa-v795-profile-interactions/`.
 - Installed delivery advances to `danzstak-shell-v795`, Profile CSS `v397`, Profile JavaScript `v487`, Profile interaction CSS/JavaScript `v1` and Profile share integration `v422`.
-- CI, merge, Amplify deployment, production asset probes, live browser tests and a clean PWA install remain open release gates. The owner's physical installed-phone observation is not claimed.
+- [PR #238](https://github.com/danzstak/danzstak-web/pull/238) passed all five required Review jobs in GitHub Actions run [42767701793](https://github.com/danzstak/danzstak-web/actions/runs/42767701793) and squash-merged as production commit `a213bcf67e2a9270f9e2be23a53e306e276b5016`.
+- AWS Amplify production job `1009` deployed that exact commit successfully in `us-west-1` from 07:23:05 to 07:24:10 Europe/Berlin.
+- No-cache production probes returned Profile CSS `v397`, Profile JavaScript `v487`, Profile interaction CSS/JavaScript `v1`, Profile sharing `v422` and installed shell `danzstak-shell-v795`.
+- Read-only production health passed Home, Mix, SYNC, Booking, EPK, the manifest, worker and sampled versioned assets. A clean browser installed and activated the live worker, was controlled by it and contained only the `danzstak-shell-v795` cache.
+- Both Profile browser gates passed directly against `https://danzstak.com` at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Builder-inspected hosted captures are in `docs/screenshots/pwa-v795-profile-interactions-live/`.
+- Honest evidence boundary: the exact v795 build has not yet been observed on the owner's physical installed Android or iPhone PWA. Production automation and a clean-browser installation passed; physical-owner device confirmation is not claimed.
