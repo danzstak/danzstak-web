@@ -1,8 +1,8 @@
-# SYNC calling-device registration
+# SYNC device registration
 
-Status: **Registered-device baseline deployed; immediate multi-device answer resolution implemented and under release verification.**
+Status: **Call-device baseline deployed previously; mandatory registration for all SYNC use is implemented and fully tested locally, but not deployed.**
 
-SYNC device registration authorizes one browser/PWA installation to participate in DanzStak account-to-account voice or video signaling. It does not verify a handset subscriber, activate a carrier number, enable PSTN/SMS/emergency calling, or gate ordinary Chat, Friends, profiles, or signup.
+SYNC device registration authorizes one browser/PWA installation to use DanzStak account-to-account messages, contacts, presence, voice and video. Every installation that opens SYNC must register. It does not verify a handset subscriber, activate a carrier number, enable PSTN/SMS/emergency calling, gate signup or require a personal phone number. Optional private phone verification remains a separate security choice.
 
 ## Register → call → one device answers → revoke
 
@@ -49,6 +49,9 @@ sequenceDiagram
 | `GET /calls/devices` | List the member's devices | Account partition only; returns name, status, registration time, last use and current-device hint; never returns token hashes |
 | `PATCH /calls/devices` | Rename or allow/disable calls | Account-scoped conditional update; revoked devices cannot be re-enabled |
 | `DELETE /calls/devices` | Revoke a device | Removes token hash, disables calls and deletes linked push endpoints |
+| `POST /calls/presence`, `GET /calls/directory` | Publish presence and read SYNC contacts | Registered installation required; disabling calls does not disable messages |
+| `POST /messages`, `GET /messages` | Send and read persistent messages | Registered installation required; normal contact authorization and block rules remain enforced |
+| `GET /conversations`, `POST /messages/delete` | List or remove the member's conversation copy | Registered installation required; account partition only |
 | `POST /calls/signal` | Offer, answer or hang up | Phone/video requires registered-device headers; contact authorization remains enforced |
 | `GET /calls/inbox` | Foreground call polling | Registered active device required; internal answer-claim records are excluded |
 | `POST /calls/ack` | Consume handled signals | Registered active device required; account partition only |
@@ -59,7 +62,7 @@ sequenceDiagram
 
 - Challenge record: `CHALLENGE#<UUID>`, challenge digest, creation time and TTL.
 - Registered record: random UUID, editable name, SHA-256 device-token digest, `allowCalls`, registration time, last-use time and optional revocation time.
-- The browser keeps the returned device ID and token in origin-scoped IndexedDB. They are sent only as request headers to DanzStak call/push endpoints and never in URLs.
+- The browser keeps the returned device ID and token in origin-scoped IndexedDB. They are sent only as request headers to DanzStak SYNC and push endpoints and never in URLs.
 - The table is encrypted, retained across stack updates, protected by point-in-time recovery, and uses TTL only for short-lived challenge cleanup.
 
 `DANZSTAK-CallSignals` remains the short-lived signaling table. A successful answer adds `CLAIM#<callId>` and removes the exact offer in the same DynamoDB transaction that writes the answer for the caller. The claim expires with the call window.
@@ -74,5 +77,5 @@ Push subscriptions remain separate records. This existing standards-based Web Pu
 - Call records and answer claims expire automatically. Calling devices are durable security records and must be explicitly revoked.
 - Ten active devices is an abuse/safety cap, not a paid entitlement.
 - Devices without an active push subscription still stop on their next two-second inbox reconciliation. Push delivery is a latency improvement rather than the correctness boundary; the DynamoDB transaction remains the authoritative one-answer control.
-- Production release requires an isolated AWS review stack, two accounts, at least two real receiving installations, push-denied foreground coverage, real two-way audio/video, revoke/reinstall tests, and owner approval.
+- The mandatory whole-SYNC gate requires the complete regression suite plus real-browser checks at every supported viewport before review. Production release still requires an isolated AWS review stack, two accounts, at least two real receiving installations, push-denied foreground coverage, real two-way audio/video, revoke/reinstall tests, and owner approval.
 

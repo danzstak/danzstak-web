@@ -25,7 +25,8 @@ assert.doesNotMatch(template,/IMEI|address.?book/i,"device registration must not
 
 assert.ok(html.includes('id="callingDevices"'),"SYNC must expose a discoverable Phone and devices action");
 assert.ok(html.includes('id="registerThisDevice"'),"the current installation needs a visible registration action");
-assert.ok(html.includes("Number verification and device registration are separate security steps"),"the UI must distinguish device enrollment from number verification");
+assert.ok(html.includes("Every phone, tablet, PWA, or computer must be registered before it can use SYNC"),"the UI must require every SYNC installation to register");
+assert.ok(html.includes("A phone number is optional and remains a separate security choice"),"the UI must distinguish mandatory device enrollment from optional number verification");
 assert.ok(html.includes('name="syncNumberChoice" value="personal"'),"the setup window must offer private personal-number verification");
 assert.ok(html.includes('name="syncNumberChoice" value="ds"'),"the setup window must offer a DanzStak number");
 assert.ok(html.includes('id="phoneCountry"'),"personal-number setup must include country calling codes");
@@ -40,7 +41,7 @@ assert.match(client,/renameDevice\(device\)[\s\S]*method:"PATCH"/,"registered de
 assert.match(client,/activity\.textContent=lastActive\(device\.lastUsedAt\)/,"device management must show the server-recorded last active time");
 assert.match(chat,/path\.startsWith\("\/calls\/"\)\?await globalThis\.danzstakCallingDeviceHeaders/,"calling requests must authenticate the installation");
 assert.match(chat,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*danzstakOpenCallingDevices/,"blocked calls must open the registration recovery flow");
-assert.match(chat,/showCallRegistrationRequired[\s\S]{0,220}This device is not registered for calls\.[\s\S]{0,220}Register this device/,"passive call polling must explain that device registration is required instead of claiming an automatic reconnect");
+assert.match(chat,/showCallRegistrationRequired[\s\S]{0,180}Register this device before using SYNC\./,"passive call polling must explain that device registration is required instead of claiming an automatic reconnect");
 assert.match(chat,/callDeviceRegistrationRequired&&!peer&&!pending&&!autoAnswer/,"SYNC must pause idle call polling until the device is registered");
 assert.match(chat,/danzstak:call-device-registered[\s\S]*callDeviceRegistrationRequired=false[\s\S]*poll\(\)/,"SYNC must resume call polling after registration");
 assert.match(chat,/async function start\(kind\)[\s\S]*callDeviceRegistrationRequired[\s\S]*danzstakOpenCallingDevices/,"call actions on an unregistered device must open setup before requesting media");
@@ -48,8 +49,10 @@ assert.match(directMessages,/danzstakCallRegistrationRequired[\s\S]*You can mess
 assert.match(chat,/signal\("answer",peer\.localDescription,offer\.eventId\)/,"the answering installation must bind its answer to the exact incoming offer");
 assert.match(chat,/CALL_ALREADY_ANSWERED[\s\S]*This call was answered on another device/,"losing installations must stop with a truthful one-answer result");
 assert.match(chat,/DANZSTAK_CALL_RESOLVED/,"open Messages screens must stop immediately when another device answers");
-assert.doesNotMatch(chat,/\/messages[\s\S]{0,120}CALL_DEVICE_REGISTRATION_REQUIRED/,"ordinary persistent messages must not be gated by device registration");
+assert.match(template,/\['POST \/calls\/presence','GET \/calls\/directory','POST \/messages','GET \/messages','POST \/messages\/delete','GET \/conversations'\][\s\S]{0,220}authenticatedCallingDevice\(event,user,\{allowDisabled:true\}\)[\s\S]{0,180}SYNC_DEVICE_REGISTRATION_REQUIRED/,"every persistent SYNC message, directory, and presence route must require a registered installation while still allowing calls to be disabled");
+assert.match(directMessages,/apiRequest[\s\S]{0,420}danzstakCallingDeviceHeaders[\s\S]{0,420}headers, signal/,"SYNC message requests must send the registered-device credential");
+assert.match(directMessages,/danzstak:sync-device-registered[\s\S]{0,180}loadConversations\(\)[\s\S]{0,120}loadDirectMessages\(true\)/,"message loading must resume immediately after mandatory registration");
 assert.match(push,/globalThis\.danzstakCallingDeviceHeaders/,"push subscriptions must be linkable to the registered installation");
 assert.match(worker,/assets\/call-devices\.js/,"the installed PWA shell must include device registration");
 assert.match(worker,/getNotifications\(\{ tag: `call-\$\{callId\}` \}\)/,"the service worker must close the old ringing notification");
-console.log("SYNC device-registration checks passed: challenge, hashed credential, call-only gate, push targeting, immediate answer resolution, revocation, UI, and free Chat separation.");
+console.log("SYNC device-registration checks passed: mandatory installation gate, hashed credential, message/call enforcement, push targeting, immediate answer resolution, and revocation.");

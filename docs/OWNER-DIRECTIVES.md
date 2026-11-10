@@ -80,7 +80,7 @@ Posts remain chronological. If an eligible unseen supplemental item does not exi
    - Plan later, not now: Phase A is a legal, vendor, cost and feasibility report with synthetic example data only. No vendor sign-ups, Stripe products or charging until the owner approves.
 8. Then the rest of instructions/ in its own order, one page per PR.
 
-Later phase (after users): SYNC standalone, device registration, SYNC Network numbers, federated network, SYNC transport rebuild.
+Later phase (after users): SYNC standalone, SYNC Network numbers, federated network, SYNC transport rebuild. Basic per-installation registration is now part of the current SYNC security baseline; the later phase may strengthen it but must not remove it.
 
 ## Prices (owner-set, 2026-11-07)
 
@@ -123,6 +123,7 @@ Many users don't want to put their phone number on the web. So:
 - Rate limits, resend cooldown and attempt caps (as built on codex/personal-phone-verification).
 - Switched off until the owner approves an SMS provider. No texts are sent before then.
 - Later, users who won't share a number can use a SYNC Network number instead.
+- **Owner clarification, 2026-11-10:** skipping a phone number is a signup choice only. Every browser, installed PWA, phone, tablet or computer that opens SYNC must register that installation before SYNC messages, contacts, presence or calls are available. Device registration uses a DanzStak installation credential and does not require or expose a personal phone number. A member may add optional private phone verification later; a DS number remains a separate later-phase product.
 
 ## Task 1: Repo cleanup (done)
 

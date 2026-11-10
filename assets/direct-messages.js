@@ -316,9 +316,15 @@ function closeConversationMenu({ restoreFocus = false } = {}) {
 async function directFetch(path, options = {}, timeoutMs = 10000) {
   const target = path.startsWith("/") ? directApi + path : new URL(path);
   if (typeof target !== "string" && target.origin !== "https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com") throw new Error(messageTranslate("Unexpected upload destination"));
+  const apiRequest = typeof target === "string" && target.startsWith(directApi + "/");
+  let deviceHeaders = {};
+  if (apiRequest && typeof globalThis.danzstakCallingDeviceHeaders === "function") {
+    deviceHeaders = await globalThis.danzstakCallingDeviceHeaders();
+  }
+  const headers = { ...(options.headers || {}), ...deviceHeaders };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try { return await fetch(String(target), { ...options, signal: controller.signal }); }
+  try { return await fetch(String(target), { ...options, headers, signal: controller.signal }); }
   catch (error) {
     if (error.name === "AbortError") throw new Error(messageTranslate("DanzStak is taking too long to respond. Try again."));
     throw new Error(messageTranslate("DanzStak cannot connect right now. Check your connection and try again."));
@@ -1559,3 +1565,4 @@ setInterval(loadConversations, 15000);
 
 window.addEventListener("danzstak-offline-synced", () => { loadConversations(); loadDirectMessages(true); });
 window.addEventListener("danzstak:sync-identity-updated", () => loadConversations());
+window.addEventListener("danzstak:sync-device-registered", () => { loadCurrentSession(); loadConversations(); loadDirectMessages(true); });

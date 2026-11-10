@@ -16,7 +16,7 @@ const capture=process.env.DANZSTAK_CAPTURE_DIR?path.resolve(process.env.DANZSTAK
       page.setDefaultTimeout(8000);
       page.on("pageerror",error=>console.error(`Page error at ${width}px:`,error.message));
       console.log(`Checking ${width}px`);
-      let startBody,verifyBody,assigned=false;
+      let startBody,verifyBody,assigned=false,registered=false;
       await page.route("https://api.danzstak.com/**",async route=>{
         const request=route.request(),pathname=new URL(request.url()).pathname;
         const json=body=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(body)});
@@ -25,7 +25,9 @@ const capture=process.env.DANZSTAK_CAPTURE_DIR?path.resolve(process.env.DANZSTAK
         if(pathname==="/sync/phone/verify"){verifyBody=request.postDataJSON();return json({phoneVerified:true,phoneMasked:"+1••••••0042",dsNumber:"",dsEntitled:true,smsAvailable:true});}
         if(pathname==="/phone-number/entitlement")return json({entitled:true,status:"pending_provisioning"});
         if(pathname==="/sync/ds-number"){assigned=true;return json({phoneVerified:false,phoneMasked:"",dsNumber:"DS-321-0042",dsEntitled:true,smsAvailable:true});}
-        if(pathname==="/calls/devices")return json({devices:[]});
+        if(pathname==="/calls/devices")return json({devices:registered?[{deviceId:"11111111-1111-4111-8111-111111111111",name:"My test device",allowCalls:true,registeredAt:new Date().toISOString(),lastUsedAt:new Date().toISOString(),revokedAt:"",thisDevice:true}]:[]});
+        if(pathname==="/calls/devices/challenge")return json({challengeId:"22222222-2222-4222-8222-222222222222",challenge:"a".repeat(43)});
+        if(pathname==="/calls/devices/register"){registered=true;return json({deviceId:"11111111-1111-4111-8111-111111111111",deviceToken:"b".repeat(43),name:"My test device",allowCalls:true,registeredAt:new Date().toISOString()});}
         if(pathname==="/conversations")return json({conversations:[]});
         if(pathname==="/friends")return json({friends:[]});
         if(pathname==="/calls/directory")return json({users:[]});
@@ -34,10 +36,24 @@ const capture=process.env.DANZSTAK_CAPTURE_DIR?path.resolve(process.env.DANZSTAK
       });
       await page.goto(`${base}/messages.html`,{waitUntil:"domcontentloaded"});
       await page.waitForFunction(()=>typeof window.danzstakOpenCallingDevices==="function");
-      await page.locator("#callingDevices").click();
       const dialog=page.locator("#callingDevicesDialog");
       await dialog.waitFor({state:"visible"});
       await page.waitForFunction(()=>document.querySelector("#callingDevices")?.hasAttribute("data-setup-required"));
+      assert.equal(await page.locator("#closeCallingDevices").isHidden(),true,`unregistered device can bypass SYNC at ${width}px`);
+      assert.equal(await page.locator(".sync-number-setup").isHidden(),true,`number choices appeared before device registration at ${width}px`);
+      if(capture&&(width===390||width===1366)){fs.mkdirSync(capture,{recursive:true});await page.screenshot({path:path.join(capture,`sync-device-required-${width}.png`)});}
+      await page.locator("#deviceName").fill("My test device");
+      await page.locator("#registerThisDevice").click();
+      await dialog.waitFor({state:"hidden"});
+      await page.locator("#callingDevices").click();
+      await dialog.waitFor({state:"visible"});
+      assert.equal(await page.locator(".sync-number-setup").isVisible(),true,`optional number choices stayed hidden after registration at ${width}px`);
+      assert.equal(await dialog.evaluate(element=>element.scrollTop),0,`registered-device panel did not reopen at the top at ${width}px`);
+      await page.locator("#deviceStatus").filter({hasText:"registered for SYNC"}).waitFor();
+      await page.waitForTimeout(100);
+      const registeredTop=await page.locator("#callingDevicesDialog > header").evaluate(element=>element.getBoundingClientRect().top);
+      assert.ok(registeredTop>=0,`registered-device heading was clipped above the viewport at ${width}px`);
+      if(capture&&(width===390||width===1366)){fs.mkdirSync(capture,{recursive:true});await page.screenshot({path:path.join(capture,`sync-device-registered-${width}.png`)});}
       await page.locator('input[name="syncNumberChoice"][value="personal"]').check();
       await page.locator("#phoneCountry").selectOption("US");
       await page.locator("#phoneLocalNumber").fill("415 555 0042");

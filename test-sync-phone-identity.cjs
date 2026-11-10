@@ -8,7 +8,9 @@ const worker=fs.readFileSync("service-worker.js","utf8");
 
 for(const id of ["phoneCountry","phoneLocalNumber","sendPhoneCode","phoneCode","verifyPhoneCode","dsNumberValue","chooseDsNumber"])
   assert.ok(html.includes(`id="${id}"`),`${id} must be present in the phone setup window`);
-assert.match(html,/Use my mobile number[\s\S]*Use a DanzStak SYNC number[\s\S]*Skip number for now/,"phone setup must preserve all three choices");
+assert.match(html,/Register this device to use SYNC[\s\S]*Use my mobile number[\s\S]*Use a DanzStak SYNC number/,"SYNC must require device registration before presenting the two optional number choices");
+assert.doesNotMatch(html,/Skip number for now/,"the SYNC screen must not offer a device-registration bypass");
+assert.match(html,/A phone number is optional and remains a separate security choice/,"mandatory device registration must remain separate from optional phone verification");
 assert.match(html,/Works only inside DanzStak SYNC[\s\S]*not a mobile or carrier phone number[\s\S]*regular calls, SMS\/MMS, or emergency calls/,"the DS choice must clearly disclose that it is SYNC-only and not carrier service");
 assert.match(client,/DANZSTAK_COUNTRY_CALLING_CODES/,"country calling codes must populate dynamically");
 assert.match(client,/\/sync\/phone\/start[\s\S]*\/sync\/phone\/verify/,"personal-number verification must use protected backend routes");
@@ -32,7 +34,7 @@ assert.match(template,/PHONE#ACTIVATION_ENTITLEMENT[\s\S]*A verified \$3 DanzSta
 assert.match(template,/works only inside SYNC on DanzStak[\s\S]*not a carrier phone number[\s\S]*regular calls, SMS\/MMS, or emergency services[\s\S]*senderEmail:\{S:SYNC_SYSTEM_EMAIL\}/i,"an assigned DS number must arrive in the member's SYNC chat with the service boundary");
 for(const route of ["GET /sync/identity","POST /sync/phone/start","POST /sync/phone/verify","POST /sync/ds-number"])
   assert.ok(template.includes(route),`${route} must be routed`);
-assert.match(worker,/danzstak-shell-v802/,"the installed PWA must receive the phone setup release");
+assert.match(worker,/danzstak-shell-v803/,"the installed PWA must receive mandatory SYNC device registration");
 assert.match(worker,/country-calling-codes\.js/,"the PWA shell must include country calling codes");
 
 console.log("SYNC phone/device setup checks passed: country codes, truthful SMS gate, private verification, unique paid DS alias, system-chat confirmation, responsive window, and PWA cache update.");

@@ -8,7 +8,7 @@ const INCOMING_RING_DURATION_MS=25000;
 const rtc={iceServers:[{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]}],iceCandidatePoolSize:4};
 window.danzstakCallRegistrationRequired=()=>callDeviceRegistrationRequired;
 const setStatus=t=>els.status.textContent=t;
-const showCallRegistrationRequired=()=>setStatus(`${t("This device is not registered for calls.")} ${t("Register this device")}.`);
+const showCallRegistrationRequired=()=>setStatus(t("Register this device before using SYNC."));
 function setCallAlertButtonState(enabled){
   els.enable.textContent="🔔";
   els.enable.title=enabled?"Call alerts enabled — tap to enable sound in this session":"Enable call alerts";
@@ -82,7 +82,7 @@ els.resumeAudio.addEventListener("click",playRemoteMedia);
 els.incoming.addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();decline();return;}if(event.key!=="Tab")return;const controls=[els.accept,els.decline].filter(button=>!button.disabled),index=controls.indexOf(document.activeElement);if(index<0)return;event.preventDefault();controls[(index+(event.shiftKey?-1:1)+controls.length)%controls.length].focus();});
 for(const button of [els.phone,els.video])button.addEventListener("click",event=>{const target=els.email.value.trim().toLowerCase();if(!allowedContacts.has(target)){event.stopImmediatePropagation();setStatus(t("Only friends or members of the same Tribe can call."));}},true);
 window.addEventListener("danzstak:push-enabled",()=>setCallAlertButtonState(true));
-window.addEventListener("danzstak:call-device-registered",()=>{callDeviceRegistrationRequired=false;pollFailures=0;pollRetryVisible=false;poll();});
+window.addEventListener("danzstak:call-device-registered",()=>{callDeviceRegistrationRequired=false;pollFailures=0;pollRetryVisible=false;refreshDirectory();poll();});
 document.addEventListener("pointerdown",unlockCallAudio,{capture:true,passive:true});
 document.addEventListener("keydown",unlockCallAudio,{capture:true});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopIncomingRingtone();else if(pending&&!els.incoming.hidden)startIncomingRingtone();});

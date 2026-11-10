@@ -13,7 +13,7 @@
 <script src="assets/offline.js?v=3"></script>
 <script src="assets/display-preferences.js?v=410"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
-<link rel="stylesheet" href="assets/chat.css?v=461">
+<link rel="stylesheet" href="assets/chat.css?v=462">
 <link rel="stylesheet" href="assets/sync.css?v=11">
 <link rel="stylesheet" href="assets/invite-sharing.css?v=1">
 <link rel="stylesheet" href="assets/make-plans.css?v=2">
@@ -25,7 +25,7 @@
 <title>SYNC | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
-<script src="assets/i18n.js?v=399" defer></script>
+<script src="assets/i18n.js?v=400" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
 </head>
@@ -129,13 +129,20 @@
 </dialog>
 <dialog id="callingDevicesDialog" class="calling-devices-dialog" aria-labelledby="callingDevicesTitle">
   <header><div><span class="eyebrow">SYNC Phone</span><h2 id="callingDevicesTitle">Phone and device setup</h2></div><button id="closeCallingDevices" type="button" data-icon="close" aria-label="Close phone and device setup" title="Close">×</button></header>
+  <section class="sync-device-setup" aria-labelledby="syncDeviceTitle">
+    <h3 id="syncDeviceTitle">Register this device to use SYNC</h3>
+    <p>Every phone, tablet, PWA, or computer must be registered before it can use SYNC. A phone number is optional and remains a separate security choice.</p>
+    <label for="deviceName">Device name</label><input id="deviceName" type="text" maxlength="60" autocomplete="off" placeholder="My Android phone">
+    <button id="registerThisDevice" type="button" class="primary">Register this device</button>
+    <p id="deviceStatus" class="device-status" role="status">Checking this device…</p>
+    <ul id="registeredDevices" class="registered-devices" aria-label="Your registered SYNC devices"></ul>
+  </section>
   <section class="sync-number-setup" aria-labelledby="syncNumberTitle">
     <h3 id="syncNumberTitle">Choose how people reach you</h3>
-    <p class="sync-number-note">A number is optional. Your personal number stays private. A DS number works only inside DanzStak SYNC.</p>
+    <p class="sync-number-note">After device registration, a number remains optional. Your personal number stays private. A DS number works only inside DanzStak SYNC.</p>
     <div class="sync-number-choices" role="radiogroup" aria-label="SYNC number choice">
       <label><input type="radio" name="syncNumberChoice" value="personal"><span><strong>Use my mobile number</strong><small>Choose a country code and verify by text.</small></span></label>
       <label><input type="radio" name="syncNumberChoice" value="ds"><span><strong>Use a DanzStak SYNC number</strong><small>Works only in SYNC on DanzStak. It is not a regular phone number.</small></span></label>
-      <label><input type="radio" name="syncNumberChoice" value="skip" checked><span><strong>Skip number for now</strong><small>Chat still works. You can add a number later.</small></span></label>
     </div>
     <div id="personalNumberPanel" class="sync-number-panel" hidden>
       <div class="sync-phone-fields">
@@ -156,17 +163,9 @@
       <p id="dsNumberStatus" class="device-status" role="status" aria-live="polite"></p>
     </div>
   </section>
-  <section class="sync-device-setup" aria-labelledby="syncDeviceTitle">
-    <h3 id="syncDeviceTitle">Register this device</h3>
-    <p>Register each phone, tablet, PWA, or computer before it can make or receive SYNC calls. Number verification and device registration are separate security steps.</p>
-    <label for="deviceName">Device name</label><input id="deviceName" type="text" maxlength="60" autocomplete="off" placeholder="My Android phone">
-    <button id="registerThisDevice" type="button" class="primary">Register this device</button>
-    <p id="deviceStatus" class="device-status" role="status">Checking this device…</p>
-    <ul id="registeredDevices" class="registered-devices" aria-label="Your registered calling devices"></ul>
-  </section>
 </dialog>
 <script src="assets/country-calling-codes.js?v=1" defer></script>
-<script src="assets/call-devices.js?v=4" defer></script>
+<script src="assets/call-devices.js?v=5" defer></script>
 <script src="assets/push-notifications.js?v=308" defer></script>
 <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
   <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
@@ -178,8 +177,8 @@
 <script src="assets/icon-buttons.js?v=10" defer></script>
 <script src="assets/invite-sharing.js?v=1" defer></script>
 <script src="assets/identity-media.js?v=2" defer></script>
-<script src="assets/chat.js?v=454" defer></script>
-<script src="assets/direct-messages.js?v=496" defer></script>
+<script src="assets/chat.js?v=455" defer></script>
+<script src="assets/direct-messages.js?v=497" defer></script>
 <script src="assets/booking-sync.js?v=6" defer></script>
 <script src="assets/make-plans.js?v=3" defer></script>
 <script src="assets/session-activity.js?v=296" defer></script>
