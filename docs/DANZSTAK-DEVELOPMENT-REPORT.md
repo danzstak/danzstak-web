@@ -2240,7 +2240,7 @@ Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; PHYSICAL-OWNER D
 
 # PWA v793 — imported profile posts and portrait-media parity
 
-Status as of 2026-11-10: **IMPLEMENTED AND TESTED LOCALLY; PRODUCTION REMAINS ON v792**.
+Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONFIRMATION PENDING**.
 
 - The supplied Facebook/DanzStak comparison exposed two remaining parity defects: imported profile posts lacked a compact author header and familiar spacing, while portrait videos still consumed excessive height outside the phone-only breakpoint.
 - Imported profile posts now use a compact author row, 15px body copy, a seven-line **See more** expansion, edge-aligned media and one horizontal 44px action row. Phone posts fill the viewport; desktop posts remain a focused 500px center column.
@@ -2249,4 +2249,8 @@ Status as of 2026-11-10: **IMPLEMENTED AND TESTED LOCALLY; PRODUCTION REMAINS ON
 - Actual-browser gates passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Inspected captures are in `docs/screenshots/pwa-v793-imported-post-media/`.
 - The complete local `test-regressions.ps1` suite passed, including Feed/Profile, media coordination, authentication, SYNC, Booking, EPK, Tour Manager, Stripe boundaries, PWA propagation, static-page smoke and infrastructure validation.
 - Installed delivery advances to `danzstak-shell-v793`, Profile CSS `v396`, Profile JavaScript `v486` and shared responsive-media CSS `v7`.
-- Authentication, Stripe, SES, support mail, databases and AWS backend behavior are unchanged. GitHub Review, exact-commit deployment and post-deployment production verification remain pending.
+- Authentication, Stripe, SES, support mail, databases and AWS backend behavior are unchanged. Implementation commit `064c227b44153d58dcbf6e04f74653654f9452fb` passed all five jobs in GitHub Review run [42755782368](https://github.com/danzstak/danzstak-web/actions/runs/42755782368). [PR #234](https://github.com/danzstak/danzstak-web/pull/234) squash-merged as production commit `916a65da3a758946f47c62aaee7006304606bb3b`.
+- AWS Amplify production job `1005` deployed that exact commit successfully from 05:28:46 to 05:29:52 Europe/Berlin. No-cache probes returned responsive-media CSS `v7`, Profile CSS `v396`, Profile JavaScript `v486` and installed shell `danzstak-shell-v793`.
+- Read-only production health passed. A clean browser installed and activated the production worker, was controlled by it and contained only the `danzstak-shell-v793` cache.
+- Both live browser matrices passed directly against `https://danzstak.com` at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Hosted captures are in `docs/screenshots/pwa-v793-imported-post-media-live/`.
+- Honest evidence boundary: the exact v793 build has not yet been observed on the owner's physical installed Android or iPhone PWA. Production automation and a fresh-browser installation passed; owner-device confirmation is not claimed.
