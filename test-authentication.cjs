@@ -2,6 +2,7 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const crypto=require('node:crypto');
 const source=fs.readFileSync('infrastructure/auth-api/index.mjs','utf8');
 const deploySource=fs.readFileSync('aws-deploy-auth-api.ps1','utf8');
+const recoveryDeploySource=fs.readFileSync('aws-deploy-auth-recovery.ps1','utf8');
 const currentLegalVersion=source.match(/const legalVersion = "([^"]+)"/)[1];
 assert.match(source,/const loginHandoffSeconds = 15 \* 60;/,'phone sign-in handoffs must allow enough time to choose or change a Cognito account');
 assert.match(source,/expiresAt: \{ N: String\(now\(\) \+ loginHandoffSeconds\) \}/,'the pending OAuth proof must use the shared handoff window');
@@ -11,6 +12,12 @@ assert.match(source,/if \(mode === "login" \|\| mode === "reauth"\) url\.searchP
 assert.match(source,/mode === "reset"[\s\S]{0,80}"\/forgotPassword"/,'password recovery must use Cognito managed login instead of trapping members on DanzStak');
 assert.match(source,/path === "\/auth\/reset-password"[\s\S]{0,100}startLogin\("reset"\)/,'the public password-recovery route must open Cognito forgot-password');
 assert.match(deploySource,/"GET \/auth\/reset-password"/,'the Auth API deployment must publish the password-recovery route through API Gateway');
+assert.match(recoveryDeploySource,/\[switch\]\$ConfirmProduction/,'the scoped auth release must require an explicit production switch');
+assert.match(recoveryDeploySource,/GET \/auth\/login[\s\S]+get-integration[\s\S]+IntegrationUri/,'the scoped auth release must derive and verify the live login integration');
+assert.match(recoveryDeploySource,/update-function-code/,'the scoped auth release must publish the reviewed Lambda bundle');
+assert.match(recoveryDeploySource,/GET \/auth\/reset-password/,'the scoped auth release must publish the password-recovery route');
+assert.match(recoveryDeploySource,/RollbackBundle[\s\S]+update-function-code/,'the scoped auth release must preserve a rollback path');
+assert.doesNotMatch(recoveryDeploySource,/update-function-configuration|put-role-policy|\bsesv2\b|\bsns\b|\bdynamodb\b|secretsmanager/i,'the scoped auth release must not reconfigure IAM, SES, SNS, DynamoDB, Stripe secrets, or Lambda environment settings');
 assert.match(source,/redirect\(siteUrl \+ "\/\?signin=failed", \[expiredBrowserCookie\]\)/,'credential and token failures must return to the DanzStak login screen');
 assert.match(source,/path === "\/auth\/callback"[\s\S]{0,180}signin=unavailable/,'unexpected callback failures must return to DanzStak instead of a white API error page');
 assert.equal(fs.readFileSync('assets/home.js','utf8').match(/const legalVersion = "([^"]+)"/)[1],currentLegalVersion,'signup and API must accept the same policy version');
