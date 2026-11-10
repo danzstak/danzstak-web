@@ -1,5 +1,20 @@
 # DANZSTAK development report
 
+## PWA v790 release candidate — 2026-11-10
+
+Status: **READY FOR OWNER PHONE REVIEW; PRODUCTION NOT DEPLOYED.**
+
+- **Release identity:** `codex/release-candidate-2026-11-08` at `8e96e8e4cd28d49117cc47e80b3c1b32b8b1ba4c`. The installable review PWA is [review.danzstak.com](https://review.danzstak.com/) on `danzstak-shell-v790`. AWS Amplify DEVELOPMENT job `159` succeeded for that exact commit.
+- **Production truth:** `main` and the public PWA remain on `9fa6b929619a1910f5eb6a1ab9ca4135f816f2e3`, Amplify job `998`, and `danzstak-shell-v789`. No production frontend, Lambda, API Gateway route, Stripe, SES, support-email, credential, or data-store setting changed during release preparation.
+- **Reviewed product work:** full-size signed Dailies profile artwork with the Scene/Take/date clapper over the lower-left image; embedded SYNC controls clear of fixed navigation; no conversation-footer collision; inline login recovery; explicit fresh Cognito login; a visible Forgot password entry; no misleading landing-page Explore control; and network-first PWA asset refresh to `v790`.
+- **Automated gates:** the complete `test-regressions.ps1` gate passes, including social, feed, Friends, notifications, SYNC, two-party calls, media/audio, Booking, EPK, Tour Manager, Stripe, PWA, site-smoke and infrastructure coverage. All five Review checks jobs passed at the final head in run [42726613468](https://github.com/danzstak/danzstak-web/actions/runs/42726613468).
+- **Hosted browser evidence:** Dailies/profile identity passes at 320, 360, 375, 390, 414, 430 and 1366px; login recovery passes at 390 and 1366px; SYNC passes at 320, 360, 390, 414, 430, 768 and 1024px; core social navigation passes across 37 deployed page/viewport combinations; and the two-party video-call gate proves bidirectional audio/video RTP, real track controls and full hangup cleanup. The review service worker installs, controls a reopened browser context and exposes only the `danzstak-shell-v790` application cache.
+- **Visual room fax:** 37 deployed screenshots were captured and inspected for feed, Friends, Notifications, SYNC, profile, Settings and Menu across phone and desktop layouts. No tested screen showed horizontal overflow, clipped primary controls, stacked primary workspaces or the earlier SYNC footer collision. Real owner-device Android/iPhone results remain intentionally unclaimed until the owner walkthrough.
+- **Auth deployment safety:** live AWS inspection confirms `GET /auth/reset-password` is still absent and the current production Auth Lambda remains the `v789` implementation. The scoped `aws-deploy-auth-recovery.ps1` preflight built the exact release bundle, resolved the live login integration and changed no resources. Its production mode requires `-ConfirmProduction`, updates only the reviewed Lambda code and reset route, verifies both hosted redirects, and restores the previous Lambda bundle and route on failure. It does not reconfigure IAM, DynamoDB, SNS, SES, Stripe secrets, support mail or Lambda environment settings.
+- **Remaining owner action:** install/open the review PWA on the target phone, complete the walkthrough and give an explicit **GO**. Only then run the scoped Auth deployment, verify hosted login/password recovery, merge [PR #221](https://github.com/danzstak/danzstak-web/pull/221), wait for the exact main Amplify job, verify production service-worker activation and repeat the live phone checks. Until then the release status is **NO PRODUCTION DEPLOY**.
+
+Release-specific evidence and the unchecked production gate are recorded in [`docs/releases/2026-11-10-pwa-v790.md`](releases/2026-11-10-pwa-v790.md).
+
 ## Full-size round Dailies identity — 2026-11-09
 
 Status: **IMPLEMENTED, MERGED INTO THE ISOLATED RELEASE CANDIDATE AND VERIFIED ON THE SIGNED-IN REVIEW PWA; PRODUCTION UNCHANGED.**
