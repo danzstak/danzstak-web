@@ -103,7 +103,15 @@ async function pointerOwner(page, selector) {
       assert.ok(previewBox.top >= headerHit.box.bottom, `${width}px per-video fullscreen control overlaps the Roll header launcher: ${JSON.stringify({ headerHit, previewBox })}`);
       await page.screenshot({ path: path.join(output, `roll-launcher-${width}.png`) });
 
+      const pageBeforeFullscreen = await page.evaluate(() => ({ href: location.href, scrollY }));
       await launcher.click();
+      await page.locator(".reels-rail.roll-fullscreen").waitFor();
+      await page.evaluate(() => history.back());
+      await page.locator(".reels-rail:not(.roll-fullscreen)").waitFor();
+      const pageAfterDeviceBack = await page.evaluate(() => ({ href: location.href, scrollY }));
+      assert.equal(pageAfterDeviceBack.href, pageBeforeFullscreen.href, `${width}px device Back left the page instead of closing The Roll`);
+      assert.ok(Math.abs(pageAfterDeviceBack.scrollY - pageBeforeFullscreen.scrollY) <= 2, `${width}px device Back did not restore the prior page position: ${JSON.stringify({ pageBeforeFullscreen, pageAfterDeviceBack })}`);
+      await page.evaluate(() => history.forward());
       await page.locator(".reels-rail.roll-fullscreen").waitFor();
       await page.locator(".roll-close").click();
       await page.locator(".reels-rail:not(.roll-fullscreen)").waitFor();
