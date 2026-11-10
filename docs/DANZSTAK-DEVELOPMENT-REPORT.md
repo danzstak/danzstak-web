@@ -2257,7 +2257,7 @@ Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONF
 
 # PWA v794 — mobile Profile post contract
 
-Status as of 2026-11-10: **IMPLEMENTED, VISUALLY INSPECTED AND LOCALLY TESTED; DEPLOYMENT PENDING REVIEW CHECKS**.
+Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONFIRMATION PENDING**.
 
 - Scope is Profile only. Mix, Stores, SYNC, authentication, payments and backend behavior are unchanged.
 - Phone Profile posts now use the supplied familiar layout contract: `#F0F2F5` canvas, white square cards, 8px post gaps, 12px/16px content padding, 40px round author images, 12px identity spacing, edge-to-edge media and a `#CED0D4` action divider with 44px controls.
@@ -2265,4 +2265,8 @@ Status as of 2026-11-10: **IMPLEMENTED, VISUALLY INSPECTED AND LOCALLY TESTED; D
 - `browser-checks/profile-post-layout.cjs` passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Captures are in `docs/screenshots/pwa-v794-profile-post-contract/`.
 - The official DanzStak account and ordinary members use the same shared Profile renderer and therefore receive the same geometry.
 - The complete `test-regressions.ps1` gate passed after the final code and cache-version changes.
-- Installed delivery advances to `danzstak-shell-v794` and shared mobile CSS `v19`. GitHub review, AWS Amplify deployment, production no-cache probes, installed-worker verification and the live browser matrix remain pending.
+- [PR #236](https://github.com/danzstak/danzstak-web/pull/236) passed all five required Review jobs for exact head `6eb2b7f05af2291dce5f5995e57c869882edfd3b` and merged as `02596cc2516e91c74f8a1efd8acbb8553c649253`.
+- AWS Amplify production job `1007` built that exact merge commit successfully in `us-west-1` from 06:14:33 to 06:15:39 Europe/Berlin.
+- No-cache production probes confirmed shared mobile CSS `v19` and `danzstak-shell-v794`. The read-only public production health check passed for Home, Mix, SYNC, Booking, EPK, the manifest, worker and sampled versioned assets.
+- The complete Profile browser matrix passed directly against `https://danzstak.com` at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Live captures are in `docs/screenshots/pwa-v794-profile-post-contract-live/`.
+- A fresh production browser installed and activated `/service-worker.js`, was controlled by it and contained only the `danzstak-shell-v794` cache. The exact build still requires the owner's physical installed-PWA walkthrough; that observation is not claimed here.
