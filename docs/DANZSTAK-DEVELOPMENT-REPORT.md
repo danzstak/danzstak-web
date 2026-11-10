@@ -2,7 +2,7 @@
 
 ## PWA v801 — visible owner post deletion — 2026-11-10
 
-Status: **IMPLEMENTED; FOCUSED FUNCTIONAL, VISUAL, PWA CACHE AND COMPLETE LOCAL REGRESSION TESTS PASS. DEPLOYMENT PENDING REVIEW CHECKS.**
+Status: **DEPLOYED; FUNCTIONAL, VISUAL, INTEGRATION, FULL REGRESSION AND PUBLIC-PWA TESTS PASS.**
 
 - **ROOT CAUSE:** The post-options menu already called the authenticated post-deletion API, but its visible `Delete post` label was replaced with a second trash emoji. The existing browser test selected the action by its accessible name, so it passed while a member looking at the menu could not identify the delete command.
 - **CORRECTION:** Creator-owned posts now show a visible **Delete post** row with a trash icon and explanatory text. Posts owned by another member show **Remove from My Mix** instead, preventing the interface from implying that one member can destroy another creator's post.
@@ -11,6 +11,8 @@ Status: **IMPLEMENTED; FOCUSED FUNCTIONAL, VISUAL, PWA CACHE AND COMPLETE LOCAL 
 - **FUNCTIONAL EVIDENCE:** Author-only deletion, profile-post removal, database cleanup, notification/media cleanup retry, unrelated-record preservation, explicit ownership and post-action context tests pass.
 - **COMPLETE REGRESSION GATE:** `test-regressions.ps1` finished with `All local DanzStak regression checks passed.`, including authentication, feed, comments, media, SYNC/calls, Booking, EPK, marketplace, Stripe boundaries, PWA, site and infrastructure coverage.
 - **PWA DELIVERY:** The reviewed frontend advances to `assets/feed-enhancements.js?v=548` and installed shell `danzstak-shell-v801`. No AWS, Stripe, SES, authentication, Booking, EPK, SYNC or payment configuration changed.
+- **RELEASE:** [PR #249](https://github.com/danzstak/danzstak-web/pull/249) passed all five GitHub **Review checks** jobs in [run 42843625553](https://github.com/danzstak/danzstak-web/actions/runs/42843625553) and was squash-merged to `main` as `ba9083dcd3d9419a053fa193a2c5109f6e9d8e2c`.
+- **PUBLIC PWA VERIFICATION:** No-cache production probes returned `danzstak-shell-v801` and `feed-enhancements.js?v=548`. The public asset contains the visible **Delete post** and **Remove from My Mix** labels plus **Remove from here** and **Delete everywhere**. The real-browser deletion matrix then passed directly against `https://danzstak.com` at 320, 360, 390, 414, 430 and 1366px with mocked account data; no production post was changed.
 
 ## PWA v800 — linked Roll videos fit one device viewport — 2026-11-10
 
