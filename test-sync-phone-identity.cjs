@@ -8,7 +8,8 @@ const worker=fs.readFileSync("service-worker.js","utf8");
 
 for(const id of ["phoneCountry","phoneLocalNumber","sendPhoneCode","phoneCode","verifyPhoneCode","dsNumberValue","chooseDsNumber"])
   assert.ok(html.includes(`id="${id}"`),`${id} must be present in the phone setup window`);
-assert.match(html,/Use my mobile number[\s\S]*Use a DanzStak number[\s\S]*Skip number for now/,"phone setup must preserve all three choices");
+assert.match(html,/Use my mobile number[\s\S]*Use a DanzStak SYNC number[\s\S]*Skip number for now/,"phone setup must preserve all three choices");
+assert.match(html,/Works only inside DanzStak SYNC[\s\S]*not a mobile or carrier phone number[\s\S]*regular calls, SMS\/MMS, or emergency calls/,"the DS choice must clearly disclose that it is SYNC-only and not carrier service");
 assert.match(client,/DANZSTAK_COUNTRY_CALLING_CODES/,"country calling codes must populate dynamically");
 assert.match(client,/\/sync\/phone\/start[\s\S]*\/sync\/phone\/verify/,"personal-number verification must use protected backend routes");
 assert.match(client,/\/phone-number\/entitlement[\s\S]*\/phone-number\/checkout[\s\S]*\/sync\/ds-number/,"DS assignment must verify payment before allocating a number");
@@ -27,8 +28,8 @@ assert.match(template,/SMS_NOT_CONFIGURED/,"the API must truthfully refuse sends
 assert.doesNotMatch(template,/phoneVerifiedAt[\s\S]{0,500}phone:\s*\{S:/,"verified identity must not persist a plaintext personal phone");
 assert.match(template,/randomInt\(100,1000\)[\s\S]*DS-\$\{digits\.slice\(0,3\)\}-\$\{digits\.slice\(3\)\}/,"DS numbers must use the requested unique DS-123-1234 format");
 assert.match(template,/DS#\$\{digits\}[\s\S]*ConditionExpression:'attribute_not_exists\(identityKey\)'/,"DS aliases must be reserved conditionally to prevent duplicates");
-assert.match(template,/PHONE#ACTIVATION_ENTITLEMENT[\s\S]*A verified \$3 DanzStak number activation is required/,"DS allocation must require the existing phone activation entitlement");
-assert.match(template,/It works only inside SYNC[\s\S]*senderEmail:\{S:SYNC_SYSTEM_EMAIL\}/,"an assigned DS number must arrive in the member's SYNC chat");
+assert.match(template,/PHONE#ACTIVATION_ENTITLEMENT[\s\S]*A verified \$3 DanzStak SYNC number activation is required/,"DS allocation must require the existing phone activation entitlement");
+assert.match(template,/works only inside SYNC on DanzStak[\s\S]*not a carrier phone number[\s\S]*regular calls, SMS\/MMS, or emergency services[\s\S]*senderEmail:\{S:SYNC_SYSTEM_EMAIL\}/i,"an assigned DS number must arrive in the member's SYNC chat with the service boundary");
 for(const route of ["GET /sync/identity","POST /sync/phone/start","POST /sync/phone/verify","POST /sync/ds-number"])
   assert.ok(template.includes(route),`${route} must be routed`);
 assert.match(worker,/danzstak-shell-v802/,"the installed PWA must receive the phone setup release");

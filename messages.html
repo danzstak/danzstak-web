@@ -131,10 +131,10 @@
   <header><div><span class="eyebrow">SYNC Phone</span><h2 id="callingDevicesTitle">Phone and device setup</h2></div><button id="closeCallingDevices" type="button" data-icon="close" aria-label="Close phone and device setup" title="Close">×</button></header>
   <section class="sync-number-setup" aria-labelledby="syncNumberTitle">
     <h3 id="syncNumberTitle">Choose how people reach you</h3>
-    <p class="sync-number-note">A number is optional. Your personal number stays private. A DS number works only inside DanzStak.</p>
+    <p class="sync-number-note">A number is optional. Your personal number stays private. A DS number works only inside DanzStak SYNC.</p>
     <div class="sync-number-choices" role="radiogroup" aria-label="SYNC number choice">
       <label><input type="radio" name="syncNumberChoice" value="personal"><span><strong>Use my mobile number</strong><small>Choose a country code and verify by text.</small></span></label>
-      <label><input type="radio" name="syncNumberChoice" value="ds"><span><strong>Use a DanzStak number</strong><small>Get one private DS number for all your registered devices.</small></span></label>
+      <label><input type="radio" name="syncNumberChoice" value="ds"><span><strong>Use a DanzStak SYNC number</strong><small>Works only in SYNC on DanzStak. It is not a regular phone number.</small></span></label>
       <label><input type="radio" name="syncNumberChoice" value="skip" checked><span><strong>Skip number for now</strong><small>Chat still works. You can add a number later.</small></span></label>
     </div>
     <div id="personalNumberPanel" class="sync-number-panel" hidden>
@@ -150,9 +150,9 @@
       <p id="phoneNumberStatus" class="device-status" role="status" aria-live="polite"></p>
     </div>
     <div id="dsNumberPanel" class="sync-number-panel" hidden>
-      <p>Your DS number is private by default and cannot call, text, or reach emergency services outside DanzStak.</p>
+      <p><strong>Works only inside DanzStak SYNC.</strong> A DS number is not a mobile or carrier phone number. It cannot make or receive regular calls, SMS/MMS, or emergency calls.</p>
       <output id="dsNumberValue" class="ds-number-value" aria-live="polite">Not assigned</output>
-      <button id="chooseDsNumber" type="button" class="primary">Get a DS number — $3</button>
+      <button id="chooseDsNumber" type="button" class="primary">Activate a SYNC-only DS number — $3</button>
       <p id="dsNumberStatus" class="device-status" role="status" aria-live="polite"></p>
     </div>
   </section>
@@ -166,7 +166,7 @@
   </section>
 </dialog>
 <script src="assets/country-calling-codes.js?v=1" defer></script>
-<script src="assets/call-devices.js?v=3" defer></script>
+<script src="assets/call-devices.js?v=4" defer></script>
 <script src="assets/push-notifications.js?v=308" defer></script>
 <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
   <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
