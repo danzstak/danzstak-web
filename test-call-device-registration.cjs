@@ -25,7 +25,10 @@ assert.doesNotMatch(template,/IMEI|address.?book/i,"device registration must not
 
 assert.ok(html.includes('id="callingDevices"'),"SYNC must expose a discoverable Phone and devices action");
 assert.ok(html.includes('id="registerThisDevice"'),"the current installation needs a visible registration action");
-assert.ok(html.includes("Registration does not expose a phone number"),"the UI must distinguish device enrollment from telephone service");
+assert.ok(html.includes("Number verification and device registration are separate security steps"),"the UI must distinguish device enrollment from number verification");
+assert.ok(html.includes('name="syncNumberChoice" value="personal"'),"the setup window must offer private personal-number verification");
+assert.ok(html.includes('name="syncNumberChoice" value="ds"'),"the setup window must offer a DanzStak number");
+assert.ok(html.includes('id="phoneCountry"'),"personal-number setup must include country calling codes");
 assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"call requests need the current installation credential");
 assert.ok(feed.indexOf('assets/call-devices.js?v=2')<feed.indexOf('assets/incoming-calls.js?v=302'),"the feed must load the installation credential before its global incoming-call listener");

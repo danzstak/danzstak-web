@@ -1558,3 +1558,4 @@ loadConversations();
 setInterval(loadConversations, 15000);
 
 window.addEventListener("danzstak-offline-synced", () => { loadConversations(); loadDirectMessages(true); });
+window.addEventListener("danzstak:sync-identity-updated", () => loadConversations());
