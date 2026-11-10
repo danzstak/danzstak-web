@@ -14,8 +14,9 @@ assert.match(css, /video\.ds-responsive-media\{[\s\S]*aspect-ratio:var\(--ds-med
 assert.match(css, /iframe\.ds-responsive-media\{[\s\S]*aspect-ratio:[\s\S]*min-height:0/, "third-party players need responsive framing without forced object fitting");
 assert.match(css, /\.danzstak-media-shell\{[^}]*background:transparent;line-height:0/, "the shared wrapper must not paint a black strip or create an inline gap");
 assert.match(css, /\.danzstak-reel-shell\{[^}]*aspect-ratio:var\(--ds-media-aspect,16\/9\);background:transparent/, "Roll audio wrappers must retain the provider ratio instead of stretching");
-assert.match(css, /\.reels-rail:not\(\.roll-fullscreen\) \.reel-media-stage\{[\s\S]*display:flex;[\s\S]*align-items:center;[\s\S]*justify-content:center;[\s\S]*aspect-ratio:9\/16;[\s\S]*background-color:#05070c;/, "linked Roll previews need a dark portrait stage with centered media");
-assert.match(css, /\.reels-rail:not\(\.roll-fullscreen\) \.danzstak-reel-shell>\.reel-player\{[\s\S]*width:100%;[\s\S]*height:auto;[\s\S]*max-height:100%;[\s\S]*object-fit:contain/, "linked Roll players must preserve their provider ratio inside the dark stage");
+assert.match(css, /\.reels-rail:not\(\.roll-fullscreen\) \.reel-media-stage\{[\s\S]*display:flex;[\s\S]*align-items:center;[\s\S]*justify-content:center;[\s\S]*aspect-ratio:var\(--ds-media-aspect,16\/9\);[\s\S]*background-color:#05070c;/, "linked Roll previews need a dark ratio-matched stage");
+assert.match(css, /\.reels-rail:not\(\.roll-fullscreen\) \.danzstak-reel-shell>\.reel-player\{[\s\S]*width:100%;[\s\S]*height:100%;[\s\S]*max-height:100%;[\s\S]*object-fit:contain/, "linked Roll players must fill their ratio-matched stage without stretching");
+assert.match(css, /\.reel-media-stage\[data-video-layout="portrait"\]\{[\s\S]*height:min\(720px,max\(280px,calc\(100dvh - 168px[\s\S]*aspect-ratio:auto/, "portrait Roll previews must fit inside one device viewport");
 assert.match(css, /danzstak-score-pattern\.svg/, "the Roll stage should reuse the restrained DanzStak music texture");
 assert.match(css, /\.roll-fullscreen \.reel-media-stage\{[^}]*flex:1;[^}]*display:flex;[^}]*align-items:center;[^}]*justify-content:center/, "full-screen Roll media needs a dedicated centered stage");
 assert.match(css, /\.roll-fullscreen \.danzstak-reel-shell\{[^}]*flex:0 1 auto;[^}]*width:100%;[^}]*max-height:100%;[^}]*aspect-ratio:var\(--ds-media-aspect,16\/9\)/, "the Roll audio wrapper should retain the framed media area instead of expanding into empty stage space");
@@ -40,6 +41,7 @@ assert.match(script, /ratio < \.82 \? "portrait" : ratio > 1\.18 \? "landscape" 
 assert.match(script, /loadedmetadata/, "video geometry must update from real metadata");
 assert.match(script, /shell\.style\.setProperty\("--ds-media-aspect"/, "intrinsic video geometry must propagate to the audio-control wrapper");
 assert.match(script, /function classifyFrame\(frame\)/, "provider players must receive an appropriate default geometry");
+assert.match(script, /function syncRollStage\(media, layout, aspect\)/, "provider geometry must size the inline Roll stage instead of forcing a tall placeholder");
 assert.match(script, /HTMLIFrameElement/, "third-party embeds must use the shared component without rewriting provider content");
 assert.match(script, /MutationObserver/, "dynamically loaded feed, Chat and Roll media must be enhanced consistently");
 assert.match(visibilityScript, /if\(element\.dataset\?\.videoLayout\)shell\.dataset\.videoLayout=element\.dataset\.videoLayout/,
@@ -49,10 +51,10 @@ assert.match(visibilityScript, /const shell=video\.closest\?\.\('\.danzstak-medi
 
 for (const file of ["feed.html", "messages.html", "profile.html", "epk.html"]) {
   const html = fs.readFileSync(file, "utf8");
-  assert.match(html, /assets\/responsive-media\.css\?v=8/, `${file} must load the shared responsive-media styles`);
-  assert.match(html, /assets\/responsive-media\.js\?v=2/, `${file} must load the shared responsive-media behavior`);
+  assert.match(html, /assets\/responsive-media\.css\?v=9/, `${file} must load the shared responsive-media styles`);
+  assert.match(html, /assets\/responsive-media\.js\?v=3/, `${file} must load the shared responsive-media behavior`);
 }
-assert.match(worker, /danzstak-shell-v799/);
+assert.match(worker, /danzstak-shell-v800/);
 assert.match(worker, /\/assets\/responsive-media\.js/);
 assert.match(worker, /\/assets\/responsive-media\.css/);
 
