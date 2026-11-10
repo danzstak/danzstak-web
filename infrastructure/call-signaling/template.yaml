@@ -140,6 +140,13 @@ Resources:
         Enabled: true
       SSESpecification:
         SSEEnabled: true
+      Tags:
+        - Key: Application
+          Value: DanzStak
+        - Key: Service
+          Value: DS-Push
+        - Key: Purpose
+          Value: PwaPushNotifications
   ActivityPushOutboxTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -270,6 +277,13 @@ Resources:
       KeySpec: ECC_NIST_P256
       KeyUsage: SIGN_VERIFY
       PendingWindowInDays: 30
+      Tags:
+        - TagKey: Application
+          TagValue: DanzStak
+        - TagKey: Service
+          TagValue: DS-Push
+        - TagKey: Purpose
+          TagValue: PwaPushNotifications
       KeyPolicy:
         Version: '2012-10-17'
         Statement:
