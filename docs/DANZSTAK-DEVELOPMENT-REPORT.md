@@ -2,7 +2,7 @@
 
 ## PWA v800 — linked Roll videos fit one device viewport — 2026-11-10
 
-Status: **IMPLEMENTED; FUNCTIONAL, VISUAL, INTEGRATION AND FULL REGRESSION TESTS PASS; NOT DEPLOYED.**
+Status: **DEPLOYED; FUNCTIONAL, VISUAL, INTEGRATION AND FULL REGRESSION TESTS PASS LOCALLY AND AGAINST THE PUBLIC PWA.**
 
 - **OWNER ACCEPTANCE CORRECTION:** The v799 dark 9:16 inline canvas centered a landscape player but still made members scroll through empty canvas to see the whole video. An inline preview should expose the complete linked video immediately; the 9:16 swipe treatment belongs only to fullscreen The Roll.
 - **CORRECTION:** Every linked inline Roll stage now inherits the provider's source ratio. Landscape and square embeds fill the card without unused vertical canvas. Portrait embeds keep the complete 9:16 picture but cap their stage to the usable device viewport, centering the player on the dark music-textured background rather than cropping or stretching it.
@@ -11,6 +11,8 @@ Status: **IMPLEMENTED; FUNCTIONAL, VISUAL, INTEGRATION AND FULL REGRESSION TESTS
 - **PORTRAIT EVIDENCE:** A linked 9:16 provider video was tested at the same seven widths. Its complete frame remained inside the usable viewport, kept the 9:16 ratio and centered on both axes without cropping or stretching. Portrait captures are included beside the landscape captures.
 - **REGRESSION EVIDENCE:** Responsive-media sizing, single-audible-video arbitration, mute-state inheritance, 60% visibility, device Back, feed density and PWA cache-refresh checks pass. The complete `test-regressions.ps1` gate finished with `All local DanzStak regression checks passed.`
 - **PWA DELIVERY:** The reviewed frontend advances to `assets/feed-enhancements.js?v=547`, `assets/responsive-media.css?v=9`, `assets/responsive-media.js?v=3` and installed shell `danzstak-shell-v800`. No backend, payment, authentication, EPK, Booking/Tour, SYNC, SES or AWS behavior changes.
+- **RELEASE:** [PR #247](https://github.com/danzstak/danzstak-web/pull/247) passed all five GitHub **Review checks** jobs in [run 42834477868](https://github.com/danzstak/danzstak-web/actions/runs/42834477868) and was squash-merged to `main` as `4058d92168c9a8780a554bd26af648ac236b544d`.
+- **PUBLIC PWA VERIFICATION:** No-cache production probes returned `danzstak-shell-v800`, `feed-enhancements.js?v=547`, `responsive-media.css?v=9` and `responsive-media.js?v=3`. The landscape-and-portrait browser matrix then passed directly against `https://danzstak.com` at all seven widths, proving the complete linked player is visible in the deployed PWA without the old tall inline canvas.
 
 ## PWA v799 — dark centered stage for linked Roll videos — 2026-11-10
 
