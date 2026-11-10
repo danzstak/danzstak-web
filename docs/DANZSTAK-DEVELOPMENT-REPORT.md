@@ -2,7 +2,7 @@
 
 ## PWA v796 — Official Shop and DanzStak Bazaar — 2026-11-10
 
-Status: **IMPLEMENTED AND PASSING THE COMPLETE LOCAL QUALITY GATE; PRODUCTION DEPLOYMENT PENDING GITHUB REVIEW CHECKS.**
+Status: **DEPLOYED AND VERIFIED IN PRODUCTION FOR CATALOG AND SHOP MANAGEMENT; CHECKOUT REMAINS DISABLED BY A DOCUMENTED STRIPE CONNECT BLOCKER.**
 
 - Added two distinct marketplace destinations to the familiar DanzStak menu: **Official Shop** for DanzStak merchandise and **DanzStak Bazaar** for the combined published inventory of member shops.
 - Every member retains one named shop. A published, in-stock physical listing is written atomically to both the seller-owned catalog and the public Bazaar projection; drafts, sold-out items, closed shops and archived listings are removed from the Bazaar.
@@ -15,7 +15,13 @@ Status: **IMPLEMENTED AND PASSING THE COMPLETE LOCAL QUALITY GATE; PRODUCTION DE
 - **COMPLETE REGRESSION GATE:** `test-regressions.ps1` passed after the marketplace changes, including authentication, social, media, SYNC/calls, Booking, EPK, Tour Manager, Stripe boundaries, PWA, site and infrastructure coverage.
 - **FOCUSED VISUAL TESTS:** the real-browser marketplace matrix passed at 320, 360, 390, 414, 430 and 1366px with no horizontal overflow, clipped controls, sub-44px controls or unloaded product media. Builder-inspected captures are in [`docs/screenshots/pwa-v796-shops/`](screenshots/pwa-v796-shops/).
 - Changed surfaces: `store.html`, `bazaar.html`, `product.html`, marketplace CSS/JavaScript, Feed menu, service worker, marketplace API, API Gateway/CloudFormation routing and marketplace regression/browser coverage.
-- Release commit, pull request, AWS deployment, production PWA verification and physical-device status will be recorded only after those steps actually complete.
+- **RELEASE IDENTITY:** [PR #240](https://github.com/danzstak/danzstak-web/pull/240) passed all five GitHub **Review checks** jobs in [run 42799331764](https://github.com/danzstak/danzstak-web/actions/runs/42799331764) and was squash-merged to `main` as `01a8394a84b9c513531273534061d87bfeb8d5fb`.
+- **AWS API DEPLOYMENT:** reviewed CloudFormation change set `shops-bazaar-v796-20261110113353` contained exactly two additive resources and no replacements: `GET /marketplace/bazaar` and `GET /marketplace/bazaar/{productId}`. `DANZSTAK-Engagement` reached `UPDATE_COMPLETE`, and `DANZSTAK-Auth-API` reached `Active` / `Successful` after the reviewed code update at `2026-11-10T10:41:03Z`. SES, support mail, Stripe configuration and Lambda environment variables were not changed.
+- **LIVE API:** the deployed public Bazaar returned HTTP 200 with the real empty-catalog contract (`{"products":[]}`), and a nonexistent product returned HTTP 404. This proves the new routes and handler are connected without seeding fake merchandise.
+- **PWA DEPLOYMENT:** AWS Amplify production job `1011` succeeded for the exact merge commit at `2026-11-10 11:32:40 +01:00`. No-cache probes returned HTTP 200 for the three pages, their JavaScript/CSS and the manifest. A fresh browser registered the live worker, became controlled by it, exposed only `danzstak-shell-v796`, and confirmed the Bazaar/product assets were present in that cache.
+- **POST-DEPLOY VISUAL AND FUNCTIONAL GATE:** the marketplace browser matrix passed directly against `https://danzstak.com` at 320, 360, 390, 414, 430 and 1366px. Live builder-inspected captures are in [`docs/screenshots/pwa-v796-shops-live/`](screenshots/pwa-v796-shops-live/). No tested page had horizontal overflow, clipped controls, sub-44px touch controls or unloaded product media.
+- **HONEST PAYMENT BOUNDARY:** because the DANZSTAK Stripe sandbox cannot currently charge or transfer, no buyer payment or seller payout was run or claimed. Checkout remains visibly disabled in production. A complete listing-to-funds test still requires owner completion of Stripe platform/Connect onboarding, then implementation and verification of seller onboarding, payment, delivery evidence, 5% item-only fee collection, seller transfer, refund/dispute handling and tax obligations.
+- **PHYSICAL-DEVICE BOUNDARY:** production is installable and browser-verified. A new owner phone walkthrough after Amplify job `1011` was not observed in this release session and is not claimed.
 
 ## PWA v790 production release — 2026-11-10
 
