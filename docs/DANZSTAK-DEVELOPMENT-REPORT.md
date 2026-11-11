@@ -2391,11 +2391,14 @@ Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONF
 
 # SYNC device-registration CORS correction
 
-Status as of 2026-11-11: **CODE AND TESTS COMPLETE; PRODUCTION API UPDATE PENDING AWS REAUTHENTICATION**.
+Status as of 2026-11-11: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONFIRMATION PENDING**.
 
 - Root cause of the phone screenshot's **Failed to fetch** error: registration completed and returned a device credential, but the next browser request used `x-danzstak-device-id` and `x-danzstak-device-token`. The production API Gateway preflight allowed only `content-type`, so the browser rejected that authenticated device request.
 - Both version-controlled API Gateway CORS definitions now allow the two scoped device headers. Signature/token checks, device ownership, revocation and call authorization are unchanged.
 - The registration window now shows the signed-in account name from `/profiles`; the editable field remains the local device name. Personal phone verification remains a separate optional OTP workflow and is not represented as verified by this correction.
 - The focused browser gate passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. It verifies the account label, automatic registration prompt, credential headers, responsive dialog geometry and successful registration response.
 - The complete `test-regressions.ps1` suite passed after the final changes, including SYNC device/call/message behavior, PWA delivery, authentication, Profile, Booking/EPK/Tour Manager, Stripe boundaries, site smoke tests and infrastructure syntax.
-- No SES, support-email, Stripe, database-table or payment configuration was changed. The exact production CORS update and hosted-PWA verification remain pending AWS CLI reauthentication.
+- [PR #256](https://github.com/danzstak/danzstak-web/pull/256) passed all five required Review jobs and squash-merged as production commit `3be8b0837a590f2e0c2f5b6aa76b0d9ea4de3556`.
+- The production `DANZSTAK-Auth-HTTP-API` in `us-west-1` now preserves its existing DanzStak origins and allows `content-type`, `x-danzstak-device-id` and `x-danzstak-device-token`. A real no-cache preflight from `https://danzstak.com` returned HTTP 204 with the expected origin, credentials, methods and headers.
+- The hosted PWA serves `assets/call-devices.js?v=3`. The complete registration browser gate passed directly against `https://danzstak.com` at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px.
+- No SES, support-email, Stripe, database-table or payment configuration was changed. The remaining evidence boundary is the owner's physical installed-PWA confirmation that the existing device credential now loads without **Failed to fetch**.
