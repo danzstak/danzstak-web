@@ -36,11 +36,13 @@ assert.match(client,/confirm\(`\$\{t\("Revoke"\)\} \$\{device\.name\}\? \$\{t\("
 assert.match(client,/renameDevice\(device\)[\s\S]*method:"PATCH"/,"registered devices must be renameable without re-enrollment");
 assert.match(client,/activity\.textContent=lastActive\(device\.lastUsedAt\)/,"device management must show the server-recorded last active time");
 assert.match(chat,/path\.startsWith\("\/calls\/"\)\?await globalThis\.danzstakCallingDeviceHeaders/,"calling requests must authenticate the installation");
-assert.match(chat,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*danzstakOpenCallingDevices/,"blocked calls must open the registration recovery flow");
+assert.match(chat,/function openCallDeviceRegistration[\s\S]{0,360}danzstakOpenCallingDevices/,"blocked calls must open the registration recovery flow");
 assert.match(chat,/showCallRegistrationRequired[\s\S]{0,220}This device is not registered for calls\.[\s\S]{0,220}Register this device/,"passive call polling must explain that device registration is required instead of claiming an automatic reconnect");
+assert.match(chat,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]{0,220}openCallDeviceRegistration\(\{once:true\}\)/,"the first registration-required inbox response must open device setup automatically");
 assert.match(chat,/callDeviceRegistrationRequired&&!peer&&!pending&&!autoAnswer/,"SYNC must pause idle call polling until the device is registered");
 assert.match(chat,/danzstak:call-device-registered[\s\S]*callDeviceRegistrationRequired=false[\s\S]*poll\(\)/,"SYNC must resume call polling after registration");
-assert.match(chat,/async function start\(kind\)[\s\S]*callDeviceRegistrationRequired[\s\S]*danzstakOpenCallingDevices/,"call actions on an unregistered device must open setup before requesting media");
+assert.match(chat,/async function start\(kind\)[\s\S]{0,420}callDeviceRegistrationRequired[\s\S]{0,120}openCallDeviceRegistration\(\)/,"call actions on an unregistered device must open setup before requesting media");
+assert.match(chat,/for\(const button of \[els\.phone,els\.video\]\)[\s\S]{0,320}callDeviceRegistrationRequired[\s\S]{0,220}openCallDeviceRegistration\(\)[\s\S]{0,220}allowedContacts\.has/,"call controls must open device setup before the relationship guard can intercept them");
 assert.match(directMessages,/danzstakCallRegistrationRequired[\s\S]*You can message \{name\} directly\./,"opening a conversation must preserve the actionable call-registration message");
 assert.match(chat,/signal\("answer",peer\.localDescription,offer\.eventId\)/,"the answering installation must bind its answer to the exact incoming offer");
 assert.match(chat,/CALL_ALREADY_ANSWERED[\s\S]*This call was answered on another device/,"losing installations must stop with a truthful one-answer result");

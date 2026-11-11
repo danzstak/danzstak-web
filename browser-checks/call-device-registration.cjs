@@ -14,6 +14,7 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
     for (const width of widths) {
       const context = await browser.newContext({ viewport: { width, height: width < 700 ? 844 : 900 }, serviceWorkers: 'block' });
       const page = await context.newPage();
+      page.on('pageerror', error => console.error(`Page error at ${width}px: ${error.message}`));
       page.setDefaultTimeout(8000);
       let registered = false;
       let callHeaders = {};
@@ -24,8 +25,8 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
         const path = url.pathname;
         if (path === '/auth/session') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ authenticated: true, user: { email: 'browser-test@danzstak.test', sub: '33333333-3333-4333-8333-333333333333' } }) });
         if (path === '/conversations') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ conversations: [{ contactEmail: 'friend@danzstak.test', memberId: '44444444-4444-4444-8444-444444444444', name: 'Tour Friend', preview: 'Ready for soundcheck', updatedAt: '2026-11-09T12:00:00.000Z', canContact: true }] }) });
-        if (path === '/friends') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ friends: [{ email: 'friend@danzstak.test', memberId: '44444444-4444-4444-8444-444444444444', name: 'Tour Friend' }] }) });
-        if (path === '/calls/directory') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ users: [{ email: 'friend@danzstak.test', memberId: '44444444-4444-4444-8444-444444444444', name: 'Tour Friend', friendStatus: 'friends', online: true }] }) });
+        if (path === '/friends') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ friends: [] }) });
+        if (path === '/calls/directory') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ users: [] }) });
         if (path === '/messages') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ messages: [], canContact: true }) });
         if (path === '/calls/devices' && request.method() === 'GET') {
           return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ devices: registered ? [{ deviceId: '11111111-1111-4111-8111-111111111111', name: 'My test phone', allowCalls: true, registeredAt: new Date().toISOString(), lastUsedAt: new Date().toISOString(), revokedAt: '', thisDevice: true }] : [] }) });
@@ -46,6 +47,15 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       await page.waitForLoadState('domcontentloaded');
       await page.waitForFunction(() => typeof window.danzstakOpenCallingDevices === 'function');
       await page.waitForFunction(() => document.querySelector('#callStatus')?.textContent === 'This device is not registered for calls. Register this device.');
+      const dialog = page.locator('#callingDevicesDialog');
+      await assert.doesNotReject(() => dialog.waitFor({ state: 'visible' }), `registration did not open automatically at ${width}px`);
+      const automaticDialogGeometry = await dialog.evaluate(node => { const box=node.getBoundingClientRect(); return { left:box.left, right:box.right, top:box.top, bottom:box.bottom, viewportWidth:innerWidth, viewportHeight:innerHeight }; });
+      assert.ok(automaticDialogGeometry.left >= 0 && automaticDialogGeometry.right <= automaticDialogGeometry.viewportWidth && automaticDialogGeometry.top >= 0 && automaticDialogGeometry.bottom <= automaticDialogGeometry.viewportHeight, `automatic registration dialog overflows at ${width}px: ${JSON.stringify(automaticDialogGeometry)}`);
+      if (captureDir) {
+        fs.mkdirSync(captureDir, { recursive: true });
+        await page.screenshot({ path: path.join(captureDir, `call-registration-auto-open-${width}.png`) });
+      }
+      await page.locator('#closeCallingDevices').click();
       await page.waitForTimeout(2200);
       assert.equal(unregisteredInboxRequests, 1, `unregistered call polling repeated at ${width}px`);
       await page.locator('.conversation-user').first().click();
@@ -56,8 +66,7 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
         await page.screenshot({ path: path.join(captureDir, `call-registration-required-${width}.png`), fullPage: true });
       }
       await page.locator('#headerPhone').click();
-      const dialog = page.locator('#callingDevicesDialog');
-      await assert.doesNotReject(() => dialog.waitFor({ state: 'visible' }));
+      await assert.doesNotReject(() => dialog.waitFor({ state: 'visible' }), `call attempt did not reopen registration before contact checks at ${width}px`);
       await page.locator('#deviceName').fill('My test phone');
       await page.locator('#registerThisDevice').click();
       await page.locator('#deviceStatus').filter({ hasText: 'registered for SYNC calls' }).waitFor();
