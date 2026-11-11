@@ -195,6 +195,8 @@ Do not write code until the plan is approved.
 
 SYNC becomes its own standalone chat, voice and video product with SYNC Network numbers users can get so they never share their personal number. It requires a carrier/provider, pricing, E911, A2P 10DLC, identity checks and anti-spam before launch. Until then, fix SYNC for current users and do not sell phone numbers. Full spec: `instructions/pages/04-chat` and `instructions/pages/12-phone-service`.
 
+Current SYNC security rule (owner, 2026-11-11): every browser, installed PWA, tablet or computer must be registered to the signed-in account before it can use SYNC messages or calls. Registration uses a server-issued installation credential and the account name as the default device label. It does not require or expose a personal phone number. Personal SMS verification remains a separate optional trust check; SYNC Network numbers remain paused and must not be sold.
+
 ## StakGuard (planned)
 
 StakGuard is DanzStak's data-broker protection product for every member under Settings -> Your data. It is separate from creator-content provenance and share-link tracking. Finding supported data-broker and people-search exposure, showing its source/date, preparing member-approved opt-outs and linking free official tools are free. Monitoring is $4 per month with no auto-renewal ever; members may prepay whole months at $4 each, up to 12 months/$48, and receive one reminder before paid time expires. Broker removal comes first; dark-web checks are later and never claim "all of the dark web." Phase A is research with synthetic data only—no vendors, Stripe products or charging without owner approval. Full spec: `instructions/pages/17-privacy-shield`.

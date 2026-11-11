@@ -316,9 +316,18 @@ function closeConversationMenu({ restoreFocus = false } = {}) {
 async function directFetch(path, options = {}, timeoutMs = 10000) {
   const target = path.startsWith("/") ? directApi + path : new URL(path);
   if (typeof target !== "string" && target.origin !== "https://danzstak-call-signaling-mediabucket-abx9qfpinhje.s3.us-west-1.amazonaws.com") throw new Error(messageTranslate("Unexpected upload destination"));
+  const sameApi = typeof target === "string";
+  const headers = { ...(options.headers || {}), ...(sameApi ? await globalThis.danzstakCallingDeviceHeaders?.() : {}) };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try { return await fetch(String(target), { ...options, signal: controller.signal }); }
+  try {
+    const response = await fetch(String(target), { ...options, headers, signal: controller.signal });
+    if (sameApi && response.status === 403) {
+      const data = await response.clone().json().catch(() => ({}));
+      if (["SYNC_DEVICE_REGISTRATION_REQUIRED", "CALL_DEVICE_REGISTRATION_REQUIRED"].includes(data.code)) globalThis.danzstakRequireSyncDevice?.();
+    }
+    return response;
+  }
   catch (error) {
     if (error.name === "AbortError") throw new Error(messageTranslate("DanzStak is taking too long to respond. Try again."));
     throw new Error(messageTranslate("DanzStak cannot connect right now. Check your connection and try again."));
@@ -961,6 +970,7 @@ async function loadEarlierMessages() {
 }
 
 async function loadDirectMessages(reset = false) {
+  if (globalThis.danzstakSyncDeviceRegistered && globalThis.danzstakSyncDeviceRegistered() !== true) return;
   const version = conversationVersion;
   const feedbackVersion = conversationFeedbackVersion;
   const showAvailability = reset && availabilityNoticePending;
@@ -1134,6 +1144,7 @@ function appendConversationAvailabilityWarning() {
   conversationUsers.appendChild(panel);
 }
 async function loadConversations() {
+  if (globalThis.danzstakSyncDeviceRegistered && globalThis.danzstakSyncDeviceRegistered() !== true) return;
   if (document.hidden || loadingConversations) return;
   loadingConversations = true;
   conversationUsers?.setAttribute?.("aria-busy", "true");
@@ -1554,7 +1565,8 @@ async function loadCurrentSession() {
 loadCurrentSession();
 setInterval(() => loadDirectMessages(), 3000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { loadDirectMessages(); loadConversations(); } });
-loadConversations();
+window.danzstakSyncDeviceReady?.then(registered => { if (registered) loadConversations(); });
 setInterval(loadConversations, 15000);
 
 window.addEventListener("danzstak-offline-synced", () => { loadConversations(); loadDirectMessages(true); });
+window.addEventListener("danzstak:sync-device-registered", () => { loadCurrentSession(); loadConversations(); loadDirectMessages(true); });

@@ -17,6 +17,7 @@ function setup() {
   const requests = [];
   const context = vm.createContext({ URLSearchParams, AbortController, setTimeout, clearTimeout,
     crypto: { randomUUID: () => '00000000-0000-4000-8000-000000000001' },
+    danzstakSyncDeviceRegistered: () => true, danzstakCallingDeviceHeaders: async () => ({}),
     location: { search: '', origin: 'https://danzstak.com' }, window: {},
     localStorage: { getItem: () => '{}', setItem() {} },
     document: { hidden: false, getElementById: id => elements.get(id) || null, querySelector: () => null, createElement: element,
@@ -39,6 +40,7 @@ function setup() {
   const h = setup();
   h.run('openConversation({contactEmail:"first@example.com"})');
   h.run('openConversation({contactEmail:"second@example.com"})');
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.requests.length, 2, 'new chat loads without waiting for old request');
   await h.finish(0, { canContact: true, nextCursor: 'old-cursor' });
   assert.equal(h.send.disabled, true, 'stale response cannot enable the new composer');
@@ -50,23 +52,27 @@ function setup() {
 
   h.run('openConversation({contactEmail:"third@example.com"})');
   h.run('closeConversation()');
+  await new Promise(resolve => setImmediate(resolve));
   await h.finish(2, { canContact: true });
   assert.equal(h.send.disabled, true, 'closing a chat invalidates in-flight responses');
   assert.equal(h.run('directContact'), '');
 
   h.run('openConversation({contactEmail:"fourth@example.com"})');
+  await new Promise(resolve => setImmediate(resolve));
   h.requests[3].reject(new Error('Network unavailable'));
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.run('loadingMessages'), false, 'failure releases the loader');
   assert.match(h.elements.get('callStatus').textContent, /DanzStak cannot connect right now/);
 
   h.run('openConversation({contactEmail:"sender@example.com"})');
+  await new Promise(resolve => setImmediate(resolve));
   await h.finish(4, { canContact: true });
   h.elements.get('messageInput').value = 'Sending to first contact';
   const pendingSend = h.run('submit({preventDefault(){},stopImmediatePropagation(){}})');
   await h.run('submit({preventDefault(){},stopImmediatePropagation(){}})');
   assert.equal(h.requests.length,6,"Repeated Enter cannot duplicate a pending message");
   h.run('openConversation({contactEmail:"other@example.com"})');
+  await new Promise(resolve => setImmediate(resolve));
   h.elements.get('messageInput').value = 'Draft for another contact';
   await h.finish(5);
   await pendingSend;

@@ -1,8 +1,8 @@
-# SYNC calling-device registration
+# SYNC device registration
 
 Status: **Registered-device baseline deployed; immediate multi-device answer resolution implemented and under release verification.**
 
-SYNC device registration authorizes one browser/PWA installation to participate in DanzStak account-to-account voice or video signaling. It does not verify a handset subscriber, activate a carrier number, enable PSTN/SMS/emergency calling, or gate ordinary Chat, Friends, profiles, or signup.
+SYNC device registration authorizes one browser/PWA installation to use DanzStak account-to-account messaging and voice/video signaling. It does not verify a handset subscriber, activate a carrier number, enable PSTN/SMS/emergency calling, or gate Friends, profiles or signup. As of the owner decision on 2026-11-11, private conversation and message routes require the same current-device credential as calls.
 
 ## Register → call → one device answers → revoke
 
