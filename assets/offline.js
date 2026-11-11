@@ -69,10 +69,6 @@
   };
   window.danzstakQueueOffline = (path, body) => {
     if (!enabled()) throw new Error("Turn on offline access in App and device settings first.");
-    if (path === "/messages" && window.danzstakSyncDeviceRegistered?.() !== true) {
-      window.danzstakRequireSyncDevice?.();
-      throw new Error("Register this device to use SYNC.");
-    }
     try { const saved = JSON.parse(localStorage.getItem(key)); if (saved) state = saved; } catch { /* Storage errors are reported by save below. */ }
     if (!state.owner) throw new Error("Load your profile online once before saving offline changes.");
     if (!["/secure-posts", "/messages"].includes(path) || body.mediaKey) throw new Error("This action needs a connection.");
@@ -102,8 +98,7 @@
         item.status = "sending";
         save();
         // An interrupted send is retained for review, never automatically duplicated.
-        const deviceHeaders = item.path === "/messages" ? await window.danzstakCallingDeviceHeaders?.() || {} : {};
-        const response = await nativeFetch(api + item.path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json", ...deviceHeaders }, body: JSON.stringify(item.body), signal: AbortSignal.timeout(15000) });
+        const response = await nativeFetch(api + item.path, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(item.body), signal: AbortSignal.timeout(15000) });
         if (!response.ok) { item.status = response.status === 401 ? "waiting" : "review"; save(); throw new Error("Offline item could not be sent. Sign in or review your saved items."); }
         state.queue = state.queue.filter(row => row.id !== item.id);
         save();

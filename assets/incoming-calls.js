@@ -114,6 +114,10 @@
 
   function showCall(event) {
     if (current?.callId === event.callId || handledCalls.has(event.callId)) return;
+    if (window.danzstakSyncDeviceRegistered?.() !== true) {
+      window.danzstakRequireCallingDevice?.({ incoming: true });
+      return;
+    }
     current = event;
     ringtoneDeadline = Date.now() + RINGTONE_DURATION_MS;
     renderCurrentCall();
@@ -148,6 +152,14 @@
 
   answer.addEventListener("click", () => {
     if (!current) return;
+    if (window.danzstakSyncDeviceRegistered?.() !== true) {
+      stopRingtone();
+      navigator.vibrate?.(0);
+      popup.hidden = true;
+      current = null;
+      window.danzstakRequireCallingDevice?.({ incoming: true });
+      return;
+    }
     const event = current;
     handledCalls.set(event.callId, Date.now() + 120000);
     if (typeof window.openMessageDrawer === "function") {

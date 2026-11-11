@@ -119,7 +119,8 @@ AI-assisted EPK rules:
 ## SYNC phone verification (owner correction, 2026-11-11)
 
 Every device must receive a real OTP before it is registered for SYNC. So:
-- Required for each browser/PWA/device before SYNC messages or calls; not required to sign up, post, use Friends, or build or send an EPK.
+- Required for each browser/PWA/device before phone/video calls or voice-message playback. Ordinary authenticated SYNC text messaging works without device registration. Registration is not required to sign up, post, use Friends, or build or send an EPK.
+- When an unregistered device tries to make or answer a call, show device registration instead of starting media. For an incoming call, say: “Register this device to accept the call or to listen to the voice message.”
 - Private: stored hashed/masked, never on profiles, SYNC contact details, directories, search, notifications or call screens, and never shared with other users. Only the owner may see their own masked last four digits inside the private registration/settings flow; contacts cannot see even that masked value.
 - Device-bound: the OTP grant is tied to the authenticated account and exact one-time server device challenge. It expires, is consumed atomically and cannot register another device.
 - No spoofing: no mock success, client-only verification, reusable account flag, replayed grant or DS internal alias is accepted as carrier SMS proof.

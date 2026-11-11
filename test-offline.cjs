@@ -3,7 +3,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const storage = new Map();
 const listeners = {};
-let online = true, sends = 0, failSend = false, syncDeviceRegistered = false;
+let online = true, sends = 0, failSend = false;
 const element = () => ({ style: {}, setAttribute() {}, append() {}, addEventListener() {} });
 const context = {
   URL, Response, AbortSignal, Event, crypto: require('node:crypto').webcrypto,
@@ -19,7 +19,6 @@ const context = {
   addEventListener: (name, fn) => { listeners[name] = fn; }, removeEventListener: name => delete listeners[name], dispatchEvent() {}
 };
 context.window = context;
-context.danzstakSyncDeviceRegistered = () => syncDeviceRegistered;
 context.danzstakCallingDeviceHeaders = async () => ({ 'X-DanzStak-Call-Device': 'registered-device', 'X-DanzStak-Call-Token': 'registered-token' });
 const settle = () => new Promise(resolve => setImmediate(resolve));
 (async () => {
@@ -42,8 +41,6 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
   assert.equal(sends, 1);
   assert.equal(JSON.parse(storage.get('danzstak-offline-v1')).queue.length, 0);
   online = false;
-  assert.throws(() => context.danzstakQueueOffline('/messages', { content: 'Blocked chat', recipientEmail: 'two@example.com' }), /Register this device to use SYNC/);
-  syncDeviceRegistered = true;
   context.danzstakQueueOffline('/messages', { content: 'Offline chat', recipientEmail: 'two@example.com' });
   const queuedMessageId = JSON.parse(storage.get('danzstak-offline-v1')).queue[0].body.clientMessageId;
   assert.match(queuedMessageId, /^\d{13}#[a-f0-9-]{36}$/, 'offline messages need a stable retry ID');

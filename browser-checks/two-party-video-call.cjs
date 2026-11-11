@@ -89,6 +89,10 @@ async function preparePage(context, identity, other) {
   await page.goto(`${baseUrl}/messages.html`, { waitUntil: "domcontentloaded" });
   await page.locator(".conversation-user").first().click();
   await page.locator("body.is-conversation-open").waitFor();
+  await page.evaluate(() => {
+    window.danzstakSyncDeviceRegistered = () => true;
+    callDeviceRegistrationRequired = false;
+  });
   return page;
 }
 
