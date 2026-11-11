@@ -2533,7 +2533,7 @@ Status as of 2026-11-11: **DEPLOYED AND VERIFIED IN PRODUCTION; REAL SMS OTP BLO
 
 # PWA v812 — one SMS action registers the current SYNC device
 
-Status as of 2026-11-11: **RELEASE CANDIDATE TESTED LOCALLY; PRODUCTION DEPLOYMENT PENDING; REAL SMS OTP BLOCKED BY AWS**.
+Status as of 2026-11-11: **DEPLOYED AND VERIFIED IN PRODUCTION; REAL SMS OTP BLOCKED BY AWS**.
 
 - The redundant **Register this device** button and editable pre-registration device-name field are removed. A member now has one path: enter a private mobile number, choose **Text me a code**, enter the six-digit code that was actually delivered, then choose **Verify this device**. Only a valid server-confirmed code can finish current-device registration.
 - The device label defaults to the signed-in DanzStak account name and can be renamed after registration. The phone number stays private and unsearchable; only a protected fingerprint and masked last four are shown to the owner.
@@ -2541,6 +2541,10 @@ Status as of 2026-11-11: **RELEASE CANDIDATE TESTED LOCALLY; PRODUCTION DEPLOYME
 - Completing registration clears the transitional confirmation state, refreshes the server-confirmed device list, hides the phone form, removes the global SYNC footer, and closes the dialog. Calls, video and voice-message playback remain blocked until that sequence completes; ordinary text messaging remains available without it.
 - The complete `test-regressions.ps1` suite passed after the final code, localization and cache-contract changes. This includes SYNC messages/calls/device enforcement, authentication, Profile, Mix, media, Booking/EPK/Tour Manager, marketplace, Stripe boundaries, all 17 static pages, PWA release verification and infrastructure syntax.
 - `browser-checks/call-device-registration.cjs` passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. It verifies that no independent registration button exists, phone/video cannot reach signaling before verification, SMS send owns the device challenge, the code field appears only after an accepted send, correct confirmation registers the device, sensitive values stay out of browser storage, controls meet 44px targets, and no horizontal overflow occurs. Builder-inspected evidence is in `docs/screenshots/sync-otp-single-flow-v812/`.
-- Installed delivery advances to `danzstak-shell-v812`; SYNC CSS advances to `v464`, device registration to `v10`, phone verification to `v4`, and shared translations to `v403` when released.
+- Installed delivery is `danzstak-shell-v812`; SYNC CSS is `v464`, device registration is `v10`, phone verification is `v4`, and shared translations are `v403`.
+- [PR #270](https://github.com/danzstak/danzstak-web/pull/270) passed all five required Review jobs in GitHub Actions run [43108602570](https://github.com/danzstak/danzstak-web/actions/runs/43108602570) and squash-merged as production commit `0ad159e99667bfba2d33c2ff1cb4a787b2c12729`.
+- AWS Amplify production job `1038` started on that exact merge commit. No-cache public probes then confirmed that `https://danzstak.com` serves `danzstak-shell-v812`, `chat.css?v=464`, `call-devices.js?v=10`, `phone-verification.js?v=4`, and no `registerThisDevice` control.
+- The full call-device browser matrix passed directly against `https://danzstak.com` at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. This verifies the hosted PWA, not only the local source tree.
 - Live AWS evidence remains unchanged and fail-closed: End User Messaging configuration `notify-14783ad0bae24a8b98063917c95a54e8` is `REJECTED`, the account tier is `SANDBOX`, there is no origination identity, and the destination verifications remain pending. Therefore production cannot deliver a real carrier code yet, and the UI reports that truth instead of enabling a fake code or marking a device verified.
-- No SES, support-email, Zoho, Stripe, payment, marketplace or phone-number product configuration changed in this release candidate.
+- No SES, support-email, Zoho, Stripe, payment, marketplace or phone-number product configuration changed in this release.
+- Honest evidence boundary: the one-step PWA flow is live and browser-verified, but a physical carrier code cannot be received until AWS approves an origination route. A device remains unregistered if the send fails or the code is not confirmed.
