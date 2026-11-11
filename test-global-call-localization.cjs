@@ -42,7 +42,7 @@ let poll;
 const context = vm.createContext({
   document: { hidden: false, documentElement: {}, activeElement: null, createElement: () => popup, body: { appendChild() {} }, addEventListener() {} },
   HTMLElement: class {},
-  window: { danzstakTranslate: value => translations[value] || value, openMessageDrawer() {} },
+  window: { danzstakTranslate: value => translations[value] || value, danzstakSyncDeviceRegistered: () => true, openMessageDrawer() {} },
   navigator: { vibrate() {} },
   location: { href: "https://danzstak.com/feed.html", assign() {} },
   URL,

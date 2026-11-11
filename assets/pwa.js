@@ -144,7 +144,7 @@ if ("serviceWorker" in navigator) {
       // Version the registration URL as well as the app script. An older
       // cache-first worker can otherwise keep a phone on new HTML plus retired
       // CSS until every PWA window has been closed.
-      const registration = await navigator.serviceWorker.register("/service-worker.js?pwa=430", { updateViaCache: "none" });
+      const registration = await navigator.serviceWorker.register("/service-worker.js?pwa=431", { updateViaCache: "none" });
       if (registration.waiting) offerUpdate(registration.waiting);
       registration.addEventListener("updatefound", () => {
         const installing = registration.installing;

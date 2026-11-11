@@ -29,6 +29,7 @@ async function capture(page, file) {
       let callHeaders = {};
       let unregisteredInboxRequests = 0;
       let unregisteredConversationRequests = 0;
+      let unregisteredCallRequests = 0;
       let otpSendBody = null;
       let otpConfirmBody = null;
       let registerBody = null;
@@ -41,8 +42,7 @@ async function capture(page, file) {
         if (path === '/phone-verification' && request.method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ configured: true, state: 'none', verified: false, maskedNumber: '', providerAvailable: true, deviceOtpRequired: true }) });
         if (path === '/phone-verification/send') { otpSendBody = request.postDataJSON(); return route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ configured: true, state: 'pending', verified: false, maskedNumber: '•••• 1613', providerAvailable: true, deviceOtpRequired: true, resendAfter: new Date(Date.now()+60000).toISOString() }) }); }
         if (path === '/phone-verification/confirm') { otpConfirmBody = request.postDataJSON(); return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ configured: true, state: 'verified', verified: true, maskedNumber: '•••• 1613', providerAvailable: true, deviceOtpRequired: true, deviceGrantId: '55555555-5555-4555-8555-555555555555', deviceGrantToken: 'c'.repeat(43) }) }); }
-        if (path === '/conversations' && !registered) { unregisteredConversationRequests += 1; return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: 'Register this device to use SYNC.', code: 'SYNC_DEVICE_REGISTRATION_REQUIRED' }) }); }
-        if (path === '/conversations') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ conversations: [{ contactEmail: 'friend@danzstak.test', memberId: '44444444-4444-4444-8444-444444444444', name: 'Tour Friend', preview: 'Ready for soundcheck', updatedAt: '2026-11-09T12:00:00.000Z', canContact: true }] }) });
+        if (path === '/conversations') { if (!registered) unregisteredConversationRequests += 1; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ conversations: [{ contactEmail: 'friend@danzstak.test', memberId: '44444444-4444-4444-8444-444444444444', name: 'Tour Friend', preview: 'Ready for soundcheck', updatedAt: '2026-11-09T12:00:00.000Z', canContact: true }] }) }); }
         if (path === '/friends') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ friends: [] }) });
         if (path === '/calls/directory') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ users: [] }) });
         if (path === '/messages') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ messages: [], canContact: true }) });
@@ -60,29 +60,43 @@ async function capture(page, file) {
           return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: 'Register this device before using calls.', code: 'CALL_DEVICE_REGISTRATION_REQUIRED' }) });
         }
         if (path === '/calls/inbox') callHeaders = request.headers();
+        if (!registered && ['/calls/ice', '/calls/signal'].includes(path)) unregisteredCallRequests += 1;
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(path === '/calls/inbox' ? { events: [] } : {}) });
       });
       await page.goto(`${baseUrl}/messages.html`, { waitUntil: 'commit' });
       await page.waitForLoadState('domcontentloaded');
       await page.waitForFunction(() => typeof window.danzstakOpenCallingDevices === 'function');
       const dialog = page.locator('#callingDevicesDialog');
-      await assert.doesNotReject(() => dialog.waitFor({ state: 'visible' }), `registration controls did not open at ${width}px`);
+      await page.locator('.conversation-user').first().waitFor();
       await page.waitForTimeout(250);
-      await page.locator('#callingAccountName').filter({ hasText: 'Browser Test Account' }).waitFor();
-      assert.equal(await page.locator('#deviceName').inputValue(), 'Browser Test Account', `device name did not default to the account name at ${width}px`);
-      assert.equal(await page.locator('#closeCallingDevices').isHidden(), true, `mandatory enrollment can be dismissed at ${width}px`);
-      assert.equal(await page.locator('.sync-phone-verification').isVisible(), true, `SMS verification controls are missing at ${width}px`);
-      const automaticDialogGeometry = await dialog.evaluate(node => { const box=node.getBoundingClientRect(); return { left:box.left, right:box.right, top:box.top, bottom:box.bottom, viewportWidth:innerWidth, viewportHeight:innerHeight }; });
-      assert.ok(automaticDialogGeometry.left >= 0 && automaticDialogGeometry.right <= automaticDialogGeometry.viewportWidth && automaticDialogGeometry.top >= 0 && automaticDialogGeometry.bottom <= automaticDialogGeometry.viewportHeight, `automatic registration dialog overflows at ${width}px: ${JSON.stringify(automaticDialogGeometry)}`);
-      if (captureDir) {
-        fs.mkdirSync(captureDir, { recursive: true });
-        await capture(page, path.join(captureDir, `call-registration-auto-open-${width}.png`));
-      }
-      await page.keyboard.press('Escape');
-      assert.equal(await dialog.isVisible(), true, `Escape dismissed required enrollment at ${width}px`);
+      assert.equal(await dialog.isVisible(), false, `calling registration blocked text chat at ${width}px`);
       await page.waitForTimeout(2200);
       assert.equal(unregisteredInboxRequests, 1, `unregistered call polling repeated at ${width}px`);
-      assert.equal(unregisteredConversationRequests, 0, `conversation data loaded before registration at ${width}px`);
+      assert.ok(unregisteredConversationRequests >= 1, `text conversations did not load before calling registration at ${width}px`);
+      await page.locator('.conversation-user').first().evaluate(node => node.click());
+      await page.locator('body.is-conversation-open').waitFor();
+      await page.locator('#headerPhone:not([disabled])').waitFor();
+      await page.locator('#headerPhone').click();
+      await assert.doesNotReject(() => dialog.waitFor({ state: 'visible' }), `calling registration did not open from Phone at ${width}px`);
+      await page.locator('#callingAccountName').filter({ hasText: 'Browser Test Account' }).waitFor();
+      assert.equal(await page.locator('#deviceName').inputValue(), 'Browser Test Account', `device name did not default to the account name at ${width}px`);
+      assert.equal(await page.locator('#closeCallingDevices').isVisible(), true, `call registration trapped text chat at ${width}px`);
+      assert.match(await page.locator('#callingDeviceReason').textContent(), /Text messaging works without registering/);
+      await page.evaluate(() => window.danzstakRequireCallingDevice({ incoming: true }));
+      assert.equal(await page.locator('#callingDeviceReason').textContent(), 'Register this device to accept the call or to listen to the voice message. Text messaging still works.');
+      assert.equal(unregisteredCallRequests, 0, `unregistered Phone action reached call media or signaling at ${width}px`);
+      assert.equal(await page.locator('.sync-phone-verification').isVisible(), true, `SMS verification controls are missing at ${width}px`);
+      const automaticDialogGeometry = await dialog.evaluate(node => { const box=node.getBoundingClientRect(); return { left:box.left, right:box.right, top:box.top, bottom:box.bottom, viewportWidth:innerWidth, viewportHeight:innerHeight }; });
+      assert.ok(automaticDialogGeometry.left >= 0 && automaticDialogGeometry.right <= automaticDialogGeometry.viewportWidth && automaticDialogGeometry.top >= 0 && automaticDialogGeometry.bottom <= automaticDialogGeometry.viewportHeight, `call registration dialog overflows at ${width}px: ${JSON.stringify(automaticDialogGeometry)}`);
+      if (captureDir) {
+        fs.mkdirSync(captureDir, { recursive: true });
+        await capture(page, path.join(captureDir, `call-registration-from-phone-${width}.png`));
+      }
+      await page.keyboard.press('Escape');
+      await dialog.waitFor({ state: 'hidden' });
+      assert.equal(await page.locator('body.is-conversation-open').isVisible(), true, `closing registration did not return to text chat at ${width}px`);
+      await page.locator('#headerVideo').click();
+      await dialog.waitFor({ state: 'visible' });
       await page.locator('#deviceName').fill('My test phone');
       await page.locator('#registerThisDevice').click();
       await page.locator('#syncPhoneNumber').waitFor({ state: 'visible' });
@@ -101,17 +115,14 @@ async function capture(page, file) {
       const storedText = await page.evaluate(async () => { const db = await new Promise((resolve,reject) => { const request=indexedDB.open('danzstak-call-device',1); request.onsuccess=()=>resolve(request.result); request.onerror=()=>reject(request.error); }); return await new Promise((resolve,reject) => { const request=db.transaction('credentials').objectStore('credentials').get('current'); request.onsuccess=()=>resolve(JSON.stringify(request.result||{})); request.onerror=()=>reject(request.error); }); });
       assert.doesNotMatch(storedText, /123456|4153741613|deviceGrant/i, `OTP material leaked into browser storage at ${width}px`);
       await page.locator('body.sync-device-registered').waitFor();
-      await page.locator('.conversation-user').first().waitFor();
       assert.equal(await page.locator('.ds-mobile-nav').isHidden(), true, `registered SYNC still shows the bottom navigation at ${width}px`);
       assert.equal(await page.locator('.site-ownership').isHidden(), true, `registered SYNC still shows the ownership footer at ${width}px`);
-      await page.locator('#callingDevices').click();
-      await page.locator('#deviceStatus').filter({ hasText: 'registered for SYNC' }).waitFor();
+      await page.evaluate(() => window.danzstakOpenCallingDevices());
+      await page.locator('#deviceStatus').filter({ hasText: 'registered for calls and voice messages' }).waitFor();
       await page.locator('.registered-devices li').filter({ hasText: 'Last active' }).waitFor();
       await page.waitForTimeout(150);
       if (captureDir) await capture(page, path.join(captureDir, `calling-devices-${width}.png`));
       await page.locator('#closeCallingDevices').click();
-      await page.locator('.conversation-user').first().click();
-      await page.locator('body.is-conversation-open').waitFor();
       await page.locator('.conversation-back').click();
       await page.waitForFunction(() => !document.body.classList.contains('is-conversation-open'));
       if (captureDir) await capture(page, path.join(captureDir, `sync-registered-no-footer-${width}.png`));
