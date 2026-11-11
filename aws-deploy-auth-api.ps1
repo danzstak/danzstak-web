@@ -7,6 +7,9 @@ $Source = Join-Path $PSScriptRoot "infrastructure\auth-api\index.mjs"
 $TourManagerBillingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\tour-manager-billing.mjs"
 $MarketplaceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\marketplace.mjs"
 $TicketingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\ticketing.mjs"
+$PhoneVerificationSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-verification.mjs"
+$PhoneServiceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-service.mjs"
+$PhoneDynamoSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-dynamodb.mjs"
 $Package = Join-Path $PSScriptRoot "infrastructure\auth-api\package.json"
 $PackageLock = Join-Path $PSScriptRoot "infrastructure\auth-api\package-lock.json"
 $Bundle = Join-Path $env:TEMP "danzstak-auth-api.zip"
@@ -21,6 +24,9 @@ $VenueDirectoryTable = "DANZSTAK-VenueDirectory"
 $ReviewsTable = "DANZSTAK-Reviews"
 $SessionDevicesTable = "DANZSTAK-SessionDevices"
 $MarketplaceTable = "DANZSTAK-Marketplace"
+$PhoneVerificationTable = "DANZSTAK-PhoneVerifications"
+$PhoneVerificationSecret = "danzstak/phone-verification-secret"
+$PhoneNotifyConfigurationId = "notify-14783ad0bae24a8b98063917c95a54e8"
 
 $previousErrorPreference = $ErrorActionPreference
 $ErrorActionPreference = "SilentlyContinue"
@@ -41,6 +47,12 @@ node --check $MarketplaceSource
 if ($LASTEXITCODE -ne 0) { throw "Marketplace API JavaScript validation failed." }
 node --check $TicketingSource
 if ($LASTEXITCODE -ne 0) { throw "Ticketing API JavaScript validation failed." }
+node --check $PhoneVerificationSource
+if ($LASTEXITCODE -ne 0) { throw "Phone verification JavaScript validation failed." }
+node --check $PhoneServiceSource
+if ($LASTEXITCODE -ne 0) { throw "Phone verification service validation failed." }
+node --check $PhoneDynamoSource
+if ($LASTEXITCODE -ne 0) { throw "Phone verification database validation failed." }
 
 try {
   aws dynamodb describe-table --region $Region --table-name $ToursTable --output json 2>$null | Out-Null
@@ -77,7 +89,7 @@ try {
   aws dynamodb update-continuous-backups --region $Region --table-name $ReviewsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection failed." }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$MarketplaceSource,$TicketingSource,$Package,$PackageLock -Destination $Stage
+  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$MarketplaceSource,$TicketingSource,$PhoneVerificationSource,$PhoneServiceSource,$PhoneDynamoSource,$Package,$PackageLock -Destination $Stage
   Push-Location $Stage
   try {
     npm ci --omit=dev --ignore-scripts --no-audit --no-fund
@@ -191,6 +203,24 @@ try {
         Resource = "arn:aws:dynamodb:us-west-1:$($identity.Account):table/$MarketplaceTable"
       },
       @{
+        Sid = "PrivatePhoneVerification"
+        Effect = "Allow"
+        Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:UpdateItem", "dynamodb:TransactWriteItems")
+        Resource = "arn:aws:dynamodb:us-west-1:$($identity.Account):table/$PhoneVerificationTable"
+      },
+      @{
+        Sid = "PrivatePhoneVerificationSecret"
+        Effect = "Allow"
+        Action = @("secretsmanager:GetSecretValue")
+        Resource = "arn:aws:secretsmanager:us-west-1:$($identity.Account):secret:$PhoneVerificationSecret-*"
+      },
+      @{
+        Sid = "PrivatePhoneVerificationSms"
+        Effect = "Allow"
+        Action = @("sms-voice:SendNotifyTextMessage")
+        Resource = "arn:aws:sms-voice:us-west-1:$($identity.Account):notify-configuration/$PhoneNotifyConfigurationId"
+      },
+      @{
         Sid = "DurableActivityPushOutbox"
         Effect = "Allow"
         Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:TransactWriteItems")
@@ -227,6 +257,15 @@ try {
   $sessionDevicesTable = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Engagement --query "Stacks[0].Outputs[?OutputKey=='SessionDevicesTableName'].OutputValue | [0]" --output text
   if ($LASTEXITCODE -ne 0 -or -not $sessionDevicesTable -or $sessionDevicesTable -eq 'None') { throw "Session device registry configuration could not be resolved." }
   $variables.SESSION_DEVICES_TABLE = [string]$sessionDevicesTable
+  $phoneVerificationTable = aws cloudformation describe-stacks --region $Region --stack-name DANZSTAK-Engagement --query "Stacks[0].Outputs[?OutputKey=='PhoneVerificationTableName'].OutputValue | [0]" --output text
+  if ($LASTEXITCODE -ne 0 -or -not $phoneVerificationTable -or $phoneVerificationTable -eq 'None') { throw "Phone verification table configuration could not be resolved." }
+  $variables.PHONE_VERIFICATION_TABLE = [string]$phoneVerificationTable
+  $variables.PHONE_VERIFICATION_SECRET_NAME = $PhoneVerificationSecret
+  $variables.PHONE_NOTIFY_CONFIGURATION_ID = $PhoneNotifyConfigurationId
+  $variables.PHONE_NOTIFY_TEMPLATE_ID = "notify-code-verification-english-001"
+  $notifyStatus = aws pinpoint-sms-voice-v2 describe-notify-configurations --region $Region --query "NotifyConfigurations[?NotifyConfigurationId=='$PhoneNotifyConfigurationId'].Status | [0]" --output text
+  if ($LASTEXITCODE -ne 0) { throw "SYNC SMS verification provider status could not be inspected." }
+  $variables.PHONE_VERIFICATION_ENABLED = if ($notifyStatus -eq 'ACTIVE') { 'true' } else { 'false' }
   @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
   aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }

@@ -16,6 +16,9 @@ Parameters:
   AuthRoleName:
     Type: String
     Default: DANZSTAK-Auth-API-role-zjknf4ur
+  PhoneNotifyConfigurationId:
+    Type: String
+    Default: notify-14783ad0bae24a8b98063917c95a54e8
 Resources:
   MarketplaceTable:
     Type: AWS::DynamoDB::Table
@@ -87,6 +90,73 @@ Resources:
           - Effect: Allow
             Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:UpdateItem, dynamodb:Query]
             Resource: !GetAtt SessionDevicesTable.Arn
+  PhoneVerificationTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Private SMS possession checks must be account-scoped, rate-limited, encrypted, and revocable without storing a plaintext phone number.
+        must: [Never store a plaintext phone number or OTP, Keep point-in-time recovery and encryption enabled, Keep the verified number private and unsearchable.]
+    Properties:
+      TableName: DANZSTAK-PhoneVerifications
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+      AttributeDefinitions:
+        - {AttributeName: recordKey, AttributeType: S}
+      KeySchema:
+        - {AttributeName: recordKey, KeyType: HASH}
+      TimeToLiveSpecification: {AttributeName: ttl, Enabled: true}
+      SSESpecification: {SSEEnabled: true}
+  PhoneVerificationSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: danzstak/phone-verification-secret
+      Description: HMAC pepper for private SYNC phone verification; never exposed to clients
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: pepper
+        PasswordLength: 64
+        ExcludePunctuation: true
+  PhoneVerificationPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DanzStakPhoneVerification
+      Roles: [!Ref AuthRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:DeleteItem, dynamodb:UpdateItem, dynamodb:TransactWriteItems]
+            Resource: !GetAtt PhoneVerificationTable.Arn
+          - Effect: Allow
+            Action: [secretsmanager:GetSecretValue]
+            Resource: !Ref PhoneVerificationSecret
+          - Effect: Allow
+            Action: [sms-voice:SendNotifyTextMessage]
+            Resource: !Sub 'arn:${AWS::Partition}:sms-voice:${AWS::Region}:${AWS::AccountId}:notify-configuration/${PhoneNotifyConfigurationId}'
+  GetPhoneVerificationRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'GET /phone-verification', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  SendPhoneVerificationRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /phone-verification/send', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  ConfirmPhoneVerificationRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /phone-verification/confirm', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  DeletePhoneVerificationRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /phone-verification', Target: !Sub 'integrations/${AuthIntegrationId}'}
+  PhoneVerificationInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunctionName
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/phone-verification*'
+      SourceAccount: !Ref AWS::AccountId
   PostViewsTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
@@ -450,6 +520,8 @@ Resources:
 Outputs:
   MarketplaceTableName: {Value: !Ref MarketplaceTable}
   SessionDevicesTableName: {Value: !Ref SessionDevicesTable}
+  PhoneVerificationTableName: {Value: !Ref PhoneVerificationTable}
+  PhoneVerificationSecretArn: {Value: !Ref PhoneVerificationSecret}
   PostViewsTableName: {Value: !Ref PostViewsTable}
   ReactionsTableName: {Value: !Ref ReactionsTable}
   CommentsTableName: {Value: !Ref CommentsTable}
