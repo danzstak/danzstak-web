@@ -8,7 +8,8 @@ function recordFromItem(item) {
     ["userId", value(item, "userId")], ["phoneHash", value(item, "phoneHash")], ["challengeId", value(item, "challengeId")],
     ["challengeHash", value(item, "challengeHash")], ["status", value(item, "status")], ["createdAt", value(item, "createdAt")],
     ["verifiedAt", value(item, "verifiedAt")], ["expiresAt", value(item, "expiresAt", 0)], ["resendAfter", value(item, "resendAfter", 0)],
-    ["attempts", value(item, "attempts", 0)], ["maskedNumber", value(item, "maskedNumber")], ["previousPhoneHash", value(item, "previousPhoneHash")],
+    ["attempts", value(item, "attempts", 0)], ["maskedNumber", value(item, "maskedNumber")], ["purpose", value(item, "purpose", "account_trust")],
+    ["deviceChallengeId", value(item, "deviceChallengeId")], ["deviceChallengeHash", value(item, "deviceChallengeHash")], ["previousPhoneHash", value(item, "previousPhoneHash")],
     ["previousMaskedNumber", value(item, "previousMaskedNumber")], ["previousVerifiedAt", value(item, "previousVerifiedAt")]
   ]);
 }
@@ -18,6 +19,9 @@ function accountItem(record) {
   if (record.previousPhoneHash) item.previousPhoneHash = { S: record.previousPhoneHash };
   if (record.previousMaskedNumber) item.previousMaskedNumber = { S: record.previousMaskedNumber };
   if (record.previousVerifiedAt) item.previousVerifiedAt = { S: record.previousVerifiedAt };
+  if (record.purpose) item.purpose = { S: record.purpose };
+  if (record.deviceChallengeId) item.deviceChallengeId = { S: record.deviceChallengeId };
+  if (record.deviceChallengeHash) item.deviceChallengeHash = { S: record.deviceChallengeHash };
   return item;
 }
 
@@ -52,11 +56,12 @@ export function createPersonalPhoneDynamoAdapter({ db, tableName, commands, now 
     await db.send(new TransactWriteItemsCommand({TransactItems:operations}));
   }
   async function recordFailedAttempt(record) { if (!record) return; await db.send(new UpdateItemCommand({TableName:tableName,Key:accountKey(record.userId),UpdateExpression:"ADD attempts :one",ConditionExpression:"challengeId = :challenge AND #status = :pending AND attempts < :maximum",ExpressionAttributeNames:{"#status":"status"},ExpressionAttributeValues:{":one":{N:"1"},":challenge":{S:record.challengeId},":pending":{S:"pending"},":maximum":{N:"5"}}})); }
-  async function markVerified(record) {
+  async function markVerified(record, grant = null) {
     const operations = [
       {Update:{TableName:tableName,Key:accountKey(record.userId),UpdateExpression:"SET #status = :verified, verifiedAt = :verifiedAt REMOVE challengeHash, expiresAt, resendAfter, attempts, previousPhoneHash, previousMaskedNumber, previousVerifiedAt, ttl",ConditionExpression:"challengeId = :challenge AND #status = :pending",ExpressionAttributeNames:{"#status":"status"},ExpressionAttributeValues:{":challenge":{S:record.challengeId},":pending":{S:"pending"},":verified":{S:"verified"},":verifiedAt":{S:new Date(now()).toISOString()}}}},
       {Update:{TableName:tableName,Key:claimKey(record.phoneHash),UpdateExpression:"SET #status = :verified REMOVE ttl",ConditionExpression:"userId = :userId AND challengeId = :challenge",ExpressionAttributeNames:{"#status":"status"},ExpressionAttributeValues:{":userId":{S:record.userId},":challenge":{S:record.challengeId},":verified":{S:"verified"}}}}
     ];
+    if (grant) operations.push({Put:{TableName:tableName,Item:{recordKey:{S:`DEVICE_GRANT#${grant.grantId}`},recordType:{S:"device_enrollment_grant"},userId:{S:record.userId},grantTokenHash:{S:grant.grantTokenHash},deviceChallengeId:{S:record.deviceChallengeId},deviceChallengeHash:{S:record.deviceChallengeHash},maskedNumber:{S:record.maskedNumber},verifiedAt:{S:grant.verifiedAt},expiresAt:{N:String(grant.expiresAt)},ttl:{N:String(grant.expiresAt+86400)}},ConditionExpression:"attribute_not_exists(recordKey)"}});
     if (record.previousPhoneHash && record.previousPhoneHash !== record.phoneHash) operations.push({Delete:{TableName:tableName,Key:claimKey(record.previousPhoneHash),ConditionExpression:"userId = :userId",ExpressionAttributeValues:{":userId":{S:record.userId}}}});
     try { await db.send(new TransactWriteItemsCommand({TransactItems:operations})); return true; } catch(error) { if (["TransactionCanceledException","ConditionalCheckFailedException"].includes(error?.name)) return false; throw error; }
   }

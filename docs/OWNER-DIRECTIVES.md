@@ -59,7 +59,7 @@ Posts remain chronological. If an eligible unseen supplemental item does not exi
 1. Task 1, repo cleanup. Done (b5b5213).
 2. Task 4, EPK -> send to clubs -> get booked. #1 priority.
 3. Task 2 EPK part: EPK builder for every artist, look picker, share links, stage plot / booth plot, press PDF.
-4. SYNC P0 fixes for current users only: reliable messages (#39), two-way call audio and incoming ring (#27), optional private phone SMS verification (#21). Fix what's broken; no rebuild. Booking replies routed into SYNC depend on this.
+4. SYNC P0 fixes for current users only: reliable messages (#39), two-way call audio and incoming ring (#27), and mandatory real per-device SMS OTP (#21/#29) once AWS delivery is approved and tested. Fix what's broken; no rebuild. Booking replies routed into SYNC depend on this.
 5. Task 3, 80/20 look: navigation shell, HQ (artist HQ led by bookings and EPK opens), EPK public page first.
 6. Growth basics: sign-up to first EPK in under 5 minutes; invite bandmates and fans by link; venues reply without an account; public EPK pages load fast and preview well.
 7. Pivot (with the guides and timeline imports from the Pivot addendum), after the EPK and booking work. For artists, Pivot ends with a published EPK.
@@ -80,7 +80,7 @@ Posts remain chronological. If an eligible unseen supplemental item does not exi
    - Plan later, not now: Phase A is a legal, vendor, cost and feasibility report with synthetic example data only. No vendor sign-ups, Stripe products or charging until the owner approves.
 8. Then the rest of instructions/ in its own order, one page per PR.
 
-Current requirement (2026-11-11): every browser, installed PWA, tablet or computer must be registered to the signed-in account before it can use any SYNC messaging or calling function. Device registration uses a server-issued installation credential; it does not require or reveal a personal phone number. The signed-in account name is the default device label.
+Current requirement (owner correction, 2026-11-11): every browser, installed PWA, tablet or computer must complete a fresh real carrier SMS OTP bound to its one-time server challenge before it receives a SYNC credential or can use messaging/calling. No mock, client-only, replayed, cross-device or DS-alias proof. Keep the number private/hashed/masked. Keep mandatory mode off until AWS approval and real US/Italy handset verification; this does not gate signup, posting, Friends or EPK.
 
 Later phase (after users): SYNC standalone, SYNC Network numbers, federated network, SYNC transport rebuild.
 
@@ -116,15 +116,16 @@ AI-assisted EPK rules:
 - Only send the artist's own EPK text to the AI provider, with a clear notice. Never use creator content to train AI.
 - No Stripe changes: propose the new $5 product in the plan; the owner creates it. Live payments only after owner approval.
 
-## SYNC phone verification (2026-11-07)
+## SYNC phone verification (owner correction, 2026-11-11)
 
-Many users don't want to put their phone number on the web. So:
-- Optional. Never required to sign up, post, chat, or build or send an EPK.
+Every device must receive a real OTP before it is registered for SYNC. So:
+- Required for each browser/PWA/device before SYNC messages or calls; not required to sign up, post, use Friends, or build or send an EPK.
 - Private: stored hashed/masked, never on profiles, never searchable, never shared with other users.
-- Unlocks trust features only: verified badge in SYNC, account recovery, higher call/message limits.
+- Device-bound: the OTP grant is tied to the authenticated account and exact one-time server device challenge. It expires, is consumed atomically and cannot register another device.
+- No spoofing: no mock success, client-only verification, reusable account flag, replayed grant or DS internal alias is accepted as carrier SMS proof.
 - Rate limits, resend cooldown and attempt caps (as built on codex/personal-phone-verification).
-- Switched off until the owner approves an SMS provider. No texts are sent before then.
-- Later, users who won't share a number can use a SYNC Network number instead.
+- Mandatory mode stays switched off until AWS SMS is approved and real US and Italy handset tests pass. No texts are claimed as sent before then, and an unavailable provider must not lock current members out.
+- DS/SYNC Network aliases are not carrier numbers and cannot receive the registration OTP. The later internal-number product remains paused and must not be sold.
 
 ## Task 1: Repo cleanup (done)
 
