@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="assets/mobile-design-system.css?v=19">
 <link rel="stylesheet" href="assets/responsive-media.css?v=9">
 <link rel="stylesheet" href="assets/incoming-calls.css?v=236">
+<link rel="stylesheet" href="assets/phone-verification.css?v=1">
 <title>SYNC | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
@@ -129,14 +130,31 @@
 </dialog>
 <dialog id="callingDevicesDialog" class="calling-devices-dialog" aria-labelledby="callingDevicesTitle">
   <header><div><span class="eyebrow">SYNC Phone</span><h2 id="callingDevicesTitle">Registered devices</h2></div><button id="closeCallingDevices" type="button" data-icon="close" aria-label="Close registered devices" title="Close">×</button></header>
-  <p>Register each phone, tablet, PWA, or computer before it can make or receive SYNC calls. Registration does not expose a phone number or enable carrier calls, SMS, or emergency calling.</p>
+  <p>Register this browser or PWA to your signed-in account before it can make or receive SYNC calls. Registration does not expose a phone number or enable carrier calls, SMS, or emergency calling. A private phone number is a separate, optional trust check and is never shown on your profile.</p>
   <p class="calling-device-account"><span>Account name</span><strong id="callingAccountName">Loading account…</strong></p>
   <label for="deviceName">Device name</label><input id="deviceName" type="text" maxlength="60" autocomplete="off" placeholder="My Android phone">
   <button id="registerThisDevice" type="button" class="primary">Register this device</button>
   <p id="deviceStatus" class="device-status" role="status">Checking this device…</p>
   <ul id="registeredDevices" class="registered-devices" aria-label="Your registered calling devices"></ul>
+  <section class="sync-phone-verification" aria-labelledby="syncPhoneTitle">
+    <h3 id="syncPhoneTitle">Private phone verification</h3>
+    <p>Register a mobile number to this SYNC account with a six-digit SMS code. DanzStak stores only a protected fingerprint and the last four digits; the number stays private and unsearchable.</p>
+    <p id="syncPhoneStatus" class="sync-phone-status" role="status">Checking private phone registration…</p>
+    <form id="syncPhoneNumberForm" class="sync-phone-form">
+      <label>Country code<select id="syncPhoneCountryCode" required><option value="+1">United States +1</option><option value="+39">Italy +39</option><option value="+44">United Kingdom +44</option><option value="+49">Germany +49</option><option value="+33">France +33</option></select></label>
+      <label>Mobile number<input id="syncPhoneNumber" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="24" placeholder="415 555 0123" required></label>
+      <button id="syncPhoneSend" type="submit" class="primary">Text me a code</button>
+    </form>
+    <form id="syncPhoneCodeForm" class="sync-phone-form" hidden>
+      <label>Six-digit code<input id="syncPhoneCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
+      <div><button id="syncPhoneConfirm" type="submit" class="primary">Verify number</button> <button id="syncPhoneResend" type="button" class="secondary">Resend code</button></div>
+    </form>
+    <div id="syncPhoneVerified" hidden><button id="syncPhoneRemove" type="button" class="secondary">Remove private number</button></div>
+    <p class="sync-network-number-note"><strong>DanzStak Network numbers are not carrier phone numbers.</strong> They will work only inside SYNC when that later service is approved; they do not support SMS, emergency calls, or regular phone networks.</p>
+  </section>
 </dialog>
-<script src="assets/call-devices.js?v=3" defer></script>
+<script src="assets/call-devices.js?v=4" defer></script>
+<script src="assets/phone-verification.js?v=1" defer></script>
 <script src="assets/push-notifications.js?v=308" defer></script>
 <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
   <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>

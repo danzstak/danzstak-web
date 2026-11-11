@@ -27,6 +27,7 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
+import { PinpointSMSVoiceV2Client, SendNotifyTextMessageCommand } from "@aws-sdk/client-pinpoint-sms-voice-v2";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import {
   GeoPlacesClient,
@@ -41,6 +42,9 @@ import {
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
 import { createMarketplace } from "./marketplace.mjs";
 import { createTicketing } from "./ticketing.mjs";
+import { createPersonalPhoneService } from "./personal-phone-service.mjs";
+import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs";
+import { publicPhoneStatus } from "./personal-phone-verification.mjs";
 import QRCode from "qrcode";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -50,6 +54,7 @@ const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
 const geoPlaces = new GeoPlacesClient({ region: "us-west-2", maxAttempts: 3 });
 const geoRoutes = new GeoRoutesClient({ region: "us-west-2", maxAttempts: 3 });
 const secretsManager = new SecretsManagerClient({ region: "us-west-1", maxAttempts: 3 });
+const sms = new PinpointSMSVoiceV2Client({ region: "us-west-1", maxAttempts: 2 });
 
 const tableName = process.env.SESSIONS_TABLE;
 const sessionDevicesTable = process.env.SESSION_DEVICES_TABLE || "DANZSTAK-SessionDevices";
@@ -69,6 +74,12 @@ const toursTable = process.env.TOURS_TABLE || "DANZSTAK-Tours";
 const venueDirectoryTable = process.env.VENUE_DIRECTORY_TABLE || "DANZSTAK-VenueDirectory";
 const reviewsTable = process.env.REVIEWS_TABLE || "DANZSTAK-Reviews";
 const marketplaceTable = process.env.MARKETPLACE_TABLE || "DANZSTAK-Marketplace";
+const phoneVerificationTable = process.env.PHONE_VERIFICATION_TABLE || "DANZSTAK-PhoneVerifications";
+const phoneVerificationSecretName = process.env.PHONE_VERIFICATION_SECRET_NAME || "danzstak/phone-verification-secret";
+const phoneNotifyConfigurationId = String(process.env.PHONE_NOTIFY_CONFIGURATION_ID || "");
+const phoneNotifyTemplateId = String(process.env.PHONE_NOTIFY_TEMPLATE_ID || "");
+const phoneVerificationEnabled = process.env.PHONE_VERIFICATION_ENABLED === "true" && /^notify-[a-z0-9]+$/i.test(phoneNotifyConfigurationId);
+let phoneVerificationSecretPromise = null;
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -103,6 +114,12 @@ const stripeSecretName = process.env.STRIPE_SECRET_NAME || "danzstak/stripe/secr
 const stripeWebhookSecretName = process.env.STRIPE_WEBHOOK_SECRET_NAME || "danzstak/stripe/webhook-secret";
 let stripeSecretsPromise = null;
 
+const personalPhoneAdapter = createPersonalPhoneDynamoAdapter({
+  db,
+  tableName: phoneVerificationTable,
+  commands: { GetItemCommand, TransactWriteItemsCommand, UpdateItemCommand }
+});
+
 function secretText(result, fields) {
   const raw = typeof result?.SecretString === "string" ? result.SecretString : result?.SecretBinary ? Buffer.from(result.SecretBinary).toString("utf8") : "";
   if (!raw) throw new Error("Stripe secret is empty");
@@ -131,6 +148,37 @@ async function ensureStripeSecrets() {
   const ready = await stripeSecretsPromise;
   if (!ready) stripeSecretsPromise = null;
   return ready;
+}
+
+async function phoneVerificationSecret() {
+  if (!phoneVerificationSecretPromise) {
+    phoneVerificationSecretPromise = secretsManager.send(new GetSecretValueCommand({ SecretId: phoneVerificationSecretName })).then(result => {
+      const raw = typeof result?.SecretString === "string" ? result.SecretString : result?.SecretBinary ? Buffer.from(result.SecretBinary).toString("utf8") : "";
+      if (!raw) throw new Error("Phone verification secret is empty");
+      if (!raw.trimStart().startsWith("{")) return raw.trim();
+      const parsed = JSON.parse(raw);
+      const pepper = [parsed.pepper, parsed.secret, parsed.value].find(value => typeof value === "string" && value.length >= 32);
+      if (!pepper) throw new Error("Phone verification pepper is missing");
+      return pepper;
+    }).catch(error => { phoneVerificationSecretPromise = null; throw error; });
+  }
+  return phoneVerificationSecretPromise;
+}
+
+async function personalPhoneService() {
+  const secret = await phoneVerificationSecret();
+  return createPersonalPhoneService({
+    adapter: personalPhoneAdapter,
+    secret,
+    enabled: phoneVerificationEnabled,
+    sender: {
+      async send({ number, code }) {
+        const input = { NotifyConfigurationId: phoneNotifyConfigurationId, DestinationPhoneNumber: number, TemplateVariables: { code } };
+        if (phoneNotifyTemplateId) input.TemplateId = phoneNotifyTemplateId;
+        await sms.send(new SendNotifyTextMessageCommand(input));
+      }
+    }
+  });
 }
 
 const tourManagerBilling = createTourManagerBilling({
@@ -4925,6 +4973,57 @@ async function logout(event) {
   };
 }
 
+async function getPersonalPhoneStatus(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const record = await personalPhoneAdapter.getByUser(userId);
+  return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(record), providerAvailable: phoneVerificationEnabled }) };
+}
+
+async function sendPersonalPhoneCode(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin." }) };
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const body = parseJsonBody(event);
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid request." }) };
+  try {
+    const secret = await phoneVerificationSecret();
+    const requestKey = createHmac("sha256", secret).update(`request:${String(event.requestContext?.http?.sourceIp || "unknown")}`).digest("hex");
+    const service = await personalPhoneService();
+    const result = await service.send({ userId, countryCode: String(body.countryCode || "").slice(0, 8), localNumber: String(body.localNumber || "").slice(0, 40), requestKey });
+    return { statusCode: 202, headers, body: JSON.stringify(result) };
+  } catch (error) {
+    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
+  }
+}
+
+async function confirmPersonalPhoneCode(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin." }) };
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const body = parseJsonBody(event);
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid request." }) };
+  try {
+    const service = await personalPhoneService();
+    const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12) });
+    return { statusCode: 200, headers, body: JSON.stringify(result) };
+  } catch (error) {
+    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
+  }
+}
+
+async function removePersonalPhone(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin." }) };
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  try {
+    await personalPhoneAdapter.remove(userId);
+    return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(null), providerAvailable: phoneVerificationEnabled }) };
+  } catch {
+    return { statusCode: 503, headers, body: JSON.stringify({ error: "Phone verification is unavailable." }) };
+  }
+}
+
 // API GATEWAY ROUTES
 export const handler = async event => {
   const method = event?.requestContext?.http?.method;
@@ -4979,6 +5078,11 @@ export const handler = async event => {
     if (method === "GET" && path === "/auth/sessions") {
       return await listAccountSessions(event);
     }
+
+    if (method === "GET" && path === "/phone-verification") return await getPersonalPhoneStatus(event);
+    if (method === "POST" && path === "/phone-verification/send") return await sendPersonalPhoneCode(event);
+    if (method === "POST" && path === "/phone-verification/confirm") return await confirmPersonalPhoneCode(event);
+    if (method === "DELETE" && path === "/phone-verification") return await removePersonalPhone(event);
 
     const accountSessionMatch = path?.match(/^\/auth\/sessions\/([0-9a-f-]{36})$/i);
     if (method === "DELETE" && accountSessionMatch) {

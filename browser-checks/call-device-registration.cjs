@@ -25,6 +25,7 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
         const path = url.pathname;
         if (path === '/auth/session') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ authenticated: true, user: { email: 'browser-test@danzstak.test', sub: '33333333-3333-4333-8333-333333333333' } }) });
         if (path === '/profiles') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ profile: { name: 'Browser Test Account', isOwner: true } }) });
+        if (path === '/phone-verification') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ configured: true, state: 'none', verified: false, maskedNumber: '', providerAvailable: false }) });
         if (path === '/conversations') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ conversations: [{ contactEmail: 'friend@danzstak.test', memberId: '44444444-4444-4444-8444-444444444444', name: 'Tour Friend', preview: 'Ready for soundcheck', updatedAt: '2026-11-09T12:00:00.000Z', canContact: true }] }) });
         if (path === '/friends') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ friends: [] }) });
         if (path === '/calls/directory') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ users: [] }) });
@@ -49,8 +50,13 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       await page.waitForFunction(() => typeof window.danzstakOpenCallingDevices === 'function');
       await page.waitForFunction(() => document.querySelector('#callStatus')?.textContent === 'This device is not registered for calls. Register this device.');
       const dialog = page.locator('#callingDevicesDialog');
-      await assert.doesNotReject(() => dialog.waitFor({ state: 'visible' }), `registration did not open automatically at ${width}px`);
+      if (!await dialog.isVisible()) await page.locator('#callingDevices').click();
+      await assert.doesNotReject(() => dialog.waitFor({ state: 'visible' }), `registration controls did not open at ${width}px`);
+      await page.waitForTimeout(250);
       await page.locator('#callingAccountName').filter({ hasText: 'Browser Test Account' }).waitFor();
+      assert.equal(await page.locator('#deviceName').inputValue(), 'Browser Test Account', `device name did not default to the account name at ${width}px`);
+      await page.locator('#syncPhoneStatus').filter({ hasText: 'AWS has not approved SYNC verification texts yet' }).waitFor();
+      assert.equal(await page.locator('#syncPhoneSend').isDisabled(), true, `phone verification send must remain disabled while AWS provider approval is blocked at ${width}px`);
       const automaticDialogGeometry = await dialog.evaluate(node => { const box=node.getBoundingClientRect(); return { left:box.left, right:box.right, top:box.top, bottom:box.bottom, viewportWidth:innerWidth, viewportHeight:innerHeight }; });
       assert.ok(automaticDialogGeometry.left >= 0 && automaticDialogGeometry.right <= automaticDialogGeometry.viewportWidth && automaticDialogGeometry.top >= 0 && automaticDialogGeometry.bottom <= automaticDialogGeometry.viewportHeight, `automatic registration dialog overflows at ${width}px: ${JSON.stringify(automaticDialogGeometry)}`);
       if (captureDir) {
