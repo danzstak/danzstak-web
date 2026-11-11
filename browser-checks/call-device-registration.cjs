@@ -79,7 +79,8 @@ async function capture(page, file) {
       await page.locator('#headerPhone').click();
       await assert.doesNotReject(() => dialog.waitFor({ state: 'visible' }), `calling registration did not open from Phone at ${width}px`);
       await page.locator('#callingAccountName').filter({ hasText: 'Browser Test Account' }).waitFor();
-      assert.equal(await page.locator('#deviceName').inputValue(), 'Browser Test Account', `device name did not default to the account name at ${width}px`);
+      assert.equal(await page.locator('#callingAccountName').textContent(), 'Browser Test Account', `account name did not label the device at ${width}px`);
+      assert.equal(await page.locator('#registerThisDevice').count(), 0, `redundant registration button remains at ${width}px`);
       assert.equal(await page.locator('#closeCallingDevices').isVisible(), true, `call registration trapped text chat at ${width}px`);
       assert.match(await page.locator('#callingDeviceReason').textContent(), /Text messaging works without registering/);
       await page.evaluate(() => window.danzstakRequireCallingDevice({ incoming: true }));
@@ -97,13 +98,13 @@ async function capture(page, file) {
       assert.equal(await page.locator('body.is-conversation-open').isVisible(), true, `closing registration did not return to text chat at ${width}px`);
       await page.locator('#headerVideo').click();
       await dialog.waitFor({ state: 'visible' });
-      await page.locator('#deviceName').fill('My test phone');
-      await page.locator('#registerThisDevice').click();
       await page.locator('#syncPhoneNumber').waitFor({ state: 'visible' });
       assert.match(await page.locator('#syncPhoneTitle').textContent(), /Verify this device by SMS/);
-      if (captureDir) await capture(page, path.join(captureDir, `call-registration-otp-${width}.png`));
       await page.locator('#syncPhoneNumber').fill('415 374 1613');
       await page.locator('#syncPhoneSend').click();
+      await page.locator('#syncPhoneCode').waitFor({ state: 'visible' });
+      await page.locator('#syncPhoneCode').scrollIntoViewIfNeeded();
+      if (captureDir) await capture(page, path.join(captureDir, `call-registration-otp-${width}.png`));
       await page.locator('#syncPhoneCode').fill('123456');
       await page.locator('#syncPhoneConfirm').click();
       await dialog.waitFor({ state: 'hidden' });
@@ -136,7 +137,7 @@ async function capture(page, file) {
       assert.equal(geometry.scrollWidth, width, `page overflows at ${width}px`);
       assert.ok(geometry.buttonWidth >= 44 && geometry.buttonHeight >= 44, `device control is below 44px at ${width}px: ${JSON.stringify(geometry)}`);
       assert.equal(geometry.rows, 1, `registered device row missing at ${width}px`);
-      assert.equal(await page.locator('#deviceName').isHidden(), true, `completed registration form remains visible at ${width}px`);
+      assert.equal(await page.locator('#syncPhoneNumberForm').isHidden(), true, `completed registration form remains visible at ${width}px`);
       assert.equal(callHeaders['x-danzstak-device-id'], '11111111-1111-4111-8111-111111111111');
       assert.equal(callHeaders['x-danzstak-device-token'], 'b'.repeat(43));
       results.push(`${width}px`);

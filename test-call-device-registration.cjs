@@ -37,13 +37,15 @@ for(const header of ["x-danzstak-device-id","x-danzstak-device-token"]){
 }
 
 assert.ok(html.includes('id="callingDevices"'),"SYNC must expose a discoverable Phone and devices action");
-assert.ok(html.includes('id="registerThisDevice"'),"the current installation needs a visible registration action");
+assert.ok(!html.includes('id="registerThisDevice"'),"device enrollment must not expose a registration bypass before SMS confirmation");
+assert.ok(html.includes('id="syncPhoneNumberForm"')&&html.includes('id="syncPhoneSend"'),"the current installation needs one phone-to-SMS enrollment action");
 assert.ok(html.includes('id="callingAccountName"'),"device registration must identify the signed-in account name");
 assert.ok(html.includes("Text messaging works without registering"),"the UI must disclose that text still works before calling-device registration");
 assert.ok(html.includes("phone, video, and voice messages stay unavailable"),"the UI must disclose which functions registration protects");
 assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"SYNC requests need the current installation credential");
 assert.match(client,/window\.danzstakRequireCallingDevice=options=>openPanel\(\{required:true,\.\.\.\(options\|\|\{\}\)\}\)/,"blocked call actions need one shared registration recovery");
+assert.match(client,/window\.danzstakBeginCallingDeviceEnrollment=beginEnrollment/,"the SMS send action must start the device-bound registration challenge");
 assert.match(client,/document\.body\?\.classList\.toggle\("sync-device-registered",registered\)/,"verified device state must control the dedicated SYNC screen shell");
 assert.match(chatCss,/\.messages-page\.sync-device-registered \.ds-mobile-nav[^}]*display:none!important/,"registered SYNC must hide the bottom site navigation");
 assert.match(chatCss,/\.messages-page\.sync-device-registered:not\(\.is-conversation-open\)[^}]*padding-bottom:0!important/,"registered SYNC must not reserve footer space");
