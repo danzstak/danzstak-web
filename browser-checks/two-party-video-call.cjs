@@ -20,6 +20,7 @@ function routeFor(identity, other) {
     const path = url.pathname;
     if (path === "/auth/session") return json(route, { authenticated: true, user: { sub: identity.memberId, email: identity.email } });
     if (path === "/calls/presence") return json(route, { ok: true });
+    if (path === "/calls/ice") return json(route, { iceServers: [{ urls: ["stun:stun.kinesisvideo.us-east-1.amazonaws.com:443"] }], expiresAt: Date.now() + 300000 });
     if (path === "/conversations") return json(route, { conversations: [{ contactEmail: other.email, memberId: other.memberId, name: other.name, preview: "Ready to call", updatedAt: new Date().toISOString(), canContact: true }] });
     if (path === "/friends") return json(route, { friends: [{ email: other.email, memberId: other.memberId, name: other.name, picture: "" }], incoming: [], outgoing: [] });
     if (path === "/calls/directory") return json(route, { users: [{ email: other.email, memberId: other.memberId, name: other.name, online: true, friendStatus: "friends" }] });

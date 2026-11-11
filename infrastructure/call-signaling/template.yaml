@@ -22,6 +22,14 @@ Parameters:
     Type: String
     AllowedValues: ['true', 'false']
     Default: 'false'
+  TurnChannelArn:
+    Type: String
+    Default: ''
+  TurnRegion:
+    Type: String
+    Default: us-east-1
+Conditions:
+  HasTurnChannel: !Not [!Equals [!Ref TurnChannelArn, '']]
 Resources:
   MediaBucket:
     Type: AWS::S3::Bucket
@@ -489,6 +497,12 @@ Resources:
               - Effect: Allow
                 Action: [kms:GetPublicKey, kms:Sign]
                 Resource: !GetAtt VapidSigningKey.Arn
+              - !If
+                - HasTurnChannel
+                - Effect: Allow
+                  Action: [kinesisvideo:GetSignalingChannelEndpoint, kinesisvideo:GetIceServerConfig]
+                  Resource: !Ref TurnChannelArn
+                - !Ref AWS::NoValue
               - Effect: Allow
                 Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Query, dynamodb:DeleteItem]
                 Resource: !GetAtt FriendsTable.Arn
@@ -565,6 +579,8 @@ Resources:
           CALLING_DEVICES_TABLE: !Ref CallingDevicesTable
           PHONE_VERIFICATION_TABLE: !Ref PhoneVerificationTable
           DEVICE_SMS_OTP_REQUIRED: !Ref DeviceSmsOtpRequired
+          TURN_CHANNEL_ARN: !Ref TurnChannelArn
+          TURN_REGION: !Ref TurnRegion
           VAPID_KEY_ID: !GetAtt VapidSigningKey.Arn
           FRIENDS_TABLE: !Ref FriendsTable
           GROUPS_TABLE: !Ref GroupMembersTable
@@ -613,6 +629,7 @@ Resources:
           const validDeviceId=value=>/^[a-f0-9-]{36}$/.test(String(value||''));
           const safeTokenEqual=(left,right)=>{const a=Buffer.from(String(left||'')),b=Buffer.from(String(right||''));return a.length===b.length&&a.length>0&&timingSafeEqual(a,b);};
           async function authenticatedCallingDevice(event,user,{allowDisabled=false}={}){const deviceId=String(event.headers?.['x-danzstak-device-id']||''),token=String(event.headers?.['x-danzstak-device-token']||'');if(!validDeviceId(deviceId)||!/^[A-Za-z0-9_-]{43}$/.test(token))return null;const found=await db.send(new GetItemCommand({TableName:process.env.CALLING_DEVICES_TABLE,Key:{userEmail:{S:user.email},deviceId:{S:deviceId}},ConsistentRead:true})),item=found.Item;if(item?.kind?.S!=='registered'||item.revokedAt?.S||(process.env.DEVICE_SMS_OTP_REQUIRED==='true'&&!item.otpVerifiedAt?.S)||(!allowDisabled&&item.allowCalls?.BOOL===false)||!safeTokenEqual(item.tokenHash?.S,createHash('sha256').update(token).digest('hex')))return null;const lastUsed=Date.parse(item.lastUsedAt?.S||'');if(!Number.isFinite(lastUsed)||Date.now()-lastUsed>60000)await db.send(new UpdateItemCommand({TableName:process.env.CALLING_DEVICES_TABLE,Key:{userEmail:{S:user.email},deviceId:{S:deviceId}},UpdateExpression:'SET lastUsedAt = :used',ExpressionAttributeValues:{':used':{S:new Date().toISOString()}}}));return item;}
+          async function getCallIceServers(event,user){if(!(await authenticatedCallingDevice(event,user)))return json(403,{error:'Register this device to use SYNC.',code:'CALL_DEVICE_REGISTRATION_REQUIRED'});const channelArn=String(process.env.TURN_CHANNEL_ARN||''),region=String(process.env.TURN_REGION||'us-east-1');if(!channelArn)return json(503,{error:'Secure call relay is unavailable.'});const {KinesisVideoClient,GetSignalingChannelEndpointCommand}=require('@aws-sdk/client-kinesis-video'),{KinesisVideoSignalingClient,GetIceServerConfigCommand}=require('@aws-sdk/client-kinesis-video-signaling'),video=new KinesisVideoClient({region}),endpointResult=await video.send(new GetSignalingChannelEndpointCommand({ChannelARN:channelArn,SingleMasterChannelEndpointConfiguration:{Protocols:['HTTPS'],Role:'MASTER'}})),endpoint=(endpointResult.ResourceEndpointList||[]).find(item=>item.Protocol==='HTTPS')?.ResourceEndpoint;if(!endpoint)throw new Error('Secure call relay endpoint unavailable');const signaling=new KinesisVideoSignalingClient({region,endpoint}),clientId=String(user.userId||user.email).replace(/[^A-Za-z0-9_.-]/g,'-').slice(0,256),result=await signaling.send(new GetIceServerConfigCommand({ChannelARN:channelArn,ClientId:clientId,Service:'TURN',Username:clientId})),relay=(result.IceServerList||[]).map(item=>({urls:item.Uris||[],username:item.Username||'',credential:item.Password||''})).filter(item=>item.urls.length),ttl=Math.min(...(result.IceServerList||[]).map(item=>Number(item.Ttl||300)));if(!relay.length)return json(503,{error:'Secure call relay is unavailable.'});return json(200,{iceServers:[{urls:[`stun:stun.kinesisvideo.${region}.amazonaws.com:443`]},...relay],expiresAt:Date.now()+Math.max(60,(Number.isFinite(ttl)?ttl:300)-30)*1000});}
           async function createDeviceChallenge(user){const challengeId=randomUUID(),challenge=b64url(randomBytes(32)),createdAt=new Date().toISOString();await db.send(new PutItemCommand({TableName:process.env.CALLING_DEVICES_TABLE,Item:{userEmail:{S:user.email},deviceId:{S:`CHALLENGE#${challengeId}`},kind:{S:'challenge'},challengeHash:{S:createHash('sha256').update(challenge).digest('hex')},createdAt:{S:createdAt},expiresAt:{N:String(now()+300)}}}));return json(201,{challengeId,challenge,expiresAt:now()+300});}
           async function registerCallingDevice(event,user){let body;try{body=JSON.parse(event.body||'{}');}catch{return json(400,{error:'Invalid JSON'});}const challengeId=String(body.challengeId||''),challenge=String(body.challenge||''),name=String(body.name||'').trim().slice(0,60),otpRequired=process.env.DEVICE_SMS_OTP_REQUIRED==='true',grantId=String(body.deviceGrantId||''),grantToken=String(body.deviceGrantToken||'');if(!validDeviceId(challengeId)||!/^[A-Za-z0-9_-]{43}$/.test(challenge)||name.length<2||otpRequired&&(!validDeviceId(grantId)||!/^[A-Za-z0-9_-]{43}$/.test(grantToken)))return json(400,{error:otpRequired?'A real SMS code is required for this device registration.':'Valid device registration required'});const challengeKey={userEmail:{S:user.email},deviceId:{S:`CHALLENGE#${challengeId}`}},challengeHash=createHash('sha256').update(challenge).digest('hex'),found=await db.send(new GetItemCommand({TableName:process.env.CALLING_DEVICES_TABLE,Key:challengeKey,ConsistentRead:true})),item=found.Item;if(item?.kind?.S!=='challenge'||Number(item.expiresAt?.N||0)<=now()||!safeTokenEqual(item.challengeHash?.S,challengeHash))return json(409,{error:'Registration challenge expired. Start again.'});let grant=null;if(otpRequired){grant=(await db.send(new GetItemCommand({TableName:process.env.PHONE_VERIFICATION_TABLE,Key:{recordKey:{S:`DEVICE_GRANT#${grantId}`}},ConsistentRead:true}))).Item;const tokenHash=createHash('sha256').update(grantToken).digest('hex');if(grant?.recordType?.S!=='device_enrollment_grant'||grant.userId?.S!==user.userId||grant.deviceChallengeId?.S!==challengeId||grant.deviceChallengeHash?.S!==challengeHash||Number(grant.expiresAt?.N||0)<=now()||!safeTokenEqual(grant.grantTokenHash?.S,tokenHash))return json(403,{error:'SMS verification does not match this device. Request a new code.',code:'DEVICE_OTP_REQUIRED'});}const existing=await queryAll({TableName:process.env.CALLING_DEVICES_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:user.email}},ConsistentRead:true},25);if(existing.filter(row=>row.kind?.S==='registered'&&!row.revokedAt?.S).length>=10)return json(409,{error:'Device limit reached. Revoke a device before adding another.'});const deviceId=randomUUID(),token=b64url(randomBytes(32)),registeredAt=new Date().toISOString(),deviceItem={userEmail:{S:user.email},deviceId:{S:deviceId},kind:{S:'registered'},name:{S:name},tokenHash:{S:createHash('sha256').update(token).digest('hex')},allowCalls:{BOOL:true},registeredAt:{S:registeredAt},lastUsedAt:{S:registeredAt},...(grant?{otpVerifiedAt:{S:grant.verifiedAt.S},verifiedPhoneMask:{S:grant.maskedNumber.S}}:{})},transaction=[{Delete:{TableName:process.env.CALLING_DEVICES_TABLE,Key:challengeKey,ConditionExpression:'challengeHash = :hash AND expiresAt > :now',ExpressionAttributeValues:{':hash':{S:challengeHash},':now':{N:String(now())}}}},...(grant?[{Delete:{TableName:process.env.PHONE_VERIFICATION_TABLE,Key:{recordKey:{S:`DEVICE_GRANT#${grantId}`}},ConditionExpression:'grantTokenHash = :token AND expiresAt > :now',ExpressionAttributeValues:{':token':{S:createHash('sha256').update(grantToken).digest('hex')},':now':{N:String(now())}}}}]:[]),{Put:{TableName:process.env.CALLING_DEVICES_TABLE,Item:deviceItem,ConditionExpression:'attribute_not_exists(deviceId)'}}];try{await db.send(new TransactWriteItemsCommand({TransactItems:transaction}));}catch(error){if(error.name==='TransactionCanceledException')return json(409,{error:'Registration proof was already used or expired. Start again.'});throw error;}return json(201,{deviceId,deviceToken:token,name,allowCalls:true,registeredAt,otpVerified:Boolean(grant)});}
           async function listCallingDevices(event,user){const otpRequired=process.env.DEVICE_SMS_OTP_REQUIRED==='true',current=await authenticatedCallingDevice(event,user,{allowDisabled:true}),currentId=current?.deviceId?.S||'',items=await queryAll({TableName:process.env.CALLING_DEVICES_TABLE,KeyConditionExpression:'userEmail = :u',ExpressionAttributeValues:{':u':{S:user.email}},ConsistentRead:true},25);return json(200,{currentDeviceRegistered:Boolean(current),devices:items.filter(item=>item.kind?.S==='registered'&&(!otpRequired||item.otpVerifiedAt?.S)).map(item=>({deviceId:item.deviceId.S,name:item.name?.S||'SYNC device',allowCalls:item.allowCalls?.BOOL!==false,registeredAt:item.registeredAt?.S||'',lastUsedAt:item.lastUsedAt?.S||'',revokedAt:item.revokedAt?.S||'',thisDevice:Boolean(currentId)&&item.deviceId.S===currentId})).sort((a,b)=>b.lastUsedAt.localeCompare(a.lastUsedAt))});}
@@ -787,6 +804,9 @@ Resources:
           const coreHandler=exports.handler;
           exports.handler=async event=>{
             if(Array.isArray(event.Records)&&event.Records.some(record=>record.eventSource==='aws:dynamodb'))return activityPushBatch(event);
+            if(event.requestContext?.http?.method==='GET'&&event.rawPath==='/calls/ice'){
+              try{const user=await identity(event);return user?await getCallIceServers(event,user):json(401,{error:'Authentication required'});}catch(error){console.error(error);return json(500,{error:'Service unavailable'});}
+            }
             if(!String(event.rawPath||'').startsWith('/plans'))return coreHandler(event);
             try{
               const method=event.requestContext?.http?.method,origin=event.headers?.origin||event.headers?.Origin||'';
@@ -895,6 +915,7 @@ Resources:
       PayloadFormatVersion: '2.0'
       TimeoutInMillis: 10000
   SignalRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: POST /calls/signal, Target: !Sub 'integrations/${SignalingIntegration}'}}
+  IceRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: GET /calls/ice, Target: !Sub 'integrations/${SignalingIntegration}'}}
   InboxRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: GET /calls/inbox, Target: !Sub 'integrations/${SignalingIntegration}'}}
   AckRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: POST /calls/ack, Target: !Sub 'integrations/${SignalingIntegration}'}}
   DeviceChallengeRoute: {Type: AWS::ApiGatewayV2::Route, Properties: {ApiId: !Ref ApiId, RouteKey: POST /calls/devices/challenge, Target: !Sub 'integrations/${SignalingIntegration}'}}

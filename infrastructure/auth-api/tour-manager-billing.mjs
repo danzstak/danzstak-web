@@ -15,6 +15,9 @@ export const TEST_BOOKING_CONTACT_PRICE_ID = "price_1UXoMsFgtfNMBXOVSmnWDFGa";
 export const TEST_BOOKING_CONTACT_PRODUCT_ID = "prod_VYwF2z3cYoe72u";
 export const TEST_PHONE_NUMBER_PRICE_ID = "price_1UXoMuFgtfNMBXOVNxfRWRDp";
 export const TEST_PHONE_NUMBER_PRODUCT_ID = "prod_VYwFZRXzQ3dNNv";
+export const SYNC_NETWORK_NUMBER_UNIT_CENTS = 300;
+export const TEST_SYNC_NETWORK_NUMBER_PRICE_ID = "price_1UadinDoNxcsrqZsYdYyJxAB";
+export const TEST_SYNC_NETWORK_NUMBER_PRODUCT_ID = "prod_VbrRRYRnBc56Qt";
 const LIVE_STRIPE_CATALOG = Object.freeze({
   tour: { priceId: TOUR_MANAGER_EMAIL_PRICE_ID, productId: TOUR_MANAGER_PRODUCT_ID },
   contact: { priceId: BOOKING_CONTACT_PRICE_ID, productId: BOOKING_CONTACT_PRODUCT_ID },
@@ -25,13 +28,20 @@ const TEST_STRIPE_CATALOG = Object.freeze({
   contact: { priceId: TEST_BOOKING_CONTACT_PRICE_ID, productId: TEST_BOOKING_CONTACT_PRODUCT_ID },
   phone: { priceId: TEST_PHONE_NUMBER_PRICE_ID, productId: TEST_PHONE_NUMBER_PRODUCT_ID }
 });
+const TEST_SYNC_NETWORK_CATALOG = Object.freeze({
+  priceId: TEST_SYNC_NETWORK_NUMBER_PRICE_ID,
+  productId: TEST_SYNC_NETWORK_NUMBER_PRODUCT_ID
+});
 function stripeCatalog(livemode) { return livemode ? LIVE_STRIPE_CATALOG : TEST_STRIPE_CATALOG; }
 const PRODUCT = "tour_manager_booking_email";
 const CONTACT_PRODUCT = "booking_contact_unlock";
 const PHONE_PRODUCT = "danzstak_phone_activation";
+const SYNC_NETWORK_PRODUCT = "danzstak_sync_network_alias";
 const CREDIT_KEY = "TOUR_MANAGER#BOOKING_EMAIL_CREDITS";
 const PROFESSIONAL_KEY = "TOUR_MANAGER#PROFESSIONAL_ENTITLEMENT";
 const PHONE_ENTITLEMENT_KEY = "PHONE#ACTIVATION_ENTITLEMENT";
+const SYNC_NETWORK_ENTITLEMENT_KEY = "SYNC#NETWORK_ALIAS_ENTITLEMENT";
+const SYNC_NETWORK_ALIAS_OWNER = "SYNC#NETWORK_ALIAS";
 const BOOKING_WORKSPACE_KEY = "booking-workspace-v1";
 const EVENT_OWNER = "STRIPE#TOUR_MANAGER_EVENTS";
 const SUPPRESSION_OWNER = "TOUR_MANAGER#GLOBAL_SUPPRESSION";
@@ -53,6 +63,8 @@ function checkoutKey(userId, sessionId) { return { userId: { S: userId }, tourId
 function creditKey(userId) { return { userId: { S: userId }, tourId: { S: CREDIT_KEY } }; }
 function professionalKey(userId) { return { userId: { S: userId }, tourId: { S: PROFESSIONAL_KEY } }; }
 function phoneEntitlementKey(userId) { return { userId: { S: userId }, tourId: { S: PHONE_ENTITLEMENT_KEY } }; }
+function syncNetworkEntitlementKey(userId) { return { userId: { S: userId }, tourId: { S: SYNC_NETWORK_ENTITLEMENT_KEY } }; }
+function syncNetworkAliasKey(alias) { return { userId: { S: SYNC_NETWORK_ALIAS_OWNER }, tourId: { S: alias } }; }
 function eventKey(eventId) { return { userId: { S: EVENT_OWNER }, tourId: { S: eventId } }; }
 function ledgerKey(userId, at, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#LEDGER#${at}#${id}` } }; }
 function sendKey(userId, id) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${id}` } }; }
@@ -77,6 +89,14 @@ function outreachWindow(items, at) {
 }
 function contactUnlockKey(userId, venueKey) { return { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#CONTACT_UNLOCK#${venueKey}` } }; }
 function validVenueKey(value) { return typeof value === "string" && /^[a-f0-9]{20}$/.test(value); }
+function validSyncNetworkAlias(value) { return typeof value === "string" && /^DS-[1-9][0-9]{2}-[0-9]{4}$/.test(value); }
+
+export function generateSyncNetworkAlias(bytes = randomBytes(4)) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < 4) throw new TypeError("Four random bytes are required");
+  const value = 1_000_000 + (bytes.readUInt32BE(0) % 9_000_000);
+  const digits = String(value);
+  return `DS-${digits.slice(0, 3)}-${digits.slice(3)}`;
+}
 
 export function verifyStripeSignature(payload, header, secret, currentTime = Date.now(), toleranceSeconds = 300) {
   if (typeof payload !== "string" || !payload || typeof header !== "string" || !secret?.startsWith("whsec_")) return false;
@@ -88,12 +108,15 @@ export function verifyStripeSignature(payload, header, secret, currentTime = Dat
   return signatures.some(signature => { if (!/^[a-f0-9]{64}$/i.test(signature)) return false; const candidate = Buffer.from(signature, "hex"); return candidate.length === expected.length && timingSafeEqual(candidate, expected); });
 }
 
-export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, env = process.env, fetcher = fetch, clock = Date.now }) {
+export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, env = process.env, fetcher = fetch, clock = Date.now, aliasGenerator = generateSyncNetworkAlias }) {
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
   const testMode = () => env.STRIPE_SECRET_KEY?.startsWith("sk_test_");
   const paymentsAllowed = () => Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) && (testMode() || (env.TOUR_MANAGER_LIVE_PAYMENTS === "true" && env.STRIPE_SECRET_KEY.startsWith("sk_live_")));
+  const expectedStripeAccountId = () => String(env.STRIPE_EXPECTED_ACCOUNT_ID || "").trim();
+  const syncNetworkPaymentsAllowed = () => env.SYNC_NETWORK_NUMBER_TEST_CHECKOUT_ENABLED === "true" && testMode() && paymentsAllowed() && env.STRIPE_SYNC_NETWORK_WEBHOOK_SECRET?.startsWith("whsec_") && /^acct_[a-zA-Z0-9]+$/.test(expectedStripeAccountId());
   const nowIso = () => new Date(clock()).toISOString();
   const browserHeaders = event => corsHeaders(event.headers?.origin || event.headers?.Origin);
+  let verifiedStripeAccountId = "";
 
   async function providerEvents(event) {
     const records = Array.isArray(event?.Records) ? event.Records : [];
@@ -132,6 +155,20 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       if (!result.ok) { const error = new Error("Stripe request failed"); error.statusCode = result.status; throw error; }
       return data;
     } finally { clearTimeout(timer); }
+  }
+
+  async function stripeAccountMatches() {
+    const expected = expectedStripeAccountId();
+    if (!/^acct_[a-zA-Z0-9]+$/.test(expected) || !paymentsAllowed()) return false;
+    if (verifiedStripeAccountId === expected) return true;
+    try {
+      const account = await stripe("/account");
+      if (account?.id !== expected) return false;
+      verifiedStripeAccountId = expected;
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async function checkout(event) {
@@ -173,6 +210,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
   async function phoneCheckout(event) {
     const headers = browserHeaders(event);
     if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    if (env.PHONE_ACTIVATION_CHECKOUT_ENABLED !== "true") return response(503, { error: "Carrier phone activation is not available." }, headers);
     if (!paymentsAllowed()) return response(503, { error: "Phone activation payments are not configured for testing." }, headers);
     const userId = await authenticate(event);
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
@@ -211,6 +249,66 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       unitAmountCents: PHONE_NUMBER_UNIT_CENTS,
       currency: "usd",
       priceId: stripeCatalog(!testMode()).phone.priceId
+    }, headers);
+  }
+
+  async function syncNetworkCheckout(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    if (!syncNetworkPaymentsAllowed()) return response(503, { error: "DanzStak Network number checkout is available in Test Mode only." }, headers);
+    if (!await stripeAccountMatches()) return response(503, { error: "DanzStak payments are not connected to the approved Stripe account." }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const entitlement = await db.send(new GetItemCommand({ TableName: tableName, Key: syncNetworkEntitlementKey(userId), ConsistentRead: true }));
+    if (entitlement.Item?.status?.S === "active" && validSyncNetworkAlias(entitlement.Item?.alias?.S)) {
+      return response(200, { entitled: true, status: "active", alias: entitlement.Item.alias.S, testMode: true }, headers);
+    }
+    const returnBaseUrl = /^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(String(env.SYNC_NETWORK_NUMBER_RETURN_BASE_URL || ""))
+      ? String(env.SYNC_NETWORK_NUMBER_RETURN_BASE_URL).replace(/\/$/, "")
+      : "https://danzstak.com";
+    const form = new URLSearchParams({
+      mode: "payment",
+      "line_items[0][price]": TEST_SYNC_NETWORK_CATALOG.priceId,
+      "line_items[0][quantity]": "1",
+      client_reference_id: userId,
+      "metadata[product]": SYNC_NETWORK_PRODUCT,
+      "metadata[userId]": userId,
+      "metadata[priceId]": TEST_SYNC_NETWORK_CATALOG.priceId,
+      success_url: `${returnBaseUrl}/messages.html?sync-number=payment-success`,
+      cancel_url: `${returnBaseUrl}/messages.html?sync-number=payment-cancelled`
+    });
+    const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `sync-network-number-${userId}` }, body: form.toString() });
+    if (!/^cs_test_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
+    const existingCheckout = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true }));
+    if (!existingCheckout.Item) {
+      await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, product: { S: SYNC_NETWORK_PRODUCT }, priceId: { S: TEST_SYNC_NETWORK_CATALOG.priceId }, environment: { S: "test" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
+    } else if (existingCheckout.Item.product?.S !== SYNC_NETWORK_PRODUCT || existingCheckout.Item.priceId?.S !== TEST_SYNC_NETWORK_CATALOG.priceId) {
+      throw new Error("Stored Checkout binding does not match the DanzStak Network number product");
+    }
+    return response(200, { checkoutUrl: session.url, unitAmountCents: SYNC_NETWORK_NUMBER_UNIT_CENTS, currency: "usd", testMode: true }, headers);
+  }
+
+  async function syncNetworkEntitlement(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const found = await db.send(new GetItemCommand({ TableName: tableName, Key: syncNetworkEntitlementKey(userId), ConsistentRead: true }));
+    const active = found.Item?.status?.S === "active" && validSyncNetworkAlias(found.Item?.alias?.S);
+    return response(200, {
+      entitled: active,
+      status: found.Item?.status?.S || "not_purchased",
+      alias: active ? found.Item.alias.S : "",
+      network: "sync_only",
+      carrierNumber: false,
+      receivesSms: false,
+      emergencyCalling: false,
+      deviceOtpRequired: true,
+      checkoutAvailable: env.SYNC_NETWORK_NUMBER_TEST_CHECKOUT_ENABLED === "true",
+      unitAmountCents: SYNC_NETWORK_NUMBER_UNIT_CENTS,
+      currency: "usd",
+      testMode: true,
+      priceId: TEST_SYNC_NETWORK_CATALOG.priceId
     }, headers);
   }
 
@@ -478,9 +576,19 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return item?.sessionId?.S === session.id && item.product?.S === PHONE_PRODUCT && item.priceId?.S === catalog.phone.priceId && item.environment?.S === (expectedLive ? "live" : "test") ? { session, userId, product: PHONE_PRODUCT } : null;
   }
 
+  async function loadVerifiedSyncNetworkSession(session, expectedLive) {
+    if (expectedLive) return null;
+    const userId = session.client_reference_id, metadata = session.metadata || {}, lines = session.line_items?.data, line = Array.isArray(lines) && lines.length === 1 ? lines[0] : null;
+    const valid = session.mode === "payment" && session.livemode === false && validUserId(userId) && metadata.product === SYNC_NETWORK_PRODUCT && metadata.userId === userId && metadata.priceId === TEST_SYNC_NETWORK_CATALOG.priceId && Number(line?.quantity) === 1 && line?.price?.id === TEST_SYNC_NETWORK_CATALOG.priceId && line?.price?.product === TEST_SYNC_NETWORK_CATALOG.productId && line?.price?.currency === "usd" && Number(line?.price?.unit_amount) === SYNC_NETWORK_NUMBER_UNIT_CENTS && session.currency === "usd" && Number(session.amount_total) === SYNC_NETWORK_NUMBER_UNIT_CENTS;
+    if (!valid) return null;
+    const pending = await db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, session.id), ConsistentRead: true })), item = pending.Item;
+    return item?.sessionId?.S === session.id && item.product?.S === SYNC_NETWORK_PRODUCT && item.priceId?.S === TEST_SYNC_NETWORK_CATALOG.priceId && item.environment?.S === "test" ? { session, userId, product: SYNC_NETWORK_PRODUCT } : null;
+  }
+
   async function loadVerifiedKnownSession(session, expectedLive) {
     if (session?.metadata?.product === CONTACT_PRODUCT) return loadVerifiedContactSession(session, expectedLive);
     if (session?.metadata?.product === PHONE_PRODUCT) return loadVerifiedPhoneSession(session, expectedLive);
+    if (session?.metadata?.product === SYNC_NETWORK_PRODUCT) return loadVerifiedSyncNetworkSession(session, expectedLive);
     return loadVerifiedSession(session, expectedLive);
   }
 
@@ -534,6 +642,51 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     return true;
   }
 
+  async function recordDuplicateSyncNetworkPurchase(notification, verified, entitlement) {
+    const processedAt = nowIso();
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt }, status: { S: "duplicate_purchase_review" } }, ConditionExpression: "attribute_not_exists(userId)" } },
+        { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :paid, paidAt = :paidAt, duplicatePurchase = :duplicate", ConditionExpression: "#status <> :paid AND sessionId = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":paidAt": { S: processedAt }, ":duplicate": { BOOL: true }, ":sessionId": { S: verified.session.id } } } },
+        { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "sync_network_alias_duplicate_purchase" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "manual_refund_required" }, description: { S: "Duplicate DanzStak Network number purchase requires refund review" }, alias: { S: entitlement.alias.S }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
+      ] }));
+    } catch (error) {
+      const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: eventKey(notification.id), ConsistentRead: true }));
+      if (!duplicate.Item) throw error;
+    }
+    return { granted: false, alias: entitlement.alias.S, duplicatePurchase: true };
+  }
+
+  async function grantSyncNetworkEntitlement(notification, verified) {
+    const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: syncNetworkEntitlementKey(verified.userId), ConsistentRead: true }));
+    if (existing.Item?.status?.S === "active" && validSyncNetworkAlias(existing.Item?.alias?.S)) return recordDuplicateSyncNetworkPurchase(notification, verified, existing.Item);
+    const processedAt = nowIso();
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const alias = String(aliasGenerator()).toUpperCase();
+      if (!validSyncNetworkAlias(alias)) throw new Error("DanzStak Network alias generator returned an invalid value");
+      try {
+        await db.send(new TransactWriteItemsCommand({ TransactItems: [
+          { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
+          { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :paid, paidAt = :paidAt", ConditionExpression: "#status <> :paid AND sessionId = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":paidAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
+          { Put: { TableName: tableName, Item: { ...syncNetworkAliasKey(alias), alias: { S: alias }, ownerUserId: { S: verified.userId }, status: { S: "active" }, assignedAt: { S: processedAt }, paymentReference: { S: verified.session.id } }, ConditionExpression: "attribute_not_exists(userId) AND attribute_not_exists(tourId)" } },
+          { Put: { TableName: tableName, Item: { ...syncNetworkEntitlementKey(verified.userId), alias: { S: alias }, status: { S: "active" }, network: { S: "sync_only" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, priceId: { S: TEST_SYNC_NETWORK_CATALOG.priceId }, purchasedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId) AND attribute_not_exists(tourId)" } },
+          { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "sync_network_alias_purchase" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "active" }, description: { S: "DanzStak Network number assigned for SYNC-only use" }, alias: { S: alias }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
+        ] }));
+        return { granted: true, alias, duplicatePurchase: false };
+      } catch (error) {
+        const processed = await db.send(new GetItemCommand({ TableName: tableName, Key: eventKey(notification.id), ConsistentRead: true }));
+        if (processed.Item) {
+          const entitlement = await db.send(new GetItemCommand({ TableName: tableName, Key: syncNetworkEntitlementKey(verified.userId), ConsistentRead: true }));
+          return { granted: false, alias: validSyncNetworkAlias(entitlement.Item?.alias?.S) ? entitlement.Item.alias.S : "", duplicatePurchase: false };
+        }
+        const collision = await db.send(new GetItemCommand({ TableName: tableName, Key: syncNetworkAliasKey(alias), ConsistentRead: true }));
+        if (collision.Item) continue;
+        throw error;
+      }
+    }
+    throw new Error("Could not allocate a unique DanzStak Network number");
+  }
+
   async function recordRefundReview(notification, verified, charge) {
     const processedAt = nowIso();
     try {
@@ -559,6 +712,18 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
         { Update: { TableName: tableName, Key: phoneEntitlementKey(verified.userId), UpdateExpression: "SET #status = :refunded, refundedAt = :refundedAt, provisioningActionRequired = :required", ConditionExpression: "paymentReference = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":refunded": { S: "refunded" }, ":refundedAt": { S: processedAt }, ":required": { BOOL: true }, ":sessionId": { S: verified.session.id } } } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "phone_activation_refund" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "refunded" }, description: { S: "Phone activation payment refunded; provider follow-up required" }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
       );
+    } else if (verified.product === SYNC_NETWORK_PRODUCT) {
+      const entitlement = await db.send(new GetItemCommand({ TableName: tableName, Key: syncNetworkEntitlementKey(verified.userId), ConsistentRead: true }));
+      const ownsEntitlement = entitlement.Item?.paymentReference?.S === verified.session.id && validSyncNetworkAlias(entitlement.Item?.alias?.S);
+      if (ownsEntitlement) {
+        items.push(
+          { Update: { TableName: tableName, Key: syncNetworkEntitlementKey(verified.userId), UpdateExpression: "SET #status = :refunded, refundedAt = :refundedAt", ConditionExpression: "paymentReference = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":refunded": { S: "refunded" }, ":refundedAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
+          { Update: { TableName: tableName, Key: syncNetworkAliasKey(entitlement.Item.alias.S), UpdateExpression: "SET #status = :retired, retiredAt = :retiredAt", ConditionExpression: "ownerUserId = :owner AND paymentReference = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":retired": { S: "retired" }, ":retiredAt": { S: processedAt }, ":owner": { S: verified.userId }, ":sessionId": { S: verified.session.id } } } },
+          { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "sync_network_alias_refund" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "refunded" }, description: { S: "DanzStak Network number refunded and retired" }, alias: { S: entitlement.Item.alias.S }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
+        );
+      } else {
+        items.push({ Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "sync_network_alias_duplicate_refund" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: "0" }, status: { S: "refunded" }, description: { S: "Duplicate DanzStak Network number purchase refunded; active alias unchanged" }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } });
+      }
     } else {
       items.push(
         { Update: { TableName: tableName, Key: creditKey(verified.userId), UpdateExpression: "ADD credits :minusQuantity, purchasedCredits :minusQuantity SET updatedAt = :updatedAt, lastRefundedSessionId = :sessionId", ExpressionAttributeValues: { ":minusQuantity": { N: String(-verified.quantity) }, ":updatedAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
@@ -582,7 +747,10 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
   async function webhook(event) {
     if (!paymentsAllowed()) return response(503, { error: "Tour Manager payment webhook is not configured." });
     const payload = rawBody(event), signature = event.headers?.["stripe-signature"] || event.headers?.["Stripe-Signature"];
-    if (!payload || Buffer.byteLength(payload) > 65536 || !verifyStripeSignature(payload, signature, env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET, clock())) return response(400, { error: "Invalid Stripe signature." });
+    const webhookSecret = event?.rawPath === "/sync-network-number/stripe/webhook"
+      ? env.STRIPE_SYNC_NETWORK_WEBHOOK_SECRET
+      : env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET;
+    if (!payload || Buffer.byteLength(payload) > 65536 || !verifyStripeSignature(payload, signature, webhookSecret, clock())) return response(400, { error: "Invalid Stripe signature." });
     let notification; try { notification = JSON.parse(payload); } catch { return response(400, { error: "Invalid Stripe event." }); }
     if (!WEBHOOK_TYPES.has(notification.type)) return response(200, { received: true, ignored: true });
     const supplied = notification.data?.object;
@@ -597,6 +765,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       const session = Array.isArray(sessions.data) && sessions.data.length === 1 ? sessions.data[0] : null;
       const verified = session ? await loadVerifiedKnownSession(session, expectedLive) : null;
       if (!verified || verified.session.payment_status !== "paid" || verified.session.status !== "complete" || Number(supplied.amount) !== Number(verified.session.amount_total) || !Number.isInteger(Number(supplied.amount_refunded)) || Number(supplied.amount_refunded) < 1 || Number(supplied.amount_refunded) > Number(supplied.amount)) return response(409, { error: "No matching refundable DANZSTAK purchase." });
+      if (verified.product === SYNC_NETWORK_PRODUCT && !await stripeAccountMatches()) return response(503, { error: "DanzStak payments are not connected to the approved Stripe account." });
       if (Number(supplied.amount_refunded) !== Number(supplied.amount)) {
         await recordRefundReview(notification, verified, supplied);
         return response(200, { received: true, refundReviewRequired: true, accessChanged: false });
@@ -609,6 +778,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (session.id !== supplied.id) return response(409, { error: "No matching Tour Manager checkout." });
     const verified = await loadVerifiedKnownSession(session, expectedLive);
     if (!verified) return response(409, { error: "No matching Tour Manager checkout." });
+    if (verified.product === SYNC_NETWORK_PRODUCT && !await stripeAccountMatches()) return response(503, { error: "DanzStak payments are not connected to the approved Stripe account." });
     if (notification.type === "checkout.session.completed" && verified.session.payment_status !== "paid") { await markCheckoutEvent(notification, verified, "awaiting_payment"); return response(200, { received: true, awaitingPayment: true }); }
     if (notification.type === "checkout.session.async_payment_failed" || notification.type === "checkout.session.expired") { await markCheckoutEvent(notification, verified, notification.type.endsWith("failed") ? "payment_failed" : "expired"); return response(200, { received: true, creditsIssued: 0 }); }
     if (verified.session.payment_status !== "paid" || verified.session.status !== "complete") return response(409, { error: "Stripe has not verified a completed payment." });
@@ -619,6 +789,10 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (verified.product === PHONE_PRODUCT) {
       const granted = await grantPhoneEntitlement(notification, verified);
       return response(200, { received: true, phoneActivationEntitled: granted, provisioningStatus: "pending_provisioning", duplicate: !granted });
+    }
+    if (verified.product === SYNC_NETWORK_PRODUCT) {
+      const assigned = await grantSyncNetworkEntitlement(notification, verified);
+      return response(200, { received: true, syncNetworkNumberAssigned: assigned.granted, alias: assigned.alias, duplicate: !assigned.granted, duplicatePurchase: assigned.duplicatePurchase });
     }
     const granted = await grantCredits(notification, verified);
     return response(200, { received: true, creditsIssued: granted ? verified.quantity : 0, duplicate: !granted });
@@ -736,12 +910,14 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const providerResponse = await providerEvents(event);
     if (providerResponse) return providerResponse;
     const method = event?.requestContext?.http?.method, path = event?.rawPath;
-    if (method === "POST" && path === "/tour-manager/stripe/webhook") return webhook(event);
+    if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook"].includes(path)) return webhook(event);
     if (method === "POST" && path === "/tour-manager/checkout") return checkout(event);
     if (method === "POST" && path === "/tour-manager/contact-unlock/checkout") return contactCheckout(event);
     if (method === "GET" && path === "/tour-manager/contact-unlocks") return contactUnlocks(event);
     if (method === "POST" && path === "/phone-number/checkout") return phoneCheckout(event);
     if (method === "GET" && path === "/phone-number/entitlement") return phoneEntitlement(event);
+    if (method === "POST" && path === "/sync-network-number/checkout") return syncNetworkCheckout(event);
+    if (method === "GET" && path === "/sync-network-number/entitlement") return syncNetworkEntitlement(event);
     if (method === "GET" && path === "/tour-manager/credits") return credits(event);
     if (method === "GET" && path === "/tour-manager/outreach") return outreach(event);
     if (method === "POST" && path === "/tour-manager/outreach/preflight") return outreachPreflight(event);

@@ -53,7 +53,11 @@ vm.runInContext([extract("remoteMediaElement"), extract("playRemoteMedia"), extr
   assert.deepEqual(assembled.getTracks(), [audioTrack], "a streamless audio track must create the remote stream");
   assert.equal(state.remoteStreamForTrackEvent({ streams: [], track: audioTrack }).getTracks().length, 1, "a repeated track event must not duplicate audio");
   assert.deepEqual(state.remoteStreamForTrackEvent({ streams: [], track: videoTrack }).getTracks(), [audioTrack, videoTrack], "streamless audio and video tracks must share one remote stream");
-  const supplied = { getTracks: () => [audioTrack, videoTrack] };
-  assert.equal(state.remoteStreamForTrackEvent({ streams: [supplied], track: audioTrack }), supplied, "a browser-supplied remote stream must remain authoritative");
+  const secondAudioTrack = { id: "audio-2", kind: "audio" };
+  const suppliedAudio = { getTracks: () => [secondAudioTrack] };
+  const suppliedVideo = { getTracks: () => [videoTrack] };
+  const stableStream = state.remoteStreamForTrackEvent({ streams: [suppliedAudio], track: secondAudioTrack });
+  assert.equal(state.remoteStreamForTrackEvent({ streams: [suppliedVideo], track: videoTrack }), stableStream, "separate browser-supplied stream objects must not replace the visible remote stream");
+  assert.deepEqual(stableStream.getTracks(), [audioTrack, videoTrack, secondAudioTrack], "all unique browser-supplied tracks must remain attached to one stable stream");
   console.log("Remote call-audio checks passed: dedicated phone output, autoplay recovery, video routing, and cleanup.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -1017,7 +1017,7 @@ async function loadDirectMessages(reset = false) {
     sendButton.disabled = !activeCanContact;
     // Only the first load for this conversation may show availability, and
     // never after a newer user action has produced more useful feedback.
-    if (showAvailability && feedbackVersion === conversationFeedbackVersion && !window.danzstakCallRegistrationRequired?.()) {
+    if (showAvailability && feedbackVersion === conversationFeedbackVersion && !window.danzstakCallRegistrationRequired?.() && !document.body?.dataset?.callMode) {
       callStatus.textContent = activeCanContact
         ? messageFormat("You can message {name} directly.", { name: activeContactName })
         : messageTranslate("Saved chat. Become friends or join the same Tribe to send new messages or call.");
@@ -1025,7 +1025,7 @@ async function loadDirectMessages(reset = false) {
   } catch (error) {
     if (version === conversationVersion) {
       const message = error.message || messageTranslate("Messages could not be loaded");
-      callStatus.textContent = message;
+      if (!document.body?.dataset?.callMode) callStatus.textContent = message;
       if (reset) renderMessageLoadError(message);
     }
   } finally {

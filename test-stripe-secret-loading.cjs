@@ -11,12 +11,14 @@ assert.equal(packageJson.dependencies["@aws-sdk/client-secrets-manager"], "3.115
 assert.match(source, /new SecretsManagerClient\(\{ region: "us-west-1", maxAttempts: 3 \}\)/, "the reusable Secrets Manager client must be initialized outside the handler");
 assert.match(source, /"danzstak\/stripe\/secret-key"/, "the Stripe API key must come from its approved secret");
 assert.match(source, /"danzstak\/stripe\/webhook-secret"/, "the webhook signing secret must remain separate");
-assert.match(source, /Promise\.all\(\[[\s\S]*GetSecretValueCommand/, "the backend must retrieve both secrets with its IAM role");
+assert.match(source, /"danzstak\/stripe\/sync-network-webhook-secret"/, "the DS-number webhook must have its own signing secret");
+assert.match(source, /Promise\.all\(\[[\s\S]*GetSecretValueCommand/, "the backend must retrieve the API and endpoint-specific signing secrets with its IAM role");
 assert.match(source, /\.catch\(\(\) => false\)/, "secret lookup failures must fail closed without logging secret values");
 assert.match(source, /path\?\.startsWith\("\/tour-manager\/"\) \|\| path\?\.startsWith\("\/phone-number\/"\)/, "phone-number purchases must reach the billing router");
 assert.match(deploy, /Required Stripe secret is missing or unreadable:[\s\S]*No Lambda changes were made/, "the test deployment must stop before mutation when either secret is absent");
 assert.match(deploy, /TOUR_MANAGER_LIVE_PAYMENTS = "false"/, "the isolated deployment must keep live payments disabled");
 assert.match(deploy, /AllowDanzStakPhoneStripeTestApi[\s\S]*phone-number\/\*/, "API Gateway must be allowed to invoke the isolated Stripe Lambda for phone-number checkout routes");
-assert.doesNotMatch(source + deploy, /console\.(?:log|error)\([^\n]*(?:STRIPE_SECRET_KEY|STRIPE_TOUR_MANAGER_WEBHOOK_SECRET)/, "Stripe secret values must never be logged");
+assert.match(deploy, /STRIPE_SYNC_NETWORK_WEBHOOK_SECRET_NAME = "danzstak\/stripe\/sync-network-webhook-secret"/, "the isolated deployment must bind the DS-number endpoint to its own signing secret");
+assert.doesNotMatch(source + deploy, /console\.(?:log|error)\([^\n]*(?:STRIPE_SECRET_KEY|STRIPE_TOUR_MANAGER_WEBHOOK_SECRET|STRIPE_SYNC_NETWORK_WEBHOOK_SECRET)/, "Stripe secret values must never be logged");
 
-console.log("Stripe secret-loading checks passed: separate Secrets Manager values, IAM retrieval, fail-closed deployment, phone routing, and live-payment lock remain enforced.");
+console.log("Stripe secret-loading checks passed: separate API and endpoint signing secrets, IAM retrieval, fail-closed deployment, phone routing, and live-payment lock remain enforced.");

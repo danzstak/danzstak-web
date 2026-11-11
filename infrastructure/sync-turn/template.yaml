@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DanzStak SYNC managed TURN relay credential source.
+Resources:
+  SyncTurnChannel:
+    Type: AWS::KinesisVideo::SignalingChannel
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: DANZSTAK-SYNC-TURN
+      Type: SINGLE_MASTER
+      MessageTtlSeconds: 60
+      Tags:
+        - Key: Application
+          Value: DanzStak
+        - Key: Component
+          Value: SYNC
+Outputs:
+  ChannelArn:
+    Description: Signaling channel used to issue short-lived WebRTC TURN credentials.
+    Value: !GetAtt SyncTurnChannel.Arn

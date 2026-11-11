@@ -1,5 +1,22 @@
 # DANZSTAK development report
 
+## PWA v807 — private DS Network-number Test Mode purchase — 2026-11-11
+
+Status: **CODED, TESTED AND RELEASED TO THE ISOLATED REVIEW PWA; STRIPE CHECKOUT IS FAIL-CLOSED UNTIL THE AWS TEST SECRET MATCHES THE DANZSTAK STRIPE ACCOUNT. NOT RELEASED TO PRODUCTION.**
+
+- **PURPOSE:** An authenticated member may make one $3 Stripe Test Mode purchase for one unique `DS-123-1234` alias. The alias works only for account-to-account calls and messages inside SYNC. It is not a cellular number, cannot receive carrier SMS, cannot call regular or emergency numbers and never replaces the private SMS OTP required to register each device.
+- **PRIVACY AND DUPLICATE CONTROLS:** Only the authenticated owner can read the alias. Allocation uses an atomic unique-alias record with collision retries. A paid Checkout Session is bound to the member, product, Price, amount and Test environment. Webhook events are signature-verified and idempotent; duplicate purchases are flagged for refund review instead of assigning a second alias.
+- **DANZSTAK STRIPE TEST CATALOG:** Product `prod_VbrRRYRnBc56Qt`; Price `price_1UadinDoNxcsrqZsYdYyJxAB`; $3 one-time; Test Mode only. The previous carrier-number placeholder remains disabled. No Live product, charge or payout was created or enabled.
+- **WEBHOOK:** `https://api.danzstak.com/sync-network-number/stripe/webhook`; events `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` and `charge.refunded`. Its signing secret is stored separately in AWS Secrets Manager as `danzstak/stripe/sync-network-webhook-secret` and is never logged or committed.
+- **AWS SERVICE:** API Gateway HTTP API and Lambda `DANZSTAK-TourManager-Stripe-Test` in `us-east-1`, backed by the existing DynamoDB entitlement ledger. The new checkout, entitlement and webhook routes are deployed to the Test Lambda. CloudWatch retention is 14 days.
+- **AUTOMATED EVIDENCE:** `test-sync-network-number-stripe.cjs` covers account matching, exact product binding, signature verification, unique allocation, collision retry, duplicate-event handling, duplicate purchases, refunds and Test-only enforcement. `test-stripe-secret-loading.cjs` verifies that the DS webhook uses its dedicated signing secret. The complete `test-regressions.ps1` gate passed.
+- **BROWSER EVIDENCE:** The authenticated Test Mode purchase and entitlement interface passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px, including secure Stripe Checkout handoff. Builder-inspected captures are in `docs/screenshots/ds-network-number/`.
+- **REVIEW:** [PR #265](https://github.com/danzstak/danzstak-web/pull/265) passed all GitHub **Review checks** jobs in [run 43063636999](https://github.com/danzstak/danzstak-web/actions/runs/43063636999). It is a draft stacked on the mandatory per-device OTP PR and is not approved for production.
+- **REVIEW PWA:** AWS Amplify review branch `codex/ds-number-test-mode`, region `us-west-1`, job `1`, deployed successfully. `https://review.danzstak.com/messages.html` serves `danzstak-shell-v807`; the same nine-width browser matrix passed against the deployed HTTPS review build.
+- **CURRENT BLOCKER:** The value currently stored at `danzstak/stripe/secret-key` authenticates to a different Stripe account than the approved DANZSTAK Test account. The backend confirms the account through Stripe's `/v1/account` endpoint and therefore returns HTTP 503 instead of creating a Checkout Session. Matching prefixes are not treated as proof. The guard will not be weakened.
+- **OWNER ACTION:** In the DANZSTAK Stripe Dashboard, create or reveal a **Test Mode secret key** and enter it directly into AWS Secrets Manager at `danzstak/stripe/secret-key`. Do not paste it into chat or GitHub. After that private update, redeploy the Test Lambda and complete the two-device purchase test: Test payment, webhook HTTP 200, one DynamoDB alias, same alias on both devices for the same account, and independent private SMS OTP registration on each device.
+- **RELEASE BOUNDARY:** PWA cache `danzstak-shell-v807` is available only on the review PWA and has not been promoted to production. No production PWA update, Live payment, SFScoop change, SES/Zoho/support-mail change or marketplace payout is claimed.
+
 ## PWA v802 — SYNC call-device registration entry — 2026-11-11
 
 Status: **DEPLOYED; FUNCTIONAL, VISUAL, INTEGRATION, FULL REGRESSION AND PUBLIC-PWA DELIVERY CHECKS PASS.**
@@ -2475,3 +2492,16 @@ Status as of 2026-11-11: **IMPLEMENTED AND TESTED LOCALLY; NOT DEPLOYED; ACTIVAT
 - Implementation commit `1e108992246bc44beac40017cbcac219553c0b96` is published in draft [PR #264](https://github.com/danzstak/danzstak-web/pull/264). All five required GitHub Review jobs passed in run [43048146803](https://github.com/danzstak/danzstak-web/actions/runs/43048146803). The PR intentionally remains draft while real SMS delivery is blocked.
 - No Stripe, SES, support-email, marketplace, payment, or live SMS configuration was changed. Production remains on the previously documented v805 build.
 - Remaining release gate: AWS must approve and activate a real SMS origination route; then one United States handset and one Italy/EU handset must each complete send, receive, confirm, register, replay-rejection, revoke, and re-enrollment tests. Only after those pass may the owner authorize deployment with `PHONE_DEVICE_OTP_REQUIRED=true`.
+
+# SYNC two-party video and verified-device enforcement
+
+Status as of 2026-11-11: **BACKEND DEPLOYED; CLIENT TESTED; OWNER TWO-PHONE PWA RETEST PENDING**.
+
+- Root cause: the screenshots showed the local camera in the picture-in-picture tile but no remote media on the main stage. The client could replace its remote `MediaStream` when mobile browsers delivered audio and video in separate track events, and the call used public STUN without a relay for restrictive carrier/NAT paths.
+- Remote audio and video tracks now accumulate in one stable stream. The other participant renders in the full main video stage; the current member remains in the small picture-in-picture tile.
+- SYNC no longer depends on Google STUN. A retained DanzStak Kinesis Video signaling channel in `us-east-1` supplies short-lived managed TURN credentials. The browser receives only temporary ICE server URIs, usernames, and credentials through authenticated `GET /calls/ice`; it receives no AWS API credentials.
+- `GET /calls/ice` requires the same account-scoped, OTP-verified current-device credential as call signaling and the call inbox. The production `DANZSTAK-Call-Signaling` stack remains configured with `DeviceSmsOtpRequired=true`; an unverified or revoked device cannot send, answer, receive, or obtain relay credentials.
+- AWS deployment verification passed: `DANZSTAK-SYNC-TURN` reached `CREATE_COMPLETE`; `DANZSTAK-Call-Signaling` reached `UPDATE_COMPLETE`; the managed relay returned two ICE server configurations with five-minute TTLs; and an unauthenticated public ICE request returned HTTP 401.
+- Two independent Playwright call tests passed with bidirectional audio/video RTP, real mute and camera tracks, visible remote media, and full hangup cleanup. The SYNC responsive state test passed at 320, 360, 390, 414, 430, 768, and 1024px. The complete `test-regressions.ps1` suite passed, including all call/device tests, 17-page site smoke tests, PWA propagation, and infrastructure syntax.
+- Installed delivery advances to `danzstak-shell-v810`; `chat.js` advances to `v457` and `direct-messages.js` to `v498`.
+- Honest evidence boundary: browser automation proves two-party RTP and the production relay is healthy, but the corrected installed PWA has not yet been exercised between the owner's two physical phones. Real device OTP delivery remains dependent on AWS SMS origination approval; no fake registration path was added.

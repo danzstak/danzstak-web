@@ -25,6 +25,7 @@ const json = (route, body, status = 200) => route.fulfill({ status, contentType:
       if (endpoint === "/calls/directory") return json(route, { users: [{ email: "venue@example.test", memberId: "00000000-0000-4000-8000-000000000002", name: "Venue Booker", online: true, friendStatus: "friends" }] });
       if (endpoint === "/messages" && route.request().method() === "GET") return json(route, { messages: [], canContact: true });
       if (endpoint === "/calls/presence") return json(route, { ok: true });
+      if (endpoint === "/calls/ice") return json(route, { iceServers: [{ urls: ["stun:stun.kinesisvideo.us-east-1.amazonaws.com:443"] }], expiresAt: Date.now() + 300000 });
       if (endpoint === "/calls/devices") return json(route, { devices: [] });
       if (endpoint === "/calls/inbox") return json(route, { events: [] });
       if (endpoint.startsWith("/notifications") || endpoint.startsWith("/push")) return json(route, {});
