@@ -2441,3 +2441,15 @@ Status as of 2026-11-11: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONF
 - A clean production browser installed and activated `/service-worker.js`, was controlled by it, and contained only the `danzstak-shell-v804` cache. Installable standalone display mode is available.
 - No SMS/SNS, SES, support-email, Stripe, payment, phone-verification provider, or marketplace configuration changed. Private phone verification remains optional and visibly unavailable while AWS SMS approval is pending.
 - Honest evidence boundary: the exact v804 build has not yet been observed on the owner's physical installed PWA. Production automation and a fresh-browser installation passed; physical-owner device confirmation is not claimed.
+
+# PWA v805 — registered SYNC uses the full screen
+
+Status as of 2026-11-11: **RELEASE CANDIDATE PASSED LOCALLY; PRODUCTION DEPLOYMENT PENDING**.
+
+- Root cause: the registered conversation view already hid the global five-tab navigation, but the registered conversation list retained the site navigation and ownership footer. That consumed useful SYNC space after enrollment.
+- A server-confirmed current-device registration now adds a scoped `sync-device-registered` state to the SYNC page. In that state only, the global bottom navigation and ownership footer are removed and their reserved phone padding is released. The SYNC header and Back control remain available.
+- Revoking the current device or losing valid registration removes the state immediately, so the mandatory registration screen and ordinary site navigation are not hidden by stale local state.
+- `browser-checks/call-device-registration.cjs` passed twice at 320, 360, 375, 390, 414, 430, 768, 1024, and 1366px. It verifies the registered state, hidden global navigation/footer, reclaimed layout space, required enrollment, device headers, calls, touch targets, and overflow. Builder-inspected captures are in `docs/screenshots/sync-registered-no-footer/`.
+- The complete `test-regressions.ps1` suite passed after the final cache-version assertions. This includes SYNC registration/messages/calls, authentication and account security, Profile, Mix, Booking/EPK/Tour Manager, marketplace, Stripe boundaries, PWA propagation, all 17 static pages, and infrastructure syntax.
+- Installed delivery advances to `danzstak-shell-v805`; SYNC CSS advances to `v461` and device registration JavaScript to `v6`.
+- This frontend-only slice changes no AWS backend, SMS/SNS, phone-verification, SES, support-email, Stripe, payment, database, or marketplace configuration.

@@ -68,6 +68,8 @@ body[data-call-mode="video"] .video-grid{min-height:clamp(320px,58vh,680px)}
 
 #conversationName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.conversation-header-actions{flex:0 0 auto}.dark-mode .chat-filters button.active{background:#253c60!important;color:#dceaff!important}.dark-mode .emoji-control>button{background:#303c4f;color:#f5f7fb}body.embedded-messages{padding-bottom:0!important}
 @media(max-width:760px){body.is-conversation-open .chat-header{display:none}}
+.messages-page.sync-device-registered .ds-mobile-nav,.messages-page.sync-device-registered>.site-ownership{display:none!important}
+@media(max-width:760px){.messages-page.sync-device-registered:not(.is-conversation-open){padding-bottom:0!important}}
 @media(max-width:760px){.messages-page .app-header-prompt{display:none!important}}
 @media(max-width:360px){body.is-conversation-open .conversation-header{grid-template-columns:36px minmax(0,1fr) auto}.conversation-header .conversation-avatar{display:none}.conversation-header .conversation-name,.conversation-header .conversation-presence{grid-column:2}.conversation-header .conversation-header-actions{grid-column:3}}
 

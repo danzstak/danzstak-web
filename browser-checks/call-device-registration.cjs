@@ -71,7 +71,10 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       await page.locator('#deviceName').fill('My test phone');
       await page.locator('#registerThisDevice').click();
       await dialog.waitFor({ state: 'hidden' });
+      await page.locator('body.sync-device-registered').waitFor();
       await page.locator('.conversation-user').first().waitFor();
+      assert.equal(await page.locator('.ds-mobile-nav').isHidden(), true, `registered SYNC still shows the bottom navigation at ${width}px`);
+      assert.equal(await page.locator('.site-ownership').isHidden(), true, `registered SYNC still shows the ownership footer at ${width}px`);
       await page.locator('#callingDevices').click();
       await page.locator('#deviceStatus').filter({ hasText: 'registered for SYNC' }).waitFor();
       await page.locator('.registered-devices li').filter({ hasText: 'Last active' }).waitFor();
@@ -82,6 +85,7 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       await page.locator('body.is-conversation-open').waitFor();
       await page.locator('.conversation-back').click();
       await page.waitForFunction(() => !document.body.classList.contains('is-conversation-open'));
+      if (captureDir) await page.screenshot({ path: path.join(captureDir, `sync-registered-no-footer-${width}.png`), fullPage: true });
       const geometry = await page.evaluate(() => {
         const dialog = document.querySelector('#callingDevicesDialog').getBoundingClientRect();
         const button = document.querySelector('#callingDevices').getBoundingClientRect();
