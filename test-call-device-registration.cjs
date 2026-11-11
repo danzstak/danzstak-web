@@ -3,7 +3,7 @@ const assert=require("node:assert/strict"),fs=require("node:fs");
 const template=fs.readFileSync("infrastructure/call-signaling/template.yaml","utf8");
 const apiCors=JSON.parse(fs.readFileSync("infrastructure/auth-api/api-cors.json","utf8"));
 const productionConfig=fs.readFileSync("aws-configure-production.ps1","utf8");
-const html=fs.readFileSync("messages.html","utf8"),feed=fs.readFileSync("feed.html","utf8"),client=fs.readFileSync("assets/call-devices.js","utf8"),chat=fs.readFileSync("assets/chat.js","utf8"),directMessages=fs.readFileSync("assets/direct-messages.js","utf8"),incoming=fs.readFileSync("assets/incoming-calls.js","utf8"),push=fs.readFileSync("assets/push-notifications.js","utf8"),worker=fs.readFileSync("service-worker.js","utf8");
+const html=fs.readFileSync("messages.html","utf8"),feed=fs.readFileSync("feed.html","utf8"),client=fs.readFileSync("assets/call-devices.js","utf8"),chat=fs.readFileSync("assets/chat.js","utf8"),chatCss=fs.readFileSync("assets/chat.css","utf8"),directMessages=fs.readFileSync("assets/direct-messages.js","utf8"),incoming=fs.readFileSync("assets/incoming-calls.js","utf8"),push=fs.readFileSync("assets/push-notifications.js","utf8"),worker=fs.readFileSync("service-worker.js","utf8");
 
 assert.match(template,/CallingDevicesTable:[\s\S]*TableName: DANZSTAK-CallingDevices[\s\S]*PointInTimeRecoveryEnabled: true[\s\S]*SSEEnabled: true/,"calling devices need retained encrypted recoverable storage");
 assert.match(template,/TimeToLiveSpecification:[\s\S]*AttributeName: expiresAt[\s\S]*Enabled: true/,"short-lived registration challenges need TTL cleanup");
@@ -38,6 +38,9 @@ assert.ok(html.includes("does not expose a phone number"),"the UI must distingui
 assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"SYNC requests need the current installation credential");
 assert.match(client,/window\.danzstakRequireSyncDevice=\(\)=>openPanel\(\{required:true\}\)/,"unregistered installations need one shared mandatory enrollment recovery");
+assert.match(client,/document\.body\?\.classList\.toggle\("sync-device-registered",registered\)/,"verified device state must control the dedicated SYNC screen shell");
+assert.match(chatCss,/\.messages-page\.sync-device-registered \.ds-mobile-nav[^}]*display:none!important/,"registered SYNC must hide the bottom site navigation");
+assert.match(chatCss,/\.messages-page\.sync-device-registered:not\(\.is-conversation-open\)[^}]*padding-bottom:0!important/,"registered SYNC must not reserve footer space");
 assert.match(client,/if\(state\.required\)event\.preventDefault\(\)/,"the mandatory registration dialog must resist Escape dismissal");
 assert.match(client,/if\(event\.target===dialog&&!state\.required\)dialog\.close\(\)/,"the mandatory registration dialog must resist backdrop dismissal");
 assert.ok(feed.indexOf('assets/call-devices.js?v=3')<feed.indexOf('assets/incoming-calls.js?v=302'),"the feed must load the installation credential before its global incoming-call listener");
