@@ -116,6 +116,7 @@ const sessionTouchIntervalSeconds = 15 * 60;
 const stripeEnvironment = { ...process.env };
 const stripeSecretName = process.env.STRIPE_SECRET_NAME || "danzstak/stripe/secret-key";
 const stripeWebhookSecretName = process.env.STRIPE_WEBHOOK_SECRET_NAME || "danzstak/stripe/webhook-secret";
+const stripeSyncNetworkWebhookSecretName = process.env.STRIPE_SYNC_NETWORK_WEBHOOK_SECRET_NAME || "danzstak/stripe/sync-network-webhook-secret";
 let stripeSecretsPromise = null;
 
 const personalPhoneAdapter = createPersonalPhoneDynamoAdapter({
@@ -134,18 +135,31 @@ function secretText(result, fields) {
   return value.trim();
 }
 
+function optionalSecretText(result, fields) {
+  const raw = typeof result?.SecretString === "string" ? result.SecretString : result?.SecretBinary ? Buffer.from(result.SecretBinary).toString("utf8") : "";
+  if (!raw.trimStart().startsWith("{")) return "";
+  let parsed; try { parsed = JSON.parse(raw); } catch { return ""; }
+  const value = fields.map(field => parsed?.[field]).find(candidate => typeof candidate === "string" && candidate.trim());
+  return value ? value.trim() : "";
+}
+
 async function ensureStripeSecrets() {
-  if (stripeEnvironment.STRIPE_SECRET_KEY && stripeEnvironment.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) return true;
+  if (stripeEnvironment.STRIPE_SECRET_KEY && stripeEnvironment.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET && stripeEnvironment.STRIPE_SYNC_NETWORK_WEBHOOK_SECRET && /^acct_[a-zA-Z0-9]+$/.test(stripeEnvironment.STRIPE_EXPECTED_ACCOUNT_ID || "")) return true;
   if (!stripeSecretsPromise) {
     stripeSecretsPromise = Promise.all([
       secretsManager.send(new GetSecretValueCommand({ SecretId: stripeSecretName })),
-      secretsManager.send(new GetSecretValueCommand({ SecretId: stripeWebhookSecretName }))
-    ]).then(([keyResult, webhookResult]) => {
+      secretsManager.send(new GetSecretValueCommand({ SecretId: stripeWebhookSecretName })),
+      secretsManager.send(new GetSecretValueCommand({ SecretId: stripeSyncNetworkWebhookSecretName }))
+    ]).then(([keyResult, webhookResult, syncNetworkWebhookResult]) => {
       const key = secretText(keyResult, ["STRIPE_SECRET_KEY", "secretKey", "key", "value"]);
       const webhook = secretText(webhookResult, ["STRIPE_TOUR_MANAGER_WEBHOOK_SECRET", "webhookSecret", "secret", "value"]);
-      if (!/^sk_(?:test|live)_/.test(key) || !webhook.startsWith("whsec_")) throw new Error("Stripe secret format is invalid");
+      const syncNetworkWebhook = secretText(syncNetworkWebhookResult, ["STRIPE_SYNC_NETWORK_WEBHOOK_SECRET", "webhookSecret", "secret", "value"]);
+      const accountId = String(stripeEnvironment.STRIPE_EXPECTED_ACCOUNT_ID || optionalSecretText(keyResult, ["STRIPE_EXPECTED_ACCOUNT_ID", "accountId", "account_id"])).trim();
+      if (!/^sk_(?:test|live)_/.test(key) || !webhook.startsWith("whsec_") || !syncNetworkWebhook.startsWith("whsec_") || !/^acct_[a-zA-Z0-9]+$/.test(accountId)) throw new Error("Stripe secret format is invalid");
       stripeEnvironment.STRIPE_SECRET_KEY = key;
       stripeEnvironment.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET = webhook;
+      stripeEnvironment.STRIPE_SYNC_NETWORK_WEBHOOK_SECRET = syncNetworkWebhook;
+      stripeEnvironment.STRIPE_EXPECTED_ACCOUNT_ID = accountId;
       return true;
     }).catch(() => false);
   }
@@ -5039,8 +5053,8 @@ export const handler = async event => {
     if (Array.isArray(event?.Records) && event.Records.some(record => record?.EventSource === "aws:sns")) {
       return await tourManagerBilling(event);
     }
-    if (path?.startsWith("/tour-manager/") || path?.startsWith("/phone-number/")) {
-      if (method === "POST" && ["/tour-manager/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout"].includes(path)) await ensureStripeSecrets();
+    if (path?.startsWith("/tour-manager/") || path?.startsWith("/phone-number/") || path?.startsWith("/sync-network-number/")) {
+      if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout", "/sync-network-number/checkout"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);
       if (billingResponse) return billingResponse;
     }

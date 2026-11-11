@@ -2,6 +2,9 @@ param([switch]$EnableDeviceSmsOtp)
 $ErrorActionPreference = "Stop"
 
 $Region = "us-west-1"
+$TurnRegion = "us-east-1"
+$TurnStackName = "DANZSTAK-SYNC-TURN"
+$TurnTemplate = Join-Path $PSScriptRoot "infrastructure\sync-turn\template.yaml"
 $StackName = "DANZSTAK-Call-Signaling"
 $Template = Join-Path $PSScriptRoot "infrastructure\call-signaling\template.yaml"
 $EngagementStackName = "DANZSTAK-Engagement"
@@ -27,6 +30,18 @@ aws cloudformation validate-template --region $Region --template-url $templateUr
 if ($LASTEXITCODE -ne 0) { throw "CloudFormation validation failed; production was not changed." }
 aws cloudformation validate-template --region $Region --template-body "file://$EngagementTemplate" | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "Engagement CloudFormation validation failed; production was not changed." }
+aws cloudformation validate-template --region $TurnRegion --template-body "file://$TurnTemplate" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "SYNC TURN CloudFormation validation failed; production was not changed." }
+
+Write-Host "Updating the DanzStak-managed SYNC relay credential source..."
+aws cloudformation deploy `
+  --region $TurnRegion `
+  --stack-name $TurnStackName `
+  --template-file $TurnTemplate `
+  --no-fail-on-empty-changeset
+if ($LASTEXITCODE -ne 0) { throw "SYNC TURN deployment failed; the social API was not changed." }
+$turnChannelArn = aws cloudformation describe-stacks --region $TurnRegion --stack-name $TurnStackName --query "Stacks[0].Outputs[?OutputKey=='ChannelArn'].OutputValue | [0]" --output text
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($turnChannelArn) -or $turnChannelArn -eq 'None') { throw "Unable to resolve the SYNC TURN channel ARN." }
 
 Write-Host "Updating the DanzStak social API..."
 aws cloudformation deploy `
@@ -36,7 +51,7 @@ aws cloudformation deploy `
   --s3-bucket $artifactBucket `
   --s3-prefix deploy-artifacts `
   --capabilities CAPABILITY_NAMED_IAM `
-  --parameter-overrides "DeviceSmsOtpRequired=$deviceSmsOtpValue" `
+  --parameter-overrides "DeviceSmsOtpRequired=$deviceSmsOtpValue" "TurnChannelArn=$turnChannelArn" "TurnRegion=$TurnRegion" `
   --no-fail-on-empty-changeset
 if ($LASTEXITCODE -ne 0) { throw "CloudFormation deployment failed; production configuration steps were not run." }
 

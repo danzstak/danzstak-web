@@ -58,6 +58,7 @@ async function assertViewport(page, width, state) {
         const endpoint = new URL(route.request().url()).pathname;
         if (endpoint === "/auth/session") return json(route, { authenticated: true, user: { sub: uuid(20), email: "owner@example.test" } });
         if (endpoint === "/calls/presence") return json(route, { ok: true });
+        if (endpoint === "/calls/ice") return json(route, { iceServers: [{ urls: ["stun:stun.kinesisvideo.us-east-1.amazonaws.com:443"] }], expiresAt: Date.now() + 300000 });
         if (endpoint === "/calls/signal") return json(route, { accepted: true });
         if (endpoint === "/conversations") return json(route, { conversations: [
           { contactEmail: "alice@example.test", memberId: uuid(1), name: "Alice Rivera", preview: "See you at soundcheck", updatedAt: "2026-11-04T18:00:00.000Z", unread: 2, canContact: true }

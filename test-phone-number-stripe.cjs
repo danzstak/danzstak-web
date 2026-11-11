@@ -36,7 +36,7 @@ const { createHmac } = require("node:crypto");
     throw new Error("Unexpected command");
   } };
   const userId = "user_12345678", now = 1793700000000;
-  const env = { STRIPE_SECRET_KEY: "sk_test_example", STRIPE_TOUR_MANAGER_WEBHOOK_SECRET: "whsec_example" };
+  const env = { STRIPE_SECRET_KEY: "sk_test_example", STRIPE_TOUR_MANAGER_WEBHOOK_SECRET: "whsec_example", PHONE_ACTIVATION_CHECKOUT_ENABLED: "true" };
   let checkoutForm;
   const stripeSession = {
     id: "cs_test_phone123", mode: "payment", payment_status: "paid", status: "complete", livemode: false,
