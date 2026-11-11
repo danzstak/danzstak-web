@@ -1,5 +1,19 @@
 # DANZSTAK development report
 
+## PWA v802 — SYNC call-device registration entry — 2026-11-11
+
+Status: **DEPLOYED; FUNCTIONAL, VISUAL, INTEGRATION, FULL REGRESSION AND PUBLIC-PWA DELIVERY CHECKS PASS.**
+
+- **PRODUCTION DEFECT:** SYNC truthfully reported that the current device was not registered for calls, but it did not open the registration workflow after sign-in. Tapping Phone or Video could also be intercepted by the relationship guard before device setup opened, especially while contacts were still loading.
+- **ROOT CAUSE:** The call-inbox registration error only updated the status line. Separately, the capture-phase call-control guard checked the asynchronously loaded contact set before the normal call handler could run its registration check.
+- **CORRECTION:** The first registration-required inbox response now opens **Calling devices** exactly once and pauses repeat inbox requests until setup completes. Phone and Video now check device registration before the relationship guard, so either control opens setup immediately. A successful registration clears the gate and resumes call polling.
+- **BROWSER EVIDENCE:** Automatic setup, manual call-button setup, successful challenge/registration, device authentication headers and viewport containment pass at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Builder-inspected captures are in `docs/screenshots/sync-device-registration-entry/`.
+- **REGRESSION EVIDENCE:** Call cleanup, device registration and PWA refresh tests pass. The complete `test-regressions.ps1` gate passed, including all repository JavaScript regressions, release verification and the 17-page site smoke test.
+- **REVIEW:** [PR #253](https://github.com/danzstak/danzstak-web/pull/253) passed all five GitHub **Review checks** jobs in [run 42992307396](https://github.com/danzstak/danzstak-web/actions/runs/42992307396) and was squash-merged to `main` as `d7f2a6f4b3b08de224dca27790d91625b7727376`.
+- **PRODUCTION DEPLOYMENT:** AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `1022`, region `us-west-1`, deployed that exact merge commit successfully from 2026-11-11 10:08:54 to 10:09:59 Europe/Berlin. Amplify Hosting owns CDN delivery; no customer-managed CloudFront invalidation is claimed.
+- **PUBLIC PWA VERIFICATION:** No-cache production probes confirmed `assets/chat.js?v=455`, the registration-first call logic and `danzstak-shell-v802`. A fresh browser registered and activated the live service worker, became controlled by it, and exposed only the `danzstak-shell-v802` cache. The manifest returned HTTP 200 and supports standalone display mode.
+- **PHYSICAL-DEVICE BOUNDARY:** The deployed PWA and registration paths are browser-verified. The owner should now open SYNC on the phone and complete the real SMS/device registration and two-device call walkthrough; no physical SMS delivery or two-phone audio result is claimed by this frontend release.
+
 ## Production post-deletion backend correction — 2026-11-10
 
 Status: **IMPLEMENTED AND FULLY TESTED LOCALLY; AWS POLICY DEPLOYMENT AND SIGNED-IN PRODUCTION RETEST PENDING.**
