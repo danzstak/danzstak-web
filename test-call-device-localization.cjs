@@ -37,7 +37,7 @@ for (const language of languages) {
   });
 }
 
-for (const key of ["Last active", "This device is registered for calls and voice messages.", "Calls and voice messages allowed", "Text works · incoming calls off", "Rename", "Turn calls off", "Allow calls", "Revoke", "Starting secure device registration…", "Registering this verified device…", "Enter the real SMS code sent for this device.", "Text will still work. Calls and voice messages will stop on this device."]) {
+for (const key of ["Last active", "This device is registered for calls and voice messages.", "Calls and voice messages allowed", "Text works · incoming calls off", "Rename", "Turn calls off", "Allow calls", "Revoke", "Starting secure device registration…", "Registering this verified device…", "Enter your private mobile number and confirm the SMS code to register this device. Text messaging already works.", "Text will still work. Calls and voice messages will stop on this device."]) {
   assert.ok(devices.includes(`t(${JSON.stringify(key)})`), `calling-device UI must translate ${key}`);
 }
 assert.doesNotMatch(devices, /t\(`Revoke \$\{device\.name\}/, "dynamic revoke text must not bypass the translation dictionary");

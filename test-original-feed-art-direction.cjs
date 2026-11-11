@@ -45,7 +45,7 @@ assert.match(foundation, /\.profile-page \.profile-post-card\{[\s\S]*?padding:12
 assert.match(foundation, /\.profile-page \.profile-post-header\{[\s\S]*?gap:12px;[\s\S]*?min-height:40px;/, "mobile Profile headers must preserve the 40px avatar and 12px identity gap");
 assert.match(foundation, /\.profile-page \.profile-post-media\{[\s\S]*?width:calc\(100% \+ 32px\);[\s\S]*?margin:12px -16px 0;/, "mobile Profile media must break through the 16px text gutters to both card edges");
 assert.match(foundation, /\.profile-page \.profile-post-tools\{[\s\S]*?margin-top:12px;[\s\S]*?border-top:1px solid #ced0d4;/, "mobile Profile actions must use the familiar 12px media gap and hairline divider");
-assert.match(worker, /danzstak-shell-v811/);
+assert.match(worker, /danzstak-shell-v812/);
 assert.match(worker, /\/assets\/danzstak-original-feed\.css/, "the installed PWA must cache the art-direction layer");
 
 console.log("Original Feed art-direction checks passed: shared tokens, edge media, touch targets, and PWA caching.");

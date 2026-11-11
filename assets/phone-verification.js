@@ -36,7 +36,7 @@
     current = { ...(current || {}), ...(data || {}) };
     const pending = current.state === "pending", done = current.state === "verified" && !deviceChallenge;
     numberForm.hidden = pending || done; codeForm.hidden = !pending; verified.hidden = !done;
-    send.disabled = current.providerAvailable !== true;
+    send.disabled = pending || done;
     if (done) message(`${t("Private phone registered to SYNC")} · ${current.maskedNumber}`, "verified");
     else if (pending) message(`${t("Enter the six-digit code sent to")} ${current.maskedNumber}.`);
     else if (current.providerAvailable) message(deviceChallenge ? t("Enter a mobile number that can receive this device's one-time code.") : t("Enter a private mobile number. SYNC will text a six-digit code."));
@@ -64,8 +64,13 @@
 
   numberForm.addEventListener("submit", async event => {
     event.preventDefault(); send.disabled = true; message(t("Sending verification text…"));
-    try { render(await request("/phone-verification/send", { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(enrollmentBody({countryCode:country.value,localNumber:number.value})) })); code.focus(); }
-    catch(error) { message(error.message, "error"); send.disabled = current?.providerAvailable !== true; }
+    try {
+      if (current?.providerAvailable !== true) throw new Error(t("AWS has not approved SYNC verification texts yet. No text will be sent and no device will be marked verified."));
+      if (!deviceChallenge) await startDeviceOtp(await window.danzstakBeginCallingDeviceEnrollment());
+      render(await request("/phone-verification/send", { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(enrollmentBody({countryCode:country.value,localNumber:number.value})) }));
+      code.focus();
+    }
+    catch(error) { message(error.message, "error"); send.disabled = false; }
   });
   codeForm.addEventListener("submit", async event => {
     event.preventDefault(); confirmButton.disabled = true; message(t("Checking code…"));
@@ -87,6 +92,11 @@
     catch(error) { message(error.message,"error"); } finally { remove.disabled=false; }
   });
   document.addEventListener("danzstak:calling-devices-opened", () => { if (!current) load(); });
+  window.addEventListener("danzstak:call-device-registered", () => {
+    deviceChallenge = null;
+    delete section.dataset.deviceEnrollment;
+    render({ state:"verified", verified:true });
+  });
   document.addEventListener("DOMContentLoaded", load);
   window.danzstakPhoneVerificationReady = phoneReady;
   window.danzstakDeviceOtpRequired = () => current?.deviceOtpRequired === true;

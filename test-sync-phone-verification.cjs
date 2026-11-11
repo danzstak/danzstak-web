@@ -42,11 +42,13 @@ const { pathToFileURL } = require("node:url");
   await assert.rejects(disabled.send({userId:"member-2",countryCode:"+1",localNumber:"4155550123"}),error=>error.code==="provider_unavailable");
 
   const html=fs.readFileSync(path.join(root,"messages.html"),"utf8"), client=fs.readFileSync(path.join(root,"assets/phone-verification.js"),"utf8"), devices=fs.readFileSync(path.join(root,"assets/call-devices.js"),"utf8"), messages=fs.readFileSync(path.join(root,"assets/direct-messages.js"),"utf8"), api=fs.readFileSync(path.join(root,"infrastructure/auth-api/index.mjs"),"utf8"), callTemplate=fs.readFileSync(path.join(root,"infrastructure/call-signaling/template.yaml"),"utf8"), template=fs.readFileSync(path.join(root,"infrastructure/engagement/template.yaml"),"utf8");
-  for (const marker of ["syncPhoneCountryCode","syncPhoneNumber","syncPhoneCode","Private phone verification","stays private, unsearchable","cannot receive this carrier SMS code"]) assert.ok(html.includes(marker),`missing phone UI: ${marker}`);
+  for (const marker of ["syncPhoneCountryCode","syncPhoneNumber","syncPhoneCode","Verify this device by SMS","stays private, unsearchable","cannot receive this carrier SMS code"]) assert.ok(html.includes(marker),`missing phone UI: ${marker}`);
   assert.ok(client.includes("AWS has not approved SYNC verification texts yet"));
   assert.ok(client.includes('purpose:"sync_device"') && client.includes("deviceChallengeId") && client.includes("danzstak:device-otp-confirmed"),"device OTP must be bound in memory to the exact registration challenge");
-  assert.ok(devices.includes("input.value=state.accountName"),"device label must default to the account name");
-  assert.ok(devices.includes("deviceGrantId") && devices.includes("danzstakPhoneVerificationReady"),"device registration must wait for the real SMS grant");
+  assert.ok(devices.includes("state.pendingName=state.accountName||defaultName()"),"device label must default to the account name");
+  assert.ok(devices.includes("danzstakBeginCallingDeviceEnrollment") && client.includes("danzstakBeginCallingDeviceEnrollment"),"Text me a code must start the bound device enrollment challenge");
+  assert.ok(!html.includes('id="registerThisDevice"'),"redundant Register this device button must not remain");
+  assert.ok(devices.includes("deviceGrantId") && devices.includes("danzstak:device-otp-confirmed"),"device registration must wait for the real SMS grant");
   assert.doesNotMatch(html.match(/<dialog id="contactDetailsDialog"[\s\S]*?<\/dialog>/)?.[0]||"",/(?:syncPhone|maskedNumber|verifiedPhone|mobile number)/i,"another member's SYNC contact details must never expose full or masked registration numbers");
   assert.doesNotMatch(messages.match(/function populateContactDetails\(\)[\s\S]*?\n}/)?.[0]||"",/(?:syncPhone|maskedNumber|verifiedPhone|phoneHash)/,"contact rendering must not read private phone registration fields");
   assert.match(callTemplate,/async function publicProfile\(email,account\)[\s\S]*?return \{memberId:attr\(account,'sub'\),name:[\s\S]*?,picture:[\s\S]*?};}/,"SYNC public profiles must stay limited to member ID, name, and picture");

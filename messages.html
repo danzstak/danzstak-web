@@ -13,7 +13,7 @@
 <script src="assets/offline.js?v=4"></script>
 <script src="assets/display-preferences.js?v=410"></script>
 <link rel="stylesheet" href="assets/soft-ui.css?v=427">
-<link rel="stylesheet" href="assets/chat.css?v=463">
+<link rel="stylesheet" href="assets/chat.css?v=464">
 <link rel="stylesheet" href="assets/sync.css?v=11">
 <link rel="stylesheet" href="assets/invite-sharing.css?v=1">
 <link rel="stylesheet" href="assets/make-plans.css?v=2">
@@ -27,7 +27,7 @@
 <title>SYNC | DanzStak</title>
 <script src="assets/languages.js?v=231" defer></script>
 <script src="assets/brand-language-aliases.js?v=7" defer></script>
-<script src="assets/i18n.js?v=402" defer></script>
+<script src="assets/i18n.js?v=403" defer></script>
 <script src="assets/mobile-keyboard.js?v=232" defer></script>
 <script src="assets/user-content-links.js?v=1" defer></script>
 </head>
@@ -130,17 +130,14 @@
   <section id="plansList" class="plans-list" aria-label="Plans with this friend"></section>
 </dialog>
 <dialog id="callingDevicesDialog" class="calling-devices-dialog" aria-labelledby="callingDevicesTitle">
-  <header><div><span class="eyebrow">SYNC device</span><h2 id="callingDevicesTitle">Register this device</h2></div><button id="closeCallingDevices" type="button" data-icon="close" aria-label="Close registered devices" title="Close">×</button></header>
+  <header><div><span class="eyebrow">SYNC device</span><h2 id="callingDevicesTitle">Verify this device by SMS</h2></div><button id="closeCallingDevices" type="button" data-icon="close" aria-label="Close registered devices" title="Close">×</button></header>
   <p id="callingDeviceReason" class="calling-device-reason">Text messaging works without registering. Register this device before making or answering phone or video calls or listening to voice messages.</p>
   <p>Every calling device must receive and confirm its own private SMS code. If no code is sent or confirmed, phone, video, and voice messages stay unavailable on this device.</p>
   <p class="calling-device-account"><span>Account name</span><strong id="callingAccountName">Loading account…</strong></p>
-  <label for="deviceName">Device name</label><input id="deviceName" type="text" maxlength="60" autocomplete="off" placeholder="My Android phone" aria-describedby="deviceNameHelp">
-  <p id="deviceNameHelp" class="device-name-help">The signed-in account name is used by default. You can rename this device later.</p>
-  <button id="registerThisDevice" type="button" class="primary">Register this device</button>
   <p id="deviceStatus" class="device-status" role="status">Checking this device…</p>
   <ul id="registeredDevices" class="registered-devices" aria-label="Your registered calling devices"></ul>
   <section class="sync-phone-verification" aria-labelledby="syncPhoneTitle">
-    <h3 id="syncPhoneTitle">Private phone verification</h3>
+    <h3 id="syncPhoneTitle">Verify this device by SMS</h3>
     <p id="syncPhoneIntro">DanzStak stores only a protected phone fingerprint and the last four digits. The number stays private, unsearchable, and is never a public SYNC identity.</p>
     <p id="syncPhoneStatus" class="sync-phone-status" role="status">Checking private phone registration…</p>
     <form id="syncPhoneNumberForm" class="sync-phone-form">
@@ -150,7 +147,7 @@
     </form>
     <form id="syncPhoneCodeForm" class="sync-phone-form" hidden>
       <label>Six-digit code<input id="syncPhoneCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
-      <div><button id="syncPhoneConfirm" type="submit" class="primary">Verify number</button> <button id="syncPhoneResend" type="button" class="secondary">Resend code</button></div>
+      <div><button id="syncPhoneConfirm" type="submit" class="primary">Verify this device</button> <button id="syncPhoneResend" type="button" class="secondary">Resend code</button></div>
     </form>
     <div id="syncPhoneVerified" hidden><button id="syncPhoneRemove" type="button" class="secondary">Remove private number</button></div>
     <p class="sync-network-number-note"><strong>DanzStak Network numbers cannot receive this carrier SMS code.</strong> Use a real mobile number for device verification. A DS number works only inside SYNC and does not support carrier SMS, emergency calls, or regular phone networks.</p>
@@ -164,8 +161,8 @@
     <p class="sync-network-number-test-note">Use Stripe's Test Mode checkout. No real money is charged.</p>
   </section>
 </dialog>
-<script src="assets/call-devices.js?v=9" defer></script>
-<script src="assets/phone-verification.js?v=3" defer></script>
+<script src="assets/call-devices.js?v=10" defer></script>
+<script src="assets/phone-verification.js?v=4" defer></script>
 <script src="assets/sync-network-number.js?v=1" defer></script>
 <script src="assets/push-notifications.js?v=308" defer></script>
 <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
