@@ -8,6 +8,17 @@ const baseUrl = String(process.argv[2] || process.env.DANZSTAK_BASE_URL || "http
 const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : "";
 const waitingOutreachId = "outreach_hq_reply_123", answeredOutreachId = "outreach_hq_answered_456", followUpOutreachId = "outreach_hq_followup_789", dueVenueKey = "venue_hq_followup_123";
+async function openArtistHq(page) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await page.goto(`${baseUrl}/feed.html?view=hq`, { waitUntil:"load" });
+    try {
+      await page.locator(".artist-hq-card").first().waitFor({ state:"visible", timeout:15000 });
+      return;
+    } catch (error) {
+      if (attempt === 1) throw error;
+    }
+  }
+}
 function fixture(pathname) {
   if (pathname === "/auth/session") return { authenticated:true, user:{ sub:"11111111-1111-4111-8111-111111111111", email:"artist@danzstak.invalid" } };
   if (pathname === "/profiles") return { profile:{ memberId:"11111111-1111-4111-8111-111111111111", name:"Test Artist", username:"testartist" } };
@@ -50,8 +61,7 @@ function fixture(pathname) {
         const url = new URL(route.request().url());
         route.fulfill({ status:200, contentType:"application/json", body:JSON.stringify(fixture(url.pathname)) });
       });
-      await page.goto(`${baseUrl}/feed.html?view=hq`, { waitUntil:"domcontentloaded" });
-      await page.locator(".artist-hq-card").first().waitFor({ state:"visible", timeout:60000 });
+      await openArtistHq(page);
       assert.equal((await page.locator(".artist-hq-card").nth(0).locator(".artist-hq-metric").textContent()).trim(), "Published");
       assert.equal((await page.locator(".artist-hq-card").nth(1).locator(".artist-hq-metric").textContent()).trim(), "1");
       assert.equal((await page.locator(".artist-hq-card").nth(2).locator(".artist-hq-metric").textContent()).trim(), "1");
@@ -71,21 +81,27 @@ function fixture(pathname) {
       assert.ok(state.targets.every(item => item.width >= 44 && item.height >= 44), `${width}px HQ touch target failure: ${JSON.stringify(state.targets)}`);
       assert.ok(state.navs <= 1, `${width}px duplicate mobile navigation`);
       if (captureDir) { fs.mkdirSync(captureDir,{recursive:true}); await page.screenshot({ path:path.join(captureDir,`artist-hq-${width}.png`), fullPage:true }); }
-      await followUp.click();
-      await page.locator(".booking-follow-up button").waitFor({ state:"visible" });
+      await Promise.all([
+        page.waitForURL(url => url.pathname.endsWith("/booking-selections.html")),
+        followUp.click()
+      ]);
+      await page.waitForLoadState("load");
+      const followUpButton = page.locator(".booking-follow-up button");
+      await followUpButton.waitFor({ state:"visible" });
+      await followUpButton.scrollIntoViewIfNeeded();
       await page.waitForFunction(() => document.activeElement?.textContent?.includes("Review one follow-up"));
       await page.waitForFunction(() => {
         const element = document.querySelector(".booking-follow-up button");
         if (!element) return false;
         const rect = element.getBoundingClientRect();
         return rect.height >= 44 && rect.top >= 0 && rect.bottom <= innerHeight;
-      }, null, { timeout:5000 }).catch(() => {});
+      }, null, { timeout:10000 });
       assert.equal(new URL(page.url()).search, "", `${width}px follow-up venue key remained in the address bar`);
       assert.match((await page.locator(".booking-follow-up").textContent()).trim(), /Due 2026-11-08/, `${width}px exact follow-up was not visible`);
-      const followUpRect = await page.locator(".booking-follow-up button").evaluate(element => { const rect = element.getBoundingClientRect(); return { top:rect.top, bottom:rect.bottom, height:rect.height, viewport:innerHeight }; });
+      const followUpRect = await followUpButton.evaluate(element => { const rect = element.getBoundingClientRect(); return { top:rect.top, bottom:rect.bottom, height:rect.height, viewport:innerHeight }; });
       assert.ok(followUpRect.top >= 0 && followUpRect.bottom <= followUpRect.viewport && followUpRect.height >= 44, `${width}px exact follow-up action was not visible and touch sized: ${JSON.stringify(followUpRect)}`);
       if (captureDir) await page.screenshot({ path:path.join(captureDir,`artist-hq-followup-${width}.png`), fullPage:false });
-      await page.goto(`${baseUrl}/feed.html?view=hq`, { waitUntil:"domcontentloaded" });
+      await openArtistHq(page);
       await page.getByRole("link", { name:"Answer venue", exact:true }).waitFor({ state:"visible" });
       const answerAfterReturn = page.getByRole("link", { name:"Answer venue", exact:true });
       await answerAfterReturn.click();

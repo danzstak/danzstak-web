@@ -12,7 +12,7 @@ Status: **DEPLOYED; FUNCTIONAL, VISUAL, INTEGRATION, FULL REGRESSION AND PUBLIC-
 - **REVIEW:** [PR #253](https://github.com/danzstak/danzstak-web/pull/253) passed all five GitHub **Review checks** jobs in [run 42992307396](https://github.com/danzstak/danzstak-web/actions/runs/42992307396) and was squash-merged to `main` as `d7f2a6f4b3b08de224dca27790d91625b7727376`.
 - **PRODUCTION DEPLOYMENT:** AWS Amplify app `d31oovi2mos5iz`, branch `main`, job `1022`, region `us-west-1`, deployed that exact merge commit successfully from 2026-11-11 10:08:54 to 10:09:59 Europe/Berlin. Amplify Hosting owns CDN delivery; no customer-managed CloudFront invalidation is claimed.
 - **PUBLIC PWA VERIFICATION:** No-cache production probes confirmed `assets/chat.js?v=455`, the registration-first call logic and `danzstak-shell-v802`. A fresh browser registered and activated the live service worker, became controlled by it, and exposed only the `danzstak-shell-v802` cache. The manifest returned HTTP 200 and supports standalone display mode.
-- **PHYSICAL-DEVICE BOUNDARY:** The deployed PWA and registration paths are browser-verified. The owner should now open SYNC on the phone and complete the real SMS/device registration and two-device call walkthrough; no physical SMS delivery or two-phone audio result is claimed by this frontend release.
+- **PHYSICAL-DEVICE BOUNDARY:** The deployed PWA and registration paths are browser-verified. The owner should now open SYNC on the phone, register the installation by device name, and complete a two-device call walkthrough. This call-device flow deliberately does not request a phone number or send SMS; no two-phone audio result is claimed by this frontend release.
 
 ## Production post-deletion backend correction — 2026-11-10
 
