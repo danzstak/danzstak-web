@@ -19,6 +19,7 @@ assert.match(template,/Date\.now\(\)-lastUsed>60000/,"frequent call polling must
 assert.match(template,/CALL_DEVICE_REGISTRATION_REQUIRED/,"call endpoints must return an actionable registration code");
 assert.match(template,/\['POST \/messages','GET \/messages','POST \/messages\/delete','GET \/conversations'\]\.includes\(key\)[\s\S]*authenticatedCallingDevice\(event,user,\{allowDisabled:true\}\)[\s\S]*SYNC_DEVICE_REGISTRATION_REQUIRED/,"all private SYNC message routes must require a valid current-device credential");
 assert.match(template,/currentDeviceRegistered:Boolean\(current\)/,"the device list must report current registration only after token authentication");
+assert.match(template,/items\.filter\(item=>item\.kind\?\.S==='registered'&&\(!otpRequired\|\|item\.otpVerifiedAt\?\.S\)\)/,"mandatory OTP mode must hide legacy devices that never confirmed an SMS code");
 assert.match(template,/CLAIM#\$\{callId\}[\s\S]*TransactWriteItemsCommand[\s\S]*CALL_ALREADY_ANSWERED/,"one device must atomically claim an incoming call before its answer is delivered");
 assert.match(template,/ConditionExpression:'senderEmail = :caller AND callId = :callId AND #mode = :mode AND signalType = :offer AND expiresAt > :now'/,"answer claims must consume only the matching live offer and media mode");
 assert.match(template,/FilterExpression:'expiresAt > :n AND attribute_exists\(signalType\)'/,"internal answer claims must never leak into the signaling inbox");
@@ -37,7 +38,7 @@ for(const header of ["x-danzstak-device-id","x-danzstak-device-token"]){
 assert.ok(html.includes('id="callingDevices"'),"SYNC must expose a discoverable Phone and devices action");
 assert.ok(html.includes('id="registerThisDevice"'),"the current installation needs a visible registration action");
 assert.ok(html.includes('id="callingAccountName"'),"device registration must identify the signed-in account name");
-assert.ok(html.includes("every device must receive its own one-time code"),"the UI must disclose mandatory per-device SMS verification");
+assert.ok(html.includes("Every device must receive and confirm its own private SMS code"),"the UI must disclose mandatory per-device SMS verification");
 assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"SYNC requests need the current installation credential");
 assert.match(client,/window\.danzstakRequireSyncDevice=\(\)=>openPanel\(\{required:true\}\)/,"unregistered installations need one shared mandatory enrollment recovery");

@@ -79,7 +79,10 @@ const phoneVerificationSecretName = process.env.PHONE_VERIFICATION_SECRET_NAME |
 const phoneNotifyConfigurationId = String(process.env.PHONE_NOTIFY_CONFIGURATION_ID || "");
 const phoneNotifyTemplateId = String(process.env.PHONE_NOTIFY_TEMPLATE_ID || "");
 const phoneVerificationEnabled = process.env.PHONE_VERIFICATION_ENABLED === "true" && /^notify-[a-z0-9]+$/i.test(phoneNotifyConfigurationId);
-const phoneDeviceOtpRequired = phoneVerificationEnabled && process.env.PHONE_DEVICE_OTP_REQUIRED === "true";
+// Registration policy must never depend on provider health. If AWS cannot send
+// an OTP, the device stays unregistered instead of silently falling back to an
+// unverified credential.
+const phoneDeviceOtpRequired = process.env.PHONE_DEVICE_OTP_REQUIRED === "true";
 let phoneVerificationSecretPromise = null;
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
