@@ -1,6 +1,8 @@
 "use strict";
 const assert=require("node:assert/strict"),fs=require("node:fs");
 const template=fs.readFileSync("infrastructure/call-signaling/template.yaml","utf8");
+const apiCors=JSON.parse(fs.readFileSync("infrastructure/auth-api/api-cors.json","utf8"));
+const productionConfig=fs.readFileSync("aws-configure-production.ps1","utf8");
 const html=fs.readFileSync("messages.html","utf8"),feed=fs.readFileSync("feed.html","utf8"),client=fs.readFileSync("assets/call-devices.js","utf8"),chat=fs.readFileSync("assets/chat.js","utf8"),directMessages=fs.readFileSync("assets/direct-messages.js","utf8"),incoming=fs.readFileSync("assets/incoming-calls.js","utf8"),push=fs.readFileSync("assets/push-notifications.js","utf8"),worker=fs.readFileSync("service-worker.js","utf8");
 
 assert.match(template,/CallingDevicesTable:[\s\S]*TableName: DANZSTAK-CallingDevices[\s\S]*PointInTimeRecoveryEnabled: true[\s\S]*SSEEnabled: true/,"calling devices need retained encrypted recoverable storage");
@@ -22,13 +24,19 @@ assert.match(template,/item\.deviceId\?\.S!==excludedDeviceId/,"call resolution 
 assert.match(template,/type:'call-resolved'[\s\S]*notifyCallResolved\(user\.email,callId,callingDevice\.deviceId\.S\)/,"winning answers must immediately resolve ringing on other registered devices");
 assert.match(template,/revokedAt = :revoked, allowCalls = :disabled REMOVE tokenHash/,"revocation must immediately invalidate the call credential");
 assert.doesNotMatch(template,/IMEI|address.?book/i,"device registration must not collect hardware IDs or address books");
+for(const header of ["x-danzstak-device-id","x-danzstak-device-token"]){
+  assert.ok(apiCors.AllowHeaders.includes(header),`API CORS must allow ${header}`);
+  assert.ok(productionConfig.includes(header),`production API configuration must preserve ${header}`);
+}
 
 assert.ok(html.includes('id="callingDevices"'),"SYNC must expose a discoverable Phone and devices action");
 assert.ok(html.includes('id="registerThisDevice"'),"the current installation needs a visible registration action");
+assert.ok(html.includes('id="callingAccountName"'),"device registration must identify the signed-in account name");
 assert.ok(html.includes("Registration does not expose a phone number"),"the UI must distinguish device enrollment from telephone service");
 assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"call requests need the current installation credential");
-assert.ok(feed.indexOf('assets/call-devices.js?v=2')<feed.indexOf('assets/incoming-calls.js?v=302'),"the feed must load the installation credential before its global incoming-call listener");
+assert.ok(feed.indexOf('assets/call-devices.js?v=3')<feed.indexOf('assets/incoming-calls.js?v=302'),"the feed must load the installation credential before its global incoming-call listener");
+assert.match(client,/api\("\/profiles"\)[\s\S]{0,220}callingAccountName|callingAccountName[\s\S]{0,220}api\("\/profiles"\)/,"device registration must load the private signed-in account label from the profile API");
 assert.match(incoming,/path\.startsWith\("\/calls\/"\)[\s\S]*globalThis\.danzstakCallingDeviceHeaders/,"the feed's incoming-call requests must authenticate the registered installation");
 assert.match(incoming,/CALL_DEVICE_REGISTRATION_REQUIRED[\s\S]*callDeviceRegistrationRequired = true/,"unregistered feed installations must stop wasteful incoming-call polling");
 assert.match(incoming,/danzstak:call-device-registered[\s\S]*callDeviceRegistrationRequired = false[\s\S]*poll\(\)/,"incoming-call polling must resume immediately after device registration");

@@ -78,7 +78,7 @@ Write-Host "Configuring credentialed CORS for the DanzStak origin..."
 aws apigatewayv2 update-api `
   --region $ApiRegion `
   --api-id $ApiId `
-  --cors-configuration "AllowCredentials=true,AllowHeaders=content-type,AllowMethods=GET,POST,PATCH,DELETE,OPTIONS,AllowOrigins=https://danzstak.com,https://www.danzstak.com,https://review.danzstak.com,MaxAge=300" | Out-Null
+  --cors-configuration "AllowCredentials=true,AllowHeaders=content-type,x-danzstak-device-id,x-danzstak-device-token,AllowMethods=GET,POST,PATCH,DELETE,OPTIONS,AllowOrigins=https://danzstak.com,https://www.danzstak.com,https://review.danzstak.com,MaxAge=300" | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "API CORS configuration failed." }
 
 Write-Host "Configuring API metrics and throttling..."
