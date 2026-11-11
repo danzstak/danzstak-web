@@ -8,7 +8,7 @@ const INCOMING_RING_DURATION_MS=25000;
 const rtc={iceServers:[{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]}],iceCandidatePoolSize:4};
 window.danzstakCallRegistrationRequired=()=>callDeviceRegistrationRequired;
 const setStatus=t=>els.status.textContent=t;
-const showCallRegistrationRequired=()=>setStatus(`${t("This device is not registered for calls.")} ${t("Register this device")}.`);
+const showCallRegistrationRequired=()=>setStatus(t("Register this device to use SYNC."));
 function openCallDeviceRegistration({once=false}={}){callDeviceRegistrationRequired=true;showCallRegistrationRequired();if(once&&callDeviceRegistrationAutoOpened)return;if(once)callDeviceRegistrationAutoOpened=true;if(typeof window.danzstakOpenCallingDevices==="function")window.danzstakOpenCallingDevices();else setTimeout(()=>window.danzstakOpenCallingDevices?.(),0);}
 function setCallAlertButtonState(enabled){
   els.enable.textContent="🔔";

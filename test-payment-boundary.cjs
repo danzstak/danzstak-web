@@ -10,6 +10,7 @@ const readTree = relative => {
   if (!fs.existsSync(target)) return "";
   const entries = fs.statSync(target).isDirectory()
     ? fs.readdirSync(target, { withFileTypes: true }).flatMap(entry => {
+        if (entry.name === "node_modules") return [];
         const child = path.join(relative, entry.name);
         return entry.isDirectory() ? [readTree(child)] : [read(child)];
       })

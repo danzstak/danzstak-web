@@ -80,7 +80,9 @@ Posts remain chronological. If an eligible unseen supplemental item does not exi
    - Plan later, not now: Phase A is a legal, vendor, cost and feasibility report with synthetic example data only. No vendor sign-ups, Stripe products or charging until the owner approves.
 8. Then the rest of instructions/ in its own order, one page per PR.
 
-Later phase (after users): SYNC standalone, device registration, SYNC Network numbers, federated network, SYNC transport rebuild.
+Current requirement (2026-11-11): every browser, installed PWA, tablet or computer must be registered to the signed-in account before it can use any SYNC messaging or calling function. Device registration uses a server-issued installation credential; it does not require or reveal a personal phone number. The signed-in account name is the default device label.
+
+Later phase (after users): SYNC standalone, SYNC Network numbers, federated network, SYNC transport rebuild.
 
 ## Prices (owner-set, 2026-11-07)
 
