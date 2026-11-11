@@ -28,6 +28,44 @@
   ,"Add Friend":"Aggiungi amico"
   ,"Requested":"Richiesta inviata"
   ,"Friends":"Amici"
+  ,"SYNC device":"Dispositivo SYNC"
+  ,"Register this device":"Registra questo dispositivo"
+  ,"Every device must receive and confirm its own private SMS code before it is registered for SYNC. If no code is sent or confirmed, the device stays unregistered.":"Ogni dispositivo deve ricevere e confermare il proprio codice SMS privato prima di essere registrato per SYNC. Se il codice non viene inviato o confermato, il dispositivo resta non registrato."
+  ,"Account name":"Nome account"
+  ,"Loading account…":"Caricamento account…"
+  ,"Device name":"Nome dispositivo"
+  ,"The signed-in account name is used by default. You can rename this device later.":"Per impostazione predefinita viene usato il nome dell’account connesso. Puoi rinominare questo dispositivo in seguito."
+  ,"Checking this device…":"Controllo del dispositivo…"
+  ,"Your registered SYNC devices":"I tuoi dispositivi SYNC registrati"
+  ,"Private phone verification":"Verifica privata del telefono"
+  ,"DanzStak stores only a protected phone fingerprint and the last four digits. The number stays private, unsearchable, and is never a public SYNC identity.":"DanzStak conserva solo un’impronta protetta del telefono e le ultime quattro cifre. Il numero resta privato, non ricercabile e non diventa mai un’identità SYNC pubblica."
+  ,"Checking private phone registration…":"Controllo della registrazione privata del telefono…"
+  ,"Country code":"Prefisso internazionale"
+  ,"United States +1":"Stati Uniti +1"
+  ,"Italy +39":"Italia +39"
+  ,"United Kingdom +44":"Regno Unito +44"
+  ,"Germany +49":"Germania +49"
+  ,"France +33":"Francia +33"
+  ,"Mobile number":"Numero di cellulare"
+  ,"Text me a code":"Inviami un codice"
+  ,"Six-digit code":"Codice a sei cifre"
+  ,"Verify number":"Verifica numero"
+  ,"Resend code":"Invia di nuovo il codice"
+  ,"Remove private number":"Rimuovi numero privato"
+  ,"DanzStak Network numbers cannot receive this carrier SMS code.":"I numeri DanzStak Network non possono ricevere questo codice SMS dell’operatore."
+  ,"Use a real mobile number for device verification. Future DS numbers will work only inside SYNC and will not support carrier SMS, emergency calls, or regular phone networks.":"Per verificare il dispositivo usa un numero di cellulare reale. I futuri numeri DS funzioneranno solo dentro SYNC e non supporteranno SMS dell’operatore, chiamate di emergenza o reti telefoniche normali."
+  ,"AWS has not approved SYNC verification texts yet. No text will be sent and no device will be marked verified.":"AWS non ha ancora approvato gli SMS di verifica SYNC. Non verrà inviato alcun messaggio e nessun dispositivo sarà indicato come verificato."
+  ,"Checking SMS verification availability…":"Controllo della disponibilità della verifica SMS…"
+  ,"Enter a mobile number that can receive this device's one-time code.":"Inserisci un numero di cellulare che possa ricevere il codice monouso di questo dispositivo."
+  ,"Enter a private mobile number. SYNC will text a six-digit code.":"Inserisci un numero di cellulare privato. SYNC invierà un codice a sei cifre."
+  ,"Verify this device by SMS":"Verifica questo dispositivo tramite SMS"
+  ,"Every SYNC device must receive its own one-time code. The code is bound to this device registration and cannot enroll another device.":"Ogni dispositivo SYNC deve ricevere il proprio codice monouso. Il codice è associato alla registrazione di questo dispositivo e non può registrare un altro dispositivo."
+  ,"Sending verification text…":"Invio dell’SMS di verifica…"
+  ,"Checking code…":"Controllo del codice…"
+  ,"SMS code confirmed. Finishing device registration…":"Codice SMS confermato. Completamento della registrazione del dispositivo…"
+  ,"Private phone registered to SYNC":"Telefono privato registrato in SYNC"
+  ,"The verification text could not be sent. No number was verified.":"Non è stato possibile inviare l’SMS di verifica. Nessun numero è stato verificato."
+  ,"A real SMS code is required for this device registration.":"Per registrare questo dispositivo è necessario un codice SMS reale."
  });
  const profileGuidance={
   es:{"More profile details":"Más datos del perfil","Photos and video":"Fotos y vídeos","Privacy and tagging":"Privacidad y etiquetas","Who can post on your profile?":"¿Quién puede publicar en tu perfil?","Just me":"Solo yo","Allow accepted friends to tag me in photos and videos":"Permitir que mis amigos aceptados me etiqueten en fotos y vídeos","Import from Facebook":"Importar desde Facebook","Choose Facebook export":"Elegir exportación de Facebook","Preview your export, set Public, Friends, or Just me in batches, and review shared-source posts before copying them.":"Previsualiza tu exportación, asigna Público, Amigos o Solo yo por lotes y revisa las publicaciones compartidas antes de copiarlas."},
@@ -193,7 +231,7 @@
   id:["Telepon dan perangkat terdaftar","Perangkat Android saya","Perangkat Apple saya","Terakhir aktif","Aktivitas terakhir tidak tersedia","Perangkat ini terdaftar untuk panggilan SYNC.","Perangkat ini belum terdaftar untuk panggilan.","Perangkat ini","Dicabut","Panggilan diizinkan","Panggilan masuk dimatikan","Ganti nama","Matikan panggilan","Izinkan panggilan","Cabut","Beri nama perangkat ini.","Mendaftarkan perangkat…","Gunakan nama perangkat antara 2 dan 60 karakter.","Layanan perangkat sementara tidak tersedia.","Perangkat saya","Perangkat akan berhenti menerima panggilan SYNC."]
  };
  for(const [language,values] of Object.entries(callingDevices))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(callingDeviceKeys.map((key,index)=>[key,values[index]])));
- const callingDeviceStaticKeys=["Register this device","Register this browser or installed PWA to your signed-in account before using SYNC messages or calls. This enrollment identifies the current installation and does not expose a phone number or enable carrier calls, SMS, or emergency calling. Private phone verification is a separate optional trust check.","Device name","My Android phone","Register this device","Checking this device…","Your registered SYNC devices","Close registered devices"];
+ const callingDeviceStaticKeys=["Register this device","Register this browser or installed PWA before using SYNC messages or calls. When real SMS delivery is approved, every device must receive its own one-time code before the server issues a SYNC credential. A code is bound to this registration and cannot be reused for another device.","Device name","My Android phone","Register this device","Checking this device…","Your registered SYNC devices","Close registered devices"];
  const callingDeviceStatic={
   es:["Dispositivos registrados","Registra cada teléfono, tableta, PWA o computadora antes de hacer o recibir llamadas SYNC. El registro no muestra un número de teléfono ni habilita llamadas del operador, SMS o llamadas de emergencia.","Nombre del dispositivo","Mi teléfono Android","Registrar este dispositivo","Comprobando este dispositivo…","Tus dispositivos de llamadas registrados","Cerrar dispositivos registrados"],
   fr:["Appareils enregistrés","Enregistrez chaque téléphone, tablette, PWA ou ordinateur avant de passer ou recevoir des appels SYNC. L’enregistrement n’affiche aucun numéro de téléphone et n’active ni appels opérateur, ni SMS, ni appels d’urgence.","Nom de l’appareil","Mon téléphone Android","Enregistrer cet appareil","Vérification de cet appareil…","Vos appareils d’appel enregistrés","Fermer les appareils enregistrés"],
@@ -211,7 +249,7 @@
   id:["Perangkat terdaftar","Daftarkan setiap ponsel, tablet, PWA, atau komputer sebelum membuat atau menerima panggilan SYNC. Pendaftaran tidak menampilkan nomor telepon dan tidak mengaktifkan panggilan operator, SMS, atau panggilan darurat.","Nama perangkat","Ponsel Android saya","Daftarkan perangkat ini","Memeriksa perangkat…","Perangkat panggilan Anda yang terdaftar","Tutup perangkat terdaftar"]
  };
  for(const [language,values] of Object.entries(callingDeviceStatic))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(callingDeviceStaticKeys.map((key,index)=>[key,values[index]])));
- const syncDeviceRequirementKeys=["This device is registered for SYNC.","Register this device to use SYNC.","SYNC and calls allowed","SYNC allowed · incoming calls off","It will stop this device from using SYNC.","Register this browser or installed PWA to your signed-in account before using SYNC messages or calls. This enrollment identifies the current installation and does not expose a phone number or enable carrier calls, SMS, or emergency calling. Private phone verification is a separate optional trust check.","Your registered SYNC devices"];
+ const syncDeviceRequirementKeys=["This device is registered for SYNC.","Register this device to use SYNC.","SYNC and calls allowed","SYNC allowed · incoming calls off","It will stop this device from using SYNC.","Register this browser or installed PWA before using SYNC messages or calls. When real SMS delivery is approved, every device must receive its own one-time code before the server issues a SYNC credential. A code is bound to this registration and cannot be reused for another device.","Your registered SYNC devices"];
  const syncDeviceRequirements={
   es:["Este dispositivo está registrado para SYNC.","Registra este dispositivo para usar SYNC.","SYNC y llamadas permitidos","SYNC permitido · llamadas entrantes desactivadas","Este dispositivo dejará de poder usar SYNC.","Registra este navegador o PWA instalada en tu cuenta antes de usar los mensajes o llamadas de SYNC. Este registro identifica la instalación actual y no muestra un número de teléfono ni habilita llamadas del operador, SMS o llamadas de emergencia. La verificación privada del teléfono es una comprobación de confianza opcional e independiente.","Tus dispositivos SYNC registrados"],
   fr:["Cet appareil est enregistré pour SYNC.","Enregistrez cet appareil pour utiliser SYNC.","SYNC et appels autorisés","SYNC autorisé · appels entrants désactivés","Cet appareil ne pourra plus utiliser SYNC.","Enregistrez ce navigateur ou cette PWA installée sur votre compte avant d’utiliser les messages ou appels SYNC. Cet enregistrement identifie l’installation actuelle sans afficher de numéro ni activer les appels opérateur, les SMS ou les appels d’urgence. La vérification privée du téléphone est un contrôle de confiance distinct et facultatif.","Vos appareils SYNC enregistrés"],
@@ -229,6 +267,8 @@
   id:["Perangkat ini terdaftar untuk SYNC.","Daftarkan perangkat ini untuk menggunakan SYNC.","SYNC dan panggilan diizinkan","SYNC diizinkan · panggilan masuk dimatikan","Perangkat ini tidak akan dapat menggunakan SYNC lagi.","Daftarkan browser atau PWA terpasang ini ke akun yang sedang digunakan sebelum memakai pesan atau panggilan SYNC. Pendaftaran hanya mengenali instalasi saat ini, tidak menampilkan nomor telepon, dan tidak mengaktifkan panggilan operator, SMS, atau panggilan darurat. Verifikasi telepon pribadi adalah pemeriksaan kepercayaan yang terpisah dan opsional.","Perangkat SYNC Anda yang terdaftar"]
  };
  for(const [language,values] of Object.entries(syncDeviceRequirements))Object.assign(dictionaries[language]||(dictionaries[language]={}),Object.fromEntries(syncDeviceRequirementKeys.map((key,index)=>[key,values[index]])));
+ const requiredDeviceOtpCopy="Register this browser or installed PWA before using SYNC messages or calls. When real SMS delivery is approved, every device must receive its own one-time code before the server issues a SYNC credential. A code is bound to this registration and cannot be reused for another device.";
+ for(const language of Object.keys(syncDeviceRequirements))dictionaries[language][requiredDeviceOtpCopy]=requiredDeviceOtpCopy;
  const messageFailureKeys=["Choose a photo or video. Standalone audio files are not supported.","Attachment upload could not start","Attachment upload failed","Attachment upload took too long. Try again on a stronger connection.","Reaction could not be saved","Message text cannot be empty","Message could not be edited","Message could not be deleted","Messages could not be loaded","Try loading messages again","Earlier messages could not be loaded","Try loading earlier messages again","Contacts are temporarily unavailable","Attachments need a connection. Your draft is still here.","Message could not be sent","{error}. Your message is still in the composer.","Chat could not be deleted","Your account could not be loaded","Contact","Photo","Video","Loading…","Unexpected upload destination","DanzStak is taking too long to respond. Try again.","DanzStak cannot connect right now. Check your connection and try again.","This removes the chat from your account. The other person will keep their message history.","Delete this chat?"];
  const messageFailures={
   es:["Elige una foto o un video. No se admiten archivos de audio independientes.","No se pudo iniciar la carga del archivo adjunto","No se pudo cargar el archivo adjunto","La carga del archivo adjunto tardó demasiado. Inténtalo de nuevo con una conexión más estable.","No se pudo guardar la reacción","El mensaje no puede estar vacío","No se pudo editar el mensaje","No se pudo eliminar el mensaje","No se pudieron cargar los mensajes","Intenta cargar los mensajes de nuevo","No se pudieron cargar los mensajes anteriores","Intenta cargar los mensajes anteriores de nuevo","Los contactos no están disponibles temporalmente","Los archivos adjuntos necesitan conexión. Tu borrador sigue aquí.","No se pudo enviar el mensaje","{error}. Tu mensaje sigue en el cuadro de redacción.","No se pudo eliminar el chat","No se pudo cargar tu cuenta","Contacto","Foto","Video","Cargando…","Destino de carga inesperado","DanzStak está tardando demasiado en responder. Inténtalo de nuevo.","DanzStak no puede conectarse ahora. Comprueba tu conexión e inténtalo de nuevo.","Esto elimina el chat de tu cuenta. La otra persona conservará su historial de mensajes.","¿Eliminar este chat?"],

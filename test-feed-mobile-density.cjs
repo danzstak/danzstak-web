@@ -40,6 +40,6 @@ assert.match(css, /\.reel-import-form\[hidden\],\.roll-close\[hidden\],\.roll-op
 assert.match(html, /assets\/feed-enhancements\.css\?v=510/);
 assert.match(html, /assets\/feed-enhancements\.js\?v=548/);
 assert.match(html, /assets\/danzstak-original-feed\.css\?v=32/);
-assert.match(worker, /danzstak-shell-v805/);
+assert.match(worker, /danzstak-shell-v808/);
 
 console.log("Feed density checks passed: Dailies-first order, compact recovery, collapsed Roll authoring, and PWA refresh.");

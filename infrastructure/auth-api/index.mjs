@@ -79,6 +79,10 @@ const phoneVerificationSecretName = process.env.PHONE_VERIFICATION_SECRET_NAME |
 const phoneNotifyConfigurationId = String(process.env.PHONE_NOTIFY_CONFIGURATION_ID || "");
 const phoneNotifyTemplateId = String(process.env.PHONE_NOTIFY_TEMPLATE_ID || "");
 const phoneVerificationEnabled = process.env.PHONE_VERIFICATION_ENABLED === "true" && /^notify-[a-z0-9]+$/i.test(phoneNotifyConfigurationId);
+// Registration policy must never depend on provider health. If AWS cannot send
+// an OTP, the device stays unregistered instead of silently falling back to an
+// unverified credential.
+const phoneDeviceOtpRequired = process.env.PHONE_DEVICE_OTP_REQUIRED === "true";
 let phoneVerificationSecretPromise = null;
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
@@ -4977,7 +4981,7 @@ async function getPersonalPhoneStatus(event) {
   const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const record = await personalPhoneAdapter.getByUser(userId);
-  return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(record), providerAvailable: phoneVerificationEnabled }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(record), providerAvailable: phoneVerificationEnabled, deviceOtpRequired: phoneDeviceOtpRequired }) };
 }
 
 async function sendPersonalPhoneCode(event) {
@@ -4990,7 +4994,8 @@ async function sendPersonalPhoneCode(event) {
     const secret = await phoneVerificationSecret();
     const requestKey = createHmac("sha256", secret).update(`request:${String(event.requestContext?.http?.sourceIp || "unknown")}`).digest("hex");
     const service = await personalPhoneService();
-    const result = await service.send({ userId, countryCode: String(body.countryCode || "").slice(0, 8), localNumber: String(body.localNumber || "").slice(0, 40), requestKey });
+    const purpose = body.purpose === "sync_device" ? "sync_device" : "account_trust";
+    const result = await service.send({ userId, countryCode: String(body.countryCode || "").slice(0, 8), localNumber: String(body.localNumber || "").slice(0, 40), requestKey, purpose, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 202, headers, body: JSON.stringify(result) };
   } catch (error) {
     return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };
@@ -5005,7 +5010,8 @@ async function confirmPersonalPhoneCode(event) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid request." }) };
   try {
     const service = await personalPhoneService();
-    const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12) });
+    const purpose = body.purpose === "sync_device" ? "sync_device" : "account_trust";
+    const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12), purpose, deviceChallengeId:String(body.deviceChallengeId || "").slice(0,80), deviceChallenge:String(body.deviceChallenge || "").slice(0,100) });
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (error) {
     return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.message || "Phone verification is unavailable.", code: error.code || "unavailable" }) };

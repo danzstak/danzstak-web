@@ -9,13 +9,17 @@ assert.match(template,/CallingDevicesTable:[\s\S]*TableName: DANZSTAK-CallingDev
 assert.match(template,/TimeToLiveSpecification:[\s\S]*AttributeName: expiresAt[\s\S]*Enabled: true/,"short-lived registration challenges need TTL cleanup");
 for(const route of ["POST /calls/devices/challenge","POST /calls/devices/register","GET /calls/devices","PATCH /calls/devices","DELETE /calls/devices"])assert.ok(template.includes(route),`${route} must be routed`);
 assert.match(template,/challengeHash:[\s\S]*expiresAt:[\s\S]*now\(\)\+300/,"enrollment challenge must be short-lived and stored only as a hash");
-assert.match(template,/TransactWriteItemsCommand\(\{TransactItems:\[\{Delete:[\s\S]*challengeHash = :hash AND expiresAt > :now[\s\S]*\{Put:/,"challenge consumption and device creation must be atomic and replay-safe");
+assert.match(template,/TransactWriteItemsCommand\(\{TransactItems:transaction/ ,"challenge, OTP grant consumption, and device creation must be atomic and replay-safe");
+assert.match(template,/DEVICE_SMS_OTP_REQUIRED==='true'[\s\S]*device_enrollment_grant[\s\S]*grant\.userId\?\.S!==user\.userId[\s\S]*deviceChallengeId[\s\S]*deviceChallengeHash/ ,"mandatory OTP must be server-enforced, account-bound, and challenge-bound");
+assert.match(template,/DEVICE_GRANT#\$\{grantId\}[\s\S]*ConditionExpression:'grantTokenHash = :token AND expiresAt > :now'/ ,"one-time SMS grants must be consumed with replay and expiry protection");
+assert.match(template,/process\.env\.DEVICE_SMS_OTP_REQUIRED==='true'&&!item\.otpVerifiedAt/ ,"mandatory mode must reject legacy unverified credentials");
 assert.match(template,/tokenHash:[\s\S]*createHash\('sha256'\)\.update\(token\)/,"server must persist only a device-token hash");
 assert.match(template,/timingSafeEqual/,"device-token comparison must resist timing disclosure");
 assert.match(template,/Date\.now\(\)-lastUsed>60000/,"frequent call polling must not write last-used activity on every request");
 assert.match(template,/CALL_DEVICE_REGISTRATION_REQUIRED/,"call endpoints must return an actionable registration code");
 assert.match(template,/\['POST \/messages','GET \/messages','POST \/messages\/delete','GET \/conversations'\]\.includes\(key\)[\s\S]*authenticatedCallingDevice\(event,user,\{allowDisabled:true\}\)[\s\S]*SYNC_DEVICE_REGISTRATION_REQUIRED/,"all private SYNC message routes must require a valid current-device credential");
 assert.match(template,/currentDeviceRegistered:Boolean\(current\)/,"the device list must report current registration only after token authentication");
+assert.match(template,/items\.filter\(item=>item\.kind\?\.S==='registered'&&\(!otpRequired\|\|item\.otpVerifiedAt\?\.S\)\)/,"mandatory OTP mode must hide legacy devices that never confirmed an SMS code");
 assert.match(template,/CLAIM#\$\{callId\}[\s\S]*TransactWriteItemsCommand[\s\S]*CALL_ALREADY_ANSWERED/,"one device must atomically claim an incoming call before its answer is delivered");
 assert.match(template,/ConditionExpression:'senderEmail = :caller AND callId = :callId AND #mode = :mode AND signalType = :offer AND expiresAt > :now'/,"answer claims must consume only the matching live offer and media mode");
 assert.match(template,/FilterExpression:'expiresAt > :n AND attribute_exists\(signalType\)'/,"internal answer claims must never leak into the signaling inbox");
@@ -34,7 +38,7 @@ for(const header of ["x-danzstak-device-id","x-danzstak-device-token"]){
 assert.ok(html.includes('id="callingDevices"'),"SYNC must expose a discoverable Phone and devices action");
 assert.ok(html.includes('id="registerThisDevice"'),"the current installation needs a visible registration action");
 assert.ok(html.includes('id="callingAccountName"'),"device registration must identify the signed-in account name");
-assert.ok(html.includes("does not expose a phone number"),"the UI must distinguish device enrollment from telephone service");
+assert.ok(html.includes("Every device must receive and confirm its own private SMS code"),"the UI must disclose mandatory per-device SMS verification");
 assert.match(client,/indexedDB\.open\(DB_NAME,1\)/,"the installation credential must remain in origin-scoped storage");
 assert.match(client,/window\.danzstakCallingDeviceHeaders=deviceHeaders/,"SYNC requests need the current installation credential");
 assert.match(client,/window\.danzstakRequireSyncDevice=\(\)=>openPanel\(\{required:true\}\)/,"unregistered installations need one shared mandatory enrollment recovery");

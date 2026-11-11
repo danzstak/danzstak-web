@@ -1,3 +1,4 @@
+param([switch]$EnableDeviceSmsOtp)
 $ErrorActionPreference = "Stop"
 
 $Region = "us-west-1"
@@ -5,6 +6,7 @@ $StackName = "DANZSTAK-Call-Signaling"
 $Template = Join-Path $PSScriptRoot "infrastructure\call-signaling\template.yaml"
 $EngagementStackName = "DANZSTAK-Engagement"
 $EngagementTemplate = Join-Path $PSScriptRoot "infrastructure\engagement\template.yaml"
+$deviceSmsOtpValue = if ($EnableDeviceSmsOtp) { "true" } else { "false" }
 
 Write-Host "Verifying AWS identity..."
 $identity = aws sts get-caller-identity --region $Region --output json | ConvertFrom-Json
@@ -34,6 +36,7 @@ aws cloudformation deploy `
   --s3-bucket $artifactBucket `
   --s3-prefix deploy-artifacts `
   --capabilities CAPABILITY_NAMED_IAM `
+  --parameter-overrides "DeviceSmsOtpRequired=$deviceSmsOtpValue" `
   --no-fail-on-empty-changeset
 if ($LASTEXITCODE -ne 0) { throw "CloudFormation deployment failed; production configuration steps were not run." }
 
@@ -50,7 +53,7 @@ Write-Host "Verifying post database recovery protection..."
 & (Join-Path $PSScriptRoot "aws-configure-data-recovery.ps1")
 
 Write-Host "Deploying the tested Auth API code and least-privilege permissions..."
-& (Join-Path $PSScriptRoot "aws-deploy-auth-api.ps1")
+& (Join-Path $PSScriptRoot "aws-deploy-auth-api.ps1") -EnableDeviceSmsOtp:$EnableDeviceSmsOtp
 if ($LASTEXITCODE -ne 0) { throw "Auth API deployment failed." }
 
 Write-Host "Reapplying production API safeguards..."

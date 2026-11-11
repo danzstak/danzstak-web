@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 const E164 = /^\+[1-9]\d{7,14}$/;
 const CODE = /^\d{6}$/;
@@ -27,21 +27,32 @@ export function verificationDigest(secret, challengeId, numberHash, code) {
   return createHmac("sha256", secret).update(`verify:${challengeId}:${numberHash}:${code}`).digest("hex");
 }
 
+export function deviceChallengeDigest(challengeId, challenge) {
+  if (!/^[a-f0-9-]{36}$/.test(String(challengeId || "")) || !/^[A-Za-z0-9_-]{43}$/.test(String(challenge || ""))) throw new TypeError("A valid device challenge is required");
+  return createHash("sha256").update(challenge).digest("hex");
+}
+
 export function safeDigestEqual(left, right) {
   if (!/^[a-f0-9]{64}$/.test(String(left || "")) || !/^[a-f0-9]{64}$/.test(String(right || ""))) return false;
   return timingSafeEqual(Buffer.from(left, "hex"), Buffer.from(right, "hex"));
 }
 
-export function challengeRecord({ secret, userId, number, challengeId, code, now = Date.now() }) {
+export function challengeRecord({ secret, userId, number, challengeId, code, now = Date.now(), purpose = "account_trust", deviceChallengeId = "", deviceChallengeHash = "" }) {
   const phoneHash = phoneDigest(secret, number);
-  return {
+  const record = {
     userId: String(userId || ""), phoneHash, challengeId,
     challengeHash: verificationDigest(secret, challengeId, phoneHash, code),
     status: "pending", createdAt: new Date(now).toISOString(),
     expiresAt: Math.floor(now / 1000) + 600,
-    resendAfter: Math.floor(now / 1000) + 60,
-    attempts: 0, maskedNumber: maskPhone(number)
+    resendAfter: Math.floor(now / 1000) + 60, attempts: 0,
+    maskedNumber: maskPhone(number), purpose
   };
+  if (purpose === "sync_device") {
+    if (!/^[a-f0-9-]{36}$/.test(deviceChallengeId) || !/^[a-f0-9]{64}$/.test(deviceChallengeHash)) throw new TypeError("A device-bound verification challenge is required");
+    record.deviceChallengeId = deviceChallengeId;
+    record.deviceChallengeHash = deviceChallengeHash;
+  }
+  return record;
 }
 
 export function verifyChallenge(record, code, secret, now = Date.now()) {

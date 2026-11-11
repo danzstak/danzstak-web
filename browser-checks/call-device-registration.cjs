@@ -7,6 +7,15 @@ const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1366];
 const baseUrl = String(process.env.DANZSTAK_BASE_URL || process.env.DANZSTAK_LOCAL_URL || 'http://127.0.0.1:8016').replace(/\/$/, '');
 const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.DANZSTAK_CAPTURE_DIR) : '';
 
+async function capture(page, file) {
+  let lastError;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try { await page.screenshot({ path: file }); return; }
+    catch (error) { lastError = error; await page.waitForTimeout(250); }
+  }
+  throw lastError;
+}
+
 (async () => {
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   const results = [];
@@ -20,13 +29,18 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       let callHeaders = {};
       let unregisteredInboxRequests = 0;
       let unregisteredConversationRequests = 0;
+      let otpSendBody = null;
+      let otpConfirmBody = null;
+      let registerBody = null;
       await page.route('https://api.danzstak.com/**', async route => {
         const request = route.request();
         const url = new URL(request.url());
         const path = url.pathname;
         if (path === '/auth/session') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ authenticated: true, user: { email: 'browser-test@danzstak.test', sub: '33333333-3333-4333-8333-333333333333' } }) });
         if (path === '/profiles') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ profile: { name: 'Browser Test Account', isOwner: true } }) });
-        if (path === '/phone-verification') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ configured: true, state: 'none', verified: false, maskedNumber: '', providerAvailable: false }) });
+        if (path === '/phone-verification' && request.method() === 'GET') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ configured: true, state: 'none', verified: false, maskedNumber: '', providerAvailable: true, deviceOtpRequired: true }) });
+        if (path === '/phone-verification/send') { otpSendBody = request.postDataJSON(); return route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ configured: true, state: 'pending', verified: false, maskedNumber: '•••• 1613', providerAvailable: true, deviceOtpRequired: true, resendAfter: new Date(Date.now()+60000).toISOString() }) }); }
+        if (path === '/phone-verification/confirm') { otpConfirmBody = request.postDataJSON(); return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ configured: true, state: 'verified', verified: true, maskedNumber: '•••• 1613', providerAvailable: true, deviceOtpRequired: true, deviceGrantId: '55555555-5555-4555-8555-555555555555', deviceGrantToken: 'c'.repeat(43) }) }); }
         if (path === '/conversations' && !registered) { unregisteredConversationRequests += 1; return route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: 'Register this device to use SYNC.', code: 'SYNC_DEVICE_REGISTRATION_REQUIRED' }) }); }
         if (path === '/conversations') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ conversations: [{ contactEmail: 'friend@danzstak.test', memberId: '44444444-4444-4444-8444-444444444444', name: 'Tour Friend', preview: 'Ready for soundcheck', updatedAt: '2026-11-09T12:00:00.000Z', canContact: true }] }) });
         if (path === '/friends') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ friends: [] }) });
@@ -37,6 +51,7 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
         }
         if (path === '/calls/devices/challenge') return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ challengeId: '22222222-2222-4222-8222-222222222222', challenge: 'a'.repeat(43) }) });
         if (path === '/calls/devices/register') {
+          registerBody = request.postDataJSON();
           registered = true;
           return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ deviceId: '11111111-1111-4111-8111-111111111111', deviceToken: 'b'.repeat(43), name: 'My test phone', allowCalls: true, registeredAt: new Date().toISOString() }) });
         }
@@ -56,12 +71,12 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       await page.locator('#callingAccountName').filter({ hasText: 'Browser Test Account' }).waitFor();
       assert.equal(await page.locator('#deviceName').inputValue(), 'Browser Test Account', `device name did not default to the account name at ${width}px`);
       assert.equal(await page.locator('#closeCallingDevices').isHidden(), true, `mandatory enrollment can be dismissed at ${width}px`);
-      assert.equal(await page.locator('.sync-phone-verification').isHidden(), true, `optional phone verification distracts from required device enrollment at ${width}px`);
+      assert.equal(await page.locator('.sync-phone-verification').isVisible(), true, `SMS verification controls are missing at ${width}px`);
       const automaticDialogGeometry = await dialog.evaluate(node => { const box=node.getBoundingClientRect(); return { left:box.left, right:box.right, top:box.top, bottom:box.bottom, viewportWidth:innerWidth, viewportHeight:innerHeight }; });
       assert.ok(automaticDialogGeometry.left >= 0 && automaticDialogGeometry.right <= automaticDialogGeometry.viewportWidth && automaticDialogGeometry.top >= 0 && automaticDialogGeometry.bottom <= automaticDialogGeometry.viewportHeight, `automatic registration dialog overflows at ${width}px: ${JSON.stringify(automaticDialogGeometry)}`);
       if (captureDir) {
         fs.mkdirSync(captureDir, { recursive: true });
-        await page.screenshot({ path: path.join(captureDir, `call-registration-auto-open-${width}.png`) });
+        await capture(page, path.join(captureDir, `call-registration-auto-open-${width}.png`));
       }
       await page.keyboard.press('Escape');
       assert.equal(await dialog.isVisible(), true, `Escape dismissed required enrollment at ${width}px`);
@@ -70,7 +85,21 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       assert.equal(unregisteredConversationRequests, 0, `conversation data loaded before registration at ${width}px`);
       await page.locator('#deviceName').fill('My test phone');
       await page.locator('#registerThisDevice').click();
+      await page.locator('#syncPhoneNumber').waitFor({ state: 'visible' });
+      assert.match(await page.locator('#syncPhoneTitle').textContent(), /Verify this device by SMS/);
+      if (captureDir) await capture(page, path.join(captureDir, `call-registration-otp-${width}.png`));
+      await page.locator('#syncPhoneNumber').fill('415 374 1613');
+      await page.locator('#syncPhoneSend').click();
+      await page.locator('#syncPhoneCode').fill('123456');
+      await page.locator('#syncPhoneConfirm').click();
       await dialog.waitFor({ state: 'hidden' });
+      assert.equal(otpSendBody.purpose, 'sync_device');
+      assert.equal(otpSendBody.deviceChallengeId, '22222222-2222-4222-8222-222222222222');
+      assert.equal(otpConfirmBody.code, '123456');
+      assert.equal(registerBody.deviceGrantId, '55555555-5555-4555-8555-555555555555');
+      assert.equal(registerBody.deviceGrantToken, 'c'.repeat(43));
+      const storedText = await page.evaluate(async () => { const db = await new Promise((resolve,reject) => { const request=indexedDB.open('danzstak-call-device',1); request.onsuccess=()=>resolve(request.result); request.onerror=()=>reject(request.error); }); return await new Promise((resolve,reject) => { const request=db.transaction('credentials').objectStore('credentials').get('current'); request.onsuccess=()=>resolve(JSON.stringify(request.result||{})); request.onerror=()=>reject(request.error); }); });
+      assert.doesNotMatch(storedText, /123456|4153741613|deviceGrant/i, `OTP material leaked into browser storage at ${width}px`);
       await page.locator('body.sync-device-registered').waitFor();
       await page.locator('.conversation-user').first().waitFor();
       assert.equal(await page.locator('.ds-mobile-nav').isHidden(), true, `registered SYNC still shows the bottom navigation at ${width}px`);
@@ -79,13 +108,13 @@ const captureDir = process.env.DANZSTAK_CAPTURE_DIR ? path.resolve(process.env.D
       await page.locator('#deviceStatus').filter({ hasText: 'registered for SYNC' }).waitFor();
       await page.locator('.registered-devices li').filter({ hasText: 'Last active' }).waitFor();
       await page.waitForTimeout(150);
-      if (captureDir) await page.screenshot({ path: path.join(captureDir, `calling-devices-${width}.png`), fullPage: true });
+      if (captureDir) await capture(page, path.join(captureDir, `calling-devices-${width}.png`));
       await page.locator('#closeCallingDevices').click();
       await page.locator('.conversation-user').first().click();
       await page.locator('body.is-conversation-open').waitFor();
       await page.locator('.conversation-back').click();
       await page.waitForFunction(() => !document.body.classList.contains('is-conversation-open'));
-      if (captureDir) await page.screenshot({ path: path.join(captureDir, `sync-registered-no-footer-${width}.png`), fullPage: true });
+      if (captureDir) await capture(page, path.join(captureDir, `sync-registered-no-footer-${width}.png`));
       const geometry = await page.evaluate(() => {
         const dialog = document.querySelector('#callingDevicesDialog').getBoundingClientRect();
         const button = document.querySelector('#callingDevices').getBoundingClientRect();

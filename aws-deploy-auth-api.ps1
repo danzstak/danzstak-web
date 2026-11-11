@@ -1,3 +1,4 @@
+param([switch]$EnableDeviceSmsOtp)
 $ErrorActionPreference = "Stop"
 
 $Region = "us-west-1"
@@ -266,6 +267,9 @@ try {
   $notifyStatus = aws pinpoint-sms-voice-v2 describe-notify-configurations --region $Region --query "NotifyConfigurations[?NotifyConfigurationId=='$PhoneNotifyConfigurationId'].Status | [0]" --output text
   if ($LASTEXITCODE -ne 0) { throw "SYNC SMS verification provider status could not be inspected." }
   $variables.PHONE_VERIFICATION_ENABLED = if ($notifyStatus -eq 'ACTIVE') { 'true' } else { 'false' }
+  # Fail closed: provider availability controls whether a text can be sent,
+  # never whether an unverified device is allowed to register.
+  $variables.PHONE_DEVICE_OTP_REQUIRED = if ($EnableDeviceSmsOtp) { 'true' } else { 'false' }
   @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
   aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }
