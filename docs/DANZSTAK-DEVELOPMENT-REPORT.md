@@ -2388,3 +2388,14 @@ Status as of 2026-11-10: **DEPLOYED AND VERIFIED IN PRODUCTION; OWNER PHONE CONF
 - Read-only production health passed Home, Mix, SYNC, Booking, EPK, the manifest, worker and sampled versioned assets. A clean browser installed and activated the live worker, was controlled by it and contained only the `danzstak-shell-v795` cache.
 - Both Profile browser gates passed directly against `https://danzstak.com` at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. Builder-inspected hosted captures are in `docs/screenshots/pwa-v795-profile-interactions-live/`.
 - Honest evidence boundary: the exact v795 build has not yet been observed on the owner's physical installed Android or iPhone PWA. Production automation and a clean-browser installation passed; physical-owner device confirmation is not claimed.
+
+# SYNC device-registration CORS correction
+
+Status as of 2026-11-11: **CODE AND TESTS COMPLETE; PRODUCTION API UPDATE PENDING AWS REAUTHENTICATION**.
+
+- Root cause of the phone screenshot's **Failed to fetch** error: registration completed and returned a device credential, but the next browser request used `x-danzstak-device-id` and `x-danzstak-device-token`. The production API Gateway preflight allowed only `content-type`, so the browser rejected that authenticated device request.
+- Both version-controlled API Gateway CORS definitions now allow the two scoped device headers. Signature/token checks, device ownership, revocation and call authorization are unchanged.
+- The registration window now shows the signed-in account name from `/profiles`; the editable field remains the local device name. Personal phone verification remains a separate optional OTP workflow and is not represented as verified by this correction.
+- The focused browser gate passed at 320, 360, 375, 390, 414, 430, 768, 1024 and 1366px. It verifies the account label, automatic registration prompt, credential headers, responsive dialog geometry and successful registration response.
+- The complete `test-regressions.ps1` suite passed after the final changes, including SYNC device/call/message behavior, PWA delivery, authentication, Profile, Booking/EPK/Tour Manager, Stripe boundaries, site smoke tests and infrastructure syntax.
+- No SES, support-email, Stripe, database-table or payment configuration was changed. The exact production CORS update and hosted-PWA verification remain pending AWS CLI reauthentication.

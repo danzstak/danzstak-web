@@ -130,12 +130,13 @@
 <dialog id="callingDevicesDialog" class="calling-devices-dialog" aria-labelledby="callingDevicesTitle">
   <header><div><span class="eyebrow">SYNC Phone</span><h2 id="callingDevicesTitle">Registered devices</h2></div><button id="closeCallingDevices" type="button" data-icon="close" aria-label="Close registered devices" title="Close">×</button></header>
   <p>Register each phone, tablet, PWA, or computer before it can make or receive SYNC calls. Registration does not expose a phone number or enable carrier calls, SMS, or emergency calling.</p>
+  <p class="calling-device-account"><span>Account name</span><strong id="callingAccountName">Loading account…</strong></p>
   <label for="deviceName">Device name</label><input id="deviceName" type="text" maxlength="60" autocomplete="off" placeholder="My Android phone">
   <button id="registerThisDevice" type="button" class="primary">Register this device</button>
   <p id="deviceStatus" class="device-status" role="status">Checking this device…</p>
   <ul id="registeredDevices" class="registered-devices" aria-label="Your registered calling devices"></ul>
 </dialog>
-<script src="assets/call-devices.js?v=2" defer></script>
+<script src="assets/call-devices.js?v=3" defer></script>
 <script src="assets/push-notifications.js?v=308" defer></script>
 <nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">
   <a role="button" data-icon="home" aria-label="Home" title="Home" href="feed.html?view=feed"></a>
