@@ -35,6 +35,43 @@ without repeated data entry, an account for the venue, a duplicate send, or an u
 - The present send route does not enforce the proposed daily cap, 30-day duplicate-contact window, global opt-out, or required postal/opt-out footer.
 - Discovery remains a sourced lead, not proof that a venue is active, accepts the genre, has the proposed date, or wants unsolicited pitches.
 
+## Foundation — multiple EPK projects without data loss (4–6 days)
+
+The current implementation is singular: every account reads and writes the fixed DynamoDB key `epk-workspace-v1`, and the browser calls only `/epk`. That contradicts the owner-approved product model in this plan, where one member may keep a band EPK, a DJ EPK, and a side-project EPK. Multi-project storage must land before per-EPK AI purchases or booking outreach can be represented as correctly scoped.
+
+### Project identity and migration
+
+- Add an opaque, server-generated `epkId` to every artist-owned EPK. Never derive it from the act name, email address, or public slug.
+- Add owner-scoped list/create/read/update/delete routes. Every mutation verifies the authenticated owner and uses conditional revisions so one tab cannot overwrite another project's newer save.
+- Treat the existing `epk-workspace-v1` record as a legacy source. On the first authenticated list/read after release, copy it transactionally into one project, preserve its public ID, media, publish state, share state, selected look, production details, and timestamps, then record a migration marker. Retries must return the same project instead of making duplicates.
+- Keep a read-compatible rollback window: the legacy item is not deleted until the migrated project has been read, saved, published/private links checked, and the release rollback period has elapsed. No background bulk migration and no destructive rewrite.
+- New accounts start with no project and see **Create EPK**. Existing accounts land on their migrated EPK. Project names are artist-controlled labels; duplicate labels are allowed because identity comes from `epkId`.
+
+### Isolation of connected records
+
+- Bind media ownership, immutable versions, public/private/outreach shares, open aggregates, reviews, booking drafts, venue threads, future AI entitlements/allowances, and audit history to both owner and `epkId`.
+- Keep each project's stable public ID independent. Deleting one project revokes only its links and removes only its media after the existing cleanup rules; it must not affect another project or its outreach.
+- A booking draft stores the exact `epkId` and approved version. Changing the selected project or version invalidates the prior send approval. The artist always sees the act name and EPK preview before approving outreach.
+- The future `$5 per EPK` AI purchase and `$5 AI redesign` are entitlements for one `epkId`, never an account-wide flag. Manual creation, editing, publishing, sharing, sending, and look switching remain free.
+
+### Phone-first project switcher
+
+- Add a compact **Your EPKs** screen with act name, act type, publish state, selected look, last edited time, and the primary actions **Edit**, **View**, and **Pitch venues**. Do not expose private share tokens.
+- The editor URL carries an opaque project ID and retains the guided five-minute flow. Creating, switching, duplicating, archiving, and deleting projects require explicit actions; navigation never silently replaces the current draft.
+- Sparse and full projects use the same editor and public templates. Empty public sections remain hidden. A band can use stage-plot/input-list fields while a DJ/electronic project uses booth-plot/tech-rider fields.
+
+### Required regression and migration evidence
+
+- Legacy account migrates once with byte-equivalent approved content, the same public URL, working private/review links, and no media loss.
+- Empty account creates two projects; edits, publish state, looks, media, reviews, shares, and delete operations remain isolated.
+- Two tabs editing the same project produce a revision conflict instead of last-write data loss; two tabs editing different projects do not conflict.
+- Another account cannot list, read, mutate, share, delete, buy AI for, or attach the project to outreach.
+- Booking preflight rejects a missing, deleted, unpublished, wrong-owner, or stale EPK version and never consumes a credit.
+- Migration retry, partial transaction failure, rollback compatibility, project deletion cleanup, link revocation, account export, and account deletion are covered.
+- Browser checks cover the project list, create flow, editor switch, delete confirmation, and booking selector at 320, 360, 375, 390, 414, 430, 768, 1024, and 1366 pixels.
+
+Likely files: `epk.html`, a new project-list page or state in the existing editor, `assets/epk.js`, EPK styles, `assets/booking-selections.js`, `infrastructure/auth-api/index.mjs`, focused API/browser tests, export/deletion handlers, and this report. This foundation changes no Stripe object, AI provider, AWS resource, or production deployment by itself.
+
 ## Phase 0 — growth path and safe feature gates (2–3 days)
 
 ### Five-minute first EPK
