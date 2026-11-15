@@ -59,6 +59,12 @@
     clock: ["M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z", "M12 6v6l4 2"]
     ,"volume-2": ["M11 5 6 9H2v6h4l5 4Z", "M15.5 8.5a5 5 0 0 1 0 7", "M18.5 5.5a9 9 0 0 1 0 13"]
     ,"volume-x": ["M11 5 6 9H2v6h4l5 4Z", "m16 9 5 5", "m21 9-5 5"]
+    // DanzStak music set: stage/studio objects instead of stock pictograms.
+    ,"cue-text": ["M7 2h10v20H7Z", "M10 18h4", "M10 9v4", "M12 7v8", "M14 10v2"]
+    ,"case-mail": ["M2 5h15v11H2Z", "m2 6 7.5 5L17 6", "M20 10v9", "M20 10l2.5 1.5", "M18.2 21a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6Z"]
+    ,"laminate": ["M6 4h12v17H6Z", "M10 7h4", "M12 1v3", "m9 14 2 2 4-4"]
+    ,"rewind": ["M11 6 4 12l7 6Z", "M20 6l-7 6 7 6Z"]
+    ,"eject": ["M12 5 4 14h16Z", "M4 18h16"]
   };
   const labels = new Map([
     ["open full screen", "expand"], ["open fullscreen", "expand"], ["exit full screen", "minimize"], ["exit fullscreen", "minimize"],
@@ -101,8 +107,19 @@
     return "";
   }
 
+  // data-music-icon="name": icon + short visible label, both kept (label lives in .ds-cue-label).
+  function upgradeMusic(control) {
+    const requested = control.dataset.musicIcon;
+    if (!requested || !paths[requested]) return;
+    if (control.querySelector(":scope > .ds-action-icon")) return;
+    const icon = svg(requested); icon.classList.add("ds-music-icon");
+    control.classList.add("ds-cue-button");
+    control.prepend(icon);
+  }
+
   function upgrade(control) {
     if (!(control instanceof HTMLElement) || !control.matches("button, a.button, a[role='button'], label[data-icon]")) return;
+    if (control.dataset.musicIcon) return upgradeMusic(control);
     if (control.dataset.iconLayout === "label") return;
     const visible = control.textContent.replace(/\s+/g, " ").trim();
     const requested = control.dataset.icon || labels.get(visible.toLocaleLowerCase("en-US")) || iconFromAccessibleName(control, visible);

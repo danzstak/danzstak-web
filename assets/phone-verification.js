@@ -29,7 +29,8 @@
     if (current?.state !== "pending") return;
     const seconds = Math.max(0, Math.ceil((Date.parse(current.resendAfter || 0) - Date.now()) / 1000));
     resend.disabled = seconds > 0 || (emailMode ? current.emailCodeAvailable !== true : current.providerAvailable !== true);
-    resend.textContent = seconds ? `${t("Resend code")} (${seconds}s)` : t("Resend code");
+    const resendLabel = resend.querySelector(".ds-cue-label") || resend;
+    resendLabel.textContent = seconds ? `${t("Resend")} ${seconds}s` : t("Resend");
     if (seconds) timer = setTimeout(cooldown, 1000);
   }
   function render(data) {
@@ -41,7 +42,7 @@
     if (done) message(`${t("Private phone registered to SYNC")} · ${current.maskedNumber}`, "verified");
     else if (pending) message(`${t("Enter the six-digit code sent to")} ${emailMode ? current.maskedEmail : current.maskedNumber}.`);
     else if (current.providerAvailable) message(deviceChallenge ? t("Enter a mobile number that can receive this device's one-time code.") : t("Enter a private mobile number. SYNC will text a six-digit code."));
-    else if (current.emailCodeAvailable) message(t("Text codes are not switched on yet. Tap \"Email me a code instead\" to register this device."));
+    else if (current.emailCodeAvailable) message(t("Text codes are not switched on yet. Tap Email to get a code and register this device."));
     else message(t("AWS has not approved SYNC verification texts yet. No text will be sent and no device will be marked verified."), "blocked");
     if (current.emailCodeAvailable && !current.providerAvailable && !done) title.textContent = t("Verify this device");
     cooldown();
