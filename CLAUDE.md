@@ -196,7 +196,7 @@ This section preserves the durable product decisions from the owner's long-form 
 
 ### Commerce, Stripe and SFS checkout
 
-- Two main destinations: the official **DanzStak Store** and the **DanzStak Bazaar**. The Bazaar aggregates active fixed-price listings from member-named shops; each seller's shop also lives on that member's profile. Products use an eBay-familiar grid without auctions.
+- One commerce destination: the **DanzStak Bazaar** (owner correction 2026-11-15: there is **no official DanzStak Store**). The Bazaar aggregates active fixed-price listings from member-named shops; each seller's shop also lives on that member's profile. Products use an eBay-familiar grid without auctions.
 - DanzStak's marketplace fee is 5% of the item price and event-ticket price, never the seller-entered shipping amount. Flag or block shipping manipulation, such as a token item price paired with disproportionate postage. Sellers set legitimate shipping costs.
 - For physical goods, do not describe Stripe as indefinite escrow. Use an approved Stripe Connect marketplace design with a transaction ledger, delivery/dispute/refund states and provider-supported delayed/separate transfer mechanics. Do not enable seller payouts until identity, tax, fee, fraud, refund and delivery rules are approved and tested end to end.
 - Stripe belongs to the DanzStak account only. Keep every other platform's Stripe account, webhooks, products and customers unchanged. Secrets live in AWS Secrets Manager, never frontend code or GitHub. Test Mode stays separate from Live Mode; no live charges or marketplace payouts without explicit owner approval.
@@ -230,7 +230,7 @@ Do not write code until the plan is approved.
 
 ## Marketplace directive (owner, 2026-11-09)
 
-- The official DanzStak Store is a main-menu platform destination. A member-named shop appears as a Shop tab/page on that member's profile, not as a permanent Mix sales block.
+- ~~The official DanzStak Store is a main-menu platform destination.~~ Superseded 2026-11-15: no official DanzStak Store. A member-named shop appears as a Shop tab/page on that member's profile, not as a permanent Mix sales block (a single chronological new-item post in Mix is allowed, see 2026-11-15 directives).
 - DanzStak receives 5% of completed member-shop sales and event-ticket sales. Physical-goods seller proceeds release only after confirmed receipt through a provider-supported marketplace flow. No live commerce without tested seller onboarding, payouts, inventory/capacity, shipping or check-in, receipts, refunds, taxes, disputes and fraud controls. Full rules: `docs/OWNER-DIRECTIVES.md`.
 
 ## Idea bank (for discussion, not yet approved)
@@ -284,6 +284,8 @@ Owner correction (2026-11-15): SYNC must work worldwide. In addition to carrier 
 - **Notifications when offline:** members of the installed PWA must receive SYNC message and incoming-call notifications when the app is closed or the phone is locked.
 - **No music files, ever.** Never accept WAV, MP3, AIFF, FLAC or any other audio-file upload anywhere in DanzStak; music is links or authorized embeds only (copyright). SYNC voice messages recorded in the app are not music uploads.
 - **Shops like eBay:** every member's shop lives on their profile; all their active items also appear in the DanzStak Bazaar. DanzStak keeps 5% of each item sold (item price only, never shipping).
+- **Information architecture (owner, 2026-11-15) — supersedes the 5-tab HQ/Tour/EPK/Scene/Mix layout where they conflict.** Top-level categories are separate: **Music HQ** = EPK, Tours, Local gigs, Record shops and Radio stations; **Events** is its own category (promoters create events and sell tickets); **DanzStak Bazaar** is its own category (shops and Bazaar-only ads); **Mix** is the chronological social feed with The Roll. SYNC and notifications stay in the top bar. Final phone tab order to be confirmed by the owner.
+- **Shops and the Bazaar (owner, 2026-11-15).** There is no official DanzStak Store; the **DanzStak Bazaar** is the only commerce destination and it is its own main-menu category, not part of Music HQ. When a member lists an item in their profile shop, it appears in the Bazaar and once in Mix as a normal chronological post from that member (no boosting, no repeats, no paid placement). Musicians sell their merch and releases; fans sell their crafts; promoters create events and sell tickets. DanzStak keeps 5% of the item or ticket price, never shipping.
 - **Advertising lives only in the Bazaar (owner, 2026-11-15).** No advertising anywhere in Mix, ever. Any ad space DanzStak sells (to a brand like Chevy or anyone else) is shown only inside the DanzStak Bazaar, so members see ads only while they are browsing the Bazaar. Mix may show DanzStak members' own products (their shop items), never paid third-party ads. Ads are never targeted from members' private data and never ranked into feeds.
 - **No ChatGPT/Codex references.** Remove ChatGPT, OpenAI and Codex references and dependencies from the repository, scripts and branch/deploy names; DanzStak is built with Claude.
 
