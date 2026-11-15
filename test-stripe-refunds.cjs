@@ -16,7 +16,7 @@ const { createHmac } = require("node:crypto");
   const keyOf = key => `${key.userId.S}|${key.tourId.S}`;
   const cloneRecords = records => new Map([...records].map(([key, value]) => [key, structuredClone(value)]));
 
-  function makeService({ product = "credits", quantity = 3, amountRefunded, amount } = {}) {
+  function makeService({ product = "credits", quantity = 3, amountRefunded, amount, chargeMetadata } = {}) {
     const records = new Map();
     const sessionId = product === "contact" ? "cs_test_contactrefund" : product === "phone" ? "cs_test_phonerefund" : "cs_test_creditrefund";
     const venueKey = "b".repeat(20);
@@ -84,7 +84,7 @@ const { createHmac } = require("node:crypto");
     const env = { STRIPE_SECRET_KEY: "sk_test_example", STRIPE_TOUR_MANAGER_WEBHOOK_SECRET: "whsec_example" };
     const service = billing.createTourManagerBilling({ db, commands, authenticate: async () => userId, corsHeaders: () => ({ "access-control-allow-origin": "https://danzstak.com" }), tableName: "Tours", env, fetcher, clock: () => now });
     const chargeAmount = total, refunded = amountRefunded ?? chargeAmount;
-    const notification = { id: `evt_refund${product}${refunded}`, type: "charge.refunded", livemode: false, data: { object: { id: `ch_${product}refund`, payment_intent: `pi_${product}refund`, currency: "usd", amount: chargeAmount, amount_refunded: refunded } } };
+    const notification = { id: `evt_refund${product}${refunded}`, type: "charge.refunded", livemode: false, data: { object: { id: `ch_${product}refund`, payment_intent: `pi_${product}refund`, currency: "usd", amount: chargeAmount, amount_refunded: refunded, ...(chargeMetadata ? { metadata: chargeMetadata } : {}) } } };
     const payload = JSON.stringify(notification), timestamp = Math.floor(now / 1000);
     const signature = `t=${timestamp},v1=${createHmac("sha256", env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET).update(`${timestamp}.${payload}`).digest("hex")}`;
     const event = { requestContext: { http: { method: "POST" } }, rawPath: "/tour-manager/stripe/webhook", headers: { "stripe-signature": signature }, body: payload };
@@ -101,6 +101,11 @@ const { createHmac } = require("node:crypto");
   result = JSON.parse((await credits.service(credits.event)).body);
   assert.equal(result.duplicate, true, "a repeated refund webhook must not deduct credits twice");
   assert.equal(credits.records.get(`${userId}|TOUR_MANAGER#BOOKING_EMAIL_CREDITS`).credits.N, "0");
+
+  const feeDeducted = makeService({ amountRefunded: 415, chargeMetadata: { danzstak_refund_policy: "fee_deducted" } });
+  result = JSON.parse((await feeDeducted.service(feeDeducted.event)).body);
+  assert.equal(result.refunded, true, "a price-minus-Stripe-fee refund (owner policy) must revoke the purchase");
+  assert.equal(feeDeducted.records.get(`${userId}|TOUR_MANAGER#BOOKING_EMAIL_CREDITS`).credits.N, "0");
 
   const partial = makeService({ amountRefunded: 150 });
   result = JSON.parse((await partial.service(partial.event)).body);
@@ -125,5 +130,5 @@ const { createHmac } = require("node:crypto");
   const phoneStatus = JSON.parse((await phone.service({ requestContext: { http: { method: "GET" } }, rawPath: "/phone-number/entitlement", headers: { origin: "https://danzstak.com" } })).body);
   assert.equal(phoneStatus.entitled, false);
 
-  console.log("Stripe refund checks passed: full credit reversal, entitlement revocation, partial-refund review, duplicate protection, contact removal, and phone-provider follow-up.");
+  console.log("Stripe refund checks passed: full credit reversal, fee-deducted refund reversal, entitlement revocation, partial-refund review, duplicate protection, contact removal, and phone-provider follow-up.");
 })().catch(error => { console.error(error); process.exit(1); });

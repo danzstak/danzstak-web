@@ -37,6 +37,10 @@ const TEST_SYNC_NETWORK_CATALOG = Object.freeze({
   productId: TEST_SYNC_NETWORK_NUMBER_PRODUCT_ID
 });
 function stripeCatalog(livemode) { return livemode ? LIVE_STRIPE_CATALOG : TEST_STRIPE_CATALOG; }
+// Owner policy 2026-11-15: a refund returns the price minus Stripe's processing fee; the buyer pays the fee.
+export const REFUND_NOTICE_TEXT = "Refunds return the price minus Stripe's processing fee.";
+const REFUND_NOTICE = Object.freeze({ "custom_text[submit][message]": REFUND_NOTICE_TEXT });
+export const FEE_DEDUCTED_REFUND_POLICY = "fee_deducted";
 const PRODUCT = "tour_manager_booking_email";
 const CONTACT_PRODUCT = "booking_contact_unlock";
 const PHONE_PRODUCT = "danzstak_phone_activation";
@@ -184,7 +188,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
     const body = parseBody(event), quantity = Number(body?.quantity);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_CREDITS_PER_CHECKOUT) return response(400, { error: `Choose 1 to ${MAX_CREDITS_PER_CHECKOUT} booking emails.` }, headers);
-    const catalog = stripeCatalog(!testMode()), requestId = randomUUID(), form = new URLSearchParams({ mode: "payment", "line_items[0][price]": catalog.tour.priceId, "line_items[0][quantity]": String(quantity), client_reference_id: userId, "metadata[product]": PRODUCT, "metadata[userId]": userId, "metadata[priceId]": catalog.tour.priceId, "metadata[quantity]": String(quantity), success_url: "https://danzstak.com/booking-selections.html?credits=success", cancel_url: "https://danzstak.com/booking-selections.html?credits=cancelled" });
+    const catalog = stripeCatalog(!testMode()), requestId = randomUUID(), form = new URLSearchParams({ mode: "payment", ...REFUND_NOTICE, "line_items[0][price]": catalog.tour.priceId, "line_items[0][quantity]": String(quantity), client_reference_id: userId, "metadata[product]": PRODUCT, "metadata[userId]": userId, "metadata[priceId]": catalog.tour.priceId, "metadata[quantity]": String(quantity), success_url: "https://danzstak.com/booking-selections.html?credits=success", cancel_url: "https://danzstak.com/booking-selections.html?credits=cancelled" });
     const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `tour-manager-${userId}-${requestId}` }, body: form.toString() });
     if (!/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
     await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, quantity: { N: String(quantity) }, priceId: { S: catalog.tour.priceId }, environment: { S: testMode() ? "test" : "live" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
@@ -205,7 +209,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
     const venue = (plan.venues || []).find(item => item?.venueKey === venueKey);
     if (!venue || !(venue.emails || []).length && !(venue.phones || []).length) return response(409, { error: "Save this venue and its public booking contact before unlocking it." }, headers);
-    const catalog = stripeCatalog(!testMode()), requestId = randomUUID(), form = new URLSearchParams({ mode: "payment", "line_items[0][price]": catalog.contact.priceId, "line_items[0][quantity]": "1", client_reference_id: userId, "metadata[product]": CONTACT_PRODUCT, "metadata[userId]": userId, "metadata[priceId]": catalog.contact.priceId, "metadata[venueKey]": venueKey, success_url: `https://danzstak.com/booking-selections.html?contact=success&venueKey=${encodeURIComponent(venueKey)}`, cancel_url: `https://danzstak.com/booking-selections.html?contact=cancelled&venueKey=${encodeURIComponent(venueKey)}` });
+    const catalog = stripeCatalog(!testMode()), requestId = randomUUID(), form = new URLSearchParams({ mode: "payment", ...REFUND_NOTICE, "line_items[0][price]": catalog.contact.priceId, "line_items[0][quantity]": "1", client_reference_id: userId, "metadata[product]": CONTACT_PRODUCT, "metadata[userId]": userId, "metadata[priceId]": catalog.contact.priceId, "metadata[venueKey]": venueKey, success_url: `https://danzstak.com/booking-selections.html?contact=success&venueKey=${encodeURIComponent(venueKey)}`, cancel_url: `https://danzstak.com/booking-selections.html?contact=cancelled&venueKey=${encodeURIComponent(venueKey)}` });
     const session = await stripe("/checkout/sessions", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `contact-unlock-${userId}-${venueKey}-${requestId}` }, body: form.toString() });
     if (!/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(session.id || "") || !session.url?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an invalid Checkout session");
     await db.send(new PutItemCommand({ TableName: tableName, Item: { ...checkoutKey(userId, session.id), sessionId: { S: session.id }, status: { S: "pending" }, product: { S: CONTACT_PRODUCT }, venueKey: { S: venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, priceId: { S: catalog.contact.priceId }, environment: { S: testMode() ? "test" : "live" }, createdAt: { S: nowIso() } }, ConditionExpression: "attribute_not_exists(userId)" }));
@@ -226,6 +230,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const catalog = stripeCatalog(!testMode()), requestId = randomUUID();
     const form = new URLSearchParams({
       mode: "payment",
+      ...REFUND_NOTICE,
       "line_items[0][price]": catalog.phone.priceId,
       "line_items[0][quantity]": "1",
       client_reference_id: userId,
@@ -273,6 +278,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       : "https://danzstak.com";
     const form = new URLSearchParams({
       mode: "payment",
+      ...REFUND_NOTICE,
       "line_items[0][price]": TEST_SYNC_NETWORK_CATALOG.priceId,
       "line_items[0][quantity]": "1",
       client_reference_id: userId,
@@ -771,7 +777,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       const verified = session ? await loadVerifiedKnownSession(session, expectedLive) : null;
       if (!verified || verified.session.payment_status !== "paid" || verified.session.status !== "complete" || Number(supplied.amount) !== Number(verified.session.amount_total) || !Number.isInteger(Number(supplied.amount_refunded)) || Number(supplied.amount_refunded) < 1 || Number(supplied.amount_refunded) > Number(supplied.amount)) return response(409, { error: "No matching refundable DANZSTAK purchase." });
       if (verified.product === SYNC_NETWORK_PRODUCT && !await stripeAccountMatches()) return response(503, { error: "DanzStak payments are not connected to the approved Stripe account." });
-      if (Number(supplied.amount_refunded) !== Number(supplied.amount)) {
+      const feeDeductedRefund = supplied.metadata?.danzstak_refund_policy === FEE_DEDUCTED_REFUND_POLICY;
+      if (Number(supplied.amount_refunded) !== Number(supplied.amount) && !feeDeductedRefund) {
         await recordRefundReview(notification, verified, supplied);
         return response(200, { received: true, refundReviewRequired: true, accessChanged: false });
       }

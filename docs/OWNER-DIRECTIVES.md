@@ -90,12 +90,19 @@ Later phase (after users): SYNC standalone, SYNC Network numbers, federated netw
 | --- | --- | --- |
 | EPK builder (build, publish, share, send) | Free | Every artist, always |
 | AI-assisted EPK | $5 per EPK; an AI redesign of an existing EPK is another $5 (or build and edit your own for free) | New. Plan only |
-| Booking email credit | $1.50 each | Stripe test mode |
-| Venue contact unlock | $0.75 | Stripe test mode |
-| DanzStak number activation | $3 one-time | Checkout hidden until the owner approves |
+| Booking email credit | $1.50 each | Live (DANZSTAK Stripe, 2026-11-15) |
+| Venue contact unlock | $0.75 | Live (DANZSTAK Stripe, 2026-11-15) |
+| DanzStak Network number | $3 one-time, for members who keep their personal number private | Live price exists; checkout not wired yet |
 | SYNC calling Plus / Pro | $3 / $5 a month (proposed) | Later phase |
 | StakGuard: see which brokers have your data + remove it | Free | Spec only |
 | StakGuard monitoring | $4 a month, no auto-renewal; prepay any months at $4 each (e.g. $20 = 5 months) | Spec only |
+
+## Refunds (owner-set, 2026-11-15)
+
+- The buyer pays the Stripe fee. A refund returns the price minus Stripe's processing fee (example: $1.50 paid, $0.34 fee, $1.16 refunded).
+- Every DanzStak checkout says so before payment ("Refunds return the price minus Stripe's processing fee.") on the Stripe page and next to the buy button.
+- Issue refunds with `scripts/stripe-refund-minus-fee.py <payment_intent>` (dry run first, then `--confirm`). It tags the charge `danzstak_refund_policy=fee_deducted`, so the webhook revokes the credit, unlock or number. Other partial refunds still go to manual review.
+- Where consumer law requires a full refund (for example DanzStak's own error), refund in full in the Stripe dashboard; the webhook revokes access automatically.
 
 ## Shops and event tickets (owner-set, 2026-11-09)
 
