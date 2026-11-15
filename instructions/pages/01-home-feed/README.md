@@ -17,7 +17,7 @@ Follow `instructions/00c-design-direction-80-20.md`: familiar social-network int
 
 ## Tracking
 - Design: pending review
-- Codex implementation: not verified
+- Claude implementation: not verified
 - Functional testing: not verified
 - PWA preview: not verified
 - Owner approval: pending
@@ -38,7 +38,7 @@ Follow `instructions/00c-design-direction-80-20.md`: familiar social-network int
 - **No mandatory Facebook login, approval, SDK, API, account connection, posting permission or dependency** for Add to Mix, Add Event, discovery, comments, sharing, or normal use. Own content and uploaded event media must remain available if Facebook stops working or changes its rules. Do not cross-post to Facebook unless user explicitly chooses and an approved integration independently permits it.
 - Optional embeds from Facebook/Instagram or user-imported Meta-origin content are **not exempt** from the applicable third-party service rules, copyrights, creator permissions, and technical limits; support them as optional links/embeds with graceful fallback, never as a core dependency.
 - Independence does not eliminate relevant laws, safety obligations or DANZSTAK's own community standards; maintain protections for unlawful content, harassment, abuse, impersonation, privacy and unauthorized copyrighted media.
-- Codex must verify genuine independent content posting and event publishing with Facebook connections absent/blocked, and test upload, persistence and playback using DANZSTAK-controlled assets. Owner approval still required before launch.
+- Claude must verify genuine independent content posting and event publishing with Facebook connections absent/blocked, and test upload, persistence and playback using DANZSTAK-controlled assets. Owner approval still required before launch.
 
 
 ## Cinematic public naming — final owner choice (2026-11-04)

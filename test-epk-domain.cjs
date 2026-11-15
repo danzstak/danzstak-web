@@ -9,13 +9,13 @@ const { createHash } = require("node:crypto");
   const photoKey = `epk/${owner}/11111111-1111-4111-a111-111111111111.jpg`;
   const riderKey = `epk/${owner}/22222222-2222-4222-a222-222222222222.pdf`;
   const kit = cleanEpk({
-    artistName: "Codex Band",
+    artistName: "Static Band",
     look: "punk",
     socialLinks: [
-      { label:"Instagram", url:"https://www.instagram.com/codex-band" },
+      { label:"Instagram", url:"https://www.instagram.com/static-band" },
       { label:"Unsafe", url:"javascript:alert(1)" }
     ],
-    bookingEmail:"book@codex.band",
+    bookingEmail:"book@static.band",
     bookingPhone:"+1 555 010 1234",
     techRequirements:"Two vocal microphones",
     hospitalityRequirements:"Water",
@@ -25,18 +25,18 @@ const { createHash } = require("node:crypto");
       { key: riderKey, id:"rider", role:"technical-rider", name:"Private rider", public:false }
     ]
   }, owner);
-  assert.equal(kit.artistName, "Codex Band");
+  assert.equal(kit.artistName, "Static Band");
   assert.equal(kit.look, "punk", "the artist's selected EPK look should persist independently of content");
   assert.equal(cleanEpk({ artistName:"Fallback", look:"javascript:alert(1)" }, owner).look, "techno", "unknown looks must fall back to the bounded default");
-  assert.deepEqual(kit.socialLinks, [{ label:"Instagram", url:"https://www.instagram.com/codex-band" }], "social links should persist while unsafe schemes are rejected");
+  assert.deepEqual(kit.socialLinks, [{ label:"Instagram", url:"https://www.instagram.com/static-band" }], "social links should persist while unsafe schemes are rejected");
   assert.equal(kit.media.length, 2, "valid owner-scoped media should remain in the artist draft");
-  assert.equal(cleanEpk({ artistName:"Codex Band", media:[{ key:photoKey.replace(owner, "fedcba9876543210fedcba98"), role:"press-photo", name:"Stolen" }] }, owner), null, "another artist's object key must reject the entire update");
-  assert.equal(cleanEpk({ artistName:"Codex Band", media:[{ key:photoKey, role:"executable", name:"Bad role" }] }, owner), null, "unknown media roles must be rejected");
+  assert.equal(cleanEpk({ artistName:"Static Band", media:[{ key:photoKey.replace(owner, "fedcba9876543210fedcba98"), role:"press-photo", name:"Stolen" }] }, owner), null, "another artist's object key must reject the entire update");
+  assert.equal(cleanEpk({ artistName:"Static Band", media:[{ key:photoKey, role:"executable", name:"Bad role" }] }, owner), null, "unknown media roles must be rejected");
 
   const ownerView = epkForViewer(kit, false), publicView = epkForViewer(kit, true), privateShareView = epkForViewer(kit, false, false);
   assert.equal(ownerView.media.length, 2, "the artist should retain private and public media");
   assert.equal(publicView.media.length, 1, "the public EPK must hide private media");
-  assert.equal(publicView.bookingEmail, "book@codex.band", "artist-approved booking email should be public");
+  assert.equal(publicView.bookingEmail, "book@static.band", "artist-approved booking email should be public");
   assert.equal(publicView.bookingPhone, "", "private booking phone must not leave the owner response");
   assert.equal(publicView.techRequirements, "Two vocal microphones", "artist-approved technical rider should be public");
   assert.equal(publicView.hospitalityRequirements, "", "private hospitality rider must not leave the owner response");
@@ -53,7 +53,7 @@ const { createHash } = require("node:crypto");
   assert.equal(kit.media.some(item => "url" in item), false, "viewer serialization must not mutate stored EPK data");
   const ownerKey = { userId:{S:"artist-1"}, tourId:{S:"epk-workspace-v1"} };
   const queuedKey = `epk/${owner}/33333333-3333-4333-a333-333333333333.webp`;
-  const deletion = epkDeletionPlan({ publicId:{S:"codex-band"}, plan:{S:JSON.stringify({media:[{key:photoKey},{key:photoKey.replace(owner,"fedcba9876543210fedcba98")}]})}, mediaCleanup:{SS:[queuedKey, photoKey]} }, owner, ownerKey);
+  const deletion = epkDeletionPlan({ publicId:{S:"static-band"}, plan:{S:JSON.stringify({media:[{key:photoKey},{key:photoKey.replace(owner,"fedcba9876543210fedcba98")}]})}, mediaCleanup:{SS:[queuedKey, photoKey]} }, owner, ownerKey);
   assert.equal(deletion.transaction.length, 3, "deletion should remove the private draft, published copy, and private share atomically");
   assert.deepEqual(deletion.transaction[0].Delete.Key, ownerKey);
   assert.equal(deletion.transaction[2].Delete.Key.userId.S, "epk-private-share", "deletion must revoke the private review copy");

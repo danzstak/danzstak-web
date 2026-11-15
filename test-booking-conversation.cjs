@@ -35,7 +35,7 @@ assert.equal(naturalRoundTrip.days, 10);
 assert.equal(naturalRoundTrip.shows, 8);
 const naturalDeparture = parse("Route Test. DIY punk. Seattle to San Francisco and back to Seattle. 10 days. 8 shows. Depart January 4, 2027.");
 assert.equal(naturalDeparture.departOn, "2027-01-04");
-const plainDeparture = parse("Codex. Punk. Seattle to San Francisco and back to Seattle. 10 days. 8 shows. January 1 2027.");
+const plainDeparture = parse("Static. Punk. Seattle to San Francisco and back to Seattle. 10 days. 8 shows. January 1 2027.");
 assert.equal(plainDeparture.departOn, "2027-01-01", "a plain-language trailing date should set the first tour day");
 const spokenCommaRoute = parse("Route Test, DIY punk from Seattle to San Francisco and back to Seattle, 10 days, 8 shows, depart January 4 2027");
 assert.equal(spokenCommaRoute.act, "Route Test");

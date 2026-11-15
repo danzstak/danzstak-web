@@ -11,7 +11,7 @@ Produce the first phone-accessible DANZSTAK PWA preview implementing the approve
 5. Permitted shares show small clickable **Shared from [Original Creator]** tag, like a friend/location tag, not a watermark. Respect Do Not Share/Protected Content.
 6. Existing SFScoop posts and current user data are preserved; do not alter their privacy settings.
 
-## Required Codex procedure
+## Required Claude procedure
 - Read `instructions/00-mobile-first.md`, `00b-pwa-release-review.md`, `00c-design-direction-80-20.md`, `00d-user-content-ownership.md`, `01-video-playback.md`, `pages/13-flashes/README.md` (public name Dailies), `pages/14-rough-cut/README.md`, and `pages/01-home-feed/README.md` from **codex-instructions**.
 - Audit actual frontend/backend stack before modifying files. Do not assume React.
 - Work on a separate implementation branch and open a PR linked to the milestone issue.

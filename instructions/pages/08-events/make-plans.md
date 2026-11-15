@@ -2,7 +2,7 @@
 
 **Owner direction (2026-11-04):** DANZSTAK is a professional, familiar social network for everyone, with music in its DNA and an independent punk-rock philosophy. Electronics and AI should make it easier for people to connect **outside the app**, not just produce more scrolling, impressions or stream counts.
 
-**Status:** Product specification / Codex assignment only. Not an implementation, test result, deployment or owner approval.
+**Status:** Product specification / Claude assignment only. Not an implementation, test result, deployment or owner approval.
 
 ## Product promise
 
@@ -48,6 +48,6 @@ The user experience must be familiar to people migrating from mainstream social 
 
 Instrument only privacy-respecting aggregate counts: invitations created, accepted, declined, cancelled and repeat voluntary usage. Don't track GPS or infer actual physical attendance. Optionally ask participants for voluntary post-event feedback in a later phase. Avoid reward systems designed to maximize in-app minutes.
 
-## Codex deliverable
+## Claude deliverable
 
 First produce an honest audit and minimal PR plan, then build Phase 1 in a separate implementation branch. Update `docs/DANZSTAK-DEVELOPMENT-REPORT.md` with implementation vs scaffolding clearly distinguished. Provide owner review evidence and link the PR to the GitHub issue. Never claim it works just because this instruction exists.
