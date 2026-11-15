@@ -1,10 +1,10 @@
 # DanzStak owner directives
 
-Every standing instruction from the owner (Shawn), in one place. This file is the directive set for Codex (and any AI or person working on this repo). Read in this order:
+Every standing instruction from the owner (Shawn), in one place. This file is the directive set for Claude (and any AI or person working on this repo). Read in this order:
 
 1. CLAUDE.md: the short brief.
 2. This file: priorities, rules and task specs from 2026-11-07.
-3. instructions/: the full product spec the owner wrote with ChatGPT on 2026-11-04 (page-by-page contracts for Home/Mix, Dailies, The Roll, SYNC, Facebook import, Events, StakGuard, phone service and more). This is what the owner wants to build. Nothing in it is cancelled; this file only sets the order.
+3. instructions/: the full product spec the owner wrote with an AI assistant on 2026-11-04 (page-by-page contracts for Home/Mix, Dailies, The Roll, SYNC, Facebook import, Events, StakGuard, phone service and more). This is what the owner wants to build. Nothing in it is cancelled; this file only sets the order.
 
 When two directives conflict, the newer dated one wins; if unclear, stop and ask the owner. Last updated: 2026-11-07.
 
@@ -124,7 +124,7 @@ Every device must receive a real OTP before it is registered for SYNC. So:
 - Private: stored hashed/masked, never on profiles, SYNC contact details, directories, search, notifications or call screens, and never shared with other users. Only the owner may see their own masked last four digits inside the private registration/settings flow; contacts cannot see even that masked value.
 - Device-bound: the OTP grant is tied to the authenticated account and exact one-time server device challenge. It expires, is consumed atomically and cannot register another device.
 - No spoofing: no mock success, client-only verification, reusable account flag, replayed grant or DS internal alias is accepted as carrier SMS proof.
-- Rate limits, resend cooldown and attempt caps (as built on codex/personal-phone-verification).
+- Rate limits, resend cooldown and attempt caps (as built on the personal-phone-verification branch).
 - Mandatory mode stays switched off until AWS SMS is approved and real US and Italy handset tests pass. No texts are claimed as sent before then, and an unavailable provider must not lock current members out.
 - DS/SYNC Network aliases are not carrier numbers and cannot receive the registration OTP. The later internal-number product remains paused and must not be sold.
 

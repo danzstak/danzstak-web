@@ -60,4 +60,4 @@ This update overrides any earlier wording that implies the *same* daily phrase a
 - Provide an actual verified **phone-accessible staging PWA URL**, commit SHA, screenshots, pass/fail list and physical-device limitations. Owner approval required before merge or production deployment.
 - Update `docs/DANZSTAK-DEVELOPMENT-REPORT.md` with only observed evidence, not claims based on instructions.
 
-**Codex:** start with a header feasibility audit and propose smallest implementation consistent with the compact header. Do not change other products or enable live payments.
+**Claude:** start with a header feasibility audit and propose smallest implementation consistent with the compact header. Do not change other products or enable live payments.

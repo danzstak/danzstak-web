@@ -56,7 +56,7 @@ if (-not $distribution) {
   $branch = (aws amplify list-branches --region $Region --app-id $amplifyApp.appId --output json | ConvertFrom-Json).branches |
     Where-Object { $_.stage -eq "PRODUCTION" } | Select-Object -First 1
   if (-not $branch) { throw "The Amplify app has no production branch." }
-  $localCommit = (& "C:\Users\5star\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\git\cmd\git.exe" -C $Root rev-parse HEAD).Trim()
+  $localCommit = (& git -C $Root rev-parse HEAD).Trim()
   if ($LASTEXITCODE -ne 0 -or -not $localCommit) { throw "Unable to resolve the local release commit." }
 
   Write-Host "Waiting for Amplify production branch $($branch.branchName) to publish $localCommit..."

@@ -17,7 +17,7 @@ Follow `instructions/00c-design-direction-80-20.md`: familiar social-network int
 
 ## Tracking
 - Design: pending review
-- Codex implementation: not verified
+- Claude implementation: not verified
 - Functional testing: not verified
 - PWA preview: not verified
 - Owner approval: pending

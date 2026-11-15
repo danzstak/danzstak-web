@@ -72,7 +72,7 @@ DANZSTAK must not claim ownership of original works merely because they were pos
 
 **Implementation requirements:** server-side ownership authorization and stable canonical content IDs, distinct publication/share IDs, idempotent deletion and revocation across fanout, API/media URLs/caches, clear confirmation for Delete everywhere, no extra fees, audits without copying deleted content, and tested negative/permission cases. The confirmation says screenshots, downloads and external copies cannot be recalled. Design is not complete until genuine two-account tests prove the original and all in-service shares are absent after creator Delete everywhere.
 
-See [cross-content deletion Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40). Do not advertise the control as currently working before Codex produces code, actual tests, staged review and owner approval.
+See [cross-content deletion Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40). Do not advertise the control as currently working before Claude produces code, actual tests, staged review and owner approval.
 
 
 ## Account exit policy — remove original content from active DANZSTAK servers (2026-11-04)
@@ -85,7 +85,7 @@ See [cross-content deletion Issue #40](https://github.com/Danzstak/Danzstak-web/
 
 Settings must make **Download my information** and **Delete account and my content** obvious and **free** to all users. Durable deletion must proceed after login shutdown, with secure confirmation, retries, status/receipt, real disposable-account integration tests and owner-approved staging. The technical deletion workflow is P0 [Issue #32](https://github.com/Danzstak/Danzstak-web/issues/32); creator-level cross-share revocation is [Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40).
 
-**Policy claim may be published as live only after Codex actually implements and verifies all relevant systems; this document does not prove deployment.**
+**Policy claim may be published as live only after Claude actually implements and verifies all relevant systems; this document does not prove deployment.**
 
 
 ## Optional account return — private 30-day restore, not mandatory deletion delay (owner request, 2026-11-04)
@@ -98,4 +98,4 @@ Owner wants former members who return and log in soon after leaving to be given 
 
 For the recoverable state, a subsequent **authenticated login before the exact deadline** opens a dedicated choice: **Restore my account and content / Delete permanently now / Sign out**. Logging in alone must never silently republish posts or cancel deletion. Restoring must be deliberate, respect original privacy settings, moderation/legal decisions and other members' independent deletions, and explain that previously withdrawn dependent reshares may become accessible again if their shares still exist. Do not automatically reenable payments, subscriptions, DS phone assignments or other paid features without new consent/eligibility. The expired or immediately deleted archive must be purged and cannot be restored; returning users then create a new account.
 
-Strong account verification and explicit confirmation are required; durable scheduled purge and precise time/date reporting must be backend-verified. Export is always optional and free. Keep a truthful deletion receipt and disclose backup schedules. **[Implementation task: #32](https://github.com/Danzstak/Danzstak-web/issues/32)**, with [share revocation #40](https://github.com/Danzstak/Danzstak-web/issues/40). Documentation does not mean Codex has shipped this feature.
+Strong account verification and explicit confirmation are required; durable scheduled purge and precise time/date reporting must be backend-verified. Export is always optional and free. Keep a truthful deletion receipt and disclose backup schedules. **[Implementation task: #32](https://github.com/Danzstak/Danzstak-web/issues/32)**, with [share revocation #40](https://github.com/Danzstak/Danzstak-web/issues/40). Documentation does not mean Claude has shipped this feature.

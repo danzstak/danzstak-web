@@ -18,7 +18,7 @@
 ## Demo community
 The 25 removable demo accounts and 75–100 sample posts specified in section 06 must render convincingly on mobile first. Demo labels must remain visible and sample activity excluded from genuine-user counts.
 
-## Codex implementation process
+## Claude implementation process
 Inspect actual existing frontend stack before changes. Do not assume React or any particular framework. Implement shared responsive tokens/components where possible, avoiding broad unrelated rewrites. Capture real mobile screenshots and test at listed widths. Check for horizontal scrolling, clipped content, accidental double navigation, tap targets, keyboard overlap, and media layout shift. Report exact test devices/browsers and any unverified areas.
 
 Do not merge or deploy without approval.
