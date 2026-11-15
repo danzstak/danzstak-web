@@ -325,7 +325,7 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
     right:0;
     bottom:0;
     display:grid;
-    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    grid-template-columns:repeat(6,minmax(0,1fr))!important;
     width:100%;
     height:calc(var(--mobile-app-nav) + env(safe-area-inset-bottom));
     padding:3px max(4px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px,env(safe-area-inset-left));
@@ -360,3 +360,12 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
 @media(max-width:360px){.friends-directory-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;margin-inline:0;overflow:visible}.friends-directory-tab{min-width:0;padding-inline:2px;font-size:11px;letter-spacing:-.01em}}
 .friend-more-menu:not([open]) .friend-remove-action{display:none}
 .friends-feature-view{grid-auto-rows:max-content;align-content:start;row-gap:8px}.friends-feature-view :is(.friend-workspace-row,.friends-directory-empty){border:0;border-radius:0;background:transparent;box-shadow:none}.friends-feature-view .friends-directory-empty{padding-inline:0}
+
+/* Owner IA 2026-11-15: tabs Mix · Music HQ · Events · Bazaar · SYNC · Menu; notifications bell in the header row. */
+.topbar .topnav .ds-action-icon{width:22px;height:22px;flex:none}
+.topbar .header-notifications{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:0;border:0;border-radius:50%;background:#ffffff1f;color:inherit;cursor:pointer}
+.topbar .header-notifications .nav-icon{width:22px;height:22px}
+.topbar .header-notifications .nav-count{position:absolute;top:2px;right:2px}
+@media(max-width:700px){.topbar{grid-template-columns:auto minmax(0,1fr) auto auto!important}.topbar .header-notifications{grid-row:1;grid-column:4;min-width:40px;min-height:40px;background:#ffffff1f;color:#fff}.topbar .pivot-header-button{grid-row:1;grid-column:3}.topbar .topnav>button{display:flex!important;align-items:center;justify-content:center;width:auto!important;min-width:0}.topbar .topnav .mobile-menu-control{display:flex!important}}
+.topbar .header-notifications{flex:none;width:44px;height:44px;justify-self:center}
+@media(min-width:701px) and (max-width:1050px){.topbar{grid-template-columns:auto minmax(120px,1fr) auto auto auto!important}.topbar .header-notifications{grid-column:4}.topbar .topnav{grid-column:5!important}}

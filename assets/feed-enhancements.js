@@ -2320,7 +2320,8 @@ if (friendsLink && !document.querySelector('[data-feature="Groups"]')) {
 const workspaceRoutes = new Map(["HQ", "Friends", "Groups", "Photos", "Videos", "Events", "Saved", "Settings", "Notifications"].map(name => [name.toLowerCase(), name]));
 const mobileMenuControl = document.querySelector(".mobile-menu-control");
 const mobileNavMenu = document.getElementById("mobileNavMenu");
-const directMobileDestinations = new Set(["Friends", "Notifications"]);
+const directMobileDestinations = new Set(["Friends", "Notifications", "HQ", "Events"]);
+document.querySelectorAll(".topnav [data-nav-href]").forEach(control => control.addEventListener("click", () => { location.href = control.dataset.navHref; }));
 function syncMobileMenuCurrent(menuOpen = document.body.classList.contains("mobile-menu-open")) {
   const workspaceName = featurePanel.dataset.workspaceName || "";
   const representsCurrentScreen = menuOpen || (!featurePanel.hidden && !directMobileDestinations.has(workspaceName));

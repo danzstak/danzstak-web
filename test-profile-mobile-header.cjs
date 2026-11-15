@@ -8,10 +8,10 @@ const mobile = fs.readFileSync("assets/mobile-design-system.css", "utf8");
 const profileHeader = fs.readFileSync("assets/profile-app-header.css", "utf8");
 const feedEnhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 
-assert.match(profile, /assets\/mobile-design-system\.css\?v=19/,
+assert.match(profile, /assets\/mobile-design-system\.css\?v=20/,
   "the profile must load the shared mobile application shell");
-assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">[\s\S]*?data-icon="home"[\s\S]*?data-icon="users"[\s\S]*?data-icon="chat"[\s\S]*?data-icon="bell"[\s\S]*?data-icon="menu"/,
-  "the profile must expose the same five primary mobile destinations as the rest of DanzStak");
+assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">[\s\S]*?data-icon="home"[\s\S]*?data-icon="disc"[\s\S]*?data-icon="calendar"[\s\S]*?data-icon="store"[\s\S]*?data-icon="chat"[\s\S]*?data-icon="menu"/,
+  "the profile must expose the same six primary mobile destinations (Mix, Music HQ, Events, Bazaar, SYNC, Menu) as the rest of DanzStak");
 assert.match(profile, /class="profile-header-search"[\s\S]*?name="q"[\s\S]*?placeholder="Search posts and users"/,
   "the profile header must retain the familiar cross-page search entry point");
 assert.match(profile, /id="profileHeaderPivot"[\s\S]*?data-pivot-trigger[\s\S]*?<span>Pivot<\/span>/,

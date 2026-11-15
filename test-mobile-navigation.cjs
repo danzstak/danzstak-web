@@ -10,7 +10,7 @@ assert.match(html, /<aside class="left" id="mobileNavMenu" aria-label="DanzStak 
 assert.match(html, /class="menu-profile-header"/, "the drawer begins with a compact signed-in profile header");
 assert.match(html, /id="menuProfileName">My Profile</, "the profile header has a safe fallback while account details load");
 assert.match(html, /class="menu-close"[^>]+data-menu-close[^>]+aria-label="Close menu"/, "the drawer has an accessible close control");
-for (const section of ["Social", "Music &amp; Entertainment", "Account"]) assert.match(html, new RegExp(`class="menu-section-heading">${section}<`), `the drawer includes the ${section} group`);
+for (const section of ["Mix", "Music HQ · for musicians", "Events · for promoters", "Bazaar · for everybody", "Account"]) assert.match(html, new RegExp(`class="menu-section-heading">${section}<`), `the drawer includes the ${section} group`);
 assert.match(html, /<button type="button" class="menu-action logout-menu-link" data-logout>/, "Logout is an action button rather than a fake page link");
 assert.doesNotMatch(html, /<a href="#" data-logout>/, "Logout must not jump the feed to a hash destination");
 assert.match(css, /@media\(max-width:700px\)[\s\S]*?\.layout\{display:block;/, "phone feed uses the full single-column width");
