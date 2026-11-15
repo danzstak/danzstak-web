@@ -338,7 +338,10 @@ async function renderUpcomingEvents(list) {
         Object.assign(document.createElement("p"), { textContent: [item.venueName, item.venueAddress].filter(Boolean).join(" · ") })
       );
       const prices = (item.tiers || []).map(tier => Number(tier.priceCents)).filter(cents => cents > 0);
-      const link = Object.assign(document.createElement("a"), { className: "primary event-flyer-tickets", href: `event.html?id=${encodeURIComponent(item.id)}`, textContent: prices.length ? `Tickets from $${(Math.min(...prices) / 100).toFixed(2)}` : "Show details" });
+      let outsideHost = ""; try { outsideHost = item.ticketUrl ? new URL(item.ticketUrl).hostname.replace(/^www\./, "") : ""; } catch {}
+      const link = outsideHost && !prices.length
+        ? Object.assign(document.createElement("a"), { className: "primary event-flyer-tickets", href: item.ticketUrl, target: "_blank", rel: "noopener noreferrer", textContent: `Tickets on ${outsideHost} ↗` })
+        : Object.assign(document.createElement("a"), { className: "primary event-flyer-tickets", href: `event.html?id=${encodeURIComponent(item.id)}`, textContent: prices.length ? `Tickets from $${(Math.min(...prices) / 100).toFixed(2)}` : "Show details" });
       body.append(link); card.append(body); list.append(card);
     }
     if (!list.children.length) list.append(Object.assign(document.createElement("p"), { className: "muted", textContent: "No shows posted yet. Post the first one." }));
@@ -1905,6 +1908,7 @@ function renderWorkspace(name) {
     const venue = field("Venue", "text", "Club or venue name");
     const address = field("Venue address (optional)", "text", "Public venue address");
     const capacity = field("Capacity", "number", "100");
+    const outsideTickets = field("Outside ticket link (optional, e.g. Eventbrite)", "url", "https://");
     capacity.input.min = "1"; capacity.input.max = "100000"; capacity.input.step = "1"; capacity.input.value = "100";
     const audience = document.createElement("select");
     audience.setAttribute("aria-label", "Event audience");
@@ -1953,6 +1957,8 @@ function renderWorkspace(name) {
       const priceMatch = ticketSales.checked ? ticketPrice.input.value.trim().match(/^(\d{1,7})(?:\.(\d{1,2}))?$/) : null;
       const priceCents = priceMatch ? Number(priceMatch[1]) * 100 + Number((priceMatch[2] || "").padEnd(2, "0")) : 0;
       if (ticketSales.checked && (!ticketName.input.value.trim() || priceCents < 50)) { featureText.textContent = "Enter a ticket name and price of at least $0.50."; ticketPrice.input.focus(); return; }
+      const outsideTicketUrl = outsideTickets.input.value.trim() === "https://" ? "" : outsideTickets.input.value.trim();
+      if (outsideTicketUrl) { let valid = false; try { valid = new URL(outsideTicketUrl).protocol === "https:"; } catch {} if (!valid) { featureText.textContent = "Outside ticket links must start with https://"; outsideTickets.input.focus(); return; } }
       const submittedTitle = title.input.value.trim();
       const submittedDate = date.input.value;
       button.disabled = true;
@@ -1971,7 +1977,7 @@ function renderWorkspace(name) {
         const startsAt = new Date(submittedDate), endsAt = endDate.input.value ? new Date(endDate.input.value) : null;
         if (Number.isNaN(startsAt.valueOf()) || endsAt && (Number.isNaN(endsAt.valueOf()) || endsAt <= startsAt)) throw new Error("Choose valid start and end times.");
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-        const eventResponse = await postActionFetch("/marketplace/events", { method:"POST", credentials:"include", cache:"no-store", headers:{"Content-Type":"application/json"}, body:JSON.stringify({clientEventId,title:submittedTitle,description:"",venueName:venue.input.value.trim(),venueAddress:address.input.value.trim(),startsAt:startsAt.toISOString(),endsAt:endsAt?.toISOString()||"",timezone,capacity:eventCapacity,status:audience.value==="public"?"published":"draft",ticketSalesEnabled:ticketSales.checked,...mediaFields}) });
+        const eventResponse = await postActionFetch("/marketplace/events", { method:"POST", credentials:"include", cache:"no-store", headers:{"Content-Type":"application/json"}, body:JSON.stringify({clientEventId,title:submittedTitle,description:"",venueName:venue.input.value.trim(),venueAddress:address.input.value.trim(),startsAt:startsAt.toISOString(),endsAt:endsAt?.toISOString()||"",timezone,capacity:eventCapacity,status:audience.value==="public"?"published":"draft",ticketSalesEnabled:ticketSales.checked,ticketUrl:outsideTicketUrl,...mediaFields}) });
         const eventData = await eventResponse.json().catch(() => ({}));
         if (!eventResponse.ok) throw new Error(eventData.error || "Event details could not be saved.");
         uploadedEventMediaKey = "";
@@ -1981,7 +1987,7 @@ function renderWorkspace(name) {
           if (!tierResponse.ok) throw new Error(tierData.error || "Ticket offer could not be saved.");
         }
         const formattedDate = startsAt.toLocaleString(undefined, { year: "numeric", month: "long", day: "numeric", hour:"numeric", minute:"2-digit" });
-        const ticketCopy = ticketSales.checked ? `\nTickets: $${(priceCents / 100).toFixed(2)} · ${eventCapacity} capacity\nhttps://danzstak.com/event.html?id=${eventData.event.id}` : "";
+        const ticketCopy = ticketSales.checked ? `\nTickets: $${(priceCents / 100).toFixed(2)} · ${eventCapacity} capacity\nhttps://danzstak.com/event.html?id=${eventData.event.id}` : outsideTicketUrl ? `\nTickets: ${outsideTicketUrl}` : "";
         const response = await postActionFetch("/secure-posts", {
           method: "POST", credentials: "include", cache: "no-store",
           headers: { "Content-Type": "application/json" },
@@ -1997,6 +2003,7 @@ function renderWorkspace(name) {
           venue.input.value = "";
           address.input.value = "";
           capacity.input.value = "100";
+          outsideTickets.input.value = "";
           ticketSales.checked = false;
           ticketFields.hidden = true;
           ticketName.input.value = "";
@@ -2013,7 +2020,7 @@ function renderWorkspace(name) {
       }
       finally { button.disabled = false; }
     });
-    workspace.append(upcomingHeading, upcoming, postHeading, mediaWrap, mediaPreview, title.wrap, date.wrap, endDate.wrap, venue.wrap, address.wrap, capacity.wrap, audience, ticketLabel, ticketFields, eventCertification, button, publishedHeading, publishedEvents);
+    workspace.append(upcomingHeading, upcoming, postHeading, mediaWrap, mediaPreview, title.wrap, date.wrap, endDate.wrap, venue.wrap, address.wrap, capacity.wrap, outsideTickets.wrap, audience, ticketLabel, ticketFields, eventCertification, button, publishedHeading, publishedEvents);
     return;
   }
 

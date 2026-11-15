@@ -24,5 +24,9 @@ const assert=require("node:assert/strict");
   await call("POST","/marketplace/events",{...base,title:"Sooner",startsAt:"2026-12-01T03:00:00.000Z",mediaKey:flyer,mediaType:"image"});
   user="viewer_12345678";const list=bodyOf(await call("GET","/marketplace/events/upcoming"));
   assert.deepEqual(list.events.map(e=>e.title),["Sooner","Basement Show","Clip"]);assert.equal(list.events[0].organizerId,"");assert.match(list.events[0].mediaUrl,/media\.example/);
-  console.log("Event flyer checks passed: flyer or 15-second video, media ownership, public upcoming list without drafts or past events.");
+  // Outside ticket services (owner, 2026-11-15): https links only.
+  user="artist_12345678";
+  r=await call("POST","/marketplace/events",{...base,title:"Eventbrite show",mediaKey:flyer,mediaType:"image",ticketUrl:"https://www.eventbrite.com/e/basement-show-123"});assert.equal(r.statusCode,201);assert.equal(bodyOf(r).event.ticketUrl,"https://www.eventbrite.com/e/basement-show-123");
+  for(const bad of ["javascript:alert(1)","http://tickets.example/x","https://user:pass@tickets.example/x","not a link"])assert.equal((await call("POST","/marketplace/events",{...base,title:"Bad link",mediaKey:flyer,mediaType:"image",ticketUrl:bad})).statusCode,400,bad);
+  console.log("Event flyer checks passed (with outside ticket links): flyer or 15-second video, media ownership, public upcoming list without drafts or past events.");
 })().catch(error=>{console.error(error);process.exit(1);});
