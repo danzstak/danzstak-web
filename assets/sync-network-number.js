@@ -43,6 +43,7 @@
   }
 
   buy.addEventListener("click", async () => {
+    if (window.danzstakConfirmPurchase && !(await window.danzstakConfirmPurchase({ kind: "network", priceCents: 300 }))) return;
     buy.disabled = true;
     status.dataset.state = "";
     status.textContent = "Opening secure Stripe Test Mode checkout…";

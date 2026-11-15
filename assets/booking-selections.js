@@ -351,7 +351,8 @@
             if (!(await saveWorkspaceSnapshot())) throw new Error("DanzStak could not save this venue. Check the account status and try again before checkout.");
           }
           unlock.textContent = "Opening secure checkout…";
-          await window.danzstakUnlockBookingContact(venueKey);
+          const unlockResult = await window.danzstakUnlockBookingContact(venueKey);
+          if (unlockResult?.cancelled) { unlock.disabled = false; unlock.textContent = "Unlock booking contact · $0.75"; }
         }
         catch (error) { window.danzstakShowFeedback?.(error.message, { urgent: true }); unlock.disabled = false; unlock.textContent = "Unlock booking contact · $0.75"; }
       });

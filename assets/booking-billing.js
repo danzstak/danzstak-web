@@ -32,6 +32,7 @@
   async function startCreditCheckout(count, venueKey = "", button = null) {
     if (!Number.isInteger(count) || count < 1 || count > 500) { status.textContent = "Choose 1 to 500 credits."; return false; }
     if (venueKey && (typeof venueKey !== "string" || venueKey.length > 240)) { status.textContent = "Choose a valid saved venue before buying this credit."; return false; }
+    if (window.danzstakConfirmPurchase && !(await window.danzstakConfirmPurchase({ kind: "credits", priceCents: count * 150 }))) { status.textContent = "Checkout cancelled. Nothing was charged."; return false; }
     if (button) button.disabled = true;
     status.textContent = "Opening secure Stripe Checkout…";
     try {
@@ -50,6 +51,7 @@
   window.danzstakSendBookingEmail = async payload => { const id = payload.idempotencyKey || crypto.randomUUID().replaceAll("-", ""); const data = await request("/tour-manager/emails/send", { method: "POST", body: JSON.stringify({ ...payload, idempotencyKey: id }) }); await Promise.all([refresh(), refreshOutreach()]); return data; };
   window.danzstakBookingContactUnlocked = venueKey => unlockedContacts.has(String(venueKey || ""));
   window.danzstakUnlockBookingContact = async venueKey => {
+    if (!unlockedContacts.has(String(venueKey)) && window.danzstakConfirmPurchase && !(await window.danzstakConfirmPurchase({ kind: "contact", priceCents: 75 }))) return { cancelled: true };
     const data = await request("/tour-manager/contact-unlock/checkout", { method: "POST", body: JSON.stringify({ venueKey }) });
     if (data.unlocked) { unlockedContacts.add(String(venueKey)); document.dispatchEvent(new CustomEvent("danzstak-contact-unlocks")); return data; }
     if (!data.checkoutUrl?.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe Checkout did not return a secure payment page.");
@@ -150,6 +152,38 @@
     }
     status.textContent = "Payment was received, but Stripe is still verifying the credits. Keep this page open or reload it to check again; you will not be charged twice.";
   }
+  const refundList = document.getElementById("bookingRefundList");
+  async function refreshRefunds() {
+    if (!refundList) return;
+    try {
+      const data = await request("/tour-manager/refunds");
+      refundList.replaceChildren();
+      for (const item of data.purchases || []) {
+        const row = document.createElement("li"), date = new Date(item.paidAt);
+        row.append(document.createTextNode(`${item.quantity} credit${item.quantity === 1 ? "" : "s"} · $${(item.amountPaidCents / 100).toFixed(2)}${Number.isNaN(date.getTime()) ? "" : ` · ${date.toLocaleDateString()}`} `));
+        if (item.status === "refunded") row.append(Object.assign(document.createElement("span"), { textContent: "Refunded" }));
+        else { const button = Object.assign(document.createElement("button"), { type: "button", textContent: "Request refund" }); button.addEventListener("click", () => requestRefund(item.sessionId, button)); row.append(button); }
+        refundList.append(row);
+      }
+      if (!refundList.children.length) refundList.append(Object.assign(document.createElement("li"), { textContent: "No purchases yet." }));
+    } catch (error) { refundList.replaceChildren(Object.assign(document.createElement("li"), { textContent: error.message })); }
+  }
+  async function requestRefund(sessionId, button) {
+    button.disabled = true;
+    status.textContent = "Checking what you can get back…";
+    try {
+      const quote = await request("/tour-manager/refunds/quote", { method: "POST", body: JSON.stringify({ sessionId }) });
+      if (!quote.refundable) { status.textContent = quote.reason || "This purchase can't be refunded."; return; }
+      status.textContent = "";
+      if (!(await window.danzstakConfirmRefund(quote))) { status.textContent = "Refund cancelled. Nothing changed."; return; }
+      status.textContent = "Sending your refund…";
+      const done = await request("/tour-manager/refunds/accept", { method: "POST", body: JSON.stringify({ sessionId, accept: true, acceptedRefundCents: quote.refundCents }) });
+      status.textContent = `Refund sent: $${(done.refundCents / 100).toFixed(2)} back to your card. Your bank may take 5–10 days to show it.`;
+      await Promise.all([refresh(), refreshRefunds()]);
+    } catch (error) { status.textContent = error.message; }
+    finally { button.disabled = false; }
+  }
+  refreshRefunds();
   const params = new URLSearchParams(location.search), result = params.get("credits");
   const contactResult = params.get("contact"), returnedVenueKey = String(params.get("venueKey") || "").trim().slice(0, 200);
   if (result) finishCreditReturn(result);
