@@ -1937,7 +1937,7 @@ function renderWorkspace(name) {
     ticketPrice.input.inputMode = "decimal";
     const ticketTerms = document.createElement("p");
     ticketTerms.className = "event-ticket-terms";
-    ticketTerms.textContent = "DanzStak sells your tickets. By default every ticket needs the attendee's legal name and is non-transferable (scalping protection). Buyers pay exactly your price, with no added fees. DanzStak keeps 5% and Stripe's processing fee comes out of your payout, so set your price to cover them. You're paid after the show. Using an outside ticket link instead? No DanzStak fee.";
+    ticketTerms.textContent = "Buyers pay your price, no added fees. DanzStak's 5% and Stripe's fee come out of your payout after the show.";
     const ticketTermsLink = Object.assign(document.createElement("a"), { href: "terms.html#tickets", target: "_blank", rel: "noopener", textContent: "Ticket terms" });
     ticketTerms.append(" ", ticketTermsLink);
     // Owner directive 2026-11-16: scalping protection is ON by default; promoters may turn it off (e.g. punk venues).
@@ -1946,7 +1946,7 @@ function renderWorkspace(name) {
     const namedTickets = document.createElement("input");
     namedTickets.type = "checkbox";
     namedTickets.checked = true;
-    namedLabel.append(namedTickets, document.createTextNode("Require legal names on tickets (scalping protection). Every ticket carries the attendee's legal name, is non-transferable, and the door can check photo ID, like a European train ticket. Turn off only if your venue doesn't check names; tickets are then transferable."));
+    namedLabel.append(namedTickets, document.createTextNode("Require legal names on tickets (stops scalping). Untick if your door doesn't check names."));
     ticketFields.append(ticketTerms, ticketName.wrap, ticketPrice.wrap, namedLabel);
     ticketSales.addEventListener("change", () => { ticketFields.hidden = !ticketSales.checked; if (ticketSales.checked && !ticketName.input.value) ticketName.input.value = "General admission"; });
     const publishedHeading = document.createElement("h4");
