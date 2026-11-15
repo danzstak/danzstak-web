@@ -61,7 +61,8 @@ const DANZSTAK_POSTAL_ADDRESS = "DanzStak LLC, 2063 Main St. #237, Oakley, CA 94
 const MAX_CREDITS_PER_CHECKOUT = 500;
 export const MAX_NEW_PITCHES_PER_24_HOURS = 20;
 export const BOOKING_CONTACT_COOLDOWN_SECONDS = 30 * 24 * 60 * 60;
-const WEBHOOK_TYPES = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired", "charge.refunded"]);
+const WEBHOOK_TYPES = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired", "charge.refunded", "charge.dispute.created"]);
+export const MEMBER_REFUND_POLICY = "member_request";
 const securityHeaders = { "content-type": "application/json", "cache-control": "no-store", "strict-transport-security": "max-age=63072000; includeSubDomains; preload", "x-content-type-options": "nosniff", "x-frame-options": "DENY", "referrer-policy": "no-referrer" };
 
 function response(statusCode, data, headers = {}) { return { statusCode, headers: { ...securityHeaders, ...headers }, body: JSON.stringify(data) }; }
@@ -616,10 +617,12 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
 
   async function grantCredits(notification, verified) {
     const processedAt = nowIso(), priceId = stripeCatalog(verified.session.livemode).tour.priceId;
+    const before = await db.send(new GetItemCommand({ TableName: tableName, Key: creditKey(verified.userId), ConsistentRead: true }));
+    const usageAtPayment = Number(before.Item?.sentEmails?.N || 0) + Number(before.Item?.reservedCredits?.N || 0);
     try {
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
         { Put: { TableName: tableName, Item: { ...eventKey(notification.id), sessionId: { S: verified.session.id }, eventType: { S: notification.type }, processedAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } },
-        { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :paid, paidAt = :paidAt", ConditionExpression: "#status <> :paid AND sessionId = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":paidAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
+        { Update: { TableName: tableName, Key: checkoutKey(verified.userId, verified.session.id), UpdateExpression: "SET #status = :paid, paidAt = :paidAt, sentEmailsAtPayment = :usage, amountPaidCents = :amount", ConditionExpression: "#status <> :paid AND sessionId = :sessionId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":paidAt": { S: processedAt }, ":sessionId": { S: verified.session.id }, ":usage": { N: String(usageAtPayment) }, ":amount": { N: String(Number(verified.session.amount_total || 0)) } } } },
         { Update: { TableName: tableName, Key: creditKey(verified.userId), UpdateExpression: "ADD credits :quantity, purchasedCredits :quantity SET updatedAt = :updatedAt, lastSessionId = :sessionId", ExpressionAttributeValues: { ":quantity": { N: String(verified.quantity) }, ":updatedAt": { S: processedAt }, ":sessionId": { S: verified.session.id } } } },
         { Update: { TableName: tableName, Key: professionalKey(verified.userId), UpdateExpression: "SET #status = :active, paymentMethod = :stripe, paymentReference = :sessionId, priceId = :priceId, activatedAt = if_not_exists(activatedAt, :activatedAt), updatedAt = :activatedAt", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":active": { S: "active" }, ":stripe": { S: "stripe" }, ":sessionId": { S: verified.session.id }, ":priceId": { S: priceId }, ":activatedAt": { S: processedAt } } } },
         { Put: { TableName: tableName, Item: { ...ledgerKey(verified.userId, processedAt, notification.id), entryType: { S: "purchase" }, paymentMethod: { S: "stripe" }, paymentReference: { S: verified.session.id }, delta: { N: String(verified.quantity) }, status: { S: "settled" }, description: { S: `${verified.quantity} booking email credits purchased` }, createdAt: { S: processedAt } }, ConditionExpression: "attribute_not_exists(userId)" } }
@@ -771,6 +774,19 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (processed.Item) return response(200, { received: true, duplicate: true });
     const expectedLive = liveKey();
     if (notification.livemode !== expectedLive) return response(400, { error: "Stripe environment mismatch." });
+    if (notification.type === "charge.dispute.created") {
+      if (!/^dp_[a-zA-Z0-9]+$/.test(supplied?.id || "") || !/^pi_[a-zA-Z0-9]+$/.test(supplied?.payment_intent || "")) return response(400, { error: "Invalid Stripe dispute event." });
+      const sessions = await stripe(`/checkout/sessions?payment_intent=${encodeURIComponent(supplied.payment_intent)}&limit=2&expand%5B%5D=data.line_items`);
+      const session = Array.isArray(sessions.data) && sessions.data.length === 1 ? sessions.data[0] : null;
+      const verified = session ? await loadVerifiedKnownSession(session, expectedLive) : null;
+      if (!verified) return response(200, { received: true, ignored: true });
+      const revoked = await revokeRefundedPurchase(notification, verified);
+      return response(200, { received: true, disputed: true, revoked });
+    }
+    if (notification.type === "charge.refunded" && supplied?.metadata?.danzstak_refund_policy === MEMBER_REFUND_POLICY) {
+      await db.send(new PutItemCommand({ TableName: tableName, Item: { ...eventKey(notification.id), eventType: { S: notification.type }, processedAt: { S: nowIso() }, status: { S: "member_refund_settled" } }, ConditionExpression: "attribute_not_exists(userId)" })).catch(() => {});
+      return response(200, { received: true, memberRefund: true });
+    }
     if (notification.type === "charge.refunded") {
       if (!/^ch_[a-zA-Z0-9]+$/.test(supplied?.id || "") || !/^pi_[a-zA-Z0-9]+$/.test(supplied?.payment_intent || "") || supplied.currency !== "usd") return response(400, { error: "Invalid Stripe refund event." });
       const sessions = await stripe(`/checkout/sessions?payment_intent=${encodeURIComponent(supplied.payment_intent)}&limit=2&expand%5B%5D=data.line_items`);
@@ -919,6 +935,86 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     }
   }
 
+  // Member refunds (owner policy 2026-11-15): only purchases with no service used since payment;
+  // refund = price minus Stripe's fee; the member sees the exact amount and must accept it; refund issues immediately.
+  async function refundQuoteFor(userId, sessionId) {
+    if (!/^cs_(?:test|live)_[a-zA-Z0-9]+$/.test(sessionId)) return { refundable: false, reason: "Unknown purchase." };
+    const [checkoutResult, creditResult] = await Promise.all([
+      db.send(new GetItemCommand({ TableName: tableName, Key: checkoutKey(userId, sessionId), ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: creditKey(userId), ConsistentRead: true }))
+    ]);
+    const item = checkoutResult.Item, credit = creditResult.Item || {};
+    if (!item || item.product?.S || item.status?.S !== "paid") return { refundable: false, reason: item?.status?.S === "refunded" ? "This purchase was already refunded." : "This purchase can't be refunded." };
+    if (!item.sentEmailsAtPayment?.N) return { refundable: false, reason: "This purchase can't be refunded in the app. Contact support@danzstak.com." };
+    const quantity = Number(item.quantity?.N || 0), used = Number(credit.sentEmails?.N || 0) + Number(credit.reservedCredits?.N || 0);
+    if (used > Number(item.sentEmailsAtPayment.N) || Number(credit.credits?.N || 0) < quantity) return { refundable: false, reason: "Booking emails were sent after this purchase, so it can't be refunded." };
+    const session = await stripe(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
+    if (session.client_reference_id !== userId || session.payment_status !== "paid" || !/^pi_[a-zA-Z0-9]+$/.test(session.payment_intent || "")) return { refundable: false, reason: "This purchase can't be refunded." };
+    const intent = await stripe(`/payment_intents/${encodeURIComponent(session.payment_intent)}?expand%5B%5D=latest_charge.balance_transaction`);
+    const charge = intent.latest_charge || {}, paidCents = Number(charge.amount || 0), feeCents = Number(charge.balance_transaction?.fee), refundCents = paidCents - feeCents - Number(charge.amount_refunded || 0);
+    if (!/^ch_[a-zA-Z0-9]+$/.test(charge.id || "") || !Number.isInteger(feeCents) || charge.disputed) return { refundable: false, reason: "This purchase can't be refunded in the app. Contact support@danzstak.com." };
+    if (refundCents < 1) return { refundable: false, reason: "Nothing is left to refund after Stripe's processing fee." };
+    return { refundable: true, quantity, paidCents, feeCents, refundCents, currency: "usd", paymentIntent: session.payment_intent, chargeId: charge.id, sentEmailsAtPayment: item.sentEmailsAtPayment.N };
+  }
+
+  async function refundPurchases(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const found = await db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#CHECKOUT#" } }, ScanIndexForward: false, Limit: 50 }));
+    const purchases = (found.Items || []).filter(item => !item.product?.S && ["paid", "refunded"].includes(item.status?.S)).map(item => ({ sessionId: item.sessionId?.S, quantity: Number(item.quantity?.N || 0), status: item.status?.S, paidAt: item.paidAt?.S || "", amountPaidCents: Number(item.amountPaidCents?.N || 0) }));
+    return response(200, { purchases }, headers);
+  }
+
+  async function refundQuote(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    if (!paymentsAllowed()) return response(503, { error: "Refunds are not available right now." }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const quote = await refundQuoteFor(userId, String(parseBody(event)?.sessionId || ""));
+    const { paymentIntent, chargeId, sentEmailsAtPayment, ...visible } = quote;
+    return response(200, visible, headers);
+  }
+
+  async function refundAccept(event) {
+    const headers = browserHeaders(event);
+    if (!headers?.["access-control-allow-origin"]) return response(403, { error: "Forbidden origin" }, headers);
+    if (!paymentsAllowed()) return response(503, { error: "Refunds are not available right now." }, headers);
+    const userId = await authenticate(event);
+    if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
+    const body = parseBody(event), sessionId = String(body?.sessionId || "");
+    if (body?.accept !== true) return response(400, { error: "Accept the refund amount to continue." }, headers);
+    const quote = await refundQuoteFor(userId, sessionId);
+    if (!quote.refundable) return response(409, { error: quote.reason }, headers);
+    if (Number(body?.acceptedRefundCents) !== quote.refundCents) return response(409, { error: "The refund amount changed. Review the new amount.", refundCents: quote.refundCents, feeCents: quote.feeCents, paidCents: quote.paidCents }, headers);
+    const at = nowIso(), id = `refund-${sessionId}`;
+    try {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Update: { TableName: tableName, Key: checkoutKey(userId, sessionId), UpdateExpression: "SET #status = :refunding, refundRequestedAt = :at, refundCents = :refund, stripeFeeCents = :fee", ConditionExpression: "#status = :paid", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":refunding": { S: "refunding" }, ":paid": { S: "paid" }, ":at": { S: at }, ":refund": { N: String(quote.refundCents) }, ":fee": { N: String(quote.feeCents) } } } },
+        { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :minus, purchasedCredits :minus SET updatedAt = :at", ConditionExpression: "credits >= :quantity AND (attribute_not_exists(sentEmails) OR sentEmails <= :usage) AND (attribute_not_exists(reservedCredits) OR reservedCredits <= :zero)", ExpressionAttributeValues: { ":minus": { N: String(-quote.quantity) }, ":quantity": { N: String(quote.quantity) }, ":usage": { N: quote.sentEmailsAtPayment }, ":zero": { N: "0" }, ":at": { S: at } } } }
+      ] }));
+    } catch { return response(409, { error: "This purchase can't be refunded. Booking emails may have been sent." }, headers); }
+    try {
+      await stripe(`/charges/${encodeURIComponent(quote.chargeId)}`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ "metadata[danzstak_refund_policy]": MEMBER_REFUND_POLICY }).toString() });
+      const refund = await stripe("/refunds", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `danzstak-member-refund-${sessionId}` }, body: new URLSearchParams({ payment_intent: quote.paymentIntent, amount: String(quote.refundCents), "metadata[danzstak_refund_policy]": MEMBER_REFUND_POLICY, "metadata[userId]": userId }).toString() });
+      if (!/^re_[a-zA-Z0-9]+$/.test(refund.id || "")) throw new Error("Stripe refund failed");
+      const doneAt = nowIso();
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Update: { TableName: tableName, Key: checkoutKey(userId, sessionId), UpdateExpression: "SET #status = :refunded, refundedAt = :at, refundId = :refundId", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":refunded": { S: "refunded" }, ":at": { S: doneAt }, ":refundId": { S: refund.id } } } },
+        { Put: { TableName: tableName, Item: { ...ledgerKey(userId, doneAt, id), entryType: { S: "purchase_refund" }, paymentMethod: { S: "stripe" }, paymentReference: { S: sessionId }, delta: { N: String(-quote.quantity) }, status: { S: "refunded" }, description: { S: `${quote.quantity} booking email credit${quote.quantity === 1 ? "" : "s"} refunded: $${(quote.refundCents / 100).toFixed(2)} back (Stripe fee $${(quote.feeCents / 100).toFixed(2)} kept)` }, createdAt: { S: doneAt } } } }
+      ] }));
+      return response(200, { refunded: true, refundCents: quote.refundCents, feeCents: quote.feeCents, quantity: quote.quantity }, headers);
+    } catch (error) {
+      await db.send(new TransactWriteItemsCommand({ TransactItems: [
+        { Update: { TableName: tableName, Key: checkoutKey(userId, sessionId), UpdateExpression: "SET #status = :paid", ConditionExpression: "#status = :refunding", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":paid": { S: "paid" }, ":refunding": { S: "refunding" } } } },
+        { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :plus, purchasedCredits :plus", ExpressionAttributeValues: { ":plus": { N: String(quote.quantity) } } } }
+      ] })).catch(() => {});
+      return response(502, { error: "Stripe couldn't issue the refund. Nothing was changed; try again later." }, headers);
+    }
+  }
+
   return async function handle(event) {
     const providerResponse = await providerEvents(event);
     if (providerResponse) return providerResponse;
@@ -932,6 +1028,9 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (method === "POST" && path === "/sync-network-number/checkout") return syncNetworkCheckout(event);
     if (method === "GET" && path === "/sync-network-number/entitlement") return syncNetworkEntitlement(event);
     if (method === "GET" && path === "/tour-manager/credits") return credits(event);
+    if (method === "GET" && path === "/tour-manager/refunds") return refundPurchases(event);
+    if (method === "POST" && path === "/tour-manager/refunds/quote") return refundQuote(event);
+    if (method === "POST" && path === "/tour-manager/refunds/accept") return refundAccept(event);
     if (method === "GET" && path === "/tour-manager/outreach") return outreach(event);
     if (method === "POST" && path === "/tour-manager/outreach/preflight") return outreachPreflight(event);
     if (method === "POST" && path === "/tour-manager/opt-out") return optOut(event);

@@ -99,10 +99,13 @@ Later phase (after users): SYNC standalone, SYNC Network numbers, federated netw
 
 ## Refunds (owner-set, 2026-11-15)
 
-- The buyer pays the Stripe fee. A refund returns the price minus Stripe's processing fee (example: $1.50 paid, $0.34 fee, $1.16 refunded).
-- Every DanzStak checkout says so before payment ("Refunds return the price minus Stripe's processing fee.") next to every buy button on DanzStak (Stripe rejects custom checkout text while Managed Payments is on).
-- Issue refunds with `scripts/stripe-refund-minus-fee.py <payment_intent>` (dry run first, then `--confirm`). It tags the charge `danzstak_refund_policy=fee_deducted`, so the webhook revokes the credit, unlock or number. Other partial refunds still go to manual review.
-- Where consumer law requires a full refund (for example DanzStak's own error), refund in full in the Stripe dashboard; the webhook revokes access automatically.
+- **Used = no refund.** Booking emails: no refund once any booking email is sent after the purchase (an email being sent counts). Contact unlock: no refund once the contact is shown (it is shown right after payment). DanzStak Network number: no refund once used in SYNC. AI EPK: no refund once it produces a draft.
+- **Unused = price minus Stripe's fee.** The buyer pays the Stripe processing fee (example: $1.50 paid, $0.34 fee, $1.16 back).
+- **Before every purchase** a pop-up states these rules; the member must tick "I understand…" before checkout opens (also the EU immediate-delivery consent).
+- **Member refund flow** (Booking Agent → Refund an unused purchase): DanzStak shows paid / Stripe fee / you get back; the member must tick and press **Accept $X refund**; the refund goes out immediately and the credits are removed. Endpoints `GET /tour-manager/refunds`, `POST /tour-manager/refunds/quote`, `POST /tour-manager/refunds/accept`.
+- **Card disputes/chargebacks** (`charge.dispute.created`) remove the purchase from the account.
+- **DanzStak's own error or a legal right to a full refund:** refund in full from the Stripe dashboard; the webhook removes access automatically. `scripts/stripe-refund-minus-fee.py` is the owner tool for a fee-deducted refund outside the app.
+- Terms of Service section 8A holds the member-facing wording.
 
 ## Shops and event tickets (owner-set, 2026-11-09)
 
