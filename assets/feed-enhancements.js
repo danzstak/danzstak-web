@@ -318,6 +318,33 @@ function openPostInFeed(post) {
   post.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
+// Owner directive 2026-11-15: Events lists upcoming shows as flyers (image or video of 15 seconds or less).
+async function renderUpcomingEvents(list) {
+  list.replaceChildren(Object.assign(document.createElement("p"), { className: "muted", textContent: "Loading shows…" }));
+  try {
+    const response = await fetch("https://api.danzstak.com/marketplace/events/upcoming", { credentials: "include", cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Shows could not be loaded.");
+    list.replaceChildren();
+    for (const item of data.events || []) {
+      const card = document.createElement("article"); card.className = "event-flyer-card";
+      if (item.mediaUrl && item.mediaType === "image") { const img = document.createElement("img"); img.src = item.mediaUrl; img.alt = `Flyer for ${item.title}`; img.loading = "lazy"; card.append(img); }
+      else if (item.mediaUrl && item.mediaType === "video") { const video = document.createElement("video"); video.src = item.mediaUrl; video.muted = true; video.playsInline = true; video.controls = true; video.preload = "metadata"; video.setAttribute("aria-label", `Video for ${item.title}`); card.append(video); }
+      const body = document.createElement("div"); body.className = "event-flyer-body";
+      const when = new Date(item.startsAt);
+      body.append(
+        Object.assign(document.createElement("h4"), { textContent: item.title }),
+        Object.assign(document.createElement("p"), { className: "event-flyer-when", textContent: Number.isNaN(when.valueOf()) ? "" : when.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) }),
+        Object.assign(document.createElement("p"), { textContent: [item.venueName, item.venueAddress].filter(Boolean).join(" · ") })
+      );
+      const prices = (item.tiers || []).map(tier => Number(tier.priceCents)).filter(cents => cents > 0);
+      const link = Object.assign(document.createElement("a"), { className: "primary event-flyer-tickets", href: `event.html?id=${encodeURIComponent(item.id)}`, textContent: prices.length ? `Tickets from $${(Math.min(...prices) / 100).toFixed(2)}` : "Show details" });
+      body.append(link); card.append(body); list.append(card);
+    }
+    if (!list.children.length) list.append(Object.assign(document.createElement("p"), { className: "muted", textContent: "No shows posted yet. Post the first one." }));
+  } catch (error) { list.replaceChildren(Object.assign(document.createElement("p"), { className: "muted", textContent: error.message })); }
+}
+
 function renderPublishedEvents(publishedEvents) {
   publishedEvents.replaceChildren();
   const eventPosts = [...document.querySelectorAll("#feed .post")].filter(post => /^(?:Event:|\u{1F4C5}\s*Event:)/u.test(post.querySelector(".post-content")?.textContent || ""));
@@ -1846,8 +1873,32 @@ function renderWorkspace(name) {
   }
 
   if (name === "Events") {
-    featureText.textContent = "Publish an event to Your Mix and, when ready, add capacity-limited tickets.";
+    featureText.textContent = "Shows coming up. Promoters: post your event with a flyer or a 15-second video.";
     workspace.classList.add("events-workspace");
+    const upcomingHeading = Object.assign(document.createElement("h3"), { textContent: "Shows coming up" });
+    const upcoming = Object.assign(document.createElement("div"), { className: "event-flyer-list" });
+    renderUpcomingEvents(upcoming);
+    const postHeading = Object.assign(document.createElement("h3"), { textContent: "Post an event" });
+    const mediaWrap = document.createElement("label"); mediaWrap.className = "event-media-field";
+    const mediaInput = Object.assign(document.createElement("input"), { type: "file", accept: "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" });
+    const mediaNote = Object.assign(document.createElement("small"), { textContent: "Flyer image or a video of 15 seconds or less (required)." });
+    const mediaPreview = document.createElement("div"); mediaPreview.className = "event-media-preview";
+    mediaWrap.append(Object.assign(document.createElement("span"), { textContent: "Flyer or video" }), mediaInput, mediaNote);
+    let eventMedia = null;
+    const videoSeconds = file => new Promise(resolve => { const probe = document.createElement("video"); probe.preload = "metadata"; const url = URL.createObjectURL(file); probe.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(probe.duration); }; probe.onerror = () => { URL.revokeObjectURL(url); resolve(NaN); }; probe.src = url; });
+    mediaInput.addEventListener("change", async () => {
+      eventMedia = null; mediaPreview.replaceChildren();
+      const file = mediaInput.files?.[0]; if (!file) return;
+      const isVideo = file.type.startsWith("video/");
+      if (isVideo) {
+        const seconds = await videoSeconds(file);
+        if (!(seconds > 0 && seconds <= 15.5)) { mediaInput.value = ""; featureText.textContent = Number.isFinite(seconds) ? `That video is ${Math.round(seconds)} seconds. Event videos must be 15 seconds or less.` : "That video could not be read. Try an MP4."; return; }
+        eventMedia = { file, type: "video", seconds: Math.min(15, Math.round(seconds * 10) / 10) };
+      } else eventMedia = { file, type: "image" };
+      const url = URL.createObjectURL(file);
+      const preview = isVideo ? Object.assign(document.createElement("video"), { src: url, muted: true, controls: true, playsInline: true }) : Object.assign(document.createElement("img"), { src: url, alt: "Flyer preview" });
+      mediaPreview.append(preview); featureText.textContent = "";
+    });
     const title = field("Event name", "text", "Show or performance");
     const date = field("Starts", "datetime-local", "");
     const endDate = field("Ends (optional)", "datetime-local", "");
@@ -1873,7 +1924,7 @@ function renderWorkspace(name) {
     ticketLabel.className = "event-certification";
     const ticketSales = document.createElement("input");
     ticketSales.type = "checkbox";
-    ticketLabel.append(ticketSales, document.createTextNode("Sell capacity-limited tickets after secure checkout review"));
+    ticketLabel.append(ticketSales, document.createTextNode("Sell tickets on DanzStak (you set the price; DanzStak keeps 5%)"));
     const ticketFields = document.createElement("div");
     ticketFields.className = "event-ticket-fields";
     ticketFields.hidden = true;
@@ -1890,6 +1941,7 @@ function renderWorkspace(name) {
     let clientEventId = crypto.randomUUID(), clientTierId = crypto.randomUUID();
     button.addEventListener("click", async () => {
       if (!title.input.value.trim() || !date.input.value || !venue.input.value.trim()) return (!title.input.value.trim() ? title.input : !date.input.value ? date.input : venue.input).focus();
+      if (!eventMedia) { featureText.textContent = "Add a flyer or a video of 15 seconds or less."; mediaInput.focus(); return; }
       if (!eventCertified.checked) {
         featureText.textContent = "Confirm that you created this event announcement before publishing.";
         eventCertified.focus();
@@ -1904,14 +1956,25 @@ function renderWorkspace(name) {
       const submittedTitle = title.input.value.trim();
       const submittedDate = date.input.value;
       button.disabled = true;
-      featureText.textContent = "Publishing event…";
+      featureText.textContent = "Uploading flyer…";
+      let uploadedEventMediaKey = "";
       try {
+        const ticketResponse = await postActionFetch("/stories", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contentType: eventMedia.file.type, purpose: "post" }) }, 15000);
+        const uploadTicket = await ticketResponse.json().catch(() => ({}));
+        if (!ticketResponse.ok || !uploadTicket.uploadUrl) throw new Error(uploadTicket.error || "Flyer upload could not start.");
+        const uploadOptions = { method: "PUT", headers: { "Content-Type": eventMedia.file.type }, body: eventMedia.file };
+        const uploadResponse = typeof window.fetchWithDeadline === "function" ? await window.fetchWithDeadline(uploadTicket.uploadUrl, uploadOptions, typeof window.mediaUploadDeadline === "function" ? window.mediaUploadDeadline(eventMedia.file) : 120000) : await fetch(uploadTicket.uploadUrl, uploadOptions);
+        if (!uploadResponse.ok) throw new Error("Flyer upload failed.");
+        uploadedEventMediaKey = uploadTicket.mediaKey;
+        const mediaFields = { mediaKey: uploadTicket.mediaKey, mediaType: eventMedia.type, ...(eventMedia.type === "video" ? { mediaSeconds: eventMedia.seconds } : {}) };
+        if (isCurrentWorkspace()) featureText.textContent = "Publishing event…";
         const startsAt = new Date(submittedDate), endsAt = endDate.input.value ? new Date(endDate.input.value) : null;
         if (Number.isNaN(startsAt.valueOf()) || endsAt && (Number.isNaN(endsAt.valueOf()) || endsAt <= startsAt)) throw new Error("Choose valid start and end times.");
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-        const eventResponse = await postActionFetch("/marketplace/events", { method:"POST", credentials:"include", cache:"no-store", headers:{"Content-Type":"application/json"}, body:JSON.stringify({clientEventId,title:submittedTitle,description:"",venueName:venue.input.value.trim(),venueAddress:address.input.value.trim(),startsAt:startsAt.toISOString(),endsAt:endsAt?.toISOString()||"",timezone,capacity:eventCapacity,status:audience.value==="public"?"published":"draft",ticketSalesEnabled:ticketSales.checked}) });
+        const eventResponse = await postActionFetch("/marketplace/events", { method:"POST", credentials:"include", cache:"no-store", headers:{"Content-Type":"application/json"}, body:JSON.stringify({clientEventId,title:submittedTitle,description:"",venueName:venue.input.value.trim(),venueAddress:address.input.value.trim(),startsAt:startsAt.toISOString(),endsAt:endsAt?.toISOString()||"",timezone,capacity:eventCapacity,status:audience.value==="public"?"published":"draft",ticketSalesEnabled:ticketSales.checked,...mediaFields}) });
         const eventData = await eventResponse.json().catch(() => ({}));
         if (!eventResponse.ok) throw new Error(eventData.error || "Event details could not be saved.");
+        uploadedEventMediaKey = "";
         if (ticketSales.checked) {
           const tierResponse = await postActionFetch(`/marketplace/events/${encodeURIComponent(eventData.event.id)}/tiers`, {method:"POST",credentials:"include",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({clientTierId,name:ticketName.input.value.trim(),description:"",priceCents,capacity:eventCapacity,status:"on_sale"})});
           const tierData = await tierResponse.json().catch(() => ({}));
@@ -1922,7 +1985,7 @@ function renderWorkspace(name) {
         const response = await postActionFetch("/secure-posts", {
           method: "POST", credentials: "include", cache: "no-store",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: `Event: ${submittedTitle}\n${formattedDate}\n${venue.input.value.trim()}${ticketCopy}`, audience: audience.value, originalContentCertified: true })
+          body: JSON.stringify({ content: `Event: ${submittedTitle}\n${formattedDate}\n${venue.input.value.trim()}${ticketCopy}`, audience: audience.value, mediaKey: mediaFields.mediaKey, mediaType: mediaFields.mediaType === "video" ? "video" : "image", originalContentCertified: true })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Event could not be published");
@@ -1941,12 +2004,16 @@ function renderWorkspace(name) {
         }
         clientEventId = crypto.randomUUID(); clientTierId = crypto.randomUUID();
         eventCertified.checked = false;
+        eventMedia = null; mediaInput.value = ""; mediaPreview.replaceChildren();
         if (typeof window.loadPosts === "function") await window.loadPosts();
-        if (isCurrentWorkspace()) renderPublishedEvents(publishedEvents);
-      } catch (error) { if (isCurrentWorkspace()) featureText.textContent = error.message; }
+        if (isCurrentWorkspace()) { renderPublishedEvents(publishedEvents); renderUpcomingEvents(upcoming); }
+      } catch (error) {
+        if (uploadedEventMediaKey && typeof window.discardUploadedMedia === "function") await window.discardUploadedMedia(uploadedEventMediaKey).catch(() => {});
+        if (isCurrentWorkspace()) featureText.textContent = error.message;
+      }
       finally { button.disabled = false; }
     });
-    workspace.append(title.wrap, date.wrap, endDate.wrap, venue.wrap, address.wrap, capacity.wrap, audience, ticketLabel, ticketFields, eventCertification, button, publishedHeading, publishedEvents);
+    workspace.append(upcomingHeading, upcoming, postHeading, mediaWrap, mediaPreview, title.wrap, date.wrap, endDate.wrap, venue.wrap, address.wrap, capacity.wrap, audience, ticketLabel, ticketFields, eventCertification, button, publishedHeading, publishedEvents);
     return;
   }
 
