@@ -49,7 +49,8 @@ import QRCode from "qrcode";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
-const ses = new SESv2Client({ region: "us-west-1" });
+// SES us-east-1 has production access (us-west-1 is still in the SES sandbox and can only mail verified addresses).
+const ses = new SESv2Client({ region: "us-east-1" });
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
 const geoPlaces = new GeoPlacesClient({ region: "us-west-2", maxAttempts: 3 });
 const geoRoutes = new GeoRoutesClient({ region: "us-west-2", maxAttempts: 3 });
