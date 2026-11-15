@@ -135,9 +135,6 @@ Resources:
             Action: [secretsmanager:GetSecretValue]
             Resource: !Ref PhoneVerificationSecret
           - Effect: Allow
-            Action: [ses:SendEmail]
-            Resource: !Sub 'arn:${AWS::Partition}:ses:us-east-1:${AWS::AccountId}:identity/danzstak.com'
-          - Effect: Allow
             Action: [sms-voice:SendNotifyTextMessage]
             Resource: !Sub 'arn:${AWS::Partition}:sms-voice:${AWS::Region}:${AWS::AccountId}:notify-configuration/${PhoneNotifyConfigurationId}'
   GetPhoneVerificationRoute:
@@ -152,20 +149,6 @@ Resources:
   DeletePhoneVerificationRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties: {ApiId: !Ref ApiId, RouteKey: 'DELETE /phone-verification', Target: !Sub 'integrations/${AuthIntegrationId}'}
-  SendDeviceEmailCodeRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /device-verification/email/send', Target: !Sub 'integrations/${AuthIntegrationId}'}
-  ConfirmDeviceEmailCodeRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties: {ApiId: !Ref ApiId, RouteKey: 'POST /device-verification/email/confirm', Target: !Sub 'integrations/${AuthIntegrationId}'}
-  DeviceEmailVerificationInvokePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref AuthFunctionName
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/device-verification/*'
-      SourceAccount: !Ref AWS::AccountId
   PhoneVerificationInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
