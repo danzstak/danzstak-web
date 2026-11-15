@@ -51,6 +51,8 @@ import QRCode from "qrcode";
 const db = new DynamoDBClient({ region: "us-west-1" });
 const s3 = new S3Client({ region: "us-west-1" });
 const ses = new SESv2Client({ region: "us-west-1" });
+// SES production access is granted in us-east-1 (us-west-1 is still sandboxed), so SYNC email codes send from there.
+const deviceEmailSes = new SESv2Client({ region: process.env.DEVICE_EMAIL_SES_REGION || "us-east-1" });
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-1" });
 const geoPlaces = new GeoPlacesClient({ region: "us-west-2", maxAttempts: 3 });
 const geoRoutes = new GeoRoutesClient({ region: "us-west-2", maxAttempts: 3 });
@@ -216,7 +218,7 @@ async function emailDeviceService() {
     enabled: deviceEmailOtpEnabled,
     sender: {
       async send({ email, code }) {
-        await ses.send(new SendEmailCommand({
+        await deviceEmailSes.send(new SendEmailCommand({
           FromEmailAddress: "DanzStak SYNC <support@danzstak.com>",
           Destination: { ToAddresses: [email] },
           Content: { Simple: {
@@ -5088,6 +5090,7 @@ async function sendDeviceEmailCode(event) {
     const result = await service.send({ userId, email, requestKey, deviceChallengeId: String(body.deviceChallengeId || "").slice(0, 80), deviceChallenge: String(body.deviceChallenge || "").slice(0, 100) });
     return { statusCode: 202, headers, body: JSON.stringify(result) };
   } catch (error) {
+    if (!error.statusCode || error.code === "send_failed") console.error("SYNC email code failed", { code: error.code || "", name: error.cause?.name || error.name || "Error" });
     return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.statusCode ? error.message : "Email codes are unavailable.", code: error.code || "unavailable" }) };
   }
 }

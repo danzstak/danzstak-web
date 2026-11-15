@@ -76,7 +76,7 @@ export function createEmailDeviceVerification({ adapter, sender, secret, enabled
     const record = { userId, challengeId, challengeHash: codeDigest(secret, userId, challengeId, code), expiresAt: seconds + emailDevicePolicy.validityMinutes * 60, resendAfter: seconds + emailDevicePolicy.resendCooldownSeconds, maskedEmail: maskEmail(address), deviceChallengeId, deviceChallengeHash };
     if (!await adapter.reserve(record, requestKey)) throw serviceError("Too many code requests. Try again later.", 429, "rate_limited");
     try { await sender.send({ email: address, code }); }
-    catch { await adapter.cancel(record); throw serviceError("The email could not be sent. This device is still not registered.", 503, "send_failed"); }
+    catch (cause) { await adapter.cancel(record); const error = serviceError("The email could not be sent. This device is still not registered.", 503, "send_failed"); error.cause = cause; throw error; }
     return { state: "pending", channel: "email", maskedEmail: record.maskedEmail, expiresAt: new Date(record.expiresAt * 1000).toISOString(), resendAfter: new Date(record.resendAfter * 1000).toISOString() };
   }
 

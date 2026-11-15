@@ -67,6 +67,8 @@ const assert = require("node:assert/strict"), fs = require("node:fs");
   const ui = fs.readFileSync("assets/phone-verification.js", "utf8"), html = fs.readFileSync("messages.html", "utf8");
   assert.ok(api.includes('path === "/device-verification/email/send"') && api.includes('path === "/device-verification/email/confirm"'));
   assert.ok(api.includes('process.env.DEVICE_EMAIL_OTP_ENABLED === "true"'));
+  assert.match(api, /deviceEmailSes = new SESv2Client\(\{ region: process\.env\.DEVICE_EMAIL_SES_REGION \|\| "us-east-1" \}\)/, "email codes must send from the SES region with production access");
+  assert.match(tpl, /ses:SendEmail\]\s*\n\s*Resource: !Sub 'arn:\$\{AWS::Partition\}:ses:us-east-1:/, "auth role may send email codes from us-east-1");
   assert.ok(tpl.includes("POST /device-verification/email/send") && tpl.includes("POST /device-verification/email/confirm"));
   assert.match(ps, /DEVICE_EMAIL_OTP_ENABLED = if \(\$EnableDeviceEmailOtp\)/); assert.match(ps, /\$EmailDeviceSource,\$Package/);
   assert.ok(mod.includes("EMAIL_DEVICE#") && !mod.includes("ACCOUNT#") && !mod.includes("PHONE#"), "email codes never touch phone verification records");
