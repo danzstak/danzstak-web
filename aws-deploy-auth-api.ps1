@@ -161,7 +161,10 @@ try {
         Action = @("ses:SendEmail")
         Resource = @(
           "arn:aws:ses:us-west-1:635288116224:identity/danzstak.com",
-          "arn:aws:ses:us-west-1:635288116224:configuration-set/DanzStakTourManager"
+          "arn:aws:ses:us-west-1:635288116224:configuration-set/DanzStakTourManager",
+          "arn:aws:ses:us-east-1:635288116224:identity/danzstak.com",
+          "arn:aws:ses:us-east-1:635288116224:identity/support@danzstak.com",
+          "arn:aws:ses:us-east-1:635288116224:configuration-set/DanzStakTourManager"
         )
       },
       @{
