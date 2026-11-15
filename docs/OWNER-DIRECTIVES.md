@@ -100,7 +100,7 @@ Later phase (after users): SYNC standalone, SYNC Network numbers, federated netw
 ## Refunds (owner-set, 2026-11-15)
 
 - The buyer pays the Stripe fee. A refund returns the price minus Stripe's processing fee (example: $1.50 paid, $0.34 fee, $1.16 refunded).
-- Every DanzStak checkout says so before payment ("Refunds return the price minus Stripe's processing fee.") on the Stripe page and next to the buy button.
+- Every DanzStak checkout says so before payment ("Refunds return the price minus Stripe's processing fee.") next to every buy button on DanzStak (Stripe rejects custom checkout text while Managed Payments is on).
 - Issue refunds with `scripts/stripe-refund-minus-fee.py <payment_intent>` (dry run first, then `--confirm`). It tags the charge `danzstak_refund_policy=fee_deducted`, so the webhook revokes the credit, unlock or number. Other partial refunds still go to manual review.
 - Where consumer law requires a full refund (for example DanzStak's own error), refund in full in the Stripe dashboard; the webhook revokes access automatically.
 
