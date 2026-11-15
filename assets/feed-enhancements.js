@@ -1937,10 +1937,17 @@ function renderWorkspace(name) {
     ticketPrice.input.inputMode = "decimal";
     const ticketTerms = document.createElement("p");
     ticketTerms.className = "event-ticket-terms";
-    ticketTerms.textContent = "DanzStak sells your tickets. Buyers pay exactly your price, with no added fees. DanzStak keeps 5% and Stripe's processing fee comes out of your payout, so set your price to cover them. You're paid after the show. Using an outside ticket link instead? No DanzStak fee.";
+    ticketTerms.textContent = "DanzStak sells your tickets. By default every ticket needs the attendee's legal name and is non-transferable (scalping protection). Buyers pay exactly your price, with no added fees. DanzStak keeps 5% and Stripe's processing fee comes out of your payout, so set your price to cover them. You're paid after the show. Using an outside ticket link instead? No DanzStak fee.";
     const ticketTermsLink = Object.assign(document.createElement("a"), { href: "terms.html#tickets", target: "_blank", rel: "noopener", textContent: "Ticket terms" });
     ticketTerms.append(" ", ticketTermsLink);
-    ticketFields.append(ticketTerms, ticketName.wrap, ticketPrice.wrap);
+    // Owner directive 2026-11-16: scalping protection is ON by default; promoters may turn it off (e.g. punk venues).
+    const namedLabel = document.createElement("label");
+    namedLabel.className = "event-certification event-named-tickets";
+    const namedTickets = document.createElement("input");
+    namedTickets.type = "checkbox";
+    namedTickets.checked = true;
+    namedLabel.append(namedTickets, document.createTextNode("Require legal names on tickets (scalping protection). Every ticket carries the attendee's legal name, is non-transferable, and the door can check photo ID, like a European train ticket. Turn off only if your venue doesn't check names; tickets are then transferable."));
+    ticketFields.append(ticketTerms, ticketName.wrap, ticketPrice.wrap, namedLabel);
     ticketSales.addEventListener("change", () => { ticketFields.hidden = !ticketSales.checked; if (ticketSales.checked && !ticketName.input.value) ticketName.input.value = "General admission"; });
     const publishedHeading = document.createElement("h4");
     publishedHeading.textContent = "Published events";
@@ -1982,7 +1989,7 @@ function renderWorkspace(name) {
         const startsAt = new Date(submittedDate), endsAt = endDate.input.value ? new Date(endDate.input.value) : null;
         if (Number.isNaN(startsAt.valueOf()) || endsAt && (Number.isNaN(endsAt.valueOf()) || endsAt <= startsAt)) throw new Error("Choose valid start and end times.");
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-        const eventResponse = await postActionFetch("/marketplace/events", { method:"POST", credentials:"include", cache:"no-store", headers:{"Content-Type":"application/json"}, body:JSON.stringify({clientEventId,title:submittedTitle,description:"",venueName:venue.input.value.trim(),venueAddress:address.input.value.trim(),startsAt:startsAt.toISOString(),endsAt:endsAt?.toISOString()||"",timezone,capacity:eventCapacity,status:audience.value==="public"?"published":"draft",ticketSalesEnabled:ticketSales.checked,ticketUrl:outsideTicketUrl,...mediaFields}) });
+        const eventResponse = await postActionFetch("/marketplace/events", { method:"POST", credentials:"include", cache:"no-store", headers:{"Content-Type":"application/json"}, body:JSON.stringify({clientEventId,title:submittedTitle,description:"",venueName:venue.input.value.trim(),venueAddress:address.input.value.trim(),startsAt:startsAt.toISOString(),endsAt:endsAt?.toISOString()||"",timezone,capacity:eventCapacity,status:audience.value==="public"?"published":"draft",ticketSalesEnabled:ticketSales.checked,namedTickets:namedTickets.checked,ticketUrl:outsideTicketUrl,...mediaFields}) });
         const eventData = await eventResponse.json().catch(() => ({}));
         if (!eventResponse.ok) throw new Error(eventData.error || "Event details could not be saved.");
         uploadedEventMediaKey = "";
@@ -2009,6 +2016,7 @@ function renderWorkspace(name) {
           address.input.value = "";
           capacity.input.value = "100";
           outsideTickets.input.value = "";
+          namedTickets.checked = true;
           ticketSales.checked = false;
           ticketFields.hidden = true;
           ticketName.input.value = "";
