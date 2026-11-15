@@ -284,6 +284,7 @@ Owner correction (2026-11-15): SYNC must work worldwide. In addition to carrier 
 - **Notifications when offline:** members of the installed PWA must receive SYNC message and incoming-call notifications when the app is closed or the phone is locked.
 - **No music files, ever.** Never accept WAV, MP3, AIFF, FLAC or any other audio-file upload anywhere in DanzStak; music is links or authorized embeds only (copyright). SYNC voice messages recorded in the app are not music uploads.
 - **Shops like eBay:** every member's shop lives on their profile; all their active items also appear in the DanzStak Bazaar. DanzStak keeps 5% of each item sold (item price only, never shipping).
+- **Advertising lives only in the Bazaar (owner, 2026-11-15).** No advertising anywhere in Mix, ever. Any ad space DanzStak sells (to a brand like Chevy or anyone else) is shown only inside the DanzStak Bazaar, so members see ads only while they are browsing the Bazaar. Mix may show DanzStak members' own products (their shop items), never paid third-party ads. Ads are never targeted from members' private data and never ranked into feeds.
 - **No ChatGPT/Codex references.** Remove ChatGPT, OpenAI and Codex references and dependencies from the repository, scripts and branch/deploy names; DanzStak is built with Claude.
 
 ## StakGuard (planned)
