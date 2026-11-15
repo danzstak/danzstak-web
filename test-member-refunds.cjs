@@ -106,5 +106,10 @@ const assert = require("node:assert/strict");
   r = await h.call("/tour-manager/refunds");
   assert.equal(r.body.purchases.length, 1); assert.equal(r.body.purchases[0].sessionId, sessionId);
 
+  // Production regression (2026-11-15): the Lambda only loads Stripe secrets for listed routes.
+  const index = require("node:fs").readFileSync("infrastructure/auth-api/index.mjs", "utf8");
+  const stripeRoutes = index.match(/\[([^\]]*"\/tour-manager\/checkout"[^\]]*)\]\.includes\(path\)\) await ensureStripeSecrets/)?.[1] || "";
+  for (const route of ["/tour-manager/refunds/quote", "/tour-manager/refunds/accept"]) assert.ok(stripeRoutes.includes(`"${route}"`), `${route} must load Stripe secrets`);
+
   console.log("Member refund checks passed: fee-deducted quote, explicit acceptance, exact-amount match, no refund after use, single refund, Stripe-failure rollback.");
 })().catch(error => { console.error(error); process.exit(1); });

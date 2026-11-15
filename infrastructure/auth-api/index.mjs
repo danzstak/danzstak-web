@@ -5055,7 +5055,7 @@ export const handler = async event => {
       return await tourManagerBilling(event);
     }
     if (path?.startsWith("/tour-manager/") || path?.startsWith("/phone-number/") || path?.startsWith("/sync-network-number/")) {
-      if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout", "/sync-network-number/checkout"].includes(path)) await ensureStripeSecrets();
+      if (method === "POST" && ["/tour-manager/stripe/webhook", "/sync-network-number/stripe/webhook", "/tour-manager/checkout", "/tour-manager/contact-unlock/checkout", "/phone-number/checkout", "/sync-network-number/checkout", "/tour-manager/refunds/quote", "/tour-manager/refunds/accept"].includes(path)) await ensureStripeSecrets();
       const billingResponse = await tourManagerBilling(event);
       if (billingResponse) return billingResponse;
     }
