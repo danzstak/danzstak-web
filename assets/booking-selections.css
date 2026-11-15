@@ -35,3 +35,4 @@
 .booking-workspace-actions .secondary{border-color:#b8c4d2;background:#fff;color:#344054}
 @media(max-width:620px){.booking-workspace-actions .booking-next-action{min-width:0}.booking-workspace-actions .secondary{grid-column:1/-1}}
 .venue-links a,.venue-links .unlock-contact{display:inline-flex;min-height:44px;align-items:center}
+.credit-panel .refund-note{grid-column:1/-1;margin:0;font-size:.82rem;opacity:.75}

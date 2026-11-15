@@ -8,7 +8,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; img-src 'self' data: https:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
   <title>Selected Clubs | DanzStak Booking Agent</title>
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="assets/booking-selections.css?v=16">
+  <link rel="stylesheet" href="assets/booking-selections.css?v=17">
   <link rel="stylesheet" href="assets/app-feedback.css?v=2">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=4">
 </head>
@@ -21,6 +21,7 @@
     <section class="credit-panel" aria-labelledby="creditTitle">
       <div><p class="eyebrow">Tour Manager email credits</p><h2 id="creditTitle"><span id="bookingCreditBalance">—</span> ready to send</h2><p id="bookingCreditSummary">Sign in to view purchased, sent, and remaining booking emails.</p></div>
       <form id="buyBookingCredits"><label>Credits<input id="bookingCreditQuantity" type="number" min="1" max="500" value="10" inputmode="numeric"></label><button type="submit">Buy credits</button></form>
+      <p class="refund-note">Refunds return the price minus Stripe's processing fee.</p>
       <details><summary>Recent credit activity</summary><ol id="bookingCreditActivity"><li>No activity yet.</li></ol></details>
       <p id="bookingCreditStatus" role="status" aria-live="polite"></p>
     </section>
