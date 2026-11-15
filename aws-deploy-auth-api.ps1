@@ -1,4 +1,4 @@
-param([switch]$EnableDeviceSmsOtp, [switch]$EnableDeviceEmailOtp)
+param([switch]$EnableDeviceSmsOtp)
 $ErrorActionPreference = "Stop"
 
 $Region = "us-west-1"
@@ -11,7 +11,6 @@ $TicketingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\ticketing.mj
 $PhoneVerificationSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-verification.mjs"
 $PhoneServiceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-service.mjs"
 $PhoneDynamoSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-dynamodb.mjs"
-$EmailDeviceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\email-device-verification.mjs"
 $Package = Join-Path $PSScriptRoot "infrastructure\auth-api\package.json"
 $PackageLock = Join-Path $PSScriptRoot "infrastructure\auth-api\package-lock.json"
 $Bundle = Join-Path $env:TEMP "danzstak-auth-api.zip"
@@ -54,7 +53,6 @@ if ($LASTEXITCODE -ne 0) { throw "Phone verification JavaScript validation faile
 node --check $PhoneServiceSource
 if ($LASTEXITCODE -ne 0) { throw "Phone verification service validation failed." }
 node --check $PhoneDynamoSource
-node --check $EmailDeviceSource
 if ($LASTEXITCODE -ne 0) { throw "Phone verification database validation failed." }
 
 try {
@@ -92,7 +90,7 @@ try {
   aws dynamodb update-continuous-backups --region $Region --table-name $ReviewsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection failed." }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$MarketplaceSource,$TicketingSource,$PhoneVerificationSource,$PhoneServiceSource,$PhoneDynamoSource,$EmailDeviceSource,$Package,$PackageLock -Destination $Stage
+  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$MarketplaceSource,$TicketingSource,$PhoneVerificationSource,$PhoneServiceSource,$PhoneDynamoSource,$Package,$PackageLock -Destination $Stage
   Push-Location $Stage
   try {
     npm ci --omit=dev --ignore-scripts --no-audit --no-fund
@@ -272,8 +270,6 @@ try {
   # Fail closed: provider availability controls whether a text can be sent,
   # never whether an unverified device is allowed to register.
   $variables.PHONE_DEVICE_OTP_REQUIRED = if ($EnableDeviceSmsOtp) { 'true' } else { 'false' }
-  # Worldwide fallback: email code to the account's own address. Off unless explicitly enabled.
-  $variables.DEVICE_EMAIL_OTP_ENABLED = if ($EnableDeviceEmailOtp) { 'true' } else { 'false' }
   @{ Variables = $variables } | ConvertTo-Json -Depth 6 -Compress | Set-Content -LiteralPath $Environment -Encoding ascii
   aws lambda update-function-configuration --region $Region --function-name $FunctionName --environment "file://$Environment" --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Auth API media configuration failed." }
