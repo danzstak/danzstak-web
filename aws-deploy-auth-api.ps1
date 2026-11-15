@@ -182,7 +182,11 @@ try {
         Action = @("secretsmanager:GetSecretValue")
         Resource = @(
           "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/secret-key-*",
-          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/webhook-secret-*"
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/webhook-secret-*",
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/sync-network-webhook-secret-*",
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/live-secret-key-*",
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/live-webhook-secret-*",
+          "arn:aws:secretsmanager:us-west-1:635288116224:secret:danzstak/stripe/live-sync-network-webhook-secret-*"
         )
       },
       @{
