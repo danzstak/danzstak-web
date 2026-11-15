@@ -39,7 +39,8 @@ const TEST_SYNC_NETWORK_CATALOG = Object.freeze({
 function stripeCatalog(livemode) { return livemode ? LIVE_STRIPE_CATALOG : TEST_STRIPE_CATALOG; }
 // Owner policy 2026-11-15: a refund returns the price minus Stripe's processing fee; the buyer pays the fee.
 export const REFUND_NOTICE_TEXT = "Refunds return the price minus Stripe's processing fee.";
-const REFUND_NOTICE = Object.freeze({ "custom_text[submit][message]": REFUND_NOTICE_TEXT });
+// Stripe rejects custom_text on this account (Managed Payments), so the notice is shown on DanzStak before checkout instead.
+const REFUND_NOTICE = Object.freeze({});
 export const FEE_DEDUCTED_REFUND_POLICY = "fee_deducted";
 const PRODUCT = "tour_manager_booking_email";
 const CONTACT_PRODUCT = "booking_contact_unlock";
