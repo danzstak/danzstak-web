@@ -144,6 +144,7 @@
       <label>Country code<select id="syncPhoneCountryCode" required><option value="+1">United States +1</option><option value="+39">Italy +39</option><option value="+44">United Kingdom +44</option><option value="+49">Germany +49</option><option value="+33">France +33</option></select></label>
       <label>Mobile number<input id="syncPhoneNumber" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="24" placeholder="415 555 0123" required></label>
       <button id="syncPhoneSend" type="submit" class="primary">Text me a code</button>
+      <button id="syncEmailSend" type="button" class="secondary" hidden>Email me a code instead</button>
     </form>
     <form id="syncPhoneCodeForm" class="sync-phone-form" hidden>
       <label>Six-digit code<input id="syncPhoneCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>

@@ -45,6 +45,7 @@ import { createTicketing } from "./ticketing.mjs";
 import { createPersonalPhoneService } from "./personal-phone-service.mjs";
 import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs";
 import { publicPhoneStatus } from "./personal-phone-verification.mjs";
+import { createEmailDeviceDynamoAdapter, createEmailDeviceVerification } from "./email-device-verification.mjs";
 import QRCode from "qrcode";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -83,6 +84,8 @@ const phoneVerificationEnabled = process.env.PHONE_VERIFICATION_ENABLED === "tru
 // an OTP, the device stays unregistered instead of silently falling back to an
 // unverified credential.
 const phoneDeviceOtpRequired = process.env.PHONE_DEVICE_OTP_REQUIRED === "true";
+// Worldwide fallback: a SYNC device may also register with a code sent to the account's own email.
+const deviceEmailOtpEnabled = process.env.DEVICE_EMAIL_OTP_ENABLED === "true";
 let phoneVerificationSecretPromise = null;
 const clientId = process.env.COGNITO_CLIENT_ID;
 const cognitoDomain = process.env.COGNITO_DOMAIN;
@@ -123,6 +126,12 @@ const personalPhoneAdapter = createPersonalPhoneDynamoAdapter({
   db,
   tableName: phoneVerificationTable,
   commands: { GetItemCommand, TransactWriteItemsCommand, UpdateItemCommand }
+});
+
+const emailDeviceAdapter = createEmailDeviceDynamoAdapter({
+  db,
+  tableName: phoneVerificationTable,
+  commands: { GetItemCommand, TransactWriteItemsCommand, UpdateItemCommand, DeleteItemCommand }
 });
 
 function secretText(result, fields) {
@@ -194,6 +203,27 @@ async function personalPhoneService() {
         const input = { NotifyConfigurationId: phoneNotifyConfigurationId, DestinationPhoneNumber: number, TemplateVariables: { code } };
         if (phoneNotifyTemplateId) input.TemplateId = phoneNotifyTemplateId;
         await sms.send(new SendNotifyTextMessageCommand(input));
+      }
+    }
+  });
+}
+
+async function emailDeviceService() {
+  const secret = await phoneVerificationSecret();
+  return createEmailDeviceVerification({
+    adapter: emailDeviceAdapter,
+    secret,
+    enabled: deviceEmailOtpEnabled,
+    sender: {
+      async send({ email, code }) {
+        await ses.send(new SendEmailCommand({
+          FromEmailAddress: "DanzStak SYNC <support@danzstak.com>",
+          Destination: { ToAddresses: [email] },
+          Content: { Simple: {
+            Subject: { Data: `${code} is your DanzStak SYNC code`, Charset: "UTF-8" },
+            Body: { Text: { Data: `Your DanzStak SYNC code is ${code}\n\nEnter it on the device you are registering for SYNC calls and voice messages. It expires in 10 minutes.\nIf you did not ask for this, ignore this email; no device was registered.`, Charset: "UTF-8" } }
+          } }
+        }));
       }
     }
   });
@@ -4995,7 +5025,7 @@ async function getPersonalPhoneStatus(event) {
   const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
   if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
   const record = await personalPhoneAdapter.getByUser(userId);
-  return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(record), providerAvailable: phoneVerificationEnabled, deviceOtpRequired: phoneDeviceOtpRequired }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(record), providerAvailable: phoneVerificationEnabled, emailCodeAvailable: deviceEmailOtpEnabled, deviceOtpRequired: phoneDeviceOtpRequired }) };
 }
 
 async function sendPersonalPhoneCode(event) {
@@ -5041,6 +5071,39 @@ async function removePersonalPhone(event) {
     return { statusCode: 200, headers, body: JSON.stringify({ ...publicPhoneStatus(null), providerAvailable: phoneVerificationEnabled }) };
   } catch {
     return { statusCode: 503, headers, body: JSON.stringify({ error: "Phone verification is unavailable." }) };
+  }
+}
+
+async function sendDeviceEmailCode(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin." }) };
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const body = parseJsonBody(event);
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid request." }) };
+  try {
+    const secret = await phoneVerificationSecret();
+    const requestKey = createHmac("sha256", secret).update(`request:${String(event.requestContext?.http?.sourceIp || "unknown")}`).digest("hex");
+    const service = await emailDeviceService();
+    const email = deviceEmailOtpEnabled ? await accountForSub(userId) : "";
+    const result = await service.send({ userId, email, requestKey, deviceChallengeId: String(body.deviceChallengeId || "").slice(0, 80), deviceChallenge: String(body.deviceChallenge || "").slice(0, 100) });
+    return { statusCode: 202, headers, body: JSON.stringify(result) };
+  } catch (error) {
+    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.statusCode ? error.message : "Email codes are unavailable.", code: error.code || "unavailable" }) };
+  }
+}
+
+async function confirmDeviceEmailCode(event) {
+  const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+  if (!allowedOrigins.has(event.headers?.origin)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Forbidden origin." }) };
+  if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+  const body = parseJsonBody(event);
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid request." }) };
+  try {
+    const service = await emailDeviceService();
+    const result = await service.confirm({ userId, code: String(body.code || "").slice(0, 12), deviceChallengeId: String(body.deviceChallengeId || "").slice(0, 80), deviceChallenge: String(body.deviceChallenge || "").slice(0, 100) });
+    return { statusCode: 200, headers, body: JSON.stringify(result) };
+  } catch (error) {
+    return { statusCode: Number(error.statusCode || 503), headers, body: JSON.stringify({ error: error.statusCode ? error.message : "Email codes are unavailable.", code: error.code || "unavailable" }) };
   }
 }
 
@@ -5103,6 +5166,8 @@ export const handler = async event => {
     if (method === "POST" && path === "/phone-verification/send") return await sendPersonalPhoneCode(event);
     if (method === "POST" && path === "/phone-verification/confirm") return await confirmPersonalPhoneCode(event);
     if (method === "DELETE" && path === "/phone-verification") return await removePersonalPhone(event);
+    if (method === "POST" && path === "/device-verification/email/send") return await sendDeviceEmailCode(event);
+    if (method === "POST" && path === "/device-verification/email/confirm") return await confirmDeviceEmailCode(event);
 
     const accountSessionMatch = path?.match(/^\/auth\/sessions\/([0-9a-f-]{36})$/i);
     if (method === "DELETE" && accountSessionMatch) {
