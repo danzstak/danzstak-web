@@ -17,7 +17,7 @@ const assert = require("node:assert/strict");
   const userId = "user_12345678", creditId = `${userId}|TOUR_MANAGER#BOOKING_EMAIL_CREDITS`;
   records.set(creditId, { userId: { S: userId }, tourId: { S: "TOUR_MANAGER#BOOKING_EMAIL_CREDITS" }, credits: { N: "3" }, reservedCredits: { N: "0" }, sentEmails: { N: "0" } });
   records.set(`${userId}|TOUR_MANAGER#CONTACT_UNLOCK#venue-1`, { userId: { S: userId }, tourId: { S: "TOUR_MANAGER#CONTACT_UNLOCK#venue-1" }, venueKey: { S: "venue-1" }, status: { S: "active" } });
-  records.set(`${userId}|booking-workspace-v1`, { userId: { S: userId }, tourId: { S: "booking-workspace-v1" }, plan: { S: JSON.stringify({ artist: { name: "Codex", epk: "https://danzstak.com/epk.html?id=codex" }, venues: [{ venueKey: "venue-1", name: "Club Test", emails: ["bookings@example.com"], booking: { followUp: "2026-11-07" } }] }) } });
+  records.set(`${userId}|booking-workspace-v1`, { userId: { S: userId }, tourId: { S: "booking-workspace-v1" }, plan: { S: JSON.stringify({ artist: { name: "Static", epk: "https://danzstak.com/epk.html?id=staticband" }, venues: [{ venueKey: "venue-1", name: "Club Test", emails: ["bookings@example.com"], booking: { followUp: "2026-11-07" } }] }) } });
   const number = (item, name) => Number(item[name]?.N || 0);
   const db = { async send(command) {
     if (command instanceof GetItemCommand) return { Item: records.get(keyOf(command.input.Key)) };
@@ -78,7 +78,7 @@ const assert = require("node:assert/strict");
   }};
   const corsHeaders = origin => origin === "https://danzstak.com" ? { "access-control-allow-origin": origin } : {};
   const privateEpk = "https://danzstak.com/epk.html?outreach=1234567890abcdef1234567890abcdef#token=" + "a".repeat(64);
-  const event = (id, message = `Please book this tested artist for the proposed date. Private EPK: ${privateEpk}`, artistApproved = true, followUpTo = "") => ({ requestContext: { http: { method: "POST" } }, rawPath: "/tour-manager/emails/send", headers: { origin: "https://danzstak.com" }, body: JSON.stringify({ venueKey: "venue-1", to: "bookings@example.com", subject: "Codex booking request", message, template: "band", artistApproved, idempotencyKey: id, ...(followUpTo ? { followUpTo } : {}) }) });
+  const event = (id, message = `Please book this tested artist for the proposed date. Private EPK: ${privateEpk}`, artistApproved = true, followUpTo = "") => ({ requestContext: { http: { method: "POST" } }, rawPath: "/tour-manager/emails/send", headers: { origin: "https://danzstak.com" }, body: JSON.stringify({ venueKey: "venue-1", to: "bookings@example.com", subject: "Static booking request", message, template: "band", artistApproved, idempotencyKey: id, ...(followUpTo ? { followUpTo } : {}) }) });
   let providerCalls = 0, fail = false, currentTime = Date.parse("2026-11-07T12:00:00.000Z");
   const service = createTourManagerBilling({ db, commands, authenticate: async () => userId, corsHeaders, tableName: "Tours", env: {}, clock: () => currentTime, validateOutreachEpkLink: async ({ userId: owner, venueKey, outreachId, message }) => owner === userId && venueKey === "venue-1" && message.includes(privateEpk) && /^[a-zA-Z0-9_-]{16,100}$/.test(outreachId), sendBookingEmail: async () => { providerCalls += 1; if (fail) throw new Error("provider rejected"); return { messageId: "ses-message-1" }; } });
   const preflight = async (id, followUpTo = "") => {
@@ -88,7 +88,7 @@ const assert = require("node:assert/strict");
   const reviewedMessage = footer => `Please book this tested artist for the proposed date. Private EPK: ${privateEpk}\n\n---\n${footer}`;
   const unapproved = await service(event("unapproved123456", undefined, false));
   assert.equal(unapproved.statusCode, 400); assert.equal(providerCalls, 0, "An unapproved draft must never reach the provider or reserve a credit");
-  const unbound = await service(event("unboundshare12345", "Please book this artist. EPK: https://danzstak.com/epk.html?id=codex"));
+  const unbound = await service(event("unboundshare12345", "Please book this artist. EPK: https://danzstak.com/epk.html?id=staticband"));
   assert.equal(unbound.statusCode, 409); assert.equal(providerCalls, 0, "A public or unbound EPK link must not reach the provider"); assert.equal(number(records.get(creditId), "credits"), 3);
   const firstPreflight = await preflight("1234567890abcdef"); assert.equal(firstPreflight.result.statusCode, 200); assert.match(firstPreflight.footer, /2063 Main St\. #237/); assert.match(firstPreflight.footer, /booking-opt-out\.html#token=[a-f0-9]{64}/);
   const sent = await service(event("1234567890abcdef", reviewedMessage(firstPreflight.footer)));

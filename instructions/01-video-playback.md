@@ -27,7 +27,7 @@
 - Confirm player edges have no unintended black border; distinguish provider letterboxing from CSS defects.
 - Record exact automated tests, manual test environments, and any unverified providers.
 
-## Codex deliverables
+## Claude deliverables
 Root-cause analysis, changed file paths, PR, test results, before/after screenshots, known provider limitations.
 
 
@@ -48,7 +48,7 @@ Root-cause analysis, changed file paths, PR, test results, before/after screensh
 - Audit actual assets/feed-enhancements.js functions setRollFullscreen, reelPlaybackObserver, renderPlayableReels, the CSS .roll-fullscreen/.reels-list rules, and global media visibility coordinator before coding; explain measured defects rather than creating another separate video feed.
 - On **two or more real test clips** in an **installed Android phone PWA**, tap Open Roll and hear sound where browser/user gesture allows; swipe A->B->C without pressing sound again; verify video A pauses at <=50% visible, B starts once predominant >=50% visible, never two audible streams, mute persists, swipe backwards, video errors handled, closing stops sound immediately. Distinguish browser-policy failures from implementation bugs.
 - Test precise 50/50 ties, fast swipe/reverse, buffering/network loss, pause while scrolling controls, external YouTube embed vs direct video, tab background, video call audio focus, PWA history/back, 320/360/375/390/414/430px and desktop. Record supported/uncontrollable providers honestly. Include mobile screenshots and actual sound playback evidence, not only CSS/layout static tests.
-- Codex: independent small PR, reproducible pass/fail evidence, SHA, verified **phone-accessible staging PWA**, exact provider limitations and **owner approval before merge/deploy**. This specification does not establish a completed feature.
+- Claude: independent small PR, reproducible pass/fail evidence, SHA, verified **phone-accessible staging PWA**, exact provider limitations and **owner approval before merge/deploy**. This specification does not establish a completed feature.
 
 **User promise:** Open the Roll and hear the active video, swipe, hear the next, never overlapping videos, no need to press sound on each video.
 
@@ -62,7 +62,7 @@ Root-cause analysis, changed file paths, PR, test results, before/after screensh
 - Maintain previously approved **50%-out-of-view pause / >=50%-visible next play** handoff, with exactly one active media owner and tie stability. Entering fullscreen is a deliberate gesture: play audio when allowed; **keep the session-level audio preference while swiping** so a person doesn't unmute each clip. Only request a further gesture when browser/provider restrictions require it, and be truthful about limitations.
 - The Mix remains an independent scrollable social feed (muted by default); Dailies remains a separate 24-hour feature. Do not install Instagram SDK, require Meta login, replicate proprietary visuals or rehost videos that were supplied as external embeds.
 - Quality bar is perceived smoothness on **real Android PWA**, not just a static mockup: test repeated swipes, rapid reversals, load/transition times, mixed native and supported embed sources, audio bleed, tap targets, accessibility and background/call interruptions. Compare real before/after staging recordings/screenshots. If a provider cannot be controlled, give a graceful fallback rather than fake smooth autoplay.
-- Codex implementation on its development branch, isolated PR, real device tests, staging preview and explicit owner approval before production deployment.
+- Claude implementation on its development branch, isolated PR, real device tests, staging preview and explicit owner approval before production deployment.
 
 **Design sentence:** "The Roll keeps its name and content; only the viewing experience becomes more fluid, immersive and comfortable."
 
@@ -80,7 +80,7 @@ The owner says that clicking The Roll should open fullscreen and play all videos
 
 **Do not conflate Dailies with The Roll:** Dailies is a separate 24-hour photo/video story product but should adopt the same fluid fullscreen **vertical** viewing, 50%-handoff, and user-selected sound behavior as described in its own specification; photos auto-advance after a reasonable pauseable duration and videos when they actually end.
 
-**Codex acceptance:** Test (1) opening global Roll and watching 3+ different creators' clips continuously/with vertical swipes, (2) opening an older video of creator A and getting only A's clips scattered through profile posts (skip photos/text), (3) 50% threshold audio handoff and one player, (4) 24-hour Daily exclusion, blocking/deletion/pagination, (5) provider restrictions, real Android PWA sound and mobile keyboard/back gesture. Isolated PR, exact SHA, phone-accessible staging PWA, evidence and owner approval before production.
+**Claude acceptance:** Test (1) opening global Roll and watching 3+ different creators' clips continuously/with vertical swipes, (2) opening an older video of creator A and getting only A's clips scattered through profile posts (skip photos/text), (3) 50% threshold audio handoff and one player, (4) 24-hour Daily exclusion, blocking/deletion/pagination, (5) provider restrictions, real Android PWA sound and mobile keyboard/back gesture. Isolated PR, exact SHA, phone-accessible staging PWA, evidence and owner approval before production.
 
 
 ## Three strictly separate playback queues — owner final correction (2026-11-04)
@@ -137,7 +137,7 @@ The owner has confirmed content retention separately from fullscreen navigation:
 - **Dailies** are the one exception: individual Daily items expire exactly **24 hours after server-trusted publication**, and must immediately be excluded from the Daily-only queue/API and any live fullscreen view. See the [Dailies retention specification](pages/13-flashes/README.md).
 - If one underlying video is crossposted as a Daily and a regular Roll/Mix/profile post, expiry of the Daily removes **only the Daily publication**. Do not delete media referenced by a surviving authorized regular post; use backend publication IDs and asset reference accounting. Member-initiated deletes must respect intended scope, ownership and any shared references.
 - Playback mode remains distinct from content lifetime: opening The Roll plays Roll-only videos across creators; opening Dailies plays available Dailies only; opening a Mix or profile video plays that creator's persistent regular videos only. Swipe/50% pixel-threshold and session audio behavior do not reset retention or extend Daily lifetime.
-- Codex tests should verify regular video playback days after publication while Dailies vanish at precisely the 24h boundary; verify delete semantics, mixed crossposting, fullscreen queue updates, pagination and links without duplicate/phantom media. No implementation claims until real code/phone tests and owner approval.
+- Claude tests should verify regular video playback days after publication while Dailies vanish at precisely the 24h boundary; verify delete semantics, mixed crossposting, fullscreen queue updates, pagination and links without duplicate/phantom media. No implementation claims until real code/phone tests and owner approval.
 
 
 ## Video deletion actions — persistent shares versus global owner removal (2026-11-04)
@@ -146,4 +146,4 @@ The owner has confirmed content retention separately from fullscreen navigation:
 
 Do not confuse removing a **reshare** with deleting the **original**: members can remove only their own reshare, while only the source video owner can choose Delete everywhere. Delete everywhere removes every in-service share completely, including its reshare caption; no unavailable-video placeholder remains. DanzStak-hosted shared links and embeds stop working, and media/derivatives are purged from active storage and caches under the account-erasure backup rules. The confirmation must state that screenshots, downloads and external copies cannot be recalled. For Remove from here, other reshares should continue working even if they originated from the removed publication; this may require canonical video identity independent of source-post IDs.
 
-**Dailies expiry is NOT global delete.** A Daily disappearing at 24h must not erase non-expiring Roll/Mix/profile placements or surviving reshares that are separately authorized. Cross-module asset reference accounting, privacy, deletion/auth, caching, server-side cascades and media revocation are detailed in [Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40). Show honest limits: copies saved outside DANZSTAK and unrelated independent uploads cannot be guaranteed removed. Codex to test both actions with two or more accounts, existing video queues and mobile staging.
+**Dailies expiry is NOT global delete.** A Daily disappearing at 24h must not erase non-expiring Roll/Mix/profile placements or surviving reshares that are separately authorized. Cross-module asset reference accounting, privacy, deletion/auth, caching, server-side cascades and media revocation are detailed in [Issue #40](https://github.com/Danzstak/Danzstak-web/issues/40). Show honest limits: copies saved outside DANZSTAK and unrelated independent uploads cannot be guaranteed removed. Claude to test both actions with two or more accounts, existing video queues and mobile staging.

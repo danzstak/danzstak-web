@@ -15,4 +15,4 @@
 - [Settings](11-settings/README.md) — specification scaffold; implementation and tests not yet verified
 - [Phone Service](12-phone-service/README.md) — specification scaffold; implementation and tests not yet verified
 
-Codex must link each page's PR, tests, screenshots and PWA preview in its tracking file. Owner approves each page before production release.
+Claude must link each page's PR, tests, screenshots and PWA preview in its tracking file. Owner approves each page before production release.

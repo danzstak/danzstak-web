@@ -1,6 +1,6 @@
-# DANZSTAK — Codex instruction center
+# DANZSTAK — Claude instruction center
 
-This branch contains **specifications and visual references**, not production code. Codex must inspect the actual implementation before modifying files.
+This branch contains **specifications and visual references**, not production code. Claude must inspect the actual implementation before modifying files.
 
 ## Execution order
 1. [Video playback and audio isolation](01-video-playback.md) — [visual](visuals/video-feed.svg)
@@ -9,7 +9,7 @@ This branch contains **specifications and visual references**, not production co
 4. [Worldwide discovery](04-discovery.md)
 5. [EPK media management](05-epk.md)
 
-## Mandatory Codex workflow
+## Mandatory Claude workflow
 - Read one section, inspect current code, and identify the relevant files and architecture.
 - Implement in a separate implementation branch, **not** this instructions branch.
 - Run relevant tests and browser-based checks on mobile and desktop. Where browser testing is unavailable, explicitly report that.
@@ -18,7 +18,7 @@ This branch contains **specifications and visual references**, not production co
 - Preserve DANZSTAK independence from SFScoop; external music/video embeds only, unless a section explicitly specifies otherwise.
 - Never deploy or merge without the project's established approval process.
 
-**Important:** GitHub instructions are not automatically executed by Codex. Codex must be directed/configured to read this branch.
+**Important:** GitHub instructions are not automatically executed by Claude. Claude must be directed/configured to read this branch.
 
 
 ## Platform-wide owner pricing and member-choice policy (2026-11-04)
