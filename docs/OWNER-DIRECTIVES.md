@@ -51,7 +51,7 @@ Phone and the desktop center column use this exact finite order:
 7. Three chronological posts, then the newest unseen event flyer from the member's people and scene.
 8. Repeat the three-post/show-review, three-post/album-review, three-post/event-flyer pattern until **You're caught up**. No infinite scroll.
 
-Posts remain chronological. If an eligible unseen supplemental item does not exist, skip that slot without leaving a gap. Never substitute an advertisement, promotion or algorithm-selected item. Desktop keeps **HQ, Tour, EPK, Scene, Mix** in the left menu and **News (with Reviews)** plus **Shows near you** in the right column. Implementation plan and 390px reference: `docs/DESIGN-DIRECTION-PLAN.md` on `codex/design-direction-plan`.
+Posts remain chronological. If an eligible unseen supplemental item does not exist, skip that slot without leaving a gap. Never substitute an advertisement, promotion or algorithm-selected item. **(Owner, 2026-11-15) Advertising is sold only for the DanzStak Bazaar and is shown only inside the Bazaar; Mix never shows ads. Mix may show members' own shop products, not paid third-party ads.** Desktop keeps **HQ, Tour, EPK, Scene, Mix** in the left menu and **News (with Reviews)** plus **Shows near you** in the right column. Implementation plan and 390px reference: `docs/DESIGN-DIRECTION-PLAN.md` on `codex/design-direction-plan`.
 
 ## Priority order (2026-11-07): get users first
 
