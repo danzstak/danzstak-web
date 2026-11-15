@@ -260,10 +260,18 @@ const ticketing = createTicketing({
   commands: { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand },
   authenticate: getAuthenticatedUser,
   corsHeaders,
-  tableName: marketplaceTable
+  tableName: marketplaceTable,
+  mediaOwnerPrefix: userId => mediaOwnerPrefixForUser(userId),
+  signMedia: key => signedMediaUrl(key, 3600)
 });
 
 const now = () => Math.floor(Date.now() / 1000);
+
+// Event flyers/videos must live under the organizer's own media prefix.
+async function mediaOwnerPrefixForUser(userId) {
+  const email = await accountForSub(userId);
+  return email ? sha256(email).slice(0, 24) : "";
+}
 
 async function scanAll(request, maximumItems = 5000) {
   const items = [];

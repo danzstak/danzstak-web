@@ -37,9 +37,9 @@ assert.match(source, /function setReelFormOpen\(open\)/, "The Roll must expose o
 assert.match(source, /reelsRail\.classList\.toggle\("has-reels", reels\.length > 0\)/, "empty and populated Roll layouts must have explicit state");
 assert.match(css, /\.reels-rail:not\(\.has-reels\):not\(\.is-adding\)[^{]*\{padding:10px 12px!important\}/, "the empty Roll must remain compact");
 assert.match(css, /\.reel-import-form\[hidden\],\.roll-close\[hidden\],\.roll-open\[hidden\]\{display:none!important\}/, "hidden Roll controls must not be revived by shared icon styles");
-assert.match(html, /assets\/feed-enhancements\.css\?v=514/);
-assert.match(html, /assets\/feed-enhancements\.js\?v=549/);
+assert.match(html, /assets\/feed-enhancements\.css\?v=515/);
+assert.match(html, /assets\/feed-enhancements\.js\?v=550/);
 assert.match(html, /assets\/danzstak-original-feed\.css\?v=32/);
-assert.match(worker, /danzstak-shell-v818/);
+assert.match(worker, /danzstak-shell-v819/);
 
 console.log("Feed density checks passed: Dailies-first order, compact recovery, collapsed Roll authoring, and PWA refresh.");

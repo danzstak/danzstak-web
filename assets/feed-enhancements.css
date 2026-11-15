@@ -369,3 +369,16 @@ video.post-media[data-video-layout="landscape"]{aspect-ratio:16 / 9}
 @media(max-width:700px){.topbar{grid-template-columns:auto minmax(0,1fr) auto auto!important}.topbar .header-notifications{grid-row:1;grid-column:4;min-width:40px;min-height:40px;background:#ffffff1f;color:#fff}.topbar .pivot-header-button{grid-row:1;grid-column:3}.topbar .topnav>button{display:flex!important;align-items:center;justify-content:center;width:auto!important;min-width:0}.topbar .topnav .mobile-menu-control{display:flex!important}}
 .topbar .header-notifications{flex:none;width:44px;height:44px;justify-self:center}
 @media(min-width:701px) and (max-width:1050px){.topbar{grid-template-columns:auto minmax(120px,1fr) auto auto auto!important}.topbar .header-notifications{grid-column:4}.topbar .topnav{grid-column:5!important}}
+/* Events: upcoming shows as flyers (owner directive 2026-11-15) */
+.events-workspace h3{margin:16px 0 8px;font-size:1.05rem}
+.event-flyer-list{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.event-flyer-card{display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(127,127,127,.25);border-radius:10px;background:var(--surface,#fff)}
+.event-flyer-card img,.event-flyer-card video{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:#0b0b0c}
+.event-flyer-body{display:flex;flex-direction:column;gap:4px;flex:1;padding:10px 12px 12px}
+.event-flyer-body h4{margin:0;font-size:1rem;line-height:1.25}
+.event-flyer-body p{margin:0;font-size:.9rem}
+.event-flyer-when{font-weight:700;color:#c2410c}
+.event-flyer-tickets{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin-top:auto;border-radius:8px;text-decoration:none;font-weight:700;background:#ff5a1f;color:#0b0b0c}
+.event-media-field{display:grid;gap:4px}
+.event-media-field input[type=file]{min-height:44px}
+.event-media-preview img,.event-media-preview video{display:block;max-width:100%;max-height:360px;border-radius:8px;margin:6px 0}
