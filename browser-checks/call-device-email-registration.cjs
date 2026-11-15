@@ -58,7 +58,9 @@ async function capture(page, file) {
       const emailButton = page.locator('#syncEmailSend');
       await emailButton.waitFor({ state: 'visible' });
       assert.equal(await page.locator('#syncPhoneSend').isDisabled(), true, `SMS send should be disabled while carrier SMS is unavailable at ${width}px`);
-      assert.match(await page.locator('#syncPhoneStatus').textContent(), /Email me a code instead/);
+      assert.match(await page.locator('#syncPhoneStatus').textContent(), /Tap Email/);
+      assert.equal(await emailButton.getAttribute('aria-label'), 'Email me a code instead');
+      assert.equal(await emailButton.locator('svg[data-ds-icon="case-mail"]').count(), 1, 'music icon missing');
       assert.equal((await page.locator('#syncPhoneTitle').textContent()).trim(), 'Verify this device', `title still promises SMS at ${width}px`);
       const box = await emailButton.boundingBox();
       assert.ok(box.height >= 44 && box.x >= 0 && box.x + box.width <= width, `email button size/overflow at ${width}px: ${JSON.stringify(box)}`);
