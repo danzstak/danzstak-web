@@ -1935,7 +1935,12 @@ function renderWorkspace(name) {
     const ticketName = field("Ticket name", "text", "General admission");
     const ticketPrice = field("Ticket price (USD)", "text", "15.00");
     ticketPrice.input.inputMode = "decimal";
-    ticketFields.append(ticketName.wrap, ticketPrice.wrap);
+    const ticketTerms = document.createElement("p");
+    ticketTerms.className = "event-ticket-terms";
+    ticketTerms.textContent = "DanzStak sells your tickets. Buyers pay exactly your price, with no added fees. DanzStak keeps 5% and Stripe's processing fee comes out of your payout, so set your price to cover them. You're paid after the show. Using an outside ticket link instead? No DanzStak fee.";
+    const ticketTermsLink = Object.assign(document.createElement("a"), { href: "terms.html#tickets", target: "_blank", rel: "noopener", textContent: "Ticket terms" });
+    ticketTerms.append(" ", ticketTermsLink);
+    ticketFields.append(ticketTerms, ticketName.wrap, ticketPrice.wrap);
     ticketSales.addEventListener("change", () => { ticketFields.hidden = !ticketSales.checked; if (ticketSales.checked && !ticketName.input.value) ticketName.input.value = "General admission"; });
     const publishedHeading = document.createElement("h4");
     publishedHeading.textContent = "Published events";
