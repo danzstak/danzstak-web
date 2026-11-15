@@ -1,23 +1,27 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 
-export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UXjMtFgtfNMBXOVCLeEk8vI";
-export const TOUR_MANAGER_PRODUCT_ID = "prod_VYr5JIwpaFSX7b";
+export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UcAtqDoNxcsrqZsAWuhsZb8";
+export const TOUR_MANAGER_PRODUCT_ID = "prod_VdRn459Fo3WpXT";
 export const TOUR_MANAGER_EMAIL_UNIT_CENTS = 150;
-export const BOOKING_CONTACT_PRICE_ID = "price_1UXkB5FgtfNMBXOVVeUOGJjX";
-export const BOOKING_CONTACT_PRODUCT_ID = "prod_VYruR0GLph8xsy";
+export const BOOKING_CONTACT_PRICE_ID = "price_1UcAtrDoNxcsrqZswNZlpiAw";
+export const BOOKING_CONTACT_PRODUCT_ID = "prod_VdRnQb5LyOiite";
 export const BOOKING_CONTACT_UNIT_CENTS = 75;
-export const PHONE_NUMBER_PRICE_ID = "price_1UXjlYFgtfNMBXOVD42xjrTc";
-export const PHONE_NUMBER_PRODUCT_ID = "prod_VYrUnT8yvXS0Ek";
+export const PHONE_NUMBER_PRICE_ID = ""; // carrier phone activation retired; checkout stays disabled
+export const PHONE_NUMBER_PRODUCT_ID = "";
 export const PHONE_NUMBER_UNIT_CENTS = 300;
-export const TEST_TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UXoMtFgtfNMBXOV1fqlkuRf";
-export const TEST_TOUR_MANAGER_PRODUCT_ID = "prod_VYwFT1LQyqjsxc";
-export const TEST_BOOKING_CONTACT_PRICE_ID = "price_1UXoMsFgtfNMBXOVSmnWDFGa";
-export const TEST_BOOKING_CONTACT_PRODUCT_ID = "prod_VYwF2z3cYoe72u";
-export const TEST_PHONE_NUMBER_PRICE_ID = "price_1UXoMuFgtfNMBXOVNxfRWRDp";
-export const TEST_PHONE_NUMBER_PRODUCT_ID = "prod_VYwFZRXzQ3dNNv";
+export const TEST_TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UY3WPDoNxcsrqZsBvGsCdRY";
+export const TEST_TOUR_MANAGER_PRODUCT_ID = "prod_VZBtDXmAr9Qso0";
+export const TEST_BOOKING_CONTACT_PRICE_ID = "price_1UY3VADoNxcsrqZs5VMSJ04J";
+export const TEST_BOOKING_CONTACT_PRODUCT_ID = "prod_VZBs9swmu7Xenf";
+export const TEST_PHONE_NUMBER_PRICE_ID = "price_1UY3WuDoNxcsrqZsvRAdWrKF";
+export const TEST_PHONE_NUMBER_PRODUCT_ID = "prod_VZBuoQg7RrEZFZ";
 export const SYNC_NETWORK_NUMBER_UNIT_CENTS = 300;
 export const TEST_SYNC_NETWORK_NUMBER_PRICE_ID = "price_1UadinDoNxcsrqZsYdYyJxAB";
 export const TEST_SYNC_NETWORK_NUMBER_PRODUCT_ID = "prod_VbrRRYRnBc56Qt";
+// Live DANZSTAK catalog (acct_1UXmCbDoNxcsrqZs), created 2026-11-15. Network-number live checkout is not wired yet.
+export const LIVE_SYNC_NETWORK_NUMBER_PRICE_ID = "price_1UcAtrDoNxcsrqZshxzN5BEz";
+export const LIVE_AI_EPK_PRICE_ID = "price_1UcAtrDoNxcsrqZsBC7FoNy8";
+export const LIVE_AI_EPK_REDESIGN_PRICE_ID = "price_1UcAtrDoNxcsrqZs48r658a1";
 const LIVE_STRIPE_CATALOG = Object.freeze({
   tour: { priceId: TOUR_MANAGER_EMAIL_PRICE_ID, productId: TOUR_MANAGER_PRODUCT_ID },
   contact: { priceId: BOOKING_CONTACT_PRICE_ID, productId: BOOKING_CONTACT_PRODUCT_ID },
@@ -110,8 +114,9 @@ export function verifyStripeSignature(payload, header, secret, currentTime = Dat
 
 export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, env = process.env, fetcher = fetch, clock = Date.now, aliasGenerator = generateSyncNetworkAlias }) {
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
-  const testMode = () => env.STRIPE_SECRET_KEY?.startsWith("sk_test_");
-  const paymentsAllowed = () => Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) && (testMode() || (env.TOUR_MANAGER_LIVE_PAYMENTS === "true" && env.STRIPE_SECRET_KEY.startsWith("sk_live_")));
+  const testMode = () => /^(?:sk|rk)_test_/.test(env.STRIPE_SECRET_KEY || "");
+  const liveKey = () => /^(?:sk|rk)_live_/.test(env.STRIPE_SECRET_KEY || "");
+  const paymentsAllowed = () => Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET) && (testMode() || (env.TOUR_MANAGER_LIVE_PAYMENTS === "true" && liveKey()));
   const expectedStripeAccountId = () => String(env.STRIPE_EXPECTED_ACCOUNT_ID || "").trim();
   const syncNetworkPaymentsAllowed = () => env.SYNC_NETWORK_NUMBER_TEST_CHECKOUT_ENABLED === "true" && testMode() && paymentsAllowed() && env.STRIPE_SYNC_NETWORK_WEBHOOK_SECRET?.startsWith("whsec_") && /^acct_[a-zA-Z0-9]+$/.test(expectedStripeAccountId());
   const nowIso = () => new Date(clock()).toISOString();
@@ -757,7 +762,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!/^evt_[a-zA-Z0-9]+$/.test(notification.id || "")) return response(400, { error: "Invalid Stripe event." });
     const processed = await db.send(new GetItemCommand({ TableName: tableName, Key: eventKey(notification.id), ConsistentRead: true }));
     if (processed.Item) return response(200, { received: true, duplicate: true });
-    const expectedLive = env.STRIPE_SECRET_KEY.startsWith("sk_live_");
+    const expectedLive = liveKey();
     if (notification.livemode !== expectedLive) return response(400, { error: "Stripe environment mismatch." });
     if (notification.type === "charge.refunded") {
       if (!/^ch_[a-zA-Z0-9]+$/.test(supplied?.id || "") || !/^pi_[a-zA-Z0-9]+$/.test(supplied?.payment_intent || "") || supplied.currency !== "usd") return response(400, { error: "Invalid Stripe refund event." });

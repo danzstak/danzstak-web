@@ -156,7 +156,7 @@ async function ensureStripeSecrets() {
       const webhook = secretText(webhookResult, ["STRIPE_TOUR_MANAGER_WEBHOOK_SECRET", "webhookSecret", "secret", "value"]);
       const syncNetworkWebhook = secretText(syncNetworkWebhookResult, ["STRIPE_SYNC_NETWORK_WEBHOOK_SECRET", "webhookSecret", "secret", "value"]);
       const accountId = String(stripeEnvironment.STRIPE_EXPECTED_ACCOUNT_ID || optionalSecretText(keyResult, ["STRIPE_EXPECTED_ACCOUNT_ID", "accountId", "account_id"])).trim();
-      if (!/^sk_(?:test|live)_/.test(key) || !webhook.startsWith("whsec_") || !syncNetworkWebhook.startsWith("whsec_") || !/^acct_[a-zA-Z0-9]+$/.test(accountId)) throw new Error("Stripe secret format is invalid");
+      if (!/^(?:sk|rk)_(?:test|live)_/.test(key) || !webhook.startsWith("whsec_") || !syncNetworkWebhook.startsWith("whsec_") || !/^acct_[a-zA-Z0-9]+$/.test(accountId)) throw new Error("Stripe secret format is invalid");
       stripeEnvironment.STRIPE_SECRET_KEY = key;
       stripeEnvironment.STRIPE_TOUR_MANAGER_WEBHOOK_SECRET = webhook;
       stripeEnvironment.STRIPE_SYNC_NETWORK_WEBHOOK_SECRET = syncNetworkWebhook;
