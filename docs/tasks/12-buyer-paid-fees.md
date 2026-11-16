@@ -14,6 +14,14 @@
 - Server: `MIN_CREDITS_PER_CHECKOUT = 20`, enforced in checkout creation and webhook validation; the UI copy says "Minimum 20 pitches".
 - The AI EPK's free distribution (task 08) is separate and doesn't count toward the 20.
 
+## Product names (owner, 2026-11-16)
+| Pack | What's in it | Price | With fees |
+| --- | --- | --- | --- |
+| **Starter Pack** | AI EPK + 11 booking emails (10 + 1 free), one per account | $20.00 | **$22.20** |
+| **Club Pack** | 20 booking emails, any target (clubs, record stores, radio, press) | $30.00 | **$31.80** |
+| **Tour Pack** | The Tour Itinerary: tour book PDF + Google Maps route + day sheets for the band; free with 20+ confirmed shows | $5.00 | **$6.30** |
+Buy any pack as many times as needed (except the Starter). Prices shown all-in.
+
 ## Starter: AI EPK + 11 club emails for $22.20 (owner, 2026-11-16)
 - One-off purchase for new artists: **AI EPK ($5) + 10 booking emails ($15) = $20.00 + 6% ($1.20) + $1 = $22.20**. Includes the AI EPK's free distribution, so the artist gets **11 club emails**.
 - This is the only way to buy fewer than 20 booking emails. After the Starter, booking emails are 20 minimum ($31.80).
