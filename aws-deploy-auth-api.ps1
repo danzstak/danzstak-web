@@ -91,7 +91,9 @@ try {
   aws dynamodb update-continuous-backups --region $Region --table-name $ReviewsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection failed." }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$BookingPipelineSource,$MarketplaceSource,$TicketingSource,$PhoneVerificationSource,$PhoneServiceSource,$PhoneDynamoSource,$Package,$PackageLock -Destination $Stage
+  # Every API module ships: a fixed list silently dropped payouts.mjs, ticket-orders.mjs and link-preview.mjs before.
+  $ApiModules = Get-ChildItem -LiteralPath (Split-Path -Parent $Source) -Filter "*.mjs" -File | ForEach-Object { $_.FullName }
+  Copy-Item -LiteralPath (@($ApiModules) + @($Package, $PackageLock)) -Destination $Stage
   Push-Location $Stage
   try {
     npm ci --omit=dev --ignore-scripts --no-audit --no-fund

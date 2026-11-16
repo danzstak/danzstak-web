@@ -15,18 +15,26 @@ const fs = require("node:fs");
   const mapping = { ...providerMessageKey(providerId), artistId: { S: artistId }, sendId: { S: sendId }, recipientHash: { S: recipientHash } };
   records.set(keyOf(mapping), mapping);
   const sendKey = `${artistId}|TOUR_MANAGER#EMAIL_SEND#${sendId}`;
-  records.set(sendKey, { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${sendId}` }, status: { S: "sent" } });
+  records.set(sendKey, { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${sendId}` }, status: { S: "sent" }, venueName: { S: "Club Gone" } });
+  const creditKey = `${artistId}|TOUR_MANAGER#BOOKING_EMAIL_CREDITS`, credit = name => Number(records.get(creditKey)[name]?.N || 0);
+  records.set(creditKey, { userId: { S: artistId }, tourId: { S: "TOUR_MANAGER#BOOKING_EMAIL_CREDITS" }, credits: { N: "4" }, sentEmails: { N: "1" }, reservedCredits: { N: "0" } });
   const db = { async send(command) {
     if (command instanceof GetItemCommand) return { Item: records.get(keyOf(command.input.Key)) };
     if (command instanceof TransactWriteItemsCommand) {
       const eventPut = command.input.TransactItems[0].Put, eventKey = keyOf(eventPut.Item);
       if (records.has(eventKey)) { const error = new Error("duplicate"); error.name = "TransactionCanceledException"; throw error; }
+      const sendUpdate = command.input.TransactItems[1].Update, target = records.get(keyOf(sendUpdate.Key));
+      if (sendUpdate.ConditionExpression && (target.bounceCreditRestoredAt || target.status.S !== sendUpdate.ExpressionAttributeValues[":priorStatus"].S)) { const error = new Error("condition"); error.name = "TransactionCanceledException"; throw error; }
       records.set(eventKey, structuredClone(eventPut.Item));
       for (const operation of command.input.TransactItems.slice(1)) {
-        if (operation.Update) {
+        if (operation.Update?.Key.tourId.S === "TOUR_MANAGER#BOOKING_EMAIL_CREDITS") {
+          const credit = records.get(keyOf(operation.Update.Key)), add = (name, delta) => { credit[name] = { N: String(Number(credit[name]?.N || 0) + delta) }; };
+          add("credits", 1); add(operation.Update.UpdateExpression.includes("sentEmails") ? "sentEmails" : "reservedCredits", -1);
+        } else if (operation.Update) {
           const item = records.get(keyOf(operation.Update.Key));
           item.status = operation.Update.ExpressionAttributeValues[":status"];
           item.providerEventAt = operation.Update.ExpressionAttributeValues[":at"];
+          if (operation.Update.UpdateExpression.includes("bounceCreditRestoredAt")) item.bounceCreditRestoredAt = operation.Update.ExpressionAttributeValues[":at"];
         }
         if (operation.Put) records.set(keyOf(operation.Put.Item), structuredClone(operation.Put.Item));
       }
@@ -51,6 +59,22 @@ const fs = require("node:fs");
   assert.equal(records.get(sendKey).status.S, "bounced");
   const suppression = records.get(`TOUR_MANAGER#GLOBAL_SUPPRESSION|${recipientHash}`);
   assert.equal(suppression.reason.S, "permanent_bounce");
+  assert.equal(credit("credits"), 5, "A hard bounce reported after the send gives the credit back (task 07)"); assert.equal(credit("sentEmails"), 0);
+  assert.ok([...records.keys()].some(key => key.startsWith(`${artistId}|TOUR_MANAGER#LEDGER#`) && records.get(key).entryType.S === "email_bounced_restored"), "The restore is on the credit ledger");
+  const secondBounce = await service(sns("sns-bounce-2", { eventType: "Bounce", mail, bounce: { bounceType: "Permanent" } }));
+  assert.deepEqual(secondBounce, { processed: 1, ignored: 0, duplicates: 0 }); assert.equal(credit("credits"), 5, "A second bounce event for the same email never restores twice");
+  // A send still settling (provider accepted, not yet counted as sent) returns its reserved credit instead.
+  const pendingId = "provider-pending-send-3", pendingKey = `${artistId}|TOUR_MANAGER#EMAIL_SEND#${pendingId}`, pendingProvider = "010201-pending-provider-message";
+  records.set(pendingKey, { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${pendingId}` }, status: { S: "provider_accepted" } });
+  records.get(creditKey).reservedCredits = { N: "1" };
+  await service(sns("sns-bounce-pending", { eventType: "Bounce", mail: { messageId: pendingProvider, timestamp: mail.timestamp, tags: { DanzStakArtistId: [artistId], DanzStakSendId: [pendingId], DanzStakRecipientHash: [recipientHash] } }, bounce: { bounceType: "Permanent" } }));
+  assert.equal(credit("credits"), 6); assert.equal(credit("reservedCredits"), 0); assert.equal(records.get(pendingKey).status.S, "bounced");
+  // A bounce never downgrades an opt-out (opt-outs never expire; bounces expire after 12 months).
+  records.set(`TOUR_MANAGER#GLOBAL_SUPPRESSION|${recipientHash}`, { userId: { S: "TOUR_MANAGER#GLOBAL_SUPPRESSION" }, tourId: { S: recipientHash }, reason: { S: "recipient_opt_out" }, optedOutAt: { S: "2026-01-01T00:00:00.000Z" } });
+  records.get(pendingKey).status = { S: "sent" }; delete records.get(pendingKey).bounceCreditRestoredAt;
+  await service(sns("sns-bounce-after-optout", { eventType: "Bounce", mail: { messageId: pendingProvider, timestamp: mail.timestamp, tags: { DanzStakArtistId: [artistId], DanzStakSendId: [pendingId], DanzStakRecipientHash: [recipientHash] } }, bounce: { bounceType: "Permanent" } }));
+  assert.equal(records.get(`TOUR_MANAGER#GLOBAL_SUPPRESSION|${recipientHash}`).reason.S, "recipient_opt_out");
+  records.get(pendingKey).status = { S: "bounced" };
 
   records.delete(`TOUR_MANAGER#GLOBAL_SUPPRESSION|${recipientHash}`);
   const complained = await service(sns("sns-complaint-1", { notificationType: "Complaint", mail, complaint: {} }));
@@ -73,9 +97,9 @@ const fs = require("node:fs");
   assert.match(deploy, /MatchingEventTypes = @\("DELIVERY", "BOUNCE", "COMPLAINT"\)/);
   assert.match(deploy, /AllowTourManagerSesEvents/);
   assert.match(client, /Email delivered by the provider/);
-  assert.match(client, /permanently bounced; this contact is now suppressed/);
+  assert.match(client, /This address bounced — find a newer contact. Your credit came back./);
   assert.match(client, /reported this email; this contact is now suppressed/);
-  assert.match(page, /booking-selections\.js\?v=27/);
+  assert.match(page, /booking-selections\.js\?v=28/);
 assert.match(worker, /danzstak-shell-v844/);
-  console.log("Booking provider-event checks passed: delivery state, duplicate protection, permanent-bounce and complaint suppression, transient-bounce handling, private keys, and SES event infrastructure.");
+  console.log("Booking provider-event checks passed: delivery state, duplicate protection, permanent-bounce and complaint suppression, bounce credit restore (once), opt-out precedence, transient-bounce handling, private keys, and SES event infrastructure.");
 })().catch(error => { console.error(error); process.exit(1); });

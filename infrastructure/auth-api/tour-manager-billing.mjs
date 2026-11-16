@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { EPK_WORKSPACE_KEY, epkGate, epkGateMessage, followUpDate, followUpEligible } from "./booking-pipeline.mjs";
+import { SUPPRESSION_CLEAR_CONDITION, checkBookingContact, createMailDomainCheck, suppressionBlock, suppressionClearValues } from "./booking-contact-check.mjs";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UcAtqDoNxcsrqZsAWuhsZb8";
 export const TOUR_MANAGER_PRODUCT_ID = "prod_VdRn459Fo3WpXT";
@@ -119,7 +120,7 @@ export function verifyStripeSignature(payload, header, secret, currentTime = Dat
   return signatures.some(signature => { if (!/^[a-f0-9]{64}$/i.test(signature)) return false; const candidate = Buffer.from(signature, "hex"); return candidate.length === expected.length && timingSafeEqual(candidate, expected); });
 }
 
-export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, env = process.env, fetcher = fetch, clock = Date.now, aliasGenerator = generateSyncNetworkAlias }) {
+export function createTourManagerBilling({ db, commands, authenticate, corsHeaders, tableName, sendBookingEmail, sendBookingReply, validateOutreachEpkLink, env = process.env, fetcher = fetch, clock = Date.now, aliasGenerator = generateSyncNetworkAlias, mailDomainProblem = createMailDomainCheck({ clock }) }) {
   const { GetItemCommand, PutItemCommand, QueryCommand, TransactWriteItemsCommand, UpdateItemCommand } = commands;
   const testMode = () => /^(?:sk|rk)_test_/.test(env.STRIPE_SECRET_KEY || "");
   const liveKey = () => /^(?:sk|rk)_live_/.test(env.STRIPE_SECRET_KEY || "");
@@ -144,16 +145,43 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       if (!validUserId(item?.artistId?.S) || !/^[a-zA-Z0-9_-]{16,100}$/.test(item?.sendId?.S || "") || !/^[a-f0-9]{64}$/.test(item?.recipientHash?.S || "")) { ignored += 1; continue; }
       if (type === "bounce" && String(notification?.bounce?.bounceType || "").toLowerCase() !== "permanent") { ignored += 1; continue; }
       const eventId = String(record.Sns.MessageId || `${type}:${messageId}:${notification?.mail?.timestamp || ""}`), at = nowIso(), status = type === "delivery" ? "delivered" : type === "bounce" ? "bounced" : "complained";
-      const transaction = [
-        { Put: { TableName: tableName, Item: { ...providerEventKey(eventId), eventType: { S: type }, providerMessageHash: { S: providerMessageKey(messageId).tourId.S }, processedAt: { S: at } }, ConditionExpression: "attribute_not_exists(userId)" } },
-        { Update: { TableName: tableName, Key: sendKey(item.artistId.S, item.sendId.S), UpdateExpression: "SET #status = :status, providerEventAt = :at", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":status": { S: status }, ":at": { S: at } } } }
-      ];
-      if (type !== "delivery") transaction.push({ Put: { TableName: tableName, Item: { userId: { S: SUPPRESSION_OWNER }, tourId: { S: item.recipientHash.S }, reason: { S: type === "bounce" ? "permanent_bounce" : "provider_complaint" }, source: { S: "ses_event" }, optedOutAt: { S: at } } } });
-      try { await db.send(new TransactWriteItemsCommand({ TransactItems: transaction })); processed += 1; }
+      const userKey = sendKey(item.artistId.S, item.sendId.S), suppressionItemKey = { userId: { S: SUPPRESSION_OWNER }, tourId: { S: item.recipientHash.S } };
+      const [sendResult, existingSuppression] = await Promise.all([
+        type === "bounce" ? db.send(new GetItemCommand({ TableName: tableName, Key: userKey, ConsistentRead: true })) : Promise.resolve({}),
+        type !== "delivery" ? db.send(new GetItemCommand({ TableName: tableName, Key: suppressionItemKey, ConsistentRead: true })) : Promise.resolve({})
+      ]);
+      const build = withRestore => {
+        const transaction = [
+          { Put: { TableName: tableName, Item: { ...providerEventKey(eventId), eventType: { S: type }, providerMessageHash: { S: providerMessageKey(messageId).tourId.S }, processedAt: { S: at } }, ConditionExpression: "attribute_not_exists(userId)" } },
+          { Update: { TableName: tableName, Key: userKey, UpdateExpression: "SET #status = :status, providerEventAt = :at", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":status": { S: status }, ":at": { S: at } } } }
+        ];
+        // A bounce never downgrades an opt-out or complaint: those never expire, a bounce blocks for 12 months.
+        const existingReason = existingSuppression.Item?.reason?.S || "";
+        if (type === "complaint" || (type === "bounce" && (!existingReason || existingReason === "permanent_bounce"))) transaction.push({ Put: { TableName: tableName, Item: { ...suppressionItemKey, reason: { S: type === "bounce" ? "permanent_bounce" : "provider_complaint" }, source: { S: "ses_event" }, optedOutAt: { S: at } } } });
+        // Credits are never spent on bounces (task 07): a hard bounce reported after the send gives the credit back, once.
+        if (withRestore) {
+          const settled = withRestore === "settled", update = transaction[1].Update;
+          update.UpdateExpression += ", bounceCreditRestoredAt = :at";
+          update.ConditionExpression = "attribute_not_exists(bounceCreditRestoredAt) AND #status = :priorStatus";
+          update.ExpressionAttributeValues[":priorStatus"] = { S: sendResult.Item.status.S };
+          transaction.push(
+            { Update: { TableName: tableName, Key: creditKey(item.artistId.S), UpdateExpression: settled ? "ADD credits :one, sentEmails :minusOne SET updatedAt = :at" : "ADD credits :one, reservedCredits :minusOne SET updatedAt = :at", ConditionExpression: settled ? "sentEmails >= :one" : "reservedCredits >= :one", ExpressionAttributeValues: { ":one": { N: "1" }, ":minusOne": { N: "-1" }, ":at": { S: at } } } },
+            { Put: { TableName: tableName, Item: { ...ledgerKey(item.artistId.S, at, `${item.sendId.S}-bounce`), entryType: { S: "email_bounced_restored" }, delta: { N: "1" }, status: { S: "restored" }, description: { S: `Credit restored: ${String(sendResult.Item.venueName?.S || "venue").slice(0, 160)} address bounced` }, createdAt: { S: at } }, ConditionExpression: "attribute_not_exists(userId)" } }
+          );
+        }
+        return transaction;
+      };
+      const priorStatus = sendResult.Item?.status?.S || "";
+      const restore = type === "bounce" && !sendResult.Item?.bounceCreditRestoredAt?.S ? (["sent", "delivered"].includes(priorStatus) ? "settled" : priorStatus === "provider_accepted" ? "reserved" : "") : "";
+      try { await db.send(new TransactWriteItemsCommand({ TransactItems: build(restore) })); processed += 1; }
       catch (error) {
         const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: providerEventKey(eventId), ConsistentRead: true }));
         if (duplicate.Item) { duplicates += 1; continue; }
-        throw error;
+        if (!restore) throw error;
+        // Another bounce event already restored this credit: record the event without a second restore.
+        const latest = await db.send(new GetItemCommand({ TableName: tableName, Key: userKey, ConsistentRead: true }));
+        if (!latest.Item?.bounceCreditRestoredAt?.S) throw error;
+        await db.send(new TransactWriteItemsCommand({ TransactItems: build("") })); processed += 1;
       }
     }
     return { processed, ignored, duplicates };
@@ -402,7 +430,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to));
     if (!venue) return response(409, { error: "Save this venue and its public booking email before review." }, headers);
     if (contactAccess.Item?.status?.S !== "active") return response(402, { error: "Unlock this venue's booking contact before review." }, headers);
-    if (suppressed.Item) return response(409, { error: "This contact opted out of DanzStak booking pitches and cannot be emailed." }, headers);
+    const contact = await checkBookingContact({ to, suppressionItem: suppressed.Item, mailDomainProblem, nowMs: preflightMs });
+    if (!contact.ok) return response(contact.reason === "dns_unavailable" ? 503 : 409, { error: contact.message, contact: contact.reason }, headers);
     let followUpSource;
     if (followUpTo) {
       if (!/^[a-zA-Z0-9_-]{16,100}$/.test(followUpTo)) return response(400, { error: "Choose a valid booking thread to follow up." }, headers);
@@ -429,7 +458,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!item || Number(item.expiresAt?.N || 0) <= currentSeconds || !/^[a-f0-9]{64}$/.test(item.recipientHash?.S || "")) return response(400, { error: "This opt-out link is invalid or expired." }, headers);
     const key = { userId: { S: SUPPRESSION_OWNER }, tourId: { S: item.recipientHash.S } }, optedOutAt = nowIso();
     try {
-      await db.send(new PutItemCommand({ TableName: tableName, Item: { ...key, reason: { S: "recipient_opt_out" }, source: { S: "booking_email_footer" }, optedOutAt: { S: optedOutAt } }, ConditionExpression: "attribute_not_exists(userId)" }));
+      // An opt-out replaces an earlier bounce record: bounces expire after 12 months, opt-outs never do.
+      await db.send(new PutItemCommand({ TableName: tableName, Item: { ...key, reason: { S: "recipient_opt_out" }, source: { S: "booking_email_footer" }, optedOutAt: { S: optedOutAt } }, ConditionExpression: "attribute_not_exists(userId) OR reason = :bounceReason", ExpressionAttributeValues: { ":bounceReason": { S: "permanent_bounce" } } }));
       return response(200, { optedOut: true, alreadyOptedOut: false }, headers);
     } catch (error) {
       const existing = await db.send(new GetItemCommand({ TableName: tableName, Key: key, ConsistentRead: true }));
@@ -472,7 +502,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!message || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return response(404, { error: "This booking thread is unavailable." }, headers);
     if (["bounced", "complained", "opted_out"].includes(message.status?.S || "")) return response(409, { error: "This contact cannot receive another message." }, headers);
     const suppressed = await db.send(new GetItemCommand({ TableName: tableName, Key: suppressionKey(to), ConsistentRead: true }));
-    if (suppressed.Item) return response(409, { error: "This contact opted out or cannot receive another message." }, headers);
+    if (suppressionBlock(suppressed.Item, clock())) return response(409, { error: "This contact opted out or cannot receive another message." }, headers);
     const at = nowIso(), replyKey = { userId: { S: userId }, tourId: { S: `TOUR_MANAGER#BOOKING_REPLY#${outreachId}#artist#${clientMessageId}` } }, item = { ...replyKey, outreachId: { S: outreachId }, venueKey: { S: message.venueKey?.S || "" }, direction: { S: "outbound" }, action: { S: "reply" }, content: { S: content }, status: { S: "sending" }, createdAt: { S: at } };
     try {
       await db.send(new PutItemCommand({ TableName: tableName, Item: item, ConditionExpression: "attribute_not_exists(userId)" }));
@@ -868,7 +898,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       db.send(new GetItemCommand({ TableName: tableName, Key: suppressionKey(to), ConsistentRead: true })),
       db.send(new GetItemCommand({ TableName: tableName, Key: optOutTokenKey(footerToken), ConsistentRead: true }))
     ]);
-    if (suppressedResult.Item) return response(409, { error: "This contact opted out of DanzStak booking pitches and cannot be emailed." }, headers);
+    const contact = await checkBookingContact({ to, suppressionItem: suppressedResult.Item, mailDomainProblem, nowMs: reservationMs });
+    if (!contact.ok) return response(contact.reason === "dns_unavailable" ? 503 : 409, { error: contact.message, contact: contact.reason }, headers);
     const footerItem = footerResult.Item;
     if (!footerItem || footerItem.artistId?.S !== userId || footerItem.outreachId?.S !== id || footerItem.venueKey?.S !== venueKey || footerItem.recipientHash?.S !== normalizedRecipientHash(to) || Number(footerItem.expiresAt?.N || 0) <= reservationSeconds || (footerItem.followUpTo?.S || "") !== followUpTo) return response(409, { error: "Preview a current opt-out footer for this exact venue and recipient before sending." }, headers);
     let followUpSource;
@@ -884,7 +915,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const currentHourAllowance = MAX_NEW_PITCHES_PER_24_HOURS - previousHourCount, cooldownExpiresAt = reservationSeconds + BOOKING_CONTACT_COOLDOWN_SECONDS;
     try {
       const reservationItems = [
-        { ConditionCheck: { TableName: tableName, Key: suppressionKey(to), ConditionExpression: "attribute_not_exists(userId)" } },
+        { ConditionCheck: { TableName: tableName, Key: suppressionKey(to), ConditionExpression: SUPPRESSION_CLEAR_CONDITION, ExpressionAttributeValues: suppressionClearValues(reservationMs) } },
         { ConditionCheck: { TableName: tableName, Key: optOutTokenKey(footerToken), ConditionExpression: "artistId = :artistId AND outreachId = :outreachId AND venueKey = :venueKey AND recipientHash = :recipientHash AND expiresAt > :now", ExpressionAttributeValues: { ":artistId": { S: userId }, ":outreachId": { S: id }, ":venueKey": { S: venueKey }, ":recipientHash": { S: normalizedRecipientHash(to) }, ":now": { N: String(reservationSeconds) } } } },
         { Update: { TableName: tableName, Key: creditKey(userId), UpdateExpression: "ADD credits :minusOne, reservedCredits :one SET updatedAt = :updatedAt", ConditionExpression: "credits >= :one", ExpressionAttributeValues: { ":minusOne": { N: "-1" }, ":one": { N: "1" }, ":updatedAt": { S: reservedAt } } } },
         { Update: { TableName: tableName, Key: hourKey, UpdateExpression: "ADD sendCount :one SET updatedAt = :updatedAt, expiresAt = :expiresAt", ConditionExpression: "attribute_not_exists(sendCount) OR sendCount < :allowance", ExpressionAttributeValues: { ":one": { N: "1" }, ":allowance": { N: String(currentHourAllowance) }, ":updatedAt": { S: reservedAt }, ":expiresAt": { N: String(reservationSeconds + 31 * 86400) } } } },

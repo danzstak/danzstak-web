@@ -25,7 +25,7 @@ const assert = require("node:assert/strict");
     if (command instanceof GetItemCommand) return { Item: records.get(keyOf(command.input.Key)) };
     if (command instanceof PutItemCommand) {
       const key = keyOf(command.input.Item);
-      if (records.has(key)) { const error = new Error("condition"); error.name = "ConditionalCheckFailedException"; throw error; }
+      if (records.has(key) && !(command.input.ConditionExpression?.includes("reason = :bounceReason") && records.get(key).reason?.S === "permanent_bounce")) { const error = new Error("condition"); error.name = "ConditionalCheckFailedException"; throw error; }
       records.set(key, structuredClone(command.input.Item)); return {};
     }
     if (command instanceof QueryCommand) {
@@ -48,7 +48,7 @@ const assert = require("node:assert/strict");
       const tx = command.input.TransactItems;
       const reservationCredit = tx.find(item => item.Update?.Key.tourId.S === "TOUR_MANAGER#BOOKING_EMAIL_CREDITS" && item.Update?.UpdateExpression?.includes("reservedCredits :one"));
       if (reservationCredit) {
-        for (const check of tx.filter(item => item.ConditionCheck)) if (records.has(keyOf(check.ConditionCheck.Key)) && check.ConditionCheck.ConditionExpression === "attribute_not_exists(userId)") { const error = new Error("condition"); error.name = "TransactionCanceledException"; throw error; }
+        for (const check of tx.filter(item => item.ConditionCheck)) if (records.has(keyOf(check.ConditionCheck.Key)) && (check.ConditionCheck.ConditionExpression === "attribute_not_exists(userId)" || check.ConditionCheck.ConditionExpression.startsWith("attribute_not_exists(userId) OR (reason = :bounceReason") && !(records.get(keyOf(check.ConditionCheck.Key)).reason?.S === "permanent_bounce" && records.get(keyOf(check.ConditionCheck.Key)).optedOutAt.S <= check.ConditionCheck.ExpressionAttributeValues[":bounceCutoff"].S))) { const error = new Error("condition"); error.name = "TransactionCanceledException"; throw error; }
         const credit = records.get(creditId), hourUpdate = tx.find(item => item.Update?.Key.tourId.S.startsWith("TOUR_MANAGER#OUTREACH_HOUR#")), cooldownPut = tx.find(item => item.Put?.Item.tourId.S.startsWith("TOUR_MANAGER#RECIPIENT_COOLDOWN#")), followUpUpdate = tx.find(item => item.Update?.UpdateExpression?.includes("followUpSendId")), sendPut = tx.find(item => item.Put?.Item.tourId.S.startsWith("TOUR_MANAGER#EMAIL_SEND#")), ledgerPut = tx.find(item => item.Put?.Item.tourId.S.startsWith("TOUR_MANAGER#LEDGER#"));
         const cooldown = cooldownPut && records.get(keyOf(cooldownPut.Put.Item)), now = Number(cooldownPut?.Put.ExpressionAttributeValues?.[":now"]?.N || 0), hour = hourUpdate && records.get(keyOf(hourUpdate.Update.Key)), allowance = Number(hourUpdate?.Update.ExpressionAttributeValues?.[":allowance"]?.N || 0);
         const source = followUpUpdate && records.get(keyOf(followUpUpdate.Update.Key));
@@ -81,8 +81,8 @@ const assert = require("node:assert/strict");
   const corsHeaders = origin => origin === "https://danzstak.com" ? { "access-control-allow-origin": origin } : {};
   const privateEpk = "https://danzstak.com/epk.html?outreach=1234567890abcdef1234567890abcdef#token=" + "a".repeat(64);
   const event = (id, message = `Please book this tested artist for the proposed date. Private EPK: ${privateEpk}`, artistApproved = true, followUpTo = "") => ({ requestContext: { http: { method: "POST" } }, rawPath: "/tour-manager/emails/send", headers: { origin: "https://danzstak.com" }, body: JSON.stringify({ venueKey: "venue-1", to: "bookings@example.com", subject: "Static booking request", message, template: "band", artistApproved, idempotencyKey: id, ...(followUpTo ? { followUpTo } : {}) }) });
-  let providerCalls = 0, fail = false, currentTime = Date.parse("2026-11-07T12:00:00.000Z");
-  const service = createTourManagerBilling({ db, commands, authenticate: async () => userId, corsHeaders, tableName: "Tours", env: {}, clock: () => currentTime, validateOutreachEpkLink: async ({ userId: owner, venueKey, outreachId, message }) => owner === userId && venueKey === "venue-1" && message.includes(privateEpk) && /^[a-zA-Z0-9_-]{16,100}$/.test(outreachId), sendBookingEmail: async () => { providerCalls += 1; if (fail) throw new Error("provider rejected"); return { messageId: "ses-message-1" }; } });
+  let providerCalls = 0, fail = false, currentTime = Date.parse("2026-11-07T12:00:00.000Z"), domainProblem = "", mxLookups = 0;
+  const service = createTourManagerBilling({ db, commands, authenticate: async () => userId, corsHeaders, tableName: "Tours", env: {}, clock: () => currentTime, validateOutreachEpkLink: async ({ userId: owner, venueKey, outreachId, message }) => owner === userId && venueKey === "venue-1" && message.includes(privateEpk) && /^[a-zA-Z0-9_-]{16,100}$/.test(outreachId), sendBookingEmail: async () => { providerCalls += 1; if (fail) throw new Error("provider rejected"); return { messageId: "ses-message-1" }; }, mailDomainProblem: async domain => { mxLookups += 1; assert.equal(domain, "example.com"); return domainProblem; } });
   const preflight = async (id, followUpTo = "") => {
     const result = await service({ requestContext: { http: { method: "POST" } }, rawPath: "/tour-manager/outreach/preflight", headers: { origin: "https://danzstak.com" }, body: JSON.stringify({ venueKey: "venue-1", to: "bookings@example.com", outreachId: id, ...(followUpTo ? { followUpTo } : {}) }) });
     return { result, footer: result.statusCode === 200 ? JSON.parse(result.body).footer : "" };
@@ -132,10 +132,31 @@ const assert = require("node:assert/strict");
   const capped = await preflight("dailycapblocked12");
   assert.equal(capped.result.statusCode, 429); assert.equal(providerCalls, 3, "The 24-hour cap must block before review or provider submission");
   records.delete(previousCapKey); records.get(capKey).sendCount = { N: "0" };
+  // Task 07: a dead address never gets a pitch and never costs a credit.
+  const creditsBefore = number(records.get(creditId), "credits"), callsBefore = providerCalls, suppressionId = `TOUR_MANAGER#GLOBAL_SUPPRESSION|${normalizedRecipientHash("bookings@example.com")}`;
+  const blockedSend = async (id, footer) => { const result = await service(event(id, reviewedMessage(footer))); assert.equal(providerCalls, callsBefore, `${id} must not reach the provider`); assert.equal(number(records.get(creditId), "credits"), creditsBefore, `${id} must not spend a credit`); assert.equal(number(records.get(creditId), "reservedCredits"), 0); assert.equal(records.has(`${userId}|TOUR_MANAGER#EMAIL_SEND#${id}`), false); return result; };
+  domainProblem = "no_mail";
+  const noMx = await preflight("nomxpitch1234567"); assert.equal(noMx.result.statusCode, 409); assert.equal(JSON.parse(noMx.result.body).contact, "no_mail"); assert.match(JSON.parse(noMx.result.body).error, /no mail server/);
+  const noMxSend = await blockedSend("nomxpitch1234567", firstPreflight.footer); assert.equal(noMxSend.statusCode, 409); assert.equal(JSON.parse(noMxSend.body).contact, "no_mail");
+  domainProblem = "dns_unavailable";
+  const dnsDown = await preflight("dnsdownpitch1234"); assert.equal(dnsDown.result.statusCode, 503, "An unanswered DNS lookup fails closed"); assert.match(JSON.parse(dnsDown.result.body).error, /no credit was used/);
+  assert.equal((await blockedSend("dnsdownpitch1234", firstPreflight.footer)).statusCode, 503);
+  domainProblem = "";
+  // Another member's hard bounce 30 days ago: shared, hash-only record, blocks everyone.
+  records.set(suppressionId, { userId: { S: "TOUR_MANAGER#GLOBAL_SUPPRESSION" }, tourId: { S: suppressionId.split("|")[1] }, reason: { S: "permanent_bounce" }, source: { S: "ses_event" }, optedOutAt: { S: new Date(currentTime - 30 * 86400000).toISOString() } });
+  assert.doesNotMatch(JSON.stringify(records.get(suppressionId)), /example\.com|user_/, "The shared bounce record holds no address and no sender");
+  const lookupsBefore = mxLookups, bounced = await preflight("bouncedpitch1234"); assert.equal(bounced.result.statusCode, 409); assert.equal(JSON.parse(bounced.result.body).error, "This address bounced — find a newer contact."); assert.equal(mxLookups, lookupsBefore, "A known bounce is refused without a DNS lookup");
+  assert.equal((await blockedSend("bouncedpitch1234", firstPreflight.footer)).statusCode, 409);
+  // A bounce older than 12 months no longer blocks: the club may have fixed its mailbox.
+  records.get(suppressionId).optedOutAt = { S: new Date(currentTime - 366 * 86400000).toISOString() };
+  const oldBounce = await preflight("oldbouncepitch12"); assert.equal(oldBounce.result.statusCode, 200);
+  const oldBounceSent = await service(event("oldbouncepitch12", reviewedMessage(oldBounce.footer)));
+  assert.equal(oldBounceSent.statusCode, 200); assert.equal(providerCalls, callsBefore + 1); assert.equal(number(records.get(creditId), "credits"), creditsBefore - 1);
   const optOutToken = firstPreflight.footer.match(/#token=([a-f0-9]{64})/)[1], optOut = await service({ requestContext: { http: { method: "POST" } }, rawPath: "/tour-manager/opt-out", headers: { origin: "https://danzstak.com" }, body: JSON.stringify({ token: optOutToken }) });
   assert.equal(optOut.statusCode, 200); assert.equal(JSON.parse(optOut.body).optedOut, true);
+  assert.equal(records.get(suppressionId).reason.S, "recipient_opt_out", "An opt-out replaces an old bounce record so it never expires");
   const suppressed = await preflight("suppressedpitch1"); assert.equal(suppressed.result.statusCode, 409); assert.match(JSON.parse(suppressed.result.body).error, /opted out/i);
   records.delete(`${userId}|TOUR_MANAGER#CONTACT_UNLOCK#venue-1`);
   assert.equal((await service(event("contactlocked1234"))).statusCode, 402, "Sending must fail closed when the venue contact is locked");
-  console.log("Tour Manager email-credit checks passed: contact entitlement, saved-contact validation, reservation, provider acceptance, idempotency, one approved follow-up, 30-day duplicate protection, 24-hour cap, final deduction, and failed-send restoration.");
+  console.log("Tour Manager email-credit checks passed: contact entitlement, saved-contact validation, reservation, provider acceptance, idempotency, one approved follow-up, 30-day duplicate protection, 24-hour cap, final deduction, failed-send restoration, MX check, 12-month shared bounce block and opt-out precedence.");
 })().catch(error => { console.error(error); process.exit(1); });
