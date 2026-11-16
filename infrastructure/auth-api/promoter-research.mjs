@@ -53,7 +53,7 @@ export function promoterQueries(point = {}, genre = "") {
 }
 
 // Lists, news, directories and ticket marketplaces are not promoters.
-const NOT_A_PROMOTER = /(?:^|\.)(?:wikipedia\.org|tripadvisor\.|yelp\.|timeout\.com|eventbrite\.|ticketmaster\.|songkick\.com|bandsintown\.com|reddit\.com|quora\.com|linkedin\.com|indeed\.|glassdoor\.|youtube\.com|tiktok\.com|x\.com|twitter\.com|amazon\.|pinterest\.|yellowpages|paginegialle\.it|gelbeseiten\.de|pagesjaunes\.fr|paginasamarillas\.es)$/i;
+const NOT_A_PROMOTER = /(?:^|\.)(?:comune\.[a-z.]+|gov\.[a-z.]+|gouv\.fr|shazam\.com|concerts50\.com|zero\.eu|songkick\.|allevents\.|eventim\.|dice\.fm|feverup\.com|wikipedia\.org|tripadvisor\.|yelp\.|timeout\.com|eventbrite\.|ticketmaster\.|songkick\.com|bandsintown\.com|reddit\.com|quora\.com|linkedin\.com|indeed\.|glassdoor\.|youtube\.com|tiktok\.com|x\.com|twitter\.com|amazon\.|pinterest\.|yellowpages|paginegialle\.it|gelbeseiten\.de|pagesjaunes\.fr|paginasamarillas\.es)$/i;
 const LISTICLE = /\b(?:top|best|\d+\s+(?:best|top))\b.*\b(?:promoters|organizers|organizzatori|veranstalter)\b|\bjobs?\b|\bstellen/i;
 
 export function promoterLead(result = {}, point = {}, query = "", seenAt = new Date().toISOString()) {
@@ -63,10 +63,16 @@ export function promoterLead(result = {}, point = {}, query = "", seenAt = new D
   const title = String(result.title || "").replace(/\s+[|–—-]\s+.*$/, "").replace(/\s+/g, " ").trim().slice(0, 160);
   const description = String(result.description || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 500);
   if (!title || LISTICLE.test(`${title} ${description}`)) return null;
+  // Owner live test 2026-11-17: plain results were mostly event pages and news. Keep pages that look like a
+  // promoter, crew, collective or booking agency; drop single events, news and date listings.
+  const haystack = `${title} ${url.hostname} ${url.pathname}`.toLowerCase();
+  const promoterSignal = /promot|booking|collettiv|collectif|colectiv|coletiv|kollektiv|collective|crew|agenc|agentur|agenzia|veranstalt|organizz|organisat|organizad|associazion|association|asociaci|soundsystem|sound system|label|records|\/promoters\//.test(haystack);
+  const eventOrNews = /\/(?:news|notizie|articoli?|blog|events?|eventi|evenements?|eventos|veranstaltungen|concerti|konzerte|concerts?|tickets?|biglietti)\/[^/]+|\d{4}[-/]\d{2}[-/]\d{2}/.test(url.pathname) || /\b(?:festival|fest)\b.*@|\btickets?\b/i.test(title);
+  if (!promoterSignal || (eventOrNews && !/\/promoters\//.test(url.pathname))) return null;
   const position = Array.isArray(point.position) && point.position.length === 2 && point.position.every(Number.isFinite) ? point.position.slice(0, 2) : null;
   if (!position) return null;
   const email = (description.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) || [""])[0].toLowerCase();
-  const phone = (description.match(/\+?\d[\d ()./-]{7,18}\d/) || [""])[0].trim();
+  const phone = ((description.match(/(?:tel\.?|phone|telefono|téléphone|teléfono|☎|📞)?\s*(\+\d{1,3}[\d ()./-]{6,16}\d|\(?0\d{1,4}\)?[ ./-]?\d{2,4}[ ./-]?\d{2,4}(?:[ ./-]?\d{2,4})?)/i) || [])[1] || "").trim();
   const path = url.pathname.replace(/\/+$/, "");
   const venueKey = `promoter-${createHash("sha256").update(`${url.hostname.replace(/^www\./, "")}${path}`.toLowerCase()).digest("hex").slice(0, 20)}`;
   return {
