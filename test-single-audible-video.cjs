@@ -59,7 +59,7 @@ const document = {
 
 const context = {
   document,
-  localStorage: { getItem: key => key === "danzstak_video_sound" ? "on" : null, setItem() {} },
+  localStorage: { getItem: key => key === "danzstak_video_sound" ? "on" : key === "danzstak_muted_autoplay" ? "off" : null, setItem() {} }, // manual-play path (autoplay preference off)
   requestAnimationFrame: handler => handler(),
   CustomEvent: class {},
   IntersectionObserver: class {

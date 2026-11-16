@@ -31,7 +31,9 @@ assert.match(feed, /youtube-nocookie\.com\/embed\/[\s\S]*autoplay=0/, "YouTube e
 assert.doesNotMatch(feed, /[?&]autoplay=(?:1|true)/, "no supported external provider may request startup autoplay");
 assert.match(feed, /enablejsapi=1/, "YouTube embeds should expose playback controls to the visibility manager");
 assert.match(feed, /enablejsapi=1&loop=0/, "YouTube embeds should end naturally so The Roll can advance");
-assert.match(media, /mutedAutoplayEnabled\(\)/, "muted viewport autoplay must be opt-in and disabled by default");
+assert.match(media, /mutedAutoplayEnabled\(\)/, "muted viewport autoplay is governed by one preference");
+assert.match(media, /getItem\('danzstak_muted_autoplay'\)!=='off'/, "muted autoplay is on by default (owner 2026-11-16)");
+assert.match(media, /const thresholdFor=\(\)=>0\.5;/, "videos play at 50% visible and stop past 50% out of frame");
 assert.match(media, /inView=ratio>=thresholdFor\(entry\.target\)/, "visibility eligibility must use the shared feed or Roll threshold");
 assert.match(media, /globalThis\.danzstakMediaCoordinator=\{pauseAll,autoplayEnabled:mutedAutoplayEnabled,startSession,endSession,reconcile:reconcilePlayback\}/, "all navigation surfaces and The Roll must share one playback coordinator");
 assert.doesNotMatch(feedEnhancements, /tagName === "VIDEO"[^\n]+muted = false/, "saved posts and media galleries must never insert an unmuted video before the coordinator takes control");
