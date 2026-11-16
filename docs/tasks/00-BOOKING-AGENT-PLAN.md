@@ -26,3 +26,18 @@ Owner: "Currently in DanzStak the booking agent does not really function as a bo
 - No pitch goes to a known-dead or bounced contact, and no credit is spent on bounces.
 - Each PR passes the test suite and the browser checks, with the changed screens tested at 360 and 430 px.
 - Nothing is sent from the owner's real account during testing.
+
+## The mindset it teaches (owner, 2026-11-16)
+"Any band can become a Nirvana, but they have to put in the work and do a lot of driving." The agent coaches the grind honestly:
+- Start with Local gigs, then go regional: return to towns that worked, and build a circuit.
+- Show progress: shows played, new towns, repeat bookings, miles driven, and reply rate over time (in Music HQ).
+- Never promise fame, bookings or income. Copy encourages the work and does not guarantee results. Don't use a real band's name or likeness in product copy; the Nirvana line is the owner's motivation, not UI text.
+
+## AI does the busywork, the artist approves (owner, 2026-11-16)
+AI automates most of the agent's work. It never sends anything unseen (CLAUDE.md rule: the artist reviews every generated word). What AI does:
+- Finds and ranks venues, record shops and radio stations for the genre, draw and route.
+- Drafts each pitch, follow-up, in-store request and on-air/ad request, personalized per venue.
+- Reads replies: detects offered dates, deal terms, "no" and "ask again in spring", and pre-fills the offer form and next action.
+- Proposes the date set on the shortest route, and suggests appointment times around soundcheck for the Tour Manager.
+- Queues everything as a **review list**. The artist opens each item, edits it, and taps Send or Approve. "Approve all" is allowed only after each draft has been opened (a scroll-through preview counts) and must still respect caps and the suppression list.
+- Provider is swappable. Never train on creator content. Pricing follows `docs/OWNER-DIRECTIVES.md` (manual remains free).
