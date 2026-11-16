@@ -600,13 +600,13 @@
     creditMessage.textContent = "No booking-email credit is ready. You can still preview the exact message before buying.";
     buyCredit.type = "button";
     buyCredit.className = "secondary";
-    buyCredit.textContent = `Buy 1 credit · ${window.DanzStakFees ? window.DanzStakFees.allInShort(150) : "$1.50 + fees"}`;
+    buyCredit.textContent = `Buy 20 pitches · ${window.DanzStakFees ? window.DanzStakFees.allInShort(20 * 150) : "$30.00 + fees"}`;
     buyCredit.addEventListener("click", async () => {
       buyCredit.disabled = true;
       try {
         if (dirty && !(await saveWorkspaceSnapshot())) throw new Error("DanzStak could not save this pitch. Check the account status and try again before checkout.");
         if (typeof window.danzstakStartBookingCreditCheckout !== "function") throw new Error("Secure credit checkout is unavailable. Reload and try again.");
-        const opened = await window.danzstakStartBookingCreditCheckout({ quantity:1, venueKey:identity(venue), button:buyCredit });
+        const opened = await window.danzstakStartBookingCreditCheckout({ quantity:20, venueKey:identity(venue), button:buyCredit });
         if (!opened) buyCredit.disabled = false;
       } catch (error) {
         window.danzstakShowFeedback?.(error.message, { urgent:true });

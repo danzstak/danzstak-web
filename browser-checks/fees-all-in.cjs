@@ -38,7 +38,14 @@ function payload(pathname) {
       const errors = [];
       page.on("pageerror", error => errors.push(error.message));
       await page.route("https://api.danzstak.com/**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload(new URL(route.request().url()).pathname)) }));
-      const shot = async name => { if ([320, 390, 1366].includes(width)) await page.screenshot({ path: path.join(output, `${name}-${width}.png`), fullPage: true, animations: "disabled", caret: "hide" }); };
+      // Edge occasionally refuses a capture under load ("Unable to capture screenshot"); retry twice before failing.
+      const shot = async (name, fullPage = true) => {
+        if (![320, 390, 1366].includes(width)) return;
+        for (let attempt = 1; ; attempt++) {
+          try { await page.screenshot({ path: path.join(output, `${name}-${width}.png`), fullPage, animations: "disabled", caret: "hide" }); return; }
+          catch (error) { if (attempt >= 3) throw error; await page.waitForTimeout(500); }
+        }
+      };
       const noOverflow = async label => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${width}px ${label} overflows`);
 
       await page.goto(`${baseUrl}/bazaar.html`, { waitUntil: "domcontentloaded" });
@@ -65,16 +72,21 @@ function payload(pathname) {
 
       await page.goto(`${baseUrl}/booking-selections.html`, { waitUntil: "domcontentloaded" });
       await page.locator("#bookingCreditTotal").filter({ hasText: "emails" }).waitFor();
-      assert.equal(await page.locator("#bookingCreditTotal").innerText(), "10 emails: $16.90 (incl. $1.90 fees)");
-      await page.locator("#bookingCreditQuantity").fill("20");
-      assert.equal(await page.locator("#bookingCreditTotal").innerText(), "20 emails: $31.80 (incl. $1.80 fees)");
+      assert.equal(await page.locator("#bookingCreditTotal").innerText(), "20 emails: $31.80 (incl. $1.80 fees)", `${width}px picker starts at the 20 minimum`);
+      assert.equal(await page.locator("#bookingCreditMinimum").innerText(), "Minimum 20 pitches");
       await page.locator("#bookingCreditQuantity").fill("10");
+      assert.equal(await page.locator("#bookingCreditTotal").innerText(), "Minimum 20 pitches", `${width}px under 20 shows the minimum`);
+      await page.locator("#buyBookingCredits button[type=submit]").click();
+      assert.equal(await page.locator("#bookingCreditQuantity").evaluate(input => input.validity.rangeUnderflow), true, `${width}px 10 can't be bought (form blocks under 20)`);
+      assert.equal(await page.locator("dialog .purchase-total").count(), 0, "no purchase dialog under the minimum");
+      await page.locator("#bookingCreditQuantity").fill("20");
+      if ([320, 390, 1366].includes(width)) await page.locator(".credit-panel").screenshot({ path: path.join(output, `credit-picker-${width}.png`), animations: "disabled", caret: "hide" });
       await noOverflow("booking credits");
       await page.locator("#buyBookingCredits button[type=submit]").click();
       const total = page.locator("dialog .purchase-total");
       await total.waitFor();
-      assert.equal(await total.innerText(), "Price $15.00 · DanzStak fee $1.90 (6% + $1 processing fee under $30) · Total $16.90 (USD)", `${width}px purchase dialog breaks out the fee`);
-      await shot("purchase-dialog");
+      assert.equal(await total.innerText(), "Price $30.00 · DanzStak fee $1.80 (6%) · Total $31.80 (USD)", `${width}px purchase dialog breaks out the fee`);
+      await shot("purchase-dialog", false);
       assert.equal(errors.length, 0, `${width}px page errors: ${errors.join(" | ")}`);
       await context.close();
     }

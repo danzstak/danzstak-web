@@ -8,7 +8,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.danzstak.com; img-src 'self' data: https:; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
   <title>Selected Clubs | DanzStak Booking Agent</title>
   <link rel="icon" href="assets/favicon-32.png?v=3" sizes="32x32" type="image/png">
-  <link rel="stylesheet" href="assets/booking-selections.css?v=23">
+  <link rel="stylesheet" href="assets/booking-selections.css?v=25">
   <link rel="stylesheet" href="assets/app-feedback.css?v=3">
 <link rel="stylesheet" href="assets/icon-buttons.css?v=5">
 <link rel="stylesheet" href="assets/purchase-terms.css?v=1">
@@ -21,7 +21,7 @@
     <p class="intro">These are public booking leads, not confirmed shows. Verify the correct buyer, available date, age policy, capacity, deal, and load-in details before committing the route.</p>
     <section class="credit-panel" aria-labelledby="creditTitle">
       <div><p class="eyebrow">Tour Manager email credits</p><h2 id="creditTitle"><span id="bookingCreditBalance">—</span> ready to send</h2><p id="bookingCreditSummary">Sign in to view purchased, sent, and remaining booking emails.</p></div>
-      <form id="buyBookingCredits"><label>Credits<input id="bookingCreditQuantity" type="number" min="1" max="500" value="10" inputmode="numeric"></label><button type="submit">Buy credits</button><output id="bookingCreditTotal" for="bookingCreditQuantity" aria-live="polite"></output></form>
+      <form id="buyBookingCredits"><label>Credits<input id="bookingCreditQuantity" type="number" min="20" max="500" value="20" inputmode="numeric" aria-describedby="bookingCreditMinimum"></label><small id="bookingCreditMinimum">Minimum 20 pitches</small><button type="submit">Buy credits</button><output id="bookingCreditTotal" for="bookingCreditQuantity" aria-live="polite"></output></form>
       <p class="refund-note">Unused purchases can be refunded minus Stripe's processing fee. Once you send a booking email, no refund.</p>
       <details><summary>Refund an unused purchase</summary><ol id="bookingRefundList"><li>Loading…</li></ol></details>
       <details><summary>Recent credit activity</summary><ol id="bookingCreditActivity"><li>No activity yet.</li></ol></details>
@@ -109,9 +109,9 @@
 <script src="assets/icon-buttons.js?v=13" defer></script>
   <script src="assets/fees.js?v=1" defer></script>
   <script src="assets/purchase-terms.js?v=3" defer></script>
-  <script src="assets/booking-billing.js?v=10" defer></script>
+  <script src="assets/booking-billing.js?v=11" defer></script>
   <script src="assets/booking-pipeline.js?v=1" defer></script>
   <script src="assets/booking-freshness.js?v=1" defer></script>
-  <script src="assets/booking-selections.js?v=33" defer></script>
+  <script src="assets/booking-selections.js?v=34" defer></script>
 </body>
 </html>

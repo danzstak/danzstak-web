@@ -114,7 +114,7 @@ const startingWorkspace = () => ({
       await card.waitFor({ state:"visible" });
       const prompt = card.locator(".booking-credit-needed");
       await prompt.waitFor({ state:"visible" });
-      assert.match(await prompt.textContent(), /No booking-email credit is ready[\s\S]*Buy 1 credit · \$2\.59 incl\. fees/, `${width}px must explain the zero-credit next step`);
+      assert.match(await prompt.textContent(), /No booking-email credit is ready[\s\S]*Buy 20 pitches · \$31\.80 incl\. fees/, `${width}px must explain the zero-credit next step`);
 
       await card.getByRole("button", { name:"Preview exact email" }).click();
       let dialog = page.locator("dialog.booking-send-review");
@@ -122,7 +122,7 @@ const startingWorkspace = () => ({
       await dialog.locator('input[type="checkbox"]').check();
       await dialog.getByRole("button", { name:"Approve and send · 1 credit" }).click();
       await dialog.waitFor({ state:"detached" });
-      await page.waitForFunction(() => document.activeElement?.textContent?.includes("Buy 1 credit"));
+      await page.waitForFunction(() => document.activeElement?.textContent?.includes("Buy 20 pitches"));
       assert.equal(sendAttempts, 1, `${width}px zero-credit approval must make one guarded send attempt`);
       assert.equal(successfulSends, 0, `${width}px zero-credit approval must not send`);
       assert.equal(shareCreates, 1, `${width}px exact review must create one private share`);
@@ -130,12 +130,12 @@ const startingWorkspace = () => ({
       assert.match(await prompt.textContent(), /Nothing sends automatically/, `${width}px must explain post-payment approval`);
       await page.screenshot({ path:path.join(output, `credit-needed-${width}.png`), fullPage:true, animations:"disabled", caret:"hide" });
 
-      const buyButton = prompt.getByRole("button", { name:"Buy 1 credit · $2.59 incl. fees" });
+      const buyButton = prompt.getByRole("button", { name:"Buy 20 pitches · $31.80 incl. fees" });
       const buyHeight = await buyButton.evaluate(node => node.getBoundingClientRect().height);
       assert.ok(buyHeight >= 44, `${width}px credit purchase target is ${buyHeight}px`);
       await buyButton.click();
       await page.waitForURL("https://checkout.stripe.com/**");
-      assert.deepEqual(checkoutPayload, { quantity:1 }, `${width}px venue recovery must buy exactly one email credit`);
+      assert.deepEqual(checkoutPayload, { quantity:20 }, `${width}px venue recovery buys the 20-pitch minimum`);
 
       settlementStarted = true;
       await page.goto(`${origin}/booking-selections.html?credits=success`, { waitUntil:"domcontentloaded" });
