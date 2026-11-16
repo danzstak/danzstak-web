@@ -14,6 +14,20 @@
 - Server: `MIN_CREDITS_PER_CHECKOUT = 20`, enforced in checkout creation and webhook validation; the UI copy says "Minimum 20 pitches".
 - The AI EPK's free distribution (task 08) is separate and doesn't count toward the 20.
 
+## Packs and prices (owner, 2026-11-16, FINAL; supersedes the sections below where they differ)
+| Pack | What's in it | Email price | Price | Buyer pays (6% + $1 under $30) |
+| --- | --- | --- | --- | --- |
+| **Starter Pack** | AI EPK + 10 emails + 1 free = 11 emails | $1.50 | $20.00 | **$22.20** |
+| **Club Pack** | AI EPK + 20 emails + 1 free = 21 emails | $1.40 | $33.00 | **$34.98** |
+| **Tour Pack** | AI EPK + 30 emails + 1 free = 31 emails + **Tour Itinerary included** | $1.25 | $42.50 | **$45.05** |
+| **Single email** | 1 booking email (any target) | $2.50 | $2.50 | **$3.65** |
+| Tour Itinerary (alone) | Tour book PDF + Google Maps route + day sheets | n/a | $5.00 | **$6.30** |
+- Emails work for any target: clubs, record stores, radio, press. They stay on the account and are sent whenever the artist wants.
+- **AI EPK in every pack.** If the account already has an AI EPK, the pack's EPK becomes an **AI redesign** credit (same $5 value) instead of a second EPK. (Claude's default; the owner can change it.)
+- Single email $2.50 is the price before fees ($3.65 all-in), shown all-in.
+- Bigger packs are always cheaper per email. Packs can be bought repeatedly.
+- This replaces "20 minimum per purchase" and the earlier Starter/Club/Tour definitions below.
+
 ## Product names (owner, 2026-11-16)
 | Pack | What's in it | Price | With fees |
 | --- | --- | --- | --- |
