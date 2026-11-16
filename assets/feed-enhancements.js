@@ -1022,7 +1022,7 @@ function renderWorkspace(name) {
       const hero = document.createElement("header"); hero.className = "tribe-hero";
       const cover = document.createElement("div"); cover.className = "tribe-hero-cover";
       if (group.coverUrl) { cover.style.backgroundImage = `linear-gradient(180deg,transparent 45%,rgba(8,12,20,.72)),url("${String(group.coverUrl).replace(/["\\]/g, "")}")`; cover.classList.add("has-photo"); }
-      else { cover.textContent = groupIcon(group.category); cover.setAttribute("aria-hidden", "true"); }
+      else { cover.textContent = groupIcon(group.category); cover.dataset.initial = tribeInitial(group.name); cover.setAttribute("aria-hidden", "true"); }
       if ((group.isElder || group.isOwner) && group.custom) {
         const editCover = document.createElement("button"); editCover.type = "button"; editCover.className = "tribe-cover-edit"; editCover.textContent = group.coverUrl ? "Change cover" : "Add cover";
         const coverInput = document.createElement("input"); coverInput.type = "file"; coverInput.accept = "image/jpeg,image/png,image/webp,image/gif"; coverInput.hidden = true;
@@ -1144,6 +1144,8 @@ function renderWorkspace(name) {
     };
     window.addEventListener("danzstak:open-tribe", window.danzstakOpenTribeHandler);
 
+    // Tribe covers without a photo show the Tribe's initial in DanzStak type (owner 2026-11-16: not generic).
+    function tribeInitial(name) { return String(name || "").replace(/^[^\p{L}\p{N}]+/u, "").charAt(0).toUpperCase() || "T"; }
     function renderGroups() {
       grid.replaceChildren();
       const defaults = categories.map(category => ({ id: `default-${legacyCategoryOrder.indexOf(category)}`, name: groupCategoryName(category), category, description: `Connect in ${(groupCategoryName(category)).toLowerCase()}.`, custom: false }));
@@ -1172,6 +1174,7 @@ function renderWorkspace(name) {
         cover.className = "group-card-cover";
         cover.setAttribute("aria-hidden", "true");
         cover.textContent = groupIcon(group.category);
+        cover.dataset.initial = tribeInitial(group.name);
         const title = document.createElement("h4");
         const open = document.createElement("button"); open.type = "button"; open.className = "group-open"; open.textContent = group.name; open.addEventListener("click", () => openTribe(group)); title.appendChild(open);
         const category = document.createElement("span");
