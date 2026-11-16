@@ -43,3 +43,4 @@ Owner directives 2026-11-16/17. First job next session.
   - For promoters: "Sell tickets to your night" (the flyer-first creator above) and their own events with sales so far.
   - The public event page (from Mix or a shared link) is the ticket stub: poster, date, venue, price, Buy, done.
 - "DanzStak ads" (owner 2026-11-17) means members' own items, merch and tickets shown as house promotion (e.g. "tonight near you" in Events, a member's new item once in Mix). Free and fair: ordered by time and distance, no payment, no boosting. Third-party paid ads stay Bazaar-only.
+- Mix item slot (owner 2026-11-17, supersedes "once in Mix"): about every 4th post in Mix is a members' item, merch or ticket; labelled "For sale" / "Tickets"; never paid; fair rotation (nearby and followed first, then newer); the same item does not repeat within 2 weeks; skip the slot when nothing relevant exists. Mix stays chronological and finite otherwise.
