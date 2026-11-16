@@ -6,6 +6,7 @@ $FunctionName = "DANZSTAK-Auth-API"
 $RoleName = "DANZSTAK-Auth-API-role-zjknf4ur"
 $Source = Join-Path $PSScriptRoot "infrastructure\auth-api\index.mjs"
 $TourManagerBillingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\tour-manager-billing.mjs"
+$BookingPipelineSource = Join-Path $PSScriptRoot "infrastructure\auth-api\booking-pipeline.mjs"
 $MarketplaceSource = Join-Path $PSScriptRoot "infrastructure\auth-api\marketplace.mjs"
 $TicketingSource = Join-Path $PSScriptRoot "infrastructure\auth-api\ticketing.mjs"
 $PhoneVerificationSource = Join-Path $PSScriptRoot "infrastructure\auth-api\personal-phone-verification.mjs"
@@ -90,7 +91,7 @@ try {
   aws dynamodb update-continuous-backups --region $Region --table-name $ReviewsTable --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true --output json | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Reviews table recovery protection failed." }
   New-Item -ItemType Directory -Path $Stage -Force | Out-Null
-  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$MarketplaceSource,$TicketingSource,$PhoneVerificationSource,$PhoneServiceSource,$PhoneDynamoSource,$Package,$PackageLock -Destination $Stage
+  Copy-Item -LiteralPath $Source,$TourManagerBillingSource,$BookingPipelineSource,$MarketplaceSource,$TicketingSource,$PhoneVerificationSource,$PhoneServiceSource,$PhoneDynamoSource,$Package,$PackageLock -Destination $Stage
   Push-Location $Stage
   try {
     npm ci --omit=dev --ignore-scripts --no-audit --no-fund

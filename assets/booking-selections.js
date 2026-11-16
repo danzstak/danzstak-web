@@ -8,7 +8,10 @@
   const clearButton = document.getElementById("clearVenueSelections");
   const chooseVenuesNext = document.getElementById("chooseVenuesNext");
   const storageKey = "danzstakBookingVenueSelections";
-  const stages = ["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined", "No response"];
+  const pipeline = window.danzstakBookingPipeline;
+  const stages = pipeline.BOOKING_STATUSES;
+  const localToday = () => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`; };
+  let stageFilter = "all";
   const legacyStages = { Research: "Not contacted", "Ready to pitch": "Email prepared", Contacted: "Email sent", "In conversation": "Reply received", Hold: "Interested" };
   let venues = [];
   let outreachShares = [];
@@ -222,7 +225,7 @@
     }
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    const due = venues.filter(v => v.booking?.followUp && v.booking.followUp <= today && !["Confirmed", "Declined"].includes(bookingStatus(v))).length;
+    const due = venues.filter(v => v.booking?.followUp && v.booking.followUp <= today && ["found", "pitched", "no_reply"].includes(pipeline.stageOf(bookingStatus(v)))).length;
     const confirmed = venues.filter(v => bookingStatus(v) === "Confirmed").length;
     status.textContent = `${venues.length} selected club${venues.length === 1 ? "" : "s"} · ${confirmed} confirmed · ${due} follow-ups due`;
     renderDashboard();
@@ -267,7 +270,7 @@
       const input = document.createElement(type === "select" ? "select" : type === "textarea" ? "textarea" : "input");
       input.setAttribute("aria-label", title);
       if (type === "select") {
-        for (const stage of stages) {
+        for (const stage of pipeline.nextStatuses(bookingStatus(venue), { showDate: booking.showDate, today: localToday() })) {
           const option = document.createElement("option");
           option.value = stage; option.textContent = stage; input.append(option);
         }
@@ -284,7 +287,7 @@
       label.append(input); fields.append(label);
     }
     const hint = document.createElement("small");
-    hint.textContent = "Save after editing. Confirmed requires a date and written evidence of the promoter's agreement. Drafting or sending an email does not confirm a performance.";
+    hint.textContent = "Save after editing. Cards move one step at a time; sending a pitch and a venue reply move them for you. Confirmed requires a date and written evidence of the promoter's agreement. Played unlocks after the show date.";
     fields.append(hint);
     return fields;
   }
@@ -298,11 +301,36 @@
     updateControls();
   }
 
+  function renderStageFilters() {
+    let bar = document.getElementById("pipelineFilters");
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "pipelineFilters"; bar.className = "pipeline-filters"; bar.setAttribute("role", "group"); bar.setAttribute("aria-label", "Filter venues by booking stage");
+      cards.before(bar);
+    }
+    const counts = new Map();
+    for (const venue of venues) { const stage = pipeline.stageOf(bookingStatus(venue)); counts.set(stage, (counts.get(stage) || 0) + 1); }
+    if (stageFilter !== "all" && !counts.has(stageFilter)) stageFilter = "all";
+    bar.replaceChildren();
+    bar.hidden = !venues.length;
+    for (const stage of ["all", ...pipeline.PIPELINE_STAGES.filter(item => counts.has(item))]) {
+      const chip = document.createElement("button");
+      chip.type = "button"; chip.className = `pipeline-chip stage-${stage}`; chip.dataset.stage = stage;
+      chip.setAttribute("aria-pressed", String(stageFilter === stage));
+      chip.textContent = `${stage === "all" ? "All" : pipeline.STAGE_LABELS[stage]} ${stage === "all" ? venues.length : counts.get(stage)}`;
+      chip.addEventListener("click", () => { stageFilter = stage; render(); document.querySelector(`#pipelineFilters [data-stage="${stage}"]`)?.focus(); });
+      bar.append(chip);
+    }
+  }
+
   function render() {
+    renderStageFilters();
     if (!venues.length) { showEmpty(); return; }
     cards.replaceChildren();
     updateControls();
     venues.forEach((venue, index) => {
+    const stage = pipeline.stageOf(bookingStatus(venue));
+    if (stageFilter !== "all" && stage !== stageFilter) return;
     const card = document.createElement("article");
     const body = document.createElement("div");
     const title = document.createElement("h2");
@@ -314,6 +342,12 @@
     card.className = "venue-card";
     body.className = "venue-card-body";
     title.textContent = String(venue.name || "Live music venue");
+    const stageChip = document.createElement("p"), threadId = String(venue.booking?.pipeline?.threadId || "");
+    stageChip.className = `pipeline-stage stage-${stage}`;
+    const stageLabel = document.createElement("span");
+    stageLabel.textContent = pipeline.STAGE_LABELS[stage];
+    stageChip.append(stageLabel);
+    if (/^[a-zA-Z0-9_-]{16,100}$/.test(threadId)) { const thread = link("Open thread", `messages.html?section=bookings&outreach=${encodeURIComponent(threadId)}`); thread.className = "pipeline-thread"; stageChip.append(thread); }
     address.className = "venue-address";
     address.textContent = String(venue.address || "Address unavailable");
     evidence.className = "venue-evidence";
@@ -380,7 +414,7 @@
       persist();
       render();
     });
-    body.append(title, address, links, note);
+    body.append(stageChip, title, address, links, note);
     if (evidence.textContent) address.after(evidence);
     body.append(bookingFields(venue), outreach(venue), remove);
     card.append(body);
@@ -405,9 +439,9 @@
     const categories = (venue.categories || []).map(s => String(s).toLowerCase());
     const matches = genres.filter(g => categories.some(c => c === g || c.split(/[^a-z0-9-]+/).includes(g)));
     fit.textContent = matches.length ? `Listed genre match: ${matches.join(", ")}. Check the current calendar for comparable acts.` : "Genre fit unverified. Review the venue's calendar before pitching.";
-    if (["Confirmed", "Declined"].includes(bookingStatus(venue))) {
+    if (["Confirmed", "Played", "Declined"].includes(bookingStatus(venue))) {
       const closed = document.createElement("p");
-      closed.textContent = bookingStatus(venue) === "Confirmed" ? "Confirmed with evidence. Keep the agreed fee, production terms, and promoter confirmation attached to this record." : "Lead closed. Change its status if you want to reopen outreach.";
+      closed.textContent = { Confirmed: "Confirmed with evidence. Keep the agreed fee, production terms, and promoter confirmation attached to this record.", Played: "Played. Log how the night went in your notes for next time.", Declined: "This venue passed. Remove it, or add it again later for a fresh pitch." }[bookingStatus(venue)];
       section.append(fit, shareEvidence, deliveryEvidence, closed);
       return section;
     }
@@ -513,7 +547,7 @@
     const note = document.createElement("small");
     note.textContent = email ? "DanzStak saves your current pitch before review. Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Venue replies arrive in your private SYNC Bookings inbox." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
     section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, creditPrompt, note);
-    const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered", "replied"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
+    const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered", "replied"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || booking.pipeline?.repliedAt || !["found", "pitched", "no_reply"].includes(pipeline.stageOf(bookingStatus(venue))) || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
     if (initialPitch && (followUpDue || existingFollowUp || hasReply)) {
       const followUp = document.createElement("section"), heading = document.createElement("h3"), state = document.createElement("p");
       followUp.className = "booking-follow-up"; heading.textContent = "Follow-up";
@@ -525,11 +559,18 @@
       }
       else if (existingFollowUp) state.textContent = existingFollowUp.status === "delivered" ? "Your one follow-up was delivered." : "Your one follow-up was submitted. No additional reminder will be sent.";
       else {
-        state.textContent = `Due ${booking.followUp}. DanzStak allows one artist-approved reminder for this pitch.`;
+        state.textContent = `Follow up? No reply in 5 days. Due ${booking.followUp}. DanzStak allows one reminder, and only you can send it.`;
+        const followDraftLabel = document.createElement("label"), followDraft = document.createElement("textarea"), draftArtist = artist();
+        followDraftLabel.textContent = "Edit the follow-up";
+        followDraft.rows = 7; followDraft.maxLength = 4500; followDraft.setAttribute("aria-label", `Follow-up for ${venue.name}`);
+        followDraft.value = typeof booking.followUpDraft === "string" && booking.followUpDraft ? booking.followUpDraft : `Hello ${venue.name || "venue"} booking team,\n\nI'm following up on the booking pitch for ${draftArtist.name || "our act"}${booking.showDate ? ` on ${booking.showDate}` : ""}. If the date or act is not a fit, a quick pass is completely fine.\n\nEPK: ${draftArtist.epk}\n\nThank you,\n${draftArtist.name || "Artist"}`;
+        followDraft.addEventListener("input", () => { booking.followUpDraft = followDraft.value; });
+        followDraftLabel.append(followDraft);
         const followButton = document.createElement("button");
         followButton.type = "button"; followButton.className = "secondary"; followButton.textContent = "Review one follow-up · 1 credit";
         followButton.addEventListener("click", async () => {
-          const currentArtist = artist(), email = initialPitch.recipient, outreachId = crypto.randomUUID().replaceAll("-", ""), publicEpk = currentArtist.epk, subjectText = `Following up: ${initialPitch.subject || `${currentArtist.name || "Artist"} booking enquiry`}`.slice(0, 180), baseMessage = `Hello ${venue.name || "venue"} booking team,\n\nI'm following up on the booking pitch for ${currentArtist.name || "our act"}${booking.showDate ? ` on ${booking.showDate}` : ""}. If the date or act is not a fit, a quick pass is completely fine.\n\nEPK: ${publicEpk}\n\nThank you,\n${currentArtist.name || "Artist"}`;
+          const currentArtist = artist(), email = initialPitch.recipient, outreachId = crypto.randomUUID().replaceAll("-", ""), publicEpk = currentArtist.epk, subjectText = `Following up: ${initialPitch.subject || `${currentArtist.name || "Artist"} booking enquiry`}`.slice(0, 180), baseMessage = followDraft.value.trim();
+          if (!publicEpk || !baseMessage.includes(publicEpk)) { window.danzstakShowFeedback?.("Keep your published EPK link in the follow-up so DanzStak can swap in this venue's private link.", { urgent:true }); return; }
           followButton.disabled = true; followButton.textContent = "Preparing private EPK link…";
           try {
             const share = await createVenueEpkShare(venue, outreachId, booking.allowEpkPdfDownload === true), preflight = await createOutreachPreflight(venue, email, outreachId, initialPitch.id), reviewedMessage = `${baseMessage.replaceAll(publicEpk, share.shareUrl)}\n\n---\n${preflight.footer}`;
@@ -540,7 +581,7 @@
             render();
           } catch (error) { window.danzstakShowFeedback?.(error.message, { urgent:true }); followButton.disabled = false; followButton.textContent = "Review one follow-up · 1 credit"; }
         });
-        followUp.append(followButton);
+        followUp.append(followDraftLabel, followButton);
       }
       followUp.prepend(heading, state); section.append(followUp);
     }
@@ -643,6 +684,15 @@
       const data = await accountRequest("POST", { venues, artist: artist(), tour: tour(), revision });
       revision = data.revision;
       serverEstimate = data.estimate || null;
+      // The server moves cards forward from real events (sent pitch, venue reply); show what it saved.
+      if (data.statuses && typeof data.statuses === "object") {
+        for (const venue of venues) {
+          const saved = data.statuses[identity(venue)];
+          if (saved && pipeline.STAGE_BY_STATUS[saved.status]) venue.booking = { ...(venue.booking || {}), status: saved.status, followUp: saved.followUp || "", pipeline: saved.pipeline || venue.booking?.pipeline };
+        }
+        try { sessionStorage.setItem(storageKey, JSON.stringify(venues)); } catch {}
+        render();
+      }
       try { sessionStorage.removeItem("danzstakBookingMapAdditions"); } catch {}
       dirty = false;
       accountStatus.textContent = "Saved privately to your account. Available on your other devices.";

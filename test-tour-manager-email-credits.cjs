@@ -99,6 +99,8 @@ const assert = require("node:assert/strict");
   assert.equal(duplicate.statusCode, 200); assert.equal(providerCalls, 1, "A repeated send request must not call the provider twice");
   const contactCooldown = await preflight("newpitchsamecontact");
   assert.equal(contactCooldown.result.statusCode, 409); assert.equal(providerCalls, 1, "A second initial pitch to the same contact inside 30 days must be blocked before review"); assert.match(JSON.parse(contactCooldown.result.body).error, /30 days/i);
+  const earlyFollowUp = await preflight("earlyfollowup12345", "1234567890abcdef"); assert.equal(earlyFollowUp.result.statusCode, 409, "A follow-up must wait 5 days after the first pitch"); assert.match(JSON.parse(earlyFollowUp.result.body).error, /5 days/);
+  currentTime += 5 * 24 * 60 * 60 * 1000;
   const followUpPreflight = await preflight("followup123456789", "1234567890abcdef"); assert.equal(followUpPreflight.result.statusCode, 200, "One due follow-up may bypass the initial-pitch cooldown after server validation");
   const followedUp = await service(event("followup123456789", reviewedMessage(followUpPreflight.footer), true, "1234567890abcdef"));
   assert.equal(followedUp.statusCode, 200); assert.equal(providerCalls, 2); assert.equal(number(records.get(creditId), "credits"), 1); assert.equal(number(records.get(creditId), "sentEmails"), 2, "A successful follow-up consumes exactly one email credit");

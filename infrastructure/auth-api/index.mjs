@@ -41,6 +41,7 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
+import { canMove, venueEvents, withPipeline } from "./booking-pipeline.mjs";
 import { createMarketplace } from "./marketplace.mjs";
 import { createTicketing } from "./ticketing.mjs";
 import { createPayouts } from "./payouts.mjs";
@@ -4654,7 +4655,8 @@ async function deleteReview(event, reviewId) {
   return reply(200, { deleted: true, reviewId });
 }
 
-const bookingPipelineStatuses = new Set(["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Declined", "No response"]);
+// Same list as BOOKING_STATUSES in booking-pipeline.mjs (test-booking-pipeline-stages.cjs keeps them equal).
+const bookingPipelineStatuses = new Set(["Not contacted", "Email prepared", "Email sent", "Reply received", "Interested", "Negotiating", "Date proposed", "Confirmed", "Played", "Declined", "No response"]);
 const legacyBookingStatuses = new Map([["Research", "Not contacted"], ["Ready to pitch", "Email prepared"], ["Contacted", "Email sent"], ["In conversation", "Reply received"], ["Hold", "Interested"]]);
 
 function cleanTourBudget(value) {
@@ -4695,10 +4697,15 @@ function tourBudgetEstimate(tour, bookingEmailCount = 0, venues = []) {
   return { fuel, transportation, accommodation, meals, contingency, bookingEmails, bookingEmailsUsd, total, confirmedRevenue, potentialRevenue, confirmedProfit: confirmedRevenue - total, potentialProfit: potentialRevenue - total, breakEvenRevenue: total, currency: tour.currency };
 }
 
-async function sentBookingEmailCount(userId) {
-  const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#EMAIL_SEND#" } }, ProjectionExpression: "#status", ExpressionAttributeNames: { "#status": "status" }, ConsistentRead: true, Limit: 500 }));
-  return (result.Items || []).filter(item => item.status?.S === "sent").length;
+// Booking sends are the real events behind pipeline stages (pitched, replied) and the email-credit count.
+async function bookingSendItems(userId) {
+  const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#EMAIL_SEND#" } }, ProjectionExpression: "tourId, venueKey, #status, sentAt, providerAcceptedAt, createdAt, followUpTo, repliedAt", ExpressionAttributeNames: { "#status": "status" }, ConsistentRead: true, Limit: 500 }));
+  return result.Items || [];
 }
+const sentEmailCount = items => items.filter(item => item.status?.S === "sent").length;
+const pipelineVenueId = venue => String(venue?.venueKey || `${venue?.name || ""}|${venue?.address || ""}`);
+// The saved copy is the source of truth for transitions; drop the derived pipeline view before storing.
+const storedVenues = venues => venues.map(({ booking: { pipeline, ...booking } = {}, ...venue }) => ({ ...venue, booking }));
 
 async function bookingWorkspace(event, method) {
   const headers = corsHeaders(event.headers?.origin);
@@ -4709,10 +4716,10 @@ async function bookingWorkspace(event, method) {
   const Key = { userId: { S: userId }, tourId: { S: bookingWorkspaceId } };
   if (method === "GET") {
     const result = await db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true }));
-    const bookingEmailCount = await sentBookingEmailCount(userId);
+    const sends = await bookingSendItems(userId), bookingEmailCount = sentEmailCount(sends);
     if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "" });
-    const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour);
-    return reply(200, { ...saved, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, saved.venues || []), revision: result.Item.revision?.S || "" });
+    const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour), venues = withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends));
+    return reply(200, { ...saved, venues, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, venues), revision: result.Item.revision?.S || "" });
   }
   const data = parseJsonBody(event);
   if (!data || !Array.isArray(data.venues) || data.venues.length > 100 || typeof data.revision !== "string") return reply(400, { error: "Provide up to 100 venues and the loaded revision." });
@@ -4734,10 +4741,19 @@ async function bookingWorkspace(event, method) {
   });
   if (venues.some(v => !v)) return reply(400, { error: "Each venue needs a name." });
   if (invalidConfirmation) return reply(400, { error: "A confirmed performance requires a show date and written confirmation evidence." });
+  const [savedResult, sends] = await Promise.all([db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true })), bookingSendItems(userId)]);
+  let savedVenues = []; try { savedVenues = savedResult?.Item?.plan?.S ? JSON.parse(savedResult.Item.plan.S).venues || [] : []; } catch { savedVenues = []; }
+  savedVenues = savedVenues.filter(venue => venue && typeof venue === "object").map(venue => { const b = venue.booking || {}, status = legacyBookingStatuses.get(b.stage) || b.status || b.stage; return { ...venue, booking: { ...b, status: bookingPipelineStatuses.has(status) ? status : "Not contacted" } }; });
+  const events = venueEvents(sends), savedStatus = new Map(withPipeline(savedVenues, events).map(venue => [pipelineVenueId(venue), venue.booking.status]));
+  withPipeline(venues, events);
+  const today = new Date().toISOString().slice(0, 10);
+  const blocked = venues.find(venue => !canMove(savedStatus.get(pipelineVenueId(venue)) || "", venue.booking.status, { showDate: venue.booking.showDate, today }));
+  if (blocked) return reply(409, { error: blocked.booking.status === "Played" && (!blocked.booking.showDate || blocked.booking.showDate > today) ? `${blocked.name} can be marked played after its show date.` : `${blocked.name} can't move from ${savedStatus.get(pipelineVenueId(blocked)) || "Not contacted"} to ${blocked.booking.status}. Move it one step at a time.` });
+  const statuses = Object.fromEntries(venues.map(venue => [pipelineVenueId(venue), { status: venue.booking.status, followUp: venue.booking.followUp, pipeline: venue.booking.pipeline }]));
   const a = data.artist || {};
-  const tour = cleanTourBudget(data.tour), bookingEmailCount = await sentBookingEmailCount(userId);
+  const tour = cleanTourBudget(data.tour), bookingEmailCount = sentEmailCount(sends);
   const estimate = tourBudgetEstimate(tour, bookingEmailCount, venues);
-  const plan = JSON.stringify({ venues, artist: { name: text(a.name, 100), genre: text(a.genre, 100), hometown: text(a.hometown, 160), epk: https(a.epk), pitch: text(a.pitch, 1000) }, tour });
+  const plan = JSON.stringify({ venues: storedVenues(venues), artist: { name: text(a.name, 100), genre: text(a.genre, 100), hometown: text(a.hometown, 160), epk: https(a.epk), pitch: text(a.pitch, 1000) }, tour });
   if (Buffer.byteLength(plan, "utf8") > 250000) return reply(400, { error: "Workspace is too large. Export a copy and reduce the list." });
   const revision = randomUUID();
   try {
@@ -4746,7 +4762,7 @@ async function bookingWorkspace(event, method) {
     if (error.name === "ConditionalCheckFailedException") return reply(409, { error: "Another device saved changes. Export your work, then reload the account workspace before saving." });
     throw error;
   }
-  return reply(200, { revision, estimate });
+  return reply(200, { revision, estimate, statuses });
 }
 
 async function bookingIdentity(event) {

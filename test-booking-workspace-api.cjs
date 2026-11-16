@@ -14,11 +14,13 @@ const context = vm.createContext({
   getAuthenticatedUser: async () => authenticated,
   parseJsonBody: event => event.body,
   GetItemCommand, PutItemCommand, QueryCommand,
-  db: { send: async command => { calls.push(command.input); if (command instanceof QueryCommand) return {Items:[]}; if (conflict && command instanceof PutItemCommand) { const e = Error(); e.name = 'ConditionalCheckFailedException'; throw e; } return {Item:stored}; } }
+  db: { send: async command => { calls.push(command.input); if (command instanceof QueryCommand) return {Items:sends}; if (conflict && command instanceof PutItemCommand) { const e = Error(); e.name = 'ConditionalCheckFailedException'; throw e; } return {Item:stored}; } }
 });
-vm.runInContext(helper, context);
+let sends = [];
 const request = (method, body, origin='https://danzstak.com') => context.bookingWorkspace({headers:{origin},body}, method);
 (async () => {
+  Object.assign(context, await import('./infrastructure/auth-api/booking-pipeline.mjs'));
+  vm.runInContext(helper, context);
   assert.equal((await request('GET', null, 'https://evil.example')).statusCode,403);
   authenticated = '';
   assert.equal((await request('GET')).statusCode,401);
@@ -65,9 +67,38 @@ const request = (method, body, origin='https://danzstak.com') => context.booking
   authenticated='owner-b';
   await request('GET');
   assert.equal(calls.at(-2).Key.userId.S,'owner-b','another account must use its own partition');
+  // Pipeline stages follow real events: a sent pitch is at least pitched, a venue reply at least replied.
+  authenticated='owner-a';
+  const pitchedAt='2026-11-01T10:00:00.000Z';
+  sends=[{tourId:{S:'TOUR_MANAGER#EMAIL_SEND#pitch000000000001'},venueKey:{S:'aaaaaaaaaaaaaaaaaaaa'},status:{S:'sent'},sentAt:{S:pitchedAt}}];
+  stored={userId:{S:'owner-a'},tourId:{S:'booking-workspace-v1'},revision:{S:'r1'},plan:{S:JSON.stringify({venues:[{name:'Pitched Room',venueKey:'aaaaaaaaaaaaaaaaaaaa',booking:{status:'Not contacted'}}],artist:{},tour:{}})}};
+  let loaded=JSON.parse((await request('GET')).body);
+  assert.equal(loaded.venues[0].booking.status,'Email sent','a successful send moves the card to pitched');
+  assert.equal(loaded.venues[0].booking.pipeline.stage,'pitched');
+  assert.equal(loaded.venues[0].booking.pipeline.threadId,'pitch000000000001');
+  assert.equal(loaded.venues[0].booking.followUp,'2026-11-06','follow-up is due 5 days after the pitch');
+  sends[0].status={S:'replied'}; sends[0].repliedAt={S:'2026-11-03T09:00:00.000Z'};
+  loaded=JSON.parse((await request('GET')).body);
+  assert.equal(loaded.venues[0].booking.status,'Reply received','an inbound reply moves the card to replied');
+  assert.equal(loaded.venues[0].booking.pipeline.repliedAt,'2026-11-03T09:00:00.000Z');
+  // A stale tab saving an older status cannot pull the card back below its events.
+  let saved=await request('POST',{revision:'r1',venues:[{name:'Pitched Room',venueKey:'aaaaaaaaaaaaaaaaaaaa',booking:{status:'Email sent'}}]});
+  assert.equal(saved.statusCode,200);
+  assert.equal(JSON.parse(saved.body).statuses.aaaaaaaaaaaaaaaaaaaa.status,'Reply received');
+  assert.equal(JSON.parse(calls.at(-1).Item.plan.S).venues[0].booking.status,'Reply received');
+  assert.equal(JSON.parse(calls.at(-1).Item.plan.S).venues[0].booking.pipeline,undefined,'derived pipeline view is not stored');
+  // Backward moves are refused.
+  stored.plan.S=JSON.stringify({venues:[{name:'Booked Room',venueKey:'bbbbbbbbbbbbbbbbbbbb',booking:{status:'Confirmed',showDate:'2026-12-01',confirmationEvidence:'Yes'}}]});
+  saved=await request('POST',{revision:'r1',venues:[{name:'Booked Room',venueKey:'bbbbbbbbbbbbbbbbbbbb',booking:{status:'Email prepared'}}]});
+  assert.equal(saved.statusCode,409); assert.match(JSON.parse(saved.body).error,/can't move from Confirmed/);
+  saved=await request('POST',{revision:'r1',venues:[{name:'Booked Room',venueKey:'bbbbbbbbbbbbbbbbbbbb',booking:{status:'Played',showDate:'2999-12-01',confirmationEvidence:'Yes'}}]});
+  assert.equal(saved.statusCode,409,'played only after the show date'); assert.match(JSON.parse(saved.body).error,/after its show date/);
+  saved=await request('POST',{revision:'r1',venues:[{name:'Booked Room',venueKey:'bbbbbbbbbbbbbbbbbbbb',booking:{status:'Played',showDate:'2026-01-01',confirmationEvidence:'Yes'}}]});
+  assert.equal(saved.statusCode,200);
+  sends=[];
   const exportCore = require('./assets/account-export-core.js');
   const workspace = { venues: [{name:'The Room',booking:{stage:'Contacted'}}], artist: {name:'The Act'} };
   const archive = exportCore.buildAccountArchive({bookingWorkspace:workspace}, {}, {});
   assert.deepEqual(archive.bookingWorkspace,workspace,'owned booking records must remain portable in the account export');
-  console.log('Booking workspace API checks passed: account isolation, identity preservation, origins, validation, bounded records, and conflict protection.');
+  console.log('Booking workspace API checks passed: pipeline stages from real events, no backward moves, account isolation, identity preservation, origins, validation, bounded records, and conflict protection.');
 })().catch(error => {console.error(error);process.exitCode=1;});
