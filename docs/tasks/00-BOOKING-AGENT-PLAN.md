@@ -74,3 +74,13 @@ Example: a show in Sacramento. The agent suggests Sacramento record stores for a
 - **Clear jobs**: assign driver shifts, merch, settlement and advancing to named members; rotate drivers automatically.
 - **Money out in the open**: the per-show settlement, the float and the per-diems are visible to the whole band, and splits are calculated, not argued.
 - **Morning brief** each day: where, when, who drives, load-in, soundcheck, appearances, and where you sleep tonight.
+
+## Press: zines and reviews (owner, 2026-11-16)
+- For each release and tour, the agent suggests **zine writers, blogs and local music press** for the genre and towns on the route, and drafts a promo package for each: note, EPK link, release/stream links (links only, no audio files), show dates, and an offer of guest-list spots for the show.
+- Reviews come into DanzStak in two ways:
+  1. The writer posts the review on DanzStak themselves. Invite them with a no-account-needed link; if they join, the review is their post, owned by them, shown on the artist's EPK "Press" section and in Mix's review slot.
+  2. The artist adds an outside review to the EPK as a **link + a short pull-quote (≤ 1–2 sentences) + outlet + date**, with a checkbox confirming the writer is OK with it. Never copy the full review.
+- Track press in the same pipeline: sent → replied → reviewed, with one approved follow-up.
+
+## EPK pricing (confirmed, owner 2026-11-16)
+Building an EPK by hand is **free**. An **AI-built EPK costs $5**, and the band can edit every word for free afterwards (manual edits and look changes free forever; an AI redesign is another $5). This matches `docs/OWNER-DIRECTIVES.md`.
