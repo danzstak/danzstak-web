@@ -60,3 +60,17 @@ Example: a show in Sacramento. The agent suggests Sacramento record stores for a
 - Travel (fuel, tolls), lodging (room, campground or free van parking), food.
 - Promo: radio ad/underwriting spend, flyer printing and shipping, in-store costs (if any).
 - Per gig: expected income (guarantee / door split / merch estimate) vs. total cost → **profit/loss per show and per tour**, budget vs. actual after the show.
+
+## Radio rotation: promo package to the program/music director (owner, 2026-11-16)
+- For each station in a show's town, the agent drafts a **promo package to the program director / music director**: a short note, the EPK link, the show date and venue, and the songs for rotation.
+- Songs are **links only** (the artist's own Bandcamp/streaming/private link or the EPK's authorized embeds). DanzStak never hosts or attaches audio files (`instructions/00e-no-music-hosting.md`).
+- Timing: rotation package **3–4 weeks before** the show, so the song is playing when the 2-week ads/announcements start. One follow-up only, which the artist approves.
+- The booking agent's checklist per show doesn't count the show as "promo ready" until: flyer sent, radio package sent, in-store asked, ads/announcements asked.
+
+## Tour Manager's real goal: everyone home in one piece (owner, 2026-11-16)
+"A successful tour is going out on the road and making it home in one piece, with the band not killing each other." Tour managing is herding cats. The easier the road is, the less stress, and the more the band stays focused. So the Tour Manager (task 06) designs for low stress:
+- **Sane days**: default max 6 h driving, no drive after a show longer than 2 h unless the artist accepts it, a day off every 5–6 shows, and sleep windows protected in the schedule. Warn on any day that breaks these.
+- **One source of truth**: every band member sees the same itinerary book, day sheet and live updates in SYNC. No "nobody told me".
+- **Clear jobs**: assign driver shifts, merch, settlement and advancing to named members; rotate drivers automatically.
+- **Money out in the open**: the per-show settlement, the float and the per-diems are visible to the whole band, and splits are calculated, not argued.
+- **Morning brief** each day: where, when, who drives, load-in, soundcheck, appearances, and where you sleep tonight.
