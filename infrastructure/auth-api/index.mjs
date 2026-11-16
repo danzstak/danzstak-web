@@ -1,5 +1,6 @@
 
 
+import { linkPreview } from "./link-preview.mjs";
 import {
   randomBytes,
   randomUUID,
@@ -5109,6 +5110,12 @@ export const handler = async event => {
       return await listAccountSessions(event);
     }
 
+    if (method === "GET" && path === "/link-preview") {
+      const headers = corsHeaders(event.headers?.origin), userId = await getAuthenticatedUser(event);
+      if (!userId) return { statusCode: 401, headers, body: JSON.stringify({ error: "Authentication required." }) };
+      const preview = await linkPreview(event.queryStringParameters?.url || "");
+      return { statusCode: preview ? 200 : 422, headers: { ...headers, "cache-control": "private, max-age=3600" }, body: JSON.stringify(preview ? { preview } : { error: "No preview for that link." }) };
+    }
     if (method === "GET" && path === "/phone-verification") return await getPersonalPhoneStatus(event);
     if (method === "POST" && path === "/phone-verification/send") return await sendPersonalPhoneCode(event);
     if (method === "POST" && path === "/phone-verification/confirm") return await confirmPersonalPhoneCode(event);
