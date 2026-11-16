@@ -37,3 +37,8 @@ Owner directives 2026-11-16/17. First job next session.
   - Start with one big drop zone: "Drop your flyer" (or a 15 s video). The poster preview appears right away; then a few quick questions one at a time (name of the night, date and doors, venue, ticket price), not a long page of fields.
   - Optional extras (seating sections, ticket delivery, named tickets on/off, outside ticket link) folded under "More options".
   - Show past/upcoming events from local promoters as inspiration on the empty state.
+- What Events is for (owner 2026-11-17): fans discover nights in Mix (the event post goes in Mix). Fans open Events already knowing which night they want, so Events is not a feed to scroll:
+  - Top: search ("night, artist, venue or city") and "My tickets" (show the ticket / door code fast, works offline).
+  - Then: tonight and this weekend near me as a short list, not an endless scroll.
+  - For promoters: "Sell tickets to your night" (the flyer-first creator above) and their own events with sales so far.
+  - The public event page (from Mix or a shared link) is the ticket stub: poster, date, venue, price, Buy, done.
