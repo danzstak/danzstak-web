@@ -8,6 +8,12 @@
 - Shipping never carries the 6%.
 - AI EPK still includes one free distribution (task 08).
 
+## Booking email (club) credits: minimum 20 per purchase (owner, 2026-11-16)
+- Booking emails are bought **20 at a time minimum** ($1.50 each, 20 = $30.00 + 6% = **$31.80**, so no $1 fee). The quantity picker starts at 20, with no upper change from today (max 500).
+- This is the one exception to "no credit bundles": unused booking credits stay on the account, are consumed one per pitch sent, and follow ToS 8A (unused credits refundable minus the fee; used = final). Partial-use refunds (task 11) apply to these credits.
+- Server: `MIN_CREDITS_PER_CHECKOUT = 20`, enforced in checkout creation and webhook validation; the UI copy says "Minimum 20 pitches".
+- The AI EPK's free distribution (task 08) is separate and doesn't count toward the 20.
+
 ## How it's described (owner, 2026-11-16)
 - Not "5% + 3.5%": it's one **6% flat fee**. DanzStak pays Stripe's processing fees out of that 6% (+ $1 under $30). Buyers see "6% fee" (and "$1 processing fee" under $30); the app doesn't break out Stripe.
 - The Terms (8A/8B/8C) say plainly where the fee goes: "DanzStak's fee covers payment processing by Stripe and the cost of running the marketplace."
