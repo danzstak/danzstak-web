@@ -167,7 +167,7 @@ async function createPortraitVideo(browser) {
         return feed && post
           && Math.abs(parseFloat(getComputedStyle(feed).rowGap) - expectedGap) <= 1
           && parseFloat(getComputedStyle(post).marginBottom) <= 1;
-      }, width <= 375 ? 12 : 16);
+      }, 0);
 
       const geometry = await page.evaluate(({ imagePostId, videoPostId }) => {
         const postGeometry = postId => {

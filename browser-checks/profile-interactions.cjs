@@ -198,8 +198,9 @@ const engagement = {
         assert.equal(postWrites.at(-1).audience, "public");
         await page.locator('[data-profile-tab="Photos"]').click();
         await page.locator(".profile-post-media").first().waitFor();
-        await page.locator('[data-profile-tab="More"]').click();
-        assert.deepEqual(await page.locator(".profile-more-navigation button").allTextContents(), ["Featured", "Memories", "Friends", "Media"]);
+        // Owner 2026-11-16: Featured, Memories and Media are gone; Friends is a top tab; More only appears for a Shop.
+        assert.equal(await page.locator('[data-profile-tab="More"]').isHidden(), true);
+        await page.locator('[data-profile-tab="Friends"]').click();
       }
 
       await page.screenshot({ path: path.join(output, `profile-interactions-${width}.png`), fullPage: width >= 700 });
