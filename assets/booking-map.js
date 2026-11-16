@@ -135,7 +135,7 @@
       return false;
     }
     drawn.clearLayers();
-    routePreview = L.polyline(routePoints, { color: "#1769e0", weight: 6, opacity: 0.95, lineCap: "round", lineJoin: "round", interactive: false }).addTo(drawn);
+    routePreview = L.polyline(routePoints, { color: "#ff5a1f", weight: 6, opacity: 0.95, lineCap: "round", lineJoin: "round", interactive: false }).addTo(drawn);
     const maximumPathPoints = 40;
     const sampledPoints = routePoints.length <= maximumPathPoints
       ? routePoints
@@ -156,8 +156,8 @@
     routePoints.push(latlng);
     if (routePreview) drawn.removeLayer(routePreview);
     routePreview = routePoints.length === 1
-      ? L.circleMarker(latlng, { radius: 7, color: "#fff", weight: 3, fillColor: "#1769e0", fillOpacity: 1, interactive: false }).addTo(drawn)
-      : L.polyline(routePoints, { color: "#1769e0", weight: 6, opacity: 0.95, lineCap: "round", lineJoin: "round", interactive: false }).addTo(drawn);
+      ? L.circleMarker(latlng, { radius: 7, color: "#fff", weight: 3, fillColor: "#121418", fillOpacity: 1, interactive: false }).addTo(drawn)
+      : L.polyline(routePoints, { color: "#ff5a1f", weight: 6, opacity: 0.95, lineCap: "round", lineJoin: "round", interactive: false }).addTo(drawn);
     if (announce) status.textContent = `${routePoints.length} route point${routePoints.length === 1 ? "" : "s"} added. ${routePoints.length < 2 ? "Draw farther or tap one more point to make the line." : "Keep drawing or press the checkmark to finish."}`;
   }
   map.on("click", event => {

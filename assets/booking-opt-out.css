@@ -1,4 +1,4 @@
-:root{color-scheme:light;--blue:#1769e0;--orange:#e85d18;--ink:#172033;--muted:#59657a;--line:#ccd4e2;--canvas:#eef2f7;--surface:#fff}
+:root{color-scheme:light;--blue:#121418;--orange:#e85d18;--ink:#172033;--muted:#59657a;--line:#ccd4e2;--canvas:#eef2f7;--surface:#fff}
 *{box-sizing:border-box}
 body{margin:0;background:var(--canvas);color:var(--ink);font-family:Arial,sans-serif;line-height:1.55}
 header{height:64px;display:flex;align-items:center;padding:8px max(16px,calc((100vw - 720px)/2));background:var(--blue)}

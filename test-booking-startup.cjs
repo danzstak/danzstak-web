@@ -24,7 +24,7 @@ assert.match(map, /mapElement\.addEventListener\("pointerdown"/, "route drawing 
 assert.match(map, /mapElement\.addEventListener\("pointermove"/, "route drawing must follow the user's freehand path");
 assert.match(map, /map\.on\("click", event =>/, "route drawing must retain a tap fallback for mobile browsers");
 assert.match(map, /L\.circleMarker\(latlng/, "the first route tap should leave a visible starting point");
-assert.match(map, /L\.polyline\(routePoints, \{ color: "#1769e0", weight: 6/, "two or more route points should draw a clearly visible line");
+assert.match(map, /L\.polyline\(routePoints, \{ color: "#ff5a1f", weight: 6/, "two or more route points should draw a clearly visible line");
 assert.match(map, /L\.DomUtil\.create\("button", "map-draw-control"/, "the map must expose its own visible pencil control");
 assert.match(map, /map\.invalidateSize\(\{ animate: false, pan: false \}\)/, "responsive map resizing must not leave a stale tile grid");
 assert.match(map, /baseTiles\.redraw\(\)/, "map tiles must redraw after responsive resizing");

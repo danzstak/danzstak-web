@@ -7,15 +7,15 @@
 }
 :root{
   color-scheme:light;
-  --ds-brand:#1769e0;
-  --ds-brand-strong:#0d55bd;
-  --ds-brand-soft:#eaf2ff;
+  --ds-brand:#121418;
+  --ds-brand-strong:#000000;
+  --ds-brand-soft:#f1f1ee;
   --ds-accent:#ef6c20;
   --ds-accent-soft:#fff0e7;
   --ds-ink:#172033;
   --ds-ink-soft:#344054;
   --ds-muted:#667085;
-  --ds-canvas:#edf2f7;
+  --ds-canvas:#f6f6f4;
   --ds-surface:#fff;
   --ds-surface-raised:#fff;
   --ds-surface-subtle:#f6f8fb;
@@ -56,7 +56,7 @@
   --ui-muted:var(--ds-surface-subtle);
 }
 html{max-width:100%;overflow-x:hidden;overflow-x:clip;-webkit-text-size-adjust:100%}
-body{max-width:100%;overflow-x:hidden;overflow-x:clip;background-color:var(--ds-canvas);background-image:radial-gradient(circle at 10% 0,#1769e012 0,transparent 28rem),radial-gradient(circle at 92% 24%,#ef6c200d 0,transparent 24rem);color:var(--ds-ink);font-family:var(--ds-font);line-height:var(--ds-leading-body)}
+body{max-width:100%;overflow-x:hidden;overflow-x:clip;background-color:var(--ds-canvas);background-image:radial-gradient(circle at 10% 0,#12141812 0,transparent 28rem),radial-gradient(circle at 92% 24%,#ef6c200d 0,transparent 24rem);color:var(--ds-ink);font-family:var(--ds-font);line-height:var(--ds-leading-body)}
 img,video,iframe,canvas,svg{max-width:100%}
 button,a,input,select,textarea{touch-action:manipulation}
 :focus-visible{outline:3px solid color-mix(in srgb,var(--ds-focus) 72%,transparent);outline-offset:2px}
@@ -104,7 +104,7 @@ body:not(.public-mode) :where(.panel,.card){
 .ds-tool-page main{min-width:0}
 .ds-tool-page :is(.hero,.planner,.summary,.booking-board,.booking-brief,.epk-form,.epk-preview){min-width:0}
 .ds-tool-page :is(input,select,textarea,button,.button){max-width:100%}
-.booking-page main button{min-height:42px;padding:9px 13px;border:1px solid #0e5fc4;border-radius:9px;background:#1769e0;color:#fff;font:inherit;font-weight:800;cursor:pointer}
+.booking-page main button{min-height:42px;padding:9px 13px;border:1px solid #0e5fc4;border-radius:9px;background:#121418;color:#fff;font:inherit;font-weight:800;cursor:pointer}
 .booking-page main button:hover{background:#0e5fc4}
 .booking-page main button:focus-visible{outline:3px solid #ff9b32;outline-offset:2px}
 .booking-page main button:disabled{cursor:not-allowed;opacity:.55}

@@ -24,10 +24,10 @@ assert.match(style, /@media\(max-width:560px\)/, "the dialog must have a phone-f
 
 for (const [page, expected] of [[feed, "assets/invite-sharing.js?v=1"], [messages, "assets/invite-sharing.js?v=1"]]) {
   assert.ok(page.includes(expected), "Friends and SYNC must load the shared invite behavior");
-  assert.ok(page.includes("assets/invite-sharing.css?v=1"), "Friends and SYNC must load shared invite styling");
+  assert.ok(page.includes("assets/invite-sharing.css?v=2"), "Friends and SYNC must load shared invite styling");
 }
 assert.match(messages, /data-invite-friend[^>]+aria-label="Invite a friend"/, "SYNC must expose an accessible invite action");
-assert.match(worker, /danzstak-shell-v838/);
+assert.match(worker, /danzstak-shell-v839/);
 assert.match(worker, /assets\/invite-sharing\.js/);
 assert.match(worker, /assets\/invite-sharing\.css/);
 

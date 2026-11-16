@@ -54,7 +54,7 @@ assert.match(sharing, /danzstakRenderUserText\?\.\(body, source\.content\)/, "sh
 for (const pageName of ["feed.html", "profile.html", "messages.html"]) {
   const page = fs.readFileSync(pageName, "utf8");
   assert.ok(page.includes("user-content-links.js?v=1"), `${pageName} should load the shared link parser`);
-  assert.ok(page.includes("user-content-links.css?v=1"), `${pageName} should load shared link styling`);
+  assert.ok(page.includes("user-content-links.css?v=2"), `${pageName} should load shared link styling`);
 }
 
 console.log("Clickable user-link checks passed across posts, comments, chats, profiles, edits, and shared content.");

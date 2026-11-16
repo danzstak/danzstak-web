@@ -1,6 +1,6 @@
 :root {
-  --booking-blue: var(--ds-brand, #1769e0);
-  --booking-blue-dark: var(--ds-brand-strong, #075fcb);
+  --booking-blue: var(--ds-brand, #121418);
+  --booking-blue-dark: var(--ds-brand-strong, #000000);
   --booking-orange: var(--ds-accent, #ef6c20);
   --booking-canvas: var(--ds-canvas, #eef2f6);
   --booking-surface: var(--ds-surface, #fff);
@@ -309,7 +309,7 @@
 .booking-page .tour-calendar th,
 .booking-page .tour-calendar td { padding: 9px 10px; border-bottom: 1px solid #e5e9ef; text-align: left; vertical-align: top; }
 .booking-page .tour-calendar thead th { background: #172033; color: #fff; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
-.booking-page .tour-calendar tbody th { color: #1769e0; font-variant-numeric: tabular-nums; }
+.booking-page .tour-calendar tbody th { color: #121418; font-variant-numeric: tabular-nums; }
 .booking-page .tour-calendar tr.off td,
 .booking-page .tour-calendar tr.off th { background: #f4f6f8; color: #667085; }
 .booking-page .tour-calendar td strong { display: block; }
@@ -381,7 +381,7 @@
   }
   .booking-page .tour-calendar tbody td:first-of-type { color: #667085; font-size: 12px; font-weight: 750; }
   .booking-page .tour-calendar tbody td:nth-of-type(2) { font-weight: 850; }
-  .booking-page .tour-calendar tbody td:nth-of-type(3) { color: #1769e0; font-weight: 750; }
+  .booking-page .tour-calendar tbody td:nth-of-type(3) { color: #121418; font-weight: 750; }
   .booking-page .tour-calendar tbody td:nth-of-type(4) { color: #344054; font-size: 12px; font-weight: 750; }
   .booking-page .tour-calendar tbody td:last-child { color: #566274; font-size: 12px; }
   .booking-page .tool-header {

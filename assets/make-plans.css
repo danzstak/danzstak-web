@@ -72,9 +72,9 @@
   resize: vertical;
 }
 .plans-form :focus-visible {
-  outline: 3px solid #1769e044;
+  outline: 3px solid #12141844;
   outline-offset: 2px;
-  border-color: #1769e0;
+  border-color: #121418;
 }
 .plans-actions {
   display: flex;
@@ -134,7 +134,7 @@
   border: 1px solid #b7c2d0;
   border-radius: 8px;
   background: #fff;
-  color: #1769e0;
+  color: #121418;
   font-weight: 750;
   text-decoration: none;
 }

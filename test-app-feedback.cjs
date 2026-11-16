@@ -27,7 +27,7 @@ assert.match(worker, /"\/assets\/app-feedback\.css"/);
 
 for (const file of ["index.html", "feed.html", "profile.html", "messages.html", "booking.html", "booking-selections.html", "epk.html"]) {
   const html = readFileSync(file, "utf8");
-  assert.match(html, /assets\/app-feedback\.css\?v=2/, `${file} should load the shared feedback styles`);
+  assert.match(html, /assets\/app-feedback\.css\?v=3/, `${file} should load the shared feedback styles`);
   assert.match(html, /assets\/app-feedback\.js\?v=4/, `${file} should load the shared feedback behavior`);
 }
 
