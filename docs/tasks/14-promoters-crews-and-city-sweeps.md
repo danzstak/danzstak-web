@@ -32,3 +32,8 @@ Owner directives 2026-11-16/17. First job next session.
 - Same treatment the EPK builder got (assets/epk-skin.css): DanzStak black/silver/hazard orange, Archivo wide display, mono labels.
 - Creating an event should feel like making a gig poster: a live poster/flyer preview (flyer or 15 s video, headline, date, venue, price) that fills in as the promoter types; ticket options as ticket stubs; one orange primary action (Publish event).
 - Public event page: the poster up top, ticket stub to buy, lineup, venue map link. Phone first, 44 px targets, IT/FR/ES strings.
+- Inviting to promoters, not a form to fill out (owner 2026-11-17):
+  - Open with what the promoter gets: "Sell tickets to your night. You keep the full ticket price; buyers pay the 6% fee." Plus door list, QR + plain-text tickets, named tickets against scalpers, your crowd sees it in Mix and Events.
+  - Start with one big drop zone: "Drop your flyer" (or a 15 s video). The poster preview appears right away; then a few quick questions one at a time (name of the night, date and doors, venue, ticket price), not a long page of fields.
+  - Optional extras (seating sections, ticket delivery, named tickets on/off, outside ticket link) folded under "More options".
+  - Show past/upcoming events from local promoters as inspiration on the empty state.
