@@ -49,6 +49,9 @@
     byId("epkGuideChecklist").querySelectorAll("[data-check]").forEach(item => {
       const ready = completed[item.dataset.check] === true;
       item.classList.toggle("is-complete", ready);
+      const current = item === byId("epkGuideChecklist").querySelectorAll("[data-check]")[currentGuideStep - 1];
+      item.classList.toggle("is-current", current);
+      if (current) item.setAttribute("aria-current", "step"); else item.removeAttribute("aria-current");
       if (ready) count += 1;
     });
     byId("epkGuideProgress").value = count;
@@ -201,6 +204,7 @@
   ];
   function renderMediaManager() {
     const listNode = byId("epkMediaList"); if (!listNode) return; listNode.replaceChildren();
+    renderRiderSlots();
     if (!epkMedia.length) { listNode.append(text("p", "No files uploaded yet.", "hint")); updateGuide(); return; }
     epkMedia.forEach((item,index) => {
       const row = document.createElement("article"), name = document.createElement("input"), role = document.createElement("select"), publicLabel = document.createElement("label"), publicInput = document.createElement("input"), featuredLabel = document.createElement("label"), featured = document.createElement("input"), up = document.createElement("button"), down = document.createElement("button"), replace = document.createElement("input"), remove = document.createElement("button");
@@ -246,11 +250,32 @@
   }
   async function uploadEpkFile(file, requestedRole = "") {
     file = await prepareEpkImage(file);
-    const allowed = new Set(["image/jpeg","image/png","image/webp","application/pdf"]), maximum = file.type === "application/pdf" ? 20 * 1024 * 1024 : 12 * 1024 * 1024, uploadStatus = byId("epkUploadStatus");
+    const allowed = new Set(["image/jpeg","image/png","image/webp","application/pdf"]), maximum = file.type === "application/pdf" ? 50 * 1024 * 1024 : 12 * 1024 * 1024, uploadStatus = byId("epkUploadStatus");
     if (!allowed.has(file.type) || !file.size || file.size > maximum) { uploadStatus.textContent = `${file.name} is not a supported file or exceeds the size limit.`; return null; }
     uploadStatus.textContent = `Uploading ${file.name}...`;
     let ticket = null;
     try { const response = await request(`${api}/stories`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({contentType:file.type,purpose:"epk"}) }); ticket = await response.json().catch(() => ({})); if (!response.ok || !ticket.uploadUrl || !ticket.mediaKey) throw new Error(ticket.error || "Upload could not start."); await putWithProgress(ticket.uploadUrl, file); uploadStatus.textContent = `${file.name} uploaded. Save the EPK to keep it.`; return { id:ticket.mediaKey.split("/").at(-1).split(".")[0], key:ticket.mediaKey, name:file.name, role:requestedRole || (file.type === "application/pdf" ? "other" : "press-photo"), public:false, featured:false, contentType:file.type, size:file.size, previewUrl:file.type.startsWith("image/") ? URL.createObjectURL(file) : "" }; } catch (error) { await discardEpkMedia(ticket?.mediaKey); uploadStatus.textContent = error.message; return null; }
+  }
+  // Owner 2026-11-16: bands already have riders and plots as files. Let them drop the file instead of retyping it.
+  const riderSlots = [["technical-rider","publicTechnical"],["hospitality-rider","publicHospitality"],["stage-plot","publicTechnical"]];
+  function renderRiderSlots() {
+    for (const [role] of riderSlots) {
+      const slot = document.querySelector(`[data-rider-slot="${role}"]`); if (!slot) continue;
+      const files = epkMedia.filter(item => item.role === role), state = slot.querySelector(".epk-rider-slot__state");
+      slot.classList.toggle("has-file", files.length > 0);
+      if (state) state.textContent = files.length ? files.map(item => item.name || "File").join(", ") : "";
+    }
+    const typed = byId("epkTypeInstead");
+    if (typed && !typed.dataset.autoOpened && ["stageRequirements","techRequirements","hospitalityRequirements"].some(id => byId(id)?.value.trim()) ) { typed.open = true; typed.dataset.autoOpened = "1"; }
+  }
+  async function uploadRider(role, publicField, file) {
+    const slot = document.querySelector(`[data-rider-slot="${role}"]`), state = slot?.querySelector(".epk-rider-slot__state");
+    if (state) state.textContent = `Uploading ${file.name}...`;
+    const item = await uploadEpkFile(file, role);
+    if (!item) { if (state) state.textContent = byId("epkUploadStatus").textContent; return; }
+    item.public = byId(publicField)?.checked === true;
+    epkMedia.push(item); renderMediaManager(); render(kitFromForm(true));
+    if (state) state.textContent = `${file.name} uploaded. Save the EPK to keep it.`;
   }
   async function uploadFiles(files) { for (const file of files) { const item = await uploadEpkFile(file); if (item) epkMedia.push(item); } renderMediaManager(); render(kitFromForm(true)); }
   async function save(publish) { const kit = kitFromForm(); if (!kit.artistName) { status.textContent = "Add the artist or act name first."; byId("artistName").focus(); return; } status.textContent = publish ? "Publishing EPK..." : "Saving private draft..."; try { const response = await request(`${api}/epk`, { method:"POST", credentials:"include", headers:{"content-type":"application/json"}, body:JSON.stringify({kit,publish}) }, 20000); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "The EPK could not be saved."); showLink(data.publicId, data.published); status.textContent = data.published ? "EPK published. Review the public link before sending it." : "Private draft saved. The public copy is unavailable."; } catch (error) { status.textContent = error.message; } }
@@ -309,6 +334,7 @@
   window.danzstakEpkProduction?.init?.();
   setGuidedMode(true);
   request(`${api}/epk`, { credentials:"include", cache:"no-store" }).then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "Could not load your EPK."); if (data.kit) { fill(data.kit); setGuidedMode(false); } else { render({}); setGuidedMode(true); } showLink(data.publicId, data.published); showPrivateShare(data.privateShared === true); byId("privateShareStatus").textContent = data.privateShared ? "A private review link is active. Replace it to get a new secret or revoke access." : "No private review link is active."; status.textContent = data.kit ? (data.published ? "Published EPK loaded." : "Private draft loaded.") : "Start with the act name. Your draft is private."; }).catch(error => { render({}); setGuidedMode(true); status.textContent = error.message; });
+  for (const [role, publicField] of riderSlots) document.querySelector(`[data-rider-slot="${role}"] input[type=file]`)?.addEventListener("change", event => { const file = event.target.files?.[0]; event.target.value = ""; if (file) uploadRider(role, publicField, file); });
   const mediaInput = byId("epkMediaInput"), dropZone = byId("epkDropZone"); mediaInput.addEventListener("change", () => uploadFiles([...mediaInput.files])); for (const eventName of ["dragenter","dragover"]) dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.add("is-dragging"); }); for (const eventName of ["dragleave","drop"]) dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.remove("is-dragging"); }); dropZone.addEventListener("drop", event => uploadFiles([...event.dataTransfer.files]));
   form.addEventListener("input", event => { if (!event.target.closest(".epk-media-item")) render(kitFromForm(true)); updateGuide(); });
   form.addEventListener("epkproductionchange", () => render(kitFromForm(true)));

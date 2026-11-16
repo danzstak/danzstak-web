@@ -1,0 +1,122 @@
+/* EPK builder skin (owner 2026-11-16: "make the EPK builder more hip, not a hokey HTML page").
+   DanzStak Techno identity: black ground, silver ink, one hazard-orange accent, Archivo wide display,
+   JetBrains Mono labels, square edges and 1px rules. Builder only: the public EPK keeps the artist's chosen look. */
+body.epk-skin:not(.public-mode){
+  --sk-ground:#0b0b0c;--sk-panel:#121214;--sk-field:#18181b;--sk-ink:#ededea;--sk-muted:#a9a9a3;--sk-rule:#2c2c30;--sk-accent:#ff5a1f;--sk-ok:#7ddc9a;
+  --sk-display:Archivo,"Arial Black",Arial,sans-serif;--sk-mono:"JetBrains Mono",ui-monospace,monospace;
+  background:var(--sk-ground);color:var(--sk-ink);font-family:Archivo,Arial,sans-serif;color-scheme:dark
+}
+body.epk-skin:not(.public-mode)>header{background:var(--sk-ground);border-bottom:1px solid var(--sk-rule);box-shadow:inset 0 -2px 0 var(--sk-accent)}
+body.epk-skin:not(.public-mode)>header nav a{color:var(--sk-ink);font-family:var(--sk-mono);font-size:.78rem;font-weight:400;letter-spacing:.08em;text-transform:uppercase}
+body.epk-skin:not(.public-mode)>header nav a:hover,body.epk-skin:not(.public-mode)>header nav a:focus-visible{color:var(--sk-accent)}
+body.epk-skin:not(.public-mode) main{background:transparent}
+body.epk-skin:not(.public-mode) :is(.eyebrow,.epk-guide .eyebrow,.epk-booking-handoff .eyebrow){color:var(--sk-accent);font-family:var(--sk-mono);font-weight:400;letter-spacing:.14em;font-size:.74rem}
+
+/* Intro: big wide title next to a backstage laminate that fills in as the artist types. */
+body.epk-skin:not(.public-mode) .intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center;margin:0 0 22px;padding:6px 0 22px;border-bottom:1px solid var(--sk-rule)}
+body.epk-skin:not(.public-mode) .intro h1{font-family:var(--sk-display);font-weight:900;font-stretch:125%;text-transform:uppercase;letter-spacing:-.01em;line-height:.88;font-size:clamp(2.4rem,7vw,4.6rem);margin:.12em 0 .18em;color:var(--sk-ink)}
+body.epk-skin:not(.public-mode) .intro h1 span{color:var(--sk-accent)}
+body.epk-skin:not(.public-mode) .intro>div>p:last-child{color:var(--sk-muted);margin:0;max-width:520px}
+.epk-laminate{display:none}
+body.epk-skin:not(.public-mode) .epk-laminate{display:block;position:relative;width:200px;padding:30px 14px 12px;background:#e9e9e4;color:#0b0b0c;border-radius:10px;transform:rotate(3deg);box-shadow:0 18px 40px #0009;font-family:var(--sk-mono)}
+body.epk-skin:not(.public-mode) .epk-laminate:before{content:"";position:absolute;top:9px;left:50%;width:44px;height:8px;margin-left:-22px;border-radius:8px;background:var(--sk-ground)}
+.epk-laminate__band{display:block;background:var(--sk-accent,#ff5a1f);color:#0b0b0c;margin:0 -14px 10px;padding:5px 14px;font-weight:700;letter-spacing:.2em;font-size:.72rem}
+.epk-laminate__photo{display:grid;place-items:center;width:100%;aspect-ratio:4/3;background:#0b0b0c center/cover no-repeat;margin-bottom:10px;filter:grayscale(1) contrast(1.1)}
+.epk-laminate__photo:not([style*=url]):after{content:"PHOTO";color:#5a5a5f;font-size:.62rem;letter-spacing:.3em}
+.epk-laminate__name{display:block;font-family:Archivo,Arial,sans-serif;font-weight:900;font-stretch:125%;text-transform:uppercase;font-size:1.05rem;line-height:1;overflow-wrap:anywhere}
+.epk-laminate__meta{display:block;margin-top:6px;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:#3a3a3a;overflow-wrap:anywhere}
+.epk-laminate__barcode{display:block;height:18px;margin-top:10px;background:repeating-linear-gradient(90deg,#0b0b0c 0 2px,transparent 2px 4px,#0b0b0c 4px 5px,transparent 5px 8px)}
+
+/* The 5 steps as a setlist taped to the stage. */
+body.epk-skin:not(.public-mode) .epk-guide{background:var(--sk-panel);color:var(--sk-ink);border:1px solid var(--sk-rule);border-left:3px solid var(--sk-accent);border-radius:0;box-shadow:none}
+body.epk-skin:not(.public-mode) .epk-guide-heading h2{font-family:var(--sk-display);font-weight:900;font-stretch:112%;text-transform:uppercase;letter-spacing:.01em}
+body.epk-skin:not(.public-mode) .epk-guide-heading p{color:var(--sk-muted)}
+body.epk-skin:not(.public-mode) .epk-guide-progress-text{font-family:var(--sk-mono);font-weight:400;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sk-muted)}
+body.epk-skin:not(.public-mode) .epk-guide progress{appearance:none;height:4px;border:0;background:var(--sk-rule);accent-color:var(--sk-accent)}
+body.epk-skin:not(.public-mode) .epk-guide progress::-webkit-progress-bar{background:var(--sk-rule)}
+body.epk-skin:not(.public-mode) .epk-guide progress::-webkit-progress-value{background:var(--sk-accent)}
+body.epk-skin:not(.public-mode) .epk-guide progress::-moz-progress-bar{background:var(--sk-accent)}
+body.epk-skin:not(.public-mode) .epk-guide-checklist{grid-template-columns:1fr;gap:0;margin:14px 0;padding:14px 16px;background:#f2efe6;color:#121110;transform:rotate(-.6deg);box-shadow:0 10px 26px #0008;position:relative}
+body.epk-skin:not(.public-mode) .epk-guide-checklist:before,body.epk-skin:not(.public-mode) .epk-guide-checklist:after{content:"";position:absolute;top:-9px;width:64px;height:20px;background:#d9d4c4cc;transform:rotate(-4deg)}
+body.epk-skin:not(.public-mode) .epk-guide-checklist:before{left:18px}
+body.epk-skin:not(.public-mode) .epk-guide-checklist:after{right:18px;transform:rotate(5deg)}
+body.epk-skin:not(.public-mode) .epk-guide-checklist li{min-height:44px;display:flex;align-items:center;padding:6px 0 6px 44px;border:0;border-bottom:1px dashed #12111040;border-radius:0;background:transparent;color:#121110;font-family:Anton,Impact,"Arial Narrow",sans-serif;font-weight:400;font-size:1.25rem;letter-spacing:.02em;text-transform:uppercase}
+body.epk-skin:not(.public-mode) .epk-guide-checklist li:last-child{border-bottom:0;grid-column:auto}
+body.epk-skin:not(.public-mode) .epk-guide-checklist li:before{left:0;top:50%;transform:translateY(-50%);width:30px;height:30px;border:2px solid #121110;border-radius:50%;font-family:var(--sk-mono);font-size:.85rem;background:transparent;color:#121110}
+body.epk-skin:not(.public-mode) .epk-guide-checklist li.is-current{color:#c63b12}
+body.epk-skin:not(.public-mode) .epk-guide-checklist li.is-current:before{border-color:#c63b12;color:#c63b12}
+body.epk-skin:not(.public-mode) .epk-guide-checklist li.is-complete{background:transparent;color:#121110a6;text-decoration:line-through;text-decoration-color:#c63b12;text-decoration-thickness:3px}
+body.epk-skin:not(.public-mode) .epk-guide-checklist li.is-complete:before{content:"✓";background:#121110;border-color:#121110;color:#f2efe6}
+
+/* Form: dark panel, square fields, mono labels. */
+body.epk-skin:not(.public-mode) .epk-form{background:var(--sk-panel);color:var(--sk-ink);border:1px solid var(--sk-rule);border-radius:0;box-shadow:none}
+body.epk-skin:not(.public-mode) .epk-form section{border-bottom-color:var(--sk-rule)}
+body.epk-skin:not(.public-mode) .epk-form h2{font-family:var(--sk-display);font-weight:900;font-stretch:112%;text-transform:uppercase;font-size:1.5rem;letter-spacing:.01em}
+body.epk-skin:not(.public-mode) .epk-form h3,body.epk-skin:not(.public-mode) .epk-form legend{font-family:var(--sk-mono);font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--sk-accent)}
+body.epk-skin:not(.public-mode) .epk-form label{font-family:var(--sk-mono);font-weight:400;font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sk-muted)}
+body.epk-skin:not(.public-mode) .epk-form :is(input:not([type=checkbox]):not([type=file]),textarea,select),body.epk-skin:not(.public-mode) #epkLook{background:var(--sk-field);color:var(--sk-ink);border:1px solid var(--sk-rule);border-radius:0;font-family:Archivo,Arial,sans-serif;font-size:1rem;letter-spacing:0;text-transform:none}
+body.epk-skin:not(.public-mode) .epk-form :is(input,textarea,select)::placeholder{color:#7d7d78}
+body.epk-skin:not(.public-mode) .epk-form :is(input,textarea,select):focus{outline:2px solid var(--sk-accent);outline-offset:0;border-color:var(--sk-accent)}
+body.epk-skin:not(.public-mode) .epk-form input[type=checkbox]{accent-color:var(--sk-accent)}
+body.epk-skin:not(.public-mode) .epk-form .epk-public-choice{color:var(--sk-ink)}
+body.epk-skin:not(.public-mode) .hint,body.epk-skin:not(.public-mode) #epkStatus,body.epk-skin:not(.public-mode) .epk-production-empty{color:var(--sk-muted)}
+body.epk-skin:not(.public-mode) .epk-production-builder fieldset,body.epk-skin:not(.public-mode) .epk-production-item,body.epk-skin:not(.public-mode) .epk-media-item{border-color:var(--sk-rule);border-radius:0;background:var(--sk-field)}
+body.epk-skin:not(.public-mode) .epk-production-item span{color:var(--sk-muted)}
+body.epk-skin:not(.public-mode) .epk-drop-zone{border:1px dashed var(--sk-accent);border-radius:0;background:var(--sk-field);color:var(--sk-ink);font-family:var(--sk-mono);text-transform:uppercase;letter-spacing:.08em}
+body.epk-skin:not(.public-mode) .epk-drop-zone.is-dragging{background:#24150f}
+body.epk-skin:not(.public-mode) .epk-private-share summary{font-family:var(--sk-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--sk-ink);min-height:44px;display:flex;align-items:center;cursor:pointer}
+body.epk-skin:not(.public-mode) .epk-form a,body.epk-skin:not(.public-mode) #publicLinkRow a{color:var(--sk-accent)}
+
+/* Buttons: one orange primary, the rest silver outlines. */
+body.epk-skin:not(.public-mode) main button,body.epk-skin:not(.public-mode) .epk-booking-handoff__actions a{background:transparent;color:var(--sk-ink);border:1px solid #5a5a5f;border-radius:0;font-family:var(--sk-mono);font-weight:700;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}
+body.epk-skin:not(.public-mode) main button:hover,body.epk-skin:not(.public-mode) main button:focus-visible{border-color:var(--sk-ink)}
+body.epk-skin:not(.public-mode) main :is(button.primary,a.primary),body.epk-skin:not(.public-mode) .epk-booking-handoff__actions a.primary{background:var(--sk-accent);border-color:var(--sk-accent);color:#0b0b0c}
+body.epk-skin:not(.public-mode) main :is(button.primary,a.primary):hover{background:#ff7a47;border-color:#ff7a47}
+body.epk-skin:not(.public-mode) main button.danger,body.epk-skin:not(.public-mode) .epk-media-delete,body.epk-skin:not(.public-mode) .epk-production-item button{border-color:#7a2a22;color:#ff8f80;background:transparent}
+body.epk-skin:not(.public-mode) main button:disabled{opacity:.45}
+body.epk-skin:not(.public-mode) .epk-booking-handoff{border-color:var(--sk-rule)}
+body.epk-skin:not(.public-mode) .epk-booking-handoff h2{font-family:var(--sk-display);font-weight:900;font-stretch:112%;text-transform:uppercase}
+
+/* Preview column sits on the same black stage. */
+body.epk-skin:not(.public-mode) .epk-preview{border:1px solid var(--sk-rule);border-radius:0;box-shadow:0 18px 48px #000a}
+body.epk-skin:not(.public-mode) .epk-reviews{color:var(--sk-ink)}
+
+/* Bottom phone tabs on black. */
+body.epk-skin:not(.public-mode) .ds-mobile-nav{background:#0b0b0cf2;border-top:1px solid var(--sk-rule)}
+body.epk-skin:not(.public-mode) .ds-mobile-nav a{color:var(--sk-muted)}
+body.epk-skin:not(.public-mode) .ds-mobile-nav a[aria-current="page"],body.epk-skin:not(.public-mode) .ds-mobile-nav a:hover{color:var(--sk-accent);background:transparent!important;box-shadow:inset 0 2px 0 var(--sk-accent)}
+
+@media(max-width:700px){
+  body.epk-skin:not(.public-mode) .intro{grid-template-columns:minmax(0,1fr) 112px;gap:12px;padding-bottom:16px}
+  body.epk-skin:not(.public-mode) .intro h1{font-size:clamp(1.7rem,8.6vw,2.6rem);font-stretch:112%;overflow-wrap:normal;word-break:normal;hyphens:none}
+  body.epk-skin:not(.public-mode) .epk-guide-heading h2{font-size:1.25rem}
+  body.epk-skin:not(.public-mode) .epk-laminate{width:112px;padding:22px 8px 8px}
+  body.epk-skin:not(.public-mode) .epk-laminate:before{top:7px;width:30px;height:6px;margin-left:-15px}
+  .epk-laminate__band{margin:0 -8px 7px;padding:3px 8px;font-size:.55rem;letter-spacing:.14em}
+  .epk-laminate__photo{margin-bottom:6px}
+  .epk-laminate__name{font-size:.72rem}
+  .epk-laminate__meta{font-size:.55rem;margin-top:4px}
+  .epk-laminate__barcode{height:11px;margin-top:6px}
+  body.epk-skin:not(.public-mode) .epk-form,body.epk-skin:not(.public-mode) .epk-guide{border-radius:0}
+  body.epk-skin:not(.public-mode) .epk-guide-checklist li{font-size:1.1rem}
+  body.epk-skin:not(.public-mode) .epk-guide-checklist li:last-child{grid-column:auto}
+}
+
+/* Rider and plot drop tiles (owner 2026-11-16: upload the rider instead of retyping it). */
+.epk-rider-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:4px 0 14px}
+.epk-rider-slot{position:relative;display:grid;align-content:start;gap:4px;min-height:132px;margin:0;padding:14px;border:1px dashed var(--sk-accent,#ff5a1f);background:var(--sk-field,#18181b);cursor:pointer;transition:background .15s}
+.epk-rider-slot:hover,.epk-rider-slot:focus-within{background:#24150f}
+.epk-rider-slot:focus-within{outline:2px solid var(--sk-accent,#ff5a1f);outline-offset:2px}
+.epk-rider-slot input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+body.epk-skin:not(.public-mode) .epk-rider-slot__icon{font-size:1.6rem;line-height:1;color:var(--sk-accent);font-family:inherit;letter-spacing:0}
+body.epk-skin:not(.public-mode) .epk-rider-slot__title{font-family:var(--sk-display);font-weight:900;font-stretch:112%;font-size:1.02rem;letter-spacing:.01em;color:var(--sk-ink)}
+body.epk-skin:not(.public-mode) .epk-rider-slot__hint{font-size:.68rem;color:var(--sk-muted)}
+body.epk-skin:not(.public-mode) .epk-rider-slot__state{font-family:Archivo,Arial,sans-serif;font-size:.82rem;letter-spacing:0;text-transform:none;color:var(--sk-ink);overflow-wrap:anywhere}
+body.epk-skin:not(.public-mode) .epk-rider-slot.has-file{border-style:solid;background:#0f1d14;border-color:#3f9a5c}
+body.epk-skin:not(.public-mode) .epk-rider-slot.has-file .epk-rider-slot__icon:after{content:" ✓";color:#7ddc9a}
+body.epk-skin:not(.public-mode) .epk-type-instead{margin:14px 0;border-top:1px solid var(--sk-rule);border-bottom:1px solid var(--sk-rule)}
+body.epk-skin:not(.public-mode) .epk-type-instead>summary{min-height:48px;display:flex;align-items:center;cursor:pointer;font-family:var(--sk-mono);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sk-ink)}
+body.epk-skin:not(.public-mode) .epk-type-instead[open]>summary{color:var(--sk-accent)}
+@media(max-width:700px){.epk-rider-slots{grid-template-columns:1fr}.epk-rider-slot{min-height:0;grid-template-columns:auto 1fr;column-gap:12px;align-items:center}.epk-rider-slot__icon{grid-row:span 3}}
+@media(prefers-reduced-motion:reduce){body.epk-skin:not(.public-mode) :is(.epk-laminate,.epk-guide-checklist){transform:none}}
+@media print{.epk-laminate{display:none!important}}

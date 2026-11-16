@@ -27,7 +27,7 @@ assert.doesNotMatch(client, /innerHTML/, "EPK content must not be injected as HT
 assert.match(api, /function cleanEpk\(/, "the API should validate EPK content");
 assert.match(api, /validatedEpkMedia/, "the API should verify uploaded media against private S3 objects");
 assert.match(api, /epkMediaPattern\(ownerPrefix\)/, "EPK media must be owned by the signed-in artist");
-assert.match(api, /EPK media exceeds the 100 MB account quota/, "EPK media must have an account quota");
+assert.match(api, /EPK media exceeds the 250 MB account quota/, "EPK media must have an account quota");
 assert.match(api, /epkForViewer[\s\S]*item\.public/, "public EPKs must expose only artist-approved downloads");
 assert.match(client, /purpose:"epk"/, "EPK uploads should request dedicated short-lived upload tickets");
 assert.match(client, /putWithProgress/, "EPK uploads should report progress");

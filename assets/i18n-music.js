@@ -914,7 +914,15 @@
 "Confirm current programming and find the correct public booking contact.": "Verifica la programmazione attuale e trova il contatto pubblico giusto per il booking.",
 "DanzStak curated public venue directory": "elenco pubblico dei locali curato da DanzStak",
 "AWS Places public listing": "annuncio pubblico AWS Places",
-"A JavaScript library for interactive maps": "Una libreria JavaScript per mappe interattive"
+"A JavaScript library for interactive maps": "Una libreria JavaScript per mappe interattive",
+"Already have your rider or stage plot? Drop the file. PDF up to 50 MB or a photo.": "Hai già il rider o la pianta del palco? Carica il file. PDF fino a 50 MB o una foto.",
+"Tech rider": "Rider tecnico",
+"PDF or photo": "PDF o foto",
+"Stage plot / input list": "Pianta del palco / lista ingressi",
+"No file? Type it or build the plot here": "Niente file? Scrivilo o crea la pianta qui",
+"Photos up to 12 MB, PDFs up to 50 MB. Your files stay private; tick Public download on the ones bookers may download.": "Foto fino a 12 MB, PDF fino a 50 MB. I tuoi file restano privati; spunta Download pubblico su quelli che i booker possono scaricare.",
+"Featured": "In evidenza",
+"No files uploaded yet.": "Ancora nessun file caricato."
 },
 "fr": {
 "A private review link is active. Replace it to get a new secret or revoke access.": "Un lien privé d'avis est actif. Remplace-le pour obtenir un nouveau secret ou révoque l'accès.",
@@ -1822,7 +1830,15 @@
 "Confirm current programming and find the correct public booking contact.": "Vérifie la programmation actuelle et trouve le bon contact booking public.",
 "DanzStak curated public venue directory": "annuaire public des salles de DanzStak",
 "AWS Places public listing": "fiche publique AWS Places",
-"A JavaScript library for interactive maps": "Une bibliothèque JavaScript pour cartes interactives"
+"A JavaScript library for interactive maps": "Une bibliothèque JavaScript pour cartes interactives",
+"Already have your rider or stage plot? Drop the file. PDF up to 50 MB or a photo.": "Tu as déjà ta fiche technique ou ton plan de scène ? Dépose le fichier. PDF jusqu'à 50 Mo ou une photo.",
+"Tech rider": "Fiche technique",
+"PDF or photo": "PDF ou photo",
+"Stage plot / input list": "Plan de scène / liste des entrées",
+"No file? Type it or build the plot here": "Pas de fichier ? Écris-le ou crée le plan ici",
+"Photos up to 12 MB, PDFs up to 50 MB. Your files stay private; tick Public download on the ones bookers may download.": "Photos jusqu'à 12 Mo, PDF jusqu'à 50 Mo. Tes fichiers restent privés ; coche Téléchargement public sur ceux que les programmateurs peuvent télécharger.",
+"Featured": "En avant",
+"No files uploaded yet.": "Aucun fichier envoyé pour l'instant."
 },
 "es": {
 "A private review link is active. Replace it to get a new secret or revoke access.": "Hay un enlace privado de reseñas activo. Sustitúyelo para obtener un nuevo secreto o revoca el acceso.",
@@ -2744,7 +2760,15 @@
 "Confirm current programming and find the correct public booking contact.": "Confirma la programación actual y encuentra el contacto público correcto.",
 "DanzStak curated public venue directory": "directorio público de salas de DanzStak",
 "AWS Places public listing": "anuncio público de AWS Places",
-"A JavaScript library for interactive maps": "Una biblioteca JavaScript para mapas interactivos"
+"A JavaScript library for interactive maps": "Una biblioteca JavaScript para mapas interactivos",
+"Already have your rider or stage plot? Drop the file. PDF up to 50 MB or a photo.": "¿Ya tienes el rider o el plano de escenario? Sube el archivo. PDF hasta 50 MB o una foto.",
+"Tech rider": "Rider técnico",
+"PDF or photo": "PDF o foto",
+"Stage plot / input list": "Plano de escenario / lista de entradas",
+"No file? Type it or build the plot here": "¿Sin archivo? Escríbelo o crea el plano aquí",
+"Photos up to 12 MB, PDFs up to 50 MB. Your files stay private; tick Public download on the ones bookers may download.": "Fotos hasta 12 MB, PDF hasta 50 MB. Tus archivos son privados; marca Descarga pública en los que los programadores pueden descargar.",
+"Featured": "Destacado",
+"No files uploaded yet.": "Aún no has subido archivos."
 }
 };
  for(const [lang,words] of Object.entries(add))Object.assign(t[lang]||(t[lang]={}),words);
@@ -3034,6 +3058,10 @@
 [
 "{} (one way)",
 "{0} (solo andata)"
+],
+[
+"Uploading {}...",
+"Caricamento di {0}..."
 ]
 ],
 "fr": [
@@ -3320,6 +3348,10 @@
 [
 "{} (one way)",
 "{0} (aller simple)"
+],
+[
+"Uploading {}...",
+"Envoi de {0}..."
 ]
 ],
 "es": [
@@ -3606,6 +3638,10 @@
 [
 "{} (one way)",
 "{0} (solo ida)"
+],
+[
+"Uploading {}...",
+"Subiendo {0}..."
 ]
 ]
 };
