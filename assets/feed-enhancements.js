@@ -3277,7 +3277,7 @@ function addPostDeleteButton(post) {
   const toggle = document.createElement("button");
   toggle.type = "button";
   toggle.className = "post-menu-toggle";
-  toggle.textContent = "•••";
+  toggle.dataset.icon = "more";
   toggle.setAttribute("aria-label", "Post options");
   toggle.setAttribute("aria-expanded", "false");
   const menu = document.createElement("div");
@@ -3685,7 +3685,7 @@ function updateCommentPreview(post) {
   ordered.forEach(item => { list.appendChild(item); item.hidden = !expanded && (rootIndex.get(item) ?? 0) >= 2; });
   let more = post.querySelector(".comments-more");
   if (!more) { more = document.createElement("button"); more.type = "button"; more.className = "comments-more"; more.addEventListener("click", () => { post.dataset.commentsExpanded = String(post.dataset.commentsExpanded !== "true"); updateCommentPreview(post); }); list.after(more); }
-  more.hidden = items.length <= 2; more.textContent = expanded ? "Show top 2 comments" : "View all " + items.length + " comments"; more.setAttribute("aria-expanded", String(expanded));
+  more.hidden = items.length <= 2; const moreLabel = expanded ? "Show fewer comments" : "Show " + (items.length - 2) + " more comments"; more.textContent = expanded ? "−" : "+" + (items.length - 2); more.setAttribute("aria-label", moreLabel); more.title = moreLabel; more.setAttribute("aria-expanded", String(expanded));
 }
 function attachReactionPicker(container, up, down, current, choose) {
   const palette = document.createElement("div"); palette.className = "reaction-palette"; palette.hidden = true; palette.setAttribute("role", "toolbar"); palette.setAttribute("aria-label", "Choose a reaction");
@@ -4210,7 +4210,8 @@ rollClose.hidden = true;
 const reelAddToggle = document.createElement("button");
 reelAddToggle.type = "button";
 reelAddToggle.className = "roll-add-toggle";
-reelAddToggle.textContent = "+ Add video";
+reelAddToggle.dataset.icon = "plus";
+reelAddToggle.setAttribute("aria-label", "Add a video to The Roll");
 reelAddToggle.setAttribute("aria-expanded", "false");
 reelAddToggle.setAttribute("aria-controls", "rollAddForm");
 let rollPlaceholder = null;
@@ -4340,7 +4341,10 @@ function setReelFormOpen(open) {
   reelForm.hidden = !shouldOpen;
   reelsRail.classList.toggle("is-adding", shouldOpen);
   reelAddToggle.setAttribute("aria-expanded", String(shouldOpen));
-  reelAddToggle.textContent = shouldOpen ? "Cancel" : "+ Add video";
+  reelAddToggle.dataset.icon = shouldOpen ? "close" : "plus";
+  reelAddToggle.setAttribute("aria-label", shouldOpen ? "Cancel adding a video" : "Add a video to The Roll");
+  reelAddToggle.title = reelAddToggle.getAttribute("aria-label");
+  window.danzstakIcons?.upgrade(reelAddToggle);
   if (shouldOpen) reelUrl.focus({ preventScroll: true });
 }
 reelAddToggle.addEventListener("click", () => setReelFormOpen(reelForm.hidden));

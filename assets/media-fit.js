@@ -25,8 +25,11 @@
   const nearby = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
-      const video = entry.target; nearby.unobserve(video);
-      if (!dataSaver() && video.preload === "none" && video.readyState === 0) { video.preload = "metadata"; try { video.load(); } catch {} }
+      const video = entry.target;
+      if (dataSaver() || video.readyState > 0) { if (video.readyState > 0) nearby.unobserve(video); continue; }
+      // Another script may reset preload to "none" right after; ask once now and once more shortly after.
+      const ask = () => { if (video.readyState === 0 && !dataSaver()) { video.preload = "metadata"; try { video.load(); } catch {} } };
+      ask(); setTimeout(ask, 600);
     }
   }, { rootMargin: "800px 0px" }) : null;
 
