@@ -82,7 +82,6 @@ async function inspect(page, width, label) {
     if (captureDir) fs.mkdirSync(captureDir, { recursive: true });
     for (const width of widths) {
       for (const screen of [
-        { label: "official-store", url: "store.html", ready: "DanzStak tour shirt" },
         { label: "member-shop", url: "store.html?member=11111111-1111-4111-8111-111111111111", ready: "Signal tour shirt" },
         { label: "shop-manager", url: "store.html?manage=1", ready: "Open or edit your shop" },
         { label: "bazaar", url: "bazaar.html", ready: "Signal tour shirt" },
@@ -107,7 +106,7 @@ async function inspect(page, width, label) {
         await context.close();
       }
     }
-    console.log(`Marketplace and ticketing browser checks passed at ${widths.join(", ")}px with responsive official/member shops, Bazaar aggregation, product details, shop management and public event details.`);
+    console.log(`Marketplace and ticketing browser checks passed at ${widths.join(", ")}px with responsive member shops (no official store), Bazaar aggregation, product details, shop management and public event details.`);
   } finally {
     await browser.close();
   }

@@ -94,7 +94,7 @@ function color(value) { return String(value || "").replace(/\s+/g, ""); }
       }, postId);
       assert.equal(errors.length, 0, `${width}px Feed errors: ${errors.join(" | ")}`);
       assert.ok(feed.documentWidth <= width, `${width}px Feed overflow: ${JSON.stringify(feed)}`);
-      assert.equal(feed.brand, "#1769e0");
+      assert.equal(feed.brand, "#121418");
       assert.equal(feed.accent, "#ef6c20");
       assert.match(feed.bodyFont, /Segoe UI|Inter|Arial/i);
       assert.equal(color(feed.headerBorder), "rgb(239,108,32)");

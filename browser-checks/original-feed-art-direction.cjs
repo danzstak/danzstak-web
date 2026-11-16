@@ -167,7 +167,7 @@ async function createPortraitVideo(browser) {
         return feed && post
           && Math.abs(parseFloat(getComputedStyle(feed).rowGap) - expectedGap) <= 1
           && parseFloat(getComputedStyle(post).marginBottom) <= 1;
-      }, width <= 375 ? 12 : 16);
+      }, 0);
 
       const geometry = await page.evaluate(({ imagePostId, videoPostId }) => {
         const postGeometry = postId => {
@@ -256,7 +256,7 @@ async function createPortraitVideo(browser) {
 
       assert.equal(errors.length, 0, `${width}px Feed errors: ${errors.join(" | ")}`);
       assert.ok(geometry.bodyClass && geometry.documentWidth <= width, `${width}px Feed overflow or missing scope: ${JSON.stringify(geometry)}`);
-      assert.equal(geometry.brand, "#1769e0");
+      assert.equal(geometry.brand, "#121418");
       assert.equal(geometry.accent, "#ef6c20");
       assert.equal(normalize(geometry.headerBorder), "rgb(239,108,32)");
       assert.ok(geometry.dailyPortrait?.dominatesCard, `${width}px Dailies portrait is too small for its tile: ${JSON.stringify(geometry.dailyPortrait)}`);
@@ -268,12 +268,12 @@ async function createPortraitVideo(browser) {
       assert.equal(geometry.dailyPortrait.backgroundSize, "cover", `${width}px Dailies portrait is not cropped to fill the tile`);
       assert.equal(geometry.dailyPortrait.clapperInside, true, `${width}px Dailies clapper is not contained in the lower-left of the image`);
       assert.equal(geometry.dailyPortrait.clapperOverPortrait, true, `${width}px Dailies clapper is beside the portrait instead of over it`);
-      const expectedGap = width <= 375 ? 12 : 16;
+      const expectedGap = 0; // owner 2026-11-16: one continuous surface, hairline separators instead of gaps
       assert.ok(Math.abs(geometry.feedGap - expectedGap) <= 1, `${width}px feed post gap is not ${expectedGap}px: ${geometry.feedGap}; computed ${geometry.feedRowGap}; margins ${geometry.firstPostMarginBottom}/${geometry.secondPostMarginTop}`);
       assert.ok(geometry.image.aligned, `${width}px direct image is inset: ${JSON.stringify(geometry.image)}`);
       assert.ok(geometry.video.aligned, `${width}px direct video is inset: ${JSON.stringify(geometry.video)}`);
-      assert.deepEqual(geometry.image.type.author, ["15px", "600", "20px"], `${width}px post author typography drifted`);
-      assert.deepEqual(geometry.image.type.time, ["13px", "400", "16px"], `${width}px post metadata typography drifted`);
+      assert.deepEqual(geometry.image.type.author, ["15px", "800", "18px"], `${width}px post author typography drifted`); // owner 2026-11-16 tighter rhythm
+      assert.deepEqual(geometry.image.type.time, ["11.52px", "600", "14.4px"], `${width}px post metadata typography drifted`);
       assert.deepEqual(geometry.image.type.content, ["15px", "400", "21px"], `${width}px post body typography drifted`);
       if (width < 700) {
         assert.ok(Math.abs(geometry.image.post[0]) <= 1 && Math.abs(geometry.image.post[1] - width) <= 1, `${width}px image post is not viewport-wide: ${JSON.stringify(geometry.image)}`);

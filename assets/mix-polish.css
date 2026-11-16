@@ -90,7 +90,7 @@
    no boxed cards — posts flow, split by a single hairline. */
 :root{--mix-surface:#fff}
 body:has(#feed){background:var(--mix-surface)!important}
-#feed{gap:0!important;background:var(--mix-surface)}
+#feed,body.danzstak-original #feed{gap:0!important;background:var(--mix-surface)}
 #feed > .post,#feed > .reels-rail,.reels-rail.post,.dailies,.stories-rail{
   background:var(--mix-surface)!important;border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important;
 }

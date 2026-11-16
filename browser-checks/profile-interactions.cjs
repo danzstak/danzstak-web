@@ -142,7 +142,7 @@ const engagement = {
           createAvatar: createAvatar && [createAvatar.width, createAvatar.height],
           createInput: createInput && [createInput.height, getComputedStyle(document.querySelector(".profile-create-opener")).borderRadius],
           shortcutsHeight: shortcuts?.height,
-          shortcutLabels: [...document.querySelectorAll(".profile-create-shortcut")].map(item => item.textContent.trim()),
+          shortcutLabels: [...document.querySelectorAll(".profile-create-shortcut")].map(item => item.textContent.trim() || item.getAttribute("aria-label") || ""),
           countersHeight: counters?.height,
           actionsHeight: actions?.height,
           actionTargets: [...document.querySelectorAll(".profile-post-actions button")].map(button => button.getBoundingClientRect().height),
@@ -157,13 +157,13 @@ const engagement = {
       assert.equal(errors.length, 0, `${width}px Profile errors: ${errors.join(" | ")}`);
       assert.equal(geometry.overflow, false, `${width}px Profile interactions overflow horizontally`);
       assert.equal(Math.round(geometry.tabs.height), 44, `${width}px profile tabs are not 44px high`);
-      assert.deepEqual(geometry.tabs.labels, ["Posts", "About", "Photos", "Videos", "More"]);
+      assert.deepEqual(geometry.tabs.labels, ["Posts", "About", "Friends", "Photos", "Videos", "More"]);
       assert.deepEqual(geometry.composerMargins, ["8px", "8px"]);
       assert.deepEqual(geometry.createAvatar.map(Math.round), [36, 36]);
       assert.equal(Math.round(geometry.createInput[0]), 36);
       assert.equal(geometry.createInput[1], "20px");
       assert.equal(Math.round(geometry.shortcutsHeight), 40);
-      assert.deepEqual(geometry.shortcutLabels, ["▶Video", "▧Photo/Video", "◆Life Event"]);
+      assert.deepEqual(geometry.shortcutLabels, ["Add a video", "Add a photo or video", "Add an event"]); // icon buttons (owner 2026-11-16) keep accessible names
       assert.equal(Math.round(geometry.countersHeight), 32);
       assert.equal(Math.round(geometry.actionsHeight), 44);
       assert.ok(geometry.actionTargets.every(height => Math.round(height) === 44), `${width}px post action targets are not 44px`);
@@ -198,8 +198,9 @@ const engagement = {
         assert.equal(postWrites.at(-1).audience, "public");
         await page.locator('[data-profile-tab="Photos"]').click();
         await page.locator(".profile-post-media").first().waitFor();
-        await page.locator('[data-profile-tab="More"]').click();
-        assert.deepEqual(await page.locator(".profile-more-navigation button").allTextContents(), ["Featured", "Memories", "Friends", "Media"]);
+        // Owner 2026-11-16: Featured, Memories and Media are gone; Friends is a top tab; More only appears for a Shop.
+        assert.equal(await page.locator('[data-profile-tab="More"]').isHidden(), true);
+        await page.locator('[data-profile-tab="Friends"]').click();
       }
 
       await page.screenshot({ path: path.join(output, `profile-interactions-${width}.png`), fullPage: width >= 700 });
