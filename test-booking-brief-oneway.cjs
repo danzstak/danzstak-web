@@ -71,3 +71,27 @@ console.log("Natural-language brief checks passed.");
   assert.notEqual(parse("I want to play shows near home").home, "home");
   console.log("Single-city gig checks passed.");
 }
+{
+  // Owner 2026-11-16: Italian, French and Spanish visitors type the brief in their own language.
+  const it = parse("Punk. Da Bologna a Napoli. 14 giorni.");
+  assert.equal(it.home, "Bologna"); assert.equal(it.destination, "Napoli"); assert.equal(it.days, 14); assert.equal(it.mode, "tour");
+  const itBack = parse("Punk. Da Milano a Roma e ritorno. 10 giorni. 8 concerti.");
+  assert.equal(itBack.home, "Milano"); assert.equal(itBack.destination, "Roma"); assert.equal(itBack.shows, 8); assert.notEqual(itBack.oneWay, true);
+  const itOne = parse("da torino a bari solo andata");
+  assert.equal(itOne.destination, "bari"); assert.equal(itOne.oneWay, true);
+  const fr = parse("Punk. De Lille à Marseille. 14 jours.");
+  assert.equal(fr.home, "Lille"); assert.equal(fr.destination, "Marseille"); assert.equal(fr.days, 14);
+  const frBack = parse("Punk. De Paris à Lyon et retour. 10 jours. 8 concerts.");
+  assert.equal(frBack.home, "Paris"); assert.equal(frBack.destination, "Lyon"); assert.equal(frBack.shows, 8);
+  const es = parse("Punk. De Barcelona a Sevilla. 14 días.");
+  assert.equal(es.home, "Barcelona"); assert.equal(es.destination, "Sevilla"); assert.equal(es.days, 14);
+  const esLead = parse("una gira de 10 días de Madrid a Valencia y vuelta");
+  assert.equal(esLead.home, "Madrid"); assert.equal(esLead.destination, "Valencia"); assert.equal(esLead.days, 10);
+  for (const [brief, city] of [["la mia band vuole suonare a Bologna", "Bologna"], ["on veut jouer à Lyon", "Lyon"], ["queremos tocar en Madrid", "Madrid"], ["un concerto a Torino il mese prossimo", "Torino"]]) {
+    const p = parse(brief); assert.equal(p.mode, "local", brief); assert.equal(p.home, city, brief); assert.equal(p.singleCity, true, brief);
+  }
+  // English briefs are untouched.
+  assert.equal(parse("my band wants to play a gig in portland").home, "portland");
+  assert.equal(parse("salt lake to detroit 1 way").destination, "detroit");
+  console.log("Italian, French and Spanish brief checks passed.");
+}

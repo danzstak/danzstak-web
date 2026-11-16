@@ -37,8 +37,39 @@
     return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
 
+  // Owner 2026-11-16: Italians, French and Spanish write the brief in their own language. Turn the common phrases into the English the parser reads.
+  function toEnglishBrief(value) {
+    let text = String(value || "").trim();
+    if (!text) return text;
+    const swap = (pattern, replacement) => { text = text.replace(pattern, replacement); };
+    swap(/\b(\d{1,3})\s*(?:giorni|giorno|jours?|d[ií]as?)\b/gi, "$1 days");
+    swap(/\b(\d{1,3})\s*(?:concerti|concerto|date|serate|concerts?|dates|conciertos?|bolos?|fechas|shows?)\b/gi, "$1 shows");
+    swap(/\b(?:il mese prossimo|il prossimo mese|le mois prochain|el mes que viene|el pr[oó]ximo mes)\b/gi, "next month");
+    swap(/\b(?:la settimana prossima|la prossima settimana|la semaine prochaine|la semana que viene|la pr[oó]xima semana)\b/gi, "next week");
+    swap(/\b(?:stasera|ce soir|esta noche)\b/gi, "tonight");
+    swap(/\b(?:domani|demain|ma[nñ]ana)\b/gi, "tomorrow");
+    swap(/\b(?:solo andata|sola andata|aller[- ]simple|solo ida|s[oó]lo ida)\b/gi, "one way");
+    swap(/\b(?:e|et|y)\s+(?:ritorno|ritornare|tornare|retour|rentrer|vuelta|volver)(?:\s+(?:a|à)\s+casa|\s+(?:à la maison|chez nous|a casa))?\b/gi, "and back");
+    swap(/\b(?:andata e ritorno|aller[- ]retour|ida y vuelta)\b/gi, "and back");
+    swap(/\band back\s+(?:a|à|al|alla|en|hasta|jusqu'à)\s+/gi, "and back to ");
+    const fromWords = /\b(?:da|dal|dalla|de|du|desde|depuis)\s+/gi;
+    let match;
+    while ((match = fromWords.exec(text))) {
+      const rest = text.slice(match.index + match[0].length);
+      const route = rest.match(/^([^,.;!?]+?)\s+(?:a|à|al|alla|hasta|jusqu'à|fino a)\s+([^,.;!?]+)/i);
+      if (route && !/\d|\bdays\b|\bshows\b/i.test(route[1])) {
+        text = `${text.slice(0, match.index)}from ${route[1]} to ${route[2]}${rest.slice(route[0].length)}`;
+        break;
+      }
+    }
+    swap(/\b(?:vogli(?:o|amo|ono)|vuole|voudr(?:ais|ions)|veu(?:x|t|lent)|voulons|quier(?:o|e|en)|queremos)\s+(?:suonare|jouer|tocar)\s+(?:a|à|en|in|au)\s+/gi, "want to play a gig in ");
+    swap(/\b(?:suonare|jouer|tocar)\s+(?:a|à|en|au)\s+/gi, "play a gig in ");
+    swap(/\b(?:un\s+|une\s+)?(?:concerto|data|concert|date|concierto|bolo)\s+(?:a|à|en|au)\s+/gi, "a gig in ");
+    return text;
+  }
+
   function parseTourBrief(value) {
-    const text = String(value || "").trim();
+    const text = toEnglishBrief(value);
     const lower = text.toLowerCase();
     const parsed = {};
     const days = lower.match(/\b(\d{1,3})\s*(?:-| )?days?\b/);
@@ -69,7 +100,7 @@
       parsed.mode = "tour";
     }
     const routeText = text.replace(/^tour\s+(?!from\b)/i, "from "),
-      route = !chainedRoute && routeText.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:and\s+back|then\s+back|and\s+home|return(?:ing)?\s+home|(?:for|in)\s+\d+\s*(?:-| )?days?|starting\s+\d{4}-\d{2}-\d{2})\b|$)/i),
+      route = !chainedRoute && routeText.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:and\s+back|then\s+back|and\s+home|return(?:ing)?\s+home|(?:for|in)\s+\d+\s*(?:-| )?days?|starting\s+\d{4}-\d{2}-\d{2})\b|(?<!\bSt)[.!?](?:\s|$)|$)/i),
       bareRoute = !chainedRoute && !route && routeText.match(/(?:^|[,.!?]\s*)([a-z][a-z '-]{1,80}?)\s+to\s+([a-z][a-z '-]{1,80}?)(?=\s+and\s+back(?:\s+to\s+[a-z][a-z '-]{1,80}?)?(?:[,;.!?]|\s+|$))/i);
     // One-way runs typed without "from" or "and back", e.g. "Bellingham to San Diego" or
     // "Punk. Bellingham, WA to San Diego, CA. 14 days." (owner bug report 2026-11-16).
