@@ -12,7 +12,7 @@ assert.doesNotMatch(html, /id="drawVenueRoute"/, "the redundant page-level Draw 
 assert.match(html, /use\s+the pencil on the map/i, "map instructions should point users to the pencil control");
 assert.match(script, /L\.DomEvent\.on\(mapDrawControl, "click", event => \{\s*L\.DomEvent\.stop\(event\);\s*toggleRouteDrawing\(\);/, "the pencil must start drawing without placing an accidental map point");
 assert.match(script, /mapDrawControl\.innerHTML = active \? '<span aria-hidden="true">✓<\/span>'/, "the pencil should become a clear finish control");
-assert.match(script, /L\.polyline\(routePoints, \{ color: "#1769e0", weight: 6/, "two points must create a visible route line");
+assert.match(script, /L\.polyline\(routePoints, \{ color: "#ff5a1f", weight: 6/, "two points must create a visible route line");
 assert.match(script, /mapElement\.addEventListener\("pointerdown"/, "the pencil must support starting a freehand route stroke");
 assert.match(script, /mapElement\.addEventListener\("pointermove"/, "dragging across the map must add the real path instead of one straight endpoint line");
 assert.match(script, /pixel\.distanceTo\(lastDrawPixel\) < 7/, "freehand capture must retain useful bends without flooding the route request");

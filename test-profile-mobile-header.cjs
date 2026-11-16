@@ -8,7 +8,7 @@ const mobile = fs.readFileSync("assets/mobile-design-system.css", "utf8");
 const profileHeader = fs.readFileSync("assets/profile-app-header.css", "utf8");
 const feedEnhancements = fs.readFileSync("assets/feed-enhancements.js", "utf8");
 
-assert.match(profile, /assets\/mobile-design-system\.css\?v=20/,
+assert.match(profile, /assets\/mobile-design-system\.css\?v=21/,
   "the profile must load the shared mobile application shell");
 assert.match(profile, /<nav class="ds-mobile-nav" aria-label="DanzStak mobile navigation">[\s\S]*?data-icon="home"[\s\S]*?data-icon="disc"[\s\S]*?data-icon="calendar"[\s\S]*?data-icon="store"[\s\S]*?data-icon="chat"[\s\S]*?data-icon="menu"/,
   "the profile must expose the same six primary mobile destinations (Mix, Music HQ, Events, Bazaar, SYNC, Menu) as the rest of DanzStak");

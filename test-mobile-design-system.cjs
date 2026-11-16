@@ -33,16 +33,16 @@ assert.match(chatCss, /body\.is-conversation-open #minimizeConversation\{display
 assert.doesNotMatch(chatCss, /body\.is-conversation-open #headerVideo\{display:none!important\}/, "video calling must remain discoverable on very narrow phones");
 assert.match(syncCss, /@media\(min-width:761px\) and \(max-width:900px\)\{[\s\S]*grid-template-columns:minmax\(250px,290px\) minmax\(0,1fr\)!important/, "tablet Chat must leave enough room for the contact name and header actions");
 assert.match(profileCss, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/, "phone profile tabs must render complete labels without horizontal clipping");
-assert.match(feedCss, /\.settings-row input\[type=checkbox\]\{accent-color:#1769e0/, "settings controls must use the shared application styling");
+assert.match(feedCss, /\.settings-row input\[type=checkbox\]\{accent-color:#121418/, "settings controls must use the shared application styling");
 assert.match(feedCss, /mobile-menu-open>\.install-app-button,[^{]*mobile-menu-open>\.app-update-button\{display:none!important\}/, "install shortcuts must not compete with an open mobile menu");
 assert.match(css, /body\{padding-bottom:calc\(50px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "the shared shell must clear fixed navigation despite fractional layout rounding");
 assert.match(css, /body\.profile-page\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "Profile must clear its fixed mobile navigation");
 assert.match(css, /\.messages-page:not\(\.is-conversation-open\)\{padding-bottom:calc\(54px \+ env\(safe-area-inset-bottom\) \+ 2px\)\}/, "the SYNC inbox must clear its fixed mobile navigation");
 assert.match(feedCss, /\.notification-actions :is\(button,a\)\{[^}]*min-width:44px;min-height:44px/, "notification actions must retain 44px phone targets");
-assert.match(worker, /danzstak-shell-v838/);
+assert.match(worker, /danzstak-shell-v839/);
 assert.match(worker, /\/assets\/mobile-design-system\.css/, "the installed PWA must cache the shared mobile system");
 
-for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=20/, `${file} must load the same mobile design system`);
+for (const [file, html] of pages) assert.match(html, /assets\/mobile-design-system\.css\?v=21/, `${file} must load the same mobile design system`);
 for (const file of ["messages.html", "booking.html", "record-stores.html", "epk.html", "profile.html"]) {
   const html = pages.find(([name]) => name === file)[1];
   assert.match(html, /class="ds-mobile-nav"/, `${file} must expose the consistent mobile navigation`);
@@ -54,7 +54,7 @@ for (const file of ["booking.html", "record-stores.html", "epk.html"]) {
 }
 assert.match(pages.find(([name]) => name === "profile.html")[1], /data-icon="menu"[^>]*aria-current="page"/, "profile.html must identify its secondary Menu destination");
 assert.match(pages.find(([name]) => name === "messages.html")[1], /data-icon="chat"[^>]*aria-current="page"/, "SYNC must identify its direct mobile destination");
-assert.match(pages.find(([name]) => name === "messages.html")[1], /assets\/sync\.css\?v=11/, "Chat must request the current compact mobile layout instead of a cached stylesheet");
+assert.match(pages.find(([name]) => name === "messages.html")[1], /assets\/sync\.css\?v=12/, "Chat must request the current compact mobile layout instead of a cached stylesheet");
 assert.match(fs.readFileSync("assets/feed-enhancements.js", "utf8"), /function syncMobileMenuCurrent[\s\S]*directMobileDestinations\.has\(workspaceName\)/, "Feed workspaces must synchronize the shared Menu current state");
 
 console.log("Shared mobile design-system checks passed: consistent tokens, edge media, action geometry, tool navigation, and PWA caching.");
