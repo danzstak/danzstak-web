@@ -1,0 +1,31 @@
+/* Tribes like Facebook Groups (owner 2026-11-16): a compact discover list (cover, name, crew count, Join),
+   typographic covers in DanzStak black/orange instead of emoji, one continuous surface. */
+.groups-workspace .groups-grid{display:block!important;gap:0!important;margin:0!important}
+.groups-workspace .group-card{display:grid!important;grid-template-columns:64px minmax(0,1fr) auto;grid-template-areas:"cover title join" "cover meta join" "cover desc desc" "cover mod mod";column-gap:12px;row-gap:2px;align-items:center;padding:10px 12px!important;margin:0!important;border:0!important;border-bottom:1px solid #ececE8!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
+.groups-workspace .group-card-cover{grid-area:cover;align-self:start;width:64px!important;height:64px!important;min-height:0!important;border-radius:10px!important;display:grid;place-items:center;font-size:0!important;background:#121418!important;overflow:hidden}
+.groups-workspace .group-card-cover::after,.tribe-hero-cover:not(.has-photo)::after{content:attr(data-initial);font:900 30px/1 "DanzStak Sans",sans-serif;font-stretch:125%;color:#ff5a1f;letter-spacing:-.02em}
+.groups-workspace .group-category{display:none!important}
+.groups-workspace .group-card h4{grid-area:title;margin:0!important;font-size:15px!important;line-height:1.2}
+.groups-workspace .group-card .group-open{padding:0!important;min-height:0!important;background:none!important;border:0!important;color:#121418!important;font:inherit;font-weight:800;text-align:left}
+.groups-workspace .group-meta{grid-area:meta;margin:0!important;font-size:12px!important;color:#626b78!important}
+.groups-workspace .group-card > p{grid-area:desc;margin:2px 0 0!important;font-size:13px!important;color:#344054;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.groups-workspace .group-card > button.primary{grid-area:join;min-height:36px!important;padding:0 14px!important;border-radius:999px!important;font-size:13px!important;width:auto!important;margin:0!important}
+.groups-workspace .group-card > button.primary.is-selected{background:#f1f1ee!important;color:#121418!important;border-color:#e4e4e0!important}
+.groups-workspace .group-moderation-notice{grid-area:mod;display:flex!important;gap:6px;align-items:center;margin:2px 0 0!important;padding:0!important;border:0!important;background:none!important;font-size:11px!important;color:#8a919c}
+.groups-workspace .group-moderation-notice strong{display:none}
+.groups-workspace .group-moderation-notice span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.groups-workspace .group-report{min-height:0!important;padding:0!important;background:none!important;border:0!important;font-size:11px!important;color:#8a919c!important;text-decoration:underline}
+.groups-workspace .group-card > .group-everyone,.groups-workspace .group-card > .group-delete{grid-column:2/-1;justify-self:start;min-height:32px!important;font-size:12px!important;padding:0 10px!important}
+.groups-workspace .groups-discovery-controls{display:grid;grid-template-columns:1fr 44px;gap:6px}
+.groups-workspace .groups-discovery-controls > select{grid-column:1/2}
+.groups-workspace .groups-create-toggle{grid-column:2/3;grid-row:1/2;width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:0!important;border-radius:50%!important;font-size:0!important;position:relative}
+.groups-workspace .groups-create-toggle::before{content:"+";font:700 26px/1 system-ui,sans-serif;color:#fff}
+.groups-workspace .groups-tab{border-radius:999px!important}
+.groups-workspace .groups-tab[aria-selected=true],.groups-workspace .groups-tab.active,.groups-workspace .groups-tab.is-active{background:#121418!important;color:#fff!important}
+/* Tribe page */
+.tribe-hero{border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+.tribe-hero-cover:not(.has-photo){display:grid!important;place-items:center;font-size:0!important;background:#121418!important}
+.tribe-hero-cover:not(.has-photo)::after{font-size:72px}
+.tribe-nav{border-radius:0!important;box-shadow:none!important}
+.tribe-nav [role=tab][aria-selected=true]{color:#121418!important;box-shadow:inset 0 -3px 0 #ff5a1f!important;background:transparent!important}
+.tribe-join-prompt,.tribe-feed > .empty,.tribe-about-card,.tribe-crew-member{border-radius:0!important;box-shadow:none!important}
