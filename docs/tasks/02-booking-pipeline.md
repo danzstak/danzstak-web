@@ -10,7 +10,10 @@ booking.html, assets/booking-agent.js, booking-discovery.js, booking-selections.
 1. **One pipeline per run** (a run = one local show or a whole tour). Each venue card moves through: `found → pitched → replied → offer → confirmed → played` (plus `passed` / `no reply`).
    - Status changes come from real events: a pitch send marks `pitched`; an inbound reply (the existing reply-token bridge) marks `replied` and links the SYNC thread.
    - Phone-first board: one column list with status chips and filters (not a wide kanban); tap a card to open the thread.
-2. **Local show mode**: the brief accepts "one show in my city" (no route). Discovery searches the home city; the same pipeline is used.
+2. **Two modes, chosen at the start of a run** (owner, 2026-11-16):
+   - **Local gigs**: one-off nights within **100 miles of the band's home town** (radius editable: 25/50/100/150 mi, shown in km for non-US members). Discovery searches that circle. Each confirmed night stands alone, with no route and no Tour Manager handoff. The band drives home after the show. Pitches never offer two nights at the same venue within its stated radius-clause window. Respect any radius clause a confirmed venue sets: warn before pitching a nearby venue inside that clause.
+   - **Tour**: a window of dates and a direction or region. Discovery runs along the route, dates lock on the shortest route (task 07), and the confirmed tour is handed to the Tour Manager (task 06).
+   Both modes share the same pipeline, sending, reply bridge and credits.
 3. **Follow-up nudge**: a venue in `pitched` for 5 days with no reply shows "Follow up?" with an editable draft. Never auto-send. Respect the existing daily caps, duplicate window and suppression list. Max one follow-up per venue.
 4. **"Set a date" from a reply**: in the thread, a "They offered a date" action opens a short form: date, doors/set time, deal type (guarantee / door split % / ticket price), guarantee amount, capacity, notes. Saving moves the venue to `offer`. "Confirm show" moves it to `confirmed` and:
    - creates the show on the run (tour date list),
