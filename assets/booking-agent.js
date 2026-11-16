@@ -980,7 +980,7 @@
       }
       contacts.append(source);
     }
-    const destination = mapDestination(place);
+    const destination = place.approximatePosition ? "" : mapDestination(place);
     if (destination) {
       contacts.append(
         navigationLink(
@@ -1010,7 +1010,7 @@
     notice.textContent = (place.club?.label && place.club.tier !== "found" ? `${place.club.label}. ` : "") + (place.freshness?.label ? `${place.freshness.label}. ` : "") + (place.bookingSuitability === "contact-found"
       ? "Public contact found. Verify that it books this kind of show; DanzStak has not contacted this location."
       : `Needs research. ${(place.suitabilityReasons || []).join(" ") || "Confirm current programming and find the correct public booking contact."}`);
-    if (placeType === "club") {
+    if (placeType === "club" || placeType === "promoter") {
       const syncSelection = () => {
         const selected = window.danzstakBookingVenueSelected?.(place) === true;
         select.textContent = selected ? "Remove from booking list" : "Add to booking list";
@@ -1029,7 +1029,7 @@
     card.append(heading, address);
     if (evidence.textContent) card.append(evidence);
     card.append(contacts, notice);
-    if (placeType === "club") card.append(select);
+    if (placeType === "club" || placeType === "promoter") card.append(select);
     return card;
   }
   function orderedCandidateMarkets(data) {
@@ -1347,6 +1347,13 @@
         vanStops = (market.vanStops || []).slice(0, 2),
         recordStores = (market.recordStores || []).slice(0, 4);
       recordSummary.textContent = `💿 Record stores along the route (${recordStores.length})`;
+      const promoters = (market.promoters || []).slice(0, 8), promoterDetails = document.createElement("details"), promoterSummary = document.createElement("summary"), promoterGrid = document.createElement("div"), promoterHint = document.createElement("p");
+      promoterSummary.textContent = `🎟 Promoters & party crews (${promoters.length})`;
+      promoterHint.className = "hint";
+      promoterHint.textContent = "Found on the web. Check that they book your kind of show before you pitch.";
+      promoterGrid.className = "place-grid";
+      promoters.forEach((place) => promoterGrid.append(placeCard(place, "promoter")));
+      if (promoters.length) promoterDetails.append(promoterSummary, promoterHint, promoterGrid);
       hotelSummary.textContent = `Budget sleep leads (${budgetHotels.length})`;
       vanSummary.textContent = `Possible van-rest leads (${vanStops.length})`;
       vanWarning.className = "hint";
@@ -1433,6 +1440,7 @@
       if (vanStops.length) vanDetails.append(vanSummary, vanWarning, vanGrid);
       section.className = "route-market";
       section.append(heading, confirmation, venueDetails);
+      if (promoters.length) section.append(promoterDetails);
       if (recordStores.length) section.append(recordDetails);
       if (budgetHotels.length) section.append(hotelDetails);
       if (vanStops.length) section.append(vanDetails);

@@ -52,6 +52,7 @@ import { createPersonalPhoneService } from "./personal-phone-service.mjs";
 import { createPersonalPhoneDynamoAdapter } from "./personal-phone-dynamodb.mjs";
 import { publicPhoneStatus } from "./personal-phone-verification.mjs";
 import QRCode from "qrcode";
+import { promoterQueries, promoterLeads } from "./promoter-research.mjs";
 import { BOOKING_WORKSPACE_ID, clubFromPlace, clubUpsert, clubStats, clubStatsUpdate, clubRecordFromItem, clubLabel, sortByClubTier } from "./club-directory.mjs";
 
 const db = new DynamoDBClient({ region: "us-west-1" });
@@ -3042,6 +3043,33 @@ async function googlePlacesSearch(point, queries, radiusMiles = 30) {
   return { skipped: false, places };
 }
 
+// Promoters and party crews (owner 2026-11-16): web search in English and the city's language.
+const promoterCache = new Map();
+async function webPromoterResearch(point, genre = "") {
+  const apiKey = String(globalThis.process?.env?.BRAVE_SEARCH_API_KEY || "").trim();
+  if (!apiKey) return { skipped: true, promoters: [] };
+  const queries = promoterQueries(point, genre), cacheKey = `${queries.map(item => item.query).join("|")}`.toLowerCase();
+  const cached = promoterCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return { skipped: false, promoters: cached.promoters };
+  const results = [];
+  await mapLimit(queries, 2, async ({ query, language }) => {
+    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 6000);
+    try {
+      const search = new URLSearchParams({ q: query, count: "10", search_lang: language, safesearch: "moderate" });
+      if (/^[A-Z]{2}$/.test(point.countryCode || "")) search.set("country", point.countryCode);
+      const response = await fetch(`https://api.search.brave.com/res/v1/web/search?${search}`, { signal: controller.signal, headers: { accept: "application/json", "X-Subscription-Token": apiKey } });
+      if (!response.ok) throw new Error(`Brave Search returned ${response.status}`);
+      const data = await response.json();
+      for (const result of data.web?.results || []) results.push({ result, query });
+    } catch (error) { console.error("Promoter search failed:", error.name); }
+    finally { clearTimeout(timeout); }
+  });
+  const promoters = promoterLeads(results, point);
+  promoterCache.set(cacheKey, { promoters, expiresAt: Date.now() + 6 * 3600000 });
+  if (promoterCache.size > 200) promoterCache.delete(promoterCache.keys().next().value);
+  return { skipped: false, promoters };
+}
+
 async function webVenueResearch(point, genre = "") {
   const apiKey = String(globalThis.process?.env?.BRAVE_SEARCH_API_KEY || "").trim();
   if (!apiKey) return { skipped: true, leads: [] };
@@ -3320,7 +3348,7 @@ async function approvedMemberVenueLeads(point, searchBounds = null) {
         discoveredAt: item.approvedAt?.S || item.createdAt?.S || "",
         activityEvidence: item.status?.S === "approved" ? "A moderator reviewed this member-supplied public venue lead. Confirm its current calendar before pitching." : "DanzStak bands have heard back from this club. Confirm its current calendar before pitching."
       };
-    }).filter(place => place.venueKey && place.position.every(Number.isFinite))
+    }).filter(place => place.venueKey && place.position.every(Number.isFinite) && !place.venueKey.startsWith("promoter-"))
       .filter(place => !searchBounds || (place.position[1] <= searchBounds.north && place.position[1] >= searchBounds.south && place.position[0] <= searchBounds.east && place.position[0] >= searchBounds.west));
   } catch (error) {
     console.error("Reviewed venue directory unavailable:", error.name);
@@ -3930,6 +3958,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     "truck stop rest area campground",
     ...new Set([...venueQueries, ...localizedVenueQueries])
   ];
+  const promoterSearch = webPromoterResearch(point, genre).catch(() => ({ skipped: true, promoters: [] }));
   const [searchResults, reviewedDirectory, recordDiscovery, osmVenueDiscovery] = await Promise.all([
     mapLimit(discoveryQueries, 3, async query => {
       try {
@@ -3979,10 +4008,11 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
       || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
   const offset = venuePool.length ? variation % venuePool.length : 0;
   const venues = withClubRecords(await withVenueFreshness([...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60)), await clubRecords());
-  await Promise.all([saveFoundClubs(venues), statsRefresh]);
+  const promoters = withClubRecords((await promoterSearch).promoters || [], await clubRecords());
+  await Promise.all([saveFoundClubs([...venues, ...promoters]), statsRefresh]);
   const hotels = hotelResults.filter(place => nearby(place, 35)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   const vanStops = vanRestResults.filter(place => nearby(place, 25)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
-  return { stop: point.label, position: point.position, venues, hotels, vanStops, recordStores: recordDiscovery.stores || [], researchLeads: osmVenueDiscovery.researchLeads || [], providerStatus: [...(osmVenueDiscovery.providers || []), ...(recordDiscovery.providers || [])] };
+  return { stop: point.label, position: point.position, venues, promoters, hotels, vanStops, recordStores: recordDiscovery.stores || [], researchLeads: osmVenueDiscovery.researchLeads || [], providerStatus: [...(osmVenueDiscovery.providers || []), ...(recordDiscovery.providers || [])] };
 }
 
 function parseVenueDiscoveryRequest(data) {

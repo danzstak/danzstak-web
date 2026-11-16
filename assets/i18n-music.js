@@ -922,7 +922,15 @@
 "No file? Type it or build the plot here": "Niente file? Scrivilo o crea la pianta qui",
 "Photos up to 12 MB, PDFs up to 50 MB. Your files stay private; tick Public download on the ones bookers may download.": "Foto fino a 12 MB, PDF fino a 50 MB. I tuoi file restano privati; spunta Download pubblico su quelli che i booker possono scaricare.",
 "Featured": "In evidenza",
-"No files uploaded yet.": "Ancora nessun file caricato."
+"No files uploaded yet.": "Ancora nessun file caricato.",
+"Found on the web. Check that they book your kind of show before you pitch.": "Trovati sul web. Verifica che organizzino il tuo genere di concerti prima di proporti.",
+"Pay to play?": "Si paga per suonare?",
+"Yes: we must sell a ticket quota": "Sì: dobbiamo vendere una quota di biglietti",
+"Yes: we must pay the venue": "Sì: dobbiamo pagare il locale",
+"Not verified yet": "Non ancora verificato",
+"Booking contact bounced or asked to stop — find a newer contact": "Il contatto per il booking è rimbalzato o ha chiesto di smettere: trova un contatto più recente",
+"Promoter / party crew": "Promoter / crew di feste",
+"Web search (promoters)": "Ricerca web (promoter)"
 },
 "fr": {
 "A private review link is active. Replace it to get a new secret or revoke access.": "Un lien privé d'avis est actif. Remplace-le pour obtenir un nouveau secret ou révoque l'accès.",
@@ -1838,7 +1846,16 @@
 "No file? Type it or build the plot here": "Pas de fichier ? Écris-le ou crée le plan ici",
 "Photos up to 12 MB, PDFs up to 50 MB. Your files stay private; tick Public download on the ones bookers may download.": "Photos jusqu'à 12 Mo, PDF jusqu'à 50 Mo. Tes fichiers restent privés ; coche Téléchargement public sur ceux que les programmateurs peuvent télécharger.",
 "Featured": "En avant",
-"No files uploaded yet.": "Aucun fichier envoyé pour l'instant."
+"No files uploaded yet.": "Aucun fichier envoyé pour l'instant.",
+"Found on the web. Check that they book your kind of show before you pitch.": "Trouvés sur le web. Vérifie qu'ils programment ton genre de concert avant de démarcher.",
+"Pay to play?": "Payer pour jouer ?",
+"No": "Non",
+"Yes: we must sell a ticket quota": "Oui : on doit vendre un quota de billets",
+"Yes: we must pay the venue": "Oui : on doit payer la salle",
+"Not verified yet": "Pas encore vérifié",
+"Booking contact bounced or asked to stop — find a newer contact": "Le contact booking a rebondi ou a demandé d'arrêter : trouve un contact plus récent",
+"Promoter / party crew": "Promoteur / collectif de soirées",
+"Web search (promoters)": "Recherche web (promoteurs)"
 },
 "es": {
 "A private review link is active. Replace it to get a new secret or revoke access.": "Hay un enlace privado de reseñas activo. Sustitúyelo para obtener un nuevo secreto o revoca el acceso.",
@@ -2768,7 +2785,15 @@
 "No file? Type it or build the plot here": "¿Sin archivo? Escríbelo o crea el plano aquí",
 "Photos up to 12 MB, PDFs up to 50 MB. Your files stay private; tick Public download on the ones bookers may download.": "Fotos hasta 12 MB, PDF hasta 50 MB. Tus archivos son privados; marca Descarga pública en los que los programadores pueden descargar.",
 "Featured": "Destacado",
-"No files uploaded yet.": "Aún no has subido archivos."
+"No files uploaded yet.": "Aún no has subido archivos.",
+"Found on the web. Check that they book your kind of show before you pitch.": "Encontrados en la web. Comprueba que programan tu tipo de concierto antes de proponerte.",
+"Pay to play?": "¿Hay que pagar por tocar?",
+"Yes: we must sell a ticket quota": "Sí: tenemos que vender un cupo de entradas",
+"Yes: we must pay the venue": "Sí: tenemos que pagar a la sala",
+"Not verified yet": "Aún sin verificar",
+"Booking contact bounced or asked to stop — find a newer contact": "El contacto rebotó o pidió no recibir más: busca un contacto más reciente",
+"Promoter / party crew": "Promotor / colectivo de fiestas",
+"Web search (promoters)": "Búsqueda web (promotores)"
 }
 };
  for(const [lang,words] of Object.entries(add))Object.assign(t[lang]||(t[lang]={}),words);
@@ -3062,6 +3087,38 @@
 [
 "Uploading {}...",
 "Caricamento di {0}..."
+],
+[
+"🎟 Promoters & party crews ({})",
+"🎟 Promoter e crew di feste ({0})"
+],
+[
+"Verified: booked {} DanzStak bands",
+"Verificato: ha ingaggiato {0} band DanzStak"
+],
+[
+"Verified: booked {} DanzStak band",
+"Verificato: ha ingaggiato {0} band DanzStak"
+],
+[
+"Replies to DanzStak bands ({} of {})",
+"Risponde alle band DanzStak ({0} su {1})"
+],
+[
+"usually answers within {} hours",
+"di solito risponde entro {0} ore"
+],
+[
+"usually answers within {} days",
+"di solito risponde entro {0} giorni"
+],
+[
+"pay to play reported by {} bands",
+"pay to play segnalato da {0} band"
+],
+[
+"pay to play reported by {} band",
+"pay to play segnalato da {0} band"
 ]
 ],
 "fr": [
@@ -3352,6 +3409,38 @@
 [
 "Uploading {}...",
 "Envoi de {0}..."
+],
+[
+"🎟 Promoters & party crews ({})",
+"🎟 Promoteurs et collectifs ({0})"
+],
+[
+"Verified: booked {} DanzStak bands",
+"Vérifié : a booké {0} groupes DanzStak"
+],
+[
+"Verified: booked {} DanzStak band",
+"Vérifié : a booké {0} groupe DanzStak"
+],
+[
+"Replies to DanzStak bands ({} of {})",
+"Répond aux groupes DanzStak ({0} sur {1})"
+],
+[
+"usually answers within {} hours",
+"répond en général sous {0} heures"
+],
+[
+"usually answers within {} days",
+"répond en général sous {0} jours"
+],
+[
+"pay to play reported by {} bands",
+"payer pour jouer signalé par {0} groupes"
+],
+[
+"pay to play reported by {} band",
+"payer pour jouer signalé par {0} groupe"
 ]
 ],
 "es": [
@@ -3642,6 +3731,38 @@
 [
 "Uploading {}...",
 "Subiendo {0}..."
+],
+[
+"🎟 Promoters & party crews ({})",
+"🎟 Promotores y colectivos ({0})"
+],
+[
+"Verified: booked {} DanzStak bands",
+"Verificado: contrató a {0} bandas de DanzStak"
+],
+[
+"Verified: booked {} DanzStak band",
+"Verificado: contrató a {0} banda de DanzStak"
+],
+[
+"Replies to DanzStak bands ({} of {})",
+"Responde a las bandas de DanzStak ({0} de {1})"
+],
+[
+"usually answers within {} hours",
+"suele responder en {0} horas"
+],
+[
+"usually answers within {} days",
+"suele responder en {0} días"
+],
+[
+"pay to play reported by {} bands",
+"pagar por tocar señalado por {0} bandas"
+],
+[
+"pay to play reported by {} band",
+"pagar por tocar señalado por {0} banda"
 ]
 ]
 };
