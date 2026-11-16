@@ -272,7 +272,7 @@ async function createPortraitVideo(browser) {
       assert.ok(Math.abs(geometry.feedGap - expectedGap) <= 1, `${width}px feed post gap is not ${expectedGap}px: ${geometry.feedGap}; computed ${geometry.feedRowGap}; margins ${geometry.firstPostMarginBottom}/${geometry.secondPostMarginTop}`);
       assert.ok(geometry.image.aligned, `${width}px direct image is inset: ${JSON.stringify(geometry.image)}`);
       assert.ok(geometry.video.aligned, `${width}px direct video is inset: ${JSON.stringify(geometry.video)}`);
-      assert.deepEqual(geometry.image.type.author, ["15px", "600", "20px"], `${width}px post author typography drifted`);
+      assert.deepEqual(geometry.image.type.author, ["15px", "800", "18px"], `${width}px post author typography drifted`); // owner 2026-11-16 tighter rhythm
       assert.deepEqual(geometry.image.type.time, ["13px", "400", "16px"], `${width}px post metadata typography drifted`);
       assert.deepEqual(geometry.image.type.content, ["15px", "400", "21px"], `${width}px post body typography drifted`);
       if (width < 700) {
