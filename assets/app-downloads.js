@@ -16,10 +16,19 @@ function openInstallHelp(platform) {
   installHelp.showModal();
 }
 
+// Owner directive 2026-11-16: the install buttons install the DanzStak PWA to the home screen.
+// Where the browser supports one-tap install (Android/desktop Chrome, Edge), the button opens the
+// native install prompt directly; iPhone/iPad (Safari has no install prompt) get the Add to Home Screen steps.
+const isAppleMobile = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 document.querySelectorAll("[data-app-platform]").forEach(link => {
-  link.addEventListener("click", event => {
+  link.addEventListener("click", async event => {
     event.preventDefault();
-    openInstallHelp(link.dataset.appPlatform);
+    if (!isAppleMobile && typeof window.danzstakRequestInstall === "function") {
+      const result = await window.danzstakRequestInstall();
+      if (result === "accepted" || result === "dismissed") return;
+      if (result === "installed") { window.danzstakShowFeedback?.("DanzStak is already installed on this device.", { timeout: 4000 }); return; }
+    }
+    openInstallHelp(isAppleMobile ? "apple" : link.dataset.appPlatform);
   });
 });
 
