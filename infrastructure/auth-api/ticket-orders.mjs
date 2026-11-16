@@ -3,23 +3,22 @@
 // released to the promoter only by a later release job, 3 days after the event. Tickets are issued only from a
 // signature-verified Stripe webhook. Named tickets (default) carry one legal name each and are non-transferable.
 import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import { FEE_PERCENT, SMALL_ORDER_FEE_CENTS, SMALL_ORDER_LIMIT_CENTS, buyerFees } from "./fees.mjs";
 
 const ID = /^[a-f0-9-]{36}$/i;
 const MEMBER = /^[A-Za-z0-9_-]{8,128}$/;
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L — readable at a club door
 export const MAX_TICKETS_PER_ORDER = 10;
-export const DANZSTAK_FEE_RATE = 0.06; // owner 2026-11-16: 6% includes Stripe processing; $1 minimum per order
-export const DANZSTAK_FEE_MIN_CENTS = 100; // waived on orders of $30 and up (owner 2026-11-16)
-export const DANZSTAK_FEE_MIN_WAIVED_FROM_CENTS = 3000;
+// Task 12 (owner 2026-11-16): the buyer pays 6% on top of the ticket price, plus $1 on orders under $30.
+// The promoter receives the full ticket price. The rule itself lives in fees.mjs.
+export const DANZSTAK_FEE_RATE = FEE_PERCENT / 100;
+export const DANZSTAK_SMALL_ORDER_FEE_CENTS = SMALL_ORDER_FEE_CENTS;
+export const DANZSTAK_SMALL_ORDER_LIMIT_CENTS = SMALL_ORDER_LIMIT_CENTS;
 export const PROBLEM_WINDOW_DAYS = 3;
 const APP = "https://danzstak.com";
 
 export function ticketCode(bytes = randomBytes(8)) { let out = ""; for (const b of bytes) out += CODE_ALPHABET[b % CODE_ALPHABET.length]; return out.slice(0, 4) + "-" + out.slice(4, 8); }
-export function feeCents(subtotal) {
-  if (!(subtotal > 0)) return 0;
-  const pct = Math.round(subtotal * DANZSTAK_FEE_RATE);
-  return subtotal >= DANZSTAK_FEE_MIN_WAIVED_FROM_CENTS ? pct : Math.min(subtotal, Math.max(DANZSTAK_FEE_MIN_CENTS, pct));
-}
+export function feeCents(subtotal) { return buyerFees(subtotal); }
 export function cleanName(value) { const name = String(value || "").replace(/\s+/g, " ").trim(); return name.length >= 2 && name.length <= 100 && /^[\p{L}\p{M}' .,-]+$/u.test(name) ? name : null; }
 export function releaseAfter(event) { const base = new Date(event.endsAt || event.startsAt); return new Date(base.getTime() + PROBLEM_WINDOW_DAYS * 86400000).toISOString(); }
 
@@ -101,7 +100,7 @@ export function createTicketOrders({ db, commands, authenticate, corsHeaders, ta
     try {
       await db.send(new TransactWriteItemsCommand({ TransactItems: [
         { Update: { TableName: tableName, Key: tierKey(eventId, tierId), UpdateExpression: "SET reserved = if_not_exists(reserved, :z) + :q", ConditionExpression: "(attribute_not_exists(sold) OR sold = :sold) AND (attribute_not_exists(reserved) OR reserved <= :max) AND #s = :onsale", ExpressionAttributeNames: { "#s": "status" }, ExpressionAttributeValues: { ":z": N(0), ":q": N(quantity), ":sold": N(sold), ":max": N(capacity - sold - quantity), ":onsale": S("on_sale") } } },
-        { Put: { TableName: tableName, Item: { ...orderKey(orderId), entityType: S("ticket_order"), orderId: S(orderId), eventId: S(eventId), tierId: S(tierId), buyerId: S(userId), organizerId: S(ev.organizerId?.S || ""), quantity: N(quantity), unitCents: N(price), subtotalCents: N(subtotal), feeCents: N(feeCents(subtotal)), currency: S("usd"), named: { BOOL: named }, attendees: { L: attendees.map(S) }, status: S("pending"), releaseAfter: S(releaseAfter({ startsAt: ev.startsAt?.S, endsAt: ev.endsAt?.S })), createdAt: S(at), updatedAt: S(at) }, ConditionExpression: "attribute_not_exists(pk)" } }
+        { Put: { TableName: tableName, Item: { ...orderKey(orderId), entityType: S("ticket_order"), orderId: S(orderId), eventId: S(eventId), tierId: S(tierId), buyerId: S(userId), organizerId: S(ev.organizerId?.S || ""), quantity: N(quantity), unitCents: N(price), subtotalCents: N(subtotal), feeCents: N(feeCents(subtotal)), payoutCents: N(subtotal), currency: S("usd"), named: { BOOL: named }, attendees: { L: attendees.map(S) }, status: S("pending"), releaseAfter: S(releaseAfter({ startsAt: ev.startsAt?.S, endsAt: ev.endsAt?.S })), createdAt: S(at), updatedAt: S(at) }, ConditionExpression: "attribute_not_exists(pk)" } }
       ] }));
     } catch { return json(409, { error: "Those tickets were just taken. Try again." }, headers); }
     try {
