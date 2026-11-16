@@ -74,6 +74,7 @@ const request = (method, body, origin='https://danzstak.com') => context.booking
   stored={userId:{S:'owner-a'},tourId:{S:'booking-workspace-v1'},revision:{S:'r1'},plan:{S:JSON.stringify({venues:[{name:'Pitched Room',venueKey:'aaaaaaaaaaaaaaaaaaaa',booking:{status:'Not contacted'}}],artist:{},tour:{}})}};
   let loaded=JSON.parse((await request('GET')).body);
   assert.equal(loaded.venues[0].booking.status,'Email sent','a successful send moves the card to pitched');
+  assert.equal(loaded.epk.ready,false,'the workspace reports the EPK gate'); assert.equal(loaded.epk.total,6); assert.ok(Array.isArray(loaded.epk.missing));
   assert.equal(loaded.venues[0].booking.pipeline.stage,'pitched');
   assert.equal(loaded.venues[0].booking.pipeline.threadId,'pitch000000000001');
   assert.equal(loaded.venues[0].booking.followUp,'2026-11-06','follow-up is due 5 days after the pitch');

@@ -13,7 +13,9 @@ const widths = [320, 360, 375, 390, 414, 430, 768, 1366];
 const threadId = "pitchthread000000001";
 const base = { categories:["live music", "punk"], websites:["https://example.com/room"], discoveredAt:"2026-11-09T00:00:00.000Z" };
 const venue = (key, name, booking, extra = {}) => ({ ...base, venueKey:key, name, address:`${name} St, Sacramento, CA`, booking:{ feeCurrency:"USD", ...booking }, ...extra });
-const workspace = replied => ({
+const readyEpk = { ready:true, published:true, done:6, total:6, missing:[] };
+const gatedEpk = { ready:false, published:false, done:4, total:6, missing:["A bio", "A live video or photo"] };
+const workspace = (replied, epk = readyEpk) => ({
   venues:[
     venue("aaaaaaaaaaaaaaaaaaaa", "Found Room", { status:"Not contacted", showDate:"2027-02-10" }),
     venue("bbbbbbbbbbbbbbbbbbbb", "Pitched Hall", replied
@@ -25,14 +27,15 @@ const workspace = replied => ({
   artist:{ name:"Pipeline Test", genre:"Punk", hometown:"Sacramento, CA", epk:"https://danzstak.com/epk.html?id=pipeline-test", pitch:"Loud and on time." },
   tour:{ currency:"USD", people:3, contingencyPercent:10 },
   revision:"rev-1",
-  estimate:{ total:0, confirmedRevenue:0, potentialProfit:0, breakEvenRevenue:0, bookingEmailsUsd:0 }
+  estimate:{ total:0, confirmedRevenue:0, potentialProfit:0, breakEvenRevenue:0, bookingEmailsUsd:0 },
+  epk
 });
 
 function installApi(page, state) {
   return page.route("https://api.danzstak.com/**", async route => {
     const request = route.request(), url = new URL(request.url()), method = request.method();
     let body = {};
-    if (url.pathname === "/booking-pipeline" && method === "GET") body = workspace(state.replied);
+    if (url.pathname === "/booking-pipeline" && method === "GET") body = workspace(state.replied, state.epk || readyEpk);
     else if (url.pathname === "/booking-pipeline" && method === "POST") { state.saves.push(JSON.parse(request.postData() || "{}")); body = { revision:"rev-2", estimate:workspace().estimate, statuses:{} }; }
     else if (url.pathname === "/tour-manager/contact-unlocks") body = { venueKeys:["bbbbbbbbbbbbbbbbbbbb"] };
     else if (url.pathname === "/tour-manager/credits") body = { bookingEmailCredits:2, purchasedCredits:2, sentEmails:1, reservedCredits:0, activity:[] };
@@ -105,6 +108,33 @@ function installApi(page, state) {
       assert.deepEqual(await page.locator("#pipelineFilters .pipeline-chip").allTextContents(), ["All 4", "Found 1", "Replied 1", "Offer 1", "Confirmed 1"]);
       assert.deepEqual(pageErrors, [], `${width}px page errors: ${pageErrors.join(" | ")}`);
       if ([360, 375, 430].includes(width)) await page.screenshot({ path:path.join(output, `replied-${width}.png`), fullPage:true, animations:"disabled", caret:"hide" });
+      await context.close();
+    }
+    // EPK gate: no published EPK with the minimum, no pitching; searching and the board stay open.
+    for (const width of widths) {
+      const context = await browser.newContext({ viewport:{ width, height:900 }, serviceWorkers:"block" });
+      const page = await context.newPage(), pageErrors = [], state = { replied:false, saves:[], sendCalls:0, epk:gatedEpk };
+      page.on("pageerror", error => pageErrors.push(error.message));
+      await installApi(page, state);
+      await page.goto(`${origin}/booking-selections.html`, { waitUntil:"domcontentloaded" });
+      const gate = page.locator("#epkGateCard");
+      await gate.waitFor({ state:"visible" });
+      assert.equal((await gate.locator("h2").textContent()).trim(), "Finish your EPK to start booking");
+      assert.match(await gate.textContent(), /4 of 6 done/);
+      assert.deepEqual(await gate.locator("li").allTextContents(), ["A bio", "A live video or photo", "Publish your EPK"]);
+      assert.equal(await gate.locator("a").getAttribute("href"), "epk.html");
+      assert.equal(await page.locator(".venue-card").count(), 4, `${width}px browsing stays open behind the EPK gate`);
+      assert.equal(await page.evaluate(() => Boolean(document.getElementById("epkGateCard").compareDocumentPosition(document.getElementById("pipelineFilters")) & Node.DOCUMENT_POSITION_FOLLOWING)), true, `${width}px EPK gate must sit above the board filters`);
+      assert.equal(await page.locator("#pipelineFilters .pipeline-chip").count(), 5);
+      for (const pitch of await page.getByRole("button", { name:"Preview exact email" }).all()) assert.equal(await pitch.isDisabled(), true, `${width}px pitch must wait for the EPK`);
+      for (const follow of await page.getByRole("button", { name:"Review one follow-up · 1 credit" }).all()) assert.equal(await follow.isDisabled(), true, `${width}px follow-up must wait for the EPK`);
+      assert.equal(state.sendCalls, 0);
+      const geometry = await page.evaluate(() => ({ overflow:document.documentElement.scrollWidth - document.documentElement.clientWidth, link:document.querySelector("#epkGateCard a").getBoundingClientRect().height }));
+      assert.ok(geometry.overflow <= 1, `${width}px EPK gate overflows by ${geometry.overflow}px`);
+      assert.ok(geometry.link >= 43.5, `${width}px EPK builder link is below 44px`);
+      assert.deepEqual(pageErrors, [], `${width}px page errors: ${pageErrors.join(" | ")}`);
+      await gate.scrollIntoViewIfNeeded();
+      await page.screenshot({ path:path.join(output, `epk-gate-${width}.png`), fullPage:false, animations:"disabled", caret:"hide" });
       await context.close();
     }
     console.log(`Booking pipeline board browser checks passed at ${widths.join(", ")}px.`);

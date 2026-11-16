@@ -18,6 +18,8 @@ const assert = require("node:assert/strict");
   records.set(creditId, { userId: { S: userId }, tourId: { S: "TOUR_MANAGER#BOOKING_EMAIL_CREDITS" }, credits: { N: "3" }, reservedCredits: { N: "0" }, sentEmails: { N: "0" } });
   records.set(`${userId}|TOUR_MANAGER#CONTACT_UNLOCK#venue-1`, { userId: { S: userId }, tourId: { S: "TOUR_MANAGER#CONTACT_UNLOCK#venue-1" }, venueKey: { S: "venue-1" }, status: { S: "active" } });
   records.set(`${userId}|booking-workspace-v1`, { userId: { S: userId }, tourId: { S: "booking-workspace-v1" }, plan: { S: JSON.stringify({ artist: { name: "Static", epk: "https://danzstak.com/epk.html?id=staticband" }, venues: [{ venueKey: "venue-1", name: "Club Test", emails: ["bookings@example.com"], booking: { followUp: "2026-11-07" } }] }) } });
+  const readyKit = { artistName: "Static", heroImage: "https://danzstak.com/media/static.jpg", shortBio: "Loud and on time.", musicLinks: [{ label: "Bandcamp", url: "https://static.bandcamp.com" }], videoLinks: [{ label: "Live", url: "https://www.youtube.com/watch?v=static" }], bookingEmail: "band@example.com" };
+  const epkId = `${userId}|epk-workspace-v1`, setEpk = (kit, published) => records.set(epkId, { userId: { S: userId }, tourId: { S: "epk-workspace-v1" }, plan: { S: JSON.stringify(kit) }, published: { BOOL: published } });
   const number = (item, name) => Number(item[name]?.N || 0);
   const db = { async send(command) {
     if (command instanceof GetItemCommand) return { Item: records.get(keyOf(command.input.Key)) };
@@ -90,6 +92,18 @@ const assert = require("node:assert/strict");
   assert.equal(unapproved.statusCode, 400); assert.equal(providerCalls, 0, "An unapproved draft must never reach the provider or reserve a credit");
   const unbound = await service(event("unboundshare12345", "Please book this artist. EPK: https://danzstak.com/epk.html?id=staticband"));
   assert.equal(unbound.statusCode, 409); assert.equal(providerCalls, 0, "A public or unbound EPK link must not reach the provider"); assert.equal(number(records.get(creditId), "credits"), 3);
+  // EPK gate: no published EPK with the minimum, no pitch, no credit spent, nothing reaches the provider.
+  const noMusic = { ...readyKit, musicLinks: [] };
+  for (const [kit, published, missing] of [[null, false, /Act name[\s\S]*Publish your EPK/], [noMusic, true, /5 of 6 done[\s\S]*A music link/], [readyKit, false, /6 of 6 done[\s\S]*Publish your EPK/]]) {
+    if (kit) setEpk(kit, published); else records.delete(epkId);
+    const gatedPreflight = await preflight("gatedpitch000001");
+    assert.equal(gatedPreflight.result.statusCode, 409, "A pitch cannot be prepared without a ready, published EPK"); assert.match(JSON.parse(gatedPreflight.result.body).error, /Finish your EPK to start booking/); assert.match(JSON.parse(gatedPreflight.result.body).error, missing);
+    const gatedSend = await service(event("gatedpitch000001", reviewedMessage("")));
+    assert.equal(gatedSend.statusCode, 409); assert.match(JSON.parse(gatedSend.body).error, /Finish your EPK/);
+    assert.equal(providerCalls, 0, "A gated pitch must never reach the provider"); assert.equal(number(records.get(creditId), "credits"), 3, "A gated pitch must not spend a credit"); assert.equal(number(records.get(creditId), "reservedCredits"), 0);
+    assert.equal(records.has(`${userId}|TOUR_MANAGER#EMAIL_SEND#gatedpitch000001`), false);
+  }
+  setEpk(readyKit, true);
   const firstPreflight = await preflight("1234567890abcdef"); assert.equal(firstPreflight.result.statusCode, 200); assert.match(firstPreflight.footer, /2063 Main St\. #237/); assert.match(firstPreflight.footer, /booking-opt-out\.html#token=[a-f0-9]{64}/);
   const sent = await service(event("1234567890abcdef", reviewedMessage(firstPreflight.footer)));
   assert.equal(sent.statusCode, 200); assert.equal(providerCalls, 1); assert.equal(number(records.get(creditId), "credits"), 2); assert.equal(number(records.get(creditId), "sentEmails"), 1);

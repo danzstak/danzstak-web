@@ -64,6 +64,22 @@ const fs = require('node:fs');
   assert.ok(server.followUpEligible(sentAt, Date.parse(sentAt) + 5 * day));
   assert.ok(!server.followUpEligible('', Date.now()));
 
+  // EPK gate: name, photo, bio, music link, live video or photo, contact, and published.
+  const epkItem = (kit, published = true) => ({ plan: { S: JSON.stringify(kit) }, published: { BOOL: published } });
+  const ready = { artistName: 'Static', heroImage: 'https://danzstak.com/a.jpg', shortBio: 'Loud.', musicLinks: [{ label: 'Bandcamp', url: 'https://x.bandcamp.com' }], videoLinks: [{ label: 'Live', url: 'https://youtu.be/x' }], bookingEmail: 'b@example.com' };
+  assert.deepEqual(server.epkGate(epkItem(ready)), { ready: true, published: true, done: 6, total: 6, missing: [] });
+  assert.equal(server.epkGate(undefined).ready, false, 'no EPK, no pitches');
+  assert.deepEqual(server.epkGate(undefined).missing, server.EPK_REQUIREMENTS.map(([, label]) => label));
+  assert.equal(server.epkGate(epkItem(ready, false)).ready, false, 'a complete but unpublished EPK cannot pitch');
+  assert.match(server.epkGateMessage(server.epkGate(epkItem(ready, false))), /6 of 6 done[\s\S]*Publish your EPK/);
+  const noLive = { ...ready, videoLinks: [] };
+  assert.deepEqual(server.epkGate(epkItem(noLive)).missing, ['A live video or photo']);
+  assert.equal(server.epkGate(epkItem({ ...noLive, media: [{ role: 'press-photo', key: 'epk/x/y.jpg' }] })).ready, true, 'a second photo counts as the live photo');
+  assert.deepEqual(server.epkGate(epkItem({ ...ready, heroImage: '', videoLinks: [] })).missing, ['A photo', 'A live video or photo']);
+  assert.deepEqual(server.epkGate(epkItem({ ...ready, musicLinks: [{ label: 'Bad', url: 'javascript:alert(1)' }] })).missing, ['A music link']);
+  assert.equal(server.epkGate(epkItem({ ...ready, bookingEmail: '', bookingPhone: '+1 916 555 0100' })).ready, true, 'phone counts as contact');
+  assert.equal(server.epkGate({ plan: { S: '{broken' }, published: { BOOL: true } }).ready, false);
+
   // Nothing auto-sends: the follow-up only sends from the artist's click, with an editable draft.
   const client = fs.readFileSync('assets/booking-selections.js', 'utf8');
   assert.match(client, /Follow up\? No reply in 5 days/);
@@ -78,5 +94,5 @@ const fs = require('node:fs');
   assert.match(fs.readFileSync('service-worker.js', 'utf8'), /"\/assets\/booking-pipeline\.js"/);
   assert.match(fs.readFileSync('aws-deploy-auth-api.ps1', 'utf8'), /booking-pipeline\.mjs/, 'the Lambda bundle must include the pipeline module');
 
-  console.log('Booking pipeline stage checks passed: shared rules, allowed transitions only, real-event stages, 5-day artist-sent follow-up.');
+  console.log('Booking pipeline stage checks passed: EPK gate, shared rules, allowed transitions only, real-event stages, 5-day artist-sent follow-up.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

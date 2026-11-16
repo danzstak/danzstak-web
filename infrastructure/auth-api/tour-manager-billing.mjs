@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-import { followUpDate, followUpEligible } from "./booking-pipeline.mjs";
+import { EPK_WORKSPACE_KEY, epkGate, epkGateMessage, followUpDate, followUpEligible } from "./booking-pipeline.mjs";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UcAtqDoNxcsrqZsAWuhsZb8";
 export const TOUR_MANAGER_PRODUCT_ID = "prod_VdRn459Fo3WpXT";
@@ -388,13 +388,16 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     if (!validUserId(userId)) return response(401, { error: "Authentication required." }, headers);
     const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), outreachId = String(body?.outreachId || "").trim(), followUpTo = String(body?.followUpTo || "").trim();
     if (!venueKey || venueKey.length > 240 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || !/^[a-zA-Z0-9_-]{16,100}$/.test(outreachId)) return response(400, { error: "Choose a saved venue, public booking email, and valid outreach draft." }, headers);
-    const preflightMs = clock(), [workspace, contactAccess, suppressed, cooldown, hourly] = await Promise.all([
+    const preflightMs = clock(), [workspace, contactAccess, suppressed, cooldown, hourly, epkRecord] = await Promise.all([
       db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true })),
       db.send(new GetItemCommand({ TableName: tableName, Key: contactUnlockKey(userId, venueKey), ConsistentRead: true })),
       db.send(new GetItemCommand({ TableName: tableName, Key: suppressionKey(to), ConsistentRead: true })),
       db.send(new GetItemCommand({ TableName: tableName, Key: recipientCooldownKey(userId, to), ConsistentRead: true })),
-      db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#OUTREACH_HOUR#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 48 }))
+      db.send(new QueryCommand({ TableName: tableName, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#OUTREACH_HOUR#" } }, ConsistentRead: true, ScanIndexForward: false, Limit: 48 })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: EPK_WORKSPACE_KEY } }, ConsistentRead: true }))
     ]);
+    const preflightGate = epkGate(epkRecord?.Item);
+    if (!preflightGate.ready) return response(409, { error: epkGateMessage(preflightGate), epk: preflightGate }, headers);
     let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
     const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to));
     if (!venue) return response(409, { error: "Save this venue and its public booking email before review." }, headers);
@@ -837,7 +840,12 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
     const body = parseBody(event), venueKey = String(body?.venueKey || "").trim(), to = String(body?.to || "").trim().toLowerCase(), subject = String(body?.subject || "").trim(), message = String(body?.message || "").trim(), id = String(body?.idempotencyKey || "").trim(), followUpTo = String(body?.followUpTo || "").trim(), template = ["band", "dj", "festival"].includes(String(body?.template)) ? String(body.template) : "custom";
     if (body?.artistApproved !== true) return response(400, { error: "Review the exact recipient and message, then approve this email before sending." }, headers);
     if (!venueKey || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to) || subject.length < 3 || subject.length > 180 || message.length < 20 || message.length > 5000 || !/^[a-zA-Z0-9_-]{16,100}$/.test(id) || followUpTo && !/^[a-zA-Z0-9_-]{16,100}$/.test(followUpTo)) return response(400, { error: "Choose a saved venue, reviewed email, subject, message, and valid send identifier." }, headers);
-    const workspace = await db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true }));
+    const [workspace, epkRecord] = await Promise.all([
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: BOOKING_WORKSPACE_KEY } }, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: tableName, Key: { userId: { S: userId }, tourId: { S: EPK_WORKSPACE_KEY } }, ConsistentRead: true }))
+    ]);
+    const sendGate = epkGate(epkRecord?.Item);
+    if (!sendGate.ready) return response(409, { error: epkGateMessage(sendGate), epk: sendGate }, headers);
     let plan = {}; try { plan = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { plan = {}; }
     const venue = (plan.venues || []).find(item => item?.venueKey === venueKey && (item.emails || []).some(email => String(email).toLowerCase() === to)), artistName = String(plan.artist?.name || "").trim(), epk = String(plan.artist?.epk || "").trim();
     if (!venue) return response(409, { error: "Save this venue and its public booking email to your account before sending." }, headers);

@@ -96,3 +96,40 @@ export function withPipeline(venues, events) {
   }
   return venues;
 }
+
+// EPK gate (task 02, owner 2026-11-16): sending any pitch needs a published EPK with this minimum.
+// Browsing venues stays open. Checked on the server before a credit is reserved.
+export const EPK_WORKSPACE_KEY = "epk-workspace-v1";
+export const EPK_REQUIREMENTS = [
+  ["name", "Act name"],
+  ["photo", "A photo"],
+  ["bio", "A bio"],
+  ["music", "A music link"],
+  ["live", "A live video or photo"],
+  ["contact", "A booking email or phone"]
+];
+
+// `item` is the stored EPK workspace record ({ plan: { S: kitJson }, published: { BOOL } }) or undefined.
+export function epkGate(item) {
+  let kit = {};
+  try { kit = JSON.parse(item?.plan?.S || "{}") || {}; } catch { kit = {}; }
+  const list = value => Array.isArray(value) ? value : [];
+  const https = value => /^https:\/\//i.test(String(value || ""));
+  const photos = (https(kit.heroImage) ? 1 : 0) + list(kit.media).filter(media => media?.role === "press-photo").length;
+  const checks = {
+    name: Boolean(String(kit.artistName || "").trim()),
+    photo: photos >= 1,
+    bio: Boolean(String(kit.shortBio || kit.bio || "").trim()),
+    music: list(kit.musicLinks).some(link => https(link?.url)),
+    live: list(kit.videoLinks).some(link => https(link?.url)) || photos >= 2,
+    contact: Boolean(String(kit.bookingEmail || "").trim() || String(kit.bookingPhone || "").trim())
+  };
+  const missing = EPK_REQUIREMENTS.filter(([key]) => !checks[key]).map(([, label]) => label);
+  const published = item?.published?.BOOL === true;
+  return { ready: published && !missing.length, published, done: EPK_REQUIREMENTS.length - missing.length, total: EPK_REQUIREMENTS.length, missing };
+}
+
+export function epkGateMessage(gate) {
+  const needs = [...gate.missing, ...(gate.published ? [] : ["Publish your EPK"])];
+  return `Finish your EPK to start booking (${gate.done} of ${gate.total} done). Still needed: ${needs.join(", ")}.`;
+}
