@@ -41,7 +41,7 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
-import { canMove, venueEvents, withPipeline } from "./booking-pipeline.mjs";
+import { EPK_WORKSPACE_KEY, canMove, epkGate, venueEvents, withPipeline } from "./booking-pipeline.mjs";
 import { createMarketplace } from "./marketplace.mjs";
 import { createTicketing } from "./ticketing.mjs";
 import { createPayouts } from "./payouts.mjs";
@@ -4715,11 +4715,14 @@ async function bookingWorkspace(event, method) {
   if (!userId) return reply(401, { error: "Authentication required." });
   const Key = { userId: { S: userId }, tourId: { S: bookingWorkspaceId } };
   if (method === "GET") {
-    const result = await db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true }));
-    const sends = await bookingSendItems(userId), bookingEmailCount = sentEmailCount(sends);
-    if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "" });
+    const [result, epkRecord] = await Promise.all([
+      db.send(new GetItemCommand({ TableName: toursTable, Key, ConsistentRead: true })),
+      db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: EPK_WORKSPACE_KEY } }, ConsistentRead: true }))
+    ]);
+    const sends = await bookingSendItems(userId), bookingEmailCount = sentEmailCount(sends), epk = epkGate(epkRecord?.Item);
+    if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "", epk });
     const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour), venues = withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends));
-    return reply(200, { ...saved, venues, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, venues), revision: result.Item.revision?.S || "" });
+    return reply(200, { ...saved, venues, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, venues), revision: result.Item.revision?.S || "", epk });
   }
   const data = parseJsonBody(event);
   if (!data || !Array.isArray(data.venues) || data.venues.length > 100 || typeof data.revision !== "string") return reply(400, { error: "Provide up to 100 venues and the loaded revision." });

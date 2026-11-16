@@ -12,6 +12,9 @@
   const stages = pipeline.BOOKING_STATUSES;
   const localToday = () => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`; };
   let stageFilter = "all";
+  // EPK gate from GET /booking-pipeline. null = unknown (older backend); the server still enforces it on send.
+  let epkGate = null;
+  const epkBlocked = () => Boolean(epkGate && epkGate.ready === false);
   const legacyStages = { Research: "Not contacted", "Ready to pitch": "Email prepared", Contacted: "Email sent", "In conversation": "Reply received", Hold: "Interested" };
   let venues = [];
   let outreachShares = [];
@@ -301,6 +304,26 @@
     updateControls();
   }
 
+  function renderEpkGate() {
+    let gate = document.getElementById("epkGateCard");
+    if (!epkBlocked()) { gate?.remove(); return; }
+    if (!gate) {
+      gate = document.createElement("section");
+      gate.id = "epkGateCard"; gate.className = "epk-gate"; gate.setAttribute("aria-labelledby", "epkGateTitle");
+      (document.getElementById("pipelineFilters") || cards).before(gate);
+    }
+    const title = document.createElement("h2"), tagline = document.createElement("p"), progress = document.createElement("progress"), progressText = document.createElement("p"), list = document.createElement("ul"), action = document.createElement("a"), note = document.createElement("small");
+    title.id = "epkGateTitle"; title.textContent = "Finish your EPK to start booking";
+    tagline.className = "epk-gate-tagline"; tagline.textContent = "Get it together to keep it together.";
+    const total = Number(epkGate.total) || 6, done = Math.min(total, Math.max(0, Number(epkGate.done) || 0));
+    progress.max = total; progress.value = done; progress.setAttribute("aria-label", `EPK essentials: ${done} of ${total} done`);
+    progressText.className = "epk-gate-progress"; progressText.textContent = `${done} of ${total} done`;
+    for (const item of [...(Array.isArray(epkGate.missing) ? epkGate.missing : []), ...(epkGate.published ? [] : ["Publish your EPK"])]) list.append(Object.assign(document.createElement("li"), { textContent: String(item) }));
+    action.className = "booking-next-action"; action.href = "epk.html"; action.textContent = "Open the EPK builder";
+    note.textContent = "Free by hand, or $5 with AI. You can keep searching and saving venues; pitches unlock when your EPK is published.";
+    gate.replaceChildren(title, tagline, progress, progressText, list, action, note);
+  }
+
   function renderStageFilters() {
     let bar = document.getElementById("pipelineFilters");
     if (!bar) {
@@ -324,6 +347,7 @@
   }
 
   function render() {
+    renderEpkGate();
     renderStageFilters();
     if (!venues.length) { showEmpty(); return; }
     cards.replaceChildren();
@@ -483,7 +507,7 @@
     button.textContent = "Preview exact email";
     const contactUnlocked = window.danzstakBookingContactUnlocked?.(identity(venue)) === true;
     const email = contactUnlocked ? (venue.emails || []).find(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) : undefined;
-    button.disabled = !email;
+    button.disabled = !email || epkBlocked();
     const creditPrompt = document.createElement("div"), creditMessage = document.createElement("p"), buyCredit = document.createElement("button");
     creditPrompt.className = "booking-credit-needed";
     creditMessage.textContent = "No booking-email credit is ready. You can still preview the exact message before buying.";
@@ -545,7 +569,7 @@
       }
     });
     const note = document.createElement("small");
-    note.textContent = email ? "DanzStak saves your current pitch before review. Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Venue replies arrive in your private SYNC Bookings inbox." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
+    note.textContent = epkBlocked() ? "Finish and publish your EPK to send pitches. Your venue and draft stay saved." : email ? "DanzStak saves your current pitch before review. Nothing sends until you review the exact recipient and message and tick approval. DanzStak then reserves one credit, submits the email, and restores the credit if the provider rejects it. Venue replies arrive in your private SYNC Bookings inbox." : (venue.emails || []).length ? "Unlock this venue's booking contact before sending an email." : "No public booking email listed. Use the venue website to find its submission form.";
     section.append(fit, shareEvidence, deliveryEvidence, builder, subjectLabel, label, button, creditPrompt, note);
     const initialPitch = venueOutreach.find(item => !item.followUpTo && ["sent", "delivered", "replied"].includes(item.status)), existingFollowUp = initialPitch && venueOutreach.find(item => item.followUpTo === initialPitch.id), venueReplies = window.danzstakTourManagerBilling?.replies || [], hasReply = initialPitch && (initialPitch.repliedAt || booking.pipeline?.repliedAt || !["found", "pitched", "no_reply"].includes(pipeline.stageOf(bookingStatus(venue))) || venueReplies.some(item => item.outreachId === initialPitch.id && item.direction === "inbound")), today = new Date().toISOString().slice(0, 10), followUpDue = Boolean(booking.followUp && booking.followUp <= today);
     if (initialPitch && (followUpDue || existingFollowUp || hasReply)) {
@@ -567,7 +591,7 @@
         followDraft.addEventListener("input", () => { booking.followUpDraft = followDraft.value; });
         followDraftLabel.append(followDraft);
         const followButton = document.createElement("button");
-        followButton.type = "button"; followButton.className = "secondary"; followButton.textContent = "Review one follow-up · 1 credit";
+        followButton.type = "button"; followButton.className = "secondary"; followButton.textContent = "Review one follow-up · 1 credit"; followButton.disabled = epkBlocked();
         followButton.addEventListener("click", async () => {
           const currentArtist = artist(), email = initialPitch.recipient, outreachId = crypto.randomUUID().replaceAll("-", ""), publicEpk = currentArtist.epk, subjectText = `Following up: ${initialPitch.subject || `${currentArtist.name || "Artist"} booking enquiry`}`.slice(0, 180), baseMessage = followDraft.value.trim();
           if (!publicEpk || !baseMessage.includes(publicEpk)) { window.danzstakShowFeedback?.("Keep your published EPK link in the follow-up so DanzStak can swap in this venue's private link.", { urgent:true }); return; }
@@ -650,6 +674,7 @@
       const retainedAdditions = additions.slice(0, Math.max(0, 100 - saved.length));
       venues = [...saved, ...retainedAdditions];
       revision = data.revision || "";
+      epkGate = data.epk && typeof data.epk === "object" ? data.epk : null;
       for (const [key, id] of Object.entries(artistInputs)) document.getElementById(id).value = data.artist?.[key] || "";
       for (const [key, id] of Object.entries(tourInputs)) {
         const input = document.getElementById(id), value = data.tour?.[key];
