@@ -70,6 +70,8 @@
     if(managing) { byId("shopName").value=shop.name; byId("shopDescription").value=shop.description; byId("shopStatus").value=shop.status; productManager.hidden=false; }
   }
   async function load() {
+    // Owner 2026-11-15: there is no official DanzStak Store — the Bazaar is the one commerce destination.
+    if(!managing && !memberId) { location.replace("bazaar.html"); return; }
     if(managing) { manager.hidden=false; byId("manageShopLink").hidden=true; }
     else if(!memberId) byId("manageShopLink").hidden=false;
     const path=managing?"/marketplace/shop":memberId?`/marketplace/shop/${encodeURIComponent(memberId)}`:"/marketplace/store";
