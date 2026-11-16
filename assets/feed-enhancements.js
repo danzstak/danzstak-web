@@ -4287,7 +4287,7 @@ reelsRail.addEventListener("keydown", event => {
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 });
-reelsHeading.append(reelsTitle, reelsSourceNote, rollSessionStatus, reelAddToggle, rollOpen, rollClose);
+reelsHeading.append(reelsTitle, rollSessionStatus, reelAddToggle, rollOpen, rollClose);
 const reelsList = document.createElement("div");
 reelsList.className = "reels-list";
 function restoreRollFullscreenFromHistory(event) {
@@ -4563,7 +4563,7 @@ function renderPlayableReels() {
         frame.loading = "lazy";
         frame.referrerPolicy = "strict-origin-when-cross-origin";
         frame.allow = "autoplay; encrypted-media; fullscreen; picture-in-picture";
-        frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation");
+        frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox");
         frame.setAttribute("allowfullscreen", "");
         return frame;
       };

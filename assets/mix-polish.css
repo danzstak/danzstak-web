@@ -85,3 +85,20 @@
 #feed .comment-like .reaction-count,#feed .comment-dislike .reaction-count{font-size:.75rem;font-weight:700;line-height:1}
 #feed .comment-reactors summary{font-size:.72rem;color:var(--mix-muted);cursor:pointer;list-style:none;padding:0 4px}
 #feed .comment-reactors summary::-webkit-details-marker{display:none}
+
+/* One continuous surface (owner 2026-11-16): page, posts, The Roll, Dailies and composer share one color;
+   no boxed cards — posts flow, split by a single hairline. */
+:root{--mix-surface:#fff}
+body:has(#feed){background:var(--mix-surface)!important}
+#feed{gap:0!important;background:var(--mix-surface)}
+#feed > .post,#feed > .reels-rail,.reels-rail.post,.dailies,.stories-rail{
+  background:var(--mix-surface)!important;border:0!important;border-radius:0!important;box-shadow:none!important;margin:0!important;
+}
+#feed > .post{border-bottom:1px solid var(--mix-rule)!important}
+#feed > .post:last-child{border-bottom:0!important}
+.reels-rail.post{padding:10px var(--mix-pad) 12px!important;border-bottom:1px solid var(--mix-rule)!important}
+#feed > .post .post-actions{border-top:0!important}
+#feed > .post .comments-more[hidden]{display:none!important}
+/* DanzStak palette instead of stock social blue: initials avatars and in-post links. */
+.menu-profile-avatar,.story-create-avatar,.composer-avatar,.post-avatar-fallback{background:#0b0b0c!important;color:#ff5a1f!important}
+#feed .user-content-link{color:#d9480f!important}

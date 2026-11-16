@@ -1,13 +1,10 @@
-/* Link preview cards: source image full card width, compact meta row. */
-.link-preview-card{display:block;margin:6px 0 0;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);background:#141416;color:inherit;text-decoration:none;overflow:hidden}
+/* Link preview cards: the source's image full width, compact meta, same surface as the post. */
+.link-preview-card{display:block;margin:6px calc(-1 * var(--post-inline-padding,12px)) 0;background:transparent;color:inherit;text-decoration:none;overflow:hidden}
 .link-preview-card:focus-visible{outline:2px solid #ff5a1f;outline-offset:-2px}
 .link-preview-image{position:relative;display:block;width:100%;aspect-ratio:1.91/1;background:#0b0b0c;overflow:hidden}
 .link-preview-image img{display:block;width:100%;height:100%;object-fit:cover}
 .link-preview-card.is-video .link-preview-image::after{content:"";position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(11,11,12,.72) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M9 7v10l8-5z'/%3E%3C/svg%3E") center/28px no-repeat;box-shadow:0 0 0 2px #ff5a1f}
-.link-preview-meta{display:grid;gap:2px;padding:8px 12px 10px}
-.link-preview-host{font:600 11px/1.3 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#ff5a1f}
-.link-preview-title{font-weight:700;font-size:15px;line-height:1.3;color:#ededea;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.link-preview-desc{font-size:13px;line-height:1.35;color:#a9a9a4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.profile-post-card .link-preview-card{background:#fff;border-color:#e4e4e0}
-.profile-post-card .link-preview-title{color:#121110}
-.profile-post-card .link-preview-desc{color:#555}
+.link-preview-meta{display:grid;gap:2px;padding:8px var(--post-inline-padding,12px) 6px}
+.link-preview-host{font:600 11px/1.3 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:#d9480f}
+.link-preview-title{font-weight:700;font-size:15px;line-height:1.3;color:#121418;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.link-preview-desc{font-size:13px;line-height:1.35;color:#626b78;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
