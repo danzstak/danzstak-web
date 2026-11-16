@@ -110,6 +110,8 @@ async function loadProfile() {
     window.dispatchEvent(new CustomEvent("danzstak:profile-loaded", { detail: profile }));
   } catch (error) {
     status.textContent = error.message || "Unable to load your profile. Please return to Your Mix and try again.";
+    const lockedMember = new URLSearchParams(location.search).get("member") || "";
+    if (error.expected && /^[a-f0-9-]{36}$/.test(lockedMember)) window.dispatchEvent(new CustomEvent("danzstak:profile-locked", { detail: { memberId: lockedMember, status } }));
   }
 }
 
