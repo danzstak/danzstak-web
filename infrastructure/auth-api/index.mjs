@@ -2806,8 +2806,10 @@ function isRecordStore(place) {
   // It regularly includes audio installers, video production, instrument shops,
   // bookstores and unrelated retailers. Prefer a shorter list with explicit
   // record/vinyl evidence in the public name over wasting an artist's outreach.
-  const clearlyWrongName = /\b(dental|dentist|medical|county records?|public records?|records? office|real estate|realtor|video transfer|video production|audio visual|audio|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio|books?|press|productions?|music company|music center)\b/.test(name);
-  return !clearlyWrongName
+  const clearlyWrongName = /\b(police|sheriff|department records?|archives?|court|clerk|vital records?|government|dental|dentist|medical|county records?|public records?|records? office|real estate|realtor|video transfer|video production|audio visual|audio|best buy|dvd|airport video|grocery|instrument|guitar|piano|music school|music lessons?|recording studio|books?|press|productions?|music company|music center)\b/.test(name);
+  // Owner live run 2026-11-16: "Portland Police Department Records" showed up as a record store.
+  const governmentPlace = /government|community facility|police/.test(description);
+  return !clearlyWrongName && !governmentPlace
     && (descriptiveSignal || strongNameSignal || recordCategorySignal);
 }
 

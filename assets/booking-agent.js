@@ -1517,7 +1517,7 @@
         venueCell = document.createElement("td"),
         sleepCell = document.createElement("td"),
         planCell = document.createElement("td"),
-        dateLabel = date ? date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }) : "date open";
+        dateLabel = date ? date.toLocaleDateString(document.documentElement.lang || undefined, { month: "short", day: "numeric", timeZone: "UTC" }) : "date open";
       const venueKey = venue => venue.venueKey || `${market?.stop}|${venue.name}`.toLowerCase(),
         venue = shouldShow && market
           ? market.venues.find(candidate => !usedVenues.has(venueKey(candidate)) && !window.danzstakVenueFreshness?.hidden(candidate))
