@@ -10,6 +10,8 @@ async function run(fail, genre = "DIY Punk") {
   const queries = [];
   let active = 0, peakActive = 0;
   const context = vm.createContext({
+    // Freshness is covered by test-booking-venue-freshness.cjs; discovery order is tested here unchanged.
+    withVenueFreshness: async venues => venues,
     mapLimit: async (items, limit, worker) => {
       const results = new Array(items.length);
       let next = 0;

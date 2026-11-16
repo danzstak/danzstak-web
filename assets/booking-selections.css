@@ -58,3 +58,15 @@
 .epk-gate .booking-next-action{justify-self:start}
 .epk-gate small{color:#566274;line-height:1.5}
 @media print{.epk-gate{display:none}}
+/* Venue freshness + member report (task 07). */
+.venue-freshness { display: inline-block; width: fit-content; max-width: 100%; margin: 2px 0 4px; padding: 3px 8px; border: 1px solid #8a8f98; border-radius: 999px; color: #3b3f45; background: #fff; font-size: .8rem; font-weight: 700; line-height: 1.35; }
+.venue-freshness-active { border-color: #0b6b3a; color: #0b6b3a; }
+.venue-freshness-recent { border-color: #4a5160; color: #2b3038; }
+.venue-freshness-bounced, .venue-freshness-reported-closed { border-color: #b3261e; color: #b3261e; }
+.venue-freshness-closed { border-color: #5c6068; color: #fff; background: #5c6068; }
+.venue-report { margin: 4px 0 8px; }
+.venue-report summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 700; }
+.venue-report form { display: grid; gap: 8px; margin-top: 8px; }
+.venue-report label { display: grid; gap: 4px; font-weight: 700; }
+.venue-report input { min-height: 44px; }
+.venue-report button { min-height: 44px; }

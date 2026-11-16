@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { EPK_WORKSPACE_KEY, epkGate, epkGateMessage, followUpDate, followUpEligible } from "./booking-pipeline.mjs";
+import { signalUpdate } from "./booking-venue-signals.mjs";
 import { SUPPRESSION_CLEAR_CONDITION, checkBookingContact, createMailDomainCheck, suppressionBlock, suppressionClearValues } from "./booking-contact-check.mjs";
 
 export const TOUR_MANAGER_EMAIL_PRICE_ID = "price_1UcAtqDoNxcsrqZsAWuhsZb8";
@@ -131,6 +132,14 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
   const browserHeaders = event => corsHeaders(event.headers?.origin || event.headers?.Origin);
   let verifiedStripeAccountId = "";
 
+  // Shared venue freshness (task 07): best effort, never blocks the event that caused it.
+  async function venueSignal(venueKey, kind, at) {
+    const update = signalUpdate(tableName, venueKey, kind, at);
+    if (!update) return;
+    try { await db.send(new UpdateItemCommand(update)); }
+    catch (error) { if (error.name !== "ConditionalCheckFailedException") console.error("Venue signal not recorded:", error.name); }
+  }
+
   async function providerEvents(event) {
     const records = Array.isArray(event?.Records) ? event.Records : [];
     if (!records.length || records.some(record => record?.EventSource !== "aws:sns" || typeof record?.Sns?.Message !== "string")) return null;
@@ -147,7 +156,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       const eventId = String(record.Sns.MessageId || `${type}:${messageId}:${notification?.mail?.timestamp || ""}`), at = nowIso(), status = type === "delivery" ? "delivered" : type === "bounce" ? "bounced" : "complained";
       const userKey = sendKey(item.artistId.S, item.sendId.S), suppressionItemKey = { userId: { S: SUPPRESSION_OWNER }, tourId: { S: item.recipientHash.S } };
       const [sendResult, existingSuppression] = await Promise.all([
-        type === "bounce" ? db.send(new GetItemCommand({ TableName: tableName, Key: userKey, ConsistentRead: true })) : Promise.resolve({}),
+        type !== "complaint" ? db.send(new GetItemCommand({ TableName: tableName, Key: userKey, ConsistentRead: true })) : Promise.resolve({}),
         type !== "delivery" ? db.send(new GetItemCommand({ TableName: tableName, Key: suppressionItemKey, ConsistentRead: true })) : Promise.resolve({})
       ]);
       const build = withRestore => {
@@ -173,7 +182,8 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
       };
       const priorStatus = sendResult.Item?.status?.S || "";
       const restore = type === "bounce" && !sendResult.Item?.bounceCreditRestoredAt?.S ? (["sent", "delivered"].includes(priorStatus) ? "settled" : priorStatus === "provider_accepted" ? "reserved" : "") : "";
-      try { await db.send(new TransactWriteItemsCommand({ TransactItems: build(restore) })); processed += 1; }
+      const signal = () => venueSignal(sendResult.Item?.venueKey?.S || "", type === "delivery" ? "delivered" : "bounce", at);
+      try { await db.send(new TransactWriteItemsCommand({ TransactItems: build(restore) })); processed += 1; await signal(); }
       catch (error) {
         const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: providerEventKey(eventId), ConsistentRead: true }));
         if (duplicate.Item) { duplicates += 1; continue; }
@@ -181,7 +191,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
         // Another bounce event already restored this credit: record the event without a second restore.
         const latest = await db.send(new GetItemCommand({ TableName: tableName, Key: userKey, ConsistentRead: true }));
         if (!latest.Item?.bounceCreditRestoredAt?.S) throw error;
-        await db.send(new TransactWriteItemsCommand({ TransactItems: build("") })); processed += 1;
+        await db.send(new TransactWriteItemsCommand({ TransactItems: build("") })); processed += 1; await signal();
       }
     }
     return { processed, ignored, duplicates };
@@ -482,6 +492,7 @@ export function createTourManagerBilling({ db, commands, authenticate, corsHeade
         { Put: { TableName: tableName, Item: { ...replyKey, outreachId: { S: item.outreachId.S }, venueKey: { S: item.venueKey?.S || "" }, direction: { S: "inbound" }, action: { S: action }, content: { S: content }, ...(proposedDate ? { proposedDate: { S: proposedDate } } : {}), createdAt: { S: at } }, ConditionExpression: "attribute_not_exists(userId)" } },
         { Update: { TableName: tableName, Key: sendKey(item.artistId.S, item.outreachId.S), UpdateExpression: "SET #status = :replied, repliedAt = :at", ConditionExpression: "attribute_exists(userId)", ExpressionAttributeNames: { "#status": "status" }, ExpressionAttributeValues: { ":replied": { S: "replied" }, ":at": { S: at } } } }
       ] }));
+      await venueSignal(item.venueKey?.S || "", "reply", at);
       return response(201, { received: true }, headers);
     } catch (error) {
       const duplicate = await db.send(new GetItemCommand({ TableName: tableName, Key: replyKey, ConsistentRead: true }));

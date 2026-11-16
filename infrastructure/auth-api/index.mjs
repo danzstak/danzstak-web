@@ -41,7 +41,8 @@ import {
   CalculateRoutesCommand
 } from "@aws-sdk/client-geo-routes";
 import { createTourManagerBilling } from "./tour-manager-billing.mjs";
-import { EPK_WORKSPACE_KEY, canMove, epkGate, venueEvents, withPipeline } from "./booking-pipeline.mjs";
+import { EPK_WORKSPACE_KEY, canMove, epkGate, stageOf, venueEvents, withPipeline } from "./booking-pipeline.mjs";
+import { VENUE_REPORT_OWNER, cleanReport, freshness, signalFromItem, signalUpdate, sortByFreshness, validSignalVenueKey, venueSignalKey } from "./booking-venue-signals.mjs";
 import { createMarketplace } from "./marketplace.mjs";
 import { createTicketing } from "./ticketing.mjs";
 import { createPayouts } from "./payouts.mjs";
@@ -3844,7 +3845,7 @@ async function tourCandidates(point, genre = "", excludedVenueKeys = new Set(), 
     .sort((left, right) => venueSuitability(right, genre) - venueSuitability(left, genre)
       || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
   const offset = venuePool.length ? variation % venuePool.length : 0;
-  const venues = [...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60);
+  const venues = await withVenueFreshness([...venuePool.slice(offset), ...venuePool.slice(0, offset)].slice(0, 60));
   const hotels = hotelResults.filter(place => nearby(place, 35)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   const vanStops = vanRestResults.filter(place => nearby(place, 25)).sort((left, right) => (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999)).slice(0, 2);
   return { stop: point.label, position: point.position, venues, hotels, vanStops, recordStores: recordDiscovery.stores || [], researchLeads: osmVenueDiscovery.researchLeads || [], providerStatus: [...(osmVenueDiscovery.providers || []), ...(recordDiscovery.providers || [])] };
@@ -3890,7 +3891,7 @@ async function searchVenues(event) {
       const assessment = venueDiscoveryAssessment(place, parsed.genre, String(data?.venueType || "any"));
       return { ...place, distanceMiles: Math.round(approximateMilesBetween(point.position, place.position) * 10) / 10, bookingSuitability: assessment.suitability, suitabilityReasons: assessment.reasons, genreMatch: assessment.genreMatch, venueTypeMatch: assessment.typeMatch };
     }).sort((left, right) => venueSuitability(right, parsed.genre) - venueSuitability(left, parsed.genre) || (left.distanceMiles ?? 999) - (right.distanceMiles ?? 999));
-    const offset = page * 20, venues = ranked.slice(offset, offset + 20);
+    const offset = page * 20, venues = await withVenueFreshness(ranked.slice(offset, offset + 20));
     const providerFailures = discovery.providers.filter(provider => !provider.ok && !provider.skipped);
     return reply(200, { query: parsed.raw, location: point, genre: parsed.genre, venues, researchLeads: discovery.researchLeads || [], providers: discovery.providers, coverage: providerFailures.length ? "partial" : "provider-complete", coverageNotice: providerFailures.length ? "Some discovery providers were unavailable; these results are incomplete." : ranked.length ? "Results are current public leads, not guaranteed booking availability." : "No relevant public venue leads were found in the searched radius. This does not prove that no venues exist.", page, hasMore: ranked.length > offset + venues.length, canExpand: radiusMiles < 150, radiusMiles, expandedFromMiles });
   } catch (error) {
@@ -4697,6 +4698,55 @@ function tourBudgetEstimate(tour, bookingEmailCount = 0, venues = []) {
   return { fuel, transportation, accommodation, meals, contingency, bookingEmails, bookingEmailsUsd, total, confirmedRevenue, potentialRevenue, confirmedProfit: confirmedRevenue - total, potentialProfit: potentialRevenue - total, breakEvenRevenue: total, currency: tour.currency };
 }
 
+// Venue freshness (task 07): shared, privacy-safe signals per venue. A read failure never blocks discovery.
+async function venueSignals(venueKeys) {
+  const keys = [...new Set(venueKeys.filter(validSignalVenueKey))], found = new Map();
+  try {
+    for (let offset = 0; offset < keys.length; offset += 100) {
+      let request = keys.slice(offset, offset + 100).map(venueSignalKey);
+      for (let attempt = 0; request.length && attempt < 3; attempt += 1) {
+        const result = await db.send(new BatchGetItemCommand({ RequestItems: { [toursTable]: { Keys: request } } }));
+        for (const item of result.Responses?.[toursTable] || []) found.set(item.tourId.S, signalFromItem(item));
+        request = result.UnprocessedKeys?.[toursTable]?.Keys || [];
+      }
+    }
+  } catch (error) { console.error("Venue signals unavailable:", error.name); }
+  return found;
+}
+async function withVenueFreshness(venues, { sort = true } = {}) {
+  const signals = await venueSignals(venues.map(venue => venue?.venueKey || "")), now = Date.now();
+  const annotated = venues.map(venue => ({ ...venue, freshness: freshness(signals.get(venue?.venueKey) || {}, now) }));
+  return sort ? sortByFreshness(annotated) : annotated;
+}
+async function recordVenueSignal(venueKey, kind, at = new Date().toISOString()) {
+  const update = signalUpdate(toursTable, venueKey, kind, at);
+  if (!update) return;
+  try { await db.send(new UpdateItemCommand(update)); }
+  catch (error) { if (error.name !== "ConditionalCheckFailedException") console.error("Venue signal not recorded:", error.name); }
+}
+
+// "This club closed" / "Changed booker": one report per member, venue and kind; owner-reviewable (review-venue-reports.ps1).
+async function bookingVenueReport(userId, data, reply) {
+  const report = cleanReport(data);
+  if (report.error) return reply(400, { error: report.error });
+  const workspace = await db.send(new GetItemCommand({ TableName: toursTable, Key: { userId: { S: userId }, tourId: { S: bookingWorkspaceId } }, ConsistentRead: true }));
+  let saved = {}; try { saved = JSON.parse(workspace.Item?.plan?.S || "{}"); } catch { saved = {}; }
+  const venue = (Array.isArray(saved.venues) ? saved.venues : []).find(item => item?.venueKey === report.venueKey);
+  if (!venue) return reply(409, { error: "Save this venue to your booking list before reporting a change." });
+  const at = new Date().toISOString(), reportKey = { userId: { S: VENUE_REPORT_OWNER }, tourId: { S: `${report.venueKey}#${report.kind}#${createHash("sha256").update(userId).digest("hex").slice(0, 16)}` } };
+  const item = { ...reportKey, venueKey: { S: report.venueKey }, venueName: { S: String(venue.name || "Venue").slice(0, 160) }, kind: { S: report.kind }, reporterId: { S: userId }, status: { S: "pending" }, createdAt: { S: at }, ...(report.email ? { contactEmail: { S: report.email } } : {}), ...(report.url ? { contactUrl: { S: report.url } } : {}), ...(report.note ? { note: { S: report.note } } : {}) };
+  const items = [{ Put: { TableName: toursTable, Item: item, ConditionExpression: "attribute_not_exists(userId)" } }];
+  if (report.kind === "closed") items.push({ Update: { TableName: toursTable, Key: venueSignalKey(report.venueKey), UpdateExpression: "ADD closedReports :one SET closedReportedAt = :at", ExpressionAttributeValues: { ":one": { N: "1" }, ":at": { S: at } } } });
+  try { await db.send(new TransactWriteItemsCommand({ TransactItems: items })); }
+  catch (error) {
+    const existing = await db.send(new GetItemCommand({ TableName: toursTable, Key: reportKey, ConsistentRead: true }));
+    if (existing.Item) return reply(200, { reported: true, alreadyReported: true });
+    throw error;
+  }
+  const signal = (await venueSignals([report.venueKey])).get(report.venueKey) || {};
+  return reply(201, { reported: true, alreadyReported: false, freshness: freshness(signal, Date.now()) });
+}
+
 // Booking sends are the real events behind pipeline stages (pitched, replied) and the email-credit count.
 async function bookingSendItems(userId) {
   const result = await db.send(new QueryCommand({ TableName: toursTable, KeyConditionExpression: "userId = :userId AND begins_with(tourId, :prefix)", ExpressionAttributeValues: { ":userId": { S: userId }, ":prefix": { S: "TOUR_MANAGER#EMAIL_SEND#" } }, ProjectionExpression: "tourId, venueKey, #status, sentAt, providerAcceptedAt, createdAt, followUpTo, repliedAt", ExpressionAttributeNames: { "#status": "status" }, ConsistentRead: true, Limit: 500 }));
@@ -4721,10 +4771,11 @@ async function bookingWorkspace(event, method) {
     ]);
     const sends = await bookingSendItems(userId), bookingEmailCount = sentEmailCount(sends), epk = epkGate(epkRecord?.Item);
     if (!result.Item) return reply(200, { venues: [], artist: {}, tour: cleanTourBudget({}), estimate: tourBudgetEstimate(cleanTourBudget({}), bookingEmailCount), revision: "", epk });
-    const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour), venues = withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends));
+    const saved = JSON.parse(result.Item.plan.S), tour = cleanTourBudget(saved.tour), venues = await withVenueFreshness(withPipeline(Array.isArray(saved.venues) ? saved.venues : [], venueEvents(sends)), { sort: false });
     return reply(200, { ...saved, venues, tour, estimate: tourBudgetEstimate(tour, bookingEmailCount, venues), revision: result.Item.revision?.S || "", epk });
   }
   const data = parseJsonBody(event);
+  if (data?.action === "venue_report") return await bookingVenueReport(userId, data, reply);
   if (!data || !Array.isArray(data.venues) || data.venues.length > 100 || typeof data.revision !== "string") return reply(400, { error: "Provide up to 100 venues and the loaded revision." });
   const text = (value, max = 300) => typeof value === "string" ? value.trim().slice(0, max) : "";
   const https = value => /^https:\/\//i.test(text(value, 600)) ? text(value, 600) : "";
@@ -4765,6 +4816,9 @@ async function bookingWorkspace(event, method) {
     if (error.name === "ConditionalCheckFailedException") return reply(409, { error: "Another device saved changes. Export your work, then reload the account workspace before saving." });
     throw error;
   }
+  // A newly confirmed or played show is the strongest sign the club is alive (shared, no member identity).
+  const booked = venues.filter(venue => ["confirmed", "played"].includes(stageOf(venue.booking.status)) && !["confirmed", "played"].includes(stageOf(savedStatus.get(pipelineVenueId(venue)) || "")));
+  await Promise.all(booked.map(venue => recordVenueSignal(venue.venueKey, "booked")));
   return reply(200, { revision, estimate, statuses });
 }
 

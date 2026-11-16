@@ -15,7 +15,8 @@ const fs = require("node:fs");
   const mapping = { ...providerMessageKey(providerId), artistId: { S: artistId }, sendId: { S: sendId }, recipientHash: { S: recipientHash } };
   records.set(keyOf(mapping), mapping);
   const sendKey = `${artistId}|TOUR_MANAGER#EMAIL_SEND#${sendId}`;
-  records.set(sendKey, { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${sendId}` }, status: { S: "sent" }, venueName: { S: "Club Gone" } });
+  records.set(sendKey, { userId: { S: artistId }, tourId: { S: `TOUR_MANAGER#EMAIL_SEND#${sendId}` }, status: { S: "sent" }, venueName: { S: "Club Gone" }, venueKey: { S: "osm-node-777" } });
+  const signals = [];
   const creditKey = `${artistId}|TOUR_MANAGER#BOOKING_EMAIL_CREDITS`, credit = name => Number(records.get(creditKey)[name]?.N || 0);
   records.set(creditKey, { userId: { S: artistId }, tourId: { S: "TOUR_MANAGER#BOOKING_EMAIL_CREDITS" }, credits: { N: "4" }, sentEmails: { N: "1" }, reservedCredits: { N: "0" } });
   const db = { async send(command) {
@@ -40,6 +41,7 @@ const fs = require("node:fs");
       }
       return {};
     }
+    if (command instanceof UpdateItemCommand) { signals.push(command.input); return {}; }
     throw new Error(`Unexpected command ${command.constructor.name}`);
   } };
   const service = createTourManagerBilling({ db, commands, authenticate: async () => "", corsHeaders: () => ({}), tableName: "Tours", env: {}, clock: () => Date.parse("2026-11-07T13:00:00Z") });
@@ -49,6 +51,7 @@ const fs = require("node:fs");
   const delivered = await service(sns("sns-delivery-1", { eventType: "Delivery", mail, delivery: { timestamp: mail.timestamp } }));
   assert.deepEqual(delivered, { processed: 1, ignored: 0, duplicates: 0 });
   assert.equal(records.get(sendKey).status.S, "delivered");
+  assert.deepEqual(signals.map(item => [item.Key.tourId.S, item.ExpressionAttributeNames["#field"]]), [["osm-node-777", "lastDeliveredAt"]], "A delivery marks the venue fresh (task 07)");
   const duplicate = await service(sns("sns-delivery-1", { eventType: "Delivery", mail, delivery: { timestamp: mail.timestamp } }));
   assert.deepEqual(duplicate, { processed: 0, ignored: 0, duplicates: 1 });
 
@@ -59,6 +62,7 @@ const fs = require("node:fs");
   assert.equal(records.get(sendKey).status.S, "bounced");
   const suppression = records.get(`TOUR_MANAGER#GLOBAL_SUPPRESSION|${recipientHash}`);
   assert.equal(suppression.reason.S, "permanent_bounce");
+  assert.equal(signals.at(-1).ExpressionAttributeNames["#field"], "lastBounceAt", "A hard bounce is recorded on the venue");
   assert.equal(credit("credits"), 5, "A hard bounce reported after the send gives the credit back (task 07)"); assert.equal(credit("sentEmails"), 0);
   assert.ok([...records.keys()].some(key => key.startsWith(`${artistId}|TOUR_MANAGER#LEDGER#`) && records.get(key).entryType.S === "email_bounced_restored"), "The restore is on the credit ledger");
   const secondBounce = await service(sns("sns-bounce-2", { eventType: "Bounce", mail, bounce: { bounceType: "Permanent" } }));
@@ -99,7 +103,7 @@ const fs = require("node:fs");
   assert.match(client, /Email delivered by the provider/);
   assert.match(client, /This address bounced — find a newer contact. Your credit came back./);
   assert.match(client, /reported this email; this contact is now suppressed/);
-  assert.match(page, /booking-selections\.js\?v=28/);
-assert.match(worker, /danzstak-shell-v844/);
+  assert.match(page, /booking-selections\.js\?v=29/);
+assert.match(worker, /danzstak-shell-v845/);
   console.log("Booking provider-event checks passed: delivery state, duplicate protection, permanent-bounce and complaint suppression, bounce credit restore (once), opt-out precedence, transient-bounce handling, private keys, and SES event infrastructure.");
 })().catch(error => { console.error(error); process.exit(1); });
