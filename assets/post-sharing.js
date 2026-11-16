@@ -90,8 +90,26 @@
     const copy = document.createElement('button'); copy.type = 'button'; copy.textContent = 'Copy link';
     copy.addEventListener('click', async () => { let timer; copy.disabled = true; try { await Promise.race([navigator.clipboard.writeText(url.href),new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Clipboard unavailable')),3000); })]); feedback.textContent = 'Link copied.'; } catch { link.focus(); link.select(); feedback.textContent = 'Select and copy the post link.'; } finally { clearTimeout(timer); copy.disabled = false; } });
     const close = document.createElement('button'); close.type = 'button'; close.textContent = 'Close'; close.addEventListener('click', () => dialog.close());
+    // Share outside DanzStak (owner 2026-11-16): plain share links to other networks, no SDKs or platform APIs.
+    const outside = document.createElement('div'); outside.className = 'post-share-socials'; outside.setAttribute('role', 'group'); outside.setAttribute('aria-label', 'Share to other networks');
+    const text = (post.querySelector('.post-content, .profile-post-content')?.textContent.trim() || 'On DanzStak').slice(0, 200);
+    const u = encodeURIComponent(url.href), t = encodeURIComponent(text), ut = encodeURIComponent(text + ' ' + url.href);
+    const targets = [
+      ['Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' + u],
+      ['X', 'https://x.com/intent/post?text=' + t + '&url=' + u],
+      ['Bluesky', 'https://bsky.app/intent/compose?text=' + ut],
+      ['Threads', 'https://www.threads.net/intent/post?text=' + ut],
+      ['Reddit', 'https://www.reddit.com/submit?url=' + u + '&title=' + t],
+      ['WhatsApp', 'https://wa.me/?text=' + ut],
+      ['Telegram', 'https://t.me/share/url?url=' + u + '&text=' + t],
+      ['Mastodon', 'https://mastodonshare.com/?url=' + u + '&text=' + t],
+      ['Email', 'mailto:?subject=' + encodeURIComponent('On DanzStak') + '&body=' + ut]
+    ];
+    for (const [name, href] of targets) { const a = document.createElement('a'); a.className = 'post-share-social'; a.href = href; a.textContent = name; a.setAttribute('aria-label', 'Share to ' + name); if (!href.startsWith('mailto:')) { a.target = '_blank'; a.rel = 'noopener noreferrer'; } outside.appendChild(a); }
+    if (navigator.share) { const more = document.createElement('button'); more.type = 'button'; more.className = 'post-share-social'; more.textContent = 'More…'; more.setAttribute('aria-label', 'More apps (Instagram, TikTok, messages…)'); more.addEventListener('click', () => navigator.share({ title: 'DanzStak', text, url: url.href }).catch(() => {})); outside.appendChild(more); }
+    const outsideLabel = document.createElement('p'); outsideLabel.className = 'post-share-socials-label'; outsideLabel.textContent = 'Share outside DanzStak';
     const actions = document.createElement('div'); actions.className = 'post-share-actions'; actions.append(copy,close);
-    dialog.append(title,note,comment,destinationLabel,audienceLabel,publish,feedback,link,actions); dialog.onclose = () => post.querySelector('.shareBtn,.profile-post-share')?.focus(); dialog.showModal();
+    dialog.append(title,note,comment,destinationLabel,audienceLabel,publish,feedback,outsideLabel,outside,link,actions); dialog.onclose = () => post.querySelector('.shareBtn,.profile-post-share')?.focus(); dialog.showModal();
     feedback.textContent = 'Loading your Tribes…';
     try {
       const tribes = await joinedTribes();
