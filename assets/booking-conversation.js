@@ -71,7 +71,11 @@
     const routeText = text.replace(/^tour\s+(?!from\b)/i, "from "),
       route = !chainedRoute && routeText.match(/\bfrom\s+(.+?)\s+to\s+(.+?)(?=\s+(?:and\s+back|then\s+back|and\s+home|return(?:ing)?\s+home|(?:for|in)\s+\d+\s*(?:-| )?days?|starting\s+\d{4}-\d{2}-\d{2})\b|$)/i),
       bareRoute = !chainedRoute && !route && routeText.match(/(?:^|[,.!?]\s*)([a-z][a-z '-]{1,80}?)\s+to\s+([a-z][a-z '-]{1,80}?)(?=\s+and\s+back(?:\s+to\s+[a-z][a-z '-]{1,80}?)?(?:[,;.!?]|\s+|$))/i);
-    const parsedRoute = route || bareRoute;
+    // One-way runs typed without "from" or "and back", e.g. "Bellingham to San Diego" or
+    // "Punk. Bellingham, WA to San Diego, CA. 14 days." (owner bug report 2026-11-16).
+    const oneWay = !chainedRoute && !route && !bareRoute && routeText.match(/(?:^|[.!?;]\s+)([a-z][a-z ,'-]{1,80}?)\s+to\s+([a-z][a-z .,'-]{1,80}?)(?=\s+(?:for|in)\s+\d+\s*(?:-| )?days?|\s+starting\b|[.!?;](?:\s|$)|$)/i);
+    const oneWayOk = oneWay && !/\b(?:want|need|going|like|love|try|trying|have|plan|planning|hoping|ready|able|i|we|find|look|looking|search|book|get|clubs|shows|gigs|venues)\b/i.test(oneWay[1]) && !/\bbetween\b/i.test(text);
+    const parsedRoute = route || bareRoute || (oneWayOk ? oneWay : null);
     if (parsedRoute) { parsed.home = tidyPlace(parsedRoute[1]); parsed.destination = tidyPlace(parsedRoute[2]); parsed.mode = "tour"; }
     else {
       const betweenRoute = text.match(/\bbetween\s+(.+?)\s+and\s+(.+?)(?=\s+(?:for|in)\s+\d+\s*(?:-| )?days?|[.!?]|$)/i);
@@ -113,6 +117,12 @@
     requestStarted = true;
     const parsed = parseTourBrief(brief.value);
     if (!brief.value.trim()) { status.textContent = "Describe where you are starting, how long you have, and where you want to go."; brief.focus(); return; }
+    if (!parsed.mode && !parsed.home && /\bto\b/i.test(brief.value) && !/\b(?:want|need|book|play|near|around|local)\b/i.test(brief.value)) {
+      requestStarted = false;
+      status.textContent = "I couldn't read the route. Try: From Bellingham to San Diego, 14 days, 10 shows.";
+      brief.focus();
+      return;
+    }
     applyTourBrief(parsed);
     const missing = [];
     if (!field("startCity")?.value.trim()) missing.push("home town");
