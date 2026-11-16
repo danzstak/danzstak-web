@@ -3240,7 +3240,9 @@ async function reviewedVenueDirectoryRecords() {
 
 // Club database (owner 2026-11-16): keep every club a search finds, and rank it only by what really
 // happened with DanzStak bands. See club-directory.mjs for the rules.
-let clubRecordCache = { records: new Map(), expiresAt: 0 }, clubStatsRun = 0;
+let clubRecordCache = { records: new Map(), expiresAt: 0 }, clubStatsRun = 0, clubWritesBlocked = false;
+// Until the club-database permission is granted, searches keep working and skip the writes quietly.
+const clubWriteDenied = error => { if (error?.name === "AccessDeniedException") { if (!clubWritesBlocked) console.error("Club database writes need dynamodb:UpdateItem permission."); clubWritesBlocked = true; return true; } return false; };
 const CLUB_STATS_META = "meta-club-stats", CLUB_STATS_EVERY_MS = 30 * 60 * 1000;
 async function clubRecords() {
   if (clubRecordCache.expiresAt > Date.now()) return clubRecordCache.records;
@@ -3262,22 +3264,23 @@ function withClubRecords(venues, records) {
   return sortByClubTier(annotated);
 }
 async function saveFoundClubs(venues) {
+  if (clubWritesBlocked) return;
   const at = new Date().toISOString(), clubs = venues.map(clubFromPlace).filter(Boolean);
   if (!clubs.length) return;
   const work = mapLimit(clubs, 8, async club => {
     try { await db.send(new UpdateItemCommand(clubUpsert(venueDirectoryTable, club, at))); }
-    catch (error) { if (error.name !== "ConditionalCheckFailedException") console.error("Club not saved:", error.name); }
+    catch (error) { if (error.name !== "ConditionalCheckFailedException" && !clubWriteDenied(error)) console.error("Club not saved:", error.name); }
   });
   await Promise.race([work, new Promise(resolve => setTimeout(resolve, 2500))]);
 }
 // Recount every club from the stored pitches and booking lists, at most every 30 minutes.
 async function refreshClubStatsIfDue() {
-  if (Date.now() - clubStatsRun < CLUB_STATS_EVERY_MS) return;
+  if (clubWritesBlocked || Date.now() - clubStatsRun < CLUB_STATS_EVERY_MS) return;
   clubStatsRun = Date.now();
   const at = new Date().toISOString(), cutoff = new Date(Date.now() - CLUB_STATS_EVERY_MS).toISOString();
   try {
     await db.send(new UpdateItemCommand({ TableName: venueDirectoryTable, Key: { venueKey: { S: CLUB_STATS_META } }, UpdateExpression: "SET statsAt = :at", ConditionExpression: "attribute_not_exists(statsAt) OR statsAt < :cutoff", ExpressionAttributeValues: { ":at": { S: at }, ":cutoff": { S: cutoff } } }));
-  } catch (error) { if (error.name !== "ConditionalCheckFailedException") console.error("Club stats claim failed:", error.name); return; }
+  } catch (error) { if (error.name !== "ConditionalCheckFailedException" && !clubWriteDenied(error)) console.error("Club stats claim failed:", error.name); return; }
   try {
     const items = await scanAll({ TableName: toursTable, FilterExpression: "begins_with(tourId, :send) OR tourId = :workspace", ExpressionAttributeValues: { ":send": { S: "TOUR_MANAGER#EMAIL_SEND#" }, ":workspace": { S: BOOKING_WORKSPACE_ID } } }, 50000);
     const stats = clubStats(items);
