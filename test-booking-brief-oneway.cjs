@@ -95,3 +95,14 @@ console.log("Natural-language brief checks passed.");
   assert.equal(parse("salt lake to detroit 1 way").destination, "detroit");
   console.log("Italian, French and Spanish brief checks passed.");
 }
+{
+  // Owner 2026-11-16 (Salt Lake → Detroit live run): no Home pin, no "back home" link and no "Detroit → Detroit" on a
+  // one-way tour; no show at the end of a drive longer than a safe driving day.
+  const agent = fs.readFileSync(require("node:path").join(__dirname, "assets/booking-agent.js"), "utf8");
+  assert.match(agent, /index === coords\.length - 1 && !route\.oneWay \? "Home"/);
+  assert.match(agent, /routeDestinations\.length > 2 && !route\.oneWay\)/);
+  assert.match(agent, /drop a repeated end/);
+  assert.match(agent, /maxLegMiles = Math\.max\(120, \(number\("maxDriveHours"\) \|\| 8\) \* 55\)/);
+  assert.match(agent, /longDrive = nextLeg !== null && nextLeg > maxLegMiles && spareDays > 0/);
+  console.log("One-way map and long-drive rest checks passed.");
+}
