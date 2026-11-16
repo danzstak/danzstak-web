@@ -40,3 +40,19 @@ console.log("Natural-language brief checks passed.");
   assert.match(src, /parsed\.days \* 0\.7/);
   console.log("One-way tour checks passed.");
 }
+{
+  const vm = require("node:vm");
+  const server = fs.readFileSync(require("node:path").join(__dirname, "infrastructure/auth-api/index.mjs"), "utf8");
+  const pick = (start, end) => { const i = server.indexOf(start); return server.slice(i, server.indexOf(end, i)); };
+  const ctx = vm.createContext({});
+  vm.runInContext(pick("function approximateMilesBetween", "\nasync function approvedMemberVenueLeads") + pick("// Music cities a touring band actually plays", "async function reverseGeocodeTourMarket"), ctx);
+  // Points on I-80 between Salt Lake and Detroit snap to real music cities, not tiny towns.
+  assert.match(ctx.nearestMusicCity([-95.9, 41.25]).label, /^Omaha, NE/);
+  assert.match(ctx.nearestMusicCity([-93.7, 41.6]).label, /^Des Moines, IA/);
+  assert.match(ctx.nearestMusicCity([-87.4, 41.6]).label, /^Chicago, IL/);
+  assert.equal(ctx.nearestMusicCity([-103.5, 38.0]), null, "the middle of nowhere falls back to reverse geocoding");
+  const ui = fs.readFileSync(require("node:path").join(__dirname, "assets/booking-agent.js"), "utf8");
+  assert.match(ui, /if \(data\.route\.oneWay\) return strongestRouteMarkets/);
+  assert.match(ui, /\(one way\)/);
+  console.log("Music-city snapping and one-way calendar checks passed.");
+}
